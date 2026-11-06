@@ -175,7 +175,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Nodo** — `definicion.nodos[]`: una línea de la fórmula: input, constante, tipo de cambio, campo, bandera, tabla, tramo, cálculo.
 - **Constante** — nodo `constante` + `params`: valor por defecto versionado que el ⚙ de la XCell cambia.
 - **Versión de la fórmula** — `formulas.version`: el número de una publicada o archivada, por origen (el borrador no tiene). La pestaña «Fórmula» de Configuración › Cotización las lista de la más nueva (4.20-2a).
-- **Borrador de la fórmula** — `formulas.estado = 'borrador'`: a lo sumo uno por origen, sin número; lo publicado no cambia hasta publicarlo. No es el «Borrador» de un formulario (`useBorrador()`).
+- **Borrador de la fórmula** — `formulas.estado = 'borrador'`: a lo sumo uno por origen, sin número; lo publicado no cambia hasta publicarlo. Se descarta con «Descartar…» (`<Confirmar>`, 4.20-2c) y no se deshace; no es la «Pregunta al descartar» (`<ConfirmarDescarte>`), que pregunta al cerrar un formulario con cambios. No es el «Borrador» de un formulario (`useBorrador()`).
 - **Versión de origen** — `formulas.version_origen_id`: en un borrador, la publicada sobre la que se empezó (si ya no es la publicada, publicarlo da PT409); en una publicada o archivada, la publicada que reemplazó.
 - **Revertir la fórmula** — `formula_revertir()`: publica la N+1 como copia (con su diseño) de una versión archivada; no es el ↺ de la XCell.
 - **Bucket** — `definicion.buckets` (nombre → nodo `tipo_cambio`), `grupos[].bucket`: papel del dinero (pagado afuera, en aduana) y el tipo de cambio que lo convierte.

@@ -15,8 +15,15 @@ export type PedidoDeRevertir = {
   publicadaEsperada: string
 }
 
-// Las escrituras de la fórmula desde Configuración › Cotización (4.20-2b), por las RPC del 4.20-1. Cada una devuelve el id de la versión publicada.
+// Lo que se manda para descartar el borrador de un origen (4.20-2c): sólo el origen; la base borra el que haya, sin versión esperada (llega en el 4.21).
+export type PedidoDeDescartar = {
+  origenId: string
+}
+
+// Las escrituras de la fórmula desde Configuración › Cotización (4.20-2b y 2c), por las RPC del 4.20-1 y la de descartar. Publicar y revertir devuelven el id de la
+// versión publicada; descartar, nada.
 export interface RepositorioDeLaFormula {
   publicar(pedido: PedidoDePublicar): Promise<Resultado<string>>
   revertir(pedido: PedidoDeRevertir): Promise<Resultado<string>>
+  descartar(pedido: PedidoDeDescartar): Promise<Resultado<null>>
 }

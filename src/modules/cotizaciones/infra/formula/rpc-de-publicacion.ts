@@ -39,5 +39,10 @@ export function publicacionSobre(cliente: SupabaseClient<Database>): Repositorio
           p_publicada_esperada: publicadaEsperada,
         }),
       ),
+    // `returns void`: sin error, entró.
+    descartar: async ({ origenId }) => {
+      const { error } = await cliente.rpc('formula_descartar_borrador', { p_origen: origenId })
+      return error ? { ok: false, error: errorDePostgrest(error) } : ok(null)
+    },
   }
 }
