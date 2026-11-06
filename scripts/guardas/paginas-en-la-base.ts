@@ -12,6 +12,7 @@ import {
 } from '../../src/shared/lib/paginacion'
 import { MAXIMO_DE_PAGINA_DE_COTIZACIONES } from '../../src/modules/cotizaciones/entities/listado/listado'
 import { MAXIMO_DE_PAGINA_DE_VEHICULOS } from '../../src/modules/vehiculos/entities/vehiculo'
+import { RPC_PAGINADAS_DE_LA_PAPELERA } from './paginas-en-la-base-papelera'
 
 export type RpcPaginada = {
   rpc: string
@@ -22,7 +23,8 @@ export type RpcPaginada = {
   lista: string
 }
 
-export const RPC_PAGINADAS: readonly RpcPaginada[] = [
+// Las del núcleo (del A). Las de un área van en su archivo (`paginas-en-la-base-papelera.ts`, del C) y se suman abajo.
+export const RPC_PAGINADAS_DEL_NUCLEO: readonly RpcPaginada[] = [
   {
     // Hasta el 4.17-2 la sección pide `TOPE_DE_OPORTUNIDADES_DEL_LEAD` (100, el máximo de la base), no esto. El registro sólo compara contra 20, así que ese 100 lo protege
     // T4 de `supabase/tests/lead-oportunidades-pagina.sql` (`p_tamano` 1000 da 100), en `pnpm db:probar`.
@@ -114,4 +116,9 @@ export const RPC_PAGINADAS: readonly RpcPaginada[] = [
     pideElCodigo: MAXIMO_DE_PAGINA_DE_VEHICULOS,
     lista: 'inventario de vehículos de quien ve «propios»',
   },
+]
+
+export const RPC_PAGINADAS: readonly RpcPaginada[] = [
+  ...RPC_PAGINADAS_DEL_NUCLEO,
+  ...RPC_PAGINADAS_DE_LA_PAPELERA,
 ]

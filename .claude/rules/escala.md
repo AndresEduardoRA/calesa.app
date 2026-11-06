@@ -25,8 +25,9 @@ sembrado, no a ojo (`pnpm db:sembrar-volumen`, `pnpm db:medir:volumen`). Cada su
   `TAMANO_DE_COLUMNA`; las papeleras, `LOTES_POR_PAGINA`. Ninguna lleva selector de tamaño.
 - Toda RPC con parámetro de tamaño (`p_tamano`, `p_tope`…) lo pasa por
   `_acotar_pagina(parámetro, por_defecto, máximo)`, nunca `least(greatest(…))` a mano. Una RPC
-  nueva con tamaño entra al registro de `scripts/guardas/paginas-en-la-base.ts` y su máximo no puede
-  ser menor que el del código. Una lectura por PostgREST tiene su tope en `max_rows` de `config.toml`.
+  nueva con tamaño entra al registro de `scripts/guardas/paginas-en-la-base.ts` (la de la papelera de
+  cotizaciones, en `paginas-en-la-base-papelera.ts`, del C) y su máximo no puede ser menor que el del
+  código. Una lectura por PostgREST tiene su tope en `max_rows` de `config.toml`.
 - Lo que se dibuja tiene tope. Al llegar se avisa con `<AvisoDeTope>` de `shared/ui`; la lectura
   pide uno de más y `cortarAlTope()` de `shared/lib/conteo` corta y dice si había más. Siempre hay un
   camino a lo antiguo («Ir a una fecha», un filtro, búsqueda por nombre).
