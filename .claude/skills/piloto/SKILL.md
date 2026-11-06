@@ -72,11 +72,15 @@ Si `$ARGUMENTS` es `ci-fix`, **no hay fila en `docs/PLAN.md`, ni planificador, n
   "resumen": "qué se hizo o qué pasó, en pocas frases",
   "commits": ["<sha>", "…"],
   "e2e_dirigidos": ["e2e/<spec>.spec.ts"],
+  "parcial": false,
   "compuerta": null
 }
 ```
 
 - **`listo`:** los commits son **todos** los del paso (`HEAD de arranque..HEAD`, ni uno más) y el árbol está limpio. `e2e_dirigidos`: los specs que tocan lo que cambiaste (grepea `e2e/` por el texto tocado); el bucle los repite.
+- **`parcial`** (sólo en un carril, con `listo`): `true` si el paso se partió y este «listo» es una de sus partes (el 4.20-2b de un 4.20 que sigue). El paso sigue asignado al carril y la
+  vuelta siguiente retoma su rama; con `false` (o sin el campo), el coordinador lo da por terminado cuando se integre su PR y el carril pasa al siguiente. Escribirlo
+  en el resumen («este PR no marca integrado…») no alcanza: el bucle sólo mira el campo.
 - **`compuerta`:** `compuerta` es `{ "tipo", "motivo", "pregunta", "opciones": [{ "etiqueta", "descripcion" }, …], "contexto": ["<ruta>", …] }`; de **2 a 4 opciones, la recomendada primero**; `contexto` lleva las
   rutas que la persona puede abrir (el plan, el informe). Te retoman con `continuar`: la respuesta literal está en `hechos.json` › `decision`.
   La de **`producto`** lleva, en vez de `pregunta` y `opciones`, **una pregunta por decisión** abierta del plan, en su orden, en `preguntas`: cada una

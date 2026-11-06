@@ -75,6 +75,7 @@ if [ -n "${PILOTO_CARRIL:-}" ]; then
   registro() { echo "publicar: $*" >&2; }
   # shellcheck source=carril.sh
   source "$(dirname "${BASH_SOURCE[0]}")/carril.sh"
-  [ -n "$PR" ] && carril_publicado "$PASO" "$PR"
+  PARCIAL=$(jq -r '.parcial // false' "$ESTADO/ultimo.json" 2>/dev/null || echo false)
+  [ -n "$PR" ] && carril_publicado "$PASO" "$PR" "$PARCIAL"
 fi
 echo "publicar: $PASO en $RAMA ($CORTO), PR ${PR:-nuevo}."

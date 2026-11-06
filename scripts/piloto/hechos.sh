@@ -70,12 +70,15 @@ if [ -s "$ESTADO/ci-rojos.md" ]; then
   CI_ROJOS_ULTIMOS=$(grep '^- ' "$ESTADO/ci-rojos.md" | tail -n 10 | jq -Rsc 'split("\n") | map(select(length > 0))')
 fi
 
-# La decisión vigente: sólo si es de la compuerta de ahora.
+# La decisión vigente: sólo si es de la compuerta de ahora y esa compuerta es de este carril. `compuerta.md` y `decision.md` son únicos en
+# toda la máquina: sin mirar el carril, el «parar» de una compuerta del B se leía en el C como orden propia (2026-11-06). Una compuerta
+# sin `carril:` (las de antes) es del carril A.
 DECISION=""
 if [ -s "$COMUN/compuerta.md" ] && [ -s "$COMUN/decision.md" ]; then
   ID_C=$(sed -n 's/^id: *//p' "$COMUN/compuerta.md" | head -n 1)
   ID_D=$(sed -n 's/^id: *//p' "$COMUN/decision.md" | head -n 1)
-  [ -n "$ID_C" ] && [ "$ID_C" = "$ID_D" ] && DECISION=$(head -c 8000 "$COMUN/decision.md")
+  CARRIL_C=$(sed -n 's/^carril: *//p' "$COMUN/compuerta.md" | head -n 1)
+  [ -n "$ID_C" ] && [ "$ID_C" = "$ID_D" ] && [ "${CARRIL_C:-a}" = "${PILOTO_CARRIL:-a}" ] && DECISION=$(head -c 8000 "$COMUN/decision.md")
 fi
 
 jq -n \
