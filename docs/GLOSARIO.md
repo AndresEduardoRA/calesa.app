@@ -79,7 +79,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Precio público** — `vehiculos.precio_web` / `precio_web_hasta`: lo que muestra la web; NULL = «Consultar».
 - **Papelera** — `lotes_papelera`, `eliminado_en` / `vehiculos_papelera_*`, `leads_papelera_*`, `papelera_*` de cotizaciones: borrado reversible hasta la purga.
 - **Lote de papelera** — `lotes_papelera` / `LoteDePapelera`: envío de 1 a 200 a la papelera; se restaura o purga entero o por partes. En la UI, «lote».
-- **Purga** — `vehiculos_papelera_purgar()`, `papelera_purgar_vencidos()`: borrar para siempre: a mano (`vehiculos.papelera.purgar`) o a los `papelera_dias`.
+- **Purga** — `vehiculos_papelera_purgar()`, `papelera_purgar()`, `papelera_purgar_vencidos()`: borrar para siempre: a mano (`vehiculos.papelera.purgar`, `leads.papelera.purgar` o `cotizaciones.papelera.purgar`, cada papelera la suya) o a los `papelera_dias`.
 - **Limpieza de Storage** — `cola_gc_storage` / función `storage-gc`, `storage_gc_*()`: borrar de Storage lo que nadie referencia; job cada hora.
 - **Pase** — `cola_gc_pases` / `storage_gc_disparar()`, `storage_gc_abrir()`: uuid de un solo uso (10 min) con que el job autentica su llamada a `storage-gc`.
 - **Restaurar** — `vehiculos_papelera_restaurar()`: vuelve al inventario sin publicar; lo que choca con un VIN o lote ya tomado queda pendiente, con motivo.

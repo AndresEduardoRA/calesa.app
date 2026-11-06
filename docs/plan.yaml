@@ -132,6 +132,8 @@ carriles:
         src/app/(app)/cotizaciones/papelera/,
         # Su pestaña de Configuración › Empresa (4.15-6c): la lista y la sección; la barra y la página son del A (4-89).
         src/app/(app)/configuracion/empresa/comprobantes/,
+        # Las RPC con tamaño de su papelera (4.15-7): el registro del núcleo es del A y las suma.
+        scripts/guardas/paginas-en-la-base-papelera.ts,
       ]
 
 pasos:
@@ -246,6 +248,12 @@ pasos:
         supabase/migrations/,
         supabase/tests/,
         scripts/guardas/paginas-en-la-base.ts,
+        scripts/guardas/paginas-en-la-base.test.ts,
+        scripts/guardas/paginas-en-la-base-papelera.ts,
+        scripts/probar-schema.mjs,
+        scripts/lib/pruebas-de-la-base.mjs,
+        scripts/lib/pruebas-de-la-base.test.ts,
+        .claude/rules/,
         src/shared/types/,
         docs/,
       ]
@@ -258,7 +266,7 @@ pasos:
         sesion: nueva,
         revisor: claude-sesion-nueva,
       }
-    verificacion: 'Nivel 1 + db:reset, db:types y db:probar; compuerta datos (qué roles la reciben)'
+    verificacion: 'Nivel 2 (src/shared y RLS) + db:reset, db:types y db:probar; compuerta datos (qué roles la reciben)'
     terminado: 'La clave existe en permisos.ts, su catálogo y el seed; el 4.24 no toca archivos del A; cierra 4-87'
   - id: '4.16'
     titulo: 'El listado /cotizaciones con resumen, «Vencida», cursor, volumen medido y navegación'
@@ -492,6 +500,7 @@ pasos:
         src/modules/cotizaciones/pantallas/papelera-cotizacion.ts,
         src/modules/cotizaciones/areas/papelera/,
         src/app/(app)/cotizaciones/papelera/,
+        scripts/guardas/paginas-en-la-base-papelera.ts,
         docs/,
       ]
     ruteo:
