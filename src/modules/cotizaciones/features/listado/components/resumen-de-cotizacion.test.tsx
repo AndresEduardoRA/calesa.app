@@ -2,8 +2,8 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type * as ReactTipos from 'react'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { CotizacionDelListado } from '../../../entities/filas-del-listado'
-import type { LecturaDelServidor } from '../../../entities/resumen-del-listado'
+import type { CotizacionDelListado } from '../../../entities/listado/filas-del-listado'
+import type { LecturaDelServidor } from '../../../entities/listado/resumen-del-listado'
 
 const refresh = vi.fn()
 // Un pedido que no termina: `useTransition` queda pendiente mientras `enCamino` sea true (el `refresh` de verdad devuelve el control y el pedido sigue).

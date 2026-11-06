@@ -7,19 +7,22 @@ export {
   leerListadoDeCotizaciones,
   leerUnaDelListado,
 } from './composicion'
-export { CLAVE_DE_RESUMEN_DE_COTIZACION, idDelResumen } from '../../entities/resumen-del-listado'
-export type { LecturaDelServidor } from '../../entities/resumen-del-listado'
-export { filasConNombres, idsDe } from '../../entities/filas-del-listado'
-export type { CotizacionDelListado } from '../../entities/filas-del-listado'
+export {
+  CLAVE_DE_RESUMEN_DE_COTIZACION,
+  idDelResumen,
+} from '../../entities/listado/resumen-del-listado'
+export type { LecturaDelServidor } from '../../entities/listado/resumen-del-listado'
+export { filasConNombres, idsDe } from '../../entities/listado/filas-del-listado'
+export type { CotizacionDelListado } from '../../entities/listado/filas-del-listado'
 export {
   esquemaDelListado,
   origenParaNueva,
   pedidoDelListado,
-} from '../../entities/filtros-del-listado'
-export { MAXIMO_DE_PAGINA_DE_COTIZACIONES } from '../../entities/listado'
+} from '../../entities/listado/filtros-del-listado'
+export { MAXIMO_DE_PAGINA_DE_COTIZACIONES } from '../../entities/listado/listado'
 export type {
   ClaseDeCotizacion,
   EstadoDeCotizacion,
   FilaDelListado,
   PedidoDelListado,
-} from '../../entities/listado'
+} from '../../entities/listado/listado'

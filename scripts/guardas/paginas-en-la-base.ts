@@ -10,7 +10,7 @@ import {
   TOPE_DE_LO_CARGADO,
   TOPE_DEL_EQUIPO,
 } from '../../src/shared/lib/paginacion'
-import { MAXIMO_DE_PAGINA_DE_COTIZACIONES } from '../../src/modules/cotizaciones/entities/listado'
+import { MAXIMO_DE_PAGINA_DE_COTIZACIONES } from '../../src/modules/cotizaciones/entities/listado/listado'
 import { MAXIMO_DE_PAGINA_DE_VEHICULOS } from '../../src/modules/vehiculos/entities/vehiculo'
 
 export type RpcPaginada = {

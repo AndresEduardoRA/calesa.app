@@ -1,9 +1,9 @@
 // Composición del área `listado` de `cotizaciones` en el servidor (4.15-4): las lecturas del listado, que sólo usa esta área. Sale por
 // la `composicion.ts` de la raíz, que sólo la reexporta.
 import 'server-only'
-import { getAutoresDeCotizaciones } from '../../infra/queries/autores-del-listado'
-import { getListadoDeCotizaciones } from '../../infra/queries/listado'
-import { getUnaDelListado } from '../../infra/queries/una-del-listado'
+import { getAutoresDeCotizaciones } from '../../infra/listado/autores-del-listado'
+import { getListadoDeCotizaciones } from '../../infra/listado/listado'
+import { getUnaDelListado } from '../../infra/listado/una-del-listado'
 
 export const leerListadoDeCotizaciones = getListadoDeCotizaciones
 // Quién hizo cada cotización de una página del listado (4.16-4a): los nombres por clave primaria de `perfiles`.

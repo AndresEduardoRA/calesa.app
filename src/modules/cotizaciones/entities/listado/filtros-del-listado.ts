@@ -5,9 +5,9 @@ import type { EsquemaDeFiltros, OpcionDeFiltro, ValoresDeFiltros } from '@/share
 import type { Cursor } from '@/shared/lib/paginacion'
 import type { Permisos } from '@/shared/lib/permisos'
 import type { ClaseDeCotizacion, PedidoDelListado } from './listado'
-import { ETIQUETA_DE_CLASE } from './historial-del-vehiculo'
-import { origenesParaCotizar } from './origenes-para-cotizar'
-import { CLAVE_DE_ORIGEN } from './ruta-de-la-hoja'
+import { ETIQUETA_DE_CLASE } from '../historial-del-vehiculo'
+import { origenesParaCotizar } from '../origenes-para-cotizar'
+import { CLAVE_DE_ORIGEN } from '../ruta-de-la-hoja'
 
 export const CLAVE_DE_CLASE = 'clase'
 export const CLAVE_DE_CUALES = 'cuales'

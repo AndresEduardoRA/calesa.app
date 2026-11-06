@@ -17,7 +17,7 @@ vi.mock('@/shared/lib/supabase/server', () => ({
   ),
 }))
 
-import { MAXIMO_DE_PAGINA_DE_COTIZACIONES } from '../../entities/listado'
+import { MAXIMO_DE_PAGINA_DE_COTIZACIONES } from '../../entities/listado/listado'
 import { getListadoDeCotizaciones } from './listado'
 
 const ORIGEN = '00000000-0000-4000-8000-0000000000aa'
