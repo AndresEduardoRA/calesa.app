@@ -52,7 +52,8 @@ une por `pantallas/<área>-<pantalla>.ts`. Un hueco vacío es un objeto sin comp
   `Proveedor` enciende el ⚙ de una celda por `ContextoDelAjuste`: sin él ninguna celda lo dibuja ni se llama ningún hook del ajuste. La base dice qué celda lo lleva (`ajustes`); se abre
   en `?ajuste=celda&nodo=<id>` y su lugar (`<LugarDelAjuste>`) se monta con las secciones principales y también **dentro del modal «Avanzado»**, como la ayuda.
 - **La guardada** (`HuecosDeLaGuardada`, 4.15-6b): `Acciones` va en la cabecera, después de «Revisiones» (`<CabeceraDeLaGuardada acciones>`), y `Debajo`, bajo la hoja y fuera del proveedor del ⚙. Los llenan, uno por área, `pantallas/{final,comprobantes,comentarios,papelera}-cotizacion.ts` (cada uno, un objeto vacío en `features/<área>/components/huecos-en-la-guardada.ts`), y `src/app/(app)/cotizaciones/[id]/huecos-de-la-guardada.tsx` los ordena (final, comprobantes, comentarios y papelera: la destructiva al final). Cada componente recibe `{ cotizacion, puedeGuardar, permisos }`.
-- Los del listado, en el 4.15-6b; los de Empresa y Configuración, en el 4.15-6c.
+- **El listado** (`HuecosDelListado`, 4.15-6b): `Junto` va antes de «Nueva cotización» en la barra de acciones de `/cotizaciones` (`<ListadoDeCotizaciones junto>`; el vacío sigue ofreciendo sólo «Nueva»). Lo llena `pantallas/papelera-listado.ts` (el enlace a la papelera, 4.24) y la página lo dibuja con `permisos`.
+- Los de Empresa y Configuración, en el 4.15-6c.
 
 ## Archivos clave
 

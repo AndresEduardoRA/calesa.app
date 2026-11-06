@@ -60,3 +60,8 @@ export type HuecosDeLaGuardada = {
   Acciones?: ComponentType<PropsDeUnHuecoDeLaGuardada>
   Debajo?: ComponentType<PropsDeUnHuecoDeLaGuardada>
 }
+
+// El hueco del listado `/cotizaciones` (4.15-6b): `Junto` va antes de «Nueva cotización» en la barra de acciones (el enlace a la papelera, 4.24). Lo llena `papelera`.
+export type HuecosDelListado = {
+  Junto?: ComponentType<{ permisos: Permisos }>
+}

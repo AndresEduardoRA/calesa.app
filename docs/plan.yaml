@@ -109,6 +109,7 @@ carriles:
         src/modules/cotizaciones/areas/papelera/,
         src/modules/cotizaciones/pantallas/papelera.ts,
         src/modules/cotizaciones/pantallas/papelera-cotizacion.ts,
+        src/modules/cotizaciones/pantallas/papelera-listado.ts,
         src/modules/cotizaciones/features/final/,
         src/modules/cotizaciones/entities/final/,
         src/modules/cotizaciones/infra/final/,
