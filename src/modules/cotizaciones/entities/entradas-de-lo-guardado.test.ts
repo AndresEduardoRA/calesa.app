@@ -17,6 +17,7 @@ const guardado = (
   valores: new Map(Object.entries(valores)),
   fuentes: new Map(Object.entries(fuentes)),
   totalUsd: 100,
+  totalBs: null,
 })
 const entradas = (g: LoGuardado, modoTc: string | null = null) =>
   entradasDeLoGuardado(indice, g, { modoTc })
