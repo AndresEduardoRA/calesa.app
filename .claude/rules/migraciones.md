@@ -54,7 +54,7 @@ paths:
 - Conflicto de edición: `raise exception … using errcode = 'PT409'` (o `_conflicto_de_edicion()`), jamás `40001`. Un error de
   validación lleva en `hint` el campo.
 - Toda RPC de edición nace con `p_actualizado_en_esperado timestamptz` sin default y lo pasa por `_exigir_version()`; las de crear
-  no. Una de lote, por elemento. Excepciones: `formula_guardar_borrador` hasta el 4.20 y `leads_papelera_enviar` (todo o nada,
+  no. Una de lote, por elemento. Excepciones: `formula_guardar_borrador` hasta el 4.20, `plantilla_guardar_borrador` y `plantilla_publicar` hasta el 4.19 (el editor) y `leads_papelera_enviar` (todo o nada,
   idempotente por lote). Una versión que debe moverse dos veces en una transacción no usa el trigger genérico:
   `greatest(clock_timestamp(), anterior + 1 µs)`; la de una cotización la sella `cotizacion_version()`.
 - Un `if` de plpgsql termina en el primer `then`, también el de un `case`: esa condición va a una variable antes.

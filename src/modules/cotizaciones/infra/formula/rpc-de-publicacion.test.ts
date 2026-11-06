@@ -157,3 +157,21 @@ describe('publicacionSobre › revertir', () => {
     ).toEqual({ ok: false, error: { codigo: 'regla', mensaje: 'Esa ya es la versión publicada.' } })
   })
 })
+
+describe('publicacionSobre › descartar', () => {
+  it('llama formula_descartar_borrador con el origen y, sin error, entra', async () => {
+    const { cliente, llamadas } = clienteFalso({ data: null, error: null })
+    const hecho = await publicacionSobre(cliente).descartar({ origenId: ORIGEN })
+    expect(llamadas).toEqual([['formula_descartar_borrador', { p_origen: ORIGEN }]])
+    expect(hecho).toEqual({ ok: true, data: null })
+  })
+
+  it('un 42501 es sin permiso con el mensaje de la base', async () => {
+    const { cliente } = clienteFalso({
+      data: null,
+      error: { code: '42501', message: 'No tienes permiso para configurar la fórmula.' },
+    })
+    const hecho = await publicacionSobre(cliente).descartar({ origenId: ORIGEN })
+    expect(hecho.ok ? null : hecho.error.codigo).toBe('sin_permiso')
+  })
+})

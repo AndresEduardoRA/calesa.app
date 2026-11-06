@@ -175,7 +175,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Nodo** — `definicion.nodos[]`: una línea de la fórmula: input, constante, tipo de cambio, campo, bandera, tabla, tramo, cálculo.
 - **Constante** — nodo `constante` + `params`: valor por defecto versionado que el ⚙ de la XCell cambia.
 - **Versión de la fórmula** — `formulas.version`: el número de una publicada o archivada, por origen (el borrador no tiene). La pestaña «Fórmula» de Configuración › Cotización las lista de la más nueva (4.20-2a).
-- **Borrador de la fórmula** — `formulas.estado = 'borrador'`: a lo sumo uno por origen, sin número; lo publicado no cambia hasta publicarlo. No es el «Borrador» de un formulario (`useBorrador()`).
+- **Borrador de la fórmula** — `formulas.estado = 'borrador'`: a lo sumo uno por origen, sin número; lo publicado no cambia hasta publicarlo. Se descarta con «Descartar…» (`<Confirmar>`, 4.20-2c) y no se deshace; no es la «Pregunta al descartar» (`<ConfirmarDescarte>`), que pregunta al cerrar un formulario con cambios. No es el «Borrador» de un formulario (`useBorrador()`).
 - **Versión de origen** — `formulas.version_origen_id`: en un borrador, la publicada sobre la que se empezó (si ya no es la publicada, publicarlo da PT409); en una publicada o archivada, la publicada que reemplazó.
 - **Revertir la fórmula** — `formula_revertir()`: publica la N+1 como copia (con su diseño) de una versión archivada; no es el ↺ de la XCell.
 - **Bucket** — `definicion.buckets` (nombre → nodo `tipo_cambio`), `grupos[].bucket`: papel del dinero (pagado afuera, en aduana) y el tipo de cambio que lo convierte.
@@ -183,7 +183,9 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **XCell** — `src/shared/ui/xcell`: celda numérica editable del cotizador: valor, default, revertir, ayuda, ⚙, sugerido, teclado.
 - **Modo Live** — `useLive()` / `<Monto>`: oculta cifras y símbolos de moneda en toda la app.
 - **Tabla de referencia** — `tablas_referencia`, `_filas`: tablas que alimentan nodos tabla/tramo (impuestos, tramos, tarifas, depreciación).
-- **Plantilla de tarjeta** — `plantillas_tarjeta`: cómo se ve la cotización (tarjeta y PDF), versionada aparte.
+- **Plantilla de tarjeta** — `plantillas_tarjeta`: cómo se ve la cotización (tarjeta y PDF), versionada aparte; declarativa (los grupos de la fórmula con su tono, etiquetas y leyendas por nodo, el total, la nota, el logo y las columnas) y validada por `validar_plantilla()` (4.18-1).
+- **Lectura de la tarjeta** — `cotizacion_tarjeta()`: lo que dibujan la tarjeta y el PDF de una versión de la fórmula, con la plantilla publicada validada contra esa versión y sólo lo del nivel «todos». No es la **Tarjeta del total** (`diseno.tarjeta_total`, el resumen fijo de la hoja).
+- **Tarjeta por omisión** — `{estado: 'sin_plantilla'}` de `cotizacion_tarjeta()`: la plantilla publicada no le sirve a esa versión y la tarjeta muestra sólo el total y lo aparte (4.18-2).
 - **Revisión** — `cotizaciones_revisiones`: diff de cada edición.
 - **Reporte** — `cotizaciones_reportes` / `cotizacion_moderar`: marca de problema; sólo quien modera invalida.
 - **Comprobante** — `comprobantes`, `comprobantes_contadores`: comprobante de venta interno, numeración sin huecos; se anula, no se borra.

@@ -97,6 +97,22 @@ describe('publicar.sh › un PR por paso del carril', () => {
     expect(leer('coord.log')).toContain('publicado 4.20 31')
   })
 
+  it('con «parcial» en ultimo.json, abre el PR pero el paso sigue asignado: el coordinador no lo anota como publicado', () => {
+    mkdirSync(join(raiz, 'estado'), { recursive: true })
+    writeFileSync(
+      join(raiz, 'estado', 'ultimo.json'),
+      JSON.stringify({ paso: '4.20', resultado: 'listo', parcial: true }),
+    )
+    writeFileSync(join(raiz, 'coord.log'), '')
+    rmSync(join(raiz, 'pr-abierto'), { force: true })
+    const r = publicar('formula/4.20-parcial')
+    rmSync(join(raiz, 'estado', 'ultimo.json'), { force: true })
+    expect(r.estado, r.salida).toBe(0)
+    expect(leer('gh.log')).toContain('--head formula/4.20-parcial')
+    expect(leer('coord.log')).not.toContain('publicado 4.20')
+    expect(r.salida).toContain('publicado en parte')
+  })
+
   it('se niega a publicar una rama de otro carril, y la a/… tampoco vale con carril', () => {
     expect(publicar('papelera/4.24').estado).toBe(1)
     expect(publicar('a/x').estado).toBe(1)

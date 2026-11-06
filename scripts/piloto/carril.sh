@@ -38,8 +38,15 @@ carril_asignar() {
   return 0
 }
 
-# carril_publicado <paso> <pr>: el PR del paso quedó abierto; el paso deja de estar asignado.
+# carril_publicado <paso> <pr> [parcial]: el PR del paso quedó abierto; el paso deja de estar asignado. Con `parcial` en true (el paso se
+# partió y este PR trae sólo una parte: `ultimo.json` › `parcial`), el paso sigue asignado y el carril retoma su rama en la vuelta
+# siguiente: integrar ese PR no lo da por terminado (el 4.20 y el 4.24 se marcaban integrados con su primera parte, 2026-11-06).
 carril_publicado() {
+  if [ "${3:-false}" = true ]; then
+    registro "carril ${PILOTO_CARRIL:-}: $1 publicado en parte (#$2): sigue asignado."
+    rm -f "$ESTADO/asignado.json"
+    return 0
+  fi
   coordinador publicado "$1" "$2" >/dev/null 2>"$ESTADO/coordinador.err" || registro "el coordinador no anotó $1 como publicado: $(tail -n 1 "$ESTADO/coordinador.err")"
   rm -f "$ESTADO/asignado.json"
 }

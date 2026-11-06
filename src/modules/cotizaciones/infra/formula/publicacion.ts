@@ -7,4 +7,5 @@ import { publicacionSobre } from './rpc-de-publicacion'
 export const publicacionSupabase: RepositorioDeLaFormula = {
   publicar: async (pedido) => publicacionSobre(await createClient()).publicar(pedido),
   revertir: async (pedido) => publicacionSobre(await createClient()).revertir(pedido),
+  descartar: async (pedido) => publicacionSobre(await createClient()).descartar(pedido),
 }

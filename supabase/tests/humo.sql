@@ -6541,3 +6541,38 @@ begin
   if v_n <> v_total then raise exception 'la dueña lee % de % fórmulas', v_n, v_total; end if;
   reset role;
 end $$;
+
+-- @test plantillas de tarjeta: sólo las lee quien tiene cotizaciones.configurar, de los orígenes que le tocan (policy «plantillas_tarjeta: leer», 4.18-1); los demás, por cotizacion_tarjeta()
+do $$
+declare v_rol uuid := (select id from public.roles where clave = 'asesor'); v_sub uuid := (select id from public.origenes where clave = 'subasta_usa');
+        v_total int; v_n int; v_plan text; v_init boolean := false;
+begin
+  select count(*) into v_total from public.plantillas_tarjeta;
+  if (select count(*) from public.plantillas_tarjeta where origen_id <> v_sub) = 0 then raise exception 'la prueba necesita una plantilla de otro origen'; end if;
+  if not exists (select 1 from public.roles_permisos where rol_id = v_rol and permiso_clave = 'cotizaciones.ver') then raise exception 'la asesora debía tener cotizaciones.ver'; end if;
+
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000b1', true);
+  set local role authenticated;
+  select count(*) into v_n from public.plantillas_tarjeta;
+  if v_n <> 0 then raise exception 'la asesora lee % plantillas con cotizaciones.ver y sin cotizaciones.configurar', v_n; end if;
+  reset role;
+
+  -- Con el permiso de un solo origen: sólo las de ese origen.
+  insert into public.roles_permisos (rol_id, permiso_clave, origen_id) values (v_rol, 'cotizaciones.configurar', v_sub);
+  set local role authenticated;
+  select count(*) into v_n from public.plantillas_tarjeta;
+  if v_n = 0 or exists (select 1 from public.plantillas_tarjeta where origen_id <> v_sub) then raise exception 'con un origen lee % plantillas, y de otros orígenes', v_n; end if;
+  -- La policy pregunta por los orígenes una vez (InitPlan), no por fila.
+  for v_plan in execute 'explain select id from public.plantillas_tarjeta' loop
+    v_init := v_init or v_plan ~ 'InitPlan';
+  end loop;
+  if not v_init then raise exception 'la policy de plantillas_tarjeta no es un InitPlan'; end if;
+  reset role;
+  delete from public.roles_permisos where rol_id = v_rol and permiso_clave = 'cotizaciones.configurar' and origen_id = v_sub;
+
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
+  set local role authenticated;
+  select count(*) into v_n from public.plantillas_tarjeta;
+  if v_n <> v_total then raise exception 'la dueña lee % de % plantillas', v_n, v_total; end if;
+  reset role;
+end $$;

@@ -172,6 +172,9 @@ const DATOS_DE_PRUEBA = {
     _juego_de_diseno: 'src/modules/cotizaciones/entities/casos-de-diseno.json',
     _juego_de_formula: 'src/modules/cotizaciones/entities/casos-de-formula.json',
   },
+  'plantilla-validar.sql': {
+    _juego_de_plantilla: 'src/modules/cotizaciones/entities/plantilla/casos-de-plantilla.json',
+  },
   'cotizaciones-papelera-permiso.sql': {
     _migracion_cpp: {
       ruta: path.join(base, 'migrations', '20261106062752_cotizaciones_papelera_purgar.sql'),
@@ -243,6 +246,8 @@ const LISTA_FIJA = [
   'cotizacion-tabla.sql',
   'cotizacion-hoja-dato-del-vehiculo.sql',
   'cotizacion-hoja-guardada.sql',
+  'plantilla-validar.sql',
+  'cotizacion-tarjeta.sql',
   'cotizacion-revisiones-autor.sql',
   'cotizacion-revisiones-fecha.sql',
   'cotizacion-encima.sql',
