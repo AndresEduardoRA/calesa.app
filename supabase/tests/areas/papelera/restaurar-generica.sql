@@ -178,7 +178,8 @@ declare v_src text; f text; v_quien int; v_toma int; v_veh int; v_lea int;
 begin
   foreach f in array array['public.cotizaciones_papelera_restaurar(uuid, timestamptz, uuid[])', 'public.papelera_restaurar(uuid)'] loop
     select prosrc into v_src from pg_proc where oid = f::regprocedure;
-    v_quien := position('creado_por' in v_src); v_toma := position('for no key update' in v_src);
+    -- La comparación de quién (no la lectura de `creado_por`): la primera va antes de tomar el lote.
+    v_quien := regexp_instr(v_src, '(creado_por is distinct from|v_por <>) \(select auth\.uid\(\)\)'); v_toma := position('for no key update' in v_src);
     if v_toma = 0 then raise exception '% no toma el lote', f; end if;
     if v_quien = 0 or v_quien > v_toma then raise exception '% toma el lote antes de mirar quién', f; end if;
   end loop;
