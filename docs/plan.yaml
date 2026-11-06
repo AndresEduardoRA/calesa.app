@@ -122,6 +122,7 @@ carriles:
         src/modules/cotizaciones/areas/comprobantes/,
         src/modules/cotizaciones/pantallas/comprobantes.ts,
         src/modules/cotizaciones/pantallas/comprobantes-cotizacion.ts,
+        src/modules/cotizaciones/pantallas/comprobantes-empresa.ts,
         src/modules/cotizaciones/features/comentarios/,
         src/modules/cotizaciones/entities/comentarios/,
         src/modules/cotizaciones/infra/comentarios/,
@@ -483,6 +484,8 @@ pasos:
         src/modules/cotizaciones/entities/papelera/,
         src/modules/cotizaciones/infra/papelera/,
         src/modules/cotizaciones/pantallas/papelera.ts,
+        src/modules/cotizaciones/pantallas/papelera-listado.ts,
+        src/modules/cotizaciones/pantallas/papelera-cotizacion.ts,
         src/modules/cotizaciones/areas/papelera/,
         src/app/(app)/cotizaciones/papelera/,
         docs/,
@@ -509,6 +512,7 @@ pasos:
         src/modules/cotizaciones/entities/final/,
         src/modules/cotizaciones/infra/final/,
         src/modules/cotizaciones/pantallas/final.ts,
+        src/modules/cotizaciones/pantallas/final-cotizacion.ts,
         src/modules/cotizaciones/areas/final/,
         docs/,
       ]
@@ -534,6 +538,8 @@ pasos:
         src/modules/cotizaciones/entities/comprobantes/,
         src/modules/cotizaciones/infra/comprobantes/,
         src/modules/cotizaciones/pantallas/comprobantes.ts,
+        src/modules/cotizaciones/pantallas/comprobantes-cotizacion.ts,
+        src/modules/cotizaciones/pantallas/comprobantes-empresa.ts,
         src/modules/cotizaciones/areas/comprobantes/,
         docs/,
       ]
@@ -559,6 +565,7 @@ pasos:
         src/modules/cotizaciones/entities/comentarios/,
         src/modules/cotizaciones/infra/comentarios/,
         src/modules/cotizaciones/pantallas/comentarios.ts,
+        src/modules/cotizaciones/pantallas/comentarios-cotizacion.ts,
         src/modules/cotizaciones/areas/comentarios/,
         docs/,
       ]

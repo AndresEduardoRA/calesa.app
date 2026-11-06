@@ -1847,3 +1847,14 @@ Lo pidió la persona después de que el A hiciera el 4.16 y el 4.17-1: se parti�
 - **`ConProveedorDeLaHoja`** (`src/app/(app)/cotizaciones/`) une el `Proveedor` del área con las dos páginas de la hoja, para no repetir el condicional y no subir la complejidad de `HojaDelOrigen`.
 - **`eslint.config.mjs` entra al `dueno_de` del carril A** (base): el 4.15-6c amplía el aviso de `client.ts` y el coordinador pedía un dueño.
 - **El JS no pasó de 1 KB:** `/cotizaciones/nuevo` 456,8 (456,7 antes), así que no se anota el chunk; `/cotizaciones/[id]` midió 435,6, siete KB menos que la última cifra (442,8), sin causa atribuida.
+
+## 2026-11-06 — Paso 4.15-6b
+
+- **El orden de las acciones de una guardada es final, comprobantes, comentarios y papelera:** la destructiva, «Enviar a la papelera» con «Deshacer» (4.24), va al final de la fila, como el enlace a la papelera en el inventario; lo fija `HUECOS_DE_LA_GUARDADA` y lo prueba su test por identidad.
+- **«Junto a Nueva» va antes de «Nueva cotización»**, como el enlace a la papelera de vehículos antes de «Nuevo»; el vacío de primera vez sigue ofreciendo sólo «Nueva», porque `junto` es de la barra.
+- **Los huecos de la guardada se componen en `src/app`** (`[id]/huecos-de-la-guardada.tsx`), en un archivo aparte de la página del listado: `/cotizaciones` sólo importa `papelera-listado.ts` y no paga lo de la guardada. Los tipos salen de las constantes (`typeof`, `ComponentProps`): `src/app` no importa `features/`.
+- **Una segunda pantalla de un área del B o del C la registra el carril A en `plan.yaml`:** un carril que no es base sólo suma ahí archivos del compilador (P1 del 4.15-5), así que el mensaje de la guarda dice «la suma el carril base» y no le pide al C que edite el plan. La guarda mira el árbol (`rutasDelModulo`) y reconoce la pantalla con `claseDe()`, no por prefijo de texto.
+- **El test de la guarda se parte por lo que lee:** `areas-de-cotizaciones.test.ts` (la dirección, las entradas, T11) queda en 230 líneas; el plan (T10, T12, T14) va a `areas-de-cotizaciones-plan.test.ts`, y el recorrido del árbol real a `areas-de-cotizaciones-arbol.ts`, que importan los dos. Ningún caso cambió de aserción.
+- **`comprobantes-empresa.ts` se adelanta en `plan.yaml`,** como `formula-hoja.ts` del B: es la pantalla que el 4.26 crea para su sección de Empresa y el C no puede sumársela. Va aquí y no en el 4.15-6c porque es una segunda pantalla del módulo.
+- **El listado se probó montado en jsdom** (`next/navigation` y `./diferidos` simulados, `matchMedia` falso), sin la función pura de respaldo: la barra de acciones y el vacío se comparan con y sin `junto`.
+- **4-90, sin arreglar en este paso:** un spec del 4.15-3 pide seis dígitos de microsegundos y falla cuando Postgres escribe un cero final; no es de este paso ni de su archivo, y un cuarto commit de código no cabe.
