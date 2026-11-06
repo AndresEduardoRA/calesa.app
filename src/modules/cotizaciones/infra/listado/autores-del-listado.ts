@@ -1,7 +1,7 @@
 import 'server-only'
 import { z } from 'zod'
 import { autorVisible } from '../../entities/historial-del-vehiculo'
-import { MAXIMO_DE_PAGINA_DE_COTIZACIONES } from '../../entities/listado'
+import { MAXIMO_DE_PAGINA_DE_COTIZACIONES } from '../../entities/listado/listado'
 import { errorDePostgrest, fallo, ok, type Resultado } from '@/shared/lib/errores'
 import { createClient } from '@/shared/lib/supabase/server'
 

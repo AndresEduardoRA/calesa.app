@@ -566,3 +566,54 @@ El 4.16-2 se partió en 2a (la base) y 2b (la app, que cierra 4-23), tras tres s
 - Topes: JS de `/cotizaciones` 359 KB de 380 (antes 358,4); `/cotizaciones/nuevo` 456,3 de 460 y `/cotizaciones/[id]` 442,4 de 448, sin cambio relevante.
 - **Commits:** `eefe148e` (leer una cotización del listado por su id) y `4f27b04f` (abrir el resumen desde el listado).
   e2e completo: no (4.16-4b, pantalla, 1 de 3)
+
+## 2026-11-05 — Paso 4.17-1: las oportunidades de un lead por cursor, en la base (la lectura de 5a-12)
+
+`docs/DECISIONES.md` › «Paso 4.17 (1 de 5)». Migración `20261105211442_lead_oportunidades_por_cursor.sql`, con `db:reset`, `db:types` y `db:probar` en el mismo commit. Paso de rigor máximo: plan
+auditado una vez (observaciones, atendidas en `.piloto/planes/4.17.respuestas.md`), rojos contra HEAD, mutaciones, volumen e informe. El ruteo decía Nivel 1: el `create index` lo sube a **Nivel 2** (`nivel.mjs`
+lo detecta con la migración escrita) y corrió el completo de escritorio.
+
+- `lead_oportunidades()` lee de a `p_tamano` (20 por defecto, máximo 100) con el cursor `p_antes_abierta`, `p_antes_en`, `p_antes_id`: las abiertas primero y cada grupo por `ultima_actividad_en desc, id desc`,
+  tres rutas, cada una por su parcial (`oportunidades_lead_abiertas_idx` y `_cerradas_idx`); de invocadora y con los mismos privilegios; el JSON sobre las filas leídas (53 líneas). La sección de la ficha pide
+  100 sin cursor (`TOPE_DE_OPORTUNIDADES_DEL_LEAD`), así que la pantalla no cambia. Entra al registro de páginas (`paginas-en-la-base.ts`) y a la auditoría de leads.
+- **Verificación** (`.piloto/salidas/4.17-1/`):
+  - En verde: `db:reset`, `db:types`, `db:probar` (todo, `verde-probar.txt`), `db:lint` (sin avisos de `lead_oportunidades`), `lint`, `typecheck`, `scripts/guardas` (928), `mapa.sh --check` y `db:medir:volumen` entero
+    (`medir-volumen.txt`; las dos primeras corridas cayeron en mediciones ajenas que miden tiempos: `medir-vehiculos-inventario.sql` y `medir-importacion-volumen.sql`, con la máquina ocupada; la tercera y la cuarta pasaron; la de inventario es 4-82 y la de importación ya era 5a-43).
+  - `pnpm test`: 6.271 en verde y 5 caídas, todas de `scripts/piloto/auto-carriles.test.ts` (`auto-carriles.sh` responde «parado»: hay un archivo `PARAR` del piloto en su carpeta de estado); no tocan este paso (4-83: el test no es hermético) y
+    no se tocó ese archivo, que es de la persona.
+  - Rojos contra HEAD (`rojo-head-probar-solo.txt`, `rojo-head-paginas.txt`): T1 a T7 caen por la firma de cinco argumentos que no existe, y `paginas.test.ts` por «no acota p_tamano». (El `rojo-head-probar.txt` completo
+    trae además un terreno que chocaba con otro test —el teléfono y los usuarios—; se arregló antes de la corrida válida.)
+  - Mutaciones (`mutaciones.txt`): M1 a M7 y M9 a M13 caen por sus pruebas (M1 → T3; M2 → T2 y T3; M3 → T1 a T4; M4 → T2 y T3; M5 → T4; M6 → T1 a T5 y `matriz-leads`; M7 → T5 y T7; M9 → T7; M10 → T1, T2, T4 y T5;
+    M11 → T4; M12 → T6; M13 → T5 y `auditoria-leads.sql`). M8 (índices sin `usuario_id`) cae en el Assert 1 de la medición: 21 filas descartadas por ruta. M14 (releer las filas por id para armar el JSON) cae en el Assert 2: 40 bloques de `oportunidades_pkey` en cada página. Dos de las previstas cayeron en otras pruebas que las
+    del plan (M2 y M4: T2 y T3, no T1).
+  - Volumen: ≈ 3 ms por página y 4 a 8 bloques de `oportunidades` (la 1, la 13, la 25, la 26 y la 50 de a 20), sin crecer con la profundidad; la fila de `medir-escala.sql` ≈ 1 ms (tope 150); la guarda («sin los dos parciales») cae.
+  - e2e completo de escritorio (`e2e-completo.txt`): 933 en verde, 16 saltados y 1 caída (`cotizar-tarea-de-oro-cliente.spec.ts:116`, inestable: 3 de 3 sola, y su hermana `serial`, «did not run» en el completo, 3 de 3 sola; 4-81), 35,2 min. Los cinco dirigidos de oportunidades
+    (`leads-oportunidades`, `-ver-todas`, `paneles-salida-con-aviso`, `paneles-foco-al-volver-ficha`, `leads-mover-con-motivo`) pasaron todos.
+- **Commits:** `8b6fc9e7` (leer las oportunidades de un lead por cursor), `2a541e14` (medir las oportunidades de un lead con volumen) y `15b46cf8` (el `fix` que pidió la auditoría del informe: la medición mira también la clave primaria).
+  e2e completo: sí (4.17-1, estructura, Nivel 2: escritorio, 933 en verde, 16 saltados, 1 caída, 35,2 min)
+
+## 2026-11-05 — Paso 4.15-4: `cotizaciones` partido por área para los carriles B y C
+
+`docs/DECISIONES.md` › «Paso 4.15-4». Refactor sin conducta visible (no es rigor máximo): plan auditado dos veces (bloqueó y después dio observaciones, atendidas), tres decisiones de la persona (P1 a P3,
+con la recomendada) y plan aprobado antes de ejecutar. Nivel 1 con interfaz, sin completo.
+
+- **Lo hecho:** 10 áreas y un núcleo; las entradas de cada una en `areas/<x>/{index,client,composicion}.ts`; las tres de la raíz, sólo `export *`; las 8 actions del núcleo importan
+  `areas/nucleo/composicion`; las carpetas y la pantalla vacías de cada área; el listado en `entities/listado/` e `infra/listado/` (12 `git mv`, más tres rutas de fuera); `mapa.sh` sigue los `export *`;
+  la guarda `scripts/guardas/areas-de-cotizaciones{,-plan}.ts` con su test (39 pruebas); el lint de `client.ts` también para `areas/*/client.ts`; y `docs/plan.yaml`: B y C con sus `areas/<x>/`, el B con
+  las 37 rutas del compilador y los validadores, los pasos 4.15-5 y 4.15-6 y sus dependencias (el coordinador da al A 4.15-3, 4.15-4, 4.15-5, 4.16, 4.15-6, 4.17, y a B y C «esperar» hasta el 4.15-5 y el 4.15-6).
+- **Verificación** (`.piloto/salidas/4.15-4/`):
+  - **S1** (la API, con el compilador de TypeScript): los nombres de `index.ts` (86), `client.ts` (4) y las cuatro pantallas son los mismos que en HEAD; sólo aparecen las 9 pantallas vacías (`exports-diff.txt`).
+  - **S2** (`presupuesto-js.spec.ts`, en HEAD y al final): las seis rutas pesan igual, al décimo de KB: `/cotizaciones` 359, `/cotizaciones/nuevo` 456,3, `/cotizaciones/[id]` 442,4, `/vehiculos` 476,7,
+    `/perfil` 417,2 y `/leads` 509,6 (`js-head.txt`, `js-despues.txt`).
+  - **S3**: las 20 rutas del módulo que nombran `scripts/`, `e2e/`, `supabase/tests/`, las fichas y los docs existen, salvo un ejemplo inventado de `e2e-dirigidos.test.ts:65` que tampoco existía en HEAD (`rutas.txt`).
+  - Rojos contra HEAD: la guarda cae en T11 (el árbol) y T12 (`plan.yaml`) y pasan las 37 de fixtures (`rojo-head-guarda.txt`); T13 pasa en HEAD (`mapa-head.txt`) y cae en el árbol del commit 1 con el
+    `mapa.sh` de HEAD («`* ./areas/nucleo/index`, … +1», `rojo-mapa.txt`). La primera versión de la guarda confundía `entities/diseno.ts` (núcleo) con la carpeta del área: ahora resuelve contra lo que existe, con su prueba.
+  - D1 a D4 (`demostraciones.txt`): un import de `listado` a `formula` y un `export` de más en `index.ts` hacen caer T11 (`tsc`, verde); `export * from '../../composicion'` en `areas/formula/client.ts` y un
+    import de `infra/` que no es `*.client` hacen caer `pnpm lint`; un `*.client` pasa.
+  - `lint`, `typecheck` y `mapa.sh --check` en verde en cada commit; `pnpm test` entero: 6.316 en verde (536 archivos; sin `.piloto/PARAR`).
+  - **Dirigidos**, en escritorio y móvil: los 32 de `e2e-dirigidos.mjs` y, a mano, los 4 `configuracion-cotizacion-niveles*` y `leads-ficha-cotizar` (`dirigidos.txt`): 369 en verde, 7 saltados (entre
+    ellos `listas-por-pagina-volumen`, que pide `E2E_VOLUMEN=1`: su cambio es la ruta de un import, que mira `tsc`), 3 caídas y 13 sin correr (hermanas `serial` de las caídas). Las tres, 3 de 3 verdes
+    solas (`repetir-*.txt`), y sus specs enteros verdes (`hermanas-*.txt`: 16 y 9). Dos son carreras de la prueba (**4-85**: esperan algo que ya se cumplía); la tercera, en móvil con la carga en 7 a 11 por
+    otro stack que se reiniciaba, sin causa medida (**4-86**). 4-81 no cayó.
+- **Commits:** `f7afd5a8` (las entradas por área), `a68efe96` (el listado a su área) y `b78cb428` (la guarda).
+  e2e completo: no (4.15-4, pantalla, 1 de 3)

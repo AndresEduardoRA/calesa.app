@@ -207,6 +207,7 @@ for (const archivo of [
   'privados-candidatos.sql',
   'comparaciones-candidatos.sql',
   'oportunidades-policy.sql',
+  'lead-oportunidades-pagina.sql',
   'rueda-por-rol.sql',
   'equipo-lista.sql',
   'permisos-enforcement.sql',

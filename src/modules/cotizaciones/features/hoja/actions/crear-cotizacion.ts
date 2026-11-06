@@ -3,7 +3,7 @@
 import type { ResultadoDeAccion } from '@/shared/lib/enviar-accion'
 import { ok } from '@/shared/lib/errores'
 import { actionClient } from '@/shared/lib/safe-action'
-import { creadorDeCotizacion } from '../../../composicion'
+import { creadorDeCotizacion } from '../../../areas/nucleo/composicion'
 import type { ResultadoDeCrear } from '../../../entities/guardado'
 import { puedeCotizarEn } from '../../../entities/origenes-para-cotizar'
 import { esquemaDeGuardado } from '../schemas/guardado'

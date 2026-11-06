@@ -1777,3 +1777,51 @@ desde el 2a5; con su apertura sin marcar (M7, el estado de antes del 2a5) el foc
 - **Carpetas**: el resumen vive en `features/listado/{hooks,components}/` (como da `docs/plan.yaml`); `entities/` e `infra/` dejan los archivos sueltos, como los del 4.16-1 a 4a, hasta
   que el 4.15-4 cree `entities/listado/` e `infra/listado/` y los mueva.
 - **El 4.15-4 sigue pendiente y el 4.16 se hizo sin él**, en el orden de `docs/PLAN.md` (`docs/plan.yaml` lo pone de dependencia del 4.16): ningún registro dice por qué. Lo ordena la persona.
+
+## 2026-11-05 — Paso 4.17 (1 de 5): las oportunidades de un lead por cursor, en la base
+
+- **El 4.17 se parte en 5**, porque la fila junta una base, tres pantallas en dos módulos y un panel con su propio camino: **4.17-1** la lectura de 5a-12 en la base (este; Nivel 2, porque crea
+  índices); **4.17-2** el «Ver más» de «Oportunidades», que cierra 5a-12; **4.17-3** la pestaña «Cotizaciones» de `/vehiculos/[id]`; **4.17-4** la sección «Cotizaciones» de `/leads/[id]`
+  (se parte en 4a y 4b si el camino tras 500 pide un filtro `?lead=` en `cotizaciones_listado()`); **4.17-5** «Ir a una fecha» de «Revisiones» (**4-75**). Los prompts de la fila pasan de 2 a 6.
+- **La lectura va por tres rutas y dos índices parciales**, no por un `order by` sobre las dos clases juntas: el orden es «las abiertas primero» y, en cada grupo, `ultima_actividad_en desc, id desc`,
+  y `enum_eq` no es leakproof, así que bajo la RLS una comparación de enum no es condición de índice (medido en el 4.16-1). Cada ruta lleva `estado = 'abierta'` o `estado <> 'abierta'` con el literal,
+  y su parcial `(lead_id, usuario_id, ultima_actividad_en desc, id desc)`. Completar la página con las cerradas es leerlas desde la primera con `limit v_n + 1 - k`; con el cursor en una cerrada, sólo
+  la ruta de las cerradas. `oportunidades_lead_id_idx` se queda (la FK). Sin `usuario_id` en el índice la ruta descarta las filas de otras personas (mutación M8: 21 descartadas por ruta en el Assert 1).
+- **El cursor es una tripleta** (`p_antes_abierta`, `p_antes_en`, `p_antes_id`), la última fila de la página anterior. Sin `p_antes_en` se lee la primera página aunque lleguen los otros dos; con él y
+  sin uno de los otros, `22023` con `hint = 'cursor'`. `ultima_actividad_en` viaja con sus microsegundos, así que el ida y vuelta es exacto.
+- **Valor por defecto 20, máximo 100** (`_acotar_pagina(p_tamano, 20, 100)`): el 20 es `TAMANO_DE_VER_MAS`, el 100 es el tope de hoy. La sección pide `TOPE_DE_OPORTUNIDADES_DEL_LEAD` (100) sin cursor hasta el
+  4.17-2, así que la pantalla no cambia. El registro de páginas sólo compara contra 20; el 100 lo protege T4 de `lead-oportunidades-pagina.sql` (`p_tamano` 1000 da 100).
+- **El JSON se arma sobre las filas que la ruta ya leyó** (`public.oportunidades[]`, como `lead_seguimientos()`), cruzando sólo `embudos` y `embudos_etapas`: releer `oportunidades` por id pagaría otra pasada
+  de la policy. La función ocupa 53 líneas.
+- **Sigue de invocadora** y con los mismos privilegios (authenticated y service_role; nada para anon ni PUBLIC). No hubo compuerta `datos`: no cambia policy, RLS, permiso ni `security definer`; la
+  mutación M7 (la función como `security definer`) la tiran T5 y T7. Si ninguna forma de invocadora hubiera cumplido los Asserts, el paso se detenía sin pasar a `security definer`.
+- **Medición** (`medir-lead-oportunidades.sql`): un lead con 1.000 de Ana (500 y 500) y 1.000 de la dueña, más 20.000 de fondo entre 200 leads (≈ 100 por lead: con miles de leads de una o dos el plan
+  genérico estimaría menos de una página y elegiría la FK). Las páginas salen de 500 y de `:ver_mas`. Medido: ≈ 3 ms por página y 4 a 8 bloques de `oportunidades` en todas, la última (50) igual que la
+  primera. Tiene un assert propio de que cada ruta devuelve sus `n + 1` filas: una primera versión medía los planes sin la sesión de Ana (la policy vaciaba las rutas) y el Assert 1 pasaba sin medir nada. El Assert 2 mira todos los índices de `oportunidades` menos los dos parciales, la clave primaria incluida: releer las filas por id para armar el JSON (M14) lee 40 bloques de ella en cada página y cae.
+- **`db:medir:volumen` completo cayó dos veces en mediciones ajenas** (el crecimiento con N de la «chica» en `medir-vehiculos-inventario.sql` y la razón 0,78 de `medir-importacion-volumen.sql`, con la máquina
+  ocupada por otras sesiones) y pasó entero a la tercera y a la cuarta. Ninguna toca oportunidades.
+
+## 2026-11-05 — Paso 4.15-4
+
+Partir `cotizaciones` por área para que los carriles B y C corran en paralelo (`docs/plan.yaml`). Plan auditado dos veces (bloqueó y después dio observaciones, atendidas: `.piloto/planes/4.15-4.respuestas.md`).
+Lo pidió la persona después de que el A hiciera el 4.16 y el 4.17-1: se partió el módulo como estaba, con el listado ya hecho.
+
+- **Diez áreas y un núcleo.** Las áreas son las de la fila. Lo demás (la hoja, guardar, encima, revisiones, historial, niveles, el motor, el compilador, los validadores, el diseño, la apertura, la ruta) es
+  el **núcleo**: lo que comparten las áreas. No es un área más porque las áreas lo usan (la hoja importa `diseno.ts` y `nodos.ts`; `filtros-del-listado` importa la ruta de la hoja): si lo fuera, la
+  primera área que lo usara ya importaría otra. Un área importa lo suyo y el núcleo; el núcleo no importa ningún área; adentro nadie importa las tres entradas de la raíz. El núcleo es del A.
+- **Las entradas de cada área van en `areas/<área>/{index,client,composicion}.ts`**, no dentro de las carpetas de las capas: la composición de un área tiene que poder importar `infra/`, y eso sólo lo deja
+  boundaries a un `modulo-api` (una carpeta del módulo que no es `features|entities|infra`); en `infra/<área>/` las features no podrían importarla. Las tres de la raíz quedan con un `export *` por el
+  núcleo y cada área: un paso nuevo agrega en `areas/<su área>/` y no las toca, y un nombre repetido entre dos áreas es un error de `tsc` (TS2308). `mapa.sh` sigue los `export *` para que el MAPA liste
+  la misma API.
+- **La guarda va en Vitest** (`scripts/guardas/areas-de-cotizaciones.test.ts`), no en boundaries: sus elementos son carpetas de un tipo, y duplicar las tres capas por área doblaba las políticas; además
+  boundaries no mira los tests, la forma de las entradas ni `plan.yaml`. La guarda resuelve cada import contra los archivos que existen, como TypeScript: `./diseno` es `entities/diseno.ts`, del núcleo,
+  aunque exista la carpeta del área `entities/diseno/` (la primera versión, sin resolver, los confundía). El lint de `client.ts` vale también para `areas/*/client.ts`; lo de `infra/` que no es `*.client`
+  se prohíbe con un `regex` (D4 lo muestra: cae `../../infra/listado/listado` y pasa un `*.client`).
+- **La composición del navegador queda en la raíz** (`composicion.client.ts` y sus dos hermanas): es del núcleo y la nombran 18 `vi.mock`. La de un área irá en `areas/<área>/composicion.client.ts`,
+  sin que ningún barril la reexporte.
+- **Sembrar el coordinador queda fuera**: su estado vive fuera del repo y `integrado 4.15-4` sólo es verdad después de integrar en `main`. Aunque `auto-carriles.sh` abra B y C al integrar este paso,
+  no reciben trabajo: el 4.20 y el 4.24 dependen del 4.15-5 y del 4.15-6 (`coordinador siguiente b|c` responde «esperar»).
+- **Del plan** (contestadas el 2026-11-05, las tres con la recomendada): **P1** la guarda de carriles (`carriles.mjs`, la Fase 7) y `docs/ORCA.md` se ponen al día en un paso propio, el **4.15-5**
+  (4-84). **P2** el compilador y los validadores (37 archivos de `entities/`) siguen en el núcleo y los posee el B uno por uno en su `dueno_de` y en los `modulos` del 4.20 al 4.22: no se mueven porque
+  los importan otros archivos del núcleo y `validar-diseno*` importa `validarFormula`. La guarda hace caer un archivo nuevo de esas familias que el B no posea. **P3** los huecos del núcleo que B y C
+  necesitan (el ⚙ de la hoja, la cabecera de una guardada, el enlace a la papelera, Empresa, la sección Cotización) los abre el A en el **4.15-6**, sin cambio visible, antes del 4.17-2.

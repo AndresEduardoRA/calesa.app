@@ -46,7 +46,10 @@ const VARIABLES_DE_PAGINA = {
   ),
   // El listado de cotizaciones (4.16-1): `medir-cotizaciones-listado.sql` y `medir-cotizaciones-lectura.sql` miden con su máximo.
   max_cotizaciones: maximoDe(
-    constante('src/modules/cotizaciones/entities/listado.ts', 'MAXIMO_DE_PAGINA_DE_COTIZACIONES'),
+    constante(
+      'src/modules/cotizaciones/entities/listado/listado.ts',
+      'MAXIMO_DE_PAGINA_DE_COTIZACIONES',
+    ),
   ),
   tam_columna: constante('src/shared/lib/paginacion.ts', 'TAMANO_DE_COLUMNA'),
   tope_cargado: constante('src/shared/lib/paginacion.ts', 'TOPE_DE_LO_CARGADO'),

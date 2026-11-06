@@ -1,4 +1,4 @@
-import type { CotizacionDelListado } from '../../../entities/filas-del-listado'
+import type { CotizacionDelListado } from '../../../entities/listado/filas-del-listado'
 
 export type FilaDeCotizacion = CotizacionDelListado
 

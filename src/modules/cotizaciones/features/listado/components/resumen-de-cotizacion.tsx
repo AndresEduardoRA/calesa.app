@@ -17,7 +17,7 @@ import {
   vistaDelResumen,
   type LecturaDelServidor,
   type VistaDelResumen,
-} from '../../../entities/resumen-del-listado'
+} from '../../../entities/listado/resumen-del-listado'
 import { usePedidoAlServidor } from '../hooks/use-pedido-al-servidor'
 import { useResumenDeCotizacion } from '../hooks/use-resumen-de-cotizacion'
 import { nombreDelOrigen, SIN_NOMBRE, type FilaDeCotizacion, type OrigenDelListado } from './tipos'

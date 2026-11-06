@@ -108,7 +108,7 @@ const esquemaDelLead = esquemaOportunidad.extend({
   embudo: z.object({ id: z.guid(), nombre: z.string().min(1) }),
 })
 
-// Cuántas oportunidades de un lead trae `lead_oportunidades()` (espejo de su `limit 100`): más allá se avisa.
+// Cuántas oportunidades de un lead pide la sección a `lead_oportunidades()`: su máximo (`_acotar_pagina(p_tamano, 20, 100)`, lo protege T4 de `lead-oportunidades-pagina.sql`); más allá se avisa.
 export const TOPE_DE_OPORTUNIDADES_DEL_LEAD = 100
 
 // La sección «Oportunidades» de la ficha muestra las 10 más recientes (las abiertas primero) y, con «Ver todas» (`?todas=1`), las que trae la

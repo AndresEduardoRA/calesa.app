@@ -2,7 +2,10 @@
 
 import { parseAsString, useQueryStates } from 'nuqs'
 import { abrirConVuelta, useVueltaDelFoco } from '@/shared/ui/vuelta-del-foco'
-import { CLAVE_DE_RESUMEN_DE_COTIZACION, idDelResumen } from '../../../entities/resumen-del-listado'
+import {
+  CLAVE_DE_RESUMEN_DE_COTIZACION,
+  idDelResumen,
+} from '../../../entities/listado/resumen-del-listado'
 
 const PARAMETROS = { [CLAVE_DE_RESUMEN_DE_COTIZACION]: parseAsString }
 
