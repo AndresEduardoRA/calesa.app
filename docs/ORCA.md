@@ -1,15 +1,19 @@
-# Orca: dos carriles
+# Orca: los carriles de la Fase 4
 
-Dos carriles de trabajo en paralelo, cada uno en su worktree de Orca, con su rama, su stack de Supabase y su PR. `main` lo integra sólo
-la persona, al aprobar un PR. La preparación (cómo se llegó aquí y lo medido) está en `docs/PREPARACION.md`.
+Tres carriles de trabajo en paralelo, cada uno en su worktree de Orca, con su rama, su stack de Supabase y su PR. Quién posee qué lo dice
+`docs/plan.yaml` (`dueno_de`, `migraciones`), y la guarda de CI `scripts/guardas/carriles.mjs` lo hace cumplir leyendo ese archivo **de la
+base del PR**. `main` lo integra la persona, o el coordinador (`scripts/coordinador/coordinador.mjs`) con los pasos verdes y ámbar
+con CI en verde; un paso rojo, sólo la persona. La preparación está en `docs/PREPARACION.md`.
 
-| Carril | Quién                                                                                   | Qué                                                                                                | Rama  |
-| ------ | --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ----- |
-| A      | El piloto (`docs/PILOTO.md`): Opus, esfuerzo alto; planificador y auditor en Opus       | El resto de la Fase 4, después la 5 y la 6. El único que edita ESTADO, PLAN, DECISIONES y BITACORA | `a/…` |
-| B      | Sesiones de Claude Code en Orca (Sonnet), con las mismas skills y reglas, sin el piloto | La Fase 7 (notificaciones primero), después la 8 sin repuestos. Anota en `docs/carriles/b.md`      | `b/…` |
+| Carril | Quién                                                                                    | Qué                                                                                                                                                  | Rama       |
+| ------ | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| A      | El piloto principal (`docs/PILOTO.md`): Opus, esfuerzo alto                              | Base: el núcleo de `cotizaciones`, el listado, la tarjeta, la plantilla, 4.15-5 a 4.19 y 4.28. El único que edita ESTADO, PLAN, DECISIONES, BITACORA | `a/…`      |
+| B      | Piloto con coordinador (`PILOTO.md`): fórmula, diseño y tablas (4.20 a 4.23)             | Sus áreas y el compilador de la fórmula, archivo por archivo; migraciones `formula`, `diseno`, `tablas`                                              | `b/<paso>` |
+| C      | Piloto con coordinador: papelera, marcar final, comprobantes y comentarios (4.24 a 4.27) | Sus áreas; migraciones `papelera`, `final`, `comprobantes`, `comentarios`                                                                            | `c/<paso>` |
 
-Repuestos (Fase 8) empieza con la Fase 5 integrada: quién la toma y si `repuestos` pasa a los dominios de B se decide al cerrar la 5. La
-Fase 9, al final, entre los dos.
+B y C no editan los docs del A: escriben en `docs/pasos/<paso>/` (`bitacora.md`, `decisiones.md`) y el A los consolida con
+`node scripts/coordinador/consolidar-docs.mjs` antes de su commit de docs. Los abre `scripts/piloto/auto-carriles.sh` o
+`scripts/coordinador/abrir-carriles.sh`. Después de la Fase 4, el plan de la siguiente lo decide la persona.
 
 ## Abrir un carril (una vez)
 
@@ -26,9 +30,10 @@ Fase 9, al final, entre los dos.
 | La principal | `*_importadora`   | 54621 | 54622 | 54624  | 3000 | 3210 |
 | Carril A     | `*_importadora-a` | 54721 | 54722 | 54724  | 3100 | 3310 |
 | Carril B     | `*_importadora-b` | 54821 | 54822 | 54824  | 3200 | 3410 |
+| Carril C     | `*_importadora-c` | 54921 | 54922 | 54924  | 3300 | 3510 |
 
 Cada stack de carril pesa ≈ 0,85 GB de RAM (sin Studio, imgproxy ni logs); los tres stacks y un e2e en cada carril llegaron a 19,6 GB
-de 30. El candado de la base es uno por stack (`candado-base-<puerto>.lock`): los dos carriles corren e2e a la vez sin cruzarse.
+de 30. El candado de la base es uno por stack (`candado-base-<puerto>.lock`): los carriles corren e2e a la vez sin cruzarse.
 
 ## Carril A: el piloto
 
@@ -36,20 +41,23 @@ En su worktree: `bash scripts/piloto/arrancar.sh` (`docs/PILOTO.md`). El bucle e
 con `scripts/piloto/publicar.sh`: empuja la rama sin forzar y abre su PR contra `main` (o le comenta el paso). Nunca integra. Las
 compuertas llegan al celular como siempre.
 
-## Carril B: sesiones de Orca
+## Carriles B y C: pilotos con coordinador
 
-Una sesión de Claude Code (Sonnet) en el worktree de B, con el primer prompt de abajo. Trabaja por pasos chicos con la skill `feature`,
-cierra con `entregar` (sin ESTADO, PLAN, DECISIONES ni BITACORA: eso va a `docs/carriles/b.md`) y, al terminar una unidad, empuja su
-rama y abre o actualiza su PR.
+Cada uno toma sus pasos de `docs/plan.yaml` (`coordinador.mjs siguiente b|c`) y trabaja en una rama `<carril>/<paso>` con la skill `feature`;
+cierra con `entregar` sin tocar ESTADO, PLAN, DECISIONES ni BITACORA (eso va a `docs/pasos/<paso>/`) y lo que necesite del núcleo o de
+`src/shared` lo describe allí en «Necesita del carril A». El coordinador integra los pasos verdes y ámbar con CI en verde; los rojos, la persona.
+Un carril no toca fuera de su `dueno_de`, `docs/` y `compartido` (donde agrega y edita, no borra); en `plan.yaml` sólo suma archivos de las
+familias del compilador que crea (B). Un cambio a la guarda o al plan rige desde el PR siguiente. `docs/carriles/b.md` es para una sesión
+del B sin coordinador.
 
-## Reglas de los dos
+## Reglas de los carriles
 
 - **Push:** sólo la rama propia, sin forzar ni borrar (`git push -u origin <rama>`); nunca `main`; `gh pr merge` sólo en una sesión interactiva a la que la persona se lo pidió, nunca el piloto. Lo hace cumplir
   `.claude/hooks/bloquear-peligrosos.sh`; con `PILOTO=1`, ninguna sesión empuja (lo hace el bucle).
 - **Migraciones:** una nueva por cambio, con `supabase migration new` (fecha real) y **posterior a la última de `main`**; ninguna
-  aplicada se edita. Las de B llevan su dominio al principio del nombre (`<versión>_notificaciones_….sql`) y sólo tocan agenda, chat,
-  notificaciones, buscador o web; una de un dominio compartido la crea A. Lo hace cumplir la guarda de CI `scripts/guardas/carriles.mjs`.
-- **Docs compartidos:** ESTADO, PLAN, DECISIONES y BITACORA, sólo A. `docs/MAPA.md` no se versiona: lo regeneran lefthook, el hook Stop
+  aplicada se edita. Las de un carril que no es base llevan uno de sus dominios (`migraciones` en `docs/plan.yaml`) al principio del nombre
+  (`<versión>_formula_….sql`); la de otro dominio, `cotizacion_…` o `cotizaciones_…`, la crea A. Lo hace cumplir la guarda de CI `scripts/guardas/carriles.mjs`.
+- **Docs compartidos:** ESTADO, PLAN, DECISIONES y BITACORA, sólo el carril base (A); los otros, `docs/pasos/<paso>/`. `docs/MAPA.md` no se versiona: lo regeneran lefthook, el hook Stop
   y `preparar.sh`.
 - **Al traer `main`** (después de que se integró el PR del otro carril): `git merge origin/main` en la rama, nunca rebase con push
   forzado. Si el otro carril integró una migración con versión posterior a una tuya todavía sin integrar, la tuya se vuelve a crear con
@@ -70,10 +78,10 @@ rama y abre o actualiza su PR.
 
 ## Integrar (la persona)
 
-1. El PR con CI en verde: `Nivel 1`, `Carriles` y los `e2e` que tocaron. Revisar el diff y, si es de B, sus notas de `docs/carriles/b.md`.
+1. El PR con CI en verde: `Nivel 1`, `Carriles` y los `e2e` que tocaron. Revisar el diff y, si es de B o C, sus notas de `docs/pasos/<paso>/`.
 2. Merge en GitHub. Si trae migraciones o funciones, `.github/workflows/demo.yml` las aplica a la demo (necesita la variable
    `DEMO_PROJECT_REF` y los secretos `SUPABASE_ACCESS_TOKEN` y `SUPABASE_DB_PASSWORD`).
-3. Si era de B: pasar sus notas a ESTADO, PLAN, DECISIONES y BITACORA (o pedírselo al carril A en su próximo paso).
+3. Si era de B o C: pasar sus notas a ESTADO, PLAN, DECISIONES y BITACORA con `node scripts/coordinador/consolidar-docs.mjs` (el carril A, en su próximo commit de docs).
 4. Avisar al otro carril que traiga `main`.
 
 ## La demo
@@ -83,10 +91,10 @@ rama y abre o actualiza su PR.
 
 ## Si se acaba el uso (Max 5x)
 
-1. Primero se para B: cerrar sus sesiones en Orca (el trabajo queda en su rama).
+1. Primero se paran B y C: cerrar sus sesiones en Orca (el trabajo queda en su rama).
 2. El piloto duerme solo hasta la hora del límite y retoma (`docs/PILOTO.md`, «Límite de uso»). Para pararlo entre pasos:
    `bash scripts/piloto/parar.sh`; retomarlo: `bash scripts/piloto/arrancar.sh`.
-3. Con poco margen, sólo A: es el que desbloquea a B (Fase 5 → repuestos, migraciones compartidas).
+3. Con poco margen, sólo A: es el que da al B y al C lo que necesitan del núcleo.
 
 ## Quitar un carril
 
@@ -98,14 +106,5 @@ En su worktree: `bash scripts/worktree/quitar.sh` (baja el stack y borra su base
 paso siguiente de `docs/PLAN.md`. Para una sesión a mano en el carril A:
 
 > Eres el carril A de importadora (docs/ORCA.md). Lee docs/ESTADO.md y la fila siguiente de la Fase 4 en docs/PLAN.md, y hazla con la
-> skill feature. Eres el único que edita ESTADO, PLAN, DECISIONES y BITACORA y que crea migraciones de dominios compartidos. Cierra con
+> skill feature. Eres el único que edita ESTADO, PLAN, DECISIONES y BITACORA y que crea migraciones del núcleo. Cierra con
 > entregar, empuja tu rama y abre o actualiza su PR contra main. Nunca integres.
-
-**Carril B** (worktree en `b/notificaciones`), una sesión de Sonnet en Orca:
-
-> Eres el carril B de importadora. Lee docs/ORCA.md, docs/carriles/b.md, docs/ESTADO.md y la Fase 7 de docs/PLAN.md. Empieza por
-> notificaciones: propón en docs/carriles/b.md una partición en pasos chicos (cada uno con su «terminado cuando» y sus e2e) y haz el
-> primero con la skill feature. Tus dominios son agenda, chat, notificaciones, buscador y web; tus migraciones llevan el dominio al
-> principio del nombre. No edites ESTADO, PLAN, DECISIONES ni BITACORA: anótalo en docs/carriles/b.md. Lo que necesite de otro dominio
-> o de src/shared, descríbelo allí en «Necesita del carril A» y sigue con otra cosa. Verifica con el Nivel 1, cierra con entregar,
-> empuja tu rama y abre o actualiza su PR contra main. Nunca integres.

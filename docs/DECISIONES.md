@@ -1825,3 +1825,12 @@ Lo pidió la persona después de que el A hiciera el 4.16 y el 4.17-1: se parti�
   (4-84). **P2** el compilador y los validadores (37 archivos de `entities/`) siguen en el núcleo y los posee el B uno por uno en su `dueno_de` y en los `modulos` del 4.20 al 4.22: no se mueven porque
   los importan otros archivos del núcleo y `validar-diseno*` importa `validarFormula`. La guarda hace caer un archivo nuevo de esas familias que el B no posea. **P3** los huecos del núcleo que B y C
   necesitan (el ⚙ de la hoja, la cabecera de una guardada, el enlace a la papelera, Empresa, la sección Cotización) los abre el A en el **4.15-6**, sin cambio visible, antes del 4.17-2.
+
+## 2026-11-05 — Paso 4.15-5
+
+- **Las reglas salen del plan de la base, no del PR** (`git show <base>:docs/plan.yaml`): un PR no se da permisos a sí mismo. Sin ese archivo en la base, todo PR cae (falla cerrada). Un cambio a `plan.yaml` rige desde el PR siguiente.
+- **El job corre la guarda de la base** (`git worktree add --detach .guarda-base "$BASE_PR"`), con `preparar` para tener `yaml`: un PR que edite `carriles.mjs` se juzga con la guarda que ya estaba. Lo que queda (un PR que edita el job, porque GitHub toma el `ci.yml` del PR) va a 4-88, de la persona.
+- **El dominio de migración de un área es su nombre y el prefijo de sus tablas** (`formula_…`, `papelera_…`), sin `cotizaciones_`: `cotizacion_…` y `cotizaciones_…` son del núcleo y las crea el A. Está en `.claude/rules/migraciones.md`.
+- **P1 = sumar sólo archivos del compilador** (contestada el 2026-11-05, la recomendada): en `plan.yaml` un carril que no es base suma a su `dueno_de` lo que crea de las familias del compilador, y nada más, tampoco los `pasos`: su `riesgo` decide si el coordinador integra solo.
+- **P2 = la guarda bloquea** (la recomendada): un carril que no es base sólo toca lo suyo, `docs/` y `compartido`; ahí agrega y edita pero no borra (el B edita los tests de su compilador). La consecuencia, 4-87: el A da `cotizaciones.papelera.purgar` antes del 4.24.
+- **Las familias del compilador pasaron a un `.mjs`** (`familias-del-compilador.mjs`) porque la guarda corre con `node` y no importa `.ts`; `areas-de-cotizaciones-plan.ts` las reexporta: una sola fuente.

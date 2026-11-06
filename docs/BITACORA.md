@@ -617,3 +617,11 @@ con la recomendada) y plan aprobado antes de ejecutar. Nivel 1 con interfaz, sin
     otro stack que se reiniciaba, sin causa medida (**4-86**). 4-81 no cayó.
 - **Commits:** `f7afd5a8` (las entradas por área), `a68efe96` (el listado a su área) y `b78cb428` (la guarda).
   e2e completo: no (4.15-4, pantalla, 1 de 3)
+
+## 2026-11-05 — Paso 4.15-5: la guarda de carriles lee docs/plan.yaml
+
+- **Hecho:** `scripts/guardas/carriles.mjs` ya no sabe de «B»: lee `docs/plan.yaml` de la base del PR (`git show <base>:docs/plan.yaml`; sin él, todo PR cae). Un carril que no es base no edita ESTADO, PLAN, DECISIONES ni BITACORA (lo escribe en `docs/pasos/<paso>/`) y crea sólo migraciones de sus dominios (`migraciones` en `plan.yaml`, validadas por `plan-migraciones.mjs`: b `formula, diseno, tablas`; c `papelera, final, comprobantes, comentarios`). P1: en `plan.yaml` sólo suma a su `dueno_de` archivos de las familias del compilador que el PR crea (`carriles-plan.mjs`, `familias-del-compilador.mjs`). P2: sólo toca su `dueno_de`, `docs/` y `compartido` (agrega y edita, no borra). El job `carriles` instala dependencias y corre la guarda de la base en `.guarda-base`.
+- **Verificación** (`.piloto/salidas/4.15-5/`): rojos contra HEAD (`rojo-head-plan.txt`, `rojo-head-guarda.txt`); `lint`, `typecheck` y `pnpm test` en verde (537 archivos, 6.330 pruebas); `mapa.sh --check`; la CLI sobre el repo real, ✓ en `b/`, `c/`, `a/` (`cli.txt`); `e2e-dirigidos`: ninguno. Mutaciones del job: sin `preparar` y con la guarda del PR caen en `workflows.test.ts` (`mutacion-preparar.txt`, `mutacion-guarda-del-pr.txt`). El job en CI se mira cuando el PR corra.
+- **Abiertos:** 4-84 cerrado; 4-87 (claves del 4.24, del A) y 4-88 (el job lo define el `ci.yml` del PR) nuevos; 4-64 suma `plan.mjs`.
+- **Commits:** `0c51e347` (los dominios en `plan.yaml`), `2ab4a2af` (la guarda lee el plan, el job) y `d4e965d6` (lo que un carril no base puede tocar).
+  e2e completo: no (4.15-5, scripts y CI, Nivel 1)
