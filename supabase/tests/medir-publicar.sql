@@ -13,6 +13,11 @@
 --      Las guardas muerden: una copia con una búsqueda lineal por ítem pasa la razón de ms, y otra que relee el diseño por sección, la de buffers.
 -- Los tonos de la medición pasan del tope de 24 (se insertan como `postgres`): el sintético trae 100.
 \set ON_ERROR_STOP 1
+-- 4-36: la sección 1 mide cuántos bloques suman 1.800 versiones más, y eso pide que crezca la tabla. Las versiones de una corrida anterior se
+-- revierten y quedan muertas; un autovacuum que no trunca (`vacuum (truncate false)` lo reproduce) deja ese espacio libre (118 páginas tras
+-- una corrida) y la corrida siguiente lo reusa: la sonda que recorre la tabla suma 0 bloques y la guarda cae. `vacuum full` deja `formulas` sin
+-- espacio libre en ningún lugar (un `vacuum` simple sólo trunca las páginas vacías del final). Va fuera de la transacción.
+vacuum (full, analyze) public.formulas;
 begin;
 \set carga `cat /proc/loadavg`
 select set_config('medir.carga', :'carga', true) \g /dev/null
