@@ -98,6 +98,8 @@ export async function prepararListado(proyecto: string) {
     duena,
     ...personas,
     vehiculos,
+    // Los ids de los dos leads (4.17-4b: `?lead=`): el de la dueña tiene 17 y el de Ana 2, las dos sobre el vehículo «uno».
+    leads: { duena: leadDeLaDuena, ana: leadDeAna },
     nombreDelLeadDeLaDuena: nombreDelLead(leadDeLaDuena),
     nombreDelLeadDeAna: nombreDelLead(leadDeAna),
   }

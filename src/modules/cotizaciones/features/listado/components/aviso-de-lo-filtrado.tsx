@@ -4,13 +4,14 @@ import type { Route } from 'next'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { CLAVE_DE_CURSOR } from '@/shared/lib/filtros'
-import { CLAVE_DE_VEHICULO } from '../../../entities/ruta-de-la-hoja'
+import { CLAVE_DE_LEAD, CLAVE_DE_VEHICULO } from '../../../entities/ruta-de-la-hoja'
 
-// La URL del listado sin el vehículo ni el cursor, y con lo demás (Clase, Origen…): «Ver todas».
+// La URL del listado sin el vehículo, el lead ni el cursor, y con lo demás (Clase, Origen…): «Ver todas».
 export function useRutaDeTodas(): string {
   const ruta = usePathname()
   const parametros = new URLSearchParams(useSearchParams())
   parametros.delete(CLAVE_DE_VEHICULO)
+  parametros.delete(CLAVE_DE_LEAD)
   parametros.delete(CLAVE_DE_CURSOR)
   const consulta = parametros.toString()
   return consulta === '' ? ruta : `${ruta}?${consulta}`
@@ -24,12 +25,11 @@ export function EnlaceVerTodas() {
   )
 }
 
-// Arriba de la lista de un vehículo (`?vehiculo=`): de quién son estas cotizaciones. El título sólo si quien mira ve el vehículo; si no, no se nombra.
-export function AvisoDelVehiculo({ titulo }: { titulo: string | null }) {
+// Arriba de la lista de un vehículo o un cliente (`?vehiculo=`, `?lead=`): de quién son estas cotizaciones. El texto es uno solo (`textoDelAviso()`), antes del enlace.
+export function AvisoDeLoFiltrado({ texto }: { texto: string }) {
   return (
     <p role="status" className="text-(length:--text-sm) text-(--color-ink-soft)">
-      {titulo === null ? 'Cotizaciones de un vehículo.' : `Cotizaciones de ${titulo}.`}{' '}
-      <EnlaceVerTodas />
+      {texto} <EnlaceVerTodas />
     </p>
   )
 }

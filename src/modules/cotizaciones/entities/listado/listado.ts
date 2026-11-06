@@ -15,6 +15,8 @@ export type PedidoDelListado = {
   mias?: boolean
   // Las de un vehículo: el camino a lo antiguo del historial del vehículo, tras sus 500.
   vehiculoId?: string
+  // Las de un lead: el camino a lo antiguo de la sección «Cotizaciones» de su ficha, tras sus 500 (4.17-4b).
+  leadId?: string
   cursor: Cursor | null
   tamano: number
 }

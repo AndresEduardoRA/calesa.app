@@ -22,6 +22,7 @@ import { getListadoDeCotizaciones } from './listado'
 
 const ORIGEN = '00000000-0000-4000-8000-0000000000aa'
 const VEHICULO = '00000000-0000-4000-8000-0000000000bb'
+const LEAD = '00000000-0000-4000-8000-0000000000cc'
 // Un instante con microsegundos: pasarlo por `Date` lo dejaría en milisegundos y la página siguiente repetiría o saltearía filas.
 const INSTANTE = '2026-03-01T12:00:00.123456+00:00'
 
@@ -69,6 +70,7 @@ describe('getListadoDeCotizaciones: lo que le pide a la base', () => {
       clase: 'final',
       mias: true,
       vehiculoId: VEHICULO,
+      leadId: LEAD,
       cursor: { instante: INSTANTE, id: ORIGEN, sentido: 'anterior' },
       tamano: 10,
     })
@@ -78,6 +80,7 @@ describe('getListadoDeCotizaciones: lo que le pide a la base', () => {
       p_clase: 'final',
       p_mias: true,
       p_vehiculo: VEHICULO,
+      p_lead: LEAD,
       p_cursor_en: INSTANTE,
       p_cursor_id: ORIGEN,
       p_hacia_atras: true,
@@ -88,6 +91,7 @@ describe('getListadoDeCotizaciones: lo que le pide a la base', () => {
     const pedidos = [
       { origenId: 'uno', cursor: null, tamano: 10 },
       { vehiculoId: 'dos', cursor: null, tamano: 10 },
+      { leadId: 'cuatro', cursor: null, tamano: 10 },
       { clase: 'otra' as 'final', cursor: null, tamano: 10 },
       { cursor: null, tamano: 0 },
       { cursor: null, tamano: MAXIMO_DE_PAGINA_DE_COTIZACIONES + 1 },

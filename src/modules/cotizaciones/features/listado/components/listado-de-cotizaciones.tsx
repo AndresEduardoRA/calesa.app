@@ -5,9 +5,10 @@ import type { EsquemaDeFiltros } from '@/shared/lib/filtros'
 import type { Pagina } from '@/shared/lib/paginacion'
 import { FilterShell } from '@/shared/ui/filtros'
 import { useAbiertoAlgunaVez } from '@/shared/ui/use-abierto-alguna-vez'
+import { textoDelAviso, textoDelVacio } from '../../../entities/listado/aviso-del-listado'
 import type { LecturaDelServidor } from '../../../entities/listado/resumen-del-listado'
 import { useResumenDeCotizacion } from '../hooks/use-resumen-de-cotizacion'
-import { AvisoDelVehiculo } from './aviso-del-vehiculo'
+import { AvisoDeLoFiltrado } from './aviso-de-lo-filtrado'
 import { ResumenDeCotizacionDiferido } from './diferidos'
 import { NuevaCotizacion } from './nueva-cotizacion'
 import { ResultadoDelListado } from './resultado-del-listado'
@@ -23,6 +24,8 @@ type Props = {
   rutaDeNueva: string | null
   // Con `?vehiculo=`: el título del vehículo (null si quien mira no lo ve). Sin él, `undefined`.
   vehiculo?: { titulo: string | null }
+  // Con `?lead=`: el nombre del cliente (null si quien mira no tiene `leads.ver` o no ve al lead). Sin él, `undefined`. Pueden llegar los dos.
+  lead?: { nombre: string | null }
   // Lo que el servidor leyó de la cotización de `?cotizacion=` cuando no está en la página (null si no hay clave, no es un guid o está en la página).
   delServidor: LecturaDelServidor | null
   // Lo que un área suma junto a «Nueva cotización» (4.15-6b, la papelera del 4.24): ya dibujado por la página y antes de «Nueva». Sin él, la barra queda como siempre.
@@ -37,6 +40,7 @@ export function ListadoDeCotizaciones({
   origenes,
   rutaDeNueva,
   vehiculo,
+  lead,
   delServidor,
   junto,
 }: Props) {
@@ -54,15 +58,19 @@ export function ListadoDeCotizaciones({
         {nueva}
       </>
     )
+  const aviso = textoDelAviso({ lead, vehiculo })
   return (
     <div className="grid gap-4">
       <FilterShell esquema={esquema} porPagina={porPagina} acciones={acciones}>
-        {vehiculo ? <AvisoDelVehiculo titulo={vehiculo.titulo} /> : null}
+        {aviso === null ? null : <AvisoDeLoFiltrado texto={aviso} />}
         <ResultadoDelListado
           pagina={pagina}
           origenes={origenes}
           accionDeVacio={nueva}
-          deUnVehiculo={vehiculo !== undefined}
+          vacioDeLoFiltrado={textoDelVacio({
+            lead: lead !== undefined,
+            vehiculo: vehiculo !== undefined,
+          })}
           alAbrir={resumen.abrir}
           abierta={resumen.id}
         />

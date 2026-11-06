@@ -73,12 +73,18 @@ function eleccion(valores: ValoresDeFiltros, clave: string): string | null {
 // Lo que pide la URL, ya leída con el esquema: el origen sólo es uno de los que se ofrecen, la clase una de las dos y «Mías» la única que no es el valor por defecto.
 export function pedidoDelListado(
   valores: ValoresDeFiltros,
-  // `vehiculo` es el texto de `?vehiculo=` tal como llegó: sólo vale un guid. No es un filtro del esquema (ni chip, ni lo borra «Limpiar»).
-  resto: { cursor: Cursor | null; tamano: number; vehiculo?: string | undefined },
+  // `vehiculo` y `lead` son el texto de `?vehiculo=` y `?lead=` tal como llegó: sólo vale un guid. No son filtros del esquema (ni chip, ni los borra «Limpiar»).
+  resto: {
+    cursor: Cursor | null
+    tamano: number
+    vehiculo?: string | undefined
+    lead?: string | undefined
+  },
 ): PedidoDelListado {
   const origenId = eleccion(valores, CLAVE_DE_ORIGEN)
   const clase = eleccion(valores, CLAVE_DE_CLASE)
   const vehiculo = z.guid().safeParse(resto.vehiculo)
+  const lead = z.guid().safeParse(resto.lead)
   return {
     ...(origenId === null ? {} : { origenId }),
     ...(clase === 'preventa' || clase === 'final'
@@ -86,6 +92,7 @@ export function pedidoDelListado(
       : {}),
     ...(eleccion(valores, CLAVE_DE_CUALES) === MIAS ? { mias: true } : {}),
     ...(vehiculo.success ? { vehiculoId: vehiculo.data } : {}),
+    ...(lead.success ? { leadId: lead.data } : {}),
     cursor: resto.cursor,
     tamano: resto.tamano,
   }

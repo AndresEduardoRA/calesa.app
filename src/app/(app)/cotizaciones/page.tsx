@@ -13,6 +13,7 @@ import {
   origenParaNueva,
   pedidoDelListado,
   rutaDeLaHoja,
+  CLAVE_DE_LEAD,
   CLAVE_DE_RESUMEN_DE_COTIZACION,
   CLAVE_DE_VEHICULO,
   type FilaDelListado,
@@ -56,6 +57,18 @@ async function nombresDe(permisos: Permisos, filas: readonly FilaDelListado[]) {
   return { clientes: datosO(clientes), vehiculos: datosO(vehiculos), autores: datosO(autores) }
 }
 
+// Con `?lead=`, de quién son estas cotizaciones: el nombre sólo con `leads.ver` y si la lectura lo devuelve (la RLS de leads); si no, nulo, sin distinguir un lead que no existe de uno que no
+// se ve. Sin `?lead=`, `undefined`.
+async function nombreDelLead(permisos: Permisos, id: string | undefined) {
+  if (id === undefined) {
+    return undefined
+  }
+  if (!puede(permisos, 'leads.ver')) {
+    return { nombre: null }
+  }
+  return { nombre: datosO(await leerNombresDeLeads([id])).get(id) ?? null }
+}
+
 // La cotización de `?cotizacion=` cuando no está en la página (recargar, un enlace compartido, «Siguiente» con el resumen abierto): la lee el servidor, con la RLS de quien mira y su
 // «Vencida» de la función del listado (`leerUnaDelListado`), y sus nombres aparte (sólo ella: una página de 100 con 100 clientes distintos ya llena el tope de ids de cada lectura).
 // Si esa lectura falla, el listado no cae: `error`, y el resumen ofrece «Reintentar».
@@ -97,15 +110,17 @@ async function Listado({
     cursor: leerCursor(unParametro(parametros[CLAVE_DE_CURSOR])),
     tamano,
     vehiculo: unParametro(parametros[CLAVE_DE_VEHICULO]),
+    lead: unParametro(parametros[CLAVE_DE_LEAD]),
   })
   const pagina = datosO(await leerListadoDeCotizaciones(pedido))
   // La del resumen, si la URL trae una que no está en la página; los nombres de la página, en paralelo.
   const idDelResumenUrl = idDelResumen(unParametro(parametros[CLAVE_DE_RESUMEN_DE_COTIZACION]))
   const faltaLaDelResumen =
     idDelResumenUrl !== null && !pagina.filas.some((fila) => fila.id === idDelResumenUrl)
-  const [nombres, delServidor] = await Promise.all([
+  const [nombres, delServidor, deUnLead] = await Promise.all([
     nombresDe(sesion.permisos, pagina.filas),
     faltaLaDelResumen ? leerLaDelResumen(sesion.permisos, idDelResumenUrl) : null,
+    nombreDelLead(sesion.permisos, pedido.leadId),
   ])
   const filas = filasConNombres(pagina.filas, nombres)
   // Con `?vehiculo=`, de quién son estas cotizaciones: el título sólo si quien mira ve el vehículo (la lectura es nula si no existe o no se ve).
@@ -125,6 +140,7 @@ async function Listado({
       porPagina={{ valor: tamano, opciones: tamanosHasta(MAXIMO_DE_PAGINA_DE_COTIZACIONES) }}
       origenes={visibles.map((origen) => ({ id: origen.id, nombre: origen.nombre }))}
       {...(deUnVehiculo === undefined ? {} : { vehiculo: deUnVehiculo })}
+      {...(deUnLead === undefined ? {} : { lead: deUnLead })}
       rutaDeNueva={
         origenDeNueva === null ? null : rutaDeLaHoja({ origen: origenDeNueva, lead: null })
       }
