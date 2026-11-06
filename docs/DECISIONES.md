@@ -1990,3 +1990,15 @@ Lo pidió la persona después de que el A hiciera el 4.16 y el 4.17-1: se parti�
   copia del mismo bucle, del 4.17-4b). La causa que el plan suponía (24 rondas de «Ver más» × consultas por rol) era sólo la mitad: con dos respuestas fijas (una primera página de `TOPE − TAMANO_DE_VER_MAS` filas y un
   «Ver más») seguían cayendo a 1,5 s con un solo CPU, porque cada `*ByRole` sobre 480 filas calcula el nombre accesible de cada enlace (0,4 a 0,8 s por consulta). Las pruebas llegan al tope con dos respuestas y
   miran por texto (`getByText`), no por rol; pasan en 0,6 s con el mismo límite. No se sube el timeout ni se quita ninguna prueba; las constantes salen de `paginacion.ts`.
+
+## 2026-11-06 — Paso 4.17-5b: `<IrAUnaFecha>` y `<DesdeUnaFecha>` a `src/shared/ui`
+
+- **`<IrAUnaFecha>` entrega el día, no un instante.** El valor del campo (`YYYY-MM-DD`, en la zona de la empresa) es lo que la persona eligió; el borde exclusivo («ese día y lo anterior» = antes de
+  `inicioDelDia(diaSiguiente(dia), { zona })`) es de quien lee: `cursorDeUnaFecha()` en seguimientos y, en el 4.17-5c, el `p_hasta` de las revisiones (C7 del 4.17-5a).
+- **`<DesdeUnaFecha>` con props, no con `Seguimientos`:** `dia` (no nulo: quien lo dibuja decide cuándo), `zona`, `ocupado`, `volver` y `alVolver`. `volver` es el texto del botón porque concuerda con lo que se lista
+  («los más recientes» en seguimientos, «las más recientes» en revisiones). La fecha sale de `formatearFecha(dia, { zona })`, que ancla el día a la medianoche de la zona: lo mismo que el `fechaDe` de antes.
+- **El aviso del tope se queda en `leads`:** su texto es de seguimientos y el panel «Revisiones» ya dibuja el suyo con `<AvisoDeTope>` de `shared/ui`.
+- **Un solo cargador para los tres diferidos** (auditoría del plan): separados, «Desde el …» pedía su chunk después de «Ir», con un instante vacío y, sin red, un «Sin conexión» que antes no existía. Con
+  `Promise.all` de los tres `import()`, el primero que se dibuja trae los tres, como cuando vivían en un archivo.
+- **Ningún ayudante nuevo en `shared/lib/fechas.ts`** («el instante exclusivo de un día»): la línea ya se escribe con dos funciones de `fechas.ts`, y tocar `src/shared/lib` vuelve el paso de rigor máximo. Si el 5c
+  lo quiere, lo decide su plan.

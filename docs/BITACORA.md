@@ -758,3 +758,19 @@ con la recomendada) y plan aprobado antes de ejecutar. Nivel 1 con interfaz, sin
 - **Abiertos:** 4-95 (el id de una revisión puede crecer sin `creado_en` en los caminos que escriben sin versión; `statement_timeout` de `authenticated` en la base local: 8 s) y 4-96 (`mapa.test.ts` T13 al borde de 5 s); 4-75 sigue abierto y pasa al 4.17-5c.
 - **Commits:** `24d12ed9` (el rojo del CI), `ae981b8b` (la migración y sus pruebas), `846d0c4c` (la medición) y `9af841f4` (F5 y F6 por claves, a pedido de la auditoría del informe).
   e2e completo: sí (4.17-5a, base, Nivel 2: escritorio, 948 en verde, 16 saltados, 0 caídas, 34,3 min)
+
+## 2026-11-06 — Paso 4.17-5b: `<IrAUnaFecha>` y `<DesdeUnaFecha>` a `src/shared/ui`, sin cambio visible
+
+- **Qué:** los dos componentes de la ventana por fecha de la línea de tiempo de leads pasan a `src/shared/ui/ir-a-una-fecha.tsx` y `desde-una-fecha.tsx` (para que el 4.17-5c los use en «Revisiones», 4-75).
+  `<IrAUnaFecha>` no cambia y entrega el día (`YYYY-MM-DD`); `<DesdeUnaFecha>` recibe `dia`, `zona`, `ocupado`, `volver` (el texto del botón) y `alVolver` en vez de `Seguimientos`. El aviso del tope se queda en
+  `leads` (`aviso-del-tope.tsx`, el `git mv` de `ventana-de-la-linea.tsx`). `diferidos.tsx` pide los tres juntos y una vez (un solo cargador con `Promise.all`), como antes: tras «Ir», «Desde el …» no vuelve a la red.
+- **Estado del CI al empezar:** el run `42241262425` de `ec4f4b03` (HEAD), en verde (`success`), leído con `gh run view`.
+- **Verificación** (`.piloto/salidas/4.17-5b/`):
+  - Pruebas que fijan lo de hoy, en su ruta de hoy y verdes contra HEAD (`verde-head.txt`: 11); llevadas a su ruta nueva, en rojo contra el `src/` de HEAD por el módulo que falta (`rojo-head.txt`: los 3 archivos), y verdes después (`verde.txt`: 13, con `diferidos.test.ts`).
+  - El mismo dibujo: una prueba temporal (no commiteada) guarda el `innerHTML` sin ids de los tres componentes con las mismas entradas antes y después; `cmp` sin diferencias (`dibujo-head.txt`, `dibujo.txt`, `e1-cmp.txt`).
+  - Verde: `lint`, `typecheck`, `mapa.sh --check`; `pnpm test` 6.462 de 6.468: las 5 de `auto-carriles.test.ts` (ajenas, 4-83) y `mapa.test.ts` T13 por tiempo con la máquina cargada (pasa sola: `mapa-test-sola.txt`; 4-96).
+  - Dirigidos, escritorio y celular: `leads-rapido-volumen` (sólo escritorio: en `movil` se salta), `leads-seguimientos` y `leads-rapido-seguimientos`: 22 en verde y 4 saltados (`dirigidos.txt`). En `movil` ningún spec dibuja lo movido: lo cubre el `cmp`.
+  - Completo de escritorio (Nivel 2, disparador 1: `src/shared`), tras el último cambio de código: 947 en verde, 16 saltados y 1 caída, 39,7 min (`completo.txt`); la caída, `paneles-foco-al-volver-configuracion.spec.ts:148`, pasa 3 de 3 sola (4-97).
+- **Abiertos:** 4-97 nuevo; 4-75 sigue abierto y pasa al 4.17-5c.
+- **Commits:** `ee26c849` (las pruebas que fijan lo de hoy) y `a003508d` (el movimiento a `shared/ui`).
+  e2e completo: sí (4.17-5b, shared, Nivel 2: escritorio, 947 en verde, 16 saltados, 1 caída, 39,7 min)
