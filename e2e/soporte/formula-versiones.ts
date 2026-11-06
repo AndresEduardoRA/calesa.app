@@ -1,3 +1,4 @@
+import { formulaDePrueba } from './cotizar-formula'
 import { literal, sql } from './sql'
 
 // Las versiones de la fórmula de un origen de prueba (4.20-2a), sembradas por SQL (`generate_series`): la publicada de prueba (`publicarFormulaDePrueba`) pasa a ser la
@@ -25,4 +26,23 @@ export function sembrarVersiones(
           from public.formulas where origen_id = v.origen_id and version = ${cuantas};
       end if;
     end $f$`)
+}
+
+// Un borrador de `autor` en un origen de prueba (4.20-2b), con la fórmula de prueba (`formulaDePrueba()`): `sobre: 'publicada'` empezó sobre la publicada de hoy (al
+// día), `'ninguna'` no dice sobre cuál (el primero de un origen). Sin diseño (`conDiseno: false`), publicarlo da «Publicar pide el diseño de la hoja.».
+export function sembrarBorrador(
+  origenId: string,
+  opciones: { autor: string; sobre: 'publicada' | 'ninguna'; conDiseno: boolean; nota?: string },
+): void {
+  const { definicion, params, diseno } = formulaDePrueba()
+  const json = (valor: unknown) => `$e2e$${JSON.stringify(valor)}$e2e$::jsonb`
+  const origen = `${literal(origenId)}::uuid`
+  const sobre =
+    opciones.sobre === 'publicada'
+      ? `(select id from public.formulas where origen_id = ${origen} and estado = 'publicada')`
+      : 'null'
+  sql(`
+    insert into public.formulas (origen_id, estado, definicion, params, diseno, nota, creado_por, version_origen_id)
+    values (${origen}, 'borrador', ${json(definicion)}, ${json(params)}, ${opciones.conDiseno ? json(diseno) : 'null'},
+            ${literal(opciones.nota ?? 'Borrador E2E')}, (select id from public.perfiles where email = ${literal(opciones.autor)}), ${sobre})`)
 }

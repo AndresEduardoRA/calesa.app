@@ -3,6 +3,8 @@
 import { parseAsString, useQueryState } from 'nuqs'
 import { CampoSeleccion } from '@/shared/ui/campo-seleccion'
 import type { FormulaDelOrigen as Formula } from '../../../entities/formula/versiones'
+import { usePanelDeLaFormula } from '../hooks/use-panel-de-la-formula'
+import { AccionesDeLaFormula } from './acciones-de-la-formula'
 import { ListaDeVersiones } from './lista-de-versiones'
 import { TarjetaDeLaPublicada } from './tarjeta-de-la-publicada'
 import { TarjetaDelBorrador } from './tarjeta-del-borrador'
@@ -20,11 +22,12 @@ const etiquetaDe = (origen: Origen) =>
   origen.activo ? origen.nombre : `${origen.nombre} (inactivo)`
 
 // La pestaña «Fórmula» de Configuración › Cotización (4.20-2a): el origen (con más de uno, un selector que escribe `?origen=`), su publicada, su borrador y sus versiones.
-// De sólo lectura: publicar, descartar y revertir llegan en el 4.20-2b.
+// Desde el borrador se publica (4.20-2b, `?panel=publicar-formula`).
 export function FormulaDelOrigen({ origenes, origen, formula }: Props) {
   const [pedido, setOrigen] = useQueryState('origen', parseAsString.withOptions({ shallow: false }))
   // Lo elegido se ve en el acto, mientras el servidor lee el origen nuevo.
   const elegido = origenes.some((uno) => uno.id === pedido) ? pedido : origen.id
+  const panel = usePanelDeLaFormula()
   return (
     <div className="grid min-w-0 gap-4">
       <div className="grid gap-0.5">
@@ -48,9 +51,19 @@ export function FormulaDelOrigen({ origenes, origen, formula }: Props) {
       ) : null}
       <TarjetaDeLaPublicada publicada={formula.publicada} origen={origen.nombre} />
       {formula.borrador ? (
-        <TarjetaDelBorrador borrador={formula.borrador} publicada={formula.publicada} />
+        <TarjetaDelBorrador
+          borrador={formula.borrador}
+          publicada={formula.publicada}
+          alPublicar={panel.abrirPublicar}
+        />
       ) : null}
-      <ListaDeVersiones key={origen.id} origenId={origen.id} inicial={formula.versiones} />
+      {/* Con otra publicada (se publicó o se revirtió) la lista vuelve a la primera página del servidor. */}
+      <ListaDeVersiones
+        key={`${origen.id}:${formula.publicada?.id ?? ''}`}
+        origenId={origen.id}
+        inicial={formula.versiones}
+      />
+      <AccionesDeLaFormula panel={panel} origen={origen} formula={formula} />
     </div>
   )
 }

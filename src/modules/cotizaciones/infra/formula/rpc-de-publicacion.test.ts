@@ -1,0 +1,103 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { describe, expect, it } from 'vitest'
+import type { Database } from '@/shared/types/database.types'
+import { publicacionSobre } from './rpc-de-publicacion'
+
+type Respuesta = {
+  data: unknown
+  error: { code?: string; message: string } | null
+}
+
+// Un cliente que anota cada RPC con sus argumentos y responde lo que se le da.
+function clienteFalso(respuesta: Respuesta) {
+  const llamadas: [string, unknown][] = []
+  const cliente = {
+    rpc: (nombre: string, argumentos: unknown) => {
+      llamadas.push([nombre, argumentos])
+      return Promise.resolve(respuesta)
+    },
+  }
+  return { cliente: cliente as unknown as SupabaseClient<Database>, llamadas }
+}
+
+const ORIGEN = '11111111-1111-4111-8111-111111111111'
+const PUBLICADA = '22222222-2222-4222-8222-222222222222'
+const NUEVA = '33333333-3333-4333-8333-333333333333'
+
+describe('publicacionSobre › publicar', () => {
+  it('llama formula_publicar con el origen, la nota y la publicada que se leyó', async () => {
+    const { cliente, llamadas } = clienteFalso({ data: NUEVA, error: null })
+    const hecho = await publicacionSobre(cliente).publicar({
+      origenId: ORIGEN,
+      nota: 'Subo el flete',
+      publicadaEsperada: PUBLICADA,
+    })
+    expect(llamadas).toEqual([
+      [
+        'formula_publicar',
+        { p_origen: ORIGEN, p_nota: 'Subo el flete', p_publicada_esperada: PUBLICADA },
+      ],
+    ])
+    expect(hecho).toEqual({ ok: true, data: NUEVA })
+  })
+
+  it('sin publicada no manda esperada (la base la toma nula)', async () => {
+    const { cliente, llamadas } = clienteFalso({ data: NUEVA, error: null })
+    await publicacionSobre(cliente).publicar({
+      origenId: ORIGEN,
+      nota: 'Primera',
+      publicadaEsperada: null,
+    })
+    expect(llamadas).toEqual([['formula_publicar', { p_origen: ORIGEN, p_nota: 'Primera' }]])
+  })
+
+  it('el PT409 es un conflicto con el mensaje de la base intacto', async () => {
+    const { cliente } = clienteFalso({
+      data: null,
+      error: { code: 'PT409', message: 'Ana publicó la versión 3 hace 2 min.' },
+    })
+    const hecho = await publicacionSobre(cliente).publicar({
+      origenId: ORIGEN,
+      nota: 'x',
+      publicadaEsperada: PUBLICADA,
+    })
+    expect(hecho).toEqual({
+      ok: false,
+      error: { codigo: 'conflicto', mensaje: 'Ana publicó la versión 3 hace 2 min.' },
+    })
+  })
+
+  it('un 22023 es una regla con su mensaje; un 42501, sin permiso', async () => {
+    const regla = clienteFalso({
+      data: null,
+      error: { code: '22023', message: 'Publicar pide el diseño de la hoja.' },
+    })
+    expect(
+      await publicacionSobre(regla.cliente).publicar({
+        origenId: ORIGEN,
+        nota: 'x',
+        publicadaEsperada: null,
+      }),
+    ).toEqual({
+      ok: false,
+      error: { codigo: 'regla', mensaje: 'Publicar pide el diseño de la hoja.' },
+    })
+    const permiso = clienteFalso({ data: null, error: { code: '42501', message: '' } })
+    const sinPermiso = await publicacionSobre(permiso.cliente).publicar({
+      origenId: ORIGEN,
+      nota: 'x',
+      publicadaEsperada: null,
+    })
+    expect(sinPermiso.ok ? null : sinPermiso.error.codigo).toBe('sin_permiso')
+  })
+
+  it('una respuesta que no es un uuid es inesperada', async () => {
+    const { cliente } = clienteFalso({ data: 'no-es-un-uuid', error: null })
+    const hecho = await publicacionSobre(cliente).publicar({
+      origenId: ORIGEN,
+      nota: 'x',
+      publicadaEsperada: null,
+    })
+    expect(hecho.ok ? null : hecho.error.codigo).toBe('inesperado')
+  })
+})
