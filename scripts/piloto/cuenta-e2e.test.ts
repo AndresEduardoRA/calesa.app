@@ -16,9 +16,9 @@ describe('cuenta-e2e.mjs', () => {
     expect(r.ultimo).toMatchObject({ valor: 'no', tarea: '4.12-1' })
   })
 
-  it('con 2 de 3, el siguiente paso de pantalla corre el completo', () => {
+  it('con 2 de 3, el siguiente paso ya no corre el completo en local (lo corre el CI; sólo el hito y el cierre)', () => {
     const r = cuentaE2e(bitacora('e2e completo: no (4.13-2, pantalla, 2 de 3)'))
-    expect(r).toMatchObject({ n: 2, el_siguiente_corre_completo: true })
+    expect(r).toMatchObject({ n: 2, el_siguiente_corre_completo: false })
   })
 
   it('un «sí» vuelve la cuenta a 0, sea del paso que sea', () => {

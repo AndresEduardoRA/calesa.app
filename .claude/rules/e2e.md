@@ -24,24 +24,28 @@ paths:
 
 ## Niveles de verificación
 
-- Nivel 1, toda tarea: `pnpm lint`, `pnpm typecheck`, `pnpm test` y los e2e dirigidos a lo tocado, en
-  `escritorio` y, si es interfaz (regla de abajo), también en `movil`.
+- Nivel 1, toda tarea: los e2e dirigidos a lo tocado, en `escritorio` y, si es interfaz (regla de abajo),
+  también en `movil`; las pruebas de lo tocado (`pnpm exec vitest related --run <archivos>`) y `scripts/guardas`.
+  `lint` y `typecheck` los corre el hook del commit (lefthook) y la suite entera el hook de Stop al cerrar el
+  paso: no se corren aparte antes. El CI del PR vuelve a correr todo (es la autoridad).
 - Nivel 2, sólo si la tarea toca uno de estos seis disparadores y ningún otro: (1) lo compartido,
   `src/shared`; (2) el proxy, `src/proxy.ts`; (3) auth: `src/modules/equipo/features/auth`, `src/app/auth` y
   `src/app/(acceso)`; (4) RLS: una migración que crea, cambia o borra una policy, o enciende RLS en una
   tabla; (5) el layout: `src/app/layout.tsx`, `src/app/(app)/layout.tsx`, `src/app/(app)/_shell` y
   `src/app/(acceso)/layout.tsx`; (6) la estructura: una migración que crea, cambia o borra una tabla o un
-  índice (la base no cambia nunca). Además de lo dirigido corre
-  `pnpm test:e2e:completo --project=escritorio` (con `pnpm funciones`),
-  después del último cambio de código.
+  índice (la base no cambia nunca). Además de lo dirigido, el e2e completo: lo corre el CI del PR en sus
+  cuatro bloques (`scripts/e2e-dirigidos.mjs` pasa a modo completo cuando el PR toca un disparador), no la
+  sesión. En local, sólo lo dirigido.
 - Rigor máximo (mutaciones, carreras, volumen, el auditor que bloquea) sólo en fórmulas del cotizador,
   dinero, RLS y permisos; lo demás, con el nivel que le toque y sin pruebas de más. En CI, un PR corre el
   Nivel 1 y los e2e dirigidos (`scripts/e2e-dirigidos.mjs`); cada noche, el completo (`docs/ORCA.md`).
 - Nivel 3, un cierre de fase: `pnpm test:e2e:completo` con los dos proyectos. La BITACORA dice cuál se
   corrió: `e2e completo: sí|no (<tarea>)`. Un nivel no corrido se dice.
 - Fase 4 (`docs/DECISIONES.md`): los pasos de pura pantalla (4.12–4.14, 4.16–4.23) van con el Nivel 1
-  (más el 2 si tocan un disparador); el completo de escritorio corre en el tercer paso de pantalla seguido
-  sin completo y en el hito 4-A (4.18). Sin completo: `e2e completo: no (4.xx, pantalla, n de 3)`.
+  (más el 2 si tocan un disparador). El completo **local** de escritorio corre sólo en el hito 4-A (4.18) y en
+  el cierre (4.28, Nivel 3); los demás pasos lo dejan al CI del PR y al completo de cada noche. Sin
+  completo: `e2e completo: no (4.xx, <motivo>)`. Medido el 2026-11-06 con tres carriles en una máquina:
+  la verificación local era el 40–65 % de una parte (el completo, 36–47 min) y el CI la repetía.
 - **Interfaz: cuándo los e2e dirigidos corren también en `movil`** (la regla vive aquí; la aplica
   `scripts/piloto/nivel.mjs` como `toca_interfaz` y `scripts/piloto/nivel.test.ts` falla si se separan).
   Un archivo cambiado es interfaz si no es una prueba (`*.test.*` o `*.spec.*`) y es un `.tsx` o un `.css`
