@@ -15,7 +15,8 @@ Ficha completa: `docs/archivo/modulos/empresa.md`, sólo con grep.
   - Pantalla: `leerAjustes()`, `leerMonedasYTiposCambio()`, `leerHistorial()`, `leerIntegraciones()`, `zonasHorarias()`. Íconos: `iconosDelManifest()`, `urlDeIcono()`, `claveDeIconoVigente()` (para `app/manifest.ts` y `app/iconos/vigente/[tamano]`).
 - Componentes (`<FormularioEmpresa>`, `<MonedasYTiposCambio>`, `<Integraciones>`, `<IconosDeLaApp>`) por `pantallas/configuracion-empresa.ts`, sólo `src/app`.
 - `shell.ts` (sólo layout `(app)`): `getAjustes()`, `getTiposCambio()`, `<TiposCambioVigentes>`.
-- Depende de ningún otro módulo. Sin `client.ts`.
+- `client.ts` (Client Components de `app/` u otro módulo): `guardarTipoCambio` y `EntradaDeGuardarTipoCambio`, para el ⚙ de un tipo de cambio de la hoja (4.20); nadie lo usa todavía. La action exige `empresa.tipos_cambio.gestionar` en el servidor.
+- Depende de ningún otro módulo.
 
 ## Archivos clave
 

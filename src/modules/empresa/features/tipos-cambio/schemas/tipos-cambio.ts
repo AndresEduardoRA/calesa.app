@@ -37,6 +37,8 @@ export const esquemaGuardarTipoCambio = z.object({
   esDefault: z.literal(true).optional(),
 })
 
+export type EntradaDeGuardarTipoCambio = z.input<typeof esquemaGuardarTipoCambio>
+
 const simbolo = z
   .string()
   .trim()
