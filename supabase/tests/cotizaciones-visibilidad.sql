@@ -141,6 +141,7 @@ create or replace function pg_temp.cv_registro() returns jsonb language sql as $
     'nivel_eliminar', jsonb_build_object('clase', 'no_devuelve', 'motivo', 'devuelve la lista de niveles con el uso de cada uno: conteos y el texto del motivo'),
     'niveles_con_uso', jsonb_build_object('clase', 'no_devuelve', 'motivo', 'la lista de niveles con las banderas de lo que admiten y el texto del motivo de uso: conteos de celdas, secciones y orígenes'),
     'tono_eliminar', jsonb_build_object('clase', 'no_devuelve', 'motivo', 'devuelve la lista de tonos; _tono_en_uso() lee formulas.definicion y sólo dice el nombre de un origen'),
+    'cotizaciones_papelera_enviar', jsonb_build_object('clase', 'no_devuelve', 'motivo', 'devuelve el lote, su versión, el id, número y título de cada enviada, y el código y motivo de cada rechazo (el título sólo de lo que se ve): _cotizacion_a_papelera() toma la fila entera y sólo devuelve esas tres claves (4.24-1a)'),
     'cotizacion_evaluar', jsonb_build_object('clase', 'recorta',
       'sonda', 'select public.cotizacion_evaluar(jsonb_build_object(''inputs'', jsonb_build_object({oculto}, {centinela}::numeric)), null, {origen})',
       'motivo', 'calcula con _cotizacion_armar() y devuelve _cotizacion_recorte(): lo que se tipea sólo nombra lo que se ve (un nodo oculto da el error de uno inexistente) y los overrides ocultos se descartan como inexistentes'),
