@@ -214,10 +214,11 @@ begin
   insert into public.fases_requisitos (fase_id, tipo, bloqueante, clave_dato, orden) values (f2, 'dato', true, 'repuesto.precio', 0), (f3, 'dato', false, 'repuesto.tracking', 0);
 end $$;
 
--- Plantilla de tarjeta v1 (mínima) para cada origen
+-- Plantilla de tarjeta v1 (mínima) para cada origen, con la forma del 4.18-1 (docs/COTIZADOR.md › «Plantilla de tarjeta»): sin grupos, que es la que vale para una
+-- fórmula sin grupos. Cada `semillas/cotizador-<origen>.sql` le pone la suya después de publicar su fórmula.
 insert into public.plantillas_tarjeta (origen_id, version, estado, definicion, nota, publicado_en)
 select o.id, 1, 'publicada',
-  '{"paleta": {"fondo": "#ffffff", "tinta": "#1b2230", "acento": "#465fff"}, "columnas": [{"id": "etiqueta", "ancho": 640}, {"id": "monto", "ancho": 320}], "encabezado": {"logo": true, "titulo": "{{titulo}}", "fecha": "{{fecha}}"}, "grupos": [{"titulo": "Detalle", "filas": "secciones"}], "totales": [{"variable": "total", "formato": "usd"}], "pie": "Cotización válida por 7 días. Precios sujetos a cambio de tipo de cambio."}'::jsonb,
+  '{"grupos": [], "total": {"etiqueta": "Total"}, "logo": true, "columnas": {"leyenda": true, "tipo_cambio": true, "plazo": true}}'::jsonb,
   'Plantilla inicial', now()
 from public.origenes o where not exists (select 1 from public.plantillas_tarjeta p where p.origen_id = o.id);
 

@@ -22,3 +22,7 @@ begin
   insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad, nota, publicado_en)
   values (v_origen, 1, 'publicada', v_def, v_params, v_diseno, public._preparar_publicacion(v_def, v_params, v_diseno, false), 'Fórmula inicial', now());
 end $$;
+
+-- La plantilla de la tarjeta de oficina (4.18-1): sin grupos (su fórmula no los tiene), sólo el total, y sin columna de tipo de cambio (ningún grupo usa un bucket).
+update public.plantillas_tarjeta p set definicion = $j${"grupos": [], "total": {"etiqueta": "TOTAL"}, "logo": true, "columnas": {"leyenda": true, "tipo_cambio": false, "plazo": false}}$j$::jsonb
+  from public.origenes o where o.id = p.origen_id and o.clave = 'oficina' and p.version = 1;

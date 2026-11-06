@@ -182,7 +182,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **XCell** — `src/shared/ui/xcell`: celda numérica editable del cotizador: valor, default, revertir, ayuda, ⚙, sugerido, teclado.
 - **Modo Live** — `useLive()` / `<Monto>`: oculta cifras y símbolos de moneda en toda la app.
 - **Tabla de referencia** — `tablas_referencia`, `_filas`: tablas que alimentan nodos tabla/tramo (impuestos, tramos, tarifas, depreciación).
-- **Plantilla de tarjeta** — `plantillas_tarjeta`: cómo se ve la cotización (tarjeta y PDF), versionada aparte.
+- **Plantilla de tarjeta** — `plantillas_tarjeta`: cómo se ve la cotización (tarjeta y PDF), versionada aparte; declarativa (los grupos de la fórmula con su tono, etiquetas y leyendas por nodo, el total, la nota, el logo y las columnas) y validada por `validar_plantilla()` (4.18-1).
 - **Revisión** — `cotizaciones_revisiones`: diff de cada edición.
 - **Reporte** — `cotizaciones_reportes` / `cotizacion_moderar`: marca de problema; sólo quien modera invalida.
 - **Comprobante** — `comprobantes`, `comprobantes_contadores`: comprobante de venta interno, numeración sin huecos; se anula, no se borra.

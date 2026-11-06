@@ -114,3 +114,12 @@ begin
   insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad, nota, publicado_en)
   values (v_origen, 1, 'publicada', v_def, v_params, v_diseno, public._preparar_publicacion(v_def, v_params, v_diseno, false), 'Fórmula inicial', now());
 end $$;
+
+-- La plantilla de la tarjeta de subasta_usa (4.18-1): la de la vista previa 08 de `docs/referencias/cotizador-actual.md` (sus tres grupos con su tono, el «TOTAL DÓLARES»
+-- con su leyenda, la nota, el logo y las tres columnas). Valida contra la fórmula v1 (`supabase/tests/plantilla-validar.sql`, T5).
+update public.plantillas_tarjeta p set definicion = $j${"grupos": [{"grupo": "compra", "tono": "verde"}, {"grupo": "logistica", "tono": "amarillo"}, {"grupo": "aduana", "tono": "naranja"}],
+   "etiquetas": {"garantia": "GARANTÍA PARA LA PARTICIPACIÓN"},
+   "total": {"etiqueta": "TOTAL DÓLARES", "leyenda": "Todo con papeles, fuera de Aduana Nacional Cochabamba (No incluye reparación)"},
+   "nota": "Nota: Esta es una cotización referencial; los montos pueden variar con el tipo de cambio.",
+   "logo": true, "columnas": {"leyenda": true, "tipo_cambio": true, "plazo": true}}$j$::jsonb
+  from public.origenes o where o.id = p.origen_id and o.clave = 'subasta_usa' and p.version = 1;

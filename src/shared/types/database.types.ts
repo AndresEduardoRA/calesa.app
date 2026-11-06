@@ -7596,6 +7596,11 @@ export type Database = {
         Args: { p_tipo: Database['public']['Enums']['tipo_lote_papelera'] }
         Returns: undefined
       }
+      _plantilla_forma: { Args: { p_plantilla: Json }; Returns: undefined }
+      _plantilla_nodos: {
+        Args: { p_def: Json; p_diseno: Json; p_plantilla: Json; p_visibilidad: Json }
+        Returns: undefined
+      }
       _portal_clave_validar: { Args: { p_clave: string }; Returns: undefined }
       _portal_codigo_normal: { Args: { p_codigo: string }; Returns: string }
       _portal_hash_falso: { Args: Record<PropertyKey, never>; Returns: string }
@@ -8857,6 +8862,16 @@ export type Database = {
         Returns: undefined
       }
       validar_formula: { Args: { p_def: Json; p_params: Json }; Returns: undefined }
+      validar_plantilla: {
+        Args: {
+          p_def: Json
+          p_diseno: Json
+          p_plantilla: Json
+          p_tonos: string[]
+          p_visibilidad: Json
+        }
+        Returns: undefined
+      }
       vehiculo_conservar: { Args: { p_conservar: boolean; p_vehiculo: string }; Returns: Json }
       vehiculo_crear: {
         Args: { p_consulta?: string; p_datos: Json; p_id: string; p_origen: string }

@@ -1,0 +1,2177 @@
+{
+  "_nota": "El juego común de validar_plantilla() (paso 4.18-1): lo corre la base en supabase/tests/plantilla-validar.sql y lo correrá validarPlantilla() de TS (4.19). Cada caso valida su plantilla contra la fórmula nombrada (su definición, su diseño y su visibilidad compilada; `visibilidad` en el caso la reemplaza) con los tonos del catálogo de `tonos`; `motivo` es la regla y su donde.",
+  "formulas": {
+    "mini": {
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_ext",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "tc_adu",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC oficial",
+            "formato": "raw"
+          },
+          {
+            "id": "tc_uni",
+            "tipo": "tipo_cambio",
+            "clave": "unificado",
+            "etiqueta": "Dólar unificado",
+            "formato": "raw"
+          },
+          {
+            "id": "remate",
+            "tipo": "input",
+            "etiqueta": "Remate",
+            "descripcion": "Probabilidad de compra en subasta",
+            "grupo": "compra"
+          },
+          {
+            "id": "fees",
+            "tipo": "input",
+            "etiqueta": "Fees",
+            "grupo": "compra"
+          },
+          {
+            "id": "grua",
+            "tipo": "input",
+            "etiqueta": "Grúa",
+            "descripcion": "Traslado al puerto",
+            "grupo": "logistica"
+          },
+          {
+            "id": "nacionalizacion",
+            "tipo": "input",
+            "etiqueta": "Nacionalización",
+            "grupo": "aduana"
+          },
+          {
+            "id": "cif",
+            "tipo": "input",
+            "etiqueta": "Valor CIF",
+            "salida": "base_imponible"
+          },
+          {
+            "id": "garantia",
+            "tipo": "input",
+            "etiqueta": "Garantía de participación",
+            "salida": "aparte"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["remate", "fees", "grua", "nacionalizacion"],
+            "etiqueta": "TOTAL",
+            "salida": "total"
+          }
+        ],
+        "buckets": {
+          "exterior": "tc_ext",
+          "aduana": "tc_adu"
+        },
+        "total_en": "tc_ext",
+        "grupos": [
+          {
+            "id": "compra",
+            "etiqueta": "Compra",
+            "plazo": "2 días",
+            "tono": "verde",
+            "bucket": "exterior"
+          },
+          {
+            "id": "logistica",
+            "etiqueta": "Logística",
+            "plazo": "7 días",
+            "tono": "amarillo",
+            "bucket": "exterior"
+          },
+          {
+            "id": "aduana",
+            "etiqueta": "Aduana",
+            "tono": "naranja",
+            "bucket": "aduana"
+          }
+        ]
+      },
+      "diseno": {
+        "cabecera": {
+          "modos": [
+            {
+              "clave": "paralelo",
+              "nombre": "Paralelo",
+              "buckets": [
+                {
+                  "bucket": "exterior",
+                  "nodo": "tc_ext"
+                },
+                {
+                  "bucket": "aduana",
+                  "nodo": "tc_adu"
+                }
+              ],
+              "total_en": "tc_ext"
+            },
+            {
+              "clave": "unificado",
+              "nombre": "Unificado",
+              "buckets": [
+                {
+                  "bucket": "exterior",
+                  "nodo": "tc_uni"
+                },
+                {
+                  "bucket": "aduana",
+                  "nodo": "tc_adu"
+                }
+              ],
+              "total_en": "tc_uni"
+            }
+          ],
+          "ver_total_bs": true
+        },
+        "secciones": [],
+        "tarjeta_total": {
+          "nodo": "total",
+          "secundarios": ["garantia"]
+        }
+      },
+      "visibilidad": {
+        "tc_ext": {
+          "ver": "todos"
+        },
+        "tc_adu": {
+          "ver": "todos"
+        },
+        "tc_uni": {
+          "ver": "todos"
+        },
+        "remate": {
+          "ver": "todos"
+        },
+        "fees": {
+          "ver": "todos"
+        },
+        "grua": {
+          "ver": "todos"
+        },
+        "nacionalizacion": {
+          "ver": "todos"
+        },
+        "cif": {
+          "ver": "costos"
+        },
+        "garantia": {
+          "ver": "todos"
+        },
+        "total": {
+          "ver": "todos"
+        }
+      }
+    },
+    "oficina": {
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "precio",
+            "tipo": "input",
+            "etiqueta": "Precio acordado",
+            "bucket": "origen"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "restar",
+            "de": ["precio"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "origen"
+          }
+        ],
+        "buckets": {
+          "origen": "tc"
+        }
+      },
+      "diseno": {
+        "cabecera": {
+          "modos": [],
+          "ver_total_bs": false
+        },
+        "secciones": [],
+        "tarjeta_total": {
+          "nodo": "total",
+          "secundarios": []
+        }
+      },
+      "visibilidad": {
+        "tc": {
+          "ver": "todos"
+        },
+        "precio": {
+          "ver": "todos"
+        },
+        "total": {
+          "ver": "todos"
+        }
+      }
+    }
+  },
+  "tonos": ["verde", "amarillo", "naranja", "azul"],
+  "casos": [
+    {
+      "nombre": "completa: tono elegido, etiquetas, leyendas, total, nota y logo",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "azul"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "remate": "Remate en subasta",
+          "garantia": "GARANTÍA PARA LA PARTICIPACIÓN"
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "valida": true
+    },
+    {
+      "nombre": "mínima: los grupos sin tono, sin etiquetas ni nota y sin columnas",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "total": {
+          "etiqueta": "Total"
+        },
+        "logo": false,
+        "columnas": {
+          "leyenda": false,
+          "tipo_cambio": false,
+          "plazo": false
+        }
+      },
+      "valida": true
+    },
+    {
+      "nombre": "sin grupos: una fórmula sin grupos admite sólo grupos vacíos",
+      "formula": "oficina",
+      "plantilla": {
+        "grupos": [],
+        "total": {
+          "etiqueta": "Total"
+        },
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "valida": true
+    },
+    {
+      "nombre": "una leyenda vacía quita la leyenda (0 caracteres)",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "azul"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "remate": "Remate en subasta",
+          "garantia": "GARANTÍA PARA LA PARTICIPACIÓN"
+        },
+        "leyendas": {
+          "remate": ""
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "valida": true
+    },
+    {
+      "nombre": "el total y lo aparte se pueden nombrar",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "azul"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "total": "TOTAL",
+          "garantia": "Garantía"
+        },
+        "leyendas": {
+          "garantia": "Sólo si se muestra"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "valida": true
+    },
+    {
+      "nombre": "etiqueta de 60 caracteres con tildes (se cuentan caracteres, no bytes)",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "azul"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "remate": "áááááááááááááááááááááááááááááááááááááááááááááááááááááááááááá"
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "valida": true
+    },
+    {
+      "nombre": "leyenda de 160 caracteres con tildes",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "azul"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "remate": "Remate en subasta",
+          "garantia": "GARANTÍA PARA LA PARTICIPACIÓN"
+        },
+        "leyendas": {
+          "fees": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "valida": true
+    },
+    {
+      "nombre": "sin la columna del tipo de cambio, el de un modo puede ser de un nivel",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "azul"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "remate": "Remate en subasta",
+          "garantia": "GARANTÍA PARA LA PARTICIPACIÓN"
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": false,
+          "plazo": true
+        }
+      },
+      "valida": true,
+      "visibilidad": {
+        "tc_ext": {
+          "ver": "todos"
+        },
+        "tc_adu": {
+          "ver": "todos"
+        },
+        "tc_uni": {
+          "ver": "costos"
+        },
+        "remate": {
+          "ver": "todos"
+        },
+        "fees": {
+          "ver": "todos"
+        },
+        "grua": {
+          "ver": "todos"
+        },
+        "nacionalizacion": {
+          "ver": "todos"
+        },
+        "cif": {
+          "ver": "costos"
+        },
+        "garantia": {
+          "ver": "todos"
+        },
+        "total": {
+          "ver": "todos"
+        }
+      }
+    },
+    {
+      "nombre": "sin grupos con un grupo",
+      "formula": "oficina",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra"
+          }
+        ],
+        "total": {
+          "etiqueta": "Total"
+        },
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "grupo_inexistente",
+        "donde": "compra"
+      }
+    },
+    {
+      "nombre": "no es un objeto",
+      "formula": "mini",
+      "plantilla": [],
+      "motivo": {
+        "regla": "forma",
+        "donde": "definicion"
+      }
+    },
+    {
+      "nombre": "una clave de más en la raíz",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "azul"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "remate": "Remate en subasta",
+          "garantia": "GARANTÍA PARA LA PARTICIPACIÓN"
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        },
+        "paleta": {
+          "fondo": "#ffffff"
+        }
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "paleta"
+      }
+    },
+    {
+      "nombre": "la forma vieja de la semilla (paleta en hex y plantillas de texto)",
+      "formula": "mini",
+      "plantilla": {
+        "paleta": {
+          "fondo": "#ffffff",
+          "tinta": "#1b2230",
+          "acento": "#465fff"
+        },
+        "columnas": [
+          {
+            "id": "etiqueta",
+            "ancho": 640
+          },
+          {
+            "id": "monto",
+            "ancho": 320
+          }
+        ],
+        "encabezado": {
+          "logo": true,
+          "titulo": "{{titulo}}",
+          "fecha": "{{fecha}}"
+        },
+        "grupos": [
+          {
+            "titulo": "Detalle",
+            "filas": "secciones"
+          }
+        ],
+        "totales": [
+          {
+            "variable": "total",
+            "formato": "usd"
+          }
+        ],
+        "pie": "Cotización válida por 7 días."
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "encabezado"
+      }
+    },
+    {
+      "nombre": "grupos no es un arreglo",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": {
+          "compra": true
+        },
+        "etiquetas": {
+          "remate": "Remate en subasta",
+          "garantia": "GARANTÍA PARA LA PARTICIPACIÓN"
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "grupos"
+      }
+    },
+    {
+      "nombre": "sin grupos",
+      "formula": "mini",
+      "plantilla": {
+        "etiquetas": {
+          "remate": "Remate en subasta",
+          "garantia": "GARANTÍA PARA LA PARTICIPACIÓN"
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "grupos"
+      }
+    },
+    {
+      "nombre": "un grupo con una clave de más",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "azul",
+            "color": "#ff0000"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "remate": "Remate en subasta",
+          "garantia": "GARANTÍA PARA LA PARTICIPACIÓN"
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "grupos[0]"
+      }
+    },
+    {
+      "nombre": "un grupo que no es un objeto",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra"
+          },
+          "logistica",
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "remate": "Remate en subasta",
+          "garantia": "GARANTÍA PARA LA PARTICIPACIÓN"
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "grupos[1]"
+      }
+    },
+    {
+      "nombre": "un id de grupo mal formado",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra"
+          },
+          {
+            "grupo": "Logística"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "remate": "Remate en subasta",
+          "garantia": "GARANTÍA PARA LA PARTICIPACIÓN"
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "grupos[1].grupo"
+      }
+    },
+    {
+      "nombre": "un tono en hex",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "#ffffff"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "remate": "Remate en subasta",
+          "garantia": "GARANTÍA PARA LA PARTICIPACIÓN"
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "grupos[0].tono"
+      }
+    },
+    {
+      "nombre": "etiquetas no es un objeto",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "azul"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": ["remate"],
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "etiquetas"
+      }
+    },
+    {
+      "nombre": "la clave de una etiqueta mal formada",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "azul"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "Remate en subasta": "x"
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "etiquetas"
+      }
+    },
+    {
+      "nombre": "una etiqueta vacía",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "azul"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "remate": "  "
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "etiquetas.remate"
+      }
+    },
+    {
+      "nombre": "una etiqueta de 61 caracteres",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "azul"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "remate": "ááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááá"
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "etiquetas.remate"
+      }
+    },
+    {
+      "nombre": "una etiqueta que no es texto",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "azul"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "garantia": "Garantía",
+          "remate": 7
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "etiquetas.remate"
+      }
+    },
+    {
+      "nombre": "una leyenda de 161 caracteres",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "azul"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "remate": "Remate en subasta",
+          "garantia": "GARANTÍA PARA LA PARTICIPACIÓN"
+        },
+        "leyendas": {
+          "fees": "ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "leyendas.fees"
+      }
+    },
+    {
+      "nombre": "sin total (las llaves de texto no son una regla: son texto)",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "azul"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "remate": "Remate en subasta",
+          "garantia": "GARANTÍA PARA LA PARTICIPACIÓN"
+        },
+        "leyendas": {
+          "fees": "{{fecha}}"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "total"
+      }
+    },
+    {
+      "nombre": "la etiqueta del total de 41 caracteres",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "azul"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "remate": "Remate en subasta",
+          "garantia": "GARANTÍA PARA LA PARTICIPACIÓN"
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "total.etiqueta"
+      }
+    },
+    {
+      "nombre": "el total con una clave de más",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "azul"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "remate": "Remate en subasta",
+          "garantia": "GARANTÍA PARA LA PARTICIPACIÓN"
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL",
+          "formato": "usd"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "total"
+      }
+    },
+    {
+      "nombre": "la leyenda del total de 161 caracteres",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "azul"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "remate": "Remate en subasta",
+          "garantia": "GARANTÍA PARA LA PARTICIPACIÓN"
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL",
+          "leyenda": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "total.leyenda"
+      }
+    },
+    {
+      "nombre": "una nota de 301 caracteres",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "azul"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "remate": "Remate en subasta",
+          "garantia": "GARANTÍA PARA LA PARTICIPACIÓN"
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "nota"
+      }
+    },
+    {
+      "nombre": "una nota nula",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "azul"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "remate": "Remate en subasta",
+          "garantia": "GARANTÍA PARA LA PARTICIPACIÓN"
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        },
+        "nota": null
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "nota"
+      }
+    },
+    {
+      "nombre": "el logo no es booleano",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "azul"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "remate": "Remate en subasta",
+          "garantia": "GARANTÍA PARA LA PARTICIPACIÓN"
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": "sí",
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "logo"
+      }
+    },
+    {
+      "nombre": "las columnas sin plazo",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "azul"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "remate": "Remate en subasta",
+          "garantia": "GARANTÍA PARA LA PARTICIPACIÓN"
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true
+        }
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "columnas"
+      }
+    },
+    {
+      "nombre": "las columnas con una de más",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "azul"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "remate": "Remate en subasta",
+          "garantia": "GARANTÍA PARA LA PARTICIPACIÓN"
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true,
+          "ancho": true
+        }
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "columnas"
+      }
+    },
+    {
+      "nombre": "una columna que no es booleana",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "azul"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "remate": "Remate en subasta",
+          "garantia": "GARANTÍA PARA LA PARTICIPACIÓN"
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": "sí",
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "columnas"
+      }
+    },
+    {
+      "nombre": "un grupo que no es de la fórmula",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          },
+          {
+            "grupo": "seguro"
+          }
+        ],
+        "etiquetas": {
+          "remate": "Remate en subasta",
+          "garantia": "GARANTÍA PARA LA PARTICIPACIÓN"
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "grupo_inexistente",
+        "donde": "seguro"
+      }
+    },
+    {
+      "nombre": "un grupo repetido",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "compra",
+            "tono": "verde"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "remate": "Remate en subasta",
+          "garantia": "GARANTÍA PARA LA PARTICIPACIÓN"
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "grupo_repetido",
+        "donde": "compra"
+      }
+    },
+    {
+      "nombre": "falta un grupo de la fórmula (lo que se ve suma el total)",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra"
+          },
+          {
+            "grupo": "logistica"
+          }
+        ],
+        "etiquetas": {
+          "remate": "Remate en subasta",
+          "garantia": "GARANTÍA PARA LA PARTICIPACIÓN"
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "grupo_faltante",
+        "donde": "aduana"
+      }
+    },
+    {
+      "nombre": "un tono que no está en el catálogo",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra"
+          },
+          {
+            "grupo": "logistica",
+            "tono": "morado"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "remate": "Remate en subasta",
+          "garantia": "GARANTÍA PARA LA PARTICIPACIÓN"
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "tono_inexistente",
+        "donde": "logistica"
+      }
+    },
+    {
+      "nombre": "la etiqueta de un nodo que no existe",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "azul"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "remate": "Remate",
+          "zz_nodo": "X"
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "nodo_inexistente",
+        "donde": "zz_nodo"
+      }
+    },
+    {
+      "nombre": "la leyenda de un nodo que no existe",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "azul"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "remate": "Remate en subasta",
+          "garantia": "GARANTÍA PARA LA PARTICIPACIÓN"
+        },
+        "leyendas": {
+          "yy_nodo": "X"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "nodo_inexistente",
+        "donde": "yy_nodo"
+      }
+    },
+    {
+      "nombre": "la etiqueta de un nodo que no va en la tarjeta",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "azul"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "cif": "CIF"
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "nodo_sin_lugar",
+        "donde": "cif"
+      }
+    },
+    {
+      "nombre": "la leyenda de un tipo de cambio",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "azul"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "remate": "Remate en subasta",
+          "garantia": "GARANTÍA PARA LA PARTICIPACIÓN"
+        },
+        "leyendas": {
+          "tc_ext": "Paralelo"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "nodo_sin_lugar",
+        "donde": "tc_ext"
+      }
+    },
+    {
+      "nombre": "un miembro de un grupo del nivel costos",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "azul"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "remate": "Remate en subasta",
+          "garantia": "GARANTÍA PARA LA PARTICIPACIÓN"
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "nodo_restringido",
+        "donde": "fees"
+      },
+      "visibilidad": {
+        "tc_ext": {
+          "ver": "todos"
+        },
+        "tc_adu": {
+          "ver": "todos"
+        },
+        "tc_uni": {
+          "ver": "todos"
+        },
+        "remate": {
+          "ver": "todos"
+        },
+        "fees": {
+          "ver": "costos"
+        },
+        "grua": {
+          "ver": "todos"
+        },
+        "nacionalizacion": {
+          "ver": "todos"
+        },
+        "cif": {
+          "ver": "costos"
+        },
+        "garantia": {
+          "ver": "todos"
+        },
+        "total": {
+          "ver": "todos"
+        }
+      }
+    },
+    {
+      "nombre": "un miembro de un grupo que el diseño no dibuja (no figura)",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "azul"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "remate": "Remate en subasta",
+          "garantia": "GARANTÍA PARA LA PARTICIPACIÓN"
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "nodo_restringido",
+        "donde": "fees"
+      },
+      "visibilidad": {
+        "tc_ext": {
+          "ver": "todos"
+        },
+        "tc_adu": {
+          "ver": "todos"
+        },
+        "tc_uni": {
+          "ver": "todos"
+        },
+        "remate": {
+          "ver": "todos"
+        },
+        "grua": {
+          "ver": "todos"
+        },
+        "nacionalizacion": {
+          "ver": "todos"
+        },
+        "cif": {
+          "ver": "costos"
+        },
+        "garantia": {
+          "ver": "todos"
+        },
+        "total": {
+          "ver": "todos"
+        }
+      }
+    },
+    {
+      "nombre": "el tipo de cambio del bucket de un grupo, de un nivel",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "azul"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "remate": "Remate en subasta",
+          "garantia": "GARANTÍA PARA LA PARTICIPACIÓN"
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "tipo_de_cambio_restringido",
+        "donde": "tc_adu"
+      },
+      "visibilidad": {
+        "tc_ext": {
+          "ver": "todos"
+        },
+        "tc_adu": {
+          "ver": "costos"
+        },
+        "tc_uni": {
+          "ver": "todos"
+        },
+        "remate": {
+          "ver": "todos"
+        },
+        "fees": {
+          "ver": "todos"
+        },
+        "grua": {
+          "ver": "todos"
+        },
+        "nacionalizacion": {
+          "ver": "todos"
+        },
+        "cif": {
+          "ver": "costos"
+        },
+        "garantia": {
+          "ver": "todos"
+        },
+        "total": {
+          "ver": "todos"
+        }
+      }
+    },
+    {
+      "nombre": "el tipo de cambio de un modo, de un nivel",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "azul"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "etiquetas": {
+          "remate": "Remate en subasta",
+          "garantia": "GARANTÍA PARA LA PARTICIPACIÓN"
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "tipo_de_cambio_restringido",
+        "donde": "tc_uni"
+      },
+      "visibilidad": {
+        "tc_ext": {
+          "ver": "todos"
+        },
+        "tc_adu": {
+          "ver": "todos"
+        },
+        "tc_uni": {
+          "ver": "costos"
+        },
+        "remate": {
+          "ver": "todos"
+        },
+        "fees": {
+          "ver": "todos"
+        },
+        "grua": {
+          "ver": "todos"
+        },
+        "nacionalizacion": {
+          "ver": "todos"
+        },
+        "cif": {
+          "ver": "costos"
+        },
+        "garantia": {
+          "ver": "todos"
+        },
+        "total": {
+          "ver": "todos"
+        }
+      }
+    },
+    {
+      "nombre": "el primer rechazo manda: un grupo de más antes que un nodo inexistente",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          },
+          {
+            "grupo": "seguro"
+          }
+        ],
+        "etiquetas": {
+          "zz_nodo": "X"
+        },
+        "leyendas": {
+          "fees": "",
+          "total": "Todo con papeles"
+        },
+        "total": {
+          "etiqueta": "TOTAL DÓLARES",
+          "leyenda": "Todo con papeles, fuera de Aduana"
+        },
+        "nota": "Nota: Esta es una cotización referencial.",
+        "logo": true,
+        "columnas": {
+          "leyenda": true,
+          "tipo_cambio": true,
+          "plazo": true
+        }
+      },
+      "motivo": {
+        "regla": "grupo_inexistente",
+        "donde": "seguro"
+      }
+    }
+  ]
+}
