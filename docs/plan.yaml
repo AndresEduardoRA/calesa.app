@@ -2,7 +2,10 @@
 # El texto de cada paso, sus preguntas y su criterio completo están en docs/PLAN.md; aquí va lo que el coordinador necesita: dependencias,
 # riesgo, ruteo (modelo, effort, modo) y qué toca. Los carriles trabajan por ÁREA del módulo cotizaciones: el paso 4.15-4 parte sus
 # entradas para que un paso nuevo agregue archivos propios y no edite los compartidos; antes de él y después de todos (4.28) trabaja el
-# carril `a` (`base: true`, que posee el módulo entero y además lleva el listado, la tarjeta y la plantilla); `b` lleva la fórmula y `c` la papelera, marcar final, comprobantes y comentarios. Los ids son las letras de los stacks locales (puertos +100, +200, +300). `compartido`: carpetas donde cada paso sólo agrega archivos con nombre propio
+# carril `a` (`base: true`, que posee el módulo entero y además lleva el listado, la tarjeta y la plantilla); `b` lleva la fórmula y `c` la papelera, marcar final, comprobantes y comentarios.
+# Un área vive en features/<área>/, entities/<área>/, infra/<área>/, areas/<área>/ (sus entradas) y pantallas/<área>.ts; lo demás del módulo es
+# el NÚCLEO (la hoja, guardar, el motor…), del carril `a`, y las tres entradas de la raíz (index.ts, client.ts, composicion.ts) no las toca
+# ningún paso: sólo reexportan cada área (4.15-4; lo vigila scripts/guardas/areas-de-cotizaciones.test.ts). Los ids son las letras de los stacks locales (puertos +100, +200, +300). `compartido`: carpetas donde cada paso sólo agrega archivos con nombre propio
 # (migraciones con marca de tiempo, tests SQL, specs e2e); `database.types.ts` se regenera con `pnpm db:types` al integrar.
 esquema: plan/v1
 semilla: importadora fase 4
@@ -14,9 +17,65 @@ carriles:
     base: true
     dueno_de: [src/modules/cotizaciones/, src/app/, src/shared/, scripts/, .claude/, .github/, package.json, pnpm-lock.yaml, lefthook.yml, design/, supabase/, src/app/(app)/cotizaciones/page.tsx, src/app/(app)/_shell/, src/modules/leads/, src/modules/vehiculos/]
   - id: b
-    dueno_de: [src/modules/cotizaciones/features/formula/, src/modules/cotizaciones/entities/formula/, src/modules/cotizaciones/infra/formula/, src/modules/cotizaciones/features/diseno/, src/modules/cotizaciones/entities/diseno/, src/modules/cotizaciones/infra/diseno/, src/modules/cotizaciones/features/tablas/, src/modules/cotizaciones/entities/tablas/, src/modules/cotizaciones/infra/tablas/, src/modules/cotizaciones/pantallas/formula.ts, src/modules/cotizaciones/pantallas/diseno.ts, src/modules/cotizaciones/pantallas/tablas.ts, src/app/(app)/configuracion/cotizacion/]
+    dueno_de:
+      # Sus áreas enteras (features, entities, infra, areas y pantallas).
+      - src/modules/cotizaciones/features/formula/
+      - src/modules/cotizaciones/entities/formula/
+      - src/modules/cotizaciones/infra/formula/
+      - src/modules/cotizaciones/areas/formula/
+      - src/modules/cotizaciones/pantallas/formula.ts
+      - src/modules/cotizaciones/features/diseno/
+      - src/modules/cotizaciones/entities/diseno/
+      - src/modules/cotizaciones/infra/diseno/
+      - src/modules/cotizaciones/areas/diseno/
+      - src/modules/cotizaciones/pantallas/diseno.ts
+      - src/modules/cotizaciones/features/tablas/
+      - src/modules/cotizaciones/entities/tablas/
+      - src/modules/cotizaciones/infra/tablas/
+      - src/modules/cotizaciones/areas/tablas/
+      - src/modules/cotizaciones/pantallas/tablas.ts
+      - src/app/(app)/configuracion/cotizacion/
+      # El compilador de la fórmula y los validadores: núcleo, pero los edita este carril, archivo por archivo (P2 del 4.15-4). Uno nuevo
+      # de estas familias se suma aquí en su mismo PR (lo vigila scripts/guardas/areas-de-cotizaciones.test.ts).
+      - src/modules/cotizaciones/entities/casos-de-diseno.json
+      - src/modules/cotizaciones/entities/casos-de-formula.json
+      - src/modules/cotizaciones/entities/casos-del-compilador.json
+      - src/modules/cotizaciones/entities/compilador-arbol.ts
+      - src/modules/cotizaciones/entities/compilador-casos-de-formula.test.ts
+      - src/modules/cotizaciones/entities/compilador-emitir.ts
+      - src/modules/cotizaciones/entities/compilador-escala.test.ts
+      - src/modules/cotizaciones/entities/compilador-estado.ts
+      - src/modules/cotizaciones/entities/compilador-formula-de-prueba.ts
+      - src/modules/cotizaciones/entities/compilador-funciones.ts
+      - src/modules/cotizaciones/entities/compilador-generador.ts
+      - src/modules/cotizaciones/entities/compilador-lexico.ts
+      - src/modules/cotizaciones/entities/compilador-nombres.ts
+      - src/modules/cotizaciones/entities/compilador-propiedades.test.ts
+      - src/modules/cotizaciones/entities/compilador-reducir.ts
+      - src/modules/cotizaciones/entities/compilador-sintaxis.ts
+      - src/modules/cotizaciones/entities/compilador.test.ts
+      - src/modules/cotizaciones/entities/compilador.ts
+      - src/modules/cotizaciones/entities/motivos-de-diseno.test.ts
+      - src/modules/cotizaciones/entities/motivos-de-diseno.ts
+      - src/modules/cotizaciones/entities/motivos-de-formula.test.ts
+      - src/modules/cotizaciones/entities/motivos-de-formula.ts
+      - src/modules/cotizaciones/entities/motivos-del-compilador.ts
+      - src/modules/cotizaciones/entities/validar-campos.ts
+      - src/modules/cotizaciones/entities/validar-contexto.ts
+      - src/modules/cotizaciones/entities/validar-diseno-cobertura.ts
+      - src/modules/cotizaciones/entities/validar-diseno-contexto.ts
+      - src/modules/cotizaciones/entities/validar-diseno-escala.test.ts
+      - src/modules/cotizaciones/entities/validar-diseno-modos.ts
+      - src/modules/cotizaciones/entities/validar-diseno-secciones.ts
+      - src/modules/cotizaciones/entities/validar-diseno.test.ts
+      - src/modules/cotizaciones/entities/validar-diseno.ts
+      - src/modules/cotizaciones/entities/validar-escala.test.ts
+      - src/modules/cotizaciones/entities/validar-grupos.ts
+      - src/modules/cotizaciones/entities/validar-variante.ts
+      - src/modules/cotizaciones/entities/validar.test.ts
+      - src/modules/cotizaciones/entities/validar.ts
   - id: c
-    dueno_de: [src/modules/cotizaciones/features/papelera/, src/modules/cotizaciones/entities/papelera/, src/modules/cotizaciones/infra/papelera/, src/modules/cotizaciones/features/final/, src/modules/cotizaciones/entities/final/, src/modules/cotizaciones/infra/final/, src/modules/cotizaciones/features/comprobantes/, src/modules/cotizaciones/entities/comprobantes/, src/modules/cotizaciones/infra/comprobantes/, src/modules/cotizaciones/features/comentarios/, src/modules/cotizaciones/entities/comentarios/, src/modules/cotizaciones/infra/comentarios/, src/modules/cotizaciones/pantallas/papelera.ts, src/modules/cotizaciones/pantallas/final.ts, src/modules/cotizaciones/pantallas/comprobantes.ts, src/modules/cotizaciones/pantallas/comentarios.ts]
+    dueno_de: [src/modules/cotizaciones/features/papelera/, src/modules/cotizaciones/entities/papelera/, src/modules/cotizaciones/infra/papelera/, src/modules/cotizaciones/areas/papelera/, src/modules/cotizaciones/pantallas/papelera.ts, src/modules/cotizaciones/features/final/, src/modules/cotizaciones/entities/final/, src/modules/cotizaciones/infra/final/, src/modules/cotizaciones/areas/final/, src/modules/cotizaciones/pantallas/final.ts, src/modules/cotizaciones/features/comprobantes/, src/modules/cotizaciones/entities/comprobantes/, src/modules/cotizaciones/infra/comprobantes/, src/modules/cotizaciones/areas/comprobantes/, src/modules/cotizaciones/pantallas/comprobantes.ts, src/modules/cotizaciones/features/comentarios/, src/modules/cotizaciones/entities/comentarios/, src/modules/cotizaciones/infra/comentarios/, src/modules/cotizaciones/areas/comentarios/, src/modules/cotizaciones/pantallas/comentarios.ts]
 
 pasos:
   - id: "4.15-3"

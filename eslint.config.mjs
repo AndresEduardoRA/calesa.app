@@ -260,6 +260,8 @@ export default defineConfig([
               group: [
                 './index',
                 './composicion',
+                './areas/*/index',
+                './areas/*/composicion',
                 './infra/**',
                 '!./infra/*.client',
                 'server-only',
@@ -267,6 +269,42 @@ export default defineConfig([
               ],
               message:
                 'client.ts es la entrada de cliente: sólo hooks, componentes de cliente y tipos de entities.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  // La entrada de cliente de un área (`areas/<área>/client.ts`, 4.15-4): lo mismo que `client.ts`, en relativo desde dos carpetas abajo.
+  {
+    files: ['src/modules/*/areas/*/client.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [SOLO_EL_AYUDANTE_DE_DIFERIDOS],
+          patterns: [
+            SOLO_CLIENTES_DE_SHARED,
+            SOLO_LAS_ENTRADAS,
+            NINGUN_SDK_DE_CORREO,
+            {
+              group: [
+                '../../index',
+                '../../composicion',
+                './index',
+                './composicion',
+                '../*/index',
+                '../*/composicion',
+                'server-only',
+                'next/headers',
+              ],
+              message:
+                'areas/<área>/client.ts es una entrada de cliente: sólo hooks, componentes de cliente y tipos de entities.',
+            },
+            {
+              regex: '^\\.\\./\\.\\./infra/(?!.*\\.client$)',
+              message:
+                'areas/<área>/client.ts es una entrada de cliente: de infra/ sólo lo que es *.client.',
             },
           ],
         },
