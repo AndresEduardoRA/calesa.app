@@ -13,6 +13,9 @@ paths:
   comentario es historia: esa migración está en git, en el padre del commit que las borró (`git log --diff-filter=D -- supabase/migrations`).
 - Todo cambio es una migración nueva: `pnpm exec supabase migration new <nombre>` (fecha y hora reales, UTC). Si al integrar quedó
   antes de una que ya entró, se crea de nuevo con otra fecha. La misma guarda lo exige.
+- En un carril que no es base, el nombre empieza por uno de sus dominios (`docs/plan.yaml` › `migraciones`), que es el prefijo de sus
+  tablas (`formula_…`, `papelera_…`); `cotizacion_…` y `cotizaciones_…` son del núcleo y las crea el carril a. Lo vigila
+  `scripts/guardas/carriles.mjs`.
 - Cambiar una función: `create or replace` en la migración nueva, partiendo de su definición vigente (la última entre la base y las
   que siguen: `definicionSql()` de `scripts/lib/definicion-sql.ts`). Renombrar es `alter … rename`.
 - Un dato de catálogo (permiso, tono, nivel, bucket, job) va en su migración con `insert … on conflict`: la nube no vuelve a correr

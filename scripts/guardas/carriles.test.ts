@@ -1,47 +1,82 @@
 import { execFileSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
+import { leerPlan } from '../coordinador/plan.mjs'
 import { leerCambios, problemasDelPr } from './carriles.mjs'
 
-// Lo que un PR puede tocar según su carril (docs/ORCA.md): B ni ESTADO, PLAN, DECISIONES, BITACORA ni migraciones de dominios
-// compartidos; todo PR, migraciones nuevas posteriores a la última de la base y ninguna aplicada editada.
+// Lo que un PR puede tocar según su carril (docs/ORCA.md, docs/plan.yaml de la base): un carril que no es base ni ESTADO, PLAN, DECISIONES,
+// BITACORA ni migraciones de otro dominio; todo PR, migraciones nuevas posteriores a la última de la base y ninguna aplicada editada.
 const BASE = '20261028183622'
-const revisar = (rama: string, ...cambios: { estado: string; ruta: string; antes?: string }[]) =>
-  problemasDelPr({ rama, cambios, ultimaDeLaBase: BASE })
+type Cambio = { estado: string; ruta: string; antes?: string }
+const PLAN = leerPlan(`
+esquema: plan/v1
+carriles:
+  - id: a
+    base: true
+    dueno_de: [src/, docs/]
+  - id: b
+    migraciones: [formula, diseno, tablas]
+    dueno_de: [src/modules/cotizaciones/areas/formula/]
+  - id: c
+    migraciones: [papelera]
+    dueno_de: [src/modules/cotizaciones/areas/papelera/]
+  - id: d
+    dueno_de: [src/modules/x/]
+`)
+const revisar = (rama: string, ...cambios: Cambio[]) =>
+  problemasDelPr({ rama, cambios, ultimaDeLaBase: BASE, plan: PLAN })
 const nueva = (nombre: string) => ({ estado: 'A', ruta: `supabase/migrations/${nombre}.sql` })
+const SOLO_DE_A = ['docs/ESTADO.md', 'docs/PLAN.md', 'docs/DECISIONES.md', 'docs/BITACORA.md']
 
-describe('carriles › el carril B', () => {
-  it.each(['docs/ESTADO.md', 'docs/PLAN.md', 'docs/DECISIONES.md', 'docs/BITACORA.md'])(
-    'no toca %s',
-    (ruta) => {
-      expect(revisar('b/notificaciones', { estado: 'M', ruta })).toEqual([
-        expect.stringContaining('el carril B no edita ESTADO, PLAN, DECISIONES ni BITACORA'),
+describe('carriles › un carril que no es base', () => {
+  it.each(['b/4.20', 'c/4.24'])('%s no edita ESTADO, PLAN, DECISIONES ni BITACORA', (rama) => {
+    for (const ruta of SOLO_DE_A) {
+      expect(revisar(rama, { estado: 'M', ruta })).toEqual([
+        expect.stringContaining('lo escribe en docs/pasos/'),
       ])
-    },
-  )
+    }
+  })
 
-  it('anota en su archivo de carril y crea migraciones de sus dominios', () => {
+  it('anota en docs/pasos y crea migraciones de sus dominios', () => {
     expect(
       revisar(
-        'b/notificaciones',
-        { estado: 'M', ruta: 'docs/carriles/b.md' },
-        nueva('20261101120000_notificaciones_push'),
-        nueva('20261101120001_web'),
-        nueva('20261101120002_agenda_eventos'),
+        'b/4.20',
+        { estado: 'A', ruta: 'docs/pasos/4.20/bitacora.md' },
+        nueva('20261101120000_formula_versiones'),
+        nueva('20261101120001_tablas'),
       ),
     ).toEqual([])
   })
 
-  it.each([
-    '20261101120000_leads_avisos',
-    '20261101120000_notificacionesx',
-    '20261101120000_cola_web',
-  ])('una migración de un dominio compartido (%s) es del carril A', (nombre) => {
-    expect(revisar('b/x', nueva(nombre))).toEqual([expect.stringContaining('la crea el carril A')])
+  it('una migración de otro dominio es del carril A, nombrando los del carril', () => {
+    expect(revisar('b/x', nueva('20261101120000_notificaciones_push'))).toEqual([
+      expect.stringContaining('sólo de formula, diseno, tablas'),
+    ])
+    expect(revisar('b/x', nueva('20261101120000_formulax'))).toHaveLength(1)
   })
 
-  it('el carril A y la preparación sí tocan ESTADO y crean migraciones de cualquier dominio', () => {
-    for (const rama of ['a/fase-5', 'preparar-orca']) {
+  it('cada carril, sus dominios: c no crea los de b y sí los suyos', () => {
+    expect(revisar('c/x', nueva('20261101120000_formula_x'))).toHaveLength(1)
+    expect(revisar('c/x', nueva('20261101120000_papelera_lotes'))).toEqual([])
+  })
+
+  it('sin `migraciones`, no crea ninguna', () => {
+    expect(revisar('d/x', nueva('20261101120000_x_y'))).toEqual([
+      expect.stringContaining('el carril d no crea migraciones'),
+    ])
+  })
+
+  it('sin docs/plan.yaml en la base cae todo PR, también el del carril base y la preparación', () => {
+    for (const rama of ['a/x', 'preparar-orca', 'b/x']) {
+      expect(problemasDelPr({ rama, cambios: [], ultimaDeLaBase: BASE, plan: null })).toEqual([
+        expect.stringContaining('no lo pude leer en la base'),
+      ])
+    }
+  })
+
+  it('el carril A, la preparación y las ramas sin carril tocan ESTADO y crean migraciones de cualquier dominio', () => {
+    for (const rama of ['a/fase-5', 'preparar-orca', 'dependabot/npm/x', 'b']) {
       expect(
         revisar(
           rama,
@@ -49,6 +84,16 @@ describe('carriles › el carril B', () => {
           nueva('20261101120000_flujos_fases'),
         ),
       ).toEqual([])
+    }
+  })
+
+  it('el plan real: cada dominio de un carril es un área suya, y cada área suya es un dominio', () => {
+    const real = leerPlan(readFileSync('docs/plan.yaml', 'utf8'))
+    for (const c of real.carriles.filter((x: { base?: boolean }) => x.base !== true)) {
+      const areas = (c.dueno_de as string[])
+        .map((d) => /^src\/modules\/cotizaciones\/areas\/([a-z-]+)\/$/.exec(d)?.[1])
+        .filter(Boolean)
+      expect([...(c.migraciones as string[])].sort()).toEqual([...areas].sort())
     }
   })
 })

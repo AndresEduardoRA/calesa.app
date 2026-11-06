@@ -64,8 +64,9 @@ jobs:
       - run: pnpm test
       - run: bash scripts/mapa.sh --check
 
-  # Lo que un PR puede tocar según su carril (scripts/guardas/carriles.mjs, docs/ORCA.md): el carril B no edita ESTADO, PLAN,
-  # DECISIONES ni BITACORA ni crea migraciones de dominios compartidos; ninguna migración se intercala ni se edita.
+  # Lo que un PR puede tocar según su carril (scripts/guardas/carriles.mjs, docs/ORCA.md): un carril que no es base (docs/plan.yaml, el de la
+  # base del PR) no edita ESTADO, PLAN, DECISIONES ni BITACORA ni crea migraciones de otro dominio; ninguna migración se intercala ni se edita.
+  # La guarda que corre es la de la base, no la del PR: un PR que la edite se juzga con la que ya estaba.
   carriles:
     name: Carriles · lo que el PR puede tocar
     if: github.event_name == 'pull_request'
@@ -75,10 +76,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+      - uses: ./.github/acciones/preparar
       - env:
           BASE_PR: ${{ github.event.pull_request.base.sha }}
           RAMA: ${{ github.head_ref }}
-        run: node scripts/guardas/carriles.mjs "$BASE_PR" "$RAMA"
+        run: |
+          git worktree add --detach .guarda-base "$BASE_PR"
+          node .guarda-base/scripts/guardas/carriles.mjs "$BASE_PR" "$RAMA"
 
   # Decide si corren los jobs pesados (scripts/ci-cambios.sh, probado en scripts/ci-cambios.test.ts) y qué e2e corre un PR: el completo
   # en 4 bloques, los dirigidos en 1, o ninguno (scripts/e2e-dirigidos.mjs). Fuera de un PR, el completo.

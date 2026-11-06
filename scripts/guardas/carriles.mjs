@@ -1,18 +1,20 @@
-// Lo que un PR puede tocar, según su carril (docs/ORCA.md). La corre CI sobre el diff del PR (job `carriles` de ci.yml):
+// Lo que un PR puede tocar, según su carril (docs/ORCA.md, docs/plan.yaml). La corre CI sobre el diff del PR (job `carriles` de ci.yml):
 //
 //   node scripts/guardas/carriles.mjs <commit base del PR> <rama del PR>     → los problemas por stderr; exit 1 si hay alguno
 //
-// - El carril B (rama `b/…`) no toca ESTADO, PLAN, DECISIONES ni BITACORA (los edita sólo A; B anota en docs/carriles/b.md) y sólo crea
-//   migraciones de sus dominios, con el dominio al principio del nombre (`<versión>_notificaciones_….sql`). Una migración de un
-//   dominio compartido la crea A.
+// Los carriles salen de docs/plan.yaml **de la base del PR**, no del PR: un PR no se da permisos a sí mismo. Sin ese archivo en la base,
+// todo PR cae. El carril de una rama es lo que va antes de la primera `/` si es el `id` de un carril del plan.
+// - Un carril que no es base (`b/…`, `c/…`) no toca ESTADO, PLAN, DECISIONES ni BITACORA (los edita sólo el base; el otro lo anota en
+//   docs/pasos/<paso>/) y sólo crea migraciones de sus dominios (`migraciones` del plan), con el dominio al principio del nombre
+//   (`<versión>_formula_….sql`). La de otro dominio la crea el carril base.
 // - Todo PR: una migración nueva es posterior a la última de la base (nunca se intercala), y una migración que ya está en la base no
 //   se edita, no se borra ni se renombra.
 // Se prueba en `carriles.test.ts`.
 import { execFileSync } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
 
-// Los dominios del carril B: la Fase 7 (agenda, chat, notificaciones, buscador) y la 8 sin repuestos (web).
-export const DOMINIOS_DE_B = ['agenda', 'chat', 'notificaciones', 'buscador', 'web']
+import { leerPlan } from '../coordinador/plan.mjs'
+
 export const SOLO_DE_A = [
   'docs/ESTADO.md',
   'docs/PLAN.md',
@@ -21,19 +23,32 @@ export const SOLO_DE_A = [
 ]
 
 const MIGRACION = /^supabase\/migrations\/(\d{14})_([^/]+)\.sql$/
-const esDeB = (rama) => /^b\//.test(rama)
+/** El carril no base de la rama (`b/4.20` → el de `id: b`), o null: carril base, rama sin carril o plan ilegible. */
+export function carrilDe(rama, plan) {
+  const id = rama.split('/')[0] ?? ''
+  const carril = rama.includes('/') ? plan?.carriles.find((c) => c.id === id) : undefined
+  return carril && carril.base !== true ? carril : null
+}
 // La base aplastada (docs/PREPARACION.md, etapa 1) reemplazó a las 146 migraciones anteriores: el PR que la trae las borra. Es la
 // única excepción; integrado ese PR, ninguna migración de main es anterior a la base.
 const BASE_APLASTADA = '20261028180656'
 
 /**
- * @param {{ rama: string, cambios: { estado: string, ruta: string, antes?: string }[], ultimaDeLaBase: string }} pr
+ * @param {{ rama: string, cambios: { estado: string, ruta: string, antes?: string }[], ultimaDeLaBase: string, plan: ReturnType<typeof leerPlan> | null, base?: string }} pr
  *   `cambios`: el `git diff --name-status` del PR (A, M, D, R…; `antes` es la ruta vieja de un renombre); `ultimaDeLaBase`: la
- *   versión de la última migración de la rama base. Puro: sin I/O.
+ *   versión de la última migración de la rama base; `plan`: docs/plan.yaml de la base (`null` si no se pudo leer). Puro: sin I/O.
  * @returns {string[]}
  */
-export function problemasDelPr({ rama, cambios, ultimaDeLaBase }) {
+export function problemasDelPr({ rama, cambios, ultimaDeLaBase, plan, base = 'la base' }) {
+  if (!plan) {
+    return [
+      `docs/plan.yaml: no lo pude leer en la base (${base}); la guarda de carriles saca de él los carriles.`,
+    ]
+  }
   const problemas = []
+  const carril = carrilDe(rama, plan)
+  const idBase = plan.carriles.find((c) => c.base === true)?.id ?? 'a'
+  const dominios = Array.isArray(carril?.migraciones) ? carril.migraciones.map(String) : []
   for (const { estado, ruta, antes } of cambios) {
     const viejo = antes ?? ruta
     const aplastada = estado[0] === 'D' && (MIGRACION.exec(viejo)?.[1] ?? '') < BASE_APLASTADA
@@ -49,19 +64,23 @@ export function problemasDelPr({ rama, cambios, ultimaDeLaBase }) {
         `${ruta}: la versión ${nueva[1] ?? ''} no es posterior a la última de la base (${ultimaDeLaBase}): créala de nuevo con \`supabase migration new\`.`,
       )
     }
-    if (!esDeB(rama)) continue
+    if (!carril) continue
     if (SOLO_DE_A.includes(ruta)) {
       problemas.push(
-        `${ruta}: el carril B no edita ESTADO, PLAN, DECISIONES ni BITACORA; lo anota en docs/carriles/b.md y lo pasa el carril A.`,
+        `${ruta}: el carril ${carril.id} no edita ESTADO, PLAN, DECISIONES ni BITACORA; lo escribe en docs/pasos/<paso>/ y lo pasa el carril ${idBase}.`,
       )
     }
-    if (
-      nueva &&
-      !DOMINIOS_DE_B.some((d) => (nueva[2] ?? '') === d || (nueva[2] ?? '').startsWith(`${d}_`))
-    ) {
-      problemas.push(
-        `${ruta}: el carril B crea migraciones sólo de sus dominios (${DOMINIOS_DE_B.join(', ')}), con el dominio al principio del nombre; la de un dominio compartido la crea el carril A.`,
-      )
+    if (nueva) {
+      const nombre = nueva[2] ?? ''
+      if (dominios.length === 0) {
+        problemas.push(
+          `${ruta}: el carril ${carril.id} no crea migraciones (docs/plan.yaml no le da ninguna); la crea el carril ${idBase}.`,
+        )
+      } else if (!dominios.some((d) => nombre === d || nombre.startsWith(`${d}_`))) {
+        problemas.push(
+          `${ruta}: el carril ${carril.id} crea migraciones sólo de ${dominios.join(', ')} (docs/plan.yaml › migraciones), con el dominio al principio del nombre; la de otro dominio la crea el carril ${idBase}.`,
+        )
+      }
     }
   }
   return problemas
@@ -95,7 +114,13 @@ function principal([base, rama]) {
       .filter(Boolean)
       .sort()
       .at(-1) ?? ''
-  const problemas = problemasDelPr({ rama, cambios, ultimaDeLaBase })
+  let plan = null
+  try {
+    plan = leerPlan(git('show', `${base}:docs/plan.yaml`))
+  } catch {
+    plan = null
+  }
+  const problemas = problemasDelPr({ rama, cambios, ultimaDeLaBase, plan, base })
   for (const p of problemas) console.error(`✗ ${p}`)
   if (problemas.length > 0) process.exit(1)
   console.log(`✓ carriles: ${String(cambios.length)} archivos de ${rama} cumplen.`)

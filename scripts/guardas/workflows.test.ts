@@ -84,11 +84,14 @@ describe('los workflows del repo cumplen', () => {
 describe('ci.yml por niveles y carriles', () => {
   const job = (nombre: string) => jobsDe(ci).find((j) => j.nombre === nombre)?.bloque ?? ''
 
-  it('el job carriles corre en cada PR, con la historia entera, la guarda de carriles', () => {
+  it('el job carriles corre en cada PR, con la historia entera y las dependencias, la guarda de carriles de la base', () => {
     const carriles = job('carriles')
     expect(carriles).toMatch(/if: github\.event_name == 'pull_request'/)
     expect(carriles).toMatch(/fetch-depth: 0/)
-    expect(carriles).toContain('node scripts/guardas/carriles.mjs "$BASE_PR" "$RAMA"')
+    const orden = ['./.github/acciones/preparar', 'worktree add --detach .guarda-base "$BASE_PR"']
+    orden.push('node .guarda-base/scripts/guardas/carriles.mjs "$BASE_PR" "$RAMA"')
+    const en = orden.map((t) => carriles.indexOf(t))
+    expect(en.every((i) => i >= 0) && [...en].sort((a, b) => a - b)).toEqual(en)
   })
 
   it('el PR elige sus e2e con scripts/e2e-dirigidos.mjs, y la matriz y los specs salen de esa elección', () => {
