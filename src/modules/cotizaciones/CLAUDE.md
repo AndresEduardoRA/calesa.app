@@ -19,13 +19,35 @@ Ficha completa (historia, partes, mediciones, trampas viejas): `docs/archivo/mod
 - `client.ts` (4.14-2c3): `useLectorDeOpciones({ origenId, abierta })`, las opciones de un dato del vehículo (los textos de su columna en las filas de `cotizacion_tabla`, tal cual, sin repetir, en paralelo por tabla y recordadas 5 min por hoja abierta y tabla con `memoriaDeLectura()`); lo usa la página de cotizar para armar el lector del panel del vehículo (`vehiculos` no conoce `cotizaciones`). `PantallaDeCotizar` recibe `seEligen` (los campos que quien mira elige en el panel): su celda sin valor (`campo_sin_valor`, `fila_sin_coincidencia`) dice «Elige el dato del vehículo en «Vehículo»…» (`entities/textos-de-faltantes.ts`).
 - Depende de `leads`, `vehiculos`, `empresa` (tipos de cambio); los orígenes entran por props desde `src/app`.
 
+## Áreas (4.15-4)
+
+El módulo se parte por **área** para que los carriles B y C (`docs/plan.yaml`) agreguen archivos propios y no editen los compartidos
+(`docs/DECISIONES.md`, paso 4.15-4). Las áreas: `listado`, `tarjeta`, `plantilla`, `formula`, `diseno`, `tablas`, `papelera`, `final`,
+`comprobantes`, `comentarios`. Lo demás es el **núcleo** (la hoja, guardar, encima, revisiones, historial, niveles, el motor, el compilador,
+los validadores, el diseño, la apertura, la ruta): lo que comparten las áreas.
+
+- **Dónde va lo de un paso:** en las carpetas de su área, `features/<área>/`, `entities/<área>/`, `infra/<área>/`, y en sus entradas
+  `areas/<área>/{index,client,composicion}.ts` (servidor, cliente y la composición, que empieza con `import 'server-only'`). Su pantalla es
+  `pantallas/<área>.ts`; una segunda, `pantallas/<área>-<pantalla>.ts` (una pantalla paga lo que reexporta su archivo), y se suma a `plan.yaml`.
+- **Qué no se toca:** `index.ts`, `client.ts` y `composicion.ts` de la raíz sólo llevan `export * from './areas/<x>/<mismo nombre>'` por el
+  núcleo y cada área, en orden; un nombre repetido entre dos áreas es un error de `tsc`. Un área nueva (la lista, `plan.yaml` y las tres
+  líneas) la decide el carril A.
+- **La dirección:** un área importa lo suyo y el núcleo, **nunca otra área**; el núcleo no importa ningún área; adentro nadie importa las
+  entradas de la raíz (los casos de uso del núcleo importan `areas/nucleo/composicion.ts`). Cuentan `import type`, `import()` y los tests. Lo
+  que dos áreas necesitan va al núcleo. Lo vigila `scripts/guardas/areas-de-cotizaciones.test.ts` (también que cada área tenga sus lugares y que
+  `plan.yaml` dé áreas enteras); el compilador y los validadores (`entities/compilador*`, `validar*`, `motivos-*`, sus `casos-*.json`) son
+  núcleo pero los posee el carril B, archivo por archivo.
+- **La composición del navegador** (`composicion.client.ts`, `-historial.client.ts`, `-revisiones.client.ts`) es del núcleo y queda en la raíz
+  (la nombran los `vi.mock`). La de un área va en `areas/<área>/composicion.client.ts`, la importa sólo su feature y ningún barril la
+  reexporta: lo que suma un `areas/<área>/client.ts` lo paga toda pantalla que importa `@/modules/cotizaciones/client`.
+
 ## Archivos clave
 
 - Motor y grafo (`docs/COTIZADOR.md`: léelo antes de tocar el motor): `entities/nodos.ts` (Zod por `tipo`, `referenciasDe()`), `formula.ts`, `motor.ts` y `motor-*.ts` (`evaluar()`, una pasada), `redondeo.ts` (`round(numeric)` de Postgres), `compilador*.ts` (texto a nodos, puro, nunca lanza), `casos-del-motor.json`.
 - Validación: `entities/validar*.ts` espeja `validar_formula()` (30 reglas, `docs/COTIZADOR.md` › «Las reglas») y `validar-diseno*.ts` a `validar_diseno()` (28); `diseno.ts`. Juegos: `casos-de-{formula,diseno}.json` (regla nueva = su caso).
 - Base: `evaluar_formula()` (espejo exacto de `motor.ts`, pura), `cotizacion_evaluar()`, `cotizacion_hoja()`, `cotizacion_crear()`, `cotizacion_guardar()`, `_nodos_visibles()`, `_publicar_formula()` / `_preparar_publicacion()`, niveles; semillas `supabase/semillas/cotizador-*.sql`. Detalle: `docs/COTIZADOR.md` › «En la base (4.08-2)», «En la base (4.09-1)», «En la base (4.10-1)», «Quién escribe una cotización y cómo», «Cómo se guarda (4.10-3)», «La lectura que abre la hoja (4.13-1)», «La hoja abierta (4.13-3a)».
 - Hoja en el cliente: la celda de una tabla trae `datoDelVehiculo` (`entities/hoja.ts`; las opciones salen de las filas de `cotizacion_tabla`, `columnas` puede venir vacío; las junta `entities/dato-del-vehiculo.ts` y las dibuja el panel del vehículo, 4.14-2c3). `entities/{hoja,hoja-esquema,recalculo,entradas,binding,guardado,intento-de-guardado,claves-de-la-hoja,borrador-de-hoja,cabecera-de-la-hoja}.ts`; `infra/queries/{hoja,recalculo}.ts`, `infra/recalculo.client.ts`, `infra/cotizaciones.ts`; `entities/presentacion-de-la-hoja.ts` (dónde va «Avanzado»), `features/hoja/` (componentes con `data-nodo`, `data-atajos`, `data-seccion`, `data-avanzado`, `data-cabecera` —los modos y «Ver total Bs»—, `data-secciones`, `data-modo`, `data-total-bs` y el resumen con `data-pie-de-panel`, que miran los e2e). El modo de tipo de cambio es parte de `Entradas` (viaja con lo que calculó cada recálculo); «Ver total Bs» no (no cambia el cálculo), pero vuelve con el borrador.
-- Además: `entities/nivel.ts`, `infra/niveles.ts`, `features/{niveles,formulas,plantillas}/` y `features/pdf/` (route handler con `@react-pdf/renderer`).
+- Además: `entities/nivel.ts`, `infra/niveles.ts`, `features/niveles/` (Configuración › Cotización › Niveles).
 
 ## Tablas
 
