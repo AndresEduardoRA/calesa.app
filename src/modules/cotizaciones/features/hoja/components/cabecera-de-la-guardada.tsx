@@ -2,6 +2,7 @@
 
 import type { Route } from 'next'
 import Link from 'next/link'
+import type { ReactNode } from 'react'
 import { formatearFecha } from '@/shared/lib/fechas'
 import { Badge } from '@/shared/ui/badge'
 import { useRegional } from '@/shared/ui/regional'
@@ -26,6 +27,8 @@ type Props = {
   // Lo que quien mira ve del cliente y del vehículo: el que no se ve no se nombra.
   cliente: string | null
   vehiculo: string | null
+  // Lo que un área suma en la fila del título, después de «Revisiones» (4.15-6b): sus botones, ya dibujados por la página.
+  acciones?: ReactNode
 }
 
 // La cabecera de una cotización guardada: «Cotización n.º N», su clase, hasta cuándo vale (o «Vencida») y de qué origen, cliente y vehículo es. El número es un identificador:
@@ -42,6 +45,7 @@ export function CabeceraDeLaGuardada({
   origen,
   cliente,
   vehiculo,
+  acciones,
 }: Props) {
   const { zonaHoraria } = useRegional()
   return (
@@ -61,6 +65,7 @@ export function CabeceraDeLaGuardada({
         <div className="ml-auto">
           <RevisionesDeLaCotizacion cotizacionId={id} numero={numero} version={actualizadoEn} />
         </div>
+        {acciones}
       </div>
       <CadenaDeVersiones version={version} cadena={cadena} />
       <p className="flex flex-wrap gap-x-4 gap-y-1 text-(length:--text-sm) [overflow-wrap:anywhere] text-(--color-ink-soft)">

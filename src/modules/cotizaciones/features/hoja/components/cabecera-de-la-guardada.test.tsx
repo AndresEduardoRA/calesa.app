@@ -109,3 +109,28 @@ describe('CabeceraDeLaGuardada: la cadena (C7)', () => {
     expect(screen.queryByText(/Hay una versión nueva/)).toBeNull()
   })
 })
+
+// El contenedor de «Revisiones» y la fila de la cabecera que lo contiene.
+function filaDeLaCabecera() {
+  const contenedor = screen.getByRole('button', { name: 'Revisiones' }).closest('.ml-auto')
+  const fila = contenedor?.parentElement
+  if (!contenedor || !fila) throw new Error('No está la fila de la cabecera')
+  return { contenedor, fila }
+}
+
+describe('CabeceraDeLaGuardada: las acciones (4.15-6b, C2)', () => {
+  it('con `acciones`, van después de «Revisiones», en la misma fila y sin envoltorio', () => {
+    render(<CabeceraDeLaGuardada {...props} acciones={<button>Acción de prueba</button>} />)
+    const { contenedor, fila } = filaDeLaCabecera()
+    const accion = screen.getByRole('button', { name: 'Acción de prueba' })
+    expect(contenedor.nextElementSibling).toBe(accion)
+    expect(accion.parentElement).toBe(fila)
+  })
+
+  it('sin `acciones`, la fila tiene los cuatro hijos de siempre y «Revisiones» es el último (C9)', () => {
+    render(<CabeceraDeLaGuardada {...props} />)
+    const { contenedor, fila } = filaDeLaCabecera()
+    expect(fila.children).toHaveLength(4)
+    expect(fila.lastElementChild).toBe(contenedor)
+  })
+})
