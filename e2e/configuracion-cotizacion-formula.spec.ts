@@ -15,14 +15,14 @@ import { crearAsesoraDeLaSemilla } from './soporte/recorrido'
 
 // La pestaña «Fórmula» de Configuración › Cotización (4.20-2a, `docs/UX.md` › «Cotización: fórmula (estados propios)»): entra quien tiene `cotizaciones.configurar` en algún origen,
 // también sin los permisos de los niveles; muestra la publicada, el borrador (atrasado si se publicó otra después) y las versiones de a 20 por cursor hasta 500, con
-// «Ir a la versión» como camino a lo antiguo. De sólo lectura.
+// «Ir a la versión» como camino a lo antiguo. Publicar y revertir: `configuracion-cotizacion-formula-publicar.spec.ts` y `-revertir.spec.ts` (4.20-2b).
 test.describe.configure({ mode: 'serial' })
 
-// Lo medido en escritorio con 520 versiones (4.20-2a: 4.429 B, 102 y 2.502 nodos), más un 5 %: los bytes de la primera respuesta de «Ver más» (20 + 1 filas sin lo
-// oculto) y los nodos de la lista.
+// Lo medido en escritorio con 520 versiones, más un 5 %: los bytes de la primera respuesta de «Ver más» (20 + 1 filas sin lo oculto; 4.20-2a: 4.429 B) y los nodos de la
+// lista (4.20-2b, con «Revertir» en cada archivada: 121 y 3.001; antes, 102 y 2.502).
 const TOPE_DE_BYTES_DE_VER_MAS = 4_650
-const TOPE_DE_NODOS_CON_20 = 107
-const TOPE_DE_NODOS_CON_500 = 2_627
+const TOPE_DE_NODOS_CON_20 = 127
+const TOPE_DE_NODOS_CON_500 = 3_151
 
 let proyecto = ''
 let chica = { id: '', nombre: '' }
@@ -131,10 +131,10 @@ test('con 520 versiones, «Ver más» llega hasta 500, avisa el tope e «Ir a la
   }
   await expect(page.getByText('Mostrando las 500 más recientes.')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Ver más' })).toHaveCount(0)
-  await page.getByLabel('Ir a la versión').fill('abc')
+  await page.getByLabel('Ir a la versión', { exact: true }).fill('abc')
   await page.getByRole('button', { name: 'Ir', exact: true }).click()
   await expect(page.getByText('Escribe un número de versión.')).toBeVisible()
-  await page.getByLabel('Ir a la versión').fill('10')
+  await page.getByLabel('Ir a la versión', { exact: true }).fill('10')
   await page.getByRole('button', { name: 'Ir', exact: true }).click()
   await expect(page.getByText('Desde la versión 10.')).toBeVisible()
   await expect(versiones(page)).toHaveCount(10)

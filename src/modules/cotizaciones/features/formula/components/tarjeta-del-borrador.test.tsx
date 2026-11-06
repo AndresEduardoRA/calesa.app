@@ -1,5 +1,5 @@
-import { cleanup, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { TarjetaDelBorrador } from './tarjeta-del-borrador'
 
 afterEach(cleanup)
@@ -32,6 +32,39 @@ describe('TarjetaDelBorrador', () => {
         'Después de que empezó, se publicó la versión 3: publicarlo dará conflicto.',
       ),
     ).toBeTruthy()
+  })
+
+  it('«Publicar…» con el borrador al día y en un origen sin publicada; abre lo que le pasan', () => {
+    const alPublicar = vi.fn()
+    render(
+      <TarjetaDelBorrador
+        borrador={borrador(V3, 3)}
+        publicada={{ id: V3, version: 3 }}
+        alPublicar={alPublicar}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar…' }))
+    expect(alPublicar).toHaveBeenCalledTimes(1)
+    cleanup()
+    render(
+      <TarjetaDelBorrador borrador={borrador(null, null)} publicada={null} alPublicar={vi.fn()} />,
+    )
+    expect(screen.getByRole('button', { name: 'Publicar…' })).toBeTruthy()
+  })
+
+  it('atrasado no ofrece «Publicar…» y el aviso sigue; sin quien abra, tampoco', () => {
+    render(
+      <TarjetaDelBorrador
+        borrador={borrador(V2, 2)}
+        publicada={{ id: V3, version: 3 }}
+        alPublicar={vi.fn()}
+      />,
+    )
+    expect(screen.queryByRole('button', { name: 'Publicar…' })).toBeNull()
+    expect(screen.getByText(/publicarlo dará conflicto/)).toBeTruthy()
+    cleanup()
+    render(<TarjetaDelBorrador borrador={borrador(V3, 3)} publicada={{ id: V3, version: 3 }} />)
+    expect(screen.queryByRole('button', { name: 'Publicar…' })).toBeNull()
   })
 
   it('sin versión de origen no dice sobre cuál empezó ni que está atrasado', () => {

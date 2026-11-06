@@ -1,6 +1,7 @@
 'use client'
 
 import { fechaRelativa } from '@/shared/lib/fechas'
+import { Button } from '@/shared/ui/button'
 import { useRegional } from '@/shared/ui/regional'
 import {
   borradorAtrasado,
@@ -12,11 +13,13 @@ import {
 type Props = {
   borrador: ConAutor<BorradorDelOrigen>
   publicada: Pick<PublicadaDelOrigen, 'id' | 'version'> | null
+  // Abre «Publicar el borrador» (`?panel=publicar-formula`). Sin él, la tarjeta sólo se lee.
+  alPublicar?: () => void
 }
 
 // El borrador del origen (a lo sumo uno): quién lo guardó, cuándo, sobre qué versión empezó y, si desde entonces se publicó otra, que publicarlo dará conflicto
-// (4.20-1: la base lo rechaza con quién publicó). Publicarlo o descartarlo es del 4.20-2b.
-export function TarjetaDelBorrador({ borrador, publicada }: Props) {
+// (4.20-1: la base lo rechaza con quién publicó). «Publicar…» sólo al día (4.20-2b): atrasado, el aviso ya dice por qué no.
+export function TarjetaDelBorrador({ borrador, publicada, alPublicar }: Props) {
   const { zonaHoraria } = useRegional()
   const atrasado = borradorAtrasado(borrador, publicada)
   return (
@@ -39,6 +42,15 @@ export function TarjetaDelBorrador({ borrador, publicada }: Props) {
           Después de que empezó, se publicó la versión {publicada.version}: publicarlo dará
           conflicto.
         </p>
+      ) : null}
+      {alPublicar && !atrasado ? (
+        <Button
+          type="button"
+          className="mt-1 min-h-11 justify-self-start md:min-h-9"
+          onClick={alPublicar}
+        >
+          Publicar…
+        </Button>
       ) : null}
     </section>
   )
