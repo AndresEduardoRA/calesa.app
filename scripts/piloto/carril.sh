@@ -47,6 +47,11 @@ carril_publicado() {
     rm -f "$ESTADO/asignado.json"
     return 0
   fi
-  coordinador publicado "$1" "$2" >/dev/null 2>"$ESTADO/coordinador.err" || registro "el coordinador no anotó $1 como publicado: $(tail -n 1 "$ESTADO/coordinador.err")"
+  # El coordinador conoce el paso entero (4.24); el ruteo puede haber elegido una de sus partes (4.24-3): se anota el asignado. Sin esto,
+  # la última parte de un paso partido no quedaba publicada nunca y su carril se quedaba sin paso (`no está en el plan`, 2026-11-06).
+  local id="$1" asignado=""
+  [ -f "$ESTADO/asignado.json" ] && asignado=$(jq -r '.paso // empty' "$ESTADO/asignado.json" 2>/dev/null)
+  [ -n "$asignado" ] && [[ "$id" == "$asignado"-* ]] && id="$asignado"
+  coordinador publicado "$id" "$2" >/dev/null 2>"$ESTADO/coordinador.err" || registro "el coordinador no anotó $id como publicado: $(tail -n 1 "$ESTADO/coordinador.err")"
   rm -f "$ESTADO/asignado.json"
 }
