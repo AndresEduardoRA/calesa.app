@@ -1,8 +1,5 @@
-import { readFileSync, readdirSync } from 'node:fs'
-import { join, relative } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-import { leerPlan } from '../coordinador/plan.mjs'
 import {
   AREAS_DE_COTIZACIONES,
   ENTRADAS,
@@ -10,7 +7,7 @@ import {
   problemasDeAreas,
   type Archivo,
 } from './areas-de-cotizaciones'
-import { problemasDelPlanDeAreas } from './areas-de-cotizaciones-plan'
+import { archivosDelModulo } from './areas-de-cotizaciones-arbol'
 
 // La partición de `cotizaciones` por área (4.15-4, `docs/DECISIONES.md`, paso 4.15-4): un área no importa otra, el núcleo no importa
 // ningún área, las entradas de la raíz sólo reexportan, cada área tiene sus lugares y `docs/plan.yaml` le da a cada carril áreas enteras.
@@ -226,105 +223,8 @@ describe('áreas de cotizaciones › las entradas', () => {
   })
 })
 
-const lugares = (area: string) =>
-  [
-    `features/${area}/`,
-    `entities/${area}/`,
-    `infra/${area}/`,
-    `areas/${area}/`,
-    `pantallas/${area}.ts`,
-  ].map((l) => `${MODULO}${l}`)
-const familia = `${MODULO}entities/compilador.ts`
-const rutasConFamilia = [
-  familia,
-  `${MODULO}entities/validar-diseno.ts`,
-  `${MODULO}entities/hoja.ts`,
-]
-
-describe('áreas de cotizaciones › docs/plan.yaml', () => {
-  const plan = (b: string[]) => ({
-    carriles: [
-      { id: 'a', base: true, dueno_de: [MODULO, 'src/app/'] },
-      { id: 'b', dueno_de: b },
-    ],
-  })
-
-  it('un carril con áreas enteras y todas las familias del compilador pasa', () => {
-    const b = [
-      ...lugares('formula'),
-      ...lugares('diseno'),
-      `${MODULO}entities/validar-diseno.ts`,
-      familia,
-      'src/app/(app)/x/',
-    ]
-    expect(problemasDelPlanDeAreas(plan(b), rutasConFamilia)).toEqual([])
-  })
-
-  it('T10 un carril con un área a medias cae', () => {
-    const b = lugares('formula').filter((l) => !l.endsWith('areas/formula/'))
-    expect(problemasDelPlanDeAreas(plan(b), [])).toEqual([
-      `carril b: posee el área formula pero no ${MODULO}areas/formula/`,
-    ])
-  })
-
-  it('T10 un carril que posee un archivo del núcleo o una carpeta sin dueño cae', () => {
-    expect(problemasDelPlanDeAreas(plan([`${MODULO}entities/hoja.ts`]), [])).toEqual([
-      expect.stringContaining(`carril b: posee ${MODULO}entities/hoja.ts, que es del núcleo`),
-    ])
-    expect(problemasDelPlanDeAreas(plan([`${MODULO}features/pdf/`]), [])).toEqual([
-      expect.stringContaining('que es una carpeta sin dueño'),
-    ])
-  })
-
-  it('T10 una familia del compilador del árbol que su carril no posee cae', () => {
-    expect(problemasDelPlanDeAreas(plan([familia]), rutasConFamilia)).toEqual([
-      `carril b: no posee ${MODULO}entities/validar-diseno.ts, de las familias del compilador: súmalo a su dueno_de en docs/plan.yaml`,
-    ])
-  })
-
-  it('T10 dos carriles con familias del compilador cae', () => {
-    const dos = {
-      carriles: [
-        ...plan([familia]).carriles,
-        { id: 'c', dueno_de: [`${MODULO}entities/validar-diseno.ts`] },
-      ],
-    }
-    expect(
-      problemasDelPlanDeAreas(dos, [familia, `${MODULO}entities/validar-diseno.ts`]),
-    ).toContainEqual(expect.stringContaining('las poseen varios carriles (b, c)'))
-  })
-})
-
-// El árbol y el plan de verdad.
-const RAIZ = process.cwd()
-function* archivosDe(dir: string): Generator<string> {
-  for (const e of readdirSync(dir, { withFileTypes: true })) {
-    const ruta = join(dir, e.name)
-    if (e.isDirectory()) yield* archivosDe(ruta)
-    else yield relative(RAIZ, ruta).replaceAll('\\', '/')
-  }
-}
-const archivosDelModulo = (): Archivo[] =>
-  [...archivosDe(join(RAIZ, MODULO))].map((ruta) => ({
-    ruta,
-    texto: /\.tsx?$/.test(ruta) ? readFileSync(join(RAIZ, ruta), 'utf8') : '',
-  }))
-
 describe('áreas de cotizaciones › el árbol real', () => {
   it('T11 src/modules/cotizaciones/ cumple la partición por áreas', () => {
     expect(problemasDeAreas(archivosDelModulo())).toEqual([])
-  })
-
-  it('T12 docs/plan.yaml le da a cada carril áreas enteras y las familias del compilador a uno solo', () => {
-    const plan = leerPlan(readFileSync(join(RAIZ, 'docs/plan.yaml'), 'utf8'))
-    const rutas = archivosDelModulo().map((a) => a.ruta)
-    expect(problemasDelPlanDeAreas(plan, rutas)).toEqual([])
-    const b = plan.carriles.find((c: { id?: unknown }) => c.id === 'b') as { dueno_de: string[] }
-    expect(b.dueno_de).toEqual(expect.arrayContaining(lugares('formula')))
-    expect(
-      b.dueno_de.filter(
-        (r) => r.includes('/entities/') && !/\/entities\/(formula|diseno|tablas)\/$/.test(r),
-      ),
-    ).toHaveLength(37)
   })
 })

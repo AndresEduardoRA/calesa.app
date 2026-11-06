@@ -28,14 +28,16 @@ los validadores, el diseño, la apertura, la ruta): lo que comparten las áreas.
 
 - **Dónde va lo de un paso:** en las carpetas de su área, `features/<área>/`, `entities/<área>/`, `infra/<área>/`, y en sus entradas
   `areas/<área>/{index,client,composicion}.ts` (servidor, cliente y la composición, que empieza con `import 'server-only'`). Su pantalla es
-  `pantallas/<área>.ts`; una segunda, `pantallas/<área>-<pantalla>.ts` (una pantalla paga lo que reexporta su archivo), y se suma a `plan.yaml`.
+  `pantallas/<área>.ts`; una segunda, `pantallas/<área>-<pantalla>.ts` (una pantalla paga lo que reexporta su archivo). Una segunda pantalla de un
+  área del B o del C la registra en `plan.yaml` el carril A (P1 del 4.15-5: un carril que no es base sólo suma ahí archivos del compilador), y la guarda hace
+  caer el árbol que tiene una que el carril de su área no posee.
 - **Qué no se toca:** `index.ts`, `client.ts` y `composicion.ts` de la raíz sólo llevan `export * from './areas/<x>/<mismo nombre>'` por el
   núcleo y cada área, en orden; un nombre repetido entre dos áreas es un error de `tsc`. Un área nueva (la lista, `plan.yaml` y las tres
   líneas) la decide el carril A.
 - **La dirección:** un área importa lo suyo y el núcleo, **nunca otra área**; el núcleo no importa ningún área; adentro nadie importa las
   entradas de la raíz (los casos de uso del núcleo importan `areas/nucleo/composicion.ts`). Cuentan `import type`, `import()` y los tests. Lo
-  que dos áreas necesitan va al núcleo. Lo vigila `scripts/guardas/areas-de-cotizaciones.test.ts` (también que cada área tenga sus lugares y que
-  `plan.yaml` dé áreas enteras); el compilador y los validadores (`entities/compilador*`, `validar*`, `motivos-*`, sus `casos-*.json`) son
+  que dos áreas necesitan va al núcleo. Lo vigila `scripts/guardas/areas-de-cotizaciones.test.ts` (también que cada área tenga sus lugares); `areas-de-cotizaciones-plan.test.ts`, que
+  `plan.yaml` dé áreas enteras con sus segundas pantallas; el compilador y los validadores (`entities/compilador*`, `validar*`, `motivos-*`, sus `casos-*.json`) son
   núcleo pero los posee el carril B, archivo por archivo.
 - **La composición del navegador** (`composicion.client.ts`, `-historial.client.ts`, `-revisiones.client.ts`) es del núcleo y queda en la raíz
   (la nombran los `vi.mock`). La de un área va en `areas/<área>/composicion.client.ts`, la importa sólo su feature y ningún barril la
