@@ -47,6 +47,8 @@ carriles:
       - src/modules/cotizaciones/entities/formula/
       - src/modules/cotizaciones/infra/formula/
       - src/modules/cotizaciones/areas/formula/
+      # Los <Confirmar> de su área (4.20-2c): el registro del núcleo es del A y los suma.
+      - scripts/guardas/confirmar-con-url-formula.ts
       - src/modules/cotizaciones/pantallas/formula.ts
       - src/modules/cotizaciones/pantallas/formula-hoja.ts
       - src/modules/cotizaciones/features/diseno/
@@ -364,6 +366,8 @@ pasos:
         src/modules/cotizaciones/pantallas/formula-hoja.ts,
         src/app/(app)/configuracion/cotizacion/,
         src/modules/cotizaciones/areas/formula/,
+        # Los <Confirmar> de su área (4.20-2c): el registro del núcleo es del A y los suma.
+        scripts/guardas/confirmar-con-url-formula.ts,
         src/modules/cotizaciones/entities/casos-de-diseno.json,
         src/modules/cotizaciones/entities/motivos-de-diseno.test.ts,
         src/modules/cotizaciones/entities/motivos-de-diseno.ts,
