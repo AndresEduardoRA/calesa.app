@@ -7,7 +7,11 @@
 --   - Ana («propios»: 5.000 propias, 3.000 con la misma fecha, y 1.000 de otras personas sobre leads de su cartera, más un lead con 300 de otros de a tres con el mismo instante):
 --     sin filtro (también hacia atrás), por origen, por clase, «mías» y un vehículo con 5.005 cotizaciones de las que ve 5;
 --   - la «chica» («propios», 3 propias, sin cartera): sin filtro;
---   - Teo («todos» en subasta_usa, «propios» en los otros dos, 50 propias): sin filtro, finales y el origen de «propios».
+--   - Teo («todos» en subasta_usa, «propios» en los otros dos, 50 propias): sin filtro, finales y el origen de «propios»;
+--   - el lead (4.17-4a, `p_lead`): las 5.005 del vehículo muy cotizado son de un lead ajeno (sin fila, fuera de toda cartera): la dueña, ese lead solo y con el vehículo; Ana, el lead
+--     1.001 de su cartera (también hacia atrás), el ajeno (ve 5) y el ajeno con «mías»; todos por `cotizaciones_lead_creado_idx`, una ruta y sin `mis_leads()`;
+--   - la lectura de la sección «Cotizaciones» de la ficha del lead (la del 4.17-4b, por PostgREST, `TAMANO_DE_VER_MAS` + 1, como el historial del vehículo): la dueña y el ajeno,
+--     Ana y el de su cartera, Ana y el ajeno, por el mismo índice.
 -- Por caso: 7 corridas de `EXPLAIN (ANALYZE, BUFFERS)` y la mediana de las 5 últimas (las 2 primeras calientan y planifican: tras el `vacuum` y el `analyze` el planificador lee la
 -- metapágina de cada btree, y eso no es de la consulta); lo leído de `cotizaciones` por relación (el heap, cada índice y el TOAST; `pg_stat_get_xact_blocks_fetched`, el promedio de
 -- las 5 calientes), los recorridos enteros del heap (`pg_stat_get_xact_numscans`) y las llamadas a funciones (`pg_stat_xact_user_functions`, la última corrida).
@@ -34,7 +38,8 @@
 \endif
 vacuum public.cotizaciones;
 begin;
-select set_config('medir.carga', :'carga', true), set_config('medir.pagina', (:max_cotizaciones)::text, true), set_config('medir.contra_hoy', :'contra_hoy', true) \g /dev/null
+select set_config('medir.carga', :'carga', true), set_config('medir.pagina', (:max_cotizaciones)::text, true), set_config('medir.contra_hoy', :'contra_hoy', true),
+       set_config('medir.ver_mas', (:ver_mas)::text, true) \g /dev/null
 
 do $$ begin
   if not exists (select 1 from public.perfiles where id = '00000000-0000-0000-0000-0000000000d1') or not exists (select 1 from public.perfiles where id = '00000000-0000-0000-0000-0000000000a1') then
@@ -78,15 +83,18 @@ insert into _leads_de_ana select row_number() over (order by la.lead_id), la.lea
 -- Los vehículos van sin fila en `vehiculos` (la FK no se mira al sembrar): el listado sólo filtra por `vehiculo_id`.
 create temp table _v (i int primary key, id uuid not null);
 insert into _v select i, gen_random_uuid() from generate_series(0, 100) i;   -- el 0 es el muy cotizado
+-- El lead de las cotizaciones del vehículo muy cotizado (4.17-4a): sin fila en `leads` (como `_v`), así que no está en la cartera de nadie y ninguna ruta de antes cambia de filas.
+create temp table _lead_ajeno (id uuid not null);
+insert into _lead_ajeno values (gen_random_uuid());
 do $$ begin
   if (select count(*) from _o) <> 3 then raise exception 'esperaba los tres orígenes de la semilla con su fórmula publicada y hay %', (select count(*) from _o); end if;
   if (select count(*) from _leads_de_ana) < 1001 then raise exception 'Ana debía tener al menos 1.001 leads en su cartera y tiene %', (select count(*) from _leads_de_ana); end if;
 end $$;
-grant select on _p, _o, _v, _leads_de_ana to authenticated;
+grant select on _p, _o, _v, _leads_de_ana, _lead_ajeno to authenticated;
 
 -- Las filas g ∈ [desde, hasta], más nuevas cuanto mayor es g. En las primeras 50.000: Ana (g % 10 = 1: 5.000, 3.000 con la misma fecha, 100 finales), la «chica» (3: g que no
 -- cumplen g % 10 = 1 ni g % 50 = 2), Teo (g % 1000 = 4: 50), 1.000 de Berta sobre leads de la cartera de Ana (g % 50 = 2) y 100 vehículos (g % 10 = 5) más uno con 5.000
--- (g % 10 = 9) y 5 de Ana; el resto, de la dueña y de cuatro asesores. Un 2 % de finales, parejas (g % 50 = 7), y un 2 % en la papelera, parejo (g % 50 = 13: ninguna de Ana, de la
+-- (g % 10 = 9) y 5 de Ana, todas del lead ajeno (fijo en 5.005 entre los dos volúmenes); el resto, de la dueña y de cuatro asesores. Un 2 % de finales, parejas (g % 50 = 7), y un 2 % en la papelera, parejo (g % 50 = 13: ninguna de Ana, de la
 -- «chica», de Teo ni final), que los índices enteros (por origen y por lead) leen y descartan. Sin triggers (cada fila auditaría y numeraría).
 create function pg_temp.rellenar(p_desde int, p_hasta int) returns void language plpgsql as $$
 begin
@@ -100,7 +108,8 @@ begin
               when g <= 50000 and g % 50 = 2 then (select id from _p where clave = 'berta')
               else (select id from _p where clave = (array['duena', 'berta', 'carlos', 'diana', 'elias'])[1 + g % 5]) end,
          o.formula,
-         case when g <= 50000 and g % 50 = 2 then (select lead from _leads_de_ana where i = 1 + (g / 50) % 1000) end,
+         case when g <= 50000 and g % 50 = 2 then (select lead from _leads_de_ana where i = 1 + (g / 50) % 1000)
+              when g in (11, 10011, 20011, 30011, 40011) or (g <= 50000 and g % 10 = 9) then (select id from _lead_ajeno) end,
          case when g in (11, 10011, 20011, 30011, 40011) or (g <= 50000 and g % 10 = 9) then (select id from _v where i = 0)
               when g <= 50000 and g % 10 = 5 then (select id from _v where i = 1 + (g / 10) % 100) end,
          (case when g % 50 = 7 or (g <= 50000 and g % 500 = 1) then 'final' else 'preventa' end)::public.clase_cotizacion,
@@ -132,10 +141,11 @@ end $$;
 -- Los casos y la medición. Corren como quien mira (authenticated), con el plan genérico.
 -- ---------------------------------------------------------------------------------------------------------------------------------
 -- Un caso: quién, sus filtros, hasta qué fila llega su profunda, si mide también hacia atrás, su tope, los índices de `cotizaciones` que tiene que leer, cuántas rutas se
--- encienden y si una es la de la cartera (con `mis_leads()`).
+-- encienden y si una es la de la cartera (con `mis_leads()`); el lead (4.17-4a: `cartera`, el 1.001 de Ana, o `ajeno`) y la forma (`listado`, la función, o `seccion`, la lectura de
+-- la sección del lead por PostgREST, de a `TAMANO_DE_VER_MAS` + 1).
 create temp table _casos (caso text primary key, quien text not null, origen text, clase public.clase_cotizacion, mias boolean not null default false, vehiculo boolean not null default false,
                           profundidad int not null, atras boolean not null default false, tope_ms numeric not null, indices text[] not null, rutas int not null, cartera boolean not null,
-                          max_en_cartera int not null);
+                          max_en_cartera int not null, lead text check (lead in ('cartera', 'ajeno')), forma text not null default 'listado' check (forma in ('listado', 'seccion')));
 insert into _casos values
   ('dueña · todas', 'duena', null, null, false, false, 2000, false, 10, '{cotizaciones_listado_idx}', 1, false, 0),
   ('dueña · un origen', 'duena', 'planilla_usa', null, false, false, 2000, false, 10, '{cotizaciones_origen_creado_idx}', 1, false, 0),
@@ -153,6 +163,18 @@ insert into _casos values
   ('Teo · todas', 'teo', null, null, false, false, 2000, false, 50, '{cotizaciones_origen_creado_idx,cotizaciones_creador_idx}', 3, true, 0),
   ('Teo · finales', 'teo', null, 'final', false, false, 200, false, 50, '{cotizaciones_origen_finales_idx,cotizaciones_creador_idx}', 3, true, 0),
   ('Teo · un origen de «propios»', 'teo', 'oficina', null, false, false, 5, false, 50, '{cotizaciones_creador_idx}', 2, true, 0);
+insert into _casos values
+  -- El lead (4.17-4a): una sola ruta por cotizaciones_lead_creado_idx, sin la cartera; con el vehículo, el vehículo es un filtro sobre las filas del lead. Ana y el lead ajeno, como el
+  -- vehículo: un en_cartera() por cada una de las 5.005 (ve 5), y lo que lee crece con las del lead, no con N.
+  ('dueña · un lead', 'duena', null, null, false, false, 2000, false, 10, '{cotizaciones_lead_creado_idx}', 1, false, 0, 'ajeno', 'listado'),
+  ('dueña · un lead y un vehículo', 'duena', null, null, false, true, 2000, false, 10, '{cotizaciones_lead_creado_idx}', 1, false, 0, 'ajeno', 'listado'),
+  ('Ana · un lead de su cartera', 'ana', null, null, false, false, 200, true, 50, '{cotizaciones_lead_creado_idx}', 1, false, 300, 'cartera', 'listado'),
+  ('Ana · un lead ajeno', 'ana', null, null, false, false, 2, false, 100, '{cotizaciones_lead_creado_idx}', 1, false, 5005, 'ajeno', 'listado'),
+  ('Ana · un lead ajeno, mías', 'ana', null, null, true, false, 2, false, 100, '{cotizaciones_lead_creado_idx}', 1, false, 5005, 'ajeno', 'listado'),
+  -- La lectura de la sección del lead (la del 4.17-4b), por PostgREST con la RLS.
+  ('dueña · la sección de un lead', 'duena', null, null, false, false, 2000, false, 10, '{cotizaciones_lead_creado_idx}', 1, false, 0, 'ajeno', 'seccion'),
+  ('Ana · la sección de un lead de su cartera', 'ana', null, null, false, false, 200, false, 50, '{cotizaciones_lead_creado_idx}', 1, false, 300, 'cartera', 'seccion'),
+  ('Ana · la sección de un lead ajeno', 'ana', null, null, false, false, 2, false, 100, '{cotizaciones_lead_creado_idx}', 1, false, 5005, 'ajeno', 'seccion');
 -- Contra HEAD (sin la función) sólo se miden las dos páginas de 4-14 con «lo de hoy».
 delete from _casos where current_setting('medir.contra_hoy') = '1' and caso not in ('Ana · todas', 'chica · todas');
 grant select on _casos to authenticated;
@@ -169,11 +191,22 @@ grant all on _med to authenticated;
 create temp table _d (fase text primary key, bloques bigint, cartera int);
 grant all on _d to authenticated;
 
--- El SQL de una página del caso: la función, o «lo de hoy» (la consulta por PostgREST, sólo sin filtros) contra HEAD y en la guarda.
+-- El SQL de una página del caso: la función, o «lo de hoy» (la consulta por PostgREST, sólo sin filtros) contra HEAD y en la guarda, o la lectura de la sección del lead
+-- (la del historial del vehículo con `lead_id`: `creado_por` en lugar del embebido de `perfiles`, que el historial tampoco mide; el borde del cursor, el de PostgREST).
 create function pg_temp.sql_de(p_caso text, p_n int, p_en timestamptz, p_id uuid, p_atras boolean, p_hoy boolean) returns text language plpgsql as $$
-declare c record;
+declare c record; v_lead uuid;
 begin
   select * into c from _casos x where x.caso = p_caso;
+  v_lead := case c.lead when 'cartera' then (select lead from _leads_de_ana where i = 1001) when 'ajeno' then (select id from _lead_ajeno) end;
+  if c.forma = 'seccion' then
+    return format('select id, numero, clase, creado_en, creado_por from public.cotizaciones where lead_id = %L::uuid', v_lead)
+        || case when p_en is null then '' else format(' and creado_en <= %1$L::timestamptz and (creado_en < %1$L::timestamptz or id < %2$L::uuid)', p_en, p_id) end
+        || ' order by creado_en desc, id desc limit ' || (p_n + 1);
+  end if;
+  if c.lead is not null then
+    return format('select * from public.cotizaciones_listado(%s, %L::uuid, %L::public.clase_cotizacion, %L, %L::uuid, %L::timestamptz, %L::uuid, %L, p_lead => %L::uuid)', p_n,
+                  (select o.origen from _o o where o.clave = c.origen), c.clase, c.mias, case when c.vehiculo then (select id from _v where i = 0) end, p_en, p_id, p_atras, v_lead);
+  end if;
   if p_hoy then
     return 'select id, numero, origen_id, lead_id, vehiculo_id, creado_por, clase, estado, titulo, total_base, moneda_mostrar, creado_en from public.cotizaciones'
         || case when p_en is null then '' else format(' where (creado_en, id) < (%L::timestamptz, %L::uuid)', p_en, p_id) end
@@ -251,10 +284,12 @@ end $$;
 
 -- Los casos de una fase: la página 1, la profunda y, si se marca, la profunda hacia atrás.
 create function pg_temp.fase(p_fase text) returns void language plpgsql as $$
-declare c record; v_cur record; v_n int := current_setting('medir.pagina')::int; v_hoy boolean := current_setting('medir.contra_hoy') = '1';
+declare c record; v_cur record; v_max int := current_setting('medir.pagina')::int; v_n int; v_hoy boolean := current_setting('medir.contra_hoy') = '1';
 begin
   for c in select * from _casos order by caso loop
     perform pg_temp.como(c.quien);
+    -- La sección del lead lee de a `TAMANO_DE_VER_MAS`; el listado, con su máximo.
+    v_n := case when c.forma = 'seccion' then current_setting('medir.ver_mas')::int else v_max end;
     perform pg_temp.anotar(p_fase, c.caso, 'página 1', pg_temp.medir(pg_temp.sql_de(c.caso, v_n, null, null, false, v_hoy)));
     select * into v_cur from pg_temp.cursor_de(c.caso, c.profundidad, v_hoy);
     perform pg_temp.anotar(p_fase, c.caso, 'profunda', pg_temp.medir(pg_temp.sql_de(c.caso, v_n, v_cur.en, v_cur.id, false, v_hoy)));
@@ -289,6 +324,7 @@ do $$ begin
   if (select count(*) from public.cotizaciones where creado_por = '00000000-0000-0000-0000-0000000000c9') <> 3 then raise exception 'la «chica» debía tener 3'; end if;
   if (select count(*) from public.cotizaciones where creado_por = '00000000-0000-0000-0000-0000000000e1') <> 50 then raise exception 'Teo debía tener 50'; end if;
   if (select count(*) from public.cotizaciones where vehiculo_id = (select id from _v where i = 0)) <> 5005 then raise exception 'el vehículo muy cotizado debía tener 5.005'; end if;
+  if (select count(*) from public.cotizaciones where lead_id = (select id from _lead_ajeno)) <> 5005 then raise exception 'el lead ajeno debía tener 5.005'; end if;
   if (select count(*) from public.cotizaciones where eliminado_en is not null) <> 1000 + 30 then raise exception 'esperaba 1.030 en la papelera'; end if;
   if exists (select 1 from public.cotizaciones where eliminado_en is not null and (clase = 'final' or creado_por in (select id from _p where clave in ('ana', 'chica', 'teo')))) then
     raise exception 'la papelera sembrada toca a Ana, a la «chica», a Teo o una final';
@@ -316,7 +352,7 @@ do $$
 declare
   r record; v_g record; v_fallas text := ''; v_ix text; v_mis int; v_d bigint; v_cartera int; v_holgura numeric; v_leidos text[]; v_indices text[]; v_hoy boolean := current_setting('medir.contra_hoy') = '1';
 begin
-  for r in select m.*, c.quien, c.tope_ms, c.indices, c.rutas, c.cartera, c.max_en_cartera from _med m join _casos c using (caso) where m.pagina not like 'guarda%' order by m.fase, m.caso, m.pagina loop
+  for r in select m.*, c.quien, c.tope_ms, c.indices, c.rutas, c.cartera, c.max_en_cartera, c.forma from _med m join _casos c using (caso) where m.pagina not like 'guarda%' order by m.fase, m.caso, m.pagina loop
     raise notice 'medicion|% · % · % (ms)|%', r.fase, r.caso, r.pagina, round(r.ms, 2);
     raise notice 'medicion|% · % · % (bloques de cotizaciones)|%', r.fase, r.caso, r.pagina, round(r.total, 1);
     raise notice 'medicion|% · % · % (buffers)|%', r.fase, r.caso, r.pagina, r.buffers;
@@ -329,7 +365,10 @@ begin
     foreach v_ix in array r.indices loop
       if to_regclass('public.' || v_ix) is null then v_fallas := v_fallas || format(E'\n  %s · %s · %s: no existe el índice %s', r.fase, r.caso, r.pagina, v_ix); end if;
     end loop;
-    v_leidos := array(select key from jsonb_each_text(r.bloques) where value::numeric > 0 and key not in ('heap', 'toast', 'toast_idx') order by key);
+    -- La lectura de la sección (SQL literal, se planea en cada corrida, como PostgREST) lee al planear la metapágina de un índice vacío (un btree vacío no guarda su altura; tras
+    -- el truncate, `cotizaciones_lote_papelera_idx`): no cuenta, como en `medir-vehiculos-inventario.sql`. El listado va con el plan genérico y no replanea.
+    v_leidos := array(select key from jsonb_each_text(r.bloques) where value::numeric > 0 and key not in ('heap', 'toast', 'toast_idx')
+                        and not (r.forma = 'seccion' and pg_relation_size(('public.' || key)::regclass) <= current_setting('block_size')::int) order by key);
     v_indices := array(select x from unnest(r.indices) x order by x);
     if v_leidos is distinct from v_indices then
       v_fallas := v_fallas || format(E'\n  %s · %s · %s lee los índices %s y debía leer %s', r.fase, r.caso, r.pagina, v_leidos, v_indices);
@@ -351,6 +390,8 @@ begin
       end if;
     end if;
   end loop;
+  raise notice 'nota|Índices vacíos de cotizaciones (su metapágina, leída al planear la sección del lead): %|', (select string_agg(nombre, ', ' order by nombre) from _rel
+    where nombre not in ('heap', 'toast', 'toast_idx') and pg_relation_size(oid) <= current_setting('block_size')::int);
   -- d: los niveles que ganó el índice de la cartera entre los dos volúmenes (la sonda de un lead). Con d = 0 no hay holgura; d > 1 cae.
   if not v_hoy then
     select (select bloques from _d where fase = '250.000') - (select bloques from _d where fase = '50.000'), (select cartera from _d where fase = '50.000') into v_d, v_cartera;

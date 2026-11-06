@@ -138,7 +138,7 @@ export const MEDICIONES_CON_VOLUMEN = [
   ],
   [
     'supabase/tests/medir-cotizaciones-listado.sql',
-    'El listado /cotizaciones (cotizaciones_listado()) con 50.000 y con 250.000 filas, como authenticated y con el plan genérico: la página 1, una profunda por cursor y una hacia atrás de la dueña (por origen, clase y «mías»), de Ana («propios», con su cartera y un vehículo muy cotizado), de la «chica» y de Teo («todos» en un origen), con los bloques de cotizaciones por relación y las llamadas; y la guarda: lo de hoy por PostgREST rompe los topes (4-14)',
+    'El listado /cotizaciones (cotizaciones_listado()) con 50.000 y con 250.000 filas, como authenticated y con el plan genérico: la página 1, una profunda por cursor y una hacia atrás de la dueña (por origen, clase y «mías»), de Ana («propios», con su cartera y un vehículo muy cotizado), de la «chica» y de Teo («todos» en un origen), un lead (de su cartera y ajeno) y la lectura de la sección del lead, con los bloques de cotizaciones por relación y las llamadas; y la guarda: lo de hoy por PostgREST rompe los topes (4-14)',
     'mediana de 5 de 7 corridas',
   ],
   [
