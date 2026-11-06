@@ -35,6 +35,8 @@ type Props = {
   totalGuardado?: ReactNode
   // Lo que dice el último guardado (`<AvisoDelGuardado>`): va en la misma región viva.
   avisoDeGuardado: ReactNode
+  // «Vista previa» de la tarjeta (4.18-2): va en el pie, antes de Live; nulo sin el proveedor del área `tarjeta`.
+  vistaPrevia?: ReactNode
 }
 
 export type BotonDeGuardar = {
@@ -52,7 +54,7 @@ export type BotonDeGuardar = {
 function BotonGuardar({ motivo, motivoYaDicho, ocupado, alGuardar }: BotonDeGuardar) {
   const dicho = motivo !== null && !motivoYaDicho
   return (
-    <div className="grid gap-1">
+    <div className="mr-auto grid gap-1">
       <Button
         className="min-h-11 justify-self-start md:min-h-8"
         disabled={motivo !== null || ocupado}
@@ -128,21 +130,24 @@ function AvisosDelTotal({
 function PieDelResumen({
   guardar,
   soloLectura,
+  vistaPrevia,
 }: {
   guardar: BotonDeGuardar | null
   soloLectura: boolean
+  vistaPrevia: ReactNode
 }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-2">
+    <div className="flex flex-wrap items-start justify-end gap-2">
       {guardar === null ? (
         soloLectura ? (
-          <p className="text-(length:--text-sm) text-(--color-ink-soft)">
+          <p className="mr-auto text-(length:--text-sm) text-(--color-ink-soft)">
             Sólo lectura: no puedes guardar esta cotización.
           </p>
         ) : null
       ) : (
         <BotonGuardar {...guardar} />
       )}
+      {vistaPrevia}
       <LiveDelResumen />
     </div>
   )
@@ -163,6 +168,7 @@ export function ResumenDeHoja({
   soloLectura = false,
   totalGuardado = null,
   avisoDeGuardado,
+  vistaPrevia = null,
 }: Props) {
   const total = totalDelResumen(contexto)
   const viejo = estado.tipo !== 'al_dia'
@@ -212,7 +218,7 @@ export function ResumenDeHoja({
         )}
         {avisoDeGuardado}
       </div>
-      <PieDelResumen guardar={guardar} soloLectura={soloLectura} />
+      <PieDelResumen guardar={guardar} soloLectura={soloLectura} vistaPrevia={vistaPrevia} />
     </aside>
   )
 }

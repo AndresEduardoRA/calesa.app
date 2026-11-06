@@ -1,7 +1,5 @@
 // Una tarjeta de prueba para las pruebas de los componentes (4.18-2): la lectura cruda de `cotizacion_tarjeta()` con tres grupos y un cálculo que la llena. Sólo para las
 // pruebas (el sufijo `.soporte.` lo deja fuera del mapa).
-import type { CalculoDeLaTarjeta } from '../calculo-de-la-tarjeta'
-import type { Estado } from '../motor-contexto'
 
 const tono = (clave: string, fondo: string) => ({
   clave,
@@ -53,26 +51,4 @@ export const crudaDeLaTarjeta = (mas: Record<string, unknown> = {}) => ({
   ...mas,
 })
 
-const TODOS: Record<string, Estado> = {
-  remate: 'activo',
-  flete: 'activo',
-  ga: 'activo',
-  garantia: 'activo',
-  total: 'activo',
-}
-
-export const calculoDePrueba = (mas: Partial<CalculoDeLaTarjeta> = {}): CalculoDeLaTarjeta => ({
-  valores: new Map<string, number | string | null>([
-    ['variante', 'gasolina'],
-    ['remate', 1000],
-    ['flete', 300],
-    ['ga', 55],
-    ['garantia', 50],
-    ['total', 1355],
-  ]),
-  estados: new Map(Object.entries(TODOS)),
-  totales: { usd: 1355, bs: 9430.8 },
-  modoTc: null,
-  verTotalBs: false,
-  ...mas,
-})
+export { calculoDePrueba } from '../calculo-de-la-tarjeta.soporte'

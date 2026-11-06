@@ -5,6 +5,7 @@ import { useMemo, useRef, type ReactNode } from 'react'
 import { EstadoSinPermiso } from '@/shared/ui/estados'
 import { EstiloDeTonos, SimbolosDeXCell } from '@/shared/ui/xcell'
 import type { RecalculoInicial } from '../../../entities/apertura'
+import type { CalculoDeLaTarjeta } from '../../../entities/calculo-de-la-tarjeta'
 import { seccionSeDibuja, type ContextoDeHoja } from '../../../entities/binding'
 import { nombreDelModo } from '../../../entities/cabecera-de-la-hoja'
 import { FALTA_EL_VEHICULO } from '../../../entities/guardado'
@@ -17,6 +18,7 @@ import { AvisoDelGuardado } from './aviso-de-guardado'
 import { CabeceraDeHoja } from './cabecera-de-hoja'
 import { ResumenDeHoja } from './resumen-de-hoja'
 import { SeccionesDeLaHoja } from './secciones-de-la-hoja'
+import { VistaPreviaDeLaHojaViva } from './vista-previa-de-la-hoja'
 
 type Props = {
   hoja: HojaLista
@@ -43,6 +45,9 @@ type Props = {
   alRecargar?: () => void
   // Lo que el marco de una guardada pone sobre la hoja (el aviso de versión, 4.15-3b); recibe si hay cambios sin guardar. La hoja nueva no lo llena.
   encima?: (hayCambios: boolean) => ReactNode
+  // Lo que dibuja la vista previa de una guardada: lo guardado (P5 a, `calculoDeLoGuardado`) y si lo de hoy no lo es (`difiereAlAbrir`: la vista previa lo dice fuera de la
+  // tarjeta). Sin él, la tarjeta dibuja lo que la hoja calcula ahora (la hoja nueva).
+  deLoGuardado?: { calculo: CalculoDeLaTarjeta; difiere: boolean }
 }
 
 function SinDatosQueVer() {
@@ -78,6 +83,8 @@ function useContextoDeLaHoja(
 }
 
 type PropsDelResumen = Pick<Props, 'hoja' | 'totalGuardado' | 'alRecargar'> & {
+  // Lo de una guardada para «Vista previa»: lo guardado que dibuja la tarjeta (nulo en la hoja nueva), si lo de hoy difiere y si hay cambios sin guardar.
+  laTarjeta: Partial<NonNullable<Props['deLoGuardado']>> & { hayCambios: boolean }
   guardado: VistaDelGuardado | null
   // «Cambios guardados.» de una guardada.
   confirmacion: string | null
@@ -100,6 +107,7 @@ function ResumenDeLaHoja({
   soloLectura,
   totalGuardado,
   alRecargar,
+  laTarjeta,
 }: PropsDelResumen) {
   const router = useRouter()
   const recargar = alRecargar ?? router.refresh
@@ -119,6 +127,7 @@ function ResumenDeLaHoja({
       guardar={boton}
       soloLectura={soloLectura}
       totalGuardado={totalGuardado}
+      vistaPrevia={<VistaPreviaDeLaHojaViva hoja={hoja} h={h} {...laTarjeta} />}
       avisoDeGuardado={
         guardado === null || boton === null ? null : (
           <AvisoDelGuardado
@@ -152,6 +161,7 @@ export function HojaDeCotizar({
   totalGuardado,
   alRecargar,
   encima,
+  deLoGuardado,
 }: Props) {
   const raiz = useRef<HTMLDivElement>(null)
   const router = useRouter()
@@ -212,6 +222,7 @@ export function HojaDeCotizar({
           soloLectura={soloLectura}
           totalGuardado={totalGuardado}
           alRecargar={alRecargar}
+          laTarjeta={{ ...deLoGuardado, hayCambios: botonDeLaGuardada.hayCambios }}
         />
       </div>
     </div>
