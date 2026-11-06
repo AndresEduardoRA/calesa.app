@@ -244,6 +244,7 @@ const LISTA_FIJA = [
   'cotizacion-hoja-dato-del-vehiculo.sql',
   'cotizacion-hoja-guardada.sql',
   'cotizacion-revisiones-autor.sql',
+  'cotizacion-revisiones-fecha.sql',
   'cotizacion-encima.sql',
   'cotizacion-encima-niveles.sql',
   'cotizaciones-listado.sql',

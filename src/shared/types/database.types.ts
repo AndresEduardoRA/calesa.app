@@ -8064,7 +8064,7 @@ export type Database = {
         Returns: undefined
       }
       cotizacion_revisiones: {
-        Args: { p_antes?: number; p_cotizacion: string; p_tamano?: number }
+        Args: { p_antes?: number; p_cotizacion: string; p_hasta?: string; p_tamano?: number }
         Returns: Json
       }
       cotizacion_tabla: {

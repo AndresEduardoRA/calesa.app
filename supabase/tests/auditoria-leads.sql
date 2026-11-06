@@ -133,7 +133,7 @@ declare
     ('margen_vehiculo(uuid)', 'X'),
     -- Lee una cotización recortada por nivel (4.10): el recorte lo prueba cotizaciones-visibilidad.sql.
     ('cotizacion_leer(uuid)', 'L'),
-    ('cotizacion_revisiones(uuid,bigint,integer)', 'L'),
+    ('cotizacion_revisiones(uuid,bigint,integer,timestamp with time zone)', 'L'),
     -- La hoja de una guardada (4.15-2): lee la cotización como cotizacion_leer y mira el lead sólo para decir si se cotiza encima (puede_lead).
     ('cotizacion_hoja_guardada(uuid)', 'L'),
     ('cotizacion_tabla(text,uuid,uuid,text)', 'L'),

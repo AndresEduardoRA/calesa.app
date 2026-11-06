@@ -1493,8 +1493,8 @@ begin
   if r ->> 'error' is distinct from '42501' or r ->> 'mensaje' is distinct from 'No tienes acceso a esta cotización.' then raise exception 'una inexistente: %', r; end if;
   if pg_temp.cv_corre(otro, format('select public.cotizacion_revisiones(%L)', c)) is distinct from r then raise exception 'de otro origen se distingue de lo inexistente'; end if;
   if (pg_temp.cv_corre(otro, format('select public.cotizacion_revisiones(%L)', c_ajena))) ? 'error' then raise exception 'quien ve su origen no lee las revisiones de la suya'; end if;
-  if has_function_privilege('anon', 'public.cotizacion_revisiones(uuid,bigint,integer)', 'execute') or not has_function_privilege('authenticated', 'public.cotizacion_revisiones(uuid,bigint,integer)', 'execute')
-     or exists (select 1 from pg_proc p, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) x where p.oid = 'public.cotizacion_revisiones(uuid,bigint,integer)'::regprocedure and x.grantee = 0) then
+  if has_function_privilege('anon', 'public.cotizacion_revisiones(uuid,bigint,integer,timestamptz)', 'execute') or not has_function_privilege('authenticated', 'public.cotizacion_revisiones(uuid,bigint,integer,timestamptz)', 'execute')
+     or exists (select 1 from pg_proc p, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) x where p.oid = 'public.cotizacion_revisiones(uuid,bigint,integer,timestamptz)'::regprocedure and x.grantee = 0) then
     raise exception 'los grants de cotizacion_revisiones';
   end if;
   if exists (select 1 from unnest(array['public._cotizacion_diff_recortado(jsonb,jsonb,text[])']) f
