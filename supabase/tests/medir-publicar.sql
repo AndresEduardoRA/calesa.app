@@ -9,10 +9,17 @@
 --      con las versiones grandes de abajo, el TOAST de `formulas` taparía lo que se mide.
 --   2. `formula_guardar_borrador()` y `formula_publicar()` con 206 y 2.018 ítems: ms y buffers. Publicar es lineal (valida la fórmula y el diseño y
 --      compila la visibilidad): la razón 2.018/206 ≤ 12 en ms y en buffers, y un tope absoluto en ms.
+--      El ⚙ (`formula_cambiar_constante()`) y `formula_revertir()` (4.20-1), que publican la N+1 como fila nueva sin el borrador: ms y
+--      buffers, con su razón ≤ 12 y sus topes.
 --   3. `_compilar_visibilidad()` aislada (la pieza nueva), con los argumentos como literales (0 buffers) y de una columna fuera de línea: la razón ≤ 12.
 --      Las guardas muerden: una copia con una búsqueda lineal por ítem pasa la razón de ms, y otra que relee el diseño por sección, la de buffers.
 -- Los tonos de la medición pasan del tope de 24 (se insertan como `postgres`): el sintético trae 100.
 \set ON_ERROR_STOP 1
+-- 4-36: la sección 1 mide cuántos bloques suman 1.800 versiones más, y eso pide que crezca la tabla. Las versiones de una corrida anterior se
+-- revierten y quedan muertas; un autovacuum que no trunca (`vacuum (truncate false)` lo reproduce) deja ese espacio libre (118 páginas tras
+-- una corrida) y la corrida siguiente lo reusa: la sonda que recorre la tabla suma 0 bloques y la guarda cae. `vacuum full` deja `formulas` sin
+-- espacio libre en ningún lugar (un `vacuum` simple sólo trunca las páginas vacías del final). Va fuera de la transacción.
+vacuum (full, analyze) public.formulas;
 begin;
 \set carga `cat /proc/loadavg`
 select set_config('medir.carga', :'carga', true) \g /dev/null
@@ -64,6 +71,47 @@ begin
   return jsonb_build_object(
     'guardar_ms', (select percentile_cont(0.5) within group (order by m) from unnest(v_g) m), 'guardar_buffers', v_gb,
     'publicar_ms', (select percentile_cont(0.5) within group (order by m) from unnest(v_p) m), 'publicar_buffers', v_pb);
+end $$;
+
+-- El ⚙ en `p_origen` (4.20-1), 7 veces: la mediana de 5 y los bloques de las 5. Publica la N+1 como fila nueva, sin el borrador. Cada corrida lleva
+-- `c0` a otro valor (el mismo se rechaza), con la esperada vigente.
+create function pg_temp.rondas_engranaje(p_origen uuid) returns jsonb language plpgsql as $$
+declare
+  v_plan jsonb; v_ms numeric[] := '{}'; v_b bigint := 0; v_clave text; i int; v_pub uuid; v_c0 numeric;
+begin
+  for i in 1 .. 7 loop
+    select f.id, (f.params ->> 'c0')::numeric into v_pub, v_c0 from public.formulas f where f.origen_id = p_origen and f.estado = 'publicada';
+    execute format('explain (analyze, buffers, format json) select public.formula_cambiar_constante(%L::uuid, %L, %s, %L::uuid)',
+                   p_origen, 'c0', v_c0 + i, v_pub) into v_plan;
+    if i > 2 then
+      v_ms := v_ms || (v_plan -> 0 ->> 'Execution Time')::numeric;
+      foreach v_clave in array array['Shared Hit Blocks', 'Shared Read Blocks', 'Shared Dirtied Blocks', 'Shared Written Blocks'] loop
+        v_b := v_b + coalesce((v_plan -> 0 -> 'Plan' ->> v_clave)::bigint, 0);
+      end loop;
+    end if;
+  end loop;
+  return jsonb_build_object('ms', (select percentile_cont(0.5) within group (order by m) from unnest(v_ms) m), 'buffers', v_b);
+end $$;
+
+-- Revertir en `p_origen` (4.20-1), 7 veces: la mediana de 5 y los bloques de las 5. Cada corrida copia la archivada de mayor número (la que la
+-- publicada de hoy reemplazó), con otra nota y la esperada vigente.
+create function pg_temp.rondas_revertir(p_origen uuid) returns jsonb language plpgsql as $$
+declare
+  v_plan jsonb; v_ms numeric[] := '{}'; v_b bigint := 0; v_clave text; i int; v_pub uuid; v_arch uuid;
+begin
+  for i in 1 .. 7 loop
+    select f.id into v_pub from public.formulas f where f.origen_id = p_origen and f.estado = 'publicada';
+    select f.id into v_arch from public.formulas f where f.origen_id = p_origen and f.estado = 'archivada' order by f.version desc limit 1;
+    execute format('explain (analyze, buffers, format json) select public.formula_revertir(%L::uuid, %L::uuid, %L, %L::uuid)',
+                   p_origen, v_arch, 'revertir ' || i, v_pub) into v_plan;
+    if i > 2 then
+      v_ms := v_ms || (v_plan -> 0 ->> 'Execution Time')::numeric;
+      foreach v_clave in array array['Shared Hit Blocks', 'Shared Read Blocks', 'Shared Dirtied Blocks', 'Shared Written Blocks'] loop
+        v_b := v_b + coalesce((v_plan -> 0 -> 'Plan' ->> v_clave)::bigint, 0);
+      end loop;
+    end if;
+  end loop;
+  return jsonb_build_object('ms', (select percentile_cont(0.5) within group (order by m) from unnest(v_ms) m), 'buffers', v_b);
 end $$;
 
 -- Una copia de una función de la base con otro nombre y un texto cambiado (para las guardas).
@@ -268,6 +316,51 @@ begin
   end if;
   if (b ->> 'guardar_ms')::numeric > 12 * (a ->> 'guardar_ms')::numeric then
     raise exception 'formula_guardar_borrador con 2.000 ítems tarda % veces lo de 200 (el tope es 12)', round((b ->> 'guardar_ms')::numeric / (a ->> 'guardar_ms')::numeric, 2);
+  end if;
+
+  -- El ⚙ (4.20-1), sobre la publicada que dejaron las rondas de arriba.
+  a := pg_temp.rondas_engranaje(o_chica);
+  b := pg_temp.rondas_engranaje(o_grande);
+  raise notice 'medicion|formula_cambiar_constante (el ⚙), unos 200 ítems (ms, mediana de 5 de 7)|%', round((a ->> 'ms')::numeric, 2);
+  raise notice 'medicion|formula_cambiar_constante (el ⚙), unos 2.000 ítems (ms, mediana de 5 de 7)|%', round((b ->> 'ms')::numeric, 2);
+  raise notice 'medicion|formula_cambiar_constante (el ⚙), 2.000 sobre 200 ítems (veces)|%', round((b ->> 'ms')::numeric / (a ->> 'ms')::numeric, 2);
+  raise notice 'medicion|formula_cambiar_constante (el ⚙), unos 200 ítems (buffers en las 5 medidas)|%', a ->> 'buffers';
+  raise notice 'medicion|formula_cambiar_constante (el ⚙), unos 2.000 ítems (buffers en las 5 medidas)|%', b ->> 'buffers';
+  raise notice 'medicion|formula_cambiar_constante (el ⚙), 2.000 sobre 200 ítems (buffers, veces)|%', round((b ->> 'buffers')::numeric / (a ->> 'buffers')::numeric, 2);
+  -- Los topes (4.20-1): la mayor mediana de 3 tandas × 3 por 3 (19,46 y 182,33 ms) y lo
+  -- medido más un 20 % (1.871 y 4.253 buffers), carga de 1,4 a 3,9 de 8 núcleos, el 2026-11-06 (docs/RENDIMIENTO.md).
+  if (a ->> 'ms')::numeric > 60 or (b ->> 'ms')::numeric > 550 then
+    raise exception 'el ⚙ tarda % y % ms con unos 200 y unos 2.000 ítems (los topes son 60 y 550)', round((a ->> 'ms')::numeric, 2), round((b ->> 'ms')::numeric, 2);
+  end if;
+  if (a ->> 'buffers')::bigint > 2300 or (b ->> 'buffers')::bigint > 5200 then
+    raise exception 'el ⚙ lee % y % buffers con unos 200 y unos 2.000 ítems (los topes son 2300 y 5200)', a ->> 'buffers', b ->> 'buffers';
+  end if;
+  if (b ->> 'ms')::numeric > 12 * (a ->> 'ms')::numeric or (b ->> 'buffers')::numeric > 12 * (a ->> 'buffers')::numeric then
+    raise exception 'el ⚙ con 2.000 ítems tarda % veces lo de 200 y lee % veces sus buffers (el tope es 12)',
+      round((b ->> 'ms')::numeric / (a ->> 'ms')::numeric, 2), round((b ->> 'buffers')::numeric / (a ->> 'buffers')::numeric, 2);
+  end if;
+
+  -- Revertir (4.20-1), sobre las archivadas que dejó el ⚙.
+  a := pg_temp.rondas_revertir(o_chica);
+  b := pg_temp.rondas_revertir(o_grande);
+  raise notice 'medicion|formula_revertir, unos 200 ítems (ms, mediana de 5 de 7)|%', round((a ->> 'ms')::numeric, 2);
+  raise notice 'medicion|formula_revertir, unos 2.000 ítems (ms, mediana de 5 de 7)|%', round((b ->> 'ms')::numeric, 2);
+  raise notice 'medicion|formula_revertir, 2.000 sobre 200 ítems (veces)|%', round((b ->> 'ms')::numeric / (a ->> 'ms')::numeric, 2);
+  raise notice 'medicion|formula_revertir, unos 200 ítems (buffers en las 5 medidas)|%', a ->> 'buffers';
+  raise notice 'medicion|formula_revertir, unos 2.000 ítems (buffers en las 5 medidas)|%', b ->> 'buffers';
+  raise notice 'medicion|formula_revertir, 2.000 sobre 200 ítems (buffers, veces)|%', round((b ->> 'buffers')::numeric / (a ->> 'buffers')::numeric, 2);
+  -- Los topes (4.20-1): la mayor mediana de 3 tandas × 3 por 3 (19,60 y 190,19 ms; la de 2.000
+  -- ítems pasa los 550 de publicar: la mayor salió con carga 3,9, la mediana de las 9 es 171) y lo medido más un 20 % (2.186 y 17.970
+  -- buffers), el 2026-11-06 (docs/RENDIMIENTO.md).
+  if (a ->> 'ms')::numeric > 60 or (b ->> 'ms')::numeric > 600 then
+    raise exception 'formula_revertir tarda % y % ms con unos 200 y unos 2.000 ítems (los topes son 60 y 600)', round((a ->> 'ms')::numeric, 2), round((b ->> 'ms')::numeric, 2);
+  end if;
+  if (a ->> 'buffers')::bigint > 2700 or (b ->> 'buffers')::bigint > 21600 then
+    raise exception 'formula_revertir lee % y % buffers con unos 200 y unos 2.000 ítems (los topes son 2700 y 21600)', a ->> 'buffers', b ->> 'buffers';
+  end if;
+  if (b ->> 'ms')::numeric > 12 * (a ->> 'ms')::numeric or (b ->> 'buffers')::numeric > 12 * (a ->> 'buffers')::numeric then
+    raise exception 'formula_revertir con 2.000 ítems tarda % veces lo de 200 y lee % veces sus buffers (el tope es 12)',
+      round((b ->> 'ms')::numeric / (a ->> 'ms')::numeric, 2), round((b ->> 'buffers')::numeric / (a ->> 'buffers')::numeric, 2);
   end if;
 end $$;
 reset role;

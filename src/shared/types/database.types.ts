@@ -7636,6 +7636,19 @@ export type Database = {
         }
         Returns: string
       }
+      _publicar_version: {
+        Args: {
+          p_def: Json
+          p_detalle: Json
+          p_diseno: Json
+          p_esperada: string
+          p_ignorar_retirados: boolean
+          p_nota: string
+          p_origen: string
+          p_params: Json
+        }
+        Returns: string
+      }
       _puede_mover: { Args: { p_a: string; p_de: string; p_flujo: string }; Returns: boolean }
       _recordatorio_conflicto: { Args: { p_cuando: string }; Returns: undefined }
       _recordatorio_cuando: { Args: { p_hint: string; p_valor: string }; Returns: string }
@@ -7904,6 +7917,7 @@ export type Database = {
         }
         Returns: Json
       }
+      _version_publicada_por: { Args: { p_formula: string }; Returns: string }
       actividad_purgar: { Args: Record<PropertyKey, never>; Returns: number }
       alcance_de: {
         Args: { p_clave: string; p_origen?: string }
@@ -8182,7 +8196,7 @@ export type Database = {
       flujo_de_fase: { Args: { p_fase: string }; Returns: string }
       flujo_regla_activa: { Args: { p_flujo: string; p_regla: string }; Returns: boolean }
       formula_cambiar_constante: {
-        Args: { p_nodo: string; p_origen: string; p_valor: number }
+        Args: { p_nodo: string; p_origen: string; p_publicada_esperada?: string; p_valor: number }
         Returns: string
       }
       formula_descartar_borrador: { Args: { p_origen: string }; Returns: undefined }
@@ -8193,6 +8207,10 @@ export type Database = {
       formula_para_cotizar: { Args: { p_origen: string }; Returns: Json }
       formula_publicar: {
         Args: { p_nota: string; p_origen: string; p_publicada_esperada?: string }
+        Returns: string
+      }
+      formula_revertir: {
+        Args: { p_nota: string; p_origen: string; p_publicada_esperada: string; p_version: string }
         Returns: string
       }
       fuera_de_regla: {
