@@ -275,6 +275,7 @@ update` y los tonos de sus grupos `for key share`, valida fórmula y diseño com
   («Publicaste…»), otra persona con nombre («Ana publicó…») o sin quién o sin nombre («Otra persona publicó…»); el «hace…» se quita si
   la publicada no tiene `publicado_en`. Una esperada en un origen sin publicada: «La versión que tenías ya no es la publicada, y el
   origen no tiene otra.». Estos PT409 se muestran tal cual (sólo nombran a una persona, una versión y cuándo).
+- **Dónde se ven** (4.20-2a): la pestaña «Fórmula» de Configuración › Cotización lee la publicada, el borrador (atrasado si su versión de origen ya no es la publicada) y las versiones por cursor, por PostgREST y sin lo oculto (`docs/UX.md` › «Cotización: fórmula (estados propios)»). Publicar, descartar y revertir desde ahí: 4.20-2b.
 - **Pendiente:** la versión esperada de `formula_guardar_borrador()` va con el editor (4.21); las carreras mixtas (⚙ contra publicar el
   borrador, revertir contra ⚙) las suma el carril A.
 
