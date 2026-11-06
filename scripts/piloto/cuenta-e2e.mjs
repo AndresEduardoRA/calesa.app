@@ -40,7 +40,9 @@ export function cuentaE2e(texto) {
   return {
     n,
     de: DE,
-    el_siguiente_corre_completo: n >= DE - 1,
+    // La cuenta ya no pide el completo (`.claude/rules/e2e.md`, Fase 4: sólo el hito 4-A y el cierre lo corren en local, 2026-11-06).
+    // El campo queda por compatibilidad con hechos.json y el ruteo.
+    el_siguiente_corre_completo: false,
     ultimo,
     no_reconocidos: noReconocidos,
   }

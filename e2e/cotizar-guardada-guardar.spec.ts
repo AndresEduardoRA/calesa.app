@@ -138,8 +138,9 @@ test('E2E guardar dice «Cambios guardados.», la URL no cambia y al recargar es
   expect(page.url()).toContain(`/cotizaciones/${cotizacion}`)
   const [pedido] = guardados.pedidos
   expect(pedido?.cotizacionId).toBe(cotizacion)
-  // La versión viaja como el texto de la base, con sus microsegundos.
-  expect(pedido?.actualizadoEn).toMatch(/T\d\d:\d\d:\d\d\.\d{6}\+00:00$/)
+  // La versión viaja como el texto de la base, con sus microsegundos: el `+00:00` es de PostgreSQL (una fecha de JavaScript diría `Z`).
+  // PostgreSQL recorta los ceros finales (.538330 sale .53833, y .000000 sin fracción): exigir seis cifras caía una de cada diez (4-90).
+  expect(pedido?.actualizadoEn).toMatch(/T\d\d:\d\d:\d\d(\.\d{1,6})?\+00:00$/)
   await page.reload()
   await expect(celdaDeLaHoja(page, 'pub')).toContainText('300')
   await expect(totalDeLaHoja(page)).toContainText('307,00')

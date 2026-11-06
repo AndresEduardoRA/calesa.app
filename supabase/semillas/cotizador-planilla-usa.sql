@@ -111,3 +111,13 @@ begin
   insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad, nota, publicado_en)
   values (v_origen, 1, 'publicada', v_def, v_params, v_diseno, public._preparar_publicacion(v_def, v_params, v_diseno, false), 'Fórmula inicial', now());
 end $$;
+
+-- La plantilla de la tarjeta de planilla_usa (4.18-1): la de la vista previa 08 de `docs/referencias/cotizador-actual.md` (sus tres grupos con su tono, el «TOTAL DÓLARES»
+-- con su leyenda, la nota y el logo), sin la columna del tipo de cambio: su hoja no dibuja tipos de cambio y la regla cuenta lo que no se dibuja como
+-- oculto (S0 del 4.18-1, contestada el 2026-11-06). Valida contra la fórmula v1 (`supabase/tests/plantilla-validar.sql`, T5).
+update public.plantillas_tarjeta p set definicion = $j${"grupos": [{"grupo": "compra", "tono": "verde"}, {"grupo": "logistica", "tono": "amarillo"}, {"grupo": "aduana", "tono": "naranja"}],
+   "etiquetas": {"garantia": "GARANTÍA PARA LA PARTICIPACIÓN"},
+   "total": {"etiqueta": "TOTAL DÓLARES", "leyenda": "Todo con papeles, fuera de Aduana Nacional Cochabamba (No incluye reparación)"},
+   "nota": "Nota: Esta es una cotización referencial; los montos pueden variar con el tipo de cambio.",
+   "logo": true, "columnas": {"leyenda": true, "tipo_cambio": false, "plazo": true}}$j$::jsonb
+  from public.origenes o where o.id = p.origen_id and o.clave = 'planilla_usa' and p.version = 1;

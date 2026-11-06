@@ -793,3 +793,68 @@ con la recomendada) y plan aprobado antes de ejecutar. Nivel 1 con interfaz, sin
 - **Abiertos:** 4-75 cerrado. Ninguno nuevo.
 - **Commits:** `19234bca` (la lectura desde un día y la ventana del hook) y `facd9f2f` (el panel, el e2e y la ficha).
   e2e completo: no (4.17-5c, pantalla, 1 de 3)
+
+<!-- paso:4.20-1 -->
+
+## 2026-11-06 — Paso 4.20-1: el ⚙ y revertir publican desde la publicada sin pisar el borrador
+
+- **Hecho:** el 4.20 se partió en cuatro (4.20-1 la base; 4.20-2 la pestaña «Fórmula» de Configuración › Cotización; 4.20-3 el ⚙ en la hoja; 4.20-4 vigencia y vehículo obligatorio). Este 4.20-1, sólo base: publicar, el ⚙ y revertir de un origen van en serie por un candado del origen; el borrador recuerda su versión de origen (`formulas.version_origen_id`, la escribe `formula_guardar_borrador()` al crearlo) y publicarlo atrasado da PT409; el conflicto dice quién publicó, qué versión y cuándo (`_version_publicada_por()`), sin «Recarga»; el ⚙ (`formula_cambiar_constante(…, p_publicada_esperada uuid default null)`, una sola firma) publica la N+1 como fila nueva (`_publicar_version()`) sin crear ni tocar el borrador, y el mismo valor da 22023; `formula_revertir()` publica la N+1 como copia de una archivada con su definición, sus params y su diseño, y rechaza la publicada, un borrador, una versión ajena, la esperada nula y un nivel retirado (P7). 4-36: `medir-publicar.sql` compacta `formulas` (`vacuum full`) antes de medir. P1–P7 con las recomendadas; la compuerta `datos`, aprobada.
+- **Verificación** (`.piloto/salidas/4.20-1/`): rojos contra HEAD (`rojo-head-publicar-diseno.txt`: 7 ✗, T2 de control verde; `rojo-head-dbmedir-2.txt`: la 2.ª `db:medir` seguida cae); la causa del 4-36 reproducida con `vacuum (truncate false)` entre corridas (`causa-4-36-a2.txt`); 17 mutaciones, todas caen (M17 sobrevivió a la primera y destapó un hueco de T8: `proconfig` nulo; arreglado con `is not true`; M6 también tumba «Dos ⚙ a la vez», `mutacion-M6-carreras.txt`); `db:reset`, `db:types`, `db:probar` (525 ✓) y el job `schema` de cada commit; `db:lint` sin avisos nuevos; `db:carreras` en verde; cuatro `pnpm db:medir` seguidas sin `db:reset`, las cuatro en verde (`final-dbmedir-*.txt`); C11 en 3 tandas × 3 (`medir-c11-*.txt`): topes del ⚙ 60 / 550 ms y 2.300 / 5.200 buffers, de revertir 60 / 600 ms y 2.700 / 21.600 (los de ms pasan los de publicar, 55 / 550, sólo por el redondeo de la regla: las medianas son las de publicar); `lint` y `typecheck` en verde; `pnpm test` 6.379 de 6.385: `auto-carriles.test.ts` (5) cae por los carriles abiertos en la máquina y `historial-del-vehiculo.test.tsx` (1) pasa sola (`test-caidas-solas.txt`). `e2e-dirigidos.mjs` da `modo: completo` (migraciones); ningún spec llama a las funciones cambiadas y el completo lo corre el CI del PR.
+- **Abiertos:** 4-36 cerrado; para el 4.20-2, la nota en blanco de revertir da «Publicar pide una nota.» sin `hint` (viene de `_publicar_version()`); para el 4.21, la versión de origen es la publicada al primer guardado, no la que el editor cargó (la esperada de `formula_guardar_borrador()` tiene que cubrir también la creación); 4-8 cerrado en lo del ⚙ y revertir (la versión esperada de `formula_guardar_borrador()` pasa al 4.21); nuevos para el A: las carreras mixtas (⚙ contra publicar el borrador, revertir contra ⚙), la ficha de `cotizaciones`, `migraciones.md` y el título de `medir-publicar.sql` en `scripts/mediciones.mjs`; 4-64 suma `publicar-diseno.sql` (621) y `medir-publicar.sql` (417); 4-33, 4-19 y 4-20 al A, 5a-29 y 5a-30 al pulido, 4-30 al 4.22.
+- **Commits:** `e250db82` (repetir medir-publicar sin db:reset), `d1644d37` (publicar la fórmula sin pisar lo que otro dejó) y `4488f75d` (revertir la fórmula a una versión con su diseño).
+  e2e completo: no (4.20-1, base, Nivel 1 + cadena db; el completo de escritorio lo corre el CI del PR)
+
+<!-- paso:4.20-2a -->
+
+## 2026-11-06 — Paso 4.20-2a: la pestaña «Fórmula» de Configuración › Cotización, de lectura
+
+- **Hecho:** el 4.20-2 se partió en 4.20-2a (lectura) y 4.20-2b (publicar con nota, descartar y revertir). Este 4.20-2a: Configuración › Cotización se abre también con `cotizaciones.configurar` (el hub y la página); cada pestaña lleva sus permisos («Niveles de acceso» con `equipo.roles.*`, primero; «Fórmula» con `cotizaciones.configurar`) y `?seccion=` que no es de las suyas abre la primera de las suyas; la pestaña «Fórmula» tiene el selector de origen (`?origen=`, también los inactivos), la publicada, el borrador con su versión de origen (atrasado si se publicó otra) y las versiones de a 20 por cursor sobre `formulas_origen_id_version_key` hasta 500, con «Ir a la versión»; los autores, una lectura por página. Sin migración: PostgREST bajo la policy `formulas: leer` de hoy. El enlace de «Falta publicar la fórmula» de la hoja lleva a `?seccion=formula&origen=<id>`.
+- **Verificación** (`.piloto/salidas/4.20-2a/`): rojos contra HEAD (`rojo-head-vitest.txt`: 10 pruebas y 5 archivos caen; `rojo-head-e2e.txt`: el spec nuevo y el enlace de `cotizar-hoja.spec.ts` caen); `versiones-por-cursor.sql` (verde contra HEAD a propósito: guarda de forma sobre la base de hoy) cae sin el índice (`caer-sin-indice.txt`) y con la clave en el vecino (`caer-con-el-vecino.txt`); `nivel.mjs`: Nivel 1, interfaz (`nivel.txt`); `lint` y `typecheck` en verde; `pnpm test` 6.497 de 6.503: `auto-carriles.test.ts` (5, los carriles abiertos en la máquina, como en el 4.20-1) y T13 de `mapa.test.ts` por tiempo con `db:probar` corriendo a la vez (sola pasa, `mapa-test-sola.txt`); `db:probar` 543 ✓; los 7 e2e dirigidos en escritorio y móvil, 139 ✓ (`e2e-dirigidos.txt`); la guarda de carriles, 33 archivos cumplen.
+- **Abiertos:** para el A, el `EXPLAIN` de la lista en `db:medir:volumen`, la ficha de `cotizaciones` y `origenes/pasos.ts` (`decisiones.md`); para el 4.20-2b, la esperada de `formula_descartar_borrador()`.
+- **Commits:** `3fd4d363` (mostrar la fórmula del origen en configuración) y `70c8c2c2` (llevar falta publicar a la fórmula del origen).
+  e2e completo: no (4.20-2a, pantalla, 1 de 3)
+
+## 2026-11-06 — Paso 4.18-1: la plantilla de la tarjeta validada y la lectura de la tarjeta, en la base
+
+- **Qué:** `plantillas_tarjeta.definicion` pasa a una forma declarativa (los grupos de la fórmula con su tono, etiquetas y leyendas por nodo, el total, la nota, el logo y
+  las columnas) y `validar_plantilla()` la valida con nueve reglas y su juego común `entities/plantilla/casos-de-plantilla.json` (47 casos); guardar el borrador valida la
+  forma y publicar, contra la fórmula publicada del origen. `cotizacion_tarjeta(p_formula)` (`security definer`) da lo que dibuja la tarjeta de una versión: la plantilla
+  publicada revalidada contra ella (si no, `sin_plantilla`) y sólo lo del nivel «todos»; entra al inventario de lo oculto. `plantillas_tarjeta` la lee sólo quien
+  configura el origen. La semilla trae la plantilla de cada origen del cotizador (la de `planilla_usa`, sin la columna del tipo de cambio: S0). El 4.18 quedó partido en 3.
+- **Estado del CI al empezar:** el de HEAD (`7fd8d5e6`, run `42264981799`) en verde.
+- **Plan:** auditado en dos rondas (la 1.ª bloqueó: la tabla legible por todos y una mutación equivalente; la 2.ª, observaciones); compuertas `producto` (P1–P8, todas con
+  la recomendada), `datos` (aprobada) y `producto` S0 (la recomendada). `.piloto/planes/4.18-1.md`.
+- **Verificación** (`.piloto/salidas/4.18-1/`):
+  - Pruebas en rojo contra HEAD (`rojo-head.txt`: 14 caídas, las 12 nuevas, H1 y el inventario) y verdes después (`verde-3.txt`, 127 bloques con K6;
+    `db-probar-final.txt`, entero). La auditoría del informe pidió endurecer K5 y rehacer K6 (una versión con el `total_en` a otra moneda): commit `fix` aparte.
+  - Mutaciones: las 22 del plan y M23 (la moneda de un bucket) caen con su prueba y su mensaje (`mutaciones.txt`, arnés `mutar.py`).
+  - `db:reset`, `db:types`, `db:lint` (0 errores; ningún aviso en las funciones nuevas: `db-lint.txt`); `nivel.mjs --rango`: Nivel 2, disparador `rls` (`nivel.txt`).
+  - `lint` y `typecheck` en verde; `pnpm test` 6.526 de 6.531: las 5 de `auto-carriles.test.ts` (ajenas, 4-83); `mapa.sh --check` y `coordinador validar` en verde.
+  - El completo de escritorio (`e2e-completo.txt`, con `db:carreras` en verde al empezar; `E2E_PORT=3510`: el 3210 lo tenía el e2e de otro proyecto, `puerto-3210.txt`): 950 en verde, 16 saltados, 1 caída y 3 sin correr (las
+    que siguen en el mismo archivo serial), 35,2 min. La caída es el 4-90 (`cotizar-guardada-guardar.spec.ts:128`: «…59.95153+00:00», cinco dígitos de microsegundos);
+    ese spec y la tarea de oro, 3 de 3 solos (`e2e-dirigidos-repetir.txt`, 27 en verde).
+- **Docs del carril B:** se consolidaron `docs/pasos/4.20-1` y `4.20-2a` (`consolidar-docs.mjs`) antes de esta entrada.
+- **Abiertos:** 4-45 y 4-55 decididos (P5, P6), 4-50 a «Pulido para la Fase 9» (P7), 4-64 suma; al 4.19, la versión esperada de las dos RPC de la plantilla, el
+  `validarPlantilla()` de TS y el aviso del tono borrado.
+- **Commits:** `9dd7ff9c` (validar la plantilla), `b6c1ca62` (leer la tarjeta), `04ff5247` (la policy) y `eec9945` (el `fix` de K5 y K6 que pidió la auditoría del informe).
+  e2e completo: sí (4.18-1, base, Nivel 2: escritorio, 950 en verde, 16 saltados, 1 caída, 35,2 min)
+
+## 2026-11-06 — Paso 4.18-2: la tarjeta de una cotización en pantalla
+
+- **Qué:** «Vista previa» en el pie del resumen de la hoja nueva y de la guardada (`?panel=vista-previa`): un modal que dibuja la tarjeta tal como la vería el cliente (grupos con su
+  tono, tipo de cambio y plazo una vez por grupo, total, total en Bs si se pidió, lo aparte, nota, logo y asesor; tarjeta por omisión sin plantilla; Modo Live). El modelo es puro
+  (`entities/tarjeta/`, `calculo-de-la-tarjeta.ts`), lo lee el navegador (`infra/tarjeta/`) y lo dibuja el área `tarjeta`; la guardada dibuja lo guardado. Cierra 4-55.
+- **Estado del CI al empezar:** el de HEAD (`abd2ee3d`) sin mirar: el de `43d98eb7` seguía en curso.
+- **Plan:** auditado en dos rondas (la 1.ª bloqueó: faltaba decidir qué números lleva la tarjeta de una guardada; la 2.ª, observaciones menores); compuerta `producto` P1–P5, todas con la
+  recomendada. `.piloto/planes/4.18-2.md`.
+- **Verificación** (`.piloto/salidas/4.18-2/`):
+  - Pruebas en rojo contra HEAD: `rojo-head-vitest.txt`, `rojo-head-vitest-commit2.txt`, `rojo-head-vitest-commit3.txt` y `rojo-head-e2e.txt` (no hay botón); verdes después.
+  - Mutaciones M1 a M4 (`mutaciones.txt`): cada una hace caer su prueba (modelo, cálculo de lo guardado y la hoja que pasa el cálculo).
+  - e2e `cotizar-vista-previa.spec.ts` E1–E8 en escritorio y móvil, 8 de 8 (`e2e-vista-previa-*.txt`); los 12 dirigidos: móvil 78 de 78, escritorio 76 y 2 caídas por carga de la
+    máquina (`loadavg` ≈ 14), 15 de 15 en las tres repeticiones (`repro-escritorio-*.txt`).
+  - Medidas: tarjeta de `subasta_usa` 105 nodos y `cotizacion_tarjeta` 2.950 bytes (topes 111 y 3.098); hoja 469 al abrir y 491 usada de 500; JS en frío de `/cotizaciones/nuevo`
+    458,5 de 460 KB (4-73) y de `/cotizaciones/[id]` 437,6 de 448.
+  - `lint`, `typecheck`, `scripts/guardas`, `vitest` de `cotizaciones` y `mapa.sh --check` en verde; `mapa.test.ts` T13 cae por tiempo cuando la máquina está cargada (pasa sola; 4-96).
+- **Abiertos:** 4-55 cerrado; 4-73 medido; sin nuevos. 4-55 sigue en `docs/PLAN.md` con su cierre: esta sesión no puede escribir en `docs/archivo/`.
+- **Commits:** `473bc65e` (el modelo), `9843ec99` (la tarjeta y su lectura) y `f55346ce` (el botón, las páginas y el e2e).
+  e2e completo: no (4.18-2, pantalla, 1 de 3)

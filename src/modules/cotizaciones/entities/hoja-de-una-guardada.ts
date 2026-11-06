@@ -29,6 +29,8 @@ export type LoGuardado = {
   fuentes: ReadonlyMap<string, string>
   // `totales.usd`: el total de la cotización; nulo si no hay.
   totalUsd: number | null
+  // `totales.bs`: el total en la moneda local con que se guardó (la tarjeta lo dibuja si la cotización pidió «Ver total Bs»); nulo si no hay.
+  totalBs: number | null
 }
 
 // Una versión de la cadena de una cotización (`cotizacion_padre_id`): la anterior o la nueva. El número es el suyo («v2 de #123»).

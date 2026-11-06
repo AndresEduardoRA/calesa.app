@@ -51,6 +51,7 @@ escribir_compuerta() {
     echo "creada: $(date +%s)"
     echo "tipo: $tipo"
     echo "paso: $paso"
+    echo "carril: ${PILOTO_CARRIL:-a}"
     echo "motivo: ${motivo//$'\n'/ }"
     echo "pregunta: ${pregunta//$'\n'/ }"
     echo "opciones:"

@@ -385,8 +385,10 @@ vuelta() {
     [ -n "$modelo" ] || modelo=$(jq -r .modelo "$ESTADO/ruteo.json")
     [ -n "$effort" ] || effort=$(jq -r .effort "$ESTADO/ruteo.json")
   else
-    # La puerta de fase (4.18, 4.28, abrir una fase): la decide el CI en verde, no la persona.
-    if [[ "$paso" =~ ^4\.(18|28)(-|$) ]] || [ "$tipo_ruteo" = fase ]; then
+    # La puerta de fase (4.18, 4.28, abrir una fase): la decide el CI en verde, no la persona. Sólo al entrar (el paso entero o su
+    # primera parte, 4.18-1 o 4.18-1a): las partes siguientes esperaban el CI de la parte anterior del mismo carril, 25–35 min
+    # cada una (4.18-2, 2026-11-06), y un rojo suyo ya lo anota ci.sh y lo arregla un ci-fix.
+    if [[ "$paso" =~ ^4\.(18|28)(-1[a-z]?)?$ ]] || [ "$tipo_ruteo" = fase ]; then
       puerta_de_fase "$paso" || return 0
     fi
     modo=nueva sid=$(cat /proc/sys/kernel/random/uuid) desde=$(git rev-parse HEAD) prompt="/piloto $paso"

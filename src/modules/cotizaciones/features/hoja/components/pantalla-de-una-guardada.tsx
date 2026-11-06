@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { guardarBorradorDeEstado } from '@/shared/lib/borrador'
 import type { RecalculoInicial } from '../../../entities/apertura'
+import { calculoDeLoGuardado } from '../../../entities/calculo-de-la-tarjeta'
 import { ofreceVerTotalBs } from '../../../entities/cabecera-de-la-hoja'
 import { claveDelBorradorDeUnaGuardada } from '../../../entities/claves-de-la-hoja'
 import { entradasDeLoGuardado } from '../../../entities/entradas-de-lo-guardado'
@@ -28,6 +29,24 @@ type PropsDeLaHoja = {
 type Props = PropsDeLaHoja & {
   // Quien mira: el pendiente y el borrador de la pestaña son suyos (otra cuenta en la misma pestaña no reenvía ni repone lo de ésta).
   personaId: string
+}
+
+// Lo que dice lo de hoy frente a lo guardado, decidido una vez al abrir: si difiere (el aviso y «Total guardado») y los números de la tarjeta, que dibuja **lo guardado** (P5 a:
+// valores y totales del snapshot, con los estados del primer recálculo); tipear después no los mueve.
+function useLoDeHoy({ hoja, inicial }: PropsDeLaHoja) {
+  const hayAviso = useMemo(
+    () => difiereAlAbrir(hoja.guardado, inicial.respuesta),
+    [hoja.guardado, inicial.respuesta],
+  )
+  const calculoDeLaTarjeta = useMemo(
+    () => calculoDeLoGuardado(hoja, inicial.respuesta),
+    [hoja, inicial.respuesta],
+  )
+  return {
+    hayAviso,
+    muestraElTotal: muestraElTotalGuardado(hoja.guardado, inicial.respuesta),
+    calculoDeLaTarjeta,
+  }
 }
 
 // El marco de la hoja de una cotización guardada (`/cotizaciones/[id]`, 4.15-3). La hoja calcula por SU cotización (nunca por un origen) y abre con lo guardado como lo tipeado,
@@ -79,11 +98,7 @@ export function PantallaDeUnaGuardada({ personaId, ...props }: Props) {
     }),
     [hoja],
   )
-  const hayAviso = useMemo(
-    () => difiereAlAbrir(hoja.guardado, inicial.respuesta),
-    [hoja.guardado, inicial.respuesta],
-  )
-  const muestraElTotal = muestraElTotalGuardado(hoja.guardado, inicial.respuesta)
+  const { hayAviso, muestraElTotal, calculoDeLaTarjeta } = useLoDeHoy(vistas)
   return (
     <HojaDeCotizar
       key={`${hoja.cotizacion.actualizadoEn}:${String(vuelta)}:${String(lectura.lecturas)}`}
@@ -97,6 +112,7 @@ export function PantallaDeUnaGuardada({ personaId, ...props }: Props) {
       alRecargar={lectura.recargar}
       encima={(hayCambios) => <AvisoDeVersion hoja={hoja} hayCambios={hayCambios} />}
       soloLectura={!hoja.puedeGuardar}
+      deLoGuardado={{ calculo: calculoDeLaTarjeta, difiere: hayAviso }}
       {...(hoja.puedeGuardar
         ? {
             edicion: { guardado, cotizacion: hoja.cotizacion, diferido: hayAviso },

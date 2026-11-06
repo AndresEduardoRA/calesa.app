@@ -7606,10 +7606,17 @@ export type Database = {
       _origen_vehiculos_con_valor: { Args: { p_clave: string; p_origen: string }; Returns: number }
       _origenes_lead_json: { Args: Record<PropertyKey, never>; Returns: Json }
       _origenes_lead_tope: { Args: Record<PropertyKey, never>; Returns: number }
+      _papelera_purgar_cotizaciones: { Args: { p_ids: string[]; p_lote: string }; Returns: Json }
       _papelera_purgar_leads: { Args: { p_leads: string[]; p_lote: string }; Returns: Json }
       _papelera_purgar_vehiculos: { Args: { p_lote: string; p_vehiculos: string[] }; Returns: Json }
+      _papelera_restaurar_cotizaciones: { Args: { p_ids: string[]; p_lote: string }; Returns: Json }
       _papelera_solo_cotizaciones: {
         Args: { p_tipo: Database['public']['Enums']['tipo_lote_papelera'] }
+        Returns: undefined
+      }
+      _plantilla_forma: { Args: { p_plantilla: Json }; Returns: undefined }
+      _plantilla_nodos: {
+        Args: { p_def: Json; p_diseno: Json; p_plantilla: Json; p_visibilidad: Json }
         Returns: undefined
       }
       _portal_clave_validar: { Args: { p_clave: string }; Returns: undefined }
@@ -7755,6 +7762,7 @@ export type Database = {
         Returns: Database['public']['Enums']['visibilidad_seguimiento']
       }
       _sin_tildes: { Args: { p_texto: string }; Returns: string }
+      _tarjeta_grupos: { Args: { p_def: Json; p_plantilla: Json; p_tonos: Json }; Returns: Json }
       _tarjeta_json: {
         Args: {
           o: Omit<
@@ -7764,6 +7772,10 @@ export type Database = {
           p_lead: Json
           p_vehiculo: Json
         }
+        Returns: Json
+      }
+      _tarjeta_tipos_de_cambio: {
+        Args: { p_buckets: string[]; p_def: Json; p_diseno: Json }
         Returns: Json
       }
       _telefono_o_nulo: { Args: { p_cc: string; p_tel: string }; Returns: string }
@@ -8101,6 +8113,7 @@ export type Database = {
         Args: { p_abierta?: string; p_cotizacion?: string; p_origen?: string; p_tabla: string }
         Returns: Json
       }
+      cotizacion_tarjeta: { Args: { p_formula: string }; Returns: Json }
       cotizaciones_listado: {
         Args: {
           p_clase?: Database['public']['Enums']['clase_cotizacion']
@@ -8142,6 +8155,14 @@ export type Database = {
         Returns: Json
       }
       cotizaciones_papelera_lote: { Args: { p_lote: string }; Returns: Json }
+      cotizaciones_papelera_purgar: {
+        Args: { p_actualizado_en_esperado: string; p_cotizaciones?: string[]; p_lote: string }
+        Returns: Json
+      }
+      cotizaciones_papelera_restaurar: {
+        Args: { p_actualizado_en_esperado: string; p_cotizaciones?: string[]; p_lote: string }
+        Returns: Json
+      }
       crear_lead: {
         Args: { p_id: string; p_lead: Json; p_recordatorio?: Json; p_seguimiento?: Json }
         Returns: Json
@@ -8885,6 +8906,16 @@ export type Database = {
         Returns: undefined
       }
       validar_formula: { Args: { p_def: Json; p_params: Json }; Returns: undefined }
+      validar_plantilla: {
+        Args: {
+          p_def: Json
+          p_diseno: Json
+          p_plantilla: Json
+          p_tonos: string[]
+          p_visibilidad: Json
+        }
+        Returns: undefined
+      }
       vehiculo_conservar: { Args: { p_conservar: boolean; p_vehiculo: string }; Returns: Json }
       vehiculo_crear: {
         Args: { p_consulta?: string; p_datos: Json; p_id: string; p_origen: string }

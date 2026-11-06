@@ -27,7 +27,12 @@ describe('hojaSinAbierta: el diseño de una guardada como la hoja que dibuja Hoj
 const guardado = (
   valores: Record<string, number | string | null>,
   totalUsd: number | null = 100,
-): LoGuardado => ({ valores: new Map(Object.entries(valores)), fuentes: new Map(), totalUsd })
+): LoGuardado => ({
+  valores: new Map(Object.entries(valores)),
+  fuentes: new Map(),
+  totalUsd,
+  totalBs: null,
+})
 
 describe('difiereAlAbrir: lo de hoy no es lo guardado', () => {
   it('igual: no difiere', () => {
