@@ -243,7 +243,8 @@ export default defineConfig([
       ],
     },
   },
-  // La entrada de cliente de un módulo: hooks, componentes de cliente y tipos de `entities/`.
+  // La entrada de cliente de un módulo: hooks, componentes de cliente, tipos de `entities/` y, sólo en la raíz del módulo, una
+  // Server Action `'use server'` con el tipo de su entrada (debe exigir su permiso en el servidor; 4.15-6c).
   // Nada de servidor, ni directo ni por la composición (lo transitivo lo frena el build).
   {
     files: ['src/modules/*/client.ts'],
@@ -268,7 +269,7 @@ export default defineConfig([
                 'next/headers',
               ],
               message:
-                'client.ts es la entrada de cliente: sólo hooks, componentes de cliente y tipos de entities.',
+                'client.ts es la entrada de cliente: sólo hooks, componentes de cliente, tipos de entities y, a lo sumo, una Server Action con su tipo de entrada.',
             },
           ],
         },

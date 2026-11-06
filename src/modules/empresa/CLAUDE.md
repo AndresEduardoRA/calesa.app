@@ -15,7 +15,8 @@ Ficha completa: `docs/archivo/modulos/empresa.md`, sólo con grep.
   - Pantalla: `leerAjustes()`, `leerMonedasYTiposCambio()`, `leerHistorial()`, `leerIntegraciones()`, `zonasHorarias()`. Íconos: `iconosDelManifest()`, `urlDeIcono()`, `claveDeIconoVigente()` (para `app/manifest.ts` y `app/iconos/vigente/[tamano]`).
 - Componentes (`<FormularioEmpresa>`, `<MonedasYTiposCambio>`, `<Integraciones>`, `<IconosDeLaApp>`) por `pantallas/configuracion-empresa.ts`, sólo `src/app`.
 - `shell.ts` (sólo layout `(app)`): `getAjustes()`, `getTiposCambio()`, `<TiposCambioVigentes>`.
-- Depende de ningún otro módulo. Sin `client.ts`.
+- `client.ts` (Client Components de `app/` u otro módulo): `guardarTipoCambio` y `EntradaDeGuardarTipoCambio`, para el ⚙ de un tipo de cambio de la hoja (4.20); nadie lo usa todavía. La action exige `empresa.tipos_cambio.gestionar` en el servidor.
+- Depende de ningún otro módulo.
 
 ## Archivos clave
 
@@ -48,7 +49,7 @@ RPC: `web.ajustes_acceso` (lo único que lee `anon`), `empresa_guardar_ajustes`,
 ## Ojo
 
 - `ajustes_empresa` sólo la lee `authenticated`; acceso y manifest corren como `anon`, por eso `getAjustes()` va por `web.ajustes_acceso()` con columnas contadas. Una columna necesaria antes de ingresar se suma ahí, no con un grant a `anon`.
-- No hay permiso de «ver»: abre la pantalla quien tiene `empresa.ajustes.gestionar` o `empresa.tipos_cambio.gestionar`; lo que no puede editar, deshabilitado con el motivo.
+- No hay permiso de «ver»: abre la pantalla quien tiene `empresa.ajustes.gestionar` o `empresa.tipos_cambio.gestionar` **o el permiso de alguna pestaña de un área** (`PERMISOS_DE_EMPRESA`, la unión de los de sus pestañas; hoy no hay ninguna); lo que no puede editar, deshabilitado con el motivo. Una pestaña de un área sale de la carpeta del carril C (`configuracion/empresa/comprobantes/`), pide sólo claves de la entrada «Configuración» de `NAVEGACION` y quién la ve sin los permisos de Empresa lo decide el paso que la suma, en su compuerta `datos` (4-89).
 - `<Marca>` y `<EstiloDeMarca>` viven en `src/shared/ui` y reciben nombre, logo y color por props (`shared` no importa este módulo). El color entra como `<style>` con `:root` y `.dark`, no en `<html style>`.
 - El secreto de apibara va a Vault por `integracion_guardar_secreto()`; la app sólo lee `integraciones.secreto_guardado_en`; `integraciones.config` lleva lo no secreto. Variables de entorno sólo para infraestructura del despliegue (`docs/DECISIONES.md`).
 - `push_web` y `web_publica` existen como filas sin interfaz hasta sus fases (7 y 8). Integración nueva: `CLAVES_INTEGRACION`; con secreto, también `esquemaGuardarSecreto`.

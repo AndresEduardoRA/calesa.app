@@ -15,6 +15,7 @@ import { datosO } from '@/shared/lib/errores'
 import { puede, type Permisos } from '@/shared/lib/permisos'
 import { EstadoVacio } from '@/shared/ui/estados'
 import { ConProveedorDeLaHoja } from '../con-proveedor-de-la-hoja'
+import { HUECOS_DE_LA_GUARDADA, dibujarHuecos } from './huecos-de-la-guardada'
 
 export const metadata: Metadata = { title: 'Cotización' }
 
@@ -70,6 +71,12 @@ async function Cotizacion({ params }: { params: PageProps<'/cotizaciones/[id]'>[
     clienteDe(sesion.permisos, leadId),
     vehiculoDe(vehiculoId),
   ])
+  // Lo que reciben los huecos de las áreas (acciones de la cabecera y lo de bajo la hoja).
+  const props = {
+    cotizacion: hoja.cotizacion,
+    puedeGuardar: hoja.puedeGuardar,
+    permisos: sesion.permisos,
+  }
   return (
     <>
       <CabeceraDeLaGuardada
@@ -84,6 +91,7 @@ async function Cotizacion({ params }: { params: PageProps<'/cotizaciones/[id]'>[
         origen={hoja.diseno.origen.nombre}
         cliente={cliente?.nombre ?? null}
         vehiculo={vehiculo?.titulo ?? null}
+        acciones={dibujarHuecos(HUECOS_DE_LA_GUARDADA, 'Acciones', props)}
       />
       <ConProveedorDeLaHoja
         origenId={hoja.cotizacion.origenId}
@@ -97,6 +105,7 @@ async function Cotizacion({ params }: { params: PageProps<'/cotizaciones/[id]'>[
           personaId={sesion.usuarioId}
         />
       </ConProveedorDeLaHoja>
+      {dibujarHuecos(HUECOS_DE_LA_GUARDADA, 'Debajo', props)}
     </>
   )
 }

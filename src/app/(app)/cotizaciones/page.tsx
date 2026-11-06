@@ -19,6 +19,7 @@ import {
   type LecturaDelServidor,
 } from '@/modules/cotizaciones'
 import { ListadoDeCotizaciones } from '@/modules/cotizaciones/pantallas/listado'
+import { HUECOS_DE_PAPELERA_EN_EL_LISTADO } from '@/modules/cotizaciones/pantallas/papelera-listado'
 import { requerirSesion } from '@/modules/equipo'
 import { leerNombresDeLeads } from '@/modules/leads'
 import { getOrigenes } from '@/modules/origenes'
@@ -113,6 +114,8 @@ async function Listado({
       ? undefined
       : { titulo: datosO(await leerVehiculo(pedido.vehiculoId))?.titulo ?? null }
   const origenDeNueva = origenParaNueva(sesion.permisos, visibles, pedido.origenId)
+  // Lo que el área `papelera` suma junto a «Nueva cotización» (4.24); hoy nada.
+  const { Junto } = HUECOS_DE_PAPELERA_EN_EL_LISTADO
 
   return (
     <ListadoDeCotizaciones
@@ -125,6 +128,7 @@ async function Listado({
       rutaDeNueva={
         origenDeNueva === null ? null : rutaDeLaHoja({ origen: origenDeNueva, lead: null })
       }
+      junto={Junto === undefined ? undefined : <Junto permisos={sesion.permisos} />}
     />
   )
 }

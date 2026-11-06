@@ -1,6 +1,7 @@
 // La coherencia entre `docs/plan.yaml` y las áreas de `cotizaciones` (`areas-de-cotizaciones.ts`; la prueba, en
-// `areas-de-cotizaciones.test.ts`). Un carril que no es `base` posee áreas enteras, con sus cinco lugares, y ningún archivo del núcleo,
-// salvo las familias del compilador: las posee un solo carril, y todas las que hay en el árbol (P2 del 4.15-4).
+// `areas-de-cotizaciones-plan.test.ts`). Un carril que no es `base` posee áreas enteras, con sus cinco lugares y las segundas pantallas
+// que hay en el árbol (`pantallas/<área>-<pantalla>.ts`), y ningún archivo del núcleo, salvo las familias del compilador: las posee un
+// solo carril, y todas las que hay en el árbol (P2 del 4.15-4).
 import { MODULO, claseDe } from './areas-de-cotizaciones'
 import { FAMILIAS_DEL_COMPILADOR } from './familias-del-compilador.mjs'
 
@@ -20,6 +21,16 @@ const LUGARES = (area: string) => [
   `areas/${area}/`,
   `pantallas/${area}.ts`,
 ]
+
+// Las `pantallas/<área>-<pantalla>.ts` de un área que hay en el árbol (la pantalla propia, `pantallas/<área>.ts`, la pide LUGARES).
+const segundasPantallasDe = (area: string, rutasDelModulo: readonly string[]): string[] =>
+  rutasDelModulo.filter((r) => {
+    if (!r.startsWith(MODULO)) return false
+    const rel = r.slice(MODULO.length)
+    if (!/^pantallas\/[^/]+\.ts$/.test(rel) || rel === `pantallas/${area}.ts`) return false
+    const clase = claseDe(rel)
+    return clase.tipo === 'area' && clase.area === area
+  })
 
 // Lo que posee un carril que no es `base` dentro del módulo: sus áreas, si posee familias del compilador y lo que no puede poseer.
 function loQuePosee(carril: Carril): {
@@ -63,6 +74,15 @@ export function problemasDelPlanDeAreas(
         ...faltan.map(
           (l) => `carril ${String(carril.id)}: posee el área ${area} pero no ${MODULO}${l}`,
         ),
+      )
+      // Una segunda pantalla del árbol que su carril no posee, no la puede editar: la suma el carril base (P1 del 4.15-5).
+      p.push(
+        ...segundasPantallasDe(area, rutasDelModulo)
+          .filter((r) => !duenoDe(carril).includes(r))
+          .map(
+            (r) =>
+              `carril ${String(carril.id)}: posee el área ${area} pero no ${r}: la suma el carril base a su dueno_de en docs/plan.yaml`,
+          ),
       )
     }
   }
