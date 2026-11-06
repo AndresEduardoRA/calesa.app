@@ -25,7 +25,12 @@ import { AvisoLimpieza } from './aviso-limpieza'
 import { ContenidoDeLaPestana } from './contenido-de-la-pestana'
 import { Encabezado } from './encabezado'
 import { Paneles } from './paneles'
-import { CLAVE_DE_PESTANA, hayBarraDePestanas, pestanaDeVehiculo } from './pestanas'
+import {
+  CLAVE_DE_PESTANA,
+  hayBarraDePestanas,
+  pestanaDeVehiculo,
+  pestanasVisibles,
+} from './pestanas'
 import { PestanasDeVehiculo } from './pestanas-de-vehiculo'
 
 export const metadata: Metadata = { title: 'Vehículo' }
@@ -76,7 +81,10 @@ export default async function PaginaVehiculo({
   const editable = editables.has(encontrado.id)
   const fase = datosO(fases).find((una) => una.id === encontrado.faseId) ?? null
   const publicar = permisoDeVitrina(sesion.permisos, origen)
-  const pestana = pestanaDeVehiculo(unParametro(parametros[CLAVE_DE_PESTANA]))
+  const pestanas = pestanasVisibles({
+    cotizaciones: puede(sesion.permisos, 'cotizaciones.ver', origen.id),
+  })
+  const pestana = pestanaDeVehiculo(unParametro(parametros[CLAVE_DE_PESTANA]), pestanas)
   return (
     <div className="grid max-w-4xl gap-4">
       <Link
@@ -103,7 +111,7 @@ export default async function PaginaVehiculo({
           <AvisoLimpieza vehiculo={encontrado} editable={editable} />
         </Suspense>
       ) : null}
-      {hayBarraDePestanas() ? <PestanasDeVehiculo /> : null}
+      {hayBarraDePestanas(pestanas) ? <PestanasDeVehiculo pestanas={pestanas} /> : null}
       <ContenidoDeLaPestana
         pestana={pestana}
         vehiculo={encontrado}

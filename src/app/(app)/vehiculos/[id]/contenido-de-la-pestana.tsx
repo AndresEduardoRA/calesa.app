@@ -5,6 +5,7 @@ import { EsqueletoDeFotos } from '@/modules/vehiculos/pantallas/ficha'
 import { BloqueSubasta } from './bloque-subasta'
 import { BloqueVinculo } from './bloque-vinculo'
 import type { PestanaDeVehiculo } from './pestanas'
+import { SeccionCotizaciones } from './seccion-cotizaciones'
 import { SeccionFicha } from './seccion-ficha'
 import { SeccionFotos } from './seccion-fotos'
 
@@ -40,6 +41,9 @@ export function ContenidoDeLaPestana({
         />
       </Suspense>
     )
+  }
+  if (pestana === 'cotizaciones') {
+    return <SeccionCotizaciones vehiculoId={vehiculo.id} />
   }
   return (
     <>

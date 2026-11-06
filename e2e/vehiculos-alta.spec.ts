@@ -114,7 +114,7 @@ test('dar de alta un vehículo en Corea, con los valores por defecto y los atajo
   await expect(aLaVista(page.getByText('Verde', { exact: true }))).toBeVisible()
   await expect(aLaVista(page.getByText('Automática', { exact: true }))).toBeVisible()
   // Las pestañas que existen, y ninguna que lleve a lo que falta.
-  await expect(aLaVista(page.getByRole('tab'))).toHaveText(['Ficha', 'Fotos'])
+  await expect(aLaVista(page.getByRole('tab'))).toHaveText(['Ficha', 'Fotos', 'Cotizaciones'])
 })
 
 // 4-25: el precio se lee con el locale de la empresa (es-BO): el punto agrupa de a 3 y, en otro lugar, el campo dice cómo escribirlo.
