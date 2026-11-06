@@ -145,17 +145,24 @@ export function origenDeLaFicha(
 
 // --- Las secciones de la ficha (`?seccion=`) ----------------------------------------------------------
 
-// Una sección es `disponible` cuando existe su contenido. Las demás (cotizaciones, historial) aparecen
+// Una sección es `disponible` cuando existe su contenido. Las demás (historial) aparecen
 // con su parte: ninguna pestaña lleva a la nada. Cada sección que se suma agrega su clave a
 // `SeccionDeLead` y su caso en `<FichaDeLead>`. Ninguna lleva un número: el de «Seguimientos»
 // insinuaría los privados de otros.
-export type SeccionDeLead = 'datos' | 'seguimientos' | 'vehiculos' | 'oportunidades' | 'portal'
+export type SeccionDeLead =
+  'datos' | 'seguimientos' | 'vehiculos' | 'oportunidades' | 'cotizaciones' | 'portal'
 
 // Lo que la persona ve y decide si una sección se dibuja: «Vehículos» sólo con `vehiculos.ver` en algún
 // origen (sin eso estaría siempre vacía); «Oportunidades» sólo con el lead en su cartera (sin ella no
-// tiene ni puede crear ninguna: las suyas se ocultan); «Portal» con la cartera y
+// tiene ni puede crear ninguna: las suyas se ocultan); «Cotizaciones» sólo con `cotizaciones.ver` en algún origen, sin mirar la cartera (la RLS recorta las filas y, si no
+// llega ninguna, dice que no hay); «Portal» con la cartera y
 // `leads.portal.gestionar` (`puedeGestionarPortal()`: nunca vacía, sin acceso ofrece darlo).
-export type LoQueVe = { vehiculos: boolean; oportunidades: boolean; portal: boolean }
+export type LoQueVe = {
+  vehiculos: boolean
+  oportunidades: boolean
+  cotizaciones: boolean
+  portal: boolean
+}
 
 export const SECCIONES_DE_LEAD: readonly {
   clave: SeccionDeLead
@@ -168,6 +175,7 @@ export const SECCIONES_DE_LEAD: readonly {
   { clave: 'seguimientos', titulo: 'Seguimientos', disponible: true },
   { clave: 'vehiculos', titulo: 'Vehículos', disponible: true, pide: 'vehiculos' },
   { clave: 'oportunidades', titulo: 'Oportunidades', disponible: true, pide: 'oportunidades' },
+  { clave: 'cotizaciones', titulo: 'Cotizaciones', disponible: true, pide: 'cotizaciones' },
   { clave: 'portal', titulo: 'Portal', disponible: true, pide: 'portal' },
 ]
 

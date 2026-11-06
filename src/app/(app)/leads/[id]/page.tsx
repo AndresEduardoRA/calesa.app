@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { z } from 'zod'
 import { origenesParaCotizar, rutaDeLaHoja } from '@/modules/cotizaciones'
+import { CotizacionesDelLead } from '@/modules/cotizaciones/pantallas/lead'
 import { getAjustes } from '@/modules/empresa'
 import { puede, requerirSesion } from '@/modules/equipo'
 import {
@@ -39,11 +40,12 @@ import { EstadoSinPermiso } from '@/shared/ui/estados'
 
 export const metadata: Metadata = { title: 'Lead' }
 
-// «Vehículos» sólo para quien ve vehículos en algún origen; «Oportunidades», con el lead en la cartera; «Portal», con la cartera y
-// `leads.portal.gestionar`. Lo que no es una sección que existe (o que la persona no ve) abre «Datos».
+// «Vehículos» sólo para quien ve vehículos en algún origen; «Oportunidades», con el lead en la cartera; «Cotizaciones», con `cotizaciones.ver` en algún origen (la RLS
+// recorta las filas; sin cartera ni origen: P2 del 4.17-4); «Portal», con la cartera y `leads.portal.gestionar`. Lo que no es una sección que existe (o que la persona no ve) abre «Datos».
 const loQueVe = (permisos: Permisos, enCartera: boolean) => ({
   vehiculos: puede(permisos, 'vehiculos.ver'),
   oportunidades: enCartera,
+  cotizaciones: puede(permisos, 'cotizaciones.ver'),
   portal: puedeGestionarPortal(permisos, enCartera),
 })
 
@@ -91,6 +93,11 @@ function seccionesDe(
             {...(ve.vehiculos ? { vehiculos: opcionesDeVehiculoDelLead(datos.ficha.id) } : {})}
           />
         </Suspense>
+      ) : null,
+    // La sección vive en `cotizaciones`: la página la compone (`leads` no importa `cotizaciones`). Se lee desde el navegador al abrirla; la `key` empieza de cero con otro lead.
+    cotizaciones:
+      seccion === 'cotizaciones' ? (
+        <CotizacionesDelLead key={datos.ficha.id} leadId={datos.ficha.id} />
       ) : null,
     // El nombre de la empresa y la dirección de la web los componen `empresa` y `web` (`leads` no los importa).
     portal:

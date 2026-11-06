@@ -140,9 +140,14 @@ describe('teléfono de la ficha', () => {
 })
 
 describe('secciones', () => {
-  const conVehiculos = { vehiculos: true, oportunidades: false, portal: false }
-  const sinVehiculos = { vehiculos: false, oportunidades: false, portal: false }
-  const todo = { vehiculos: true, oportunidades: true, portal: true }
+  const conVehiculos = { vehiculos: true, oportunidades: false, cotizaciones: false, portal: false }
+  const sinVehiculos = {
+    vehiculos: false,
+    oportunidades: false,
+    cotizaciones: false,
+    portal: false,
+  }
+  const todo = { vehiculos: true, oportunidades: true, cotizaciones: true, portal: true }
   it('«Datos», «Seguimientos» y «Vehículos»: hay barra de pestañas, sin números', () => {
     expect(hayBarraDeSecciones(conVehiculos)).toBe(true)
     expect(seccionesDisponibles(conVehiculos)).toEqual([
@@ -165,6 +170,7 @@ describe('secciones', () => {
       'seguimientos',
       'vehiculos',
       'oportunidades',
+      'cotizaciones',
       'portal',
     ])
     expect(seccionDeLead('oportunidades', todo)).toBe('oportunidades')
@@ -172,10 +178,25 @@ describe('secciones', () => {
     expect(seccionDeLead('portal', todo)).toBe('portal')
     expect(seccionDeLead('portal', { ...todo, portal: false })).toBe('datos')
   })
+  it('«Cotizaciones» sólo con `cotizaciones.ver` en algún origen, entre «Oportunidades» y «Portal»; sin eso abre «Datos»', () => {
+    const sola = { ...sinVehiculos, cotizaciones: true }
+    expect(seccionesDisponibles(sola).map((s) => s.clave)).toEqual([
+      'datos',
+      'seguimientos',
+      'cotizaciones',
+    ])
+    expect(seccionDeLead('cotizaciones', sola)).toBe('cotizaciones')
+    expect(seccionDeLead('cotizaciones', sinVehiculos)).toBe('datos')
+    expect(seccionDeLead('cotizaciones', { ...todo, cotizaciones: false })).toBe('datos')
+    expect(seccionesDisponibles(sola).find((s) => s.clave === 'cotizaciones')?.titulo).toBe(
+      'Cotizaciones',
+    )
+  })
   it('lo que no es una sección que existe abre «Datos»', () => {
     expect(seccionDeLead(undefined, conVehiculos)).toBe('datos')
     expect(seccionDeLead('seguimientos', conVehiculos)).toBe('seguimientos')
     expect(seccionDeLead('cotizaciones', conVehiculos)).toBe('datos')
+    expect(seccionDeLead('historial', todo)).toBe('datos')
     expect(seccionDeLead('datos', conVehiculos)).toBe('datos')
   })
   it('el parámetro de la URL', () => {

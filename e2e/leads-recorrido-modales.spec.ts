@@ -56,7 +56,7 @@ async function pieUsable(page: Page, modal: Locator, principal: string) {
   await tactil(page, boton)
 }
 
-test('la ficha con sus cinco secciones cabe en el celular, y su modal también (la ✕ a la vista)', async ({
+test('la ficha con sus seis secciones cabe en el celular, y su modal también (la ✕ a la vista)', async ({
   page,
 }) => {
   await entrar(page, r.ana.email)
@@ -67,7 +67,7 @@ test('la ficha con sus cinco secciones cabe en el celular, y su modal también (
   }
   await expect(
     page.getByRole('navigation', { name: 'Secciones del lead' }).getByRole('link'),
-  ).toHaveCount(5)
+  ).toHaveCount(6)
   await irAFicha(page, r.uno.id)
   const modal = await abrirAgregarTelefono(page)
   await quieto(modal)

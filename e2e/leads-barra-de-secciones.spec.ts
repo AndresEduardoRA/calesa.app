@@ -10,7 +10,7 @@ import {
   type TerrenoDelRecorrido,
 } from './soporte/recorrido'
 
-// La barra de secciones de la ficha en el celular (cierre 2): con las cinco secciones de la asesora de la semilla no entran en
+// La barra de secciones de la ficha en el celular (cierre 2): con las seis secciones de la asesora de la semilla no entran en
 // 412 px y «Portal» quedaba afuera sin pista de que había más. Ahora la barra dice por qué lado sigue, la sección activa se ve
 // al llegar y la página no se mueve de costado.
 test.describe.configure({ mode: 'serial' })
@@ -36,7 +36,7 @@ test('en el celular la barra dice que sigue hacia la derecha, y al llegar al fin
   await irAFicha(page, r.uno.id)
   await expect(tituloDeLaFicha(page, r.uno.nombre)).toBeVisible()
   const barra = page.getByRole('navigation', { name: 'Secciones del lead' })
-  await expect(barra.getByRole('link')).toHaveCount(5)
+  await expect(barra.getByRole('link')).toHaveCount(6)
   // «Portal» queda afuera: la pista de la derecha está y la de la izquierda no.
   await expect(pista(page, 'derecha')).toHaveAttribute('data-visible', 'true')
   await expect(pista(page, 'izquierda')).toHaveAttribute('data-visible', 'false')
