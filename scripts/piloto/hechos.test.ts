@@ -232,9 +232,10 @@ describe('hechos.sh › la decisión de cada carril', () => {
     expect(hechos({ PILOTO_CARRIL: 'c' })['decision']).toBeNull()
     expect(hechos()['decision']).toBeNull()
     expect(hechos({ PILOTO_CARRIL: 'b' })['decision']).toContain('me respondió: «parar»')
-    // Una compuerta sin `carril:` (las de antes) es del carril A.
+    // Una compuerta sin `carril:` la escribió un bucle de antes, todavía en marcha (sus funciones se cargaron al arrancar): vale
+    // para cualquier carril, como antes. Si no, el carril que la abrió no vería su propia decisión hasta re-arrancar.
     writeFileSync(join(comun, 'compuerta.md'), 'id: g-3\ntipo: afuera\n')
     expect(hechos()['decision']).toContain('me respondió: «parar»')
-    expect(hechos({ PILOTO_CARRIL: 'b' })['decision']).toBeNull()
+    expect(hechos({ PILOTO_CARRIL: 'b' })['decision']).toContain('me respondió: «parar»')
   })
 })
