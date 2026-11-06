@@ -186,7 +186,13 @@ export function LineaDeSeguimientos({
         />
       ) : null}
       {seguimientos.desde !== null ? (
-        <DesdeUnaFechaDiferido seguimientos={seguimientos} zona={zona} />
+        <DesdeUnaFechaDiferido
+          dia={seguimientos.desde}
+          zona={zona}
+          ocupado={seguimientos.cargando}
+          volver="Volver a los más recientes"
+          alVolver={() => void seguimientos.volverAlPrincipio()}
+        />
       ) : null}
       <Lista
         seguimientos={seguimientos}
