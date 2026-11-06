@@ -30,5 +30,14 @@ export function publicacionSobre(cliente: SupabaseClient<Database>): Repositorio
           ...(publicadaEsperada ? { p_publicada_esperada: publicadaEsperada } : {}),
         }),
       ),
+    revertir: async ({ origenId, versionId, nota, publicadaEsperada }) =>
+      idPublicado(
+        await cliente.rpc('formula_revertir', {
+          p_origen: origenId,
+          p_version: versionId,
+          p_nota: nota,
+          p_publicada_esperada: publicadaEsperada,
+        }),
+      ),
   }
 }

@@ -101,3 +101,59 @@ describe('publicacionSobre › publicar', () => {
     expect(hecho.ok ? null : hecho.error.codigo).toBe('inesperado')
   })
 })
+
+const ARCHIVADA = '44444444-4444-4444-8444-444444444444'
+
+describe('publicacionSobre › revertir', () => {
+  it('llama formula_revertir con el origen, la versión, la nota y la publicada que se leyó', async () => {
+    const { cliente, llamadas } = clienteFalso({ data: NUEVA, error: null })
+    const hecho = await publicacionSobre(cliente).revertir({
+      origenId: ORIGEN,
+      versionId: ARCHIVADA,
+      nota: 'Vuelve a la versión 1.',
+      publicadaEsperada: PUBLICADA,
+    })
+    expect(llamadas).toEqual([
+      [
+        'formula_revertir',
+        {
+          p_origen: ORIGEN,
+          p_version: ARCHIVADA,
+          p_nota: 'Vuelve a la versión 1.',
+          p_publicada_esperada: PUBLICADA,
+        },
+      ],
+    ])
+    expect(hecho).toEqual({ ok: true, data: NUEVA })
+  })
+
+  it('el PT409 llega con su texto; un 22023, como regla', async () => {
+    const choque = clienteFalso({
+      data: null,
+      error: { code: 'PT409', message: 'Otra persona publicó la versión 4 hace 1 min.' },
+    })
+    expect(
+      await publicacionSobre(choque.cliente).revertir({
+        origenId: ORIGEN,
+        versionId: ARCHIVADA,
+        nota: 'x',
+        publicadaEsperada: PUBLICADA,
+      }),
+    ).toEqual({
+      ok: false,
+      error: { codigo: 'conflicto', mensaje: 'Otra persona publicó la versión 4 hace 1 min.' },
+    })
+    const regla = clienteFalso({
+      data: null,
+      error: { code: '22023', message: 'Esa ya es la versión publicada.' },
+    })
+    expect(
+      await publicacionSobre(regla.cliente).revertir({
+        origenId: ORIGEN,
+        versionId: ARCHIVADA,
+        nota: 'x',
+        publicadaEsperada: PUBLICADA,
+      }),
+    ).toEqual({ ok: false, error: { codigo: 'regla', mensaje: 'Esa ya es la versión publicada.' } })
+  })
+})

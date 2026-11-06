@@ -21,6 +21,7 @@ export function PestanasDeCotizacion({ pestanas }: Props) {
       panel: parseAsString,
       nivel: parseAsString,
       origen: parseAsString,
+      version: parseAsString,
     }),
     [pestanas],
   )
@@ -30,7 +31,13 @@ export function PestanasDeCotizacion({ pestanas }: Props) {
       pestanas={pestanas}
       valor={seccion}
       alElegir={(elegida) => {
-        void setParametros({ seccion: elegida, panel: null, nivel: null, origen: null })
+        void setParametros({
+          seccion: elegida,
+          panel: null,
+          nivel: null,
+          origen: null,
+          version: null,
+        })
       }}
     />
   )

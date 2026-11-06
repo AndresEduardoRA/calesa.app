@@ -7,7 +7,16 @@ export type PedidoDePublicar = {
   publicadaEsperada: string | null
 }
 
+// Lo que se manda para revertir a una versión archivada: la publicada que se leyó, siempre (sin publicada no se revierte).
+export type PedidoDeRevertir = {
+  origenId: string
+  versionId: string
+  nota: string
+  publicadaEsperada: string
+}
+
 // Las escrituras de la fórmula desde Configuración › Cotización (4.20-2b), por las RPC del 4.20-1. Cada una devuelve el id de la versión publicada.
 export interface RepositorioDeLaFormula {
   publicar(pedido: PedidoDePublicar): Promise<Resultado<string>>
+  revertir(pedido: PedidoDeRevertir): Promise<Resultado<string>>
 }

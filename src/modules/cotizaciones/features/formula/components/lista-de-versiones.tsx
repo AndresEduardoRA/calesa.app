@@ -7,7 +7,8 @@ import { AvisoDeTope } from '@/shared/ui/aviso-de-tope'
 import { Badge } from '@/shared/ui/badge'
 import { Button } from '@/shared/ui/button'
 import { useRegional } from '@/shared/ui/regional'
-import type { PaginaConAutores } from '../../../entities/formula/versiones'
+import type { VersionParaRevertir } from '../../../entities/formula/reversion'
+import type { PaginaConAutores, VersionDeLaFormula } from '../../../entities/formula/versiones'
 import { usePaginasDeVersiones, type PaginasDeVersiones } from '../hooks/use-paginas-de-versiones'
 import { IrALaVersion } from './ir-a-la-version'
 
@@ -15,11 +16,15 @@ type Props = {
   origenId: string
   // La primera página, leída en el servidor.
   inicial: PaginaConAutores
+  // Sin publicada no hay a qué revertir: no se ofrece.
+  conPublicada?: boolean
+  // Abre «Revertir a la versión N» con su fila (la de cualquier página). Sin él, la lista sólo se lee.
+  alRevertir?: (version: VersionParaRevertir) => void
 }
 
-// Las versiones publicadas y archivadas del origen, de la más nueva a la más vieja: «Publicada» en la vigente, su nota y quién la publicó y cuándo. Sin acciones
-// (revertir es del 4.20-2b).
-export function ListaDeVersiones({ origenId, inicial }: Props) {
+// Las versiones publicadas y archivadas del origen, de la más nueva a la más vieja: «Publicada» en la vigente, su nota y quién la publicó y cuándo. Cada archivada
+// lleva «Revertir» (4.20-2b) si el origen tiene publicada.
+export function ListaDeVersiones({ origenId, inicial, conPublicada = false, alRevertir }: Props) {
   const { zonaHoraria } = useRegional()
   const versiones = usePaginasDeVersiones(origenId, inicial)
   return (
@@ -67,12 +72,38 @@ export function ListaDeVersiones({ origenId, inicial }: Props) {
                   ? ` · ${fechaRelativa(version.publicadoEn, { zona: zonaHoraria })}`
                   : null}
               </p>
+              {alRevertir && conPublicada && version.estado === 'archivada' ? (
+                <BotonDeRevertir version={version} alRevertir={alRevertir} />
+              ) : null}
             </li>
           ))}
         </ol>
       )}
       <PieDeLasVersiones versiones={versiones} />
     </section>
+  )
+}
+
+function BotonDeRevertir({
+  version,
+  alRevertir,
+}: {
+  version: VersionDeLaFormula
+  alRevertir: (version: VersionParaRevertir) => void
+}) {
+  const n = String(version.version)
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      className="mt-1 min-h-11 justify-self-start md:min-h-9"
+      aria-label={`Revertir a la versión ${n}`}
+      onClick={() => {
+        alRevertir({ id: version.id, version: version.version })
+      }}
+    >
+      Revertir
+    </Button>
   )
 }
 

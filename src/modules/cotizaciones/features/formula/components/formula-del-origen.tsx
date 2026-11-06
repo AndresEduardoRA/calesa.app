@@ -22,7 +22,7 @@ const etiquetaDe = (origen: Origen) =>
   origen.activo ? origen.nombre : `${origen.nombre} (inactivo)`
 
 // La pestaña «Fórmula» de Configuración › Cotización (4.20-2a): el origen (con más de uno, un selector que escribe `?origen=`), su publicada, su borrador y sus versiones.
-// Desde el borrador se publica (4.20-2b, `?panel=publicar-formula`).
+// Desde el borrador se publica y desde una archivada se revierte (4.20-2b, `?panel=publicar-formula`, `?panel=revertir-formula&version=<id>`).
 export function FormulaDelOrigen({ origenes, origen, formula }: Props) {
   const [pedido, setOrigen] = useQueryState('origen', parseAsString.withOptions({ shallow: false }))
   // Lo elegido se ve en el acto, mientras el servidor lee el origen nuevo.
@@ -62,6 +62,8 @@ export function FormulaDelOrigen({ origenes, origen, formula }: Props) {
         key={`${origen.id}:${formula.publicada?.id ?? ''}`}
         origenId={origen.id}
         inicial={formula.versiones}
+        conPublicada={formula.publicada !== null}
+        alRevertir={panel.abrirRevertir}
       />
       <AccionesDeLaFormula panel={panel} origen={origen} formula={formula} />
     </div>

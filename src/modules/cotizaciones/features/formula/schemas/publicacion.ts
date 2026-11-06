@@ -9,3 +9,11 @@ export const esquemaDePublicar = z.object({
 })
 
 export type EntradaDePublicar = z.infer<typeof esquemaDePublicar>
+
+// Lo que manda «Revertir»: la versión archivada y la publicada leída, que no puede faltar.
+export const esquemaDeRevertir = z.object({
+  origenId: z.guid(),
+  versionId: z.guid(),
+  nota: esquemaDeNota,
+  publicadaEsperada: z.guid(),
+})
