@@ -7,7 +7,8 @@
 --   L3. Un lote de vehículos con cotizaciones no sale (P8 a), ni uno cerrado, ni uno sin nada en la papelera.
 --   L4. `p_tope` y `p_primeros` acotados (51 lotes y 200 cotizaciones como mucho; 20 por omisión), con `en_papelera` exacto.
 --   L5. Las claves exactas del lote y de cada cotización (P6 a: nada que la RLS esconda).
---   L6. `cotizaciones_papelera_lote()`: el propio y, con la clave, el ajeno; sin ella el ajeno, y el cerrado, dan nulo.
+--   L6. `cotizaciones_papelera_lote()`: el propio y, con la clave, el ajeno; sin ella el ajeno, el cerrado y uno sin nada en la papelera dan nulo.
+--   L7. La lista pregunta «le queda alguna» con una sonda por lote (`limit 1`), nunca con un `exists`: su plan genérico lee entero el índice del lote.
 
 create or replace function pg_temp.pl_persona(p_concesiones text[]) returns uuid language plpgsql as $f$
 declare v_id uuid := gen_random_uuid(); v_rol uuid; c text;
@@ -168,7 +169,7 @@ end $$;
 reset role;
 rollback;
 
--- @test papelera de cotizaciones: un lote se lee si es propio o con la clave; el ajeno sin ella y el cerrado dan nulo (L6)
+-- @test papelera de cotizaciones: un lote se lee si es propio o con la clave; el ajeno sin ella, el cerrado y el vacío dan nulo (L6)
 begin;
 do $$
 declare e jsonb := pg_temp.pl_origen(); k uuid; a uuid; b uuid; l_a uuid; l_cerrado uuid; r jsonb;
@@ -187,6 +188,21 @@ begin
   if r is not null then raise exception 'sin la clave, el ajeno debía dar nulo: %', r; end if;
   r := pg_temp.pl_corre(a, format('select public.cotizaciones_papelera_lote(%L)', l_cerrado));
   if r is not null then raise exception 'el cerrado debía dar nulo: %', r; end if;
+  update public.cotizaciones set eliminado_en = null, eliminado_por = null, lote_papelera_id = null where lote_papelera_id = l_a;
+  r := pg_temp.pl_corre(a, format('select public.cotizaciones_papelera_lote(%L)', l_a));
+  if r is not null then raise exception 'un lote sin nada en la papelera debía dar nulo: %', r; end if;
 end $$;
 reset role;
 rollback;
+
+-- @test papelera de cotizaciones: la lista usa una sonda por lote y ningún exists, en sus tres consultas (L7)
+do $$
+declare v_src text;
+begin
+  select regexp_replace(f.prosrc, '--[^\n]*', '', 'g') into v_src from pg_proc f join pg_namespace n on n.oid = f.pronamespace
+   where n.nspname = 'public' and f.proname = 'cotizaciones_papelera_listar';
+  if v_src is null then raise exception 'no existe public.cotizaciones_papelera_listar'; end if;
+  if v_src ~* '\mexists\s*\(' then raise exception 'la lista volvió a un exists: con pocas en la papelera su plan genérico lee entero cotizaciones_lote_papelera_idx'; end if;
+  if (select count(*) from regexp_matches(v_src, 'c\.eliminado_en is not null limit 1\)', 'g')) <> 3 then
+    raise exception 'las tres consultas de la lista debían preguntar con la sonda por lote (limit 1)'; end if;
+end $$;

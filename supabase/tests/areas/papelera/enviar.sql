@@ -5,7 +5,7 @@
 --
 -- Qué asegura:
 --   E1. Dos con su versión: un lote de cotizaciones con su resumen y su versión, las dos con `eliminado_*` y en `enviados` con sus claves.
---   E2. Una con la versión vieja queda en `rechazados` con PT409; la otra se envía.
+--   E2. Una con la versión vieja queda en `rechazados` con PT409, una sin versión con su 22023; la otra se envía.
 --   E3. Quien edita sin ver: lo que no ve, lo inexistente y lo que ya está en la papelera, con el mismo 42501 y el mismo texto, y sin título.
 --   E4. Quien la ve y no puede: 42501 de permiso, con su título; con `ver` y `moderar`, se envía.
 --   E6. Todo rechazado: sin lote. Vacío, más de 200 o mal formado: 22023.
@@ -114,16 +114,21 @@ end $$;
 reset role;
 rollback;
 
--- @test papelera de cotizaciones: una con la versión vieja queda en rechazados con PT409 y la otra se envía (E2)
+-- @test papelera de cotizaciones: una con la versión vieja queda en rechazados con PT409, una sin versión con 22023, y la otra se envía (E2)
 begin;
 do $$
-declare jefa uuid := pg_temp.pe_jefa(); e jsonb := pg_temp.pe_origen(); c1 uuid; c2 uuid; r jsonb;
+declare jefa uuid := pg_temp.pe_jefa(); e jsonb := pg_temp.pe_origen(); c1 uuid; c2 uuid; c3 uuid; r jsonb;
 begin
   c1 := pg_temp.pe_cot(jefa, e);
   c2 := pg_temp.pe_cot(jefa, e);
-  r := pg_temp.pe_enviar(jefa, jsonb_build_array(pg_temp.pe_item(c1, '2000-01-01'), pg_temp.pe_item(c2)));
+  c3 := pg_temp.pe_cot(jefa, e, 'PE sin versión');
+  r := pg_temp.pe_enviar(jefa, jsonb_build_array(pg_temp.pe_item(c1, '2000-01-01'), pg_temp.pe_item(c2), jsonb_build_object('id', c3)));
   if r ? 'error' then raise exception 'enviar falló: %', r; end if;
   if pg_temp.pe_rechazo(r, c1) ->> 'codigo' is distinct from 'PT409' then raise exception 'la de versión vieja debía dar PT409: %', r; end if;
+  -- Sin versión: el 22023 del ayudante llega con su texto (es nuestro), no como «No se pudo enviar».
+  if pg_temp.pe_rechazo(r, c3) is distinct from jsonb_build_object('titulo', 'PE sin versión', 'codigo', '22023',
+       'motivo', 'Falta la versión que tenías en pantalla. Recarga e intenta de nuevo.') then raise exception 'la que llegó sin versión: %', pg_temp.pe_rechazo(r, c3); end if;
+  if not pg_temp.pe_viva(c3) then raise exception 'la que llegó sin versión se envió'; end if;
   if not pg_temp.pe_viva(c1) or pg_temp.pe_viva(c2) then raise exception 'debía enviarse sólo la de versión al día'; end if;
   if (select resumen ->> 'cantidad' from public.lotes_papelera where id = (r ->> 'lote')::uuid) <> '1' then raise exception 'el lote no cuenta una'; end if;
 end $$;
