@@ -106,6 +106,25 @@ describe('bucle.sh › la puerta de fase la decide el CI, no la persona', () => 
     },
   )
 
+  it('una parte que no es la primera (4.18-2) no espera el CI: corre aunque siga en curso', () => {
+    a.ruteo({ ...RUTEO_BASE, paso: '4.18-2' })
+    a.paso(1, pasoListo({ 'src/a.ts': 'a' }, { paso: '4.18-2' }))
+    const r = a.correr(['--hasta', '4.18-2'], {
+      FAKE_GH_LISTA: CI_CURSO,
+      PILOTO_CI_ESPERA_MAX: '0',
+    })
+    expect(r.estado, r.salida).toBe(0)
+    expect(a.llamadas('paso')).toHaveLength(1)
+  })
+
+  it('la primera parte (4.18-1) sí espera el CI: en curso tras la espera máxima es un aviso', () => {
+    a.ruteo({ ...RUTEO_BASE, paso: '4.18-1' })
+    a.decidir(1, responder('parado'))
+    a.correr([], { FAKE_GH_LISTA: CI_CURSO, PILOTO_CI_ESPERA_MAX: '0' })
+    expect(a.leerFake('compuerta-1.md')).toContain('sigue corriendo')
+    expect(a.llamadas('paso')).toEqual([])
+  })
+
   it('abrir una fase con el CI en verde sigue sin preguntar', () => {
     a.ruteo({ ...RUTEO_BASE, paso: '5.01', compuerta: { tipo: 'fase', motivo: 'abre la Fase 5' } })
     a.paso(1, pasoListo({ 'src/a.ts': 'a' }, { paso: '5.01' }))
