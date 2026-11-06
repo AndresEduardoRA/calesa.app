@@ -22,6 +22,17 @@ begin
   if left(v, length(p_prefijo)) <> p_prefijo then raise exception '% debía dar «%», dio «%»', p_sql, p_prefijo, v; end if;
 end $$;
 
+-- El código y el mensaje de un error, sin detalle ni hint: para los textos del candado de la fórmula (4.20-1).
+create or replace function pg_temp.error(p_sql text) returns text language plpgsql as $$
+declare v_m text;
+begin
+  execute p_sql;
+  return 'sin error';
+exception when others then
+  get stacked diagnostics v_m = message_text;
+  return sqlstate || '|' || v_m;
+end $$;
+
 create or replace function pg_temp.def_capturas() returns jsonb language sql security definer as $$
   select doc -> 'formulas' -> 'capturas' -> 'definicion' from _juego_de_diseno
 $$;
@@ -313,10 +324,12 @@ begin
      or has_function_privilege('anon', 'public.formula_guardar_borrador(uuid,jsonb,jsonb,jsonb,text)', 'execute') then
     raise exception 'los grants de formula_guardar_borrador'; end if;
   if exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-              where n.nspname = 'public' and p.proname in ('_publicar_formula', '_preparar_publicacion', '_compilar_visibilidad', '_niveles_de_cotizacion', '_niveles_del_diseno', 'formula_auditar')
+              where n.nspname = 'public' and p.proname in ('_publicar_formula', '_preparar_publicacion', '_compilar_visibilidad', '_niveles_de_cotizacion', '_niveles_del_diseno', 'formula_auditar',
+                                 '_publicar_version', '_version_publicada_por')
                 and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))) then
     raise exception 'un ayudante se puede ejecutar: %', (select string_agg(p.proname, ',') from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-      where n.nspname = 'public' and p.proname in ('_publicar_formula', '_preparar_publicacion', '_compilar_visibilidad', '_niveles_de_cotizacion', '_niveles_del_diseno', 'formula_auditar')
+      where n.nspname = 'public' and p.proname in ('_publicar_formula', '_preparar_publicacion', '_compilar_visibilidad', '_niveles_de_cotizacion', '_niveles_del_diseno', 'formula_auditar',
+                                 '_publicar_version', '_version_publicada_por')
         and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute')));
   end if;
   if (select count(*) from public.actividad where tabla = 'formulas') = 0 then raise exception 'formulas no se audita'; end if;
@@ -325,3 +338,165 @@ begin
     raise exception 'actividad guarda la fórmula entera';
   end if;
 end $$;
+
+-- ---------------------------------------------------------------------------------------------------------------------------------
+-- 4.20-1: el ⚙ publica la N+1 desde la publicada sin pisar el borrador; el borrador recuerda su versión de origen; el
+-- conflicto dice quién publicó, qué versión y cuándo. Todo pasa por el candado del origen (`_publicar_formula`, `_publicar_version`).
+-- ---------------------------------------------------------------------------------------------------------------------------------
+
+-- @test publicar: el ⚙ con un borrador en curso publica la N+1 sin tocarlo, y publicar ese borrador atrasado da PT409 con quién publicó
+do $$
+declare
+  o uuid := pg_temp.preparar(); v1 uuid; v2 uuid; v_b uuid; v_antes public.formulas; v_desp public.formulas; v_e text;
+begin
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
+  set local role authenticated;
+  v1 := public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos());
+  perform public.formula_publicar(o, 'v1');
+  v_b := public.formula_guardar_borrador(o, pg_temp.def_capturas(), jsonb_set(pg_temp.params_capturas(), '{flete}', '1000'), pg_temp.diseno_costos());
+  reset role;
+  select * into v_antes from public.formulas where id = v_b;
+  if v_antes.version_origen_id is distinct from v1 then raise exception 'el borrador no recuerda su versión de origen: %', v_antes.version_origen_id; end if;
+  set local role authenticated;
+  v2 := public.formula_cambiar_constante(o, 'flete', 1500, v1);
+  reset role;
+  select * into v_desp from public.formulas where id = v_b;
+  if v_desp.id is null or v_desp.estado <> 'borrador' or v_desp.definicion is distinct from v_antes.definicion or v_desp.params is distinct from v_antes.params
+     or v_desp.diseno is distinct from v_antes.diseno or v_desp.version_origen_id is distinct from v1 then
+    raise exception 'el ⚙ tocó el borrador'; end if;
+  if (select estado::text || version from public.formulas where id = v2) is distinct from 'publicada2'
+     or (select (params ->> 'flete')::numeric from public.formulas where id = v2) <> 1500 then raise exception 'el ⚙ no publicó la v2 con 1500'; end if;
+  if (select version_origen_id from public.formulas where id = v2) is distinct from v1 then raise exception 'la v2 no dice que reemplazó a la v1'; end if;
+  set local role authenticated;
+  v_e := pg_temp.error(format($f$select public.formula_publicar(%L, 'Atrasado')$f$, o));
+  reset role;
+  if v_e not like 'PT409|Después de que empezaste este borrador, %' or v_e not like '%la versión 2%' or v_e like '%Recarga%' then
+    raise exception 'publicar el borrador atrasado dio «%»', v_e; end if;
+  if (select id from public.formulas where origen_id = o and estado = 'publicada') is distinct from v2 then raise exception 'publicar el atrasado cambió la publicada'; end if;
+  if (select estado::text from public.formulas where id = v_b) is distinct from 'borrador' then raise exception 'el borrador atrasado dejó de ser borrador'; end if;
+  perform pg_temp.limpiar(o);
+end $$;
+
+-- @test publicar: un borrador nacido sobre la publicada de hoy publica, y uno sin versión de origen (escrito fuera de la RPC) también
+do $$
+declare
+  o uuid := pg_temp.preparar(); v1 uuid; v_b uuid;
+begin
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
+  set local role authenticated;
+  v1 := public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos());
+  perform public.formula_publicar(o, 'v1');
+  v_b := public.formula_guardar_borrador(o, pg_temp.def_capturas(), jsonb_set(pg_temp.params_capturas(), '{flete}', '1000'), pg_temp.diseno_costos());
+  perform public.formula_publicar(o, 'v2', v1);
+  reset role;
+  if (select estado::text || version from public.formulas where id = v_b) is distinct from 'publicada2' then raise exception 'el borrador al día no publicó'; end if;
+  insert into public.formulas (origen_id, estado, definicion, params, diseno)
+  values (o, 'borrador', pg_temp.def_capturas(), jsonb_set(pg_temp.params_capturas(), '{flete}', '1100'), pg_temp.diseno_costos()) returning id into v_b;
+  set local role authenticated;
+  perform public.formula_publicar(o, 'v3');
+  reset role;
+  if (select estado::text || version from public.formulas where id = v_b) is distinct from 'publicada3' then raise exception 'el borrador sin versión de origen no publicó'; end if;
+  perform pg_temp.limpiar(o);
+end $$;
+
+-- @test publicar: el conflicto de publicar dice quién publicó, qué versión y cuándo, sin «Recarga»: un caso por fila de docs/COTIZADOR.md › «Versiones (4.20-1)»
+do $$
+declare
+  o uuid := pg_temp.preparar(); o2 uuid; v1 uuid; v2 uuid; v_e text; v_nombre text;
+  c_b1 constant uuid := '00000000-0000-0000-0000-0000000000b1';
+  c_yo constant uuid := '00000000-0000-0000-0000-000000000001';
+  c_q constant text := $f$select public.formula_publicar(%L, 'Tarde', %L)$f$;
+begin
+  select nombre into v_nombre from public.perfiles where id = c_b1;
+  if not found then raise exception 'falta la cuenta …00b1 (humo.sql)'; end if;
+  update public.perfiles set nombre = 'Ana Prueba' where id = c_b1;
+  perform set_config('request.jwt.claim.sub', c_yo::text, true);
+  set local role authenticated;
+  v1 := public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos());
+  perform public.formula_publicar(o, 'v1');
+  perform public.formula_guardar_borrador(o, pg_temp.def_capturas(), jsonb_set(pg_temp.params_capturas(), '{flete}', '1000'), pg_temp.diseno_costos());
+  v2 := public.formula_publicar(o, 'v2');
+  reset role;
+  -- (a) Otra persona, con nombre.
+  update public.formulas set publicado_por = c_b1, publicado_en = now() - interval '5 min' where id = v2;
+  set local role authenticated; v_e := pg_temp.error(format(c_q, o, v1)); reset role;
+  if v_e not like 'PT409|Ana Prueba publicó la versión 2 hace %' or v_e like '%Recarga%' then raise exception '(a) otra persona con nombre dio «%»', v_e; end if;
+  -- (b) Sin quién publicó (una publicada escrita fuera de la RPC).
+  update public.formulas set publicado_por = null where id = v2;
+  set local role authenticated; v_e := pg_temp.error(format(c_q, o, v1)); reset role;
+  if v_e not like 'PT409|Otra persona publicó la versión 2 hace %' or v_e like '%Recarga%' then raise exception '(b) sin quién publicó dio «%»', v_e; end if;
+  -- (b′) Una persona sin nombre.
+  update public.perfiles set nombre = '  ' where id = c_b1;
+  update public.formulas set publicado_por = c_b1 where id = v2;
+  set local role authenticated; v_e := pg_temp.error(format(c_q, o, v1)); reset role;
+  if v_e not like 'PT409|Otra persona publicó la versión 2 hace %' or v_e like '%Recarga%' then raise exception '(b′) sin nombre dio «%»', v_e; end if;
+  update public.perfiles set nombre = 'Ana Prueba' where id = c_b1;
+  -- (c) Quien llama es quien publicó.
+  update public.formulas set publicado_por = c_yo where id = v2;
+  set local role authenticated; v_e := pg_temp.error(format(c_q, o, v1)); reset role;
+  if v_e not like 'PT409|Publicaste la versión 2 hace %' or v_e like '%Recarga%' then raise exception '(c) quien llama dio «%»', v_e; end if;
+  -- (d) Sin cuándo: la frase va sin «hace…» (que con un nulo diría «hace un momento»).
+  update public.formulas set publicado_por = c_b1, publicado_en = null where id = v2;
+  set local role authenticated; v_e := pg_temp.error(format(c_q, o, v1)); reset role;
+  if v_e is distinct from 'PT409|Ana Prueba publicó la versión 2.' then raise exception '(d) sin cuándo dio «%»', v_e; end if;
+  -- (f) Quien llama y sin cuándo: el sujeto se elige primero y el «hace…» se quita aparte.
+  update public.formulas set publicado_por = c_yo where id = v2;
+  set local role authenticated; v_e := pg_temp.error(format(c_q, o, v1)); reset role;
+  if v_e is distinct from 'PT409|Publicaste la versión 2.' then raise exception '(f) quien llama sin cuándo dio «%»', v_e; end if;
+  -- (e) Una esperada en un origen sin publicada.
+  insert into public.origenes (clave, nombre) values ('prueba_publicar_sin', 'Prueba publicar sin') returning id into o2;
+  set local role authenticated; v_e := pg_temp.error(format(c_q, o2, v1)); reset role;
+  if v_e is distinct from 'PT409|La versión que tenías ya no es la publicada, y el origen no tiene otra.' then raise exception '(e) sin publicada dio «%»', v_e; end if;
+  update public.perfiles set nombre = v_nombre where id = c_b1;
+  delete from public.origenes where id = o2;
+  perform pg_temp.limpiar(o);
+end $$;
+
+-- @test publicar: el ⚙ con la esperada vieja da PT409, con la de hoy publica la N+1, con el mismo valor no publica, y sin borrador no deja ninguno
+do $$
+declare
+  o uuid := pg_temp.preparar(); v1 uuid; v2 uuid; v_e text;
+begin
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
+  set local role authenticated;
+  v1 := public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos());
+  perform public.formula_publicar(o, 'v1');
+  v_e := pg_temp.error(format($f$select public.formula_cambiar_constante(%L, 'flete', 1500, %L)$f$, o, gen_random_uuid()));
+  if v_e not like 'PT409|Publicaste la versión 1 hace %' then raise exception 'el ⚙ con la esperada vieja dio «%»', v_e; end if;
+  v2 := public.formula_cambiar_constante(o, 'flete', 1500, v1);
+  perform pg_temp.espera(format($f$select public.formula_cambiar_constante(%L, 'flete', 1500, %L)$f$, o, v2), '22023:-@valor La constante ya tiene ese valor.');
+  reset role;
+  if (select max(version) from public.formulas where origen_id = o) <> 2 then raise exception 'el ⚙ no publicó sólo la v2'; end if;
+  if (select estado::text || version from public.formulas where id = v2) is distinct from 'publicada2' then raise exception 'el ⚙ no publicó la v2'; end if;
+  if (select estado::text from public.formulas where id = v1) is distinct from 'archivada' then raise exception 'la v1 no quedó archivada'; end if;
+  if exists (select 1 from public.formulas where origen_id = o and estado = 'borrador') then raise exception 'el ⚙ dejó un borrador'; end if;
+  if not exists (select 1 from public.actividad where accion = 'formula.publicada' and registro_id = v2::text and despues ->> 'constante' = 'flete'
+                  and (despues ->> 'version')::int = 2 and antes ->> 'anterior' = v1::text) then raise exception 'el ⚙ no registró formula.publicada'; end if;
+  perform pg_temp.limpiar(o);
+end $$;
+
+-- @test publicar: una sola firma del ⚙, de authenticated y no de anon; las cinco de la versión son definer con search_path vacío; el candado por origen
+do $$
+declare f text; v_p regprocedure;
+begin
+  if (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'formula_cambiar_constante') <> 1 then
+    raise exception 'formula_cambiar_constante tiene más de una firma (o ninguna)'; end if;
+  v_p := to_regprocedure('public.formula_cambiar_constante(uuid,text,numeric,uuid)');
+  if v_p is null then raise exception 'no existe formula_cambiar_constante(uuid,text,numeric,uuid)'; end if;
+  if not has_function_privilege('authenticated', v_p, 'execute') or has_function_privilege('anon', v_p, 'execute') then
+    raise exception 'los grants de formula_cambiar_constante'; end if;
+  foreach f in array array['public._publicar_formula(uuid,text,uuid,boolean)', 'public._publicar_version(uuid,jsonb,jsonb,jsonb,text,uuid,jsonb,boolean)',
+                           'public._version_publicada_por(uuid)', 'public.formula_guardar_borrador(uuid,jsonb,jsonb,jsonb,text)',
+                           'public.formula_cambiar_constante(uuid,text,numeric,uuid)'] loop
+    v_p := to_regprocedure(f);
+    if v_p is null then raise exception 'no existe %', f; end if;
+    -- `is not true`: sin `set search_path`, `proconfig` es nulo y la comparación también.
+    if (select p.prosecdef and p.proconfig = array['search_path=""'] from pg_proc p where p.oid = v_p) is not true then
+      raise exception '% no es security definer con search_path vacío', f; end if;
+  end loop;
+  foreach f in array array['public._publicar_formula(uuid,text,uuid,boolean)', 'public._publicar_version(uuid,jsonb,jsonb,jsonb,text,uuid,jsonb,boolean)'] loop
+    if position($c$pg_advisory_xact_lock(hashtextextended('formulas:'$c$ in pg_get_functiondef(to_regprocedure(f))) = 0 then
+      raise exception '% no toma el candado del origen', f; end if;
+  end loop;
+end $$;
+

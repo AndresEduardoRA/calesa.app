@@ -242,8 +242,9 @@ vacío, 22023 con la regla en DETAIL y `donde` en HINT.
 - **`formulas.diseno` y `formulas.visibilidad`** (jsonb): nulas sólo en un borrador. **Publicar exige el diseño** (22023
   `diseno_faltante`; `check` `formulas_publicada_con_diseno`, también en las archivadas).
 - **Guardar:** `formula_guardar_borrador(origen, definición, params, diseño, nota?)` valida la fórmula y sólo la **forma** del diseño.
-  **Publicar** (`formula_publicar()`, y el ⚙ → `_publicar_formula()`): toma el borrador `for update` y los tonos de sus grupos `for key
-share`, valida fórmula y diseño completo (`_preparar_publicacion()`) y compila `visibilidad`. Dos a la vez: PT409.
+  **Publicar** (`formula_publicar()` → `_publicar_formula()`; el ⚙ → `_publicar_version()`, 4.20-1): toma el borrador `for
+update` y los tonos de sus grupos `for key share`, valida fórmula y diseño completo (`_preparar_publicacion()`) y compila `visibilidad`.
+  Dos a la vez: PT409 (ver «Versiones (4.20-1)»).
 - **`visibilidad`** = `{nodo: {ver, editar}}` con **claves de nivel**, no permisos (`_compilar_visibilidad()`): cada ítem da su nodo con
   su nivel efectivo (y el `pct` de una celda con `secundario`); el total y lo `aparte` tienen `ver: todos`; lo que no se dibuja entra
   como `{ver: todos, editar: null}`. Lo que no figura no viaja, salvo a quien configura.
@@ -252,6 +253,25 @@ share`, valida fórmula y diseño completo (`_preparar_publicacion()`) y compila
   su **tinta**. Un tono o un nivel que alguna versión nombra no se elimina (23503).
 - **La fórmula sólo la lee quien la configura** (`cotizaciones.configurar` del origen), y `formula_auditar()` no copia `definicion`,
   `params`, `diseno` ni `visibilidad` a `actividad`. Semilla: `subasta_usa`, `planilla_usa`, `oficina` (`supabase/semillas/`).
+
+### Versiones (4.20-1)
+
+- **Una serie por origen:** a lo sumo un borrador y una publicada; publicar archiva la publicada. Publicar el borrador y el ⚙
+  toman primero el candado del origen (`pg_advisory_xact_lock(hashtextextended('formulas:' || origen, 0))`) y recién después leen la
+  publicada: van en serie y el segundo compara con su esperada.
+- **Versión de origen** (`formulas.version_origen_id`): un borrador recuerda la publicada sobre la que se empezó
+  (`formula_guardar_borrador()` la escribe al crearlo; pisarlo no la cambia). Publicarlo cuando ya no es la publicada da PT409
+  «Después de que empezaste este borrador, Ana publicó la versión 3 hace 2 min.» y nada cambia. Nula = no había publicada o la fila se
+  escribió fuera de las RPC: no se compara. En una publicada o archivada es la publicada que reemplazó.
+- **El ⚙** (`formula_cambiar_constante(origen, nodo, valor, publicada_esperada?)`, `cotizaciones.configurar`): publica la N+1 desde la
+  publicada (su definición y su diseño, los `params` con el valor nuevo, un nivel retirado no lo frena) como fila nueva, **sin crear ni
+  tocar el borrador**. Con esperada nula vale la publicada que lee al entrar; el mismo valor da 22023 (hint `valor`).
+- **El conflicto dice quién, cuál y cuándo** (`_version_publicada_por()`), sin «Recarga». Primero el sujeto: quien llama
+  («Publicaste…»), otra persona con nombre («Ana publicó…») o sin quién o sin nombre («Otra persona publicó…»); el «hace…» se quita si
+  la publicada no tiene `publicado_en`. Una esperada en un origen sin publicada: «La versión que tenías ya no es la publicada, y el
+  origen no tiene otra.». Estos PT409 se muestran tal cual (sólo nombran a una persona, una versión y cuándo).
+- **Pendiente:** la versión esperada de `formula_guardar_borrador()` va con el editor (4.21); la carrera del ⚙ contra publicar el
+  borrador la suma el carril A.
 
 ## Niveles de acceso (D7, H3 y H4)
 
