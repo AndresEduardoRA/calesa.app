@@ -8077,6 +8077,7 @@ export type Database = {
           p_cursor_en?: string
           p_cursor_id?: string
           p_hacia_atras?: boolean
+          p_lead?: string
           p_mias?: boolean
           p_origen?: string
           p_tamano: number

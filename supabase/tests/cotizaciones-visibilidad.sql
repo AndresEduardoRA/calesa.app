@@ -489,11 +489,12 @@ exception when others then
 end $f$;
 
 -- Lo que `cotizaciones_listado()` le entrega a esa persona, recorrido de a uno por cursor y filtrado a las de la prueba (4.16-1, L2): falla si repite una (también en una
--- página entera) o si no va en (creado_en desc, id desc). Devuelve los ids ordenados por id, para compararlos con la regla.
+-- página entera) o si no va en (creado_en desc, id desc). Devuelve los ids ordenados por id, para compararlos con la regla. Sin lead, la llamada de siempre (C5 del 4.17-4a).
 create or replace function pg_temp.cv_listado(p_quien uuid, p_origen uuid default null, p_clase public.clase_cotizacion default null, p_mias boolean default false,
-                                              p_vehiculo uuid default null) returns uuid[] language plpgsql as $f$
+                                              p_vehiculo uuid default null, p_lead uuid default null) returns uuid[] language plpgsql as $f$
 declare v_ids uuid[] := '{}'; v_en timestamptz; v_id uuid; r record; v_n int; v_vueltas int := 0;
 begin
+  if p_lead is not null then return pg_temp.cv_listado_lead(p_quien, p_origen, p_clase, p_mias, p_vehiculo, p_lead); end if;
   perform pg_temp.cv_como(p_quien);
   set local role authenticated;
   loop
@@ -512,6 +513,40 @@ begin
   -- De a uno, el cursor estricto salta una fila repetida: una página entera tampoco repite ninguna (dos rutas que traen la misma).
   if exists (select 1 from public.cotizaciones_listado(100, p_origen, p_clase, p_mias, p_vehiculo) l group by l.id having count(*) > 1) then
     raise exception 'el listado le repite una cotización a % en una misma página', p_quien;
+  end if;
+  reset role;
+  return (select coalesce(array_agg(x order by x), '{}') from unnest(v_ids) x where x in (select id from cv_c));
+exception when others then
+  reset role;
+  raise;
+end $f$;
+
+-- Lo mismo con el lead (4.17-4a): la llamada con `p_lead`, en su función para que la de siempre no la nombre (contra la firma de 8, la de siempre sigue corriendo).
+create or replace function pg_temp.cv_listado_lead(p_quien uuid, p_origen uuid, p_clase public.clase_cotizacion, p_mias boolean, p_vehiculo uuid, p_lead uuid)
+  returns uuid[] language plpgsql as $f$
+declare v_ids uuid[] := '{}'; v_en timestamptz; v_id uuid; r record; v_n int; v_vueltas int := 0;
+begin
+  perform pg_temp.cv_como(p_quien);
+  set local role authenticated;
+  loop
+    v_n := 0;
+    for r in select l.id, l.creado_en from public.cotizaciones_listado(1, p_origen, p_clase, p_mias, p_vehiculo, v_en, v_id, p_lead => p_lead) l loop
+      v_n := v_n + 1;
+      exit when v_n > 1;
+      if v_en is not null and (r.creado_en, r.id) >= (v_en, v_id) then raise exception 'el listado por lead no va en orden para %: % tras %', p_quien, r.id, v_id; end if;
+      if r.id = any (v_ids) then raise exception 'el listado por lead le repite % a %', r.id, p_quien; end if;
+      v_ids := v_ids || r.id; v_en := r.creado_en; v_id := r.id;
+    end loop;
+    exit when v_n <= 1;
+    v_vueltas := v_vueltas + 1;
+    if v_vueltas > 5000 then raise exception 'el recorrido del listado por lead no termina'; end if;
+  end loop;
+  if exists (select 1 from public.cotizaciones_listado(100, p_origen, p_clase, p_mias, p_vehiculo, p_lead => p_lead) l group by l.id having count(*) > 1) then
+    raise exception 'el listado por lead le repite una cotización a % en una misma página', p_quien;
+  end if;
+  -- Ninguna ruta trae lo de otro lead (una que se cuele y que la RLS deje ver).
+  if exists (select 1 from public.cotizaciones_listado(100, p_origen, p_clase, p_mias, p_vehiculo, p_lead => p_lead) l where l.lead_id is distinct from p_lead) then
+    raise exception 'el listado por lead le trae a % una cotización de otro lead', p_quien;
   end if;
   reset role;
   return (select coalesce(array_agg(x order by x), '{}') from unnest(v_ids) x where x in (select id from cv_c));
@@ -619,19 +654,25 @@ begin
   end if;
 end $f$;
 
--- El listado con cada filtro, solo y de a dos, contra la regla de ver filtrada a mano (como postgres): origen 1 y 2, la clase, «mías» (las que creó, P1) y el vehículo.
+-- El listado con cada filtro, solo y de a dos, contra la regla de ver filtrada a mano (como postgres): origen 1 y 2, la clase, «mías» (las que creó, P1), el vehículo y el lead
+-- (4.17-4a: el de A, con el origen 2, con «mías» y con el vehículo; el de B; y el que está en la papelera, que con el filtro sale igual que sin él).
 create or replace function pg_temp.cv_filtros(p_quien uuid, p_nombre text) returns void language plpgsql as $f$
 declare v_regla uuid[] := pg_temp.cv_regla(p_quien, 'cotizaciones.ver'); o1 uuid := (select id from public.origenes where clave = 'cv_pol_1');
         o2 uuid := (select id from public.origenes where clave = 'cv_pol_2'); v uuid := (select id from public.vehiculos where titulo = 'CV final'); k record; v_lista uuid[]; v_esperado uuid[];
+        la uuid := (select id from public.leads where nombre = 'CV lead de A'); lb uuid := (select id from public.leads where nombre = 'CV lead de B');
+        l4 uuid := (select id from public.leads where nombre = 'CV lead en la papelera');
 begin
-  for k in select * from (values (o1, null::public.clase_cotizacion, false, null::uuid, 'origen 1'), (o2, null, false, null, 'origen 2'), (null, 'final', false, null, 'final'),
-                                 (null, 'preventa', false, null, 'preventa'), (o1, 'preventa', false, null, 'origen 1 y preventa'), (null, null, true, null, 'mías'),
-                                 (o2, null, true, null, 'mías del origen 2'), (null, 'final', true, null, 'mías finales'), (null, null, false, v, 'el vehículo'),
-                                 (o2, null, false, v, 'el vehículo y el origen 2')) z (origen, clase, mias, veh, nombre) loop
-    v_lista := pg_temp.cv_listado(p_quien, k.origen, k.clase, k.mias, k.veh);
+  for k in select * from (values (o1, null::public.clase_cotizacion, false, null::uuid, null::uuid, 'origen 1'), (o2, null, false, null, null, 'origen 2'), (null, 'final', false, null, null, 'final'),
+                                 (null, 'preventa', false, null, null, 'preventa'), (o1, 'preventa', false, null, null, 'origen 1 y preventa'), (null, null, true, null, null, 'mías'),
+                                 (o2, null, true, null, null, 'mías del origen 2'), (null, 'final', true, null, null, 'mías finales'), (null, null, false, v, null, 'el vehículo'),
+                                 (o2, null, false, v, null, 'el vehículo y el origen 2'),
+                                 (null, null, false, null, la, 'el lead de A'), (o2, null, false, null, la, 'el lead de A y el origen 2'), (null, null, true, null, la, 'el lead de A y mías'),
+                                 (null, null, false, v, la, 'el lead de A y el vehículo'), (null, null, false, null, lb, 'un lead de B'),
+                                 (null, null, false, null, l4, 'el lead en la papelera')) z (origen, clase, mias, veh, lead, nombre) loop
+    v_lista := pg_temp.cv_listado(p_quien, k.origen, k.clase, k.mias, k.veh, k.lead);
     select coalesce(array_agg(c.id order by c.id), '{}') into v_esperado from public.cotizaciones c
      where c.id = any (v_regla) and (k.origen is null or c.origen_id = k.origen) and (k.clase is null or c.clase = k.clase)
-       and (not k.mias or c.creado_por = p_quien) and (k.veh is null or c.vehiculo_id = k.veh);
+       and (not k.mias or c.creado_por = p_quien) and (k.veh is null or c.vehiculo_id = k.veh) and (k.lead is null or c.lead_id = k.lead);
     if v_lista is distinct from v_esperado then
       raise exception 'el listado de % con «%» da % y la regla %', p_nombre, k.nombre, pg_temp.cv_nombres(v_lista), pg_temp.cv_nombres(v_esperado);
     end if;

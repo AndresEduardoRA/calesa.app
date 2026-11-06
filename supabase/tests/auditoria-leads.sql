@@ -137,8 +137,9 @@ declare
     -- La hoja de una guardada (4.15-2): lee la cotización como cotizacion_leer y mira el lead sólo para decir si se cotiza encima (puede_lead).
     ('cotizacion_hoja_guardada(uuid)', 'L'),
     ('cotizacion_tabla(text,uuid,uuid,text)', 'L'),
-    -- El listado de cotizaciones (4.16-1): invocadora, la RLS de cotizaciones decide; devuelve el id del lead de cada fila y no recibe ninguno (la cartera la saca de mis_leads()).
-    ('cotizaciones_listado(integer,uuid,clase_cotizacion,boolean,uuid,timestamp with time zone,uuid,boolean)', 'L'),
+    -- El listado de cotizaciones (4.16-1): invocadora, la RLS de cotizaciones decide; devuelve el id del lead de cada fila (la cartera la saca de mis_leads()) y recibe un lead
+    -- (`p_lead`, 4.17-4a) sólo como filtro de sus filas.
+    ('cotizaciones_listado(integer,uuid,clase_cotizacion,boolean,uuid,timestamp with time zone,uuid,boolean,uuid)', 'L'),
     -- El inventario por rutas (4.16-2a): invocadora, la RLS de vehiculos decide; devuelve el lead_id de cada vehículo y no recibe ninguno (la cartera la saca de mis_leads()).
     ('vehiculos_inventario(uuid,integer,jsonb,timestamp with time zone,uuid,boolean)', 'L'),
     -- Crear una cotización (4.10-2): el lead es obligatorio y se pide visible (`leads.ver`, la regla de la policy de insert que se fue), no de la cartera: una cotización cuelga de un lead que quien
