@@ -71,6 +71,24 @@ describe('bucle.sh › el carril pide su paso al coordinador', () => {
     expect(hechos.asignado?.paso).toBe('4.99')
   })
 
+  it('acepta que el ruteo elija una parte del paso asignado (4.99-2 dentro de 4.99)', () => {
+    a.ruteo({ ...RUTEO_BASE, paso: '4.99-2' })
+    a.paso(1, pasoListo({ 'src/f/a.ts': 'a' }, { paso: '4.99-2' }))
+    const r = a.correr(['--una-vuelta'], entorno(plan(paso('4.99', []))))
+    expect(r.estado, r.salida).toBe(0)
+    expect(a.llamadas('paso')).toHaveLength(1)
+  })
+
+  it('no confunde el 4.9 asignado con el 4.99 elegido (sólo vale la parte con guion)', () => {
+    a.ruteo({ ...RUTEO_BASE, paso: '4.99' })
+    a.decidir(1, 'exit 0')
+    a.correr(['--una-vuelta'], entorno(plan(paso('4.9', []))))
+    expect(a.llamadas('paso')).toEqual([])
+    expect(a.leerFake('compuerta-1.md')).toContain(
+      'el ruteo eligió 4.99, pero el coordinador asignó 4.9',
+    )
+  })
+
   it('si el ruteo elige otro paso que el asignado, avisa y no corre nada', () => {
     a.ruteo({ ...RUTEO_BASE, paso: '4.50' })
     a.decidir(1, 'exit 0')

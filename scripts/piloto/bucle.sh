@@ -345,8 +345,11 @@ vuelta() {
   fi
   paso=$(jq -r .paso "$ESTADO/ruteo.json") modelo=$(jq -r .modelo "$ESTADO/ruteo.json") effort=$(jq -r .effort "$ESTADO/ruteo.json")
   [ "$paso" = ninguno ] && { registro "PLAN: el ruteo no ve ningún paso por avanzar."; exit 0; }
-  if modo_carril && [ -f "$ESTADO/asignado.json" ] && [ "$paso" != "$(jq -r .paso "$ESTADO/asignado.json")" ] && [ "$paso" != ci-fix ]; then
-    parada "el ruteo eligió $paso, pero el coordinador asignó $(jq -r .paso "$ESTADO/asignado.json") al carril $PILOTO_CARRIL" "$paso"
+  # El coordinador asigna el paso entero (4.20) y el ruteo puede elegir una de sus partes (4.20-2c): vale `<asignado>` o `<asignado>-…`.
+  local asignado_id=""
+  [ -f "$ESTADO/asignado.json" ] && asignado_id=$(jq -r .paso "$ESTADO/asignado.json")
+  if modo_carril && [ -n "$asignado_id" ] && [ "$paso" != "$asignado_id" ] && [[ "$paso" != "$asignado_id"-* ]] && [ "$paso" != ci-fix ]; then
+    parada "el ruteo eligió $paso, pero el coordinador asignó $asignado_id al carril $PILOTO_CARRIL" "$paso"
     return 0
   fi
   tipo_ruteo=$(jq -r .compuerta.tipo "$ESTADO/ruteo.json")
