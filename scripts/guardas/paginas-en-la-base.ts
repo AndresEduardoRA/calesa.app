@@ -26,8 +26,8 @@ export type RpcPaginada = {
 // Las del núcleo (del A). Las de un área van en su archivo (`paginas-en-la-base-papelera.ts`, del C) y se suman abajo.
 export const RPC_PAGINADAS_DEL_NUCLEO: readonly RpcPaginada[] = [
   {
-    // Hasta el 4.17-2 la sección pide `TOPE_DE_OPORTUNIDADES_DEL_LEAD` (100, el máximo de la base), no esto. El registro sólo compara contra 20, así que ese 100 lo protege
-    // T4 de `supabase/tests/lead-oportunidades-pagina.sql` (`p_tamano` 1000 da 100), en `pnpm db:probar`.
+    // La sección lee la primera página en el servidor con `OPORTUNIDADES_VISIBLES_DEL_LEAD` (10) y «Ver más», desde el navegador, con `TAMANO_DE_VER_MAS` (esto):
+    // los dos caben en el máximo de 100, que protege T4 de `supabase/tests/lead-oportunidades-pagina.sql` (`p_tamano` 1000 da 100), en `pnpm db:probar`.
     rpc: 'lead_oportunidades',
     parametro: 'p_tamano',
     pideElCodigo: TAMANO_DE_VER_MAS,

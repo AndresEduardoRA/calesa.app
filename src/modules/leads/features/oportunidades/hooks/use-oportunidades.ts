@@ -21,10 +21,13 @@ import {
 // Las oportunidades de quien mira sobre el lead, en la pantalla. «Mover a…» se ve enseguida (vuelve si
 // la base lo rechaza); eliminar las saca y ofrece «Deshacer» 10 s. Lo que trae el servidor manda. Lo que vuelve de una action
 // se pone en su lugar con la respuesta, sin `router.refresh()`: releería la primera página y reiniciaría lo cargado.
-export function useOportunidades(inicial: PaginaDeOportunidades, embudos: readonly Embudo[]) {
+export function useOportunidades(
+  leadId: string,
+  inicial: PaginaDeOportunidades,
+  embudos: readonly Embudo[],
+) {
   const router = useRouter()
-  const ventana = useVentanaDeOportunidades(inicial)
-  const { lista } = ventana
+  const ventana = useVentanaDeOportunidades(leadId, inicial)
   const mover = useAction(moverOportunidad)
   const eliminar = useAction(eliminarOportunidad)
   const restaurar = useAction(restaurarOportunidad)
@@ -93,5 +96,5 @@ export function useOportunidades(inicial: PaginaDeOportunidades, embudos: readon
     })
   }
 
-  return { lista, hayMas: ventana.hayMas, moverA, quitar, ocupada, alGuardar: ponerRespuesta }
+  return { ...ventana, moverA, quitar, ocupada, alGuardar: ponerRespuesta }
 }

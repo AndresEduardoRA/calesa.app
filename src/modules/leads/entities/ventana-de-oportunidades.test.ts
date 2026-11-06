@@ -3,9 +3,11 @@ import { TOPE_DE_LO_CARGADO } from '@/shared/lib/paginacion'
 import type { Embudo } from './embudo'
 import type { Oportunidad, OportunidadDelLead } from './oportunidad'
 import {
+  cursorDeOportunidades,
   oportunidadDelLeadDesde,
   ordenDeOportunidades,
   ponerOportunidadEnLaVentana,
+  sumarPaginaDeOportunidades,
 } from './ventana-de-oportunidades'
 
 const ETAPA = {
@@ -208,5 +210,74 @@ describe('oportunidadDelLeadDesde', () => {
   it('da null si el embudo o la etapa no están', () => {
     expect(oportunidadDelLeadDesde({ ...oportunidad, embudoId: 'x' }, embudos)).toBeNull()
     expect(oportunidadDelLeadDesde({ ...oportunidad, etapaId: 'x' }, embudos)).toBeNull()
+  })
+})
+
+describe('cursorDeOportunidades', () => {
+  it('es la última cargada, con su grupo y su instante tal como llegó', () => {
+    const abierta = una('b', sello(48, '.1234'))
+    expect(cursorDeOportunidades([una('a', sello(50)), abierta])).toEqual({
+      antesAbierta: true,
+      antesEn: '2026-11-06T12:00:48.1234+00:00',
+      antesId: 'b',
+    })
+    const cerrada = una('c', sello(10, '.5'), 'perdida')
+    expect(cursorDeOportunidades([una('a', sello(50)), cerrada])).toEqual({
+      antesAbierta: false,
+      antesEn: '2026-11-06T12:00:10.5+00:00',
+      antesId: 'c',
+    })
+  })
+
+  it('sin nada cargado no hay cursor', () => {
+    expect(cursorDeOportunidades([])).toBeNull()
+  })
+})
+
+describe('sumarPaginaDeOportunidades', () => {
+  const ventana = (lista: OportunidadDelLead[], hayMas = true) => ({ lista, hayMas })
+  const pagina = (lista: OportunidadDelLead[], hayMas: boolean) => ({ lista, hayMas })
+  const ninguna = new Set<string>()
+
+  it('suma al final lo de la página y toma su «hay más»', () => {
+    const suma = sumarPaginaDeOportunidades(
+      ventana([una('a', sello(50)), una('b', sello(40))]),
+      pagina([una('c', sello(30)), una('d', sello(20))], false),
+      ninguna,
+    )
+    expect(ids(suma.lista)).toEqual(['a', 'b', 'c', 'd'])
+    expect(suma.hayMas).toBe(false)
+  })
+
+  it('no repite las que ya están ni trae las quitadas mientras la página venía', () => {
+    const suma = sumarPaginaDeOportunidades(
+      ventana([una('a', sello(50)), una('b', sello(40))]),
+      pagina([una('b', sello(40)), una('c', sello(30)), una('d', sello(20))], true),
+      new Set(['c']),
+    )
+    expect(ids(suma.lista)).toEqual(['a', 'b', 'd'])
+    expect(suma.hayMas).toBe(true)
+  })
+
+  it('lo que se puso mientras tanto se queda en su lugar', () => {
+    const suma = sumarPaginaDeOportunidades(
+      ventana([una('n', sello(55)), una('a', sello(50))]),
+      pagina([una('c', sello(30))], false),
+      ninguna,
+    )
+    expect(ids(suma.lista)).toEqual(['n', 'a', 'c'])
+  })
+
+  it('corta en el tope y deja «hay más»', () => {
+    const llena = Array.from({ length: TOPE_DE_LO_CARGADO - 1 }, (_, i) =>
+      una(`o${String(1000 + i)}`, sello(59, `.${String(999999 - i)}`)),
+    )
+    const suma = sumarPaginaDeOportunidades(
+      ventana(llena),
+      pagina([una('x1', sello(1)), una('x2', sello(2))], false),
+      ninguna,
+    )
+    expect(suma.lista).toHaveLength(TOPE_DE_LO_CARGADO)
+    expect(suma.hayMas).toBe(true)
   })
 })

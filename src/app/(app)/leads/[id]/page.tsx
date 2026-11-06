@@ -7,7 +7,6 @@ import { puede, requerirSesion } from '@/modules/equipo'
 import {
   accionesDeCartera,
   CLAVE_DE_SECCION,
-  CLAVE_DE_TODAS_LAS_OPORTUNIDADES,
   duenoDe,
   leerFichaDeLead,
   puedeCambiarTelefonoDeLead,
@@ -63,7 +62,6 @@ function seccionesDe(
   datos: { ficha: { id: string; nombre: string } },
   seccion: string,
   ve: { vehiculos: boolean },
-  parametros: Record<string, string | string[] | undefined>,
 ) {
   return {
     // Sólo se lee con la sección abierta: «Datos» no paga la línea de tiempo.
@@ -89,7 +87,6 @@ function seccionesDe(
         <Suspense fallback={<EsqueletoDeOportunidades />}>
           <SeccionOportunidades
             leadId={datos.ficha.id}
-            todas={unParametro(parametros[CLAVE_DE_TODAS_LAS_OPORTUNIDADES]) === '1'}
             {...(ve.vehiculos ? { vehiculos: opcionesDeVehiculoDelLead(datos.ficha.id) } : {})}
           />
         </Suspense>
@@ -153,7 +150,7 @@ export default async function PaginaLead({ params, searchParams }: PageProps<'/l
         duenoDe(datos.cartera)?.usuarioId ?? null,
         sesion.usuarioId,
       )}
-      {...seccionesDe(datos, seccion, ve, parametros)}
+      {...seccionesDe(datos, seccion, ve)}
     />
   )
 }

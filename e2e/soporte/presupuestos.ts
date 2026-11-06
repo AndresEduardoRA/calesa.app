@@ -22,10 +22,9 @@ export const PRESUPUESTO_DE_JS_EN_KB: Readonly<Record<string, number>> = {
 export const PRESUPUESTO_DE_LA_FICHA_EN_KB = 43
 
 // La ficha con la sección «Oportunidades» llena (cierre 5b, `e2e/leads-oportunidades-ver-todas.spec.ts`), en KB sobre `/perfil`: cada
-// oportunidad pesa ~3,5 KB en el documento. Con 10 a la vista (lo máximo que se dibuja por defecto) se midió 62,3; con «Ver todas» (100,
-// pedido por quien lo quiere), 374. Antes cada visita a una ficha con 100 pagaba lo segundo. Sobre lo medido más un 5 %.
+// oportunidad pesa ~3,5 KB en el documento. El servidor dibuja las 10 más recientes (lo máximo por defecto) y «Ver más» lee el resto desde el
+// navegador: con 10 o con 1.000 el documento pesa lo mismo (se midió 62,3 con 10). Sobre lo medido más un 5 %.
 export const PRESUPUESTO_DE_LA_FICHA_CON_10_OPORTUNIDADES_EN_KB = 66
-export const PRESUPUESTO_DE_LA_FICHA_CON_TODAS_EN_KB = 400
 
 // El documento de `/perfil` (los bytes del HTML con el payload RSC, sin comprimir), en KB, con 100 orígenes y 100 tipos de lead: lo que paga
 // toda pantalla del marco (`e2e/presupuesto-js.spec.ts`). Antes del cierre 5b-fix el shell mandaba el contexto del alta de lead (los

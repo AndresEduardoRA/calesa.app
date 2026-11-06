@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { TAMANOS_DE_PAGINA } from '@/shared/lib/paginacion'
 import type { EtapaGuardada } from './embudo'
 import {
   cambiosDeOportunidad,
@@ -6,7 +7,6 @@ import {
   montoDesdeTexto,
   oportunidadDesde,
   oportunidadesDelLeadDesde,
-  oportunidadesParaMostrar,
   OPORTUNIDADES_VISIBLES_DEL_LEAD,
   validarMotivo,
   motivoParaNoMover,
@@ -221,37 +221,11 @@ describe('motivoParaNoMover', () => {
   })
 })
 
-describe('oportunidadesParaMostrar', () => {
-  const lista = (n: number) => Array.from({ length: n }, (_, i) => i + 1)
-
-  it('hasta 10 se ven todas, sin recorte', () => {
+describe('OPORTUNIDADES_VISIBLES_DEL_LEAD', () => {
+  it('es la primera página que lee el servidor: 10, el primer tamaño de TAMANOS_DE_PAGINA', () => {
+    // Si `TAMANOS_DE_PAGINA` cambia, esto no se mueve en silencio.
     expect(OPORTUNIDADES_VISIBLES_DEL_LEAD).toBe(10)
-    expect(oportunidadesParaMostrar(lista(0), false)).toEqual({ visibles: [], recortada: false })
-    expect(oportunidadesParaMostrar(lista(10), false)).toEqual({
-      visibles: lista(10),
-      recortada: false,
-    })
-  })
-
-  it('con más de 10 se ven las 10 primeras, que son las más recientes (abiertas primero), y se dice que hay más', () => {
-    expect(oportunidadesParaMostrar(lista(11), false)).toEqual({
-      visibles: lista(10),
-      recortada: true,
-    })
-    expect(oportunidadesParaMostrar(lista(100), false).visibles).toHaveLength(10)
-  })
-
-  it('con «Ver todas» se ven todas las que trajo la lectura y ya no se dice que hay más por ver', () => {
-    expect(oportunidadesParaMostrar(lista(100), true)).toEqual({
-      visibles: lista(100),
-      recortada: false,
-    })
-  })
-
-  it('no toca la lista que recibe', () => {
-    const original = lista(12)
-    oportunidadesParaMostrar(original, false).visibles.push(99)
-    expect(original).toHaveLength(12)
+    expect(OPORTUNIDADES_VISIBLES_DEL_LEAD).toBe(TAMANOS_DE_PAGINA[0])
   })
 })
 

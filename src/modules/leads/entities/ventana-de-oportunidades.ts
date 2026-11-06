@@ -25,6 +25,22 @@ function compararInstantes(a: string, b: string): number {
   return msA !== msB ? msA - msB : microA - microB
 }
 
+// El cursor de «Ver más»: la última fila de lo cargado. El instante va tal como llegó (nunca pasado por `Date`: perdería los microsegundos).
+export type CursorDeOportunidades = { antesAbierta: boolean; antesEn: string; antesId: string }
+
+export function cursorDeOportunidades(
+  lista: readonly OportunidadDelLead[],
+): CursorDeOportunidades | null {
+  const ultima = lista.at(-1)
+  return ultima
+    ? {
+        antesAbierta: ultima.estado === 'abierta',
+        antesEn: ultima.enEtapaDesde,
+        antesId: ultima.id,
+      }
+    : null
+}
+
 // Como las entrega la base: las abiertas primero y, en cada grupo, `ultima_actividad_en desc, id desc`. Negativo si `a` va antes que `b`.
 export function ordenDeOportunidades(
   a: Pick<OportunidadDelLead, 'estado' | 'enEtapaDesde' | 'id'>,
@@ -39,6 +55,23 @@ export function ordenDeOportunidades(
     return instantes
   }
   return b.id < a.id ? -1 : b.id > a.id ? 1 : 0
+}
+
+// «Ver más» suma al final sólo lo nuevo de la página que llegó: sin lo que ya está y sin lo que se quitó mientras tanto (`quitadas`: una
+// eliminada no vuelve con una página que se pidió antes de eliminarla). Lo que se movió mientras esperaba sí entra, en su lugar nuevo.
+// Nunca más que el tope; lo que pasa se corta y queda «hay más».
+export function sumarPaginaDeOportunidades(
+  ventana: VentanaDeOportunidades,
+  pagina: VentanaDeOportunidades,
+  quitadas: ReadonlySet<string>,
+): VentanaDeOportunidades {
+  const estan = new Set(ventana.lista.map((o) => o.id))
+  const nuevas = pagina.lista.filter((o) => !estan.has(o.id) && !quitadas.has(o.id))
+  const lista = [...ventana.lista, ...nuevas].sort(ordenDeOportunidades)
+  return {
+    lista: lista.slice(0, TOPE_DE_LO_CARGADO),
+    hayMas: pagina.hayMas || lista.length > TOPE_DE_LO_CARGADO,
+  }
 }
 
 // Pone (o reemplaza) una en la ventana, en su lugar. Una eliminada sale; una que cae después de la última cargada, con más por leer, sale
