@@ -25,6 +25,10 @@ describe('CONFIRMAR_CON_URL', () => {
 
   it('sin nada de la fórmula, es el núcleo', async () => {
     vi.resetModules()
+    // El registro real de la fórmula deja de estar vacío en cuanto el B registra su diálogo: se simula vacío.
+    vi.doMock('./confirmar-con-url-formula', () => ({
+      CONFIRMAR_CON_URL_DE_LA_FORMULA: {},
+    }))
     const { CONFIRMAR_CON_URL, CONFIRMAR_CON_URL_DEL_NUCLEO } = await import('./confirmar-con-url')
     expect(CONFIRMAR_CON_URL).toEqual(CONFIRMAR_CON_URL_DEL_NUCLEO)
   })
