@@ -2,7 +2,12 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { StrictMode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Resultado } from '@/shared/lib/errores'
-import { codificarCursor, type Pagina } from '@/shared/lib/paginacion'
+import {
+  codificarCursor,
+  type Pagina,
+  TAMANO_DE_VER_MAS,
+  TOPE_DE_LO_CARGADO,
+} from '@/shared/lib/paginacion'
 import type { CotizacionDelHistorial } from '../../../entities/historial-del-vehiculo'
 import { CotizacionesDelVehiculo } from './cotizaciones-del-vehiculo'
 
@@ -142,24 +147,19 @@ describe('CotizacionesDelVehiculo: «Ver más» y el tope', () => {
 
   it('con 500 cargadas y más por leer: sin «Ver más», con el aviso y el camino al listado', async () => {
     montar()
-    await responder(1, pagina(1, 20, cursorDe(20)))
-    for (let ronda = 1; ronda < 25; ronda += 1) {
-      await screen.findByRole('button', { name: 'Ver más' })
-      fireEvent.click(screen.getByRole('button', { name: 'Ver más' }))
-      await responder(ronda + 1, pagina(1 + ronda * 20, 20, cursorDe(20 + ronda * 20)))
-      await waitFor(() => {
-        expect(filas()).toHaveLength(20 * (ronda + 1))
-      })
-      // Antes del tope no hay camino al listado (se mira dos veces: una consulta por rol sobre una lista larga es lenta).
-      if (ronda === 1 || ronda === 12) {
-        expect(screen.queryByRole('link', { name: 'Ver todas en Cotizaciones' })).toBeNull()
-      }
-    }
-    expect(screen.getByText('Mostrando las 500 más recientes.')).toBeTruthy()
-    expect(screen.queryByRole('button', { name: 'Ver más' })).toBeNull()
-    expect(
-      screen.getByRole('link', { name: 'Ver todas en Cotizaciones' }).getAttribute('href'),
-    ).toBe(`/cotizaciones?vehiculo=${VEHICULO}`)
+    // Al tope con dos respuestas y consultas por texto, no por rol: sobre 500 filas cada una cuesta cientos de ms, y el tope sale del largo de lo cargado, no de las rondas.
+    const primera = TOPE_DE_LO_CARGADO - TAMANO_DE_VER_MAS
+    await responder(1, pagina(1, primera, cursorDe(primera)))
+    await screen.findByText('Ver más')
+    expect(screen.queryByText('Ver todas en Cotizaciones')).toBeNull()
+    fireEvent.click(screen.getByText('Ver más'))
+    await responder(2, pagina(primera + 1, TAMANO_DE_VER_MAS, cursorDe(TOPE_DE_LO_CARGADO)))
+    expect(await screen.findByText('Mostrando las 500 más recientes.')).toBeTruthy()
+    expect(pedidos).toHaveLength(2)
+    expect(screen.queryByText('Ver más')).toBeNull()
+    expect(screen.getByText('Ver todas en Cotizaciones').closest('a')?.getAttribute('href')).toBe(
+      `/cotizaciones?vehiculo=${VEHICULO}`,
+    )
   })
 
   it('cada fila es un enlace a su cotización, con la clase fuera del enlace', async () => {
