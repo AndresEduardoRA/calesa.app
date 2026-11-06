@@ -3,8 +3,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { fallo, type ErrorApp, type Resultado } from '@/shared/lib/errores'
 import { leerCursor, TOPE_DE_LO_CARGADO, type Pagina } from '@/shared/lib/paginacion'
-import { leerHistorialDelVehiculo } from '../../../composicion-historial.client'
-import type { CotizacionDelHistorial } from '../../../entities/historial-del-vehiculo'
+import {
+  leerCotizacionesDelLead,
+  leerHistorialDelVehiculo,
+} from '../../../composicion-historial.client'
+import type { CotizacionDelHistorial, ListaDe } from '../../../entities/historial-del-vehiculo'
 
 // Lo que se ve de las páginas: sin leer, la primera en camino, leído (con lo que se agregó por «Ver más») o fallido.
 // `error` es el del último pedido: sin filas es la primera página; con filas, la que se pidió con «Ver más» (lo leído se queda).
@@ -18,10 +21,10 @@ type Estado = {
 
 const SIN_LEER: Estado = { filas: [], siguiente: null, leido: false, cargando: false, error: null }
 
-// Las páginas del historial de cotizaciones de un vehículo, de a `TAMANO_DE_VER_MAS` por cursor y hasta `TOPE_DE_LO_CARGADO`. La posición no va a la URL.
-// Una respuesta de un pedido que ya no es el último (otro «Ver más», otro vehículo, el componente ya no está, el primer montaje de `StrictMode`) se descarta:
+// Las páginas del historial de cotizaciones de un vehículo o de un lead (`de`), de a `TAMANO_DE_VER_MAS` por cursor y hasta `TOPE_DE_LO_CARGADO`. La posición no va a la URL.
+// Una respuesta de un pedido que ya no es el último (otro «Ver más», otra lista, el componente ya no está, el primer montaje de `StrictMode`) se descarta:
 // ese `ultimo` es el único guardián, y lo comparten el panel de la hoja (que lee al desplegar) y la pestaña de la ficha (que lee al montarse).
-export function usePaginasDelHistorial(vehiculoId: string) {
+export function usePaginasDelHistorial(de: ListaDe) {
   const [estado, setEstado] = useState<Estado>(SIN_LEER)
   const ultimo = useRef(0)
 
@@ -37,7 +40,12 @@ export function usePaginasDelHistorial(vehiculoId: string) {
     const pedido = ultimo.current
     setEstado((antes) => ({ ...antes, cargando: true, error: null }))
     const cursor = leerCursor(cursorDeLaUrl)
-    leerHistorialDelVehiculo({ vehiculoId, cursor })
+    // Cada lector se nombra sólo en su rama, al llamarlo.
+    const lectura =
+      'vehiculo' in de
+        ? leerHistorialDelVehiculo({ vehiculoId: de.vehiculo, cursor })
+        : leerCotizacionesDelLead({ leadId: de.lead, cursor })
+    lectura
       .catch((): Resultado<Pagina<CotizacionDelHistorial>> =>
         fallo('inesperado', 'No se pudo cargar el historial.'),
       )

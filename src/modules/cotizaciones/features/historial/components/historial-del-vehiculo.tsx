@@ -42,7 +42,7 @@ export function HistorialDelVehiculo({ vehiculoId, conteo }: Props) {
         {historial.abierto ? (
           <ListaDelHistorial
             historial={historial}
-            vehiculoId={vehiculoId}
+            de={{ vehiculo: vehiculoId }}
             etiqueta="Historial de cotizaciones"
           />
         ) : null}

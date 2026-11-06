@@ -1,7 +1,8 @@
-// El historial de cotizaciones de un vehículo desde el navegador, con la sesión de quien mira: la RLS de `cotizaciones` decide cuáles llegan (un «propios» ve las suyas
-// y las de su cartera). Va por el navegador porque el historial se lee al desplegarlo y cada «Ver más» pide su página sin ir al servidor.
-// Una página de `TAMANO_DE_VER_MAS` y una fila de más para saber si hay otra. La sostiene `cotizaciones_vehiculo_creado_idx (vehiculo_id, creado_en desc, id desc)`;
-// el borde del cursor sobre `creado_en` va como condición propia para que entre al índice (`aplicarCursor()`).
+// El historial de cotizaciones de un vehículo o de un lead desde el navegador, con la sesión de quien mira: la RLS de `cotizaciones` decide cuáles llegan (un «propios» ve las suyas
+// y las de su cartera). Va por el navegador porque el historial se lee al desplegarlo (o al abrir la pestaña o la sección) y cada «Ver más» pide su página sin ir al servidor.
+// Una página de `TAMANO_DE_VER_MAS` y una fila de más para saber si hay otra. La sostienen `cotizaciones_vehiculo_creado_idx (vehiculo_id, creado_en desc, id desc)` y
+// `cotizaciones_lead_creado_idx` (la sección «Cotizaciones» de la ficha del lead, 4.17-4b); el borde del cursor sobre `creado_en` va como condición propia para que entre al
+// índice (`aplicarCursor()`).
 import { errorDePostgrest, fallo, ok, type Resultado } from '@/shared/lib/errores'
 import {
   armarPaginaPor,
@@ -19,15 +20,28 @@ import {
 } from '../entities/historial-del-vehiculo'
 
 export type PedidoDelHistorial = { vehiculoId: string; cursor: Cursor | null }
+export type PedidoDeLasDelLead = { leadId: string; cursor: Cursor | null }
 
-export async function leerHistorialDelVehiculo({
+export function leerHistorialDelVehiculo({
   vehiculoId,
   cursor,
 }: PedidoDelHistorial): Promise<Resultado<Pagina<CotizacionDelHistorial>>> {
-  const base = createClient()
-    .from('cotizaciones')
-    .select(COLUMNAS_DEL_HISTORIAL)
-    .eq('vehiculo_id', vehiculoId)
+  return leerPaginaPor('vehiculo_id', vehiculoId, cursor)
+}
+
+export function leerCotizacionesDelLead({
+  leadId,
+  cursor,
+}: PedidoDeLasDelLead): Promise<Resultado<Pagina<CotizacionDelHistorial>>> {
+  return leerPaginaPor('lead_id', leadId, cursor)
+}
+
+async function leerPaginaPor(
+  columna: 'vehiculo_id' | 'lead_id',
+  id: string,
+  cursor: Cursor | null,
+): Promise<Resultado<Pagina<CotizacionDelHistorial>>> {
+  const base = createClient().from('cotizaciones').select(COLUMNAS_DEL_HISTORIAL).eq(columna, id)
   const { data, error } = await ordenarPorCursor(
     aplicarCursor(base, cursor, POR_ALTA),
     cursor,

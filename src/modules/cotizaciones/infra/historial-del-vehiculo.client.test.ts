@@ -19,7 +19,7 @@ vi.mock('@/shared/lib/supabase/browser', () => ({
   }),
 }))
 
-import { leerHistorialDelVehiculo } from './historial-del-vehiculo.client'
+import { leerCotizacionesDelLead, leerHistorialDelVehiculo } from './historial-del-vehiculo.client'
 
 const VEHICULO = '00000000-0000-4000-8000-0000000000aa'
 const fila = (i: number) => ({
@@ -79,5 +79,45 @@ describe('leerHistorialDelVehiculo: el historial desde el navegador', () => {
     expect((await leerHistorialDelVehiculo({ vehiculoId: VEHICULO, cursor: null })).ok).toBe(false)
     respuesta = { data: [{ ...fila(0), clase: 'otra' }], error: null }
     expect((await leerHistorialDelVehiculo({ vehiculoId: VEHICULO, cursor: null })).ok).toBe(false)
+  })
+})
+
+describe('leerCotizacionesDelLead: las de un lead desde el navegador (4.17-4b)', () => {
+  const LEAD = '00000000-0000-4000-8000-0000000000bb'
+
+  beforeEach(() => {
+    llamadas.length = 0
+    respuesta = { data: [], error: null }
+  })
+
+  it('sin cursor: el lead, de la más nueva a la más vieja y 21 filas, sin condición de cursor', async () => {
+    await leerCotizacionesDelLead({ leadId: LEAD, cursor: null })
+    expect(llamadas).toContainEqual(['from', 'cotizaciones'])
+    expect(llamadas).toContainEqual(['eq', 'lead_id', LEAD])
+    expect(llamadas.map(([n, c]) => (n === 'eq' ? c : null))).not.toContain('vehiculo_id')
+    expect(llamadas).toContainEqual(['order', 'creado_en', { ascending: false }])
+    expect(llamadas.map(([n]) => n)).not.toContain('lte')
+    expect(llamadas.at(-1)).toEqual(['limit', 21])
+  })
+
+  it('con cursor, el borde de aplicarCursor sobre creado_en', async () => {
+    const cursor = leerCursor(
+      codificarCursor({
+        instante: '2026-10-29T08:30:00+00:00',
+        id: '00000000-0000-4000-8000-000000000009',
+        sentido: 'siguiente',
+      }),
+    )
+    await leerCotizacionesDelLead({ leadId: LEAD, cursor })
+    expect(llamadas).toContainEqual(['lte', 'creado_en', '2026-10-29T08:30:00+00:00'])
+  })
+
+  it('21 filas son una página de 20 con «siguiente»; el error es un resultado fallido', async () => {
+    respuesta = { data: Array.from({ length: 21 }, (_, i) => fila(i)), error: null }
+    const llena = await leerCotizacionesDelLead({ leadId: LEAD, cursor: null })
+    expect(llena.ok && llena.data.filas).toHaveLength(20)
+    expect(llena.ok && llena.data.siguiente).not.toBeNull()
+    respuesta = { data: null, error: { code: '42501', message: 'Sin permiso.' } }
+    expect((await leerCotizacionesDelLead({ leadId: LEAD, cursor: null })).ok).toBe(false)
   })
 })

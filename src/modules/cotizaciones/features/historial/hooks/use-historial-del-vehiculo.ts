@@ -7,7 +7,7 @@ import { usePaginasDelHistorial } from './use-paginas-del-historial'
 // Las páginas son las de `usePaginasDelHistorial`.
 export function useHistorialDelVehiculo(vehiculoId: string) {
   const [abierto, setAbierto] = useState(false)
-  const paginas = usePaginasDelHistorial(vehiculoId)
+  const paginas = usePaginasDelHistorial({ vehiculo: vehiculoId })
   return {
     abierto,
     ...paginas,

@@ -13,7 +13,7 @@ import { Button } from '@/shared/ui/button'
 import { EstadoError, EstadoVacio } from '@/shared/ui/estados'
 import { useRegional } from '@/shared/ui/regional'
 import { Skeleton } from '@/shared/ui/skeleton'
-import { ETIQUETA_DE_CLASE } from '../../../entities/historial-del-vehiculo'
+import { ETIQUETA_DE_CLASE, type ListaDe } from '../../../entities/historial-del-vehiculo'
 import { rutaDeLaCotizacion, rutaDelListado } from '../../../entities/ruta-de-la-hoja'
 import type { PaginasDelHistorial } from '../hooks/use-paginas-del-historial'
 
@@ -22,14 +22,15 @@ const ESPERA_DEL_ESQUELETO_MS = 300
 
 type Props = {
   historial: PaginasDelHistorial
-  vehiculoId: string
+  // De quién es la lista: el tope enlaza al listado de esa persona o vehículo.
+  de: ListaDe
   // El nombre de la lista para quien lee en voz alta: el panel de la hoja y la pestaña de la ficha no la llaman igual.
   etiqueta: string
 }
 
-// Las cotizaciones de un vehículo que quien mira ve, de la más nueva a la más vieja, con sus estados (esqueleto, error, vacío) y su pie («Ver más» o el tope).
-// La comparten el historial del panel de la hoja y la pestaña «Cotizaciones» de la ficha; la lectura es de `usePaginasDelHistorial`.
-export function ListaDelHistorial({ historial, vehiculoId, etiqueta }: Props) {
+// Las cotizaciones de un vehículo o un lead que quien mira ve, de la más nueva a la más vieja, con sus estados (esqueleto, error, vacío) y su pie («Ver más» o el tope).
+// La comparten el historial del panel de la hoja, la pestaña «Cotizaciones» de la ficha del vehículo y la sección de la ficha del lead; la lectura es de `usePaginasDelHistorial`.
+export function ListaDelHistorial({ historial, de, etiqueta }: Props) {
   const { zonaHoraria } = useRegional()
   if (!historial.leido) {
     if (historial.error) {
@@ -66,19 +67,13 @@ export function ListaDelHistorial({ historial, vehiculoId, etiqueta }: Props) {
           </li>
         ))}
       </ul>
-      <PieDelHistorial historial={historial} vehiculoId={vehiculoId} />
+      <PieDelHistorial historial={historial} de={de} />
     </div>
   )
 }
 
 // Lo que va debajo de las filas: el error de «Ver más», el tope con su camino al listado, o «Ver más».
-function PieDelHistorial({
-  historial,
-  vehiculoId,
-}: {
-  historial: PaginasDelHistorial
-  vehiculoId: string
-}) {
+function PieDelHistorial({ historial, de }: { historial: PaginasDelHistorial; de: ListaDe }) {
   return historial.error ? (
     <div role="alert" className="flex flex-wrap items-center gap-2">
       <p className="text-(length:--text-sm) text-(--color-ink-soft)">No se pudieron cargar más.</p>
@@ -95,10 +90,7 @@ function PieDelHistorial({
     <AvisoDeTope
       texto={textoDelTope(TOPE_DE_LO_CARGADO, { articulo: 'las' })}
       camino={
-        <Link
-          href={rutaDelListado({ vehiculo: vehiculoId }) as Route}
-          className="underline hover:text-(--color-ink)"
-        >
+        <Link href={rutaDelListado(de) as Route} className="underline hover:text-(--color-ink)">
           Ver todas en Cotizaciones
         </Link>
       }
