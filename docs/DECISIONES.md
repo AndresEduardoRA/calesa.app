@@ -1961,3 +1961,32 @@ Lo pidió la persona después de que el A hiciera el 4.16 y el 4.17-1: se parti�
 - **El vacío propio sólo sale sin otros filtros ni cursor**, como el del vehículo: con `?origen=` o `?clase=` puestos, un lead sin cotizaciones dice «Nada coincide» (con «Limpiar»). E8 lo prueba sin `?origen=`.
 - **El spec de E3 se partió en dos** (E3 sin clave, E3b con «propios»): `entrar(…, { fresco: true })` dos veces en la misma prueba no encuentra el formulario de ingreso; mismo motivo para E8b en el listado.
 - **El paso vale como pantalla** (sin datos, permisos ni migración nuevos: la lectura, su índice y su RLS son del 4.17-4a): sin mutaciones ni informe auditado.
+
+## 2026-11-06 — Paso 4.17-5a: las revisiones de una cotización desde una fecha, en la base (y el rojo del CI de HEAD)
+
+- **El 4.17-5 se parte en 3** (la fila junta capas con verificación distinta): el **5a**, la base (`p_hasta` y su índice; Nivel 2 por el índice, cadena db, `db:medir:volumen`); el **5b**, `<IrAUnaFecha>` a `src/shared/ui`
+  (hoy vive en `leads/features/seguimientos`; `cotizaciones` no puede importar `features` de `leads` y copiar el formulario dejaría dos que divergen; Nivel 2, disparador 1, sin cambio visible); el **5c**, la pantalla
+  («Ir a una fecha» en «Revisiones», su ventana, su aviso y su e2e con horas distintas; cierra 4-75). Total de la fase: 48 pasos y 101 prompts.
+- **P1 (compuerta `datos`, contestada con la recomendada): `p_hasta` dentro de `cotizacion_revisiones()`.** Un solo pedido por salto, con la misma respuesta de siempre. Las otras dos (una función invocadora que da el
+  ancla, o la consulta por PostgREST) eran dos pedidos por salto y, la primera, una RPC más que auditar; la segunda pagaba la policy por fila. Una sola firma (`drop` de la de 3 y `create` de la de 4: con `create or replace`
+  quedarían dos sobrecargas), definidora, `search_path` vacío, los mismos grants.
+- **El ancla por fecha con la página por id, no un cursor `(creado_en, id)`.** `p_hasta` sólo elige desde qué revisión empieza la página (la más nueva de ESA cotización con `creado_en < p_hasta`); de ahí la consulta de
+  siempre, por `cotizaciones_revisiones_cotizacion_idx`, y «Ver más» (`p_antes = siguiente`, sin `p_hasta`) no cambia. Con los dos argumentos, gana el menor (`least(p_antes, ancla + 1)`). Un cursor de dos valores habría
+  cambiado el contrato de «Ver más» y la pantalla ya hecha. El índice nuevo es `cotizaciones_revisiones_cotizacion_creado_idx (cotizacion_id, creado_en desc, id desc)`.
+- **La guarda va primero, con o sin `p_hasta`:** ningún camino lee una revisión antes de `assert_activo()` y `puede_cotizacion(…, 'cotizaciones.ver')`, el ancla incluida; sin ancla, quien ve la cotización recibe la
+  respuesta vacía y quien no la ve, el 42501 de una inexistente (F5 y M6 lo prueban). `p_hasta` no abre ni cierra nada que `p_antes` no abriera.
+- **C7: `p_hasta` es un instante y es exclusivo.** La base no conoce zonas ni días: «ese día y lo anterior» lo arma la pantalla (5c) con el inicio del día siguiente en la zona de la empresa, como `cursorDeUnaFecha()`.
+- **C8 y el abierto 4-95: se supone que el id crece con `creado_en`.** Vale para `cotizacion_guardar` (toma la fila con candado antes de comparar la versión: dos guardados que se cruzan no dejan dos revisiones). No vale para
+  los caminos que escriben sin versión (`cotizacion_moderar`, `cotizacion_marcar_final`, que deja dos revisiones de una misma cotización en una transacción y las desempata `id desc`, `papelera_enviar`,
+  `papelera_restaurar`, `_vehiculo_a_lote`, `vehiculos_papelera_restaurar`): `creado_en` es el `now()` del inicio de la transacción, así que una que espera el candado puede dejar un id mayor con una hora menor.
+  Cota: lo que dura esa transacción hasta su `update`; por PostgREST, el `statement_timeout` de `authenticated` (8 s en la base local, leído con `select rolconfig from pg_roles where rolname = 'authenticated'`; no está en `migrations/`); `_vehiculo_a_lote` también lo llama `limpieza_automatica_correr`, un job
+  cuyo rol y `statement_timeout` no se verificaron: ahí la ventana no tiene cota verificada. Qué cuesta: con `p_hasta`, una revisión de esa ventana puede quedar del otro lado del salto; ninguna se pierde ni se repite
+  (la página va por id). No se arregla aquí; lo decide la persona si alguna vez se ve (`clock_timestamp()` o el salto por `(creado_en, id)`).
+- **La medición, en un archivo propio** (`medir-cotizacion-revisiones-fecha.sql`): `medir-cotizaciones-lectura.sql` ya tiene 348 líneas (4-64) y siembra sus revisiones con `creado_en` al revés del id, que ninguna
+  aserción lee. Con cuatro cotizaciones de miles de revisiones y nada más, el plan genérico leía la página por la clave primaria con filtro (estima mal las filas por cotización): la medición suma 20.000 cotizaciones de
+  la siembra con una revisión cada una, como en producción, y entonces la página va por `cotizaciones_revisiones_cotizacion_idx` y el salto, por el nuevo. Lo leído es de 10 a 12 bloques a cualquier profundidad y con 500
+  o 5.000; su guarda quita el índice y exige que caiga la cota contra N («crece con N»: 679 bloques contra 76), porque la cota contra la profundidad sola pasa sin índice (el top-N lee todo a cualquier profundidad).
+- **El rojo del CI de HEAD (run `42220552200`, «Nivel 1»): tres pruebas del tope de 500 agotaban los 5.000 ms** (`historial-del-vehiculo`, `cotizaciones-del-vehiculo` y `cotizaciones-del-lead`, esta última la tercera
+  copia del mismo bucle, del 4.17-4b). La causa que el plan suponía (24 rondas de «Ver más» × consultas por rol) era sólo la mitad: con dos respuestas fijas (una primera página de `TOPE − TAMANO_DE_VER_MAS` filas y un
+  «Ver más») seguían cayendo a 1,5 s con un solo CPU, porque cada `*ByRole` sobre 480 filas calcula el nombre accesible de cada enlace (0,4 a 0,8 s por consulta). Las pruebas llegan al tope con dos respuestas y
+  miran por texto (`getByText`), no por rol; pasan en 0,6 s con el mismo límite. No se sube el timeout ni se quita ninguna prueba; las constantes salen de `paginacion.ts`.

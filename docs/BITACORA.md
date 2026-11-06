@@ -739,3 +739,22 @@ con la recomendada) y plan aprobado antes de ejecutar. Nivel 1 con interfaz, sin
 - **Abiertos:** ninguno nuevo; 4-75 sigue en el 4.17-5.
 - **Commits:** `3c14f037` (filtrar el listado por lead), `cf510328` (paginar las cotizaciones de un lead) y `a790fda8` (abrir la sección de cotizaciones en la ficha).
   e2e completo: sí (4.17-4b, pantalla, 3 de 3: escritorio, 948 en verde, 16 saltados, 0 caídas, 35,3 min)
+
+## 2026-11-06 — Paso 4.17-5a: las revisiones de una cotización desde una fecha, en la base
+
+- **Qué:** el 4.17-5 se partió en 3 (5a la base, 5b `<IrAUnaFecha>` a `src/shared/ui`, 5c la pantalla); este es el 5a. `cotizacion_revisiones()` suma `p_hasta timestamptz` (P1, la recomendada): la página empieza en la más
+  nueva de esa cotización con `creado_en < p_hasta`, por el índice nuevo `cotizaciones_revisiones_cotizacion_creado_idx`; sin ninguna antes, va vacía; la guarda va primero. Una sola firma (se borró la de 3).
+- **El rojo del CI de HEAD** (run `42220552200`, «Nivel 1»): tres pruebas del tope de 500 del historial agotaban 5.000 ms. `fix` aparte y primero: llegan al tope con dos respuestas y miran por texto, no por rol
+  (`.piloto/salidas/4.17-5a/rojo-head-vitest.txt`: caen las tres a 1,5 s con un CPU; `verde-c0.txt`: pasan en 0,6 s).
+- **Estado del CI al empezar:** `42220552200` de `155a90c9` (HEAD), en rojo, por esas tres pruebas.
+- **Verificación** (`.piloto/salidas/4.17-5a/`):
+  - Rojos contra HEAD: F1 a F6 (`rojo-head-probar.txt`: la función de 4 argumentos no existe) y las dos firmas de `auditoria-leads.sql` y `cotizaciones-visibilidad.sql`; los tres Vitest del paso 0.
+  - Verde: `lint`, `typecheck`; `pnpm test` 6.452 de 6.458: las 5 de `auto-carriles.test.ts` (ajenas, 4-83) y `mapa.test.ts` T13 por el tiempo con la máquina cargada (5,09 s; pasa sola: `pnpm-test-final.txt`); `db:reset`, `db:types`, `db:probar` (532 pruebas), `db:lint`,
+    `db:carreras`, `db:medir` (guardar: 319 buffers y 6,8 ms), `db:medir:volumen`.
+  - Mutaciones: M0a y M0b (el hook del historial) y M1 a M9 (la migración), todas caen (`mutaciones.txt`, `mutaciones-sql.txt`).
+  - Completo de escritorio (Nivel 2, disparador 6: un índice), tras el último cambio de código: 948 en verde, 16 saltados y 0 caídas, 34,3 min (`completo.txt`).
+- **Medido** (`db-medir-volumen.txt`, líneas 1837 a 1859): el salto a una fecha, de 10 a 12 bloques y de 4,7 a 6,7 ms a cualquier profundidad con 5.000 revisiones en la cotización, y lo mismo con 500; sin el índice,
+  679 bloques contra 76 (su guarda).
+- **Abiertos:** 4-95 (el id de una revisión puede crecer sin `creado_en` en los caminos que escriben sin versión; `statement_timeout` de `authenticated` en la base local: 8 s) y 4-96 (`mapa.test.ts` T13 al borde de 5 s); 4-75 sigue abierto y pasa al 4.17-5c.
+- **Commits:** `24d12ed9` (el rojo del CI), `ae981b8b` (la migración y sus pruebas), `846d0c4c` (la medición) y `9af841f4` (F5 y F6 por claves, a pedido de la auditoría del informe).
+  e2e completo: sí (4.17-5a, base, Nivel 2: escritorio, 948 en verde, 16 saltados, 0 caídas, 34,3 min)

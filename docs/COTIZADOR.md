@@ -300,7 +300,7 @@ La lectura de una cotización: lo que quien llama no ve no viaja (`supabase/test
 - **`cotizacion_evaluar`** devuelve lo recortado y **no es un oráculo:** un `input` o `bandera` oculta da el mismo error que uno
   inexistente; un override de un nodo oculto vuelve como `nodo_inexistente`. Quien no configura el origen sólo elige uno de los
   `cabecera.modos` de esa versión.
-- **`cotizacion_revisiones(cotización, antes?, tamaño?)`:** página por cursor, con cada `diff` recortado; cada fila con su `autor` (`{id, nombre}`) y la página con las `etiquetas` de los nodos y grupos que nombran sus diffs ya recortados (4.15-2). **`formula_para_cotizar(
+- **`cotizacion_revisiones(cotización, antes?, tamaño?, hasta?)`:** página por cursor (`hasta`, un instante exclusivo, la empieza en la más nueva de esa cotización con `creado_en < hasta`, por `cotizaciones_revisiones_cotizacion_creado_idx`; sin ninguna, va vacía; la guarda va primero; 4.17-5a), con cada `diff` recortado; cada fila con su `autor` (`{id, nombre}`) y la página con las `etiquetas` de los nodos y grupos que nombran sus diffs ya recortados (4.15-2). **`formula_para_cotizar(
 origen)`** y la lectura de `formulas`: sólo con `cotizaciones.configurar`. **`cotizacion_tabla(clave, cotización | origen, abierta?)`:** sólo
   las columnas que leen los nodos que quien llama ve, de SU versión: la de la cotización, la de la hoja abierta o la publicada (4.13-4c1).
 
