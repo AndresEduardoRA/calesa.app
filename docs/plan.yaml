@@ -15,7 +15,25 @@ compartido: [supabase/migrations/, supabase/tests/, e2e/, src/shared/types/]
 carriles:
   - id: a
     base: true
-    dueno_de: [src/modules/cotizaciones/, src/app/, src/shared/, scripts/, .claude/, .github/, package.json, pnpm-lock.yaml, lefthook.yml, design/, supabase/, src/app/(app)/cotizaciones/page.tsx, src/app/(app)/_shell/, src/modules/leads/, src/modules/vehiculos/]
+    dueno_de:
+      [
+        src/modules/cotizaciones/,
+        src/app/,
+        src/shared/,
+        scripts/,
+        .claude/,
+        .github/,
+        package.json,
+        pnpm-lock.yaml,
+        lefthook.yml,
+        design/,
+        supabase/,
+        src/app/(app)/cotizaciones/page.tsx,
+        src/app/(app)/_shell/,
+        src/modules/leads/,
+        src/modules/vehiculos/,
+        src/modules/empresa/,
+      ]
   - id: b
     dueno_de:
       # Sus áreas enteras (features, entities, infra, areas y pantallas).
@@ -75,141 +93,419 @@ carriles:
       - src/modules/cotizaciones/entities/validar.test.ts
       - src/modules/cotizaciones/entities/validar.ts
   - id: c
-    dueno_de: [src/modules/cotizaciones/features/papelera/, src/modules/cotizaciones/entities/papelera/, src/modules/cotizaciones/infra/papelera/, src/modules/cotizaciones/areas/papelera/, src/modules/cotizaciones/pantallas/papelera.ts, src/modules/cotizaciones/features/final/, src/modules/cotizaciones/entities/final/, src/modules/cotizaciones/infra/final/, src/modules/cotizaciones/areas/final/, src/modules/cotizaciones/pantallas/final.ts, src/modules/cotizaciones/features/comprobantes/, src/modules/cotizaciones/entities/comprobantes/, src/modules/cotizaciones/infra/comprobantes/, src/modules/cotizaciones/areas/comprobantes/, src/modules/cotizaciones/pantallas/comprobantes.ts, src/modules/cotizaciones/features/comentarios/, src/modules/cotizaciones/entities/comentarios/, src/modules/cotizaciones/infra/comentarios/, src/modules/cotizaciones/areas/comentarios/, src/modules/cotizaciones/pantallas/comentarios.ts]
+    dueno_de:
+      [
+        src/modules/cotizaciones/features/papelera/,
+        src/modules/cotizaciones/entities/papelera/,
+        src/modules/cotizaciones/infra/papelera/,
+        src/modules/cotizaciones/areas/papelera/,
+        src/modules/cotizaciones/pantallas/papelera.ts,
+        src/modules/cotizaciones/features/final/,
+        src/modules/cotizaciones/entities/final/,
+        src/modules/cotizaciones/infra/final/,
+        src/modules/cotizaciones/areas/final/,
+        src/modules/cotizaciones/pantallas/final.ts,
+        src/modules/cotizaciones/features/comprobantes/,
+        src/modules/cotizaciones/entities/comprobantes/,
+        src/modules/cotizaciones/infra/comprobantes/,
+        src/modules/cotizaciones/areas/comprobantes/,
+        src/modules/cotizaciones/pantallas/comprobantes.ts,
+        src/modules/cotizaciones/features/comentarios/,
+        src/modules/cotizaciones/entities/comentarios/,
+        src/modules/cotizaciones/infra/comentarios/,
+        src/modules/cotizaciones/areas/comentarios/,
+        src/modules/cotizaciones/pantallas/comentarios.ts,
+        src/app/(app)/cotizaciones/papelera/,
+      ]
 
 pasos:
-  - id: "4.15-3"
+  - id: '4.15-3'
     titulo: 'La pantalla de una cotización guardada: /cotizaciones/[id], revisiones por cursor y «Cotizar encima»'
     depende_de: []
     carril: a
     riesgo: ambar
     modulos: [src/modules/cotizaciones/, src/app/(app)/cotizaciones/, docs/]
-    ruteo: {agente: claude, modelo: sonnet, effort: high, modo: auto, sesion: nueva, revisor: ninguno}
+    ruteo:
+      { agente: claude, modelo: sonnet, effort: high, modo: auto, sesion: nueva, revisor: ninguno }
     verificacion: 'Nivel 1; el completo de escritorio por la cuenta (1 de 3)'
     terminado: 'La pantalla edita SU versión, ofrece cotizar encima y lista las revisiones por cursor registradas en RPC_PAGINADAS'
-  - id: "4.15-4"
+  - id: '4.15-4'
     titulo: 'Partir las entradas de cotizaciones por área para correr carriles en paralelo (sin cambiar el comportamiento)'
-    depende_de: ["4.15-3"]
+    depende_de: ['4.15-3']
     carril: a
     riesgo: ambar
     modulos: [src/modules/cotizaciones/, docs/]
-    ruteo: {agente: claude, modelo: sonnet, effort: high, modo: auto, sesion: nueva, revisor: ninguno}
+    ruteo:
+      { agente: claude, modelo: sonnet, effort: high, modo: auto, sesion: nueva, revisor: ninguno }
     verificacion: 'Nivel 1; nada cambia de pantalla'
     terminado: 'Cada área (listado, tarjeta, plantilla, formula, diseno, tablas, papelera, final, comprobantes, comentarios) tiene sus carpetas en features/, entities/ e infra/ y su pantallas/<área>.ts; index.ts, client.ts y composicion.ts sólo reexportan por área y un paso nuevo no los edita; el test de arquitectura falla si un área importa a otra'
-  - id: "4.16"
-    titulo: 'El listado /cotizaciones con resumen, «Vencida», cursor, volumen medido y navegación'
-    depende_de: ["4.15-4"]
+  - id: '4.15-5'
+    titulo: 'La guarda de carriles lee docs/plan.yaml (B y C crean migraciones de sus dominios) y docs/ORCA.md al día (4-84)'
+    depende_de: ['4.15-4']
     carril: a
     riesgo: ambar
-    modulos: [src/modules/cotizaciones/features/listado/, src/modules/cotizaciones/entities/listado/, src/modules/cotizaciones/infra/listado/, src/modules/cotizaciones/pantallas/listado.ts, src/app/(app)/cotizaciones/page.tsx, src/app/(app)/_shell/, docs/]
-    ruteo: {agente: claude, modelo: sonnet, effort: high, modo: auto, sesion: nueva, revisor: ninguno}
+    modulos: [scripts/guardas/, docs/]
+    ruteo:
+      { agente: claude, modelo: sonnet, effort: high, modo: auto, sesion: nueva, revisor: ninguno }
+    verificacion: 'Nivel 1'
+    terminado: 'carriles.mjs mira las ramas b/ y c/ con los dominios de docs/plan.yaml; ORCA dice los carriles de la Fase 4; cierra 4-84'
+  - id: '4.15-6'
+    titulo: 'Los huecos del núcleo para B y C (el ⚙ de la hoja, la cabecera de una guardada, la papelera, Empresa), sin cambio visible'
+    depende_de: ['4.15-5', '4.16']
+    carril: a
+    riesgo: ambar
+    modulos:
+      [
+        src/modules/cotizaciones/features/hoja/,
+        src/modules/cotizaciones/features/listado/components/listado-de-cotizaciones.tsx,
+        src/modules/cotizaciones/pantallas/cotizacion.ts,
+        src/modules/cotizaciones/pantallas/papelera.ts,
+        src/modules/cotizaciones/pantallas/final.ts,
+        src/modules/cotizaciones/pantallas/comprobantes.ts,
+        src/modules/cotizaciones/pantallas/comentarios.ts,
+        src/app/(app)/cotizaciones/page.tsx,
+        'src/app/(app)/cotizaciones/[id]/',
+        src/app/(app)/configuracion/secciones.ts,
+        src/app/(app)/configuracion/cotizacion/seccion.ts,
+        src/app/(app)/configuracion/empresa/,
+        src/modules/empresa/,
+        docs/,
+      ]
+    ruteo:
+      { agente: claude, modelo: sonnet, effort: high, modo: auto, sesion: nueva, revisor: ninguno }
+    verificacion: 'Nivel 1 con interfaz; nada cambia de pantalla'
+    terminado: 'La hoja, /cotizaciones/[id], el listado y Empresa tienen sus huecos; la sección Cotización sale de seccion.ts del B; guardarTipoCambio sale por empresa/client.ts'
+  - id: '4.16'
+    titulo: 'El listado /cotizaciones con resumen, «Vencida», cursor, volumen medido y navegación'
+    depende_de: ['4.15-4']
+    carril: a
+    riesgo: ambar
+    modulos:
+      [
+        src/modules/cotizaciones/features/listado/,
+        src/modules/cotizaciones/entities/listado/,
+        src/modules/cotizaciones/infra/listado/,
+        src/modules/cotizaciones/pantallas/listado.ts,
+        src/app/(app)/cotizaciones/page.tsx,
+        src/app/(app)/_shell/,
+        docs/,
+      ]
+    ruteo:
+      { agente: claude, modelo: sonnet, effort: high, modo: auto, sesion: nueva, revisor: ninguno }
     verificacion: 'Nivel 2 (_shell) + db:medir:volumen + E2E_VOLUMEN=1'
     terminado: 'El listado pagina por cursor sin crecer con N; cierra 4-14 y 4-23'
-  - id: "4.17"
+  - id: '4.17'
     titulo: 'Secciones «Cotizaciones» de la ficha del lead y del vehículo con «Ver más» (5a-12)'
-    depende_de: ["4.16"]
+    depende_de: ['4.16', '4.15-6']
     carril: a
     riesgo: verde
-    modulos: [src/modules/cotizaciones/features/listado/, src/modules/cotizaciones/entities/listado/, src/modules/cotizaciones/infra/listado/, src/modules/cotizaciones/pantallas/listado.ts, src/modules/leads/, src/modules/vehiculos/, docs/]
-    ruteo: {agente: claude, modelo: sonnet, effort: high, modo: auto, sesion: nueva, revisor: ninguno}
+    modulos:
+      [
+        src/modules/cotizaciones/features/listado/,
+        src/modules/cotizaciones/entities/listado/,
+        src/modules/cotizaciones/infra/listado/,
+        src/modules/cotizaciones/pantallas/listado.ts,
+        src/modules/leads/,
+        src/modules/vehiculos/,
+        src/modules/cotizaciones/areas/listado/,
+        docs/,
+      ]
+    ruteo:
+      { agente: claude, modelo: sonnet, effort: high, modo: auto, sesion: nueva, revisor: ninguno }
     verificacion: 'Nivel 1 + cadena db + db:carreras'
     terminado: 'Las dos fichas listan sus cotizaciones con el mismo «Ver más»'
-  - id: "4.18"
+  - id: '4.18'
     titulo: 'La tarjeta, el PDF y compartir (hito 4-A)'
-    depende_de: ["4.17"]
+    depende_de: ['4.17']
     carril: a
     riesgo: ambar
-    modulos: [src/modules/cotizaciones/features/tarjeta/, src/modules/cotizaciones/entities/tarjeta/, src/modules/cotizaciones/infra/tarjeta/, src/modules/cotizaciones/pantallas/tarjeta.ts, docs/]
-    ruteo: {agente: claude, modelo: sonnet, effort: high, modo: auto, sesion: nueva, revisor: ninguno}
+    modulos:
+      [
+        src/modules/cotizaciones/features/tarjeta/,
+        src/modules/cotizaciones/entities/tarjeta/,
+        src/modules/cotizaciones/infra/tarjeta/,
+        src/modules/cotizaciones/pantallas/tarjeta.ts,
+        src/modules/cotizaciones/areas/tarjeta/,
+        docs/,
+      ]
+    ruteo:
+      { agente: claude, modelo: sonnet, effort: high, modo: auto, sesion: nueva, revisor: ninguno }
     verificacion: 'Nivel 1; Nivel 2 del hito'
     terminado: 'Se cotiza de punta a punta con su PDF; el total del PDF es la suma de las líneas'
-  - id: "4.19"
+  - id: '4.19'
     titulo: 'El editor de la plantilla con vista previa en vivo'
-    depende_de: ["4.18"]
+    depende_de: ['4.18']
     carril: a
     riesgo: verde
-    modulos: [src/modules/cotizaciones/features/plantilla/, src/modules/cotizaciones/entities/plantilla/, src/modules/cotizaciones/infra/plantilla/, src/modules/cotizaciones/pantallas/plantilla.ts, docs/]
-    ruteo: {agente: claude, modelo: sonnet, effort: medium, modo: auto, sesion: nueva, revisor: ninguno}
+    modulos:
+      [
+        src/modules/cotizaciones/features/plantilla/,
+        src/modules/cotizaciones/entities/plantilla/,
+        src/modules/cotizaciones/infra/plantilla/,
+        src/modules/cotizaciones/pantallas/plantilla.ts,
+        src/modules/cotizaciones/areas/plantilla/,
+        docs/,
+      ]
+    ruteo:
+      {
+        agente: claude,
+        modelo: sonnet,
+        effort: medium,
+        modo: auto,
+        sesion: nueva,
+        revisor: ninguno,
+      }
     verificacion: 'Nivel 1'
     terminado: 'La plantilla se edita con vista previa en vivo'
-  - id: "4.20"
+  - id: '4.20'
     titulo: 'La fórmula: versiones, publicar con nota, historial, revertir y el ⚙; Configuración › Cotización'
-    depende_de: ["4.15-4"]
+    depende_de: ['4.15-4', '4.15-5', '4.15-6']
     carril: b
     riesgo: rojo
-    modulos: [src/modules/cotizaciones/features/formula/, src/modules/cotizaciones/entities/formula/, src/modules/cotizaciones/infra/formula/, src/modules/cotizaciones/pantallas/formula.ts, src/app/(app)/configuracion/cotizacion/, docs/]
-    ruteo: {agente: claude, modelo: opus, effort: high, modo: plan→auto, sesion: nueva, revisor: claude-sesion-nueva}
+    modulos:
+      [
+        src/modules/cotizaciones/features/formula/,
+        src/modules/cotizaciones/entities/formula/,
+        src/modules/cotizaciones/infra/formula/,
+        src/modules/cotizaciones/pantallas/formula.ts,
+        src/app/(app)/configuracion/cotizacion/,
+        src/modules/cotizaciones/areas/formula/,
+        src/modules/cotizaciones/entities/casos-de-diseno.json,
+        src/modules/cotizaciones/entities/motivos-de-diseno.test.ts,
+        src/modules/cotizaciones/entities/motivos-de-diseno.ts,
+        src/modules/cotizaciones/entities/validar-diseno-cobertura.ts,
+        src/modules/cotizaciones/entities/validar-diseno-contexto.ts,
+        src/modules/cotizaciones/entities/validar-diseno-escala.test.ts,
+        src/modules/cotizaciones/entities/validar-diseno-modos.ts,
+        src/modules/cotizaciones/entities/validar-diseno-secciones.ts,
+        src/modules/cotizaciones/entities/validar-diseno.test.ts,
+        src/modules/cotizaciones/entities/validar-diseno.ts,
+        docs/,
+      ]
+    ruteo:
+      {
+        agente: claude,
+        modelo: opus,
+        effort: high,
+        modo: plan→auto,
+        sesion: nueva,
+        revisor: claude-sesion-nueva,
+      }
     verificacion: 'Nivel 1 + cadena db'
     terminado: 'Publicar, revertir y el ⚙ crean la N+1; cierra 4-8, 4-33, 4-36, 4-19, 4-20, 5a-29 y 5a-30'
-  - id: "4.21"
+  - id: '4.21'
     titulo: 'El editor de la fórmula como el Excel'
-    depende_de: ["4.20"]
+    depende_de: ['4.20']
     carril: b
     riesgo: ambar
-    modulos: [src/modules/cotizaciones/features/formula/, src/modules/cotizaciones/entities/formula/, src/modules/cotizaciones/infra/formula/, src/modules/cotizaciones/pantallas/formula.ts, docs/]
-    ruteo: {agente: claude, modelo: sonnet, effort: high, modo: auto, sesion: nueva, revisor: ninguno}
+    modulos:
+      [
+        src/modules/cotizaciones/features/formula/,
+        src/modules/cotizaciones/entities/formula/,
+        src/modules/cotizaciones/infra/formula/,
+        src/modules/cotizaciones/pantallas/formula.ts,
+        src/modules/cotizaciones/areas/formula/,
+        src/modules/cotizaciones/entities/casos-de-formula.json,
+        src/modules/cotizaciones/entities/casos-del-compilador.json,
+        src/modules/cotizaciones/entities/compilador-arbol.ts,
+        src/modules/cotizaciones/entities/compilador-casos-de-formula.test.ts,
+        src/modules/cotizaciones/entities/compilador-emitir.ts,
+        src/modules/cotizaciones/entities/compilador-escala.test.ts,
+        src/modules/cotizaciones/entities/compilador-estado.ts,
+        src/modules/cotizaciones/entities/compilador-formula-de-prueba.ts,
+        src/modules/cotizaciones/entities/compilador-funciones.ts,
+        src/modules/cotizaciones/entities/compilador-generador.ts,
+        src/modules/cotizaciones/entities/compilador-lexico.ts,
+        src/modules/cotizaciones/entities/compilador-nombres.ts,
+        src/modules/cotizaciones/entities/compilador-propiedades.test.ts,
+        src/modules/cotizaciones/entities/compilador-reducir.ts,
+        src/modules/cotizaciones/entities/compilador-sintaxis.ts,
+        src/modules/cotizaciones/entities/compilador.test.ts,
+        src/modules/cotizaciones/entities/compilador.ts,
+        src/modules/cotizaciones/entities/motivos-de-formula.test.ts,
+        src/modules/cotizaciones/entities/motivos-de-formula.ts,
+        src/modules/cotizaciones/entities/motivos-del-compilador.ts,
+        src/modules/cotizaciones/entities/validar-campos.ts,
+        src/modules/cotizaciones/entities/validar-contexto.ts,
+        src/modules/cotizaciones/entities/validar-escala.test.ts,
+        src/modules/cotizaciones/entities/validar-grupos.ts,
+        src/modules/cotizaciones/entities/validar-variante.ts,
+        src/modules/cotizaciones/entities/validar.test.ts,
+        src/modules/cotizaciones/entities/validar.ts,
+        docs/,
+      ]
+    ruteo:
+      { agente: claude, modelo: sonnet, effort: high, modo: auto, sesion: nueva, revisor: ninguno }
     verificacion: 'Nivel 1'
     terminado: 'Cada fila se edita en texto, compilada por 4.07; cierra 4-5 y 4-6'
-  - id: "4.22"
+  - id: '4.22'
     titulo: 'El editor del diseño con vista previa a 412 y 1.280 px y al 200 %'
-    depende_de: ["4.21"]
+    depende_de: ['4.21']
     carril: b
     riesgo: ambar
-    modulos: [src/modules/cotizaciones/features/diseno/, src/modules/cotizaciones/entities/diseno/, src/modules/cotizaciones/infra/diseno/, src/modules/cotizaciones/pantallas/diseno.ts, docs/]
-    ruteo: {agente: claude, modelo: sonnet, effort: high, modo: auto, sesion: nueva, revisor: ninguno}
+    modulos:
+      [
+        src/modules/cotizaciones/features/diseno/,
+        src/modules/cotizaciones/entities/diseno/,
+        src/modules/cotizaciones/infra/diseno/,
+        src/modules/cotizaciones/pantallas/diseno.ts,
+        src/modules/cotizaciones/areas/diseno/,
+        src/modules/cotizaciones/entities/casos-de-diseno.json,
+        src/modules/cotizaciones/entities/motivos-de-diseno.test.ts,
+        src/modules/cotizaciones/entities/motivos-de-diseno.ts,
+        src/modules/cotizaciones/entities/validar-diseno-cobertura.ts,
+        src/modules/cotizaciones/entities/validar-diseno-contexto.ts,
+        src/modules/cotizaciones/entities/validar-diseno-escala.test.ts,
+        src/modules/cotizaciones/entities/validar-diseno-modos.ts,
+        src/modules/cotizaciones/entities/validar-diseno-secciones.ts,
+        src/modules/cotizaciones/entities/validar-diseno.test.ts,
+        src/modules/cotizaciones/entities/validar-diseno.ts,
+        docs/,
+      ]
+    ruteo:
+      { agente: claude, modelo: sonnet, effort: high, modo: auto, sesion: nueva, revisor: ninguno }
     verificacion: 'Nivel 1'
     terminado: 'El diseño se edita; avisa sin bloquear cuando un nodo restringido es el único oculto de una suma; cierra 4-30'
-  - id: "4.23"
+  - id: '4.23'
     titulo: 'Las tablas de referencia: editar, reordenar y publicar la N+1'
-    depende_de: ["4.22"]
+    depende_de: ['4.22']
     carril: b
     riesgo: rojo
-    modulos: [src/modules/cotizaciones/features/tablas/, src/modules/cotizaciones/entities/tablas/, src/modules/cotizaciones/infra/tablas/, src/modules/cotizaciones/pantallas/tablas.ts, docs/]
-    ruteo: {agente: claude, modelo: opus, effort: high, modo: plan→auto, sesion: nueva, revisor: claude-sesion-nueva}
+    modulos:
+      [
+        src/modules/cotizaciones/features/tablas/,
+        src/modules/cotizaciones/entities/tablas/,
+        src/modules/cotizaciones/infra/tablas/,
+        src/modules/cotizaciones/pantallas/tablas.ts,
+        src/modules/cotizaciones/areas/tablas/,
+        docs/,
+      ]
+    ruteo:
+      {
+        agente: claude,
+        modelo: opus,
+        effort: high,
+        modo: plan→auto,
+        sesion: nueva,
+        revisor: claude-sesion-nueva,
+      }
     verificacion: 'Nivel 2 + db:carreras'
     terminado: 'Las tablas de referencia tienen versión y se publican; primero 5b-7'
-  - id: "4.24"
+  - id: '4.24'
     titulo: 'La papelera propia de cotizaciones: permiso, versión, purga por lotes y «Deshacer»'
-    depende_de: ["4.15-4"]
+    depende_de: ['4.15-4', '4.15-5', '4.15-6']
     carril: c
     riesgo: rojo
-    modulos: [src/modules/cotizaciones/features/papelera/, src/modules/cotizaciones/entities/papelera/, src/modules/cotizaciones/infra/papelera/, src/modules/cotizaciones/pantallas/papelera.ts, docs/]
-    ruteo: {agente: claude, modelo: opus, effort: high, modo: plan→auto, sesion: nueva, revisor: claude-sesion-nueva}
+    modulos:
+      [
+        src/modules/cotizaciones/features/papelera/,
+        src/modules/cotizaciones/entities/papelera/,
+        src/modules/cotizaciones/infra/papelera/,
+        src/modules/cotizaciones/pantallas/papelera.ts,
+        src/modules/cotizaciones/areas/papelera/,
+        src/app/(app)/cotizaciones/papelera/,
+        docs/,
+      ]
+    ruteo:
+      {
+        agente: claude,
+        modelo: opus,
+        effort: high,
+        modo: plan→auto,
+        sesion: nueva,
+        revisor: claude-sesion-nueva,
+      }
     verificacion: 'Nivel 2 + medir-jobs.sql'
     terminado: 'cotizaciones.papelera.purgar gobierna su papelera; cierra 4-68 y 4-70'
-  - id: "4.25"
+  - id: '4.25'
     titulo: 'Marcar final: candados en el orden de vincular, lead a cliente y final como ancla'
-    depende_de: ["4.24"]
+    depende_de: ['4.24']
     carril: c
     riesgo: rojo
-    modulos: [src/modules/cotizaciones/features/final/, src/modules/cotizaciones/entities/final/, src/modules/cotizaciones/infra/final/, src/modules/cotizaciones/pantallas/final.ts, docs/]
-    ruteo: {agente: claude, modelo: opus, effort: high, modo: plan→auto, sesion: nueva, revisor: claude-sesion-nueva}
+    modulos:
+      [
+        src/modules/cotizaciones/features/final/,
+        src/modules/cotizaciones/entities/final/,
+        src/modules/cotizaciones/infra/final/,
+        src/modules/cotizaciones/pantallas/final.ts,
+        src/modules/cotizaciones/areas/final/,
+        docs/,
+      ]
+    ruteo:
+      {
+        agente: claude,
+        modelo: opus,
+        effort: high,
+        modo: plan→auto,
+        sesion: nueva,
+        revisor: claude-sesion-nueva,
+      }
     verificacion: 'Nivel 1 + cadena db + db:carreras + medir-jobs.sql'
     terminado: 'cotizacion_marcar_final no deja deadlock; cierra 4-17'
-  - id: "4.26"
+  - id: '4.26'
     titulo: 'Comprobantes: emitir y anular con numeración sin huecos'
-    depende_de: ["4.25"]
+    depende_de: ['4.25']
     carril: c
     riesgo: rojo
-    modulos: [src/modules/cotizaciones/features/comprobantes/, src/modules/cotizaciones/entities/comprobantes/, src/modules/cotizaciones/infra/comprobantes/, src/modules/cotizaciones/pantallas/comprobantes.ts, docs/]
-    ruteo: {agente: claude, modelo: opus, effort: high, modo: plan→auto, sesion: nueva, revisor: claude-sesion-nueva}
+    modulos:
+      [
+        src/modules/cotizaciones/features/comprobantes/,
+        src/modules/cotizaciones/entities/comprobantes/,
+        src/modules/cotizaciones/infra/comprobantes/,
+        src/modules/cotizaciones/pantallas/comprobantes.ts,
+        src/modules/cotizaciones/areas/comprobantes/,
+        docs/,
+      ]
+    ruteo:
+      {
+        agente: claude,
+        modelo: opus,
+        effort: high,
+        modo: plan→auto,
+        sesion: nueva,
+        revisor: claude-sesion-nueva,
+      }
     verificacion: 'Nivel 2 + db:carreras'
     terminado: 'La numeración no tiene huecos bajo carrera; la serie se configura en Empresa'
-  - id: "4.27"
+  - id: '4.27'
     titulo: 'Comentarios anidados, adjuntos, favoritos, reportes y moderar'
-    depende_de: ["4.26"]
+    depende_de: ['4.26']
     carril: c
     riesgo: rojo
-    modulos: [src/modules/cotizaciones/features/comentarios/, src/modules/cotizaciones/entities/comentarios/, src/modules/cotizaciones/infra/comentarios/, src/modules/cotizaciones/pantallas/comentarios.ts, docs/]
-    ruteo: {agente: claude, modelo: opus, effort: high, modo: plan→auto, sesion: nueva, revisor: claude-sesion-nueva}
+    modulos:
+      [
+        src/modules/cotizaciones/features/comentarios/,
+        src/modules/cotizaciones/entities/comentarios/,
+        src/modules/cotizaciones/infra/comentarios/,
+        src/modules/cotizaciones/pantallas/comentarios.ts,
+        src/modules/cotizaciones/areas/comentarios/,
+        docs/,
+      ]
+    ruteo:
+      {
+        agente: claude,
+        modelo: opus,
+        effort: high,
+        modo: plan→auto,
+        sesion: nueva,
+        revisor: claude-sesion-nueva,
+      }
     verificacion: 'Nivel 2 (storage.objects)'
     terminado: 'Los comentarios y adjuntos respetan los niveles; cierra 4-69'
-  - id: "4.28"
+  - id: '4.28'
     titulo: 'El cierre: recorrido de la IA con dos cuentas, criterios, 5a-4b y 5a-33'
-    depende_de: ["4.19", "4.23", "4.27"]
+    depende_de: ['4.19', '4.23', '4.27']
     carril: a
     riesgo: ambar
     modulos: [src/modules/cotizaciones/, docs/, docs/]
-    ruteo: {agente: claude, modelo: opus, effort: high, modo: auto, sesion: nueva, revisor: claude-sesion-nueva}
+    ruteo:
+      {
+        agente: claude,
+        modelo: opus,
+        effort: high,
+        modo: auto,
+        sesion: nueva,
+        revisor: claude-sesion-nueva,
+      }
     verificacion: 'Nivel 3'
     terminado: 'Fase 4 cerrada con la tabla de criterios, ESTADO y BITACORA'

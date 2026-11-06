@@ -591,3 +591,29 @@ lo detecta con la migración escrita) y corrió el completo de escritorio.
     (`leads-oportunidades`, `-ver-todas`, `paneles-salida-con-aviso`, `paneles-foco-al-volver-ficha`, `leads-mover-con-motivo`) pasaron todos.
 - **Commits:** `8b6fc9e7` (leer las oportunidades de un lead por cursor), `2a541e14` (medir las oportunidades de un lead con volumen) y `15b46cf8` (el `fix` que pidió la auditoría del informe: la medición mira también la clave primaria).
   e2e completo: sí (4.17-1, estructura, Nivel 2: escritorio, 933 en verde, 16 saltados, 1 caída, 35,2 min)
+
+## 2026-11-05 — Paso 4.15-4: `cotizaciones` partido por área para los carriles B y C
+
+`docs/DECISIONES.md` › «Paso 4.15-4». Refactor sin conducta visible (no es rigor máximo): plan auditado dos veces (bloqueó y después dio observaciones, atendidas), tres decisiones de la persona (P1 a P3,
+con la recomendada) y plan aprobado antes de ejecutar. Nivel 1 con interfaz, sin completo.
+
+- **Lo hecho:** 10 áreas y un núcleo; las entradas de cada una en `areas/<x>/{index,client,composicion}.ts`; las tres de la raíz, sólo `export *`; las 8 actions del núcleo importan
+  `areas/nucleo/composicion`; las carpetas y la pantalla vacías de cada área; el listado en `entities/listado/` e `infra/listado/` (12 `git mv`, más tres rutas de fuera); `mapa.sh` sigue los `export *`;
+  la guarda `scripts/guardas/areas-de-cotizaciones{,-plan}.ts` con su test (39 pruebas); el lint de `client.ts` también para `areas/*/client.ts`; y `docs/plan.yaml`: B y C con sus `areas/<x>/`, el B con
+  las 37 rutas del compilador y los validadores, los pasos 4.15-5 y 4.15-6 y sus dependencias (el coordinador da al A 4.15-3, 4.15-4, 4.15-5, 4.16, 4.15-6, 4.17, y a B y C «esperar» hasta el 4.15-5 y el 4.15-6).
+- **Verificación** (`.piloto/salidas/4.15-4/`):
+  - **S1** (la API, con el compilador de TypeScript): los nombres de `index.ts` (86), `client.ts` (4) y las cuatro pantallas son los mismos que en HEAD; sólo aparecen las 9 pantallas vacías (`exports-diff.txt`).
+  - **S2** (`presupuesto-js.spec.ts`, en HEAD y al final): las seis rutas pesan igual, al décimo de KB: `/cotizaciones` 359, `/cotizaciones/nuevo` 456,3, `/cotizaciones/[id]` 442,4, `/vehiculos` 476,7,
+    `/perfil` 417,2 y `/leads` 509,6 (`js-head.txt`, `js-despues.txt`).
+  - **S3**: las 20 rutas del módulo que nombran `scripts/`, `e2e/`, `supabase/tests/`, las fichas y los docs existen, salvo un ejemplo inventado de `e2e-dirigidos.test.ts:65` que tampoco existía en HEAD (`rutas.txt`).
+  - Rojos contra HEAD: la guarda cae en T11 (el árbol) y T12 (`plan.yaml`) y pasan las 37 de fixtures (`rojo-head-guarda.txt`); T13 pasa en HEAD (`mapa-head.txt`) y cae en el árbol del commit 1 con el
+    `mapa.sh` de HEAD («`* ./areas/nucleo/index`, … +1», `rojo-mapa.txt`). La primera versión de la guarda confundía `entities/diseno.ts` (núcleo) con la carpeta del área: ahora resuelve contra lo que existe, con su prueba.
+  - D1 a D4 (`demostraciones.txt`): un import de `listado` a `formula` y un `export` de más en `index.ts` hacen caer T11 (`tsc`, verde); `export * from '../../composicion'` en `areas/formula/client.ts` y un
+    import de `infra/` que no es `*.client` hacen caer `pnpm lint`; un `*.client` pasa.
+  - `lint`, `typecheck` y `mapa.sh --check` en verde en cada commit; `pnpm test` entero: 6.316 en verde (536 archivos; sin `.piloto/PARAR`).
+  - **Dirigidos**, en escritorio y móvil: los 32 de `e2e-dirigidos.mjs` y, a mano, los 4 `configuracion-cotizacion-niveles*` y `leads-ficha-cotizar` (`dirigidos.txt`): 369 en verde, 7 saltados (entre
+    ellos `listas-por-pagina-volumen`, que pide `E2E_VOLUMEN=1`: su cambio es la ruta de un import, que mira `tsc`), 3 caídas y 13 sin correr (hermanas `serial` de las caídas). Las tres, 3 de 3 verdes
+    solas (`repetir-*.txt`), y sus specs enteros verdes (`hermanas-*.txt`: 16 y 9). Dos son carreras de la prueba (**4-85**: esperan algo que ya se cumplía); la tercera, en móvil con la carga en 7 a 11 por
+    otro stack que se reiniciaba, sin causa medida (**4-86**). 4-81 no cayó.
+- **Commits:** `f7afd5a8` (las entradas por área), `a68efe96` (el listado a su área) y `b78cb428` (la guarda).
+  e2e completo: no (4.15-4, pantalla, 1 de 3)

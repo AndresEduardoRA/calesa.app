@@ -1800,3 +1800,28 @@ desde el 2a5; con su apertura sin marcar (M7, el estado de antes del 2a5) el foc
   primera. Tiene un assert propio de que cada ruta devuelve sus `n + 1` filas: una primera versión medía los planes sin la sesión de Ana (la policy vaciaba las rutas) y el Assert 1 pasaba sin medir nada. El Assert 2 mira todos los índices de `oportunidades` menos los dos parciales, la clave primaria incluida: releer las filas por id para armar el JSON (M14) lee 40 bloques de ella en cada página y cae.
 - **`db:medir:volumen` completo cayó dos veces en mediciones ajenas** (el crecimiento con N de la «chica» en `medir-vehiculos-inventario.sql` y la razón 0,78 de `medir-importacion-volumen.sql`, con la máquina
   ocupada por otras sesiones) y pasó entero a la tercera y a la cuarta. Ninguna toca oportunidades.
+
+## 2026-11-05 — Paso 4.15-4
+
+Partir `cotizaciones` por área para que los carriles B y C corran en paralelo (`docs/plan.yaml`). Plan auditado dos veces (bloqueó y después dio observaciones, atendidas: `.piloto/planes/4.15-4.respuestas.md`).
+Lo pidió la persona después de que el A hiciera el 4.16 y el 4.17-1: se partió el módulo como estaba, con el listado ya hecho.
+
+- **Diez áreas y un núcleo.** Las áreas son las de la fila. Lo demás (la hoja, guardar, encima, revisiones, historial, niveles, el motor, el compilador, los validadores, el diseño, la apertura, la ruta) es
+  el **núcleo**: lo que comparten las áreas. No es un área más porque las áreas lo usan (la hoja importa `diseno.ts` y `nodos.ts`; `filtros-del-listado` importa la ruta de la hoja): si lo fuera, la
+  primera área que lo usara ya importaría otra. Un área importa lo suyo y el núcleo; el núcleo no importa ningún área; adentro nadie importa las tres entradas de la raíz. El núcleo es del A.
+- **Las entradas de cada área van en `areas/<área>/{index,client,composicion}.ts`**, no dentro de las carpetas de las capas: la composición de un área tiene que poder importar `infra/`, y eso sólo lo deja
+  boundaries a un `modulo-api` (una carpeta del módulo que no es `features|entities|infra`); en `infra/<área>/` las features no podrían importarla. Las tres de la raíz quedan con un `export *` por el
+  núcleo y cada área: un paso nuevo agrega en `areas/<su área>/` y no las toca, y un nombre repetido entre dos áreas es un error de `tsc` (TS2308). `mapa.sh` sigue los `export *` para que el MAPA liste
+  la misma API.
+- **La guarda va en Vitest** (`scripts/guardas/areas-de-cotizaciones.test.ts`), no en boundaries: sus elementos son carpetas de un tipo, y duplicar las tres capas por área doblaba las políticas; además
+  boundaries no mira los tests, la forma de las entradas ni `plan.yaml`. La guarda resuelve cada import contra los archivos que existen, como TypeScript: `./diseno` es `entities/diseno.ts`, del núcleo,
+  aunque exista la carpeta del área `entities/diseno/` (la primera versión, sin resolver, los confundía). El lint de `client.ts` vale también para `areas/*/client.ts`; lo de `infra/` que no es `*.client`
+  se prohíbe con un `regex` (D4 lo muestra: cae `../../infra/listado/listado` y pasa un `*.client`).
+- **La composición del navegador queda en la raíz** (`composicion.client.ts` y sus dos hermanas): es del núcleo y la nombran 18 `vi.mock`. La de un área irá en `areas/<área>/composicion.client.ts`,
+  sin que ningún barril la reexporte.
+- **Sembrar el coordinador queda fuera**: su estado vive fuera del repo y `integrado 4.15-4` sólo es verdad después de integrar en `main`. Aunque `auto-carriles.sh` abra B y C al integrar este paso,
+  no reciben trabajo: el 4.20 y el 4.24 dependen del 4.15-5 y del 4.15-6 (`coordinador siguiente b|c` responde «esperar»).
+- **Del plan** (contestadas el 2026-11-05, las tres con la recomendada): **P1** la guarda de carriles (`carriles.mjs`, la Fase 7) y `docs/ORCA.md` se ponen al día en un paso propio, el **4.15-5**
+  (4-84). **P2** el compilador y los validadores (37 archivos de `entities/`) siguen en el núcleo y los posee el B uno por uno en su `dueno_de` y en los `modulos` del 4.20 al 4.22: no se mueven porque
+  los importan otros archivos del núcleo y `validar-diseno*` importa `validarFormula`. La guarda hace caer un archivo nuevo de esas familias que el B no posea. **P3** los huecos del núcleo que B y C
+  necesitan (el ⚙ de la hoja, la cabecera de una guardada, el enlace a la papelera, Empresa, la sección Cotización) los abre el A en el **4.15-6**, sin cambio visible, antes del 4.17-2.
