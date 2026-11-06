@@ -94,6 +94,8 @@ declare
     -- La papelera propia de cotizaciones (4.24-1a): no recibe un lead; nombra `cotizaciones` y `lotes_papelera`. Pide ver cada cotización antes de tomarla
     -- y el permiso de su clase (`_cotizacion_a_papelera`); la lista, la clave `cotizaciones.papelera.purgar` o lo propio, y el lote no lleva nada que la RLS esconda.
     ('cotizaciones_papelera_enviar(jsonb)', 'X'),
+    ('cotizaciones_papelera_listar(timestamp with time zone,uuid,boolean,integer,integer)', 'X'),
+    ('cotizaciones_papelera_lote(uuid)', 'X'),
     ('lead_ficha(uuid)', 'L'),
     -- La búsqueda por candidatos (5a-fix-1b): lo que ve quien llama, ni una fila más (`_lead_visible_para()` con su sesión); el segundo paso es la vista de siempre, de invocador.
     ('leads_candidatos(jsonb)', 'L'),

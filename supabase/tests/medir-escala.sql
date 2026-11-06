@@ -772,6 +772,7 @@ do $medir$ declare q text; begin
     perform pg_temp.escala('vehículos: filtro de limpieza', q, format($w$select coalesce(json_agg(t), '[]') from (select v.id, v.titulo, v.creado_en, public.limpieza_el(v) from public.vehiculos v
       where v.origen_id = %L and public.limpieza_el(v) <= now() + interval '30 days' order by v.creado_en desc, v.id desc limit 51) t$w$, current_setting('medir.origen')), 150, 'vehiculos_origen_listado_idx', '{vehiculos}', 5000);
     perform pg_temp.escala('papelera de vehículos, página 1 de 5 lotes', q, format('select public.vehiculos_papelera_listar(null, null, false, %s)', current_setting('medir.lotes')::int + 1), 200);
+    perform pg_temp.escala('papelera de cotizaciones, página 1 de 5 lotes', q, format('select public.cotizaciones_papelera_listar(null, null, false, %s)', current_setting('medir.lotes')::int + 1), 200);
     perform pg_temp.escala('storage_gc_pendiente', q, 'select public.storage_gc_pendiente()', 50);
     -- El alta con el contador: un upsert por la clave primaria, lo mismo con 20 leads que con 62.000.
     perform pg_temp.escala('alta de un lead (trigger del número propio incluido)', q, $w$select public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', 'Medir alta',
@@ -879,6 +880,67 @@ select pg_temp.escala('baja: el candado de los leads de un lote (la consulta)', 
   200, 'leads_pkey', array['leads'], 0, 'postgres');
 select pg_temp.escala('baja de la dueña (vista previa, hasta 1.001)', 'duena',
   $w$select public.equipo_vista_previa_baja('00000000-0000-0000-0000-0000000000d1')$w$, 100);
+
+-- La papelera de cotizaciones (4.24-1a), con 500 lotes más de la dueña (uno por cotización, cada uno un minuto más viejo) y uno de Ana de hace 400 días, más viejo
+-- que todos los de la siembra (la cotización más vieja es de hace ≈ 347 días). Ana ya tiene un lote de la siembra: queda con 2 entre ≈ 508. Va después de las
+-- demás mediciones (no cambia ninguna) y antes de `$violaciones$`, que es lo que hace caer la corrida. De la RPC se mide el tiempo (es opaca para `explain`);
+-- la forma, sobre la consulta de adentro, como `postgres` (como la de leads, arriba). Ana no tiene la clave: recorre el índice y descarta los lotes ajenos.
+-- La consulta de adentro de `cotizaciones_papelera_listar()`, con sus parámetros como los ve plpgsql (el plan genérico: `v_todo` y `v_yo` son parámetros, y
+-- `$1 or creado_por = $2` no es condición de índice). Con literales el planificador elige otro camino y no mide lo que corre.
+prepare medir_pc_sin(boolean, uuid, int) as select l.id from public.lotes_papelera l
+  where l.tipo = 'cotizaciones' and l.purgado_en is null and l.restaurado_en is null and ($1 or l.creado_por = $2)
+    and (select true from public.cotizaciones c where c.lote_papelera_id = l.id and c.eliminado_en is not null limit 1)
+  order by l.creado_en desc, l.id desc limit $3;
+prepare medir_pc_cursor(boolean, uuid, timestamptz, uuid, int) as select l.id from public.lotes_papelera l
+  where l.tipo = 'cotizaciones' and l.purgado_en is null and l.restaurado_en is null and ($1 or l.creado_por = $2)
+    and (l.creado_en, l.id) < ($3, $4)
+    and (select true from public.cotizaciones c where c.lote_papelera_id = l.id and c.eliminado_en is not null limit 1)
+  order by l.creado_en desc, l.id desc limit $5;
+do $papelera_cot$
+declare
+  duena constant uuid := '00000000-0000-0000-0000-0000000000d1';
+  ana constant uuid := '00000000-0000-0000-0000-0000000000a1';
+  m record; v_ana boolean;
+begin
+  perform pg_temp.quien('ana');
+  set local role authenticated;
+  v_ana := public.tiene_permiso('cotizaciones.papelera.purgar');
+  reset role;
+  if v_ana then raise exception 'Ana tiene cotizaciones.papelera.purgar: la medición de su papelera de cotizaciones mediría el caso fácil.'; end if;
+
+  select c.origen_id, c.formula_id, c.valores, c.fuentes, c.tipos_cambio, c.totales, c.total_base into m
+    from public.cotizaciones c where c.titulo like 'Volumen cotización %' and c.eliminado_en is null limit 1;
+  create temp table medir_pc_lotes on commit drop as
+    select gen_random_uuid() as id, g, case when g = 0 then ana else duena end as quien,
+           case when g = 0 then now() - interval '400 days' else now() - make_interval(mins => g) end as creado_en
+      from generate_series(0, 500) g;
+  insert into public.lotes_papelera (id, tipo, creado_por, creado_en, actualizado_en, resumen)
+  select l.id, 'cotizaciones', l.quien, l.creado_en, l.creado_en, '{"cantidad": 1, "restaurados": 0, "purgados": 0}' from medir_pc_lotes l;
+  insert into public.cotizaciones (origen_id, creado_por, formula_id, titulo, valores, fuentes, tipos_cambio, totales, total_base, eliminado_en, eliminado_por, lote_papelera_id)
+  select m.origen_id, l.quien, m.formula_id, 'Medir papelera ' || l.g, m.valores, m.fuentes, m.tipos_cambio, m.totales, m.total_base, l.creado_en, l.quien, l.id
+    from medir_pc_lotes l;
+  perform set_config('medir.pc_en', (select creado_en::text from medir_pc_lotes where g = 400), true);
+  perform set_config('medir.pc_id', (select id::text from medir_pc_lotes where g = 400), true);
+  analyze public.lotes_papelera;
+
+  -- El tiempo de la RPC: la dueña, su página 1 y la del cursor del lote 400; Ana, su página 1.
+  perform pg_temp.escala('papelera de cotizaciones con 500 lotes más, página 1', 'duena',
+    format('select public.cotizaciones_papelera_listar(null, null, false, %s)', current_setting('medir.lotes')::int + 1), 200);
+  perform pg_temp.escala('papelera de cotizaciones con 500 lotes más, por el cursor del lote 400', 'duena',
+    format('select public.cotizaciones_papelera_listar(%L, %L, false, %s)', current_setting('medir.pc_en'), current_setting('medir.pc_id'), current_setting('medir.lotes')::int + 1), 200);
+  perform pg_temp.escala('papelera de cotizaciones con 500 lotes ajenos, página 1', 'ana',
+    format('select public.cotizaciones_papelera_listar(null, null, false, %s)', current_setting('medir.lotes')::int + 1), 200);
+  -- La forma, sobre la consulta de adentro (lotes_papelera_tipo_idx, una sonda por lote): Ana descarta los ≈ 506 lotes ajenos (el tope, 600); la dueña, por el
+  -- cursor, ninguno. Ni `lotes_papelera` ni `cotizaciones` enteras.
+  perform pg_temp.escala('papelera de cotizaciones: los lotes propios entre 500 ajenos (la consulta)', 'ana',
+    format('execute medir_pc_sin(false, %L, %s)', ana, current_setting('medir.lotes')::int + 1),
+    50, 'lotes_papelera_tipo_idx', '{lotes_papelera,cotizaciones}', 600, 'postgres');
+  perform pg_temp.escala('papelera de cotizaciones: por el cursor del lote 400 (la consulta)', 'duena',
+    format('execute medir_pc_cursor(true, %L, %L, %L, %s)', duena, current_setting('medir.pc_en'), current_setting('medir.pc_id'), current_setting('medir.lotes')::int + 1),
+    50, 'lotes_papelera_tipo_idx', '{lotes_papelera,cotizaciones}', 0, 'postgres');
+end $papelera_cot$;
+deallocate medir_pc_sin;
+deallocate medir_pc_cursor;
 
 -- Las aserciones que no se cumplieron, todas juntas.
 do $violaciones$ declare v_texto text; v_n int;

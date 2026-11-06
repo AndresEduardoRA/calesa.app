@@ -7086,6 +7086,18 @@ export type Database = {
       }
       _cotizacion_vehiculo: { Args: { p_vehiculo: string }; Returns: undefined }
       _cotizacion_ver_total_bs: { Args: { p_formula: string; p_ver: boolean }; Returns: undefined }
+      _cotizaciones_papelera_lote_json: {
+        Args: {
+          p_dias: number
+          p_lote: Omit<
+            Database['public']['Tables']['lotes_papelera']['Row'],
+            Database['public']['Tables']['lotes_papelera']['ComputedFields']
+          >
+          p_primeros: number
+          p_yo: string
+        }
+        Returns: Json
+      }
       _diseno_forma: { Args: { p_diseno: Json }; Returns: undefined }
       _diseno_forma_item: { Args: { p_i: Json }; Returns: boolean }
       _diseno_modos: {
@@ -8119,6 +8131,17 @@ export type Database = {
         }[]
       }
       cotizaciones_papelera_enviar: { Args: { p_cotizaciones: Json }; Returns: Json }
+      cotizaciones_papelera_listar: {
+        Args: {
+          p_antes_en?: string
+          p_antes_id?: string
+          p_hacia_atras?: boolean
+          p_primeros?: number
+          p_tope?: number
+        }
+        Returns: Json
+      }
+      cotizaciones_papelera_lote: { Args: { p_lote: string }; Returns: Json }
       crear_lead: {
         Args: { p_id: string; p_lead: Json; p_recordatorio?: Json; p_seguimiento?: Json }
         Returns: Json
