@@ -184,9 +184,12 @@ declare
   duena constant uuid := '00000000-0000-0000-0000-000000000001';
   nover uuid := pg_temp.rf_persona(gen_random_uuid(), 'No ve', '{}');
   sin uuid := pg_temp.rf_persona(gen_random_uuid(), 'Sin costos', array['cotizaciones.ver']);
-  t record; r jsonb; sql text;
+  t record; r jsonb; sql text; v_inexistente jsonb;
 begin
   select * into t from pg_temp.rf_terreno();
+  -- Lo que recibe quien pide una cotización que no existe: el 42501 y su mensaje, y nada más.
+  v_inexistente := pg_temp.rf_corre(duena, format('select public.cotizacion_revisiones(%L)', gen_random_uuid()));
+  if v_inexistente ->> 'error' is distinct from '42501' or v_inexistente ->> 'mensaje' is distinct from 'No tienes acceso a esta cotización.' then raise exception 'F5: una inexistente: %', v_inexistente; end if;
   -- Sin ancla (antes de la más vieja): ni la respuesta vacía de F3 ni nada de la cotización, el mismo 42501.
   foreach sql in array array[
     format('select public.cotizacion_revisiones(%L, null, null, %L)', t.p, pg_temp.rf_t0() - interval '1 hour'),
@@ -194,19 +197,22 @@ begin
     format('select public.cotizacion_revisiones(%L, null, null, %L)', t.p, pg_temp.rf_t0() + interval '7 hours'),
     format('select public.cotizacion_revisiones(%L)', t.p)] loop
     r := pg_temp.rf_corre(nover, sql);
-    if r ->> 'error' is distinct from '42501' then raise exception 'F5: quien no la ve: % con %', r, sql; end if;
+    if r is distinct from v_inexistente then raise exception 'F5: quien no la ve no recibe lo de una que no existe: % (esperaba %) con %', r, v_inexistente, sql; end if;
   end loop;
   -- Un id que no existe, con p_hasta, también.
   r := pg_temp.rf_corre(duena, format('select public.cotizacion_revisiones(%L, null, null, %L)', gen_random_uuid(), pg_temp.rf_t0() + interval '7 hours'));
-  if r ->> 'error' is distinct from '42501' then raise exception 'F5: un id que no existe: %', r; end if;
+  if r is distinct from v_inexistente then raise exception 'F5: un id que no existe, con p_hasta: %', r; end if;
   r := pg_temp.rf_corre(duena, format('select public.cotizacion_revisiones(%L, null, null, %L)', gen_random_uuid(), pg_temp.rf_t0() - interval '1 hour'));
-  if r ->> 'error' is distinct from '42501' then raise exception 'F5: un id que no existe, sin ancla: %', r; end if;
+  if r is distinct from v_inexistente then raise exception 'F5: un id que no existe, sin ancla: %', r; end if;
   -- Quien ve pero no el nivel «costos»: el nodo oculto no viaja en ningún diff ni en las etiquetas (con p_hasta, como sin él).
   r := pg_temp.rf_corre(sin, format('select public.cotizacion_revisiones(%L, null, null, %L)', t.p, pg_temp.rf_t0() + interval '7 hours'));
-  if r ? 'error' or jsonb_array_length(r -> 'revisiones') <> 6 or r::text not like '%"visible"%' then raise exception 'F5: sin costos, con p_hasta: %', r; end if;
-  if r::text like '%oculto%' or r::text like '%Oculto%' then raise exception 'F5: sin costos recibe lo oculto: %', r; end if;
+  if r ? 'error' or jsonb_array_length(r -> 'revisiones') <> 6 or not jsonb_path_exists(r, '$.revisiones[*].diff.valores.a.visible') then raise exception 'F5: sin costos, con p_hasta: %', r; end if;
+  if jsonb_path_exists(r, '$.revisiones[*].diff.valores.de.oculto') or jsonb_path_exists(r, '$.revisiones[*].diff.valores.a.oculto') or r -> 'etiquetas' -> 'nodos' ? 'oculto' then
+    raise exception 'F5: sin costos recibe lo oculto: %', r;
+  end if;
+  if not jsonb_path_exists(r, '$.revisiones[*].diff.valores.a.visible') then raise exception 'F5: sin costos no recibe ni lo visible (el control no mide nada): %', r; end if;
   r := pg_temp.rf_corre(duena, format('select public.cotizacion_revisiones(%L, null, null, %L)', t.p, pg_temp.rf_t0() + interval '7 hours'));
-  if r::text not like '%"oculto"%' then raise exception 'F5: la dueña no ve lo oculto (el control no mide nada): %', r; end if;
+  if not jsonb_path_exists(r, '$.revisiones[*].diff.valores.a.oculto') and not jsonb_path_exists(r, '$.revisiones[*].diff.valores.de.oculto') then raise exception 'F5: la dueña no ve lo oculto (el control no mide nada): %', r; end if;
 end $$;
 rollback;
 
@@ -228,7 +234,7 @@ begin
     raise exception 'F6: authenticated o service_role sin EXECUTE';
   end if;
   if has_function_privilege('anon', v_def.oid, 'execute') then raise exception 'F6: anon ejecuta'; end if;
-  if exists (select 1 from pg_proc p, aclexplode(p.proacl) x where p.oid = v_def.oid and x.grantee = 0) then raise exception 'F6: PUBLIC ejecuta'; end if;
+  if exists (select 1 from pg_proc p, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) x where p.oid = v_def.oid and x.grantee = 0) then raise exception 'F6: PUBLIC ejecuta'; end if;
   select pg_get_indexdef(i.indexrelid) into v_idx from pg_index i join pg_class c on c.oid = i.indexrelid where c.relname = 'cotizaciones_revisiones_cotizacion_creado_idx';
   if v_idx is distinct from 'CREATE INDEX cotizaciones_revisiones_cotizacion_creado_idx ON public.cotizaciones_revisiones USING btree (cotizacion_id, creado_en DESC, id DESC)' then
     raise exception 'F6: el índice: %', v_idx;
