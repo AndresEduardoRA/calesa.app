@@ -2073,3 +2073,25 @@ Lo pidió la persona después de que el A hiciera el 4.16 y el 4.17-1: se parti�
   columna y la regla queda estricta. Se activa cuando su diseño los dibuje.
 - **K6 prueba `moneda_bs` con una versión cuyo `total_en` es un tipo de cambio a otra moneda** (los de la semilla van todos a BOB) y la compara con la de
   `cotizacion_hoja`, no con una guardada como decía el plan: así distingue la moneda del `total_en` de la de un bucket (M23) sin crear una cotización.
+
+## 2026-11-06 — Paso 4.18-2: la tarjeta de una cotización en pantalla
+
+- **«Vista previa» entra por un hueco del núcleo, como el ⚙:** `ContextoDeLaVistaPrevia` lleva una función `dibujar(props)` que llena `<ProveedorDeLaTarjeta>` (del área `tarjeta`)
+  con la cáscara de `diferido()` del modal y lo que sólo la página sabe (asesor, vehículo, número, logo). Sin proveedor ni un nodo cambia, y el núcleo no importa el área. La
+  lee el navegador al abrir el modal (`cotizacion_tarjeta()`, una vez por versión, 5 min): la hoja no carga la tarjeta ni su modelo.
+- **La tarjeta de una guardada dibuja lo guardado (P5 a):** la plantilla «cambia el aspecto de una vieja, nunca sus números» (4.18-1) también vale cuando lo de hoy difiere
+  (las tablas vivas, el vehículo de hoy). `calculoDeLoGuardado()` toma valores y totales del snapshot (por eso `LoGuardado` suma `totalBs`, que la base ya devolvía recortado) y
+  los **estados del primer recálculo**: el snapshot no los trae y dependen sólo de la variante y las banderas, no de las tablas. Si ese recálculo falló, la tarjeta va sólo con el
+  total guardado. Fuera de la tarjeta, el modal dice si lo de hoy no es lo guardado y si hay cambios sin guardar. Así lo que ve la persona es lo que dirá el PDF del 4.18-3,
+  que se arma en el servidor y no ve lo que no se guardó. El primer plan lo dibujaba de hoy sin decirlo: la 1.ª auditoría lo bloqueó y pasó a pregunta de producto.
+- **El modelo toma de la hoja sólo números por id de nodo (C9):** filas, etiquetas, leyendas, total y lo aparte salen de lo que la lectura nombra (el nivel «todos»); quien ve
+  «costos» ve en la tarjeta lo mismo que quien no. Cuatro mutaciones baratas (Vitest) lo prueban aunque el paso sea de pantalla, porque `entities/` decide qué monto ve el cliente.
+- **Sin subtotales por grupo:** la base no los da (un grupo no es un nodo) y sumarlos en el navegador sería dinero calculado fuera de la base; si la persona los quiere, es una
+  lectura de la base (otro paso). La moneda del total en Bs sale de una sola fuente, `hoja.cabecera.monedaBs` (la misma regla que `moneda_bs` de la lectura).
+- **La fecha va corta («6 nov 2026», `formatearFecha`):** una fecha larga pedía `src/shared/lib/fechas.ts`, que sube el paso a Nivel 2. Hoy en la nueva; en una guardada, el día
+  de su último guardado (`actualizadoEn`, sólo formateado).
+- **«Asesor:»** es quien cotiza en la hoja nueva y quien creó la cotización en una guardada (`leerAsesorDeLaCotizacion`, una lectura por clave primaria con el autor embebido; si
+  falla, no se nombra); la tarjeta por omisión lleva sólo el total (se corrigió el glosario: lo aparte de la pantalla es el de quien mira). El título de la tarjeta es el del
+  vehículo y el encabezado el de la variante (P6 del 4.18-1): cierra 4-55.
+- **La hoja pasó a 469 de 500 nodos al abrir (491 usada) y `/cotizaciones/nuevo` a 458,5 de 460 KB (4-73):** el botón es de sólo texto (P1) y su código, diferido. El «Compartir»
+  del 4.18-3 sumará otro nodo y más JS: antes, atribuir lo que ya pesa. Se registró el modal en `scripts/guardas/modales-con-salida.ts` (sólo dibuja, no guarda nada tipeado).
