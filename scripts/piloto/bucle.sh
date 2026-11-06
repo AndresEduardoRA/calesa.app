@@ -304,12 +304,18 @@ puerta_de_fase() { # <paso>
   done
 }
 
+# `hechos.json` lo lee el ruteo: se regenera al empezar la vuelta y otra vez tras asignar el paso de un carril (`carril_asignar` escribe
+# `asignado.json` después de los primeros hechos, y sin esto el ruteo veía `asignado: null` y elegía por ESTADO: 4.20-2 y 4.17-5b en vez de 4.21 y 4.24).
+regenerar_hechos() {
+  bash "$BIN/hechos.sh" >"$ESTADO/hechos.json.tmp" 2>"$ESTADO/hechos.err" && mv -f "$ESTADO/hechos.json.tmp" "$ESTADO/hechos.json" ||
+    { parada "hechos.sh falló: $(tail -n 2 "$ESTADO/hechos.err" | tr '\n' ' ')"; return 1; }
+}
+
 # Una vuelta. Devuelve 0 cuando hay que volver a rutear; los avisos que paran salen del bucle desde `parada`.
 vuelta() {
   local paso modelo effort modo sid prompt desde banderas=() tipo_ruteo
   verificar_copia || { parada "la copia de los scripts del piloto no coincide con bin.sha256 (alterada o con archivos de más)"; return 0; }
-  bash "$BIN/hechos.sh" >"$ESTADO/hechos.json.tmp" 2>"$ESTADO/hechos.err" && mv -f "$ESTADO/hechos.json.tmp" "$ESTADO/hechos.json" ||
-    { parada "hechos.sh falló: $(tail -n 2 "$ESTADO/hechos.err" | tr '\n' ' ')"; return 0; }
+  regenerar_hechos || return 0
   paradas_deterministas || return 0
 
   # Un cierre pendiente (el paso quedó «listo» y no se verificó o publicó): sin modelo.
@@ -324,7 +330,7 @@ vuelta() {
   if modo_carril && [ ! -f "$ESTADO/en-curso.json" ] && [ ! -f "$ESTADO/forzar-ci-fix" ]; then
     carril_asignar
     case "$?" in
-      0) ;;
+      0) regenerar_hechos || return 0 ;;
       10) registro "carril $PILOTO_CARRIL: sin paso libre; espero ${PILOTO_ESPERA_S:-120} s."; $DORMIR "${PILOTO_ESPERA_S:-120}"; return 0 ;;
       11) registro "carril $PILOTO_CARRIL: el coordinador no tiene más pasos para este carril."; exit 0 ;;
       *) parada "el coordinador no pudo asignar un paso al carril $PILOTO_CARRIL: $(tail -n 1 "$ESTADO/coordinador.err" 2>/dev/null)"; return 0 ;;
