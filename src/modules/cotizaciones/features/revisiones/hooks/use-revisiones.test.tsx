@@ -5,10 +5,15 @@ import { TOPE_DE_LO_CARGADO } from '@/shared/lib/paginacion'
 import type { PaginaDeRevisiones } from '../../../entities/revisiones'
 
 type Respuesta = Resultado<PaginaDeRevisiones>
-type Pedido = { cotizacionId: string; antes: number | null; resolver: (r: Respuesta) => void }
+type Pedido = {
+  cotizacionId: string
+  antes: number | null
+  hasta: string | null
+  resolver: (r: Respuesta) => void
+}
 const pedidos: Pedido[] = []
 vi.mock('../../../composicion-revisiones.client', () => ({
-  leerRevisiones: (pedido: { cotizacionId: string; antes: number | null }) =>
+  leerRevisiones: (pedido: { cotizacionId: string; antes: number | null; hasta: string | null }) =>
     new Promise<Respuesta>((resolver) => {
       pedidos.push({ ...pedido, resolver })
     }),

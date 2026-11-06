@@ -126,6 +126,7 @@ export const DRAWERS: Record<string, RegistroDeDrawer> = {
     sinFormulario: 'de sólo lectura: el resumen de una cotización del listado (4.16-4b)',
   },
   'src/modules/cotizaciones/features/revisiones/components/panel-de-revisiones.tsx': {
-    sinFormulario: 'de sólo lectura: las revisiones de una cotización guardada',
+    sinFormulario:
+      'de sólo lectura: las revisiones de una cotización guardada; «Ir a una fecha» es una posición, no algo que se guarde',
   },
 }

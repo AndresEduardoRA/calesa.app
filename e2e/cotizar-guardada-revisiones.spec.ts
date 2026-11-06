@@ -1,8 +1,14 @@
 import { expect, test, type Page } from './soporte/prueba'
 import { entrar } from './soporte/alta'
+import { literal, sql } from './soporte/sql'
 import { borrarRolesDePrueba } from './soporte/base'
 import { guardarPorLaHoja, numeroDeLaCotizacion } from './soporte/cotizar-guardada'
-import { sembrarRevisiones } from './soporte/cotizar-encima'
+import {
+  bordeDeUnDia,
+  fecharRevisiones,
+  primeraRevisionHasta,
+  sembrarRevisiones,
+} from './soporte/cotizar-encima'
 import { limpiarGuardado, prepararGuardado, tipearEnLaHoja } from './soporte/cotizar-guardar'
 
 // Las revisiones de una cotización guardada (paso 4.15-3b, `docs/UX.md` › «Cotizar»): el botón «Revisiones» de `/cotizaciones/[id]` abre un panel de sólo lectura con su URL
@@ -96,4 +102,73 @@ test('E2E con 501 revisiones la primera página cabe en su presupuesto y «Ver m
   await expect(filas(page)).toHaveCount(40)
   expect(lecturas).toHaveLength(1)
   expect(lecturas[0]).toContain('p_antes')
+})
+
+type Lectura = { cuerpo: { p_hasta?: string; p_antes?: number }; primera: number }
+const esLectura = (r: { url: () => string }) =>
+  new URL(r.url()).pathname.endsWith('/rpc/cotizacion_revisiones')
+
+// Pulsa lo que pide una página y da lo que mandó y el id con el que empezó la respuesta.
+async function leyendo(page: Page, pulsar: () => Promise<void>): Promise<Lectura> {
+  const respuesta = page.waitForResponse(esLectura)
+  await pulsar()
+  const r = await respuesta
+  const cuerpo = JSON.parse(r.request().postData() ?? '{}') as Lectura['cuerpo']
+  const { revisiones } = (await r.json()) as { revisiones: { id: number }[] }
+  return { cuerpo, primera: revisiones[0]?.id ?? 0 }
+}
+
+test('E2E «Ir a una fecha» trae las revisiones de ese día y anteriores, «Ver más» sigue sin la fecha y «Volver a las más recientes» trae la más nueva', async ({
+  page,
+}) => {
+  sembrarRevisiones(cotizacion, 501)
+  fecharRevisiones(cotizacion, 6)
+  const masNueva = Number(
+    sql(
+      `select max(id) from public.cotizaciones_revisiones where cotizacion_id = ${literal(cotizacion)}::uuid`,
+    ),
+  )
+  const diaDe = (dias: number) =>
+    new Date(Date.now() - dias * 86_400_000).toISOString().slice(0, 10)
+  await entrar(page, duena, { fresco: true })
+  await page.goto(`/cotizaciones/${cotizacion}`)
+  await botonRevisiones(page).click()
+  await expect(filas(page)).toHaveCount(20)
+  const irA = (dia: string) => async () => {
+    await panel(page).getByLabel('Ir a una fecha').fill(dia)
+    await panel(page).getByRole('button', { name: 'Ir', exact: true }).click()
+  }
+
+  const dia = diaDe(60)
+  const salto = await leyendo(page, irA(dia))
+  expect(salto.cuerpo).not.toHaveProperty('p_antes')
+  expect(new Date(salto.cuerpo.p_hasta ?? '').getTime()).toBe(new Date(bordeDeUnDia(dia)).getTime())
+  expect(salto.primera).toBe(primeraRevisionHasta(cotizacion, dia))
+  await expect(panel(page).getByText(/^Desde el /)).toBeVisible()
+  await expect(filas(page)).toHaveCount(20)
+
+  const mas = await leyendo(page, () =>
+    panel(page).getByRole('button', { name: 'Ver más' }).click(),
+  )
+  expect(mas.cuerpo).toHaveProperty('p_antes')
+  expect(mas.cuerpo).not.toHaveProperty('p_hasta')
+  await expect(filas(page)).toHaveCount(40)
+
+  const vuelta = await leyendo(page, () =>
+    panel(page).getByRole('button', { name: 'Volver a las más recientes' }).click(),
+  )
+  expect(vuelta.cuerpo).not.toHaveProperty('p_hasta')
+  expect(vuelta.cuerpo).not.toHaveProperty('p_antes')
+  expect(vuelta.primera).toBe(masNueva)
+  await expect(panel(page).getByText(/^Desde el /)).toBeHidden()
+  await expect(filas(page)).toHaveCount(20)
+
+  const antigua = diaDe(200)
+  await leyendo(page, irA(antigua))
+  await expect(panel(page).getByText('No hay revisiones hasta esa fecha.')).toBeVisible()
+  await expect(filas(page)).toHaveCount(0)
+  await expect(panel(page).getByLabel('Ir a una fecha')).toBeVisible()
+  await expect(
+    panel(page).getByRole('button', { name: 'Volver a las más recientes' }),
+  ).toBeVisible()
 })

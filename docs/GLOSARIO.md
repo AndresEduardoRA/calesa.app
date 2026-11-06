@@ -289,7 +289,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Chip** — `chipsDe()` / `<ChipsDeFiltros>`: un filtro activo a la vista, que se quita solo.
 - **Cursor** — `lib/paginacion.ts` / `?cursor=`: dónde quedó la página de un listado (keyset `creado_en, id`).
 - **Tope de lo cargado** — `TOPE_DE_LO_CARGADO` / `enElTope()` (`lib/paginacion.ts`): máximo que carga una lista con «Ver más» (500).
-- **Ir a una fecha** — `<IrAUnaFecha>` (`shared/ui`, entrega el día) / `irAUnaFecha()` / `cursorDeUnaFecha()`: mirar la línea de tiempo desde un día sembrando el cursor de «Ver más»; no va a la URL.
+- **Ir a una fecha** — `<IrAUnaFecha>` (`shared/ui`, entrega el día) / `irAUnaFecha()` / `cursorDeUnaFecha()`: mirar la línea de tiempo desde un día sembrando el cursor de «Ver más»; no va a la URL. En «Revisiones» de una guardada (4.17-5c), `hastaDeUnDia()` → `p_hasta` de `cotizacion_revisiones()`.
 - **Conflicto** — `PT409` / `<AvisoDeConflicto>`: otra persona guardó antes; dice quién y cuándo, con «Ver cómo quedó» y «Recargar».
 - **Borrador** — `useBorrador()`, `useBorradorDeEstado()`: lo escrito y no guardado de un formulario, en la pestaña; se repone al volver.
 - **Tablero** — `/tablero`: métricas y gráficas por rol con widgets.

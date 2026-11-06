@@ -774,3 +774,22 @@ con la recomendada) y plan aprobado antes de ejecutar. Nivel 1 con interfaz, sin
 - **Abiertos:** 4-97 nuevo; 4-75 sigue abierto y pasa al 4.17-5c.
 - **Commits:** `ee26c849` (las pruebas que fijan lo de hoy) y `a003508d` (el movimiento a `shared/ui`).
   e2e completo: sí (4.17-5b, shared, Nivel 2: escritorio, 947 en verde, 16 saltados, 1 caída, 39,7 min)
+
+## 2026-11-06 — Paso 4.17-5c: «Ir a una fecha» en «Revisiones» de una guardada (cierra 4-75)
+
+- **Qué:** el panel «Revisiones» ofrece «Ir a una fecha» (`<IrAUnaFecha>` de `shared/ui`) mientras hay más hacia atrás o se mira desde una fecha. `hastaDeUnDia()` (`entities/revisiones.ts`, C1) arma el
+  `p_hasta` exclusivo; `leerRevisiones` lo manda sólo si llega (C2); `useRevisiones` guarda `desde`, y el salto y «Volver a las más recientes» reemplazan lo leído mientras «Ver más» sigue sin `p_hasta`
+  (C3–C5). Un pedido nunca se adelanta a otro: `useTurno` (C6, C7) y `pidiendo` en el estado; si un salto falla, lo leído y su `desde` quedan y «Reintentar» repite ese salto (C8). El hook se parte en
+  `ventana-de-revisiones.ts` (puro), `use-turno.ts` y `use-pedidos-de-revisiones.ts`. El panel dibuja «Desde el …» y «Volver a las más recientes» arriba, el aviso del tope con «Para ver anteriores, ve a una
+  fecha.», «No hay revisiones hasta esa fecha.» y el error del salto; lo de abajo de la lista es `pie-de-revisiones.tsx`; «Ver más», «Reintentar» e «Ir» quedan apagados con un pedido en vuelo (C9–C12).
+- **Estado del CI al empezar:** el run de `ec4f4b03` en verde; el de HEAD (`3c9bbfeb`), `42255781852`, seguía en curso al empezar (no estaba en rojo).
+- **Plan:** auditado en dos rondas (la 1.ª bloqueó por C6/C7/H4 contradictorios: se decidió sin adelanto, como `enExclusiva` de la línea de tiempo); `.piloto/planes/4.17-5c.md`.
+- **Verificación** (`.piloto/salidas/4.17-5c/`):
+  - Pruebas en rojo contra HEAD (`rojo-head.txt`: 17 caídas en entities, infra, hook y panel; P2, la guarda de la condición, verde en HEAD) y e2e E1 en rojo contra el `src/` de HEAD (`rojo-head-e2e.txt`: cae
+    sólo E1). Verdes después (`verde.txt`; `verde-e2e.txt`: 22 en verde en `escritorio` y `movil`: `cotizar-guardada-revisiones` y `cotizar-encima`).
+  - `presupuesto-js.spec.ts` (escritorio, `verde-presupuesto-js.txt`): `/cotizaciones/[id]` 435,7 de 448 KB, sin cambio.
+  - Verde: `lint`, `typecheck`, `mapa.sh --check`, `coordinador validar`; `pnpm test` 6.479 de 6.485: las 5 de `auto-carriles.test.ts` (ajenas, 4-83) y `mapa.test.ts` T13 por tiempo (pasa sola:
+    `mapa-test-sola.txt`; 4-96).
+- **Abiertos:** 4-75 cerrado. Ninguno nuevo.
+- **Commits:** `19234bca` (la lectura desde un día y la ventana del hook) y `facd9f2f` (el panel, el e2e y la ficha).
+  e2e completo: no (4.17-5c, pantalla, 1 de 3)

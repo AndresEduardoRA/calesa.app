@@ -2,14 +2,13 @@
 
 import { HistoryIcon } from 'lucide-react'
 import type { RefObject } from 'react'
-import { textoDelTope } from '@/shared/lib/conteo'
-import { TOPE_DE_LO_CARGADO } from '@/shared/lib/paginacion'
-import { AvisoDeTope } from '@/shared/ui/aviso-de-tope'
-import { Button } from '@/shared/ui/button'
+import { DesdeUnaFecha } from '@/shared/ui/desde-una-fecha'
 import { Drawer } from '@/shared/ui/drawer'
 import { EstadoError, EstadoVacio } from '@/shared/ui/estados'
+import { useRegional } from '@/shared/ui/regional'
 import { useRevisiones } from '../hooks/use-revisiones'
 import { EsqueletoDeRevisiones } from './esqueleto-de-revisiones'
+import { PieDeRevisiones } from './pie-de-revisiones'
 import { Revision } from './revision'
 
 type Props = {
@@ -34,6 +33,7 @@ export function PanelDeRevisiones({
   botonDeRevisiones,
 }: Props) {
   const revisiones = useRevisiones({ cotizacionId, version, abierto })
+  const { zonaHoraria } = useRegional()
   return (
     <Drawer
       abierto={abierto}
@@ -41,12 +41,18 @@ export function PanelDeRevisiones({
       titulo={`Revisiones de la cotización n.º ${String(numero)}`}
       focoAlCerrar={() => botonDeRevisiones.current ?? true}
     >
-      <Contenido revisiones={revisiones} />
+      <Contenido revisiones={revisiones} zona={zonaHoraria} />
     </Drawer>
   )
 }
 
-function Contenido({ revisiones }: { revisiones: ReturnType<typeof useRevisiones> }) {
+function Contenido({
+  revisiones,
+  zona,
+}: {
+  revisiones: ReturnType<typeof useRevisiones>
+  zona: string
+}) {
   if (!revisiones.leido) {
     return revisiones.error ? (
       <div role="alert">
@@ -59,43 +65,46 @@ function Contenido({ revisiones }: { revisiones: ReturnType<typeof useRevisiones
       <EsqueletoDeRevisiones />
     )
   }
-  if (revisiones.revisiones.length === 0) {
+  if (revisiones.revisiones.length === 0 && revisiones.desde === null) {
     return <EstadoVacio Icono={HistoryIcon} titulo="Todavía no tiene cambios guardados." compacto />
   }
   return (
     <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3">
-      <ul aria-label="Revisiones" className="grid grid-cols-[minmax(0,1fr)] gap-2">
-        {revisiones.revisiones.map((revision) => (
-          <Revision key={revision.id} revision={revision} etiquetas={revisiones.etiquetas.nodos} />
-        ))}
-      </ul>
-      {revisiones.error ? (
-        <div role="alert" className="flex flex-wrap items-center gap-2">
-          <p className="text-(length:--text-sm) text-(--color-ink-soft)">
-            No se pudieron cargar más.
-          </p>
-          <Button
-            type="button"
-            variant="outline"
-            className="min-h-11 md:min-h-9"
-            onClick={revisiones.reintentar}
-          >
-            Reintentar
-          </Button>
-        </div>
-      ) : revisiones.enElTope ? (
-        <AvisoDeTope texto={textoDelTope(TOPE_DE_LO_CARGADO, { articulo: 'las' })} />
-      ) : revisiones.hayMasParaPedir ? (
-        <Button
-          type="button"
-          variant="outline"
-          className="min-h-11 md:min-h-9"
-          disabled={revisiones.cargandoMas}
-          onClick={revisiones.verMas}
-        >
-          {revisiones.cargandoMas ? 'Cargando…' : 'Ver más'}
-        </Button>
-      ) : null}
+      <DesdeLaFecha revisiones={revisiones} zona={zona} />
+      {revisiones.revisiones.length === 0 ? (
+        <p className="text-(length:--text-sm) text-(--color-ink-faint)">
+          No hay revisiones hasta esa fecha.
+        </p>
+      ) : (
+        <ul aria-label="Revisiones" className="grid grid-cols-[minmax(0,1fr)] gap-2">
+          {revisiones.revisiones.map((revision) => (
+            <Revision
+              key={revision.id}
+              revision={revision}
+              etiquetas={revisiones.etiquetas.nodos}
+            />
+          ))}
+        </ul>
+      )}
+      <PieDeRevisiones revisiones={revisiones} zona={zona} />
     </div>
+  )
+}
+
+function DesdeLaFecha({
+  revisiones,
+  zona,
+}: {
+  revisiones: ReturnType<typeof useRevisiones>
+  zona: string
+}) {
+  return revisiones.desde === null ? null : (
+    <DesdeUnaFecha
+      dia={revisiones.desde}
+      zona={zona}
+      ocupado={revisiones.ocupado}
+      volver="Volver a las más recientes"
+      alVolver={revisiones.volverALasMasRecientes}
+    />
   )
 }

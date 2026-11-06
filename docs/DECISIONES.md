@@ -2002,3 +2002,16 @@ Lo pidió la persona después de que el A hiciera el 4.16 y el 4.17-1: se parti�
   `Promise.all` de los tres `import()`, el primero que se dibuja trae los tres, como cuando vivían en un archivo.
 - **Ningún ayudante nuevo en `shared/lib/fechas.ts`** («el instante exclusivo de un día»): la línea ya se escribe con dos funciones de `fechas.ts`, y tocar `src/shared/lib` vuelve el paso de rigor máximo. Si el 5c
   lo quiere, lo decide su plan.
+
+## 2026-11-06 — Paso 4.17-5c: «Ir a una fecha» en «Revisiones»
+
+- **«Ir a una fecha» abajo de la lista, como en la línea de tiempo** (4.15-3b P2 ya lo había decidido): se dibuja mientras haya más hacia atrás o se mire desde una fecha; «Desde el …» y «Volver a las más
+  recientes» van arriba. Sin pregunta abierta: los textos («No hay revisiones hasta esa fecha.», «Mostrando 500 desde el …», «Para ver anteriores, ve a una fecha.») son microdecisiones tomadas de la línea de tiempo.
+- **El borde en `entities/` de cotizaciones (`hastaDeUnDia()`):** son las tres líneas de `cursorDeUnaFecha()`, repetidas a propósito; subirlas a `shared/lib` vuelve el paso de rigor máximo.
+- **El salto reemplaza lo leído y «Ver más» nunca manda `p_hasta`:** la base ya toma el menor de `p_antes` y `p_hasta`, pero el hook no los junta; así «Ver más» sigue por id y no se salta ni repite nada.
+- **Un pedido nunca se adelanta a otro** (la auditoría del plan bloqueó una contradicción entre «ocupado no pide» y «un salto adelanta»): con cualquier pedido en vuelo, `verMas`, `irAUnaFecha`, `volverALasMasRecientes`
+  y `reintentar` no piden, como `enExclusiva` de seguimientos; «Ver más», «Reintentar» e «Ir» quedan apagados sin cambiar su texto.
+- **El error de un salto deja lo leído y su `desde`:** `fallido` guarda el día y el borde para que «Reintentar» repita ese salto; el error de volver, igual. El error de «Ver más» se reintenta como antes.
+- **Import directo, sin `diferido()` propio:** el panel ya viaja con `diferido()`, así que `<IrAUnaFecha>` y `<DesdeUnaFecha>` viajan en su chunk; la carga en frío de `/cotizaciones/[id]` no se mueve (435,7 KB).
+- **El motivo del registro de `drawers-con-salida.ts`** dice que «Ir a una fecha» es una posición y no algo que se guarde: su `<form>` vive en `shared/ui`.
+- **El hook en tres archivos** (la función pasaba de 80 líneas): `ventana-de-revisiones.ts` (puro), `use-turno.ts` (un pedido a la vez y lo viejo se descarta) y `use-pedidos-de-revisiones.ts`.

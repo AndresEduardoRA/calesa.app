@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { autorDeLaRevision, revisionesDesde } from './revisiones'
+import { autorDeLaRevision, hastaDeUnDia, revisionesDesde } from './revisiones'
 
 const USUARIO = '00000000-0000-4000-8000-0000000000aa'
 const fila = (id: number, extra: Record<string, unknown> = {}) => ({
@@ -66,5 +66,19 @@ describe('autorDeLaRevision', () => {
     expect(sin && autorDeLaRevision(sin)).toBe('Sin autor')
     expect(vacio && autorDeLaRevision(vacio)).toBe('Sin nombre')
     expect(con && autorDeLaRevision(con)).toBe('Ana Pérez')
+  })
+})
+
+describe('hastaDeUnDia: el borde exclusivo de «ese día y lo anterior»', () => {
+  it('es el inicio del día siguiente en la zona de la empresa', () => {
+    expect(hastaDeUnDia('2026-10-13', 'America/La_Paz')).toBe('2026-10-14T04:00:00.000Z')
+    expect(hastaDeUnDia('2026-10-13', 'Asia/Tokyo')).toBe('2026-10-13T15:00:00.000Z')
+    expect(hastaDeUnDia('2026-12-31', 'America/La_Paz')).toBe('2027-01-01T04:00:00.000Z')
+  })
+
+  it('un texto que no es un día da nulo', () => {
+    expect(hastaDeUnDia('', 'America/La_Paz')).toBeNull()
+    expect(hastaDeUnDia('2026-13-01', 'America/La_Paz')).toBeNull()
+    expect(hastaDeUnDia('13/10/2026', 'America/La_Paz')).toBeNull()
   })
 })

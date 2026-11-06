@@ -5,16 +5,23 @@ import { TAMANO_DE_VER_MAS } from '@/shared/lib/paginacion'
 import { createClient } from '@/shared/lib/supabase/browser'
 import { revisionesDesde, type PaginaDeRevisiones } from '../entities/revisiones'
 
-export type PedidoDeRevisiones = { cotizacionId: string; antes: number | null }
+// `hasta`: el instante exclusivo de «Ir a una fecha» (`hastaDeUnDia()`); sólo se manda si llega. Con `antes` también, la base toma el menor.
+export type PedidoDeRevisiones = {
+  cotizacionId: string
+  antes: number | null
+  hasta: string | null
+}
 
 export async function leerRevisiones({
   cotizacionId,
   antes,
+  hasta,
 }: PedidoDeRevisiones): Promise<Resultado<PaginaDeRevisiones>> {
   const { data, error } = await createClient().rpc('cotizacion_revisiones', {
     p_cotizacion: cotizacionId,
     p_tamano: TAMANO_DE_VER_MAS,
     ...(antes === null ? {} : { p_antes: antes }),
+    ...(hasta === null ? {} : { p_hasta: hasta }),
   })
   if (error) {
     return { ok: false, error: errorDePostgrest(error) }
