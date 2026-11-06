@@ -722,3 +722,20 @@ con la recomendada) y plan aprobado antes de ejecutar. Nivel 1 con interfaz, sin
 - **Abiertos:** ninguno nuevo. 4-64 suma `cotizaciones-listado.sql` (393), `medir-cotizaciones-listado.sql` (437), `cotizaciones-visibilidad.sql` (1.921) y la función (164 líneas).
 - **Commits:** `d7c93e66` (filtrar el listado de cotizaciones por lead) y `f489663a` (medir el listado por lead y la sección del lead).
   e2e completo: no (4.17-4a, base, Nivel 1)
+
+## 2026-11-06 — Paso 4.17-4b: la sección «Cotizaciones» de la ficha del lead y `?lead=` en el listado
+
+- **Qué se hizo.** Pantalla pura, tres commits de código:
+  - `/cotizaciones?lead=<guid>` filtra el listado con el `p_lead` del 4.17-4a: fuera del esquema (ni chip ni lo borra «Limpiar»), «Ver todas» lo quita, y el aviso y el vacío salen de `textoDelAviso()` y `textoDelVacio()` (lead, vehículo o los dos; el nombre sólo con `leads.ver`).
+  - `leerCotizacionesDelLead()` y el tipo `ListaDe` reparten `usePaginasDelHistorial(de)` y `<ListaDelHistorial de>` entre el panel de la hoja, la pestaña del vehículo y la sección del lead, sin tocar los dos tests del historial.
+  - La ficha del lead suma «Cotizaciones» entre «Oportunidades» y «Portal» para quien tiene `cotizaciones.ver` en algún origen (P2: sin origen ni cartera); se lee al abrirla, de a 20 hasta 500, y el tope lleva «Ver todas en Cotizaciones» a `/cotizaciones?lead=` (P1).
+- **Estado del CI al empezar:** el run `42209354765` de `dffc62a2` (HEAD), en verde (`success`), leído con `gh run view`.
+- **Verificación** (`.piloto/salidas/4.17-4b/`):
+  - Rojos contra HEAD: `rojo-head-vitest-1.txt`, `-2.txt` y `-3.txt` (4, 3 y 2 caídas con su mensaje; «otro texto, nada» de `filtros-del-listado.test.ts` y la parte sin clave de E3 pasan contra HEAD, como decía el plan) y `rojo-head-e2e.txt` (E8 y el spec nuevo caen con el `src/` de HEAD).
+  - Verde: `lint`, `typecheck`; `pnpm test` 6.453 de 6.458 y las 5 de `auto-carriles.test.ts`, ajenas (4-83; `pnpm-test.txt`); `mapa.sh --check`.
+  - Dirigidos, escritorio y celular: el listado (22), el historial (48: `cotizar-historial-del-vehiculo`, `cotizar-panel-del-vehiculo`, `cotizar-guardada`, `vehiculos-cotizaciones`), la ficha, sus presupuestos y `leads-cotizaciones` (10), más `presupuesto-js` en escritorio (`dirigidos-c1c.txt`, `dirigidos-c2.txt`, `dirigidos-c3.txt` y `dirigidos-c3b.txt`; E3 y E8 se partieron en dos por `entrar` con `fresco` dos veces).
+  - Completo de escritorio, tras el último cambio de código: 948 en verde, 16 saltados y 0 caídas, 35,3 min (`e2e-completo.txt`).
+- **Medido** (`medidas.json`, `medidas-ficha.json`): la sección con 20, 61 nodos y 5.038 B la primera respuesta en escritorio (4.933 en celular); con 500, 1.501 nodos y la 25.ª igual que la 1.ª. Ficha: «Datos» 39,2 KB (sin cambio), «Oportunidades» 37,8 y 61,2 con 1.000, «Portal» 29,7. JS en frío: `/cotizaciones` 359,1, `/cotizaciones/nuevo` 456,9, `/cotizaciones/[id]` 435,7, `/vehiculos` 476,7, `/perfil` 417,2.
+- **Abiertos:** ninguno nuevo; 4-75 sigue en el 4.17-5.
+- **Commits:** `3c14f037` (filtrar el listado por lead), `cf510328` (paginar las cotizaciones de un lead) y `a790fda8` (abrir la sección de cotizaciones en la ficha).
+  e2e completo: sí (4.17-4b, pantalla, 3 de 3: escritorio, 948 en verde, 16 saltados, 0 caídas, 35,3 min)

@@ -1939,3 +1939,25 @@ Lo pidió la persona después de que el A hiciera el 4.16 y el 4.17-1: se parti�
   cuenta como índice leído, igual que en `medir-vehiculos-inventario.sql`. Sólo en la forma `seccion`: el listado va con el plan genérico y no replanea.
 - **No hubo compuerta `datos`.** La función sigue invocadora, estable, con `search_path` vacío y los mismos privilegios (`revoke` de public y anon, `grant` a authenticated); no cambia ninguna policy, permiso ni `security definer`.
   Lo único nuevo es que recibe un lead: su firma de 9 queda en `auditoria-leads.sql` con clase `L` (sólo como filtro, la RLS decide), que no pide fila en la matriz. M9 (definer) y M10 (EXECUTE a anon) caen.
+
+## 2026-11-06 — Paso 4.17-4b: la sección «Cotizaciones» de la ficha del lead y `?lead=` en el listado
+
+- **P2 aplicada tal cual: sin origen y sin cartera.** `LoQueVe.cotizaciones = puede(permisos, 'cotizaciones.ver')`, sin origen: con la clave en algún origen y cualquier alcance la sección aparece y la RLS
+  recorta las filas (E3b: Ana con «propios» ve la suya sobre un lead que no es de su cartera). Sin la clave en ningún origen no aparece y `?seccion=cotizaciones` abre «Datos» (E3). Ningún `if (rol …)`.
+- **Va entre «Oportunidades» y «Portal»** (microdecisión): junto a lo comercial del lead; «Portal», el acceso del cliente, sigue al final.
+- **Se lee desde el navegador al abrirla**, sin lectura del servidor: `leerCotizacionesDelLead()` es `leerHistorialDelVehiculo()` con `.eq('lead_id', …)` (un ayudante privado, `leerPaginaPor(columna, id, cursor)`, que
+  no cambia la firma de la del vehículo), por `cotizaciones_lead_creado_idx`, ya medida en el 4.17-4a. Con `<Suspense>` no hacía falta: no hay nada del servidor que esperar.
+- **`ListaDe = { vehiculo } | { lead }`** reparte la paginación y la lista sin tocar el panel de la hoja ni la pestaña del vehículo: `usePaginasDelHistorial(de)` elige el lector en su rama y
+  `<ListaDelHistorial de etiqueta>` enlaza `rutaDelListado(de)` en el tope. Los `vi.mock` de los dos tests del historial sólo definen `leerHistorialDelVehiculo`: el lector del lead se nombra únicamente en su
+  rama, al llamarlo, y los dos tests pasan sin editarlos.
+- **`diferidos.tsx` propio** (`features/historial/components/lead/`), como el de la pestaña del vehículo: un `diferido()` de nivel superior es un efecto de módulo y en el de la pestaña lo pagaría `/vehiculos/[id]`, y en el
+  del historial, `/cotizaciones/nuevo` (4-73). `/cotizaciones/nuevo` quedó en 456,9 KB (igual que en el 4.17-3) y `/cotizaciones` en 359,1.
+- **`?lead=` en `/cotizaciones` como `?vehiculo=`**: un guid leído fuera del esquema (ni chip ni lo borra «Limpiar»), que se manda como `p_lead`; «Ver todas» lo quita y conserva lo demás. Con los dos juntos se mandan los dos
+  (la intersección, la base de 4.17-4a). `rutaDelListado({ lead, vehiculo })` escribe el lead primero.
+- **El aviso y el vacío son dos funciones puras** (`textoDelAviso()`, `textoDelVacio()` en `entities/listado/aviso-del-listado.ts`): «Cotizaciones de <nombre>.», «Cotizaciones de un cliente.» y, con los dos, «Cotizaciones de
+  <nombre> sobre <título>.»; el vacío, «Sin cotizaciones de este cliente que puedas ver.» (o «…de este cliente sobre este vehículo…»). El nombre sólo llega con `leads.ver` y si la lectura lo devuelve: un lead que no
+  se ve se dice «un cliente», igual que si no existe. `aviso-del-vehiculo.tsx` pasó a `aviso-de-lo-filtrado.tsx` (`<AvisoDeLoFiltrado texto>`).
+- **«Nueva cotización» de `/cotizaciones?lead=` no lleva el lead**, como con `?vehiculo=`: llevarlo sumaría un camino a un flujo y «Cotizar» ya está en la cabecera de la ficha del lead.
+- **El vacío propio sólo sale sin otros filtros ni cursor**, como el del vehículo: con `?origen=` o `?clase=` puestos, un lead sin cotizaciones dice «Nada coincide» (con «Limpiar»). E8 lo prueba sin `?origen=`.
+- **El spec de E3 se partió en dos** (E3 sin clave, E3b con «propios»): `entrar(…, { fresco: true })` dos veces en la misma prueba no encuentra el formulario de ingreso; mismo motivo para E8b en el listado.
+- **El paso vale como pantalla** (sin datos, permisos ni migración nuevos: la lectura, su índice y su RLS son del 4.17-4a): sin mutaciones ni informe auditado.

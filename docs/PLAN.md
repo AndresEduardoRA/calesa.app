@@ -236,7 +236,7 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   cierra 5a-12; Nivel 1, interfaz): hecho. El **4.17-3** (la pestaña «Cotizaciones» de `/vehiculos/[id]` con `leerHistorialDelVehiculo()` y su tope «Ver todas en Cotizaciones»; Nivel 1, interfaz): hecho. El **4.17-4**,
   **partido en 2** (`docs/DECISIONES.md` › «Paso 4.17-4a»): el **4.17-4a** (`p_lead` en `cotizaciones_listado()`: la ruta por `cotizaciones_lead_creado_idx`, sus pruebas y la medición de la ruta y de la lectura
   de la sección; Nivel 1 + cadena db + `db:medir:volumen`): hecho. El **4.17-4b** (la sección «Cotizaciones» de `/leads/[id]` con «Ver más» hasta 500 y «Ver todas en Cotizaciones» a `/cotizaciones?lead=`;
-  quién la ve, P2; Nivel 1, interfaz). El **4.17-5** («Ir a una fecha» de «Revisiones», **4-75**; si hace falta una migración lo decide su plan midiendo; Nivel 1, o más según su plan). Marcas: 4.17-1 `sí`, 4.17-2 `no`, 4.17-3 `no`, 4.17-4a `no`.
+  quién la ve, P2; Nivel 1, interfaz): hecho. El **4.17-5** («Ir a una fecha» de «Revisiones», **4-75**; si hace falta una migración lo decide su plan midiendo; Nivel 1, o más según su plan). Marcas: 4.17-1 `sí`, 4.17-2 `no`, 4.17-3 `no`, 4.17-4a `no`, 4.17-4b `sí`.
   - **P1** (1, contestada el 2026-11-06 con la recomendada): la pestaña «Cotizaciones» de `/vehiculos/[id]` la ve quien tiene `cotizaciones.ver` (cualquier alcance) en el origen del vehículo; sin la clave no aparece y `?seccion=cotizaciones` abre «Ficha». Coincide con la RLS de `cotizaciones`, que va por el origen.
   - **P1 del 4.17-4** (1, contestada el 2026-11-06 con la recomendada): el camino tras 500 de la sección «Cotizaciones» de `/leads/[id]` es «Ver todas en Cotizaciones» a `/cotizaciones?lead=<id>`, como el del vehículo; pide `p_lead` en `cotizaciones_listado()` y por eso el paso se partió.
   - **P2 del 4.17-4** (1, contestada el 2026-11-06 con la recomendada): la sección la ve quien tiene `cotizaciones.ver` (cualquier alcance) en **algún** origen, como «Vehículos» pide `vehiculos.ver`; la RLS recorta las filas y, si no llega ninguna, se dibuja el estado vacío. Sin la clave en ningún origen no aparece y `?seccion=cotizaciones` abre «Datos». La usa el 4.17-4b.
@@ -276,7 +276,7 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   cada proyecto (con la decisión vigente, sin segunda pila local, su assert de 25 min no se cumple en esta fase), **5a-33** (el conteo
   del rol, tapado al 200 % en Roles), ESTADO y BITACORA. Depende de todo. Nivel **3**. Prompts: 2.
 
-Total de la fase: 46 pasos y 99 prompts; faltan los pasos 4.17-4b, 4.17-5 y 4.18 a 4.28.
+Total de la fase: 46 pasos y 99 prompts; faltan los pasos 4.17-5 y 4.18 a 4.28.
 
 **Pulido para la Fase 9** (2026-10-30; regla en `.claude/rules/e2e.md` › «Pulido y rigor por tipo de paso»). Ningún paso los recoge ni abre otro por ellos, aunque su fila los nombre
 (4.20 y 4.28): **4-61**, **4-62** y **4-63** (el foco tras recargar y «atrás» que quedó del 4-49), **5a-29** y **5a-30** (del 4.20) y **5a-33** (del 4.28). Los recorre la

@@ -131,7 +131,7 @@ Salvo que se diga otro, mide `pnpm db:medir` en la base de la semilla; el tope e
   `cotizaciones_listado_idx` (con la final, el parcial `cotizaciones_finales_idx`) o, con el origen o si «todos» no cubre todos los orígenes, un lateral por origen sobre
   `cotizaciones_origen_creado_idx` (con la final, `cotizaciones_origen_finales_idx`); lo propio por `cotizaciones_creador_idx`; la cartera, un lateral por lead de `mis_leads()` sobre
   `cotizaciones_lead_creado_idx`; el vehículo por `cotizaciones_vehiculo_creado_idx`; con el lead (`p_lead`, 4.17-4a), una sola ruta por `cotizaciones_lead_creado_idx`, sin la cartera (el vehículo, si
-  llega, es un filtro sobre ella). La clase nunca es columna de un índice (`enum_eq` no es leakproof: bajo la RLS no sería condición).
+  llega, es un filtro sobre ella; la pantalla lo pide con `?lead=` desde el 4.17-4b). La clase nunca es columna de un índice (`enum_eq` no es leakproof: bajo la RLS no sería condición).
   Topes: la dueña y la «chica» ≤ 10 ms, Ana y Teo ≤ 50 (Ana con un vehículo de 5.005, ≤ 100); la dueña ≤ 116 bloques de `cotizaciones` en cada filtro; con 250.000 ≤ 1,2 × los bloques de
   50.000 + 20 (con la cartera, + |cartera| · d; medido d = 0) y ≤ máx(1,5 × t; t + 3 ms); llamadas iguales; `mis_leads()` 1 vez si va la cartera, `origenes_con_alcance()` ≤ 2 + 2 por ruta,
   `en_cartera()` a lo sumo una por fila leída de la cartera o del vehículo, ninguna a `alcance_de` ni a `_bajas_en_curso`; los índices de cada caso por nombre y ningún otro con bloques.
@@ -142,7 +142,7 @@ Salvo que se diga otro, mide `pnpm db:medir` en la base de la semilla; el tope e
   cartera 2,5 ms la página 1, 2,1 la profunda y 2,5 hacia atrás (117, 78 y 119 bloques); con el ajeno 50,8 ms y 5.068 bloques la página 1 (ve 5), y con «mías» 3,7 ms; iguales con 50.000.
   **La lectura de la sección «Cotizaciones» de la ficha del lead** (medida en el 4.17-4a y dibujada en el 4.17-4b; por PostgREST con la RLS, `lead_id = …` y el cursor de PostgREST, `TAMANO_DE_VER_MAS` + 1 = 21,
   por `cotizaciones_lead_creado_idx`, en el mismo archivo): topes la dueña ≤ 10 ms, Ana con su cartera ≤ 50 y con el ajeno ≤ 100, que no crece con N. Medido (250.000): la dueña 0,3 ms (25 bloques), Ana
-  0,9 con su cartera (28) y 48,1 con el ajeno (5.069), iguales con 50.000. La metapágina de un índice vacío leída al planear (`cotizaciones_lote_papelera_idx`, tras el truncate) no cuenta.
+  0,9 con su cartera (28) y 48,1 con el ajeno (5.069), iguales con 50.000. Dibujada en el 4.17-4b: se lee al abrir la sección, nunca con la ficha, y su código viaja con `diferido()` en su propio `diferidos.tsx`. Medido en `e2e/leads-cotizaciones.spec.ts`: 5.038 B la primera respuesta en escritorio y 4.933 en móvil, 61 nodos con 20 y 1.501 con 500, la 25.ª igual que la 1.ª. La metapágina de un índice vacío leída al planear (`cotizaciones_lote_papelera_idx`, tras el truncate) no cuenta.
   Sobre la siembra (`medir-escala.sql`, 4.16-3: las 50.000 de `db:sembrar-volumen`, con los mismos topes, también la profunda; la página 1, la profunda y «mías» llenas): la dueña
   1,4–1,5 ms en la página 1, la profunda, por origen, finales y «mías»; Ana 10,7 la página 1, 7,6 la profunda, 8,1 por origen, 11,5 finales y 1,5 «mías».
   **La pantalla** (4.16-4a, `e2e/cotizaciones-listado.spec.ts` y `e2e/listas-por-pagina-volumen.spec.ts`, `E2E_VOLUMEN=1`, ambos proyectos): una sola vista, 8 columnas, el máximo (100) sin pedidos
