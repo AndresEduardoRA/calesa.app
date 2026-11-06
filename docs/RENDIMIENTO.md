@@ -82,7 +82,7 @@ Tope = lo que se dibuja o se lee de una vez; un número que se muestra es siempr
 
 Mide `medir-jobs.sql`; los presupuestos son 10 a 30 veces lo típico.
 
-- `papelera-purgar`: 50 lotes (10.000 leads) por corrida, cada hora.
+- `papelera-purgar`: 50 lotes por corrida entre leads, vehículos y cotizaciones, cada hora (10.000 leads en ≈ 4 s). Con 100.000 cotizaciones en 500 lotes, cada una con una revisión y un adjunto, una corrida purga 10.000 en 8,1–9,2 s (presupuesto 25.000 ms, `medir-jobs.sql`, 4.24-1b); la selección por `lotes_papelera_pendientes_idx` y una sonda por lote; el refcount de cada adjunto por `cotizaciones_adjuntos_ruta_idx` (sin él, un `Seq Scan` de `cotizaciones_adjuntos` por ruta). Desde el 4.24-1b el job también purga los lotes vencidos de cotizaciones de la siembra de volumen.
 - `limpieza-automatica`: mueve 200 y revisa 1.000 más.
 - `importaciones-vinculos-purgar` y `apibara-consultas-purgar`: lotes de 10.000, 10 por corrida.
 - `storage-gc`: reclama 100 por ronda, 5 rondas; 2.000 huérfanos encolados por pasada. El barrido de huérfanos lleva un cursor por bucket (`cola_gc_barrido`): 10.000 objetos examinados por pasada, 5 pasadas por corrida; no recorre el bucket entero.
