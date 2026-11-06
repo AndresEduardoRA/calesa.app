@@ -1,6 +1,5 @@
 import {
   Building2Icon,
-  CalculatorIcon,
   ContactRoundIcon,
   MapPinIcon,
   ShieldCheckIcon,
@@ -9,6 +8,7 @@ import {
 } from 'lucide-react'
 import { puede, type ClavePermiso, type Permisos } from '@/shared/lib/permisos'
 import { RUTAS } from '@/shared/lib/rutas'
+import { SECCION_DE_COTIZACION } from './cotizacion/seccion'
 import { PERMISOS_DE_ORIGENES } from './origenes/acceso'
 
 // Las secciones de Configuración que ya tienen pantalla. Cada una se abre con cualquiera de sus
@@ -49,14 +49,7 @@ export const SECCIONES = [
     Icono: ContactRoundIcon,
     permisos: ['leads.configurar'],
   },
-  {
-    clave: 'cotizacion',
-    titulo: 'Cotización',
-    descripcion: 'Los niveles de acceso de la hoja: quién ve y quién edita cada parte.',
-    ruta: RUTAS.configuracionDeCotizacion,
-    Icono: CalculatorIcon,
-    permisos: ['equipo.roles.ver', 'equipo.roles.gestionar'],
-  },
+  SECCION_DE_COTIZACION,
   {
     clave: 'equipo',
     titulo: 'Equipo',

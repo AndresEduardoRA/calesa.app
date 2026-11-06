@@ -3,11 +3,24 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import type { Permisos } from '@/shared/lib/permisos'
 import { NAVEGACION } from '../_shell/navegacion'
+import { SECCION_DE_COTIZACION } from './cotizacion/seccion'
 import { SECCIONES, seccionesVisibles } from './secciones'
 
 const APP = path.join(process.cwd(), 'src/app/(app)')
 
 describe('secciones de configuración', () => {
+  it('son las seis de hoy, en su orden, y Cotización viene de la carpeta del carril B', () => {
+    expect(SECCIONES.map((seccion) => seccion.clave)).toEqual([
+      'empresa',
+      'origenes',
+      'leads',
+      'cotizacion',
+      'equipo',
+      'roles',
+    ])
+    expect(SECCIONES[3]).toBe(SECCION_DE_COTIZACION)
+  })
+
   it('cada sección lleva a una pantalla que existe', () => {
     for (const seccion of SECCIONES) {
       expect(existsSync(path.join(APP, seccion.ruta, 'page.tsx')), seccion.ruta).toBe(true)
