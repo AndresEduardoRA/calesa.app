@@ -18,10 +18,10 @@ import {
 import {
   EsqueletoDeHoja,
   FormulaSinPublicar,
-  HistorialDelVehiculo,
   PantallaDeCotizar,
   PestanasDeOrigen,
 } from '@/modules/cotizaciones/pantallas/cotizar'
+import { HUECOS_DE_FORMULA_EN_LA_HOJA } from '@/modules/cotizaciones/pantallas/formula-hoja'
 import { requerirSesion } from '@/modules/equipo'
 import { leerClienteElegido, type ClienteElegido } from '@/modules/leads'
 import { BarraDelCliente } from '@/modules/leads/pantallas/cotizar'
@@ -34,15 +34,17 @@ import {
   leerVehiculo,
   permisoDeAlta,
   type Vehiculo,
-  type VehiculoElegido,
 } from '@/modules/vehiculos'
 import type { AltaDelPanel, ParaElegir } from '@/modules/vehiculos/pantallas/cotizar'
-import { conteoCorto } from '@/shared/lib/conteo'
 import { datosO } from '@/shared/lib/errores'
 import { puede, type Permisos } from '@/shared/lib/permisos'
 import { unParametro } from '@/shared/lib/rutas'
 import { EstadoSinPermiso } from '@/shared/ui/estados'
-import { BarraDeLaHoja } from './barra-de-la-hoja'
+import { ConProveedorDeLaHoja } from '../con-proveedor-de-la-hoja'
+import { BarraConHistorial } from './barra-con-historial'
+
+// Lo que el área `formula` llena en la hoja (`pantallas/formula-hoja.ts`): el enlace de «Falta publicar la fórmula».
+const { EnlaceSinPublicar } = HUECOS_DE_FORMULA_EN_LA_HOJA
 
 export const metadata: Metadata = { title: 'Cotizar' }
 
@@ -153,48 +155,6 @@ async function altaDelPanelDe(
   }
 }
 
-// La barra del vehículo con su «Cotizado (n)» y su historial. Lo une esta página: `vehiculos` recibe el historial armado, sin importar `cotizaciones`. Sin elegido (soltado
-// por la hoja, inexistente o que no se ve) no hay insignia ni historial; un conteo que falló es sólo una etiqueta menos. Plegado, el historial se lee al desplegarlo.
-function BarraConHistorial({
-  origen,
-  elegido,
-  conteo,
-  alta,
-  puedeVer,
-  paraElegir,
-  abierta,
-}: {
-  origen: { id: string; tipo: string }
-  elegido: VehiculoElegido | null
-  conteo: Awaited<ReturnType<typeof contarCotizacionesDelVehiculo>> | null
-  alta: AltaDelPanel | null
-  puedeVer: boolean
-  paraElegir: ParaElegir | null
-  abierta: string
-}) {
-  const cotizado = elegido && conteo?.ok ? conteo.data : null
-  // El «n» de la insignia ya escrito («2», «20+»); con 0, sin insignia. La barra va en la carga en frío de la hoja y recibe el texto, no el conteo.
-  const insignia = cotizado !== null && cotizado.n > 0 ? conteoCorto(cotizado) : null
-  return (
-    <BarraDeLaHoja
-      origenId={origen.id}
-      esSubasta={origen.tipo === 'subasta'}
-      elegido={elegido}
-      alta={alta}
-      puedeVer={puedeVer}
-      claveDeLaUrl={CLAVE_DE_VEHICULO}
-      cotizado={insignia}
-      paraElegir={paraElegir}
-      abierta={abierta}
-      historial={
-        elegido ? (
-          <HistorialDelVehiculo key={elegido.id} vehiculoId={elegido.id} conteo={cotizado} />
-        ) : null
-      }
-    />
-  )
-}
-
 async function Hoja({
   parametros,
 }: {
@@ -210,6 +170,27 @@ async function Hoja({
     )
   }
   return <HojaDelOrigen sesion={sesion} url={url} origenes={origenes} origen={origen} />
+}
+
+// «Falta publicar la fórmula»: con permiso para configurar, el enlace es el que llena el área `formula` (C7 del 4.15-6).
+function SinPublicar({
+  origenId,
+  hoja,
+}: {
+  origenId: string
+  hoja: { origen: { nombre: string }; puedeConfigurar: boolean }
+}) {
+  return (
+    <FormulaSinPublicar
+      origen={hoja.origen.nombre}
+      puedeConfigurar={hoja.puedeConfigurar}
+      accion={
+        hoja.puedeConfigurar && EnlaceSinPublicar ? (
+          <EnlaceSinPublicar origenId={origenId} />
+        ) : undefined
+      }
+    />
+  )
 }
 
 // La hoja del origen elegido, con sus dos barras (vehículo y cliente) y las pestañas de origen.
@@ -252,10 +233,7 @@ async function HojaDelOrigen({
     return (
       <>
         {pestanas}
-        <FormulaSinPublicar
-          origen={apertura.hoja.origen.nombre}
-          puedeConfigurar={apertura.hoja.puedeConfigurar}
-        />
+        <SinPublicar origenId={origen.id} hoja={apertura.hoja} />
       </>
     )
   }
@@ -282,17 +260,19 @@ async function HojaDelOrigen({
         puedeCrear={puede(sesion.permisos, 'leads.crear')}
         claveDeLaUrl={CLAVE_DE_LEAD}
       />
-      <PantallaDeCotizar
-        key={`${origen.id}:${leadUsado ?? '-'}:${vehiculoUsado ?? '-'}`}
-        hoja={apertura.hoja}
-        inicial={apertura.inicial}
-        vehiculoId={vehiculoUsado}
-        vehiculoSoltado={vehiculoSoltado}
-        leadId={leadUsado}
-        personaId={sesion.usuarioId}
-        // La celda sin valor por un dato que quien mira elige en el panel dice dónde se elige (4.14-2c3).
-        seEligen={camposQueSeEligen(paraElegir)}
-      />
+      <ConProveedorDeLaHoja origenId={origen.id} cotizacionId={null} permisos={sesion.permisos}>
+        <PantallaDeCotizar
+          key={`${origen.id}:${leadUsado ?? '-'}:${vehiculoUsado ?? '-'}`}
+          hoja={apertura.hoja}
+          inicial={apertura.inicial}
+          vehiculoId={vehiculoUsado}
+          vehiculoSoltado={vehiculoSoltado}
+          leadId={leadUsado}
+          personaId={sesion.usuarioId}
+          // La celda sin valor por un dato que quien mira elige en el panel dice dónde se elige (4.14-2c3).
+          seEligen={camposQueSeEligen(paraElegir)}
+        />
+      </ConProveedorDeLaHoja>
     </>
   )
 }

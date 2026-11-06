@@ -5,8 +5,11 @@
 # carril `a` (`base: true`, que posee el módulo entero y además lleva el listado, la tarjeta y la plantilla); `b` lleva la fórmula y `c` la papelera, marcar final, comprobantes y comentarios.
 # Un área vive en features/<área>/, entities/<área>/, infra/<área>/, areas/<área>/ (sus entradas) y pantallas/<área>.ts; lo demás del módulo es
 # el NÚCLEO (la hoja, guardar, el motor…), del carril `a`, y las tres entradas de la raíz (index.ts, client.ts, composicion.ts) no las toca
-# ningún paso: sólo reexportan cada área (4.15-4; lo vigila scripts/guardas/areas-de-cotizaciones.test.ts). Los ids son las letras de los stacks locales (puertos +100, +200, +300). `compartido`: carpetas donde cada paso sólo agrega archivos con nombre propio
-# (migraciones con marca de tiempo, tests SQL, specs e2e); `database.types.ts` se regenera con `pnpm db:types` al integrar.
+# ningún paso: sólo reexportan cada área (4.15-4; lo vigila scripts/guardas/areas-de-cotizaciones.test.ts). Los ids son las letras de los stacks locales (puertos +100, +200, +300). `compartido`: carpetas donde cada paso
+# agrega archivos con nombre propio (migraciones con marca de tiempo, tests SQL, specs e2e); un carril que no es base también edita los suyos, no borra;
+# `database.types.ts` se regenera con `pnpm db:types` al integrar.
+# `migraciones` (carriles que no son base): los dominios de las migraciones que crea; el nombre empieza por uno. La guarda de carriles (CI,
+# scripts/guardas/carriles.mjs) lee este archivo de la base del PR: un carril que no es base no edita ESTADO, PLAN, DECISIONES ni BITACORA y no toca fuera de su `dueno_de`.
 esquema: plan/v1
 semilla: importadora fase 4
 agentes_disponibles: [claude]
@@ -26,6 +29,7 @@ carriles:
         package.json,
         pnpm-lock.yaml,
         lefthook.yml,
+        eslint.config.mjs,
         design/,
         supabase/,
         src/app/(app)/cotizaciones/page.tsx,
@@ -35,6 +39,8 @@ carriles:
         src/modules/empresa/,
       ]
   - id: b
+    # Dominios de sus migraciones: el nombre de una migración nueva empieza por uno (la guarda de carriles, carriles.mjs).
+    migraciones: [formula, diseno, tablas]
     dueno_de:
       # Sus áreas enteras (features, entities, infra, areas y pantallas).
       - src/modules/cotizaciones/features/formula/
@@ -42,6 +48,7 @@ carriles:
       - src/modules/cotizaciones/infra/formula/
       - src/modules/cotizaciones/areas/formula/
       - src/modules/cotizaciones/pantallas/formula.ts
+      - src/modules/cotizaciones/pantallas/formula-hoja.ts
       - src/modules/cotizaciones/features/diseno/
       - src/modules/cotizaciones/entities/diseno/
       - src/modules/cotizaciones/infra/diseno/
@@ -93,6 +100,7 @@ carriles:
       - src/modules/cotizaciones/entities/validar.test.ts
       - src/modules/cotizaciones/entities/validar.ts
   - id: c
+    migraciones: [papelera, final, comprobantes, comentarios]
     dueno_de:
       [
         src/modules/cotizaciones/features/papelera/,
@@ -144,37 +152,104 @@ pasos:
     depende_de: ['4.15-4']
     carril: a
     riesgo: ambar
-    modulos: [scripts/guardas/, docs/]
+    modulos: [scripts/guardas/, scripts/coordinador/, .github/, .claude/rules/, docs/]
     ruteo:
       { agente: claude, modelo: sonnet, effort: high, modo: auto, sesion: nueva, revisor: ninguno }
     verificacion: 'Nivel 1'
     terminado: 'carriles.mjs mira las ramas b/ y c/ con los dominios de docs/plan.yaml; ORCA dice los carriles de la Fase 4; cierra 4-84'
-  - id: '4.15-6'
-    titulo: 'Los huecos del núcleo para B y C (el ⚙ de la hoja, la cabecera de una guardada, la papelera, Empresa), sin cambio visible'
+  - id: '4.15-6a'
+    titulo: 'Los huecos de la hoja: el ⚙ de una celda (también en Avanzado) y el enlace de la fórmula sin publicar, sin cambio visible'
     depende_de: ['4.15-5', '4.16']
     carril: a
     riesgo: ambar
     modulos:
       [
         src/modules/cotizaciones/features/hoja/,
-        src/modules/cotizaciones/features/listado/components/listado-de-cotizaciones.tsx,
-        src/modules/cotizaciones/pantallas/cotizacion.ts,
-        src/modules/cotizaciones/pantallas/papelera.ts,
-        src/modules/cotizaciones/pantallas/final.ts,
-        src/modules/cotizaciones/pantallas/comprobantes.ts,
-        src/modules/cotizaciones/pantallas/comentarios.ts,
-        src/app/(app)/cotizaciones/page.tsx,
-        'src/app/(app)/cotizaciones/[id]/',
-        src/app/(app)/configuracion/secciones.ts,
-        src/app/(app)/configuracion/cotizacion/seccion.ts,
-        src/app/(app)/configuracion/empresa/,
-        src/modules/empresa/,
+        src/modules/cotizaciones/features/formula/components/,
+        src/modules/cotizaciones/entities/presentacion-de-la-hoja.ts,
+        src/modules/cotizaciones/pantallas/formula-hoja.ts,
+        src/app/(app)/cotizaciones/nuevo/,
+        'src/app/(app)/cotizaciones/[id]/page.tsx',
+        src/app/(app)/cotizaciones/con-proveedor-de-la-hoja.tsx,
         docs/,
       ]
     ruteo:
       { agente: claude, modelo: sonnet, effort: high, modo: auto, sesion: nueva, revisor: ninguno }
     verificacion: 'Nivel 1 con interfaz; nada cambia de pantalla'
-    terminado: 'La hoja, /cotizaciones/[id], el listado y Empresa tienen sus huecos; la sección Cotización sale de seccion.ts del B; guardarTipoCambio sale por empresa/client.ts'
+    terminado: 'La hoja dibuja el ⚙ sólo con un proveedor del área y la base se lo da, también dentro de Avanzado; el enlace de «Falta publicar la fórmula» sale de features/formula'
+  - id: '4.15-6b'
+    titulo: 'Los huecos de la guardada y del listado (acciones, bajo la hoja, junto a «Nueva») y la guarda de las segundas pantallas, sin cambio visible'
+    depende_de: ['4.15-6a']
+    carril: a
+    riesgo: ambar
+    modulos:
+      [
+        src/modules/cotizaciones/features/hoja/,
+        src/modules/cotizaciones/features/listado/components/listado-de-cotizaciones.tsx,
+        src/modules/cotizaciones/features/papelera/components/,
+        src/modules/cotizaciones/features/final/components/,
+        src/modules/cotizaciones/features/comprobantes/components/,
+        src/modules/cotizaciones/features/comentarios/components/,
+        src/modules/cotizaciones/pantallas/cotizacion.ts,
+        src/modules/cotizaciones/pantallas/papelera-listado.ts,
+        src/modules/cotizaciones/pantallas/papelera-cotizacion.ts,
+        src/modules/cotizaciones/pantallas/final-cotizacion.ts,
+        src/modules/cotizaciones/pantallas/comprobantes-cotizacion.ts,
+        src/modules/cotizaciones/pantallas/comentarios-cotizacion.ts,
+        src/app/(app)/cotizaciones/page.tsx,
+        'src/app/(app)/cotizaciones/[id]/',
+        scripts/guardas/,
+        docs/,
+      ]
+    ruteo:
+      { agente: claude, modelo: sonnet, effort: high, modo: auto, sesion: nueva, revisor: ninguno }
+    verificacion: 'Nivel 1 con interfaz; nada cambia de pantalla'
+    terminado: 'La cabecera y la pantalla de una guardada y el listado tienen sus huecos; la guarda de áreas hace caer una segunda pantalla que el carril de su área no posea'
+  - id: '4.15-6c'
+    titulo: 'Configuración › Cotización desde la carpeta del B, las pestañas de Empresa de un área y guardarTipoCambio por empresa/client.ts'
+    depende_de: ['4.15-6b']
+    carril: a
+    riesgo: ambar
+    modulos:
+      [
+        src/app/(app)/configuracion/secciones.ts,
+        src/app/(app)/configuracion/cotizacion/seccion.ts,
+        src/app/(app)/configuracion/empresa/,
+        src/modules/empresa/,
+        .claude/rules/modulos.md,
+        eslint.config.mjs,
+        docs/,
+      ]
+    ruteo:
+      { agente: claude, modelo: sonnet, effort: high, modo: auto, sesion: nueva, revisor: ninguno }
+    verificacion: 'Nivel 1 con interfaz; nada cambia de pantalla'
+    terminado: 'La sección Cotización sale de seccion.ts del B; Empresa acepta pestañas de un área; guardarTipoCambio sale por empresa/client.ts'
+  - id: '4.15-7'
+    titulo: 'La clave cotizaciones.papelera.purgar que el 4.24 necesita del A: permisos, catálogo y seed (4-87)'
+    depende_de: ['4.15-6c']
+    carril: a
+    riesgo: rojo
+    modulos:
+      [
+        src/shared/lib/permisos.ts,
+        supabase/seed.sql,
+        supabase/migrations/,
+        supabase/tests/,
+        scripts/guardas/paginas-en-la-base.ts,
+        src/shared/types/,
+        docs/,
+      ]
+    ruteo:
+      {
+        agente: claude,
+        modelo: opus,
+        effort: high,
+        modo: plan→auto,
+        sesion: nueva,
+        revisor: claude-sesion-nueva,
+      }
+    verificacion: 'Nivel 1 + db:reset, db:types y db:probar; compuerta datos (qué roles la reciben)'
+    terminado: 'La clave existe en permisos.ts, su catálogo y el seed; el 4.24 no toca archivos del A; cierra 4-87'
   - id: '4.16'
     titulo: 'El listado /cotizaciones con resumen, «Vencida», cursor, volumen medido y navegación'
     depende_de: ['4.15-4']
@@ -196,7 +271,7 @@ pasos:
     terminado: 'El listado pagina por cursor sin crecer con N; cierra 4-14 y 4-23'
   - id: '4.17'
     titulo: 'Secciones «Cotizaciones» de la ficha del lead y del vehículo con «Ver más» (5a-12)'
-    depende_de: ['4.16', '4.15-6']
+    depende_de: ['4.16', '4.15-6c']
     carril: a
     riesgo: verde
     modulos:
@@ -259,7 +334,7 @@ pasos:
     terminado: 'La plantilla se edita con vista previa en vivo'
   - id: '4.20'
     titulo: 'La fórmula: versiones, publicar con nota, historial, revertir y el ⚙; Configuración › Cotización'
-    depende_de: ['4.15-4', '4.15-5', '4.15-6']
+    depende_de: ['4.15-4', '4.15-5', '4.15-6c']
     carril: b
     riesgo: rojo
     modulos:
@@ -268,6 +343,7 @@ pasos:
         src/modules/cotizaciones/entities/formula/,
         src/modules/cotizaciones/infra/formula/,
         src/modules/cotizaciones/pantallas/formula.ts,
+        src/modules/cotizaciones/pantallas/formula-hoja.ts,
         src/app/(app)/configuracion/cotizacion/,
         src/modules/cotizaciones/areas/formula/,
         src/modules/cotizaciones/entities/casos-de-diseno.json,
@@ -393,7 +469,7 @@ pasos:
     terminado: 'Las tablas de referencia tienen versión y se publican; primero 5b-7'
   - id: '4.24'
     titulo: 'La papelera propia de cotizaciones: permiso, versión, purga por lotes y «Deshacer»'
-    depende_de: ['4.15-4', '4.15-5', '4.15-6']
+    depende_de: ['4.15-4', '4.15-5', '4.15-6c', '4.15-7']
     carril: c
     riesgo: rojo
     modulos:

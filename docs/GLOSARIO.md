@@ -321,6 +321,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Diferido** — `diferido()` (`src/shared/ui/diferido.tsx`), `diferidos.tsx` de cada caso de uso: código de modal, panel o pestaña pedido al usarse. No: `next/dynamic` suelto.
 - **Shell** — `shell.ts` y `shell.client.ts` de un módulo, `src/app/(app)/layout.tsx`: marco de toda pantalla.
 - **Pantalla (entrada)** — `pantallas/<pantalla>.ts` de un módulo: entrada por la que `src/app` trae los componentes de una pantalla.
+- **Carril** — una línea de trabajo en paralelo de `docs/plan.yaml`: su rama `<id>/…`, su stack local, lo que posee (`dueno_de`) y los dominios de sus migraciones (`migraciones`). El carril base (`base: true`) posee todo y es el único que edita ESTADO, PLAN, DECISIONES y BITACORA (4.15-5).
 - **Área (de un módulo)** — una parte de un módulo que posee un carril (`docs/plan.yaml`): sus carpetas `features/<área>/`, `entities/<área>/`, `infra/<área>/`, sus entradas `areas/<área>/` y `pantallas/<área>.ts`. No importa otra área (4.15-4, `cotizaciones`).
 - **Núcleo (de un módulo)** — lo que comparten las áreas de un módulo (en `cotizaciones`: la hoja, guardar, el motor…); no importa ningún área y es del carril A.
 - **Hoja de contacto** — `scripts/hoja-de-contacto.mjs`, `<carpeta>/hojas/`: capturas de e2e montadas en una imagen.

@@ -2,12 +2,11 @@
 // `areas-de-cotizaciones.test.ts`). Un carril que no es `base` posee áreas enteras, con sus cinco lugares, y ningún archivo del núcleo,
 // salvo las familias del compilador: las posee un solo carril, y todas las que hay en el árbol (P2 del 4.15-4).
 import { MODULO, claseDe } from './areas-de-cotizaciones'
+import { FAMILIAS_DEL_COMPILADOR } from './familias-del-compilador.mjs'
 
-// El compilador de la fórmula y los validadores son núcleo (los importan otros archivos del núcleo, y `validar-diseno*` importa
-// `validarFormula`), pero los edita el carril B archivo por archivo (P2 del 4.15-4, `docs/DECISIONES.md`, paso 4.15-4): un archivo
-// nuevo de estas familias hace caer la guarda hasta que el mismo PR lo sume a su `dueno_de`.
-export const FAMILIAS_DEL_COMPILADOR =
-  /^entities\/((compilador|validar)([a-z-]*)|motivos-de-(formula|diseno)|motivos-del-compilador)(\.test)?\.ts$|^entities\/casos-(de-formula|de-diseno|del-compilador)\.json$/
+// Las familias del compilador (núcleo que edita el carril B archivo por archivo, P2 del 4.15-4) viven en `familias-del-compilador.mjs`,
+// que también lee la guarda de carriles: una sola fuente.
+export { FAMILIAS_DEL_COMPILADOR } from './familias-del-compilador.mjs'
 
 type Carril = { id?: unknown; base?: unknown; dueno_de?: unknown }
 

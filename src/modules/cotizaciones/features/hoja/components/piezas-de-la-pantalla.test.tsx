@@ -32,15 +32,31 @@ describe('PestanasDeOrigen', () => {
 })
 
 describe('FormulaSinPublicar', () => {
-  it('dice de qué origen falta, con el enlace a configuración si puede configurar', () => {
-    render(<FormulaSinPublicar origen="Oficina" puedeConfigurar />)
+  it('dice de qué origen falta y dibuja la acción que le pasan si puede configurar', () => {
+    render(
+      <FormulaSinPublicar
+        origen="Oficina"
+        puedeConfigurar
+        accion={<a href="/configuracion/cotizacion">Ir a la configuración de cotización</a>}
+      />,
+    )
     expect(screen.getByText('Falta publicar la fórmula de Oficina')).toBeTruthy()
+    expect(
+      screen.getByText('Sin una fórmula publicada no se puede cotizar en este origen.'),
+    ).toBeTruthy()
     expect(screen.getByRole('link').getAttribute('href')).toBe('/configuracion/cotizacion')
   })
 
-  it('sin permiso para configurar, lo dice y no hay enlace', () => {
+  it('sin la acción no hay enlace: el núcleo no dibuja uno propio', () => {
+    render(<FormulaSinPublicar origen="Oficina" puedeConfigurar />)
+    expect(screen.getByText('Falta publicar la fórmula de Oficina')).toBeTruthy()
+    expect(screen.queryByRole('link')).toBeNull()
+  })
+
+  it('sin permiso para configurar, lo dice y avisa a quien configura', () => {
     render(<FormulaSinPublicar origen="Oficina" puedeConfigurar={false} />)
     expect(screen.getByText('Falta publicar la fórmula de Oficina')).toBeTruthy()
+    expect(screen.getByText(/Avisa a quien configura las cotizaciones\./)).toBeTruthy()
     expect(screen.queryByRole('link')).toBeNull()
   })
 })

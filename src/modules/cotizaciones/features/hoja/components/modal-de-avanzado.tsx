@@ -6,7 +6,9 @@ import type { ContextoDeHoja } from '../../../entities/binding'
 import type { SeccionDeHoja as Seccion } from '../../../entities/hoja'
 import type { AyudaDeLaHoja } from '../hooks/use-ayuda-de-la-hoja'
 import type { AccionesDeHoja } from '../hooks/use-hoja'
+import type { AjusteEnLaHoja } from './huecos'
 import { LugarDeAyuda } from './lugar-de-ayuda'
+import { LugarDelAjuste } from './lugar-del-ajuste'
 import { SeccionDeHoja } from './seccion-de-hoja'
 
 type Props = {
@@ -19,6 +21,8 @@ type Props = {
   guardando: boolean
   // La ayuda de una celda de «Avanzado» se abre encima del modal, dentro de él (un modal no abre otro: es un panel).
   ayuda: AyudaDeLaHoja
+  // El ajuste de una celda (el ⚙) de «Avanzado» se abre igual: encima del modal, dentro de su foco atrapado. Nulo sin proveedor.
+  ajuste: AjusteEnLaHoja | null
   // El botón «Avanzado»: el foco vuelve a él al cerrar, también si el modal se abrió por la URL.
   botonDeAvanzado: RefObject<HTMLButtonElement | null>
 }
@@ -46,6 +50,7 @@ export function ModalDeAvanzado({
   acciones,
   guardando,
   ayuda,
+  ajuste,
   botonDeAvanzado,
 }: Props) {
   return (
@@ -69,6 +74,7 @@ export function ModalDeAvanzado({
         ))}
       </div>
       <LugarDeAyuda secciones={secciones} contexto={contexto} ayuda={ayuda} />
+      {ajuste ? <LugarDelAjuste secciones={secciones} contexto={contexto} ajuste={ajuste} /> : null}
     </Modal>
   )
 }

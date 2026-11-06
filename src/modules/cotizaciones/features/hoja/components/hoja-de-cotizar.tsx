@@ -154,6 +154,8 @@ export function HojaDeCotizar({
   encima,
 }: Props) {
   const raiz = useRef<HTMLDivElement>(null)
+  const router = useRouter()
+  const recargar = alRecargar ?? router.refresh
   // El guardado que ve la hoja: el de la guardada que edita o el de la nueva.
   const vista = edicion?.guardado ?? guardado
   const h = useHoja({
@@ -195,6 +197,8 @@ export function HojaDeCotizar({
             acciones={h.acciones}
             guardando={guardando}
             de={h.de}
+            formula={hoja.formula}
+            alRecargar={recargar}
           />
         </div>
         <ResumenDeLaHoja

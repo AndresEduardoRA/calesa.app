@@ -11,6 +11,7 @@ import { PANEL_DE_AVANZADO } from '../hooks/urls-de-la-hoja'
 import type { AccionesDeHoja } from '../hooks/use-hoja'
 import { BotonDeAvanzado } from './boton-de-avanzado'
 import { ModalDeAvanzadoDiferido } from './diferidos'
+import type { AjusteEnLaHoja } from './huecos'
 
 type Props = {
   secciones: SeccionDeHoja[]
@@ -18,10 +19,19 @@ type Props = {
   acciones: AccionesDeHoja
   guardando: boolean
   ayuda: AyudaDeLaHoja
+  // El ajuste de una celda (el ⚙) de «Avanzado»: se abre dentro del modal. Nulo sin proveedor.
+  ajuste: AjusteEnLaHoja | null
 }
 
 // «Avanzado» de la hoja: su botón y su modal con URL (`?panel=avanzado`). Recargar lo abre, «atrás» lo cierra; el código del modal se pide la primera vez que se abre.
-export function AvanzadoDeLaHoja({ secciones, contexto, acciones, guardando, ayuda }: Props) {
+export function AvanzadoDeLaHoja({
+  secciones,
+  contexto,
+  acciones,
+  guardando,
+  ayuda,
+  ajuste,
+}: Props) {
   const boton = useRef<HTMLButtonElement>(null)
   const panel = usePanelPorUrl(PANEL_DE_AVANZADO)
   const montar = useAbiertoAlgunaVez(panel.abierto)
@@ -42,6 +52,7 @@ export function AvanzadoDeLaHoja({ secciones, contexto, acciones, guardando, ayu
           acciones={acciones}
           guardando={guardando}
           ayuda={ayuda}
+          ajuste={ajuste}
           botonDeAvanzado={boton}
         />
       ) : null}

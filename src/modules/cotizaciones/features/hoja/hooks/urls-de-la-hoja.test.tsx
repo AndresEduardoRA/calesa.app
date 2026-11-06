@@ -37,6 +37,18 @@ describe('useSoltarLoAbierto: guardada, la hoja suelta lo que tenía abierto', (
     expect(await soltarDe('?panel=avanzado&ayuda=tabla&nodo=y1')).toBe('')
   })
 
+  it('suelta el ajuste de una celda y su nodo', async () => {
+    expect(await soltarDe('?ajuste=celda&nodo=b1')).toBe('')
+  })
+
+  it('el modal y un ajuste abiertos a la vez se sueltan juntos', async () => {
+    expect(await soltarDe('?panel=avanzado&ajuste=celda&nodo=x1')).toBe('')
+  })
+
+  it('no toca un ajuste que no es de la hoja', async () => {
+    expect(await soltarDe('?ajuste=otro&nodo=b1')).toBeNull()
+  })
+
   it('no toca otro panel ni otra ayuda', async () => {
     expect(await soltarDe('?panel=otro&ayuda=otra&nodo=b2')).toBeNull()
   })
