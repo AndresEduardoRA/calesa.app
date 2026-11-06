@@ -93,12 +93,18 @@ type Props = {
   todas: boolean
 }
 
+// Lo que trajo el servidor: con más de las que muestra, hay más por leer.
+const paginaDe = (props: Props) => ({
+  oportunidades: props.inicial,
+  hayMas: props.hayMas || props.recortada,
+})
+
 // La sección «Oportunidades»: las de quien mira sobre el lead (abiertas primero) y «Nueva oportunidad».
 export function OportunidadesDelLead(props: Props) {
-  const { leadId, inicial, embudos, puedoCrear } = props
+  const { leadId, embudos, puedoCrear } = props
   const panel = usePanelDeOportunidad()
   const movida = usePanelDeMovida()
-  const { lista, moverA, quitar, ocupada } = useOportunidades(inicial)
+  const { lista, moverA, quitar, ocupada, alGuardar } = useOportunidades(paginaDe(props), embudos)
   const editando = panel.editando ? (lista.find((o) => o.id === panel.editando) ?? null) : null
   const nueva = puedoCrear ? (
     <Button className="min-h-11 md:min-h-8" onClick={panel.abrirNueva}>
@@ -157,6 +163,7 @@ export function OportunidadesDelLead(props: Props) {
           leadId={leadId}
           oportunidad={editando}
           embudos={embudos}
+          alGuardar={alGuardar}
           alCerrar={panel.cerrar}
         />
       ) : null}

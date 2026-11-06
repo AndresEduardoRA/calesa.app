@@ -2,7 +2,6 @@
 
 import { useRegional } from '@/shared/ui/regional'
 import { useAction } from 'next-safe-action/hooks'
-import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { enviarAccion } from '@/shared/lib/enviar-accion'
 import type { ErrorApp } from '@/shared/lib/errores'
@@ -34,14 +33,16 @@ type Opciones = {
   leadId: string
   // Al editar, la que se edita; al crear, null.
   oportunidad: Oportunidad | null
+  // Con lo que guardó la base (la crea o la edita): la sección la pone en su lugar.
+  alGuardar: (oportunidad: Oportunidad) => void
   alTerminar: () => void
 }
 
 // El formulario de una oportunidad: crear (con el id del intento, que vive mientras el panel está
 // abierto, así un reintento no crea dos) o editar (sólo lo que cambió, con la versión). Lo tipeado no se
 // pierde: un rechazo deja los valores y dice el motivo junto a su campo; un conflicto ofrece «Recargar».
-export function useFormularioDeOportunidad({ leadId, oportunidad, alTerminar }: Opciones) {
-  const router = useRouter()
+export function useFormularioDeOportunidad(opciones: Opciones) {
+  const { leadId, oportunidad, alGuardar, alTerminar } = opciones
   const [intento] = useState(() => crypto.randomUUID())
   const { locale } = useRegional()
   const [valores, setValores] = useState(() => valoresDeOportunidad(oportunidad, locale))
@@ -92,7 +93,7 @@ export function useFormularioDeOportunidad({ leadId, oportunidad, alTerminar }: 
       return
     }
     avisarExito(oportunidad ? 'Oportunidad guardada.' : 'Oportunidad creada.')
-    router.refresh()
+    alGuardar(envio.data.oportunidad)
     alTerminar()
   }
 

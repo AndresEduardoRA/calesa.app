@@ -5,40 +5,49 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { enviarAccion } from '@/shared/lib/enviar-accion'
 import { avisarConDeshacer, avisarError } from '@/shared/ui/toasts'
-import type { EtapaGuardada } from '../../../entities/embudo'
-import type { OportunidadDelLead } from '../../../entities/oportunidad'
+import type { Embudo, EtapaGuardada } from '../../../entities/embudo'
+import type { Oportunidad, OportunidadDelLead } from '../../../entities/oportunidad'
 import { estadoDeLaEtapa } from '../../../entities/tablero'
+import { oportunidadDelLeadDesde } from '../../../entities/ventana-de-oportunidades'
 import { MENSAJE_DE_VALIDACION } from '../../ficha/resultado'
 import { eliminarOportunidad } from '../actions/eliminar-oportunidad'
 import { moverOportunidad } from '../actions/mover-oportunidad'
 import { restaurarOportunidad } from '../actions/restaurar-oportunidad'
-
-const firma = (lista: readonly OportunidadDelLead[]) =>
-  lista.map((o) => `${o.id}:${o.actualizadoEn}`).join('|')
+import {
+  useVentanaDeOportunidades,
+  type PaginaDeOportunidades,
+} from './use-ventana-de-oportunidades'
 
 // Las oportunidades de quien mira sobre el lead, en la pantalla. «Mover a…» se ve enseguida (vuelve si
-// la base lo rechaza); eliminar las saca y ofrece «Deshacer» 10 s. Lo que trae el servidor manda.
-export function useOportunidades(inicial: readonly OportunidadDelLead[]) {
+// la base lo rechaza); eliminar las saca y ofrece «Deshacer» 10 s. Lo que trae el servidor manda. Lo que vuelve de una action
+// se pone en su lugar con la respuesta, sin `router.refresh()`: releería la primera página y reiniciaría lo cargado.
+export function useOportunidades(inicial: PaginaDeOportunidades, embudos: readonly Embudo[]) {
   const router = useRouter()
-  const [vista, setVista] = useState(firma(inicial))
-  const [lista, setLista] = useState<OportunidadDelLead[]>([...inicial])
-  if (vista !== firma(inicial)) {
-    setVista(firma(inicial))
-    setLista([...inicial])
-  }
+  const ventana = useVentanaDeOportunidades(inicial)
+  const { lista } = ventana
   const mover = useAction(moverOportunidad)
   const eliminar = useAction(eliminarOportunidad)
   const restaurar = useAction(restaurarOportunidad)
   const [ocupada, setOcupada] = useState<string | null>(null)
 
+  // La respuesta de una action, en su lugar. Si la sección no tiene su embudo, la única salida es leer de nuevo.
+  function ponerRespuesta(oportunidad: Oportunidad) {
+    const puesta = oportunidadDelLeadDesde(oportunidad, embudos)
+    if (puesta) {
+      ventana.poner(puesta)
+    } else {
+      router.refresh()
+    }
+  }
+
   async function moverA(o: OportunidadDelLead, etapa: EtapaGuardada, motivo: string | null) {
-    const antes = lista
     setOcupada(o.id)
-    setLista((l) =>
-      l.map((x) =>
-        x.id === o.id ? { ...x, etapaId: etapa.id, etapa, estado: estadoDeLaEtapa(etapa) } : x,
-      ),
-    )
+    ventana.cambiarEnSitio(o.id, (x) => ({
+      ...x,
+      etapaId: etapa.id,
+      etapa,
+      estado: estadoDeLaEtapa(etapa),
+    }))
     const envio = await enviarAccion(
       mover.executeAsync({
         id: o.id,
@@ -50,23 +59,22 @@ export function useOportunidades(inicial: readonly OportunidadDelLead[]) {
     )
     setOcupada(null)
     if (!envio.ok) {
-      setLista(antes)
+      ventana.poner(o)
       avisarError(envio.error)
       return false
     }
-    router.refresh()
+    ponerRespuesta(envio.data.oportunidad)
     return true
   }
 
   async function quitar(o: OportunidadDelLead) {
-    const antes = lista
-    setLista((l) => l.filter((x) => x.id !== o.id))
+    ventana.quitar(o.id)
     const envio = await enviarAccion(
       eliminar.executeAsync({ id: o.id, actualizadoEnEsperado: o.actualizadoEn }),
       MENSAJE_DE_VALIDACION,
     )
     if (!envio.ok) {
-      setLista(antes)
+      ventana.poner(o)
       avisarError(envio.error)
       return
     }
@@ -76,14 +84,14 @@ export function useOportunidades(inicial: readonly OportunidadDelLead[]) {
         restaurar.executeAsync({ id: o.id, actualizadoEnEsperado: version }),
         MENSAJE_DE_VALIDACION,
       ).then((vuelta) => {
-        if (!vuelta.ok) {
+        if (vuelta.ok) {
+          ponerRespuesta(vuelta.data.oportunidad)
+        } else {
           avisarError(vuelta.error)
         }
-        router.refresh()
       })
     })
-    router.refresh()
   }
 
-  return { lista, moverA, quitar, ocupada }
+  return { lista, hayMas: ventana.hayMas, moverA, quitar, ocupada, alGuardar: ponerRespuesta }
 }
