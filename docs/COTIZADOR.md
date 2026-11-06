@@ -285,8 +285,9 @@ update` y los tonos de sus grupos `for key share`, valida fórmula y diseño com
   origen, `cotizaciones.nivel.<clave>.ver` y `….editar`, en la matriz de Roles. «Todos» usa `cotizaciones.ver` y
   `cotizaciones.crear`/`cotizaciones.editar`. Historia: `docs/DECISIONES.md`, «D7». Al publicar, el diseño se compila a
   `formulas.visibilidad`, lo único que lee la base.
-- **Lo que no se ve no viaja** (detalle en «En la base (4.10-1)»): el PDF y el comprobante (4.18) leen con `cotizacion_leer` y
-  `validar_plantilla` rechaza un nodo que no sea del nivel «todos». Un inventario (`cotizaciones-visibilidad.sql`) registra toda
+- **Lo que no se ve no viaja** (detalle en «En la base (4.10-1)»): la tarjeta y el PDF (4.18) leen lo que dibujan con
+  `cotizacion_tarjeta` (sólo lo del nivel «todos», «La lectura de la tarjeta (4.18-1)») y los montos con `cotizacion_leer`, y `validar_plantilla` rechaza un
+  nodo que no sea del nivel «todos». Un inventario (`cotizaciones-visibilidad.sql`) registra toda
   función que pueda devolver esas columnas o `formulas.*`.
 - **Límite:** un nodo restringido, único oculto de una suma visible, se deduce restando; el editor del diseño lo avisa.
 - **Pantalla:** `/configuracion/cotizacion?seccion=niveles` (`docs/UX.md`). `niveles_con_uso()` devuelve `{tope, niveles}` con
