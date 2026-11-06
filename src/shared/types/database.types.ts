@@ -8118,6 +8118,7 @@ export type Database = {
           vencida: boolean
         }[]
       }
+      cotizaciones_papelera_enviar: { Args: { p_cotizaciones: Json }; Returns: Json }
       crear_lead: {
         Args: { p_id: string; p_lead: Json; p_recordatorio?: Json; p_seguimiento?: Json }
         Returns: Json
