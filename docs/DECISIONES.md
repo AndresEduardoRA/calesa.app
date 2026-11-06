@@ -1877,3 +1877,20 @@ Lo pidió la persona después de que el A hiciera el 4.16 y el 4.17-1: se parti�
 - **Las tres funciones se recrean desde la base con la clave cambiada**, y el `revoke`/`grant` se repite explícito aunque `create or replace` conserve los privilegios (redundante a propósito). La mutación que lo vigila concede `execute` a `anon` o a PUBLIC: quitar el `revoke` no probaría nada.
 - **Dos huecos para que el 4.24 no toque archivos del A** (el `terminado` del 4.15-7): `db:probar` corre, después de su lista fija, todo `.sql` de `supabase/tests/areas/**` en orden alfabético de la ruta (`pruebasEnOrden()`, `scripts/lib/pruebas-de-la-base.mjs`; `SOLO=areas/<área>/x.sql`), y `RPC_PAGINADAS` es `RPC_PAGINADAS_DEL_NUCLEO` más `RPC_PAGINADAS_DE_LA_PAPELERA` (`paginas-en-la-base-papelera.ts`, del C). Sirven también al B; los de otras áreas, cuando los pidan (4-91).
 - **La prueba de la concesión vuelve a ejecutar la migración** sobre la base sembrada más roles propios, como la nube: `DATOS_DE_PRUEBA` acepta `{ ruta, texto: true }` y le pasa el archivo como texto. Esa entrada queda atada al nombre de la migración (con su hora UTC): si se recrea al integrar (`migraciones.md`), `db:probar` cae al leerla y se corrige la ruta.
+
+## 2026-11-06 — Paso 4.17 (2 de 5): «Ver más» de las oportunidades de la ficha
+
+- **P1–P3, contestadas con la recomendada.** P1: el camino a lo antiguo tras 500 es «Buscarlas en tu embudo» (el kanban del embudo de la última cargada, `?q=` el nombre del lead), sin lectura nueva; sus límites quedan dichos: la búsqueda
+  es por parte del nombre y puede traer leads con un nombre parecido, lleva sólo al embudo de la última cargada y cada columna del kanban corta en 500 (`TOPE_DE_COLUMNA`). P2: «Ver todas» (`?todas=1`) desaparece; lo cargado es una
+  posición y no va a la URL, como en la línea de tiempo, así que recargar y «atrás» vuelven a 10. P3: recargar con `?panel=…&oportunidad=` de una llegada por «Ver más» abre sólo si está entre las 10 cargadas (la regla de hoy).
+- **El servidor lee 10 y el navegador 20.** El 10 es `TAMANOS_DE_PAGINA[0]` (no un literal: `escala.md` pide que el tamaño salga de `paginacion.ts`) y una prueba fija que vale 10. Lo que no se ve no viaja con el documento: la
+  sección aporta lo mismo con 10 y con 1.000 (62,7 y 61,7 KB).
+- **Lo que vuelve de una action se pone en la ventana, sin `router.refresh()`.** Ese refresco relee la primera página y devolvería lo cargado a 10. El orden de la ventana es el de la base y compara el instante con sus
+  microsegundos (los milisegundos de `Date.parse` y los dígitos 4.º a 6.º de la fracción), porque la base recorta los ceros finales (4-90) y `Date.parse` solo empataría dos sellos del mismo milisegundo.
+- **Una eliminada no vuelve con una página en camino**: el hook recuerda las quitadas que no se restauraron (`quitadas`) y `sumarPaginaDeOportunidades()` las descarta. Se resta sólo lo quitado, no todo lo que estaba al
+  pedir (como hace `sumarLoNuevo` de seguimientos): una oportunidad que se movió más atrás mientras la página venía puede estar en esa página y no tiene que perderse. Una página pedida antes de que el servidor cambiara lo
+  cargado se descarta por la firma.
+- **El paso vale como pantalla aunque toque `entities/` e `infra/*.client.ts`.** No hay datos nuevos (la RPC, sus grants y su RLS son los del 4.17-1), ni permisos, ni `src/shared/lib`, ni migración; lo de `entities/` es el
+  orden y la ventana de una lista que ya existía y lo de `infra/` lee la misma RPC desde el navegador. Por eso, sin mutaciones ni informe auditado.
+- **`@sin-celular-archivo` se quitó y E4 no lleva `@sin-celular`.** El motivo del archivo («su JS del celular lo ejecuta otra prueba que se queda») dejó de ser cierto: el JS de «Ver más» lo ejecutan sólo estas pruebas. El
+  spec dejó de ser `serial` (cada prueba crea su lead). `comparar-anchos.mjs` da 4 IGUAL, pero E4 tiene JS de celular que nadie más ejecuta (`huella.txt`): corre también en el celular (≈ 25 s).

@@ -194,7 +194,7 @@ Un número que se muestra nunca es el total exacto: se cuenta hasta un tope y se
 - **Listado de leads y vehículos:** sin total ni «página 3 de 800»: Anterior y Siguiente y, arriba, «Los más recientes» o «Creados hasta el 2 sep 2026» con «Volver al principio». Para lo antiguo, **filtrar** o **buscar**.
 - **Exportar:** con más de 5.000 leads en los filtros no exporta y pide filtrar más.
 - **Embudo:** cabecera de columna y pestaña dicen «37» o «500+». Una columna dibuja a lo sumo 500 y ahí ofrece «Buscar en el embudo» (`?q=`, desde 2 caracteres; busca título y nombre del lead en todas las columnas; es de la vista de embudo).
-- **Vehículos y ficha:** los bloques de vínculos, interesados y «Agregar vehículo» dicen su tope al pie con `<AvisoDeTope>`; «Oportunidades» muestra las 10 más recientes (abiertas primero) con «Ver todas» (`?seccion=oportunidades&todas=1`, hasta 100).
+- **Vehículos y ficha:** los bloques de vínculos, interesados y «Agregar vehículo» dicen su tope al pie con `<AvisoDeTope>`; «Oportunidades» muestra las 10 más recientes (abiertas primero) con «Ver más» de a 20 desde el navegador, hasta 500 (en el tope, «Buscarlas en tu embudo»).
 - **Papeleras:** de a 5 lotes por página (`?cursor=`); un lote trae hasta 200 y muestra 20 con «Mostrar los 200». Sin «Ítems por página»: su unidad es el lote.
 - **Sin red:** abrir un modal, panel o pestaña nunca pedidos dice «Sin conexión. No se pudo abrir esto.» con «Reintentar»; paginar sin red no navega y lo dice.
 
