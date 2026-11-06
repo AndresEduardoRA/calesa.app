@@ -12,6 +12,33 @@ export function sembrarRevisiones(cotizacionId: string, total: number): void {
      cross join generate_series(1, ${String(total)}::int - (select count(*) from public.cotizaciones_revisiones where cotizacion_id = ${literal(cotizacionId)}::uuid)::int)`)
 }
 
+// Reparte las revisiones de la cotización en el tiempo: una cada `horas`, la más nueva de ahora y las demás hacia atrás (el id crece con `creado_en`, como supone la base: 4-95).
+export function fecharRevisiones(cotizacionId: string, horas: number): void {
+  sql(`
+    update public.cotizaciones_revisiones r
+       set creado_en = now() - (t.rango - 1) * ${String(horas)}::int * interval '1 hour'
+      from (select id, row_number() over (order by id desc) as rango
+              from public.cotizaciones_revisiones
+             where cotizacion_id = ${literal(cotizacionId)}::uuid) t
+     where r.id = t.id`)
+}
+
+// El borde exclusivo de «Ir a una fecha» para `dia` (`YYYY-MM-DD`): el inicio del día siguiente en la zona de la empresa, como instante UTC.
+export const bordeDeUnDia = (dia: string): string =>
+  sql(`
+    select to_char(((${literal(dia)}::date + 1)::timestamp
+                    at time zone (select zona_horaria from public.ajustes_empresa limit 1)) at time zone 'UTC',
+                   'YYYY-MM-DD"T"HH24:MI:SS"Z"')`)
+
+// El id de la revisión con la que tiene que empezar el salto a `dia`: la más nueva de esa cotización anterior al borde (0 si no hay ninguna).
+export const primeraRevisionHasta = (cotizacionId: string, dia: string): number =>
+  Number(
+    sql(`
+      select coalesce(max(id), 0) from public.cotizaciones_revisiones
+       where cotizacion_id = ${literal(cotizacionId)}::uuid
+         and creado_en < ${literal(bordeDeUnDia(dia))}::timestamptz`),
+  )
+
 // Cuántas revisiones tiene la cotización.
 export const cuantasRevisiones = (cotizacionId: string): number =>
   Number(
