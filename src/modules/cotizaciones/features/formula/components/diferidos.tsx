@@ -11,3 +11,8 @@ export const ModalDePublicarDiferido = diferido(() =>
 export const ModalDeRevertirDiferido = diferido(() =>
   import('./modal-de-revertir').then((modulo) => modulo.ModalDeRevertir),
 )
+
+// «Descartar el borrador de <autor>» (4.20-2c), igual.
+export const DescartarBorradorDiferido = diferido(() =>
+  import('./descartar-borrador').then((modulo) => modulo.DescartarBorrador),
+)

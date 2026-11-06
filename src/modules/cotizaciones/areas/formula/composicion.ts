@@ -7,5 +7,5 @@ import { getFormulaDelOrigen } from '../../infra/formula/versiones'
 
 // La publicada, el borrador y la primera página de versiones de un origen, con sus autores.
 export const leerFormulaDelOrigen = getFormulaDelOrigen
-// Publicar el borrador y revertir a una archivada, por las RPC del 4.20-1.
+// Publicar el borrador y revertir a una archivada, por las RPC del 4.20-1, y descartar el borrador (4.20-2c).
 export const repositorioDeLaFormula: RepositorioDeLaFormula = publicacionSupabase

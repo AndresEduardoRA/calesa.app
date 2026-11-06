@@ -74,4 +74,30 @@ describe('TarjetaDelBorrador', () => {
     expect(screen.queryByText(/Empezó sobre/)).toBeNull()
     expect(screen.queryByText(/publicarlo dará conflicto/)).toBeNull()
   })
+
+  it('«Descartar…» al día y atrasado, y llama lo que le pasan; sin quien abra, no está', () => {
+    const alDescartar = vi.fn()
+    render(
+      <TarjetaDelBorrador
+        borrador={borrador(V2, 2)}
+        publicada={{ id: V3, version: 3 }}
+        alPublicar={vi.fn()}
+        alDescartar={alDescartar}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Descartar…' }))
+    expect(alDescartar).toHaveBeenCalledTimes(1)
+    cleanup()
+    render(
+      <TarjetaDelBorrador
+        borrador={borrador(V3, 3)}
+        publicada={{ id: V3, version: 3 }}
+        alDescartar={vi.fn()}
+      />,
+    )
+    expect(screen.getByRole('button', { name: 'Descartar…' })).toBeTruthy()
+    cleanup()
+    render(<TarjetaDelBorrador borrador={borrador(V3, 3)} publicada={{ id: V3, version: 3 }} />)
+    expect(screen.queryByRole('button', { name: 'Descartar…' })).toBeNull()
+  })
 })
