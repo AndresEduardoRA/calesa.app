@@ -183,7 +183,9 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **XCell** — `src/shared/ui/xcell`: celda numérica editable del cotizador: valor, default, revertir, ayuda, ⚙, sugerido, teclado.
 - **Modo Live** — `useLive()` / `<Monto>`: oculta cifras y símbolos de moneda en toda la app.
 - **Tabla de referencia** — `tablas_referencia`, `_filas`: tablas que alimentan nodos tabla/tramo (impuestos, tramos, tarifas, depreciación).
-- **Plantilla de tarjeta** — `plantillas_tarjeta`: cómo se ve la cotización (tarjeta y PDF), versionada aparte.
+- **Plantilla de tarjeta** — `plantillas_tarjeta`: cómo se ve la cotización (tarjeta y PDF), versionada aparte; declarativa (los grupos de la fórmula con su tono, etiquetas y leyendas por nodo, el total, la nota, el logo y las columnas) y validada por `validar_plantilla()` (4.18-1).
+- **Lectura de la tarjeta** — `cotizacion_tarjeta()`: lo que dibujan la tarjeta y el PDF de una versión de la fórmula, con la plantilla publicada validada contra esa versión y sólo lo del nivel «todos». No es la **Tarjeta del total** (`diseno.tarjeta_total`, el resumen fijo de la hoja).
+- **Tarjeta por omisión** — `{estado: 'sin_plantilla'}` de `cotizacion_tarjeta()`: la plantilla publicada no le sirve a esa versión y la tarjeta muestra sólo el total y lo aparte (4.18-2).
 - **Revisión** — `cotizaciones_revisiones`: diff de cada edición.
 - **Reporte** — `cotizaciones_reportes` / `cotizacion_moderar`: marca de problema; sólo quien modera invalida.
 - **Comprobante** — `comprobantes`, `comprobantes_contadores`: comprobante de venta interno, numeración sin huecos; se anula, no se borra.
