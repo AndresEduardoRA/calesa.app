@@ -8209,6 +8209,10 @@ export type Database = {
         Args: { p_nota: string; p_origen: string; p_publicada_esperada?: string }
         Returns: string
       }
+      formula_revertir: {
+        Args: { p_nota: string; p_origen: string; p_publicada_esperada: string; p_version: string }
+        Returns: string
+      }
       fuera_de_regla: {
         Args: { p_flujo: string }
         Returns: {

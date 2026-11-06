@@ -340,7 +340,7 @@ begin
 end $$;
 
 -- ---------------------------------------------------------------------------------------------------------------------------------
--- 4.20-1: el ⚙ publica la N+1 desde la publicada sin pisar el borrador; el borrador recuerda su versión de origen; el
+-- 4.20-1: el ⚙ y revertir publican la N+1 desde la publicada sin pisar el borrador; el borrador recuerda su versión de origen; el
 -- conflicto dice quién publicó, qué versión y cuándo. Todo pasa por el candado del origen (`_publicar_formula`, `_publicar_version`).
 -- ---------------------------------------------------------------------------------------------------------------------------------
 
@@ -475,6 +475,112 @@ begin
   perform pg_temp.limpiar(o);
 end $$;
 
+-- @test publicar: revertir publica la N+1 como copia de la versión elegida, con su definición, sus params y su diseño, y deja el borrador intacto
+do $$
+declare
+  o uuid := pg_temp.preparar(); v1 uuid; v2 uuid; v3 uuid; v4 uuid; v_b uuid; v_def2 jsonb; f1 public.formulas; f3 public.formulas; f4 public.formulas;
+  v_bantes public.formulas; v_bdesp public.formulas;
+begin
+  v_def2 := jsonb_set(pg_temp.def_capturas(), '{nodos}', (select jsonb_agg(case when n ->> 'id' = 'flete' then n || '{"etiqueta": "Flete revisado"}' else n end order by k)
+                                                        from jsonb_array_elements(pg_temp.def_capturas() -> 'nodos') with ordinality t(n, k)));
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
+  set local role authenticated;
+  v1 := public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos());
+  perform public.formula_publicar(o, 'v1');
+  v2 := public.formula_guardar_borrador(o, v_def2, pg_temp.params_capturas(), pg_temp.diseno_costos('sin_garantia'));
+  perform public.formula_publicar(o, 'v2');
+  v3 := public.formula_cambiar_constante(o, 'flete', 1500, v2);
+  reset role;
+  select * into f1 from public.formulas where id = v1;
+  select * into f3 from public.formulas where id = v3;
+  -- El terreno distingue: la publicada de hoy difiere de la v1 en las cuatro cosas que revertir tiene que traer de vuelta.
+  if f3.definicion is not distinct from f1.definicion or f3.params is not distinct from f1.params or f3.diseno is not distinct from f1.diseno
+     or f3.visibilidad is not distinct from f1.visibilidad then
+    raise exception 'el terreno no distingue: la v3 es igual a la v1 en definición, params, diseño o visibilidad'; end if;
+  set local role authenticated;
+  v_b := public.formula_guardar_borrador(o, pg_temp.def_capturas(), jsonb_set(pg_temp.params_capturas(), '{flete}', '1000'), pg_temp.diseno_costos());
+  reset role;
+  select * into v_bantes from public.formulas where id = v_b;
+  set local role authenticated;
+  v4 := public.formula_revertir(o, v1, 'Volver a la 1', v3);
+  reset role;
+  select * into f4 from public.formulas where id = v4;
+  if f4.estado::text || f4.version is distinct from 'publicada4' then raise exception 'revertir no publicó la v4: % %', f4.estado, f4.version; end if;
+  if f4.definicion is distinct from f1.definicion then raise exception 'la v4 no trae la definición de la v1'; end if;
+  if f4.params is distinct from f1.params then raise exception 'la v4 no trae los params de la v1'; end if;
+  if f4.diseno is distinct from f1.diseno then raise exception 'la v4 no trae el diseño de la v1'; end if;
+  if f4.visibilidad is distinct from f1.visibilidad then raise exception 'la v4 no trae la visibilidad de la v1'; end if;
+  if f4.version_origen_id is distinct from v3 or f4.nota is distinct from 'Volver a la 1' or f4.publicado_por is distinct from '00000000-0000-0000-0000-000000000001'::uuid
+     or f4.publicado_en is null then raise exception 'la v4: origen %, nota %, publicó %', f4.version_origen_id, f4.nota, f4.publicado_por; end if;
+  if (select estado::text from public.formulas where id = v3) is distinct from 'archivada' or (select estado::text from public.formulas where id = v1) is distinct from 'archivada' then
+    raise exception 'revertir no archivó la v3 o cambió la v1'; end if;
+  if not exists (select 1 from public.actividad where accion = 'formula.publicada' and registro_id = v4::text and despues ->> 'copia_de' = v1::text
+                  and (despues ->> 'version_copiada')::int = 1 and (despues ->> 'version')::int = 4) then raise exception 'revertir no registró la copia'; end if;
+  select * into v_bdesp from public.formulas where id = v_b;
+  if v_bdesp.id is null or v_bdesp.estado::text <> 'borrador' or v_bdesp.definicion is distinct from v_bantes.definicion or v_bdesp.params is distinct from v_bantes.params
+     or v_bdesp.diseno is distinct from v_bantes.diseno or v_bdesp.version_origen_id is distinct from v3 then raise exception 'revertir tocó el borrador'; end if;
+  perform pg_temp.limpiar(o);
+end $$;
+
+-- @test publicar: revertir rechaza la publicada, un borrador, una versión ajena o que no existe, la nota en blanco, la esperada nula o vieja y a quien no configura
+do $$
+declare
+  o uuid := pg_temp.preparar(); o2 uuid; v1 uuid; v2 uuid; v_b uuid; v_ajena uuid;
+  c_q constant text := $f$select public.formula_revertir(%L, %L, %L, %L)$f$;
+begin
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
+  set local role authenticated;
+  v1 := public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos());
+  perform public.formula_publicar(o, 'v1');
+  v2 := public.formula_cambiar_constante(o, 'flete', 1500, v1);
+  v_b := public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos());
+  reset role;
+  insert into public.origenes (clave, nombre) values ('prueba_publicar_ajeno', 'Prueba publicar ajeno') returning id into o2;
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad)
+  values (o2, 1, 'archivada', pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos(), '{}') returning id into v_ajena;
+  set local role authenticated;
+  perform pg_temp.espera(format(c_q, o, v2, 'Nota', v2), '22023:-@version Esa ya es la versión publicada.');
+  perform pg_temp.espera(format(c_q, o, v_b, 'Nota', v2), '22023:-@version Un borrador no se revierte: se publica.');
+  perform pg_temp.espera(format(c_q, o, v_ajena, 'Nota', v2), '22023:-@version Esa versión no es de este origen.');
+  perform pg_temp.espera(format(c_q, o, gen_random_uuid(), 'Nota', v2), '22023:-@version Esa versión no es de este origen.');
+  perform pg_temp.espera(format(c_q, o, v1, '  ', v2), '22023:-@ Publicar pide una nota.');
+  perform pg_temp.espera(format(c_q, o, v1, 'Nota', null), '22023:-@publicada_esperada Revertir pide la versión publicada que tienes.');
+  perform pg_temp.espera(format(c_q, o, v1, 'Nota', v1), 'PT409:-@ Publicaste la versión 2 hace');
+  reset role;
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000b1', true);
+  set local role authenticated;
+  perform pg_temp.espera(format(c_q, o, v1, 'Nota', v2), '42501:');
+  reset role;
+  if (select max(version) from public.formulas where origen_id = o) <> 2 then raise exception 'un revertir rechazado publicó'; end if;
+  delete from public.origenes where id = o2;
+  perform pg_temp.limpiar(o);
+end $$;
+
+-- @test publicar: revertir a una versión cuyo diseño usa un nivel ya retirado se rechaza, como publicar un borrador con él, y no publica nada
+do $$
+declare
+  o uuid := pg_temp.preparar(); v_orig text := pg_get_functiondef('public._niveles_de_cotizacion()'::regprocedure); v1 uuid; v2 uuid;
+begin
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
+  set local role authenticated;
+  v1 := public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos());
+  perform public.formula_publicar(o, 'v1');
+  v2 := public.formula_cambiar_constante(o, 'flete', 1500, v1);
+  reset role;
+  create or replace function public._niveles_de_cotizacion(out niveles text[], out retirados text[]) language sql stable set search_path = ''
+    as $f$ select array['costos']::text[], array['costos']::text[] $f$;
+  set local role authenticated;
+  perform pg_temp.espera(format($f$select public.formula_revertir(%L, %L, 'Volver', %L)$f$, o, v1, v2), '22023:nivel_retirado@');
+  -- El control: el retiro está puesto (publicar un borrador con ese diseño también se rechaza).
+  perform public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos());
+  perform pg_temp.espera(format($f$select public.formula_publicar(%L, 'Retirado')$f$, o), '22023:nivel_retirado@');
+  reset role;
+  if (select max(version) from public.formulas where origen_id = o) <> 2 then raise exception 'revertir con un nivel retirado publicó'; end if;
+  execute v_orig;
+  if public._niveles_de_cotizacion() is null then raise exception 'no se restauró _niveles_de_cotizacion'; end if;
+  perform pg_temp.limpiar(o);
+end $$;
+
 -- @test publicar: una sola firma del ⚙, de authenticated y no de anon; las cinco de la versión son definer con search_path vacío; el candado por origen
 do $$
 declare f text; v_p regprocedure;
@@ -500,3 +606,16 @@ begin
   end loop;
 end $$;
 
+-- @test publicar: una sola firma de revertir, de authenticated y no de anon, definer con search_path vacío
+do $$
+declare v_p regprocedure;
+begin
+  if (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'formula_revertir') <> 1 then
+    raise exception 'formula_revertir tiene más de una firma (o ninguna)'; end if;
+  v_p := to_regprocedure('public.formula_revertir(uuid,uuid,text,uuid)');
+  if v_p is null then raise exception 'no existe formula_revertir(uuid,uuid,text,uuid)'; end if;
+  if not has_function_privilege('authenticated', v_p, 'execute') or has_function_privilege('anon', v_p, 'execute') then
+    raise exception 'los grants de formula_revertir'; end if;
+  if (select p.prosecdef and p.proconfig = array['search_path=""'] from pg_proc p where p.oid = v_p) is not true then
+    raise exception 'formula_revertir no es security definer con search_path vacío'; end if;
+end $$;
