@@ -7608,6 +7608,7 @@ export type Database = {
       _origenes_lead_tope: { Args: Record<PropertyKey, never>; Returns: number }
       _papelera_purgar_leads: { Args: { p_leads: string[]; p_lote: string }; Returns: Json }
       _papelera_purgar_vehiculos: { Args: { p_lote: string; p_vehiculos: string[] }; Returns: Json }
+      _papelera_restaurar_cotizaciones: { Args: { p_ids: string[]; p_lote: string }; Returns: Json }
       _papelera_solo_cotizaciones: {
         Args: { p_tipo: Database['public']['Enums']['tipo_lote_papelera'] }
         Returns: undefined
@@ -8142,6 +8143,10 @@ export type Database = {
         Returns: Json
       }
       cotizaciones_papelera_lote: { Args: { p_lote: string }; Returns: Json }
+      cotizaciones_papelera_restaurar: {
+        Args: { p_actualizado_en_esperado: string; p_cotizaciones?: string[]; p_lote: string }
+        Returns: Json
+      }
       crear_lead: {
         Args: { p_id: string; p_lead: Json; p_recordatorio?: Json; p_seguimiento?: Json }
         Returns: Json
