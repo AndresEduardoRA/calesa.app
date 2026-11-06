@@ -1,6 +1,8 @@
 // Cada `<Confirmar>` de la app, con lo que lo abre por la URL (`.claude/rules/ui.md`: un diálogo tiene su `?panel=`). La
 // guarda `confirmar-con-url.test.ts` falla si aparece un `<Confirmar>` que no figura acá, o si lo que lo abre dejó de
 // escribir la URL. Para sumar uno: su `?panel=` (`usePanelPorUrl()` de `shared/ui`) y una fila acá.
+import { CONFIRMAR_CON_URL_DE_LA_FORMULA } from './confirmar-con-url-formula'
+
 export type ConfirmarConUrl = {
   // Qué archivo escribe y lee la URL que lo abre (puede ser el mismo).
   abre: string
@@ -8,7 +10,8 @@ export type ConfirmarConUrl = {
   senal: string
 }
 
-export const CONFIRMAR_CON_URL: Record<string, ConfirmarConUrl> = {
+// Los del núcleo (del A). Los de un área van en su archivo (`confirmar-con-url-formula.ts`, del B) y se suman abajo.
+export const CONFIRMAR_CON_URL_DEL_NUCLEO: Record<string, ConfirmarConUrl> = {
   'src/modules/leads/features/cartera/components/dialogo-de-salir.tsx': {
     abre: 'src/modules/leads/features/ficha/hooks/use-panel-de-lead.ts',
     senal: 'PANEL_SALIR',
@@ -66,4 +69,9 @@ export const CONFIRMAR_CON_URL: Record<string, ConfirmarConUrl> = {
     abre: 'src/modules/equipo/features/roles/components/matriz-de-roles.tsx',
     senal: 'eliminar: parseAsString',
   },
+}
+
+export const CONFIRMAR_CON_URL: Record<string, ConfirmarConUrl> = {
+  ...CONFIRMAR_CON_URL_DEL_NUCLEO,
+  ...CONFIRMAR_CON_URL_DE_LA_FORMULA,
 }
