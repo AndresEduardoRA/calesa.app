@@ -1834,3 +1834,16 @@ Lo pidió la persona después de que el A hiciera el 4.16 y el 4.17-1: se parti�
 - **P1 = sumar sólo archivos del compilador** (contestada el 2026-11-05, la recomendada): en `plan.yaml` un carril que no es base suma a su `dueno_de` lo que crea de las familias del compilador, y nada más, tampoco los `pasos`: su `riesgo` decide si el coordinador integra solo.
 - **P2 = la guarda bloquea** (la recomendada): un carril que no es base sólo toca lo suyo, `docs/` y `compartido`; ahí agrega y edita pero no borra (el B edita los tests de su compilador). La consecuencia, 4-87: el A da `cotizaciones.papelera.purgar` antes del 4.24.
 - **Las familias del compilador pasaron a un `.mjs`** (`familias-del-compilador.mjs`) porque la guarda corre con `node` y no importa `.ts`; `areas-de-cotizaciones-plan.ts` las reexporta: una sola fuente.
+
+## 2026-11-05 — Paso 4.15-6a
+
+- **El 4.15-6 se parte en tres** (6a la hoja, 6b la guardada y el listado, 6c Configuración y Empresa): con un commit por intención eran 8 y no caben en 3 de código. Cada uno se cierra solo, en cadena, y el 4.17, el 4.20 y el 4.24 dependen del 6c. La conducta C1–C20 del plan (`.piloto/planes/4.15-6.md`) es el contrato de los tres.
+- **P1 = 4-87 es el 4.15-7** (la recomendada): la clave `cotizaciones.papelera.purgar` es un permiso nuevo y va en un paso propio del A, con la compuerta `datos` y rigor máximo, antes del 4.24; meterla en el 4.15-6 lo volvería de otra capa (la base), y dársela al C abriría `permisos.ts` y `seed.sql` a un carril que no es base.
+- **Un hueco vacío es un objeto sin componentes** (`HuecosDeLaHoja = { Proveedor?, EnlaceSinPublicar? }`), no un componente que da `null`: la página no crea ningún elemento para él y el DOM de hoy no cambia; unas pruebas comparan el `innerHTML` con y sin hueco.
+- **Las segundas pantallas van en `pantallas/<área>-<pantalla>.ts`**, no en `pantallas/<área>.ts`: una pantalla paga lo que reexporta su archivo, y `/cotizaciones/nuevo` no debe cargar la papelera del 4.24. El B posee `pantallas/formula-hoja.ts` en `plan.yaml`.
+- **El ⚙ lo enciende un proveedor y lo decide la base** (`ajustes` por celda): la hoja no decide permisos. Sin proveedor no se llama `usePanelPorUrl('celda', …)`: `<LugaresDeLaHoja>` monta `<LugaresConAjuste>` sólo si `ContextoDelAjuste` no es nulo, para que no se registre la vuelta del foco de `ajuste`.
+- **El lugar del ajuste va en dos sitios, como la ayuda:** con las secciones principales en la hoja y, para las avanzadas, dentro del `<Modal>` «Avanzado», donde el panel queda encima del modal y dentro de su foco atrapado. `?ajuste=celda&nodo=<avanzada>` sin `?panel=avanzado` no abre nada.
+- **La URL `?ajuste=celda&nodo=` comparte `nodo` con la ayuda:** las dos son paneles, y con uno abierto no se alcanza el ⚙ ni la ayuda de otra celda.
+- **`ConProveedorDeLaHoja`** (`src/app/(app)/cotizaciones/`) une el `Proveedor` del área con las dos páginas de la hoja, para no repetir el condicional y no subir la complejidad de `HojaDelOrigen`.
+- **`eslint.config.mjs` entra al `dueno_de` del carril A** (base): el 4.15-6c amplía el aviso de `client.ts` y el coordinador pedía un dueño.
+- **El JS no pasó de 1 KB:** `/cotizaciones/nuevo` 456,8 (456,7 antes), así que no se anota el chunk; `/cotizaciones/[id]` midió 435,6, siete KB menos que la última cifra (442,8), sin causa atribuida.
