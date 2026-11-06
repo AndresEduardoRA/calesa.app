@@ -192,6 +192,27 @@ test('E6 quien no tiene la clave de vaciar ve y restaura sólo lo suyo; sin lote
   await expect(page.getByRole('link', { name: 'Ir a la papelera de vehículos' })).toHaveCount(0)
 })
 
+test('E7 sin las claves de enviar ni de vaciar no hay enlace ni papelera; la dueña llega desde el listado', async ({
+  page,
+}) => {
+  const listado = `/cotizaciones?origen=${t.origen.id}`
+  await entrar(page, t.soloVer, { fresco: true })
+  await page.goto(listado)
+  await expect(page.locator('tbody tr, li article').filter({ visible: true }).first()).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Papelera' })).toHaveCount(0)
+  await page.goto('/cotizaciones/papelera')
+  await expect(
+    page.getByText('No tienes permiso para enviar cotizaciones a la papelera ni para vaciarla.'),
+  ).toBeVisible()
+  await expect(lotes(page)).toHaveCount(0)
+  await page.context().clearCookies()
+  await entrar(page, t.duena, { fresco: true })
+  await page.goto(listado)
+  await page.getByRole('link', { name: 'Papelera' }).filter({ visible: true }).click()
+  await expect(page).toHaveURL(/\/cotizaciones\/papelera$/)
+  await expect(page.getByRole('heading', { name: 'Papelera de cotizaciones' })).toBeVisible()
+})
+
 // Lo que mide el documento y los nodos de la página 1 (5 lotes × 20 a la vista).
 async function medirLaPagina(page: Page): Promise<{ bytes: number; nodos: number }> {
   const respuesta = await page.goto('/cotizaciones/papelera')
