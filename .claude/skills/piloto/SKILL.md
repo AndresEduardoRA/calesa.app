@@ -43,9 +43,10 @@ el número del paso y, opcionales, `continuar` (retomas esta sesión tras una co
    completo las exige y el bucle no las levanta. El bucle ya lo mira por el nivel del ruteo; esto cubre el plan que sube de nivel.
 5. **Ejecutar y verificar** (Nivel 1, 2 o 3 de `.claude/rules/e2e.md`, el que dice el plan): primero las pruebas que fallan, **guardadas en rojo contra HEAD**; después el
    código; después las mutaciones del plan (cada una tiene que hacer caer su prueba), sólo en un paso de rigor máximo: en pantalla pura no hay mutaciones ni sondas de medición (`.claude/rules/e2e.md` › «Pulido y rigor por tipo de paso»). Cada salida va a `.piloto/salidas/<paso>/` con `tee`; las corridas largas con
-   `nohup … ; echo $? > <algo>.fin` y una espera de primer plano. **Antes de una corrida pesada** (`pnpm test`, `typecheck`, `lint`, mediciones) espera, en un bucle de primer plano
-   de ≤ 9 minutos, a que no haya procesos de otra sesión (`playwright`, `next build`, `vitest`, `carreras`, `medir`, `supabase db|start` fuera de este árbol) y a que `loadavg` < 1,5.
-   **Qué no se corre en local** (`.claude/rules/e2e.md`, Nivel 1): `lint` y `typecheck` los corre el hook del commit; la suite entera de vitest, el hook de
+   `nohup … ; echo $? > <algo>.fin` y una espera de primer plano. **Antes de una corrida pesada** (e2e, mediciones, carreras) espera, en un bucle de primer plano
+   de ≤ 9 minutos, a que no haya procesos pesados **en este mismo árbol** (`playwright`, `next build`, `vitest`, `carreras`, `medir`, `supabase db|start`) y a que `loadavg` sea menor que
+   los núcleos (`nproc`). Los otros carriles tienen su árbol y su base: esperar a que la máquina quede ociosa con tres carriles no termina nunca (con `loadavg` < 1,5 cada parte perdía
+   sus 9 minutos, 2026-11-06). **Qué no se corre en local** (`.claude/rules/e2e.md`, Nivel 1): `lint` y `typecheck` los corre el hook del commit; la suite entera de vitest, el hook de
    Stop al cerrar el paso (en el paso, sólo `pnpm exec vitest related --run <archivos>` y `scripts/guardas`); el e2e completo, el CI del PR, salvo en el hito 4-A y en un cierre.
 6. **Informe** en `.piloto/informes/<paso>.md` ([plantilla-informe.md](plantilla-informe.md)): qué se hizo, la salida real de cada prueba (con su ruta), lo que no se hizo.
 7. **Auditar el informe**, sólo en un paso de rigor máximo (en pantalla pura se salta: verifica el bucle). Mismo `auditor`, mismo tope: dos bloqueos y es una compuerta `atasco`.
