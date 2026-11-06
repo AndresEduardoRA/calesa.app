@@ -1894,3 +1894,23 @@ Lo pidió la persona después de que el A hiciera el 4.16 y el 4.17-1: se parti�
   orden y la ventana de una lista que ya existía y lo de `infra/` lee la misma RPC desde el navegador. Por eso, sin mutaciones ni informe auditado.
 - **`@sin-celular-archivo` se quitó y E4 no lleva `@sin-celular`.** El motivo del archivo («su JS del celular lo ejecuta otra prueba que se queda») dejó de ser cierto: el JS de «Ver más» lo ejecutan sólo estas pruebas. El
   spec dejó de ser `serial` (cada prueba crea su lead). `comparar-anchos.mjs` da 4 IGUAL, pero E4 tiene JS de celular que nadie más ejecuta (`huella.txt`): corre también en el celular (≈ 25 s).
+
+## 2026-11-06 — Paso 4.17 (3 de 5): la pestaña «Cotizaciones» de la ficha del vehículo
+
+- **P1, contestada con la recomendada: quién la ve.** Quien tiene `cotizaciones.ver` (con cualquier alcance) en el origen del vehículo, con `puede(permisos, 'cotizaciones.ver', origen.id)`; sin la clave la pestaña no aparece y `?seccion=cotizaciones`
+  abre «Ficha». Coincide con la RLS: la policy «cotizaciones: leer» va por el origen de la cotización y una cotización con vehículo es siempre del origen de ese vehículo (`vehiculo_de_otro_origen`). Las otras dos (todo el que ve el vehículo;
+  sólo alcance «todos») se descartaron: la primera dibuja una pestaña vacía para siempre, contra UX.md («ninguna pestaña se dibuja vacía»); la segunda esconde las propias a quien ve «propios».
+- **Las pestañas visibles dependen del permiso.** `pestanasVisibles({ cotizaciones })` reemplaza la constante `DISPONIBLES` de la barra: la página las calcula en el servidor y se las pasa como `{ clave, titulo }[]`, que es serializable;
+  `pestanaDeVehiculo(valor, visibles)` y `hayBarraDePestanas(visibles)` las reciben.
+- **Se lee desde el navegador al montarse, sin lectura del servidor.** Es la lectura del historial del 4.14-2b (`leerHistorialDelVehiculo()`, de a 21 por cursor): la ficha no paga nada hasta abrir la pestaña. `<CotizacionesDelVehiculo>` la pide
+  una vez por montaje y el único guardián de lo viejo es el `ultimo` de `usePaginasDelHistorial`: con el doble montaje de `StrictMode` el segundo pedido deja viejo al primero (llega una página, no dos; un `useRef` de «ya leí» dejaría la pestaña en
+  «Cargando…»). La lectura al montar usa `useEffectEvent` y no desactiva ninguna regla de lint.
+- **El reparto del historial.** La paginación (primera página, «Ver más», «Reintentar» y el tope) salió de `useHistorialDelVehiculo` a `usePaginasDelHistorial`, y la lista con su pie y su esqueleto a `<ListaDelHistorial etiqueta>`, que el panel de la hoja
+  y la pestaña comparten; el panel queda igual (`historial-del-vehiculo.test.tsx` pasa sin editarlo). El nombre de la lista es una prop: «Historial de cotizaciones» en el panel y «Cotizaciones del vehículo» en la pestaña.
+- **La cáscara diferida de la pestaña va en su propio `diferidos.tsx`** (`features/historial/components/pestana/`), no en el del historial: `pantallas/cotizar.ts` reexporta ése y `/cotizaciones/nuevo` va en 456,9 de 460 KB (4-73). Un `diferido()` de nivel
+  superior es un efecto de módulo y no se descarta con seguridad aunque la pantalla no lo reexporte. `/cotizaciones/nuevo` pasó de 456,8 a 456,9 KB por el reparto del historial (commit 1), no por la pestaña.
+- **La fila es la del historial** (número, fecha relativa, autor y clase) y lo demás vive en `/cotizaciones?vehiculo=`, adonde lleva el tope («Ver todas en Cotizaciones»): el camino a lo antiguo. La lista es una `<ul>` compacta de enlaces y no
+  `@/shared/ui/lista`: `.claude/rules/ui.md` › «Listas» pide el patrón para registros con resumen por clic en la fila y «⋯»; aquí cada fila es un enlace a su página, sin resumen ni «⋯», y la guarda `listas-con-patron` sólo vigila tablas.
+- **Los topes de nodos.** Con 20 filas, 61 nodos (tope 65, el del panel); con 500, 1.501 (3 por fila + 1) y el tope queda en lo medido más un 5 %: 1.576 (el previo de 1.600 alcanzó). La respuesta de la 25.ª página pesa lo mismo que la 1.ª.
+- **Sin «Cotizar» en la ficha.** No está en la fila del paso y suma un camino a un flujo: se anota como 4-94 y lo decide la persona.
+- **El paso vale como pantalla.** Sin datos nuevos, permisos nuevos ni migración (la lectura, su índice y su RLS son los del 4.14-2b): sin mutaciones ni informe auditado.

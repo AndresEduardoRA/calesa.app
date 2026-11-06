@@ -233,9 +233,10 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   4.16. Nivel 1 + cadena db + `db:carreras` (el 4.17-1, de base, Nivel 2). Prompts: 6.
   **Partido en 5** (`docs/DECISIONES.md` › «Paso 4.17 (1 de 5)»): el **4.17-1** (la base de 5a-12: `lead_oportunidades()` por cursor de tres valores y `p_tamano`, sus dos parciales, el registro y
   su medición; la pantalla pide 100 todavía; Nivel 2 + `db:medir:volumen`): hecho. El **4.17-2** («Ver más» de la sección «Oportunidades» de la ficha, `leads-oportunidades-ver-todas.spec.ts` con 1.000;
-  cierra 5a-12; Nivel 1, interfaz): hecho. El **4.17-3** (la pestaña «Cotizaciones» de `/vehiculos/[id]` con `leerHistorialDelVehiculo()` y su tope «Ver todas en Cotizaciones»; Nivel 1, interfaz). El **4.17-4**
+  cierra 5a-12; Nivel 1, interfaz): hecho. El **4.17-3** (la pestaña «Cotizaciones» de `/vehiculos/[id]` con `leerHistorialDelVehiculo()` y su tope «Ver todas en Cotizaciones»; Nivel 1, interfaz): hecho. El **4.17-4**
   (la sección «Cotizaciones» de `/leads/[id]` por `cotizaciones_lead_creado_idx`, su medición, quién la ve y el camino tras 500; si pide un filtro `?lead=` en `cotizaciones_listado()` se parte en 4a, base, y
-  4b, pantalla). El **4.17-5** («Ir a una fecha» de «Revisiones», **4-75**; si hace falta una migración lo decide su plan midiendo; Nivel 1, o más según su plan). Marcas: 4.17-1 `sí`, 4.17-2 `no`.
+  4b, pantalla). El **4.17-5** («Ir a una fecha» de «Revisiones», **4-75**; si hace falta una migración lo decide su plan midiendo; Nivel 1, o más según su plan). Marcas: 4.17-1 `sí`, 4.17-2 `no`, 4.17-3 `no`.
+  - **P1** (1, contestada el 2026-11-06 con la recomendada): la pestaña «Cotizaciones» de `/vehiculos/[id]` la ve quien tiene `cotizaciones.ver` (cualquier alcance) en el origen del vehículo; sin la clave no aparece y `?seccion=cotizaciones` abre «Ficha». Coincide con la RLS de `cotizaciones`, que va por el origen.
 - **4.18** — La tarjeta, el PDF y compartir: filas por grupo con su tono (el del grupo, o el que la plantilla elija del catálogo), celdas
   combinadas de tipo de cambio y plazo, título de la variante, asesor, logo, nota, leyenda y la garantía condicionada, Live, y el total en Bs
   si `cotizaciones.ver_total_bs`.
@@ -272,11 +273,13 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   cada proyecto (con la decisión vigente, sin segunda pila local, su assert de 25 min no se cumple en esta fase), **5a-33** (el conteo
   del rol, tapado al 200 % en Roles), ESTADO y BITACORA. Depende de todo. Nivel **3**. Prompts: 2.
 
-Total de la fase: 45 pasos y 98 prompts; faltan los pasos 4.17-3 a 4.17-5 y 4.18 a 4.28.
+Total de la fase: 45 pasos y 98 prompts; faltan los pasos 4.17-4, 4.17-5 y 4.18 a 4.28.
 
 **Pulido para la Fase 9** (2026-10-30; regla en `.claude/rules/e2e.md` › «Pulido y rigor por tipo de paso»). Ningún paso los recoge ni abre otro por ellos, aunque su fila los nombre
 (4.20 y 4.28): **4-61**, **4-62** y **4-63** (el foco tras recargar y «atrás» que quedó del 4-49), **5a-29** y **5a-30** (del 4.20) y **5a-33** (del 4.28). Los recorre la
 auditoría AA de la Fase 9, con 5a-28. Los defectos de pulido nuevos se anotan aquí, en una línea.
+
+- **Pulido nuevo (4.17-3):** al abrir la pestaña «Cotizaciones» de la ficha del vehículo puede verse esqueleto, luego blanco, luego esqueleto: el primero es el de `diferido()` mientras llega el código y el segundo el de las filas, que espera 300 ms. Sin prueba nueva.
 
 ### Abiertos de la Fase 4
 
@@ -459,6 +462,7 @@ playwright test --shard=2/4 --project=escritorio`), con `log_min_duration_statem
 - **4-90** (sin fase; salió del 4.15-6b): `e2e/cotizar-guardada-guardar.spec.ts:142` pide seis dígitos de microsegundos (`\.\d{6}\+00:00$`) y Postgres no escribe un cero final (`…43.49152+00:00`): cae una de cada diez veces, también sola (en escritorio 1 de 3 y en móvil 1 de 2 en el 4.15-6b; pasó en el completo). Arreglo: `\d{1,6}`, que sigue distinguiendo el texto de la base de un `Date` (`…Z`).
 - **4-91** (4.27, o el paso del área que lo pida; salió del 4.15-7): el registro de RPC con tamaño (`scripts/guardas/paginas-en-la-base.ts`, del A) sólo tiene el hueco de la papelera (`paginas-en-la-base-papelera.ts`, del C). Comentarios (4.27) u otra área que cree una RPC con tamaño necesita su archivo, que lo abre el A antes: si no, la guarda de carriles hace caer el PR del área que edite el registro.
 - **4-92** (sin fase; salió del 4.15-7): `e2e/leads-alta-casos.spec.ts:302` (dos personas guardan el mismo teléfono a la vez) cayó una vez en el completo de escritorio del 4.15-7 (`.piloto/salidas/4.15-7/completo.txt`, línea 1407: 5 s después de los dos Ctrl+Enter no había ningún lead con ese teléfono) y pasa 3 de 3 sola (`solas-3x.txt`, `--repeat-each=3`). No toca la papelera ni los permisos. Traza: `e2e-fallos/2026-11-06_07-35/`; sin medir la causa.
+- **4-94** (sin fase; salió del 4.17-3): «Cotizar» desde la ficha del vehículo (`/vehiculos/[id]`), en la cabecera o en la pestaña «Cotizaciones». Hoy sólo está en el resumen de `/vehiculos` (`paraCotizarDe()`) y en la barra de la hoja. Suma un camino a un flujo: lo decide la persona.
 - **4-93** (sin fase; salió del 4.15-7): `e2e/vehiculos.spec.ts:106` (buscar con comas, filtrar por puertas y limpiar) cayó una vez en el mismo completo (línea 1450: tras «Limpiar filtros» la página decía «Ningún vehículo en Corea todavía»; sus 4 hermanas `serial` quedaron «did not run») y pasa 3 de 3 sola y con el archivo entero (`solas-3x.txt`, `vehiculos-spec-entero.txt`: 7 de 7). Traza: `e2e-fallos/2026-11-06_07-35/`; sin medir la causa. No es otro spec en paralelo (el completo corre con un worker, y `:35` y `:58` acababan de ver «Kia Sportage»): lo que encaja es una carrera dentro de la prueba entre «Limpiar filtros» y la búsqueda vacía.
 - **4-88** (sin fase, lo decide la persona; salió del 4.15-5): la guarda de carriles corre la versión de la base, pero el job lo define el `ci.yml` del PR: un PR de un carril que no es base que borra o cambia el job `carriles` no se juzga, y el coordinador integra con todos los checks en verde sin pedir uno (`coordinador.mjs:180-191`). Que el coordinador exija el check «Carriles» en el PR de un carril que no es base, o que la persona lo haga requerido en la protección de `main`.
 - **4-54** (sin fase, lo decide la persona; salió del 4.14-2a): si una cotización se está guardando cuando se elige otro vehículo en el panel (abrirlo y elegir dentro de lo que

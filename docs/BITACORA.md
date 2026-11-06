@@ -669,3 +669,19 @@ con la recomendada) y plan aprobado antes de ejecutar. Nivel 1 con interfaz, sin
 - **Abiertos:** 4-83 suma el segundo disparador («todos» con B y C abiertos); 5a-12 cerrado.
 - **Commits:** `0fb0f2cf` (poner en su lugar lo que vuelve de una action), `f3dfc7d6` (ver más oportunidades de un lead por cursor) y `4731d681` (llevar al embudo pasadas las 500 oportunidades del lead).
   e2e completo: no (4.17-2, pantalla, 1 de 3)
+
+## 2026-11-06 — Paso 4.17-3: la pestaña «Cotizaciones» de la ficha del vehículo
+
+- **Hecho.** `/vehiculos/[id]` suma la pestaña «Cotizaciones» para quien tiene `cotizaciones.ver` en el origen del vehículo (P1 = 1, contestada con la recomendada; sin la clave no aparece y `?seccion=cotizaciones` abre «Ficha»). Se lee desde
+  el navegador al abrirla con `leerHistorialDelVehiculo()` (la ficha no lee cotizaciones), de a 20 con «Ver más» hasta 500 y, en el tope, «Mostrando las 500 más recientes.» con «Ver todas en Cotizaciones». El historial plegable del panel de la hoja
+  y la pestaña comparten `usePaginasDelHistorial` y `<ListaDelHistorial>` (commit 1, sin cambio visible). Su cáscara de `diferido()` va en `pestana/diferidos.tsx`. Se ajustó `e2e/vehiculos-alta.spec.ts` (la dueña ve tres pestañas).
+- **Verificación** (`.piloto/salidas/4.17-3/`): rojos contra HEAD (`rojo-head-pestanas.txt` y `rojo-head-vitest.txt`: 5 de 6 en Vitest; `rojo-head-e2e.txt`: caen las 4 del spec nuevo); verde en `c1-historial-verde.txt` (12 pruebas del panel antes y después
+  del refactor); `lint` y `typecheck` en verde; `pnpm test` (551 archivos, 6.438 pruebas: 6.433 en verde y las 5 de `auto-carriles.test.ts`, 4-83, ajenas; `pnpm-test.txt`); `mapa.sh --check` y `coordinador validar`. Dirigidos en escritorio y móvil:
+  157 en verde (`dirigidos.txt`: los 15 specs del plan salvo el nuevo, que tuvo un defecto propio, una prueba que cambiaba de usuario a mitad, y se partió en dos) y el spec nuevo, 10 de 10 (`nuevo-spec.txt`, `medidas.json`). `presupuesto-js` en escritorio, 8 en verde
+  (`presupuesto-js.txt`).
+- **Medido:** primera respuesta 4.996 bytes en escritorio y 4.912 en móvil (tope 5.250), 61 nodos con 20 (tope 65) y 1.501 con 500 (tope 1.576), la 25.ª respuesta igual a la 1.ª; JS de `/cotizaciones/nuevo` 456,9 KB de 460 (antes 456,8: el reparto del
+  commit 1), `/cotizaciones/[id]` 435,6, `/cotizaciones` 359 y `/vehiculos` 476,7.
+- **Estado del CI al empezar:** el run de HEAD `c0939a8f` seguía en curso, con Nivel 1, base, carriles y tres de cuatro bloques e2e en verde, y terminó en verde (`success`). El push a `main` del merge del PR #9 (run `42178713690`) había caído en `pnpm test`: su log ya no se pudo leer (`gh run view --log-failed` vacío), así que la causa no está verificada.
+- **Abiertos:** 4-94 («Cotizar» desde la ficha del vehículo); 4-73 sigue abierto sin sumarle peso; el pulido del esqueleto doble queda en «Pulido para la Fase 9».
+- **Commits:** `54233483` (separar la paginación del historial del pliegue) y `41419f7b` (abrir la pestaña de cotizaciones en la ficha).
+  e2e completo: no (4.17-3, pantalla, 2 de 3)
