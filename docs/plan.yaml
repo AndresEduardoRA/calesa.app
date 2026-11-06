@@ -5,8 +5,11 @@
 # carril `a` (`base: true`, que posee el módulo entero y además lleva el listado, la tarjeta y la plantilla); `b` lleva la fórmula y `c` la papelera, marcar final, comprobantes y comentarios.
 # Un área vive en features/<área>/, entities/<área>/, infra/<área>/, areas/<área>/ (sus entradas) y pantallas/<área>.ts; lo demás del módulo es
 # el NÚCLEO (la hoja, guardar, el motor…), del carril `a`, y las tres entradas de la raíz (index.ts, client.ts, composicion.ts) no las toca
-# ningún paso: sólo reexportan cada área (4.15-4; lo vigila scripts/guardas/areas-de-cotizaciones.test.ts). Los ids son las letras de los stacks locales (puertos +100, +200, +300). `compartido`: carpetas donde cada paso sólo agrega archivos con nombre propio
-# (migraciones con marca de tiempo, tests SQL, specs e2e); `database.types.ts` se regenera con `pnpm db:types` al integrar.
+# ningún paso: sólo reexportan cada área (4.15-4; lo vigila scripts/guardas/areas-de-cotizaciones.test.ts). Los ids son las letras de los stacks locales (puertos +100, +200, +300). `compartido`: carpetas donde cada paso
+# agrega archivos con nombre propio (migraciones con marca de tiempo, tests SQL, specs e2e); un carril que no es base también edita los suyos, no borra;
+# `database.types.ts` se regenera con `pnpm db:types` al integrar.
+# `migraciones` (carriles que no son base): los dominios de las migraciones que crea; el nombre empieza por uno. La guarda de carriles (CI,
+# scripts/guardas/carriles.mjs) lee este archivo de la base del PR: un carril que no es base no edita ESTADO, PLAN, DECISIONES ni BITACORA y no toca fuera de su `dueno_de`.
 esquema: plan/v1
 semilla: importadora fase 4
 agentes_disponibles: [claude]
@@ -35,6 +38,8 @@ carriles:
         src/modules/empresa/,
       ]
   - id: b
+    # Dominios de sus migraciones: el nombre de una migración nueva empieza por uno (la guarda de carriles, carriles.mjs).
+    migraciones: [formula, diseno, tablas]
     dueno_de:
       # Sus áreas enteras (features, entities, infra, areas y pantallas).
       - src/modules/cotizaciones/features/formula/
@@ -93,6 +98,7 @@ carriles:
       - src/modules/cotizaciones/entities/validar.test.ts
       - src/modules/cotizaciones/entities/validar.ts
   - id: c
+    migraciones: [papelera, final, comprobantes, comentarios]
     dueno_de:
       [
         src/modules/cotizaciones/features/papelera/,
@@ -144,7 +150,7 @@ pasos:
     depende_de: ['4.15-4']
     carril: a
     riesgo: ambar
-    modulos: [scripts/guardas/, docs/]
+    modulos: [scripts/guardas/, scripts/coordinador/, .github/, .claude/rules/, docs/]
     ruteo:
       { agente: claude, modelo: sonnet, effort: high, modo: auto, sesion: nueva, revisor: ninguno }
     verificacion: 'Nivel 1'

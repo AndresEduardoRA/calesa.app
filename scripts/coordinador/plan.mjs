@@ -5,6 +5,7 @@
 // Un paso pasa por: pendiente → asignado (un carril lo está haciendo) → publicado (su PR está abierto) → integrado (está en main).
 // Un paso puede empezar cuando todas sus dependencias están integradas: así cada carril parte de un main que ya las tiene.
 import { parse } from 'yaml'
+import { problemasDeMigraciones } from './plan-migraciones.mjs'
 
 export const ESTADOS = ['pendiente', 'asignado', 'publicado', 'integrado']
 const TRANSICIONES = {
@@ -70,6 +71,8 @@ export function problemasDelPlan(plan) {
         for (const rb of lista[j].dueno_de ?? [])
           if (!lista[i].base && !lista[j].base && solapan(ra, rb))
             p.push(`OWNERS: ${lista[i].id} y ${lista[j].id} comparten ${ra} / ${rb}`)
+
+  p.push(...problemasDeMigraciones(plan))
 
   const pasos = new Map()
   for (const paso of plan.pasos) {

@@ -249,3 +249,24 @@ pasos:
   assert.match(t, /0 de 1 pasos integrados · cuota de la ventana: sin calibrar/)
   assert.match(t, /\| · \| P01 Esquema \| rojo \| — \| — \|/)
 })
+
+test('migraciones de un carril: opcional, bien escritas, sin repetir y sin pisarse (4.15-5)', () => {
+  const con = (datos, ui, extra = {}) => {
+    const p = structuredClone(PLAN)
+    p.carriles[0] = { ...p.carriles[0], migraciones: datos }
+    p.carriles[1] = { ...p.carriles[1], migraciones: ui }
+    return Object.assign(p, extra)
+  }
+  const problemas = (plan) => problemasDelPlan(plan).filter((x) => x.includes('MIGRACIONES'))
+  assert.deepEqual(problemasDelPlan(con(['formula', 'diseno'], ['papelera'])), [])
+  assert.deepEqual(problemasDelPlan(con(undefined, [])), [])
+  assert.match(problemas(con(['Formula'], []))[0] ?? '', /Formula/)
+  assert.match(problemas(con(['a b'], []))[0] ?? '', /a b/)
+  assert.match(problemas(con(['formula', 'formula'], []))[0] ?? '', /formula.*repetid/)
+  assert.match(problemas(con('formula', []))[0] ?? '', /lista/)
+  assert.match(problemas(con(['formula'], ['formula_x']))[0] ?? '', /datos y ui comparten formula/)
+  assert.match(problemas(con(['formula'], ['formula']))[0] ?? '', /datos y ui comparten formula/)
+  const base = con(['formula'], [])
+  base.carriles[0].base = true
+  assert.match(problemas(base)[0] ?? '', /el carril base crea migraciones de cualquier dominio/)
+})
