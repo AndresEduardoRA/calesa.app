@@ -130,6 +130,8 @@ carriles:
         src/modules/cotizaciones/pantallas/comentarios.ts,
         src/modules/cotizaciones/pantallas/comentarios-cotizacion.ts,
         src/app/(app)/cotizaciones/papelera/,
+        # Su pestaña de Configuración › Empresa (4.15-6c): la lista y la sección; la barra y la página son del A (4-89).
+        src/app/(app)/configuracion/empresa/comprobantes/,
       ]
 
 pasos:
@@ -541,6 +543,7 @@ pasos:
         src/modules/cotizaciones/pantallas/comprobantes-cotizacion.ts,
         src/modules/cotizaciones/pantallas/comprobantes-empresa.ts,
         src/modules/cotizaciones/areas/comprobantes/,
+        src/app/(app)/configuracion/empresa/comprobantes/,
         docs/,
       ]
     ruteo:

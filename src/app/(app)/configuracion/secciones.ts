@@ -9,6 +9,7 @@ import {
 import { puede, type ClavePermiso, type Permisos } from '@/shared/lib/permisos'
 import { RUTAS } from '@/shared/lib/rutas'
 import { SECCION_DE_COTIZACION } from './cotizacion/seccion'
+import { PERMISOS_DE_EMPRESA } from './empresa/pestanas'
 import { PERMISOS_DE_ORIGENES } from './origenes/acceso'
 
 // Las secciones de Configuración que ya tienen pantalla. Cada una se abre con cualquiera de sus
@@ -30,7 +31,7 @@ export const SECCIONES = [
     descripcion: 'La marca, los datos legales, la región, las monedas y las integraciones.',
     ruta: RUTAS.empresa,
     Icono: Building2Icon,
-    permisos: ['empresa.ajustes.gestionar', 'empresa.tipos_cambio.gestionar'],
+    permisos: PERMISOS_DE_EMPRESA,
   },
   {
     clave: 'origenes',
