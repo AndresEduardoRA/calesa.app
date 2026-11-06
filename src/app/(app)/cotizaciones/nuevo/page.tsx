@@ -40,6 +40,7 @@ import { datosO } from '@/shared/lib/errores'
 import { puede, type Permisos } from '@/shared/lib/permisos'
 import { unParametro } from '@/shared/lib/rutas'
 import { EstadoSinPermiso } from '@/shared/ui/estados'
+import { ConProveedorDeLaHoja } from '../con-proveedor-de-la-hoja'
 import { BarraConHistorial } from './barra-con-historial'
 
 // Lo que el área `formula` llena en la hoja (`pantallas/formula-hoja.ts`): el enlace de «Falta publicar la fórmula».
@@ -174,19 +175,19 @@ async function Hoja({
 // «Falta publicar la fórmula»: con permiso para configurar, el enlace es el que llena el área `formula` (C7 del 4.15-6).
 function SinPublicar({
   origenId,
-  nombre,
-  puedeConfigurar,
+  hoja,
 }: {
   origenId: string
-  nombre: string
-  puedeConfigurar: boolean
+  hoja: { origen: { nombre: string }; puedeConfigurar: boolean }
 }) {
   return (
     <FormulaSinPublicar
-      origen={nombre}
-      puedeConfigurar={puedeConfigurar}
+      origen={hoja.origen.nombre}
+      puedeConfigurar={hoja.puedeConfigurar}
       accion={
-        puedeConfigurar && EnlaceSinPublicar ? <EnlaceSinPublicar origenId={origenId} /> : undefined
+        hoja.puedeConfigurar && EnlaceSinPublicar ? (
+          <EnlaceSinPublicar origenId={origenId} />
+        ) : undefined
       }
     />
   )
@@ -232,11 +233,7 @@ async function HojaDelOrigen({
     return (
       <>
         {pestanas}
-        <SinPublicar
-          origenId={origen.id}
-          nombre={apertura.hoja.origen.nombre}
-          puedeConfigurar={apertura.hoja.puedeConfigurar}
-        />
+        <SinPublicar origenId={origen.id} hoja={apertura.hoja} />
       </>
     )
   }
@@ -263,17 +260,19 @@ async function HojaDelOrigen({
         puedeCrear={puede(sesion.permisos, 'leads.crear')}
         claveDeLaUrl={CLAVE_DE_LEAD}
       />
-      <PantallaDeCotizar
-        key={`${origen.id}:${leadUsado ?? '-'}:${vehiculoUsado ?? '-'}`}
-        hoja={apertura.hoja}
-        inicial={apertura.inicial}
-        vehiculoId={vehiculoUsado}
-        vehiculoSoltado={vehiculoSoltado}
-        leadId={leadUsado}
-        personaId={sesion.usuarioId}
-        // La celda sin valor por un dato que quien mira elige en el panel dice dónde se elige (4.14-2c3).
-        seEligen={camposQueSeEligen(paraElegir)}
-      />
+      <ConProveedorDeLaHoja origenId={origen.id} cotizacionId={null} permisos={sesion.permisos}>
+        <PantallaDeCotizar
+          key={`${origen.id}:${leadUsado ?? '-'}:${vehiculoUsado ?? '-'}`}
+          hoja={apertura.hoja}
+          inicial={apertura.inicial}
+          vehiculoId={vehiculoUsado}
+          vehiculoSoltado={vehiculoSoltado}
+          leadId={leadUsado}
+          personaId={sesion.usuarioId}
+          // La celda sin valor por un dato que quien mira elige en el panel dice dónde se elige (4.14-2c3).
+          seEligen={camposQueSeEligen(paraElegir)}
+        />
+      </ConProveedorDeLaHoja>
     </>
   )
 }

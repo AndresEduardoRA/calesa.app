@@ -78,3 +78,16 @@ export const celdaConAyuda = (
     : (celdasQueSeDibujan(secciones, c).find(
         (celda) => celda.nodo === nodo && tipoDeAyuda(celda) === tipo,
       ) ?? null)
+
+// La celda a la que apunta `?nodo=` si se dibuja ahora en estas secciones y la base le dio el ⚙ (en ella o en su secundario); si no (otro nivel, un id inventado, una celda sin
+// ajustes, una apagada), nada: la URL no abre lo que la hoja no muestra.
+export const celdaConAjuste = (
+  secciones: readonly SeccionDeHoja[],
+  nodo: string | null,
+  c: ContextoDeHoja,
+): CeldaDeHoja | null =>
+  nodo === null
+    ? null
+    : (celdasQueSeDibujan(secciones, c).find(
+        (celda) => celda.nodo === nodo && (celda.ajustes || celda.secundario?.ajustes === true),
+      ) ?? null)

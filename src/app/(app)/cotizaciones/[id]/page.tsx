@@ -14,6 +14,7 @@ import { leerVehiculo } from '@/modules/vehiculos'
 import { datosO } from '@/shared/lib/errores'
 import { puede, type Permisos } from '@/shared/lib/permisos'
 import { EstadoVacio } from '@/shared/ui/estados'
+import { ConProveedorDeLaHoja } from '../con-proveedor-de-la-hoja'
 
 export const metadata: Metadata = { title: 'Cotización' }
 
@@ -84,12 +85,18 @@ async function Cotizacion({ params }: { params: PageProps<'/cotizaciones/[id]'>[
         cliente={cliente?.nombre ?? null}
         vehiculo={vehiculo?.titulo ?? null}
       />
-      <PantallaDeUnaGuardada
-        key={hoja.cotizacion.id}
-        hoja={hoja}
-        inicial={inicial}
-        personaId={sesion.usuarioId}
-      />
+      <ConProveedorDeLaHoja
+        origenId={hoja.cotizacion.origenId}
+        cotizacionId={hoja.cotizacion.id}
+        permisos={sesion.permisos}
+      >
+        <PantallaDeUnaGuardada
+          key={hoja.cotizacion.id}
+          hoja={hoja}
+          inicial={inicial}
+          personaId={sesion.usuarioId}
+        />
+      </ConProveedorDeLaHoja>
     </>
   )
 }

@@ -5,6 +5,7 @@ import { hojaDesde, type CeldaDeHoja, type HojaLista, type SeccionDeHoja } from 
 import { crudaDeLaHoja, respuestaDePrueba } from './hoja-de-prueba.soporte'
 import {
   ayudaDeTexto,
+  celdaConAjuste,
   celdaConAyuda,
   hayDatosPorRevisar,
   ordenDeLaHoja,
@@ -217,5 +218,46 @@ describe('celdaConAyuda: la URL no abre lo que la hoja no muestra ni lo que es d
     expect(celdaConAyuda(principales, 'a1', 'tabla', c)).toBeNull()
     expect(celdaConAyuda(principales, 'no_existe', 'texto', c)).toBeNull()
     expect(celdaConAyuda(principales, null, 'tabla', c)).toBeNull()
+  })
+})
+
+describe('celdaConAjuste: el ⚙ lo da la base y la URL no abre lo que la hoja no muestra', () => {
+  const par = {
+    nodo: 'p1',
+    como: 'porcentaje',
+    tipo_nodo: 'input',
+    formato: 'pct',
+    ajustes: true,
+    editable: true,
+  }
+  const hoja = hojaCon([
+    seccion('a', 'principal', 'A', [
+      celda('a1'),
+      celda('a2', { ajustes: true }),
+      celda('a3', { secundario: par }),
+      celda('a4', { secundario: { ...par, ajustes: false } }),
+    ]),
+    seccion('x', 'avanzado', 'Avanzado', [celda('x1', { ajustes: true })]),
+  ])
+  const c = contexto(hoja, respuestaDePrueba({ valores: { a1: 1, a2: 2, a3: 3, a4: 4, x1: 5 } }))
+  const principales = hoja.secciones.filter((s) => s.presentacion === 'principal')
+  const avanzadas = hoja.secciones.filter((s) => s.presentacion === 'avanzado')
+
+  it('encuentra la celda con ajustes propios o los de su secundario, en las secciones que se miran', () => {
+    expect(celdaConAjuste(principales, 'a2', c)?.nodo).toBe('a2')
+    expect(celdaConAjuste(principales, 'a3', c)?.nodo).toBe('a3')
+    expect(celdaConAjuste(avanzadas, 'x1', c)?.nodo).toBe('x1')
+  })
+
+  it('una celda de otra parte (la de «Avanzado» con el modal cerrado) no se abre', () => {
+    expect(celdaConAjuste(principales, 'x1', c)).toBeNull()
+    expect(celdaConAjuste(avanzadas, 'a2', c)).toBeNull()
+  })
+
+  it('una celda sin ajustes, con un secundario sin ajustes, un id inventado o sin nodo no abren nada', () => {
+    expect(celdaConAjuste(principales, 'a1', c)).toBeNull()
+    expect(celdaConAjuste(principales, 'a4', c)).toBeNull()
+    expect(celdaConAjuste(principales, 'no_existe', c)).toBeNull()
+    expect(celdaConAjuste(principales, null, c)).toBeNull()
   })
 })
