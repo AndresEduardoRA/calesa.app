@@ -138,7 +138,7 @@ export const MEDICIONES_CON_VOLUMEN = [
   ],
   [
     'supabase/tests/medir-cotizaciones-listado.sql',
-    'El listado /cotizaciones (cotizaciones_listado()) con 50.000 y con 250.000 filas, como authenticated y con el plan genérico: la página 1, una profunda por cursor y una hacia atrás de la dueña (por origen, clase y «mías»), de Ana («propios», con su cartera y un vehículo muy cotizado), de la «chica» y de Teo («todos» en un origen), con los bloques de cotizaciones por relación y las llamadas; y la guarda: lo de hoy por PostgREST rompe los topes (4-14)',
+    'El listado /cotizaciones (cotizaciones_listado()) con 50.000 y con 250.000 filas, como authenticated y con el plan genérico: la página 1, una profunda por cursor y una hacia atrás de la dueña (por origen, clase y «mías»), de Ana («propios», con su cartera y un vehículo muy cotizado), de la «chica» y de Teo («todos» en un origen), un lead (de su cartera y ajeno) y la lectura de la sección del lead, con los bloques de cotizaciones por relación y las llamadas; y la guarda: lo de hoy por PostgREST rompe los topes (4-14)',
     'mediana de 5 de 7 corridas',
   ],
   [
@@ -159,6 +159,11 @@ export const MEDICIONES_CON_VOLUMEN = [
   [
     'supabase/tests/medir-lead-oportunidades.sql',
     'Las oportunidades de un lead por cursor con 1.000 en el lead (500 abiertas y 500 cerradas) y 20.000 de fondo, como authenticated y con el plan genérico: la página 1, una profunda de las abiertas, el paso de abiertas a cerradas y una profunda de las cerradas de Ana, por oportunidades_lead_abiertas_idx y oportunidades_lead_cerradas_idx (ms y bloques por relación de la llamada real; el plan de cada ruta)',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
+    'supabase/tests/medir-cotizacion-revisiones-fecha.sql',
+    'El salto a una fecha de las revisiones de una cotización con 5.000 revisiones (y una de 500 y otra de fondo con 5.000 intercaladas), como authenticated y con el plan genérico: la página que empieza en la más nueva con creado_en < p_hasta, a tres profundidades de la dueña y de Ana, por cotizaciones_revisiones_cotizacion_creado_idx y cotizaciones_revisiones_cotizacion_idx (ms y bloques por relación de la llamada real; el contraste con N: la de 500 contra la de 5.000)',
     'mediana de 5 de 7 corridas',
   ],
   [

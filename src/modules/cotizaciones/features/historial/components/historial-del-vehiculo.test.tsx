@@ -1,7 +1,12 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Resultado } from '@/shared/lib/errores'
-import { codificarCursor, type Pagina } from '@/shared/lib/paginacion'
+import {
+  codificarCursor,
+  type Pagina,
+  TAMANO_DE_VER_MAS,
+  TOPE_DE_LO_CARGADO,
+} from '@/shared/lib/paginacion'
 import type { CotizacionDelHistorial } from '../../../entities/historial-del-vehiculo'
 import { HistorialDelVehiculo } from './historial-del-vehiculo'
 
@@ -140,24 +145,20 @@ describe('HistorialDelVehiculo: «Ver más», el tope y los errores', () => {
   it('en el tope de lo cargado, en lugar de «Ver más» dice cuántas se muestran', async () => {
     montar({ n: 20, hayMas: true })
     abrir()
-    await responder(pagina(1, 20, cursorDe(20)))
-    for (let ronda = 1; ronda < 25; ronda += 1) {
-      await screen.findByRole('button', { name: 'Ver más' })
-      fireEvent.click(screen.getByRole('button', { name: 'Ver más' }))
-      await responder(pagina(1 + ronda * 20, 20, cursorDe(20 + ronda * 20)))
-      await waitFor(() => {
-        expect(screen.getByRole('list').querySelectorAll('li')).toHaveLength(20 * (ronda + 1))
-      })
-      if (screen.queryByRole('button', { name: 'Ver más' }) === null) {
-        break
-      }
-    }
-    expect(screen.getByText('Mostrando las 500 más recientes.')).toBeTruthy()
-    expect(screen.queryByRole('button', { name: 'Ver más' })).toBeNull()
+    // Al tope con dos respuestas y consultas por texto, no por rol: sobre 500 filas cada una cuesta cientos de ms, y el tope sale del largo de lo cargado, no de las rondas.
+    const primera = TOPE_DE_LO_CARGADO - TAMANO_DE_VER_MAS
+    await responder(pagina(1, primera, cursorDe(primera)))
+    await screen.findByText('Ver más')
+    expect(screen.queryByText('Ver todas en Cotizaciones')).toBeNull()
+    fireEvent.click(screen.getByText('Ver más'))
+    await responder(pagina(primera + 1, TAMANO_DE_VER_MAS, cursorDe(TOPE_DE_LO_CARGADO)))
+    expect(await screen.findByText('Mostrando las 500 más recientes.')).toBeTruthy()
+    expect(pedidos).toHaveLength(2)
+    expect(screen.queryByText('Ver más')).toBeNull()
     // El camino a lo antiguo: el listado de cotizaciones filtrado por este vehículo.
-    expect(
-      screen.getByRole('link', { name: 'Ver todas en Cotizaciones' }).getAttribute('href'),
-    ).toBe(`/cotizaciones?vehiculo=${VEHICULO}`)
+    expect(screen.getByText('Ver todas en Cotizaciones').closest('a')?.getAttribute('href')).toBe(
+      `/cotizaciones?vehiculo=${VEHICULO}`,
+    )
   })
 
   it('antes del tope no hay camino al listado', async () => {

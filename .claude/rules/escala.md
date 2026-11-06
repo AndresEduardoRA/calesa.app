@@ -25,8 +25,9 @@ sembrado, no a ojo (`pnpm db:sembrar-volumen`, `pnpm db:medir:volumen`). Cada su
   `TAMANO_DE_COLUMNA`; las papeleras, `LOTES_POR_PAGINA`. Ninguna lleva selector de tamaño.
 - Toda RPC con parámetro de tamaño (`p_tamano`, `p_tope`…) lo pasa por
   `_acotar_pagina(parámetro, por_defecto, máximo)`, nunca `least(greatest(…))` a mano. Una RPC
-  nueva con tamaño entra al registro de `scripts/guardas/paginas-en-la-base.ts` y su máximo no puede
-  ser menor que el del código. Una lectura por PostgREST tiene su tope en `max_rows` de `config.toml`.
+  nueva con tamaño entra al registro de `scripts/guardas/paginas-en-la-base.ts` (la de la papelera de
+  cotizaciones, en `paginas-en-la-base-papelera.ts`, del C) y su máximo no puede ser menor que el del
+  código. Una lectura por PostgREST tiene su tope en `max_rows` de `config.toml`.
 - Lo que se dibuja tiene tope. Al llegar se avisa con `<AvisoDeTope>` de `shared/ui`; la lectura
   pide uno de más y `cortarAlTope()` de `shared/lib/conteo` corta y dice si había más. Siempre hay un
   camino a lo antiguo («Ir a una fecha», un filtro, búsqueda por nombre).
@@ -85,6 +86,7 @@ sembrado, no a ojo (`pnpm db:sembrar-volumen`, `pnpm db:medir:volumen`). Cada su
 - El inventario por rutas (`vehiculos_inventario()`: rutas, forma, contra hoy) → `supabase/tests/medir-vehiculos-inventario.sql`, `-forma.sql`, `-guarda.sql` (`pnpm db:medir:volumen`); su equivalencia con PostgREST → `e2e/vehiculos-inventario-postgrest.spec.ts` (`pnpm test:e2e`)
 - Las listas del panel del vehículo con volumen → `supabase/tests/medir-panel-ultima-cotizacion.sql`, `medir-panel-cierre-subasta.sql`, `medir-historial-del-vehiculo.sql` (`pnpm db:medir:volumen`)
 - Las oportunidades de un lead por cursor con volumen → `supabase/tests/medir-lead-oportunidades.sql` (`pnpm db:medir:volumen`)
+- El salto a una fecha de las revisiones de una cotización (`cotizacion_revisiones(…, p_hasta)`: el ancla por su índice, la profundidad y el contraste con N) con volumen → `supabase/tests/medir-cotizacion-revisiones-fecha.sql` (`pnpm db:medir:volumen`)
 - `cotizacion_crear()` con volumen → `supabase/tests/medir-cotizacion-crear.sql` (`pnpm db:medir`)
 - `cotizacion_guardar()` con volumen → `supabase/tests/medir-cotizacion-guardar.sql` (`pnpm db:medir`)
 - Baja de una persona con 200.000 leads → `supabase/tests/medir-bajas.sql` (`pnpm db:medir:volumen`)

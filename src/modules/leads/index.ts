@@ -76,7 +76,6 @@ export { CLAVE_DE_SECCION, seccionDeLead } from './entities/ficha'
 // servidor detrás de `<Suspense>` (su esqueleto es `<EsqueletoDePortal>`). La página la monta sólo si
 // `puedeGestionarPortal()` (la cartera y `leads.portal.gestionar`) y le pasa el nombre de la empresa y
 // la dirección de la web para el texto de WhatsApp.
-export { CLAVE_DE_TODAS_LAS_OPORTUNIDADES } from './entities/oportunidad'
 export { puedeGestionarPortal } from './entities/portal'
 
 // La hoja de cotizar (`/cotizaciones/nuevo`, 4.14-3b): el lead de `?lead=` para la barra del cliente (`leerClienteElegido`: `ok(null)` si no existe o no se ve; un error

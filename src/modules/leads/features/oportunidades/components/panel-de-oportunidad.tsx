@@ -15,13 +15,19 @@ type Props = {
   // La que se edita; null = «Nueva oportunidad».
   oportunidad: Oportunidad | null
   embudos: readonly Embudo[]
+  alGuardar: (oportunidad: Oportunidad) => void
   alCerrar: () => void
 }
 
 // «Nueva oportunidad» o «Editar»: un Drawer con su URL. Una nueva entra en la etapa inicial de su
 // embudo; se mueve después con «Mover a…».
-export function PanelDeOportunidad({ leadId, oportunidad, embudos, alCerrar }: Props) {
-  const formulario = useFormularioDeOportunidad({ leadId, oportunidad, alTerminar: alCerrar })
+export function PanelDeOportunidad({ leadId, oportunidad, embudos, alGuardar, alCerrar }: Props) {
+  const formulario = useFormularioDeOportunidad({
+    leadId,
+    oportunidad,
+    alGuardar,
+    alTerminar: alCerrar,
+  })
   const idFormulario = useId()
   return (
     <Drawer

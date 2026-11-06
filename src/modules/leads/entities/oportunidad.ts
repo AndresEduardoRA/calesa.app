@@ -4,6 +4,7 @@
 // cierra (y se queda en su columna), una abierta la reabre. `cancelada` la pone la baja de su dueña.
 import { formatearParaEditar } from '@/shared/lib/formato'
 import { avisoDeNumero, leerNumeroTipeado } from '@/shared/lib/numero-tipeado'
+import { TAMANOS_DE_PAGINA } from '@/shared/lib/paginacion'
 import { z } from 'zod'
 import { esquemaEtapa, etapaDesde, type EtapaGuardada } from './embudo'
 import {
@@ -108,25 +109,10 @@ const esquemaDelLead = esquemaOportunidad.extend({
   embudo: z.object({ id: z.guid(), nombre: z.string().min(1) }),
 })
 
-// Cuántas oportunidades de un lead pide la sección a `lead_oportunidades()`: su máximo (`_acotar_pagina(p_tamano, 20, 100)`, lo protege T4 de `lead-oportunidades-pagina.sql`); más allá se avisa.
-export const TOPE_DE_OPORTUNIDADES_DEL_LEAD = 100
-
-// La sección «Oportunidades» de la ficha muestra las 10 más recientes (las abiertas primero) y, con «Ver todas» (`?todas=1`), las que trae la
-// lectura, hasta `TOPE_DE_OPORTUNIDADES_DEL_LEAD`: lo que no se ve no viaja con el documento de la ficha (cierre 5b).
-export const OPORTUNIDADES_VISIBLES_DEL_LEAD = 10
-export const CLAVE_DE_TODAS_LAS_OPORTUNIDADES = 'todas'
-
-// Las que se muestran de la lista que trajo la lectura, y si quedaron algunas afuera (`recortada`: es lo que «Ver todas» trae).
-export function oportunidadesParaMostrar<T>(
-  lista: readonly T[],
-  todas: boolean,
-): { visibles: T[]; recortada: boolean } {
-  const recortada = !todas && lista.length > OPORTUNIDADES_VISIBLES_DEL_LEAD
-  return {
-    visibles: recortada ? lista.slice(0, OPORTUNIDADES_VISIBLES_DEL_LEAD) : [...lista],
-    recortada,
-  }
-}
+// La primera página de la sección «Oportunidades» de la ficha, la que lee el servidor: las 10 más recientes (las abiertas primero). Es el
+// primer tamaño de `TAMANOS_DE_PAGINA`, el más chico que se muestra: lo que no se ve no viaja con el documento de la ficha (cierre 5b).
+// «Ver más» lee de a `TAMANO_DE_VER_MAS` desde el navegador, hasta `TOPE_DE_LO_CARGADO`.
+export const OPORTUNIDADES_VISIBLES_DEL_LEAD = TAMANOS_DE_PAGINA[0]
 
 // Lo que entrega `lead_oportunidades()`: las mías sobre ese lead y si puedo crear.
 export function oportunidadesDelLeadDesde(

@@ -8,7 +8,7 @@ import { EstadoPaginaSinFilas, EstadoSinResultados, EstadoVacio } from '@/shared
 import { useFiltrosDelListado } from '@/shared/ui/filtros'
 import { UnaSolaVista } from '@/shared/ui/lista'
 import { Paginacion, UbicacionDeLaPagina } from '@/shared/ui/paginacion'
-import { EnlaceVerTodas } from './aviso-del-vehiculo'
+import { EnlaceVerTodas } from './aviso-de-lo-filtrado'
 import { TablaDeCotizaciones } from './tabla-de-cotizaciones'
 import { TarjetasDeCotizaciones } from './tarjetas-de-cotizaciones'
 import type { FilaDeCotizacion, OrigenDelListado } from './tipos'
@@ -18,8 +18,8 @@ type Props = {
   origenes: readonly OrigenDelListado[]
   // «Nueva cotización», si la persona puede cotizar en algún origen: llena el vacío de primera vez.
   accionDeVacio?: ReactNode
-  // Con `?vehiculo=`: el vacío sin otros filtros habla de ese vehículo.
-  deUnVehiculo?: boolean
+  // Con `?vehiculo=` o `?lead=`: el vacío sin otros filtros habla de ese vehículo o cliente (`textoDelVacio()`); sin ellos, null.
+  vacioDeLoFiltrado: string | null
   // Abre el resumen de una cotización y cuál está abierta (`?cotizacion=`).
   alAbrir: (id: string) => void
   abierta: string | null
@@ -31,7 +31,7 @@ export function ResultadoDelListado({
   pagina,
   origenes,
   accionDeVacio,
-  deUnVehiculo,
+  vacioDeLoFiltrado,
   alAbrir,
   abierta,
 }: Props) {
@@ -45,13 +45,8 @@ export function ResultadoDelListado({
     if (hayCursor) {
       return <EstadoPaginaSinFilas />
     }
-    if (deUnVehiculo) {
-      return (
-        <EstadoVacio
-          titulo="Sin cotizaciones de este vehículo que puedas ver."
-          accion={<EnlaceVerTodas />}
-        />
-      )
+    if (vacioDeLoFiltrado !== null) {
+      return <EstadoVacio titulo={vacioDeLoFiltrado} accion={<EnlaceVerTodas />} />
     }
     return (
       <EstadoVacio

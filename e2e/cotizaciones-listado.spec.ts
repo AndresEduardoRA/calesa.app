@@ -10,6 +10,8 @@ import {
   prepararListado,
   type TerrenoDelListado,
 } from './soporte/listado-de-cotizaciones'
+import { crearLead } from './soporte/leads'
+import { telefonoAlAzar } from './soporte/leads-alta'
 import { literal, sql } from './soporte/sql'
 
 // El listado `/cotizaciones` (paso 4.16-4a, `docs/UX.md` › «Cotizaciones»): lo que ve cada quien (la RLS decide), sus filtros en la URL, la paginación por cursor, «Nueva
@@ -210,4 +212,57 @@ test('E7 ?vehiculo= muestra sólo las del vehículo con su aviso; «Ver todas» 
   await page.getByRole('link', { name: 'Ver todas' }).last().click()
   await expect(page).not.toHaveURL(/vehiculo=/)
   await expect(filas(page).first()).toBeVisible()
+})
+
+test('E8 ?lead= muestra sólo las del lead con su aviso; conserva Clase, se combina con el vehículo y «Ver todas» lo quita; sin cotizaciones, el vacío del cliente', async ({
+  page,
+}) => {
+  await irAlListado(page, t.duena, `&lead=${t.leads.ana}`)
+  // Las dos de Ana; las 17 de la dueña no entran.
+  await expect(filas(page)).toHaveCount(2)
+  await expect(page.getByText(`Cotizaciones de ${t.nombreDelLeadDeAna}.`)).toBeVisible()
+  await expect(page.getByText(t.nombreDelLeadDeLaDuena)).toHaveCount(0)
+
+  // Un filtro del esquema no pierde el lead.
+  await elegir(page, 'Clase', 'Preventa')
+  await expect(page).toHaveURL(new RegExp(`lead=${t.leads.ana}`))
+  await expect(page).toHaveURL(/clase=preventa/)
+  await expect(filas(page)).toHaveCount(2)
+
+  await page.getByRole('link', { name: 'Ver todas' }).click()
+  await expect(page).not.toHaveURL(/lead=/)
+  await expect(page).toHaveURL(/clase=preventa/)
+  await expect(page.getByText(`Cotizaciones de ${t.nombreDelLeadDeAna}.`)).toHaveCount(0)
+
+  // Con el vehículo, la intersección: las de Ana sobre el vehículo uno son las dos; sobre el dos, ninguna.
+  await page.goto(`${enElOrigen()}&lead=${t.leads.ana}&vehiculo=${t.vehiculos.uno}`)
+  await expect(filas(page)).toHaveCount(2)
+  await expect(
+    page.getByText(`Cotizaciones de ${t.nombreDelLeadDeAna} sobre ${TITULO_UNO}.`),
+  ).toBeVisible()
+  // (Sin `?origen=`: un filtro del esquema haría de esto «Nada coincide».)
+  await page.goto(`/cotizaciones?lead=${t.leads.ana}&vehiculo=${t.vehiculos.dos}`)
+  await expect(
+    page.getByText('Sin cotizaciones de este cliente sobre este vehículo que puedas ver.'),
+  ).toBeVisible()
+
+  // Un lead sin cotizaciones, sin otros filtros: lo dice y ofrece «Ver todas».
+  const sinCotizar = await crearLead({
+    nombre: `listado sin cotizar ${test.info().project.name}`,
+    telefono: telefonoAlAzar(),
+    deQuien: t.duena,
+  })
+  await page.goto(`/cotizaciones?lead=${sinCotizar}`)
+  await expect(page.getByText('Sin cotizaciones de este cliente que puedas ver.')).toBeVisible()
+  await page.getByRole('link', { name: 'Ver todas' }).last().click()
+  await expect(page).not.toHaveURL(/lead=/)
+  await expect(filas(page).first()).toBeVisible()
+})
+
+test('E8b sin ver leads, ?lead= dice «un cliente» y el nombre no está en la página', async ({
+  page,
+}) => {
+  await irAlListado(page, t.soloVer, `&lead=${t.leads.ana}`)
+  await expect(page.getByText('Cotizaciones de un cliente.')).toBeVisible()
+  await expect(page.getByText(t.nombreDelLeadDeAna)).toHaveCount(0)
 })

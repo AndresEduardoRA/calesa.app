@@ -5,6 +5,7 @@ import { expect, type Locator, type Page } from '@playwright/test'
 import { admin } from './base'
 import { aLaVista, esMovil } from './inventario'
 import { exigir } from './leads'
+import { sql } from './sql'
 import { rpcComo } from './leads-cartera'
 
 export type EmbudoDePrueba = { id: string; etapas: { id: string; nombre: string }[] }
@@ -58,6 +59,36 @@ export async function muchasOportunidades(datos: {
   }))
   const { error } = await admin().from('oportunidades').insert(filas)
   exigir(error, 'cargar muchas oportunidades')
+}
+
+// Muchas, por SQL (`generate_series`): `abiertas` en `etapaAbierta` y `cerradas` en `etapaCerrada`, con títulos `E2E Muchas <n>` seguidos. El
+// trigger de la base sella el estado por la etapa y `ultima_actividad_en` por fila (`clock_timestamp()`): las últimas en insertarse son las
+// más nuevas de su grupo. Sólo local.
+export function oportunidadesPorSql(datos: {
+  usuarioId: string
+  leadId: string
+  embudoId: string
+  etapaAbierta: string
+  etapaCerrada: string
+  abiertas: number
+  cerradas: number
+}): void {
+  const { usuarioId, leadId, embudoId, etapaAbierta, etapaCerrada, abiertas, cerradas } = datos
+  const grupo = (etapaId: string, desde: number, cantidad: number) =>
+    cantidad === 0
+      ? ''
+      : `insert into public.oportunidades (lead_id, usuario_id, embudo_id, etapa_id, titulo, moneda)
+         select '${leadId}', '${usuarioId}', '${embudoId}', '${etapaId}', 'E2E Muchas ' || n, 'USD'
+           from generate_series(${String(desde)}, ${String(desde + cantidad - 1)}) n;`
+  sql(`${grupo(etapaAbierta, 1, abiertas)} ${grupo(etapaCerrada, abiertas + 1, cerradas)}`)
+}
+
+// Los títulos de las de un lead en el orden de la base: las abiertas primero y, en cada grupo, `ultima_actividad_en desc, id desc`.
+export function titulosEnElOrdenDeLaBase(leadId: string): string[] {
+  const salida = sql(`select titulo from public.oportunidades
+    where lead_id = '${leadId}' and eliminado_en is null
+    order by (estado = 'abierta') desc, ultima_actividad_en desc, id desc;`)
+  return salida === '' ? [] : salida.split('\n')
 }
 
 export async function enLaBase(id: string) {

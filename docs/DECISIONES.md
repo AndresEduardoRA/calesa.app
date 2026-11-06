@@ -1868,3 +1868,125 @@ Lo pidió la persona después de que el A hiciera el 4.16 y el 4.17-1: se parti�
 - **Una pestaña de un área guarda su estado de URL sólo en `?panel=`** y su sección recibe `parametros`; un parámetro nuevo que la barra deba limpiar se le pide al A (4-89).
 - **`client.ts` puede reexportar una Server Action `'use server'` y el tipo de entrada de su esquema, sólo en la raíz de un módulo** (el de un área no cambia). El bundler la cambia por una referencia y `composicion` no viaja al navegador (ya lo hacía `use-tipos-cambio.ts`); la condición es que la action exija su permiso en el servidor, porque salir por `client.ts` no es un permiso. `empresa/client.ts` la usa para el ⚙ de un tipo de cambio (4.20); nadie lo usa todavía.
 - **`EntradaDeGuardarTipoCambio` se creó** (`z.input<typeof esquemaGuardarTipoCambio>`): el plan madre lo daba por exportado y no lo estaba.
+
+## 2026-11-06 — Paso 4.15-7
+
+- **P1–P4 con la recomendada:** la clave `cotizaciones.papelera.purgar` gobierna ya la papelera de cotizaciones (`papelera_listar`, `papelera_restaurar`, `papelera_purgar` y la rama de cotizaciones de la policy `lotes_papelera: leer`), la reciben el dueño y todo rol que tenía `vehiculos.papelera.purgar`, se llama «Vaciar la papelera de cotizaciones» (orden 245, tras «Editar cotizaciones») con la de vehículos renombrada a «Vaciar la papelera de vehículos», y es global, como las otras dos de purgar.
+- **La concesión va a todo rol con alguna concesión de la de vehículos** (en cualquier origen o alcance), con «todos» y sin origen: `tiene_permiso(clave)` sin origen ya daba verdadero con cualquiera de ellas, así que es la única forma de que nadie gane ni pierda nada al aplicar la migración. Un `notice` dice qué roles la recibieron (en la nube, al aplicarla). Desde acá se separan: quitarle una a un rol no le quita la otra. Esto completa «Vitrina y papelera no suman permisos» (2026-10-13): la de cotizaciones ya no sale de `vehiculos.papelera.purgar`.
+- **La policy conserva su forma** (un `tiene_permiso` envuelto con `case` sobre `tipo`) y pasa a tres ramas explícitas sin `else`: un tipo nuevo de lote no hereda la clave de nadie.
+- **Las tres funciones se recrean desde la base con la clave cambiada**, y el `revoke`/`grant` se repite explícito aunque `create or replace` conserve los privilegios (redundante a propósito). La mutación que lo vigila concede `execute` a `anon` o a PUBLIC: quitar el `revoke` no probaría nada.
+- **Dos huecos para que el 4.24 no toque archivos del A** (el `terminado` del 4.15-7): `db:probar` corre, después de su lista fija, todo `.sql` de `supabase/tests/areas/**` en orden alfabético de la ruta (`pruebasEnOrden()`, `scripts/lib/pruebas-de-la-base.mjs`; `SOLO=areas/<área>/x.sql`), y `RPC_PAGINADAS` es `RPC_PAGINADAS_DEL_NUCLEO` más `RPC_PAGINADAS_DE_LA_PAPELERA` (`paginas-en-la-base-papelera.ts`, del C). Sirven también al B; los de otras áreas, cuando los pidan (4-91).
+- **La prueba de la concesión vuelve a ejecutar la migración** sobre la base sembrada más roles propios, como la nube: `DATOS_DE_PRUEBA` acepta `{ ruta, texto: true }` y le pasa el archivo como texto. Esa entrada queda atada al nombre de la migración (con su hora UTC): si se recrea al integrar (`migraciones.md`), `db:probar` cae al leerla y se corrige la ruta.
+
+## 2026-11-06 — Paso 4.17 (2 de 5): «Ver más» de las oportunidades de la ficha
+
+- **P1–P3, contestadas con la recomendada.** P1: el camino a lo antiguo tras 500 es «Buscarlas en tu embudo» (el kanban del embudo de la última cargada, `?q=` el nombre del lead), sin lectura nueva; sus límites quedan dichos: la búsqueda
+  es por parte del nombre y puede traer leads con un nombre parecido, lleva sólo al embudo de la última cargada y cada columna del kanban corta en 500 (`TOPE_DE_COLUMNA`). P2: «Ver todas» (`?todas=1`) desaparece; lo cargado es una
+  posición y no va a la URL, como en la línea de tiempo, así que recargar y «atrás» vuelven a 10. P3: recargar con `?panel=…&oportunidad=` de una llegada por «Ver más» abre sólo si está entre las 10 cargadas (la regla de hoy).
+- **El servidor lee 10 y el navegador 20.** El 10 es `TAMANOS_DE_PAGINA[0]` (no un literal: `escala.md` pide que el tamaño salga de `paginacion.ts`) y una prueba fija que vale 10. Lo que no se ve no viaja con el documento: la
+  sección aporta lo mismo con 10 y con 1.000 (62,7 y 61,7 KB).
+- **Lo que vuelve de una action se pone en la ventana, sin `router.refresh()`.** Ese refresco relee la primera página y devolvería lo cargado a 10. El orden de la ventana es el de la base y compara el instante con sus
+  microsegundos (los milisegundos de `Date.parse` y los dígitos 4.º a 6.º de la fracción), porque la base recorta los ceros finales (4-90) y `Date.parse` solo empataría dos sellos del mismo milisegundo.
+- **Una eliminada no vuelve con una página en camino**: el hook recuerda las quitadas que no se restauraron (`quitadas`) y `sumarPaginaDeOportunidades()` las descarta. Se resta sólo lo quitado, no todo lo que estaba al
+  pedir (como hace `sumarLoNuevo` de seguimientos): una oportunidad que se movió más atrás mientras la página venía puede estar en esa página y no tiene que perderse. Una página pedida antes de que el servidor cambiara lo
+  cargado se descarta por la firma.
+- **El paso vale como pantalla aunque toque `entities/` e `infra/*.client.ts`.** No hay datos nuevos (la RPC, sus grants y su RLS son los del 4.17-1), ni permisos, ni `src/shared/lib`, ni migración; lo de `entities/` es el
+  orden y la ventana de una lista que ya existía y lo de `infra/` lee la misma RPC desde el navegador. Por eso, sin mutaciones ni informe auditado.
+- **`@sin-celular-archivo` se quitó y E4 no lleva `@sin-celular`.** El motivo del archivo («su JS del celular lo ejecuta otra prueba que se queda») dejó de ser cierto: el JS de «Ver más» lo ejecutan sólo estas pruebas. El
+  spec dejó de ser `serial` (cada prueba crea su lead). `comparar-anchos.mjs` da 4 IGUAL, pero E4 tiene JS de celular que nadie más ejecuta (`huella.txt`): corre también en el celular (≈ 25 s).
+
+## 2026-11-06 — Paso 4.17 (3 de 5): la pestaña «Cotizaciones» de la ficha del vehículo
+
+- **P1, contestada con la recomendada: quién la ve.** Quien tiene `cotizaciones.ver` (con cualquier alcance) en el origen del vehículo, con `puede(permisos, 'cotizaciones.ver', origen.id)`; sin la clave la pestaña no aparece y `?seccion=cotizaciones`
+  abre «Ficha». Coincide con la RLS: la policy «cotizaciones: leer» va por el origen de la cotización y una cotización con vehículo es siempre del origen de ese vehículo (`vehiculo_de_otro_origen`). Las otras dos (todo el que ve el vehículo;
+  sólo alcance «todos») se descartaron: la primera dibuja una pestaña vacía para siempre, contra UX.md («ninguna pestaña se dibuja vacía»); la segunda esconde las propias a quien ve «propios».
+- **Las pestañas visibles dependen del permiso.** `pestanasVisibles({ cotizaciones })` reemplaza la constante `DISPONIBLES` de la barra: la página las calcula en el servidor y se las pasa como `{ clave, titulo }[]`, que es serializable;
+  `pestanaDeVehiculo(valor, visibles)` y `hayBarraDePestanas(visibles)` las reciben.
+- **Se lee desde el navegador al montarse, sin lectura del servidor.** Es la lectura del historial del 4.14-2b (`leerHistorialDelVehiculo()`, de a 21 por cursor): la ficha no paga nada hasta abrir la pestaña. `<CotizacionesDelVehiculo>` la pide
+  una vez por montaje y el único guardián de lo viejo es el `ultimo` de `usePaginasDelHistorial`: con el doble montaje de `StrictMode` el segundo pedido deja viejo al primero (llega una página, no dos; un `useRef` de «ya leí» dejaría la pestaña en
+  «Cargando…»). La lectura al montar usa `useEffectEvent` y no desactiva ninguna regla de lint.
+- **El reparto del historial.** La paginación (primera página, «Ver más», «Reintentar» y el tope) salió de `useHistorialDelVehiculo` a `usePaginasDelHistorial`, y la lista con su pie y su esqueleto a `<ListaDelHistorial etiqueta>`, que el panel de la hoja
+  y la pestaña comparten; el panel queda igual (`historial-del-vehiculo.test.tsx` pasa sin editarlo). El nombre de la lista es una prop: «Historial de cotizaciones» en el panel y «Cotizaciones del vehículo» en la pestaña.
+- **La cáscara diferida de la pestaña va en su propio `diferidos.tsx`** (`features/historial/components/pestana/`), no en el del historial: `pantallas/cotizar.ts` reexporta ése y `/cotizaciones/nuevo` va en 456,9 de 460 KB (4-73). Un `diferido()` de nivel
+  superior es un efecto de módulo y no se descarta con seguridad aunque la pantalla no lo reexporte. `/cotizaciones/nuevo` pasó de 456,8 a 456,9 KB por el reparto del historial (commit 1), no por la pestaña.
+- **La fila es la del historial** (número, fecha relativa, autor y clase) y lo demás vive en `/cotizaciones?vehiculo=`, adonde lleva el tope («Ver todas en Cotizaciones»): el camino a lo antiguo. La lista es una `<ul>` compacta de enlaces y no
+  `@/shared/ui/lista`: `.claude/rules/ui.md` › «Listas» pide el patrón para registros con resumen por clic en la fila y «⋯»; aquí cada fila es un enlace a su página, sin resumen ni «⋯», y la guarda `listas-con-patron` sólo vigila tablas.
+- **Los topes de nodos.** Con 20 filas, 61 nodos (tope 65, el del panel); con 500, 1.501 (3 por fila + 1) y el tope queda en lo medido más un 5 %: 1.576 (el previo de 1.600 alcanzó). La respuesta de la 25.ª página pesa lo mismo que la 1.ª.
+- **Sin «Cotizar» en la ficha.** No está en la fila del paso y suma un camino a un flujo: se anota como 4-94 y lo decide la persona.
+- **El paso vale como pantalla.** Sin datos nuevos, permisos nuevos ni migración (la lectura, su índice y su RLS son los del 4.14-2b): sin mutaciones ni informe auditado.
+
+## 2026-11-06 — Paso 4.17-4a: el listado de cotizaciones por lead, en la base
+
+- **El 4.17-4 se partió en 4a (base) y 4b (pantalla).** P1, contestada con la recomendada: el camino tras 500 de la sección «Cotizaciones» de `/leads/[id]` es «Ver todas en Cotizaciones» a
+  `/cotizaciones?lead=<id>`, como el del vehículo con `?vehiculo=`. `cotizaciones_listado()` no tenía filtro por lead, y la fila manda partir cuando lo pide: la base y la pantalla se verifican distinto
+  (`db:probar`, mutaciones y mediciones, contra lint, e2e y móvil). Las otras dos opciones («Ir a una fecha» dentro de la sección, sin base; o sin camino, sólo el aviso y un abierto) se descartaron: la primera
+  llega distinto que el vehículo y el componente de fecha todavía no existe (lo hace el 4.17-5 para «Revisiones»); la segunda va contra `escala.md`.
+- **P2, contestada con la recomendada (la usa el 4b):** la sección la ve quien tiene `cotizaciones.ver` con cualquier alcance en **algún** origen, con la forma de «Vehículos» de la ficha, que pide `vehiculos.ver` en algún
+  origen. Un lead no tiene un solo origen de cotizaciones: la RLS va por el origen de cada una y recorta las filas; si no llega ninguna, el estado vacío. Se descartaron pedir además que el lead esté en la cartera (quien ve
+  «todos» no vería ahí lo que sí ve en `/cotizaciones`) y mostrarla a todo el que ve el lead (sin la clave, una sección vacía para siempre, contra UX.md).
+- **`p_lead` va al final de la firma, con `drop` de la de 8 y `create` de la de 9**, como el 4.17-1 con `lead_oportunidades()`: un `create or replace` con otro argumento deja dos sobrecargas (L1 y el cinturón de
+  `auditoria-leads.sql` lo hacen caer, M8). Al final, para que las llamadas posicionales de 8 sigan valiendo (`infra/listado/listado.ts` no cambia: el argumento es opcional).
+- **Con el lead, una sola ruta, y el vehículo es un filtro sobre ella.** `cotizaciones_lead_creado_idx` con la RLS, en los tres bloques; todas las demás banderas se apagan, también la de la cartera (`mis_leads()` no se llama)
+  y la del vehículo. Si llegan lead y vehículo, la respuesta es la intersección y el costo queda acotado por las cotizaciones del lead, no por N (`(p_vehiculo is null or c.vehiculo_id = p_vehiculo)` nunca es condición de índice).
+  El 4b puede no ofrecer la combinación, pero la URL la admite. M6 (el vehículo antes que el lead) y M7 (el lead como filtro de las rutas de siempre) caen en L9 y en la medición: M7 lee `cotizaciones_listado_idx` y crece de 271 a 42.006 bloques.
+- **El lead en la papelera sale con el filtro igual que sin él.** El plan decía que un lead en la papelera daba una página vacía; la regla que se prueba es la otra mitad de su C4: lo que devuelve con `p_lead` es lo de sin
+  él filtrado a `lead_id = p_lead`. La policy de `cotizaciones` no mira la papelera del lead (Ana ve `b_lead_borrado` sin filtro), y esconderlo sólo con el filtro pediría releer `leads` bajo su RLS. `cv_filtros` lo
+  fija con «el lead en la papelera».
+- **El terreno de la medición suma un lead ajeno**: las 5.005 del vehículo muy cotizado pasan a ser de un uuid sin fila en `leads` (como `_v`: la FK no se mira al sembrar), fijo entre los dos volúmenes y fuera de toda
+  cartera, así que ninguna ruta de antes cambia de filas. Ana con ese lead paga un `en_cartera()` por cada una de las 5.005 (51 ms con 250.000, tope 100, como el vehículo): crece con las del lead, no con N.
+- **La lectura de la sección (la del 4b, por PostgREST) se mide en `medir-cotizaciones-listado.sql`** y no en un archivo nuevo: usa el mismo terreno, las mismas familias de asserts y el mismo runner (un archivo aparte copiaría
+  ≈ 150 líneas de siembra). Su SQL es literal y se planea en cada corrida: lee al planear la metapágina de un índice vacío (`cotizaciones_lote_papelera_idx`, vacío tras el truncate; un btree vacío no guarda su altura), que no
+  cuenta como índice leído, igual que en `medir-vehiculos-inventario.sql`. Sólo en la forma `seccion`: el listado va con el plan genérico y no replanea.
+- **No hubo compuerta `datos`.** La función sigue invocadora, estable, con `search_path` vacío y los mismos privilegios (`revoke` de public y anon, `grant` a authenticated); no cambia ninguna policy, permiso ni `security definer`.
+  Lo único nuevo es que recibe un lead: su firma de 9 queda en `auditoria-leads.sql` con clase `L` (sólo como filtro, la RLS decide), que no pide fila en la matriz. M9 (definer) y M10 (EXECUTE a anon) caen.
+
+## 2026-11-06 — Paso 4.17-4b: la sección «Cotizaciones» de la ficha del lead y `?lead=` en el listado
+
+- **P2 aplicada tal cual: sin origen y sin cartera.** `LoQueVe.cotizaciones = puede(permisos, 'cotizaciones.ver')`, sin origen: con la clave en algún origen y cualquier alcance la sección aparece y la RLS
+  recorta las filas (E3b: Ana con «propios» ve la suya sobre un lead que no es de su cartera). Sin la clave en ningún origen no aparece y `?seccion=cotizaciones` abre «Datos» (E3). Ningún `if (rol …)`.
+- **Va entre «Oportunidades» y «Portal»** (microdecisión): junto a lo comercial del lead; «Portal», el acceso del cliente, sigue al final.
+- **Se lee desde el navegador al abrirla**, sin lectura del servidor: `leerCotizacionesDelLead()` es `leerHistorialDelVehiculo()` con `.eq('lead_id', …)` (un ayudante privado, `leerPaginaPor(columna, id, cursor)`, que
+  no cambia la firma de la del vehículo), por `cotizaciones_lead_creado_idx`, ya medida en el 4.17-4a. Con `<Suspense>` no hacía falta: no hay nada del servidor que esperar.
+- **`ListaDe = { vehiculo } | { lead }`** reparte la paginación y la lista sin tocar el panel de la hoja ni la pestaña del vehículo: `usePaginasDelHistorial(de)` elige el lector en su rama y
+  `<ListaDelHistorial de etiqueta>` enlaza `rutaDelListado(de)` en el tope. Los `vi.mock` de los dos tests del historial sólo definen `leerHistorialDelVehiculo`: el lector del lead se nombra únicamente en su
+  rama, al llamarlo, y los dos tests pasan sin editarlos.
+- **`diferidos.tsx` propio** (`features/historial/components/lead/`), como el de la pestaña del vehículo: un `diferido()` de nivel superior es un efecto de módulo y en el de la pestaña lo pagaría `/vehiculos/[id]`, y en el
+  del historial, `/cotizaciones/nuevo` (4-73). `/cotizaciones/nuevo` quedó en 456,9 KB (igual que en el 4.17-3) y `/cotizaciones` en 359,1.
+- **`?lead=` en `/cotizaciones` como `?vehiculo=`**: un guid leído fuera del esquema (ni chip ni lo borra «Limpiar»), que se manda como `p_lead`; «Ver todas» lo quita y conserva lo demás. Con los dos juntos se mandan los dos
+  (la intersección, la base de 4.17-4a). `rutaDelListado({ lead, vehiculo })` escribe el lead primero.
+- **El aviso y el vacío son dos funciones puras** (`textoDelAviso()`, `textoDelVacio()` en `entities/listado/aviso-del-listado.ts`): «Cotizaciones de <nombre>.», «Cotizaciones de un cliente.» y, con los dos, «Cotizaciones de
+  <nombre> sobre <título>.»; el vacío, «Sin cotizaciones de este cliente que puedas ver.» (o «…de este cliente sobre este vehículo…»). El nombre sólo llega con `leads.ver` y si la lectura lo devuelve: un lead que no
+  se ve se dice «un cliente», igual que si no existe. `aviso-del-vehiculo.tsx` pasó a `aviso-de-lo-filtrado.tsx` (`<AvisoDeLoFiltrado texto>`).
+- **«Nueva cotización» de `/cotizaciones?lead=` no lleva el lead**, como con `?vehiculo=`: llevarlo sumaría un camino a un flujo y «Cotizar» ya está en la cabecera de la ficha del lead.
+- **El vacío propio sólo sale sin otros filtros ni cursor**, como el del vehículo: con `?origen=` o `?clase=` puestos, un lead sin cotizaciones dice «Nada coincide» (con «Limpiar»). E8 lo prueba sin `?origen=`.
+- **El spec de E3 se partió en dos** (E3 sin clave, E3b con «propios»): `entrar(…, { fresco: true })` dos veces en la misma prueba no encuentra el formulario de ingreso; mismo motivo para E8b en el listado.
+- **El paso vale como pantalla** (sin datos, permisos ni migración nuevos: la lectura, su índice y su RLS son del 4.17-4a): sin mutaciones ni informe auditado.
+
+## 2026-11-06 — Paso 4.17-5a: las revisiones de una cotización desde una fecha, en la base (y el rojo del CI de HEAD)
+
+- **El 4.17-5 se parte en 3** (la fila junta capas con verificación distinta): el **5a**, la base (`p_hasta` y su índice; Nivel 2 por el índice, cadena db, `db:medir:volumen`); el **5b**, `<IrAUnaFecha>` a `src/shared/ui`
+  (hoy vive en `leads/features/seguimientos`; `cotizaciones` no puede importar `features` de `leads` y copiar el formulario dejaría dos que divergen; Nivel 2, disparador 1, sin cambio visible); el **5c**, la pantalla
+  («Ir a una fecha» en «Revisiones», su ventana, su aviso y su e2e con horas distintas; cierra 4-75). Total de la fase: 48 pasos y 101 prompts.
+- **P1 (compuerta `datos`, contestada con la recomendada): `p_hasta` dentro de `cotizacion_revisiones()`.** Un solo pedido por salto, con la misma respuesta de siempre. Las otras dos (una función invocadora que da el
+  ancla, o la consulta por PostgREST) eran dos pedidos por salto y, la primera, una RPC más que auditar; la segunda pagaba la policy por fila. Una sola firma (`drop` de la de 3 y `create` de la de 4: con `create or replace`
+  quedarían dos sobrecargas), definidora, `search_path` vacío, los mismos grants.
+- **El ancla por fecha con la página por id, no un cursor `(creado_en, id)`.** `p_hasta` sólo elige desde qué revisión empieza la página (la más nueva de ESA cotización con `creado_en < p_hasta`); de ahí la consulta de
+  siempre, por `cotizaciones_revisiones_cotizacion_idx`, y «Ver más» (`p_antes = siguiente`, sin `p_hasta`) no cambia. Con los dos argumentos, gana el menor (`least(p_antes, ancla + 1)`). Un cursor de dos valores habría
+  cambiado el contrato de «Ver más» y la pantalla ya hecha. El índice nuevo es `cotizaciones_revisiones_cotizacion_creado_idx (cotizacion_id, creado_en desc, id desc)`.
+- **La guarda va primero, con o sin `p_hasta`:** ningún camino lee una revisión antes de `assert_activo()` y `puede_cotizacion(…, 'cotizaciones.ver')`, el ancla incluida; sin ancla, quien ve la cotización recibe la
+  respuesta vacía y quien no la ve, el 42501 de una inexistente (F5 y M6 lo prueban). `p_hasta` no abre ni cierra nada que `p_antes` no abriera.
+- **C7: `p_hasta` es un instante y es exclusivo.** La base no conoce zonas ni días: «ese día y lo anterior» lo arma la pantalla (5c) con el inicio del día siguiente en la zona de la empresa, como `cursorDeUnaFecha()`.
+- **C8 y el abierto 4-95: se supone que el id crece con `creado_en`.** Vale para `cotizacion_guardar` (toma la fila con candado antes de comparar la versión: dos guardados que se cruzan no dejan dos revisiones). No vale para
+  los caminos que escriben sin versión (`cotizacion_moderar`, `cotizacion_marcar_final`, que deja dos revisiones de una misma cotización en una transacción y las desempata `id desc`, `papelera_enviar`,
+  `papelera_restaurar`, `_vehiculo_a_lote`, `vehiculos_papelera_restaurar`): `creado_en` es el `now()` del inicio de la transacción, así que una que espera el candado puede dejar un id mayor con una hora menor.
+  Cota: lo que dura esa transacción hasta su `update`; por PostgREST, el `statement_timeout` de `authenticated` (8 s en la base local, leído con `select rolconfig from pg_roles where rolname = 'authenticated'`; no está en `migrations/`); `_vehiculo_a_lote` también lo llama `limpieza_automatica_correr`, un job
+  cuyo rol y `statement_timeout` no se verificaron: ahí la ventana no tiene cota verificada. Qué cuesta: con `p_hasta`, una revisión de esa ventana puede quedar del otro lado del salto; ninguna se pierde ni se repite
+  (la página va por id). No se arregla aquí; lo decide la persona si alguna vez se ve (`clock_timestamp()` o el salto por `(creado_en, id)`).
+- **La medición, en un archivo propio** (`medir-cotizacion-revisiones-fecha.sql`): `medir-cotizaciones-lectura.sql` ya tiene 348 líneas (4-64) y siembra sus revisiones con `creado_en` al revés del id, que ninguna
+  aserción lee. Con cuatro cotizaciones de miles de revisiones y nada más, el plan genérico leía la página por la clave primaria con filtro (estima mal las filas por cotización): la medición suma 20.000 cotizaciones de
+  la siembra con una revisión cada una, como en producción, y entonces la página va por `cotizaciones_revisiones_cotizacion_idx` y el salto, por el nuevo. Lo leído es de 10 a 12 bloques a cualquier profundidad y con 500
+  o 5.000; su guarda quita el índice y exige que caiga la cota contra N («crece con N»: 679 bloques contra 76), porque la cota contra la profundidad sola pasa sin índice (el top-N lee todo a cualquier profundidad).
+- **El rojo del CI de HEAD (run `42220552200`, «Nivel 1»): tres pruebas del tope de 500 agotaban los 5.000 ms** (`historial-del-vehiculo`, `cotizaciones-del-vehiculo` y `cotizaciones-del-lead`, esta última la tercera
+  copia del mismo bucle, del 4.17-4b). La causa que el plan suponía (24 rondas de «Ver más» × consultas por rol) era sólo la mitad: con dos respuestas fijas (una primera página de `TOPE − TAMANO_DE_VER_MAS` filas y un
+  «Ver más») seguían cayendo a 1,5 s con un solo CPU, porque cada `*ByRole` sobre 480 filas calcula el nombre accesible de cada enlace (0,4 a 0,8 s por consulta). Las pruebas llegan al tope con dos respuestas y
+  miran por texto (`getByText`), no por rol; pasan en 0,6 s con el mismo límite. No se sube el timeout ni se quita ninguna prueba; las constantes salen de `paginacion.ts`.

@@ -17,10 +17,17 @@ export function rutaDeLaHoja(datos: { origen: string; lead: string | null }): st
 // esquema: ni chip ni lo borra «Limpiar»). El único lugar que escribe esa ruta.
 export const RUTA_DEL_LISTADO = '/cotizaciones'
 
-export function rutaDelListado(datos: { vehiculo?: string }): string {
-  return datos.vehiculo === undefined
-    ? RUTA_DEL_LISTADO
-    : `${RUTA_DEL_LISTADO}?${new URLSearchParams({ [CLAVE_DE_VEHICULO]: datos.vehiculo }).toString()}`
+// Con `lead` (4.17-4b), el de la sección «Cotizaciones» de la ficha del lead; con los dos, el lead primero.
+export function rutaDelListado(datos: { vehiculo?: string; lead?: string }): string {
+  const parametros = new URLSearchParams()
+  if (datos.lead !== undefined) {
+    parametros.set(CLAVE_DE_LEAD, datos.lead)
+  }
+  if (datos.vehiculo !== undefined) {
+    parametros.set(CLAVE_DE_VEHICULO, datos.vehiculo)
+  }
+  const consulta = parametros.toString()
+  return consulta === '' ? RUTA_DEL_LISTADO : `${RUTA_DEL_LISTADO}?${consulta}`
 }
 
 // La página de una cotización guardada (`/cotizaciones/[id]`, 4.15-3): de ahí se ve y se edita. El único lugar que escribe esa ruta.

@@ -14,6 +14,7 @@ const esquemaDelPedido = z.object({
   clase: z.enum(['preventa', 'final']).optional(),
   mias: z.boolean().optional(),
   vehiculoId: z.guid().optional(),
+  leadId: z.guid().optional(),
   cursor: z
     .object({
       instante: z.string().min(1),
@@ -67,6 +68,7 @@ function filtrosDe({
   clase,
   mias,
   vehiculoId,
+  leadId,
   cursor,
 }: z.infer<typeof esquemaDelPedido>) {
   return {
@@ -74,6 +76,7 @@ function filtrosDe({
     p_clase: clase ?? undefined,
     p_mias: mias ?? false,
     p_vehiculo: vehiculoId ?? undefined,
+    p_lead: leadId ?? undefined,
     p_cursor_en: cursor?.instante ?? undefined,
     p_cursor_id: cursor?.id ?? undefined,
     p_hacia_atras: cursor?.sentido === 'anterior',

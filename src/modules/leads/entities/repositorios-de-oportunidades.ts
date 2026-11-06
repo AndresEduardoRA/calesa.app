@@ -4,6 +4,7 @@ import type { ErrorApp, Resultado } from '@/shared/lib/errores'
 import type { Embudo, Etapa } from './embudo'
 import type { DatosDeOportunidad, Oportunidad, OportunidadDelLead } from './oportunidad'
 import type { Tablero, Tarjeta } from './tablero'
+import type { CursorDeOportunidades } from './ventana-de-oportunidades'
 
 // Un rechazo de la base con el campo del formulario que lo causó (`hint`), si lo dijo.
 export type FalloConCampo = { ok: false; error: ErrorApp; campo?: string }
@@ -91,5 +92,13 @@ export type RepositorioDeOportunidades = {
 export type LectorDeOportunidadesDelLead = (
   leadId: string,
 ) => Promise<
+  Resultado<{ puedoCrear: boolean; hayMas: boolean; oportunidades: OportunidadDelLead[] }>
+>
+
+// «Ver más»: la página que sigue al cursor, de a `TAMANO_DE_VER_MAS`, leída en el navegador.
+export type LectorDeMasOportunidades = (pedido: {
+  leadId: string
+  antes: CursorDeOportunidades
+}) => Promise<
   Resultado<{ puedoCrear: boolean; hayMas: boolean; oportunidades: OportunidadDelLead[] }>
 >

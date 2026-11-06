@@ -22,6 +22,8 @@ paths:
   el seed. `seed.sql` es lo configurable por empresa y los ejemplos.
 - Después de cualquier cambio: `pnpm db:reset`, `pnpm db:types` y `pnpm db:probar`; si tocaste policies, un caso en
   `supabase/tests/humo.sql` con un usuario simulado.
+- Las pruebas SQL del área de un carril que no es base van en `supabase/tests/areas/<área>/`: `db:probar` las corre después de su lista
+  fija, sin editarla (`SOLO=areas/<área>/x.sql`). Cada bloque, su transacción revertida, sin depender del estado de otro archivo.
 
 ## Privilegios
 

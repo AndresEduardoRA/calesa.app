@@ -8,6 +8,7 @@ import { unaccent } from '@electric-sql/pglite/contrib/unaccent'
 import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto'
 import fs from 'node:fs'
 import path from 'node:path'
+import { pruebasEnOrden } from './lib/pruebas-de-la-base.mjs'
 
 const base = process.argv[2] ?? 'supabase'
 const db = new PGlite({ extensions: { pg_trgm, citext, unaccent, pgcrypto } })
@@ -142,7 +143,8 @@ for (const f of lista) {
 console.log(`✓ ${ok} archivos aplicados`)
 
 // Los datos que una prueba lee del repo: la base no lee archivos, así que se los pasa el cliente en una tabla temporal
-// `<nombre> (doc jsonb)`, creada antes de correr su archivo. La ruta es relativa a la raíz del repo.
+// `<nombre> (doc jsonb)`, creada antes de correr su archivo. La ruta es relativa a la raíz del repo. `{ ruta, texto: true }` guarda el archivo
+// como texto (`to_jsonb(texto)`), no como JSON: una migración que la prueba vuelve a ejecutar (si se recrea con otra fecha, se corrige su ruta).
 const DATOS_DE_PRUEBA = {
   'validar-formula.sql': {
     _juego_de_formula: 'src/modules/cotizaciones/entities/casos-de-formula.json',
@@ -170,20 +172,33 @@ const DATOS_DE_PRUEBA = {
     _juego_de_diseno: 'src/modules/cotizaciones/entities/casos-de-diseno.json',
     _juego_de_formula: 'src/modules/cotizaciones/entities/casos-de-formula.json',
   },
+  'cotizaciones-papelera-permiso.sql': {
+    _migracion_cpp: {
+      ruta: path.join(base, 'migrations', '20261106062752_cotizaciones_papelera_purgar.sql'),
+      texto: true,
+    },
+  },
 }
 
 async function cargarDatos(archivo) {
-  for (const [tabla, ruta] of Object.entries(DATOS_DE_PRUEBA[archivo] ?? {})) {
+  for (const [tabla, dato] of Object.entries(DATOS_DE_PRUEBA[archivo] ?? {})) {
+    const { ruta, texto } = typeof dato === 'string' ? { ruta: dato, texto: false } : dato
     await db.exec(`drop table if exists pg_temp.${tabla}; create temp table ${tabla} (doc jsonb)`)
-    await db.query(`insert into ${tabla} (doc) values ($1::jsonb)`, [fs.readFileSync(ruta, 'utf8')])
+    await db.query(
+      texto
+        ? `insert into ${tabla} (doc) values (to_jsonb($1::text))`
+        : `insert into ${tabla} (doc) values ($1::jsonb)`,
+      [fs.readFileSync(ruta, 'utf8')],
+    )
   }
 }
 
 // Pruebas: el humo y, después, lo que se apoya en su base (la matriz de leads y el cinturón de la
 // auditoría). Cada archivo se parte en bloques `-- @test <nombre>` y corre en la misma base.
-// SOLO=<archivo>[,<archivo>] corre sólo esos (para iterar sobre uno); sin él, todos y en este orden.
+// SOLO=<archivo>[,<archivo>] corre sólo esos (para iterar sobre uno; una de un área, por su ruta: `areas/papelera/x.sql`); sin él, todos y en este
+// orden. Después de esta lista corren las de `supabase/tests/areas/**` (`pruebasEnOrden`): ahí suma las suyas un carril que no es base.
 const SOLO = process.env['SOLO']?.split(',')
-for (const archivo of [
+const LISTA_FIJA = [
   // Primero: mira el seed tal como queda, antes de que el humo publique la v2 de una fórmula o cambie un tipo de cambio.
   'rls-en-todo.sql',
   'privilegios-de-anon.sql',
@@ -220,6 +235,7 @@ for (const archivo of [
   'niveles.sql',
   'niveles-con-uso.sql',
   'cotizaciones-visibilidad.sql',
+  'cotizaciones-papelera-permiso.sql',
   'cotizacion-crear.sql',
   'cotizacion-conservar.sql',
   'cotizacion-guardar.sql',
@@ -228,6 +244,7 @@ for (const archivo of [
   'cotizacion-hoja-dato-del-vehiculo.sql',
   'cotizacion-hoja-guardada.sql',
   'cotizacion-revisiones-autor.sql',
+  'cotizacion-revisiones-fecha.sql',
   'cotizacion-encima.sql',
   'cotizacion-encima-niveles.sql',
   'cotizaciones-listado.sql',
@@ -238,9 +255,10 @@ for (const archivo of [
   'vehiculos-inventario-filtros.sql',
   // Al final: sus `pg_temp` (la copia vieja de `puede_vehiculo`) no llegan a los archivos de antes.
   'vehiculos-visibilidad.sql',
-]) {
+]
+for (const archivo of pruebasEnOrden(LISTA_FIJA, path.join(base, 'tests'), SOLO)) {
   const t = path.join(base, 'tests', archivo)
-  if (!fs.existsSync(t) || (SOLO && !SOLO.includes(archivo))) continue
+  if (!fs.existsSync(t)) continue
   await cargarDatos(archivo)
   const bloques = fs
     .readFileSync(t, 'utf8')

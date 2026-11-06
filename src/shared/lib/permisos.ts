@@ -34,6 +34,7 @@ export const CLAVES_PERMISO = [
   'cotizaciones.ver',
   'cotizaciones.crear',
   'cotizaciones.editar',
+  'cotizaciones.papelera.purgar',
   'cotizaciones.final.gestionar',
   'cotizaciones.configurar',
   'cotizaciones.moderar',

@@ -50,6 +50,8 @@ type Props = {
   vehiculos: ReactNode
   // La sección «Oportunidades» (detrás de `<Suspense>`): la página la monta sólo con `?seccion=oportunidades`.
   oportunidades: ReactNode
+  // La sección «Cotizaciones»: vive en `cotizaciones` y la compone la página (`leads` no importa `cotizaciones`); se lee desde el navegador al abrirla.
+  cotizaciones: ReactNode
   // La sección «Portal» (detrás de `<Suspense>`): la página la monta sólo con `?seccion=portal`.
   portal: ReactNode
   // Lo que quien mira ve: decide qué secciones se dibujan.
@@ -74,6 +76,7 @@ type DatosDeSeccion = {
   seguimientos: ReactNode
   vehiculos: ReactNode
   oportunidades: ReactNode
+  cotizaciones: ReactNode
   portal: ReactNode
   cartera: readonly PersonaDeCartera[]
   accionesDeCartera: AccionesDeCartera
@@ -88,6 +91,7 @@ const CONTENIDO_DE_SECCION: Record<SeccionDeLead, (datos: DatosDeSeccion) => Rea
   seguimientos: (datos) => datos.seguimientos,
   vehiculos: (datos) => datos.vehiculos,
   oportunidades: (datos) => datos.oportunidades,
+  cotizaciones: (datos) => datos.cotizaciones,
   portal: (datos) => datos.portal,
 }
 
@@ -127,7 +131,7 @@ function PanelesDeLaFicha(props: PropsDeLosPaneles) {
 }
 
 // La ficha de un lead: su cabecera, la barra de secciones y la sección de `?seccion=` («Datos»,
-// «Seguimientos», «Vehículos», «Oportunidades» o «Portal»). Las demás (cotizaciones, historial) llegan
+// «Seguimientos», «Vehículos», «Oportunidades», «Cotizaciones» o «Portal»). Las demás (historial) llegan
 // con su parte y no se dibujan hasta entonces.
 export function FichaDeLead({
   ficha,
@@ -141,6 +145,7 @@ export function FichaDeLead({
   seguimientos,
   vehiculos,
   oportunidades,
+  cotizaciones,
   portal,
   ve,
   etiquetas: lista,
@@ -195,6 +200,7 @@ export function FichaDeLead({
         seguimientos,
         vehiculos,
         oportunidades,
+        cotizaciones,
         portal,
         cartera,
         accionesDeCartera,

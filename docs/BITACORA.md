@@ -651,3 +651,110 @@ con la recomendada) y plan aprobado antes de ejecutar. Nivel 1 con interfaz, sin
 - **Abiertos:** 4-89 suma la pestaña en `configuracion/empresa/comprobantes/` y el límite de la URL; 4-90 sigue (cayó en el CI de HEAD, no en estas corridas); 4-87 y 4-73 siguen.
 - **Commits:** `cc90af83` (llevar la sección cotización a la carpeta del carril b), `52b7c3eb` (abrir empresa a las pestañas de un área) y `0574c343` (sacar la action del tipo de cambio por client.ts).
   e2e completo: no (4.15-6c, pantalla, 1 de 3)
+
+## 2026-11-06 — Paso 4.15-7: la clave `cotizaciones.papelera.purgar` y dos huecos para el 4.24
+
+- **Hecho:** la clave `cotizaciones.papelera.purgar` («Vaciar la papelera de cotizaciones», orden 245, global) en la migración `20261106062752_cotizaciones_papelera_purgar.sql`, `seed.sql` y `permisos.ts`; la reciben el dueño y todo rol que tenía `vehiculos.papelera.purgar` (un `notice` dice cuáles), con «todos» y sin origen. `papelera_listar`, `papelera_restaurar` y `papelera_purgar` (la definición de la base con la clave cambiada; sin sesión se sigue purgando) y la rama de cotizaciones de la policy `lotes_papelera: leer` (tres ramas explícitas, sin `else`) la piden; la de vehículos pasa a «Vaciar la papelera de vehículos». `db:probar` corre, tras su lista fija, las pruebas de `supabase/tests/areas/**` (`pruebasEnOrden()`), y `RPC_PAGINADAS` suma `paginas-en-la-base-papelera.ts` (del C, hoy vacío). P1–P4 con la recomendada (compuerta `datos`, «aprobar y ejecutar»).
+- **Verificación** (`.piloto/salidas/4.15-7/`): S1 (PGlite ejecuta la migración entera en un `execute`: `s1.txt`); rojos contra HEAD (`rojo-head-sql.txt`, con el mensaje de V en T2; `rojo-head-humo.txt`, con el de V en T5; `rojo-head-scripts.txt`; `rojo-head-catalogo.txt`); 19 corridas de mutación (M1–M17, más M14b y M16b), todas hacen caer su prueba y cada archivo volvió igual (`mutacion-M*.txt`; M17 y D1 en un mismo script, con la demo presente y la salida real de `db:probar`, 1 sin la mutación y 0 con ella: `d1-m17.txt`; la línea «salida» de los demás `mutacion-M*.txt` es la del último comando de la tubería, no la de la corrida); `db:reset`, `db:types` sin diff, `db:probar` (524 bloques, 0 caídas, `verde-db-probar.txt`), `db:lint` sin avisos de la papelera; `lint`, `typecheck` y `pnpm test` (547 archivos, 6.390 pruebas); `mapa.sh --check`, `coordinador validar` y las pruebas de `plan.yaml`; 0 saltadas nuevas. Dirigidos en escritorio (8 specs, 44 en verde, `dirigidos-escritorio.txt`). Completo de escritorio (`completo.txt`): 929 en verde, 16 saltados, 2 caídas, 4 sin correr (la `serial` de una), 35,1 min; las dos caídas (`leads-alta-casos.spec.ts:302` y `vehiculos.spec.ts:106`) no tocan la papelera y pasan 3 de 3 solas (`solas-3x.txt`); el archivo de vehículos entero, 7 de 7 (`vehiculos-spec-entero.txt`).
+- **Abiertos:** 4-87 cerrado; 4-91 nuevo (el registro de páginas de otras áreas, 4.27); 4-92 y 4-93 nuevos (las dos inestables del completo).
+- **Commits:** `88d73678` (dar a la papelera de cotizaciones su propio permiso de purga), `6da47fda` (correr las pruebas sql de las áreas sin editar la lista) y `2f2f5db8` (abrir el registro de páginas a la papelera de cotizaciones); `751bbf92` (el comentario de la policy en la migración, pedido por la auditoría del informe).
+  e2e completo: sí (4.15-7, base, Nivel 2: escritorio, 929 en verde, 16 saltados, 2 caídas, 35,1 min)
+
+## 2026-11-06 — Paso 4.17-2: «Ver más» de las oportunidades de la ficha (cierra 5a-12)
+
+- **Hecho:** la sección «Oportunidades» de la ficha lee 10 en el servidor (`OPORTUNIDADES_VISIBLES_DEL_LEAD`, ahora `TAMANOS_DE_PAGINA[0]`) y «Ver más» trae de a `TAMANO_DE_VER_MAS` (20) desde el navegador con `lead_oportunidades()` y el cursor de la última cargada (`infra/oportunidades.client.ts`), hasta `TOPE_DE_LO_CARGADO` (500); en el tope, «Mostrando las 500 más recientes, las abiertas primero.» y «Buscarlas en tu embudo» (`caminoAlEmbudo()`: el kanban del embudo de la última cargada con `?q=` el nombre del lead). Se fue `?todas=1` con «Ver todas». Lo que vuelve de una action (mover, eliminar, restaurar, crear, guardar) se pone en su lugar con la respuesta, sin `router.refresh()` (`entities/ventana-de-oportunidades.ts` y `useVentanaDeOportunidades`): el orden es el de la base, con los microsegundos del instante (4-90); una página que llega no trae de vuelta una eliminada y se descarta si el servidor cambió lo cargado mientras venía.
+- **Preguntas (compuerta `producto`, respondidas con la recomendada):** P1 = 1 (el enlace al embudo), P2 = 1 (se va «Ver todas»), P3 = 1 (recargar con el panel de una oportunidad llegada por «Ver más» abre sólo si está entre las 10).
+- **Verificación** (`.piloto/salidas/4.17-2/`): rojos contra HEAD (`rojo-head-commit1.txt`, `rojo-head-vitest-commit2.txt`, `rojo-head-vitest-commit3.txt`, `rojo-head-e2e.txt`: caen E1, E3 y E4 y pasa E2, que no cambia); `lint` y `typecheck` en verde; `pnpm test` (550 archivos, 6.428 pruebas: 6.423 en verde y las 5 de `auto-carriles.test.ts`, 4-83, ajenas al paso; `test-completo.txt`); `mapa.sh --check` y `coordinador validar`. Dirigidos en escritorio y móvil, 65 en verde (`leads-oportunidades`, `leads-mover-con-motivo`, `paneles-salida-con-aviso`, `paneles-foco-al-volver-ficha`; `c2-e2e-dirigidos.txt`) y `leads-oportunidades-ver-todas`, `leads-oportunidades` y `leads-embudo` tras el último commit, 25 en verde (`c3-e2e.txt`).
+- **Medido** (E4, 600 abiertas y 400 cerradas): la sección aporta 62,7 KB con 1.000 y 61,7 con 10 (presupuesto 66); cada «Ver más» pesa 15.476 B la 1.ª y 15.465 B la 25.ª; 238 nodos con 10 y 11.509 con 500. Celular: las cuatro pruebas del spec salen IGUAL en escritorio y móvil, pero E4 tiene JS de celular que ninguna otra ejecuta (`huella.txt`, `huella2.json`), así que corre también en el celular y no lleva marca.
+- **Abiertos:** 4-83 suma el segundo disparador («todos» con B y C abiertos); 5a-12 cerrado.
+- **Commits:** `0fb0f2cf` (poner en su lugar lo que vuelve de una action), `f3dfc7d6` (ver más oportunidades de un lead por cursor) y `4731d681` (llevar al embudo pasadas las 500 oportunidades del lead).
+  e2e completo: no (4.17-2, pantalla, 1 de 3)
+
+## 2026-11-06 — Paso 4.17-3: la pestaña «Cotizaciones» de la ficha del vehículo
+
+- **Hecho.** `/vehiculos/[id]` suma la pestaña «Cotizaciones» para quien tiene `cotizaciones.ver` en el origen del vehículo (P1 = 1, contestada con la recomendada; sin la clave no aparece y `?seccion=cotizaciones` abre «Ficha»). Se lee desde
+  el navegador al abrirla con `leerHistorialDelVehiculo()` (la ficha no lee cotizaciones), de a 20 con «Ver más» hasta 500 y, en el tope, «Mostrando las 500 más recientes.» con «Ver todas en Cotizaciones». El historial plegable del panel de la hoja
+  y la pestaña comparten `usePaginasDelHistorial` y `<ListaDelHistorial>` (commit 1, sin cambio visible). Su cáscara de `diferido()` va en `pestana/diferidos.tsx`. Se ajustó `e2e/vehiculos-alta.spec.ts` (la dueña ve tres pestañas).
+- **Verificación** (`.piloto/salidas/4.17-3/`): rojos contra HEAD (`rojo-head-pestanas.txt` y `rojo-head-vitest.txt`: 5 de 6 en Vitest; `rojo-head-e2e.txt`: caen las 4 del spec nuevo); verde en `c1-historial-verde.txt` (12 pruebas del panel antes y después
+  del refactor); `lint` y `typecheck` en verde; `pnpm test` (551 archivos, 6.438 pruebas: 6.433 en verde y las 5 de `auto-carriles.test.ts`, 4-83, ajenas; `pnpm-test.txt`); `mapa.sh --check` y `coordinador validar`. Dirigidos en escritorio y móvil:
+  157 en verde (`dirigidos.txt`: los 15 specs del plan salvo el nuevo, que tuvo un defecto propio, una prueba que cambiaba de usuario a mitad, y se partió en dos) y el spec nuevo, 10 de 10 (`nuevo-spec.txt`, `medidas.json`). `presupuesto-js` en escritorio, 8 en verde
+  (`presupuesto-js.txt`).
+- **Medido:** primera respuesta 4.996 bytes en escritorio y 4.912 en móvil (tope 5.250), 61 nodos con 20 (tope 65) y 1.501 con 500 (tope 1.576), la 25.ª respuesta igual a la 1.ª; JS de `/cotizaciones/nuevo` 456,9 KB de 460 (antes 456,8: el reparto del
+  commit 1), `/cotizaciones/[id]` 435,6, `/cotizaciones` 359 y `/vehiculos` 476,7.
+- **Estado del CI al empezar:** el run de HEAD `c0939a8f` seguía en curso, con Nivel 1, base, carriles y tres de cuatro bloques e2e en verde, y terminó en verde (`success`). El push a `main` del merge del PR #9 (run `42178713690`) había caído en `pnpm test`: su log ya no se pudo leer (`gh run view --log-failed` vacío), así que la causa no está verificada.
+- **Abiertos:** 4-94 («Cotizar» desde la ficha del vehículo); 4-73 sigue abierto sin sumarle peso; el pulido del esqueleto doble queda en «Pulido para la Fase 9».
+- **Commits:** `54233483` (separar la paginación del historial del pliegue) y `41419f7b` (abrir la pestaña de cotizaciones en la ficha).
+  e2e completo: no (4.17-3, pantalla, 2 de 3)
+
+## 2026-11-06 — Paso 4.17-4a: el listado de cotizaciones filtrado por lead, en la base
+
+- **Hecho.**
+  - El 4.17-4 se partió en 4a, la base, y 4b, la pantalla: P1 y P2 se contestaron con la recomendada, y el camino tras 500 de la sección del lead es `/cotizaciones?lead=`.
+  - `cotizaciones_listado()` suma `p_lead` al final de su firma: `drop` de la de 8 y `create` de la de 9, en `20261106102102_cotizaciones_listado_por_lead.sql`.
+  - Con el lead, una sola ruta por `cotizaciones_lead_creado_idx` con la RLS, en los tres bloques, sin la cartera. El vehículo, si llega, es un filtro sobre sus filas.
+  - Sigue invocadora y con los mismos privilegios.
+  - Las pruebas:
+    - L1 con los argumentos;
+    - L9: el lead con cada filtro, el cursor en los dos sentidos, la papelera, un lead que no se ve o no existe, «propios» con la cartera compartida;
+    - seis casos del lead en `cv_filtros`, contra la regla a mano;
+    - la firma de 9 en `auditoria-leads.sql`.
+  - La medición:
+    - las 5.005 del vehículo muy cotizado son de un lead ajeno;
+    - cinco casos del listado por lead;
+    - tres de la lectura de la sección del 4b, por PostgREST de a 21.
+- **Verificación** (`.piloto/salidas/4.17-4a/`):
+  - Rojos contra HEAD:
+    - `rojo-head-probar.txt`: 4 caídas con su mensaje, y L3 a L8 en verde;
+    - `rojo-head-medir.txt`: cae en el primer caso con `p_lead`.
+  - Verde:
+    - `db:probar`: 524 en verde (`db-probar.txt`);
+    - `db:lint`, `db:carreras` y `db:medir:volumen`;
+    - `lint` y `typecheck`;
+    - `pnpm test`: 6.433 de 6.438, y las 5 de `auto-carriles.test.ts`, ajenas (4-83);
+    - `mapa.sh --check` y `coordinador validar`;
+    - los dirigidos en escritorio, 20 en verde (`e2e-dirigidos.txt`), y `listas-por-pagina-volumen.spec.ts` con `E2E_VOLUMEN=1`, 7 en verde (`e2e-volumen.txt`).
+  - Mutaciones (`mutaciones.txt`): M1 a M10 caen en `db:probar`, en L1, L9, la visibilidad, la auditoría y `privilegios-de-anon`. M6 y M7 caen también en la medición, por el índice que leen; M7, además, crece de 271 a 42.006 bloques.
+- **Medido** (250.000; iguales con 50.000):
+  - la dueña, con un lead: 1,1–1,2 ms;
+  - Ana, con un lead de su cartera: 2,5 ms; con uno ajeno de 5.005, 50,8 ms (un `en_cartera()` por fila, como el vehículo; tope 100) y 3,7 con «mías»;
+  - la sección: la dueña 0,3 ms, Ana 0,9 y Ana con el ajeno 48,1.
+- **Estado del CI al empezar:** el run de `c0939a8f` en verde (`success`), según `hechos.json`.
+- **Abiertos:** ninguno nuevo. 4-64 suma `cotizaciones-listado.sql` (393), `medir-cotizaciones-listado.sql` (437), `cotizaciones-visibilidad.sql` (1.921) y la función (164 líneas).
+- **Commits:** `d7c93e66` (filtrar el listado de cotizaciones por lead) y `f489663a` (medir el listado por lead y la sección del lead).
+  e2e completo: no (4.17-4a, base, Nivel 1)
+
+## 2026-11-06 — Paso 4.17-4b: la sección «Cotizaciones» de la ficha del lead y `?lead=` en el listado
+
+- **Qué se hizo.** Pantalla pura, tres commits de código:
+  - `/cotizaciones?lead=<guid>` filtra el listado con el `p_lead` del 4.17-4a: fuera del esquema (ni chip ni lo borra «Limpiar»), «Ver todas» lo quita, y el aviso y el vacío salen de `textoDelAviso()` y `textoDelVacio()` (lead, vehículo o los dos; el nombre sólo con `leads.ver`).
+  - `leerCotizacionesDelLead()` y el tipo `ListaDe` reparten `usePaginasDelHistorial(de)` y `<ListaDelHistorial de>` entre el panel de la hoja, la pestaña del vehículo y la sección del lead, sin tocar los dos tests del historial.
+  - La ficha del lead suma «Cotizaciones» entre «Oportunidades» y «Portal» para quien tiene `cotizaciones.ver` en algún origen (P2: sin origen ni cartera); se lee al abrirla, de a 20 hasta 500, y el tope lleva «Ver todas en Cotizaciones» a `/cotizaciones?lead=` (P1).
+- **Estado del CI al empezar:** el run `42209354765` de `dffc62a2` (HEAD), en verde (`success`), leído con `gh run view`.
+- **Verificación** (`.piloto/salidas/4.17-4b/`):
+  - Rojos contra HEAD: `rojo-head-vitest-1.txt`, `-2.txt` y `-3.txt` (4, 3 y 2 caídas con su mensaje; «otro texto, nada» de `filtros-del-listado.test.ts` y la parte sin clave de E3 pasan contra HEAD, como decía el plan) y `rojo-head-e2e.txt` (E8 y el spec nuevo caen con el `src/` de HEAD).
+  - Verde: `lint`, `typecheck`; `pnpm test` 6.453 de 6.458 y las 5 de `auto-carriles.test.ts`, ajenas (4-83; `pnpm-test.txt`); `mapa.sh --check`.
+  - Dirigidos, escritorio y celular: el listado (22), el historial (48: `cotizar-historial-del-vehiculo`, `cotizar-panel-del-vehiculo`, `cotizar-guardada`, `vehiculos-cotizaciones`), la ficha, sus presupuestos y `leads-cotizaciones` (10), más `presupuesto-js` en escritorio (`dirigidos-c1c.txt`, `dirigidos-c2.txt`, `dirigidos-c3.txt` y `dirigidos-c3b.txt`; E3 y E8 se partieron en dos por `entrar` con `fresco` dos veces).
+  - Completo de escritorio, tras el último cambio de código: 948 en verde, 16 saltados y 0 caídas, 35,3 min (`e2e-completo.txt`).
+- **Medido** (`medidas.json`, `medidas-ficha.json`): la sección con 20, 61 nodos y 5.038 B la primera respuesta en escritorio (4.933 en celular); con 500, 1.501 nodos y la 25.ª igual que la 1.ª. Ficha: «Datos» 39,2 KB (sin cambio), «Oportunidades» 37,8 y 61,2 con 1.000, «Portal» 29,7. JS en frío: `/cotizaciones` 359,1, `/cotizaciones/nuevo` 456,9, `/cotizaciones/[id]` 435,7, `/vehiculos` 476,7, `/perfil` 417,2.
+- **Abiertos:** ninguno nuevo; 4-75 sigue en el 4.17-5.
+- **Commits:** `3c14f037` (filtrar el listado por lead), `cf510328` (paginar las cotizaciones de un lead) y `a790fda8` (abrir la sección de cotizaciones en la ficha).
+  e2e completo: sí (4.17-4b, pantalla, 3 de 3: escritorio, 948 en verde, 16 saltados, 0 caídas, 35,3 min)
+
+## 2026-11-06 — Paso 4.17-5a: las revisiones de una cotización desde una fecha, en la base
+
+- **Qué:** el 4.17-5 se partió en 3 (5a la base, 5b `<IrAUnaFecha>` a `src/shared/ui`, 5c la pantalla); este es el 5a. `cotizacion_revisiones()` suma `p_hasta timestamptz` (P1, la recomendada): la página empieza en la más
+  nueva de esa cotización con `creado_en < p_hasta`, por el índice nuevo `cotizaciones_revisiones_cotizacion_creado_idx`; sin ninguna antes, va vacía; la guarda va primero. Una sola firma (se borró la de 3).
+- **El rojo del CI de HEAD** (run `42220552200`, «Nivel 1»): tres pruebas del tope de 500 del historial agotaban 5.000 ms. `fix` aparte y primero: llegan al tope con dos respuestas y miran por texto, no por rol
+  (`.piloto/salidas/4.17-5a/rojo-head-vitest.txt`: caen las tres a 1,5 s con un CPU; `verde-c0.txt`: pasan en 0,6 s).
+- **Estado del CI al empezar:** `42220552200` de `155a90c9` (HEAD), en rojo, por esas tres pruebas.
+- **Verificación** (`.piloto/salidas/4.17-5a/`):
+  - Rojos contra HEAD: F1 a F6 (`rojo-head-probar.txt`: la función de 4 argumentos no existe) y las dos firmas de `auditoria-leads.sql` y `cotizaciones-visibilidad.sql`; los tres Vitest del paso 0.
+  - Verde: `lint`, `typecheck`; `pnpm test` 6.452 de 6.458: las 5 de `auto-carriles.test.ts` (ajenas, 4-83) y `mapa.test.ts` T13 por el tiempo con la máquina cargada (5,09 s; pasa sola: `pnpm-test-final.txt`); `db:reset`, `db:types`, `db:probar` (532 pruebas), `db:lint`,
+    `db:carreras`, `db:medir` (guardar: 319 buffers y 6,8 ms), `db:medir:volumen`.
+  - Mutaciones: M0a y M0b (el hook del historial) y M1 a M9 (la migración), todas caen (`mutaciones.txt`, `mutaciones-sql.txt`).
+  - Completo de escritorio (Nivel 2, disparador 6: un índice), tras el último cambio de código: 948 en verde, 16 saltados y 0 caídas, 34,3 min (`completo.txt`).
+- **Medido** (`db-medir-volumen.txt`, líneas 1837 a 1859): el salto a una fecha, de 10 a 12 bloques y de 4,7 a 6,7 ms a cualquier profundidad con 5.000 revisiones en la cotización, y lo mismo con 500; sin el índice,
+  679 bloques contra 76 (su guarda).
+- **Abiertos:** 4-95 (el id de una revisión puede crecer sin `creado_en` en los caminos que escriben sin versión; `statement_timeout` de `authenticated` en la base local: 8 s) y 4-96 (`mapa.test.ts` T13 al borde de 5 s); 4-75 sigue abierto y pasa al 4.17-5c.
+- **Commits:** `24d12ed9` (el rojo del CI), `ae981b8b` (la migración y sus pruebas), `846d0c4c` (la medición) y `9af841f4` (F5 y F6 por claves, a pedido de la auditoría del informe).
+  e2e completo: sí (4.17-5a, base, Nivel 2: escritorio, 948 en verde, 16 saltados, 0 caídas, 34,3 min)

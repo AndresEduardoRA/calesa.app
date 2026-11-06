@@ -10,8 +10,7 @@ import { esquemaEtapa, etapaDesde, type EtapaGuardada } from './embudo'
 import { ESTADOS_DE_OPORTUNIDAD, type EstadoDeOportunidad } from './oportunidad'
 
 // Cuántas trae cada pedido («Ver más» suma otras tantas: `TAMANO_DE_COLUMNA`, de `shared/lib/paginacion`) y hasta
-// cuántas se dibujan en una columna: más allá se avisa y las demás siguen en la ficha de cada lead
-// (`.claude/rules/escala.md`).
+// cuántas se dibujan en una columna: más allá se avisa y manda a buscar (`.claude/rules/escala.md`).
 export const TOPE_DE_COLUMNA = TOPE_DE_LO_CARGADO
 
 // La vista y lo elegido en ella, en la URL de `/leads`.

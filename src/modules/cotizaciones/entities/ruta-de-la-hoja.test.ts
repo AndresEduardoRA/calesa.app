@@ -23,4 +23,13 @@ describe('rutaDelListado', () => {
       '/cotizaciones?vehiculo=0b7a2f0e-1c2d-4e5f-8a9b-0c1d2e3f4a5b',
     )
   })
+
+  it('con lead, el listado de ese cliente; con los dos, primero el lead', () => {
+    const lead = '1c8b3a1f-2d3e-4f60-9bac-1d2e3f4a5b6c'
+    const vehiculo = '0b7a2f0e-1c2d-4e5f-8a9b-0c1d2e3f4a5b'
+    expect(rutaDelListado({ lead })).toBe(`/cotizaciones?lead=${lead}`)
+    expect(rutaDelListado({ lead, vehiculo })).toBe(
+      `/cotizaciones?lead=${lead}&vehiculo=${vehiculo}`,
+    )
+  })
 })
