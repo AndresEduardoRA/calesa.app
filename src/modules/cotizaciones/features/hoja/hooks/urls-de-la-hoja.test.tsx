@@ -25,6 +25,14 @@ describe('useSoltarLoAbierto: guardada, la hoja suelta lo que tenía abierto', (
     expect(await soltarDe('?panel=avanzado')).toBe('')
   })
 
+  it('suelta «Vista previa»', async () => {
+    expect(await soltarDe('?panel=vista-previa')).toBe('')
+  })
+
+  it('no suelta el panel de otra cosa', async () => {
+    expect(await soltarDe('?panel=revisiones')).toBeNull()
+  })
+
   it('suelta la ayuda de texto y su nodo', async () => {
     expect(await soltarDe('?ayuda=texto&nodo=b1')).toBe('')
   })

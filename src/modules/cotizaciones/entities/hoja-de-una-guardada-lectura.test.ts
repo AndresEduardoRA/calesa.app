@@ -34,6 +34,18 @@ describe('hojaDeUnaGuardadaDesde: lo que lee la página de una cotización guard
     expect(h?.diseno.tarjetaTotal.etiqueta).toBe('TOTAL')
   })
 
+  it('totales.bs llega a guardado.totalBs; sin totales, nulo', () => {
+    const con = hojaDeUnaGuardadaDesde(
+      crudaDeUnaGuardada({ totales: { usd: 2350, bs: 16356, suma_usd: null } }),
+    )
+    expect(con?.guardado.totalUsd).toBe(2350)
+    expect(con?.guardado.totalBs).toBe(16356)
+    const sin = hojaDeUnaGuardadaDesde(crudaDeUnaGuardada({ totales: undefined }))
+    expect(sin?.guardado.totalBs).toBeNull()
+    const sinBs = hojaDeUnaGuardadaDesde(crudaDeUnaGuardada({ totales: { usd: 5, bs: null } }))
+    expect(sinBs?.guardado.totalBs).toBeNull()
+  })
+
   it('actualizadoEn sale idéntico al texto de la base, con sus microsegundos', () => {
     const h = hojaDeUnaGuardadaDesde(crudaDeUnaGuardada())
     expect(h?.cotizacion.actualizadoEn).toBe(ACTUALIZADO_EN)

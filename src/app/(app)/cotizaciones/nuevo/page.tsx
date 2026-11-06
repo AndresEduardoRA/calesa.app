@@ -22,7 +22,7 @@ import {
   PestanasDeOrigen,
 } from '@/modules/cotizaciones/pantallas/cotizar'
 import { HUECOS_DE_FORMULA_EN_LA_HOJA } from '@/modules/cotizaciones/pantallas/formula-hoja'
-import { requerirSesion } from '@/modules/equipo'
+import { nombreVisible, requerirSesion } from '@/modules/equipo'
 import { leerClienteElegido, type ClienteElegido } from '@/modules/leads'
 import { BarraDelCliente } from '@/modules/leads/pantallas/cotizar'
 import { integracionActiva } from '@/modules/empresa'
@@ -169,7 +169,15 @@ async function Hoja({
       <EstadoSinPermiso descripcion="No tienes permiso para cotizar en ningún origen. Pídeselo a quien administra los roles." />
     )
   }
-  return <HojaDelOrigen sesion={sesion} url={url} origenes={origenes} origen={origen} />
+  return (
+    <HojaDelOrigen
+      sesion={sesion}
+      asesor={nombreVisible(sesion)}
+      url={url}
+      origenes={origenes}
+      origen={origen}
+    />
+  )
 }
 
 // «Falta publicar la fórmula»: con permiso para configurar, el enlace es el que llena el área `formula` (C7 del 4.15-6).
@@ -193,14 +201,41 @@ function SinPublicar({
   )
 }
 
+// El título del vehículo elegido para la banda de la tarjeta (4.18-2); sin vehículo, nulo.
+function tituloDelElegido(elegido: { vehiculo: { titulo: string } } | null) {
+  return elegido?.vehiculo.titulo ?? null
+}
+
+// La barra del cliente de la hoja: lo que puede hacer quien mira con los leads.
+function BarraDelClienteDeLaHoja({
+  cliente,
+  permisos,
+}: {
+  cliente: ClienteElegido | null
+  permisos: Permisos
+}) {
+  return (
+    <BarraDelCliente
+      elegido={cliente}
+      puedeVer={puede(permisos, 'leads.ver')}
+      numeroGlobal={puede(permisos, 'leads.numero_global.ver')}
+      puedeCrear={puede(permisos, 'leads.crear')}
+      claveDeLaUrl={CLAVE_DE_LEAD}
+    />
+  )
+}
+
 // La hoja del origen elegido, con sus dos barras (vehículo y cliente) y las pestañas de origen.
 async function HojaDelOrigen({
   sesion,
+  asesor,
   url,
   origenes,
   origen,
 }: {
   sesion: Quien & { permisos: Permisos }
+  // «Asesor:» de la tarjeta: quien cotiza.
+  asesor: string
   url: Awaited<PageProps<'/cotizaciones/nuevo'>['searchParams']>
   origenes: readonly OrigenResumen[]
   origen: OrigenResumen
@@ -253,14 +288,13 @@ async function HojaDelOrigen({
         paraElegir={paraElegir}
         abierta={apertura.hoja.abierta}
       />
-      <BarraDelCliente
-        elegido={cliente}
-        puedeVer={puede(sesion.permisos, 'leads.ver')}
-        numeroGlobal={puede(sesion.permisos, 'leads.numero_global.ver')}
-        puedeCrear={puede(sesion.permisos, 'leads.crear')}
-        claveDeLaUrl={CLAVE_DE_LEAD}
-      />
-      <ConProveedorDeLaHoja origenId={origen.id} cotizacionId={null} permisos={sesion.permisos}>
+      <BarraDelClienteDeLaHoja cliente={cliente} permisos={sesion.permisos} />
+      <ConProveedorDeLaHoja
+        origenId={origen.id}
+        cotizacionId={null}
+        permisos={sesion.permisos}
+        tarjeta={{ vehiculo: tituloDelElegido(elegido), asesor }}
+      >
         <PantallaDeCotizar
           key={`${origen.id}:${leadUsado ?? '-'}:${vehiculoUsado ?? '-'}`}
           hoja={apertura.hoja}

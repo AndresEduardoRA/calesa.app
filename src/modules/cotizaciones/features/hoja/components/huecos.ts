@@ -1,8 +1,10 @@
 import type { ComponentType, ReactNode } from 'react'
 import type { Permisos } from '@/shared/lib/permisos'
+import type { CalculoDeLaTarjeta } from '../../../entities/calculo-de-la-tarjeta'
 import type { CeldaDeHoja } from '../../../entities/hoja'
 import type { CotizacionDeLaHoja } from '../../../entities/hoja-de-una-guardada'
 import type { DeDondeCalcula } from '../../../entities/pedido-de-recalculo'
+import type { EstadoDeRecalculo } from '../../../entities/recalculo'
 import type { AccionesDeHoja } from '../hooks/use-hoja'
 
 // Los huecos de la hoja (4.15-6): lo que un área llena sin que el núcleo la importe. Son tipos y nada más: el núcleo (`features/hoja`) no importa ningún área, y las páginas
@@ -37,6 +39,20 @@ export type AjusteEnLaHoja = {
   nodo: string | null
   cerrar: () => void
   hoja: PropsDelAjuste['hoja']
+}
+
+// Lo que recibe el modal «Vista previa» de la tarjeta (4.18-2): si está abierto, cómo cerrarlo, la versión de la fórmula que dibuja la hoja (la tarjeta se lee por ella), los
+// números que dibuja (los de la hoja nueva o, en una guardada, los guardados: P5), la moneda del total en Bs y, fuera de la tarjeta, lo que el modal dice: si lo de hoy no es lo
+// guardado o hay cambios sin guardar. `estado` es el del recálculo de la hoja nueva: «Total desactualizado.» sólo se dice con él.
+export type PropsDeLaVistaPrevia = {
+  abierta: boolean
+  cerrar: () => void
+  formulaId: string
+  calculo: CalculoDeLaTarjeta
+  // Nulo en una guardada: lo guardado no se desactualiza.
+  estado: EstadoDeRecalculo | null
+  monedaBs: string | null
+  avisos: { difiere: boolean; cambiosSinGuardar: boolean }
 }
 
 export type HuecosDeLaHoja = {

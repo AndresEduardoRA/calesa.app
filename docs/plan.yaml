@@ -321,6 +321,16 @@ pasos:
         src/modules/cotizaciones/infra/tarjeta/,
         src/modules/cotizaciones/pantallas/tarjeta.ts,
         src/modules/cotizaciones/areas/tarjeta/,
+        src/modules/cotizaciones/features/hoja/,
+        src/modules/cotizaciones/entities/hoja-de-una-guardada.ts,
+        src/modules/cotizaciones/entities/hoja-de-una-guardada-lectura.ts,
+        src/modules/cotizaciones/entities/hoja-de-una-guardada.soporte.ts,
+        src/modules/cotizaciones/entities/calculo-de-la-tarjeta.ts,
+        src/app/(app)/cotizaciones/nuevo/,
+        'src/app/(app)/cotizaciones/[id]/page.tsx',
+        src/app/(app)/cotizaciones/con-la-tarjeta.tsx,
+        src/app/(app)/cotizaciones/con-proveedor-de-la-hoja.tsx,
+        scripts/mapa.test.ts,
         docs/,
       ]
     ruteo:

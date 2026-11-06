@@ -29,7 +29,9 @@ const esquemaDeUnaGuardada = esquemaDeDiseno.extend({
   cotizacion: esquemaDeLaCotizacion,
   valores: z.record(z.string(), z.union([z.number(), z.string(), z.null()])),
   fuentes: z.record(z.string(), z.string()),
-  totales: z.object({ usd: z.number().nullable().optional() }).optional(),
+  totales: z
+    .object({ usd: z.number().nullable().optional(), bs: z.number().nullable().optional() })
+    .optional(),
   puede_guardar: z.boolean(),
   vence_el: z.string().min(1),
   vencida: z.boolean(),
@@ -68,6 +70,7 @@ export function hojaDeUnaGuardadaDesde(crudo: unknown): HojaDeUnaGuardada | null
       valores: new Map(Object.entries(h.valores)),
       fuentes: new Map(Object.entries(h.fuentes)),
       totalUsd: h.totales?.usd ?? null,
+      totalBs: h.totales?.bs ?? null,
     },
     puedeGuardar: h.puede_guardar,
     venceEl: h.vence_el,
