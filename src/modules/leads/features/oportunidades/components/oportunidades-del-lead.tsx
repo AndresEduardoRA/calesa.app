@@ -26,6 +26,17 @@ type Props = {
   puedoCrear: boolean
   // Tiene más de las que trajo el servidor: «Ver más» las lee desde el navegador.
   hayMas: boolean
+  // Para el camino que ofrece el tope: buscar al lead en su embudo.
+  leadNombre: string
+}
+
+function BotonNuevaOportunidad({ alAbrir }: { alAbrir: () => void }) {
+  return (
+    <Button className="min-h-11 md:min-h-8" onClick={alAbrir}>
+      <PlusIcon aria-hidden className="size-4" />
+      Nueva oportunidad
+    </Button>
+  )
 }
 
 // La sección «Oportunidades»: las de quien mira sobre el lead (abiertas primero) y «Nueva oportunidad».
@@ -36,12 +47,7 @@ export function OportunidadesDelLead(props: Props) {
   const { lista, hayMas, cargando, enElTope, cargarMas, moverA, quitar, ocupada, alGuardar } =
     useOportunidades(leadId, { oportunidades: inicial, hayMas: props.hayMas }, embudos)
   const editando = panel.editando ? (lista.find((o) => o.id === panel.editando) ?? null) : null
-  const nueva = puedoCrear ? (
-    <Button className="min-h-11 md:min-h-8" onClick={panel.abrirNueva}>
-      <PlusIcon aria-hidden className="size-4" />
-      Nueva oportunidad
-    </Button>
-  ) : null
+  const nueva = puedoCrear ? <BotonNuevaOportunidad alAbrir={panel.abrirNueva} /> : null
   return (
     <section aria-labelledby="titulo-oportunidades" className="grid gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -86,6 +92,8 @@ export function OportunidadesDelLead(props: Props) {
         cargando={cargando}
         ocupada={ocupada !== null}
         alVerMas={() => void cargarMas()}
+        lista={lista}
+        leadNombre={props.leadNombre}
       />
       {puedoCrear && (panel.nueva || editando) ? (
         <PanelDeOportunidad

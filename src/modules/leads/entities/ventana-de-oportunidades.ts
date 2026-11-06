@@ -2,8 +2,16 @@
 // cerradas), que empieza en lo más nuevo y termina donde llegó «Ver más». Lo que vuelve de una action se pone sólo si cae dentro de esa
 // ventana: ponerlo fuera correría el cursor y «Ver más» saltearía filas. Lo cargado tiene tope (`TOPE_DE_LO_CARGADO`).
 import { TOPE_DE_LO_CARGADO } from '@/shared/lib/paginacion'
+import { RUTAS } from '@/shared/lib/rutas'
 import type { Embudo } from './embudo'
 import type { Oportunidad, OportunidadDelLead } from './oportunidad'
+import {
+  busquedaDelEmbudo,
+  CLAVE_DE_BUSQUEDA_DEL_EMBUDO,
+  CLAVE_DE_EMBUDO,
+  CLAVE_DE_VISTA,
+  VISTA_EMBUDO,
+} from './tablero'
 
 // Lo cargado: la lista y si hay más hacia atrás.
 export type VentanaDeOportunidades = {
@@ -114,4 +122,18 @@ export function oportunidadDelLeadDesde(
     },
     embudo: { id: embudo.id, nombre: embudo.nombre },
   }
+}
+
+// El camino a lo antiguo cuando lo cargado llega al tope: el kanban del embudo de la última cargada, buscando por el nombre del lead (la
+// búsqueda del embudo mira el título y el nombre del lead en todas las columnas, también las cerradas). Sin búsqueda si el nombre es muy corto.
+export function caminoAlEmbudo(embudoId: string, nombreDelLead: string): string {
+  const consulta = new URLSearchParams({
+    [CLAVE_DE_VISTA]: VISTA_EMBUDO,
+    [CLAVE_DE_EMBUDO]: embudoId,
+  })
+  const buscar = busquedaDelEmbudo(nombreDelLead)
+  if (buscar !== null) {
+    consulta.set(CLAVE_DE_BUSQUEDA_DEL_EMBUDO, buscar)
+  }
+  return `${RUTAS.leads}?${consulta.toString()}`
 }

@@ -3,6 +3,7 @@ import { TOPE_DE_LO_CARGADO } from '@/shared/lib/paginacion'
 import type { Embudo } from './embudo'
 import type { Oportunidad, OportunidadDelLead } from './oportunidad'
 import {
+  caminoAlEmbudo,
   cursorDeOportunidades,
   oportunidadDelLeadDesde,
   ordenDeOportunidades,
@@ -279,5 +280,24 @@ describe('sumarPaginaDeOportunidades', () => {
     )
     expect(suma.lista).toHaveLength(TOPE_DE_LO_CARGADO)
     expect(suma.hayMas).toBe(true)
+  })
+})
+
+describe('caminoAlEmbudo', () => {
+  it('lleva al kanban del embudo, buscando por el nombre del lead', () => {
+    expect(caminoAlEmbudo('m1', 'Ana Pérez')).toBe('/leads?vista=embudo&embudo=m1&q=Ana+P%C3%A9rez')
+  })
+
+  it('con un nombre de una letra no busca: sólo abre el embudo', () => {
+    expect(caminoAlEmbudo('m1', 'A')).toBe('/leads?vista=embudo&embudo=m1')
+    expect(caminoAlEmbudo('m1', '  ')).toBe('/leads?vista=embudo&embudo=m1')
+  })
+
+  it('escapa un & o un # del nombre y lo corta en los 60 de la base', () => {
+    expect(caminoAlEmbudo('m1', 'Pérez & Hijos #2')).toBe(
+      '/leads?vista=embudo&embudo=m1&q=P%C3%A9rez+%26+Hijos+%232',
+    )
+    const largo = caminoAlEmbudo('m1', 'x'.repeat(100))
+    expect(new URL(largo, 'http://x').searchParams.get('q')).toBe('x'.repeat(60))
   })
 })

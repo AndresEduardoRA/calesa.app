@@ -87,6 +87,7 @@ function seccionesDe(
         <Suspense fallback={<EsqueletoDeOportunidades />}>
           <SeccionOportunidades
             leadId={datos.ficha.id}
+            leadNombre={datos.ficha.nombre}
             {...(ve.vehiculos ? { vehiculos: opcionesDeVehiculoDelLead(datos.ficha.id) } : {})}
           />
         </Suspense>

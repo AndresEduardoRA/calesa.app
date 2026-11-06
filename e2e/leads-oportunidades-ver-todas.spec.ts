@@ -178,6 +178,12 @@ test('con 1.000 (600 abiertas y 400 cerradas): el documento pesa lo de 10, cada 
     ),
   ).toBeVisible()
 
+  // El camino a lo que el tope deja afuera: el kanban del embudo, buscando por el nombre del lead.
+  const embudo = await embudoPorDefecto(t.personas.berta)
+  const camino = page.getByRole('link', { name: 'Buscarlas en tu embudo' })
+  const buscar = new URLSearchParams({ vista: 'embudo', embudo: embudo.id, q: lead.nombre })
+  await expect(camino).toHaveAttribute('href', `/leads?${buscar.toString()}`)
+
   // La página 25 no pesa más que la 1.ª (no crece con la profundidad) y los nodos crecen lineales y se detienen.
   const primera = respuestas[0] ?? 0
   const ultima = respuestas.at(-1) ?? 0
@@ -188,4 +194,9 @@ test('con 1.000 (600 abiertas y 400 cerradas): el documento pesa lo de 10, cada 
   const resumen = `con 1.000 oportunidades la sección aporta ${kb(conMil)} KB (con 10, ${kb(deDiez)} KB); cada «Ver más» pesa ${String(primera)} B la 1.ª y ${String(ultima)} B la última; ${String(nodosCon10)} nodos con 10 y ${String(nodosCon500)} con 500`
   console.warn(`[ficha] ${info.project.name}: ${resumen}`)
   info.annotations.push({ type: 'ficha con 1.000 oportunidades', description: resumen })
+
+  // El enlace abre el embudo con la búsqueda por el nombre del lead.
+  await camino.click()
+  await expect(page).toHaveURL(new RegExp(`vista=embudo&embudo=${embudo.id}&q=`))
+  await expect(page.getByRole('heading', { name: 'Embudo', level: 1 })).toBeAttached()
 })
