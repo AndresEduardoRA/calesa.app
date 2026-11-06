@@ -105,7 +105,7 @@ grant execute on function public.papelera_purgar(uuid) to authenticated, service
 grant execute on function public.papelera_restaurar(uuid) to authenticated, service_role;
 
 -- ---------------------------------------------------------------------------------------------------
--- La policy: lo propio siempre; un lote ajeno, con la clave de su tipo. La misma forma de hoy (un InitPlan por tipo), con las tres ramas explícitas.
+-- La policy: lo propio siempre; un lote ajeno, con la clave de su tipo. La misma forma de hoy (un `tiene_permiso` por fila, con `case` sobre el tipo), con las tres ramas explícitas.
 -- ---------------------------------------------------------------------------------------------------
 alter policy "lotes_papelera: leer" on public.lotes_papelera
   using ((creado_por = (select auth.uid())) or (select public.tiene_permiso(
