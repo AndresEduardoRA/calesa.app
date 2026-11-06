@@ -27,6 +27,10 @@
       },
       "description": "Los specs de e2e/ dirigidos a lo tocado, que el bucle repite al verificar."
     },
+    "parcial": {
+      "type": "boolean",
+      "description": "Con «listo» en un carril: true si el paso se partió y este PR trae sólo una de sus partes. El paso sigue asignado al carril (el coordinador no lo da por integrado al integrar el PR) y la vuelta siguiente retoma su rama. Sin el campo, false."
+    },
     "compuerta": {
       "type": ["object", "null"],
       "description": "Obligatoria con resultado «compuerta»; null en los demás. La de «producto» lleva una pregunta por decisión en `preguntas` (la sesión de decidir las hace en tandas de hasta 4); las demás, `pregunta` y `opciones`.",
