@@ -29,8 +29,10 @@ el número del paso y, opcionales, `continuar` (retomas esta sesión tras una co
 ## El camino
 
 1. **Orientarte** (poco): `.piloto/hechos.json`, `docs/ESTADO.md`, y con `continuar`, `.piloto/planes/<paso>.md` y `.piloto/informes/<paso>.md` si existen.
-2. **Planificar.** Invoca al subagente `planificador` (opus): orienta, parte si hace falta y escribe `.piloto/planes/<paso>.md` con
-   [plantilla-plan.md](plantilla-plan.md). No escribes tú el plan: el planificador es el único que lo hace, y su Bash es de sólo lectura.
+2. **Planificar.** Invoca al subagente `planificador`: orienta, parte si hace falta y escribe `.piloto/planes/<paso>.md` con
+   [plantilla-plan.md](plantilla-plan.md). No escribes tú el plan: el planificador es el único que lo hace, y su Bash es de sólo lectura. Corre en opus,
+   salvo en un paso que el ruteo mandó con `modelo: sonnet` (el de pantalla; lo dice `.piloto/ruteo.json`): ahí pásale `model: "sonnet"`. Del 5 al 7 de
+   noviembre, en esos pasos opus se llevaba 184 de 266 USD planificando y auditando, más que ejecutar. El auditor sigue siempre en opus.
 3. **Auditar el plan.** Invoca al subagente `auditor` (opus, en un contexto aparte) sobre ese plan. Su primera línea es `VEREDICTO: pasa|observaciones|bloquea`.
    `observaciones`: las atiendes en el plan y sigues. `bloquea`: un `planificador` nuevo con sus objeciones, otra auditoría; **a la segunda que bloquee, compuerta `atasco`**.
    Antes de esa 2.ª ronda copia el plan auditado a `.piloto/planes/<paso>.auditado.md` y dile al auditor que es la segunda: audita sólo lo cambiado y
