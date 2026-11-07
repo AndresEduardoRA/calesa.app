@@ -51,6 +51,8 @@ carriles:
       - scripts/guardas/confirmar-con-url-formula.ts
       # Los <Drawer> de su área (4.20-3b): el registro del núcleo es del A y los suma.
       - scripts/guardas/drawers-con-salida-formula.ts
+      # Sus registros de las guardas (`registros-de-carriles.ts`): `confirmar-con-url`, `drawers-con-salida` y `paginas-en-la-base` los descubren solas.
+      - scripts/guardas/areas-b/
       - src/modules/cotizaciones/pantallas/formula.ts
       - src/modules/cotizaciones/pantallas/formula-hoja.ts
       - src/modules/cotizaciones/features/diseno/
@@ -140,6 +142,8 @@ carriles:
         scripts/guardas/paginas-en-la-base-papelera.ts,
         # Los <Confirmar> de su área (4.24-2b): el registro del núcleo es del A y los suma.
         scripts/guardas/confirmar-con-url-papelera.ts,
+        # Sus registros de las guardas (`registros-de-carriles.ts`): `confirmar-con-url`, `drawers-con-salida` y `paginas-en-la-base` los descubren solas.
+        scripts/guardas/areas-c/,
       ]
 
 pasos:
