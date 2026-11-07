@@ -27,6 +27,8 @@ describe('RPC_PAGINADAS', () => {
 
   it('sin nada de la papelera, es el núcleo', async () => {
     vi.resetModules()
+    // El registro real de la papelera deja de estar vacío en cuanto el C registra su RPC (4.24-2): se simula vacío.
+    vi.doMock('./paginas-en-la-base-papelera', () => ({ RPC_PAGINADAS_DE_LA_PAPELERA: [] }))
     const { RPC_PAGINADAS, RPC_PAGINADAS_DEL_NUCLEO } = await import('./paginas-en-la-base')
     expect(RPC_PAGINADAS).toEqual(RPC_PAGINADAS_DEL_NUCLEO)
   })
