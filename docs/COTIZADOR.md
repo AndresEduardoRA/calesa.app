@@ -581,9 +581,28 @@ DETAIL y el `donde` en HINT; el primer rechazo manda, en este orden: `forma` (la
 `nodo_inexistente` y `nodo_sin_lugar` (una clave de `etiquetas`/`leyendas` es un miembro de un grupo, el total o lo aparte de `tarjeta_total`),
 `nodo_restringido` (un miembro, el total o lo aparte sin `ver: todos` en la visibilidad compilada; **no figurar cuenta como restringido**) y, con
 `columnas.tipo_cambio`, `tipo_de_cambio_restringido` (el tipo de cambio del bucket de un grupo, por omisión o en un modo). Con `def` nulo, sólo la
-forma. Juego común: `entities/plantilla/casos-de-plantilla.json` (lo corre `plantilla-validar.sql`; lo correrá `validarPlantilla()` de TS, 4.19).
+forma. Juego común: `entities/plantilla/casos-de-plantilla.json` (lo corre `plantilla-validar.sql`; lo correrá `validarPlantilla()` de TS, 4.19-2).
 `plantilla_guardar_borrador` valida la forma; `plantilla_publicar`, contra la fórmula **publicada** del origen y los tonos del catálogo, antes de
 archivar nada (sin fórmula publicada, `formula_sin_publicar@origen`). La tabla la lee sólo quien tiene `cotizaciones.configurar` del origen.
+
+### Versiones de la plantilla (4.19-1)
+
+Guardar el borrador, publicarlo y descartarlo piden la versión que se vio en pantalla (`plantillas_tarjeta.actualizado_en`, como texto: un `Date` pierde los
+microsegundos) y pasan en serie por un candado por origen (`pg_advisory_xact_lock(hashtextextended('plantillas:' || origen, 0))`), tomado tras el permiso
+(`cotizaciones.configurar` del origen) y lo que se rechaza sin mirar el estado, y antes de leer el borrador `for update`. Sin el candado, dos publicar a la
+vez publicaban las dos (el segundo `update … where id =` esperaba la fila del primero, la releía y pisaba su nota; no daba 23505).
+
+- `plantilla_guardar_borrador(p_origen, p_actualizado_en_esperado, p_def, p_nota default null) returns timestamptz` (la versión nueva). **Esperada nula = crear**:
+  sin borrador lo inserta; con borrador, PT409 «Ya hay un borrador de esta plantilla, guardado hace 2 min.» y nada cambia. Con la esperada, un borrador de otra
+  versión da PT409 «El borrador de esta plantilla cambió hace 2 min, mientras lo editabas.» (sin nombre: la tabla no guarda quién). La forma se valida antes del candado.
+- `plantilla_publicar(p_origen, p_actualizado_en_esperado, p_nota) returns uuid` (sigue en `uuid`: una función que devuelve `jsonb` y lee `public.formulas` cae
+  en el inventario de lo oculto de `cotizaciones-visibilidad.sql`). Esperada nula: la excepción de `_exigir_version()`, sin PT409. Nota en blanco: 22023
+  «Publicar pide una nota.» (hint `nota`). Después, lo de siempre (valida contra la fórmula publicada y los tonos; un rechazo no archiva nada).
+- `plantilla_descartar_borrador(p_origen, p_actualizado_en_esperado) returns void`: borra el borrador de esa versión; otra versión, PT409.
+- **Sin borrador y con esperada** (`_plantilla_borrador_ausente()`), PT409: «El borrador ya no está: la versión 3 se publicó hace un momento.» si la publicada
+  tiene `publicado_en >= esperada`; si no, «El borrador ya no está: se descartó.».
+- Dentro de una transacción `now()` no se mueve (el trigger genérico): una esperada «vieja» es la de la fila menos 1 µs en `db:probar`; que guardar mueve la
+  versión entre transacciones lo prueban las carreras (`scripts/carreras/plantillas.mjs`).
 
 ### La lectura de la tarjeta (4.18-1)
 

@@ -370,6 +370,13 @@ pasos:
         src/modules/cotizaciones/infra/plantilla/,
         src/modules/cotizaciones/pantallas/plantilla.ts,
         src/modules/cotizaciones/areas/plantilla/,
+        supabase/,
+        scripts/carreras/,
+        scripts/carreras.mjs,
+        scripts/probar-schema.mjs,
+        src/shared/types/database.types.ts,
+        src/modules/cotizaciones/CLAUDE.md,
+        .claude/rules/,
         docs/,
       ]
     ruteo:

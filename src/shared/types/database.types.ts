@@ -7625,6 +7625,10 @@ export type Database = {
         Args: { p_tipo: Database['public']['Enums']['tipo_lote_papelera'] }
         Returns: undefined
       }
+      _plantilla_borrador_ausente: {
+        Args: { p_esperada: string; p_origen: string }
+        Returns: undefined
+      }
       _plantilla_forma: { Args: { p_plantilla: Json }; Returns: undefined }
       _plantilla_nodos: {
         Args: { p_def: Json; p_diseno: Json; p_plantilla: Json; p_visibilidad: Json }
@@ -8707,11 +8711,18 @@ export type Database = {
           origen_id: string
         }[]
       }
+      plantilla_descartar_borrador: {
+        Args: { p_actualizado_en_esperado: string; p_origen: string }
+        Returns: undefined
+      }
       plantilla_guardar_borrador: {
-        Args: { p_def: Json; p_nota?: string; p_origen: string }
+        Args: { p_actualizado_en_esperado: string; p_def: Json; p_nota?: string; p_origen: string }
         Returns: string
       }
-      plantilla_publicar: { Args: { p_nota: string; p_origen: string }; Returns: string }
+      plantilla_publicar: {
+        Args: { p_actualizado_en_esperado: string; p_nota: string; p_origen: string }
+        Returns: string
+      }
       portal_desbloquear: { Args: { p_lead: string }; Returns: undefined }
       portal_estado: { Args: { p_lead: string }; Returns: Json }
       previsualizar_cambio_fase: {
