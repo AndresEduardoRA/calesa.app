@@ -130,7 +130,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/acciones/preparar
       # La CLI es la devDependency (`pnpm exec supabase`): la misma versión que en local, fijada por pnpm-lock.yaml.
-      - run: pnpm exec supabase start -x studio,imgproxy,edge-runtime,logflare,vector
+      - uses: ./.github/acciones/pila
+        with:
+          sin: studio,imgproxy,edge-runtime,logflare,vector
       - run: pnpm db:reset
       - name: db:types sin diff
         run: |
@@ -156,7 +158,9 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/acciones/preparar
-      - run: pnpm exec supabase start -x studio,imgproxy,edge-runtime,logflare,vector
+      - uses: ./.github/acciones/pila
+        with:
+          sin: studio,imgproxy,edge-runtime,logflare,vector
       - run: pnpm db:reset
       - run: pnpm db:carreras
 
@@ -217,7 +221,9 @@ jobs:
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
       - name: chromium y lo que pide del sistema
         run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm exec supabase start -x studio,imgproxy,logflare,vector
+      - uses: ./.github/acciones/pila
+        with:
+          sin: studio,imgproxy,logflare,vector
       - name: .env.local desde supabase status
         run: |
           pnpm exec supabase status -o env > "$RUNNER_TEMP/status.env"
