@@ -44,7 +44,7 @@ escribir_compuerta() {
   local opciones=("$@") o
   [ "${#opciones[@]}" -gt 0 ] || [ -n "${PREGUNTAS:-}" ] || mapfile -t opciones < <(opciones_de "$tipo")
   mkdir -p "$COMUN" "$ESTADO"
-  rm -f "$COMUN/decision.md"
+  rm -f "${DECISION_MD:-$COMUN/decision.md}"
   COMPUERTA_ID="g-$(date +%s)-$RANDOM"
   {
     echo "id: $COMPUERTA_ID"
@@ -63,8 +63,8 @@ escribir_compuerta() {
         "preguntas: \(length)", "tandas: \((length + 3) / 4 | floor)",
         (.[] | "- \(.id): \(.pregunta | una_linea)", (.opciones[] | "  - \(.etiqueta | una_linea) — \(.descripcion | una_linea)"))' <<<"$PREGUNTAS"
     fi
-  } >"$COMUN/compuerta.md.tmp"
-  mv -f "$COMUN/compuerta.md.tmp" "$COMUN/compuerta.md"
+  } >"${COMPUERTA_MD:-$COMUN/compuerta.md}.tmp"
+  mv -f "${COMPUERTA_MD:-$COMUN/compuerta.md}.tmp" "${COMPUERTA_MD:-$COMUN/compuerta.md}"
 }
 
 paso_vivo() {
@@ -131,7 +131,7 @@ auto_contesta() { # <tipo> <paso>
 contestar_solo() { # <tipo> <paso> [opciones…]
   local tipo="$1" paso="$2" elegidas tmp primera
   shift 2
-  tmp=$(mktemp "$COMUN/decision.XXXXXX") || return 1
+  tmp=$(mktemp "$(dirname "${DECISION_MD:-$COMUN/decision.md}")/decision.XXXXXX") || return 1
   if [ -n "${PREGUNTAS:-}" ]; then
     elegidas=$(jq -r '[.[] | "\(.id): \(.opciones[0].etiqueta) (Recommended)"] | join("; ")' <<<"$PREGUNTAS")
     jq -r --arg id "$COMPUERTA_ID" --arg creada "$(date +%s)" '
@@ -147,7 +147,7 @@ contestar_solo() { # <tipo> <paso> [opciones…]
     elegidas="${primera%% — *}"
     { echo "id: $COMPUERTA_ID"; echo "opcion: $elegidas"; echo "notas: "; echo "creada: $(date +%s)"; echo "me respondió: «$elegidas»"; } >"$tmp"
   fi
-  mv -f "$tmp" "$COMUN/decision.md"
+  mv -f "$tmp" "${DECISION_MD:-$COMUN/decision.md}"
   {
     echo "## $(ahora_lapaz) · $paso · compuerta $tipo (contestada sola)"
     if [ -n "${PREGUNTAS:-}" ]; then
@@ -162,11 +162,19 @@ contestar_solo() { # <tipo> <paso> [opciones…]
   registro "compuerta $tipo ($paso) contestada sola con la recomendada: $elegidas"
 }
 
-# Una compuerta a la vez en toda la máquina: `compuerta.md` y `decision.md` son únicos (los lee la sesión de decidir), así que con varios
-# carriles el segundo espera a que el primero sea respondido. El candado (fd 9) se suelta al volver; un `exit` lo suelta con el proceso.
+# Una compuerta humana a la vez en toda la máquina: `compuerta.md` y `decision.md` comunes son los de la sesión de decidir, así que con
+# varios carriles la segunda humana espera a que la primera sea respondida. El candado (fd 9) se suelta al volver; un `exit` lo suelta con
+# el proceso. Las que se contestan solas no pasan por el celular: escriben `compuerta-sola.md` y `decision-sola.md` en el carril y no esperan
+# el candado (si no, una humana sin contestar frenaba a todos los carriles: 1 a 1,5 h el 2026-11-06).
 compuerta() {
-  local rc
-  mkdir -p "$COMUN"
+  local rc COMPUERTA_MD DECISION_MD
+  mkdir -p "$COMUN" "$ESTADO"
+  if auto_contesta "$1" "$2"; then
+    COMPUERTA_MD="$ESTADO/compuerta-sola.md" DECISION_MD="$ESTADO/decision-sola.md"
+    _compuerta "$@"
+    return $?
+  fi
+  COMPUERTA_MD="$COMUN/compuerta.md" DECISION_MD="$COMUN/decision.md"
   exec 9>"$COMUN/compuerta.lock"
   flock 9
   _compuerta "$@"
@@ -182,8 +190,8 @@ _compuerta() {
   escribir_compuerta "$@"
   if auto_contesta "$tipo" "$paso"; then
     MOTIVO_COMPUERTA="$3" contestar_solo "$tipo" "$paso" "${@:5:1}" || return 3
-    DECISION_OPCION=$(sed -n 's/^opcion: *//p' "$COMUN/decision.md" | head -n 1)
-    DECISION_TEXTO=$(sed -n 's/^me respondió: *//p' "$COMUN/decision.md" | head -n 1)
+    DECISION_OPCION=$(sed -n 's/^opcion: *//p' "$DECISION_MD" | head -n 1)
+    DECISION_TEXTO=$(sed -n 's/^me respondió: *//p' "$DECISION_MD" | head -n 1)
   else
     registro "compuerta $tipo ($paso): $3"
     "$BIN/decidir.sh" abrir 8>&- 9>&- || { registro "no se pudo abrir la sesión de decidir."; exit 3; }
@@ -196,7 +204,7 @@ _compuerta() {
     parar) return 3 ;;
   esac
   # Varias decisiones: «parar» (o «parado», «detener») en cualquiera para. «no …» no: «no partir» es una respuesta.
-  if [ -n "${PREGUNTAS:-}" ] && sed -n 's/^- [^:]*: *//p' "$COMUN/decision.md" | sed -E 's/^(«|"|'"'"')//' |
+  if [ -n "${PREGUNTAS:-}" ] && sed -n 's/^- [^:]*: *//p' "${DECISION_MD:-$COMUN/decision.md}" | sed -E 's/^(«|"|'"'"')//' |
     grep -qiE '^(parar|parado|detener)'; then
     return 3
   fi
