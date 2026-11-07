@@ -13,7 +13,13 @@ modo_carril() { [ -n "${PILOTO_CARRIL:-}" ]; }
 coordinador() { node "${PILOTO_COORDINADOR:-$RAIZ/scripts/coordinador/coordinador.mjs}" "$@" 8>&-; }
 
 carril_asignar() {
-  local r accion paso rama
+  local r accion paso rama actual
+  # Antes de pedir el paso, la rama de ahora trae main: el coordinador y el plan se leen del árbol del carril, y uno atrasado no podía
+  # pedir paso con el plan de main (el A, con un plan.yaml que el validador de antes rechazaba, 2026-11-07).
+  actual=$(git symbolic-ref --short HEAD 2>/dev/null)
+  if [ -n "$actual" ] && [ "$actual" != main ] && [ -z "$(git status --porcelain)" ] && git fetch --quiet origin main 8>&-; then
+    traer_main "$actual" || return 1
+  fi
   r=$(coordinador siguiente "$PILOTO_CARRIL" 2>"$ESTADO/coordinador.err") || {
     registro "el coordinador falló: $(tail -n 1 "$ESTADO/coordinador.err")"
     return 1
