@@ -282,7 +282,9 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   «Recargá»; Configuración › Cotización (vigencia, vehículo obligatorio); el enlace de «Falta publicar la fórmula» de la hoja (4.13-2)
   apunta a Configuración › Cotización, que hoy pide `equipo.roles.ver`: quien sólo configura el origen cae en «No tienes permiso» hasta
   que esa pantalla abra con `cotizaciones.configurar`. Cierra **4-8**, **4-33**, **4-36**, **4-19**, **4-20**, **5a-29** y **5a-30**;
-  **4-30** aquí o en 4.22. Llena el hueco de la hoja con un `Proveedor` (el ⚙ de una celda y «Aplicar también a esta cotización») y el enlace de «Falta publicar la fórmula» en `pantallas/formula-hoja.ts` (4.15-6a). Depende de 4.12, 4.13 y 4.15 (hasta el 4.15-6c). Nivel 1 + cadena db. Prompts: 2.
+  **4-30** aquí o en 4.22. Llena el hueco de la hoja con un `Proveedor` (el ⚙ de una celda y «Aplicar también a esta cotización») y el enlace de «Falta publicar la fórmula» en `pantallas/formula-hoja.ts` (4.15-6a). Depende de 4.12, 4.13 y 4.15 (hasta el 4.15-6c). Nivel 1 + cadena db. Prompts: 2. **Se partió** en 4.20-1, 4.20-2 (a–c) y 4.20-3 (a–d), del B; la vigencia y el vehículo obligatorio pasaron al A como **4.20-4a** y **4.20-4b** (`docs/pasos/4.20-4/decisiones.md`).
+- **4.20-4a** — Los ajustes de cotización de la empresa: la RPC con su catálogo y su migración, la lectura, la regla de quién los cambia (`cotizaciones.configurar` concedida en todos los orígenes), la action y las pruebas de la base. Carril A. Nivel 1 + cadena db. Plan: `docs/pasos/4.20-4/plan-del-a.md`. Prompts: 1.
+- **4.20-4b** — Configuración › Cotización › Ajustes (`?seccion=ajustes`): el formulario, la pestaña y el hub. Depende de 4.20-4a y 4.20. Carril A. Nivel 1. Plan: `docs/pasos/4.20-4/plan-del-a.md`. Prompts: 1.
 - **4.21** — El editor de la fórmula como el Excel (filas, grupos, tipo de cambio, plazo; cada fila en texto, compilada por 4.07, que
   guarda `{ ...raíz compilada, texto }`); evalúa con el motor TS, porque quien lo usa ya ve la fórmula. Cierra **4-5** y **4-6**.
   Depende de 4.07 y 4.20. Nivel 1. Prompts: 2.
