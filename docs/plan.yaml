@@ -340,6 +340,9 @@ pasos:
         e2e/cotizar-pdf.spec.ts,
         e2e/soporte/cotizar-pdf.ts,
         e2e/soporte/cotizar-pdf-logo.ts,
+        e2e/cotizar-vista-previa-acciones.spec.ts,
+        e2e/cotizar-tarea-de-oro.spec.ts,
+        src/modules/cotizaciones/CLAUDE.md,
         scripts/mapa.test.ts,
         docs/,
       ]
