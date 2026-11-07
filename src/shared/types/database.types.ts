@@ -7221,6 +7221,16 @@ export type Database = {
         Args: { p_actual: string; p_esperado: string; p_mensaje: string }
         Returns: undefined
       }
+      _final_aplicar: {
+        Args: {
+          c: Omit<
+            Database['public']['Tables']['cotizaciones']['Row'],
+            Database['public']['Tables']['cotizaciones']['ComputedFields']
+          >
+          p_tomadas: string[]
+        }
+        Returns: undefined
+      }
       _formula_cambio_y_grupos: {
         Args: {
           p_buckets: Json
