@@ -2,6 +2,7 @@
 // guarda `confirmar-con-url.test.ts` falla si aparece un `<Confirmar>` que no figura acá, o si lo que lo abre dejó de
 // escribir la URL. Para sumar uno: su `?panel=` (`usePanelPorUrl()` de `shared/ui`) y una fila acá.
 import { CONFIRMAR_CON_URL_DE_LA_FORMULA } from './confirmar-con-url-formula'
+import { CONFIRMAR_CON_URL_DE_LA_PAPELERA } from './confirmar-con-url-papelera'
 
 export type ConfirmarConUrl = {
   // Qué archivo escribe y lee la URL que lo abre (puede ser el mismo).
@@ -10,7 +11,7 @@ export type ConfirmarConUrl = {
   senal: string
 }
 
-// Los del núcleo (del A). Los de un área van en su archivo (`confirmar-con-url-formula.ts`, del B) y se suman abajo.
+// Los del núcleo (del A). Los de un área van en su archivo (`confirmar-con-url-formula.ts`, del B; `confirmar-con-url-papelera.ts`, del C) y se suman abajo.
 export const CONFIRMAR_CON_URL_DEL_NUCLEO: Record<string, ConfirmarConUrl> = {
   'src/modules/leads/features/cartera/components/dialogo-de-salir.tsx': {
     abre: 'src/modules/leads/features/ficha/hooks/use-panel-de-lead.ts',
@@ -74,4 +75,5 @@ export const CONFIRMAR_CON_URL_DEL_NUCLEO: Record<string, ConfirmarConUrl> = {
 export const CONFIRMAR_CON_URL: Record<string, ConfirmarConUrl> = {
   ...CONFIRMAR_CON_URL_DEL_NUCLEO,
   ...CONFIRMAR_CON_URL_DE_LA_FORMULA,
+  ...CONFIRMAR_CON_URL_DE_LA_PAPELERA,
 }
