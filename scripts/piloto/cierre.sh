@@ -130,6 +130,7 @@ cerrar_listo() {
   fi
   registro "publicado $paso ($(git rev-parse --short HEAD))."
   rm -f "$ESTADO/en-curso.json"
+  rm -rf "$ESTADO/paradas-solas"
   echo 0 >"$ESTADO/fallas"
   return 0
 }
