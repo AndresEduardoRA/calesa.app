@@ -26,6 +26,20 @@ rango_propio() { # <desde>
   fi
 }
 
+# Los commits de ultimo.json que son de esta vuelta. Los que ya estaban antes del arranque o en origin/main no cuentan: son las partes ya
+# integradas de un paso, que el modelo a veces lista con las suyas (el 4.21-2 del 7-11 listó 42 y el rango tenía 5, y el carril quedó
+# en avisos). Uno que no existe sale tal cual, para que commits_coinciden lo diga.
+declarados_propios() { # <desde>
+  local c completo con_main=0
+  git rev-parse --verify --quiet origin/main >/dev/null && con_main=1
+  jq -r '.commits[]' "$ESTADO/ultimo.json" | while IFS= read -r c; do
+    completo=$(git rev-parse --verify --quiet "$c^{commit}") || { printf '%s\n' "$c"; continue; }
+    git merge-base --is-ancestor "$completo" "$1" 2>/dev/null && continue
+    [ "$con_main" = 1 ] && git merge-base --is-ancestor "$completo" origin/main 2>/dev/null && continue
+    printf '%s\n' "$completo"
+  done
+}
+
 ultimo_valido() {
   jq -e '
     type == "object" and (.paso | type == "string") and (.resultado | IN("listo", "compuerta", "falla"))
@@ -60,7 +74,7 @@ commits_coinciden() {
   local desde="$1" c completo
   local en_rango=() declarados=()
   mapfile -t en_rango < <(rango_propio "$desde")
-  mapfile -t declarados < <(jq -r '.commits[]' "$ESTADO/ultimo.json")
+  mapfile -t declarados < <(declarados_propios "$desde")
   [ "${#en_rango[@]}" -gt 0 ] || { echo "listo sin commits en $desde..HEAD"; return 1; }
   [ "${#declarados[@]}" -eq "${#en_rango[@]}" ] || { echo "ultimo.json lista ${#declarados[@]} commits y el rango tiene ${#en_rango[@]}"; return 1; }
   for c in "${declarados[@]}"; do
@@ -86,9 +100,10 @@ cerrar_listo() {
     PARADA_HUMANA=1 parada "el árbol no quedó limpio tras «listo» ($paso)" "$paso" "${SOLO_REINTENTO[@]}"
     return 0
   fi
-  # Un paso que no cambió nada (un arreglo de CI que ya estaba hecho, una decisión sin código): ultimo.json no lista commits y el rango
-  # está vacío. No hay nada que verificar ni publicar: se cierra sin avisar. Con commits en el rango que ultimo.json no lista, sigue el aviso.
-  if [ -z "$(rango_propio "$desde")" ] && [ "$(jq '.commits | length' "$ESTADO/ultimo.json")" -eq 0 ]; then
+  # Un paso que no cambió nada (un arreglo de CI que ya estaba hecho, una decisión sin código): ultimo.json no lista commits de esta vuelta
+  # (o sólo los que ya estaban en main) y el rango está vacío. No hay nada que verificar ni publicar: se cierra sin avisar. Con commits en
+  # el rango que ultimo.json no lista, sigue el aviso.
+  if [ -z "$(rango_propio "$desde")" ] && [ -z "$(declarados_propios "$desde")" ]; then
     # Con carril, el coordinador tiene que saberlo: si no, vuelve a dar el mismo pedido o paso y cada vuelta paga una sesión nueva que
     # dice otra vez «ya está» (la revisión de FLUJO-1). Un pedido sin cambios se cierra; un paso del plan que sigue asignado sin nada
     # que publicar es un estado que no cuadra (el 4.20-4 del 7-11): lo mira la persona.

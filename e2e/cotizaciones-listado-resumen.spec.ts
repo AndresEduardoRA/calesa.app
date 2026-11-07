@@ -102,14 +102,19 @@ test('R2 con el teclado: Enter en «Abrir N.º n» lo abre, Esc lo cierra y el f
   await expect(boton).toBeFocused()
 
   // Abrir suma al historial: «atrás» lo cierra.
+  // Con la clave ya escrita: nuqs dibuja el resumen antes de escribirla, y un «atrás» que sale antes de esa escritura vuelve una entrada de más.
   await boton.click()
   await expect(resumen(page)).toBeVisible()
+  await expect(page).toHaveURL(/cotizacion=/)
   await page.goBack()
   await expect(resumen(page)).toBeHidden()
+  await expect(page).not.toHaveURL(/cotizacion=/)
 
-  // Recargar con la clave lo abre (la fila está en la página).
+  // Recargar con la clave lo abre (la fila está en la página). nuqs dibuja el resumen antes de escribir la URL (la escribe en su cola, después):
+  // recargar sin esperar la clave recarga la URL de antes (el rojo de movil del CI del 4.24-2b).
   await boton.click()
   await expect(resumen(page)).toBeVisible()
+  await expect(page).toHaveURL(/cotizacion=/)
   await page.reload()
   await expect(resumen(page)).toBeVisible()
   await expect(resumen(page).getByRole('link', { name: 'Abrir cotización' })).toBeVisible()

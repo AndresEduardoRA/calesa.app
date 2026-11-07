@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { CLAVE_DE_PANEL } from '@/shared/lib/filtros'
 import { abrirConVuelta, useVueltaDelFoco } from '@/shared/ui/vuelta-del-foco'
 import { PANEL_DESCARTAR_BORRADOR } from '../../../entities/formula/descarte'
+import { PANEL_EDITAR_FORMULA } from '../../../entities/formula/edicion'
 import { PANEL_PUBLICAR_FORMULA } from '../../../entities/formula/publicacion'
 import {
   CLAVE_DE_VERSION,
@@ -14,7 +15,8 @@ import {
 
 const PARAMETROS = { [CLAVE_DE_PANEL]: parseAsString, [CLAVE_DE_VERSION]: parseAsString }
 
-// Los modales de la pestaña «Fórmula», en la URL: `?panel=publicar-formula`, `?panel=revertir-formula&version=<id>` y `?panel=descartar-borrador` (4.20-2c). Abrir suma al historial («atrás» lo cierra);
+// Los modales de la pestaña «Fórmula», en la URL: `?panel=publicar-formula`, `?panel=revertir-formula&version=<id>` y `?panel=descartar-borrador` (4.20-2c); y el
+// editor en texto, `?panel=editar-formula` (4.21-3a-1), que ocupa el lugar de las tarjetas y la lista. Abrir suma al historial («atrás» lo cierra);
 // cerrar quita las dos claves. Sin `shallow: false`: abrirlo no necesita al servidor, la pestaña ya está. Tras recargar con el modal abierto, «atrás» devuelve el foco a
 // quien lo abrió (`vuelta-del-foco.ts`). «Revertir» entrega su fila antes de escribir la URL: la lista que la trajo (cualquier página) vive en `ListaDeVersiones`, y la
 // revisión al llegar la acepta por ser la recién elegida.
@@ -26,11 +28,13 @@ export function usePanelDeLaFormula() {
   // `?panel=revertir-formula` sin su id también es un revertir (que no abre): se revisa al abrir.
   const revirtiendo = panel === PANEL_REVERTIR_FORMULA
   const descartando = panel === PANEL_DESCARTAR_BORRADOR
-  useVueltaDelFoco(CLAVE_DE_PANEL, publicando || revirtiendo || descartando)
+  const editando = panel === PANEL_EDITAR_FORMULA
+  useVueltaDelFoco(CLAVE_DE_PANEL, publicando || revirtiendo || descartando || editando)
   return {
     publicando,
     revirtiendo,
     descartando,
+    editando,
     versionPedida: revirtiendo ? url[CLAVE_DE_VERSION] : null,
     elegida,
     abrirPublicar: () => {
@@ -65,6 +69,17 @@ export function usePanelDeLaFormula() {
             { history: 'push' },
           ),
         descartando,
+      )
+    },
+    abrirEditor: () => {
+      abrirConVuelta(
+        CLAVE_DE_PANEL,
+        () =>
+          setUrl(
+            { [CLAVE_DE_PANEL]: PANEL_EDITAR_FORMULA, [CLAVE_DE_VERSION]: null },
+            { history: 'push' },
+          ),
+        editando,
       )
     },
     cerrar: () => {

@@ -3,7 +3,7 @@
 import type { Resultado } from '@/shared/lib/errores'
 import type { Cursor, Pagina } from '@/shared/lib/paginacion'
 import type { LoteDeCotizaciones } from './lotes'
-import type { ResultadoDePurgar, ResultadoDeRestaurar } from './resultados'
+import type { ResultadoDeEnvio, ResultadoDePurgar, ResultadoDeRestaurar } from './resultados'
 
 // Una página de lotes que quien llama puede ver (los suyos o, con `cotizaciones.papelera.purgar`, todos), del más nuevo al más viejo, por cursor.
 export type LectorDePapeleraDeCotizaciones = (pedido: {
@@ -23,7 +23,11 @@ export type PedidoSobreUnLote = {
 
 // Restaurar y purgar mandan la versión del lote que estaba en pantalla; sin `cotizaciones` es el lote entero. Lo que choca al restaurar queda pendiente, y
 // lo que otra tabla necesita al purgar queda bloqueado, cada una con su motivo. Purgar pide `cotizaciones.papelera.purgar` (la base lo vuelve a mirar).
+// Enviar (4.24-3) manda la versión de cada cotización que estaba en pantalla: lo que la base rechaza (otra versión, sin permiso) vuelve en `rechazados`.
 export type RepositorioDePapeleraDeCotizaciones = {
+  enviar: (
+    cotizaciones: readonly { id: string; actualizadoEn: string }[],
+  ) => Promise<Resultado<ResultadoDeEnvio>>
   restaurar: (pedido: PedidoSobreUnLote) => Promise<Resultado<ResultadoDeRestaurar>>
   purgar: (pedido: PedidoSobreUnLote) => Promise<Resultado<ResultadoDePurgar>>
 }

@@ -117,16 +117,19 @@ esperar_decision() {
 # por algo que el plan ya dejó recomendado. Cada respuesta queda en `.piloto/decisiones-automaticas.md` (qué, opciones y la elegida; en
 # «guardas», la ruta del diff guardado en `.piloto/guardas/<paso>.diff`) para que la persona lo revise cuando quiera; si no está de
 # acuerdo, lo dice y el paso siguiente lo corrige. `PILOTO_AUTO` lista los tipos que se contestan solos (por omisión «producto,datos,
-# guardas»; vacío los apaga; la persona decidió el 2026-11-04 que pasen todas por la recomendada). Nunca `parada` (que se reintenta, no se
-# contesta: parada_sola), `dependencia`, `afuera` ni `atasco`: son avisos de algo que el piloto no puede juzgar.
+# guardas,atasco»; vacío los apaga; la persona decidió el 2026-11-04 que pasen todas por la recomendada). Nunca `parada` (que se reintenta,
+# no se contesta: parada_sola), `dependencia` ni `afuera`: son avisos de algo que el piloto no puede juzgar.
+# `atasco`, una vez por paso (la persona, 2026-11-07: el C la esperó 1 h 15 min en el 4.25): la recomendada puede ser otra ronda, y sin
+# tope serían rondas sin fin pagando sesiones; la segunda del mismo paso va a la persona. La cuenta, en `.piloto/atascos-solos/<paso>`.
 auto_contesta() { # <tipo> <paso>
   [ "${EN_SECO:-0}" != 1 ] || return 1
   # «espera» no es una pregunta: el bucle ya esperó a main y lo trajo (bucle.sh › esperar_main); sólo le deja la respuesta al paso.
   [ "$1" = espera ] && return 0
-  [[ ",${PILOTO_AUTO-producto,datos,guardas}," == *",$1,"* ]] || return 1
+  [[ ",${PILOTO_AUTO-producto,datos,guardas,atasco}," == *",$1,"* ]] || return 1
   case "$1" in
     producto) [ -n "${PREGUNTAS:-}" ] ;;
     datos | guardas) [ -z "${PREGUNTAS:-}" ] ;;
+    atasco) [ -z "${PREGUNTAS:-}" ] && [ ! -f "$ESTADO/atascos-solos/$(sanear "$2")" ] ;;
     *) return 1 ;;
   esac
 }
@@ -150,6 +153,9 @@ contestar_solo() { # <tipo> <paso> [opciones…]
     { echo "id: $COMPUERTA_ID"; echo "opcion: $elegidas"; echo "notas: "; echo "creada: $(date +%s)"; echo "me respondió: «$elegidas»"; } >"$tmp"
   fi
   mv -f "$tmp" "${DECISION_MD:-$COMUN/decision.md}"
+  if [ "$tipo" = atasco ]; then
+    mkdir -p "$ESTADO/atascos-solos" && ahora_lapaz >"$ESTADO/atascos-solos/$(sanear "$paso")"
+  fi
   {
     echo "## $(ahora_lapaz) · $paso · compuerta $tipo (contestada sola)"
     if [ -n "${PREGUNTAS:-}" ]; then

@@ -1,7 +1,8 @@
-// Lo que responden restaurar (4.24-2) y purgar (4.24-2b) de la papelera de cotizaciones y cómo se dice. Lo leen `restauracionDesde()` y `purgaDesde()` de lo que
-// devuelven `cotizaciones_papelera_restaurar()` y `cotizaciones_papelera_purgar()`; `resumenDe*()` lo pone en palabras, entero: lo que se hizo y, de lo que no,
-// el motivo de cada una.
+// Lo que responden enviar (4.24-3), restaurar (4.24-2) y purgar (4.24-2b) de la papelera de cotizaciones y cómo se dice. Lo leen `envioDesde()`,
+// `restauracionDesde()` y `purgaDesde()` de lo que devuelven `cotizaciones_papelera_*()`; `resumenDe*()` lo pone en palabras, entero: lo que se hizo y, de lo que
+// no, el motivo de cada una.
 import { z } from 'zod'
+import type { CodigoError, ErrorApp } from '@/shared/lib/errores'
 
 type Hecha = { id: string; numero: number; titulo: string }
 type NoHecha = Hecha & { motivo: string }
@@ -122,4 +123,72 @@ export function resumenDePurga(purga: ResultadoDePurgar): string {
     plural: 'Se purgaron',
     noSeHizo: 'No se purgó',
   })
+}
+
+// Enviar (4.24-3). La base devuelve el título de una enviada tal cual (nulo si no tiene); aquí se completa como lo completan restaurar y purgar. Un rechazo trae
+// el título sólo si quien llama la ve. Sin enviadas, el lote y su versión son nulos (no queda lote).
+type Rechazo = { id: string; titulo: string | null; codigo: string; motivo: string }
+
+export type ResultadoDeEnvio = {
+  lote: string | null
+  actualizadoEn: string | null
+  enviados: Hecha[]
+  rechazados: Rechazo[]
+}
+
+const esquemaEnvio = z.object({
+  lote: z.guid().nullable(),
+  actualizado_en: z.string().nullable(),
+  enviados: z.array(
+    z.object({ id: z.guid(), numero: z.number().int(), titulo: z.string().nullable() }),
+  ),
+  rechazados: z.array(
+    z.object({
+      id: z.guid(),
+      titulo: z.string().nullable(),
+      codigo: z.string(),
+      motivo: z.string(),
+    }),
+  ),
+})
+
+export function envioDesde(crudo: unknown): ResultadoDeEnvio | null {
+  const leido = esquemaEnvio.safeParse(crudo)
+  if (!leido.success) {
+    return null
+  }
+  const f = leido.data
+  return {
+    lote: f.lote,
+    actualizadoEn: f.actualizado_en,
+    enviados: f.enviados.map(({ id, numero, titulo }) => ({
+      id,
+      numero,
+      titulo: titulo ?? `Cotización #${String(numero)}`,
+    })),
+    rechazados: f.rechazados,
+  }
+}
+
+// Lo enviado: la guardada manda una, que se nombra por su título.
+export function resumenDeEnvio(envio: ResultadoDeEnvio): string {
+  const [unica, ...mas] = envio.enviados
+  if (unica && mas.length === 0) {
+    return `«${unica.titulo}» se envió a la papelera.`
+  }
+  return `Se enviaron ${String(envio.enviados.length)} a la papelera.`
+}
+
+const CODIGO_POR_RECHAZO: Partial<Record<string, CodigoError>> = {
+  PT409: 'conflicto',
+  '42501': 'sin_permiso',
+}
+
+// Sin enviadas, el resultado es un error con el motivo de la base (son textos nuestros: el PT409 dice quién la cambió y cuándo). Un conflicto ofrece «Recargar».
+export function errorDeEnvio(envio: ResultadoDeEnvio): ErrorApp {
+  const [primero] = envio.rechazados
+  if (!primero) {
+    return { codigo: 'regla', mensaje: 'No se pudo enviar.' }
+  }
+  return { codigo: CODIGO_POR_RECHAZO[primero.codigo] ?? 'regla', mensaje: primero.motivo }
 }

@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import type { Permisos } from '@/shared/lib/permisos'
 import {
   puedeAbrirLaPapeleraDeCotizaciones,
+  puedeEnviarCotizacionesALaPapelera,
+  puedeEnviarLaCotizacion,
   puedePurgarLaPapeleraDeCotizaciones,
   puedeRestaurarElLote,
 } from './acceso'
@@ -54,5 +56,44 @@ describe('puedeRestaurarElLote', () => {
 
   it('no restaura quien ni lo envió ni puede vaciar', () => {
     expect(puedeRestaurarElLote({ esMio: false }, false)).toBe(false)
+  })
+})
+
+describe('puedeEnviarCotizacionesALaPapelera', () => {
+  it('envía quien edita, modera o gestiona finales en algún origen', () => {
+    expect(puedeEnviarCotizacionesALaPapelera(con('cotizaciones.editar'))).toBe(true)
+    expect(puedeEnviarCotizacionesALaPapelera(con('cotizaciones.moderar'))).toBe(true)
+    expect(puedeEnviarCotizacionesALaPapelera(con('cotizaciones.final.gestionar'))).toBe(true)
+  })
+
+  it('la clave de vaciarla sola no alcanza para enviar', () => {
+    expect(puedeEnviarCotizacionesALaPapelera(con('cotizaciones.papelera.purgar'))).toBe(false)
+    expect(puedeEnviarCotizacionesALaPapelera(con('cotizaciones.ver'))).toBe(false)
+    expect(puedeEnviarCotizacionesALaPapelera([])).toBe(false)
+  })
+})
+
+describe('puedeEnviarLaCotizacion', () => {
+  const preventa = { clase: 'preventa' as const }
+  const final = { clase: 'final' as const }
+
+  it('quien puede guardarla la envía, sea preventa o final', () => {
+    expect(puedeEnviarLaCotizacion(preventa, true, con('cotizaciones.ver'))).toBe(true)
+    expect(puedeEnviarLaCotizacion(final, true, con('cotizaciones.ver'))).toBe(true)
+  })
+
+  it('una preventa que no puede guardar la envía con moderar', () => {
+    expect(puedeEnviarLaCotizacion(preventa, false, con('cotizaciones.moderar'))).toBe(true)
+  })
+
+  it('una final que no puede guardar no la envía ni con moderar', () => {
+    expect(puedeEnviarLaCotizacion(final, false, con('cotizaciones.moderar'))).toBe(false)
+  })
+
+  it('quien sólo la ve no la envía', () => {
+    expect(puedeEnviarLaCotizacion(preventa, false, con('cotizaciones.ver'))).toBe(false)
+    expect(puedeEnviarLaCotizacion(preventa, false, con('cotizaciones.papelera.purgar'))).toBe(
+      false,
+    )
   })
 })

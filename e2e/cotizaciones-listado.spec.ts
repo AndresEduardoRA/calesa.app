@@ -101,12 +101,16 @@ test('E2 los filtros de Clase y Cuáles acotan la lista, «Limpiar» la devuelve
   // «Mías»: las de la dueña, ninguna de Ana.
   await elegir(page, 'Cuáles', 'Mías')
   await expect(page).toHaveURL(/cuales=mias/)
-  await expect(filas(page)).toHaveCount(10)
+  // Las 10 de antes ya estaban: lo que cambia es que Ana (2 en la primera página sin filtro) se va. Recién entonces la lista es la filtrada (4-85).
   await expect(filas(page).filter({ hasText: 'Ana Propios' })).toHaveCount(0)
+  await expect(filas(page)).toHaveCount(10)
 
-  // Desde la página 2, cambiar un filtro quita el cursor y vuelve a la primera.
+  // Desde la página 2, cambiar un filtro quita el cursor y vuelve a la primera. «Siguiente» se espera hasta que la fila de arriba cambia: con la navegación a medias, el filtro
+  // siguiente se aplicaba sobre la página de antes (4-85).
+  const primeraDeLaPagina1 = await filas(page).first().innerText()
   await page.getByRole('link', { name: 'Siguiente' }).filter({ visible: true }).click()
   await expect(page).toHaveURL(/cursor=/)
+  await expect(filas(page).first()).not.toHaveText(primeraDeLaPagina1)
   await elegir(page, 'Clase', 'Preventa')
   await expect(page).toHaveURL(/clase=preventa/)
   await expect(page).not.toHaveURL(/cursor=/)

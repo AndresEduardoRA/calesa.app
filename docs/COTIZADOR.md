@@ -198,7 +198,7 @@ motor lo ignora; otro nodo con `texto` es `forma`.
 
 ### El editor (4.21-1)
 
-Lo puro de «cada fila se edita en texto», en `entities/formula/` (sin pantalla ni base; la pantalla es del 4.21-3a). Todo es puro, nunca lanza, no toca lo que recibe y es
+Lo puro de «cada fila se edita en texto», en `entities/formula/` (sin pantalla ni base; la pantalla es del 4.21-3a, abajo). Todo es puro, nunca lanza, no toca lo que recibe y es
 lineal con el medidor; `compilarExpresion()` no cambia.
 
 - **Fila y auxiliares** (`filas.ts`, `filasDe()`): una fila es un nodo que no es auxiliar de otra. Las auxiliares de una fila con `texto` son los k nodos de justo antes
@@ -213,6 +213,7 @@ lineal con el medidor; `compilarExpresion()` no cambia.
   fila queda `reescrito`; si no (no compila, otra estructura, un negativo, un `-0`), `no_manda` con su motivo. Un negativo no se escribe por decisión. Recompilar una fila `no_manda`
   que cambia o quita una constante da `pisa_un_valor` hasta que llega `confirmaPisar`: nunca se deshace un ⚙ en silencio.
 - **Las filas sembradas** no traen texto: `textoDeNodo()` lo escribe desde el nodo (`a+b+c`, `SI(b; x)`, sin el «=») sólo si compilarlo da exactamente ese nodo; si no, `null` y la fila se muestra por sus campos.
+- **La pantalla** (4.21-3a-1, `features/formula/components/editor/`, `?panel=editar-formula`): lee la definición del borrador o de la publicada desde el navegador, muestra cada fila con `textoVigente()` / `textoDeNodo()` (o por sus campos), compila al aplicar con `compilarFila()` (sin llamar a `validarFormula()` en un error de la fila: 4-6), valida la fórmula de trabajo tras cada cambio (el rechazo, en su fila) y guarda lo aplicado en la pestaña; nada va a la base hasta el 4.21-3b.
 
 ## Tipos de cambio y modos (D7, H1)
 
@@ -294,8 +295,18 @@ update` y los tonos de sus grupos `for key share`, valida fórmula y diseño com
   la publicada no tiene `publicado_en`. Una esperada en un origen sin publicada: «La versión que tenías ya no es la publicada, y el
   origen no tiene otra.». Estos PT409 se muestran tal cual (sólo nombran a una persona, una versión y cuándo).
 - **Dónde se ven** (4.20-2a): la pestaña «Fórmula» de Configuración › Cotización lee la publicada, el borrador (atrasado si su versión de origen ya no es la publicada) y las versiones por cursor, por PostgREST y sin lo oculto (`docs/UX.md` › «Cotización: fórmula (estados propios)»). Desde ahí se publica el borrador con nota y se revierte a una archivada (4.20-2b), por `formula_publicar()` y `formula_revertir()` con la publicada que se leyó; sus PT409 se muestran tal cual. Descartar el borrador: 4.20-2c.
-- **Pendiente:** la versión esperada de `formula_guardar_borrador()` va con el editor (4.21); las carreras mixtas (⚙ contra publicar el
-  borrador, revertir contra ⚙) las suma el carril A.
+- **La versión esperada del borrador (4.21-2, 4-8):** guardar, descartar y publicar el borrador toman el mismo candado del origen,
+  después del permiso (42501 antes de cualquier PT409) y, en guardar, de la validación. `formula_guardar_borrador(…, nota,
+publicada_esperada?, actualizado_en_esperado?)` **sin hora crea**: si ya hay borrador, PT409 «Ya hay un borrador: lo empezó Ana y se
+  guardó hace 2 min.» («lo empezaste tú», «lo empezó otra persona»); si la publicada esperada ya no es la publicada, PT409 «Mientras
+  editabas, Ana publicó la versión 4 hace 2 min.». **Con hora pisa** sólo si es la del borrador (la publicada no se compara: publicarlo
+  atrasado da su PT409) y devuelve `{id, actualizado_en}` de la fila escrita, con el que se vuelve a guardar sin releer.
+  `formula_descartar_borrador(origen, actualizado_en_esperado?)` y `formula_publicar(…, publicada_esperada?, actualizado_en_esperado?)`
+  con hora: si cambió, PT409 «El borrador cambió después de que lo abriste: se guardó de nuevo hace 2 min.»; si ya no está, «El borrador
+  que abriste ya no está: se publicó o se descartó.» (publicar mira primero la publicada esperada). Sin hora, como antes (descartar el
+  que haya; publicar el que haya o «No hay borrador»): la app la manda desde el 4.21-3b. Una excepción a `migraciones.md`, aprobada (P1).
+- **Pendiente:** las carreras mixtas (⚙ contra publicar el borrador, revertir contra ⚙, dos que crean el primer borrador a la vez) las
+  suma el carril A.
 
 ## Niveles de acceso (D7, H3 y H4)
 

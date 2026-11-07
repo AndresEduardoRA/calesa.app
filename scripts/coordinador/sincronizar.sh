@@ -5,7 +5,9 @@
 set -uo pipefail
 RAIZ=$(git rev-parse --show-toplevel)
 cd "$RAIZ" || exit 1
-[ -f piloto.config ] && source piloto.config
+# Exportado (set -a): lo lee coordinador.mjs, que es otro proceso. Sin exportar, COORD_MERGE_AUTO de piloto.config no le llegaba nunca y el
+# coordinador seguía con verde,ambar aunque la persona decidiera integrar también lo rojo (#54, 2026-11-07).
+if [ -f piloto.config ]; then set -a; source piloto.config; set +a; fi
 INTERVALO="${COORD_INTERVALO:-180}"
 COMUN=$(git rev-parse --path-format=absolute --git-common-dir)/coordinador
 mkdir -p "$COMUN"

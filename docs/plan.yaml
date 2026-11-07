@@ -2,7 +2,7 @@
 # El texto de cada paso, sus preguntas y su criterio completo están en docs/PLAN.md; aquí va lo que el coordinador necesita: dependencias,
 # riesgo, ruteo (modelo, effort, modo) y qué toca. Los carriles trabajan por ÁREA del módulo cotizaciones: el paso 4.15-4 parte sus
 # entradas para que un paso nuevo agregue archivos propios y no edite los compartidos; antes de él y después de todos (4.28) trabaja el
-# carril `a` (`base: true`, que posee el módulo entero y además lleva el listado, la tarjeta y la plantilla); `b` lleva la fórmula y `c` la papelera, marcar final, comprobantes y comentarios.
+# carril `a` (`base: true`, que posee el módulo entero y además lleva el listado, la tarjeta y la plantilla); `b` lleva la fórmula y `c` la papelera, marcar final y comprobantes (los comentarios, el 4.27, pasaron al `a` el 2026-11-07).
 # Un área vive en features/<área>/, entities/<área>/, infra/<área>/, areas/<área>/ (sus entradas) y pantallas/<área>.ts; lo demás del módulo es
 # el NÚCLEO (la hoja, guardar, el motor…), del carril `a`, y las tres entradas de la raíz (index.ts, client.ts, composicion.ts) no las toca
 # ningún paso: sólo reexportan cada área (4.15-4; lo vigila scripts/guardas/areas-de-cotizaciones.test.ts). Los ids son las letras de los stacks locales (puertos +100, +200, +300). `compartido`: carpetas donde cada paso
@@ -482,9 +482,9 @@ pasos:
     terminado: 'La vigencia y el vehículo obligatorio se cambian en Configuración › Cotización › Ajustes'
   - id: '4.21'
     titulo: 'El editor de la fórmula como el Excel'
-    depende_de: ['4.20']
+    depende_de: ['4.20', '4.20-4b']
     carril: b
-    riesgo: ambar
+    riesgo: rojo
     modulos:
       [
         src/modules/cotizaciones/features/formula/,
@@ -520,14 +520,28 @@ pasos:
         src/modules/cotizaciones/entities/validar.test.ts,
         src/modules/cotizaciones/entities/validar.ts,
         docs/,
+        supabase/migrations/,
+        supabase/tests/,
+        src/shared/types/database.types.ts,
+        src/app/(app)/configuracion/cotizacion/,
+        scripts/guardas/confirmar-con-url-formula.ts,
+        scripts/guardas/drawers-con-salida-formula.ts,
       ]
     ruteo:
-      { agente: claude, modelo: sonnet, effort: high, modo: auto, sesion: nueva, revisor: ninguno }
+      {
+        agente: claude,
+        modelo: opus,
+        effort: high,
+        modo: plan→auto,
+        sesion: nueva,
+        revisor: claude-sesion-nueva,
+      }
     verificacion: 'Nivel 1'
     terminado: 'Cada fila se edita en texto, compilada por 4.07; cierra 4-5 y 4-6'
   - id: '4.22'
     titulo: 'El editor del diseño con vista previa a 412 y 1.280 px y al 200 %'
-    depende_de: ['4.21']
+    # PLAN.md: depende de 4.09 y 4.20, no del 4.21 (la cadena del carril dejaba al B sin paso mientras su PR anterior se integraba).
+    depende_de: ['4.20']
     carril: b
     riesgo: ambar
     modulos:
@@ -555,7 +569,8 @@ pasos:
     terminado: 'El diseño se edita; avisa sin bloquear cuando un nodo restringido es el único oculto de una suma; cierra 4-30'
   - id: '4.23'
     titulo: 'Las tablas de referencia: editar, reordenar y publicar la N+1'
-    depende_de: ['4.22']
+    # PLAN.md: depende de 4.05 y 4.20, no del 4.22.
+    depende_de: ['4.20']
     carril: b
     riesgo: rojo
     modulos:
@@ -665,8 +680,10 @@ pasos:
     terminado: 'La numeración no tiene huecos bajo carrera; la serie se configura en Empresa'
   - id: '4.27'
     titulo: 'Comentarios anidados, adjuntos, favoritos, reportes y moderar'
-    depende_de: ['4.26']
-    carril: c
+    # PLAN.md: depende de 4.10, no del 4.26. Pasó del C al A (la persona, 2026-11-07): el C tenía tres rojos en cadena (4.25 → 4.26 →
+    # 4.27), el camino más largo de la fase; el A es base, dueño del módulo entero, y lleva el registro de RPC con tamaño que pide (4-91).
+    depende_de: ['4.15-6c']
+    carril: a
     riesgo: rojo
     modulos:
       [
@@ -691,7 +708,8 @@ pasos:
     terminado: 'Los comentarios y adjuntos respetan los niveles; cierra 4-69'
   - id: '4.28'
     titulo: 'El cierre: recorrido de la IA con dos cuentas, criterios, 5a-4b y 5a-33'
-    depende_de: ['4.19', '4.23', '4.27']
+    # Depende de todo: de cada paso que no tiene otro detrás (el 4.20-4b no estaba).
+    depende_de: ['4.19', '4.20-4b', '4.21', '4.22', '4.23', '4.26', '4.27']
     carril: a
     riesgo: ambar
     modulos: [src/modules/cotizaciones/, docs/, docs/]

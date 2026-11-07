@@ -12,8 +12,9 @@
 --   - el tiempo: ≤ 10 ms; Pía con el atributo sin coincidencias ≤ 20; Vera ≤ 40;
 --   - los índices de `vehiculos` con bloques, por persona (ningún otro): Pía y la chica `creador` (≤ 12 y ≤ 6 por página) y `pkey`; Beto `origen_listado` (≤ 20) y `pkey`;
 --     Vera `lead_id`, `creador` y `pkey`;
---   - que no crece con N: los bloques con 250.000 ≤ 1,2 × los de 50.000 + 20 (Vera, + |cartera| · d, con d los niveles que ganó `vehiculos_lead_id_idx`; d > 1 cae) y el
---     tiempo ≤ `greatest(1,5 × t, t + 3 ms)`; ningún recorrido entero de `vehiculos`;
+--   - que no crece con N: los bloques de `vehiculos` (el heap y cada índice, `pg_stat_get_xact_blocks_fetched`) con 250.000 ≤ 1,2 × los de 50.000 + 20 (Vera, + |cartera| · d, con d
+--     los niveles que ganó `vehiculos_lead_id_idx`; d > 1 cae); ningún recorrido entero de `vehiculos`. El tiempo NO se compara entre los dos volúmenes (4-82: «2.6 → 8.5 ms» con un
+--     autovacuum activo y +568 MB de WAL confundió el ruido de una máquina compartida con crecimiento): va como dato (`detalle|crecimiento`) y lo acotan los topes absolutos de arriba;
 --   - las llamadas: `mis_leads` 1 con `propios` y 0 con `origen`; `leads_cartera_corta` ≤ 1 (0 la dueña); `alcance_de` 0; `origenes_con_alcance` ≤ 10 e iguales con los dos
 --     volúmenes; `en_cartera` 0 para Pía y la chica, ≤ 1.000 + 2 · n para Vera, y para Beto ≤ las filas que lee su ruta + p, con p las filas de la página con portada (sin
 --     relectura en R1 y R2: la lateral de antes daba filas + n).
@@ -267,7 +268,6 @@ begin
                   a.llamadas ->> 'origenes_con_alcance' o0, b.llamadas ->> 'origenes_con_alcance' o1
              from _med a join _med b on b.caso = a.caso and a.fase = '50.000' and b.fase = '250.000' where a.caso not in ('duena · página 1', 'pia · 500 alternativas') loop
     raise notice 'detalle|crecimiento · %|ms % → %, bloques % → %', r.caso, round(r.ms0, 2), round(r.ms1, 2), r.b0, r.b1;
-    if r.ms1 > greatest(1.5 * r.ms0, r.ms0 + 3) then v_f := v_f || format(E'\n  %s crece con N en ms: %s → %s', r.caso, round(r.ms0, 1), round(r.ms1, 1)); end if;
     v_t := case when r.caso like 'vera%' then 5000 * greatest(coalesce(v_d, 0), 0) else 0 end;
     if r.b1 > 1.2 * r.b0 + 20 + v_t then
       v_f := v_f || format(E'\n  %s crece con N en bloques: %s → %s', r.caso, r.b0, r.b1);

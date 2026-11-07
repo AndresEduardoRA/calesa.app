@@ -1,0 +1,38 @@
+## Paso 4.21-3a-1 (2026-11-07)
+
+- **Las respuestas de la persona** (compuerta `producto`, las seis recomendadas):
+  - P1, seguir sin esperar al 4.20-4b: el `'4.20-4b'` del `depende_de` del `4.21` se puso porque el 4.20-4b edita `pestanas.ts` y `page.tsx`, y el 3a-1 no toca ningún archivo de `src/app/`. Cada plan del 4.21 lo vuelve a verificar.
+  - P2, el editor vive dentro de la pestaña «Fórmula», en `?panel=editar-formula`: ocupa el lugar del selector, las tarjetas y la lista, con «Volver a la fórmula», y su código viaja con `diferido()`.
+  - P3, en el 4.21 se edita el texto de los cálculos y las constantes; las demás filas se ven en sólo lectura, sin «Editar».
+  - P4 (para el 3a-2 o el 3c), el id de una fila no se cambia: una fila con otro nombre es una fila nueva.
+  - P5 (para el 3a-2), la vista previa calcula con valores de prueba que no se guardan (inputs en 0, banderas apagadas, la variante por defecto), los tipos de cambio de hoy de la empresa y las tablas vivas del origen, y dice «Cifras de prueba.».
+  - P6 (para el 3a-2), «Sumar fila» debajo de una fila: cálculo o constante, con su etiqueta y un id propuesto desde ella (minúsculas ASCII y `_`, hasta 41, sin chocar con otro) que se puede cambiar antes de crearla.
+- **La partición.** El 4.21-3a no cabía en tres commits: se parte en **4.21-3a-1** (el editor en texto: las filas, compilar al aplicar, el error en su fila y el borrador local; cierra 4-5 y 4-6) y **4.21-3a-2** (la vista previa con `evaluar()` y las filas nuevas). Sale con `parcial`, como las demás partes.
+- **Entrar** (C1): «Editar» en la tarjeta del borrador (antes de «Publicar…», también atrasado) y, sin borrador, «Editar en un borrador» en la de la publicada. Sin publicada ni borrador no hay botón (una fórmula desde cero pide filas nuevas, 3a-2), y `?panel=editar-formula` por la URL dice «No hay una fórmula para editar en <Origen>.» y limpia la URL. «Atrás» cierra el editor y devuelve el foco al botón.
+- **Leer** (C3): el editor lee desde el navegador una sola fila de `formulas` por su id (`formulas_pkey`, `.limit(1)`), con `id, definicion, params, actualizado_en` y la sesión de quien mira. La lectura exige la **forma** (el Zod de `formula.ts`): lo que no la tiene es un error con «Reintentar». Las reglas que cruzan nodos (`validarFormula()`) no impiden abrir: el editor dice el rechazo en su fila. El plan lo había puesto en la lectura (T1); se movió al editor para poder abrir y arreglar un borrador inválido. Si la fila no vuelve: «Esa versión de la fórmula ya no se puede abrir: se descartó o ya no configuras <Origen>.». No culpa a otra persona, porque la policy esconde igual una fila borrada que una de un origen que se dejó de configurar.
+- **Las filas** (C4): las filas en su orden, con su etiqueta, su id (monoespaciado: el nombre que usan los textos) y su tipo.
+  - Un cálculo o una constante muestra su texto vigente. Si un ⚙ cambió un número que el texto puede escribir, el texto reescrito y «Con ⚙ se cambió 4 % por 5 %: el texto ya dice el valor nuevo.»; si no puede, «El texto ya no manda: con ⚙ quedó -3 %, que el texto no puede escribir.». Las cifras van con el formato de su constante (la auxiliar de un `4%` es un porcentaje) y el dinero por `<Monto>`. Lo reescrito sólo se muestra: guardarlo así es del 3b.
+  - Sin texto, el que se escribe desde el nodo. Si no se puede escribir, la fila se muestra por sus campos («Calcula: suma de a, b», «Vale 900») y se le puede escribir un texto.
+- **Compilar al aplicar** (C5, C6): «Aplicar» o Ctrl/Cmd+Enter; Esc cancela. Hay una sola fila abierta a la vez, y los demás «Editar» quedan apagados.
+  - Lo tipeado vive en el campo de la fila hasta aplicar, así que tipear no vuelve a dibujar la lista.
+  - Un error deja la fila abierta con el mensaje debajo del texto (`aria-invalid`, `aria-describedby`) y la fórmula igual. El de 2.001 caracteres no llama a `validarFormula()`.
+  - `pisa_un_valor` muestra una línea por valor del ⚙ que se pisaría, con «Pisar el valor».
+  - Tras cada cambio corre `validarFormula()`. El rechazo va a la fila que nombra (por `donde`, de la fila o de una auxiliar suya, o por el lugar de `campo`); si no nombra ninguna, va arriba de la lista. El cambio queda aplicado.
+  - Lo que una fila suelta al compilar se dice en ella: «Esta fila dejó de llevar: …».
+- **Borrador local** (C7): lo aplicado (`definicion` y `params` planos) se guarda en la pestaña con `useBorradorDeEstado`, con la clave `formula-editor:<origen>:<versión>:<actualizado_en>`. Al volver o recargar se repone con el aviso de siempre y su «Descartar». Otra versión leída no lo repone.
+- **El tope** (C8): se dibujan hasta 500 filas, con «Mostrando las 500 primeras filas. Busca una fila por su nombre o su etiqueta.». «Buscar fila» filtra por id o etiqueta, sin distinguir mayúsculas, antes de cortar. La fila abierta se dibuja aunque el filtro no la nombre. Sin coincidencias, «Nada coincide con los filtros» con «Ninguna fila tiene «…» en el nombre ni en la etiqueta.», sin «Limpiar filtros» (se limpia en el campo).
+- **El costo de las filas:** calcular qué dibuja cada fila es O(filas × nodos), porque `textoVigente()` y `textoDeNodo()` recorren la fórmula entera en cada llamada. Se calcula una vez por fórmula de trabajo.
+  - Medido en Vitest: 600 filas, 1,83 M visitas (~0,2 s); 2.000 filas, 20,1 M (~1,8 s).
+  - En el navegador, con 600 filas: 957 ms del clic a la lista. Pasa de 1 s con más filas: **abierto** para una versión por lote de lo puro (del B, en un paso de rigor).
+- **Para el coordinador:**
+  - En la fila del 4.21 de `docs/PLAN.md`: «El 4.21-3a se parte en 4.21-3a-1 (el editor en texto: filas, compilar al confirmar, el error en su fila y el borrador local; cierra 4-5 y 4-6) y 4.21-3a-2 (la vista previa con `evaluar()` y las filas nuevas)».
+  - Marcar **4-5 y 4-6 cerrados**: los prueba `e2e/configuracion-cotizacion-formula-editor.spec.ts`. El 4-6 también lo prueba `use-editor-de-la-formula.test.tsx`, que comprueba que no se llama a `validarFormula()`.
+  - `ESTADO`: «4.21-3a-1: el editor de la fórmula en texto (cierra 4-5 y 4-6)».
+  - El `depende_de: ['4.20', '4.20-4b']` del `4.21` sólo pesa en una parte que toque `pestanas.ts` o `page.tsx` (P1).
+  - **Abierto nuevo:** el editor tarda ~1 s en abrir con 600 filas y ~2 s con 2.000 (O(filas × nodos)).
+- **Para el A:** en la ficha `src/modules/cotizaciones/CLAUDE.md` (núcleo), en «Entra y sale», tras lo del 4.20-2c, sumar: «edita la fórmula en texto en `?panel=editar-formula` (4.21-3a-1): lee la fila del borrador o de la publicada desde el navegador (`infra/formula/definicion.client.ts`), compila cada fila al aplicar con `compilarFila()` y guarda lo aplicado en la pestaña (`useBorradorDeEstado`)».
+- **Para el 3a-2:** aplicar P4 a P6. La vista previa lee las tablas y los tipos de cambio desde el navegador.
+- **Para el 3b:**
+  - Al guardar, escribir en el texto lo que reescribió `textoVigente()` (hoy sólo se muestra).
+  - El borrador que se lee puede ser de otra persona: «Sobre el borrador de <persona>.».
+  - La clave del borrador local lleva la `actualizado_en` leída: tras guardar, la clave cambia.

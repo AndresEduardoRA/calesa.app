@@ -1,0 +1,26 @@
+## Paso 4.21-2 (2026-11-07)
+
+- **Las respuestas de la persona** (compuerta `producto`, las cuatro recomendadas; después aprobó la compuerta `datos`):
+  - P1, parámetros nuevos al final, con `default null` y sin sobrecargas. Es una excepción aprobada a `.claude/rules/migraciones.md` («toda RPC de edición nace con `p_actualizado_en_esperado` sin default y lo pasa por `_exigir_version()`»): en guardar la hora nula quiere decir «crear», y en descartar y publicar vale (no compara) hasta el 4.21-3b.
+  - P2, publicar también pide la hora del borrador, en este paso.
+  - P3, guardar encima de un borrador atrasado entra si la hora coincide.
+  - P4, descartar con hora cuando ya no hay borrador da PT409 en vez de no hacer nada.
+- **Guardar sin hora crea** (C2): si ya hay borrador da PT409 con quién lo empezó y cuándo se guardó, y no escribe nada. Si la publicada esperada viene y ya no es la publicada, da PT409 con quién publicó qué versión. La publicada nula no compara, como en `formula_publicar`.
+- **Guardar con hora pisa** sólo si es la del borrador (C3). No cambian `version_origen_id` ni `creado_por`, y la publicada no se compara (P3). Guardar devuelve `jsonb` `{id, actualizado_en}` de la fila escrita (`returning`, después de `trg_actualizado_en`), nunca la hora esperada ni la leída antes. Así el 4.21-3b vuelve a guardar sin releer el borrador, porque releerlo dejaría entrar a otra persona entremedio. Antes devolvía `uuid`.
+- **Descartar** (C4): con hora, un borrador que cambió da PT409 T2 y uno que ya no está da PT409 T3 (P4). Sin hora, como antes.
+- **Publicar** (C5): mira primero la publicada esperada, como antes. Después, con hora, un borrador que cambió da T2 y uno que ya no está da T3, en vez del 22023 «No hay borrador». Sin hora, como antes.
+- **El orden en las tres RPC** es permiso, validación (sólo en guardar, fuera del candado: con 2.000 ítems es lo caro), candado del origen, lectura del borrador `for update`, esperadas y escritura. Quien no configura el origen recibe 42501 antes de enterarse por un PT409 de si hay borrador. El candado es el mismo de publicar, el ⚙ y revertir, así que no aparece un orden nuevo que pueda trabarse.
+- **Los ayudantes** se llaman `_borrador_formula_empezado_por(uuid)` (definer: lee `perfiles`) y `_exigir_borrador_formula(public.formulas, timestamptz)` (invocador). El plan los nombraba `_formula_…`, pero `supabase/tests/validar-formula.sql` toma toda función `_formula_%` como ayudante de `validar_formula()` y cuenta exactamente 7. Los dos llevan `set search_path = ''` y sólo los ejecuta `service_role`. `_publicar_formula`, recreada con la hora, sigue siendo sólo de `service_role`: sin el `revoke`, `authenticated` podría pasarle `p_ignorar_retirados = true`.
+- **Guardar entra en el inventario de `cotizaciones-visibilidad.sql`** como `no_devuelve`: ahora devuelve `jsonb`, y el detector registra toda función que lee `formulas` y devuelve algo que no es un id.
+- **Residuales (se anotan, no se resuelven):**
+  - R1: con las dos esperadas nulas en un origen sin publicada, si otra persona publica la v1 entremedio, el borrador nace sobre esa v1. Una llamada vieja (las carreras) no se distingue del editor de un origen nuevo, y sólo pasa en la primera publicación de un origen.
+  - R2: dos guardados en una misma transacción comparten la hora (`now()`). En el uso real cada guardado es su propia transacción. Las pruebas simulan a la otra persona con la hora −1 µs.
+- **Para el coordinador:**
+  - En la fila del 4.21 de `docs/PLAN.md`: «4.21-2 hecho: la versión esperada del borrador en la base (guardar crea sin hora y pisa con ella, y devuelve `{id, actualizado_en}`; descartar y publicar la aceptan); cierra 4-8».
+  - Marcar **4-8 cerrado en la base**: «A guarda, B hace el ⚙ y A ve un conflicto al publicar» lo prueba B8. La pantalla manda las esperadas en el 4.21-3b.
+  - **Abierto nuevo:** cuando el 4.21-3b mande la hora en descartar y publicar, decidir si la nula deja de valer (sería una migración más) y qué hacer con R1. Lo decide la persona.
+  - `ESTADO`: «4.21-2: la versión esperada del borrador de la fórmula en la base (4-8)».
+- **Para el A:**
+  - Ficha `src/modules/cotizaciones/CLAUDE.md` (las RPC del borrador): «`formula_guardar_borrador(…, p_publicada_esperada?, p_actualizado_en_esperado?)` crea sin hora y pisa con ella, y devuelve `{id, actualizado_en}`; `formula_descartar_borrador(origen, p_actualizado_en_esperado?)` y `formula_publicar(…, p_actualizado_en_esperado?)` la aceptan (4.21-2)».
+  - `.claude/rules/migraciones.md` › «Forma» y `datos.md`: sale la excepción «`formula_guardar_borrador` hasta el 4.20». Entra: «en `formula_guardar_borrador`, `p_actualizado_en_esperado` nula quiere decir crear; en `formula_descartar_borrador` y `formula_publicar` vale nula (no compara) hasta el 4.21-3b».
+  - Una carrera en `scripts/carreras/` (en `tonos.mjs` o en un archivo propio): «dos crean el primer borrador a la vez: uno entra y el otro da PT409 T1». Las de hoy siguen en verde con la firma nueva (`db:carreras`).
