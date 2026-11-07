@@ -61,7 +61,7 @@ describe('los workflows del repo cumplen', () => {
     expect(problemasDeAcciones(leer(ruta), ruta)).toEqual([])
   })
 
-  it('playwright.config.ts no reintenta', () => {
+  it('playwright.config.ts reintenta una vez sólo en CI, con el reporter de inestables', () => {
     expect(problemasDePlaywright(leer('playwright.config.ts'))).toEqual([])
   })
 
@@ -173,8 +173,16 @@ describe('las mutaciones caen', () => {
     expect(problemas.join('\n')).toMatch(motivo)
   })
 
-  it('Playwright con un reintento', () => {
-    const config = mutar(leer('playwright.config.ts'), 'retries: 0', 'retries: 1')
+  it.each([
+    ['un reintento también en local', "retries: process.env['CI'] ? 1 : 0", 'retries: 1'],
+    [
+      'dos reintentos en CI',
+      "retries: process.env['CI'] ? 1 : 0",
+      "retries: process.env['CI'] ? 2 : 0",
+    ],
+    ['sin el reporter de inestables', "['./e2e/soporte/reporter-de-inestables.ts'],", ''],
+  ])('Playwright con %s cae', (_c, de, a) => {
+    const config = mutar(leer('playwright.config.ts'), de, a)
     expect(problemasDePlaywright(config)).not.toEqual([])
   })
 })

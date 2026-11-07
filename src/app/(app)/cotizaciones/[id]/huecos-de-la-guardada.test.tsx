@@ -1,10 +1,14 @@
 import type { ComponentType } from 'react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { HUECOS_DE_COMENTARIOS_EN_LA_GUARDADA } from '@/modules/cotizaciones/pantallas/comentarios-cotizacion'
 import { HUECOS_DE_COMPROBANTES_EN_LA_GUARDADA } from '@/modules/cotizaciones/pantallas/comprobantes-cotizacion'
 import { HUECOS_DE_FINAL_EN_LA_GUARDADA } from '@/modules/cotizaciones/pantallas/final-cotizacion'
 import { HUECOS_DE_PAPELERA_EN_LA_GUARDADA } from '@/modules/cotizaciones/pantallas/papelera-cotizacion'
 import { HUECOS_DE_LA_GUARDADA, dibujarHuecos } from './huecos-de-la-guardada'
+
+// Los huecos de las áreas traen componentes reales cuyas Server Actions importan su composición (`server-only`). En Next el navegador
+// recibe sólo la referencia; en Vitest el import llega entero y cae. Lo que se prueba aquí es el orden y el dibujo, no el área.
+vi.mock('server-only', () => ({}))
 
 type Props = Parameters<typeof dibujarHuecos>[2]
 
@@ -32,10 +36,11 @@ describe('huecos de una guardada', () => {
     orden.forEach((hueco, i) => expect(HUECOS_DE_LA_GUARDADA[i]).toBe(hueco))
   })
 
-  it('hoy ninguno trae componentes: no se dibuja nada, ni arriba ni abajo', () => {
-    for (const h of HUECOS_DE_LA_GUARDADA) expect(h).toEqual({})
-    expect(dibujarHuecos(HUECOS_DE_LA_GUARDADA, 'Acciones', props)).toBeUndefined()
-    expect(dibujarHuecos(HUECOS_DE_LA_GUARDADA, 'Debajo', props)).toBeUndefined()
+  it('con cuatro huecos vacíos no se dibuja nada, ni arriba ni abajo', () => {
+    // Huecos de prueba, no las constantes de las áreas: cada área llena el suyo en su paso (4.24, 4.25, 4.26, 4.27) sin tocar este caso.
+    const vacios = [{}, {}, {}, {}]
+    expect(dibujarHuecos(vacios, 'Acciones', props)).toBeUndefined()
+    expect(dibujarHuecos(vacios, 'Debajo', props)).toBeUndefined()
   })
 
   it('con huecos de prueba da los componentes de cada lugar, en orden y con las props', () => {

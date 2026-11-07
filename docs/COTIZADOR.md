@@ -196,6 +196,24 @@ motor lo ignora; otro nodo con `texto` es `forma`.
   `/` nunca se aplana. Cada operación anidada y número es un auxiliar `<destino>__<n>`, `n` desde 1 en
   **post-orden**; la fila es la raíz y no se numera; un id existente es `auxiliar_ocupado`.
 
+### El editor (4.21-1)
+
+Lo puro de «cada fila se edita en texto», en `entities/formula/` (sin pantalla ni base; la pantalla es del 4.21-3a). Todo es puro, nunca lanza, no toca lo que recibe y es
+lineal con el medidor; `compilarExpresion()` no cambia.
+
+- **Fila y auxiliares** (`filas.ts`, `filasDe()`): una fila es un nodo que no es auxiliar de otra. Las auxiliares de una fila con `texto` son los k nodos de justo antes
+  con ids `<id>__1…k` (el mismo recorte que `idAuxiliar()` si el id pasa de 37 caracteres, 38 desde `__10`), sin texto propio, cada uno nombrado por exactamente un nodo de la cadena
+  o por la fila; si el **texto** de la fila nombra una (`=total__1+remate`), ese nodo es una fila propia que la fila lee.
+- **Compilar una fila en su lugar** (`compilarFila()`): el contexto es lo anterior a su primera auxiliar; reemplaza la fila y sus auxiliares, y quita y suma sus `params`. El tope de
+  2.000 se mide **en unidades UTF-16** (como el Zod; la base cuenta caracteres): `texto_demasiado_largo` con el tramo desde la unidad 2.001 (4-6). Conserva `seccion`,
+  `color`, `sobrescribible` (si sigue siendo cálculo) y `condicion` sólo como interruptor: en un `SI` la bandera la decide el texto. Lo que suelta se dice en `soltados`. Si otra fila
+  nombra una auxiliar y el texto nuevo la cambia o la quita, `auxiliar_nombrada` (no se deja una referencia rota).
+- **El texto ya no manda (4-5)** (`textoVigente()`): el ⚙ de un número del texto publica N+1 sin tocar `texto`. Al abrir la fila se compila el texto guardado y se compara con
+  lo guardado: si sólo cambió el valor de una constante, el valor se **reescribe en su tramo** (`escribirLiteral()`: con `%`, el punto se corre en el texto, nunca `v * 100`) y la
+  fila queda `reescrito`; si no (no compila, otra estructura, un negativo, un `-0`), `no_manda` con su motivo. Un negativo no se escribe por decisión. Recompilar una fila `no_manda`
+  que cambia o quita una constante da `pisa_un_valor` hasta que llega `confirmaPisar`: nunca se deshace un ⚙ en silencio.
+- **Las filas sembradas** no traen texto: `textoDeNodo()` lo escribe desde el nodo (`a+b+c`, `SI(b; x)`, sin el «=») sólo si compilarlo da exactamente ese nodo; si no, `null` y la fila se muestra por sus campos.
+
 ## Tipos de cambio y modos (D7, H1)
 
 - Los tipos de cambio son **una lista de la empresa**: `tipos_cambio` (oficial, paralelo, unificado, aduana y los que se sumen), con

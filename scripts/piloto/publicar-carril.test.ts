@@ -128,6 +128,18 @@ describe('publicar.sh › un PR por paso del carril', () => {
     expect(leer('coord.log')).not.toContain('publicado 4.20-4')
   })
 
+  it('el carril a publica su rama a/<paso> con un PR por paso (4.19, 2026-11-07)', () => {
+    mkdirSync(join(raiz, 'estado'), { recursive: true })
+    writeFileSync(join(raiz, 'coord.log'), '')
+    rmSync(join(raiz, 'pr-abierto'), { force: true })
+    const r = publicar('a/4.19', 'a', '4.19')
+    expect(r.estado, r.salida).toBe(0)
+    expect(leer('gh.log')).toContain(
+      'pr create --base main --head a/4.19 --title Paso 4.19 (carril a)',
+    )
+    expect(leer('coord.log')).toContain('publicado 4.19 31')
+  })
+
   it('se niega a publicar una rama de otro carril, y la a/… tampoco vale con carril', () => {
     expect(publicar('papelera/4.24').estado).toBe(1)
     expect(publicar('a/x').estado).toBe(1)

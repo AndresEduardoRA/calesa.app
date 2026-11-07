@@ -66,6 +66,20 @@ describe('bucle.sh › a) los commits son los que dice ultimo.json', () => {
   })
 })
 
+describe('bucle.sh › un paso que no cambió nada', () => {
+  const sinCambios = `mkdir -p .piloto && cat > .piloto/ultimo.json <<EOF
+{"paso":"4.99","resultado":"listo","resumen":"nada que cambiar","commits":[],"e2e_dirigidos":[],"compuerta":null}
+EOF`
+
+  it('con el rango vacío y sin commits listados, cierra sin aviso, sin verificar ni publicar', () => {
+    const r = correrListo(sinCambios)
+    expect(r.estado, r.salida).toBe(0)
+    expect(a.secuencia()).toEqual([])
+    expect(a.estado('registro.md')).toContain('4.99 listo sin cambios')
+    expect(a.estado('en-curso.json')).toBe('')
+  })
+})
+
 describe('bucle.sh › b) la verificación es del bucle, y d) la publicación', () => {
   it('verificar rojo: aviso y no publica', () => {
     const r = correrListo(pasoListo({ 'src/a.ts': 'a' }), { FAKE_VERIFICAR_FALLA: '1' })

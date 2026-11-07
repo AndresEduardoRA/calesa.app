@@ -13,6 +13,7 @@ import {
 import { MAXIMO_DE_PAGINA_DE_COTIZACIONES } from '../../src/modules/cotizaciones/entities/listado/listado'
 import { MAXIMO_DE_PAGINA_DE_VEHICULOS } from '../../src/modules/vehiculos/entities/vehiculo'
 import { RPC_PAGINADAS_DE_LA_PAPELERA } from './paginas-en-la-base-papelera'
+import { sumarListas } from './registros-de-carriles'
 
 export type RpcPaginada = {
   rpc: string
@@ -121,4 +122,5 @@ export const RPC_PAGINADAS_DEL_NUCLEO: readonly RpcPaginada[] = [
 export const RPC_PAGINADAS: readonly RpcPaginada[] = [
   ...RPC_PAGINADAS_DEL_NUCLEO,
   ...RPC_PAGINADAS_DE_LA_PAPELERA,
+  ...sumarListas<RpcPaginada>(import.meta.glob('./areas-*/paginas-en-la-base.ts', { eager: true })),
 ]

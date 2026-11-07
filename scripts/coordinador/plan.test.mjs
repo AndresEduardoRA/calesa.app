@@ -5,11 +5,14 @@ import {
   desfases,
   estadoInicial,
   fraccionDeCuota,
+  guardasEn,
   integraSolo,
   leerConsumo,
   leerPlan,
   marcar,
+  marcarPedido,
   ordenTopologico,
+  pedir,
   problemasDelPlan,
   siguiente,
   tablero,
@@ -191,10 +194,13 @@ test('con la cuota sobre el umbral sólo avanza el camino crítico; en el tope, 
   assert.equal(siguiente(PLAN, e, 'datos', { cuota: null }).paso.id, 'P02')
 })
 
-test('terminado cuando todos los pasos del carril están integrados', () => {
+test('con sus pasos integrados, el carril espera pedidos hasta que termine el plan entero', () => {
   let e = estadoInicial(PLAN)
-  for (const id of ['P01', 'P02'])
-    e = marcar(marcar(marcar(e, id, 'asignado'), id, 'publicado', { pr: 1 }), id, 'integrado')
+  const integrar = (est, id) =>
+    marcar(marcar(marcar(est, id, 'asignado'), id, 'publicado', { pr: 1 }), id, 'integrado')
+  for (const id of ['P01', 'P02']) e = integrar(e, id)
+  assert.match(siguiente(PLAN, e, 'datos').motivo, /atiende pedidos hasta que el plan termine/)
+  for (const id of ['P03', 'P04', 'P05']) e = integrar(e, id)
   assert.deepEqual(siguiente(PLAN, e, 'datos'), { accion: 'terminado' })
 })
 
@@ -204,10 +210,126 @@ test('transiciones inválidas fallan', () => {
   assert.throws(() => marcar(e, 'P99', 'asignado'), /no está en el plan/)
 })
 
-test('un paso rojo nunca se integra solo', () => {
-  assert.equal(integraSolo(PLAN.pasos[0], ['rojo', 'ambar', 'verde']), false)
+test('un paso rojo no se integra solo salvo que COORD_MERGE_AUTO lo nombre a propósito', () => {
+  assert.equal(integraSolo(PLAN.pasos[0]), false)
+  assert.equal(integraSolo(PLAN.pasos[0], ['ambar', 'verde']), false)
+  assert.equal(integraSolo(PLAN.pasos[0], ['rojo', 'ambar', 'verde']), true)
   assert.equal(integraSolo(PLAN.pasos[1]), true)
   assert.equal(integraSolo(PLAN.pasos[1], ['verde']), false)
+})
+
+// Un plan con carril base (el A de importadora): posee todo y los demás, sus áreas.
+const CON_BASE = {
+  ...PLAN,
+  carriles: [
+    { id: 'a', base: true, dueno_de: ['src/', 'scripts/'] },
+    { id: 'datos', dueno_de: ['supabase/', 'src/modules/x/infra/'] },
+    { id: 'ui', dueno_de: ['src/modules/x/features/', 'scripts/guardas/registro-ui.ts'] },
+  ],
+}
+
+test('pedir: va al dueño más preciso de sus archivos, si no al base; uno abierto por paso; nunca a sí mismo', () => {
+  let e = estadoInicial(CON_BASE)
+  let r = pedir(CON_BASE, e, {
+    de: 'ui',
+    paso: 'P04',
+    texto: 'el loading sin el barril',
+    archivos: ['src/app/x/loading.tsx'],
+  })
+  assert.equal(r.pedido.id, 'pedido-1')
+  assert.equal(r.pedido.para, 'a')
+  assert.equal(r.nuevo, true)
+  e = r.estado
+  assert.equal(pedir(CON_BASE, e, { de: 'ui', paso: 'P04', texto: 'otra vez' }).nuevo, false)
+  r = pedir(CON_BASE, e, {
+    de: 'ui',
+    paso: 'P05',
+    texto: 'un índice',
+    archivos: ['src/modules/x/infra/lista.ts'],
+  })
+  assert.equal(r.pedido.para, 'datos')
+  assert.equal(r.pedido.id, 'pedido-2')
+  assert.equal(
+    pedir(CON_BASE, e, { de: 'datos', paso: 'P02', texto: 'sin archivos' }).pedido.para,
+    'a',
+  )
+  assert.throws(
+    () => pedir(CON_BASE, e, { de: 'a', paso: 'P01', texto: 'nada' }),
+    /no hay a qué carril|posee lo que pide/,
+  )
+  // El estado lo conserva al recargar el plan.
+  assert.equal(estadoInicial(CON_BASE, r.estado).pedidos.length, 2)
+})
+
+test('pedir: dos carriles que se esperan son un ciclo, y un pedido se cierra sin cambios', () => {
+  let e = estadoInicial(CON_BASE)
+  e = pedir(CON_BASE, e, {
+    de: 'ui',
+    paso: 'P04',
+    texto: 'algo',
+    archivos: ['supabase/x.sql'],
+  }).estado
+  assert.throws(
+    () =>
+      pedir(CON_BASE, e, {
+        de: 'datos',
+        paso: 'P02',
+        texto: 'otra cosa',
+        archivos: ['scripts/guardas/registro-ui.ts'],
+      }),
+    /ciclo: el carril ui espera al datos \(pedido-1\)/,
+  )
+  e = marcarPedido(marcarPedido(e, 'pedido-1', 'asignado'), 'pedido-1', 'integrado', {
+    sin_cambios: true,
+  })
+  assert.equal(e.pedidos[0].estado, 'integrado')
+  assert.equal(siguiente(CON_BASE, e, 'datos').paso.id, 'P01') // cerrado: ya no se lo vuelve a dar
+})
+
+test('guardasEn: las rutas que protegen al piloto', () => {
+  assert.deepEqual(
+    guardasEn([
+      'scripts/piloto/bucle.sh',
+      'src/app/x.tsx',
+      '.github/workflows/ci.yml',
+      '.claude/skills/piloto/SKILL.md',
+      '.claude/skills/feature/SKILL.md',
+    ]),
+    ['scripts/piloto/bucle.sh', '.github/workflows/ci.yml', '.claude/skills/piloto/SKILL.md'],
+  )
+})
+
+test('siguiente: un pedido va antes que lo propio del carril, también entre partes de un paso asignado', () => {
+  let e = estadoInicial(CON_BASE)
+  e = marcar(e, 'P01', 'asignado', { carril: 'datos' })
+  e = pedir(CON_BASE, e, {
+    de: 'ui',
+    paso: 'P04',
+    texto: 'un índice',
+    archivos: ['supabase/x.sql'],
+  }).estado
+  let r = siguiente(CON_BASE, e, 'datos')
+  assert.equal(r.paso.id, 'pedido-1')
+  assert.equal(r.rama, 'datos/pedido-1')
+  assert.equal(r.retomar, false)
+  assert.equal(r.pedido.texto, 'un índice')
+  e = marcarPedido(e, 'pedido-1', 'asignado')
+  assert.equal(siguiente(CON_BASE, e, 'datos').retomar, true)
+  e = marcarPedido(e, 'pedido-1', 'publicado', { pr: 9 })
+  assert.equal(siguiente(CON_BASE, e, 'datos').paso.id, 'P01') // publicado: vuelve a lo suyo
+  e = marcarPedido(e, 'pedido-1', 'integrado')
+  assert.throws(() => marcarPedido(e, 'pedido-1', 'asignado'), /no puede pasar de integrado/)
+  assert.throws(() => marcarPedido(e, 'pedido-7', 'asignado'), /no hay un pedido/)
+})
+
+test('el tablero muestra la parte publicada de un paso y los pedidos abiertos', () => {
+  let e = estadoInicial(CON_BASE)
+  e = marcar(e, 'P01', 'asignado', { carril: 'datos', pr_parcial: 31 })
+  e = pedir(CON_BASE, e, { de: 'ui', paso: 'P04', texto: 'el registro | de ui' }).estado
+  const t = tablero(CON_BASE, e, { ahora: 'hoy' })
+  assert.match(t, /#31 \(parte\)/)
+  assert.match(t, /## Pedidos entre carriles/)
+  assert.match(t, /pedido-1 \(P04\) \| ui → a \| el registro \/ de ui/)
 })
 
 test('desfases de puertos por carril', () => {

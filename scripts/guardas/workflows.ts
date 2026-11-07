@@ -275,11 +275,19 @@ export function problemasDeEsperaDeFunciones(
     )
 }
 
-// Un e2e que falla no se reintenta: la causa va a e2e-fallos/ (`.claude/rules/e2e.md`).
+// Un reintento, y sólo en CI (FLUJO-1, decidido por la persona el 2026-11-07): la prueba que pasa al reintentar no pone el PR en rojo y queda
+// anotada (e2e/soporte/reporter-de-inestables.ts). En local, ninguno. Cualquier otra cosa (más reintentos, o reintentos en local) cae.
+const REINTENTOS_PERMITIDOS = "process.env['CI'] ? 1 : 0"
 export function problemasDePlaywright(texto: string): string[] {
   const reintentos = [...texto.matchAll(/^\s*retries:\s*(.+?),?\s*$/gm)].map((m) => m[1])
-  if (reintentos.length === 1 && reintentos[0] === '0') return []
-  return [
-    `playwright.config.ts: tiene que decir «retries: 0» una sola vez (dice ${JSON.stringify(reintentos)})`,
-  ]
+  const problemas: string[] = []
+  if (!(reintentos.length === 1 && reintentos[0] === REINTENTOS_PERMITIDOS))
+    problemas.push(
+      `playwright.config.ts: tiene que decir «retries: ${REINTENTOS_PERMITIDOS}» una sola vez (dice ${JSON.stringify(reintentos)})`,
+    )
+  if (!texto.includes('./e2e/soporte/reporter-de-inestables.ts'))
+    problemas.push(
+      'playwright.config.ts: sin el reporter de inestables, un reintento escondería la prueba que falla a veces',
+    )
+  return problemas
 }
