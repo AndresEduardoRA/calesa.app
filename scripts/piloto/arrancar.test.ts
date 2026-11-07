@@ -126,6 +126,74 @@ describe('arrancar.sh › la copia', () => {
   })
 })
 
+describe('arrancar.sh › la copia sale de origin/main (copiar-bin.sh)', () => {
+  const GIT = ['-c', 'user.name=t', '-c', 'user.email=t@ejemplo.test']
+  const conMain = () => {
+    const remoto = join(raiz, 'remoto.git')
+    execFileSync('git', ['init', '-q', '--bare', '-b', 'main', remoto])
+    execFileSync('git', [...GIT, 'add', '.'], { cwd: repo })
+    execFileSync('git', [...GIT, 'commit', '-q', '-m', 'inicio'], { cwd: repo })
+    execFileSync('git', ['remote', 'add', 'origin', remoto], { cwd: repo })
+    execFileSync('git', ['push', '-q', 'origin', 'HEAD:main'], { cwd: repo })
+    execFileSync('git', ['fetch', '-q', 'origin'], { cwd: repo })
+  }
+  const copiar = (...args: string[]) =>
+    spawnSync('bash', [join(repo, 'scripts/piloto/copiar-bin.sh'), ...args], {
+      cwd: repo,
+      encoding: 'utf8',
+      env: { NODE_ENV: 'test', PATH: process.env['PATH'] ?? '', PILOTO_RAIZ: repo, HOME: raiz },
+    })
+
+  it('copia lo integrado en main, no lo que la rama del carril tenga sin integrar, y anota de dónde salió', () => {
+    conMain()
+    writeFileSync(
+      join(repo, 'scripts/piloto/parar.sh'),
+      '#!/usr/bin/env bash\n# una versión vieja de la rama\n',
+    )
+    const r = arrancar()
+    expect(r.status, r.stderr).toBe(0)
+    expect(readFileSync(join(comun, 'bin/parar.sh'), 'utf8')).not.toContain('versión vieja')
+    expect(readFileSync(join(comun, 'bin.origen'), 'utf8').trim()).toBe(
+      execFileSync('git', ['rev-parse', 'origin/main:scripts/piloto'], {
+        cwd: repo,
+        encoding: 'utf8',
+      }).trim(),
+    )
+  })
+
+  it('--si-cambio no copia si main no cambió (0) y copia si cambió (10)', () => {
+    conMain()
+    expect(copiar().status).toBe(0)
+    expect(copiar('--si-cambio').status).toBe(0)
+    writeFileSync(
+      join(repo, 'scripts/piloto/parar.sh'),
+      '#!/usr/bin/env bash\n# versión nueva de main\n',
+    )
+    execFileSync('git', [...GIT, 'commit', '-qam', 'nueva'], { cwd: repo })
+    execFileSync('git', ['push', '-q', 'origin', 'HEAD:main'], { cwd: repo })
+    execFileSync('git', ['fetch', '-q', 'origin'], { cwd: repo })
+    const r = copiar('--si-cambio')
+    expect(r.status, r.stderr).toBe(10)
+    expect(readFileSync(join(comun, 'bin/parar.sh'), 'utf8')).toContain('versión nueva de main')
+    expect(() =>
+      execFileSync('sha256sum', ['-c', '--quiet', 'bin.sha256'], { cwd: join(comun, 'bin') }),
+    ).not.toThrow()
+  })
+
+  it('una copia de main sin bucle.sh no reemplaza a la que hay', () => {
+    conMain()
+    expect(copiar().status).toBe(0)
+    execFileSync('git', [...GIT, 'rm', '-q', 'scripts/piloto/bucle.sh'], { cwd: repo })
+    execFileSync('git', [...GIT, 'commit', '-qm', 'roto'], { cwd: repo })
+    execFileSync('git', ['push', '-q', 'origin', 'HEAD:main'], { cwd: repo })
+    execFileSync('git', ['fetch', '-q', 'origin'], { cwd: repo })
+    const r = copiar('--si-cambio')
+    expect(r.status).toBe(1)
+    expect(r.stderr).toContain('no trae bucle.sh')
+    expect(existsSync(join(comun, 'bin/bucle.sh'))).toBe(true)
+  })
+})
+
 describe('arrancar.sh › lo que lanza', () => {
   it('el bucle de la COPIA en tmux (piloto-bucle) y una sesión de control con Remote Control', () => {
     arrancar('--hasta', '4.15')

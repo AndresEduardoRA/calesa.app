@@ -32,18 +32,9 @@ CLAUDE=$(claude_bin)
 gh auth status >/dev/null 2>&1 || echo "arrancar: AVISO: gh no está autenticado; el CI no se podrá mirar." >&2
 [ -d "$(dirname "$COMUN")" ] || falta "no hay carpeta común de git."
 
-# 1. La copia.
-NUEVA="$COMUN/bin.nueva"
-mkdir -p "$COMUN"
-rm -rf "$NUEVA"
-mkdir -p "$NUEVA"
-find scripts/piloto -maxdepth 1 -type f \( -name '*.sh' -o -name '*.mjs' -o -name '*.json' \) -exec cp {} "$NUEVA"/ \;
-(cd "$NUEVA" && sha256sum -- * >bin.sha256 2>/dev/null; grep -v ' bin.sha256$' bin.sha256 >bin.tmp && mv bin.tmp bin.sha256)
-chmod a-w "$NUEVA"/*
-chmod -R u+w "$COMUN/bin" 2>/dev/null
-rm -rf "$COMUN/bin"
-mv "$NUEVA" "$COMUN/bin"
-echo "arrancar: copia en $COMUN/bin ($(wc -l <"$COMUN/bin/bin.sha256") archivos, sha256 anotado)."
+# 1. La copia, de origin/main (copiar-bin.sh): la de un carril que va atrás de main ya no pisa la de los otros.
+git remote get-url origin >/dev/null 2>&1 && { timeout 60 git fetch -q origin main 2>/dev/null || echo "arrancar: AVISO: git fetch falló; copio el origin/main que hay." >&2; }
+bash scripts/piloto/copiar-bin.sh || falta "no pude hacer la copia de los scripts del piloto."
 
 # 2. El bucle.
 if [[ " $* " == *" --en-seco "* ]]; then
