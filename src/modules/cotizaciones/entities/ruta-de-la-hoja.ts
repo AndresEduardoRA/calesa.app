@@ -32,3 +32,6 @@ export function rutaDelListado(datos: { vehiculo?: string; lead?: string }): str
 
 // La página de una cotización guardada (`/cotizaciones/[id]`, 4.15-3): de ahí se ve y se edita. El único lugar que escribe esa ruta.
 export const rutaDeLaCotizacion = (id: string): string => `/cotizaciones/${id}`
+
+// El PDF de una cotización guardada (4.18-3a): bajo su página, lo arma el route handler con lo guardado. El único lugar que escribe esa ruta (la usa «Descargar PDF», 4.18-3b).
+export const rutaDelPdf = (id: string): string => `${rutaDeLaCotizacion(id)}/pdf`
