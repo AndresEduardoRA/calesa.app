@@ -152,3 +152,37 @@ describe('<VistaPreviaDeLaTarjeta>: avisos y fecha', () => {
     })
   })
 })
+
+describe('<VistaPreviaDeLaTarjeta>: el pie', () => {
+  it('trae Live y «Copiar texto», que copia la tarjeta que dibuja', async () => {
+    const escribir = vi.fn<(texto: string) => Promise<void>>().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: escribir },
+      configurable: true,
+    })
+    dibujar()
+    const copiar = screen.getByRole('button', { name: 'Copiar texto' }) as HTMLButtonElement
+    expect(copiar.disabled).toBe(true)
+    pedidos[0]?.resolver(lista())
+    await waitFor(() => {
+      expect(copiar.disabled).toBe(false)
+    })
+    fireEvent.click(copiar)
+    await waitFor(() => {
+      expect(escribir).toHaveBeenCalledTimes(1)
+    })
+    const texto = escribir.mock.calls[0]?.[0] ?? ''
+    expect(texto).toContain('Asesor: Ana Pérez')
+    expect(texto).toContain('TOTAL DÓLARES: ')
+    expect(screen.getByRole('button', { name: 'Modo Live: ocultar los montos' })).toBeTruthy()
+  })
+
+  it('con el total desactualizado «Copiar texto» queda apagado y lo nombra el aviso', async () => {
+    dibujar({ estado: { tipo: 'recalculando' } })
+    pedidos[0]?.resolver(lista())
+    const aviso = await screen.findByText('Total desactualizado.')
+    const copiar = screen.getByRole('button', { name: 'Copiar texto' })
+    expect((copiar as HTMLButtonElement).disabled).toBe(true)
+    expect(copiar.getAttribute('aria-describedby')).toBe(aviso.id)
+  })
+})
