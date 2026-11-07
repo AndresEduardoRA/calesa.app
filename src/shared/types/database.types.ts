@@ -8263,6 +8263,7 @@ export type Database = {
         Args: { p_nota: string; p_origen: string; p_publicada_esperada: string; p_version: string }
         Returns: string
       }
+      formula_tipo_cambio_del_nodo: { Args: { p_formula: string; p_nodo: string }; Returns: Json }
       fuera_de_regla: {
         Args: { p_flujo: string }
         Returns: {
