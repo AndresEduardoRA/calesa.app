@@ -75,6 +75,16 @@ describe('arrancar.sh › la copia sale de origin/main (copiar-bin.sh)', () => {
     ).not.toThrow()
   })
 
+  it('dos copias seguidas no comparten carpeta: la primera queda entera para el bucle que la carga', () => {
+    conMain()
+    expect(copiar().status).toBe(0)
+    const primera = realpathSync(join(comun, 'bin'))
+    expect(copiar().status).toBe(0)
+    expect(realpathSync(join(comun, 'bin'))).not.toBe(primera)
+    expect(existsSync(join(primera, 'bucle.sh'))).toBe(true)
+    expect(existsSync(join(primera, 'gasto.sh'))).toBe(true)
+  })
+
   it('una copia de main sin bucle.sh no reemplaza a la que hay', () => {
     conMain()
     expect(copiar().status).toBe(0)

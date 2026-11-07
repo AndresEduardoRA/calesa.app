@@ -78,13 +78,12 @@ test('detecta OWNERS solapados, módulos ajenos, ciclos, pasos paralelos sobre l
   assert.match(p, /ciclo/)
   assert.match(p, /P01: un paso rojo va con opus/)
 
+  // P03 y P04 son del mismo carril (ui): sin orden entre ellos y sobre lo mismo no chocan, porque el carril hace uno por vez. Entre
+  // carriles distintos sí chocan: la prueba de «compartido», abajo.
   const paralelo = structuredClone(PLAN)
   paralelo.pasos[3].depende_de = ['P01']
   paralelo.pasos[3].modulos = ['src/app/']
-  assert.match(
-    problemasDelPlan(paralelo).join('\n'),
-    /P03 y P04 pueden correr a la vez y los dos tocan src\/app\//,
-  )
+  assert.doesNotMatch(problemasDelPlan(paralelo).join('\n'), /pueden correr a la vez/)
 })
 
 test('una ruta «compartido» la pueden tocar pasos paralelos de carriles distintos; sin ella, no', () => {
@@ -284,6 +283,24 @@ test('pedir: dos carriles que se esperan son un ciclo, y un pedido se cierra sin
   })
   assert.equal(e.pedidos[0].estado, 'integrado')
   assert.equal(siguiente(CON_BASE, e, 'datos').paso.id, 'P01') // cerrado: ya no se lo vuelve a dar
+})
+
+test('dos pasos del mismo carril que tocan lo mismo no chocan: nunca corren a la vez', () => {
+  const plan = {
+    ...PLAN,
+    pasos: [
+      ...PLAN.pasos,
+      paso('P06', 'datos', ['P01'], ['src/modules/x/infra/'], 'ambar'), // como P02, del mismo carril y sin orden entre ellos
+    ],
+  }
+  assert.deepEqual(problemasDelPlan(plan), [])
+})
+
+test('un pedido de un carril que espera va antes que uno de la persona, aunque llegue después', () => {
+  let e = estadoInicial(CON_BASE)
+  e = pedir(CON_BASE, e, { de: 'persona', paso: 'estabilizar', texto: 'las inestables' }).estado
+  e = pedir(CON_BASE, e, { de: 'ui', paso: 'P04', texto: 'el registro' }).estado
+  assert.equal(siguiente(CON_BASE, e, 'a').pedido.de, 'ui')
 })
 
 test('guardasEn: las rutas que protegen al piloto', () => {
