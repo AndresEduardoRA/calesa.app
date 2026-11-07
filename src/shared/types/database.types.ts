@@ -8683,6 +8683,10 @@ export type Database = {
           origen_id: string
         }[]
       }
+      plantilla_descartar_borrador: {
+        Args: { p_actualizado_en_esperado: string; p_origen: string }
+        Returns: undefined
+      }
       plantilla_guardar_borrador: {
         Args: { p_actualizado_en_esperado: string; p_def: Json; p_nota?: string; p_origen: string }
         Returns: string

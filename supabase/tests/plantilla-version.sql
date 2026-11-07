@@ -148,7 +148,48 @@ begin
 end $$;
 rollback;
 
--- @test plantilla-version T5: sin cotizaciones.configurar del origen, 42501 (antes de todo); las firmas viejas ya no existen; las nuevas, definer con search_path vacío y a authenticated y service_role
+-- @test plantilla-version T4: descartar borra el borrador de esa versión; otra versión da PT409; la nula no es un PT409; sin borrador, «se descartó» o «se publicó»
+begin;
+do $$
+declare
+  duena constant uuid := '00000000-0000-0000-0000-000000000001';
+  o uuid; v_sub uuid := (select id from public.origenes where clave = 'subasta_usa'); r jsonb; v_v timestamptz;
+begin
+  insert into public.origenes (clave, nombre) values ('pve_t4', 'PVE T4') returning id into o;
+  r := pg_temp.pve_corre(duena, format('select public.plantilla_guardar_borrador(%L, null::timestamptz, %L)', o, pg_temp.pve_def('A')));
+  v_v := (r ->> 'ok')::timestamptz;
+  -- La nula: la excepción de `_exigir_version` (sin PT409) y el borrador sigue.
+  r := pg_temp.pve_corre(duena, format('select public.plantilla_descartar_borrador(%L, null::timestamptz)', o));
+  if r ->> 'error' is null or r ->> 'error' = 'PT409' then raise exception 'descartar sin la versión: %', r; end if;
+  -- Otra versión: PT409 con el texto de guardar, y el borrador sigue.
+  r := pg_temp.pve_corre(duena, format('select public.plantilla_descartar_borrador(%L, %L::timestamptz - interval ''1 microsecond'')', o, v_v));
+  if r ->> 'error' is distinct from 'PT409' or r ->> 'mensaje' is distinct from 'El borrador de esta plantilla cambió hace un momento, mientras lo editabas.' then
+    raise exception 'descartar con una esperada vieja: %', r;
+  end if;
+  if not exists (select 1 from public.plantillas_tarjeta where origen_id = o and estado = 'borrador') then raise exception 'un rechazo borró el borrador'; end if;
+  -- La buena: lo borra.
+  r := pg_temp.pve_corre(duena, format('select public.plantilla_descartar_borrador(%L, %L::timestamptz)', o, v_v));
+  if r ? 'error' then raise exception 'descartar con la esperada buena: %', r; end if;
+  if exists (select 1 from public.plantillas_tarjeta where origen_id = o) then raise exception 'descartar no borró el borrador'; end if;
+  -- Sin borrador (ya descartado) y sin publicada: «se descartó».
+  r := pg_temp.pve_corre(duena, format('select public.plantilla_descartar_borrador(%L, %L::timestamptz)', o, v_v));
+  if r ->> 'error' is distinct from 'PT409' or r ->> 'mensaje' is distinct from 'El borrador ya no está: se descartó.' then
+    raise exception 'descartar dos veces: %', r;
+  end if;
+  -- Publicado el borrador que veías: «se publicó», y la publicada sigue publicada.
+  r := pg_temp.pve_corre(duena, format('select public.plantilla_guardar_borrador(%L, null::timestamptz, %L)', v_sub, pg_temp.pve_def('A')));
+  v_v := (r ->> 'ok')::timestamptz;
+  r := pg_temp.pve_corre(duena, format('select public.plantilla_publicar(%L, %L::timestamptz, %L)', v_sub, v_v, 'v2'));
+  if r ? 'error' then raise exception 'publicar: %', r; end if;
+  r := pg_temp.pve_corre(duena, format('select public.plantilla_descartar_borrador(%L, %L::timestamptz)', v_sub, v_v));
+  if r ->> 'error' is distinct from 'PT409' or r ->> 'mensaje' is distinct from 'El borrador ya no está: la versión 2 se publicó hace un momento.' then
+    raise exception 'descartar tras publicar: %', r;
+  end if;
+  if (select count(*) from public.plantillas_tarjeta where origen_id = v_sub and estado = 'publicada' and version = 2) <> 1 then raise exception 'descartar tras publicar tocó la publicada'; end if;
+end $$;
+rollback;
+
+-- @test plantilla-version T5: sin cotizaciones.configurar del origen, 42501 en las tres (antes de todo); las firmas viejas ya no existen; las nuevas, definer con search_path vacío y a authenticated y service_role
 begin;
 do $$
 declare
@@ -159,10 +200,12 @@ begin
   if r ->> 'error' is distinct from '42501' then raise exception 'la asesora guarda una plantilla: %', r; end if;
   r := pg_temp.pve_corre(asesora, format('select public.plantilla_publicar(%L, now(), %L)', o, 'v2'));
   if r ->> 'error' is distinct from '42501' then raise exception 'la asesora publica una plantilla: %', r; end if;
+  r := pg_temp.pve_corre(asesora, format('select public.plantilla_descartar_borrador(%L, now())', o));
+  if r ->> 'error' is distinct from '42501' then raise exception 'la asesora descarta una plantilla: %', r; end if;
   if to_regprocedure('public.plantilla_guardar_borrador(uuid, jsonb, text)') is not null or to_regprocedure('public.plantilla_publicar(uuid, text)') is not null then
     raise exception 'siguen las firmas sin versión';
   end if;
-  for v_p in select * from (values ('public.plantilla_guardar_borrador(uuid, timestamptz, jsonb, text)', 1), ('public.plantilla_publicar(uuid, timestamptz, text)', 0)) x (f, d) loop
+  for v_p in select * from (values ('public.plantilla_guardar_borrador(uuid, timestamptz, jsonb, text)', 1), ('public.plantilla_publicar(uuid, timestamptz, text)', 0), ('public.plantilla_descartar_borrador(uuid, timestamptz)', 0)) x (f, d) loop
     v_f := v_p.f;
     if to_regprocedure(v_f) is null then raise exception 'falta %', v_f; end if;
     if not has_function_privilege('authenticated', v_f, 'execute') or not has_function_privilege('service_role', v_f, 'execute')
