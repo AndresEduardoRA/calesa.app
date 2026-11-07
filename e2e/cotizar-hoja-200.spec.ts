@@ -1,10 +1,14 @@
+import type { TestInfo } from '@playwright/test'
 import { expect, test, type Page } from './soporte/prueba'
 import { CONTRASENA, entrar } from './soporte/alta'
 import {
+  PREFIJO_ROL_E2E,
   borrarPersonasDePrueba,
   borrarRolesDePrueba,
   correoDePrueba,
   crearDuenaDePrueba,
+  crearPersona,
+  darRolDePrueba,
 } from './soporte/base'
 import { vigilarRecalculos } from './soporte/cotizar'
 import { celdasFueraDeSuSeccion, ordenConAvanzado } from './soporte/cotizar-avanzado'
@@ -28,9 +32,16 @@ test.describe.configure({ mode: 'serial' })
 // Con los modos de tipo de cambio de la subasta (4.13-4b3, commit 1): 442 al abrir y 461 usada, 485. Con «Ver total Bs» (commit 2): 449 y 468, 492.
 // Con el resumen fijo, el modo y Live, el peor caso (el segundo modo y «Ver total Bs» encendido): 459 al abrir y 481 usada; más un 5 % son 506, que pasa del techo de 500: el tope queda en el
 // techo (4,0 % de margen) y el paso lo reporta a la persona (P7).
+// Con el ⚙ (4.20-3b, P1 de la persona): el techo de 500 se mide como quien cotiza sin ⚙ (un rol con el nivel «costos» y sin `cotizaciones.configurar` ni
+// `empresa.tipos_cambio.gestionar`, que ve las mismas celdas), y quien configura tiene su tope: lo medido con la hoja usada más un 5 %, con techo en 600 y la misma regla.
 const TOPE_DE_NODOS = 500
+// La dueña con ⚙ (4.20-3b): 532 al abrir (21 ⚙) y 557 usada (22: la garantía suma el suyo); más un 5 %, 585.
+const TOPE_DE_NODOS_CON_AJUSTE = 585
+// Cada ⚙ son tres nodos (el botón, su `svg` y su `use`: `src/shared/ui/xcell/CLAUDE.md` › «Nodos por celda»).
+const NODOS_POR_AJUSTE = 3
 
 let duena = ''
+let costos = ''
 let subasta = ''
 let planilla = ''
 
@@ -39,6 +50,26 @@ test.beforeAll(async ({}, info) => {
   await borrarRolesDePrueba()
   duena = correoDePrueba(`duena-hoja-ancho-${info.project.name}`)
   await crearDuenaDePrueba({ email: duena, contrasena: CONTRASENA, nombre: 'Dora Ancha' })
+  costos = correoDePrueba(`costos-hoja-ancho-${info.project.name}`)
+  await crearPersona({
+    email: costos,
+    contrasena: CONTRASENA,
+    nombre: 'Cleo Costos',
+    invitada: true,
+  })
+  await darRolDePrueba({
+    email: costos,
+    rol: {
+      nombre: `${PREFIJO_ROL_E2E}Costos hoja ${info.project.name}`,
+      clave: `e2e_costos_hoja_${info.project.name}`,
+    },
+    permisos: [
+      'cotizaciones.ver',
+      'cotizaciones.crear',
+      'cotizaciones.nivel.costos.ver',
+      'cotizaciones.nivel.costos.editar',
+    ],
+  })
   subasta = sql("select id from public.origenes where clave = 'subasta_usa'")
   planilla = sql("select id from public.origenes where clave = 'planilla_usa'")
 })
@@ -54,19 +85,23 @@ const lista = (page: Page, atributo: string) =>
   page.locator(`[${atributo}]`).evaluateAll((es, a) => es.map((e) => e.getAttribute(a)), atributo)
 const nodosDelDom = (page: Page) => hoja(page).evaluate((e) => e.querySelectorAll('*').length + 1)
 // Los nodos del modal «Avanzado» abierto (su diálogo), que se suman a los de la hoja: es la hoja entera.
-async function medirElModal(page: Page): Promise<{ nodos: number; celdas: number }> {
+const AJUSTE = /^Cambiar el valor por defecto de /
+async function medirElModal(
+  page: Page,
+): Promise<{ nodos: number; celdas: number; ajustes: number }> {
   const dialogo = page.getByRole('dialog', { name: 'Avanzado' })
   await page.locator('[data-avanzado]').getByRole('button').click()
   await expect(dialogo).toBeVisible()
   const nodos = await dialogo.evaluate((e) => e.querySelectorAll('*').length + 1)
   const celdas = await dialogo.locator('[data-nodo] [data-xcell]').count()
+  const ajustes = await dialogo.getByRole('button', { name: AJUSTE }).count()
   await page.keyboard.press('Escape')
   await expect(dialogo).toBeHidden()
-  return { nodos, celdas }
+  return { nodos, celdas, ajustes }
 }
 
-async function abrir(page: Page, origen = subasta): Promise<void> {
-  await entrar(page, duena)
+async function abrir(page: Page, origen = subasta, correo = duena): Promise<void> {
+  await entrar(page, correo)
   await page.goto(`/cotizaciones/nuevo?origen=${origen}`)
   await expect(hoja(page)).toBeVisible()
 }
@@ -139,14 +174,24 @@ for (const clave of ['subasta_usa', 'planilla_usa']) {
   }
 }
 
-test('la hoja más grande del juego cabe en el tope de nodos del DOM, al abrir y con la hoja usada', async ({
-  page,
-}, info) => {
+type Medida = {
+  celdas: number
+  alAbrir: number
+  usada: number
+  ajustesAlAbrir: number
+  ajustesUsada: number
+}
+let sinAjuste: Medida | null = null
+
+// La hoja más grande del juego, al abrir y usada, como `correo`: sus celdas, sus nodos y sus ⚙ (los de la hoja más los del modal «Avanzado»).
+async function medirLaHoja(page: Page, correo: string): Promise<Medida> {
   const vigilante = await vigilarRecalculos(page)
-  await abrir(page)
+  await abrir(page, subasta, correo)
   const modalAlAbrir = await medirElModal(page)
   const alAbrir = (await nodosDelDom(page)) + modalAlAbrir.nodos
   const celdas = (await page.locator('[data-nodo] [data-xcell]').count()) + modalAlAbrir.celdas
+  const ajustesAlAbrir =
+    (await hoja(page).getByRole('button', { name: AJUSTE }).count()) + modalAlAbrir.ajustes
   // La hoja usada: un monto tipeado, los dos interruptores encendidos (la garantía se dibuja) y un override con ↺.
   await celda(page, 'remate').locator('[data-parada="0"]').click()
   await celda(page, 'remate').locator('input').fill('9500')
@@ -163,14 +208,41 @@ test('la hoja más grande del juego cabe en el tope de nodos del DOM, al abrir y
   await expect(page.locator('[data-total-bs]')).toBeVisible()
   await expect.poll(() => vigilante.respuestas.length).toBeGreaterThan(0)
   await expect(page.getByLabel('Resumen')).toHaveAttribute('aria-busy', 'false')
-  const usada = (await nodosDelDom(page)) + (await medirElModal(page)).nodos
-  info.annotations.push({
-    type: 'nodos del DOM de la hoja',
-    description: `${String(celdas)} celdas: ${String(alAbrir)} al abrir y ${String(usada)} usada (tope ${String(TOPE_DE_NODOS)})`,
-  })
-  console.warn(
-    `[nodos] subasta_usa: ${String(celdas)} celdas, ${String(alAbrir)} al abrir y ${String(usada)} usada (tope ${String(TOPE_DE_NODOS)})`,
-  )
-  expect(alAbrir).toBeLessThanOrEqual(TOPE_DE_NODOS)
-  expect(usada).toBeLessThanOrEqual(TOPE_DE_NODOS)
+  const modalUsada = await medirElModal(page)
+  const usada = (await nodosDelDom(page)) + modalUsada.nodos
+  const ajustesUsada =
+    (await hoja(page).getByRole('button', { name: AJUSTE }).count()) + modalUsada.ajustes
+  return { celdas, alAbrir, usada, ajustesAlAbrir, ajustesUsada }
+}
+
+function anotar(info: TestInfo, quien: string, m: Medida, tope: number) {
+  const texto = `${quien}: ${String(m.celdas)} celdas, ${String(m.alAbrir)} al abrir (${String(m.ajustesAlAbrir)} ⚙) y ${String(m.usada)} usada (${String(m.ajustesUsada)} ⚙) (tope ${String(tope)})`
+  info.annotations.push({ type: 'nodos del DOM de la hoja', description: texto })
+  console.warn(`[nodos] subasta_usa, ${texto}`)
+}
+
+test('la hoja más grande del juego cabe en el techo de nodos del DOM como quien cotiza sin ⚙, al abrir y con la hoja usada', async ({
+  page,
+}, info) => {
+  const medida = await medirLaHoja(page, costos)
+  anotar(info, 'sin ⚙', medida, TOPE_DE_NODOS)
+  expect(medida.ajustesAlAbrir + medida.ajustesUsada).toBe(0)
+  expect(medida.alAbrir).toBeLessThanOrEqual(TOPE_DE_NODOS)
+  expect(medida.usada).toBeLessThanOrEqual(TOPE_DE_NODOS)
+  sinAjuste = medida
+})
+
+test('como quien configura, la misma hoja suma sólo sus ⚙ y cabe en su tope', async ({
+  page,
+}, info) => {
+  if (sinAjuste === null) {
+    throw new Error('Falta la medida sin ⚙ (la prueba de arriba).')
+  }
+  const medida = await medirLaHoja(page, duena)
+  anotar(info, 'con ⚙', medida, TOPE_DE_NODOS_CON_AJUSTE)
+  expect(medida.celdas).toBe(sinAjuste.celdas)
+  expect(medida.ajustesAlAbrir).toBeGreaterThan(0)
+  expect(medida.alAbrir - sinAjuste.alAbrir).toBe(NODOS_POR_AJUSTE * medida.ajustesAlAbrir)
+  expect(medida.usada - sinAjuste.usada).toBe(NODOS_POR_AJUSTE * medida.ajustesUsada)
+  expect(medida.usada).toBeLessThanOrEqual(TOPE_DE_NODOS_CON_AJUSTE)
 })
