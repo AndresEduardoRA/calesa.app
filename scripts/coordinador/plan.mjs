@@ -317,7 +317,11 @@ export function marcar(estado, id, nuevo, datos = {}, ahora = new Date().toISOSt
  */
 export function siguiente(plan, estado, carril, { cuota = null, umbral = 0.8 } = {}) {
   // Un pedido de otro carril va antes que todo lo propio (entre partes de un paso, también): el otro carril está parado esperándolo.
-  const pedidos = (estado.pedidos ?? []).filter((p) => p.para === carril)
+  // Primero los de un carril que está parado esperándolo; después los de la persona (nadie espera), por orden de llegada.
+  const esCarril = (id) => plan.carriles.some((c) => c.id === id)
+  const pedidos = (estado.pedidos ?? [])
+    .filter((p) => p.para === carril)
+    .sort((x, y) => Number(!esCarril(x.de)) - Number(!esCarril(y.de)) || (x.n ?? 0) - (y.n ?? 0))
   const pd =
     pedidos.find((p) => p.estado === 'asignado') ??
     pedidos.find((p) => p.estado === 'publicado' && p.arreglar) ??
