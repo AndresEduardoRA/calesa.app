@@ -5,6 +5,7 @@ import {
   MENSAJE_DEL_MISMO_TIPO_CAMBIO,
   MENSAJE_DEL_TIPO_CAMBIO_GRANDE,
   MENSAJE_DEL_TIPO_CAMBIO_INVALIDO,
+  decimalesDeTipoCambio,
   textoInicialDeTipoCambio,
   tipoCambioTipeado,
 } from './tipo-cambio'
@@ -87,5 +88,15 @@ describe('textoInicialDeTipoCambio', () => {
     expect(textoInicialDeTipoCambio(6.96, LOCALE)).toBe('6,96')
     expect(textoInicialDeTipoCambio(0.000145, LOCALE)).toBe('0,000145')
     expect(textoInicialDeTipoCambio(12405.5, LOCALE)).toBe('12405,5')
+  })
+})
+
+describe('decimalesDeTipoCambio', () => {
+  it('muestra los decimales que tiene, entre 2 y 6', () => {
+    expect(decimalesDeTipoCambio(11.68)).toBe(2)
+    expect(decimalesDeTipoCambio(7)).toBe(2)
+    expect(decimalesDeTipoCambio(6.9612)).toBe(4)
+    expect(decimalesDeTipoCambio(1.123456)).toBe(6)
+    expect(decimalesDeTipoCambio(0.000145)).toBe(6)
   })
 })
