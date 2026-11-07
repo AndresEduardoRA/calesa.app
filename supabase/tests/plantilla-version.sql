@@ -217,5 +217,14 @@ begin
     end if;
     if (select pronargdefaults from pg_proc where oid = v_f::regprocedure) <> v_p.d then raise exception 'los defaults de %', v_f; end if;
   end loop;
+  -- La ayudante dice la versión y la hora de la publicada de un origen: sólo la llaman las RPC (definer) y service_role; nadie más.
+  v_f := 'public._plantilla_borrador_ausente(uuid, timestamptz)';
+  if has_function_privilege('authenticated', v_f, 'execute') or has_function_privilege('anon', v_f, 'execute') or has_function_privilege('public', v_f, 'execute')
+     or not has_function_privilege('service_role', v_f, 'execute') then
+    raise exception 'privilegios de %', v_f;
+  end if;
+  if not (select prosecdef from pg_proc where oid = v_f::regprocedure) or (select proconfig from pg_proc where oid = v_f::regprocedure) is distinct from array['search_path=""'] then
+    raise exception '% no es definer con search_path vacío', v_f;
+  end if;
 end $$;
 rollback;
