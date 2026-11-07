@@ -1,4 +1,6 @@
 import { cleanup, render, screen, within } from '@testing-library/react'
+import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
+import type { ReactElement, ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { LoteDeCotizaciones } from '../../../entities/papelera/lotes'
 
@@ -18,6 +20,14 @@ vi.mock('../../../areas/papelera/composicion.client', () => ({
 }))
 
 import { PapeleraDeCotizaciones } from './papelera-de-cotizaciones'
+
+// La pantalla lee `?panel=purgar` con nuqs.
+const dibujar = (ui: ReactElement) =>
+  render(ui, {
+    wrapper: ({ children }: { children: ReactNode }) => (
+      <NuqsTestingAdapter searchParams={busqueda.actual}>{children}</NuqsTestingAdapter>
+    ),
+  })
 
 afterEach(() => {
   cleanup()
@@ -65,14 +75,14 @@ const LINEA_DE_VEHICULOS =
 
 describe('<PapeleraDeCotizaciones>', () => {
   it('sin lotes y sin cursor: «La papelera está vacía» y la línea de las que se fueron con su vehículo', () => {
-    render(<PapeleraDeCotizaciones {...base} />)
+    dibujar(<PapeleraDeCotizaciones {...base} />)
     expect(screen.getByRole('heading', { name: 'Papelera de cotizaciones' })).toBeTruthy()
     expect(screen.getByText('La papelera está vacía')).toBeTruthy()
     expect(screen.getByText(LINEA_DE_VEHICULOS)).toBeTruthy()
   })
 
   it('el enlace a la papelera de vehículos sólo para quien puede abrirla', () => {
-    const { rerender } = render(<PapeleraDeCotizaciones {...base} />)
+    const { rerender } = dibujar(<PapeleraDeCotizaciones {...base} />)
     expect(screen.queryByRole('link', { name: 'Ir a la papelera de vehículos' })).toBeNull()
     rerender(<PapeleraDeCotizaciones {...base} papeleraDeVehiculos />)
     expect(
@@ -82,25 +92,27 @@ describe('<PapeleraDeCotizaciones>', () => {
 
   it('una página sin filas con cursor no dice que la papelera está vacía', () => {
     busqueda.actual = 'cursor=abc'
-    render(<PapeleraDeCotizaciones {...base} />)
+    dibujar(<PapeleraDeCotizaciones {...base} />)
     expect(screen.queryByText('La papelera está vacía')).toBeNull()
   })
 
   it('el texto de arriba cambia con la clave de vaciar', () => {
-    const { rerender } = render(<PapeleraDeCotizaciones {...base} />)
+    const { rerender } = dibujar(<PapeleraDeCotizaciones {...base} />)
     expect(
       screen.getByText('Lo que enviaste a la papelera. Puedes restaurarlo hasta que se purgue.'),
     ).toBeTruthy()
     rerender(<PapeleraDeCotizaciones {...base} puedePurgar />)
     expect(
-      screen.getByText('Todo lo que se envió a la papelera. Se purga solo cuando vence.'),
+      screen.getByText(
+        'Todo lo que se envió a la papelera. Se purga solo cuando vence, o antes si lo purgas.',
+      ),
     ).toBeTruthy()
   })
 })
 
 describe('<PapeleraDeCotizaciones>: restaurar y lo que dibuja cada cotización', () => {
   it('sin la clave, «Restaurar» sólo en lo suyo', () => {
-    render(
+    dibujar(
       <PapeleraDeCotizaciones {...base} pagina={{ ...base.pagina, filas: [propias, ajena] }} />,
     )
     const suyo = screen.getByRole('region', { name: 'Lote enviado por ti' })
@@ -110,7 +122,7 @@ describe('<PapeleraDeCotizaciones>: restaurar y lo que dibuja cada cotización',
   })
 
   it('con la clave, «Restaurar» en todo y «Restaurar el lote» donde hay más de una', () => {
-    render(
+    dibujar(
       <PapeleraDeCotizaciones
         {...base}
         puedePurgar
@@ -127,7 +139,7 @@ describe('<PapeleraDeCotizaciones>: restaurar y lo que dibuja cada cotización',
   })
 
   it('cada cotización dice su número, su clase, su origen y su fecha, sin montos', () => {
-    render(<PapeleraDeCotizaciones {...base} pagina={{ ...base.pagina, filas: [ajena] }} />)
+    dibujar(<PapeleraDeCotizaciones {...base} pagina={{ ...base.pagina, filas: [ajena] }} />)
     expect(screen.getAllByText('Miami')).toHaveLength(2)
     expect(screen.getByText('N.º 1')).toBeTruthy()
     expect(screen.getByText('Preventa')).toBeTruthy()
@@ -138,7 +150,7 @@ describe('<PapeleraDeCotizaciones>: restaurar y lo que dibuja cada cotización',
   })
 
   it('un origen que no llegó se dibuja «—»', () => {
-    render(
+    dibujar(
       <PapeleraDeCotizaciones
         {...base}
         origenes={[]}
@@ -148,13 +160,26 @@ describe('<PapeleraDeCotizaciones>: restaurar y lo que dibuja cada cotización',
     expect(screen.getByText('—')).toBeTruthy()
   })
 
-  it('nunca ofrece «Purgar» en este paso, ni con la clave', () => {
-    render(
+  it('con la clave, «Purgar» en cada cotización y «Purgar el lote» donde hay más de una', () => {
+    dibujar(
       <PapeleraDeCotizaciones
         {...base}
         puedePurgar
         pagina={{ ...base.pagina, filas: [propias, ajena] }}
       />,
+    )
+    const delOtro = screen.getByRole('region', { name: 'Lote enviado por Beto' })
+    expect(within(delOtro).getByRole('button', { name: 'Purgar el lote' })).toBeTruthy()
+    expect(within(delOtro).getByRole('button', { name: 'Purgar Camioneta de Beto' })).toBeTruthy()
+    expect(within(delOtro).getByRole('button', { name: 'Purgar Otra de Beto' })).toBeTruthy()
+    const suyo = screen.getByRole('region', { name: 'Lote enviado por ti' })
+    expect(within(suyo).getByRole('button', { name: 'Purgar Sedán de Ana' })).toBeTruthy()
+    expect(within(suyo).queryByRole('button', { name: 'Purgar el lote' })).toBeNull()
+  })
+
+  it('sin la clave, ningún «Purgar», ni en lo suyo', () => {
+    dibujar(
+      <PapeleraDeCotizaciones {...base} pagina={{ ...base.pagina, filas: [propias, ajena] }} />,
     )
     expect(screen.queryByRole('button', { name: /Purgar/ })).toBeNull()
   })

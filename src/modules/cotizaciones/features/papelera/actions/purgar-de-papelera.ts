@@ -8,6 +8,7 @@ import { repositorioDePapeleraDeCotizaciones } from '../../../areas/papelera/com
 import { puedePurgarLaPapeleraDeCotizaciones } from '../../../entities/papelera/acceso'
 import type { ResultadoDePurgar } from '../../../entities/papelera/resultados'
 import { RUTA_DEL_LISTADO } from '../../../entities/ruta-de-la-hoja'
+import { MENSAJE_SIN_PERMISO_DE_PURGAR } from '../../../entities/papelera/url'
 import { esquemaSobreUnLote } from '../schemas/papelera'
 
 // Purga un lote, entero o por partes: borra las cotizaciones para siempre, con sus revisiones, comentarios y adjuntos. Con la versión del lote: si otra persona
@@ -17,7 +18,7 @@ export const purgarCotizacionesDePapelera = actionClient
   .inputSchema(esquemaSobreUnLote)
   .action(async ({ parsedInput, ctx }): Promise<ResultadoDeAccion<ResultadoDePurgar>> => {
     if (!puedePurgarLaPapeleraDeCotizaciones(ctx.permisos)) {
-      return fallo('sin_permiso', 'No tienes permiso para purgar la papelera de cotizaciones.')
+      return fallo('sin_permiso', MENSAJE_SIN_PERMISO_DE_PURGAR)
     }
     const resultado = await repositorioDePapeleraDeCotizaciones.purgar(parsedInput)
     if (resultado.ok) {

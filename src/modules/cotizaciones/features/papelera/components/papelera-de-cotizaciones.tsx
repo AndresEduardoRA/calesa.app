@@ -13,6 +13,8 @@ import { Paginacion } from '@/shared/ui/paginacion'
 import type { LoteDeCotizaciones } from '../../../entities/papelera/lotes'
 import { RUTA_DEL_LISTADO } from '../../../entities/ruta-de-la-hoja'
 import { usePapelera } from '../hooks/use-papelera'
+import { usePurgaPorUrl } from '../hooks/use-purga-por-url'
+import { ConfirmarPurga } from './confirmar-purga'
 import { LoteDePapelera } from './lote-de-papelera'
 
 type Props = {
@@ -30,7 +32,8 @@ type Props = {
 const VOLVER =
   'inline-flex min-h-11 w-fit items-center gap-1.5 text-(length:--text-sm) text-(--color-ink-soft) underline-offset-2 hover:text-(--color-ink) hover:underline md:min-h-8'
 
-// La papelera de cotizaciones, por lote: quién envió qué, cuándo, y cuánto falta para que se purgue sola. Restaurar se hace y lo dice. Las cotizaciones que se fueron con su
+// La papelera de cotizaciones, por lote: quién envió qué, cuándo, y cuánto falta para que se purgue sola. Restaurar se hace y lo dice; purgar (con la clave) pide
+// confirmar nombrando lo que se borra, en un diálogo con su URL que se monta una vez. Las cotizaciones que se fueron con su
 // vehículo no están aquí: vuelven al restaurar el vehículo (P8 a del 4.24-1a).
 export function PapeleraDeCotizaciones({
   pagina,
@@ -42,6 +45,7 @@ export function PapeleraDeCotizaciones({
   const papelera = usePapelera()
   const hayCursor = useSearchParams().has(CLAVE_DE_CURSOR)
   const lotes = pagina.filas
+  const purga = usePurgaPorUrl(lotes, puedePurgar)
   const nombresDeOrigenes = useMemo(
     () => new Map(origenes.map((origen) => [origen.id, origen.nombre])),
     [origenes],
@@ -58,7 +62,7 @@ export function PapeleraDeCotizaciones({
         </h1>
         <p className="text-(length:--text-sm) text-(--color-ink-soft)">
           {puedePurgar
-            ? 'Todo lo que se envió a la papelera. Se purga solo cuando vence.'
+            ? 'Todo lo que se envió a la papelera. Se purga solo cuando vence, o antes si lo purgas.'
             : 'Lo que enviaste a la papelera. Puedes restaurarlo hasta que se purgue.'}
         </p>
         <p className="text-(length:--text-sm) text-(--color-ink-soft)">
@@ -98,11 +102,13 @@ export function PapeleraDeCotizaciones({
               alRestaurar={(objetivo) => {
                 void papelera.restaurar(objetivo)
               }}
+              alPurgar={purga.abrir}
             />
           ))}
         </ul>
       )}
       <Paginacion siguiente={pagina.siguiente} anterior={pagina.anterior} />
+      <ConfirmarPurga objetivo={purga.objetivo} papelera={papelera} alCerrar={purga.cerrar} />
     </div>
   )
 }
