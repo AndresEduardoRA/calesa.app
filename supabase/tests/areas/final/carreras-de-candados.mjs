@@ -105,8 +105,13 @@ export async function carrerasDeCandados({ orquesta, espero, conectar }) {
     })
     const [fc, fp] = [await cot(orquesta, c), await cot(orquesta, p)]
     espero(
-      'los dos terminan sin interbloqueo: la final queda y la preventa restaurada vive a su lado',
-      r.a.ok && r.b.ok && sinInterbloqueo(r.a, r.b) && fc.clase === 'final' && fp.viva,
+      'B no espera a restaurar y los dos terminan sin interbloqueo: la final queda y la preventa restaurada vive a su lado',
+      r.comoFue === 'terminó' &&
+        r.a.ok &&
+        r.b.ok &&
+        sinInterbloqueo(r.a, r.b) &&
+        fc.clase === 'final' &&
+        fp.viva,
       { r, fc, fp },
     )
   }
@@ -145,8 +150,9 @@ export async function carrerasDeCandados({ orquesta, espero, conectar }) {
       ])
     ).x
     espero(
-      `los dos terminan sin interbloqueo: la final queda${hermana ? ', la hermana en la papelera' : ''} y la versión nueva vive como preventa`,
-      r.a.ok &&
+      `B espera en la pasada y los dos terminan sin interbloqueo: la final queda${hermana ? ', la hermana en la papelera' : ''} y la versión nueva vive como preventa`,
+      r.comoFue === 'esperó' &&
+        r.a.ok &&
         r.b.ok &&
         sinInterbloqueo(r.a, r.b) &&
         fc.clase === 'final' &&
