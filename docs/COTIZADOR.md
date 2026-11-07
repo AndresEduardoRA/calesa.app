@@ -305,7 +305,8 @@ publicada_esperada?, actualizado_en_esperado?)` **sin hora crea**: si ya hay bor
   `formula_descartar_borrador(origen, actualizado_en_esperado?)` y `formula_publicar(…, publicada_esperada?, actualizado_en_esperado?)`
   con hora: si cambió, PT409 «El borrador cambió después de que lo abriste: se guardó de nuevo hace 2 min.»; si ya no está, «El borrador
   que abriste ya no está: se publicó o se descartó.» (publicar mira primero la publicada esperada). Sin hora, como antes (descartar el
-  que haya; publicar el que haya o «No hay borrador»): la app la manda desde el 4.21-3b. Una excepción a `migraciones.md`, aprobada (P1).
+  que haya; publicar el que haya o «No hay borrador»): la app manda siempre las esperadas desde el 4.21-3b-1 (guardar, publicar y
+  descartar) y la base sigue aceptando la nula (P3 del 4.21-3b). Una excepción a `migraciones.md`, aprobada (P1).
 - **Pendiente:** las carreras mixtas (⚙ contra publicar el borrador, revertir contra ⚙, dos que crean el primer borrador a la vez) las
   suma el carril A.
 
