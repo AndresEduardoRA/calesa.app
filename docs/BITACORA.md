@@ -858,3 +858,24 @@ con la recomendada) y plan aprobado antes de ejecutar. Nivel 1 con interfaz, sin
 - **Abiertos:** 4-55 cerrado; 4-73 medido; sin nuevos. 4-55 sigue en `docs/PLAN.md` con su cierre: esta sesión no puede escribir en `docs/archivo/`.
 - **Commits:** `473bc65e` (el modelo), `9843ec99` (la tarjeta y su lectura) y `f55346ce` (el botón, las páginas y el e2e).
   e2e completo: no (4.18-2, pantalla, 1 de 3)
+
+## 2026-11-06 — Paso 4.18-3a: el PDF de una cotización guardada
+
+- **Qué:** `GET /cotizaciones/<id>/pdf` da la tarjeta de **lo guardado** de una cotización en A4 (`@react-pdf/renderer`, Geist en TTF), con `requerirSesion()`, el mismo 404 que
+  la página y la sesión de quien pide; montos con `formatearMonto()` y siempre con cifras (P8); el logo en `Buffer`, con tope y espera, sólo si react-pdf lo dibuja fiel (P2, 4-98).
+  Suma el lector del PDF de las pruebas (`scripts/pdf/`) y `rutaDelPdf(id)`. El 4.18-3 se partió: el **4.18-3b** trae «Copiar texto», «Descargar PDF» y el hito 4-A.
+- **Estado del CI al empezar:** el 42308509323 (HEAD `1e734e95`) cayó en `supabase start` (infraestructura, antes del primer spec): relanzamiento pedido al bucle y a la persona,
+  sin respuesta al cerrar. El bloque 4 del 42293078030 (`43d98eb7`) sigue sin explicar (su log sale vacío): no se da por cosa de una vez.
+- **Plan:** auditado en dos rondas (la 1.ª bloqueó: P2 decía que react-pdf no dibuja SVG y la cuenta de «Unificado» no cerraba con la semilla; la 2.ª, observaciones); compuerta
+  `producto` P1–P8, todas con la recomendada. `.piloto/planes/4.18-3.md`. Informe auditado (observaciones atendidas): `.piloto/informes/4.18-3.md`.
+- **Verificación** (`.piloto/salidas/4.18-3a/`):
+  - En rojo contra HEAD: `rojo-head-vitest.txt` (7 archivos) y `rojo-head-e2e.txt` (404: la ruta no existe); verdes después (`verde-vitest.txt`, 69 de 69).
+  - Mutaciones M1 a M6 (`mutaciones.txt`): todas caen; M1 y M2 también en el e2e. M3 sobrevivió a la primera prueba (buscaba el número exacto en Bs) y se endureció.
+  - e2e `cotizar-pdf.spec.ts` E1–E8, escritorio, 8 de 8 (`e2e-pdf.txt`, `e2e-pdf-final.txt`); dirigidos `cotizar-vista-previa` y `cotizar-guardada` en los dos proyectos y
+    `presupuesto-js`: 39 pasaron y 7 saltados por diseño (`e2e-dirigidos.txt`).
+  - `vitest related` 259 de 259, `scripts/guardas` 990 de 990, `typecheck` y `lint` sin avisos.
+  - Medidas: el PDF de `subasta_usa`, 23.293 bytes y 123 ms. El JS en frío de **todas** las rutas sube ≈ 0,45 KB por el runtime asíncrono de Turbopack que trae react-pdf (sólo
+    ESM), atribuido build por build (`presupuesto-*.txt`): `/cotizaciones/nuevo` 458,9 de 460 (4-73) y `/cotizaciones/[id]` 438,0 de 448.
+- **Abiertos:** 4-98 nuevo (el logo WebP o un SVG con estilos no sale en el PDF); 4-73 medido. La guarda `scripts/guardas/diferidos.test.ts` permite el `import()` del renderer.
+- **Commits:** `388c2399` (el documento, el logo, las fuentes y el lector), `5f95c1c7` (el armado de lo guardado) y `160aebf3` (la ruta y el e2e).
+  e2e completo: no (4.18-3a, dinero, el completo del hito es del 4.18-3b)
