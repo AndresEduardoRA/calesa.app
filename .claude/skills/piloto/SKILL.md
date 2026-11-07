@@ -34,10 +34,14 @@ el número del paso y, opcionales, `continuar` (retomas esta sesión tras una co
    salvo en un paso que el ruteo mandó con `modelo: sonnet` (el de pantalla; lo dice `.piloto/ruteo.json`): ahí pásale `model: "sonnet"`. Del 5 al 7 de
    noviembre, en esos pasos opus se llevaba 184 de 266 USD planificando y auditando, más que ejecutar. El auditor sigue siempre en opus.
 3. **Auditar el plan.** Invoca al subagente `auditor` (opus, en un contexto aparte) sobre ese plan. Su primera línea es `VEREDICTO: pasa|observaciones|bloquea`.
-   `observaciones`: las atiendes en el plan y sigues. `bloquea`: un `planificador` nuevo con sus objeciones, otra auditoría; **a la segunda que bloquee, compuerta `atasco`**.
+   `observaciones`: las atiendes en el plan y sigues. `bloquea`: un `planificador` nuevo con sus objeciones, otra auditoría.
    Antes de esa 2.ª ronda copia el plan auditado a `.piloto/planes/<paso>.auditado.md` y dile al auditor que es la segunda: audita sólo lo cambiado y
    `<paso>.respuestas.md` (en el 4.13-3b la 2.ª ronda volvió a verificar todo: 2,63 USD). El planificador contesta las objeciones en ese archivo y corrige el plan con
    `Edit`, sin reescribirlo; el plan pesa ≤ 60 KB (`wc -c`).
+   **Si la 2.ª ronda también bloquea, no hay 3.ª: achica el paso, sin preguntar** (la persona, 2026-11-07: el 4.25 llevó cuatro rondas y dos atascos
+   sin una línea de código). Un `planificador` parte el plan en dos: esta parte, con lo que el auditor ya no objeta, y la parte siguiente, con lo
+   bloqueado y sus objeciones copiadas tal cual. Esta sesión ejecuta la primera y termina con `parcial: true`; la siguiente se planea y se audita
+   de cero en su propia sesión. Sólo si lo que pasó depende de lo bloqueado, o no queda nada sin objetar, es una compuerta `atasco`.
 4. **Compuertas del plan** ([compuertas.md](compuertas.md)): si el plan toca datos o seguridad (policy, RLS, permiso, `security definer`, Vault), pide una dependencia
    nueva o deja una pregunta de producto o de UX abierta → termina con `resultado: compuerta` (ver «Terminar»). Con `--hasta-plan`, tras auditar el plan terminas
    **siempre** con una compuerta `datos` que lleve el plan en su `contexto`: la persona lo ve antes de que se ejecute. Si el plan corre el completo en local (sólo el hito 4-A y un cierre)

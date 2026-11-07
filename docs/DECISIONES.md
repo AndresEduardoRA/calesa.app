@@ -2483,3 +2483,12 @@ Lo pidió la persona después de que el A hiciera el 4.16 y el 4.17-1: se parti�
 - **Terreno de las carreras:** un origen propio por carrera (prefijo «Carreras»), la fórmula `mini` del juego de la plantilla publicada por `insert` y la plantilla del caso «mínima»
   (sin tonos); lo que deja lo borra `limpiar()` con el origen (cascada de `plantillas_tarjeta_origen_id_fkey`).
 - **`SOLO=` en `db:probar`** necesita `humo.sql` (crea las cuentas): `SOLO=humo.sql,plantilla-version.sql` corre en 7 s.
+
+## 2026-11-07 — El plan sin cadenas de carril (la persona)
+
+- **Medido del 6-11 00:00 al 7-11 11:36:** el B estuvo 32 % sin paso o esperando a main y el C 38 % sin paso; el A, 72 % trabajando. Parte de
+  eso eran dependencias que `plan.yaml` no tomó de `PLAN.md`: el 4.22 (depende de 4.09 y 4.20), el 4.23 (de 4.05 y 4.20) y el 4.27 (de 4.10)
+  iban detrás del paso anterior de su carril, que además tenía que integrarse antes de dar el siguiente.
+- **`plan.yaml` dice ahora las de `PLAN.md`** (4.22 y 4.23 tras el 4.20; el 4.27 tras el 4.15-6c, por las áreas) y **el 4.27 pasa del C al A**:
+  el C tenía tres rojos en cadena (4.25 → 4.26 → 4.27), el camino más largo de la fase; el A es base, dueño del módulo entero, y lleva el
+  registro de RPC con tamaño que el 4.27 pide (4-91). El 4.28 depende de cada paso que no tiene otro detrás (el 4.20-4b faltaba).
