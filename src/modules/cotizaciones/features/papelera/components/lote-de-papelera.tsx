@@ -2,7 +2,6 @@
 
 import { useRouter } from 'next/navigation'
 import { formatearFechaHora } from '@/shared/lib/fechas'
-import { Button } from '@/shared/ui/button'
 import { MostrarTodos } from '@/shared/ui/mostrar-todos'
 import { useRegional } from '@/shared/ui/regional'
 import { useLecturaAPedido } from '@/shared/ui/use-lectura-a-pedido'
@@ -11,20 +10,20 @@ import { puedeRestaurarElLote } from '../../../entities/papelera/acceso'
 import { faltanPorMostrar, type LoteDeCotizaciones as Lote } from '../../../entities/papelera/lotes'
 import { diasParaLaPurga, textoDePurga } from '../../../entities/papelera/purga'
 import type { Objetivo } from '../hooks/use-papelera'
+import { AccionesDePapelera, DEL_LOTE, DE_UNA } from './acciones-de-papelera'
 import { CotizacionEnPapelera } from './cotizacion-en-papelera'
 
 type Props = {
   lote: Lote
   // El instante en que el servidor armó la página: contra él se cuentan los días.
   ahora: string
-  // Restaura quien envió el lote o quien puede vaciar la papelera.
+  // Restaura quien envió el lote o quien puede vaciar la papelera; purga sólo quien puede vaciarla.
   puedePurgar: boolean
   nombresDeOrigenes: ReadonlyMap<string, string>
   enCurso: boolean
   alRestaurar: (objetivo: Objetivo) => void
+  alPurgar: (objetivo: Objetivo) => void
 }
-
-const BOTON = 'h-11 md:h-8'
 
 // Qué lote es: cuántas se enviaron y cuántas quedan.
 function tituloDe(lote: Lote): string {
@@ -32,10 +31,10 @@ function tituloDe(lote: Lote): string {
   return lote.enviados <= 1 ? 'Envío de una' : `Lote de ${String(lote.enviados)}${quedan}`
 }
 
-// Un lote de la papelera: quién lo envió, cuándo y cuánto falta para que se purgue solo; y sus cotizaciones, cada una con «Restaurar». «Restaurar el lote» aparece cuando
-// tiene más de una. Se ven las primeras (`PRIMEROS_DEL_LOTE`) y «Mostrar los N» trae el lote entero; si la página se vuelve a leer (restaurar), vuelve a las primeras.
+// Un lote de la papelera: quién lo envió, cuándo y cuánto falta para que se purgue solo; y sus cotizaciones, cada una con lo que se puede hacer («Restaurar» y, con
+// la clave, «Purgar»). Las del lote entero aparecen cuando tiene más de una. Se ven las primeras (`PRIMEROS_DEL_LOTE`) y «Mostrar los N» trae el lote entero; si la página se vuelve a leer (restaurar, purgar), vuelve a las primeras.
 export function LoteDePapelera(props: Props) {
-  const { ahora, puedePurgar, nombresDeOrigenes, enCurso, alRestaurar } = props
+  const { ahora, puedePurgar, nombresDeOrigenes, enCurso, alRestaurar, alPurgar } = props
   const router = useRouter()
   const { lectura, pedir } = useLecturaAPedido(
     () => leerLoteDePapeleraDeCotizaciones(props.lote.id),
@@ -44,7 +43,13 @@ export function LoteDePapelera(props: Props) {
   const lote = lectura.estado === 'leido' ? lectura.dato : props.lote
   const { zonaHoraria } = useRegional()
   const quien = lote.esMio ? 'ti' : (lote.creadoPorNombre ?? 'alguien que ya no está')
-  const puedeRestaurar = puedeRestaurarElLote(lote, puedePurgar)
+  const comunes = {
+    puedeRestaurar: puedeRestaurarElLote(lote, puedePurgar),
+    puedePurgar,
+    apagado: enCurso,
+    alRestaurar,
+    alPurgar,
+  }
   return (
     <li className="min-w-0">
       <section
@@ -61,17 +66,8 @@ export function LoteDePapelera(props: Props) {
               {textoDePurga(diasParaLaPurga(lote.purgaEl, ahora))}
             </p>
           </div>
-          {puedeRestaurar && lote.enPapelera > 1 ? (
-            <Button
-              variant="outline"
-              className={BOTON}
-              disabled={enCurso}
-              onClick={() => {
-                alRestaurar({ lote })
-              }}
-            >
-              Restaurar el lote
-            </Button>
+          {lote.enPapelera > 1 ? (
+            <AccionesDePapelera {...comunes} objetivo={{ lote }} etiquetas={DEL_LOTE} />
           ) : null}
         </header>
         <ul className="divide-y divide-(--color-line)">
@@ -84,19 +80,12 @@ export function LoteDePapelera(props: Props) {
               }
               zonaHoraria={zonaHoraria}
               acciones={
-                puedeRestaurar ? (
-                  <Button
-                    variant="outline"
-                    className={BOTON}
-                    disabled={enCurso}
-                    aria-label={`Restaurar ${cotizacion.titulo}`}
-                    onClick={() => {
-                      alRestaurar({ lote, cotizacionId: cotizacion.id })
-                    }}
-                  >
-                    Restaurar
-                  </Button>
-                ) : null
+                <AccionesDePapelera
+                  {...comunes}
+                  objetivo={{ lote, cotizacionId: cotizacion.id }}
+                  etiquetas={DE_UNA}
+                  sobre={cotizacion.titulo}
+                />
               }
             />
           ))}

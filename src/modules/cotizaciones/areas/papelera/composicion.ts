@@ -7,6 +7,6 @@ import { getPapeleraDeCotizaciones } from '../../infra/papelera/listar'
 // Una página de lotes de la papelera de cotizaciones (4.24-2): los de quien mira o, con la clave de vaciarla, todos.
 export const leerPapeleraDeCotizaciones = getPapeleraDeCotizaciones
 
-// Restaurar un lote, entero o por partes, con su versión (4.24-2). La action de `features/papelera/` la usa; sale por la raíz sólo por el nombre.
+// Restaurar (4.24-2) y purgar (4.24-2b) un lote, entero o por partes, con su versión. Las actions de `features/papelera/` lo usan; sale por la raíz sólo por el nombre.
 export const repositorioDePapeleraDeCotizaciones: RepositorioDePapeleraDeCotizaciones =
   papeleraDeCotizacionesSupabase
