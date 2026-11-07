@@ -220,8 +220,16 @@ test('Ana · salir de un lead que le comparten: la confirmación con su URL', as
   expect(carlos.error).toBeNull()
   await entrar(page, r.ana.email)
   await irAFicha(page, r.deCarlos)
-  await page.getByRole('button', { name: 'Salir de este lead' }).click()
-  await expect(page.getByRole('dialog', { name: /^Salir de/ })).toBeVisible()
+  // El botón ya está en el HTML antes de hidratar: un clic de esa ventana se pierde (6 de 6 con la CPU cargada). Se repite hasta que abre.
+  // Si abre después del segundo de espera, el reintento no pulsa de nuevo: con la URL ya pidiéndolo (`?panel=`) otro clic suma una entrada igual al
+  // historial, y el diálogo ya tapa el botón (el clic esperaría los 30 s).
+  const salir = page.getByRole('dialog', { name: /^Salir de/ })
+  await expect(async () => {
+    if (!new URL(page.url()).searchParams.has('panel')) {
+      await page.getByRole('button', { name: 'Salir de este lead' }).click({ timeout: 3000 })
+    }
+    await expect(salir).toBeVisible({ timeout: 1000 })
+  }).toPass()
   await variantes(page, info, 'ana-salir-del-lead')
   await page.keyboard.press('Escape')
 })
