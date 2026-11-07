@@ -18,14 +18,17 @@ function seccionDe(mapa: string, modulo: string): string {
 }
 
 describe('mapa.sh › la API de un módulo que reexporta por área', () => {
-  it('T13 la de cotizaciones lista sus 87 nombres y los de cliente, sin `* ./`', () => {
+  it('T13 la de cotizaciones lista sus nombres (al menos 87) y los de cliente, sin `* ./`', () => {
     execFileSync('bash', ['scripts/mapa.sh'], { cwd: RAIZ, stdio: 'pipe' })
     const seccion = seccionDe(readFileSync(join(RAIZ, 'docs/MAPA.md'), 'utf8'), 'cotizaciones')
     const api = seccion.split('\n').find((l) => l.startsWith('- API: '))
     const cliente = seccion.split('\n').find((l) => l.startsWith('- API de cliente'))
     expect(api).toBeDefined()
     expect(api).not.toContain('* ./')
-    expect(api).toMatch(/, \+77$/)
+    // Al menos los 87 de cuando se partió por área (diez y «+77»): cada paso que exporta algo suma, y un número exacto hacía caer esta
+    // prueba del A con el trabajo de cualquier carril (el 4.18-3a la dejó en 92, 2026-11-06).
+    const resto = Number(/, \+(\d+)$/.exec(api ?? '')?.[1] ?? 0)
+    expect(resto).toBeGreaterThanOrEqual(77)
     expect(cliente).toContain('`useLectorDeOpciones`')
     expect(cliente).not.toContain('* ./')
   })

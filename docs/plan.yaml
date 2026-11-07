@@ -138,6 +138,8 @@ carriles:
         src/app/(app)/configuracion/empresa/comprobantes/,
         # Las RPC con tamaño de su papelera (4.15-7): el registro del núcleo es del A y las suma.
         scripts/guardas/paginas-en-la-base-papelera.ts,
+        # Los <Confirmar> de su área (4.24-2b): el registro del núcleo es del A y los suma.
+        scripts/guardas/confirmar-con-url-papelera.ts,
       ]
 
 pasos:
@@ -529,6 +531,8 @@ pasos:
         src/modules/cotizaciones/areas/papelera/,
         src/app/(app)/cotizaciones/papelera/,
         scripts/guardas/paginas-en-la-base-papelera.ts,
+        # Los <Confirmar> de su área (4.24-2b): el registro del núcleo es del A y los suma.
+        scripts/guardas/confirmar-con-url-papelera.ts,
         docs/,
       ]
     ruteo:
