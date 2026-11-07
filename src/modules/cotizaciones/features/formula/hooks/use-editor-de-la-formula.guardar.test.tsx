@@ -236,3 +236,28 @@ describe('useEditorDeLaFormula › tras guardar, un error o mientras guarda (C3,
     expect(result.current.guardado.motivo).toBe('No hay cambios por guardar.')
   })
 })
+
+describe('useEditorDeLaFormula › otro intento tras un error', () => {
+  it('lo que dijo el intento anterior no queda a la vista mientras corre el nuevo; un error cualquiera, sin el texto de la base', async () => {
+    const { result } = montar(leida('borrador'))
+    aplicarEnBase(result, '=remate+flete')
+    falla('inesperado', 'relation "formulas" does not exist')
+    await guardar(result)
+    expect(result.current.guardado.estado).toEqual({ tipo: 'error' })
+    let soltar: (r: Respuesta) => void = () => undefined
+    h.responder = () =>
+      new Promise((resolver) => {
+        soltar = resolver
+      })
+    let enVuelo: Promise<void> = Promise.resolve()
+    act(() => {
+      enVuelo = result.current.guardado.guardar()
+    })
+    expect(result.current.guardado.estado).toEqual({ tipo: 'quieto' })
+    await act(async () => {
+      soltar({ data: { ok: true, data: { id: BORRADOR, actualizadoEn: HORA_NUEVA } } })
+      await enVuelo
+    })
+    expect(result.current.guardado.estado).toEqual({ tipo: 'entro' })
+  })
+})

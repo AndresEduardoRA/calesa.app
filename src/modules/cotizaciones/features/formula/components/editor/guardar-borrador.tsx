@@ -2,6 +2,7 @@
 
 import { Button } from '@/shared/ui/button'
 import {
+  MENSAJE_DE_ERROR,
   MENSAJE_DE_REGLA,
   MENSAJE_SIN_RESPUESTA,
   SE_GUARDO,
@@ -35,7 +36,7 @@ function textoDelError(estado: EstadoDelGuardado, nombreDelOrigen: string): stri
     case 'sin_respuesta':
       return MENSAJE_SIN_RESPUESTA
     case 'error':
-      return estado.mensaje
+      return MENSAJE_DE_ERROR
     case 'quieto':
     case 'entro':
     case 'conflicto':

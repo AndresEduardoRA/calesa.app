@@ -76,7 +76,7 @@ export type EstadoDelGuardado =
   | { tipo: 'regla' }
   | { tipo: 'sin_permiso' }
   | { tipo: 'sin_respuesta' }
-  | { tipo: 'error'; mensaje: string }
+  | { tipo: 'error' }
 
 export const ESPERA_A_LA_FILA = 'Aplica o cancela la fila abierta.'
 export const SIN_CAMBIOS = 'No hay cambios por guardar.'
@@ -85,6 +85,7 @@ export const SE_GUARDO = 'Se guardó el borrador.'
 export const MENSAJE_DE_REGLA =
   'La base no aceptó la fórmula por una regla que el editor no revisó: no se guardó.'
 export const MENSAJE_SIN_RESPUESTA = 'No sabemos si se guardó: recarga para verlo.'
+export const MENSAJE_DE_ERROR = 'No pudimos guardar el borrador. Vuelve a intentar en un momento.'
 
 // Por qué el botón espera, en este orden: lo abierto (una fila o «Sumar fila»), el rechazo de `validarFormula()`, que no haya nada por guardar. Nulo: listo.
 export function motivoParaNoGuardar(estado: {

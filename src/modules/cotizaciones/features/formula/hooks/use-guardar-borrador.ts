@@ -31,10 +31,11 @@ const MENSAJE_DE_VALIDACION = 'No pudimos guardar: la fórmula no tiene la forma
 function estadoDelError(envio: Exclude<Envio<BorradorGuardado>, { ok: true }>): EstadoDelGuardado {
   if ('sinRed' in envio) return { tipo: 'sin_respuesta' }
   const { codigo, mensaje } = envio.error
+  // Sólo el PT409 trae el texto de la base (nombra a una persona y cuándo); lo demás, su texto propio.
   if (codigo === 'conflicto') return { tipo: 'conflicto', mensaje }
   if (codigo === 'regla') return { tipo: 'regla' }
   if (codigo === 'sin_permiso') return { tipo: 'sin_permiso' }
-  return { tipo: 'error', mensaje }
+  return { tipo: 'error' }
 }
 
 type Valores = { definicion: unknown; params: unknown }
@@ -109,6 +110,8 @@ export function useGuardadoDelEditor(args: Args) {
   async function guardar() {
     const pedido = pedidoDeGuardar(base, guardable, origenId)
     const formula = guardable
+    // Lo que dijo el intento anterior no queda a la vista mientras corre este.
+    setEstado({ tipo: 'quieto' })
     const r = await envio.mandar(() => enviarAccion(guardarBorrador(pedido), MENSAJE_DE_VALIDACION))
     if (r === null) return
     if (!r.ok) {

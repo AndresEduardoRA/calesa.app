@@ -85,7 +85,7 @@ describe('GuardarBorrador: el botón y sus estados (C5)', () => {
     ],
     [{ tipo: 'sin_permiso' }, 'Ya no configuras Japón: no se puede guardar.'],
     [{ tipo: 'sin_respuesta' }, 'No sabemos si se guardó: recarga para verlo.'],
-    [{ tipo: 'error', mensaje: 'Algo falló de nuestro lado.' }, 'Algo falló de nuestro lado.'],
+    [{ tipo: 'error' }, 'No pudimos guardar el borrador. Vuelve a intentar en un momento.'],
   ])('%o: su texto, con el botón encendido para volver a intentar', (estado, texto) => {
     dibujar({ estado })
     expect(screen.getByRole('alert')).toHaveTextContent(texto)
