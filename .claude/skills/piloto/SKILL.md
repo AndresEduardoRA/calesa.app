@@ -99,7 +99,7 @@ Antes de pedirla, deja tu trabajo en un commit o el árbol limpio: traer `main` 
 }
 ```
 
-- **`listo`:** los commits son **todos** los del paso (`HEAD de arranque..HEAD`, ni uno más) y el árbol está limpio. `e2e_dirigidos`: los specs que tocan lo que cambiaste (grepea `e2e/` por el texto tocado); el bucle los repite.
+- **`listo`:** los commits son **todos** los de esta sesión (`git rev-list --no-merges <HEAD de arranque>..HEAD`, ni uno más; los de partes anteriores del paso, ya publicadas, no) y el árbol está limpio. `e2e_dirigidos`: los specs que tocan lo que cambiaste (grepea `e2e/` por el texto tocado); el bucle los repite.
 - **`parcial`** (sólo en un carril, con `listo`): `true` si el paso se partió y este «listo» es una de sus partes (el 4.20-2b de un 4.20 que sigue). El paso sigue asignado al carril y la
   vuelta siguiente retoma su rama; con `false` (o sin el campo), el coordinador lo da por terminado cuando se integre su PR y el carril pasa al siguiente. Escribirlo
   en el resumen («este PR no marca integrado…») no alcanza: el bucle sólo mira el campo.
