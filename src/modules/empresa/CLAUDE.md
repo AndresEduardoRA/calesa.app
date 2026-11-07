@@ -12,6 +12,7 @@ Ficha completa: `docs/archivo/modulos/empresa.md`, sólo con grep.
   - `getPoliticaDeLimpieza()` — limpieza automática de vehículos de subasta y días de gracia; sin poder leerla, se da por apagada.
   - `getTiposCambio()` — vigentes, el por defecto adelante; lista vacía si falla. Lo usa `app/` (`<TiposCambioVigentes>`); lo usará `cotizaciones`, que congela los que usa.
   - `integracionActiva('apibara')` — si la base no responde, no.
+  - `PESO_MAXIMO_LOGO` (1 MB, `entities/marca.ts`): el tope de un logo en Storage; el PDF de una cotización no baja uno más pesado (`cotizaciones`, 4.18-3a). `leerAjustes()` lo usa también ese PDF: a diferencia de `getAjustes()`, falla en vez de dar lo de fábrica.
   - Pantalla: `leerAjustes()`, `leerMonedasYTiposCambio()`, `leerHistorial()`, `leerIntegraciones()`, `zonasHorarias()`. Íconos: `iconosDelManifest()`, `urlDeIcono()`, `claveDeIconoVigente()` (para `app/manifest.ts` y `app/iconos/vigente/[tamano]`).
 - Componentes (`<FormularioEmpresa>`, `<MonedasYTiposCambio>`, `<Integraciones>`, `<IconosDeLaApp>`) por `pantallas/configuracion-empresa.ts`, sólo `src/app`.
 - `shell.ts` (sólo layout `(app)`): `getAjustes()`, `getTiposCambio()`, `<TiposCambioVigentes>`.
