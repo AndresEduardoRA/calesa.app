@@ -447,7 +447,10 @@ playwright test --shard=2/4 --project=escritorio`), con `log_min_duration_statem
 - **4-63** (sin fase; salió del 4.14-2a5): en el lead rápido, un segundo `page.goBack()` justo tras el primero (recargar con «Editar» abierto, «atrás» y «atrás») deja la URL en `/leads`
   con el rápido todavía visible: 1 de 10 corridas en escritorio (`.piloto/salidas/4.14-2a5/repetir-dos-atras.txt`), y 4 de 15 con C4 anulado (M10: `mut/repetir-M10-editar.txt`), así que no
   nace de `esperaSinPanel`. La traza de la caída (`e2e-fallos/2026-10-30_12-38/`) muestra la URL ya sin `lead`. Puede ser la sincronización de nuqs con un «atrás» rápido o una carrera de `e2e/paneles-foco-al-volver-leads.spec.ts:196`.
-  Assert: `--repeat-each=20` de ese spec sin caídas, y la causa medida (la URL cambió y el rápido no).
+  **Causa medida** (ci-fix, 2026-11-06; cayó en el bloque 4 del CI 42293078030): el rápido queda abierto **para siempre** (20 s) sólo si al segundo «atrás» hay pedidos RSC del
+  router en vuelo (los del primer «atrás» tras recargar y los prefetch que dispara): 5 de 40 con 5–6 en vuelo y 0 de 60 esperándolos (`.piloto/salidas/ci-fix/sonda2-*.txt`). La URL
+  cambia y el router de Next 16 no aplica la entrada: no es de nuqs ni de la vuelta del foco. El spec ahora espera esos pedidos antes del segundo «atrás» (`vigilarPedidosDelRouter()`).
+  Queda para una persona que pulse «atrás» dos veces muy rápido tras recargar. Assert: dos «atrás» seguidos tras recargar, sin esperar, cierran el rápido (`--repeat-each=40`).
 - **4-62** (sin fase; límite de 4-59, del 4.14-2a5): tras recargar con anotar o agendar abierto desde el botón de la pestaña del lead rápido, o con un panel que se cierra con Esc,
   la ✕ o guardar en una URL distinta de la de apertura (la que lleva `&pestana=`), el segundo «atrás» deja el foco en `body`: la ficha de `lead` sólo se recupera en la URL
   donde se abrió. Assert: el segundo «atrás» devuelve el foco al nombre de la fila también desde la pestaña.
