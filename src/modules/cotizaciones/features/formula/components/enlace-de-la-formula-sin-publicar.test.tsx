@@ -2,6 +2,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { RUTAS } from '@/shared/lib/rutas'
 import { EnlaceDeLaFormulaSinPublicar } from './enlace-de-la-formula-sin-publicar'
+import { ProveedorDelAjuste } from './hoja/proveedor-del-ajuste'
 import { HUECOS_DE_FORMULA_EN_LA_HOJA } from './huecos-en-la-hoja'
 
 afterEach(cleanup)
@@ -21,5 +22,9 @@ describe('EnlaceDeLaFormulaSinPublicar', () => {
 describe('HUECOS_DE_FORMULA_EN_LA_HOJA', () => {
   it('trae el enlace de la fórmula sin publicar', () => {
     expect(HUECOS_DE_FORMULA_EN_LA_HOJA.EnlaceSinPublicar).toBe(EnlaceDeLaFormulaSinPublicar)
+  })
+
+  it('trae el proveedor que enciende el ⚙ de las celdas', () => {
+    expect(HUECOS_DE_FORMULA_EN_LA_HOJA.Proveedor).toBe(ProveedorDelAjuste)
   })
 })
