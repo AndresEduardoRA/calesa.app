@@ -24,6 +24,9 @@ const ORIGEN = '11111111-1111-4111-8111-111111111111'
 const leida = (): FormulaParaEditar => ({
   id: '22222222-2222-4222-8222-222222222222',
   actualizadoEn: '2026-11-07T15:00:00.123456+00:00',
+  estado: 'borrador',
+  diseno: null,
+  nota: null,
   formula: formulaDePrueba([
     { id: 'base', texto: '900', etiqueta: 'Base' },
     { id: 'total', texto: '=base*2', etiqueta: 'Total' },

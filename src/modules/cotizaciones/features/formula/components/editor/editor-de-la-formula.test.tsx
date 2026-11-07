@@ -30,7 +30,14 @@ const leida = (
   formula = formulaDePrueba([{ id: 'total', texto: '=remate+fees', etiqueta: 'Total' }]),
 ): Respuesta => ({
   ok: true,
-  data: { id: FORMULA, actualizadoEn: '2026-11-07T15:00:00.123456+00:00', formula },
+  data: {
+    id: FORMULA,
+    actualizadoEn: '2026-11-07T15:00:00.123456+00:00',
+    estado: 'borrador',
+    diseno: null,
+    nota: null,
+    formula,
+  },
 })
 
 const responder = async (n: number, r: Respuesta) => {

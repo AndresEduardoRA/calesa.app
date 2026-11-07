@@ -51,6 +51,9 @@ const formula = () =>
 const leidaDe = (f: Formula, hora = HORA): FormulaParaEditar => ({
   id: FORMULA,
   actualizadoEn: hora,
+  estado: 'borrador',
+  diseno: null,
+  nota: null,
   formula: f,
 })
 const montar = (leida: FormulaParaEditar = leidaDe(formula())) =>
