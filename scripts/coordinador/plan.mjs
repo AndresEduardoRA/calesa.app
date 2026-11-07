@@ -131,6 +131,9 @@ export function problemasDelPlan(plan) {
         const a = pasos.get(ids[i])
         const b = pasos.get(ids[j])
         if (anc.get(a.id).has(b.id) || anc.get(b.id).has(a.id)) continue
+        // Dos pasos del mismo carril nunca corren a la vez (el coordinador le da uno por vez): que toquen lo mismo no choca. El 4.19-1
+        // sumó a su paso `supabase/` y `.claude/rules/`, que también tienen el 4.15-7 y el 4.20-4a del A, y el A no pudo pedir paso.
+        if (a.carril === b.carril) continue
         for (const ma of a.modulos ?? [])
           for (const mb of b.modulos ?? [])
             if (!esLibre(ma, plan) && !esLibre(mb, plan) && solapan(ma, mb))
@@ -314,7 +317,11 @@ export function marcar(estado, id, nuevo, datos = {}, ahora = new Date().toISOSt
  */
 export function siguiente(plan, estado, carril, { cuota = null, umbral = 0.8 } = {}) {
   // Un pedido de otro carril va antes que todo lo propio (entre partes de un paso, también): el otro carril está parado esperándolo.
-  const pedidos = (estado.pedidos ?? []).filter((p) => p.para === carril)
+  // Primero los de un carril que está parado esperándolo; después los de la persona (nadie espera), por orden de llegada.
+  const esCarril = (id) => plan.carriles.some((c) => c.id === id)
+  const pedidos = (estado.pedidos ?? [])
+    .filter((p) => p.para === carril)
+    .sort((x, y) => Number(!esCarril(x.de)) - Number(!esCarril(y.de)) || (x.n ?? 0) - (y.n ?? 0))
   const pd =
     pedidos.find((p) => p.estado === 'asignado') ??
     pedidos.find((p) => p.estado === 'publicado' && p.arreglar) ??
