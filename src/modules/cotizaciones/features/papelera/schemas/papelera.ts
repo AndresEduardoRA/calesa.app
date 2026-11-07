@@ -9,3 +9,11 @@ export const esquemaSobreUnLote = z.object({
   actualizadoEnEsperado: z.string().min(1),
   cotizaciones: z.array(z.guid()).min(1).max(MAXIMO_POR_LOTE).optional(),
 })
+
+// Enviar a la papelera (4.24-3): cada cotización con la versión que estaba en pantalla, el texto de la base tal cual.
+export const esquemaEnviarAPapelera = z.object({
+  cotizaciones: z
+    .array(z.object({ id: z.guid(), actualizadoEn: z.string().min(1) }))
+    .min(1)
+    .max(MAXIMO_POR_LOTE),
+})
