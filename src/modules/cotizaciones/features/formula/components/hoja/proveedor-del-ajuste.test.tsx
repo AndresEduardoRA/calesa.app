@@ -22,6 +22,7 @@ vi.mock('next-safe-action/hooks', async () => {
 })
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }))
 vi.mock('../../actions/cambiar-constante', () => ({ cambiarConstante: {} }))
+vi.mock('@/modules/empresa/client', () => ({ guardarTipoCambio: {} }))
 vi.mock('../../../../areas/formula/composicion.client', async () => {
   const soporte = await import('../../hooks/use-ajuste-de-constante.soporte')
   return { leerValorPorDefecto: soporte.leerSimulado }

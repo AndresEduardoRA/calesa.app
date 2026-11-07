@@ -8,15 +8,7 @@ import { MENSAJE_SIN_LA_CONSTANTE } from '../../../../entities/formula/ajuste'
 import { ValorDeNodo } from '../../../hoja/components/valor-de-nodo'
 import type { BloqueDeConstante as Bloque } from '../../hooks/use-ajuste-de-constante'
 import { EsqueletoDelValor } from './esqueleto-del-valor'
-
-// Las marcas de 1Password, LastPass, Bitwarden y Dashlane para que un campo de contraseña no invite a «Guardar contraseña». Copia de las de la entrada de la XCell
-// (`src/shared/ui/xcell/entrada-de-xcell.tsx`, `MARCAS_DE_GESTORES`, que no se exportan): con el Modo Live, «Valor nuevo» se escribe como una celda.
-const MARCAS_DE_GESTORES = {
-  'data-1p-ignore': 'true',
-  'data-lpignore': 'true',
-  'data-bwignore': 'true',
-  'data-form-type': 'other',
-}
+import { MARCAS_DE_GESTORES } from './marcas-de-gestores'
 
 type Props = {
   bloque: Bloque

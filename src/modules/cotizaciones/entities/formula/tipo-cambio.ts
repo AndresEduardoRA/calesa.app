@@ -60,3 +60,17 @@ export function tipoCambioTipeado(texto: string, locale: string, actual: number)
 // El texto con que abre «Valor nuevo»: el valor de hoy con toda su precisión, el decimal del locale y sin miles (como `textoParaEditar` de `empresa`).
 export const textoInicialDeTipoCambio = (valor: number, locale: string): string =>
   formatearParaEditar(valor, { locale })
+
+const DECIMALES_MINIMOS_AL_MOSTRAR = 2
+
+// Con cuántos decimales se muestra «Valor de hoy» (4.20-3d): los que tiene, entre 2 y 6 (la base guarda 6), como Monedas. Copia de `decimalesDeValor` de
+// `empresa/entities/tipos-cambio.ts`, que no sale por su `client.ts` («Necesita del carril A» del 4.20-3d). 11.68 → 2; 6.9612 → 4; 0.000145 → 6.
+export function decimalesDeTipoCambio(valor: number): number {
+  for (let decimales = DECIMALES_MINIMOS_AL_MOSTRAR; decimales < DECIMALES_MAXIMOS; decimales++) {
+    const factor = 10 ** decimales
+    if (Math.abs(Math.round(valor * factor) / factor - valor) < 1e-9) {
+      return decimales
+    }
+  }
+  return DECIMALES_MAXIMOS
+}
