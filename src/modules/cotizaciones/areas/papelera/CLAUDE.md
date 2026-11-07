@@ -16,8 +16,10 @@ restaura y qué queda pendiente. Acá se lee y se dibuja.
   si ya no está.
 - `index.ts` también da `puedeAbrirLaPapeleraDeCotizaciones(permisos)` (quien puede enviar —`cotizaciones.editar`, `.moderar` o `.final.gestionar`— o vaciar —`cotizaciones.papelera.purgar`—; P2 a) y
   `puedePurgarLaPapeleraDeCotizaciones(permisos)`. Quien no la abre ve «sin permiso», sin consulta; ningún `if (rol …)`.
-- `composicion.ts` (servidor): `repositorioDePapeleraDeCotizaciones.restaurar` (`cotizaciones_papelera_restaurar`, `infra/papelera/escribir.ts`), que usa la action
-  `features/papelera/actions/restaurar-de-papelera.ts` (`revalidatePath('/cotizaciones', 'layout')`; la base decide quién restaura, como en leads).
+- `composicion.ts` (servidor): `repositorioDePapeleraDeCotizaciones.restaurar` y `.purgar` (`cotizaciones_papelera_restaurar|purgar`, `infra/papelera/escribir.ts`), que usan
+  las actions `features/papelera/actions/restaurar-de-papelera.ts` (la base decide quién restaura, como en leads) y `purgar-de-papelera.ts` (4.24-2b: sin
+  `cotizaciones.papelera.purgar` responde `sin_permiso` **sin llamar** a la base, que la vuelve a pedir antes de mirar el lote); las dos con el mismo `esquemaSobreUnLote`
+  y `revalidatePath('/cotizaciones', 'layout')` sólo si la base dijo que sí.
 - `client.ts` sigue vacío: el área no suma JS a quien importa `@/modules/cotizaciones/client`.
 
 ## La pantalla

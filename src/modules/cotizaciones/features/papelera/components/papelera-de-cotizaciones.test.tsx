@@ -12,6 +12,7 @@ vi.mock('next-safe-action/hooks', () => ({
   useAction: () => ({ executeAsync: vi.fn(), isPending: false }),
 }))
 vi.mock('../actions/restaurar-de-papelera', () => ({ restaurarCotizacionesDePapelera: {} }))
+vi.mock('../actions/purgar-de-papelera', () => ({ purgarCotizacionesDePapelera: {} }))
 vi.mock('../../../areas/papelera/composicion.client', () => ({
   leerLoteDePapeleraDeCotizaciones: vi.fn(),
 }))
