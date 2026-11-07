@@ -131,6 +131,9 @@ export function problemasDelPlan(plan) {
         const a = pasos.get(ids[i])
         const b = pasos.get(ids[j])
         if (anc.get(a.id).has(b.id) || anc.get(b.id).has(a.id)) continue
+        // Dos pasos del mismo carril nunca corren a la vez (el coordinador le da uno por vez): que toquen lo mismo no choca. El 4.19-1
+        // sumó a su paso `supabase/` y `.claude/rules/`, que también tienen el 4.15-7 y el 4.20-4a del A, y el A no pudo pedir paso.
+        if (a.carril === b.carril) continue
         for (const ma of a.modulos ?? [])
           for (const mb of b.modulos ?? [])
             if (!esLibre(ma, plan) && !esLibre(mb, plan) && solapan(ma, mb))
