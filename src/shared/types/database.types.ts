@@ -7663,6 +7663,7 @@ export type Database = {
       }
       _publicar_formula: {
         Args: {
+          p_actualizado_en_esperado: string
           p_ignorar_retirados: boolean
           p_nota: string
           p_origen: string
@@ -8278,7 +8279,12 @@ export type Database = {
       }
       formula_para_cotizar: { Args: { p_origen: string }; Returns: Json }
       formula_publicar: {
-        Args: { p_nota: string; p_origen: string; p_publicada_esperada?: string }
+        Args: {
+          p_actualizado_en_esperado?: string
+          p_nota: string
+          p_origen: string
+          p_publicada_esperada?: string
+        }
         Returns: string
       }
       formula_revertir: {

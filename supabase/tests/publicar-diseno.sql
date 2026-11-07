@@ -596,7 +596,7 @@ begin
   if v_p is null then raise exception 'no existe formula_cambiar_constante(uuid,text,numeric,uuid)'; end if;
   if not has_function_privilege('authenticated', v_p, 'execute') or has_function_privilege('anon', v_p, 'execute') then
     raise exception 'los grants de formula_cambiar_constante'; end if;
-  foreach f in array array['public._publicar_formula(uuid,text,uuid,boolean)', 'public._publicar_version(uuid,jsonb,jsonb,jsonb,text,uuid,jsonb,boolean)',
+  foreach f in array array['public._publicar_formula(uuid,text,uuid,boolean,timestamptz)', 'public._publicar_version(uuid,jsonb,jsonb,jsonb,text,uuid,jsonb,boolean)',
                            'public._version_publicada_por(uuid)', 'public.formula_guardar_borrador(uuid,jsonb,jsonb,jsonb,text,uuid,timestamptz)',
                            'public.formula_cambiar_constante(uuid,text,numeric,uuid)'] loop
     v_p := to_regprocedure(f);
@@ -605,7 +605,7 @@ begin
     if (select p.prosecdef and p.proconfig = array['search_path=""'] from pg_proc p where p.oid = v_p) is not true then
       raise exception '% no es security definer con search_path vacío', f; end if;
   end loop;
-  foreach f in array array['public._publicar_formula(uuid,text,uuid,boolean)', 'public._publicar_version(uuid,jsonb,jsonb,jsonb,text,uuid,jsonb,boolean)'] loop
+  foreach f in array array['public._publicar_formula(uuid,text,uuid,boolean,timestamptz)', 'public._publicar_version(uuid,jsonb,jsonb,jsonb,text,uuid,jsonb,boolean)'] loop
     if position($c$pg_advisory_xact_lock(hashtextextended('formulas:'$c$ in pg_get_functiondef(to_regprocedure(f))) = 0 then
       raise exception '% no toma el candado del origen', f; end if;
   end loop;
