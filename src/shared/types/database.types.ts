@@ -8260,7 +8260,10 @@ export type Database = {
         Args: { p_nodo: string; p_origen: string; p_publicada_esperada?: string; p_valor: number }
         Returns: string
       }
-      formula_descartar_borrador: { Args: { p_origen: string }; Returns: undefined }
+      formula_descartar_borrador: {
+        Args: { p_actualizado_en_esperado?: string; p_origen: string }
+        Returns: undefined
+      }
       formula_guardar_borrador: {
         Args: {
           p_actualizado_en_esperado?: string
