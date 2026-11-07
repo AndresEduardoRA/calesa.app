@@ -150,6 +150,11 @@ test('E2: con «Aplicar también a esta cotización», la celda toma el valor nu
   ).toBeVisible()
   expect(publicada(origen.id, 'con_ayuda')).toBe('3:9')
   await expect(celdaDeLaHoja(page, 'con_ayuda')).toContainText('9,00')
+  // Aplicado como si se tipeara: la celda queda modificada (anillo y ↺).
+  await expect(celdaDeLaHoja(page, 'con_ayuda').locator('[data-xcell]')).toHaveAttribute(
+    'data-estado',
+    /modificado/,
+  )
 })
 
 test('E3: si otra persona publicó con el panel abierto, dice lo de la base y «Volver a leer» trae lo nuevo sin perder lo tipeado', async ({
@@ -182,7 +187,12 @@ test('E4: el porcentaje de un par se tipea en puntos y se publica como fracción
   await abierto.getByRole('button', { name: 'Cambiar el valor por defecto' }).click()
   await expect(abierto).toBeHidden()
   expect(publicada(subasta, 'fees_pct')).toBe('2:0.15')
-  await expect(celdaDeLaHoja(page, 'fees')).toContainText('15')
+  // El lado secundario de la celda (el porcentaje, `data-parada="1"`) dice 15 % y la celda queda modificada.
+  await expect(celdaDeLaHoja(page, 'fees').locator('[data-parada="1"]')).toContainText('15')
+  await expect(celdaDeLaHoja(page, 'fees').locator('[data-xcell]')).toHaveAttribute(
+    'data-estado',
+    /modificado/,
+  )
 })
 
 test('E5: una celda de tipo de cambio dice dónde se cambia', async ({ page }) => {

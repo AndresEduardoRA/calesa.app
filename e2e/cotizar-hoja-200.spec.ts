@@ -244,5 +244,6 @@ test('como quien configura, la misma hoja suma sólo sus ⚙ y cabe en su tope',
   expect(medida.ajustesAlAbrir).toBeGreaterThan(0)
   expect(medida.alAbrir - sinAjuste.alAbrir).toBe(NODOS_POR_AJUSTE * medida.ajustesAlAbrir)
   expect(medida.usada - sinAjuste.usada).toBe(NODOS_POR_AJUSTE * medida.ajustesUsada)
+  expect(medida.alAbrir).toBeLessThanOrEqual(TOPE_DE_NODOS_CON_AJUSTE)
   expect(medida.usada).toBeLessThanOrEqual(TOPE_DE_NODOS_CON_AJUSTE)
 })
