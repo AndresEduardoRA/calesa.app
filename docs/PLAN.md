@@ -287,7 +287,9 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
 - **4.20-4b** — Configuración › Cotización › Ajustes (`?seccion=ajustes`): el formulario, la pestaña y el hub. Depende de 4.20-4a y 4.20. Carril A. Nivel 1. Plan: `docs/pasos/4.20-4/plan-del-a.md`. Prompts: 1.
 - **4.21** — El editor de la fórmula como el Excel (filas, grupos, tipo de cambio, plazo; cada fila en texto, compilada por 4.07, que
   guarda `{ ...raíz compilada, texto }`); evalúa con el motor TS, porque quien lo usa ya ve la fórmula. Cierra **4-5** y **4-6**.
-  Depende de 4.07 y 4.20. Nivel 1. Prompts: 2.
+  Depende de 4.07 y 4.20. Nivel 1. Prompts: 2. Se parte en 4.21-1 (lo puro del texto de una fila), 4.21-2 (la esperada de guardar y
+  descartar el borrador; 4-8), 4.21-3a (el editor en texto con la vista previa; cierra 4-5 y 4-6), 4.21-3b (guardar el borrador) y
+  4.21-3c (grupos, plazo y tipo de cambio); cada parte menos la última sale con `parcial`.
 - **4.22** — **El editor del diseño**: secciones, celdas, nivel de ver y de editar, qué va a «avanzado», variantes, interruptores,
   atajos, modos y tonos (y editar el catálogo de tonos con su validación AA), con vista previa a 412 y 1.280 px y al 200 % (el mismo
   componente en un contenedor de ese ancho). **Avisa, sin bloquear**, cuando un nodo de un nivel restringido es el único oculto de una
