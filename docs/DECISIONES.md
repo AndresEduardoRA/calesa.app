@@ -2095,3 +2095,33 @@ Lo pidió la persona después de que el A hiciera el 4.16 y el 4.17-1: se parti�
   vehículo y el encabezado el de la variante (P6 del 4.18-1): cierra 4-55.
 - **La hoja pasó a 469 de 500 nodos al abrir (491 usada) y `/cotizaciones/nuevo` a 458,5 de 460 KB (4-73):** el botón es de sólo texto (P1) y su código, diferido. El «Compartir»
   del 4.18-3 sumará otro nodo y más JS: antes, atribuir lo que ya pesa. Se registró el modal en `scripts/guardas/modales-con-salida.ts` (sólo dibuja, no guarda nada tipeado).
+
+## 2026-11-06 — Paso 4.18-3a: el PDF de una cotización guardada
+
+- **El 4.18-3 se parte en 2:** el **4.18-3a** (el PDF en el servidor, su lector y el e2e del total) y el **4.18-3b** («Copiar texto», «Descargar PDF», la tarea de oro 2 con el PDF
+  y el hito 4-A con el completo). Entero pedía 4 commits de código y juntaba dos capas que se verifican distinto. «Compartir» ya era dar acceso a un lead (`docs/GLOSARIO.md`):
+  la cotización tiene dos acciones con su verbo (P5, para el 3b).
+- **El PDF es de una guardada y de lo guardado:** `GET /cotizaciones/<id>/pdf` dibuja `modeloDeLaTarjeta()` con `calculoDeLoGuardado()`, como «Vista previa» de esa guardada
+  (P5 del 4.18-2); lo que no se guardó no se puede armar en el servidor. Lo lee con la sesión de quien pide: lo deciden la RLS de la hoja guardada y `cotizacion_tarjeta()`, sin
+  clave propia (P4). Pide `requerirSesion()` antes de leer (la segunda barrera tras el proxy: también ataja la cuenta dada de baja) y da el mismo 404 en texto que la página
+  para lo que no existe, está en la papelera o no se ve.
+- **Los montos van con `formatearMonto()`, sin `<Monto>` y sin Modo Live (P8):** `<Monto>` es del DOM y react-pdf no lo dibuja; `formatearMonto()` es el texto que `<Monto>`
+  imprime. El PDF es lo que se entrega al cliente y lleva siempre las cifras; Live sirve para tapar la pantalla mientras se muestra. Es la única excepción a «dinero sin `<Monto>`»
+  (`CLAUDE.md` › «Nunca») y vive en `infra/tarjeta/pdf/`.
+- **Los ajustes por `leerAjustes()`, no por `getAjustes()`:** `getAjustes()` nunca falla y daría el locale y la zona de fábrica sin avisar; un PDF que va al cliente no sale con el
+  formato equivocado: si la lectura falla, es un 500. Cuesta una RPC más (`empresa_con_datos_cargados`).
+- **Las fuentes (P1):** Geist Regular y SemiBold en TTF del release oficial `vercel/geist-font` v1.9.2 (publicado el 2026-11-06, OFL 1.1, con su `OFL.txt`), en
+  `src/modules/cotizaciones/infra/tarjeta/pdf/fuentes/`. sha256: `Geist-Regular.ttf` `2c460a7a71063e53491f343d44b382267bc0cf496e31db64865f962af3152e68`,
+  `Geist-SemiBold.ttf` `01923aa148e5202ae70a2e11b2ab4dc41b80bcc374aedccc913d47bb2f591c06` (del zip
+  `15f066d58dcb99fb10014a49913009fdaf41e464cfb8851a44b44e593c95d3d8`). `next.config.ts` las traza para el despliegue (`outputFileTracingIncludes`).
+- **El logo (P2):** se baja en el servidor con 2 s y `PESO_MAXIMO_LOGO` (1 MB, el de Storage) y llega a react-pdf como `Buffer`, nunca como URL (react-pdf la bajaría sin espera
+  ni tope y la guardaría en su caché de proceso). PNG y JPEG van siempre; un SVG sólo si no trae lo que `@react-pdf/svg` se salta (`<style>` y clases, `use`, `symbol`, `mask`,
+  `filter`, `pattern`) ni `<image>` (bajaría o leería otro archivo sin tope). El WebP no lo dibuja: 4-98.
+- **El lector del PDF es propio (P3):** `scripts/pdf/texto-del-pdf.ts`, sólo con `node:zlib`, lee lo que escribe pdfkit 0.20 (las CMap ToUnicode, también la ligadura «fi» con un
+  espacio dentro del hex) y lo que no entiende lo dice. Su prueba arma PDFs con el renderer real: si cambia pdfkit, cae.
+- **react-pdf se carga sólo al pedir un PDF** (`import()` en `areas/tarjeta/composicion.ts`) y nunca llega al navegador. Aun así, **suma ≈ 0,45 KB al JS en frío de todas las
+  rutas**: `@react-pdf/renderer` es sólo ESM y Turbopack lo trata como externo asíncrono, y con él en el grafo del servidor el runtime del cliente (uno para todas) lleva el
+  soporte de módulos asíncronos (3.973 → 4.423 bytes con gzip). Se midió build por build: sube con el área en el barril, con import estático y con el PDF en una entrada
+  aparte; no sube sin el área. Todas las rutas siguen bajo su presupuesto; `/cotizaciones/nuevo` queda en 458,9 de 460 (4-73). Sacarlo del grafo (un `import()` que Turbopack
+  ignore) obligaría a trazar el paquete a mano para desplegarlo: frágil, no se hizo.
+- **La guarda de `diferidos` permite ese `import()`** por su ruta (`infra/tarjeta/pdf/pdf-de-la-tarjeta`): es servidor, no un componente del navegador.
