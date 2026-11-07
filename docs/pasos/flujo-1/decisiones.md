@@ -26,8 +26,29 @@
   5 veces al arrancar los carriles. Una «parte» que es otro id del plan (el 4.20-4a del A dentro del 4.20 de B) no vale.
 - **El coordinador integra las partes** (`pr_parcial`, con merge y sin borrar la rama, porque el carril sigue en ella) y los pedidos (como un paso ámbar). Antes
   las partes sólo las integraba `integrar-verdes.sh`, fuera del repo.
-- **Lo rojo:** `integraSolo` ya no lo bloquea por código. Lo integra solo si `COORD_MERGE_AUTO` nombra `rojo` a propósito; por omisión (`piloto.config`:
-  `verde,ambar`) sigue siendo de la persona. La regla cambió de hecho con `integrar-verdes.sh` sin quedar escrita: ahora es una línea de configuración a la vista.
+- **Lo rojo lo integra el coordinador con el CI en verde** (lo decidió la persona el 2026-11-07). `integraSolo` ya no lo bloquea por código: vale lo
+  que diga `COORD_MERGE_AUTO`, y `piloto.config` dice `verde,ambar,rojo` (antes la línea pisaba al entorno, así que el `rojo` con que corría el
+  coordinador nunca rigió, y lo integraba `integrar-verdes.sh` sin quedar escrito). La última barrera son el auditor (Opus) y los jobs de base
+  del CI (RLS, grants, advisors).
+- **Lo que toca las guardas del piloto no se integra solo**, aunque sea verde (`scripts/piloto/`, hooks, settings, agentes, skills del piloto,
+  lefthook, workflows): la copia del bucle sale de main y los tres carriles se recargan con ella, así que un paso que reescribe el bucle no
+  entra sin que la persona lo vea. La compuerta «guardas» se contesta sola en el carril; el merge, no. `COORD_GUARDAS_SOLAS=1` lo deja.
+- **Las pruebas inestables tienen un reintento sólo en CI** (lo decidió la persona el 2026-11-07). Del 3 al 7-11 hubo 13 corridas rojas sin código
+  roto, y cada una devolvía el PR a su carril. La que pasa al reintentar se anota en el PR y en el resumen de la corrida
+  (`e2e/soporte/reporter-de-inestables.ts`) y sigue siendo un abierto. En local, sin reintento, como siempre. Las 12 conocidas van como
+  pedido al carril A.
 - **La puerta de fase con carriles mira el CI de `main`**, porque la rama nueva del 4.28 no tendrá corridas. Una corrida cancelada no cuenta si hay otra detrás.
   Un `ci-fix` no se repite hasta que corra un CI que incluya su arreglo.
+- **Lo que corrigió la revisión adversarial** (antes de integrar):
+  - Un pedido o un paso que cierra «listo sin cambios» se lo decía sólo al registro, y el coordinador lo volvía a dar sin fin (una sesión pagada
+    por vuelta). Ahora un pedido así se cierra (`cerrar-pedido`) y un paso del plan asignado sin nada que publicar va a la persona.
+  - La copia se cambia con un enlace (`bin` → `bin.<árbol>-<hora>`, `mv -T`), sin un instante sin `bin/`, y cada bucle sigue con la suya
+    (`comun.sh` resuelve el enlace) hasta relanzarse: ya no mezcla piezas viejas en memoria con nuevas en disco.
+  - Lo que el bucle corre por fuera (`git`, el coordinador) no hereda el candado del bucle (fd 8): un `git gc` desprendido dejaba al bucle
+    relanzado sin poder tomarlo. El relanzado espera 30 s el candado.
+  - Un paso que falla, «tres fallas seguidas», la espera que pasa su tope y un ciclo entre carriles van directo a la persona: esperar no los arregla.
+  - La `espera` pide `archivos` y despierta cuando **todos** cambian en main (o el dueño cierra el pedido), no con cualquier commit; hasta 3
+    esperas por paso. Dos carriles que se piden mutuamente son un ciclo que va a la persona.
+  - Un carril con sus pasos integrados no sale: atiende pedidos hasta que el plan entero termine.
+  - El coordinador integra el commit que vio el CI (`--match-head-commit`).
 - **Para el coordinador (o el A):** al consolidar, cerrar en `docs/PLAN.md` el 4-83 (`auto-carriles.test.ts` hermético).

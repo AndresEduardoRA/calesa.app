@@ -161,25 +161,38 @@ El piloto corría la verificación dos veces (local y CI) y se detenía por cada
 
 ## El flujo continuo (FLUJO-1, 2026-11-07)
 
-Del 5 al 7-11 los carriles se paraban por cosas que no necesitaban a nadie, y los relanzaban scripts fuera del repo (`~/orca/supervision/`: integrar los PR en verde, re-arrancar al cambiar los
-scripts, traer main tras una espera, mantener asignado un paso partido). Todo eso vive ahora en el repo, con sus pruebas (`bucle-flujo.test.ts`, `arrancar.test.ts`, `coordinador.test.mjs`), y esos
-scripts ya no hacen falta:
+Del 5 al 7-11 los carriles se paraban por cosas que no necesitaban a nadie, y los relanzaban scripts fuera del repo (`~/orca/supervision/`:
+integrar los PR en verde, re-arrancar al cambiar los scripts, traer main tras una espera, mantener asignado un paso partido, levantar un
+carril caído). Todo eso vive ahora en el repo, con sus pruebas (`bucle-flujo.test.ts`, `arrancar.test.ts`, `coordinador.test.mjs`), y esos
+scripts ya no hacen falta. Las decisiones, en `docs/pasos/flujo-1/decisiones.md`.
 
-- **La copia se pone al día sola** (arriba): sale de `origin/main` y cada bucle se relanza cuando main cambia `scripts/piloto/`. `PILOTO_RECARGAR=0` lo apaga.
-- **La rama del carril trae main antes de cada parte** (`carril.sh` › `traer_main`): sin commits propios pasa a ser `origin/main` (una rama local vieja ya no se retoma); con commits, `git merge`. Así cada
-  parte corre con las skills, los agentes y las guardas de main (el PR 49 no llegaba a ningún carril). Un conflicto se aborta y se anota: el coordinador devuelve el PR.
-- **La espera a main** (compuerta `espera`, con `pedido` y `archivos`): el bucle le deja el pedido al coordinador, mira `origin/main` cada `PILOTO_ESPERA_MAIN_POLL` s (120) hasta que traiga los
-  `archivos`, lo trae a la rama y retoma el paso con la respuesta en `hechos.json` › `decision`. Tope `PILOTO_ESPERA_MAIN_MAX` (6 h): después, aviso.
-- **Los pedidos entre carriles** (`coordinador.mjs pedir`): van al dueño de los `archivos` (o al carril base), que los toma **antes que sus propios pasos** como `pedido-<n>` (rama `<carril>/pedido-<n>`,
-  ruteo sonnet/high escrito por el bucle, la skill lo hace con su prueba). El coordinador los integra como un paso ámbar. Reemplazan a los PR `fix/` hechos a mano (19, 32, 39, 46, 48).
-- **Un aviso se reintenta solo** antes de ir al celular (`parada_sola`, si `PILOTO_AUTO` nombra `parada`, que es lo de omisión): `PILOTO_PARADA_ESPERAS` (300 900 2700 s) por motivo; reintentar no se salta
-  ninguna verificación, la repite. El tope de gasto y el árbol que el paso dejó sucio van directo a la persona.
-- **El coordinador manda sobre el ruteo:** si el ruteo elige otro paso que el asignado (o una «parte» que es otro paso del plan, o «ninguno»), corre el asignado. Antes era una parada.
-- **Las partes se integran** (`coordinador.mjs parcial`): el PR de una parte va en `pr_parcial` y `sincronizar` lo integra con su CI en verde, con merge y sin borrar la rama. Un paso rojo (y su parte) sólo
-  si `COORD_MERGE_AUTO` nombra `rojo`.
-- **La puerta de fase con carriles mira el CI de `main`** (la rama del paso es nueva y no tenía CI), y una corrida cancelada no cuenta si hay otra detrás. Un `ci-fix` no se repite hasta que corra un CI con su
-  arreglo (`ci-fix-head`).
-- **El carril A publica con coordinador** su rama `a/<paso>` (`publicar.sh` la negaba). La sesión de funciones edge es una por carril (`piloto-funciones-<c>`).
+- **La copia se pone al día sola** (arriba): sale de `origin/main`, cada copia es su carpeta y `bin` un enlace que se cambia de una vez;
+  cada bucle sigue con la suya y se relanza (`exec`) entre pasos cuando main cambia `scripts/piloto/`. `PILOTO_RECARGAR=0` lo apaga.
+- **La rama del carril trae main antes de cada parte** (`carril.sh` › `traer_main`): sin commits propios pasa a ser `origin/main` (una rama
+  local vieja ya no se retoma); con commits, `git merge`. Así cada parte corre con las skills, los agentes y las guardas de main. Un
+  conflicto se aborta y se anota: el coordinador devuelve el PR.
+- **La espera a main** (compuerta `espera`, con `pedido` y `archivos`, obligatorios): el bucle le deja el pedido al coordinador, mira
+  `origin/main` cada `PILOTO_ESPERA_MAIN_POLL` s (120) hasta que **todos** los `archivos` cambien (o el dueño cierre el pedido), lo trae a la
+  rama y retoma el paso con la respuesta en `hechos.json` › `decision`. Hasta `PILOTO_ESPERA_MAIN_VECES` (3) esperas por paso y
+  `PILOTO_ESPERA_MAIN_MAX` (6 h) cada una; después, la persona. Una `afuera` que dice que algo «no está en main» también espera.
+- **Los pedidos entre carriles** (`coordinador.mjs pedir`): van al dueño de los `archivos` (o al carril base), que los toma **antes que sus
+  propios pasos** como `pedido-<n>` (rama `<carril>/pedido-<n>`, ruteo sonnet/high escrito por el bucle; la skill lo hace con su prueba). Uno
+  sin cambios se cierra (`cerrar-pedido`). Dos carriles que se piden mutuamente son un ciclo: va a la persona. Un carril con sus pasos
+  integrados sigue atendiendo pedidos hasta que el plan entero termine. Reemplazan a los PR `fix/` hechos a mano (19, 32, 39, 46, 48).
+- **Un aviso se reintenta solo** antes de ir al celular (`parada_sola`, si `PILOTO_AUTO` nombra `parada`, que es lo de omisión):
+  `PILOTO_PARADA_ESPERAS` (300 900 2700 s) por motivo; reintentar no se salta ninguna verificación, la repite. Van directo a la persona lo que
+  esperar no arregla: el tope de gasto, el árbol sucio, un paso que falla, tres fallas seguidas, una espera agotada y un ciclo.
+- **El coordinador manda sobre el ruteo:** si el ruteo elige otro paso que el asignado (o una «parte» que es otro paso del plan, o «ninguno»),
+  corre el asignado. Un paso del plan que dice «listo» sin cambios y sigue asignado va a la persona.
+- **El coordinador integra** los pasos, sus partes (`coordinador.mjs parcial`: con merge y sin borrar la rama) y los pedidos, en el commit
+  que vio el CI (`--match-head-commit`). Lo rojo también (`COORD_MERGE_AUTO` en `piloto.config`, decisión de la persona del 2026-11-07). **Lo
+  que toca las guardas del piloto, no:** lo integra la persona (`COORD_GUARDAS_SOLAS=1` lo deja).
+- **La puerta de fase con carriles mira el CI de `main`** (la rama del paso es nueva y no tenía CI), y una corrida cancelada no cuenta si hay
+  otra detrás. Un `ci-fix` no se repite hasta que corra un CI con su arreglo (`ci-fix-head`).
+- **En CI, los e2e tienen un reintento:** la prueba que pasa al reintentar no pone el PR en rojo, y queda anotada en el PR
+  (`e2e/soporte/reporter-de-inestables.ts`, `.claude/rules/e2e.md`).
+- **El carril A publica con coordinador** su rama `a/<paso>`. La sesión de funciones edge es una por carril (`piloto-funciones-<c>`). Lo que el
+  bucle corre por fuera no hereda su candado (fd 8).
 
 Para que un carril se levante solo tras un corte de luz, un reinicio o un bucle que se cayó: `bash scripts/maquina/instalar-servicios.sh a b c` (en el árbol del A). Escribe, por carril, la unidad
 `systemd --user` que corre `arrancar.sh --carril` al iniciar y un **vigía** cada 10 min (`arrancar.sh --carril <c> --si-caido`): levanta el bucle si nadie tiene `.piloto/bucle.lock` y no se paró a
