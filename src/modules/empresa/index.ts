@@ -23,5 +23,8 @@ export type { TipoCambio } from './entities/tipos-cambio'
 export { integracionActiva, leerIntegraciones } from './composicion'
 export type { ClaveIntegracion } from './entities/integraciones'
 
+// El tope de lo que pesa un logo en Storage (1 MB): el PDF de una cotización no baja uno más pesado (4.18-3a)
+export { PESO_MAXIMO_LOGO } from './entities/marca'
+
 // Íconos de la app generados desde el logo
 export { claveDeIconoVigente, iconosDelManifest, urlDeIcono } from './entities/iconos'

@@ -570,3 +570,13 @@ grupo es el que elige la plantilla si sigue en el catálogo; si no, el del grupo
 su `nombre` de `tipos_cambio` (nulo si no hay uno activo) y nunca por el id ni la clave del nodo; sin la columna, vacíos. `tonos` tiene la forma de la
 hoja (claro y oscuro) y `moneda_bs`, su regla. **Ningún id, etiqueta ni texto de un nodo sin `ver: todos` sale, para nadie** (K4 de
 `cotizacion-tarjeta.sql`, por cada nivel; el inventario de `cotizaciones-visibilidad.sql` la registra con ese bloque).
+
+### El PDF (4.18-3a)
+
+`GET /cotizaciones/<id>/pdf` da la tarjeta de una cotización **guardada** en A4: el mismo `modeloDeLaTarjeta()` que «Vista previa», con `calculoDeLoGuardado()` (valores y
+totales del snapshot, los estados del primer recálculo), así el PDF dice lo mismo que la tarjeta de esa guardada y nunca lo de hoy. Lee `cotizacion_hoja_guardada`,
+`cotizacion_evaluar(p_cotizacion)` y `cotizacion_tarjeta(p_formula)` con la sesión de quien pide: lo descarga quien ve la cotización, sin clave propia, y lo que un nivel esconde
+no está (sólo lo del nivel «todos»). Lo que no existe, está en la papelera o no se ve es el mismo 404 en texto que la página. El total impreso es el del snapshot: con dos tipos de
+cambio (`subasta_usa` en «Paralelo», Aduana a `tc_oficial`) **no es la suma de las filas** sino Bs ÷ tc(`total_en`), con Bs = Σ grupo × tc(su bucket); el e2e
+(`e2e/cotizar-pdf.spec.ts`) lo cuenta con las filas impresas y la tolerancia del redondeo. Los montos van con `formatearMonto()` y siempre con cifras (el Modo Live es de la
+pantalla); el logo, en `Buffer` y sólo si react-pdf lo dibuja fiel (4-98). Lo dibuja `src/modules/cotizaciones/infra/tarjeta/pdf/` con `@react-pdf/renderer` y Geist en TTF.
