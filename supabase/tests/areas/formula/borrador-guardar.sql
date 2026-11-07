@@ -1,7 +1,8 @@
--- La versión esperada del borrador de la fórmula (4.21-2, 4-8): `formula_guardar_borrador()` crea sin hora (y la publicada esperada, si viene, tiene que seguir
--- siendo la publicada) y pisa sólo con la `actualizado_en` que leyó; devuelve `{id, actualizado_en}` de la fila escrita. Descartar y publicar aceptan la hora.
--- El permiso va primero; el PT409 dice qué pasó, sin «Recarga». docs/COTIZADOR.md › «Versiones (4.20-1)». Corre en PGlite (`pnpm db:probar`, después de la lista
--- fija); cada bloque arma su terreno con `be_preparar()` dentro de su transacción y la revierte: no se apoya en el humo ni deja nada.
+-- La versión esperada al guardar el borrador de la fórmula (4.21-2, 4-8): `formula_guardar_borrador()` crea sin hora (y la publicada esperada, si viene,
+-- tiene que seguir siendo la publicada) y pisa sólo con la `actualizado_en` que leyó; devuelve `{id, actualizado_en}` de la fila escrita. El PT409 dice qué
+-- pasó, sin «Recarga». docs/COTIZADOR.md › «Versiones (4.20-1)».
+-- Corre en PGlite (`pnpm db:probar`, después de la lista fija); cada bloque arma su terreno con `be_preparar()` dentro de su transacción y la revierte: no se
+-- apoya en el humo ni en otro archivo, ni deja nada. Los otros dos: `borrador-*.sql`.
 
 -- @test fórmula: los ayudantes de la versión esperada del borrador
 reset role;
@@ -112,17 +113,6 @@ create or replace function pg_temp.be_sql_guarda(p_origen uuid, p_params jsonb, 
   language sql as $f$
   select format('select public.formula_guardar_borrador(p_origen => %L, p_def => %L, p_params => %L, p_diseno => %L, p_publicada_esperada => %L, p_actualizado_en_esperado => %L)',
                 p_origen, coalesce(p_def, pg_temp.be_def()), p_params, pg_temp.be_diseno(), p_publicada, p_hora)
-$f$;
-
--- El SQL de descartar con la hora (literal), para `be_error`.
-create or replace function pg_temp.be_sql_descarta(p_origen uuid, p_hora timestamptz) returns text language sql as $f$
-  select format('select public.formula_descartar_borrador(p_origen => %L, p_actualizado_en_esperado => %L)', p_origen, p_hora)
-$f$;
-
--- El SQL de publicar con las dos esperadas (literales), para `be_error`.
-create or replace function pg_temp.be_sql_publica(p_origen uuid, p_publicada uuid, p_hora timestamptz) returns text language sql as $f$
-  select format('select public.formula_publicar(p_origen => %L, p_nota => %L, p_publicada_esperada => %L, p_actualizado_en_esperado => %L)',
-                p_origen, 'Prueba be', p_publicada, p_hora)
 $f$;
 
 create or replace function pg_temp.be_igual(p_dio text, p_esperado text) returns void language plpgsql as $f$
@@ -283,33 +273,6 @@ begin
 end $$;
 rollback;
 
--- @test fórmula: B9 sin cotizaciones.configurar da 42501 antes de mirar las esperadas
-begin;
-select pg_temp.be_preparar();
-do $$
-declare o uuid := (select id from public.origenes where clave = 'prueba_be'); b0 public.formulas;
-begin
-  b0 := pg_temp.be_insertar_borrador(o, '00000000-0000-4000-8000-0000000be00b');
-  -- Sin hora con borrador (sería T1), con una publicada vieja (T4) y con una hora mala (T2): siempre 42501.
-  perform pg_temp.be_igual(pg_temp.be_error('00000000-0000-4000-8000-0000000be00d', pg_temp.be_sql_guarda(o, pg_temp.be_marca(1), gen_random_uuid(), null)),
-    '42501|No tienes el permiso «cotizaciones.configurar».');
-  perform pg_temp.be_igual(pg_temp.be_error('00000000-0000-4000-8000-0000000be00d',
-                                            pg_temp.be_sql_guarda(o, pg_temp.be_marca(1), null, b0.actualizado_en - interval '1 microsecond')),
-    '42501|No tienes el permiso «cotizaciones.configurar».');
-  -- Descartar con una hora mala (sería T2), y sin borrador con hora (T3).
-  perform pg_temp.be_igual(pg_temp.be_error('00000000-0000-4000-8000-0000000be00d', pg_temp.be_sql_descarta(o, b0.actualizado_en - interval '1 microsecond')),
-    '42501|No tienes el permiso «cotizaciones.configurar».');
-  if pg_temp.be_borrador(o)::text is distinct from b0::text then raise exception 'sin permiso tocó el borrador'; end if;
-  perform pg_temp.be_igual(pg_temp.be_error('00000000-0000-4000-8000-0000000be00d', pg_temp.be_sql_descarta(pg_temp.be_sin(), now())),
-    '42501|No tienes el permiso «cotizaciones.configurar».');
-  -- Publicar con una hora mala (sería T2).
-  perform pg_temp.be_igual(pg_temp.be_error('00000000-0000-4000-8000-0000000be00d',
-                                            pg_temp.be_sql_publica(o, null, b0.actualizado_en - interval '1 microsecond')),
-    '42501|No tienes el permiso «cotizaciones.configurar».');
-  if pg_temp.be_borrador(o)::text is distinct from b0::text then raise exception 'sin permiso publicó el borrador'; end if;
-end $$;
-rollback;
-
 -- @test fórmula: B10 guardar valida la fórmula antes de comparar la hora
 begin;
 select pg_temp.be_preparar();
@@ -322,178 +285,3 @@ begin
   if left(v, 6) <> '22023|' then raise exception 'esperaba la validación (22023), dio «%»', v; end if;
 end $$;
 rollback;
-
--- @test fórmula: D1 descartar sin hora borra el borrador que haya y, si no hay, no hace nada (lo de hoy)
-begin;
-select pg_temp.be_preparar();
-do $$
-declare o uuid := (select id from public.origenes where clave = 'prueba_be');
-begin
-  perform pg_temp.be_insertar_borrador(o, '00000000-0000-4000-8000-0000000be00b');
-  perform pg_temp.be_igual(pg_temp.be_error('00000000-0000-4000-8000-0000000be00a', format('select public.formula_descartar_borrador(%L)', o)), 'sin error');
-  if (pg_temp.be_borrador(o)).id is not null then raise exception 'descartar sin hora no borró'; end if;
-  perform pg_temp.be_igual(pg_temp.be_error('00000000-0000-4000-8000-0000000be00a', format('select public.formula_descartar_borrador(%L)', o)), 'sin error');
-  if not exists (select 1 from public.formulas where id = '00000000-0000-4000-8000-00000000be01' and estado = 'publicada') then
-    raise exception 'descartar tocó la publicada'; end if;
-end $$;
-rollback;
-
--- @test fórmula: D2 descartar con la hora que leyó borra el borrador
-begin;
-select pg_temp.be_preparar();
-do $$
-declare o uuid := (select id from public.origenes where clave = 'prueba_be'); b0 public.formulas;
-begin
-  b0 := pg_temp.be_insertar_borrador(o, '00000000-0000-4000-8000-0000000be00b');
-  perform pg_temp.be_igual(pg_temp.be_error('00000000-0000-4000-8000-0000000be00a', pg_temp.be_sql_descarta(o, b0.actualizado_en)), 'sin error');
-  if (pg_temp.be_borrador(o)).id is not null then raise exception 'descartar con la hora leída no borró'; end if;
-end $$;
-rollback;
-
--- @test fórmula: D3 descartar con una hora que no es la del borrador da PT409 y el borrador sigue
-begin;
-select pg_temp.be_preparar();
-do $$
-declare o uuid := (select id from public.origenes where clave = 'prueba_be'); b0 public.formulas;
-begin
-  b0 := pg_temp.be_insertar_borrador(o, '00000000-0000-4000-8000-0000000be00b');
-  perform pg_temp.be_igual(pg_temp.be_error('00000000-0000-4000-8000-0000000be00a', pg_temp.be_sql_descarta(o, b0.actualizado_en - interval '1 microsecond')),
-    'PT409|El borrador cambió después de que lo abriste: se guardó de nuevo hace un momento.');
-  if pg_temp.be_borrador(o)::text is distinct from b0::text then raise exception 'descartar con la hora mala tocó el borrador'; end if;
-end $$;
-rollback;
-
--- @test fórmula: D4 descartar con hora cuando ya no hay borrador da PT409 (se publicó o se descartó)
-begin;
-select pg_temp.be_preparar();
-do $$
-declare o uuid := (select id from public.origenes where clave = 'prueba_be');
-begin
-  perform pg_temp.be_igual(pg_temp.be_error('00000000-0000-4000-8000-0000000be00a', pg_temp.be_sql_descarta(o, now())),
-    'PT409|El borrador que abriste ya no está: se publicó o se descartó.');
-end $$;
-rollback;
-
--- @test fórmula: P1 publicar con la hora que leyó publica el borrador
-begin;
-select pg_temp.be_preparar();
-do $$
-declare o uuid := (select id from public.origenes where clave = 'prueba_be'); b0 public.formulas;
-begin
-  b0 := pg_temp.be_insertar_borrador(o, '00000000-0000-4000-8000-0000000be00b');
-  perform pg_temp.be_igual(pg_temp.be_error('00000000-0000-4000-8000-0000000be00a',
-                                            pg_temp.be_sql_publica(o, '00000000-0000-4000-8000-00000000be01', b0.actualizado_en)), 'sin error');
-  if (select estado::text || version from public.formulas where id = b0.id) is distinct from 'publicada2' then raise exception 'no publicó la v2'; end if;
-  if (pg_temp.be_borrador(o)).id is not null then raise exception 'quedó un borrador'; end if;
-end $$;
-rollback;
-
--- @test fórmula: P2 publicar con una hora que no es la del borrador da PT409 y no cambia nada
-begin;
-select pg_temp.be_preparar();
-do $$
-declare o uuid := (select id from public.origenes where clave = 'prueba_be'); b0 public.formulas;
-begin
-  b0 := pg_temp.be_insertar_borrador(o, '00000000-0000-4000-8000-0000000be00b');
-  perform pg_temp.be_igual(pg_temp.be_error('00000000-0000-4000-8000-0000000be00a',
-                                            pg_temp.be_sql_publica(o, '00000000-0000-4000-8000-00000000be01', b0.actualizado_en - interval '1 microsecond')),
-    'PT409|El borrador cambió después de que lo abriste: se guardó de nuevo hace un momento.');
-  if pg_temp.be_borrador(o)::text is distinct from b0::text then raise exception 'publicar con la hora mala tocó el borrador'; end if;
-  if not exists (select 1 from public.formulas where id = '00000000-0000-4000-8000-00000000be01' and estado = 'publicada') then
-    raise exception 'publicar con la hora mala cambió la publicada'; end if;
-end $$;
-rollback;
-
--- @test fórmula: P3 publicar con hora cuando ya no hay borrador da PT409 (no «No hay borrador»)
-begin;
-select pg_temp.be_preparar();
-do $$
-declare o uuid := (select id from public.origenes where clave = 'prueba_be');
-begin
-  perform pg_temp.be_igual(pg_temp.be_error('00000000-0000-4000-8000-0000000be00a', pg_temp.be_sql_publica(o, '00000000-0000-4000-8000-00000000be01', now())),
-    'PT409|El borrador que abriste ya no está: se publicó o se descartó.');
-end $$;
-rollback;
-
--- @test fórmula: P4 publicar sin hora publica el borrador que haya y, sin borrador, da «No hay borrador» (lo de hoy)
-begin;
-select pg_temp.be_preparar();
-do $$
-declare o uuid := (select id from public.origenes where clave = 'prueba_be'); b0 public.formulas;
-begin
-  perform pg_temp.be_igual(pg_temp.be_error('00000000-0000-4000-8000-0000000be00a', format($s$select public.formula_publicar(%L, 'Prueba be')$s$, o)),
-    '22023|No hay borrador para publicar.');
-  b0 := pg_temp.be_insertar_borrador(o, '00000000-0000-4000-8000-0000000be00b');
-  perform pg_temp.be_igual(pg_temp.be_error('00000000-0000-4000-8000-0000000be00a', format($s$select public.formula_publicar(%L, 'Prueba be')$s$, o)),
-    'sin error');
-  if (select estado::text || version from public.formulas where id = b0.id) is distinct from 'publicada2' then raise exception 'sin hora no publicó la v2'; end if;
-end $$;
-rollback;
-
--- @test fórmula: P5 publicar con la publicada vieja y una hora mala da el PT409 de la publicada (va primero)
-begin;
-select pg_temp.be_preparar();
-do $$
-declare o uuid := (select id from public.origenes where clave = 'prueba_be'); b0 public.formulas;
-begin
-  b0 := pg_temp.be_insertar_borrador(o, '00000000-0000-4000-8000-0000000be00b');
-  perform pg_temp.be_igual(pg_temp.be_error('00000000-0000-4000-8000-0000000be00a',
-                                            pg_temp.be_sql_publica(o, gen_random_uuid(), b0.actualizado_en - interval '1 microsecond')),
-    'PT409|Beto Be publicó la versión 1 hace un momento.');
-end $$;
-rollback;
-
--- @test fórmula: F1 una firma de guardar, de descartar y de publicar, de authenticated y no de anon, definer con search_path vacío, devuelve jsonb y toma el candado; sus ayudantes no son de nadie
-do $$
-declare v_p regprocedure; f text;
-begin
-  if (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'formula_guardar_borrador') <> 1 then
-    raise exception 'formula_guardar_borrador tiene más de una firma (o ninguna)'; end if;
-  v_p := to_regprocedure('public.formula_guardar_borrador(uuid,jsonb,jsonb,jsonb,text,uuid,timestamptz)');
-  if v_p is null then raise exception 'no existe formula_guardar_borrador(uuid,jsonb,jsonb,jsonb,text,uuid,timestamptz)'; end if;
-  if not has_function_privilege('authenticated', v_p, 'execute') or has_function_privilege('anon', v_p, 'execute') then
-    raise exception 'los grants de formula_guardar_borrador'; end if;
-  if (select p.prosecdef and p.proconfig = array['search_path=""'] and p.prorettype = 'jsonb'::regtype from pg_proc p where p.oid = v_p) is not true then
-    raise exception 'formula_guardar_borrador no es definer con search_path vacío que devuelve jsonb'; end if;
-  if position($c$pg_advisory_xact_lock(hashtextextended('formulas:'$c$ in pg_get_functiondef(v_p)) = 0 then
-    raise exception 'formula_guardar_borrador no toma el candado del origen'; end if;
-  -- Descartar.
-  if (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'formula_descartar_borrador') <> 1 then
-    raise exception 'formula_descartar_borrador tiene más de una firma (o ninguna)'; end if;
-  v_p := to_regprocedure('public.formula_descartar_borrador(uuid,timestamptz)');
-  if v_p is null then raise exception 'no existe formula_descartar_borrador(uuid,timestamptz)'; end if;
-  if not has_function_privilege('authenticated', v_p, 'execute') or has_function_privilege('anon', v_p, 'execute') then
-    raise exception 'los grants de formula_descartar_borrador'; end if;
-  if (select p.prosecdef and p.proconfig = array['search_path=""'] from pg_proc p where p.oid = v_p) is not true then
-    raise exception 'formula_descartar_borrador no es definer con search_path vacío'; end if;
-  if position($c$pg_advisory_xact_lock(hashtextextended('formulas:'$c$ in pg_get_functiondef(v_p)) = 0 then
-    raise exception 'formula_descartar_borrador no toma el candado del origen'; end if;
-  -- Publicar, y `_publicar_formula`, que sigue siendo sólo de service_role.
-  if (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'formula_publicar') <> 1 then
-    raise exception 'formula_publicar tiene más de una firma (o ninguna)'; end if;
-  v_p := to_regprocedure('public.formula_publicar(uuid,text,uuid,timestamptz)');
-  if v_p is null then raise exception 'no existe formula_publicar(uuid,text,uuid,timestamptz)'; end if;
-  if not has_function_privilege('authenticated', v_p, 'execute') or has_function_privilege('anon', v_p, 'execute') then
-    raise exception 'los grants de formula_publicar'; end if;
-  if (select p.prosecdef and p.proconfig = array['search_path=""'] from pg_proc p where p.oid = v_p) is not true then
-    raise exception 'formula_publicar no es definer con search_path vacío'; end if;
-  if (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = '_publicar_formula') <> 1 then
-    raise exception '_publicar_formula tiene más de una firma (o ninguna)'; end if;
-  v_p := to_regprocedure('public._publicar_formula(uuid,text,uuid,boolean,timestamptz)');
-  if v_p is null then raise exception 'no existe _publicar_formula(uuid,text,uuid,boolean,timestamptz)'; end if;
-  if has_function_privilege('authenticated', v_p, 'execute') or has_function_privilege('anon', v_p, 'execute')
-     or not has_function_privilege('service_role', v_p, 'execute') then
-    raise exception 'los grants de _publicar_formula'; end if;
-  if (select p.prosecdef and p.proconfig = array['search_path=""'] from pg_proc p where p.oid = v_p) is not true then
-    raise exception '_publicar_formula no es definer con search_path vacío'; end if;
-  if position($c$pg_advisory_xact_lock(hashtextextended('formulas:'$c$ in pg_get_functiondef(v_p)) = 0 then
-    raise exception '_publicar_formula no toma el candado del origen'; end if;
-  foreach f in array array['public._borrador_formula_empezado_por(uuid)', 'public._exigir_borrador_formula(public.formulas,timestamptz)'] loop
-    v_p := to_regprocedure(f);
-    if v_p is null then raise exception 'no existe %', f; end if;
-    if has_function_privilege('authenticated', v_p, 'execute') or has_function_privilege('anon', v_p, 'execute')
-       or not has_function_privilege('service_role', v_p, 'execute') then
-      raise exception 'los grants de %', f; end if;
-    if (select p.proconfig = array['search_path=""'] from pg_proc p where p.oid = v_p) is not true then raise exception '% no lleva search_path vacío', f; end if;
-  end loop;
-end $$;
