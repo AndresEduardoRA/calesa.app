@@ -32,10 +32,11 @@ describe('huecos de una guardada', () => {
     orden.forEach((hueco, i) => expect(HUECOS_DE_LA_GUARDADA[i]).toBe(hueco))
   })
 
-  it('hoy ninguno trae componentes: no se dibuja nada, ni arriba ni abajo', () => {
-    for (const h of HUECOS_DE_LA_GUARDADA) expect(h).toEqual({})
-    expect(dibujarHuecos(HUECOS_DE_LA_GUARDADA, 'Acciones', props)).toBeUndefined()
-    expect(dibujarHuecos(HUECOS_DE_LA_GUARDADA, 'Debajo', props)).toBeUndefined()
+  it('con cuatro huecos vacíos no se dibuja nada, ni arriba ni abajo', () => {
+    // Huecos de prueba, no las constantes de las áreas: cada área llena el suyo en su paso (4.24, 4.25, 4.26, 4.27) sin tocar este caso.
+    const vacios = [{}, {}, {}, {}]
+    expect(dibujarHuecos(vacios, 'Acciones', props)).toBeUndefined()
+    expect(dibujarHuecos(vacios, 'Debajo', props)).toBeUndefined()
   })
 
   it('con huecos de prueba da los componentes de cada lugar, en orden y con las props', () => {
