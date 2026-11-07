@@ -505,6 +505,25 @@ y «Guardar» la deja con lo de hoy. «Guardar» llama a `cotizacion_guardar` co
 pierde los microsegundos), las entradas del recálculo al día y el título, las notas y el vehículo de la cotización sin tocarlos; lo que la hoja no manda lo conserva la base. El PT409
 dice quién y cuándo; «Recargar» vuelve a montar la hoja con la lectura nueva y lo tipeado no vuelve sobre la versión de la otra persona.
 
+### Marcar final (4.25-1)
+
+**`cotizacion_marcar_final(id)`** elige la final del vehículo (a lo sumo una activa, `cotizaciones_final_por_vehiculo`). En este orden:
+
+1. **Sin candado:** la cotización viva y visible (si no, 42501 «No tienes acceso a esta cotización.», igual para inexistente o en la papelera),
+   `cotizaciones.final.gestionar` del origen, el vehículo, el lead (vivo; en la papelera, 23514), el lead en la cartera con `leads.editar` (como vincular),
+   y que quien marca pueda mandar a la papelera todas las demás vivas del vehículo (si no, 42501 «Este vehículo tiene preventas que no puedes mandar…»).
+2. **Candados:** el lead `for no key update`, el vehículo `for key share` y, en una sola pasada por id, la cotización y todas las vivas del vehículo. El
+   vehículo se escribe recién con todo tomado. Es el orden de vincular (lead → vehículo) y de la papelera de vehículos (vehículo → cotizaciones), y convive con
+   el trigger `trg_vehiculo_cotizado` de crear, encima y guardar. La tabla de quién choca con quién está en `docs/pasos/4.25/decisiones.md`.
+3. **Si algo cambió mientras esperaba** (la fila ya no está viva, otro vehículo u otro lead), otra vuelta desde el paso 1; a la tercera, PT409. Con todo tomado
+   vuelve a mirar el lead, ver, las demás y el vínculo, releído después de la pasada: un vehículo de otro lead da 23514.
+4. **Los efectos** (`_final_aplicar`): la final anterior tomada baja a preventa, la cotización pasa a final, las preventas tomadas van a un lote de la papelera de
+   quien marca, el vehículo sin lead queda con el de la cotización, el lead pasa al primer tipo activo de la clase cliente (por orden y nombre) si no era de esa
+   clase, y la actividad `cotizacion.final`. Marcar otra vez no falla ni cambia nada.
+
+Una final activa ancla el vehículo en la limpieza automática (`'cotizacion_final'`) y su vínculo no cambia (`vehiculo_vincular`: 23514). Una creada con
+`cotizacion_crear` todavía no hace lo de marcarla: 4-17, el 4.25-1b.
+
 ## Lo que se guarda en una cotización
 
 `formula_id` (recalcular o editar usa **esa** versión, nunca la vigente); `valores` (`{nodo_id: número | null}` de TODOS los nodos; el
