@@ -17,12 +17,13 @@ type Props = {
   formula: FormulaDelOrigen
 }
 
-// Los modales de la pestaña «Fórmula» (4.20-2b y 2c), montados al abrirse por primera vez y con una `key` por apertura. Lo que cambia con el modal de publicar abierto
+// Los modales de la pestaña «Fórmula» (4.20-2b y 2c), montados al abrirse por primera vez y con una `key` por apertura. El editor (4.21-3a-1) lo dibuja
+// `FormulaDelOrigen`; aquí sólo se revisa al llegar por la URL: sin borrador ni publicada no abre. Lo que cambia con el modal de publicar abierto
 // (tras «Recargar»: el borrador ya no está o quedó atrasado) lo dice el modal; el de revertir se queda con la versión que abrió y la publicada nueva; el de descartar,
 // con el borrador que nombró al abrir.
 export function AccionesDeLaFormula({ panel, origen, formula }: Props) {
   const { apertura, publicando, revirtiendo, aRevertir, descartando, aDescartar } =
-    useAperturaDeLaFormula(panel, formula)
+    useAperturaDeLaFormula(panel, formula, origen.nombre)
   const publicadaId = formula.publicada?.id ?? null
   const montarPublicar = useAbiertoAlgunaVez(publicando)
   const montarRevertir = useAbiertoAlgunaVez(revirtiendo)

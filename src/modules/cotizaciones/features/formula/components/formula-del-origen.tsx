@@ -1,13 +1,10 @@
 'use client'
 
-import { parseAsString, useQueryState } from 'nuqs'
-import { CampoSeleccion } from '@/shared/ui/campo-seleccion'
 import type { FormulaDelOrigen as Formula } from '../../../entities/formula/versiones'
 import { usePanelDeLaFormula } from '../hooks/use-panel-de-la-formula'
 import { AccionesDeLaFormula } from './acciones-de-la-formula'
-import { ListaDeVersiones } from './lista-de-versiones'
-import { TarjetaDeLaPublicada } from './tarjeta-de-la-publicada'
-import { TarjetaDelBorrador } from './tarjeta-del-borrador'
+import { EditorDeLaFormulaDiferido } from './diferidos'
+import { VistaDeLaFormula } from './vista-de-la-formula'
 
 type Origen = { id: string; nombre: string; activo: boolean }
 
@@ -18,17 +15,19 @@ type Props = {
   formula: Formula
 }
 
-const etiquetaDe = (origen: Origen) =>
-  origen.activo ? origen.nombre : `${origen.nombre} (inactivo)`
+// Sobre qué versión se edita: el borrador o, sin él, la publicada.
+const sobreQue = (formula: Formula) =>
+  formula.borrador
+    ? `Sobre el borrador de ${formula.borrador.autor}.`
+    : `Sobre la versión ${String(formula.publicada?.version ?? '')} publicada.`
 
-// La pestaña «Fórmula» de Configuración › Cotización (4.20-2a): el origen (con más de uno, un selector que escribe `?origen=`), su publicada, su borrador y sus versiones.
-// Desde el borrador se publica y desde una archivada se revierte (4.20-2b, `?panel=publicar-formula`, `?panel=revertir-formula&version=<id>`); el borrador se descarta
-// (4.20-2c, `?panel=descartar-borrador`).
+// La pestaña «Fórmula» de Configuración › Cotización (4.20-2a): el origen, su publicada, su borrador y sus versiones (`VistaDeLaFormula`). Desde el borrador se
+// publica y desde una archivada se revierte (4.20-2b, `?panel=publicar-formula`, `?panel=revertir-formula&version=<id>`); el borrador se descarta (4.20-2c,
+// `?panel=descartar-borrador`). Con `?panel=editar-formula` (4.21-3a-1), el editor en texto ocupa el lugar del selector, las tarjetas y la lista: edita el
+// borrador o, sin él, la publicada.
 export function FormulaDelOrigen({ origenes, origen, formula }: Props) {
-  const [pedido, setOrigen] = useQueryState('origen', parseAsString.withOptions({ shallow: false }))
-  // Lo elegido se ve en el acto, mientras el servidor lee el origen nuevo.
-  const elegido = origenes.some((uno) => uno.id === pedido) ? pedido : origen.id
   const panel = usePanelDeLaFormula()
+  const sobre = formula.borrador ?? formula.publicada
   return (
     <div className="grid min-w-0 gap-4">
       <div className="grid gap-0.5">
@@ -37,36 +36,17 @@ export function FormulaDelOrigen({ origenes, origen, formula }: Props) {
           La versión con la que se cotiza en cada origen, su borrador y las versiones anteriores.
         </p>
       </div>
-      {origenes.length > 1 ? (
-        <div className="max-w-xs">
-          <CampoSeleccion
-            nombre="origen-de-la-formula"
-            etiqueta="Origen"
-            opciones={origenes.map((uno) => ({ valor: uno.id, etiqueta: etiquetaDe(uno) }))}
-            value={elegido ?? origen.id}
-            onChange={(evento) => {
-              void setOrigen(evento.target.value)
-            }}
-          />
-        </div>
-      ) : null}
-      <TarjetaDeLaPublicada publicada={formula.publicada} origen={origen.nombre} />
-      {formula.borrador ? (
-        <TarjetaDelBorrador
-          borrador={formula.borrador}
-          publicada={formula.publicada}
-          alPublicar={panel.abrirPublicar}
-          alDescartar={panel.abrirDescartar}
+      {panel.editando && sobre ? (
+        <EditorDeLaFormulaDiferido
+          key={sobre.id}
+          origen={origen}
+          formulaId={sobre.id}
+          sobre={sobreQue(formula)}
+          alVolver={panel.cerrar}
         />
-      ) : null}
-      {/* Con otra publicada (se publicó o se revirtió) la lista vuelve a la primera página del servidor. */}
-      <ListaDeVersiones
-        key={`${origen.id}:${formula.publicada?.id ?? ''}`}
-        origenId={origen.id}
-        inicial={formula.versiones}
-        conPublicada={formula.publicada !== null}
-        alRevertir={panel.abrirRevertir}
-      />
+      ) : (
+        <VistaDeLaFormula origenes={origenes} origen={origen} formula={formula} panel={panel} />
+      )}
       <AccionesDeLaFormula panel={panel} origen={origen} formula={formula} />
     </div>
   )
