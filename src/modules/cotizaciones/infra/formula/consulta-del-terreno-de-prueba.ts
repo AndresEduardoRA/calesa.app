@@ -30,7 +30,7 @@ export type PedidoDelTerreno = { origenId: string; tablas: string[]; cambios: st
 export function consultaDeLosTiposDeCambio(cliente: Cliente, claves: string[]) {
   return cliente
     .from('tipos_cambio')
-    .select('clave, valor')
+    .select('clave, valor, moneda_a')
     .in('clave', claves)
     .eq('activo', true)
     .limit(MAXIMO_DE_CLAVES_DE_CAMBIO)
@@ -60,7 +60,7 @@ export function consultaDeLasFilas(cliente: Cliente, tablaIds: string[]) {
     .limit(FILAS_POR_PAGINA)
 }
 
-const esquemaDeUnCambio = z.object({ clave: z.string(), valor: z.number() })
+const esquemaDeUnCambio = z.object({ clave: z.string(), valor: z.number(), moneda_a: z.string() })
 const esquemaDeUnaTabla = z.object({
   id: z.guid(),
   origen_id: z.guid().nullable(),
@@ -72,18 +72,19 @@ const esquemaDeUnaFila = z.object({ tabla_id: z.guid(), valores: z.unknown() })
 const SIN_LEER = 'No pudimos leer los tipos de cambio y las tablas.'
 const sinLeer = (): Resultado<never> => fallo('inesperado', SIN_LEER)
 
-async function leerLosCambios(
-  cliente: Cliente,
-  claves: string[],
-): Promise<Resultado<Record<string, number>>> {
+type Cambios = { tipos: Record<string, number>; monedas: Record<string, string> }
+
+async function leerLosCambios(cliente: Cliente, claves: string[]): Promise<Resultado<Cambios>> {
   const { data, error } = await consultaDeLosTiposDeCambio(cliente, claves)
   if (error) return { ok: false, error: errorDePostgrest(error) }
   const filas = z.array(esquemaDeUnCambio).safeParse(data)
   if (!filas.success) return sinLeer()
   // Un valor que no es positivo no lo acepta el motor: es como si no hubiera.
-  return ok(
-    Object.fromEntries(filas.data.filter((f) => f.valor > 0).map((f) => [f.clave, f.valor])),
-  )
+  const validos = filas.data.filter((f) => f.valor > 0)
+  return ok({
+    tipos: Object.fromEntries(validos.map((f) => [f.clave, f.valor])),
+    monedas: Object.fromEntries(validos.map((f) => [f.clave, f.moneda_a])),
+  })
 }
 
 type Leidas = {
@@ -155,13 +156,14 @@ export async function leerElTerrenoSobre(
   const claves = pedido.tablas.slice(0, MAXIMO_DE_TABLAS_VIVAS)
   const avisos: AvisoDelTerreno[] = []
 
-  let tipos: Record<string, number> = {}
+  let cambiosLeidos: Cambios = { tipos: {}, monedas: {} }
   if (cambios.length > 0) {
     const leidos = await leerLosCambios(cliente, cambios)
     if (!leidos.ok) return leidos
-    tipos = leidos.data
+    cambiosLeidos = leidos.data
     for (const clave of cambios) {
-      if (!Object.hasOwn(tipos, clave)) avisos.push({ codigo: 'cambio_ausente', clave })
+      if (!Object.hasOwn(cambiosLeidos.tipos, clave))
+        avisos.push({ codigo: 'cambio_ausente', clave })
     }
   }
 
@@ -174,5 +176,10 @@ export async function leerElTerrenoSobre(
   }
   if (pedido.tablas.length > claves.length) avisos.push({ codigo: 'mas_tablas' })
   if (pedido.cambios.length > cambios.length) avisos.push({ codigo: 'mas_cambios' })
-  return ok({ tipos_cambio: tipos, tablas, avisos })
+  return ok({
+    tipos_cambio: cambiosLeidos.tipos,
+    monedas: cambiosLeidos.monedas,
+    tablas,
+    avisos,
+  })
 }

@@ -5,8 +5,8 @@ import { useBorradorDeEstado } from '@/shared/ui/use-borrador-de-estado'
 import { esquemaFormula, type Formula } from '../../../entities/formula'
 import { compilarFila, type ErrorDeFila } from '../../../entities/formula/compilar-fila'
 import type { FormulaParaEditar } from '../../../entities/formula/edicion'
-import { validarFormula } from '../../../entities/validar'
-import { filaDelRechazo, filasParaDibujar, paramsPlanos } from './use-editor-de-la-formula.soporte'
+import { filasParaDibujar, paramsPlanos } from './use-editor-de-la-formula.soporte'
+import { useVistaPrevia } from './use-vista-previa'
 
 // La fila abierta: su id y, tras «Aplicar», el error que la dejó abierta.
 export type FilaAbierta = { id: string; error: ErrorDeFila | null }
@@ -39,10 +39,11 @@ export function useEditorDeLaFormula({
   const [aplicada, setAplicada] = useState<Aplicada | null>(null)
 
   const filas = useMemo(() => filasParaDibujar(trabajo), [trabajo])
-  const rechazo = useMemo((): RechazoEnElEditor | null => {
-    const v = validarFormula(trabajo.definicion, paramsPlanos(trabajo))
-    return v.ok ? null : { mensaje: v.error.mensaje, filaId: filaDelRechazo(v.error, filas) }
-  }, [trabajo, filas])
+  const { rechazo, lectura, reintentarLaLectura, vista } = useVistaPrevia({
+    origenId,
+    trabajo,
+    filas,
+  })
 
   const valores = useMemo(() => valoresDe(trabajo), [trabajo])
   const guardado = useMemo(() => valoresDe(leida.formula), [leida.formula])
@@ -85,6 +86,9 @@ export function useEditorDeLaFormula({
   return {
     filas,
     rechazo,
+    lectura,
+    reintentarLaLectura,
+    vista,
     abierta,
     aplicada,
     abrir: (id: string) => {

@@ -8,7 +8,12 @@ import type { CodigoDeFaltante, Estado, ValorGuardado } from '../motor-contexto'
 import type { Formato, Nodo } from '../nodos'
 import { entradaDePrueba, type TerrenoDePrueba } from './terreno-de-prueba'
 
-export type TotalesDeLaVistaPrevia = { usd: number | null; bs: number | null }
+// `monedaBs`: la moneda del tipo de cambio que divide el total (`moneda_a`); nula si no se la conoce.
+export type TotalesDeLaVistaPrevia = {
+  usd: number | null
+  bs: number | null
+  monedaBs: string | null
+}
 
 export type VistaPrevia =
   // Aún no hay fórmula validada: lo que valga se dice en la fila marcada.
@@ -23,6 +28,14 @@ export type VistaPrevia =
       faltantes: ReadonlyMap<string, CodigoDeFaltante>
       totales: TotalesDeLaVistaPrevia
     }
+
+// La moneda de los Bs: la del tipo de cambio de `total_en` o, sin él, el primero de `buckets`.
+function monedaDeLosBs(formula: Formula, terreno: TerrenoDePrueba): string | null {
+  const { total_en, buckets } = formula.definicion
+  const id = total_en ?? Object.values(buckets ?? {})[0]
+  const nodo = formula.definicion.nodos.find((n) => n.id === id)
+  return nodo?.tipo === 'tipo_cambio' ? (terreno.monedas[nodo.clave] ?? null) : null
+}
 
 // `formulaValidada` es la que devolvió `validarFormula()` (nula si no validó). Nunca lanza ni toca lo que recibe.
 export function calcularLaVistaPrevia(
@@ -41,7 +54,11 @@ export function calcularLaVistaPrevia(
       valores: new Map(Object.entries(r.valores)),
       estados: new Map(Object.entries(r.estados)),
       faltantes,
-      totales: { usd: r.totales.usd, bs: r.totales.bs },
+      totales: {
+        usd: r.totales.usd,
+        bs: r.totales.bs,
+        monedaBs: monedaDeLosBs(formulaValidada, terreno),
+      },
     }
   } catch (error) {
     if (error instanceof ErrorDelMotor) return { tipo: 'no_calcula' }

@@ -117,6 +117,7 @@ function variantesYCondicion(): { formula: Formula } {
 
 const terreno: TerrenoDePrueba = {
   tipos_cambio: { oficial: 2 },
+  monedas: { oficial: 'BOB' },
   tablas: { dep: [{ desde: 0, hasta: 5, factor: 0.5 }] },
   avisos: [],
 }
@@ -130,7 +131,7 @@ describe('calcularLaVistaPrevia', () => {
     if (v.tipo !== 'calculada') return
     expect(Object.fromEntries(v.valores)).toEqual(r.valores)
     expect(Object.fromEntries(v.estados)).toEqual(r.estados)
-    expect(v.totales).toEqual({ usd: r.totales.usd, bs: r.totales.bs })
+    expect(v.totales).toEqual({ usd: r.totales.usd, bs: r.totales.bs, monedaBs: 'BOB' })
     expect(v.valores.get('doble')).toBe(1800)
     expect(v.valores.get('f')).toBe(0.5)
   })

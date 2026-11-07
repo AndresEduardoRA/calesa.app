@@ -200,6 +200,7 @@ describe('entradaDePrueba', () => {
   it('los datos en 0, las opciones apagadas, sin variante ni overrides y el vehículo vacío', () => {
     const e = entradaDePrueba({
       tipos_cambio: { oficial: 6.96 },
+      monedas: { oficial: 'BOB' },
       tablas: { dep: [{ desde: 0 }] },
       avisos: [],
     })

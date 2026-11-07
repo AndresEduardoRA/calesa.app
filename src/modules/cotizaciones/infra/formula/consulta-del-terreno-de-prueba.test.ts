@@ -12,7 +12,7 @@ import {
 describe('leerElTerrenoSobre', () => {
   it('pide cada cosa con sus filtros, su orden y su tope, sin select(*) ni conteo', async () => {
     const { cliente, llamadas } = clienteSimulado({
-      tipos_cambio: [{ clave: 'oficial', valor: 6.96, activo: true }],
+      tipos_cambio: [{ clave: 'oficial', valor: 6.96, moneda_a: 'BOB', activo: true }],
       tablas_referencia: [tablaDeRef(1, 'dep', ORIGEN)],
       tablas_referencia_filas: filasDe(1, 3),
     })
@@ -22,9 +22,10 @@ describe('leerElTerrenoSobre', () => {
       cambios: ['oficial'],
     })
     expect(r.ok && r.data.tipos_cambio).toEqual({ oficial: 6.96 })
+    expect(r.ok && r.data.monedas).toEqual({ oficial: 'BOB' })
     expect(r.ok && r.data.tablas['dep']).toHaveLength(3)
     const tipos = pidiendo(llamadas, 'tipos_cambio')[0]
-    expect(tipos).toMatchObject({ columnas: 'clave, valor', limite: 100 })
+    expect(tipos).toMatchObject({ columnas: 'clave, valor, moneda_a', limite: 100 })
     expect(tipos?.filtros).toEqual(['in:clave', 'eq:activo'])
     const tablas = pidiendo(llamadas, 'tablas_referencia')[0]
     expect(tablas?.columnas).toBe('id, origen_id, clave, activa')
@@ -55,7 +56,7 @@ describe('leerElTerrenoSobre', () => {
 
   it('una tabla ausente o un tipo de cambio inactivo se avisan', async () => {
     const { cliente } = clienteSimulado({
-      tipos_cambio: [{ clave: 'oficial', valor: 6.96, activo: false }],
+      tipos_cambio: [{ clave: 'oficial', valor: 6.96, moneda_a: 'BOB', activo: false }],
       tablas_referencia: [],
     })
     const r = await leerElTerrenoSobre(cliente, {

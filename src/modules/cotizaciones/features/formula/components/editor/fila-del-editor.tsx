@@ -3,14 +3,18 @@
 import { memo } from 'react'
 import { Button } from '@/shared/ui/button'
 import type { ErrorDeFila } from '../../../../entities/formula/compilar-fila'
+import type { CifraDeLaFila } from '../../../../entities/formula/vista-previa'
 import type { FilaAbierta } from '../../hooks/use-editor-de-la-formula'
 import { editable, type FilaParaDibujar } from '../../hooks/use-editor-de-la-formula.soporte'
 import { CamposDeLaFila } from './campos-de-la-fila'
+import { CifraDePrueba } from './cifra-de-prueba'
 import { EstadoDelTexto } from './estado-del-texto'
 import { TextoDeLaFila } from './texto-de-la-fila'
 
 type Props = {
   fila: FilaParaDibujar
+  // La cifra de prueba de la fila (vista previa, 4.21-3a-2).
+  cifra: CifraDeLaFila
   abierta: FilaAbierta | null
   // Otra fila está abierta: «Editar» espera.
   bloqueada: boolean
@@ -47,6 +51,7 @@ const textoInicial = (fila: FilaParaDibujar) => ('texto' in fila.texto ? fila.te
 
 export const FilaDelEditor = memo(function FilaDelEditor({
   fila,
+  cifra,
   abierta,
   bloqueada,
   rechazo,
@@ -65,6 +70,7 @@ export const FilaDelEditor = memo(function FilaDelEditor({
         <span className="font-semibold break-words text-(--color-ink)">{fila.etiqueta}</span>
         <code className="break-all text-(--color-ink-soft)">{fila.id}</code>
         <span className="text-(--color-ink-soft)">{TIPOS[fila.nodo.tipo]}</span>
+        <CifraDePrueba cifra={cifra} />
         {editable(fila) && !abierta ? (
           <Button
             type="button"

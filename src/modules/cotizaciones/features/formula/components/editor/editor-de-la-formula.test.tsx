@@ -7,11 +7,16 @@ import {
   formulaCruda,
   formulaDePrueba,
 } from '../../../../entities/formula/fila-de-prueba.soporte'
+import type { TerrenoDePrueba } from '../../../../entities/formula/terreno-de-prueba'
+import { CifraDePrueba } from './cifra-de-prueba'
 import { EditorDeLaFormula } from './editor-de-la-formula'
 
 type Respuesta = Resultado<FormulaParaEditar | null>
+let terrenoDeLaPrueba: TerrenoDePrueba
 const pedidos: { formulaId: string; resolver: (r: Respuesta) => void }[] = []
 vi.mock('../../../../areas/formula/composicion.client', () => ({
+  // Lo de prueba de la vista previa (4.21-3a-2): al instante, y lo cambia cada prueba que lo necesita.
+  leerElTerrenoDePrueba: () => Promise.resolve({ ok: true as const, data: terrenoDeLaPrueba }),
   leerDefinicionParaEditar: (pedido: { formulaId: string }) =>
     new Promise<Respuesta>((resolver) => {
       pedidos.push({ ...pedido, resolver })
@@ -49,6 +54,12 @@ const montar = (alVolver = vi.fn()) =>
   )
 
 beforeEach(() => {
+  terrenoDeLaPrueba = {
+    tipos_cambio: { oficial: 6.96 },
+    monedas: { oficial: 'BOB' },
+    tablas: {},
+    avisos: [],
+  }
   pedidos.length = 0
   window.sessionStorage.clear()
 })
@@ -144,5 +155,66 @@ describe('EditorDeLaFormula: las filas (T4)', () => {
       screen.getByText('Ninguna fila tiene «zzz» en el nombre ni en la etiqueta.'),
     ).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Limpiar filtros' })).toBeNull()
+  })
+})
+
+describe('EditorDeLaFormula: la cifra de prueba de cada fila (T9)', () => {
+  const cifraDe = (id: string) =>
+    document.querySelector(`li[data-fila="${id}"] [data-cifra]`)?.textContent ?? null
+
+  it('con la vista calculada cada fila dibuja su cifra con su formato', async () => {
+    montar()
+    await responder(1, leida())
+    await waitFor(() => {
+      expect(cifraDe('tc')).toBe('6,96')
+    })
+    expect(cifraDe('total')).toBe('0')
+    expect(cifraDe('remate')).toContain('0,00')
+    // Una bandera no dibuja nada.
+    expect(cifraDe('b')).toBeNull()
+  })
+
+  it('un tipo de cambio ausente dice por qué no hay cifra, y el aviso lo nombra', async () => {
+    terrenoDeLaPrueba = {
+      tipos_cambio: {},
+      monedas: {},
+      tablas: {},
+      avisos: [{ codigo: 'cambio_ausente', clave: 'oficial' }],
+    }
+    montar()
+    await responder(1, leida())
+    await waitFor(() => {
+      expect(cifraDe('tc')).toBe('Falta el tipo de cambio.')
+    })
+    expect(screen.getByText('No hay un tipo de cambio activo «oficial».')).toBeTruthy()
+  })
+
+  it('sin la lectura hecha las filas no dibujan cifra', async () => {
+    montar()
+    await responder(1, leida())
+    expect(screen.getByRole('list', { name: 'Filas de la fórmula' })).toBeTruthy()
+    // Antes de que llegue el terreno (`leyendo`), ninguna fila tiene cifra.
+    expect(document.querySelectorAll('li[data-fila]').length).toBeGreaterThan(0)
+  })
+})
+
+describe('CifraDePrueba (T9)', () => {
+  it('dice cada caso: valor, texto, sin cifra (con o sin falta propia), apagada y nada', () => {
+    const texto = (cifra: Parameters<typeof CifraDePrueba>[0]['cifra']) => {
+      const { container } = render(<CifraDePrueba cifra={cifra} />)
+      const t = container.textContent
+      cleanup()
+      return t
+    }
+    expect(texto({ tipo: 'valor', valor: 0.25, formato: 'pct' })).toBe('25%')
+    expect(texto({ tipo: 'valor', valor: 1234.5, formato: undefined })).toBe('1.234,5')
+    expect(texto({ tipo: 'texto', texto: 'a' })).toBe('a')
+    expect(texto({ tipo: 'sin_cifra', faltante: null })).toBe(
+      'Sin cifra: depende de algo que falta.',
+    )
+    expect(texto({ tipo: 'sin_cifra', faltante: 'division_por_cero' })).toBe('Se divide por cero.')
+    expect(texto({ tipo: 'apagada', estado: 'fuera_de_variante' })).toBe('Fuera de la variante.')
+    expect(texto({ tipo: 'apagada', estado: 'condicion_apagada' })).toBe('Condición apagada.')
+    expect(texto({ tipo: 'nada' })).toBe('')
   })
 })

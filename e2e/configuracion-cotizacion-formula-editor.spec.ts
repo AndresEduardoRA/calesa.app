@@ -22,10 +22,10 @@ import { sembrarBorrador } from './soporte/formula-versiones'
 // lo aplicado vive en la pestaña del navegador hasta el 4.21-3b.
 test.describe.configure({ mode: 'serial' })
 
-// Lo medido en escritorio con 600 filas (4.21-3a-1: 77.017 B y 3.992 nodos; 957 ms del clic a la fila 497, informativo), más un 5 %: los bytes de la lectura de la
-// definición y los nodos de la lista con 500 filas dibujadas.
+// Lo medido en escritorio con 600 filas (4.21-3a-1: 77.017 B, 957 ms del clic a la fila 497, informativo; 3.992 nodos, que con la cifra de prueba de cada fila
+// —4.21-3a-2— son 4.996), más un 5 %: los bytes de la lectura de la definición y los nodos de la lista con 500 filas dibujadas.
 const TOPE_DE_BYTES_DE_LA_DEFINICION = 80_900
-const TOPE_DE_NODOS_CON_500 = 4_200
+const TOPE_DE_NODOS_CON_500 = 5_250
 
 let proyecto = ''
 let duena = ''

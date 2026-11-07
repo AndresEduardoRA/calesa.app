@@ -27,11 +27,18 @@ export type AvisoDelTerreno =
 // Lo que la lectura devuelve: las tablas por clave (las que se leyeron enteras), los tipos de cambio por clave y lo que no se pudo.
 export type TerrenoDePrueba = {
   tipos_cambio: Record<string, number>
+  // La moneda en que está cada tipo de cambio (`moneda_a`): la de los «Total en Bs».
+  monedas: Record<string, string>
   tablas: Record<string, FilaDeTabla[]>
   avisos: AvisoDelTerreno[]
 }
 
-export const TERRENO_VACIO: TerrenoDePrueba = { tipos_cambio: {}, tablas: {}, avisos: [] }
+export const TERRENO_VACIO: TerrenoDePrueba = {
+  tipos_cambio: {},
+  monedas: {},
+  tablas: {},
+  avisos: [],
+}
 
 const tablaDe = (n: Nodo): string | null =>
   n.tipo === 'tabla' || n.tipo === 'tramo' || (n.tipo === 'calculo' && n.op === 'depreciar')

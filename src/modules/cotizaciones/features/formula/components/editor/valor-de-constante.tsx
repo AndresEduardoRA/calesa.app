@@ -11,19 +11,26 @@ import type { Formato } from '../../../../entities/nodos'
 export function ValorDeConstante({
   valor,
   formato,
+  decimales,
 }: {
   valor: number
   formato: Formato | undefined
+  // Para lo que no es dinero (4.21-3a-2): 6 por omisión; el dinero lleva los de `<Monto>` salvo que se pida otro.
+  decimales?: number
 }) {
   const { locale } = useRegional()
   if (formato === 'usd' || formato === 'moneda') {
-    return <Monto valor={valor} moneda={monedaDeFormato(formato)} />
+    return decimales === undefined ? (
+      <Monto valor={valor} moneda={monedaDeFormato(formato)} />
+    ) : (
+      <Monto valor={valor} moneda={monedaDeFormato(formato)} decimales={decimales} />
+    )
   }
   return (
     <span className="tabular-nums">
       {formato === 'pct'
-        ? formatearPorcentaje(valor, { locale, decimales: 6 })
-        : formatearNumero(valor, { locale, decimales: 6 })}
+        ? formatearPorcentaje(valor, { locale, decimales: decimales ?? 6 })
+        : formatearNumero(valor, { locale, decimales: decimales ?? 6 })}
     </span>
   )
 }

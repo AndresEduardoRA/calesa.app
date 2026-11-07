@@ -38,7 +38,9 @@ export function EditorDeLaFormula({ origen, formulaId, sobre, alVolver }: Props)
           {origen.nombre}.
         </p>
       ) : null}
-      {estado.tipo === 'lista' ? <ListaDeFilas origenId={origen.id} leida={estado.leida} /> : null}
+      {estado.tipo === 'lista' ? (
+        <ListaDeFilas origenId={origen.id} nombreDelOrigen={origen.nombre} leida={estado.leida} />
+      ) : null}
     </section>
   )
 }
