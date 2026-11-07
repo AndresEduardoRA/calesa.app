@@ -31,12 +31,14 @@ reparar_disco() {
 reparar_funciones() {
   local i faltan
   reparar_activo || return 1
-  registro "reparando solo: levanto las funciones edge (sesión tmux piloto-funciones)."
+  # Una sesión por carril: cada uno sirve las de su stack, y con un nombre común un carril mataba las de otro.
+  local sesion="piloto-funciones${PILOTO_CARRIL:+-$PILOTO_CARRIL}"
+  registro "reparando solo: levanto las funciones edge (sesión tmux $sesion)."
   if [ -n "${PILOTO_CMD_FUNCIONES:-}" ]; then
     bash -c "$PILOTO_CMD_FUNCIONES" >/dev/null 2>&1 8>&-
   else
-    tmux kill-session -t piloto-funciones 2>/dev/null
-    tmux new-session -d -s piloto-funciones -c "$RAIZ" 'pnpm funciones' 8>&- || return 1
+    tmux kill-session -t "$sesion" 2>/dev/null
+    tmux new-session -d -s "$sesion" -c "$RAIZ" 'pnpm funciones' 8>&- || return 1
   fi
   for i in $(seq 1 "${PILOTO_ESPERA_FUNCIONES:-60}"); do
     faltan=$(bash "$BIN/hechos.sh" 2>/dev/null 8>&- | jq -r 'if (.funciones | type) == "object" then [.funciones | to_entries[] | select(.value != true) | .key] | join(", ") else "no se pudo mirar" end' 2>/dev/null)
