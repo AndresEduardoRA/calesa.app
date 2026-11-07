@@ -238,6 +238,13 @@ test('desde el «⋯» de la fila, «Etiquetas…» abre el selector y la etique
   await expect(selector).toBeVisible()
   await expect(selector.getByLabel('Buscar o crear una etiqueta')).toBeFocused()
   await page.keyboard.type(nombreDeLaEtiqueta)
+  // Enter actúa sobre la opción resaltada: se espera a que sea la etiqueta que ya existe (resaltada, y sin «Crear» al lado), no a lo que
+  // haya a medias cuando el último carácter todavía no se pintó.
+  await expect(selector.getByRole('option', { name: nombreDeLaEtiqueta })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
+  await expect(selector.getByText(/^Crear «/)).toHaveCount(0)
   await page.keyboard.press('Enter')
   await expect
     .poll(() => marcasEnLaBase(lead.id, t.personas.berta))
