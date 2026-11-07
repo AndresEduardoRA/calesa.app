@@ -8,7 +8,7 @@ export type DestinoDeLaFila =
   { existente: string } | { id: string; etiqueta: string; despuesDe: string | null }
 
 export type ErrorDeSitio = {
-  codigo: 'fila_inexistente' | 'id_invalido' | 'id_ocupado'
+  codigo: 'fila_inexistente' | 'id_invalido' | 'id_ocupado' | 'tipo_no_editable'
   mensaje: string
 }
 
@@ -28,6 +28,12 @@ function deLaExistente(filas: readonly Fila[], id: string): Sitio | ErrorDeSitio
   const fila = filas.find((f) => f.nodo.id === id)
   if (fila === undefined)
     return { codigo: 'fila_inexistente', mensaje: `La fila «${id}» no existe.` }
+  // Sólo una constante o un cálculo se escribe como texto: volver otra cosa (una bandera que un SI nombra) rompería la fórmula lejos de donde se escribió.
+  if (fila.nodo.tipo !== 'constante' && fila.nodo.tipo !== 'calculo')
+    return {
+      codigo: 'tipo_no_editable',
+      mensaje: `La fila «${fila.nodo.etiqueta}» no se escribe como texto: no es un cálculo ni una constante.`,
+    }
   const o = fila.nodo as Record<string, unknown>
   const destino: Record<string, unknown> = { id, etiqueta: fila.nodo.etiqueta }
   for (const k of CON_DESTINO) if (o[k] !== undefined) destino[k] = o[k]

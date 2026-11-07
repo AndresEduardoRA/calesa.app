@@ -125,6 +125,24 @@ describe('filasDe: lo que parece una auxiliar y no lo es (T1)', () => {
 })
 
 describe('filasDe: lo que la cadena exige (T1)', () => {
+  it('una cadena con un nodo de otro nombre en el medio no es la cadena de total', () => {
+    const d = formulaCruda([
+      ...NODOS_DE_BASE,
+      { id: 'total__1', tipo: 'constante', etiqueta: 'A' },
+      { id: 'foo', tipo: 'constante', etiqueta: 'B' },
+      { id: 'total__3', tipo: 'constante', etiqueta: 'C' },
+      {
+        id: 'total',
+        tipo: 'calculo',
+        op: 'suma',
+        de: ['total__1', 'foo', 'total__3'],
+        etiqueta: 'T',
+        texto: '=remate+fees',
+      },
+    ]).definicion
+    expect(filasDe(d).find((x) => x.nodo.id === 'total')?.auxiliares).toEqual([])
+  })
+
   it('un nodo con su propio texto no es una auxiliar (una auxiliar nunca lleva texto)', () => {
     const d = formulaCruda([
       ...NODOS_DE_BASE,

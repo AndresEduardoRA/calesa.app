@@ -35,6 +35,7 @@ describe('el tope de 2.000 (T2, C4, 4-6)', () => {
     const antes = structuredClone(f)
     const e = mal(f, existente('total', `=remate${' '.repeat(1994)}`))
     expect(e.codigo).toBe('texto_demasiado_largo')
+    expect(e.mensaje).toBe('El texto de la fila pasa de 2.000 caracteres.')
     expect('tramo' in e && e.tramo).toEqual({ desde: 2000, largo: 1, linea: 1, columna: 2001 })
     expect(f).toStrictEqual(antes)
   })
@@ -115,7 +116,7 @@ describe('cambiar el texto de una fila (T4, C3)', () => {
   describe('con otra fila que nombra una auxiliar', () => {
     const g = formulaDePrueba([
       { id: 'total', texto: '=(remate+fees)*4%' },
-      { id: 'otra', texto: '=total__2*2' },
+      { id: 'otra', texto: '=total__2*2', etiqueta: 'Otra fila' },
     ])
     const rechazo = (texto: string) => {
       const antes = structuredClone(g)
@@ -129,6 +130,12 @@ describe('cambiar el texto de una fila (T4, C3)', () => {
         codigo: 'auxiliar_nombrada',
         nombre: 'total__2',
         fila: 'otra',
+      })
+    })
+
+    it('el mensaje nombra la fila por su etiqueta', () => {
+      expect(rechazo('=remate+fees')).toMatchObject({
+        mensaje: 'La fila «Otra fila» usa «total__2», y este texto lo cambia o lo quita.',
       })
     })
 
@@ -250,6 +257,12 @@ describe('una fila nueva y los pedidos que no valen', () => {
     expect(mal(f, nueva('Mal Id', null)).codigo).toBe('id_invalido')
     expect(mal(f, nueva('nueva', 'no_existe')).codigo).toBe('fila_inexistente')
     expect(mal(f, existente('no_existe', '=remate')).codigo).toBe('fila_inexistente')
+  })
+
+  it('sólo se escribe como texto una constante o un cálculo: un input, una bandera o un tipo de cambio no', () => {
+    for (const id of ['remate', 'b', 'tc']) {
+      expect(mal(f, existente(id, '=flete')).codigo, id).toBe('tipo_no_editable')
+    }
   })
 })
 

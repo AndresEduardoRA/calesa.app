@@ -45,6 +45,8 @@ describe('sitioDe', () => {
       return 'codigo' in s ? s.codigo : 'ok'
     }
     expect(codigo({ existente: 'no_existe' })).toBe('fila_inexistente')
+    expect(codigo({ existente: 'remate' })).toBe('tipo_no_editable')
+    expect(codigo({ existente: 'b' })).toBe('tipo_no_editable')
     expect(codigo({ id: 'n', etiqueta: 'N', despuesDe: 'no_existe' })).toBe('fila_inexistente')
     expect(codigo({ id: 'Mal Id', etiqueta: 'N', despuesDe: null })).toBe('id_invalido')
     expect(codigo({ id: 'total', etiqueta: 'N', despuesDe: null })).toBe('id_ocupado')

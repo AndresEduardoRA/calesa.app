@@ -24,7 +24,7 @@ export function idAuxiliarDe(raiz: string, n: number): string {
   return raiz.slice(0, 41 - sufijo.length) + sufijo
 }
 
-export const textoGuardadoDe = (n: Nodo): string | undefined =>
+const textoGuardadoDe = (n: Nodo): string | undefined =>
   n.tipo === 'constante' || n.tipo === 'calculo' ? n.texto : undefined
 
 // El `k` del sufijo `__<k>` de un id: un entero desde 1, sin ceros a la izquierda.
@@ -53,6 +53,13 @@ function nombresDelTexto(texto: string, m: Medidor): Set<string> {
   return nombres
 }
 
+// Antes de cortar la cadena (O(k)): empieza con `aux(R, 1)` y termina con `aux(R, k)`.
+function extremosDeLaCadena(nodos: readonly Nodo[], p: number, k: number, raiz: Nodo): boolean {
+  return (
+    nodos[p - k]?.id === idAuxiliarDe(raiz.id, 1) && nodos[p - 1]?.id === idAuxiliarDe(raiz.id, k)
+  )
+}
+
 // ¿Los nodos son, en orden, `aux(R, 1..k)` y ninguno lleva texto (una auxiliar nunca lo lleva)?
 function sonLaCadena(cadena: readonly Nodo[], raiz: Nodo, m: Medidor): boolean {
   for (const [i, n] of cadena.entries()) {
@@ -72,16 +79,22 @@ function nombradaPorUno(cadena: readonly Nodo[], raiz: Nodo, m: Medidor): boolea
   return cadena.every((n) => nombradas.get(n.id) === 1)
 }
 
+// El k del nodo de justo antes de la raíz, si la cadena de k nodos empieza con `aux(R, 1)` y termina con `aux(R, k)` (se mira antes de cortar: O(1)).
+function largoDeLaCadena(nodos: readonly Nodo[], p: number, raiz: Nodo): number {
+  const k = sufijoDe(nodos[p - 1]?.id ?? '')
+  if (k === null || k > p || !extremosDeLaCadena(nodos, p, k, raiz)) return 0
+  return k
+}
+
 // Los k nodos inmediatamente antes de la raíz, si son su cadena entera: ids `aux(R, 1..k)` en orden; sin texto; cada uno nombrado por
 // exactamente un nodo posterior de la cadena o por la raíz; y el texto de la raíz no los nombra (el compilador nunca escribe en el texto el
 // nombre de una auxiliar que crea: si el texto lo nombra, es una fila propia que la raíz lee).
 function cadenaDe(nodos: readonly Nodo[], p: number, m: Medidor): number {
   const raiz = nodos[p]
-  const antes = nodos[p - 1]
   const texto = raiz === undefined ? undefined : textoGuardadoDe(raiz)
-  if (raiz === undefined || antes === undefined || texto === undefined) return 0
-  const k = sufijoDe(antes.id)
-  if (k === null || k > p) return 0
+  if (raiz === undefined || texto === undefined) return 0
+  const k = largoDeLaCadena(nodos, p, raiz)
+  if (k === 0) return 0
   const cadena = nodos.slice(p - k, p)
   if (!sonLaCadena(cadena, raiz, m) || !nombradaPorUno(cadena, raiz, m)) return 0
   const escritos = nombresDelTexto(texto, m)

@@ -49,7 +49,7 @@ function errorDelTope(texto: string, m: Medidor): ErrorDeFila | undefined {
   const desde = dentroDeUnPar ? MAXIMO_DE_TEXTO - 1 : MAXIMO_DE_TEXTO
   return {
     codigo: 'texto_demasiado_largo',
-    mensaje: `El texto de la fila pasa de ${MAXIMO_DE_TEXTO.toLocaleString('es-BO')} caracteres.`,
+    mensaje: 'El texto de la fila pasa de 2.000 caracteres.',
     tramo: tramoDe(inicioDeLineas(texto, m), desde, texto.length, m),
   }
 }
@@ -97,10 +97,12 @@ function auxiliarNombrada(p: Pedido, m: Medidor): ErrorDeFila | undefined {
       return vieja !== undefined && !sigueIgual(p.formula, vieja, p.nuevo)
     })
     if (cambiada === undefined) continue
-    const dueno = p.filas.find((f) => pos >= f.desde && pos <= f.posicion)?.nodo.id ?? n.id
+    const filaDeAfuera = p.filas.find((f) => pos >= f.desde && pos <= f.posicion)?.nodo
+    const dueno = filaDeAfuera?.id ?? n.id
+    const nombre = filaDeAfuera?.etiqueta ?? n.etiqueta
     return {
       codigo: 'auxiliar_nombrada',
-      mensaje: `La fila «${dueno}» usa «${cambiada.id}», y este texto lo cambia o lo quita.`,
+      mensaje: `La fila «${nombre}» usa «${cambiada.id}», y este texto lo cambia o lo quita.`,
       tramo: tramoDe(inicioDeLineas(p.texto, m), 0, p.texto.length, m),
       nombre: cambiada.id,
       fila: dueno,
