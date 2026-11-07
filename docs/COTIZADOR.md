@@ -582,7 +582,7 @@ DETAIL y el `donde` en HINT; el primer rechazo manda, en este orden: `forma` (la
 `nodo_inexistente` y `nodo_sin_lugar` (una clave de `etiquetas`/`leyendas` es un miembro de un grupo, el total o lo aparte de `tarjeta_total`),
 `nodo_restringido` (un miembro, el total o lo aparte sin `ver: todos` en la visibilidad compilada; **no figurar cuenta como restringido**) y, con
 `columnas.tipo_cambio`, `tipo_de_cambio_restringido` (el tipo de cambio del bucket de un grupo, por omisión o en un modo). Con `def` nulo, sólo la
-forma. Juego común: `entities/plantilla/casos-de-plantilla.json` (lo corre `plantilla-validar.sql`; lo correrá `validarPlantilla()` de TS, 4.19-2).
+forma. Juego común: `entities/plantilla/casos-de-plantilla.json` (lo corren `plantilla-validar.sql` y `validarPlantilla()` de TS, 4.19-2; sus casos «borde: …» cazan las trampas del espejo y `octetos` fija el texto de `jsonb` que cuenta el tope de 32 KB).
 `plantilla_guardar_borrador` valida la forma; `plantilla_publicar`, contra la fórmula **publicada** del origen y los tonos del catálogo, antes de
 archivar nada (sin fórmula publicada, `formula_sin_publicar@origen`). La tabla la lee sólo quien tiene `cotizaciones.configurar` del origen.
 

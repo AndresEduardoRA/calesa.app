@@ -2492,3 +2492,246 @@ Lo pidió la persona después de que el A hiciera el 4.16 y el 4.17-1: se parti�
 - **`plan.yaml` dice ahora las de `PLAN.md`** (4.22 y 4.23 tras el 4.20; el 4.27 tras el 4.15-6c, por las áreas) y **el 4.27 pasa del C al A**:
   el C tenía tres rojos en cadena (4.25 → 4.26 → 4.27), el camino más largo de la fase; el A es base, dueño del módulo entero, y lleva el
   registro de RPC con tamaño que el 4.27 pide (4-91). El 4.28 depende de cada paso que no tiene otro detrás (el 4.20-4b faltaba).
+
+<!-- paso:4.19-2 -->
+
+## 2026-11-07 — Paso 4.19-2
+
+- **El espejo va a mano, no con Zod:** la base fija el orden de las reglas y el `donde` de cada rechazo (el primero manda), y Zod da los suyos. Como `validarDiseno()`.
+- **Se valida lo que viaja:** la entrada pasa por `JSON.stringify`/`JSON.parse`. Una propiedad `undefined` es una clave ausente; un ciclo, un `BigInt`, una función o `undefined`
+  dan `forma@definicion`, lo que la base hace con un nulo.
+- **Los números en `bytesComoJsonb()`:** se cuentan como los escribe JS; la base guarda su texto (`1.50`, `1e21`). En una plantilla un número siempre es `forma`, así que sólo
+  puede cambiar el `donde` de una plantilla ya inválida que roza los 32 KB.
+- **La 4.ª rama de `nodo_restringido` en la base (lo nombrado, `:110`) no se espeja:** tras `nodo_sin_lugar` todo lo nombrado ya está entre los miembros, el total o lo aparte, y
+  nunca puede ser la primera. Lo dice un comentario en `nodos-de-plantilla.ts`.
+- **`tonosQueYaNoEstan()` es el único predicado:** `tono_inexistente` es su primero; el editor (4.19-3) avisa con la lista entera, y su texto es del 4.19-3.
+- **Los mensajes son los de la base** (`rechazoDePlantilla()`): el editor los puede mostrar al tipear sin una segunda tabla de textos.
+- **`octetos` en el juego común:** el tope de 32 KB se cuenta en bytes del texto de `jsonb::text`; la lista fija ese texto para la base y para TS, y la prueba cae si falta.
+- **El soporte del juego no lee el archivo:** `juego-de-plantilla.soporte.ts` sólo parsea con Zod (`plantilla: z.unknown()`, para no perder `__proto__`); la lectura con
+  `node:fs` queda en los `.test.ts` (`entities/` sin I/O). `casos-de-plantilla.json` pasa las 300 líneas (2.756) como `casos-de-formula.json`: es un juego de datos.
+- **Sin mutaciones formales:** no es de rigor máximo (sin dinero, RLS, permisos ni migración; la base vuelve a validar). Cada trampa conocida tiene su caso en el juego, que corre
+  también la base, y cuatro sondas (`.trim()`, `.length`, orden UTF-16, `localeCompare`) confirmaron que caen.
+- **Para el 4.19-3:** un texto con un surrogate suelto (`\ud800`) o con `\u0000` no lo rechaza `validar_plantilla()` sino la base al leer el JSON (22P02, 22P05): lo tiene
+  que atajar la action del editor.
+
+<!-- paso:4.21-1 -->
+
+## Paso 4.21-1
+
+- **La partición.** El 4.21 no cabía en una sesión: se parte en **4.21-1** (lo puro del texto de una fila), **4.21-2** (la versión esperada de `formula_guardar_borrador()` y `formula_descartar_borrador()`, también al crear el borrador; 4-8; base, compuerta `datos`, riesgo rojo), **4.21-3a** (el editor en texto con la vista previa del motor TS; cierra 4-5 y 4-6; depende del 4.20-4b, que toca la misma carpeta), **4.21-3b** (guardar el borrador) y **4.21-3c** (grupos, plazo y tipo de cambio). **El `4.21` sigue entero en `plan.yaml`** y cada parte menos la última sale con `parcial: true`: con el campo, `publicar.sh` abre el PR, `carril.sh` no lo anota `publicado` y el coordinador no integra solo un PR `ambar` a medias. Ids nuevos se descartaron por lo mismo que en el 4.20-4 (`docs/pasos/4.20-4/decisiones.md`).
+- **P1 (4-5): reescribir el número en el texto.** Al abrir una fila cuyo ⚙ dejó otro valor en una constante nacida de un número del texto, `textoVigente()` lo reescribe en su tramo (`=(remate+fees)*4%` pasa a `…*5%`); si no se puede (un negativo, un `-0`, otra estructura, el texto ya no compila) la fila queda «el texto ya no manda» y recompilar da `pisa_un_valor` hasta `confirmaPisar`. **P2: escribir el texto desde el nodo** sólo si compilarlo da exactamente ese nodo; si no, `null` y la fila se muestra por sus campos.
+- **El tope va en la fila, no en `compilarExpresion`** (C4): sus pruebas de escala compilan textos de 100.000 términos a propósito. Se mide en unidades UTF-16 (como el Zod que valida; la base cuenta caracteres, así que éste es el más estricto) y el tramo empieza en la unidad 2.001; si el corte cae dentro de un par de sustitutos, en el par entero.
+- **Escribir un literal** (C8): `String(v)` y, con `%`, el punto corrido dos lugares **en el texto** (como el léxico; nunca `v * 100`). **Un negativo no se escribe por decisión**, no por la gramática (el menos se pliega al literal, pero en el tramo de `4` de `a-4` daría `a--3`). Un porcentaje cuyo texto desborda un doble (`1e310%` vale 1e308) tampoco: el compilador lee primero el número sin el `%`. Un literal entre paréntesis (`(4%)`) se reescribe por dentro.
+- **Las auxiliares de una fila** (C2): se reconocen con la **misma regla de recorte** de `idAuxiliar()` (copiada en `filas.ts`; el compilador no se toca) y la cadena tiene que ser entera, contigua, sin texto propio, nombrada cada una por exactamente un nodo de la cadena o la fila, y el texto de la fila no las nombra: así `=total__1+remate` con una fila propia `total__1` sigue siendo una fila propia.
+- **Una auxiliar que otra fila nombra** (C3): si el texto nuevo la cambia (otro valor, otro `formato`) o la quita, `compilarFila()` da `auxiliar_nombrada` en vez de conservar la vieja (quedaría suelta) o dejar una referencia rota (`validarFormula()` la rechazaría lejos de donde se escribió).
+- **`condicion` y los demás campos** (C5): en un `SI` (el viejo o el nuevo) la decide sólo el texto; un interruptor no pasa a bandera ni al revés. `seccion` y `color` se conservan siempre, `sobrescribible` sólo si sigue siendo un cálculo, y lo que se suelta se dice en `soltados`.
+- **Cómo quedó repartido** (límites de lint: complejidad 12, 4 parámetros): `compilar-fila-base.ts` hace C3 a C6 y `compilar-fila.ts` suma C10 (preguntar antes de pisar un ⚙); sin esa separación `texto-vigente.ts` y `compilar-fila.ts` se importarían en círculo. Además `sitio-de-la-fila.ts` (dónde va la fila; `fila_inexistente`, `id_invalido`, `id_ocupado`) y `conservar-de-la-fila.ts`. T10 vive en `compilar-fila-pisar.test.ts`. `textoVigente()` da también `sin_texto` (una fila sin texto o que no existe). `textoDeNodo()` no escribe el «=» (es opcional en el compilador) y recibe la fórmula y el id (`textoDeNodo(formula, filaId)`, no el nodo: compilar el texto pide su contexto). `compilarFila()` devuelve además de `formula` y `tramos` los `nodos` y `params` compilados y los `soltados`. La opción interna `sinAuxiliarNombrada` es de `textoVigente()`: si el ⚙ cambió una auxiliar que otra fila nombra, reescribir el texto es justo lo que lo arregla. El mensaje de `auxiliar_nombrada` nombra la fila por su etiqueta.
+- **Sólo una constante o un cálculo se escribe como texto** (`tipo_no_editable`): compilar el texto sobre una bandera, un input, un tipo de cambio, una tabla o un tramo la volvería un cálculo y rompería lo que la nombra (un `SI` que lee la bandera), lejos de donde se escribió. Qué se hace con las demás filas en la pantalla (sólo etiqueta, formato y grupo, o por campos) es del 4.21-3a.
+- **Para el coordinador (o el A), antes del 4.21-2:** (1) `plan.yaml` › `4.21` › `riesgo: rojo` (vuelve a `ambar` cuando el PR que trae la migración esté integrado, si la persona lo decide): la vuelta siguiente retoma la rama `b/4.21`, y con el 4.21-3c (sin `parcial`) un `4.21` ámbar se fusionaría solo con la migración `security definer`; (2) sumar a los `modulos` del `4.21` `supabase/migrations/`, `supabase/tests/`, `src/app/(app)/configuracion/cotizacion/` y `scripts/guardas/{confirmar-con-url,drawers-con-salida}-formula.ts`; (3) `docs/PLAN.md`, fila del 4.21: «Se parte en 4.21-1 (lo puro del texto de una fila), 4.21-2 (la esperada de guardar y descartar el borrador; 4-8), 4.21-3a (el editor en texto con la vista previa; cierra 4-5 y 4-6), 4.21-3b (guardar el borrador) y 4.21-3c (grupos, plazo y tipo de cambio); cada parte menos la última sale con `parcial`». El plan del 4.21-2 empieza verificando en `origin/main` que el `4.21` diga `riesgo: rojo` y traiga `supabase/` en `modulos`; si no, compuerta `afuera`. El del 4.21-3a verifica que el `4.20-4b` esté integrado.
+- **Textos para el A** (la ficha `src/modules/cotizaciones/CLAUDE.md` es del núcleo): en «Archivos clave», sumar «`entities/formula/{filas,misma-estructura,sitio-de-la-fila,conservar-de-la-fila,compilar-fila-base,compilar-fila,texto-vigente,literal,texto-de-nodo}.ts` (4.21-1): una fila y sus auxiliares, si dos nodos son el mismo salvo la etiqueta, compilar una fila en su lugar con su texto (tope de 2.000), el texto vigente tras un ⚙ (4-5)».
+- **Para el 4.21-2 (compuerta `datos`):** cambiar la firma de las RPC del borrador rompe `scripts/carreras/{niveles,tonos,cotizaciones}.mjs` (del A) y las pruebas SQL que las llaman (`supabase/tests/{humo,publicar-diseno,medir-publicar}.sql`); las opciones: parámetros nuevos con `default null` que la app siempre manda, cambiar la firma sin default con el A tocando sus carreras en el mismo tren, o una RPC nueva para el editor. La esperada también tiene que cubrir la creación del borrador (la publicada que el editor leyó).
+- **Del 4.21-3a:** dónde vive el editor, con qué valores calcula la vista previa, qué filas se editan, si se puede cambiar el id de una fila, y avisar o bloquear si el borrador borra una fila que el diseño nombra (4.21-3b y 3c).
+- **El `ff` del Paso 0:** `b/4.21` estaba en `681baf83`, 160 commits atrás de `origin/main`; se llevó a `06052b20` con `git merge --ff-only` antes de empezar.
+
+<!-- paso:4.21-2 -->
+
+## Paso 4.21-2 (2026-11-07)
+
+- **Las respuestas de la persona** (compuerta `producto`, las cuatro recomendadas; después aprobó la compuerta `datos`):
+  - P1, parámetros nuevos al final, con `default null` y sin sobrecargas. Es una excepción aprobada a `.claude/rules/migraciones.md` («toda RPC de edición nace con `p_actualizado_en_esperado` sin default y lo pasa por `_exigir_version()`»): en guardar la hora nula quiere decir «crear», y en descartar y publicar vale (no compara) hasta el 4.21-3b.
+  - P2, publicar también pide la hora del borrador, en este paso.
+  - P3, guardar encima de un borrador atrasado entra si la hora coincide.
+  - P4, descartar con hora cuando ya no hay borrador da PT409 en vez de no hacer nada.
+- **Guardar sin hora crea** (C2): si ya hay borrador da PT409 con quién lo empezó y cuándo se guardó, y no escribe nada. Si la publicada esperada viene y ya no es la publicada, da PT409 con quién publicó qué versión. La publicada nula no compara, como en `formula_publicar`.
+- **Guardar con hora pisa** sólo si es la del borrador (C3). No cambian `version_origen_id` ni `creado_por`, y la publicada no se compara (P3). Guardar devuelve `jsonb` `{id, actualizado_en}` de la fila escrita (`returning`, después de `trg_actualizado_en`), nunca la hora esperada ni la leída antes. Así el 4.21-3b vuelve a guardar sin releer el borrador, porque releerlo dejaría entrar a otra persona entremedio. Antes devolvía `uuid`.
+- **Descartar** (C4): con hora, un borrador que cambió da PT409 T2 y uno que ya no está da PT409 T3 (P4). Sin hora, como antes.
+- **Publicar** (C5): mira primero la publicada esperada, como antes. Después, con hora, un borrador que cambió da T2 y uno que ya no está da T3, en vez del 22023 «No hay borrador». Sin hora, como antes.
+- **El orden en las tres RPC** es permiso, validación (sólo en guardar, fuera del candado: con 2.000 ítems es lo caro), candado del origen, lectura del borrador `for update`, esperadas y escritura. Quien no configura el origen recibe 42501 antes de enterarse por un PT409 de si hay borrador. El candado es el mismo de publicar, el ⚙ y revertir, así que no aparece un orden nuevo que pueda trabarse.
+- **Los ayudantes** se llaman `_borrador_formula_empezado_por(uuid)` (definer: lee `perfiles`) y `_exigir_borrador_formula(public.formulas, timestamptz)` (invocador). El plan los nombraba `_formula_…`, pero `supabase/tests/validar-formula.sql` toma toda función `_formula_%` como ayudante de `validar_formula()` y cuenta exactamente 7. Los dos llevan `set search_path = ''` y sólo los ejecuta `service_role`. `_publicar_formula`, recreada con la hora, sigue siendo sólo de `service_role`: sin el `revoke`, `authenticated` podría pasarle `p_ignorar_retirados = true`.
+- **Guardar entra en el inventario de `cotizaciones-visibilidad.sql`** como `no_devuelve`: ahora devuelve `jsonb`, y el detector registra toda función que lee `formulas` y devuelve algo que no es un id.
+- **Residuales (se anotan, no se resuelven):**
+  - R1: con las dos esperadas nulas en un origen sin publicada, si otra persona publica la v1 entremedio, el borrador nace sobre esa v1. Una llamada vieja (las carreras) no se distingue del editor de un origen nuevo, y sólo pasa en la primera publicación de un origen.
+  - R2: dos guardados en una misma transacción comparten la hora (`now()`). En el uso real cada guardado es su propia transacción. Las pruebas simulan a la otra persona con la hora −1 µs.
+- **Para el coordinador:**
+  - En la fila del 4.21 de `docs/PLAN.md`: «4.21-2 hecho: la versión esperada del borrador en la base (guardar crea sin hora y pisa con ella, y devuelve `{id, actualizado_en}`; descartar y publicar la aceptan); cierra 4-8».
+  - Marcar **4-8 cerrado en la base**: «A guarda, B hace el ⚙ y A ve un conflicto al publicar» lo prueba B8. La pantalla manda las esperadas en el 4.21-3b.
+  - **Abierto nuevo:** cuando el 4.21-3b mande la hora en descartar y publicar, decidir si la nula deja de valer (sería una migración más) y qué hacer con R1. Lo decide la persona.
+  - `ESTADO`: «4.21-2: la versión esperada del borrador de la fórmula en la base (4-8)».
+- **Para el A:**
+  - Ficha `src/modules/cotizaciones/CLAUDE.md` (las RPC del borrador): «`formula_guardar_borrador(…, p_publicada_esperada?, p_actualizado_en_esperado?)` crea sin hora y pisa con ella, y devuelve `{id, actualizado_en}`; `formula_descartar_borrador(origen, p_actualizado_en_esperado?)` y `formula_publicar(…, p_actualizado_en_esperado?)` la aceptan (4.21-2)».
+  - `.claude/rules/migraciones.md` › «Forma» y `datos.md`: sale la excepción «`formula_guardar_borrador` hasta el 4.20». Entra: «en `formula_guardar_borrador`, `p_actualizado_en_esperado` nula quiere decir crear; en `formula_descartar_borrador` y `formula_publicar` vale nula (no compara) hasta el 4.21-3b».
+  - Una carrera en `scripts/carreras/` (en `tonos.mjs` o en un archivo propio): «dos crean el primer borrador a la vez: uno entra y el otro da PT409 T1». Las de hoy siguen en verde con la firma nueva (`db:carreras`).
+
+<!-- paso:4.21-3a-1 -->
+
+## Paso 4.21-3a-1 (2026-11-07)
+
+- **Las respuestas de la persona** (compuerta `producto`, las seis recomendadas):
+  - P1, seguir sin esperar al 4.20-4b: el `'4.20-4b'` del `depende_de` del `4.21` se puso porque el 4.20-4b edita `pestanas.ts` y `page.tsx`, y el 3a-1 no toca ningún archivo de `src/app/`. Cada plan del 4.21 lo vuelve a verificar.
+  - P2, el editor vive dentro de la pestaña «Fórmula», en `?panel=editar-formula`: ocupa el lugar del selector, las tarjetas y la lista, con «Volver a la fórmula», y su código viaja con `diferido()`.
+  - P3, en el 4.21 se edita el texto de los cálculos y las constantes; las demás filas se ven en sólo lectura, sin «Editar».
+  - P4 (para el 3a-2 o el 3c), el id de una fila no se cambia: una fila con otro nombre es una fila nueva.
+  - P5 (para el 3a-2), la vista previa calcula con valores de prueba que no se guardan (inputs en 0, banderas apagadas, la variante por defecto), los tipos de cambio de hoy de la empresa y las tablas vivas del origen, y dice «Cifras de prueba.».
+  - P6 (para el 3a-2), «Sumar fila» debajo de una fila: cálculo o constante, con su etiqueta y un id propuesto desde ella (minúsculas ASCII y `_`, hasta 41, sin chocar con otro) que se puede cambiar antes de crearla.
+- **La partición.** El 4.21-3a no cabía en tres commits: se parte en **4.21-3a-1** (el editor en texto: las filas, compilar al aplicar, el error en su fila y el borrador local; cierra 4-5 y 4-6) y **4.21-3a-2** (la vista previa con `evaluar()` y las filas nuevas). Sale con `parcial`, como las demás partes.
+- **Entrar** (C1): «Editar» en la tarjeta del borrador (antes de «Publicar…», también atrasado) y, sin borrador, «Editar en un borrador» en la de la publicada. Sin publicada ni borrador no hay botón (una fórmula desde cero pide filas nuevas, 3a-2), y `?panel=editar-formula` por la URL dice «No hay una fórmula para editar en <Origen>.» y limpia la URL. «Atrás» cierra el editor y devuelve el foco al botón.
+- **Leer** (C3): el editor lee desde el navegador una sola fila de `formulas` por su id (`formulas_pkey`, `.limit(1)`), con `id, definicion, params, actualizado_en` y la sesión de quien mira. La lectura exige la **forma** (el Zod de `formula.ts`): lo que no la tiene es un error con «Reintentar». Las reglas que cruzan nodos (`validarFormula()`) no impiden abrir: el editor dice el rechazo en su fila. El plan lo había puesto en la lectura (T1); se movió al editor para poder abrir y arreglar un borrador inválido. Si la fila no vuelve: «Esa versión de la fórmula ya no se puede abrir: se descartó o ya no configuras <Origen>.». No culpa a otra persona, porque la policy esconde igual una fila borrada que una de un origen que se dejó de configurar.
+- **Las filas** (C4): las filas en su orden, con su etiqueta, su id (monoespaciado: el nombre que usan los textos) y su tipo.
+  - Un cálculo o una constante muestra su texto vigente. Si un ⚙ cambió un número que el texto puede escribir, el texto reescrito y «Con ⚙ se cambió 4 % por 5 %: el texto ya dice el valor nuevo.»; si no puede, «El texto ya no manda: con ⚙ quedó -3 %, que el texto no puede escribir.». Las cifras van con el formato de su constante (la auxiliar de un `4%` es un porcentaje) y el dinero por `<Monto>`. Lo reescrito sólo se muestra: guardarlo así es del 3b.
+  - Sin texto, el que se escribe desde el nodo. Si no se puede escribir, la fila se muestra por sus campos («Calcula: suma de a, b», «Vale 900») y se le puede escribir un texto.
+- **Compilar al aplicar** (C5, C6): «Aplicar» o Ctrl/Cmd+Enter; Esc cancela. Hay una sola fila abierta a la vez, y los demás «Editar» quedan apagados.
+  - Lo tipeado vive en el campo de la fila hasta aplicar, así que tipear no vuelve a dibujar la lista.
+  - Un error deja la fila abierta con el mensaje debajo del texto (`aria-invalid`, `aria-describedby`) y la fórmula igual. El de 2.001 caracteres no llama a `validarFormula()`.
+  - `pisa_un_valor` muestra una línea por valor del ⚙ que se pisaría, con «Pisar el valor».
+  - Tras cada cambio corre `validarFormula()`. El rechazo va a la fila que nombra (por `donde`, de la fila o de una auxiliar suya, o por el lugar de `campo`); si no nombra ninguna, va arriba de la lista. El cambio queda aplicado.
+  - Lo que una fila suelta al compilar se dice en ella: «Esta fila dejó de llevar: …».
+- **Borrador local** (C7): lo aplicado (`definicion` y `params` planos) se guarda en la pestaña con `useBorradorDeEstado`, con la clave `formula-editor:<origen>:<versión>:<actualizado_en>`. Al volver o recargar se repone con el aviso de siempre y su «Descartar». Otra versión leída no lo repone.
+- **El tope** (C8): se dibujan hasta 500 filas, con «Mostrando las 500 primeras filas. Busca una fila por su nombre o su etiqueta.». «Buscar fila» filtra por id o etiqueta, sin distinguir mayúsculas, antes de cortar. La fila abierta se dibuja aunque el filtro no la nombre. Sin coincidencias, «Nada coincide con los filtros» con «Ninguna fila tiene «…» en el nombre ni en la etiqueta.», sin «Limpiar filtros» (se limpia en el campo).
+- **El costo de las filas:** calcular qué dibuja cada fila es O(filas × nodos), porque `textoVigente()` y `textoDeNodo()` recorren la fórmula entera en cada llamada. Se calcula una vez por fórmula de trabajo.
+  - Medido en Vitest: 600 filas, 1,83 M visitas (~0,2 s); 2.000 filas, 20,1 M (~1,8 s).
+  - En el navegador, con 600 filas: 957 ms del clic a la lista. Pasa de 1 s con más filas: **abierto** para una versión por lote de lo puro (del B, en un paso de rigor).
+- **Para el coordinador:**
+  - En la fila del 4.21 de `docs/PLAN.md`: «El 4.21-3a se parte en 4.21-3a-1 (el editor en texto: filas, compilar al confirmar, el error en su fila y el borrador local; cierra 4-5 y 4-6) y 4.21-3a-2 (la vista previa con `evaluar()` y las filas nuevas)».
+  - Marcar **4-5 y 4-6 cerrados**: los prueba `e2e/configuracion-cotizacion-formula-editor.spec.ts`. El 4-6 también lo prueba `use-editor-de-la-formula.test.tsx`, que comprueba que no se llama a `validarFormula()`.
+  - `ESTADO`: «4.21-3a-1: el editor de la fórmula en texto (cierra 4-5 y 4-6)».
+  - El `depende_de: ['4.20', '4.20-4b']` del `4.21` sólo pesa en una parte que toque `pestanas.ts` o `page.tsx` (P1).
+  - **Abierto nuevo:** el editor tarda ~1 s en abrir con 600 filas y ~2 s con 2.000 (O(filas × nodos)).
+- **Para el A:** en la ficha `src/modules/cotizaciones/CLAUDE.md` (núcleo), en «Entra y sale», tras lo del 4.20-2c, sumar: «edita la fórmula en texto en `?panel=editar-formula` (4.21-3a-1): lee la fila del borrador o de la publicada desde el navegador (`infra/formula/definicion.client.ts`), compila cada fila al aplicar con `compilarFila()` y guarda lo aplicado en la pestaña (`useBorradorDeEstado`)».
+- **Para el 3a-2:** aplicar P4 a P6. La vista previa lee las tablas y los tipos de cambio desde el navegador.
+- **Para el 3b:**
+  - Al guardar, escribir en el texto lo que reescribió `textoVigente()` (hoy sólo se muestra).
+  - El borrador que se lee puede ser de otra persona: «Sobre el borrador de <persona>.».
+  - La clave del borrador local lleva la `actualizado_en` leída: tras guardar, la clave cambia.
+
+<!-- paso:4.24-3 -->
+
+## 2026-11-07 — Paso 4.24-3
+
+- **Lo que contestó la persona:** compuerta `datos` del plan: «aprobar» (P1 a: esperar el chore del A; P2 a: se envía aunque haya cambios sin guardar). Compuerta
+  `afuera` (P1), en tres vueltas: «seguir» hasta que el chore del A llegó a `main` (`ef8f4dd7`, PR #46: el caso de huecos vacíos usa huecos de prueba). Segunda
+  compuerta `afuera`, «seguir» (dos vueltas): el A arregló lo que el botón destapaba en `src/app` (`9bf2d6cd`: `loading.tsx` importa sólo
+  `pantallas/esqueleto-de-hoja.ts`; `5b1154ef`: la prueba de los huecos simula `server-only`).
+- **Lo que se aprobó en permisos:** una puerta en la app, ninguna en la base. La action mira `cotizaciones.editar`, `.moderar` o `.final.gestionar` en algún origen
+  antes de llamar a `cotizaciones_papelera_enviar` (`puedeEnviarCotizacionesALaPapelera`, que ahora usa también `puedeAbrirLaPapeleraDeCotizaciones`). El botón lo ve
+  quien puede guardarla o, en una preventa, quien modera (`puedeEnviarLaCotizacion`), el espejo de `_cotizacion_a_papelera()`; la base lo vuelve a decidir.
+- **Lo no obvio:**
+  - El botón es `outline`, a la vista en la cabecera después de «Revisiones», y no una opción de un «⋯» como en vehículos y leads: la guardada no tiene menú y el hueco
+    `Acciones` del 4.15-6b es la barra. No es `destructive`: es reversible (el tono queda para purgar).
+  - Enviar lleva a `/cotizaciones` (la guardada ya no existe para nadie) y «Deshacer» no la vuelve a abrir: el listado ya la muestra, como en leads y vehículos.
+    `Debajo` queda vacío: «Papelera» ya está junto a «Nueva».
+  - La base devuelve el `titulo` de `enviados` sin `coalesce` (nulo en una sin título; restaurar, purgar y el lote lo completan con «Cotización #n»). Lo completa
+    `envioDesde()`; igualarlo en la base es un paso de base del C si la persona lo pide.
+  - Un error de enviar dice el motivo de la base tal cual (el PT409 dice quién la cambió y cuándo): la persona está en esa cotización y no hace falta nombrarla.
+    «Deshacer» que no la pudo restaurar es un error de regla con su motivo, como en la papelera.
+  - El hueco es un Server Component (`<EnviarLaGuardadaALaPapelera>`) que decide quién lo ve y dibuja `<BotonEnviarALaPapelera>` con el id y la versión: al navegador
+    no viajan los permisos ni `permisos.ts`. El botón es un `<button>` con `buttonVariants` (sin el primitivo de Base UI) y el envío
+    (`hooks/envio-a-papelera.ts`) llama a las actions sin `useAction`, con su propio «en curso»: el JS en frío de la guardada está al tope (439,2 de 448 KB).
+  - El primer intento midió 451,7 KB. No era el botón: `loading.tsx` importaba el barril `pantallas/cotizacion`, y al sumar un Client Component a la página el HTML
+    bajaba dos chunks casi iguales (el de `loading` y el de `page`). Con `loading.tsx` sin el barril (prueba temporal) medía 438,5. Pedir el envío al primer clic con
+    `import()` no lo arreglaba y además lo rechaza `scripts/guardas/diferidos.test.ts`. Lo arregló el A (arriba); queda en `docs/RENDIMIENTO.md`.
+  - `resultados.test.ts` ya tenía 178 líneas: lo de enviar va en `resultados-envio.test.ts`.
+- **Para el coordinador (o el A):**
+  - El `4.24-3` (`depende_de: ['4.24-2']` y el chore `ef8f4dd7`; `ambar`; `modulos`: `features/papelera/`, `entities/papelera/`, `infra/papelera/`, `areas/papelera/`,
+    `pantallas/papelera-cotizacion.ts`, `docs/`) envía desde la guardada. El `4.25` depende de `4.24-3` y de `4.24-2b`.
+  - **Este PR marca `integrado 4.24`** si su CI va en verde: el `terminado` («`cotizaciones.papelera.purgar` gobierna su papelera; cierra 4-68 y 4-70») lo cumplen el
+    1a y el 1b en la base y el 2 y el 2b en la pantalla; del título faltaba «Deshacer», este paso. 4-68 y 4-70 se quitan de `docs/PLAN.md`.
+  - Abiertos para el A, en el núcleo (P2 a): enviar desde la guardada no mira lo tipeado sin guardar, que no vuelve con «Deshacer» (el borrador es por versión); y un
+    guardado pendiente (por persona y cotización, sin versión) sobrevive al envío y, tras «Deshacer», el núcleo lo reintenta con la versión vieja y da un PT409 contra
+    uno mismo.
+  - Para el 4.25–4.27: con `9bf2d6cd` y `5b1154ef`, un área ya puede poner un Client Component con Server Actions en un hueco de la guardada sin duplicar el chunk
+    ni romper la prueba de los huecos.
+  - Siguen los pendientes del 4.24 que no son del `terminado` (el `aplicado_en` de la clave, la deuda de `docs/ESTADO.md:51`, la ficha del módulo, las carreras).
+
+<!-- paso:flujo-1 -->
+
+## 2026-11-07 — FLUJO-1: el flujo continuo de los carriles
+
+- **El problema medido (5 al 7-11):** 23 fallas distintas pararon o frenaron a los carriles. Las que más costaron: re-arrancar a mano cuando cambiaban los
+  scripts del piloto (≈ 4 h 30), la integración de lo rojo y del A que esperaba a la persona (8 h 17 en una noche), los pedidos de B y C al A sin mecanismo
+  (≈ 3 h y 11 relanzamientos, ≈ 35 USD sin avance) y el rango del cierre ensuciado por main (54 y 165 commits ajenos). Lo tapaban scripts fuera del repo
+  (`~/orca/supervision/`), sin pruebas, con rutas absolutas y compitiendo con el coordinador por `estado.json`. El A no podía publicar con coordinador.
+- **La copia del bucle sale de `origin/main`, no de la rama del carril** (`copiar-bin.sh`). Es común a los carriles y cada uno la rehacía desde su rama: las tres
+  iban sin los PR 44 y 49, y re-arrancar el A habría vuelto atrás el `cierre.sh` de los tres. Lo integrado ya pasó el CI y la compuerta «guardas». Se anota el
+  `tree` de `origin/main:scripts/piloto` en `bin.origen`, y una copia sin `bucle.sh` (un main roto) no reemplaza a la que hay.
+- **El bucle se relanza solo** cuando main cambia `scripts/piloto/`, entre pasos y nunca con un paso vivo (`exec`, mismas opciones). Un bucle viejo puede llamar a
+  piezas nuevas hasta su próxima vuelta: son de línea de comandos estable, y el riesgo es menor que el de dejar un carril quieto horas. El cierre de un paso que
+  tocó `scripts/piloto/` ya no pide re-arrancar: su cambio rige al integrarse.
+- **La rama del carril trae main antes de cada parte, nunca a mitad de un paso** (salvo tras una espera, que es por eso). Sin commits propios, la rama pasa a ser
+  `origin/main`; con commits, `git merge` (nunca rebase con push forzado). Así cada parte corre con las skills y agentes de main: el planificador en sonnet del
+  PR 49 nunca llegó a correr porque las ramas iban atrás.
+- **El cierre cuenta los commits propios** del paso: `HEAD de arranque..HEAD`, sin mezclas y sin lo que ya está en `origin/main` (`rango_propio`). Lo mismo para las
+  guardas: lo que vino de main ya pasó su compuerta.
+- **La compuerta `espera` y los pedidos.** Un paso que necesita algo de otro carril ya no pide una `afuera` ni ofrece «seguir mientras…», que el bucle no sabe
+  cumplir. Pide `espera` con su `pedido`: el coordinador se lo da al dueño de los `archivos` (o al base), que lo toma antes que sus pasos (`pedido-<n>`). El que
+  pidió espera a main sin preguntar y se retoma solo. Se descartó dejar que B y C editen los archivos del A: la guarda de carriles es lo que permite correr tres
+  a la vez sin choques. Una `afuera` que dice «no está en main» también espera, por los carriles que todavía la piden así.
+- **Un aviso se reintenta solo antes de ir al celular** (5, 15 y 45 min por motivo). Reintentar no se salta nada: repite la vuelta con todas sus paradas y
+  verificaciones. Lo que repetir no arregla (el tope de gasto, el árbol que el paso dejó sucio) va directo a la persona. Va en `PILOTO_AUTO` (por omisión), así
+  que se apaga como las otras respuestas solas.
+- **El coordinador manda sobre el ruteo.** Si el ruteo elige otro paso que el asignado, se corre el asignado y la sesión elige su parte. Antes era una parada,
+  5 veces al arrancar los carriles. Una «parte» que es otro id del plan (el 4.20-4a del A dentro del 4.20 de B) no vale.
+- **El coordinador integra las partes** (`pr_parcial`, con merge y sin borrar la rama, porque el carril sigue en ella) y los pedidos (como un paso ámbar). Antes
+  las partes sólo las integraba `integrar-verdes.sh`, fuera del repo.
+- **Lo rojo lo integra el coordinador con el CI en verde** (lo decidió la persona el 2026-11-07). `integraSolo` ya no lo bloquea por código: vale lo
+  que diga `COORD_MERGE_AUTO`, y `piloto.config` dice `verde,ambar,rojo` (antes la línea pisaba al entorno, así que el `rojo` con que corría el
+  coordinador nunca rigió, y lo integraba `integrar-verdes.sh` sin quedar escrito). La última barrera son el auditor (Opus) y los jobs de base
+  del CI (RLS, grants, advisors).
+- **Lo que toca las guardas del piloto no se integra solo**, aunque sea verde (`scripts/piloto/`, hooks, settings, agentes, skills del piloto,
+  lefthook, workflows): la copia del bucle sale de main y los tres carriles se recargan con ella, así que un paso que reescribe el bucle no
+  entra sin que la persona lo vea. La compuerta «guardas» se contesta sola en el carril; el merge, no. `COORD_GUARDAS_SOLAS=1` lo deja.
+- **Las pruebas inestables tienen un reintento sólo en CI** (lo decidió la persona el 2026-11-07). Del 3 al 7-11 hubo 13 corridas rojas sin código
+  roto, y cada una devolvía el PR a su carril. La que pasa al reintentar se anota en el PR y en el resumen de la corrida
+  (`e2e/soporte/reporter-de-inestables.ts`) y sigue siendo un abierto. En local, sin reintento, como siempre. Las 12 conocidas van como
+  pedido al carril A.
+- **La puerta de fase con carriles mira el CI de `main`**, porque la rama nueva del 4.28 no tendrá corridas. Una corrida cancelada no cuenta si hay otra detrás.
+  Un `ci-fix` no se repite hasta que corra un CI que incluya su arreglo.
+- **Lo que corrigió la revisión adversarial** (antes de integrar):
+  - Un pedido o un paso que cierra «listo sin cambios» se lo decía sólo al registro, y el coordinador lo volvía a dar sin fin (una sesión pagada
+    por vuelta). Ahora un pedido así se cierra (`cerrar-pedido`) y un paso del plan asignado sin nada que publicar va a la persona.
+  - La copia se cambia con un enlace (`bin` → `bin.<árbol>-<hora>`, `mv -T`), sin un instante sin `bin/`, y cada bucle sigue con la suya
+    (`comun.sh` resuelve el enlace) hasta relanzarse: ya no mezcla piezas viejas en memoria con nuevas en disco.
+  - Lo que el bucle corre por fuera (`git`, el coordinador) no hereda el candado del bucle (fd 8): un `git gc` desprendido dejaba al bucle
+    relanzado sin poder tomarlo. El relanzado espera 30 s el candado.
+  - Un paso que falla, «tres fallas seguidas», la espera que pasa su tope y un ciclo entre carriles van directo a la persona: esperar no los arregla.
+  - La `espera` pide `archivos` y despierta cuando **todos** cambian en main (o el dueño cierra el pedido), no con cualquier commit; hasta 3
+    esperas por paso. Dos carriles que se piden mutuamente son un ciclo que va a la persona.
+  - Un carril con sus pasos integrados no sale: atiende pedidos hasta que el plan entero termine.
+  - El coordinador integra el commit que vio el CI (`--match-head-commit`).
+- **Para el coordinador (o el A):** al consolidar, cerrar en `docs/PLAN.md` el 4-83 (`auto-carriles.test.ts` hermético).
+
+<!-- paso:pedido-1 -->
+
+## 2026-11-07 — Pedido del carril persona (estabilizar-1)
+
+- **Lo no obvio:** un `toPass` que repite un clic para esperar la hidratación tiene que parar cuando el clic anterior ya hizo efecto, y el efecto que se ve
+  antes que el modal es la URL (`?panel=`). Repetirlo no es inocuo: suma entradas iguales al historial y rompe «atrás». Un reintento sin esa guarda es una
+  carrera propia de la prueba, y sube con la lentitud de la máquina.
+- **Cómo se reproduce lo que no cae solo:** frenar la CPU del navegador (CDP `Emulation.setCPUThrottlingRate`, 8 a 16) ensancha las ventanas de hidratación
+  mejor que quemar CPU de la máquina (8 procesos dieron 6 de 6 en 4-99; 20 no tocaron 4-80, 4-92, 4-93 ni 4-97). No se dejó en el repo: es un parche de tres líneas
+  en `e2e/soporte/prueba.ts` (`process.env.E2E_CPU`).
+- **No se subió ningún tiempo:** los topes de 1 s del `toPass` y de 5 s de los `expect` siguen; los clics suman un tope de 3 s para no esperar los 30 s de la prueba.
+
+<!-- paso:pedido-2 -->
+
+## 2026-11-07 — Pedido del carril persona (estabilizar-2)
+
+- **Lo no obvio:** una espera de 5 s a algo que hace el servidor (el nombre del cliente en la barra, el total del recálculo) no es un tiempo mal puesto: es
+  una espera al estado que depende de la latencia. Se prueba inyectando esa latencia (`page.route` sobre `rsc`, `rpc` o las Server Actions): el HEAD cae con la
+  misma pantalla que en el CI y lo nuevo no. Frenar la CPU del navegador no alcanzó (0 de 86 a 6× y 16×), porque la caída era del servidor, no de la hidratación
+  (la de 4-99, pedido-1).
+- **Sí se subió un tiempo, en dos esperas, con la causa medida:** 4-81 y 4-86 pasan a 15 s, el tope que `alDia()` de `soporte/cotizar-vista-previa.ts` ya
+  usa para el mismo recálculo. Una espera que no sube nada (4-85) se arregló esperando el estado nuevo, que es la regla de `.claude/rules/e2e.md`.
+- **4-82, sin el assert de tiempo entre volúmenes:** los bloques de `vehiculos` por relación ya medían el crecimiento con N y no dependen de un autovacuum; el
+  tiempo comparaba dos corridas de una máquina compartida. Se comprobó que sigue mordiendo: la consulta de hoy cae por bloques (`inventario-contra-hoy-1.txt`).
+  Lo que pierde: un crecimiento en ms sin crecimiento en bloques de `vehiculos` (por ejemplo, más trabajo de CPU por fila) ya no lo ve esta medición;
+  lo acotan los topes absolutos (10, 20 y 40 ms).
+
+<!-- paso:pedido-3 -->
+
+# pedido-3 (pedido del carril b, 4.21)
+
+- `plan.yaml` › `4.21` pasa a `riesgo: rojo` y suma a `modulos` la base, sus pruebas, los tipos, la carpeta de Configuración › Cotización y las dos guardas, como pidió el carril b.
+- Dos cambios más que el pedido no nombraba y que `scripts/coordinador/plan.mjs` exige (`coordinador.node.test.ts` cayó sin ellos):
+  - un paso rojo va con opus, modo plan y revisor: el ruteo del 4.21 pasa de `sonnet / auto / ninguno` a `opus / plan→auto / claude-sesion-nueva`, como el 4.20-4a;
+  - el 4.21 y el 4.20-4b (carril A) tocan `src/app/(app)/configuracion/cotizacion/`: el 4.21 pasa a depender del 4.20-4b, que es lo que el 4.21-3a ya verificaba.
+- Si la persona prefiere que el 4.21 siga con sonnet, hay que decidir otra forma de mantenerlo rojo: el chequeo del plan no lo deja.
