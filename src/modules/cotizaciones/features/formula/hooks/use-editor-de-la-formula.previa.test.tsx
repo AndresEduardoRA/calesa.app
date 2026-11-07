@@ -6,6 +6,11 @@ import { calcularLaVistaPrevia } from '../../../entities/formula/vista-previa'
 import type * as ModuloDeLaVistaPrevia from '../../../entities/formula/vista-previa'
 import { useEditorDeLaFormula } from './use-editor-de-la-formula'
 
+// «Guardar el borrador» (4.21-3b-1): la action no llega aquí (su composición es del servidor).
+vi.mock('../actions/guardar-borrador', () => ({
+  guardarBorrador: () => Promise.resolve(undefined),
+}))
+
 // `calcularLaVistaPrevia()` envuelta, llamando a la real: para contar cuándo se llama.
 vi.mock('../../../entities/formula/vista-previa', async (original) => {
   const real = await original<typeof ModuloDeLaVistaPrevia>()

@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { Button } from '@/shared/ui/button'
 import { EsqueletoListado } from '@/shared/ui/esqueletos'
 import { EstadoError } from '@/shared/ui/estados'
@@ -13,11 +14,22 @@ type Props = {
   // «Sobre el borrador de <persona>.» o «Sobre la versión N publicada.»
   sobre: string
   alVolver: () => void
+  recargando: boolean
+  alRecargar: () => void
 }
 
-// El editor de la fórmula en texto (4.21-3a-1, `?panel=editar-formula`): lee la versión desde el navegador al abrirse y dibuja sus filas. Nada se guarda en la base
-// (guardar el borrador es del 4.21-3b): lo aplicado vive en la pestaña.
-export function EditorDeLaFormula({ origen, formulaId, sobre, alVolver }: Props) {
+// El editor de la fórmula en texto (4.21-3a-1, `?panel=editar-formula`): lee la versión desde el navegador al abrirse y dibuja sus filas; lo aplicado vive en la
+// pestaña hasta «Guardar el borrador» (4.21-3b-1). Lee la versión con la que abrió y no otra (4.21-3b-1, C8): guardar sobre la publicada crea el borrador y la
+// pestaña cambia de versión, pero el editor sigue sobre lo suyo; sólo «Recargar» lo vuelve a montar.
+export function EditorDeLaFormula({
+  origen,
+  sobre,
+  alVolver,
+  recargando,
+  alRecargar,
+  ...props
+}: Props) {
+  const [formulaId] = useState(props.formulaId)
   const { estado, reintentar } = useLecturaDeLaDefinicion(formulaId)
   return (
     <section aria-label="Editor de la fórmula" className="grid min-w-0 gap-3">
@@ -39,7 +51,13 @@ export function EditorDeLaFormula({ origen, formulaId, sobre, alVolver }: Props)
         </p>
       ) : null}
       {estado.tipo === 'lista' ? (
-        <ListaDeFilas origenId={origen.id} nombreDelOrigen={origen.nombre} leida={estado.leida} />
+        <ListaDeFilas
+          origenId={origen.id}
+          nombreDelOrigen={origen.nombre}
+          leida={estado.leida}
+          recargando={recargando}
+          alRecargar={alRecargar}
+        />
       ) : null}
     </section>
   )

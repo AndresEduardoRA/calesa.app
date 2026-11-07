@@ -11,6 +11,11 @@ import type { TerrenoDePrueba } from '../../../../entities/formula/terreno-de-pr
 import { CifraDePrueba } from './cifra-de-prueba'
 import { EditorDeLaFormula } from './editor-de-la-formula'
 
+// «Guardar el borrador» (4.21-3b-1): la action no llega aquí (su composición es del servidor).
+vi.mock('../../actions/guardar-borrador', () => ({
+  guardarBorrador: () => Promise.resolve(undefined),
+}))
+
 type Respuesta = Resultado<FormulaParaEditar | null>
 let terrenoDeLaPrueba: TerrenoDePrueba
 const pedidos: { formulaId: string; resolver: (r: Respuesta) => void }[] = []
@@ -57,6 +62,8 @@ const montar = (alVolver = vi.fn()) =>
       formulaId={FORMULA}
       sobre="Sobre la versión 3 publicada."
       alVolver={alVolver}
+      recargando={false}
+      alRecargar={vi.fn()}
     />,
   )
 

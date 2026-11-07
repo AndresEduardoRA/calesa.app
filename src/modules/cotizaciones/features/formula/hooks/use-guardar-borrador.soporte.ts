@@ -67,3 +67,32 @@ export function hayCambiosPorGuardar(guardada: Formula, guardable: Formula): boo
     !iguales(paramsPlanos(guardada), paramsPlanos(guardable))
   )
 }
+
+// Lo que dejó el último «Guardar el borrador» (C5): entró; un PT409 con el texto de la base (nombra a una persona y cuándo); o un error con su texto propio.
+export type EstadoDelGuardado =
+  | { tipo: 'quieto' }
+  | { tipo: 'entro' }
+  | { tipo: 'conflicto'; mensaje: string }
+  | { tipo: 'regla' }
+  | { tipo: 'sin_permiso' }
+  | { tipo: 'sin_respuesta' }
+  | { tipo: 'error'; mensaje: string }
+
+export const ESPERA_A_LA_FILA = 'Aplica o cancela la fila abierta.'
+export const SIN_CAMBIOS = 'No hay cambios por guardar.'
+export const CORREGIR = 'Corrige lo marcado para guardar.'
+export const SE_GUARDO = 'Se guardó el borrador.'
+export const MENSAJE_DE_REGLA =
+  'La base no aceptó la fórmula por una regla que el editor no revisó: no se guardó.'
+export const MENSAJE_SIN_RESPUESTA = 'No sabemos si se guardó: recarga para verlo.'
+
+// Por qué el botón espera, en este orden: lo abierto (una fila o «Sumar fila»), el rechazo de `validarFormula()`, que no haya nada por guardar. Nulo: listo.
+export function motivoParaNoGuardar(estado: {
+  hayAbierta: boolean
+  hayRechazo: boolean
+  hayCambios: boolean
+}): string | null {
+  if (estado.hayAbierta) return ESPERA_A_LA_FILA
+  if (estado.hayRechazo) return CORREGIR
+  return estado.hayCambios ? null : SIN_CAMBIOS
+}

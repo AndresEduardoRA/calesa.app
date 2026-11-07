@@ -9,6 +9,11 @@ import { textoVigente } from '../../../entities/formula/texto-vigente'
 import { validarFormula } from '../../../entities/validar'
 import { useEditorDeLaFormula } from './use-editor-de-la-formula'
 
+// «Guardar el borrador» (4.21-3b-1): la action no llega aquí (su composición es del servidor).
+vi.mock('../actions/guardar-borrador', () => ({
+  guardarBorrador: () => Promise.resolve(undefined),
+}))
+
 // `validarFormula()` y `textoVigente()` envueltas, llamando a las reales: para contar cuándo se llaman.
 vi.mock('../../../entities/validar', async (original) => {
   const real = await original<typeof ModuloDeValidar>()
