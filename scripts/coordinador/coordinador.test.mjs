@@ -150,3 +150,52 @@ test('liberar e integrado a mano; transición inválida falla con mensaje', () =
   assert.match(correr('liberar', 'P01', 'me', 'arrepentí'), /vuelve a pendiente/)
   assert.throws(() => correr('integrado', 'P01'), /no puede pasar de pendiente a integrado/)
 })
+
+test('una parte publicada (parcial) se integra con su CI en verde, con merge y sin soltar el paso', () => {
+  const { dir, correr, pr, respuestas } = repo()
+  correr('siguiente', 'ui')
+  assert.match(correr('parcial', 'P02', '21'), /parte publicada \(#21\)/)
+  pr(21, { state: 'OPEN', mergeable: 'MERGEABLE', statusCheckRollup: verde })
+  assert.match(correr('sincronizar'), /P02: parte integrada por el coordinador \(#21, verde\)/)
+  assert.equal(readFileSync(join(respuestas, 'merges'), 'utf8').trim(), '21')
+  const estado = JSON.parse(readFileSync(join(dir, '.git/coordinador/estado.json'), 'utf8'))
+  assert.equal(estado.pasos.P02.estado, 'asignado')
+  assert.equal(estado.pasos.P02.pr_parcial, undefined)
+  assert.throws(() => correr('parcial', 'P01', '22'), /no está asignado/)
+  // La última parte en el mismo PR: deja de ser parte.
+  correr('parcial', 'P02', '23')
+  correr('publicado', 'P02', '23')
+  const despues = JSON.parse(readFileSync(join(dir, '.git/coordinador/estado.json'), 'utf8'))
+  assert.equal(despues.pasos.P02.pr_parcial, undefined)
+  assert.equal(despues.pasos.P02.pr, 23)
+})
+
+test('un pedido: lo anota quien espera, lo toma el dueño antes que lo suyo y el coordinador lo integra', () => {
+  const { dir, correr, pr, respuestas } = repo()
+  const pd = JSON.parse(
+    correr('pedir', 'ui', 'P02', 'un índice para la lista', 'supabase/migrations/x.sql'),
+  )
+  assert.equal(pd.id, 'pedido-1')
+  assert.equal(pd.para, 'datos')
+  assert.equal(pd.nuevo, true)
+  assert.equal(JSON.parse(correr('pedir', 'ui', 'P02', 'otra vez')).nuevo, false)
+  const r = JSON.parse(correr('siguiente', 'datos'))
+  assert.equal(r.paso, 'pedido-1')
+  assert.equal(r.rama, 'datos/pedido-1')
+  assert.deepEqual(r.pedido, {
+    de: 'ui',
+    paso: 'P02',
+    texto: 'un índice para la lista',
+    archivos: ['supabase/migrations/x.sql'],
+  })
+  correr('publicado', 'pedido-1', '41')
+  pr(41, { state: 'OPEN', mergeable: 'MERGEABLE', statusCheckRollup: verde })
+  assert.match(
+    correr('sincronizar'),
+    /pedido-1: integrado por el coordinador \(#41\); el carril ui se retoma/,
+  )
+  assert.equal(readFileSync(join(respuestas, 'merges'), 'utf8').trim(), '41')
+  const estado = JSON.parse(readFileSync(join(dir, '.git/coordinador/estado.json'), 'utf8'))
+  assert.equal(estado.pedidos[0].estado, 'integrado')
+  assert.equal(JSON.parse(correr('siguiente', 'datos')).paso, 'P01')
+})

@@ -5,7 +5,9 @@
 //
 //   coordinador.mjs validar                     el plan corre en paralelo sin choques (exit 1 si no)
 //   coordinador.mjs siguiente <carril>          JSON: {accion: paso|esperar|terminado, …}; un paso queda asignado al carril
-//   coordinador.mjs publicado <paso> <pr>       el piloto abrió el PR del paso
+//   coordinador.mjs publicado <paso> <pr>       el piloto abrió el PR del paso (o de un pedido: pedido-<n>)
+//   coordinador.mjs parcial <paso> <pr>         el piloto abrió el PR de UNA PARTE del paso (sigue asignado; el PR se integra igual)
+//   coordinador.mjs pedir <carril> <paso> <texto> [archivo…]   el carril, en su paso, necesita algo de otro: JSON del pedido
 //   coordinador.mjs liberar <paso> [motivo]     el paso vuelve a pendiente (el piloto lo abandonó)
 //   coordinador.mjs integrado <paso>            la persona lo integró a mano (lo normal es que lo vea `sincronizar`)
 //   coordinador.mjs sincronizar                 mira los PR publicados: integra los que puede (verde/ámbar con CI verde) y anota el resto
@@ -33,6 +35,8 @@ import {
   leerConsumo,
   leerPlan,
   marcar,
+  marcarPedido,
+  pedir,
   problemasDelPlan,
   siguiente,
   tablero,
@@ -154,8 +158,130 @@ function gh(...args) {
 }
 
 const CHECK_BIEN = new Set(['SUCCESS', 'SKIPPED', 'NEUTRAL'])
+
+// Lo que dice GitHub de un PR: su estado y, si está abierto, si hay que arreglarlo, si su CI sigue y si se puede integrar.
+function mirarPr(numero) {
+  const pr = JSON.parse(
+    gh('pr', 'view', String(numero), '--json', 'state,mergeable,statusCheckRollup'),
+  )
+  const checks = pr.statusCheckRollup ?? []
+  const pendiente = checks.some((c) => (c.status ?? 'COMPLETED') !== 'COMPLETED')
+  const rojo = checks.some(
+    (c) => (c.status ?? 'COMPLETED') === 'COMPLETED' && !CHECK_BIEN.has(c.conclusion ?? c.state),
+  )
+  const arreglar =
+    pr.mergeable === 'CONFLICTING' ? 'conflicto con main' : rojo ? 'CI en rojo' : null
+  const listo = !arreglar && !pendiente && checks.length > 0 && pr.mergeable === 'MERGEABLE'
+  return { estado: pr.state, arreglar, listo }
+}
+
+// Las partes publicadas de un paso que sigue asignado (`pr_parcial`): se integran con su CI en verde, con commit de merge y sin borrar la
+// rama, porque el carril sigue en ella. Antes nadie las integraba en el repo: lo hacía un script fuera de él (integrar-verdes.sh).
+function sincronizarParciales(plan, estado, informe) {
+  for (const paso of plan.pasos) {
+    const e = estado.pasos[paso.id]
+    if (!e?.pr_parcial) continue
+    let pr
+    try {
+      pr = mirarPr(e.pr_parcial)
+    } catch (err) {
+      informe.push(
+        `${paso.id}: no se pudo mirar la parte #${e.pr_parcial} (${String(err.message).split('\n')[0]})`,
+      )
+      continue
+    }
+    const quitar = () => {
+      const resto = { ...estado.pasos[paso.id] }
+      delete resto.pr_parcial
+      estado = { ...estado, pasos: { ...estado.pasos, [paso.id]: resto } }
+    }
+    if (pr.estado === 'MERGED') {
+      informe.push(`${paso.id}: parte integrada (#${e.pr_parcial})`)
+      quitar()
+      continue
+    }
+    if (pr.estado === 'CLOSED') {
+      informe.push(`${paso.id}: la parte #${e.pr_parcial} se cerró sin integrar`)
+      quitar()
+      continue
+    }
+    if (!pr.listo) continue
+    if (!integraSolo(paso, MERGE_AUTO)) {
+      informe.push(
+        `${paso.id}: la parte #${e.pr_parcial} está en verde; es ${paso.riesgo}: la integra la persona`,
+      )
+      continue
+    }
+    try {
+      gh('pr', 'merge', String(e.pr_parcial), '--merge')
+      informe.push(
+        `${paso.id}: parte integrada por el coordinador (#${e.pr_parcial}, ${paso.riesgo})`,
+      )
+      quitar()
+    } catch (err) {
+      informe.push(
+        `${paso.id}: no se pudo integrar la parte #${e.pr_parcial} (${String(err.message).split('\n')[0]})`,
+      )
+    }
+  }
+  return estado
+}
+
+// Los pedidos publicados: como un paso ámbar (un arreglo chico del carril dueño, con su CI). Al integrarse, el carril que esperaba ve
+// cambiar main y se retoma (bucle.sh › esperar_main).
+function sincronizarPedidos(estado, informe) {
+  for (const pd of estado.pedidos ?? []) {
+    if (pd.estado !== 'publicado' || !pd.pr) continue
+    let pr
+    try {
+      pr = mirarPr(pd.pr)
+    } catch (err) {
+      informe.push(
+        `${pd.id}: no se pudo mirar el PR #${pd.pr} (${String(err.message).split('\n')[0]})`,
+      )
+      continue
+    }
+    if (pr.estado === 'MERGED') {
+      estado = marcarPedido(estado, pd.id, 'integrado', { arreglar: null })
+      informe.push(`${pd.id}: integrado (#${pd.pr}); el carril ${pd.de} se retoma`)
+      continue
+    }
+    if (pr.estado === 'CLOSED') {
+      informe.push(`${pd.id}: el PR #${pd.pr} se cerró sin integrar: lo decide la persona`)
+      continue
+    }
+    if (pr.arreglar !== (pd.arreglar ?? null)) {
+      estado = {
+        ...estado,
+        pedidos: estado.pedidos.map((x) => (x.id === pd.id ? { ...x, arreglar: pr.arreglar } : x)),
+      }
+      if (pr.arreglar)
+        informe.push(`${pd.id}: ${pr.arreglar} (#${pd.pr}): vuelve al carril ${pd.para}`)
+    }
+    if (!pr.listo) continue
+    if (!MERGE_AUTO.includes('ambar')) {
+      informe.push(`${pd.id}: CI en verde: lo integra la persona (#${pd.pr})`)
+      continue
+    }
+    try {
+      gh('pr', 'merge', String(pd.pr), '--squash', '--delete-branch')
+      estado = marcarPedido(estado, pd.id, 'integrado', { arreglar: null, integro: 'coordinador' })
+      informe.push(
+        `${pd.id}: integrado por el coordinador (#${pd.pr}); el carril ${pd.de} se retoma`,
+      )
+    } catch (err) {
+      informe.push(
+        `${pd.id}: no se pudo integrar #${pd.pr} (${String(err.message).split('\n')[0]})`,
+      )
+    }
+  }
+  return estado
+}
+
 function sincronizar(plan, estado) {
   const informe = []
+  estado = sincronizarParciales(plan, estado, informe)
+  estado = sincronizarPedidos(estado, informe)
   for (const paso of plan.pasos) {
     const e = estado.pasos[paso.id]
     if (e.estado !== 'publicado' || !e.pr) continue
@@ -230,7 +356,10 @@ try {
           cuota: fraccion,
           umbral: Number(process.env.COORD_UMBRAL || 0.8),
         })
-        if (r.accion === 'paso' && estado.pasos[r.paso.id].estado !== 'asignado') {
+        if (r.accion === 'paso' && r.pedido) {
+          if (r.pedido.estado !== 'asignado')
+            estado = marcarPedido(estado, r.pedido.id, 'asignado', { arreglar: r.arreglar ?? null })
+        } else if (r.accion === 'paso' && estado.pasos[r.paso.id].estado !== 'asignado') {
           estado = marcar(estado, r.paso.id, 'asignado', {
             carril,
             arreglar: r.arreglar ?? null,
@@ -252,6 +381,16 @@ try {
               terminado: r.paso.terminado,
               decisiones: r.paso.decisiones ?? [],
               modulos: r.paso.modulos,
+              ...(r.pedido
+                ? {
+                    pedido: {
+                      de: r.pedido.de,
+                      paso: r.pedido.paso,
+                      texto: r.pedido.texto,
+                      archivos: r.pedido.archivos ?? [],
+                    },
+                  }
+                : {}),
             }
           : r
       })
@@ -262,12 +401,49 @@ try {
       const [paso, pr] = args
       if (!paso || !/^\d+$/.test(pr ?? '')) fallar('uso: publicado <paso> <número de PR>', 64)
       const plan = cargarPlan()
-      conCandado(() =>
+      conCandado(() => {
+        const estado = leerEstado(plan)
         guardarEstado(
-          marcar(leerEstado(plan), paso, 'publicado', { pr: Number(pr), arreglar: null }),
-        ),
-      )
+          /^pedido-\d+$/.test(paso)
+            ? marcarPedido(estado, paso, 'publicado', { pr: Number(pr), arreglar: null })
+            : // La última parte va en el mismo PR que las anteriores sin integrar: deja de ser una parte (no se integra dos veces).
+              marcar(estado, paso, 'publicado', {
+                pr: Number(pr),
+                arreglar: null,
+                pr_parcial: undefined,
+              }),
+        )
+      })
       console.log(`✓ ${paso} publicado (#${pr})`)
+      break
+    }
+    case 'parcial': {
+      const [paso, pr] = args
+      if (!paso || !/^\d+$/.test(pr ?? '')) fallar('uso: parcial <paso> <número de PR>', 64)
+      const plan = cargarPlan()
+      conCandado(() => {
+        const estado = leerEstado(plan)
+        const e = estado.pasos[paso]
+        if (!e) fallar(`el paso ${paso} no está en el plan`)
+        if (e.estado !== 'asignado') fallar(`el paso ${paso} no está asignado (${e.estado})`)
+        guardarEstado({
+          ...estado,
+          pasos: { ...estado.pasos, [paso]: { ...e, pr_parcial: Number(pr) } },
+        })
+      })
+      console.log(`✓ ${paso}: parte publicada (#${pr})`)
+      break
+    }
+    case 'pedir': {
+      const [carril, paso, texto, ...archivos] = args
+      if (!carril || !paso || !texto) fallar('uso: pedir <carril> <paso> <texto> [archivo…]', 64)
+      const plan = cargarPlan()
+      const r = conCandado(() => {
+        const r = pedir(plan, leerEstado(plan), { de: carril, paso, texto, archivos })
+        guardarEstado(r.estado)
+        return r
+      })
+      console.log(JSON.stringify({ ...r.pedido, nuevo: r.nuevo }))
       break
     }
     case 'liberar': {
@@ -323,7 +499,7 @@ try {
     }
     default:
       fallar(
-        'órdenes: validar · siguiente <carril> · publicado <paso> <pr> · liberar <paso> · integrado <paso> · sincronizar · cuota · tablero',
+        'órdenes: validar · siguiente <carril> · publicado <paso> <pr> · parcial <paso> <pr> · pedir <carril> <paso> <texto> [archivo…] · liberar <paso> · integrado <paso> · sincronizar · cuota · tablero',
         64,
       )
   }
