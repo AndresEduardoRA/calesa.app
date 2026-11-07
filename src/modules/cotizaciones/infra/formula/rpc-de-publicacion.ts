@@ -2,9 +2,12 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 import { errorDePostgrest, fallo, ok, type Resultado } from '@/shared/lib/errores'
 import type { Database } from '@/shared/types/database.types'
-import type { RepositorioDeLaFormula } from '../../entities/formula/repositorio'
+import type { RepositorioDeLaFormula, ResultadoDelCambio } from '../../entities/formula/repositorio'
 
-type Respuesta = { data: unknown; error: { code?: string | null; message: string } | null }
+type Respuesta = {
+  data: unknown
+  error: { code?: string | null; message: string; hint?: string | null } | null
+}
 
 // El id de la versión publicada que devuelve la RPC; cualquier otra cosa es una respuesta que no se esperaba.
 function idPublicado({ data, error }: Respuesta): Resultado<string> {
@@ -15,6 +18,16 @@ function idPublicado({ data, error }: Respuesta): Resultado<string> {
   return leido.success
     ? ok(leido.data)
     : fallo('inesperado', 'No pudimos leer la respuesta. Recarga para ver cómo quedó.')
+}
+
+// El cambio de una constante: como `idPublicado`, y el 22023 con `hint = 'valor'` («La constante ya tiene ese valor.», el único que lo lleva en
+// `formula_cambiar_constante()`) va al campo. Otro 22023 queda sin campo: el `hint` de `_formula_rechazar` es el id de un nodo.
+function idDelCambio(respuesta: Respuesta): ResultadoDelCambio {
+  const { error } = respuesta
+  if (error?.code === '22023' && error.hint === 'valor') {
+    return { ok: false, error: errorDePostgrest(error), campo: 'valor' }
+  }
+  return idPublicado(respuesta)
 }
 
 // Las escrituras de la fórmula sobre un cliente (el de la sesión de quien publica: la base vuelve a pedir `cotizaciones.configurar` del origen). Los mensajes de la base
@@ -36,6 +49,16 @@ export function publicacionSobre(cliente: SupabaseClient<Database>): Repositorio
           p_origen: origenId,
           p_version: versionId,
           p_nota: nota,
+          p_publicada_esperada: publicadaEsperada,
+        }),
+      ),
+    // Siempre con la esperada: sin ella la base no compara y otra publicación en el medio se pisaría.
+    cambiarConstante: async ({ origenId, nodo, valor, publicadaEsperada }) =>
+      idDelCambio(
+        await cliente.rpc('formula_cambiar_constante', {
+          p_origen: origenId,
+          p_nodo: nodo,
+          p_valor: valor,
           p_publicada_esperada: publicadaEsperada,
         }),
       ),

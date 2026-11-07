@@ -5,7 +5,7 @@ import { publicacionSobre } from './rpc-de-publicacion'
 
 type Respuesta = {
   data: unknown
-  error: { code?: string; message: string } | null
+  error: { code?: string; message: string; hint?: string } | null
 }
 
 // Un cliente que anota cada RPC con sus argumentos y responde lo que se le da.
@@ -173,5 +173,69 @@ describe('publicacionSobre › descartar', () => {
     })
     const hecho = await publicacionSobre(cliente).descartar({ origenId: ORIGEN })
     expect(hecho.ok ? null : hecho.error.codigo).toBe('sin_permiso')
+  })
+})
+
+describe('publicacionSobre › cambiarConstante', () => {
+  const pedido = { origenId: ORIGEN, nodo: 'flete', valor: 0.13, publicadaEsperada: PUBLICADA }
+
+  it('llama formula_cambiar_constante con el origen, el nodo, el valor y la publicada esperada, siempre', async () => {
+    const { cliente, llamadas } = clienteFalso({ data: NUEVA, error: null })
+    const hecho = await publicacionSobre(cliente).cambiarConstante(pedido)
+    expect(llamadas).toEqual([
+      [
+        'formula_cambiar_constante',
+        { p_origen: ORIGEN, p_nodo: 'flete', p_valor: 0.13, p_publicada_esperada: PUBLICADA },
+      ],
+    ])
+    expect(hecho).toEqual({ ok: true, data: NUEVA })
+  })
+
+  it('el PT409 es un conflicto con el mensaje de la base intacto, sin campo', async () => {
+    const { cliente } = clienteFalso({
+      data: null,
+      error: { code: 'PT409', message: 'Ana publicó la versión 3 hace 2 min.' },
+    })
+    expect(await publicacionSobre(cliente).cambiarConstante(pedido)).toEqual({
+      ok: false,
+      error: { codigo: 'conflicto', mensaje: 'Ana publicó la versión 3 hace 2 min.' },
+    })
+  })
+
+  it('el 22023 con hint «valor» va al campo «valor»', async () => {
+    const { cliente } = clienteFalso({
+      data: null,
+      error: { code: '22023', message: 'La constante ya tiene ese valor.', hint: 'valor' },
+    })
+    expect(await publicacionSobre(cliente).cambiarConstante(pedido)).toEqual({
+      ok: false,
+      error: { codigo: 'regla', mensaje: 'La constante ya tiene ese valor.' },
+      campo: 'valor',
+    })
+  })
+
+  it('otro 22023 (el hint de un nodo de _formula_rechazar, o sin hint) es una regla sin campo', async () => {
+    const delNodo = clienteFalso({
+      data: null,
+      error: { code: '22023', message: 'El flete no puede ser negativo.', hint: 'flete' },
+    })
+    expect(await publicacionSobre(delNodo.cliente).cambiarConstante(pedido)).toEqual({
+      ok: false,
+      error: { codigo: 'regla', mensaje: 'El flete no puede ser negativo.' },
+    })
+    const sinHint = clienteFalso({
+      data: null,
+      error: { code: '22023', message: 'El origen no tiene fórmula publicada.' },
+    })
+    expect(await publicacionSobre(sinHint.cliente).cambiarConstante(pedido)).toEqual({
+      ok: false,
+      error: { codigo: 'regla', mensaje: 'El origen no tiene fórmula publicada.' },
+    })
+  })
+
+  it('una respuesta que no es un id es inesperada', async () => {
+    const { cliente } = clienteFalso({ data: 'otra cosa', error: null })
+    const hecho = await publicacionSobre(cliente).cambiarConstante(pedido)
+    expect(hecho.ok ? null : hecho.error.codigo).toBe('inesperado')
   })
 })

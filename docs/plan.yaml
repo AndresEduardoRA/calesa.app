@@ -49,6 +49,8 @@ carriles:
       - src/modules/cotizaciones/areas/formula/
       # Los <Confirmar> de su área (4.20-2c): el registro del núcleo es del A y los suma.
       - scripts/guardas/confirmar-con-url-formula.ts
+      # Los <Drawer> de su área (4.20-3b): el registro del núcleo es del A y los suma.
+      - scripts/guardas/drawers-con-salida-formula.ts
       - src/modules/cotizaciones/pantallas/formula.ts
       - src/modules/cotizaciones/pantallas/formula-hoja.ts
       - src/modules/cotizaciones/features/diseno/
@@ -136,6 +138,8 @@ carriles:
         src/app/(app)/configuracion/empresa/comprobantes/,
         # Las RPC con tamaño de su papelera (4.15-7): el registro del núcleo es del A y las suma.
         scripts/guardas/paginas-en-la-base-papelera.ts,
+        # Los <Confirmar> de su área (4.24-2b): el registro del núcleo es del A y los suma.
+        scripts/guardas/confirmar-con-url-papelera.ts,
       ]
 
 pasos:
@@ -391,6 +395,8 @@ pasos:
         src/modules/cotizaciones/areas/formula/,
         # Los <Confirmar> de su área (4.20-2c): el registro del núcleo es del A y los suma.
         scripts/guardas/confirmar-con-url-formula.ts,
+        # Los <Drawer> de su área (4.20-3b): el registro del núcleo es del A y los suma.
+        scripts/guardas/drawers-con-salida-formula.ts,
         src/modules/cotizaciones/entities/casos-de-diseno.json,
         src/modules/cotizaciones/entities/motivos-de-diseno.test.ts,
         src/modules/cotizaciones/entities/motivos-de-diseno.ts,
@@ -528,6 +534,8 @@ pasos:
         src/modules/cotizaciones/areas/papelera/,
         src/app/(app)/cotizaciones/papelera/,
         scripts/guardas/paginas-en-la-base-papelera.ts,
+        # Los <Confirmar> de su área (4.24-2b): el registro del núcleo es del A y los suma.
+        scripts/guardas/confirmar-con-url-papelera.ts,
         docs/,
       ]
     ruteo:

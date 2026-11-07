@@ -57,13 +57,13 @@ afterAll(() => {
   for (const r of raices) rmSync(r, { recursive: true, force: true })
 })
 
-function publicar(rama: string, carril = 'formula') {
+function publicar(rama: string, carril = 'formula', paso = '4.20') {
   git(repo, 'checkout', '-q', base)
   git(repo, 'checkout', '-q', '-b', rama)
   writeFileSync(join(repo, 'a.ts'), `${rama}\n`)
   git(repo, 'add', '.')
   git(repo, 'commit', '-q', '-m', 'a')
-  const r = spawnSync('bash', [SCRIPT, '4.20', base], {
+  const r = spawnSync('bash', [SCRIPT, paso, base], {
     cwd: repo,
     encoding: 'utf8',
     env: {
@@ -111,6 +111,21 @@ describe('publicar.sh › un PR por paso del carril', () => {
     expect(leer('gh.log')).toContain('--head formula/4.20-parcial')
     expect(leer('coord.log')).not.toContain('publicado 4.20')
     expect(r.salida).toContain('publicado en parte')
+  })
+
+  it('la última parte de un paso (4.20-4 del 4.20 asignado) la anota con el id del paso asignado', () => {
+    mkdirSync(join(raiz, 'estado'), { recursive: true })
+    writeFileSync(
+      join(raiz, 'estado', 'asignado.json'),
+      JSON.stringify({ accion: 'paso', paso: '4.20', rama: 'formula/4.20' }),
+    )
+    writeFileSync(join(raiz, 'coord.log'), '')
+    rmSync(join(raiz, 'pr-abierto'), { force: true })
+    const r = publicar('formula/4.20-final', 'formula', '4.20-4')
+    rmSync(join(raiz, 'estado', 'asignado.json'), { force: true })
+    expect(r.estado, r.salida).toBe(0)
+    expect(leer('coord.log')).toContain('publicado 4.20 31')
+    expect(leer('coord.log')).not.toContain('publicado 4.20-4')
   })
 
   it('se niega a publicar una rama de otro carril, y la a/… tampoco vale con carril', () => {

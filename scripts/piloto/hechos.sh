@@ -78,7 +78,18 @@ if [ -s "$COMUN/compuerta.md" ] && [ -s "$COMUN/decision.md" ]; then
   ID_C=$(sed -n 's/^id: *//p' "$COMUN/compuerta.md" | head -n 1)
   ID_D=$(sed -n 's/^id: *//p' "$COMUN/decision.md" | head -n 1)
   CARRIL_C=$(sed -n 's/^carril: *//p' "$COMUN/compuerta.md" | head -n 1)
-  [ -n "$ID_C" ] && [ "$ID_C" = "$ID_D" ] && { [ -z "$CARRIL_C" ] || [ "$CARRIL_C" = "${PILOTO_CARRIL:-a}" ]; } && DECISION=$(head -c 8000 "$COMUN/decision.md")
+  [ -n "$ID_C" ] && [ "$ID_C" = "$ID_D" ] && { [ -z "$CARRIL_C" ] || [ "$CARRIL_C" = "${PILOTO_CARRIL:-a}" ]; } &&
+    DECISION=$(head -c 8000 "$COMUN/decision.md") CREADA_D=$(sed -n 's/^creada: *//p' "$COMUN/compuerta.md" | head -n 1)
+fi
+# La de una compuerta que se contestó sola en este carril (`compuerta-sola.md`, sin el candado común: compuerta.sh): si es más nueva que
+# la humana, es la vigente.
+if [ -s "$ESTADO/compuerta-sola.md" ] && [ -s "$ESTADO/decision-sola.md" ]; then
+  ID_S=$(sed -n 's/^id: *//p' "$ESTADO/compuerta-sola.md" | head -n 1)
+  CREADA_S=$(sed -n 's/^creada: *//p' "$ESTADO/compuerta-sola.md" | head -n 1)
+  if [ -n "$ID_S" ] && [ "$ID_S" = "$(sed -n 's/^id: *//p' "$ESTADO/decision-sola.md" | head -n 1)" ] &&
+    { [ -z "$DECISION" ] || [ "${CREADA_S:-0}" -ge "${CREADA_D:-0}" ]; }; then
+    DECISION=$(head -c 8000 "$ESTADO/decision-sola.md")
+  fi
 fi
 
 jq -n \

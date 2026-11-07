@@ -93,9 +93,13 @@ declare
     ('vehiculos_papelera_purgar(uuid,timestamp with time zone,uuid[])', 'X'),
     -- La papelera propia de cotizaciones (4.24-1a): no recibe un lead; nombra `cotizaciones` y `lotes_papelera`. Pide ver cada cotización antes de tomarla
     -- y el permiso de su clase (`_cotizacion_a_papelera`); la lista, la clave `cotizaciones.papelera.purgar` o lo propio, y el lote no lleva nada que la RLS esconda.
+    -- Restaurar (4.24-1b): quien envió el lote o la clave; del lead sólo mira si está en la papelera (lo toma `for key share`), nunca lo devuelve.
+    -- Purgar (4.24-1b): la clave antes de mirar el lote; no toca leads (la FK de la cotización al lead no lo bloquea al borrar).
     ('cotizaciones_papelera_enviar(jsonb)', 'X'),
     ('cotizaciones_papelera_listar(timestamp with time zone,uuid,boolean,integer,integer)', 'X'),
     ('cotizaciones_papelera_lote(uuid)', 'X'),
+    ('cotizaciones_papelera_restaurar(uuid,timestamp with time zone,uuid[])', 'X'),
+    ('cotizaciones_papelera_purgar(uuid,timestamp with time zone,uuid[])', 'X'),
     ('lead_ficha(uuid)', 'L'),
     -- La búsqueda por candidatos (5a-fix-1b): lo que ve quien llama, ni una fila más (`_lead_visible_para()` con su sesión); el segundo paso es la vista de siempre, de invocador.
     ('leads_candidatos(jsonb)', 'L'),
