@@ -5,8 +5,8 @@
 #   a) el árbol está limpio (un paso sin commits ni cambios se cierra sin más) y cada commit de `ultimo.json` existe en `HEAD de arranque..HEAD` (y no hay otros sin listar);
 #   c) compuerta «guardas» si el rango toca las guardas (`scripts/piloto/`, `scripts/guardas/`, `scripts/candado.sh`, `.claude/settings*.json`,
 #      `.claude/hooks/`, `.claude/agents/`, `.claude/skills/piloto*`, `lefthook.yml`, `.github/workflows/` o las líneas de los scripts
-#      `db:*` y `test:e2e*` de package.json). Aprobada y con `scripts/piloto/` en el rango, la vuelta termina sin verificar ni publicar y
-#      pide re-arrancar (`arrancar.sh` vuelve a copiar; la vuelta siguiente verifica y publica con la copia nueva);
+#      `db:*` y `test:e2e*` de package.json). Aprobada, sigue: la copia del bucle sale de origin/main (copiar-bin.sh), así que lo que el
+#      paso cambió en `scripts/piloto/` rige cuando se integre, y el bucle se relanza solo con esa versión (bucle.sh › copia_al_dia);
 #   b) `verificar.sh` DE LA COPIA (lint, typecheck, test, mapa, db:probar, e2e dirigidos): no le cree al «listo» del modelo;
 #   d) recién entonces `publicar.sh` DE LA COPIA.
 #
@@ -99,12 +99,6 @@ cerrar_listo() {
         "El paso $paso cambió archivos que protegen al piloto (hooks, settings, scripts del piloto, lefthook, CI, db:* o test:e2e*). ¿Apruebas el cambio?" ||
         { registro "guardas de $paso no aprobadas: no se verifica ni se publica."; exit 0; }
       marcar_en_curso guardas_aprobadas true
-      if printf '%s\n' "$guardas" | grep -q '^scripts/piloto/'; then
-        compuerta parada "$paso" "los scripts del piloto cambiaron: re-arranca con «bash scripts/piloto/arrancar.sh» (copia la versión nueva)" \
-          "El bucle corre una copia de scripts/piloto/. Para verificar y publicar $paso con la copia nueva, re-arranca; la vuelta siguiente lo hace." 'parado — entendido, re-arranco (recomendado)' 'parado — no apruebo el cambio'
-        registro "re-arrancar: $paso queda en «listo», sin verificar ni publicar."
-        exit 0
-      fi
     fi
   fi
 

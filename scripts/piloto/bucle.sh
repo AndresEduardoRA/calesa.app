@@ -32,6 +32,7 @@ source "$BIN/ci.sh"
 cd "$RAIZ" || exit 1
 
 HASTA="" EN_SECO=0 NOTA="" UNA_VUELTA=0
+ARGS_BUCLE=("$@")
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --hasta) HASTA="${2:-}"; shift 2 ;;
@@ -69,6 +70,22 @@ verificar_copia() {
   [ -s "$BIN/bin.sha256" ] || return 1
   (cd "$BIN" && sha256sum -c --quiet bin.sha256 >/dev/null 2>&1) || return 1
   [ "$(awk '{print $2}' "$BIN/bin.sha256" | sed 's/^\*//' | sort)" = "$(cd "$BIN" && find . -mindepth 1 ! -name bin.sha256 -printf '%P\n' | sort)" ]
+}
+
+# 0'. La copia al día con main (copiar-bin.sh): si se integró un cambio de `scripts/piloto/`, entre pasos se rehace la copia y el bucle se
+# relanza con ella (`exec`, mismo carril y mismas opciones; el estado vive en disco). Antes había que re-arrancar cada carril a mano o
+# con un vigilante fuera del repo (≈ 4 h 30 del 5 al 7-11-2026). Con un paso vivo no se toca nada.
+copia_al_dia() {
+  [ "$EN_SECO" = 1 ] && return 0
+  [ "${PILOTO_RECARGAR:-1}" = 0 ] && return 0
+  en_curso_vivo && return 0
+  git remote get-url origin >/dev/null 2>&1 || return 0
+  timeout 60 git fetch -q origin main 2>/dev/null
+  bash "$BIN/copiar-bin.sh" --si-cambio >>"$ESTADO/copiar-bin.log" 2>&1
+  [ "$?" = 10 ] || return 0
+  registro "los scripts del piloto cambiaron en main: me relanzo con la copia nueva ($(cut -c1-8 "$COMUN/bin.origen" 2>/dev/null))."
+  exec 8>&-
+  exec bash "$COMUN/bin/bucle.sh" "${ARGS_BUCLE[@]+"${ARGS_BUCLE[@]}"}"
 }
 
 # El texto documentado del límite de uso: «You've hit your session limit · resets 3:45pm». Imprime los segundos que hay que dormir
@@ -314,6 +331,7 @@ regenerar_hechos() {
 # Una vuelta. Devuelve 0 cuando hay que volver a rutear; los avisos que paran salen del bucle desde `parada`.
 vuelta() {
   local paso modelo effort modo sid prompt desde banderas=() tipo_ruteo
+  copia_al_dia
   verificar_copia || { parada "la copia de los scripts del piloto no coincide con bin.sha256 (alterada o con archivos de más)"; return 0; }
   regenerar_hechos || return 0
   paradas_deterministas || return 0
