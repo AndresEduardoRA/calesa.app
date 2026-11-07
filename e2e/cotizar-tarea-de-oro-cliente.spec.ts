@@ -139,7 +139,9 @@ test('tarea de oro 2, el cliente que existe: de la hoja sin cliente a la cotizac
   await expect(fila).toContainText('oro 2c')
   await teclado.tabularHasta(fila)
   await teclado.pulsar('Enter')
-  await expect(barra(page)).toContainText('oro 2c')
+  // El nombre en la barra lo dibuja el servidor al devolver la hoja con `lead=`: con la máquina cargada tardó más de 5 s (4-81, la traza mostraba el pedido ya enviado y el
+  // panel cerrado). Mismo tope que `alDia()` (`soporte/cotizar-vista-previa.ts`); el límite de abajo (30 s) sigue midiendo la tarea entera.
+  await expect(barra(page)).toContainText('oro 2c', { timeout: 15_000 })
   await expect(page).toHaveURL(new RegExp(`lead=${leadExistente}`))
   await expect(barra(page)).toBeFocused()
   await llenarYGuardar(page, teclado)
