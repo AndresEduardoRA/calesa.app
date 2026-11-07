@@ -239,3 +239,24 @@ describe('hechos.sh › la decisión de cada carril', () => {
     expect(hechos({ PILOTO_CARRIL: 'b' })['decision']).toContain('me respondió: «parar»')
   })
 })
+
+describe('hechos.sh › la decisión de una compuerta que se contestó sola', () => {
+  it('se lee la del carril (compuerta-sola.md) y, con una humana del carril más nueva, gana la más nueva', () => {
+    writeFileSync(
+      join(repo, '.piloto/compuerta-sola.md'),
+      'id: g-7\ncreada: 200\ntipo: producto\ncarril: b\n',
+    )
+    writeFileSync(
+      join(repo, '.piloto/decision-sola.md'),
+      'id: g-7\nopcion: P1: seguir\nme respondió: «P1: seguir»\n',
+    )
+    expect(hechos({ PILOTO_CARRIL: 'b' })['decision']).toContain('«P1: seguir»')
+    // Una humana común de este carril, anterior: sigue valiendo la que se contestó sola.
+    writeFileSync(join(comun, 'compuerta.md'), 'id: g-6\ncreada: 100\ntipo: afuera\ncarril: b\n')
+    writeFileSync(join(comun, 'decision.md'), 'id: g-6\nopcion: parar\nme respondió: «parar»\n')
+    expect(hechos({ PILOTO_CARRIL: 'b' })['decision']).toContain('«P1: seguir»')
+    // Más nueva: gana la humana.
+    writeFileSync(join(comun, 'compuerta.md'), 'id: g-6\ncreada: 300\ntipo: afuera\ncarril: b\n')
+    expect(hechos({ PILOTO_CARRIL: 'b' })['decision']).toContain('«parar»')
+  })
+})
