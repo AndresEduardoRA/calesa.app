@@ -12,7 +12,7 @@ import {
 import { dialogoDeEtiquetas, menuDelLead, selectorDeEtiquetas } from './soporte/leads-marcas'
 import { embudoPorDefecto, irAlEmbudo } from './soporte/leads-oportunidades'
 import { abrirPestanaDeSeguimientos } from './soporte/leads-seguimientos'
-import { abrirRecargarYVolver } from './soporte/vuelta-del-foco'
+import { abrirRecargarYVolver, vigilarPedidosDelRouter } from './soporte/vuelta-del-foco'
 
 // La vuelta del foco en los paneles del listado de leads (4-49, paso 4.14-2a4): tras recargar con el panel abierto, «atrás» lo cierra y el foco vuelve a
 // quien lo abrió. La sonda del paso midió que, sin la vuelta, el foco quedaba en `body` en cada uno. Anotar y agendar desde el «⋯» de una fila y
@@ -134,6 +134,7 @@ test('«Nuevo embudo»: abrir, recargar y «atrás» devuelve el foco al botón'
 })
 
 async function alResumen(page: Page) {
+  const { sinPedidos } = vigilarPedidosDelRouter(page)
   await alListado(page)
   const nombreDeLaFila = aLaVista(
     page.getByRole('button', { name: `Abrir ${DALIA}`, exact: true }),
@@ -142,7 +143,7 @@ async function alResumen(page: Page) {
   await page.keyboard.press('Enter')
   const resumen = page.getByRole('dialog', { name: DALIA })
   await expect(resumen).toBeVisible()
-  return { resumen, nombreDeLaFila }
+  return { resumen, nombreDeLaFila, sinPedidos }
 }
 
 // Abre anotar o agendar desde el «⋯» del resumen; devuelve el «⋯» (a donde vuelve el foco).
@@ -185,8 +186,13 @@ for (const [item, titulo] of [
   })
 }
 
-// Tras recargar con el panel encima, el segundo «atrás» cierra el rápido y devuelve el foco al nombre de la fila.
-async function segundoAtras(page: Page, resumen: Locator, nombreDeLaFila: Locator) {
+// Tras recargar con el panel encima, el segundo «atrás» cierra el rápido y devuelve el foco al nombre de la fila. Antes, sin pedidos del router en vuelo:
+// con alguno, el rápido queda abierto con la URL ya en `/leads` (4-63, la carrera de Next que no es de la vuelta del foco).
+async function segundoAtras(
+  page: Page,
+  { resumen, nombreDeLaFila, sinPedidos }: Awaited<ReturnType<typeof alResumen>>,
+) {
+  await sinPedidos()
   await page.goBack()
   await expect(resumen).toBeHidden()
   expect(new URL(page.url()).searchParams.get('lead')).toBeNull()
@@ -196,7 +202,8 @@ async function segundoAtras(page: Page, resumen: Locator, nombreDeLaFila: Locato
 test('el lead rápido, «Editar»: abrir, recargar y dos «atrás» devuelve el foco al nombre de la fila', async ({
   page,
 }) => {
-  const { resumen, nombreDeLaFila } = await alResumen(page)
+  const enElResumen = await alResumen(page)
+  const { resumen } = enElResumen
   const editar = resumen.getByRole('button', { name: 'Editar', exact: true })
   const dialogo = page.getByRole('dialog', { name: /^Editar / })
   await abrirRecargarYVolver(page, {
@@ -209,7 +216,7 @@ test('el lead rápido, «Editar»: abrir, recargar y dos «atrás» devuelve el 
       }).toPass()
     },
   })
-  await segundoAtras(page, resumen, nombreDeLaFila)
+  await segundoAtras(page, enElResumen)
 })
 
 // Desde el «⋯» del resumen el primer «atrás» lleva a `?lead=<id>` (la URL de la apertura), donde la ficha de `lead` se recupera. Desde el botón de la
@@ -217,18 +224,20 @@ test('el lead rápido, «Editar»: abrir, recargar y dos «atrás» devuelve el 
 test('el lead rápido, «Anotar seguimiento…» desde el «⋯» del resumen: abrir, recargar y dos «atrás» devuelve el foco al nombre de la fila', async ({
   page,
 }) => {
-  const { resumen, nombreDeLaFila } = await alResumen(page)
+  const enElResumen = await alResumen(page)
+  const { resumen } = enElResumen
   const dialogo = page.getByRole('dialog', { name: 'Anotar seguimiento' })
   const { masAcciones, abrir } = desdeElMasAcciones(page, resumen, 'Anotar seguimiento…', dialogo)
   await abrirRecargarYVolver(page, { boton: masAcciones, dialogo, abrir })
-  await segundoAtras(page, resumen, nombreDeLaFila)
+  await segundoAtras(page, enElResumen)
 })
 
 // Guardia de 4-59: sin recargar, cerrar con Esc y dos «atrás» ya devolvía el foco al nombre de la fila; no puede dejar de hacerlo.
 test('el lead rápido, «Editar» y Esc: sin recargar, dos «atrás» devuelve el foco al nombre de la fila', async ({
   page,
 }) => {
-  const { resumen, nombreDeLaFila } = await alResumen(page)
+  const enElResumen = await alResumen(page)
+  const { resumen } = enElResumen
   const dialogo = page.getByRole('dialog', { name: /^Editar / })
   await expect(async () => {
     await resumen.getByRole('button', { name: 'Editar', exact: true }).click()
@@ -238,13 +247,14 @@ test('el lead rápido, «Editar» y Esc: sin recargar, dos «atrás» devuelve e
   await expect(dialogo).toBeHidden()
   await page.goBack()
   await expect(resumen).toBeVisible()
-  await segundoAtras(page, resumen, nombreDeLaFila)
+  await segundoAtras(page, enElResumen)
 })
 
 test('el lead rápido, «Anotar seguimiento» y Esc: sin recargar, dos «atrás» devuelve el foco al nombre de la fila', async ({
   page,
 }) => {
-  const { resumen, nombreDeLaFila } = await alResumen(page)
+  const enElResumen = await alResumen(page)
+  const { resumen } = enElResumen
   await abrirPestanaDeSeguimientos(page, resumen)
   const dialogo = page.getByRole('dialog', { name: 'Anotar seguimiento' })
   await expect(async () => {
@@ -255,5 +265,5 @@ test('el lead rápido, «Anotar seguimiento» y Esc: sin recargar, dos «atrás�
   await expect(dialogo).toBeHidden()
   await page.goBack()
   await expect(resumen).toBeVisible()
-  await segundoAtras(page, resumen, nombreDeLaFila)
+  await segundoAtras(page, enElResumen)
 })

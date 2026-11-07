@@ -14,6 +14,12 @@ export type PropsDeLaTarjeta = {
   guardadaEl?: string | null
 }
 
+type Props = PropsDeLaTarjeta & {
+  // La de una guardada, para «Descargar PDF» (4.18-3b); nulo en la hoja nueva.
+  cotizacionId: string | null
+  children: ReactNode
+}
+
 // La pantalla de la hoja (`/cotizaciones/nuevo` y `/cotizaciones/[id]`) con «Vista previa» (4.18-2): el proveedor del área `tarjeta` con lo que sólo la página sabe (el asesor, el
 // vehículo, el logo de la empresa). Sin él la hoja no dibuja el botón.
 export async function ConLaTarjeta({
@@ -22,8 +28,9 @@ export async function ConLaTarjeta({
   numero = null,
   vencida = false,
   guardadaEl = null,
+  cotizacionId,
   children,
-}: PropsDeLaTarjeta & { children: ReactNode }) {
+}: Props) {
   const ajustes = await getAjustes()
   const url = urlPublicaONull('marca', ajustes.logoRuta)
   return (
@@ -33,6 +40,7 @@ export async function ConLaTarjeta({
       numero={numero}
       vencida={vencida}
       guardadaEl={guardadaEl}
+      cotizacionId={cotizacionId}
       logo={url === null ? null : { nombre: ajustes.nombre, url }}
     >
       {children}

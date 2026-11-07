@@ -1,39 +1,25 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { formatearFecha } from '@/shared/lib/fechas'
+import { useEffect, useId, useState } from 'react'
 import { EstadoError, EstadoSinPermiso } from '@/shared/ui/estados'
 import { Modal } from '@/shared/ui/modal'
-import { useRegional } from '@/shared/ui/regional'
 import { Skeleton } from '@/shared/ui/skeleton'
 import { EstiloDeTonos } from '@/shared/ui/xcell'
 import { LiveDelResumen } from '../../hoja/components/live-del-resumen'
 import type { PropsDeLaVistaPrevia } from '../../hoja/components/huecos'
-import {
-  modeloDeLaTarjeta,
-  type PaginaDeLaTarjeta,
-} from '../../../entities/tarjeta/modelo-de-la-tarjeta'
+import { avisoDelTotal, type AvisoDelTotal } from '../../../entities/tarjeta/aviso-del-total'
 import type { LecturaDeLaTarjeta } from '../../../entities/tarjeta/lectura-de-la-tarjeta'
-import { useLecturaDeLaTarjeta } from '../hooks/use-lectura-de-la-tarjeta'
+import type { ModeloDeTarjeta } from '../../../entities/tarjeta/modelo-de-la-tarjeta'
+import type { EstadoDeLaLectura } from '../hooks/use-lectura-de-la-tarjeta'
+import { useModeloDeLaTarjeta, type PaginaDelModelo } from '../hooks/use-modelo-de-la-tarjeta'
+import { CopiarTextoDeLaTarjeta } from './copiar-texto-de-la-tarjeta'
+import { DescargarPdfDeLaTarjeta } from './descargar-pdf-de-la-tarjeta'
 import { TarjetaDeCotizacion } from './tarjeta-de-cotizacion'
 
-// Lo que la página sabe de la tarjeta y la hoja no: lo da `<ProveedorDeLaTarjeta>`. `guardadaEl`: el día del último guardado de una guardada (P3 a); nulo en la hoja nueva, que dice hoy.
-export type DatosDeLaPagina = {
-  vehiculo: string | null
-  asesor: string | null
-  numero: number | null
-  vencida: boolean
-  guardadaEl: string | null
-  logo: { nombre: string; url: string } | null
-}
+// Lo que la página sabe de la tarjeta y la hoja no: lo da `<ProveedorDeLaTarjeta>`. `cotizacionId`: la de una guardada, que tiene PDF; nulo en la hoja nueva.
+export type DatosDeLaPagina = PaginaDelModelo & { cotizacionId: string | null }
 
 type Props = PropsDeLaVistaPrevia & { pagina: DatosDeLaPagina }
-
-// Lo ahora, una vez por montaje: el modal se monta al abrirse y la fecha de hoy no cambia mientras está abierto.
-function useHoy(): string {
-  const [hoy] = useState(() => new Date().toISOString())
-  return hoy
-}
 
 function EsqueletoDeLaTarjeta() {
   const [visible, setVisible] = useState(false)
@@ -61,16 +47,17 @@ function EsqueletoDeLaTarjeta() {
 // Lo que el modal dice fuera de la tarjeta: la tarjeta es lo que ve el cliente y no lleva avisos de trabajo.
 function Avisos({
   lectura,
-  props,
+  aviso,
+  idDelDesactualizado,
+  avisos,
 }: {
   lectura: LecturaDeLaTarjeta
-  props: Pick<Props, 'calculo' | 'estado' | 'avisos'>
+  aviso: AvisoDelTotal
+  idDelDesactualizado: string
+  avisos: Props['avisos']
 }) {
-  const { calculo, estado, avisos } = props
   const textos = [
-    estado !== null && estado.tipo !== 'al_dia' && calculo.totales.usd !== null
-      ? 'Total desactualizado.'
-      : null,
+    aviso === 'desactualizado' ? 'Total desactualizado.' : null,
     lectura.estado === 'sin_plantilla'
       ? 'Este origen no tiene una plantilla de tarjeta para esta versión de la fórmula: la tarjeta va sólo con el total.'
       : null,
@@ -82,7 +69,11 @@ function Avisos({
   return (
     <div role="status" className="grid gap-1">
       {textos.map((texto) => (
-        <p key={texto} className="text-(length:--text-sm) text-(--color-ink-soft)">
+        <p
+          key={texto}
+          id={texto === 'Total desactualizado.' ? idDelDesactualizado : undefined}
+          className="text-(length:--text-sm) text-(--color-ink-soft)"
+        >
           {texto}
         </p>
       ))}
@@ -90,32 +81,25 @@ function Avisos({
   )
 }
 
-function Cuerpo({ props }: { props: Props }) {
-  const { estado, reintentar } = useLecturaDeLaTarjeta(props.formulaId)
-  const { zonaHoraria } = useRegional()
-  const hoy = useHoy()
-  const { pagina } = props
-  const fecha = formatearFecha(pagina.guardadaEl ?? hoy, { zona: zonaHoraria })
-  const lectura = estado.tipo === 'lista' ? estado.lectura : null
-  const modelo = useMemo(() => {
-    if (lectura === null) {
-      return null
-    }
-    const delaPagina: PaginaDeLaTarjeta = {
-      fecha,
-      vehiculo: pagina.vehiculo,
-      asesor: pagina.asesor,
-      numero: pagina.numero,
-      vencida: pagina.vencida,
-      logo: pagina.logo,
-    }
-    return modeloDeLaTarjeta({
-      lectura,
-      calculo: props.calculo,
-      monedaBs: props.monedaBs,
-      pagina: delaPagina,
-    })
-  }, [lectura, fecha, pagina, props.calculo, props.monedaBs])
+type DelCuerpo = {
+  estado: EstadoDeLaLectura
+  reintentar: () => void
+  lectura: LecturaDeLaTarjeta | null
+  modelo: ModeloDeTarjeta | null
+  aviso: AvisoDelTotal
+  idDelDesactualizado: string
+  avisos: Props['avisos']
+}
+
+function Cuerpo({
+  estado,
+  reintentar,
+  lectura,
+  modelo,
+  aviso,
+  idDelDesactualizado,
+  avisos,
+}: DelCuerpo) {
   if (estado.tipo === 'cargando') {
     return <EsqueletoDeLaTarjeta />
   }
@@ -132,7 +116,12 @@ function Cuerpo({ props }: { props: Props }) {
   return (
     <div className="grid min-w-0 gap-3">
       <EstiloDeTonos tonos={modelo.tonos} />
-      <Avisos lectura={lectura} props={props} />
+      <Avisos
+        lectura={lectura}
+        aviso={aviso}
+        idDelDesactualizado={idDelDesactualizado}
+        avisos={avisos}
+      />
       <TarjetaDeCotizacion modelo={modelo} />
     </div>
   )
@@ -140,16 +129,43 @@ function Cuerpo({ props }: { props: Props }) {
 
 // La vista previa de la tarjeta (4.18-2): un modal con su URL (`?panel=vista-previa`) que dibuja la tarjeta tal como la vería el cliente. Se monta la primera vez que se abre
 // (`useAbiertoAlgunaVez`, con `diferido()`): la hoja no carga la tarjeta, su modelo ni su lectura para dibujarse.
+// La lectura y el modelo se arman aquí: el cuerpo dibuja la tarjeta y el pie la copia (4.18-3b).
 export default function VistaPreviaDeLaTarjeta(props: Props) {
+  const { estado, reintentar, lectura, modelo } = useModeloDeLaTarjeta(props)
+  const idDelDesactualizado = useId()
+  const aviso = avisoDelTotal(props.estado, props.calculo.totales.usd)
   return (
     <Modal
       abierto={props.abierta}
       alCerrar={props.cerrar}
       titulo="Vista previa"
       ancho="amplio"
-      pie={<LiveDelResumen />}
+      pie={
+        <>
+          <LiveDelResumen />
+          <CopiarTextoDeLaTarjeta
+            modelo={modelo}
+            aviso={aviso}
+            idDelDesactualizado={idDelDesactualizado}
+          />
+          {props.pagina.cotizacionId === null ? null : (
+            <DescargarPdfDeLaTarjeta
+              cotizacionId={props.pagina.cotizacionId}
+              numero={props.pagina.numero}
+            />
+          )}
+        </>
+      }
     >
-      <Cuerpo props={props} />
+      <Cuerpo
+        estado={estado}
+        reintentar={reintentar}
+        lectura={lectura}
+        modelo={modelo}
+        aviso={aviso}
+        idDelDesactualizado={idDelDesactualizado}
+        avisos={props.avisos}
+      />
     </Modal>
   )
 }

@@ -23,7 +23,11 @@ export function ConProveedorDeLaHoja({
   children,
 }: Props) {
   const { Proveedor } = HUECOS_DE_FORMULA_EN_LA_HOJA
-  const conLaTarjeta = <ConLaTarjeta {...tarjeta}>{children}</ConLaTarjeta>
+  const conLaTarjeta = (
+    <ConLaTarjeta {...tarjeta} cotizacionId={cotizacionId}>
+      {children}
+    </ConLaTarjeta>
+  )
   return Proveedor ? (
     <Proveedor origenId={origenId} cotizacionId={cotizacionId} permisos={permisos}>
       {conLaTarjeta}

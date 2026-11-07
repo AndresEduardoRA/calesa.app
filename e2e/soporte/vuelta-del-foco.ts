@@ -35,3 +35,20 @@ export async function abrirRecargarYVolver(page: Page, panel: PanelConVuelta): P
   await volver(page, panel)
   await expect(panel.boton).toBeFocused()
 }
+
+// Los pedidos RSC del router de Next en vuelo (`?_rsc=`: la respuesta a un «atrás» tras recargar y los prefetch que dispara). Un segundo «atrás»
+// con alguno en vuelo deja la URL en la entrada nueva y el router en la vieja, para siempre (4-63: 5 de 40 con 5–6 en vuelo, 0 de 60 esperándolos;
+// `.piloto/salidas/ci-fix/sonda2-*.txt`). Quien prueba el foco tras dos «atrás» espera, antes del segundo, a que no quede ninguno.
+export function vigilarPedidosDelRouter(page: Page): { sinPedidos: () => Promise<void> } {
+  let enVuelo = 0
+  const esDelRouter = (url: string) => new URL(url).searchParams.has('_rsc')
+  page.on('request', (pedido) => {
+    if (esDelRouter(pedido.url())) enVuelo += 1
+  })
+  const termino = (pedido: { url(): string }) => {
+    if (esDelRouter(pedido.url())) enVuelo -= 1
+  }
+  page.on('requestfinished', termino)
+  page.on('requestfailed', termino)
+  return { sinPedidos: () => expect.poll(() => enVuelo).toBe(0) }
+}
