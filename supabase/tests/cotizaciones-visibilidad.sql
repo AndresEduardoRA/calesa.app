@@ -140,6 +140,7 @@ create or replace function pg_temp.cv_registro() returns jsonb language sql as $
     'nivel_restaurar', jsonb_build_object('clase', 'no_devuelve', 'motivo', 'devuelve la lista de niveles con el uso de cada uno: conteos y el texto del motivo'),
     'nivel_eliminar', jsonb_build_object('clase', 'no_devuelve', 'motivo', 'devuelve la lista de niveles con el uso de cada uno: conteos y el texto del motivo'),
     'niveles_con_uso', jsonb_build_object('clase', 'no_devuelve', 'motivo', 'la lista de niveles con las banderas de lo que admiten y el texto del motivo de uso: conteos de celdas, secciones y orígenes'),
+    'formula_guardar_borrador', jsonb_build_object('clase', 'no_devuelve', 'motivo', 'devuelve el id y la actualizado_en del borrador que escribió (4.21-2); lee formulas para comparar las esperadas, y el PT409 sólo nombra a quien empezó el borrador o quién publicó qué versión'),
     'tono_eliminar', jsonb_build_object('clase', 'no_devuelve', 'motivo', 'devuelve la lista de tonos; _tono_en_uso() lee formulas.definicion y sólo dice el nombre de un origen'),
     'cotizaciones_papelera_enviar', jsonb_build_object('clase', 'no_devuelve', 'motivo', 'devuelve el lote, su versión, el id, número y título de cada enviada, y el código y motivo de cada rechazo (el título sólo de lo que se ve): _cotizacion_a_papelera() toma la fila entera y sólo devuelve esas tres claves (4.24-1a)'),
     'cotizacion_evaluar', jsonb_build_object('clase', 'recorta',

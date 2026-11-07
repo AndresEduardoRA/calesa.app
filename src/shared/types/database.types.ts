@@ -6933,6 +6933,7 @@ export type Database = {
       }
       _baja_terminar: { Args: { p_usuario: string }; Returns: boolean }
       _bajas_en_curso: { Args: Record<PropertyKey, never>; Returns: string[] }
+      _borrador_formula_empezado_por: { Args: { p_creado_por: string }; Returns: string }
       _campo_impacto: {
         Args: { p_tipo: Database['public']['Enums']['tipo_campo']; p_valores: Json[] }
         Returns: Json
@@ -7206,6 +7207,16 @@ export type Database = {
       _etiqueta_nombre_libre: { Args: { p_excepto: string; p_nombre: string }; Returns: undefined }
       _etiquetas_candado: { Args: Record<PropertyKey, never>; Returns: undefined }
       _etiquetas_paleta: { Args: Record<PropertyKey, never>; Returns: string[] }
+      _exigir_borrador_formula: {
+        Args: {
+          p_borrador: Omit<
+            Database['public']['Tables']['formulas']['Row'],
+            Database['public']['Tables']['formulas']['ComputedFields']
+          >
+          p_esperado: string
+        }
+        Returns: undefined
+      }
       _exigir_version: {
         Args: { p_actual: string; p_esperado: string; p_mensaje: string }
         Returns: undefined
@@ -8251,8 +8262,16 @@ export type Database = {
       }
       formula_descartar_borrador: { Args: { p_origen: string }; Returns: undefined }
       formula_guardar_borrador: {
-        Args: { p_def: Json; p_diseno: Json; p_nota?: string; p_origen: string; p_params: Json }
-        Returns: string
+        Args: {
+          p_actualizado_en_esperado?: string
+          p_def: Json
+          p_diseno: Json
+          p_nota?: string
+          p_origen: string
+          p_params: Json
+          p_publicada_esperada?: string
+        }
+        Returns: Json
       }
       formula_para_cotizar: { Args: { p_origen: string }; Returns: Json }
       formula_publicar: {

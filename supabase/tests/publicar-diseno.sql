@@ -33,6 +33,11 @@ exception when others then
   return sqlstate || '|' || v_m;
 end $$;
 
+-- La hora del borrador de un origen (nula si no hay), para guardar encima de él (4.21-2: sin hora, guardar sólo crea).
+create or replace function pg_temp.hora_del_borrador(p_origen uuid) returns timestamptz language sql security definer as $$
+  select actualizado_en from public.formulas where origen_id = p_origen and estado = 'borrador'
+$$;
+
 create or replace function pg_temp.def_capturas() returns jsonb language sql security definer as $$
   select doc -> 'formulas' -> 'capturas' -> 'definicion' from _juego_de_diseno
 $$;
@@ -88,7 +93,7 @@ declare
 begin
   perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
   set local role authenticated;
-  v_f := public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos());
+  v_f := (public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos(), p_actualizado_en_esperado => pg_temp.hora_del_borrador(o)) ->> 'id')::uuid;
   if (select visibilidad from public.formulas where id = v_f) is not null then raise exception 'el borrador trae visibilidad'; end if;
   if (select diseno from public.formulas where id = v_f) is distinct from pg_temp.diseno_costos() then raise exception 'el borrador no guardó el diseño'; end if;
   perform public.formula_publicar(o, 'Primera');
@@ -120,7 +125,7 @@ declare
 begin
   perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
   set local role authenticated;
-  perform public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos('sin_garantia'));
+  perform public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos('sin_garantia'), p_actualizado_en_esperado => pg_temp.hora_del_borrador(o));
   perform public.formula_publicar(o, 'Aparte sin dibujar');
   reset role;
   select visibilidad into v_vis from public.formulas where origen_id = o and estado = 'publicada';
@@ -137,7 +142,7 @@ begin
                                         from jsonb_array_elements(s -> 'items') with ordinality t(i, o3))) else s end order by n)
                                   from jsonb_array_elements(pg_temp.diseno_costos() -> 'secciones') with ordinality q(s, n)));
   set local role authenticated;
-  perform public.formula_guardar_borrador(o, v_def, pg_temp.params_capturas(), v_d);
+  perform public.formula_guardar_borrador(o, v_def, pg_temp.params_capturas(), v_d, p_actualizado_en_esperado => pg_temp.hora_del_borrador(o));
   perform pg_temp.espera(format($f$select public.formula_publicar(%L, 'Pct aparte')$f$, o), '22023:nivel_no_admitido@fees_pct');
   reset role;
   if (select max(version) from public.formulas where origen_id = o) <> 1 then raise exception 'se publicó con el pct aparte restringido'; end if;
@@ -159,25 +164,25 @@ begin
   -- Guardar valida la fórmula (la regla del validador, no una del diseño).
   perform pg_temp.espera(format($f$select public.formula_guardar_borrador(%L, '{"nodos": []}', '{}', %L)$f$, o, pg_temp.diseno_costos()), '22023:total_unico@');
   -- Un borrador sin diseño se guarda, pero no se publica.
-  perform public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), null);
+  perform public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), null, p_actualizado_en_esperado => pg_temp.hora_del_borrador(o));
   perform pg_temp.espera(format($f$select public.formula_publicar(%L, 'Sin diseño')$f$, o), '22023:diseno_faltante@diseno');
   -- Una forma rota (un campo desconocido) se rechaza al guardar, con la regla en el detalle.
   perform pg_temp.espera(format($f$select public.formula_guardar_borrador(%L, %L, %L, %L)$f$, o, pg_temp.def_capturas(), pg_temp.params_capturas(),
                                 jsonb_set(pg_temp.diseno_costos(), '{cabecera,color}', '"rojo"')), '22023:forma@');
   -- Un nivel que no existe, y «costos», que sí.
   perform public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(),
-          jsonb_set(pg_temp.diseno_costos(), '{secciones,0,nivel_ver}', '"gerencia"'));
+          jsonb_set(pg_temp.diseno_costos(), '{secciones,0,nivel_ver}', '"gerencia"'), p_actualizado_en_esperado => pg_temp.hora_del_borrador(o));
   perform pg_temp.espera(format($f$select public.formula_publicar(%L, 'Gerencia')$f$, o), '22023:nivel_inexistente@hoja');
   -- Una fórmula que cambió: el diseño guardado nombra un nodo que ya no está (la fórmula no puede perder uno: el total suma todos).
   perform public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(),
-          jsonb_insert(pg_temp.diseno_costos(), '{secciones,3,items,0}', '{"tipo": "celda", "nodo": "viejo", "ancho": "completo"}'));
+          jsonb_insert(pg_temp.diseno_costos(), '{secciones,3,items,0}', '{"tipo": "celda", "nodo": "viejo", "ancho": "completo"}'), p_actualizado_en_esperado => pg_temp.hora_del_borrador(o));
   perform pg_temp.espera(format($f$select public.formula_publicar(%L, 'Cambió')$f$, o), '22023:nodo_inexistente@viejo');
   -- Y al revés: un input nuevo sin celda.
   v_def := jsonb_set(pg_temp.def_capturas(), '{nodos}', (pg_temp.def_capturas() -> 'nodos') || '[{"id": "extra", "tipo": "input", "etiqueta": "Extra", "formato": "usd"}]');
-  perform public.formula_guardar_borrador(o, v_def, pg_temp.params_capturas(), pg_temp.diseno_costos());
+  perform public.formula_guardar_borrador(o, v_def, pg_temp.params_capturas(), pg_temp.diseno_costos(), p_actualizado_en_esperado => pg_temp.hora_del_borrador(o));
   perform pg_temp.espera(format($f$select public.formula_publicar(%L, 'Sin celda')$f$, o), '22023:nodo_sin_seccion@extra');
   -- Se arregla y publica; el conflicto con la publicada esperada.
-  v_pub := public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos());
+  v_pub := (public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos(), p_actualizado_en_esperado => pg_temp.hora_del_borrador(o)) ->> 'id')::uuid;
   perform pg_temp.espera(format($f$select public.formula_publicar(%L, 'Vieja', %L)$f$, o, gen_random_uuid()), 'PT409:');
   perform public.formula_publicar(o, 'Buena', null);
   -- Con la publicada esperada ya vieja, también cuando no queda borrador.
@@ -193,9 +198,9 @@ begin
   reset role;
   delete from public.formulas where origen_id = o and estado = 'borrador';
   set local role authenticated;
-  perform public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos());
+  perform public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos(), p_actualizado_en_esperado => pg_temp.hora_del_borrador(o));
   -- Sin nota; sin permiso (una persona sin cotizaciones.configurar).
-  perform public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos());
+  perform public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos(), p_actualizado_en_esperado => pg_temp.hora_del_borrador(o));
   perform pg_temp.espera(format($f$select public.formula_publicar(%L, '  ')$f$, o), '22023:-@ Publicar pide una nota');
   reset role;
   perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000b1', true);
@@ -231,7 +236,7 @@ declare
 begin
   perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
   set local role authenticated;
-  perform public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos());
+  perform public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos(), p_actualizado_en_esperado => pg_temp.hora_del_borrador(o));
   perform public.formula_publicar(o, 'v1');
   reset role;
   select visibilidad into v_vis1 from public.formulas where origen_id = o and estado = 'publicada';
@@ -239,7 +244,7 @@ begin
   create or replace function public._niveles_de_cotizacion(out niveles text[], out retirados text[]) language sql stable set search_path = ''
     as $f$ select array['costos']::text[], array['costos']::text[] $f$;
   set local role authenticated;
-  perform public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos());
+  perform public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos(), p_actualizado_en_esperado => pg_temp.hora_del_borrador(o));
   perform pg_temp.espera(format($f$select public.formula_publicar(%L, 'Retirado')$f$, o), '22023:nivel_retirado@');
   perform public.formula_descartar_borrador(o);
   -- …pero el ⚙ publica la N+1 con lo que ya usa el nivel retirado.
@@ -320,8 +325,8 @@ begin
               where n.nspname = 'public' and p.proname = 'formula_guardar_borrador' and pronargs = 4) then raise exception 'quedó la firma vieja de formula_guardar_borrador'; end if;
   if (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'formula_guardar_borrador') <> 1 then
     raise exception 'formula_guardar_borrador tiene sobrecargas'; end if;
-  if not has_function_privilege('authenticated', 'public.formula_guardar_borrador(uuid,jsonb,jsonb,jsonb,text)', 'execute')
-     or has_function_privilege('anon', 'public.formula_guardar_borrador(uuid,jsonb,jsonb,jsonb,text)', 'execute') then
+  if not has_function_privilege('authenticated', 'public.formula_guardar_borrador(uuid,jsonb,jsonb,jsonb,text,uuid,timestamptz)', 'execute')
+     or has_function_privilege('anon', 'public.formula_guardar_borrador(uuid,jsonb,jsonb,jsonb,text,uuid,timestamptz)', 'execute') then
     raise exception 'los grants de formula_guardar_borrador'; end if;
   if exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
               where n.nspname = 'public' and p.proname in ('_publicar_formula', '_preparar_publicacion', '_compilar_visibilidad', '_niveles_de_cotizacion', '_niveles_del_diseno', 'formula_auditar',
@@ -351,9 +356,9 @@ declare
 begin
   perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
   set local role authenticated;
-  v1 := public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos());
+  v1 := (public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos(), p_actualizado_en_esperado => pg_temp.hora_del_borrador(o)) ->> 'id')::uuid;
   perform public.formula_publicar(o, 'v1');
-  v_b := public.formula_guardar_borrador(o, pg_temp.def_capturas(), jsonb_set(pg_temp.params_capturas(), '{flete}', '1000'), pg_temp.diseno_costos());
+  v_b := (public.formula_guardar_borrador(o, pg_temp.def_capturas(), jsonb_set(pg_temp.params_capturas(), '{flete}', '1000'), pg_temp.diseno_costos(), p_actualizado_en_esperado => pg_temp.hora_del_borrador(o)) ->> 'id')::uuid;
   reset role;
   select * into v_antes from public.formulas where id = v_b;
   if v_antes.version_origen_id is distinct from v1 then raise exception 'el borrador no recuerda su versión de origen: %', v_antes.version_origen_id; end if;
@@ -384,9 +389,9 @@ declare
 begin
   perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
   set local role authenticated;
-  v1 := public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos());
+  v1 := (public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos(), p_actualizado_en_esperado => pg_temp.hora_del_borrador(o)) ->> 'id')::uuid;
   perform public.formula_publicar(o, 'v1');
-  v_b := public.formula_guardar_borrador(o, pg_temp.def_capturas(), jsonb_set(pg_temp.params_capturas(), '{flete}', '1000'), pg_temp.diseno_costos());
+  v_b := (public.formula_guardar_borrador(o, pg_temp.def_capturas(), jsonb_set(pg_temp.params_capturas(), '{flete}', '1000'), pg_temp.diseno_costos(), p_actualizado_en_esperado => pg_temp.hora_del_borrador(o)) ->> 'id')::uuid;
   perform public.formula_publicar(o, 'v2', v1);
   reset role;
   if (select estado::text || version from public.formulas where id = v_b) is distinct from 'publicada2' then raise exception 'el borrador al día no publicó'; end if;
@@ -412,9 +417,9 @@ begin
   update public.perfiles set nombre = 'Ana Prueba' where id = c_b1;
   perform set_config('request.jwt.claim.sub', c_yo::text, true);
   set local role authenticated;
-  v1 := public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos());
+  v1 := (public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos(), p_actualizado_en_esperado => pg_temp.hora_del_borrador(o)) ->> 'id')::uuid;
   perform public.formula_publicar(o, 'v1');
-  perform public.formula_guardar_borrador(o, pg_temp.def_capturas(), jsonb_set(pg_temp.params_capturas(), '{flete}', '1000'), pg_temp.diseno_costos());
+  perform public.formula_guardar_borrador(o, pg_temp.def_capturas(), jsonb_set(pg_temp.params_capturas(), '{flete}', '1000'), pg_temp.diseno_costos(), p_actualizado_en_esperado => pg_temp.hora_del_borrador(o));
   v2 := public.formula_publicar(o, 'v2');
   reset role;
   -- (a) Otra persona, con nombre.
@@ -459,7 +464,7 @@ declare
 begin
   perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
   set local role authenticated;
-  v1 := public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos());
+  v1 := (public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos(), p_actualizado_en_esperado => pg_temp.hora_del_borrador(o)) ->> 'id')::uuid;
   perform public.formula_publicar(o, 'v1');
   v_e := pg_temp.error(format($f$select public.formula_cambiar_constante(%L, 'flete', 1500, %L)$f$, o, gen_random_uuid()));
   if v_e not like 'PT409|Publicaste la versión 1 hace %' then raise exception 'el ⚙ con la esperada vieja dio «%»', v_e; end if;
@@ -485,9 +490,9 @@ begin
                                                         from jsonb_array_elements(pg_temp.def_capturas() -> 'nodos') with ordinality t(n, k)));
   perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
   set local role authenticated;
-  v1 := public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos());
+  v1 := (public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos(), p_actualizado_en_esperado => pg_temp.hora_del_borrador(o)) ->> 'id')::uuid;
   perform public.formula_publicar(o, 'v1');
-  v2 := public.formula_guardar_borrador(o, v_def2, pg_temp.params_capturas(), pg_temp.diseno_costos('sin_garantia'));
+  v2 := (public.formula_guardar_borrador(o, v_def2, pg_temp.params_capturas(), pg_temp.diseno_costos('sin_garantia'), p_actualizado_en_esperado => pg_temp.hora_del_borrador(o)) ->> 'id')::uuid;
   perform public.formula_publicar(o, 'v2');
   v3 := public.formula_cambiar_constante(o, 'flete', 1500, v2);
   reset role;
@@ -498,7 +503,7 @@ begin
      or f3.visibilidad is not distinct from f1.visibilidad then
     raise exception 'el terreno no distingue: la v3 es igual a la v1 en definición, params, diseño o visibilidad'; end if;
   set local role authenticated;
-  v_b := public.formula_guardar_borrador(o, pg_temp.def_capturas(), jsonb_set(pg_temp.params_capturas(), '{flete}', '1000'), pg_temp.diseno_costos());
+  v_b := (public.formula_guardar_borrador(o, pg_temp.def_capturas(), jsonb_set(pg_temp.params_capturas(), '{flete}', '1000'), pg_temp.diseno_costos(), p_actualizado_en_esperado => pg_temp.hora_del_borrador(o)) ->> 'id')::uuid;
   reset role;
   select * into v_bantes from public.formulas where id = v_b;
   set local role authenticated;
@@ -530,10 +535,10 @@ declare
 begin
   perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
   set local role authenticated;
-  v1 := public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos());
+  v1 := (public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos(), p_actualizado_en_esperado => pg_temp.hora_del_borrador(o)) ->> 'id')::uuid;
   perform public.formula_publicar(o, 'v1');
   v2 := public.formula_cambiar_constante(o, 'flete', 1500, v1);
-  v_b := public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos());
+  v_b := (public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos(), p_actualizado_en_esperado => pg_temp.hora_del_borrador(o)) ->> 'id')::uuid;
   reset role;
   insert into public.origenes (clave, nombre) values ('prueba_publicar_ajeno', 'Prueba publicar ajeno') returning id into o2;
   insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad)
@@ -563,7 +568,7 @@ declare
 begin
   perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
   set local role authenticated;
-  v1 := public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos());
+  v1 := (public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos(), p_actualizado_en_esperado => pg_temp.hora_del_borrador(o)) ->> 'id')::uuid;
   perform public.formula_publicar(o, 'v1');
   v2 := public.formula_cambiar_constante(o, 'flete', 1500, v1);
   reset role;
@@ -572,7 +577,7 @@ begin
   set local role authenticated;
   perform pg_temp.espera(format($f$select public.formula_revertir(%L, %L, 'Volver', %L)$f$, o, v1, v2), '22023:nivel_retirado@');
   -- El control: el retiro está puesto (publicar un borrador con ese diseño también se rechaza).
-  perform public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos());
+  perform public.formula_guardar_borrador(o, pg_temp.def_capturas(), pg_temp.params_capturas(), pg_temp.diseno_costos(), p_actualizado_en_esperado => pg_temp.hora_del_borrador(o));
   perform pg_temp.espera(format($f$select public.formula_publicar(%L, 'Retirado')$f$, o), '22023:nivel_retirado@');
   reset role;
   if (select max(version) from public.formulas where origen_id = o) <> 2 then raise exception 'revertir con un nivel retirado publicó'; end if;
@@ -592,7 +597,7 @@ begin
   if not has_function_privilege('authenticated', v_p, 'execute') or has_function_privilege('anon', v_p, 'execute') then
     raise exception 'los grants de formula_cambiar_constante'; end if;
   foreach f in array array['public._publicar_formula(uuid,text,uuid,boolean)', 'public._publicar_version(uuid,jsonb,jsonb,jsonb,text,uuid,jsonb,boolean)',
-                           'public._version_publicada_por(uuid)', 'public.formula_guardar_borrador(uuid,jsonb,jsonb,jsonb,text)',
+                           'public._version_publicada_por(uuid)', 'public.formula_guardar_borrador(uuid,jsonb,jsonb,jsonb,text,uuid,timestamptz)',
                            'public.formula_cambiar_constante(uuid,text,numeric,uuid)'] loop
     v_p := to_regprocedure(f);
     if v_p is null then raise exception 'no existe %', f; end if;
