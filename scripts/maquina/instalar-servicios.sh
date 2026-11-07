@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Instala en la máquina dedicada los servicios `systemd --user` que mantienen el piloto 24/7: uno por carril (arrancar.sh --carril <id>:
-# retoma un paso a medias con --resume tras un reinicio) y un timer de respaldo cada 6 horas. Escribe unidades en ~/.config/systemd/user/;
+# retoma un paso a medias con --resume tras un reinicio), un vigía por carril cada 10 min (arrancar.sh --si-caido: lo levanta si se cayó)
+# y un timer de respaldo cada 6 horas. Escribe unidades en ~/.config/systemd/user/;
 # con `--en-seco` sólo las imprime. Hace falta `loginctl enable-linger $USER` (verificar-entorno.sh lo comprueba).
 #   bash scripts/maquina/instalar-servicios.sh [--en-seco] [carril…]    (sin carriles: a b c)
 set -euo pipefail
@@ -34,6 +35,24 @@ Environment=PATH=$PATH
 
 [Install]
 WantedBy=default.target"
+  # El vigía: cada 10 min levanta el bucle si se cayó (arrancar.sh --si-caido no hace nada si corre o si se paró a propósito).
+  escribir "piloto-$c-vigia.service" "[Unit]
+Description=Vigía del piloto de importadora, carril $c
+
+[Service]
+Type=oneshot
+WorkingDirectory=$arbol
+ExecStart=/usr/bin/env bash scripts/piloto/arrancar.sh --carril $c --si-caido
+Environment=PATH=$PATH"
+  escribir "piloto-$c-vigia.timer" "[Unit]
+Description=Vigía del piloto de importadora, carril $c, cada 10 minutos
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=10min
+
+[Install]
+WantedBy=timers.target"
 done
 escribir "piloto-respaldo.service" "[Unit]
 Description=Respaldo del estado del piloto
@@ -53,6 +72,6 @@ Persistent=true
 WantedBy=timers.target"
 [ "$EN_SECO" = 1 ] && exit 0
 systemctl --user daemon-reload
-for c in "${CARRILES[@]}"; do systemctl --user enable --now "piloto-$c.service"; done
+for c in "${CARRILES[@]}"; do systemctl --user enable --now "piloto-$c.service" "piloto-$c-vigia.timer"; done
 systemctl --user enable --now piloto-respaldo.timer
 echo "instalar-servicios: carriles ${CARRILES[*]} y respaldo activos. Estado: systemctl --user status 'piloto-*'"

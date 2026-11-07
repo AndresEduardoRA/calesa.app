@@ -181,7 +181,9 @@ scripts ya no hacen falta:
   arreglo (`ci-fix-head`).
 - **El carril A publica con coordinador** su rama `a/<paso>` (`publicar.sh` la negaba). La sesión de funciones edge es una por carril (`piloto-funciones-<c>`).
 
-Para que un carril se levante solo tras un corte de luz o un reinicio: `scripts/maquina/instalar-servicios.sh` (unidades `systemd --user` que corren `arrancar.sh --carril` y retoman).
+Para que un carril se levante solo tras un corte de luz, un reinicio o un bucle que se cayó: `bash scripts/maquina/instalar-servicios.sh a b c` (en el árbol del A). Escribe, por carril, la unidad
+`systemd --user` que corre `arrancar.sh --carril` al iniciar y un **vigía** cada 10 min (`arrancar.sh --carril <c> --si-caido`): levanta el bucle si nadie tiene `.piloto/bucle.lock` y no se paró a
+propósito (PARAR, «parado» de la persona, el carril terminó o llegó a `--hasta`). Reemplaza a `vigilar-carriles.sh`.
 
 ## El ensayo en seco (2026-10-26)
 

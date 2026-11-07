@@ -1,4 +1,4 @@
-import { execFileSync, spawnSync } from 'node:child_process'
+import { execFileSync, spawn, spawnSync } from 'node:child_process'
 import {
   chmodSync,
   existsSync,
@@ -255,6 +255,51 @@ describe('arrancar.sh › lo que lanza', () => {
     })
     expect(r.status).toBe(1)
     expect(r.stderr).toContain('claude')
+  })
+})
+
+describe('arrancar.sh › --si-caido (el vigía de systemd)', () => {
+  const registro = (linea: string) => {
+    mkdirSync(join(repo, '.piloto'), { recursive: true })
+    writeFileSync(join(repo, '.piloto/registro.md'), `- 2026-11-07T03:00:00-04:00 ${linea}\n`)
+  }
+
+  it('con el bucle caído y sin parada a propósito, cierra el tmux viejo y lo levanta', () => {
+    registro('paso 4.21 (opus, high, nueva 27a194c1).')
+    const r = arrancar('--carril', 'b', '--si-caido')
+    expect(r.status, r.stderr).toBe(0)
+    expect(r.stderr).toContain('no corría y nadie lo paró')
+    expect(tmux()).toContain('kill-session -t piloto-bucle-b')
+    expect(tmux()).toContain('new-session -d -s piloto-bucle-b')
+    expect(readFileSync(join(repo, '.piloto/registro.md'), 'utf8')).toContain(
+      'vigía: el bucle no corría',
+    )
+  })
+
+  it.each([
+    ['la persona dijo «parado»', 'parado por la persona en la compuerta de 4.24-3.'],
+    ['el carril terminó', 'carril b: el coordinador no tiene más pasos para este carril.'],
+    ['llegó a --hasta', 'llegamos a 4.21.'],
+  ])('no lo levanta si %s', (_c, linea) => {
+    registro(linea)
+    const r = arrancar('--carril', 'b', '--si-caido')
+    expect(r.status, r.stderr).toBe(0)
+    expect(tmux()).toBe('')
+  })
+
+  it('no lo levanta con PARAR ni con un bucle vivo (que tiene bucle.lock)', async () => {
+    registro('paso 4.21 (opus, high, nueva x).')
+    writeFileSync(join(repo, '.piloto/PARAR'), '')
+    expect(arrancar('--carril', 'b', '--si-caido').status).toBe(0)
+    expect(tmux()).toBe('')
+    rmSync(join(repo, '.piloto/PARAR'))
+    const vivo = spawn('flock', [join(repo, '.piloto/bucle.lock'), 'sleep', '3'], {
+      stdio: 'ignore',
+    })
+    await new Promise((seguir) => setTimeout(seguir, 300))
+    expect(arrancar('--carril', 'b', '--si-caido').status).toBe(0)
+    expect(tmux()).toBe('')
+    vivo.kill()
   })
 })
 
