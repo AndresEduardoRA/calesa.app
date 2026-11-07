@@ -51,12 +51,18 @@ CI_ARREGLAR_DESDE="${PILOTO_CI_ARREGLAR_DESDE:-3}" CI_FIX_MAX="${PILOTO_CI_FIX_M
 CI_ESPERA_MAX="${PILOTO_CI_ESPERA_MAX:-5400}" CI_POLL="${PILOTO_CI_POLL:-60}"
 # La espera a main (compuerta «espera»): cada ESPERA_MAIN_POLL s (120) mira origin/main, hasta ESPERA_MAIN_MAX s (21600: 6 h).
 ESPERA_MAIN_POLL="${PILOTO_ESPERA_MAIN_POLL:-120}" ESPERA_MAIN_MAX="${PILOTO_ESPERA_MAIN_MAX:-21600}"
+ESPERA_MAIN_VECES="${PILOTO_ESPERA_MAIN_VECES:-3}"
 CLAUDE=$(claude_bin)
 [ -n "$CLAUDE" ] || { echo "bucle: no encuentro el binario de claude (CLAUDE_BIN)." >&2; exit 1; }
 
 mkdir -p "$ESTADO/llamadas" "$ESTADO/sesiones" "$ESTADO/planes" "$ESTADO/informes" "$ESTADO/salidas" "$COMUN"
 exec 8>"$ESTADO/bucle.lock"
-flock -n 8 || { echo "bucle: ya corre otro bucle (flock sobre $ESTADO/bucle.lock)." >&2; exit 1; }
+# Relanzado por copia_al_dia, espera un poco a que se suelte el candado del bucle de antes; si no, ya corre otro y sale.
+if [ -n "${PILOTO_RELANZADO:-}" ]; then
+  flock -w 30 8 || { echo "bucle: el candado de $ESTADO/bucle.lock no se soltó en 30 s tras relanzarme." >&2; exit 1; }
+else
+  flock -n 8 || { echo "bucle: ya corre otro bucle (flock sobre $ESTADO/bucle.lock)." >&2; exit 1; }
+fi
 
 registro() {
   local linea
@@ -82,12 +88,12 @@ copia_al_dia() {
   [ "${PILOTO_RECARGAR:-1}" = 0 ] && return 0
   en_curso_vivo && return 0
   git remote get-url origin >/dev/null 2>&1 || return 0
-  timeout 60 git fetch -q origin main 2>/dev/null
-  bash "$BIN/copiar-bin.sh" --si-cambio >>"$ESTADO/copiar-bin.log" 2>&1
+  timeout 60 git fetch -q origin main 2>/dev/null 8>&-
+  bash "$BIN/copiar-bin.sh" --si-cambio >>"$ESTADO/copiar-bin.log" 2>&1 8>&-
   [ "$?" = 10 ] || return 0
   registro "los scripts del piloto cambiaron en main: me relanzo con la copia nueva ($(cut -c1-8 "$COMUN/bin.origen" 2>/dev/null))."
   exec 8>&-
-  exec bash "$COMUN/bin/bucle.sh" "${ARGS_BUCLE[@]+"${ARGS_BUCLE[@]}"}"
+  PILOTO_RELANZADO=1 exec bash "$COMUN/bin/bucle.sh" "${ARGS_BUCLE[@]+"${ARGS_BUCLE[@]}"}"
 }
 
 # El texto documentado del límite de uso: «You've hit your session limit · resets 3:45pm». Imprime los segundos que hay que dormir
@@ -254,37 +260,57 @@ espera_a_main() {
 # la compuerta sola: el paso se retoma con «main ya trae …» en hechos › decision. Antes, cada espera era una compuerta al celular y un
 # relanzamiento a mano (B y C, 11 veces del 6 al 7-11). Pasado ESPERA_MAIN_MAX, es una parada.
 esperar_main() { # <paso>
-  local paso="$1" pedido inicio=$SECONDS antes ahora f falta archivos=()
+  local paso="$1" pedido pedido_id="" inicio=$SECONDS antes ahora f cambio veces archivos=() blobs=() i
   pedido=$(jq -r '.compuerta.pedido // .compuerta.motivo // ""' "$ESTADO/ultimo.json")
   mapfile -t archivos < <(jq -r '.compuerta.archivos[]? // empty' "$ESTADO/ultimo.json")
   jq -c '.estado = "espera"' "$ESTADO/en-curso.json" >"$ESTADO/en-curso.json.tmp" && mv -f "$ESTADO/en-curso.json.tmp" "$ESTADO/en-curso.json"
+  # Cada espera retoma el paso (un --resume pagado) y el paso puede volver a pedir otra: hasta ESPERA_MAIN_VECES por paso, después la persona.
+  mkdir -p "$ESTADO/paradas-solas"
+  veces=$(($(cat "$ESTADO/paradas-solas/espera-$(sanear "$paso")" 2>/dev/null || echo 0) + 1))
+  echo "$veces" >"$ESTADO/paradas-solas/espera-$(sanear "$paso")"
+  if [ "$veces" -gt "$ESPERA_MAIN_VECES" ]; then
+    PARADA_HUMANA=1 parada "el paso $paso pidió esperar a main $veces veces y sigue sin lo que necesita: ${pedido:0:200}" "$paso"
+    return 0
+  fi
   if modo_carril && [ "$(jq -r .compuerta.tipo "$ESTADO/ultimo.json")" = espera ]; then
     if coordinador pedir "$PILOTO_CARRIL" "$paso" "$pedido" "${archivos[@]}" >"$ESTADO/pedido.json" 2>"$ESTADO/coordinador.err"; then
-      registro "pedido $(jq -r '.id // "?"' "$ESTADO/pedido.json") al carril $(jq -r '.para // "?"' "$ESTADO/pedido.json") ($paso): ${pedido:0:200}"
+      pedido_id=$(jq -r '.id // empty' "$ESTADO/pedido.json")
+      registro "pedido $pedido_id al carril $(jq -r '.para // "?"' "$ESTADO/pedido.json") ($paso): ${pedido:0:200}"
+    elif grep -q 'ciclo:' "$ESTADO/coordinador.err"; then
+      PARADA_HUMANA=1 parada "$(sed -n 's/.*\(ciclo: .*\)/\1/p' "$ESTADO/coordinador.err" | head -n 1) ($paso: ${pedido:0:150})" "$paso"
+      return 0
     else
       registro "el coordinador no anotó el pedido de $paso: $(tail -n 1 "$ESTADO/coordinador.err")"
     fi
   fi
+  timeout 60 git fetch -q origin main 2>/dev/null 8>&-
   antes=$(git rev-parse --verify --quiet origin/main)
-  registro "$paso espera a main (desde ${antes:0:8}): ${pedido:0:300}"
+  # Lo que cada archivo pedido es hoy en main (vacío si no existe): se despierta cuando TODOS cambiaron (se crearon o se editaron), o
+  # cuando el dueño cerró el pedido (hecho o sin cambios). Sin archivos (una «afuera» de antes), con el primer cambio de main.
+  for f in "${archivos[@]}"; do blobs+=("$(git rev-parse --verify --quiet "origin/main:$f" 2>/dev/null)"); done
+  registro "$paso espera a main (desde ${antes:0:8}, vez $veces de $ESPERA_MAIN_VECES): ${pedido:0:300}"
   while :; do
     [ -f "$ESTADO/PARAR" ] && { registro "PARAR mientras $paso esperaba a main."; exit 0; }
     if [ $((SECONDS - inicio)) -ge "$ESPERA_MAIN_MAX" ]; then
-      parada "el paso $paso espera algo de main hace $(((SECONDS - inicio) / 60)) min y no llegó: ${pedido:0:200}" "$paso"
+      PARADA_HUMANA=1 parada "el paso $paso espera algo de main hace $(((SECONDS - inicio) / 60)) min y no llegó: ${pedido:0:200}" "$paso"
       return 0
     fi
     $DORMIR "$ESPERA_MAIN_POLL"
-    timeout 60 git fetch -q origin main 2>/dev/null
+    timeout 60 git fetch -q origin main 2>/dev/null 8>&-
     ahora=$(git rev-parse --verify --quiet origin/main)
+    if [ -n "$pedido_id" ] && [ "$(coordinador pedido "$pedido_id" 2>/dev/null | jq -r '.estado // empty')" = integrado ]; then break; fi
     [ -n "$ahora" ] && [ "$ahora" != "$antes" ] || continue
-    falta=""
-    for f in "${archivos[@]}"; do git cat-file -e "origin/main:$f" 2>/dev/null || { falta="$f"; break; }; done
-    [ -z "$falta" ] && break
-    antes="$ahora"
+    [ "${#archivos[@]}" -eq 0 ] && break
+    cambio=1
+    for i in "${!archivos[@]}"; do
+      [ "$(git rev-parse --verify --quiet "origin/main:${archivos[$i]}" 2>/dev/null)" != "${blobs[$i]}" ] || { cambio=0; break; }
+    done
+    [ "$cambio" = 1 ] && break
   done
-  if ! git merge-base --is-ancestor origin/main HEAD && ! git merge --quiet --no-edit origin/main >"$ESTADO/traer-main.log" 2>&1; then
+  ahora=$(git rev-parse --verify --quiet origin/main)
+  if ! git merge-base --is-ancestor origin/main HEAD && ! git merge --quiet --no-edit origin/main >"$ESTADO/traer-main.log" 2>&1 8>&-; then
     git merge --abort >/dev/null 2>&1
-    parada "main ya trae lo que esperaba $paso, pero no pude traerlo a la rama: $(grep -m1 -iE 'error|conflict' "$ESTADO/traer-main.log" | head -c 200)" "$paso"
+    PARADA_HUMANA=1 parada "main ya trae lo que esperaba $paso, pero no pude traerlo a la rama: $(grep -m1 -iE 'error|conflict' "$ESTADO/traer-main.log" | head -c 200)" "$paso"
     return 0
   fi
   # La etiqueta es lo que el paso lee en hechos › decision (contestar_solo guarda lo de antes de « — »).
@@ -509,7 +535,7 @@ vuelta() {
   registro "paso $paso ($modelo, $effort, $modo ${sid:0:8})."
   correr_paso "$paso" "$modo" "$sid" "$prompt" "$modelo" "$effort" "${banderas[@]}"
   case "$?" in
-    1) fallas; parada "el paso $paso falló dos veces (el proceso o sin ultimo.json válido); su transcript queda en .piloto/llamadas/" "$paso"; return 0 ;;
+    1) fallas; PARADA_HUMANA=1 parada "el paso $paso falló dos veces (el proceso o sin ultimo.json válido); su transcript queda en .piloto/llamadas/" "$paso"; return 0 ;;
     2) parada "el límite de uso volvió tras dormir en $paso" "$paso"; return 0 ;;
     3) parada_tope "$paso"; return 0 ;;
   esac
@@ -523,7 +549,7 @@ vuelta() {
     compuerta) compuerta_del_paso "$paso" ;;
     falla)
       fallas
-      parada "el paso $paso terminó en falla: $(jq -r .resumen "$ESTADO/ultimo.json" | head -c 300)" "$paso"
+      PARADA_HUMANA=1 parada "el paso $paso terminó en falla: $(jq -r .resumen "$ESTADO/ultimo.json" | head -c 300)" "$paso"
       ;;
   esac
   return 0
@@ -547,5 +573,5 @@ registro "bucle en marcha (copia $BIN, rama $(git symbolic-ref --short HEAD 2>/d
 while :; do
   vuelta
   [ "$UNA_VUELTA" = 1 ] && exit 0
-  [ "$(cat "$ESTADO/fallas" 2>/dev/null || echo 0)" -ge 3 ] && { parada "tres fallas seguidas"; echo 0 >"$ESTADO/fallas"; }
+  [ "$(cat "$ESTADO/fallas" 2>/dev/null || echo 0)" -ge 3 ] && { PARADA_HUMANA=1 parada "tres fallas seguidas"; echo 0 >"$ESTADO/fallas"; }
 done

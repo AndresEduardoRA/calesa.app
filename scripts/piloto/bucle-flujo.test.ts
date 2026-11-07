@@ -1,6 +1,4 @@
-import { execFileSync } from 'node:child_process'
 import {
-  chmodSync,
   copyFileSync,
   existsSync,
   mkdirSync,
@@ -10,105 +8,30 @@ import {
 } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { Arnes, pasoListo, responder, RUTEO_BASE } from './bucle.arnes'
+import { type Arnes, pasoListo, responder, RUTEO_BASE } from './bucle.arnes'
+import {
+  conMain,
+  coordinador,
+  dormirQueIntegra,
+  entorno,
+  estadoCoord,
+  GIT,
+  integrarEnMain,
+  paso,
+  pasoEspera,
+  plan,
+} from './bucle-flujo.arnes'
 
 // El flujo continuo (2026-11-07): lo que antes paraba un carril hasta que alguien lo relanzaba. La copia que se pone al día con main, la
 // espera a main en vez de una compuerta al celular, el aviso que se reintenta solo, el cierre que cuenta sólo los commits propios y la
-// rama que se trae main antes de cada parte.
+// rama que se trae main antes de cada parte. Lo que corrigió la revisión, en bucle-flujo-revision.test.ts.
 vi.setConfig({ testTimeout: 60_000 })
 
 let a: Arnes
-let remoto = ''
-let comun = ''
 beforeEach(() => {
-  a = new Arnes()
-  remoto = join(a.raiz, 'remoto.git')
-  execFileSync('git', ['init', '-q', '--bare', '-b', 'main', remoto])
-  a.git('remote', 'add', 'origin', remoto)
-  a.git('push', '-q', 'origin', 'HEAD:main')
-  a.git('fetch', '-q', 'origin')
-  comun = join(a.raiz, 'coord')
-  mkdirSync(comun, { recursive: true })
+  a = conMain()
 })
 afterEach(() => a.limpiar())
-
-const GIT = ['-c', 'user.name=t', '-c', 'user.email=t@ejemplo.test']
-/** Un commit en origin/main hecho desde otro clon (otro carril que integró algo). */
-function integrarEnMain(ruta: string, texto: string) {
-  const otro = join(a.raiz, `otro-${Date.now()}-${Math.random().toString(36).slice(2)}`)
-  execFileSync('git', ['clone', '-q', '-b', 'main', remoto, otro])
-  mkdirSync(join(otro, ruta, '..'), { recursive: true })
-  writeFileSync(join(otro, ruta), texto)
-  execFileSync('git', [...GIT, 'add', '.'], { cwd: otro })
-  execFileSync('git', [...GIT, 'commit', '-q', '-m', `integrar ${ruta}`], { cwd: otro })
-  execFileSync('git', ['push', '-q', 'origin', 'main'], { cwd: otro })
-}
-/** Un `sleep` falso que, la primera vez, integra en main lo que espera el paso. */
-function dormirQueIntegra(ruta: string) {
-  const f = join(a.raiz, 'dormir-integra')
-  const otro = join(a.raiz, 'otro-dormir')
-  writeFileSync(
-    f,
-    `#!/usr/bin/env bash
-echo "$*" >> "${join(a.fake, 'dormir.log')}"
-[ -e "${f}.hecho" ] && exit 0
-touch "${f}.hecho"
-git clone -q -b main "${remoto}" "${otro}" && cd "${otro}" && mkdir -p "$(dirname '${ruta}')" && echo hecho > '${ruta}' &&
-  git ${GIT.join(' ')} add . && git ${GIT.join(' ')} commit -q -m pedido && git push -q origin main
-`,
-  )
-  chmodSync(f, 0o755)
-  return f
-}
-
-const paso = (id: string, carril = 'formula') => `  - id: "${id}"
-    titulo: 'paso ${id}'
-    depende_de: []
-    carril: ${carril}
-    riesgo: verde
-    modulos: [src/${carril === 'formula' ? 'f' : 'p'}/, docs/]
-    ruteo: {agente: claude, modelo: sonnet, effort: high, modo: auto, sesion: nueva, revisor: ninguno}
-    verificacion: 'Nivel 1'
-    terminado: 'listo'
-`
-function plan(...pasos: string[]) {
-  const f = join(comun, 'plan.yaml')
-  writeFileSync(
-    f,
-    `esquema: plan/v1\nagentes_disponibles: [claude]\ncarriles:\n  - id: formula\n    dueno_de: [src/f/]\n  - id: papelera\n    dueno_de: [src/p/]\npasos:\n${pasos.join('')}`,
-  )
-  return f
-}
-const entorno = (f: string, extra: Record<string, string> = {}) => ({
-  PILOTO_CARRIL: 'formula',
-  PILOTO_COORDINADOR: resolve('scripts/coordinador/coordinador.mjs'),
-  COORD_PLAN: f,
-  COORD_DIR: join(comun, 'estado'),
-  COORD_USD_VENTANA: '',
-  HOME: a.raiz,
-  // El bucle commitea la mezcla con main: en la máquina la identidad es la de git config; aquí, la del arnés.
-  GIT_AUTHOR_NAME: 't',
-  GIT_AUTHOR_EMAIL: 't@ejemplo.test',
-  GIT_COMMITTER_NAME: 't',
-  GIT_COMMITTER_EMAIL: 't@ejemplo.test',
-  ...extra,
-})
-const coordinador = (f: string, ...args: string[]) =>
-  execFileSync('node', [resolve('scripts/coordinador/coordinador.mjs'), ...args], {
-    cwd: a.repo,
-    encoding: 'utf8',
-    env: { ...process.env, ...entorno(f) },
-  })
-const estadoCoord = () =>
-  JSON.parse(readFileSync(join(comun, 'estado', 'estado.json'), 'utf8')) as {
-    pasos: Record<string, { estado: string }>
-    pedidos?: { id: string; de: string; para: string; texto: string; estado: string }[]
-  }
-
-/** Un paso que pide algo de otro carril: compuerta «espera» con su pedido y los archivos que tienen que llegar a main. */
-const pasoEspera = (archivos: string[]) => `mkdir -p .piloto && cat > .piloto/ultimo.json <<'EOF'
-{"paso":"4.99","resultado":"compuerta","resumen":"falta algo del otro carril","commits":[],"e2e_dirigidos":[],"compuerta":{"tipo":"espera","motivo":"falta el registro del carril papelera","pedido":"abrir src/p/registro.ts para formula","archivos":${JSON.stringify(archivos)}}}
-EOF`
 
 describe('bucle.sh › la espera a main (compuerta «espera»)', () => {
   it('no va a la persona: anota el pedido al dueño, espera a que llegue a main, lo trae a la rama y retoma el paso', () => {

@@ -8,7 +8,9 @@
 
 modo_carril() { [ -n "${PILOTO_CARRIL:-}" ]; }
 
-coordinador() { node "${PILOTO_COORDINADOR:-$RAIZ/scripts/coordinador/coordinador.mjs}" "$@"; }
+# Lo que corre el bucle por fuera no hereda el fd 8 (el candado de .piloto/bucle.lock): un `git gc --auto` desprendido de un fetch o un merge se
+# quedaba con él y el bucle relanzado (copia_al_dia) no podía tomarlo.
+coordinador() { node "${PILOTO_COORDINADOR:-$RAIZ/scripts/coordinador/coordinador.mjs}" "$@" 8>&-; }
 
 carril_asignar() {
   local r accion paso rama
@@ -24,15 +26,15 @@ carril_asignar() {
     *) registro "el coordinador respondió algo ilegible: ${r:0:200}"; return 1 ;;
   esac
   paso=$(jq -r .paso <<<"$r") rama=$(jq -r .rama <<<"$r")
-  git fetch --quiet origin main || return 1
+  git fetch --quiet origin main 8>&- || return 1
   if [ "$(git symbolic-ref --short HEAD 2>/dev/null)" != "$rama" ]; then
     # Un paso nuevo parte de lo último integrado; uno que se retoma (`retomar`) sigue en su rama si tiene commits propios. Una rama local
     # sin nada propio es una vieja (b/4.21 nació un día antes, 160 commits atrás de main): se rehace desde origin/main.
     if [ "$(jq -r '.retomar // false' <<<"$r")" = true ] && git show-ref --verify --quiet "refs/heads/$rama" &&
       [ -n "$(git rev-list -n 1 "origin/main..$rama" 2>/dev/null)" ]; then
-      git checkout --quiet "$rama" || return 1
+      git checkout --quiet "$rama" 8>&- || return 1
     else
-      git checkout --quiet -B "$rama" origin/main || return 1
+      git checkout --quiet -B "$rama" origin/main 8>&- || return 1
     fi
   fi
   traer_main "$rama" || return 1
@@ -56,10 +58,10 @@ traer_main() {
   local rama="$1"
   git merge-base --is-ancestor origin/main HEAD 2>/dev/null && return 0
   if [ -z "$(git rev-list -n 1 origin/main..HEAD)" ]; then
-    git checkout --quiet -B "$rama" origin/main || return 1
+    git checkout --quiet -B "$rama" origin/main 8>&- || return 1
     return 0
   fi
-  if git merge --quiet --no-edit origin/main >"$ESTADO/traer-main.log" 2>&1; then
+  if git merge --quiet --no-edit origin/main >"$ESTADO/traer-main.log" 2>&1 8>&-; then
     registro "carril ${PILOTO_CARRIL:-}: traje origin/main a $rama ($(git rev-parse --short origin/main))."
   else
     git merge --abort >/dev/null 2>&1

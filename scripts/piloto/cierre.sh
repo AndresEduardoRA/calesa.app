@@ -39,6 +39,7 @@ ultimo_valido() {
                                   and (.opciones | type == "array" and length >= 2 and length <= 4))
                           and (map(.id) | unique | length) == length)
                     elif .tipo == "espera" then (.pedido | type == "string" and length > 0)
+                      and (.archivos | type == "array" and length >= 1 and all(.[]; type == "string" and length > 0))
                     else (.pregunta | type == "string") and (.opciones | type == "array" and length >= 2) end))
          else true end)' "$ESTADO/ultimo.json" >/dev/null 2>&1
 }
@@ -88,6 +89,17 @@ cerrar_listo() {
   # Un paso que no cambió nada (un arreglo de CI que ya estaba hecho, una decisión sin código): ultimo.json no lista commits y el rango
   # está vacío. No hay nada que verificar ni publicar: se cierra sin avisar. Con commits en el rango que ultimo.json no lista, sigue el aviso.
   if [ -z "$(rango_propio "$desde")" ] && [ "$(jq '.commits | length' "$ESTADO/ultimo.json")" -eq 0 ]; then
+    # Con carril, el coordinador tiene que saberlo: si no, vuelve a dar el mismo pedido o paso y cada vuelta paga una sesión nueva que
+    # dice otra vez «ya está» (la revisión de FLUJO-1). Un pedido sin cambios se cierra; un paso del plan que sigue asignado sin nada
+    # que publicar es un estado que no cuadra (el 4.20-4 del 7-11): lo mira la persona.
+    if modo_carril && [[ "$paso" =~ ^pedido-[0-9]+$ ]]; then
+      coordinador cerrar-pedido "$paso" "listo sin cambios" >/dev/null 2>"$ESTADO/coordinador.err" ||
+        registro "el coordinador no cerró $paso: $(tail -n 1 "$ESTADO/coordinador.err")"
+      rm -f "$ESTADO/asignado.json"
+    elif modo_carril && [ "$paso" != ci-fix ] && [ -f "$ESTADO/asignado.json" ]; then
+      PARADA_HUMANA=1 parada "$paso dijo «listo» sin cambios y el coordinador lo sigue teniendo asignado: ¿está hecho (se integra a mano) o falta algo?" "$paso" \
+        'parado — lo miro (recomendado)' 'sigo — cierra esta vuelta y vuelve a pedir el paso al coordinador'
+    fi
     registro "$paso listo sin cambios: no hay commits que verificar ni publicar."
     rm -f "$ESTADO/en-curso.json"
     echo 0 >"$ESTADO/fallas"

@@ -117,7 +117,7 @@
           "items": {
             "type": "string"
           },
-          "description": "Sólo «espera», opcional: rutas que tienen que existir en origin/main para retomarte."
+          "description": "Sólo «espera», obligatorio: las rutas que tienen que crearse o cambiar en origin/main para retomarte (al menos una)."
         }
       },
       "required": ["tipo", "motivo"],

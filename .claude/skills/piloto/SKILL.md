@@ -80,8 +80,9 @@ o seguridad, compuerta `datos` como en cualquier paso. Si no se puede (no es tuy
 
 Si lo que te falta no es tuyo (está en el `dueno_de` de otro carril en `docs/plan.yaml`, o es del carril A y tú eres B o C), **no** pidas una `afuera` ni ofrezcas
 opciones que el bucle no sabe cumplir («seguir mientras…»): termina con `resultado: compuerta` y una compuerta `espera` con `pedido` (qué archivo, qué cambio y por qué,
-para que su dueño lo haga sin preguntarte) y, si sirve, `archivos` (las rutas que tienen que existir en `origin/main` para retomarte). El bucle se lo pide al carril
-dueño, espera a que llegue a `main`, lo trae a tu rama y te retoma con `continuar`; la respuesta dice qué trajo. Si al retomar todavía no está, pide otra `espera`.
+para que su dueño lo haga sin preguntarte) y `archivos` (**obligatorio**: las rutas que tienen que crearse o cambiar en `origin/main`). El bucle se lo pide al carril
+dueño, espera a que **todos** esos archivos cambien en `main` (o a que el dueño cierre el pedido), lo trae a tu rama y te retoma con `continuar`; la respuesta dice qué
+trajo. Si al retomar todavía no está, pide otra `espera` (hasta 3 por paso; después lo mira la persona).
 Antes de pedirla, deja tu trabajo en un commit o el árbol limpio: traer `main` con cambios sin commitear puede fallar.
 
 ## `.piloto/ultimo.json`
