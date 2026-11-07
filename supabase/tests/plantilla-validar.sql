@@ -181,16 +181,16 @@ declare
 begin
   v_vieja := (select definicion from public.plantillas_tarjeta where origen_id = o and version = 1) - 'grupos' - 'total' - 'logo' - 'columnas' - 'etiquetas' - 'leyendas' - 'nota'
           || '{"paleta": {"fondo": "#ffffff"}, "columnas": [{"id": "etiqueta", "ancho": 640}], "encabezado": {"titulo": "{{titulo}}"}, "grupos": [{"titulo": "Detalle", "filas": "secciones"}]}';
-  r := pg_temp.pv_corre(duena, format('select public.plantilla_guardar_borrador(%L, %L)', o, v_vieja));
+  r := pg_temp.pv_corre(duena, format('select public.plantilla_guardar_borrador(%L, null::timestamptz, %L)', o, v_vieja));
   if r ->> 'error' is distinct from '22023' or r ->> 'detail' is distinct from 'forma' then raise exception 'la forma vieja se guarda: %', r; end if;
   v_buena := pg_temp.pv_plantilla_g1();
-  r := pg_temp.pv_corre(duena, format('select public.plantilla_guardar_borrador(%L, %L)', o, v_buena || '{"pie": "x"}'));
+  r := pg_temp.pv_corre(duena, format('select public.plantilla_guardar_borrador(%L, null::timestamptz, %L)', o, v_buena || '{"pie": "x"}'));
   if r ->> 'error' is distinct from '22023' or r ->> 'detail' is distinct from 'forma' or r ->> 'hint' is distinct from 'pie' then raise exception 'una clave de más se guarda: %', r; end if;
   if exists (select 1 from public.plantillas_tarjeta where origen_id = o and estado = 'borrador') then raise exception 'un rechazo dejó un borrador'; end if;
   -- Sólo la forma: el grupo g1 no es de la fórmula de subasta_usa, y se guarda igual (se valida al publicar).
-  r := pg_temp.pv_corre(duena, format('select public.plantilla_guardar_borrador(%L, %L, %L)', o, v_buena, 'Borrador de prueba'));
+  r := pg_temp.pv_corre(duena, format('select public.plantilla_guardar_borrador(%L, null::timestamptz, %L, %L)', o, v_buena, 'Borrador de prueba'));
   if r ? 'error' or (select definicion from public.plantillas_tarjeta where origen_id = o and estado = 'borrador') is distinct from v_buena then raise exception 'una forma buena no se guarda: %', r; end if;
-  r := pg_temp.pv_corre(asesora, format('select public.plantilla_guardar_borrador(%L, %L)', o, v_buena));
+  r := pg_temp.pv_corre(asesora, format('select public.plantilla_guardar_borrador(%L, null::timestamptz, %L)', o, v_buena));
   if r ->> 'error' is distinct from '42501' then raise exception 'la asesora guarda una plantilla sin cotizaciones.configurar: %', r; end if;
 end $$;
 rollback;
@@ -206,17 +206,17 @@ begin
   perform pg_temp.pv_formula(o, 1, 'costos', 't4', 'miembro');
   insert into public.plantillas_tarjeta (origen_id, version, estado, definicion, publicado_en) values (o, 1, 'publicada', pg_temp.pv_plantilla_g1(), now()) returning id into v_pub;
   -- Un miembro del grupo en una sección de «costos»: nodo_restringido@cent, y la publicada sigue publicada.
-  perform pg_temp.pv_corre(duena, format('select public.plantilla_guardar_borrador(%L, %L)', o, pg_temp.pv_plantilla_g1()));
-  r := pg_temp.pv_corre(duena, format('select public.plantilla_publicar(%L, %L)', o, 'v2'));
+  perform pg_temp.pv_corre(duena, format('select public.plantilla_guardar_borrador(%L, null::timestamptz, %L)', o, pg_temp.pv_plantilla_g1()));
+  r := pg_temp.pv_corre(duena, format('select public.plantilla_publicar(%L, %L::timestamptz, %L)', o, (select actualizado_en from public.plantillas_tarjeta where origen_id = o and estado = 'borrador'), 'v2'));
   if r ->> 'error' is distinct from '22023' or r ->> 'detail' is distinct from 'nodo_restringido' or r ->> 'hint' is distinct from 'cent' then raise exception 'publica un miembro de costos: %', r; end if;
   if (select estado from public.plantillas_tarjeta where id = v_pub) is distinct from 'publicada' then raise exception 'un rechazo archivó la publicada'; end if;
   -- Sin fórmula publicada.
-  perform pg_temp.pv_corre(duena, format('select public.plantilla_guardar_borrador(%L, %L)', o2, pg_temp.pv_plantilla_g1()));
-  r := pg_temp.pv_corre(duena, format('select public.plantilla_publicar(%L, %L)', o2, 'v1'));
+  perform pg_temp.pv_corre(duena, format('select public.plantilla_guardar_borrador(%L, null::timestamptz, %L)', o2, pg_temp.pv_plantilla_g1()));
+  r := pg_temp.pv_corre(duena, format('select public.plantilla_publicar(%L, %L::timestamptz, %L)', o2, (select actualizado_en from public.plantillas_tarjeta where origen_id = o2 and estado = 'borrador'), 'v1'));
   if r ->> 'error' is distinct from '22023' or r ->> 'detail' is distinct from 'formula_sin_publicar' or r ->> 'hint' is distinct from 'origen' then raise exception 'publica sin fórmula: %', r; end if;
   -- Una válida publica la N+1 y archiva la anterior.
-  perform pg_temp.pv_corre(duena, format('select public.plantilla_guardar_borrador(%L, %L)', v_sub, (select definicion from public.plantillas_tarjeta where origen_id = v_sub and estado = 'publicada')));
-  r := pg_temp.pv_corre(duena, format('select public.plantilla_publicar(%L, %L)', v_sub, 'otra'));
+  perform pg_temp.pv_corre(duena, format('select public.plantilla_guardar_borrador(%L, null::timestamptz, %L)', v_sub, (select definicion from public.plantillas_tarjeta where origen_id = v_sub and estado = 'publicada')));
+  r := pg_temp.pv_corre(duena, format('select public.plantilla_publicar(%L, %L::timestamptz, %L)', v_sub, (select actualizado_en from public.plantillas_tarjeta where origen_id = v_sub and estado = 'borrador'), 'otra'));
   if r ? 'error' then raise exception 'una válida no se publica: %', r; end if;
   if (select version from public.plantillas_tarjeta where origen_id = v_sub and estado = 'publicada') <> 2
      or (select estado from public.plantillas_tarjeta where origen_id = v_sub and version = 1) is distinct from 'archivada' then
