@@ -38,7 +38,14 @@ cotización de otro lote avisan y limpian la URL. El diálogo nombra lo que se b
 pide tipear «purgar N»); lo que la base rechaza se dice dentro (un conflicto apaga el botón y ofrece «Recargar») y el resultado va en el aviso (`resumenDePurga`: lo bloqueado,
 como una final con comprobante, con su motivo).
 
+En la guardada (`/cotizaciones/[id]`, 4.24-3): `pantallas/papelera-cotizacion.ts` llena `Acciones` de la cabecera con «Enviar a la papelera» (`<EnviarLaGuardadaALaPapelera>`, un Server Component que decide quién lo ve y
+dibuja `<BotonEnviarALaPapelera>` con el id y la versión; `outline` como «Revisiones», después de ella). Lo ve quien puede guardarla o, en una preventa, quien modera (`puedeEnviarLaCotizacion`, el espejo de `_cotizacion_a_papelera()`). Se hace sin
+preguntar (`hooks/envio-a-papelera.ts`: llama a las actions sin `useAction`, porque el JS en frío de la guardada está al tope): con la enviada, lleva a `/cotizaciones` con ««T» se envió a la papelera.» y «Deshacer» 10 s, que restaura ese lote con la versión que devolvió el
+envío; si la base la rechaza (otra versión: PT409 con «Recargar»; sin permiso), lo avisa y se queda. No mira lo tipeado sin guardar (P2 a del 4.24-3). `Debajo` queda vacío.
+
 ## Lo que no se rompe
+
+- Enviar manda la versión de la página **tal cual** (`cotizacion.actualizadoEn`, el texto de la base): nunca pasa por `Date` ni se relee antes de mandar.
 
 - El lote trae sólo número, título (o «Cotización #n»), clase, origen y fecha: nada que la RLS le esconda a quien tiene la clave y no ve la cotización. Sin total, sin
   cliente ni vehículo (P6 del 4.24-1a; P4 del 4.24-2).
