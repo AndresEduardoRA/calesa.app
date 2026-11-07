@@ -1,15 +1,29 @@
 import 'server-only'
 import { errorDePostgrest, fallo, ok } from '@/shared/lib/errores'
 import { createClient } from '@/shared/lib/supabase/server'
-import { purgaDesde, restauracionDesde } from '../../entities/papelera/resultados'
+import { envioDesde, purgaDesde, restauracionDesde } from '../../entities/papelera/resultados'
 import type { RepositorioDePapeleraDeCotizaciones } from '../../entities/papelera/repositorio'
 
-// La papelera de cotizaciones se escribe sólo por RPC (`cotizaciones_papelera_*`, 4.24-1a y 4.24-1b). Restaurar y purgar llevan la versión del lote; lo que la base
+// La papelera de cotizaciones se escribe sólo por RPC (`cotizaciones_papelera_*`, 4.24-1a y 4.24-1b). Enviar lleva la versión de cada cotización; restaurar y purgar, la del lote; lo que la base
 // rechaza (versión vieja, sin permiso, el lote ya no está) vuelve como error con el mensaje ya escrito para la persona.
 
 const NO_SE_LEYO = 'No pudimos leer la respuesta. Recarga para ver cómo quedó.'
 
 export const papeleraDeCotizacionesSupabase: RepositorioDePapeleraDeCotizaciones = {
+  enviar: async (cotizaciones) => {
+    const supabase = await createClient()
+    const { data, error } = await supabase.rpc('cotizaciones_papelera_enviar', {
+      p_cotizaciones: cotizaciones.map(({ id, actualizadoEn }) => ({
+        id,
+        actualizado_en: actualizadoEn,
+      })),
+    })
+    if (error) {
+      return { ok: false, error: errorDePostgrest(error) }
+    }
+    const envio = envioDesde(data)
+    return envio ? ok(envio) : fallo('inesperado', NO_SE_LEYO)
+  },
   restaurar: async ({ loteId, actualizadoEnEsperado, cotizaciones }) => {
     const supabase = await createClient()
     const { data, error } = await supabase.rpc('cotizaciones_papelera_restaurar', {
