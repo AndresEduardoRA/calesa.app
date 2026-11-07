@@ -1,17 +1,19 @@
 'use client'
 
 import { memo } from 'react'
-import { Button } from '@/shared/ui/button'
 import type { ErrorDeFila } from '../../../../entities/formula/compilar-fila'
+import type { ErrorDeFilaNueva, PedidoDeFilaNueva } from '../../../../entities/formula/fila-nueva'
 import type { CifraDeLaFila } from '../../../../entities/formula/vista-previa'
 import type { FilaAbierta } from '../../hooks/use-editor-de-la-formula'
 import { editable, type FilaParaDibujar } from '../../hooks/use-editor-de-la-formula.soporte'
+import { BotonesDeLaFila } from './botones-de-la-fila'
 import { CamposDeLaFila } from './campos-de-la-fila'
 import { CifraDePrueba } from './cifra-de-prueba'
 import { EstadoDelTexto } from './estado-del-texto'
+import { SumarFila } from './sumar-fila'
 import { TextoDeLaFila } from './texto-de-la-fila'
 
-type Props = {
+export type FilaDelEditorProps = {
   fila: FilaParaDibujar
   // La cifra de prueba de la fila (vista previa, 4.21-3a-2).
   cifra: CifraDeLaFila
@@ -25,6 +27,16 @@ type Props = {
   alAbrir: (id: string) => void
   alCancelar: () => void
   alAplicar: (texto: string, confirmaPisar?: boolean) => void
+  // «Sumar fila» (4.21-3a-2): el formulario abierto bajo esta fila (con el error del último intento), o nulo.
+  sumando: { error: ErrorDeFilaNueva | null } | null
+  // Hay algo abierto: «Sumar fila» espera.
+  sumarBloqueado: boolean
+  // La fila acaba de crearse: el foco va a su «Editar».
+  enfocar: boolean
+  ocupados: ReadonlySet<string>
+  alSumar: (id: string) => void
+  alCancelarSumar: () => void
+  alCrear: (pedido: Omit<PedidoDeFilaNueva, 'despuesDe'>) => void
 }
 
 const TIPOS: Record<FilaParaDibujar['nodo']['tipo'], string> = {
@@ -59,7 +71,14 @@ export const FilaDelEditor = memo(function FilaDelEditor({
   alAbrir,
   alCancelar,
   alAplicar,
-}: Props) {
+  sumando,
+  sumarBloqueado,
+  enfocar,
+  ocupados,
+  alSumar,
+  alCancelarSumar,
+  alCrear,
+}: FilaDelEditorProps) {
   const error: ErrorDeFila | null = abierta?.error ?? null
   return (
     <li
@@ -71,21 +90,19 @@ export const FilaDelEditor = memo(function FilaDelEditor({
         <code className="break-all text-(--color-ink-soft)">{fila.id}</code>
         <span className="text-(--color-ink-soft)">{TIPOS[fila.nodo.tipo]}</span>
         <CifraDePrueba cifra={cifra} />
-        {editable(fila) && !abierta ? (
-          <Button
-            type="button"
-            variant="outline"
-            className="ml-auto min-h-11 md:min-h-9"
-            aria-label={`Editar ${fila.etiqueta}`}
-            disabled={bloqueada}
-            title={bloqueada ? 'Aplica o cancela la fila abierta.' : undefined}
-            onClick={() => {
-              alAbrir(fila.id)
-            }}
-          >
-            Editar
-          </Button>
-        ) : null}
+        <BotonesDeLaFila
+          etiqueta={fila.etiqueta}
+          puedeEditar={editable(fila) && !abierta}
+          bloqueada={bloqueada}
+          sumarBloqueado={sumarBloqueado}
+          enfocar={enfocar}
+          alEditar={() => {
+            alAbrir(fila.id)
+          }}
+          alSumar={() => {
+            alSumar(fila.id)
+          }}
+        />
       </div>
       {abierta ? (
         <TextoDeLaFila
@@ -112,6 +129,14 @@ export const FilaDelEditor = memo(function FilaDelEditor({
         >
           {rechazo}
         </p>
+      ) : null}
+      {sumando ? (
+        <SumarFila
+          ocupados={ocupados}
+          error={sumando.error}
+          alCrear={alCrear}
+          alCancelar={alCancelarSumar}
+        />
       ) : null}
     </li>
   )

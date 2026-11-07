@@ -99,3 +99,80 @@ describe('useEditorDeLaFormula: la vista previa (T6)', () => {
     expect(result.current.rechazo?.filaId).toBe('total')
   })
 })
+
+describe('useEditorDeLaFormula: sumar fila (T6)', () => {
+  const nuevo = { etiqueta: 'Seguro', id: 'seguro', tipo: 'calculo', texto: 'base*3' } as const
+
+  it('«sumar» abre el formulario y apaga «abrir»; «abrir» apaga «sumar»; una sola cosa abierta', () => {
+    const { result } = montar()
+    act(() => {
+      result.current.nueva.sumar('base')
+    })
+    expect(result.current.nueva.sumando).toEqual({ tras: 'base', error: null })
+    act(() => {
+      result.current.abrir('total')
+    })
+    expect(result.current.abierta).toBeNull()
+    act(() => {
+      result.current.nueva.cancelarSumar()
+    })
+    act(() => {
+      result.current.abrir('total')
+    })
+    act(() => {
+      result.current.nueva.sumar('base')
+    })
+    expect(result.current.nueva.sumando).toBeNull()
+    expect(result.current.abierta?.id).toBe('total')
+  })
+
+  it('«crear» entra: cambia la fórmula, cierra, deja la fila nueva como creada y sube la vista', async () => {
+    const { result } = montar()
+    await waitFor(() => {
+      expect(result.current.vista).not.toBeNull()
+    })
+    act(() => {
+      result.current.nueva.sumar('base')
+    })
+    act(() => {
+      result.current.nueva.crear(nuevo)
+    })
+    expect(result.current.nueva.sumando).toBeNull()
+    expect(result.current.nueva.creada).toBe('seguro')
+    const ids = result.current.filas.map((f) => f.id)
+    expect(ids[ids.indexOf('base') + 1]).toBe('seguro')
+    expect(calculada(result)?.valores.get('seguro')).toBe(2700)
+    // Abrir otra cosa suelta la «creada».
+    act(() => {
+      result.current.abrir('total')
+    })
+    expect(result.current.nueva.creada).toBeNull()
+  })
+
+  it('un error deja el formulario abierto con su error y la fórmula igual', () => {
+    const { result } = montar()
+    act(() => {
+      result.current.nueva.sumar('base')
+    })
+    act(() => {
+      result.current.nueva.crear({ ...nuevo, id: 'total' })
+    })
+    expect(result.current.nueva.sumando?.error?.codigo).toBe('id_ocupado')
+    expect(result.current.nueva.sumando?.error?.campo).toBe('id')
+    expect(result.current.filas.map((f) => f.id)).not.toContain('seguro')
+  })
+
+  it('lo creado se repone con el borrador local de la misma versión', () => {
+    const primero = montar()
+    act(() => {
+      primero.result.current.nueva.sumar('base')
+    })
+    act(() => {
+      primero.result.current.nueva.crear(nuevo)
+    })
+    primero.unmount()
+    const segundo = montar()
+    expect(segundo.result.current.filas.map((f) => f.id)).toContain('seguro')
+    expect(segundo.result.current.nueva.sumando).toBeNull()
+  })
+})

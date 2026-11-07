@@ -6,6 +6,7 @@ import { esquemaFormula, type Formula } from '../../../entities/formula'
 import { compilarFila, type ErrorDeFila } from '../../../entities/formula/compilar-fila'
 import type { FormulaParaEditar } from '../../../entities/formula/edicion'
 import { filasParaDibujar, paramsPlanos } from './use-editor-de-la-formula.soporte'
+import { useSumarFila } from './use-sumar-fila'
 import { useVistaPrevia } from './use-vista-previa'
 
 // La fila abierta: su id y, tras «Aplicar», el error que la dejó abierta.
@@ -44,6 +45,15 @@ export function useEditorDeLaFormula({
     trabajo,
     filas,
   })
+  // «Sumar fila» (4.21-3a-2): una sola cosa abierta a la vez, esta fila en edición o el formulario.
+  const nueva = useSumarFila({
+    trabajo,
+    hayAbierta: abierta !== null,
+    alCrear: (formula, creada) => {
+      setTrabajo(formula)
+      setAplicada(creada)
+    },
+  })
 
   const valores = useMemo(() => valoresDe(trabajo), [trabajo])
   const guardado = useMemo(() => valoresDe(leida.formula), [leida.formula])
@@ -52,14 +62,12 @@ export function useEditorDeLaFormula({
     valores,
     guardado,
     alReponer: (cambios) => {
-      const repuesta = esquemaFormula.safeParse({
-        definicion: cambios.definicion ?? valores.definicion,
-        params: cambios.params ?? valores.params,
-      })
+      const repuesta = esquemaFormula.safeParse({ ...valores, ...cambios })
       if (repuesta.success) {
         setTrabajo(repuesta.data)
         setAbierta(null)
         setAplicada(null)
+        nueva.cancelarSumar()
       }
     },
   })
@@ -92,8 +100,12 @@ export function useEditorDeLaFormula({
     abierta,
     aplicada,
     abrir: (id: string) => {
-      if (abierta === null) setAbierta({ id, error: null })
+      if (abierta === null && nueva.sumando === null) {
+        nueva.soltarLaCreada()
+        setAbierta({ id, error: null })
+      }
     },
+    nueva,
     cancelar: () => {
       setAbierta(null)
     },

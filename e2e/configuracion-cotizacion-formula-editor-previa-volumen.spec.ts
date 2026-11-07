@@ -19,8 +19,8 @@ import {
 // no da más de 1.000 filas por pedido (`max_rows`), así que una tabla se lee si cabe: 999 sí, 1.000 y 1.001 no (con su aviso), y dos de 600 se leen enteras en dos pedidos.
 test.describe.configure({ mode: 'serial' })
 
-// Lo medido en escritorio con 600 filas (4.21-3a-2: 4.990 nodos con 500 filas, con la cifra de cada fila; el tope del 3a-1, sin cifras, era de 3.992), más un 5 %.
-const TOPE_DE_NODOS_CON_500 = 5_250
+// Lo medido en escritorio con 600 filas (4.21-3a-2: 5.990 nodos con 500 filas, con la cifra y «Sumar fila» de cada fila; el del 3a-1, sin ellos, era de 3.992), más un 5 %.
+const TOPE_DE_NODOS_CON_500 = 6_300
 
 let proyecto = ''
 let duena = ''
