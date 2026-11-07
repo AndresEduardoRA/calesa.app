@@ -276,12 +276,11 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   `entities/plantilla/`, espejo de `validar_plantilla()` sobre `casos-de-plantilla.json` (cuenta caracteres, no unidades UTF-16: 4-74); la versión esperada de
   `plantilla_guardar_borrador` y de `plantilla_publicar` (salen de las excepciones de `.claude/rules/migraciones.md`; antes del 4.19-1 dos publicaciones a la vez publicaban
   las dos, no daban un 23505: ver abajo); y el aviso de un tono elegido que ya no está en el catálogo (la lectura cae al tono del grupo).
-  **Partido en 4** (`docs/DECISIONES.md` › «Paso 4.19-1»): el **4.19-1** (la versión esperada y el candado del origen de `plantilla_guardar_borrador` y
+  **Partido en 6** (`docs/DECISIONES.md` › «Paso 4.19-1» y «Paso 4.19-3a»): el **4.19-1** (la versión esperada y el candado del origen de `plantilla_guardar_borrador` y
   `plantilla_publicar`, `plantilla_descartar_borrador` y la nota de publicar; sus carreras; Nivel 1 + cadena db + `db:carreras`): **hecho** (lo que midió HEAD: dos
   publicaciones a la vez no daban el 23505 de `plantillas_publicada_unica`; la segunda también publicaba y pisaba la nota de la primera). El **4.19-2**
-  (`validarPlantilla()` de TS sobre `casos-de-plantilla.json` y el aviso de un tono que ya no está; Nivel 1, sin cambio visible). El **4.19-3** (el editor, en la
-  pestaña «Tarjeta» de Configuración › Cotización: leer, guardar, publicar con nota, descartar, el PT409 y el aviso del tono; Nivel 1, interfaz). El **4.19-4** (la vista
-  previa en vivo por un hueco que llena el área `tarjeta`, con cifras de ejemplo; Nivel 1, interfaz). Marcas: 4.19-1 `no`.
+  (`validarPlantilla()` de TS sobre `casos-de-plantilla.json` y el aviso de un tono que ya no está; Nivel 1, sin cambio visible). El **4.19-3a** (lo que lee y escribe la plantilla: `entities/`, `infra/` y las tres actions, con la guarda del texto que la base no lee; sin pantalla; Nivel 1): **hecho**. El **4.19-3b** (la pestaña «Tarjeta» de Configuración › Cotización y el editor que guarda, con el PT409 y el aviso del tono; Nivel 1, interfaz) y el **4.19-3c** (publicar con nota y descartar; Nivel 1, interfaz). El **4.19-4** (la vista
+  previa en vivo por un hueco que llena el área `tarjeta`, con cifras de ejemplo; Nivel 1, interfaz). Marcas: 4.19-1 `no`, 4.19-3a `no`.
   - **P1 a P6 del 4.19-1** (contestadas el 2026-11-07, todas las recomendadas): P1 el conflicto no dice quién (sin columnas nuevas); P2 el borrador se puede descartar
     (`plantilla_descartar_borrador`, con su versión); P3 `cotizaciones.configurar` del origen, sin clave nueva; P4 publicar pide una nota; **P5 (del 4.19-3)** una pestaña
     «Tarjeta» de Configuración › Cotización, tras «Fórmula» (carpeta del B: el 4.19-3 se integra con cuidado mientras el B hace el 4.21); **P6 (del 4.19-4)** cifras de ejemplo, dichas.

@@ -605,6 +605,18 @@ vez publicaban las dos (el segundo `update … where id =` esperaba la fila del 
 - Dentro de una transacción `now()` no se mueve (el trigger genérico): una esperada «vieja» es la de la fila menos 1 µs en `db:probar`; que guardar mueve la
   versión entre transacciones lo prueban las carreras (`scripts/carreras/plantillas.mjs`).
 
+### Lo que lee y escribe la plantilla desde TypeScript (4.19-3a)
+
+- **Del lado de TS:** la versión esperada es el `actualizado_en` que dio la base, como texto y con sus microsegundos (`z.iso.datetime({ offset: true })`; nunca un `Date`). `guardar`
+  la manda siempre, `null` explícito para crear (los tipos generados la dan `string`: un `const` con nombre hace el cast), y no manda `p_nota`. Un 22023 de `validar_plantilla()`
+  (la regla en `details`, el `donde` en `hint`) va a `porCampo[donde]` con el mensaje de la base tal cual; «Publicar pide una nota.» (`hint = 'nota'`), a `porCampo.nota`; el PT409 es un
+  conflicto sin nombre. **Guardar sólo valida la forma** (sin contexto): lo que cruza con la fórmula y los tonos lo rechaza publicar.
+- **El texto que la base no lee:** un `\u0000` o un surrogate suelto no lo rechaza `validar_plantilla()` sino la base al leer el JSON (22P02, 22P05). La action de guardar lo ataja antes
+  (`revisarTextoParaLaBase()`, con una pila y un tope de 8 niveles) y lo dice junto al campo.
+- **La lectura** (`leerPlantillaDelOrigen()`): el borrador y la publicada (la que ya no tiene la forma llega con su `motivo` y sin plantilla), la fórmula publicada del origen con lo que
+  mira el validador (no su esquema entero) y el catálogo de tonos (tope 24); sin fórmula publicada no hay contexto. Desde el 4.19-3a el editor lee `plantillas_tarjeta` con la sesión de
+  quien mira (la policy limita; el comentario de `20261106190219_plantillas_tarjeta_leer.sql`, «Nadie en la app lee la tabla», ya no vale y la migración no se edita).
+
 ### La lectura de la tarjeta (4.18-1)
 
 **`cotizacion_tarjeta(p_formula)`**, `security definer`, da lo que dibuja la tarjeta de **una versión** de la fórmula. Pide `cotizaciones.ver`
