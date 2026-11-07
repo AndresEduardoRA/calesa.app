@@ -24,6 +24,6 @@ Una compuerta es lo único que el piloto le pregunta a la persona (al celular, p
 - **`producto`: una pregunta por decisión** (`preguntas`, con el `Pn` del plan como `id`), nunca un «¿apruebo todo?»: en el 4.13-3b llegaron nueve decisiones en una sola
   pregunta. Cada una con su texto corto y de 2 a 4 opciones, la recomendada primero. Las demás compuertas llevan una sola `pregunta`.
 - `contexto`: las rutas que ayudan a decidir (el plan `.piloto/planes/<paso>.md`, el informe, un archivo concreto). La sesión de decidir sólo lee.
-- **`producto`, `datos` y `guardas` se contestan solos** con la primera opción (`PILOTO_AUTO`; en `guardas` queda el diff en `.piloto/guardas/`): por eso la recomendada va **siempre primero** y tiene que ser la que defenderías sin la persona. Cada respuesta queda en `.piloto/decisiones-automaticas.md`.
+- **`producto`, `datos` y `guardas` se contestan solos** con la primera opción (`PILOTO_AUTO`; en `guardas` queda el diff en `.piloto/guardas/`): por eso la recomendada va **siempre primero** y tiene que ser la que defenderías sin la persona. **`atasco` también, una vez por paso**: la segunda del mismo paso va a la persona, así que en la primera no recomiendes otra ronda igual a la que ya bloqueó. Cada respuesta queda en `.piloto/decisiones-automaticas.md`.
 - **No pidas lo ya respondido:** si `hechos.json` › `decision` contesta tu pregunta, sigue.
 - **Nunca** escribas tú la aprobación. Con una `datos` aprobada, es el bucle quien escribe `aprobado-<paso>`, y sin ella no se publica un SQL de seguridad.
