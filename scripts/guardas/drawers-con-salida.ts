@@ -7,6 +7,7 @@
 // `formulario`: el archivo donde el panel dice que tiene algo escrito (a veces no es el del `<Drawer>`).
 // `sinFormulario`: por qué ese panel no guarda nada tipeado.
 import { DRAWERS_DE_LA_FORMULA } from './drawers-con-salida-formula'
+import { sumarObjetos } from './registros-de-carriles'
 
 export type RegistroDeDrawer =
   { formulario: string; mecanismo: 'contexto' | 'propio' } | { sinFormulario: string }
@@ -137,4 +138,7 @@ export const DRAWERS_DEL_NUCLEO: Record<string, RegistroDeDrawer> = {
 export const DRAWERS: Record<string, RegistroDeDrawer> = {
   ...DRAWERS_DEL_NUCLEO,
   ...DRAWERS_DE_LA_FORMULA,
+  ...sumarObjetos<RegistroDeDrawer>(
+    import.meta.glob('./areas-*/drawers-con-salida.ts', { eager: true }),
+  ),
 }
