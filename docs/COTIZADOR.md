@@ -198,7 +198,7 @@ motor lo ignora; otro nodo con `texto` es `forma`.
 
 ### El editor (4.21-1)
 
-Lo puro de «cada fila se edita en texto», en `entities/formula/` (sin pantalla ni base; la pantalla es del 4.21-3a). Todo es puro, nunca lanza, no toca lo que recibe y es
+Lo puro de «cada fila se edita en texto», en `entities/formula/` (sin pantalla ni base; la pantalla es del 4.21-3a, abajo). Todo es puro, nunca lanza, no toca lo que recibe y es
 lineal con el medidor; `compilarExpresion()` no cambia.
 
 - **Fila y auxiliares** (`filas.ts`, `filasDe()`): una fila es un nodo que no es auxiliar de otra. Las auxiliares de una fila con `texto` son los k nodos de justo antes
@@ -213,6 +213,7 @@ lineal con el medidor; `compilarExpresion()` no cambia.
   fila queda `reescrito`; si no (no compila, otra estructura, un negativo, un `-0`), `no_manda` con su motivo. Un negativo no se escribe por decisión. Recompilar una fila `no_manda`
   que cambia o quita una constante da `pisa_un_valor` hasta que llega `confirmaPisar`: nunca se deshace un ⚙ en silencio.
 - **Las filas sembradas** no traen texto: `textoDeNodo()` lo escribe desde el nodo (`a+b+c`, `SI(b; x)`, sin el «=») sólo si compilarlo da exactamente ese nodo; si no, `null` y la fila se muestra por sus campos.
+- **La pantalla** (4.21-3a-1, `features/formula/components/editor/`, `?panel=editar-formula`): lee la definición del borrador o de la publicada desde el navegador, muestra cada fila con `textoVigente()` / `textoDeNodo()` (o por sus campos), compila al aplicar con `compilarFila()` (sin llamar a `validarFormula()` en un error de la fila: 4-6), valida la fórmula de trabajo tras cada cambio (el rechazo, en su fila) y guarda lo aplicado en la pestaña; nada va a la base hasta el 4.21-3b.
 
 ## Tipos de cambio y modos (D7, H1)
 
