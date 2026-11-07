@@ -37,7 +37,8 @@ los validadores, el diseño, la apertura, la ruta): lo que comparten las áreas.
   caer el árbol que tiene una que el carril de su área no posee.
 - **Qué no se toca:** `index.ts`, `client.ts` y `composicion.ts` de la raíz sólo llevan `export * from './areas/<x>/<mismo nombre>'` por el
   núcleo y cada área, en orden; un nombre repetido entre dos áreas es un error de `tsc`. Un área nueva (la lista, `plan.yaml` y las tres
-  líneas) la decide el carril A.
+  líneas) la decide el carril A. Un nombre nuevo en el `index.ts` de un área mueve la cuenta de la API en `docs/MAPA.md`: T13 de `scripts/mapa.test.ts`
+  la fija y se sube en el mismo commit (el 4.18-3a no lo hizo y el CI cayó).
 - **La dirección:** un área importa lo suyo y el núcleo, **nunca otra área**; el núcleo no importa ningún área; adentro nadie importa las
   entradas de la raíz (los casos de uso del núcleo importan `areas/nucleo/composicion.ts`). Cuentan `import type`, `import()` y los tests. Lo
   que dos áreas necesitan va al núcleo. Lo vigila `scripts/guardas/areas-de-cotizaciones.test.ts` (también que cada área tenga sus lugares); `areas-de-cotizaciones-plan.test.ts`, que

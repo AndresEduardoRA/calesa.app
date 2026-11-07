@@ -18,14 +18,14 @@ function seccionDe(mapa: string, modulo: string): string {
 }
 
 describe('mapa.sh › la API de un módulo que reexporta por área', () => {
-  it('T13 la de cotizaciones lista sus 87 nombres y los de cliente, sin `* ./`', () => {
+  it('T13 la de cotizaciones lista sus 89 nombres y los de cliente, sin `* ./`', () => {
     execFileSync('bash', ['scripts/mapa.sh'], { cwd: RAIZ, stdio: 'pipe' })
     const seccion = seccionDe(readFileSync(join(RAIZ, 'docs/MAPA.md'), 'utf8'), 'cotizaciones')
     const api = seccion.split('\n').find((l) => l.startsWith('- API: '))
     const cliente = seccion.split('\n').find((l) => l.startsWith('- API de cliente'))
     expect(api).toBeDefined()
     expect(api).not.toContain('* ./')
-    expect(api).toMatch(/, \+77$/)
+    expect(api).toMatch(/, \+79$/)
     expect(cliente).toContain('`useLectorDeOpciones`')
     expect(cliente).not.toContain('* ./')
   })
