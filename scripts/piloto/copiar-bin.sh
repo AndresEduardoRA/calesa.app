@@ -11,7 +11,7 @@
 #   copiar-bin.sh --si-cambio   copia sólo si `origin/main:scripts/piloto` ya no es el de bin.origen; exit 10 si copió, 0 si no hacía falta
 # Un candado (`<común>/piloto/bin.lock`) evita que dos carriles la rehagan a la vez. Variables: las de comun.sh y PILOTO_COPIA_DESDE.
 #
-# Cada copia es una carpeta propia (`bin.<árbol>-<hora>`) y `bin` es un enlace a la vigente, que se cambia de una vez (`mv -T` de un enlace): nunca
+# Cada copia es una carpeta propia (`bin.<árbol>-<azar>`) y `bin` es un enlace a la vigente, que se cambia de una vez (`mv -T` de un enlace): nunca
 # hay un instante sin `bin/`, y un bucle que ya corre sigue con SU carpeta (comun.sh resuelve el enlace) hasta relanzarse, sin mezclar piezas
 # viejas en memoria con nuevas en disco. Las carpetas viejas se borran pasadas 24 h (ningún paso dura tanto).
 set -uo pipefail
@@ -39,9 +39,10 @@ if [ "$SI_CAMBIO" = 1 ]; then
   [ "$(cat "$COMUN/bin.origen" 2>/dev/null)" = "$ORIGEN" ] && [ -s "$COMUN/bin/bin.sha256" ] && exit 0
 fi
 
-NUEVA="$COMUN/bin.${ORIGEN:0:12}-$(date +%s)"
-rm -rf "$NUEVA"
-mkdir -p "$NUEVA"
+# Un nombre que no se repite (mktemp): con la hora en segundos, dos arranques del mismo segundo (el servicio y el vigía de un carril, al
+# instalarse) daban la misma carpeta, y el segundo borraba la del primero mientras su bucle la cargaba (carril b, 2026-11-07 04:53).
+NUEVA=$(mktemp -d "$COMUN/bin.${ORIGEN:0:12}-XXXXXX") || falta "no pude crear la carpeta de la copia."
+chmod 755 "$NUEVA"
 if [ "$ORIGEN" = arbol ]; then
   [ "${PILOTO_COPIA_DESDE:-}" = arbol ] || echo "copiar-bin: AVISO: no hay origin/main; copio scripts/piloto/ del árbol." >&2
   find scripts/piloto -maxdepth 1 -type f \( -name '*.sh' -o -name '*.mjs' -o -name '*.json' \) -exec cp {} "$NUEVA"/ \;
