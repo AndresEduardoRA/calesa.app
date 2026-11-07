@@ -2,11 +2,13 @@ import type { ErrorApp, Resultado } from '@/shared/lib/errores'
 import type { Diseno } from '../diseno'
 import type { Definicion } from '../formula'
 
-// Lo que se manda para publicar el borrador de un origen: la publicada que la pestaña leyó (nula si el origen no tiene), que la base compara (PT409 si cambió).
+// Lo que se manda para publicar el borrador de un origen: la publicada que la pestaña leyó (nula si el origen no tiene) y la hora del borrador que leyó (4.21-3b-1),
+// que la base compara (PT409 si cambiaron).
 export type PedidoDePublicar = {
   origenId: string
   nota: string
   publicadaEsperada: string | null
+  actualizadoEsperado: string
 }
 
 // Lo que se manda para revertir a una versión archivada: la publicada que se leyó, siempre (sin publicada no se revierte).
@@ -17,9 +19,11 @@ export type PedidoDeRevertir = {
   publicadaEsperada: string
 }
 
-// Lo que se manda para descartar el borrador de un origen (4.20-2c): sólo el origen; la base borra el que haya, sin versión esperada (llega en el 4.21).
+// Lo que se manda para descartar el borrador de un origen (4.20-2c): el origen y la hora del borrador que se leyó (4.21-3b-1): la base lo borra sólo si sigue siendo
+// ese (PT409 si cambió o ya no está).
 export type PedidoDeDescartar = {
   origenId: string
+  actualizadoEsperado: string
 }
 
 // Lo que se manda para cambiar el valor por defecto de una constante desde el ⚙ de la hoja (4.20-3a): el valor ya en la unidad de `params` (un porcentaje como fracción)
