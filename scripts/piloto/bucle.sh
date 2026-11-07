@@ -32,6 +32,7 @@ source "$BIN/ci.sh"
 cd "$RAIZ" || exit 1
 
 HASTA="" EN_SECO=0 NOTA="" UNA_VUELTA=0
+ARGS_BUCLE=("$@")
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --hasta) HASTA="${2:-}"; shift 2 ;;
@@ -48,12 +49,20 @@ DORMIR="${PILOTO_DORMIR:-sleep}" POLL="${PILOTO_POLL:-5}"
 # puerta de fase. CI_FIX_MAX intentos (2) por racha de rojos; CI_ESPERA_MAX s (5400) esperando un CI en curso en la puerta de fase.
 CI_ARREGLAR_DESDE="${PILOTO_CI_ARREGLAR_DESDE:-3}" CI_FIX_MAX="${PILOTO_CI_FIX_MAX:-2}"
 CI_ESPERA_MAX="${PILOTO_CI_ESPERA_MAX:-5400}" CI_POLL="${PILOTO_CI_POLL:-60}"
+# La espera a main (compuerta «espera»): cada ESPERA_MAIN_POLL s (120) mira origin/main, hasta ESPERA_MAIN_MAX s (21600: 6 h).
+ESPERA_MAIN_POLL="${PILOTO_ESPERA_MAIN_POLL:-120}" ESPERA_MAIN_MAX="${PILOTO_ESPERA_MAIN_MAX:-21600}"
+ESPERA_MAIN_VECES="${PILOTO_ESPERA_MAIN_VECES:-3}"
 CLAUDE=$(claude_bin)
 [ -n "$CLAUDE" ] || { echo "bucle: no encuentro el binario de claude (CLAUDE_BIN)." >&2; exit 1; }
 
 mkdir -p "$ESTADO/llamadas" "$ESTADO/sesiones" "$ESTADO/planes" "$ESTADO/informes" "$ESTADO/salidas" "$COMUN"
 exec 8>"$ESTADO/bucle.lock"
-flock -n 8 || { echo "bucle: ya corre otro bucle (flock sobre $ESTADO/bucle.lock)." >&2; exit 1; }
+# Relanzado por copia_al_dia, espera un poco a que se suelte el candado del bucle de antes; si no, ya corre otro y sale.
+if [ -n "${PILOTO_RELANZADO:-}" ]; then
+  flock -w 30 8 || { echo "bucle: el candado de $ESTADO/bucle.lock no se soltó en 30 s tras relanzarme." >&2; exit 1; }
+else
+  flock -n 8 || { echo "bucle: ya corre otro bucle (flock sobre $ESTADO/bucle.lock)." >&2; exit 1; }
+fi
 
 registro() {
   local linea
@@ -69,6 +78,22 @@ verificar_copia() {
   [ -s "$BIN/bin.sha256" ] || return 1
   (cd "$BIN" && sha256sum -c --quiet bin.sha256 >/dev/null 2>&1) || return 1
   [ "$(awk '{print $2}' "$BIN/bin.sha256" | sed 's/^\*//' | sort)" = "$(cd "$BIN" && find . -mindepth 1 ! -name bin.sha256 -printf '%P\n' | sort)" ]
+}
+
+# 0'. La copia al día con main (copiar-bin.sh): si se integró un cambio de `scripts/piloto/`, entre pasos se rehace la copia y el bucle se
+# relanza con ella (`exec`, mismo carril y mismas opciones; el estado vive en disco). Antes había que re-arrancar cada carril a mano o
+# con un vigilante fuera del repo (≈ 4 h 30 del 5 al 7-11-2026). Con un paso vivo no se toca nada.
+copia_al_dia() {
+  [ "$EN_SECO" = 1 ] && return 0
+  [ "${PILOTO_RECARGAR:-1}" = 0 ] && return 0
+  en_curso_vivo && return 0
+  git remote get-url origin >/dev/null 2>&1 || return 0
+  timeout 60 git fetch -q origin main 2>/dev/null 8>&-
+  bash "$BIN/copiar-bin.sh" --si-cambio >>"$ESTADO/copiar-bin.log" 2>&1 8>&-
+  [ "$?" = 10 ] || return 0
+  registro "los scripts del piloto cambiaron en main: me relanzo con la copia nueva ($(cut -c1-8 "$COMUN/bin.origen" 2>/dev/null))."
+  exec 8>&-
+  PILOTO_RELANZADO=1 exec bash "$COMUN/bin/bucle.sh" "${ARGS_BUCLE[@]+"${ARGS_BUCLE[@]}"}"
 }
 
 # El texto documentado del límite de uso: «You've hit your session limit · resets 3:45pm». Imprime los segundos que hay que dormir
@@ -161,6 +186,10 @@ anotar_en_curso() { # <paso> <session_id> <head> <modelo> <effort>
     '{paso: $paso, session_id: $sid, pid: null, head_arranque: $head, hora: $hora, modelo: $modelo, effort: $effort, estado: "corriendo", guardas_aprobadas: false}' \
     >"$ESTADO/en-curso.json"
 }
+# Un id que es un paso propio del plan del coordinador (`  - id: '4.20-4a'`), no una parte de otro.
+es_paso_del_plan() {
+  grep -qE "^  - id: ['\"]?$(sed 's/[.[\*^$]/\\&/g' <<<"$1")['\"]?[[:space:]]*$" "${COORD_PLAN:-$RAIZ/docs/plan.yaml}" 2>/dev/null
+}
 fallas() { echo "$(($(cat "$ESTADO/fallas" 2>/dev/null || echo 0) + 1))" >"$ESTADO/fallas"; }
 
 # 5. Lanza el paso y espera. Salida: $SALIDA_PASO; el pid queda en en-curso.json para saber si el paso sigue vivo.
@@ -218,9 +247,83 @@ correr_paso() { # <paso> <modo> <session_id> <prompt> <modelo> <effort> [bandera
   done
 }
 
+# Una compuerta que espera algo de main: la «espera» (con su `pedido`) o una «afuera» de antes que lo dice con palabras (las del C en el
+# 4.24-3: «sigue sin estar en main», «no está en main»).
+espera_a_main() {
+  jq -e '.compuerta.tipo == "espera" or (.compuerta.tipo == "afuera" and ((.compuerta.motivo // "") + " " + (.compuerta.pregunta // "") |
+    test("(no est[áa]|sin estar|no lleg[óo]|no ha llegado|falta que llegue)[^.]{0,40}(en|a) (origin/)?main"; "i")))' "$ESTADO/ultimo.json" >/dev/null 2>&1
+}
+
+# esperar_main <paso>: el paso necesita algo que otro carril integra en main. No es de la persona: con carril, el pedido va al coordinador
+# (el carril dueño lo toma como su próximo paso, `pedido-<n>`); el bucle mira origin/main cada ESPERA_MAIN_POLL s hasta que cambie y traiga
+# los `archivos` que el paso nombró, lo trae a la rama (el árbol puede tener trabajo sin commitear: git se niega si lo pisaría) y contesta
+# la compuerta sola: el paso se retoma con «main ya trae …» en hechos › decision. Antes, cada espera era una compuerta al celular y un
+# relanzamiento a mano (B y C, 11 veces del 6 al 7-11). Pasado ESPERA_MAIN_MAX, es una parada.
+esperar_main() { # <paso>
+  local paso="$1" pedido pedido_id="" inicio=$SECONDS antes ahora f cambio veces archivos=() blobs=() i
+  pedido=$(jq -r '.compuerta.pedido // .compuerta.motivo // ""' "$ESTADO/ultimo.json")
+  mapfile -t archivos < <(jq -r '.compuerta.archivos[]? // empty' "$ESTADO/ultimo.json")
+  jq -c '.estado = "espera"' "$ESTADO/en-curso.json" >"$ESTADO/en-curso.json.tmp" && mv -f "$ESTADO/en-curso.json.tmp" "$ESTADO/en-curso.json"
+  # Cada espera retoma el paso (un --resume pagado) y el paso puede volver a pedir otra: hasta ESPERA_MAIN_VECES por paso, después la persona.
+  mkdir -p "$ESTADO/paradas-solas"
+  veces=$(($(cat "$ESTADO/paradas-solas/espera-$(sanear "$paso")" 2>/dev/null || echo 0) + 1))
+  echo "$veces" >"$ESTADO/paradas-solas/espera-$(sanear "$paso")"
+  if [ "$veces" -gt "$ESPERA_MAIN_VECES" ]; then
+    PARADA_HUMANA=1 parada "el paso $paso pidió esperar a main $veces veces y sigue sin lo que necesita: ${pedido:0:200}" "$paso"
+    return 0
+  fi
+  if modo_carril && [ "$(jq -r .compuerta.tipo "$ESTADO/ultimo.json")" = espera ]; then
+    if coordinador pedir "$PILOTO_CARRIL" "$paso" "$pedido" "${archivos[@]}" >"$ESTADO/pedido.json" 2>"$ESTADO/coordinador.err"; then
+      pedido_id=$(jq -r '.id // empty' "$ESTADO/pedido.json")
+      registro "pedido $pedido_id al carril $(jq -r '.para // "?"' "$ESTADO/pedido.json") ($paso): ${pedido:0:200}"
+    elif grep -q 'ciclo:' "$ESTADO/coordinador.err"; then
+      PARADA_HUMANA=1 parada "$(sed -n 's/.*\(ciclo: .*\)/\1/p' "$ESTADO/coordinador.err" | head -n 1) ($paso: ${pedido:0:150})" "$paso"
+      return 0
+    else
+      registro "el coordinador no anotó el pedido de $paso: $(tail -n 1 "$ESTADO/coordinador.err")"
+    fi
+  fi
+  timeout 60 git fetch -q origin main 2>/dev/null 8>&-
+  antes=$(git rev-parse --verify --quiet origin/main)
+  # Lo que cada archivo pedido es hoy en main (vacío si no existe): se despierta cuando TODOS cambiaron (se crearon o se editaron), o
+  # cuando el dueño cerró el pedido (hecho o sin cambios). Sin archivos (una «afuera» de antes), con el primer cambio de main.
+  for f in "${archivos[@]}"; do blobs+=("$(git rev-parse --verify --quiet "origin/main:$f" 2>/dev/null)"); done
+  registro "$paso espera a main (desde ${antes:0:8}, vez $veces de $ESPERA_MAIN_VECES): ${pedido:0:300}"
+  while :; do
+    [ -f "$ESTADO/PARAR" ] && { registro "PARAR mientras $paso esperaba a main."; exit 0; }
+    if [ $((SECONDS - inicio)) -ge "$ESPERA_MAIN_MAX" ]; then
+      PARADA_HUMANA=1 parada "el paso $paso espera algo de main hace $(((SECONDS - inicio) / 60)) min y no llegó: ${pedido:0:200}" "$paso"
+      return 0
+    fi
+    $DORMIR "$ESPERA_MAIN_POLL"
+    timeout 60 git fetch -q origin main 2>/dev/null 8>&-
+    ahora=$(git rev-parse --verify --quiet origin/main)
+    if [ -n "$pedido_id" ] && [ "$(coordinador pedido "$pedido_id" 2>/dev/null | jq -r '.estado // empty')" = integrado ]; then break; fi
+    [ -n "$ahora" ] && [ "$ahora" != "$antes" ] || continue
+    [ "${#archivos[@]}" -eq 0 ] && break
+    cambio=1
+    for i in "${!archivos[@]}"; do
+      [ "$(git rev-parse --verify --quiet "origin/main:${archivos[$i]}" 2>/dev/null)" != "${blobs[$i]}" ] || { cambio=0; break; }
+    done
+    [ "$cambio" = 1 ] && break
+  done
+  ahora=$(git rev-parse --verify --quiet origin/main)
+  if ! git merge-base --is-ancestor origin/main HEAD && ! git merge --quiet --no-edit origin/main >"$ESTADO/traer-main.log" 2>&1 8>&-; then
+    git merge --abort >/dev/null 2>&1
+    PARADA_HUMANA=1 parada "main ya trae lo que esperaba $paso, pero no pude traerlo a la rama: $(grep -m1 -iE 'error|conflict' "$ESTADO/traer-main.log" | head -c 200)" "$paso"
+    return 0
+  fi
+  # La etiqueta es lo que el paso lee en hechos › decision (contestar_solo guarda lo de antes de « — »).
+  compuerta espera "$paso" "main cambió (${ahora:0:8}): ${pedido:0:200}" "¿Sigue $paso?" \
+    "seguir: main ya trae ${ahora:0:8} y está en tu rama; mira si llegó lo que pediste («${pedido:0:120}») y, si no, pide otra «espera» — el paso sigue"
+  registro "$paso: main trajo ${ahora:0:8}; lo traje a la rama y retomo el paso."
+  return 0
+}
+
 # 6. La compuerta que pidió el paso (de ultimo.json).
 compuerta_del_paso() { # <paso>
   local paso="$1" opciones=() rc
+  if espera_a_main; then esperar_main "$paso"; return 0; fi
   mapfile -t opciones < <(jq -r '.compuerta.opciones[]? | "\(.etiqueta) — \(.descripcion)"' "$ESTADO/ultimo.json")
   mapfile -t CONTEXTO < <(jq -r '.compuerta.contexto[]? // empty' "$ESTADO/ultimo.json")
   PREGUNTAS=$(jq -c '.compuerta.preguntas // empty | select(length > 0)' "$ESTADO/ultimo.json")
@@ -264,17 +367,33 @@ ruteo_ci_fix() {
     sesion: {tipo: "nueva", session_id: null}, nivel: {nivel: 1, disparadores: [], cuenta_e2e: 0, completo: false},
     compuerta: {tipo: "ninguna", motivo: ""}, particion: "", por_que: "hay CI rojos sin arreglar (.piloto/ci-rojos.md)"}' >"$ESTADO/ruteo.json"
 }
-ci_acumulado() {
-  [ "$(ci_rojos_n)" -ge "$CI_ARREGLAR_DESDE" ] && [ "$(cat "$ESTADO/ci-fix-intentos" 2>/dev/null || echo 0)" -lt "$CI_FIX_MAX" ]
+# Tras un ci-fix, el siguiente espera a un CI que ya incluya ese arreglo (`ci-fix-head`): el 7-11 el A corrió el 2 de 2 antes de que corriera
+# el CI del primero, y gastó el último intento en algo ya arreglado.
+# Un pedido de otro carril (coordinador.mjs › pedir): tampoco sale del PLAN; su ruteo lo escribe el bucle. Es un arreglo chico en lo que este
+# carril posee (un registro, una prueba, un archivo de src/app), con su test; sonnet alcanza, salvo que toque datos (la sesión lo dice).
+ruteo_pedido() {
+  jq -c '{paso: .paso, titulo: ("Pedido de " + .pedido.de + " (" + .pedido.paso + ")"), modelo: "sonnet", effort: "high",
+    sesion: {tipo: "nueva", session_id: null}, nivel: {nivel: 1, disparadores: [], cuenta_e2e: 0, completo: false},
+    compuerta: {tipo: "ninguna", motivo: ""}, particion: "", por_que: ("pedido del carril " + .pedido.de + ": " + .pedido.texto)}' \
+    "$ESTADO/asignado.json" >"$ESTADO/ruteo.json"
 }
+ci_acumulado() {
+  [ "$(ci_rojos_n)" -ge "$CI_ARREGLAR_DESDE" ] && [ "$(cat "$ESTADO/ci-fix-intentos" 2>/dev/null || echo 0)" -lt "$CI_FIX_MAX" ] || return 1
+  [ -f "$ESTADO/ci-fix-head" ] || return 0
+  [ -n "${CI_SHA:-}" ] && [ "${CI_ESTADO:-}" != corriendo ] && git merge-base --is-ancestor "$(cat "$ESTADO/ci-fix-head")" "$CI_SHA" 2>/dev/null
+}
+anotar_ci_fix() { [ "$1" = ci-fix ] && git rev-parse HEAD >"$ESTADO/ci-fix-head"; return 0; }
 
 # La puerta de fase (abrir una fase, o los pasos 4.18 y 4.28): el CI de la rama tiene que estar en verde, sin rojos anotados. Un CI en
 # curso se espera; uno rojo se manda a arreglar (paso ci-fix, hasta CI_FIX_MAX veces) y la puerta se vuelve a mirar. Ya no la decide la
 # persona: la decide el CI. Devuelve 0 si pasa, 1 si hay que volver a rutear (va un ci-fix o la persona dijo «reintentar»).
 puerta_de_fase() { # <paso>
-  local paso="$1" inicio=$SECONDS n rc
+  local paso="$1" inicio=$SECONDS n rc rama_ci
+  # Con carriles, lo que tiene que andar es main, donde se integra todo; la rama del paso es nueva y no tiene CI (el 4.18 paró por «sin»).
+  rama_ci=$(hecho .rama)
+  modo_carril && rama_ci=main
   while :; do
-    ci_resolver "$(hecho .rama)" || { parada "$CI_MOTIVO" "$paso"; rc=$?; [ "$rc" = 2 ] && return 0; return 1; }
+    ci_resolver "$rama_ci" || { parada "$CI_MOTIVO" "$paso"; rc=$?; [ "$rc" = 2 ] && return 0; return 1; }
     case "$CI_ESTADO" in
       verde)
         registro "puerta de fase ($paso): el CI $CI_ID está en verde."
@@ -293,7 +412,7 @@ puerta_de_fase() { # <paso>
           rc=$?; [ "$rc" = 2 ] && return 0
           return 1
         fi
-        registro "puerta de fase ($paso): el CI $CI_ID está en rojo ($CI_FALLO): se arregla antes de seguir."
+        registro "puerta de fase ($paso): el CI $CI_ID de $rama_ci está en rojo ($CI_FALLO): se arregla antes de seguir."
         touch "$ESTADO/forzar-ci-fix"
         return 1 ;;
       *)
@@ -314,6 +433,7 @@ regenerar_hechos() {
 # Una vuelta. Devuelve 0 cuando hay que volver a rutear; los avisos que paran salen del bucle desde `parada`.
 vuelta() {
   local paso modelo effort modo sid prompt desde banderas=() tipo_ruteo
+  copia_al_dia
   verificar_copia || { parada "la copia de los scripts del piloto no coincide con bin.sha256 (alterada o con archivos de más)"; return 0; }
   regenerar_hechos || return 0
   paradas_deterministas || return 0
@@ -322,6 +442,7 @@ vuelta() {
   if [ "$(jq -r '.estado // empty' "$ESTADO/en-curso.json" 2>/dev/null)" = listo ]; then
     paso=$(jq -r .paso "$ESTADO/en-curso.json")
     cerrar_listo "$paso" "$(jq -r .head_arranque "$ESTADO/en-curso.json")" "$(jq -r '.guardas_aprobadas // false' "$ESTADO/en-curso.json")"
+    [ -f "$ESTADO/en-curso.json" ] || anotar_ci_fix "$paso"
     [ -n "$HASTA" ] && [ "$paso" = "$HASTA" ] && [ ! -f "$ESTADO/en-curso.json" ] && { registro "llegamos a $HASTA."; exit 0; }
     return 0
   fi
@@ -340,18 +461,25 @@ vuelta() {
   if [ -f "$ESTADO/forzar-ci-fix" ] || { [ ! -f "$ESTADO/en-curso.json" ] && ci_acumulado; }; then
     rm -f "$ESTADO/forzar-ci-fix"
     ruteo_ci_fix
+  elif jq -e '.pedido | type == "object"' "$ESTADO/asignado.json" >/dev/null 2>&1; then
+    ruteo_pedido
   else
     rutear || { parada "el ruteo no devolvió un resultado válido"; return 0; }
   fi
   paso=$(jq -r .paso "$ESTADO/ruteo.json") modelo=$(jq -r .modelo "$ESTADO/ruteo.json") effort=$(jq -r .effort "$ESTADO/ruteo.json")
-  [ "$paso" = ninguno ] && { registro "PLAN: el ruteo no ve ningún paso por avanzar."; exit 0; }
-  # El coordinador asigna el paso entero (4.20) y el ruteo puede elegir una de sus partes (4.20-2c): vale `<asignado>` o `<asignado>-…`.
+  # El coordinador asigna el paso entero (4.20) y el ruteo puede elegir una de sus partes (4.20-2c): vale `<asignado>` o `<asignado>-…`,
+  # salvo que ese id sea OTRO paso del plan (4.20-4a es del carril A). Si el ruteo elige otra cosa (o «ninguno»), manda el coordinador:
+  # el paso es el asignado y la sesión elige su parte. Antes era una parada a la persona (5 veces al arrancar los carriles, ≈ 2 h).
   local asignado_id=""
   [ -f "$ESTADO/asignado.json" ] && asignado_id=$(jq -r .paso "$ESTADO/asignado.json")
-  if modo_carril && [ -n "$asignado_id" ] && [ "$paso" != "$asignado_id" ] && [[ "$paso" != "$asignado_id"-* ]] && [ "$paso" != ci-fix ]; then
-    parada "el ruteo eligió $paso, pero el coordinador asignó $asignado_id al carril $PILOTO_CARRIL" "$paso"
-    return 0
+  if modo_carril && [ -n "$asignado_id" ] && [ "$paso" != ci-fix ] &&
+    { [ "$paso" = ninguno ] || { [ "$paso" != "$asignado_id" ] && { [[ "$paso" != "$asignado_id"-* ]] || es_paso_del_plan "$paso"; }; }; }; then
+    registro "el ruteo eligió $paso, pero el coordinador asignó $asignado_id al carril $PILOTO_CARRIL: sigo con $asignado_id."
+    jq -c --arg p "$asignado_id" '.paso = $p | .sesion = {tipo: "nueva", session_id: null}' "$ESTADO/ruteo.json" >"$ESTADO/ruteo.json.tmp" &&
+      mv -f "$ESTADO/ruteo.json.tmp" "$ESTADO/ruteo.json"
+    paso="$asignado_id"
   fi
+  [ "$paso" = ninguno ] && { registro "PLAN: el ruteo no ve ningún paso por avanzar."; exit 0; }
   tipo_ruteo=$(jq -r .compuerta.tipo "$ESTADO/ruteo.json")
 
   # Una compuerta que ve el ruteo (dependencia, hito, producto, atasco, afuera): se pregunta antes de gastar el paso y antes de anotar nada en en-curso.json (el paso no empezó). Una sola vez por paso y tipo.
@@ -407,7 +535,7 @@ vuelta() {
   registro "paso $paso ($modelo, $effort, $modo ${sid:0:8})."
   correr_paso "$paso" "$modo" "$sid" "$prompt" "$modelo" "$effort" "${banderas[@]}"
   case "$?" in
-    1) fallas; parada "el paso $paso falló dos veces (el proceso o sin ultimo.json válido); su transcript queda en .piloto/llamadas/" "$paso"; return 0 ;;
+    1) fallas; PARADA_HUMANA=1 parada "el paso $paso falló dos veces (el proceso o sin ultimo.json válido); su transcript queda en .piloto/llamadas/" "$paso"; return 0 ;;
     2) parada "el límite de uso volvió tras dormir en $paso" "$paso"; return 0 ;;
     3) parada_tope "$paso"; return 0 ;;
   esac
@@ -415,12 +543,13 @@ vuelta() {
     listo)
       registro "$paso listo: $(jq -r .resumen "$ESTADO/ultimo.json" | head -c 300)"
       cerrar_listo "$paso" "$desde" false
+      [ -f "$ESTADO/en-curso.json" ] || anotar_ci_fix "$paso"
       [ -n "$HASTA" ] && [ "$paso" = "$HASTA" ] && [ ! -f "$ESTADO/en-curso.json" ] && { registro "llegamos a $HASTA."; exit 0; }
       ;;
     compuerta) compuerta_del_paso "$paso" ;;
     falla)
       fallas
-      parada "el paso $paso terminó en falla: $(jq -r .resumen "$ESTADO/ultimo.json" | head -c 300)" "$paso"
+      PARADA_HUMANA=1 parada "el paso $paso terminó en falla: $(jq -r .resumen "$ESTADO/ultimo.json" | head -c 300)" "$paso"
       ;;
   esac
   return 0
@@ -444,5 +573,5 @@ registro "bucle en marcha (copia $BIN, rama $(git symbolic-ref --short HEAD 2>/d
 while :; do
   vuelta
   [ "$UNA_VUELTA" = 1 ] && exit 0
-  [ "$(cat "$ESTADO/fallas" 2>/dev/null || echo 0)" -ge 3 ] && { parada "tres fallas seguidas"; echo 0 >"$ESTADO/fallas"; }
+  [ "$(cat "$ESTADO/fallas" 2>/dev/null || echo 0)" -ge 3 ] && { PARADA_HUMANA=1 parada "tres fallas seguidas"; echo 0 >"$ESTADO/fallas"; }
 done

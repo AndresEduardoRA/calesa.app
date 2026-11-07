@@ -1,10 +1,14 @@
 import type { ComponentType } from 'react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { HUECOS_DE_COMENTARIOS_EN_LA_GUARDADA } from '@/modules/cotizaciones/pantallas/comentarios-cotizacion'
 import { HUECOS_DE_COMPROBANTES_EN_LA_GUARDADA } from '@/modules/cotizaciones/pantallas/comprobantes-cotizacion'
 import { HUECOS_DE_FINAL_EN_LA_GUARDADA } from '@/modules/cotizaciones/pantallas/final-cotizacion'
 import { HUECOS_DE_PAPELERA_EN_LA_GUARDADA } from '@/modules/cotizaciones/pantallas/papelera-cotizacion'
 import { HUECOS_DE_LA_GUARDADA, dibujarHuecos } from './huecos-de-la-guardada'
+
+// Los huecos de las áreas traen componentes reales cuyas Server Actions importan su composición (`server-only`). En Next el navegador
+// recibe sólo la referencia; en Vitest el import llega entero y cae. Lo que se prueba aquí es el orden y el dibujo, no el área.
+vi.mock('server-only', () => ({}))
 
 type Props = Parameters<typeof dibujarHuecos>[2]
 

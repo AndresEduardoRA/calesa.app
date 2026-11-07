@@ -3,6 +3,7 @@
 // escribir la URL. Para sumar uno: su `?panel=` (`usePanelPorUrl()` de `shared/ui`) y una fila acá.
 import { CONFIRMAR_CON_URL_DE_LA_FORMULA } from './confirmar-con-url-formula'
 import { CONFIRMAR_CON_URL_DE_LA_PAPELERA } from './confirmar-con-url-papelera'
+import { sumarObjetos } from './registros-de-carriles'
 
 export type ConfirmarConUrl = {
   // Qué archivo escribe y lee la URL que lo abre (puede ser el mismo).
@@ -76,4 +77,7 @@ export const CONFIRMAR_CON_URL: Record<string, ConfirmarConUrl> = {
   ...CONFIRMAR_CON_URL_DEL_NUCLEO,
   ...CONFIRMAR_CON_URL_DE_LA_FORMULA,
   ...CONFIRMAR_CON_URL_DE_LA_PAPELERA,
+  ...sumarObjetos<ConfirmarConUrl>(
+    import.meta.glob('./areas-*/confirmar-con-url.ts', { eager: true }),
+  ),
 }

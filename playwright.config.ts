@@ -21,10 +21,17 @@ export default defineConfig({
   testDir: './e2e',
   testIgnore: FUERA,
   timeout: 30_000,
-  retries: 0,
+  // En CI, un reintento: una prueba inestable no pone el PR en rojo (cada rojo lo devolvía a su carril: 13 corridas del 3 al 7-11 sin código
+  // roto), pero el reporter de inestables la anota en el PR. En local, ninguno: la causa se busca (`.claude/rules/e2e.md`).
+  retries: process.env['CI'] ? 1 : 0,
   workers: 1,
   // El último guarda los artefactos de toda corrida que falla (`e2e/soporte/reporter-de-fallos.ts`).
-  reporter: [['list'], ['html', { open: 'never' }], ['./e2e/soporte/reporter-de-fallos.ts']],
+  reporter: [
+    ['list'],
+    ['html', { open: 'never' }],
+    ['./e2e/soporte/reporter-de-inestables.ts'],
+    ['./e2e/soporte/reporter-de-fallos.ts'],
+  ],
   // La guardia: falla en segundos si las funciones edge no están servidas (e2e/soporte/guardia.ts).
   globalSetup: './e2e/global-setup.ts',
   use: {

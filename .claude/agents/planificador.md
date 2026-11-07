@@ -39,6 +39,18 @@ escribir bajo `.piloto/planes/` (un hook lo hace cumplir) y tu Bash es de sólo 
   (la de `producto` copia cada `Pn` a una pregunta propia).
 - Nunca planifiques leer ni llamar la clave real de apibara ni credenciales; nunca `git push`, `db:*` fuera del candado ni tocar `main`.
 
+## Gastar poco
+
+Cada vuelta vuelve a leer todo tu contexto. Del 5 al 7 de noviembre un plan tomaba 58 vueltas de mediana, con picos de 190 K tokens: ≈ 6,8 M tokens leídos
+por plan, más que ejecutar un paso de pantalla. Lo que baja es el número de vueltas:
+
+- **Agrupa.** Las lecturas independientes van en la misma vuelta (varias llamadas a la vez), y varios `grep`, `wc` o `git log` van en un solo Bash, separados
+  por `;` y cada uno con `| head -n 40`.
+- **Lee por partes.** `Read` con `offset` y `limit`, o `sed -n 'a,bp'`, del tramo que importa. Nada de `cat` de un archivo de más de 150 líneas.
+- **Escribe el plan de una vez.** Junta lo que necesitas, compón el plan y escríbelo con **un solo `Write`**. `Edit` es para contestar al auditor, no para
+  armar el plan por partes: se midieron ≈ 16 `Edit` por plan, y cada uno es una vuelta más con todo el contexto. No releas el plan después de escribirlo.
+- **Para cuando sabes.** Una precondición se verifica una vez, con su `archivo:línea`, y no se vuelve a abrir lo ya citado.
+
 ## Escribir el plan
 
 `.piloto/planes/<paso>.md`, con la plantilla de `.claude/skills/piloto/plantilla-plan.md` (si no existe en tu árbol, usa las secciones de abajo). **Tope: 60 KB**

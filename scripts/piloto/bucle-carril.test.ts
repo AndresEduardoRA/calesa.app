@@ -79,26 +79,39 @@ describe('bucle.sh › el carril pide su paso al coordinador', () => {
     expect(a.llamadas('paso')).toHaveLength(1)
   })
 
-  it('no confunde el 4.9 asignado con el 4.99 elegido (sólo vale la parte con guion)', () => {
+  it('si el ruteo elige otro paso que el asignado, manda el coordinador: corre el asignado sin preguntar (4.9 y no 4.99)', () => {
     a.ruteo({ ...RUTEO_BASE, paso: '4.99' })
-    a.decidir(1, 'exit 0')
-    a.correr(['--una-vuelta'], entorno(plan(paso('4.9', []))))
-    expect(a.llamadas('paso')).toEqual([])
-    expect(a.leerFake('compuerta-1.md')).toContain(
-      'el ruteo eligió 4.99, pero el coordinador asignó 4.9',
+    a.paso(1, pasoListo({ 'src/f/a.ts': 'a' }, { paso: '4.9' }))
+    const r = a.correr(['--una-vuelta'], entorno(plan(paso('4.9', []))))
+    expect(r.estado, r.salida).toBe(0)
+    expect(r.salida).toContain(
+      'el ruteo eligió 4.99, pero el coordinador asignó 4.9 al carril formula: sigo con 4.9',
     )
+    expect(a.llamadas('paso')).toHaveLength(1)
+    expect(a.llamadas('paso')[0]).toContain('/piloto 4.9')
+    expect(a.leerFake('compuerta-1.md')).toBe('')
   })
 
-  it('si el ruteo elige otro paso que el asignado, avisa y no corre nada', () => {
-    a.ruteo({ ...RUTEO_BASE, paso: '4.50' })
-    a.decidir(1, 'exit 0')
-    a.correr(['--una-vuelta'], entorno(plan(paso('4.99', []))))
-    expect(a.llamadas('paso')).toEqual([])
-    expect(a.leerFake('compuerta-1.md')).toContain(
-      'el ruteo eligió 4.50, pero el coordinador asignó 4.99',
+  it('una «parte» que es otro paso del plan (4.99-4a de otro carril) no vale como parte del asignado', () => {
+    a.ruteo({ ...RUTEO_BASE, paso: '4.99-4a' })
+    a.paso(1, pasoListo({ 'src/f/a.ts': 'a' }, { paso: '4.99' }))
+    const r = a.correr(
+      ['--una-vuelta'],
+      entorno(plan(paso('4.99', []), paso('4.99-4a', [], 'papelera'))),
     )
-    // La compuerta dice de qué carril es: otro carril no lee su decisión como propia.
-    expect(a.leerFake('compuerta-1.md')).toContain('carril: formula')
+    expect(r.estado, r.salida).toBe(0)
+    expect(r.salida).toContain('sigo con 4.99')
+    expect(a.llamadas('paso')[0]).toContain('/piloto 4.99')
+    expect(a.llamadas('paso')[0]).not.toContain('4.99-4a')
+  })
+
+  it('con un paso asignado, «ninguno» del ruteo no termina el bucle: corre el asignado', () => {
+    a.ruteo({ ...RUTEO_BASE, paso: 'ninguno' })
+    a.paso(1, pasoListo({ 'src/f/a.ts': 'a' }, { paso: '4.99' }))
+    const r = a.correr(['--una-vuelta'], entorno(plan(paso('4.99', []))))
+    expect(r.estado, r.salida).toBe(0)
+    expect(r.salida).not.toContain('el ruteo no ve ningún paso')
+    expect(a.llamadas('paso')).toHaveLength(1)
   })
 
   it('sin paso libre (depende de uno que sigue en otro carril) espera, sin gastar', () => {

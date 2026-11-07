@@ -185,43 +185,21 @@ describe('bucle.sh › [cambio 6] el bucle corre su copia, no el árbol', () => 
     expect(a.secuencia()[0]).toBe('decidir:abrir parada ')
   })
 
-  it('un paso que reescribe verificar.sh: salta «guardas» antes de verificar; aprobada, la vuelta termina y pide re-arrancar sin publicar', () => {
+  it('un paso que reescribe verificar.sh: salta «guardas» antes de verificar; aprobada, verifica y publica con la copia, sin re-arrancar', () => {
     a.paso(1, pasoListo({ 'scripts/piloto/verificar.sh': 'echo "nueva versión"' }))
     a.decidir(1, responder('aprobar'))
-    a.decidir(2, responder('parado'))
-    const r = a.correr()
+    const r = a.correr(['--hasta', '4.99'])
     expect(r.estado, r.salida).toBe(0)
+    // La copia sale de origin/main: lo que el paso cambió en scripts/piloto/ rige cuando se integre (bucle.sh › copia_al_dia).
     expect(a.secuencia()).toEqual([
       'decidir:abrir guardas 4.99',
       'decidir:cerrar',
-      'decidir:abrir parada 4.99',
-      'decidir:cerrar',
+      'verificar:copia',
+      'publicar:4.99',
     ])
-    expect(a.leerFake('compuerta-2.md')).toContain('re-arranca')
     expect(a.leerFake('repo-ejecutado')).toBe('')
-    expect(a.estado('registro.md')).toContain('re-arrancar: 4.99 queda en «listo»')
-  })
-
-  it('tras re-arrancar con --hasta, llegar a ese paso termina el bucle', () => {
-    a.paso(1, pasoListo({ 'scripts/piloto/verificar.sh': 'echo "nueva versión"' }))
-    a.decidir(1, responder('aprobar'))
-    a.decidir(2, responder('parado'))
-    a.correr()
-    const r = a.correr(['--hasta', '4.99'])
-    expect(r.estado, r.salida).toBe(0)
+    expect(a.estado('registro.md')).not.toContain('re-arrancar')
     expect(a.estado('registro.md')).toContain('llegamos a 4.99')
-    expect(a.llamadas('ruteo')).toHaveLength(1)
-  })
-
-  it('tras re-arrancar, la vuelta siguiente verifica y publica sin volver a preguntar las guardas', () => {
-    a.paso(1, pasoListo({ 'scripts/piloto/verificar.sh': 'echo "nueva versión"' }))
-    a.decidir(1, responder('aprobar'))
-    a.decidir(2, responder('parado'))
-    a.correr()
-    const r = a.correr(['--una-vuelta'])
-    expect(r.estado, r.salida).toBe(0)
-    expect(a.secuencia().slice(-2)).toEqual(['verificar:copia', 'publicar:4.99'])
-    expect(a.llamadas('paso')).toHaveLength(1)
   })
 })
 

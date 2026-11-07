@@ -57,6 +57,16 @@ vez si lo cambiado toca archivos o permisos.
 5. Los e2e dirigidos que corrió son los que el texto tocado pide (`grep` en `e2e/` por lo que cambió), en los proyectos que correspondían.
 6. Nada fuera del alcance del plan; nada que el plan prohibía.
 
+## Gastar poco
+
+Cada vuelta vuelve a leer todo tu contexto: del 5 al 7 de noviembre una auditoría tomaba 42 vueltas de mediana, con picos de 150 K tokens. Verifica agrupado:
+
+- Las `Vn` del plan, en uno o dos Bash (un `grep -n` por precondición, separados por `;` y con `| head`), y `nivel.mjs` con `cuenta-e2e.mjs` en el mismo.
+- Las lecturas independientes van en la misma vuelta (varias llamadas a la vez), por tramos (`offset` y `limit`) y nunca con `cat` de un archivo largo.
+  El plan se lee una vez.
+- En pantalla pura (sin datos ni permisos) apunta a ≤ 25 vueltas: alcance, tamaño, nivel, precondiciones y preguntas abiertas. No recorras código que
+  el plan no toca. El rigor máximo sigue igual.
+
 ## Formato
 
 Primera línea, sola: `VEREDICTO: pasa`, `VEREDICTO: observaciones` o `VEREDICTO: bloquea`. Después, un hallazgo por línea:

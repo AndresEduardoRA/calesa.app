@@ -48,7 +48,8 @@ revisar() {
   local c=${pendientes[0]}
   if [ -n "${AUTO_EN_SECO:-}" ]; then echo "abriría $c"; return 1; fi
   log "abro el carril $c"
-  $AUTO_CMD_ABRIR "$c" >>"$ESTADO/bucle.log" 2>&1 || { log "no pude abrir el carril $c"; return 1; }
+  # abrir-carriles.sh va en la principal; el piloto del A corre en su worktree (no podía abrir el b: 2026-11-05).
+  (cd "$(git rev-parse --path-format=absolute --git-common-dir)/.." && $AUTO_CMD_ABRIR "$c") >>"$ESTADO/bucle.log" 2>&1 || { log "no pude abrir el carril $c"; return 1; }
   local dir="$CARRILES_DIR/$c"
   (cd "$dir" && bash scripts/piloto/arrancar.sh --carril "$c") >>"$ESTADO/bucle.log" 2>&1 || { log "no pude arrancar el carril $c"; return 1; }
   echo "abierto $c"; return 1   # 1: vuelve a revisar por si cabe otro

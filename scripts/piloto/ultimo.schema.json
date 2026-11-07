@@ -33,11 +33,11 @@
     },
     "compuerta": {
       "type": ["object", "null"],
-      "description": "Obligatoria con resultado «compuerta»; null en los demás. La de «producto» lleva una pregunta por decisión en `preguntas` (la sesión de decidir las hace en tandas de hasta 4); las demás, `pregunta` y `opciones`.",
+      "description": "Obligatoria con resultado «compuerta»; null en los demás. La de «producto» lleva una pregunta por decisión en `preguntas` (la sesión de decidir las hace en tandas de hasta 4); las demás, `pregunta` y `opciones`. La de «espera» lleva `pedido` (y, si sirve, `archivos`): el bucle se lo pide al carril dueño y te retoma cuando llega a main.",
       "properties": {
         "tipo": {
           "type": "string",
-          "enum": ["datos", "dependencia", "hito", "fase", "producto", "atasco", "afuera"]
+          "enum": ["datos", "dependencia", "hito", "fase", "producto", "atasco", "afuera", "espera"]
         },
         "motivo": {
           "type": "string"
@@ -107,6 +107,17 @@
             },
             "required": ["id", "pregunta", "opciones"]
           }
+        },
+        "pedido": {
+          "type": "string",
+          "description": "Sólo «espera»: lo que necesitas de otro carril, para que su dueño lo haga sin preguntarte (qué archivo, qué cambio y por qué)."
+        },
+        "archivos": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Sólo «espera», obligatorio: las rutas que tienen que crearse o cambiar en origin/main para retomarte (al menos una)."
         }
       },
       "required": ["tipo", "motivo"],

@@ -27,7 +27,7 @@ parada_tope() { # <paso>
   mas=$(dinero "$(LC_ALL=C awk -v t="$TOPE_PASO" 'BEGIN { print t * 0.5 }')")
   [ "$extra" = 0 ] && opciones+=("sigo — $mas USD más, una sola vez")
   opciones+=('reintentar — vuelve a mirar el gasto')
-  parada "el paso $paso gastó $(dinero "$(gastado)") de $(dinero "$(tope_del_paso)") USD (el tope del paso entero)" "$paso" "${opciones[@]}"
+  PARADA_HUMANA=1 parada "el paso $paso gastó $(dinero "$(gastado)") de $(dinero "$(tope_del_paso)") USD (el tope del paso entero)" "$paso" "${opciones[@]}"
   rc=$?
   if [ "$rc" = 2 ] && [ "$extra" = 0 ]; then
     jq -c --argjson m "$mas" '.tope_extra = $m' "$ESTADO/en-curso.json" >"$ESTADO/en-curso.json.tmp" &&

@@ -24,7 +24,7 @@ comandos ya está en `.piloto/hechos.json`. Tu respuesta es **un solo objeto JSO
   cuenta (el paso lo lee de `hechos.json`, no de un archivo). Si no queda nada, `paso: "ninguno"`.
 - **`sesion`:** `continuar` con el `session_id` de `en_curso` si hay un paso a medias o `ultimo.resultado` fue `compuerta`; si no, `nueva` con `session_id: null`.
 - **`modelo` y `effort`** (política ajustable): docs → `sonnet`/`medium`; una pantalla → `sonnet`/`high`; `src/shared`, un disparador de Nivel 2, datos o
-  seguridad, las carreras o un cierre → `opus`/`high`; `continuar` → el de antes (`en_curso`). El planificador y el auditor son siempre `opus`: no los eliges tú.
+  seguridad, las carreras o un cierre → `opus`/`high`; `continuar` → el de antes (`en_curso`). El auditor es siempre `opus`; el planificador va en `sonnet` cuando el paso va en `sonnet` y en `opus` si no: no los eliges aparte.
 - **`nivel`:** `nivel` 1, 2 o 3 (`.claude/rules/e2e.md`), los `disparadores` del Nivel 2 que el paso toca (por la fila del PLAN: `shared`, `proxy`, `auth`, `rls`,
   `layout`, `estructura`), `cuenta_e2e` (la `n` de `hechos.e2e.n`) y `completo` (si el paso corre el e2e completo **en local**: sólo el hito 4-A, el 4.18, y un cierre de fase,
   como el 4.28; ni la cuenta ni el Nivel 2 lo piden: el completo de esos lo corre el CI del PR). No lo adivines: si no sabes qué toca, di `1` y `disparadores: []`; el planificador lo mide con `nivel.mjs`.

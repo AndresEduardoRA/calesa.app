@@ -8,8 +8,11 @@ paths:
 
 ## Fallos y base local
 
-- Un e2e que falla no se reintenta (`retries: 0`): se busca la causa en `e2e-fallos/<fecha>/` (traza,
-  video, captura, reporte), que guarda `e2e/soporte/reporter-de-fallos.ts` en toda corrida que falla.
+- En local un e2e que falla no se reintenta (`retries: 0`): se busca la causa en `e2e-fallos/<fecha>/` (traza,
+  video, captura, reporte), que guarda `e2e/soporte/reporter-de-fallos.ts` en toda corrida que falla. En CI hay un
+  reintento (FLUJO-1, decidido por la persona el 2026-11-07): la que pasa al reintentar no pone el PR en rojo, pero
+  `e2e/soporte/reporter-de-inestables.ts` la anota en el PR y en el resumen de la corrida, y es un abierto con su causa
+  por buscar, como cualquier inestable.
   Un `pnpm test` que cae deja su salida en `test-salidas/<fecha_hora-pid>/`. «La máquina estaba
   ocupada» no explica nada: se mide.
 - La base local y el servidor de e2e de un stack son de una sola sesión a la vez: `db:reset`, `db:types`,

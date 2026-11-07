@@ -29,8 +29,10 @@ el número del paso y, opcionales, `continuar` (retomas esta sesión tras una co
 ## El camino
 
 1. **Orientarte** (poco): `.piloto/hechos.json`, `docs/ESTADO.md`, y con `continuar`, `.piloto/planes/<paso>.md` y `.piloto/informes/<paso>.md` si existen.
-2. **Planificar.** Invoca al subagente `planificador` (opus): orienta, parte si hace falta y escribe `.piloto/planes/<paso>.md` con
-   [plantilla-plan.md](plantilla-plan.md). No escribes tú el plan: el planificador es el único que lo hace, y su Bash es de sólo lectura.
+2. **Planificar.** Invoca al subagente `planificador`: orienta, parte si hace falta y escribe `.piloto/planes/<paso>.md` con
+   [plantilla-plan.md](plantilla-plan.md). No escribes tú el plan: el planificador es el único que lo hace, y su Bash es de sólo lectura. Corre en opus,
+   salvo en un paso que el ruteo mandó con `modelo: sonnet` (el de pantalla; lo dice `.piloto/ruteo.json`): ahí pásale `model: "sonnet"`. Del 5 al 7 de
+   noviembre, en esos pasos opus se llevaba 184 de 266 USD planificando y auditando, más que ejecutar. El auditor sigue siempre en opus.
 3. **Auditar el plan.** Invoca al subagente `auditor` (opus, en un contexto aparte) sobre ese plan. Su primera línea es `VEREDICTO: pasa|observaciones|bloquea`.
    `observaciones`: las atiendes en el plan y sigues. `bloquea`: un `planificador` nuevo con sus objeciones, otra auditoría; **a la segunda que bloquee, compuerta `atasco`**.
    Antes de esa 2.ª ronda copia el plan auditado a `.piloto/planes/<paso>.auditado.md` y dile al auditor que es la segunda: audita sólo lo cambiado y
@@ -65,6 +67,23 @@ Si `$ARGUMENTS` es `ci-fix`, **no hay fila en `docs/PLAN.md`, ni planificador, n
 3. Reprodúcelo **sólo lo que cayó** (un archivo de vitest, un spec de e2e, un job) y arréglalo. No corras la suite entera: el CI lo vuelve a correr.
 4. Uno o dos commits `fix(<scope>): …` en el estilo de siempre, `mapa.sh` antes, sin push. Docs sólo si la corrección cambia una regla.
 5. `ultimo.json` con `paso: "ci-fix"`; `listo` si arreglaste todos los rojos anotados, `falla` si no pudiste (di cuál y por qué). Si el rojo es de la base (RLS, grants, advisors) o de un secreto, compuerta `datos` o `afuera`.
+
+## El paso especial `pedido-<n>`
+
+Si `$ARGUMENTS` es `pedido-<n>`, otro carril está **parado esperándote**: necesita algo de lo que tu carril posee (un registro de una guarda, una prueba tuya que
+dé por vacío lo que él llena, un archivo de `src/app`). Tampoco hay fila en `docs/PLAN.md`, ni planificador, ni auditor. Lo pedido está en `.piloto/asignado.json` ›
+`pedido` (`de`, `paso`, `texto`, `archivos`). Camino corto: haz **sólo eso**, con su prueba (una guarda o una prueba del núcleo **simula** lo del otro carril, no lee
+sus archivos reales), `mapa.sh`, uno o dos commits `fix(<scope>)` o `chore(<scope>)`, sin push, y `ultimo.json` con `paso: "pedido-<n>"` y `listo`. Si toca datos
+o seguridad, compuerta `datos` como en cualquier paso. Si no se puede (no es tuyo, o rompe algo), `falla` con el porqué: el otro carril lo verá.
+
+## Cuando necesitas algo de otro carril: compuerta `espera`
+
+Si lo que te falta no es tuyo (está en el `dueno_de` de otro carril en `docs/plan.yaml`, o es del carril A y tú eres B o C), **no** pidas una `afuera` ni ofrezcas
+opciones que el bucle no sabe cumplir («seguir mientras…»): termina con `resultado: compuerta` y una compuerta `espera` con `pedido` (qué archivo, qué cambio y por qué,
+para que su dueño lo haga sin preguntarte) y `archivos` (**obligatorio**: las rutas que tienen que crearse o cambiar en `origin/main`). El bucle se lo pide al carril
+dueño, espera a que **todos** esos archivos cambien en `main` (o a que el dueño cierre el pedido), lo trae a tu rama y te retoma con `continuar`; la respuesta dice qué
+trajo. Si al retomar todavía no está, pide otra `espera` (hasta 3 por paso; después lo mira la persona).
+Antes de pedirla, deja tu trabajo en un commit o el árbol limpio: traer `main` con cambios sin commitear puede fallar.
 
 ## `.piloto/ultimo.json`
 

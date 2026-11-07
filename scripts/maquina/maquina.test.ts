@@ -83,6 +83,14 @@ describe('instalar-servicios.sh', () => {
     expect(r.salida).toContain('ExecStart=/usr/bin/env bash scripts/piloto/arrancar.sh --carril b')
     expect(r.salida).toContain('OnCalendar=*-*-* 00/6:00:00')
     expect(r.salida).not.toContain('--carril c')
+    // El vigía de cada carril: lo levanta si se cayó (FLUJO-1).
+    expect(r.salida).toContain('# piloto-b-vigia.timer')
+    expect(r.salida).toContain(
+      'ExecStart=/usr/bin/env bash scripts/piloto/arrancar.sh --carril b --si-caido',
+    )
+    expect(r.salida).toContain('OnUnitActiveSec=10min')
+    // Si el servicio levantó el servidor de tmux, terminar no lo mata (ni al bucle que vive en él).
+    expect(r.salida.match(/^KillMode=process$/gm)).toHaveLength(4)
   })
 
   it('con CARRILES_DIR los carriles ≠ a viven ahí (otro disco)', () => {

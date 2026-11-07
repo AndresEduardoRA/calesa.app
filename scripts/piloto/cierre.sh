@@ -5,8 +5,8 @@
 #   a) el árbol está limpio (un paso sin commits ni cambios se cierra sin más) y cada commit de `ultimo.json` existe en `HEAD de arranque..HEAD` (y no hay otros sin listar);
 #   c) compuerta «guardas» si el rango toca las guardas (`scripts/piloto/`, `scripts/guardas/`, `scripts/candado.sh`, `.claude/settings*.json`,
 #      `.claude/hooks/`, `.claude/agents/`, `.claude/skills/piloto*`, `lefthook.yml`, `.github/workflows/` o las líneas de los scripts
-#      `db:*` y `test:e2e*` de package.json). Aprobada y con `scripts/piloto/` en el rango, la vuelta termina sin verificar ni publicar y
-#      pide re-arrancar (`arrancar.sh` vuelve a copiar; la vuelta siguiente verifica y publica con la copia nueva);
+#      `db:*` y `test:e2e*` de package.json). Aprobada, sigue: la copia del bucle sale de origin/main (copiar-bin.sh), así que lo que el
+#      paso cambió en `scripts/piloto/` rige cuando se integre, y el bucle se relanza solo con esa versión (bucle.sh › copia_al_dia);
 #   b) `verificar.sh` DE LA COPIA (lint, typecheck, test, mapa, db:probar, e2e dirigidos): no le cree al «listo» del modelo;
 #   d) recién entonces `publicar.sh` DE LA COPIA.
 #
@@ -15,6 +15,16 @@
 
 GUARDAS='^(scripts/piloto/|scripts/guardas/|scripts/candado\.sh$|\.claude/settings[^/]*\.json$|\.claude/hooks/|\.claude/agents/|\.claude/skills/piloto|lefthook\.yml$|\.github/workflows/)'
 SOLO_REINTENTO=('parado — no sigue (recomendado)' 'reintentar — vuelve a verificar y publicar')
+
+# Los commits propios del paso: los de `desde..HEAD` que no son mezclas ni están ya en origin/main. Traer main a la rama (el bucle lo hace al
+# retomar un paso partido o tras esperar a main) dejaba el rango con 54 o 165 commits ajenos y el cierre no coincidía (5 al 7-11-2026).
+rango_propio() { # <desde>
+  if git rev-parse --verify --quiet origin/main >/dev/null; then
+    git rev-list --no-merges "$1..HEAD" --not origin/main
+  else
+    git rev-list --no-merges "$1..HEAD"
+  fi
+}
 
 ultimo_valido() {
   jq -e '
@@ -28,14 +38,20 @@ ultimo_valido() {
                                   and (.pregunta | type == "string")
                                   and (.opciones | type == "array" and length >= 2 and length <= 4))
                           and (map(.id) | unique | length) == length)
+                    elif .tipo == "espera" then (.pedido | type == "string" and length > 0)
+                      and (.archivos | type == "array" and length >= 1 and all(.[]; type == "string" and length > 0))
                     else (.pregunta | type == "string") and (.opciones | type == "array" and length >= 2) end))
          else true end)' "$ESTADO/ultimo.json" >/dev/null 2>&1
 }
 
-# Los archivos del rango que son guardas, y las líneas db:* y test:e2e* de package.json que cambiaron.
+# Los archivos que los commits propios del paso tocan y son guardas, y las líneas db:* y test:e2e* de package.json que cambiaron. Lo que vino
+# de main ya pasó su compuerta y su CI: no se vuelve a preguntar (antes un merge de main con el PR 44 pedía «guardas» y re-arrancar).
 guardas_tocadas() {
-  git diff --name-only "$1..HEAD" | grep -E "$GUARDAS"
-  git diff -U0 "$1..HEAD" -- package.json | grep -E '^[+-][[:space:]]*"(db:|test:e2e)[^"]*"[[:space:]]*:' | sed 's/^/package.json: /'
+  local propios=()
+  mapfile -t propios < <(rango_propio "$1")
+  [ "${#propios[@]}" -gt 0 ] || return 0
+  git show --name-only --format= "${propios[@]}" | sort -u | grep -E "$GUARDAS"
+  git show -U0 --format= "${propios[@]}" -- package.json | grep -E '^[+-][[:space:]]*"(db:|test:e2e)[^"]*"[[:space:]]*:' | sed 's/^/package.json: /' | sort -u
   return 0
 }
 
@@ -43,7 +59,7 @@ guardas_tocadas() {
 commits_coinciden() {
   local desde="$1" c completo
   local en_rango=() declarados=()
-  mapfile -t en_rango < <(git rev-list "$desde..HEAD")
+  mapfile -t en_rango < <(rango_propio "$desde")
   mapfile -t declarados < <(jq -r '.commits[]' "$ESTADO/ultimo.json")
   [ "${#en_rango[@]}" -gt 0 ] || { echo "listo sin commits en $desde..HEAD"; return 1; }
   [ "${#declarados[@]}" -eq "${#en_rango[@]}" ] || { echo "ultimo.json lista ${#declarados[@]} commits y el rango tiene ${#en_rango[@]}"; return 1; }
@@ -67,12 +83,23 @@ cerrar_listo() {
 
   # a)
   if ! [ -z "$(git status --porcelain)" ]; then
-    parada "el árbol no quedó limpio tras «listo» ($paso)" "$paso" "${SOLO_REINTENTO[@]}"
+    PARADA_HUMANA=1 parada "el árbol no quedó limpio tras «listo» ($paso)" "$paso" "${SOLO_REINTENTO[@]}"
     return 0
   fi
   # Un paso que no cambió nada (un arreglo de CI que ya estaba hecho, una decisión sin código): ultimo.json no lista commits y el rango
   # está vacío. No hay nada que verificar ni publicar: se cierra sin avisar. Con commits en el rango que ultimo.json no lista, sigue el aviso.
-  if [ -z "$(git rev-list "$desde..HEAD")" ] && [ "$(jq '.commits | length' "$ESTADO/ultimo.json")" -eq 0 ]; then
+  if [ -z "$(rango_propio "$desde")" ] && [ "$(jq '.commits | length' "$ESTADO/ultimo.json")" -eq 0 ]; then
+    # Con carril, el coordinador tiene que saberlo: si no, vuelve a dar el mismo pedido o paso y cada vuelta paga una sesión nueva que
+    # dice otra vez «ya está» (la revisión de FLUJO-1). Un pedido sin cambios se cierra; un paso del plan que sigue asignado sin nada
+    # que publicar es un estado que no cuadra (el 4.20-4 del 7-11): lo mira la persona.
+    if modo_carril && [[ "$paso" =~ ^pedido-[0-9]+$ ]]; then
+      coordinador cerrar-pedido "$paso" "listo sin cambios" >/dev/null 2>"$ESTADO/coordinador.err" ||
+        registro "el coordinador no cerró $paso: $(tail -n 1 "$ESTADO/coordinador.err")"
+      rm -f "$ESTADO/asignado.json"
+    elif modo_carril && [ "$paso" != ci-fix ] && [ -f "$ESTADO/asignado.json" ]; then
+      PARADA_HUMANA=1 parada "$paso dijo «listo» sin cambios y el coordinador lo sigue teniendo asignado: ¿está hecho (se integra a mano) o falta algo?" "$paso" \
+        'parado — lo miro (recomendado)' 'sigo — cierra esta vuelta y vuelve a pedir el paso al coordinador'
+    fi
     registro "$paso listo sin cambios: no hay commits que verificar ni publicar."
     rm -f "$ESTADO/en-curso.json"
     echo 0 >"$ESTADO/fallas"
@@ -99,12 +126,6 @@ cerrar_listo() {
         "El paso $paso cambió archivos que protegen al piloto (hooks, settings, scripts del piloto, lefthook, CI, db:* o test:e2e*). ¿Apruebas el cambio?" ||
         { registro "guardas de $paso no aprobadas: no se verifica ni se publica."; exit 0; }
       marcar_en_curso guardas_aprobadas true
-      if printf '%s\n' "$guardas" | grep -q '^scripts/piloto/'; then
-        compuerta parada "$paso" "los scripts del piloto cambiaron: re-arranca con «bash scripts/piloto/arrancar.sh» (copia la versión nueva)" \
-          "El bucle corre una copia de scripts/piloto/. Para verificar y publicar $paso con la copia nueva, re-arranca; la vuelta siguiente lo hace." 'parado — entendido, re-arranco (recomendado)' 'parado — no apruebo el cambio'
-        registro "re-arrancar: $paso queda en «listo», sin verificar ni publicar."
-        exit 0
-      fi
     fi
   fi
 
@@ -121,6 +142,7 @@ cerrar_listo() {
   fi
   registro "publicado $paso ($(git rev-parse --short HEAD))."
   rm -f "$ESTADO/en-curso.json"
+  rm -rf "$ESTADO/paradas-solas"
   echo 0 >"$ESTADO/fallas"
   return 0
 }
