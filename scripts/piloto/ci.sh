@@ -17,7 +17,10 @@ TOPE_ROJOS="${PILOTO_TOPE_CI_ROJOS:-5}"
 ci_leer() { # <rama>
   local json estado conclusion jobs
   CI_ID="" CI_SHA="" CI_FALLO="" CI_ESTADO=sin
-  json=$(timeout 30 gh run list --branch "$1" --limit 1 --json databaseId,status,conclusion,headSha 2>/dev/null) || json='[]'
+  # La última corrida que dice algo: una cancelada (la reemplazó el push siguiente, `cancel-in-progress`; en main, 19 de 50 el 3 al 7-11)
+  # no cuenta si hay otra detrás. Si todas las que hay están canceladas, vale la primera (CI_ESTADO=cancelado).
+  json=$(timeout 30 gh run list --branch "$1" --limit 5 --json databaseId,status,conclusion,headSha 2>/dev/null) || json='[]'
+  json=$(jq -c '(map(select(.conclusion != "cancelled")) + .) | .[0:1]' <<<"$json" 2>/dev/null) || json='[]'
   CI_ID=$(jq -r '.[0].databaseId // empty' <<<"$json" 2>/dev/null)
   [ -n "$CI_ID" ] || return 0
   CI_SHA=$(jq -r '.[0].headSha // ""' <<<"$json" 2>/dev/null)
@@ -54,7 +57,7 @@ ci_resolver() { # <rama>
   CI_MOTIVO=""
   ci_leer "$1"
   case "$CI_ESTADO" in
-    verde) rm -f "$CI_ROJOS" "$ESTADO/ci-fix-intentos" ;;
+    verde) rm -f "$CI_ROJOS" "$ESTADO/ci-fix-intentos" "$ESTADO/ci-fix-head" ;;
     rojo-base)
       ci_anotar_rojo
       CI_MOTIVO="el CI $CI_ID tiene la base en rojo ($CI_FALLO): RLS, grants o advisors no se arrastran a los pasos siguientes"

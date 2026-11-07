@@ -8,6 +8,9 @@
 #    Remote Control: desde el celular «¿cómo va?», «para», «para ya»; sin turnos no gasta).
 # Con `--en-seco [--nota <archivo>]` el bucle corre en primer plano, un ruteo real y el paso sin ejecutar nada (ver docs/PILOTO.md).
 # Retomar tras un reinicio: correr esto de nuevo; un paso a medias se retoma con `--resume`.
+# Con `--si-caido` (el vigía de systemd, scripts/maquina/instalar-servicios.sh) sólo arranca si el bucle del carril no corre (nadie tiene
+# `.piloto/bucle.lock`) y no se paró a propósito (PARAR, «parado» de la persona, el carril terminó o llegó a `--hasta`): un bucle que se cayó,
+# un tmux que se cerró o un reinicio ya no dejan el carril quieto hasta que alguien lo note. Una sesión de tmux con el bucle ya terminado se cierra.
 set -uo pipefail
 # shellcheck source=comun.sh
 source "$(dirname "${BASH_SOURCE[0]}")/comun.sh"
@@ -17,33 +20,37 @@ falta() { echo "arrancar: $1" >&2; exit 1; }
 # `--carril <id>`: este árbol es el de un carril de docs/plan.yaml; el bucle le pide sus pasos al coordinador (carril.sh). La sesión de tmux
 # pasa a llamarse `piloto-bucle-<id>` y se lanza (una vez) el coordinador, `piloto-coordinador`, que integra los PR verdes.
 CARRIL=""
+SI_CAIDO=0
 ARGS=()
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --carril) CARRIL="${2:-}"; [ -n "$CARRIL" ] || falta "--carril pide el id del carril."; shift 2 ;;
+    --si-caido) SI_CAIDO=1; shift ;;
     *) ARGS+=("$1"); shift ;;
   esac
 done
 set -- "${ARGS[@]+"${ARGS[@]}"}"
 SESION="piloto-bucle${CARRIL:+-$CARRIL}"
+if [ "$SI_CAIDO" = 1 ]; then
+  [ -f "$ESTADO/PARAR" ] && exit 0
+  mkdir -p "$ESTADO"
+  flock -n "$ESTADO/bucle.lock" true 2>/dev/null || exit 0
+  case "$(tail -n 1 "$ESTADO/registro.md" 2>/dev/null)" in
+    *"parado por la persona"* | *"PARAR"* | *"no tiene más pasos"* | *"llegamos a "* | *"no ve ningún paso por avanzar"*) exit 0 ;;
+  esac
+  echo "arrancar: el bucle de ${CARRIL:-este árbol} no corría y nadie lo paró: lo levanto." >&2
+  echo "- $(ahora_lapaz) vigía: el bucle no corría y nadie lo paró: lo levanto." >>"$ESTADO/registro.md"
+  tmux kill-session -t "$SESION" 2>/dev/null
+fi
 for programa in git jq flock tmux node; do command -v "$programa" >/dev/null || falta "falta $programa en el PATH."; done
 CLAUDE=$(claude_bin)
 [ -n "$CLAUDE" ] || falta "no encuentro el binario de claude (CLAUDE_BIN, o la extensión de VS Code)."
 gh auth status >/dev/null 2>&1 || echo "arrancar: AVISO: gh no está autenticado; el CI no se podrá mirar." >&2
 [ -d "$(dirname "$COMUN")" ] || falta "no hay carpeta común de git."
 
-# 1. La copia.
-NUEVA="$COMUN/bin.nueva"
-mkdir -p "$COMUN"
-rm -rf "$NUEVA"
-mkdir -p "$NUEVA"
-find scripts/piloto -maxdepth 1 -type f \( -name '*.sh' -o -name '*.mjs' -o -name '*.json' \) -exec cp {} "$NUEVA"/ \;
-(cd "$NUEVA" && sha256sum -- * >bin.sha256 2>/dev/null; grep -v ' bin.sha256$' bin.sha256 >bin.tmp && mv bin.tmp bin.sha256)
-chmod a-w "$NUEVA"/*
-chmod -R u+w "$COMUN/bin" 2>/dev/null
-rm -rf "$COMUN/bin"
-mv "$NUEVA" "$COMUN/bin"
-echo "arrancar: copia en $COMUN/bin ($(wc -l <"$COMUN/bin/bin.sha256") archivos, sha256 anotado)."
+# 1. La copia, de origin/main (copiar-bin.sh): la de un carril que va atrás de main ya no pisa la de los otros.
+git remote get-url origin >/dev/null 2>&1 && { timeout 60 git fetch -q origin main 2>/dev/null || echo "arrancar: AVISO: git fetch falló; copio el origin/main que hay." >&2; }
+bash scripts/piloto/copiar-bin.sh || falta "no pude hacer la copia de los scripts del piloto."
 
 # 2. El bucle.
 if [[ " $* " == *" --en-seco "* ]]; then

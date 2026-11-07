@@ -1,76 +1,25 @@
 import { execFileSync, spawnSync } from 'node:child_process'
-import {
-  chmodSync,
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  readdirSync,
-  rmSync,
-  statSync,
-  symlinkSync,
-  writeFileSync,
-} from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { chmodSync, mkdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
+import {
+  arrancar,
+  comun,
+  copia,
+  limpiar,
+  preparar,
+  raiz,
+  repo,
+  SCRIPT,
+  tmux,
+} from './arrancar.arnes'
 
 // `arrancar.sh` copia `scripts/piloto/` (sin pruebas) a `<común>/piloto/bin/` con su `bin.sha256` y lanza ESA copia en tmux: es lo que
 // impide que un paso cambie el código con que se lo verifica y publica. Se prueba con un `tmux` y un `claude` falsos y un repo temporal
-// que lleva la carpeta `scripts/piloto/` real: lo que importa es la copia, su firma, y qué se lanza.
-const SCRIPT = resolve('scripts/piloto/arrancar.sh')
-
-let raiz = ''
-let repo = ''
-let comun = ''
-const raices: string[] = []
-
-beforeEach(() => {
-  raiz = mkdtempSync(join(tmpdir(), 'arrancar-'))
-  raices.push(raiz)
-  repo = join(raiz, 'repo')
-  mkdirSync(repo)
-  execFileSync('git', ['init', '-q', '-b', 'main', repo])
-  execFileSync('cp', ['-r', resolve('scripts/piloto'), join(repo, 'scripts-piloto-copia')])
-  mkdirSync(join(repo, 'scripts'))
-  execFileSync('mv', [join(repo, 'scripts-piloto-copia'), join(repo, 'scripts/piloto')])
-  comun = join(repo, '.git/piloto')
-  mkdirSync(join(raiz, 'bin'))
-  for (const [nombre, texto] of [
-    [
-      'tmux',
-      `#!/usr/bin/env bash\necho "$*" >> "${join(raiz, 'tmux.txt')}"\n[ "$1" = has-session ] && exit 1\nexit 0\n`,
-    ],
-    ['claude', '#!/usr/bin/env bash\nexit 0\n'],
-    ['gh', '#!/usr/bin/env bash\nexit 0\n'],
-  ] as const) {
-    writeFileSync(join(raiz, 'bin', nombre), texto)
-    chmodSync(join(raiz, 'bin', nombre), 0o755)
-  }
-})
-afterAll(() => {
-  for (const r of raices) {
-    execFileSync('chmod', ['-R', 'u+w', r])
-    rmSync(r, { recursive: true, force: true })
-  }
-})
-
-function arrancar(...args: string[]) {
-  return spawnSync('bash', [SCRIPT, ...args], {
-    cwd: repo,
-    encoding: 'utf8',
-    env: {
-      NODE_ENV: 'test',
-      HOME: raiz,
-      PATH: `${join(raiz, 'bin')}:${process.env['PATH'] ?? ''}`,
-      PILOTO_RAIZ: repo,
-      CLAUDE_BIN: join(raiz, 'bin/claude'),
-    },
-  })
-}
-const tmux = () =>
-  existsSync(join(raiz, 'tmux.txt')) ? readFileSync(join(raiz, 'tmux.txt'), 'utf8') : ''
-const copia = () => readdirSync(join(comun, 'bin')).sort()
+// que lleva la carpeta `scripts/piloto/` real: lo que importa es la copia, su firma, y qué se lanza. La copia de origin/main y el vigía
+// (FLUJO-1), en arrancar-main.test.ts.
+beforeEach(preparar)
+afterAll(limpiar)
 
 describe('arrancar.sh › la copia', () => {
   it('copia las piezas del bucle y ninguna prueba, y anota un sha256 por archivo', () => {

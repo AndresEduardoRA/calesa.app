@@ -6,12 +6,13 @@
 #           (bin/); común a todos los worktrees y fuera del árbol. Sólo la escribe bash: el bucle y el hook que anota la decisión
 #           (PILOTO_COMUN para las pruebas)
 #   ESTADO  RAIZ/.piloto: lo que escriben el bucle y las sesiones (PILOTO_DIR para las pruebas)
-#   BIN     la carpeta de esta pieza (la copia de <común>/piloto/bin/ cuando corre el bucle)
+#   BIN     la carpeta de esta pieza (la copia vigente a la que apunta <común>/piloto/bin cuando corre el bucle)
 
 RAIZ="${PILOTO_RAIZ:-$(git rev-parse --show-toplevel 2>/dev/null)}"
 COMUN="${PILOTO_COMUN:-$(git -C "${RAIZ:-.}" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)/piloto}"
 ESTADO="${PILOTO_DIR:-$RAIZ/.piloto}"
-BIN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resuelto (`pwd -P`): `bin` es un enlace a la copia vigente, y un bucle que corre sigue con la suya aunque otro carril la cambie (copiar-bin.sh).
+BIN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 
 ahora_lapaz() { TZ=America/La_Paz date +%Y-%m-%dT%H:%M:%S%:z; }
 

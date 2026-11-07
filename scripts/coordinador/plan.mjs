@@ -4,6 +4,9 @@
 //
 // Un paso pasa por: pendiente → asignado (un carril lo está haciendo) → publicado (su PR está abierto) → integrado (está en main).
 // Un paso puede empezar cuando todas sus dependencias están integradas: así cada carril parte de un main que ya las tiene.
+// Un paso partido publica sus partes sin dejar de estar asignado: el PR de la parte va en `pr_parcial` y se integra igual (sincronizar).
+// Un PEDIDO es lo que un carril necesita de lo que posee otro (un registro, una prueba, un archivo de src/app): lo deja el bucle del que
+// espera (`pedir`), el carril dueño lo toma antes que sus propios pasos y, al integrarse, el que esperaba se retoma solo.
 import { parse } from 'yaml'
 import { problemasDeMigraciones } from './plan-migraciones.mjs'
 
@@ -192,8 +195,105 @@ export function caminoCritico(plan) {
 export function estadoInicial(plan, previo = { pasos: {} }) {
   const pasos = {}
   for (const p of plan.pasos) pasos[p.id] = previo.pasos?.[p.id] ?? { estado: 'pendiente' }
-  return { pasos }
+  return previo.pedidos?.length ? { pasos, pedidos: previo.pedidos } : { pasos }
 }
+
+/** El carril que posee una ruta, sin contar a `salvo`: el de la carpeta más precisa; si ninguno, el base. */
+export function duenoDe(plan, ruta, salvo) {
+  let mejor = null
+  for (const c of plan.carriles) {
+    if (c.id === salvo) continue
+    for (const d of c.dueno_de ?? [])
+      if (dentro(ruta, d) && (!mejor || d.length > mejor.largo))
+        mejor = { id: c.id, largo: d.length }
+  }
+  return mejor?.id ?? plan.carriles.find((c) => c.base && c.id !== salvo)?.id ?? null
+}
+
+const PEDIDO_ABIERTO = new Set(['pendiente', 'asignado', 'publicado'])
+// asignado → integrado: el dueño lo cerró sin cambios (ya estaba hecho); sin esto el coordinador se lo volvía a dar sin fin.
+const TRANSICIONES_PEDIDO = {
+  pendiente: ['asignado'],
+  asignado: ['publicado', 'pendiente', 'integrado'],
+  publicado: ['integrado', 'asignado'],
+  integrado: [],
+}
+
+// Las rutas que protegen al piloto (las de la compuerta «guardas», scripts/piloto/cierre.sh). Un PR que las toca no se integra solo: la
+// copia del bucle sale de main y los tres carriles se recargan con ella, así que es la persona quien lo deja entrar.
+const GUARDAS =
+  /^(scripts\/piloto\/|scripts\/guardas\/|scripts\/candado\.sh$|\.claude\/settings[^/]*\.json$|\.claude\/hooks\/|\.claude\/agents\/|\.claude\/skills\/piloto|lefthook\.yml$|\.github\/workflows\/)/
+/** Las rutas de `rutas` que son guardas del piloto. */
+export const guardasEn = (rutas) => rutas.filter((r) => GUARDAS.test(r))
+
+/**
+ * Anota un pedido del carril `de` (que espera en su paso `paso`). Uno abierto por paso: si ya hay, lo devuelve. Va al dueño de sus
+ * `archivos` (el primero que tenga) o al carril base. Un carril no se pide a sí mismo.
+ */
+export function pedir(
+  plan,
+  estado,
+  { de, paso, texto, archivos = [] },
+  ahora = new Date().toISOString(),
+) {
+  const pedidos = estado.pedidos ?? []
+  const abierto = pedidos.find(
+    (p) => p.de === de && p.paso === paso && PEDIDO_ABIERTO.has(p.estado),
+  )
+  if (abierto) return { estado, pedido: abierto, nuevo: false }
+  const para =
+    archivos.map((a) => duenoDe(plan, a, de)).find(Boolean) ??
+    plan.carriles.find((c) => c.base && c.id !== de)?.id
+  if (!para) throw new Error(`no hay a qué carril pedirle lo del carril ${de}`)
+  if (para === de) throw new Error(`el carril ${de} posee lo que pide: va en su paso`)
+  // Dos carriles que se esperan: el dueño está parado esperando a quien le pide, y ninguno llega a tomar el pedido del otro.
+  const inverso = pedidos.find(
+    (p) => p.de === para && p.para === de && PEDIDO_ABIERTO.has(p.estado),
+  )
+  if (inverso)
+    throw new Error(
+      `ciclo: el carril ${para} espera al ${de} (${inverso.id}); lo decide la persona`,
+    )
+  const n = pedidos.reduce((m, p) => Math.max(m, p.n ?? 0), 0) + 1
+  const pedido = {
+    id: `pedido-${n}`,
+    n,
+    de,
+    paso,
+    texto,
+    archivos,
+    para,
+    estado: 'pendiente',
+    desde: ahora,
+  }
+  return { estado: { ...estado, pedidos: [...pedidos, pedido] }, pedido, nuevo: true }
+}
+
+/** Cambia el estado de un pedido, si la transición vale. No muta. */
+export function marcarPedido(estado, id, nuevo, datos = {}, ahora = new Date().toISOString()) {
+  const pedidos = estado.pedidos ?? []
+  const actual = pedidos.find((p) => p.id === id)
+  if (!actual) throw new Error(`no hay un pedido ${id}`)
+  if (!TRANSICIONES_PEDIDO[actual.estado].includes(nuevo))
+    throw new Error(`el pedido ${id} no puede pasar de ${actual.estado} a ${nuevo}`)
+  return {
+    ...estado,
+    pedidos: pedidos.map((p) =>
+      p.id === id ? { ...p, ...datos, estado: nuevo, desde: ahora } : p,
+    ),
+  }
+}
+
+/** Lo que el carril ve de un pedido como si fuera un paso (el bucle lo rutea solo: bucle.sh › ruteo_pedido). */
+export const pasoDePedido = (pd) => ({
+  id: pd.id,
+  titulo: `Pedido del carril ${pd.de} (${pd.paso})`,
+  riesgo: 'ambar',
+  ruteo: { modelo: 'sonnet', effort: 'high' },
+  terminado: pd.texto,
+  decisiones: [],
+  modulos: [],
+})
 
 /** Cambia el estado de un paso, si la transición vale. Devuelve un estado nuevo; no muta. */
 export function marcar(estado, id, nuevo, datos = {}, ahora = new Date().toISOString()) {
@@ -213,6 +313,21 @@ export function marcar(estado, id, nuevo, datos = {}, ahora = new Date().toISOSt
  * @returns {{accion: 'paso', paso: object, rama: string} | {accion: 'esperar', motivo: string} | {accion: 'terminado'}}
  */
 export function siguiente(plan, estado, carril, { cuota = null, umbral = 0.8 } = {}) {
+  // Un pedido de otro carril va antes que todo lo propio (entre partes de un paso, también): el otro carril está parado esperándolo.
+  const pedidos = (estado.pedidos ?? []).filter((p) => p.para === carril)
+  const pd =
+    pedidos.find((p) => p.estado === 'asignado') ??
+    pedidos.find((p) => p.estado === 'publicado' && p.arreglar) ??
+    pedidos.find((p) => p.estado === 'pendiente')
+  if (pd)
+    return {
+      accion: 'paso',
+      paso: pasoDePedido(pd),
+      rama: rama(carril, pd.id),
+      retomar: pd.estado !== 'pendiente',
+      pedido: pd,
+      ...(pd.arreglar ? { arreglar: pd.arreglar } : {}),
+    }
   const propios = plan.pasos.filter((p) => p.carril === carril)
   if (propios.length === 0)
     return { accion: 'esperar', motivo: `el carril ${carril} no tiene pasos en el plan` }
@@ -231,8 +346,14 @@ export function siguiente(plan, estado, carril, { cuota = null, umbral = 0.8 } =
       retomar: true,
       arreglar: estado.pasos[roto.id].arreglar,
     }
+  // Un carril con sus pasos integrados sigue atento a los pedidos hasta que termine el plan entero (un bucle que sale no atiende ninguno).
   if (propios.every((p) => estado.pasos[p.id]?.estado === 'integrado'))
-    return { accion: 'terminado' }
+    return plan.pasos.every((p) => estado.pasos[p.id]?.estado === 'integrado')
+      ? { accion: 'terminado' }
+      : {
+          accion: 'esperar',
+          motivo: 'sus pasos están integrados: atiende pedidos hasta que el plan termine',
+        }
 
   const integrado = (id) => estado.pasos[id]?.estado === 'integrado'
   const pendientes = propios.filter((p) => estado.pasos[p.id]?.estado === 'pendiente')
@@ -275,9 +396,12 @@ export function siguiente(plan, estado, carril, { cuota = null, umbral = 0.8 } =
 
 export const rama = (carril, paso) => `${carril}/${paso.toLowerCase()}`
 
-/** Si el coordinador puede integrar el PR de este paso sin la persona. Un paso rojo nunca. */
+/**
+ * Si el coordinador puede integrar el PR de este paso sin la persona: su riesgo está en `mergeAuto` (COORD_MERGE_AUTO). Un paso rojo sólo si
+ * la lista lo nombra a propósito (`verde,ambar,rojo`); por omisión, lo integra la persona.
+ */
 export function integraSolo(paso, mergeAuto = ['verde', 'ambar']) {
-  return paso.riesgo !== 'rojo' && mergeAuto.includes(paso.riesgo)
+  return mergeAuto.includes(paso.riesgo)
 }
 
 /** El desfase de puertos de cada carril (la principal es 0): 100, 200, … en el orden de plan.yaml. */
@@ -307,10 +431,25 @@ export function tablero(plan, estado, { cuota = null, ahora = new Date().toISOSt
     )
     for (const p of plan.pasos.filter((x) => x.carril === c.id)) {
       const e = estado.pasos[p.id] ?? { estado: 'pendiente' }
+      const pr = [e.pr && `#${e.pr}`, e.pr_parcial && `#${e.pr_parcial} (parte)`].filter(Boolean)
       lineas.push(
-        `| ${marca[e.estado]} | ${p.id} ${p.titulo} | ${p.riesgo} | ${(p.depende_de ?? []).join(', ') || '—'} | ${e.pr ? `#${e.pr}` : '—'} |`,
+        `| ${marca[e.estado]} | ${p.id} ${p.titulo} | ${p.riesgo} | ${(p.depende_de ?? []).join(', ') || '—'} | ${pr.join(', ') || '—'} |`,
       )
     }
+  }
+  const pedidos = (estado.pedidos ?? []).filter((p) => PEDIDO_ABIERTO.has(p.estado))
+  if (pedidos.length) {
+    lineas.push(
+      '',
+      '## Pedidos entre carriles',
+      '',
+      '| | Pedido | De → para | Texto | PR |',
+      '|---|---|---|---|---|',
+    )
+    for (const p of pedidos)
+      lineas.push(
+        `| ${marca[p.estado]} | ${p.id} (${p.paso}) | ${p.de} → ${p.para} | ${String(p.texto).replace(/\|/g, '/').slice(0, 120)} | ${p.pr ? `#${p.pr}` : '—'} |`,
+      )
   }
   return lineas.join('\n') + '\n'
 }

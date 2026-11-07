@@ -117,10 +117,12 @@ esperar_decision() {
 # por algo que el plan ya dejó recomendado. Cada respuesta queda en `.piloto/decisiones-automaticas.md` (qué, opciones y la elegida; en
 # «guardas», la ruta del diff guardado en `.piloto/guardas/<paso>.diff`) para que la persona lo revise cuando quiera; si no está de
 # acuerdo, lo dice y el paso siguiente lo corrige. `PILOTO_AUTO` lista los tipos que se contestan solos (por omisión «producto,datos,
-# guardas»; vacío los apaga; la persona decidió el 2026-11-04 que pasen todas por la recomendada). Nunca `parada`, `dependencia`, `afuera`
-# ni `atasco`: son avisos de algo que el piloto no puede juzgar.
+# guardas»; vacío los apaga; la persona decidió el 2026-11-04 que pasen todas por la recomendada). Nunca `parada` (que se reintenta, no se
+# contesta: parada_sola), `dependencia`, `afuera` ni `atasco`: son avisos de algo que el piloto no puede juzgar.
 auto_contesta() { # <tipo> <paso>
   [ "${EN_SECO:-0}" != 1 ] || return 1
+  # «espera» no es una pregunta: el bucle ya esperó a main y lo trajo (bucle.sh › esperar_main); sólo le deja la respuesta al paso.
+  [ "$1" = espera ] && return 0
   [[ ",${PILOTO_AUTO-producto,datos,guardas}," == *",$1,"* ]] || return 1
   case "$1" in
     producto) [ -n "${PREGUNTAS:-}" ] ;;
@@ -221,8 +223,40 @@ _compuerta() {
   return 0
 }
 
-# parada <motivo> [paso] [opciones…]: un aviso. Toda parada llega al celular; en el ensayo en seco sólo se dice (y sigue).
-# Devuelve 1 (reintentar) o 2 (sigo); «parado» sale del bucle.
+# Un aviso se reintenta solo antes de llegar al celular, si `PILOTO_AUTO` nombra «parada» (por omisión sí). Reintentar no se salta nada: repite la
+# vuelta, con sus paradas y verificaciones. El bucle duerme `PILOTO_PARADA_ESPERAS` (300 900 2700 s) y reintenta; agotados los intentos de ese
+# mismo motivo (sin sus cifras), pregunta como siempre. Antes un aviso de noche dejaba el carril quieto hasta la mañana, o hasta un vigilante
+# fuera del repo. Las cuentas van en `.piloto/paradas-solas/` y un paso publicado las borra (cierre.sh).
+parada_sola() { # <motivo>
+  [ "${EN_SECO:-0}" != 1 ] || return 1
+  [[ ",${PILOTO_AUTO-producto,datos,guardas,parada}," == *",parada,"* ]] || return 1
+  # Lo que repetir no arregla va directo a la persona: el tope de gasto, el árbol que el paso dejó sucio.
+  [ "${PARADA_HUMANA:-0}" = 1 ] && return 1
+  local clave n archivo esperas=()
+  read -r -a esperas <<<"${PILOTO_PARADA_ESPERAS:-300 900 2700}"
+  clave=$(printf '%s' "$1" | tr -d '0-9' | sha256sum | cut -c1-16)
+  archivo="$ESTADO/paradas-solas/$clave"
+  mkdir -p "$ESTADO/paradas-solas"
+  n=$(cat "$archivo" 2>/dev/null | wc -l)
+  [ "$n" -lt "${#esperas[@]}" ] || return 1
+  echo "$(ahora_lapaz) $1" >>"$archivo"
+  registro "aviso (reintento solo $((n + 1)) de ${#esperas[@]} en ${esperas[$n]} s): $1"
+  dormir_atento "${esperas[$n]}"
+  return 0
+}
+# dormir_atento <s>: duerme de a 30 s como mucho y sale del bucle si aparece PARAR.
+dormir_atento() {
+  local falta="$1" tramo
+  while [ "$falta" -gt 0 ]; do
+    [ -f "$ESTADO/PARAR" ] && { registro "PARAR mientras se esperaba un reintento."; exit 0; }
+    tramo=$((falta < 30 ? falta : 30))
+    ${DORMIR:-sleep} "$tramo"
+    falta=$((falta - tramo))
+  done
+}
+
+# parada <motivo> [paso] [opciones…]: un aviso. Primero se reintenta solo (parada_sola); después llega al celular. En el ensayo en seco sólo se
+# dice (y sigue). Devuelve 1 (reintentar) o 2 (sigo); «parado» sale del bucle.
 parada() {
   local motivo="$1" paso="${2:-}" rc
   shift $(($# > 2 ? 2 : $#))
@@ -231,6 +265,7 @@ parada() {
     registro "aviso en seco: $motivo"
     return 2
   fi
+  parada_sola "$motivo" && return 1
   compuerta parada "$paso" "$motivo" "Paró por $motivo: ¿sigo, reintento o lo dejo parado?" "$@"
   rc=$?
   case "$rc" in

@@ -25,9 +25,10 @@ negar() {
 }
 
 RAMA=$(git symbolic-ref --quiet --short HEAD)
+# La del carril va primero: con `PILOTO_CARRIL=a` la rama `a/4.19` es la suya (antes caía en `a/?*` y se negaba: 4.19, 2026-11-07).
 case "$RAMA" in
-  a/?*) [ -z "${PILOTO_CARRIL:-}" ] || negar "el carril $PILOTO_CARRIL publica sólo ramas $PILOTO_CARRIL/…: se está en «$RAMA»." ;;
   "${PILOTO_CARRIL:-/}"/?*) ;;
+  a/?*) [ -z "${PILOTO_CARRIL:-}" ] || negar "el carril $PILOTO_CARRIL publica sólo ramas $PILOTO_CARRIL/…: se está en «$RAMA»." ;;
   *) negar "el piloto publica sólo la rama del carril A (a/…), nunca main: se está en «${RAMA:-HEAD suelto}»." ;;
 esac
 [ -z "$(git status --porcelain)" ] || negar "el árbol no está limpio."

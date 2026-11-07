@@ -42,7 +42,7 @@ function repo() {
     `#!/usr/bin/env bash
 case "$1 $2" in
   "pr view") cat "${respuestas}/$3.json" ;;
-  "pr merge") echo "$3" >> "${respuestas}/merges"; echo '{"state":"MERGED"}' > "${respuestas}/$3.json" ;;
+  "pr merge") echo "$3" >> "${respuestas}/merges"; echo "$*" >> "${respuestas}/merges-args"; echo '{"state":"MERGED"}' > "${respuestas}/$3.json" ;;
   *) exit 2 ;;
 esac
 `,
@@ -149,4 +149,96 @@ test('liberar e integrado a mano; transición inválida falla con mensaje', () =
   correr('siguiente', 'datos')
   assert.match(correr('liberar', 'P01', 'me', 'arrepentí'), /vuelve a pendiente/)
   assert.throws(() => correr('integrado', 'P01'), /no puede pasar de pendiente a integrado/)
+})
+
+test('una parte publicada (parcial) se integra con su CI en verde, con merge y sin soltar el paso', () => {
+  const { dir, correr, pr, respuestas } = repo()
+  correr('siguiente', 'ui')
+  assert.match(correr('parcial', 'P02', '21'), /parte publicada \(#21\)/)
+  pr(21, { state: 'OPEN', mergeable: 'MERGEABLE', statusCheckRollup: verde })
+  assert.match(correr('sincronizar'), /P02: parte integrada por el coordinador \(#21, verde\)/)
+  assert.equal(readFileSync(join(respuestas, 'merges'), 'utf8').trim(), '21')
+  const estado = JSON.parse(readFileSync(join(dir, '.git/coordinador/estado.json'), 'utf8'))
+  assert.equal(estado.pasos.P02.estado, 'asignado')
+  assert.equal(estado.pasos.P02.pr_parcial, undefined)
+  assert.throws(() => correr('parcial', 'P01', '22'), /no está asignado/)
+  // La última parte en el mismo PR: deja de ser parte.
+  correr('parcial', 'P02', '23')
+  correr('publicado', 'P02', '23')
+  const despues = JSON.parse(readFileSync(join(dir, '.git/coordinador/estado.json'), 'utf8'))
+  assert.equal(despues.pasos.P02.pr_parcial, undefined)
+  assert.equal(despues.pasos.P02.pr, 23)
+})
+
+test('un pedido: lo anota quien espera, lo toma el dueño antes que lo suyo y el coordinador lo integra', () => {
+  const { dir, correr, pr, respuestas } = repo()
+  const pd = JSON.parse(
+    correr('pedir', 'ui', 'P02', 'un índice para la lista', 'supabase/migrations/x.sql'),
+  )
+  assert.equal(pd.id, 'pedido-1')
+  assert.equal(pd.para, 'datos')
+  assert.equal(pd.nuevo, true)
+  assert.equal(JSON.parse(correr('pedir', 'ui', 'P02', 'otra vez')).nuevo, false)
+  const r = JSON.parse(correr('siguiente', 'datos'))
+  assert.equal(r.paso, 'pedido-1')
+  assert.equal(r.rama, 'datos/pedido-1')
+  assert.deepEqual(r.pedido, {
+    de: 'ui',
+    paso: 'P02',
+    texto: 'un índice para la lista',
+    archivos: ['supabase/migrations/x.sql'],
+  })
+  correr('publicado', 'pedido-1', '41')
+  pr(41, { state: 'OPEN', mergeable: 'MERGEABLE', statusCheckRollup: verde })
+  assert.match(
+    correr('sincronizar'),
+    /pedido-1: integrado por el coordinador \(#41\); el carril ui se retoma/,
+  )
+  assert.equal(readFileSync(join(respuestas, 'merges'), 'utf8').trim(), '41')
+  const estado = JSON.parse(readFileSync(join(dir, '.git/coordinador/estado.json'), 'utf8'))
+  assert.equal(estado.pedidos[0].estado, 'integrado')
+  assert.equal(JSON.parse(correr('siguiente', 'datos')).paso, 'P01')
+})
+
+test('integra el commit que vio el CI, y un PR que toca las guardas del piloto lo deja para la persona', () => {
+  const { correr, pr, respuestas } = repo()
+  correr('siguiente', 'ui')
+  correr('publicado', 'P02', '61')
+  pr(61, {
+    state: 'OPEN',
+    mergeable: 'MERGEABLE',
+    statusCheckRollup: verde,
+    headRefOid: 'abc123',
+    files: [{ path: 'scripts/piloto/bucle.sh' }, { path: 'src/app/x.tsx' }],
+  })
+  assert.match(
+    correr('sincronizar'),
+    /P02: #61 toca las guardas del piloto \(scripts\/piloto\/bucle\.sh\): lo integra la persona/,
+  )
+  pr(61, {
+    state: 'OPEN',
+    mergeable: 'MERGEABLE',
+    statusCheckRollup: verde,
+    headRefOid: 'abc123',
+    files: [{ path: 'src/app/x.tsx' }],
+  })
+  assert.match(correr('sincronizar'), /P02: integrado por el coordinador \(#61, verde\)/)
+  assert.match(
+    readFileSync(join(respuestas, 'merges-args'), 'utf8'),
+    /pr merge 61 --squash --delete-branch --match-head-commit abc123/,
+  )
+})
+
+test('cerrar-pedido: el dueño lo cerró sin cambios y no se lo vuelve a dar; pedido <id> lo muestra', () => {
+  const { correr } = repo()
+  correr('pedir', 'ui', 'P02', 'un índice', 'supabase/migrations/x.sql')
+  assert.equal(JSON.parse(correr('siguiente', 'datos')).paso, 'pedido-1')
+  assert.match(correr('cerrar-pedido', 'pedido-1', 'ya', 'estaba'), /cerrado sin cambios/)
+  assert.deepEqual(
+    (({ estado, sin_cambios, motivo }) => ({ estado, sin_cambios, motivo }))(
+      JSON.parse(correr('pedido', 'pedido-1')),
+    ),
+    { estado: 'integrado', sin_cambios: true, motivo: 'ya estaba' },
+  )
+  assert.equal(JSON.parse(correr('siguiente', 'datos')).paso, 'P01')
 })

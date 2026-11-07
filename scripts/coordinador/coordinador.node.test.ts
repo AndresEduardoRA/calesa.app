@@ -1,7 +1,9 @@
 import { spawnSync } from 'node:child_process'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 // El coordinador y su lógica se prueban con `node:test` (como en calesa-web); aquí los corre `pnpm test`, y se valida el plan real.
+// Cada caso de coordinador.test.mjs lanza la CLI con node: con los de FLUJO-1 la tanda pasa de los 5 s por omisión (5,6 s en el CI).
+vi.setConfig({ testTimeout: 60_000 })
 describe('scripts/coordinador', () => {
   it('sus pruebas de node:test pasan', () => {
     const r = spawnSync(

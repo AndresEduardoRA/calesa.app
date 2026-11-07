@@ -45,7 +45,9 @@ compuertas llegan al celular como siempre.
 
 Cada uno toma sus pasos de `docs/plan.yaml` (`coordinador.mjs siguiente b|c`) y trabaja en una rama `<carril>/<paso>` con la skill `feature`;
 cierra con `entregar` sin tocar ESTADO, PLAN, DECISIONES ni BITACORA (eso va a `docs/pasos/<paso>/`) y lo que necesite del núcleo o de
-`src/shared` lo describe allí en «Necesita del carril A». El coordinador integra los pasos verdes y ámbar con CI en verde; los rojos, la persona.
+`src/shared` lo pide con una compuerta `espera` (su `pedido`): el coordinador se lo da al dueño como `pedido-<n>`, antes que sus pasos, y el que pidió se retoma solo cuando llega a `main`
+(`docs/PILOTO.md` › «El flujo continuo»). El coordinador integra con el CI en verde los pasos, sus partes y los pedidos, también los rojos
+(`COORD_MERGE_AUTO` en `piloto.config`, decisión de la persona del 2026-11-07); lo que toca las guardas del piloto, la persona.
 Un carril no toca fuera de su `dueno_de`, `docs/` y `compartido` (donde agrega y edita, no borra); en `plan.yaml` sólo suma archivos de las
 familias del compilador que crea (B). Un cambio a la guarda o al plan rige desde el PR siguiente. `docs/carriles/b.md` es para una sesión
 del B sin coordinador.

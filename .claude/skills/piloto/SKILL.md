@@ -68,6 +68,23 @@ Si `$ARGUMENTS` es `ci-fix`, **no hay fila en `docs/PLAN.md`, ni planificador, n
 4. Uno o dos commits `fix(<scope>): …` en el estilo de siempre, `mapa.sh` antes, sin push. Docs sólo si la corrección cambia una regla.
 5. `ultimo.json` con `paso: "ci-fix"`; `listo` si arreglaste todos los rojos anotados, `falla` si no pudiste (di cuál y por qué). Si el rojo es de la base (RLS, grants, advisors) o de un secreto, compuerta `datos` o `afuera`.
 
+## El paso especial `pedido-<n>`
+
+Si `$ARGUMENTS` es `pedido-<n>`, otro carril está **parado esperándote**: necesita algo de lo que tu carril posee (un registro de una guarda, una prueba tuya que
+dé por vacío lo que él llena, un archivo de `src/app`). Tampoco hay fila en `docs/PLAN.md`, ni planificador, ni auditor. Lo pedido está en `.piloto/asignado.json` ›
+`pedido` (`de`, `paso`, `texto`, `archivos`). Camino corto: haz **sólo eso**, con su prueba (una guarda o una prueba del núcleo **simula** lo del otro carril, no lee
+sus archivos reales), `mapa.sh`, uno o dos commits `fix(<scope>)` o `chore(<scope>)`, sin push, y `ultimo.json` con `paso: "pedido-<n>"` y `listo`. Si toca datos
+o seguridad, compuerta `datos` como en cualquier paso. Si no se puede (no es tuyo, o rompe algo), `falla` con el porqué: el otro carril lo verá.
+
+## Cuando necesitas algo de otro carril: compuerta `espera`
+
+Si lo que te falta no es tuyo (está en el `dueno_de` de otro carril en `docs/plan.yaml`, o es del carril A y tú eres B o C), **no** pidas una `afuera` ni ofrezcas
+opciones que el bucle no sabe cumplir («seguir mientras…»): termina con `resultado: compuerta` y una compuerta `espera` con `pedido` (qué archivo, qué cambio y por qué,
+para que su dueño lo haga sin preguntarte) y `archivos` (**obligatorio**: las rutas que tienen que crearse o cambiar en `origin/main`). El bucle se lo pide al carril
+dueño, espera a que **todos** esos archivos cambien en `main` (o a que el dueño cierre el pedido), lo trae a tu rama y te retoma con `continuar`; la respuesta dice qué
+trajo. Si al retomar todavía no está, pide otra `espera` (hasta 3 por paso; después lo mira la persona).
+Antes de pedirla, deja tu trabajo en un commit o el árbol limpio: traer `main` con cambios sin commitear puede fallar.
+
 ## `.piloto/ultimo.json`
 
 ```json
