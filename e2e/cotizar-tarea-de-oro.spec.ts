@@ -14,6 +14,7 @@ import {
   totalDeLaHoja,
   vigilarGuardados,
 } from './soporte/cotizar-guardar'
+import { leerLaDescarga } from './soporte/cotizar-pdf'
 import { borrarLeadsDePrueba, crearLead, idDe } from './soporte/leads'
 import { telefonoAlAzar } from './soporte/leads-alta'
 import { crearAsesoraDeLaSemilla } from './soporte/recorrido'
@@ -22,14 +23,15 @@ import { cargarVehiculos, vehiculoPorTitulo } from './soporte/vehiculos'
 import { formatearMonto, formatearNumero } from '../src/shared/lib/formato'
 
 // Tarea de oro 2 (`docs/UX.md`): cotizar un vehículo del inventario en ≤ 90 s, con cada celda editable alcanzable con el teclado (paso 4.13-4d). El panel del vehículo
-// (4.14-2c1) elige el vehículo por nombre; el PDF en 1 clic (4.18) no existe todavía: esto mide el tramo de la hoja, con el vehículo en la URL, y el del panel, con el vehículo buscado por nombre (con un enlace de subasta lo mide el 4.14-2c3, que cierra 4-10); el 4.28 mide la tarea entera. Como
+// (4.14-2c1) elige el vehículo por nombre; el tramo de la hoja llega al PDF desde el 4.18-3b («Descargar PDF» de la tarjeta de lo guardado). Esto mide el tramo de la hoja, con el vehículo en la URL, y el del panel, con el vehículo buscado por nombre (con un enlace de subasta lo mide el 4.14-2c3, que cierra 4-10); el 4.28 mide la tarea entera. Como
 // la 1 y la 4 (`docs/DECISIONES.md`): lo que no cambia de una máquina a otra es lo pulsado; el reloj del robot es un tope generoso; la hora de una persona, KLM.
 test.describe.configure({ mode: 'serial' })
 
 // Las teclas de control del tramo de la hoja (Tab y Enter a «Saltar al contenido», los Tab hasta `remate` y su Enter, los Tab hasta `grua` y su Enter, y Ctrl+S), contadas al
 // escribirlo (4.13-4d): 23 en los dos proyectos, con 0,7 s el robot y KLM 12,5 s. Es determinista: una parada nueva en el camino lo rompe a propósito. 24 desde el 4.14-2a:
-// la barra del vehículo, entre «Saltar al contenido» y la hoja, es una parada más; 25 desde el 4.14-3b: la barra del cliente, otra.
-const CONTROLES_MAXIMOS = 25
+// la barra del vehículo, entre «Saltar al contenido» y la hoja, es una parada más; 25 desde el 4.14-3b: la barra del cliente, otra. 29 desde el 4.18-3b: el tramo llega al PDF
+// (3 Tab de Ctrl+S a «Descargar PDF» de la tarjeta de lo guardado y su Enter), con 1,2 s el robot y KLM 15,5 s en escritorio.
+const CONTROLES_MAXIMOS = 29
 // Con el tramo del panel (4.14-2c1): Tab y Enter a «Saltar al contenido», los Tab hasta la barra y su Enter (el panel abre con el foco en el buscador), los Tab hasta la
 // tarjeta del vehículo y su Enter, y el tramo de la hoja de arriba (Tab hasta `remate` y Enter, hasta `grua` y Enter, y Ctrl+S). Medido en la primera corrida verde: 28 en los dos proyectos, con 1,5 s el robot y KLM 20,8 s (escritorio) y 19,4 s (móvil); determinista: una parada nueva en el camino lo rompe a propósito. 29 desde el 4.14-3b: la barra del cliente es una parada más entre la del vehículo y la hoja.
 const CONTROLES_CON_EL_PANEL = 29
@@ -111,11 +113,16 @@ test('tarea de oro 2: de la hoja abierta a la cotización guardada, sólo con el
   await expect(totalDeLaHoja(page)).toContainText(/\d/)
   await teclado.pulsar('ControlOrMeta+s')
   await expect(tarjetaGuardada(page)).toContainText(/Cotización n\.º \d+ guardada/)
+  // La guardada se borra al final aunque el tramo del PDF caiga (si no, su autora no se puede borrar).
+  cotizacion = guardados.pedidos[0]?.intento ?? ''
+  // El PDF en 1 clic (4.18-3b): del enlace de la tarjeta de lo guardado, con el teclado.
+  await teclado.tabularHasta(tarjetaGuardada(page).getByRole('link', { name: 'Descargar PDF' }))
+  const bajada = page.waitForEvent('download')
+  await teclado.pulsar('Enter')
+  const descarga = await bajada
   const fin = performance.now()
 
-  const [pedido] = guardados.pedidos
   expect(guardados.pedidos).toHaveLength(1)
-  cotizacion = pedido?.intento ?? ''
   const fila = cotizacionGuardada(cotizacion)
   expect(fila.filas).toBe(1)
   expect(fila.creadoPor).toBe(await idDe(asesora))
@@ -130,9 +137,23 @@ test('tarea de oro 2: de la hoja abierta a la cotización guardada, sólo con el
   expect(
     sinEspacios(await tarjetaGuardada(page).locator('[data-total-guardado]').textContent()),
   ).toContain(sinEspacios(esperado))
+  // La tarjeta de lo guardado reemplaza a la hoja: pesa contra el mismo tope de 500 nodos (P6 del 4.18-3; el enlace del PDF suma uno).
+  const nodos = await tarjetaGuardada(page).evaluate((e) => e.querySelectorAll('*').length + 1)
+  info.annotations.push({ type: 'nodos de la tarjeta de lo guardado', description: String(nodos) })
+  console.warn(`[medido] nodos de la tarjeta de lo guardado: ${String(nodos)}`)
+  expect(nodos).toBeLessThanOrEqual(500)
+  // El PDF bajado lleva su nombre y el mismo total.
+  const pdf = await leerLaDescarga(descarga)
+  const numero = sql(
+    `select numero from public.cotizaciones where id = ${literal(cotizacion)}::uuid`,
+  )
+  expect(pdf.nombre).toBe(`cotizacion-${numero}.pdf`)
+  const lineaDelTotal = pdf.lineas.find((l) => l.startsWith('TOTAL DÓLARES')) ?? ''
+  expect(sinEspacios(lineaDelTotal)).toBe(`TOTALDÓLARES${sinEspacios(esperado)}`)
 
   const controles = teclado.pulsaciones
-  const klm = teclado.klm(3)
+  // Una decisión más que sin el PDF: bajarlo.
+  const klm = teclado.klm(4)
   const robot = (fin - inicio) / 1000
   const seg = (v: number) => `${formatearNumero(v, { decimales: 1 })} s`
   const resumen = `${seg(robot)} el robot · ${String(controles)} teclas de control · KLM ${seg(klm)} · 0 clics`
