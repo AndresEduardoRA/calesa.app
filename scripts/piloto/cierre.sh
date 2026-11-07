@@ -16,6 +16,16 @@
 GUARDAS='^(scripts/piloto/|scripts/guardas/|scripts/candado\.sh$|\.claude/settings[^/]*\.json$|\.claude/hooks/|\.claude/agents/|\.claude/skills/piloto|lefthook\.yml$|\.github/workflows/)'
 SOLO_REINTENTO=('parado — no sigue (recomendado)' 'reintentar — vuelve a verificar y publicar')
 
+# Los commits propios del paso: los de `desde..HEAD` que no son mezclas ni están ya en origin/main. Traer main a la rama (el bucle lo hace al
+# retomar un paso partido o tras esperar a main) dejaba el rango con 54 o 165 commits ajenos y el cierre no coincidía (5 al 7-11-2026).
+rango_propio() { # <desde>
+  if git rev-parse --verify --quiet origin/main >/dev/null; then
+    git rev-list --no-merges "$1..HEAD" --not origin/main
+  else
+    git rev-list --no-merges "$1..HEAD"
+  fi
+}
+
 ultimo_valido() {
   jq -e '
     type == "object" and (.paso | type == "string") and (.resultado | IN("listo", "compuerta", "falla"))
@@ -28,14 +38,19 @@ ultimo_valido() {
                                   and (.pregunta | type == "string")
                                   and (.opciones | type == "array" and length >= 2 and length <= 4))
                           and (map(.id) | unique | length) == length)
+                    elif .tipo == "espera" then (.pedido | type == "string" and length > 0)
                     else (.pregunta | type == "string") and (.opciones | type == "array" and length >= 2) end))
          else true end)' "$ESTADO/ultimo.json" >/dev/null 2>&1
 }
 
-# Los archivos del rango que son guardas, y las líneas db:* y test:e2e* de package.json que cambiaron.
+# Los archivos que los commits propios del paso tocan y son guardas, y las líneas db:* y test:e2e* de package.json que cambiaron. Lo que vino
+# de main ya pasó su compuerta y su CI: no se vuelve a preguntar (antes un merge de main con el PR 44 pedía «guardas» y re-arrancar).
 guardas_tocadas() {
-  git diff --name-only "$1..HEAD" | grep -E "$GUARDAS"
-  git diff -U0 "$1..HEAD" -- package.json | grep -E '^[+-][[:space:]]*"(db:|test:e2e)[^"]*"[[:space:]]*:' | sed 's/^/package.json: /'
+  local propios=()
+  mapfile -t propios < <(rango_propio "$1")
+  [ "${#propios[@]}" -gt 0 ] || return 0
+  git show --name-only --format= "${propios[@]}" | sort -u | grep -E "$GUARDAS"
+  git show -U0 --format= "${propios[@]}" -- package.json | grep -E '^[+-][[:space:]]*"(db:|test:e2e)[^"]*"[[:space:]]*:' | sed 's/^/package.json: /' | sort -u
   return 0
 }
 
@@ -43,7 +58,7 @@ guardas_tocadas() {
 commits_coinciden() {
   local desde="$1" c completo
   local en_rango=() declarados=()
-  mapfile -t en_rango < <(git rev-list "$desde..HEAD")
+  mapfile -t en_rango < <(rango_propio "$desde")
   mapfile -t declarados < <(jq -r '.commits[]' "$ESTADO/ultimo.json")
   [ "${#en_rango[@]}" -gt 0 ] || { echo "listo sin commits en $desde..HEAD"; return 1; }
   [ "${#declarados[@]}" -eq "${#en_rango[@]}" ] || { echo "ultimo.json lista ${#declarados[@]} commits y el rango tiene ${#en_rango[@]}"; return 1; }
@@ -67,12 +82,12 @@ cerrar_listo() {
 
   # a)
   if ! [ -z "$(git status --porcelain)" ]; then
-    parada "el árbol no quedó limpio tras «listo» ($paso)" "$paso" "${SOLO_REINTENTO[@]}"
+    PARADA_HUMANA=1 parada "el árbol no quedó limpio tras «listo» ($paso)" "$paso" "${SOLO_REINTENTO[@]}"
     return 0
   fi
   # Un paso que no cambió nada (un arreglo de CI que ya estaba hecho, una decisión sin código): ultimo.json no lista commits y el rango
   # está vacío. No hay nada que verificar ni publicar: se cierra sin avisar. Con commits en el rango que ultimo.json no lista, sigue el aviso.
-  if [ -z "$(git rev-list "$desde..HEAD")" ] && [ "$(jq '.commits | length' "$ESTADO/ultimo.json")" -eq 0 ]; then
+  if [ -z "$(rango_propio "$desde")" ] && [ "$(jq '.commits | length' "$ESTADO/ultimo.json")" -eq 0 ]; then
     registro "$paso listo sin cambios: no hay commits que verificar ni publicar."
     rm -f "$ESTADO/en-curso.json"
     echo 0 >"$ESTADO/fallas"

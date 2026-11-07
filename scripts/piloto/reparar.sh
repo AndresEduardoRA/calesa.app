@@ -52,7 +52,8 @@ reparar_funciones() {
 reparar_commits() {
   local desde="$1" c completo en_rango=() declarados=()
   reparar_activo || return 1
-  mapfile -t en_rango < <(git rev-list --abbrev-commit --abbrev=8 "$desde..HEAD")
+  # Sólo los commits propios del paso (cierre.sh › rango_propio): lo que vino de main al traerlo no se le atribuye al paso.
+  mapfile -t en_rango < <(rango_propio "$desde" | while read -r c; do git rev-parse --short=8 "$c"; done)
   mapfile -t declarados < <(jq -r '.commits[]' "$ESTADO/ultimo.json" 2>/dev/null)
   [ "${#declarados[@]}" -gt 0 ] && [ "${#declarados[@]}" -lt "${#en_rango[@]}" ] || return 1
   for c in "${declarados[@]}"; do
