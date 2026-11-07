@@ -98,18 +98,26 @@ test.afterAll(async () => {
   await borrarTodo()
 })
 
-// Pulsa hasta que el modal esté (la página hidrata antes de que el clic valga).
-const hastaAbrir = (dialogo: Locator, pulsar: () => Promise<void>) => async () => {
+// Pulsa hasta que el modal esté (la página hidrata antes de que el clic valga). Con la URL ya pidiéndolo (`?panel=`) no se vuelve a pulsar: el
+// primer clic escribió la entrada del historial y el modal sólo tarda en llegar (con el navegador 8 veces más lento, 4 s). Cada clic de más
+// suma otra entrada con la misma URL, y «atrás» cae en una que todavía tiene el panel: el 4-97 (`.piloto/salidas/pedido-1/repro-7.log`). Un
+// clic que se cuela justo al abrir cae a los 3 s y el reintento ve el modal, en vez de esperar los 30 s de la prueba.
+const TOPE_DEL_CLIC = 3000
+const hastaAbrir = (page: Page, dialogo: Locator, pulsar: () => Promise<void>) => async () => {
   await expect(async () => {
-    await pulsar()
+    if (!new URL(page.url()).searchParams.has('panel')) await pulsar()
     await expect(dialogo).toBeVisible({ timeout: 1000 })
   }).toPass()
 }
 
 // «Editar» desde el «⋯» de la fila (si el menú ya está abierto, no se vuelve a pulsar).
 const editarDesdeElMenu = (page: Page, nombre: string) => async () => {
-  if (!(await menuDe(page, nombre).isVisible())) await masAccionesDe(page, nombre).click()
-  await menuDe(page, nombre).getByRole('menuitem', { name: 'Editar', exact: true }).click()
+  if (!(await menuDe(page, nombre).isVisible())) {
+    await masAccionesDe(page, nombre).click({ timeout: TOPE_DEL_CLIC })
+  }
+  await menuDe(page, nombre)
+    .getByRole('menuitem', { name: 'Editar', exact: true })
+    .click({ timeout: TOPE_DEL_CLIC })
 }
 
 type Caso = {
@@ -155,7 +163,11 @@ for (const s of SECCIONES) {
       await abrirRecargarYVolver(page, {
         boton,
         dialogo,
-        abrir: hastaAbrir(dialogo, caso.pulsar ? caso.pulsar(page, s) : () => boton.click()),
+        abrir: hastaAbrir(
+          page,
+          dialogo,
+          caso.pulsar ? caso.pulsar(page, s) : () => boton.click({ timeout: TOPE_DEL_CLIC }),
+        ),
       })
       if (caso.conId) expect(new URL(page.url()).searchParams.get(s.clave)).toBeNull()
     })
@@ -171,7 +183,7 @@ test('Orígenes, «Editar» desde el «⋯»: sin recargar, «atrás» devuelve 
   await entrar(page, duena, { fresco: true })
   await s.ir(page)
   const dialogo = page.getByRole('dialog', { name: s.editar })
-  await hastaAbrir(dialogo, editarDesdeElMenu(page, s.nombre()))()
+  await hastaAbrir(page, dialogo, editarDesdeElMenu(page, s.nombre()))()
   await page.goBack()
   await expect(dialogo).toBeHidden()
   expect(new URL(page.url()).searchParams.get('panel')).toBeNull()
