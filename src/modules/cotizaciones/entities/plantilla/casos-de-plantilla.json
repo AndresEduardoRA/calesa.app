@@ -1,5 +1,5 @@
 {
-  "_nota": "El juego común de validar_plantilla() (paso 4.18-1): lo corre la base en supabase/tests/plantilla-validar.sql y lo correrá validarPlantilla() de TS (4.19). Cada caso valida su plantilla contra la fórmula nombrada (su definición, su diseño y su visibilidad compilada; `visibilidad` en el caso la reemplaza) con los tonos del catálogo de `tonos`; `motivo` es la regla y su donde.",
+  "_nota": "El juego común de validar_plantilla() (paso 4.18-1): lo corre la base en supabase/tests/plantilla-validar.sql y validarPlantilla() de TS (entities/plantilla/validar-plantilla.ts, 4.19-2). Cada caso valida su plantilla contra la fórmula nombrada (su definición, su diseño y su visibilidad compilada; `visibilidad` en el caso la reemplaza) con los tonos del catálogo de `tonos`; `motivo` es la regla y su donde. Los casos «borde: …» cazan una trampa del espejo (code points, btrim, orden de bytes, prototipo, nulo frente a ausente). `octetos`: los bytes del texto de cada valor como jsonb (el tope de 32 KB), que comprueban la base y bytesComoJsonb().",
   "formulas": {
     "mini": {
       "definicion": {
@@ -2172,6 +2172,585 @@
         "regla": "grupo_inexistente",
         "donde": "seguro"
       }
+    },
+    {
+      "nombre": "borde: una etiqueta de sólo espacios está vacía",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "total": {
+          "etiqueta": "Total"
+        },
+        "logo": false,
+        "columnas": {
+          "leyenda": false,
+          "tipo_cambio": false,
+          "plazo": false
+        },
+        "etiquetas": {
+          "remate": "   "
+        }
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "etiquetas.remate"
+      }
+    },
+    {
+      "nombre": "borde: btrim sólo quita espacios (un tabulador y un espacio duro cuentan)",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "total": {
+          "etiqueta": "\u00a0"
+        },
+        "logo": false,
+        "columnas": {
+          "leyenda": false,
+          "tipo_cambio": false,
+          "plazo": false
+        },
+        "etiquetas": {
+          "remate": "\t"
+        }
+      },
+      "valida": true
+    },
+    {
+      "nombre": "borde: la etiqueta del total de 40 emojis (80 unidades UTF-16)",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "total": {
+          "etiqueta": "🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗"
+        },
+        "logo": false,
+        "columnas": {
+          "leyenda": false,
+          "tipo_cambio": false,
+          "plazo": false
+        }
+      },
+      "valida": true
+    },
+    {
+      "nombre": "borde: una leyenda de 160 emojis",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "total": {
+          "etiqueta": "Total"
+        },
+        "logo": false,
+        "columnas": {
+          "leyenda": false,
+          "tipo_cambio": false,
+          "plazo": false
+        },
+        "leyendas": {
+          "fees": "🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗"
+        }
+      },
+      "valida": true
+    },
+    {
+      "nombre": "borde: un emoji con tono de piel son dos caracteres",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "total": {
+          "etiqueta": "Total"
+        },
+        "logo": false,
+        "columnas": {
+          "leyenda": false,
+          "tipo_cambio": false,
+          "plazo": false
+        },
+        "etiquetas": {
+          "remate": "👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽"
+        }
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "etiquetas.remate"
+      }
+    },
+    {
+      "nombre": "borde: claves de más en orden de bytes, no de UTF-16",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "total": {
+          "etiqueta": "Total"
+        },
+        "logo": false,
+        "columnas": {
+          "leyenda": false,
+          "tipo_cambio": false,
+          "plazo": false
+        },
+        "🚗": 1,
+        "Ａ": 1
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "Ａ"
+      }
+    },
+    {
+      "nombre": "borde: claves de más en orden de bytes, no alfabético",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "total": {
+          "etiqueta": "Total"
+        },
+        "logo": false,
+        "columnas": {
+          "leyenda": false,
+          "tipo_cambio": false,
+          "plazo": false
+        },
+        "a_mas": 1,
+        "Z_mas": 1
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "Z_mas"
+      }
+    },
+    {
+      "nombre": "borde: los diccionarios se recorren clave por clave",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "total": {
+          "etiqueta": "Total"
+        },
+        "logo": false,
+        "columnas": {
+          "leyenda": false,
+          "tipo_cambio": false,
+          "plazo": false
+        },
+        "etiquetas": {
+          "b": "",
+          "c_Z": "x"
+        }
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "etiquetas.b"
+      }
+    },
+    {
+      "nombre": "borde: __proto__ es una clave de más",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "total": {
+          "etiqueta": "Total"
+        },
+        "logo": false,
+        "columnas": {
+          "leyenda": false,
+          "tipo_cambio": false,
+          "plazo": false
+        },
+        "__proto__": {
+          "logo": true
+        }
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "__proto__"
+      }
+    },
+    {
+      "nombre": "borde: la etiqueta de constructor no es un nodo",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "total": {
+          "etiqueta": "Total"
+        },
+        "logo": false,
+        "columnas": {
+          "leyenda": false,
+          "tipo_cambio": false,
+          "plazo": false
+        },
+        "etiquetas": {
+          "constructor": "Constructor"
+        }
+      },
+      "motivo": {
+        "regla": "nodo_inexistente",
+        "donde": "constructor"
+      }
+    },
+    {
+      "nombre": "borde: el grupo constructor no es de la fórmula",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          },
+          {
+            "grupo": "constructor"
+          }
+        ],
+        "total": {
+          "etiqueta": "Total"
+        },
+        "logo": false,
+        "columnas": {
+          "leyenda": false,
+          "tipo_cambio": false,
+          "plazo": false
+        }
+      },
+      "motivo": {
+        "regla": "grupo_inexistente",
+        "donde": "constructor"
+      }
+    },
+    {
+      "nombre": "borde: el tono constructor no está en el catálogo",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": "constructor"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "total": {
+          "etiqueta": "Total"
+        },
+        "logo": false,
+        "columnas": {
+          "leyenda": false,
+          "tipo_cambio": false,
+          "plazo": false
+        }
+      },
+      "motivo": {
+        "regla": "tono_inexistente",
+        "donde": "compra"
+      }
+    },
+    {
+      "nombre": "borde: un tono nulo no es un tono ausente",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra",
+            "tono": null
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "total": {
+          "etiqueta": "Total"
+        },
+        "logo": false,
+        "columnas": {
+          "leyenda": false,
+          "tipo_cambio": false,
+          "plazo": false
+        }
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "grupos[0].tono"
+      }
+    },
+    {
+      "nombre": "borde: etiquetas nulas no son etiquetas ausentes",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "total": {
+          "etiqueta": "Total"
+        },
+        "logo": false,
+        "columnas": {
+          "leyenda": false,
+          "tipo_cambio": false,
+          "plazo": false
+        },
+        "etiquetas": null
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "etiquetas"
+      }
+    },
+    {
+      "nombre": "borde: una leyenda nula no es una leyenda vacía",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "total": {
+          "etiqueta": "Total"
+        },
+        "logo": false,
+        "columnas": {
+          "leyenda": false,
+          "tipo_cambio": false,
+          "plazo": false
+        },
+        "leyendas": {
+          "fees": null
+        }
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "leyendas.fees"
+      }
+    },
+    {
+      "nombre": "borde: la leyenda del total nula no es una leyenda ausente",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "total": {
+          "etiqueta": "Total",
+          "leyenda": null
+        },
+        "logo": false,
+        "columnas": {
+          "leyenda": false,
+          "tipo_cambio": false,
+          "plazo": false
+        }
+      },
+      "motivo": {
+        "regla": "forma",
+        "donde": "total.leyenda"
+      }
+    },
+    {
+      "nombre": "borde: las columnas en otro orden",
+      "formula": "mini",
+      "plantilla": {
+        "grupos": [
+          {
+            "grupo": "compra"
+          },
+          {
+            "grupo": "logistica"
+          },
+          {
+            "grupo": "aduana"
+          }
+        ],
+        "total": {
+          "etiqueta": "Total"
+        },
+        "logo": false,
+        "columnas": {
+          "plazo": false,
+          "tipo_cambio": false,
+          "leyenda": false
+        }
+      },
+      "valida": true
+    }
+  ],
+  "octetos": [
+    {
+      "valor": {},
+      "bytes": 2
+    },
+    {
+      "valor": [],
+      "bytes": 2
+    },
+    {
+      "valor": {
+        "a": [1, 2],
+        "b": "á"
+      },
+      "bytes": 24
+    },
+    {
+      "valor": {
+        "x": {
+          "y": []
+        }
+      },
+      "bytes": 16
+    },
+    {
+      "valor": [true, false, null],
+      "bytes": 19
+    },
+    {
+      "valor": "a\"b\\c\n\t\u0001",
+      "bytes": 19
+    },
+    {
+      "valor": "🚗",
+      "bytes": 6
+    },
+    {
+      "valor": "\u2028",
+      "bytes": 5
+    },
+    {
+      "valor": "\u007f",
+      "bytes": 3
     }
   ]
 }
