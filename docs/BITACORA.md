@@ -879,3 +879,29 @@ con la recomendada) y plan aprobado antes de ejecutar. Nivel 1 con interfaz, sin
 - **Abiertos:** 4-98 nuevo (el logo WebP o un SVG con estilos no sale en el PDF); 4-73 medido. La guarda `scripts/guardas/diferidos.test.ts` permite el `import()` del renderer.
 - **Commits:** `388c2399` (el documento, el logo, las fuentes y el lector), `5f95c1c7` (el armado de lo guardado) y `160aebf3` (la ruta y el e2e).
   e2e completo: no (4.18-3a, dinero, el completo del hito es del 4.18-3b)
+
+## 2026-11-06 — Paso 4.18-3b: «Copiar texto», «Descargar PDF» y el hito 4-A
+
+- **Qué:** el pie de «Vista previa» suma «Copiar texto» (la tarjeta como texto, del mismo modelo y en el orden del PDF, con cifras; apagado con el total desactualizado o sin
+  total, P2) y, en una guardada, «Descargar PDF» (lo guardado, pedido desde el navegador sin salir de la página; un fallo se dice con «Reintentar»). La tarjeta de lo guardado de la
+  hoja nueva ofrece «Descargar PDF» con un `<a download>`. La tarea de oro 2 llega al PDF con el teclado. Cierra el 4.18.
+- **Estado del CI al empezar:** el 42324364083 (HEAD `ecc41dfc`) cayó en `pnpm test` por `scripts/mapa.test.ts` T13 (esperaba `+77` y el mapa daba `+79`): el 4.18-3a sumó
+  `pdfDeUnaGuardada` y `EntradaDelPdf` al barril sin subirlo. Lo arregla `53eab5a1`, aparte (heredado del 3a). El bloque 4 del 42293078030 sigue sin explicar: sus 46 specs
+  (`bloque-4-specs.txt`) pasaron en el completo local.
+- **Plan:** auditado (observaciones atendidas: los commits por conducta, el orden del texto, M9, los nodos de la P6, más dirigidos); compuerta `producto` P2, la recomendada.
+  `.piloto/planes/4.18-3b.md`. Informe auditado: `.piloto/informes/4.18-3b.md`.
+- **Verificación** (`.piloto/salidas/4.18-3b/`):
+  - En rojo contra HEAD: `rojo-head-t13.txt`, `rojo-head-vitest-c1.txt`, `rojo-head-vitest-vista-previa.txt`, `rojo-head-vitest-modulos-nuevos.txt`,
+    `rojo-head-vitest-guardada.txt` y `rojo-head-e2e.txt` (sin «Copiar texto» ni el enlace).
+  - Mutaciones M1 a M9 (`mutaciones.txt`): todas caen; M1 a M6, M8 y M9 en vitest, y M1, M4, M6, M7, M8 y M9 en el e2e (M7 sólo tiene la del e2e); tres intentos que no valían
+    (uno caía por `ReferenceError` y dos no compilaban) se rehicieron y se anotan.
+  - e2e: `cotizar-vista-previa-acciones.spec.ts` E1–E7 y la tarea de oro 2 (`verde-e2e-2.txt`); los 20 dirigidos en escritorio y móvil, 237 en verde y 7 saltados por diseño
+    (`dirigidos.txt`). `vitest related` 72 de 72, `scripts/guardas` 990 de 990.
+  - Medidas: la tarea de oro 2 hasta el PDF, 29 teclas de control en los dos proyectos (25 antes), robot 0,7–1,4 s, KLM 15,5 s; la tarjeta de lo guardado, 13 nodos; JS en frío de
+    `/cotizaciones/nuevo` 459,0 de 460 KB (458,9 antes, 4-73) y de `/cotizaciones/[id]` 438,0 de 448.
+  - **Hito 4-A:** e2e completo de escritorio (`completo.txt`): 980 en verde, 16 saltados, 6 sin correr (los que siguen a una caída en un spec serial) y 2 caídas, 39,2 min;
+    las dos pasan 3 de 3 solas (`completo-repetir-1.txt`): `cotizar-encima.spec.ts:104` (4-85) y `leads-recorrido-cierre-2.spec.ts:213` (4-99, nueva). Se cotiza de punta a punta
+    con la fórmula y el diseño de la semilla, con su PDF. El CI del PR lo confirma.
+- **Abiertos:** 4-99 nuevo; 4-73 medido; 4-85 vuelve a caer una vez; 4-96 suma que T13 cayó por el número.
+- **Commits:** `53eab5a1` (T13), `db378e41` («Copiar texto»), `2cdcab8c` («Descargar PDF» del modal) y `bc2c334c` (el enlace y la tarea de oro).
+  e2e completo: sí (4.18-3b, hito 4-A, Nivel 2: escritorio, 980 en verde, 16 saltados, 6 sin correr, 2 caídas de 4-85 y 4-99 y 3 de 3 solas, 39,2 min)

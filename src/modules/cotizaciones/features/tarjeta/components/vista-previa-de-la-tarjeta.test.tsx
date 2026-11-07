@@ -31,6 +31,7 @@ const pagina: DatosDeLaPagina = {
   vencida: false,
   guardadaEl: null,
   logo: null,
+  cotizacionId: null,
 }
 
 function dibujar(mas: Partial<React.ComponentProps<typeof VistaPreviaDeLaTarjeta>> = {}) {
@@ -150,5 +151,53 @@ describe('<VistaPreviaDeLaTarjeta>: avisos y fecha', () => {
     await waitFor(() => {
       expect(screen.getByText('11 oct 2026')).toBeTruthy()
     })
+  })
+})
+
+describe('<VistaPreviaDeLaTarjeta>: el pie', () => {
+  it('trae Live y «Copiar texto», que copia la tarjeta que dibuja', async () => {
+    const escribir = vi.fn<(texto: string) => Promise<void>>().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: escribir },
+      configurable: true,
+    })
+    dibujar()
+    const copiar = screen.getByRole('button', { name: 'Copiar texto' }) as HTMLButtonElement
+    expect(copiar.disabled).toBe(true)
+    pedidos[0]?.resolver(lista())
+    await waitFor(() => {
+      expect(copiar.disabled).toBe(false)
+    })
+    fireEvent.click(copiar)
+    await waitFor(() => {
+      expect(escribir).toHaveBeenCalledTimes(1)
+    })
+    const texto = escribir.mock.calls[0]?.[0] ?? ''
+    expect(texto).toContain('Asesor: Ana Pérez')
+    expect(texto).toContain('TOTAL DÓLARES: ')
+    expect(screen.getByRole('button', { name: 'Modo Live: ocultar los montos' })).toBeTruthy()
+    // La hoja nueva no tiene PDF que bajar.
+    expect(screen.queryByRole('button', { name: 'Descargar PDF' })).toBeNull()
+  })
+
+  it('en una guardada el pie suma «Descargar PDF»', async () => {
+    dibujar({
+      pagina: { ...pagina, numero: 9, cotizacionId: '00000000-0000-4000-8000-0000000000bb' },
+    })
+    pedidos[0]?.resolver(lista())
+    await waitFor(() => {
+      expect(screen.getByText('TOTAL DÓLARES')).toBeTruthy()
+    })
+    expect(screen.getByRole('button', { name: 'Descargar PDF' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Copiar texto' })).toBeTruthy()
+  })
+
+  it('con el total desactualizado «Copiar texto» queda apagado y lo nombra el aviso', async () => {
+    dibujar({ estado: { tipo: 'recalculando' } })
+    pedidos[0]?.resolver(lista())
+    const aviso = await screen.findByText('Total desactualizado.')
+    const copiar = screen.getByRole('button', { name: 'Copiar texto' })
+    expect((copiar as HTMLButtonElement).disabled).toBe(true)
+    expect(copiar.getAttribute('aria-describedby')).toBe(aviso.id)
   })
 })

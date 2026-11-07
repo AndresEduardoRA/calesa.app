@@ -53,6 +53,7 @@ describe('<ProveedorDeLaTarjeta>', () => {
         vencida={false}
         guardadaEl={null}
         logo={null}
+        cotizacionId="00000000-0000-4000-8000-0000000000bb"
       >
         <Consumidor />
       </ProveedorDeLaTarjeta>,
@@ -66,5 +67,8 @@ describe('<ProveedorDeLaTarjeta>', () => {
     )
     expect(screen.getByText('Toyota Hilux 2020')).toBeTruthy()
     expect(screen.getByText(/Cotización n\.º 7/)).toBeTruthy()
-  })
+    // Con el id de una guardada, el pie ofrece su PDF.
+    expect(screen.getByRole('button', { name: 'Descargar PDF' })).toBeTruthy()
+    // La espera de arriba es de 10 s: la prueba necesita más que los 5 s de siempre (cayó a los 5,4 s con la suite en paralelo).
+  }, 15_000)
 })

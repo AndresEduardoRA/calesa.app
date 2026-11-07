@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Button, buttonVariants } from '@/shared/ui/button'
 import { Monto } from '@/shared/ui/monto'
 import type { CotizacionGuardada as Guardada } from '../../../entities/guardado'
-import { rutaDeLaCotizacion } from '../../../entities/ruta-de-la-hoja'
+import { rutaDeLaCotizacion, rutaDelPdf } from '../../../entities/ruta-de-la-hoja'
 
 type Props = {
   cotizacion: Guardada
@@ -14,8 +14,8 @@ type Props = {
   alCotizarOtra: () => void
 }
 
-// Lo que se ve al guardar (P1): el número y el total de **lo guardado** (la respuesta de la base, no lo tipeado), «Cotizar otra» y «Abrir la cotización» (su página, 4.15-3).
-// El número es un identificador: va sin separador de miles.
+// Lo que se ve al guardar (P1): el número y el total de **lo guardado** (la respuesta de la base, no lo tipeado), «Cotizar otra», «Abrir la cotización» (su página, 4.15-3) y
+// «Descargar PDF» (4.18-3b, P6 del 4.18-3). El número es un identificador: va sin separador de miles.
 export function CotizacionGuardada({ cotizacion, fueReenvio, alCotizarOtra }: Props) {
   return (
     <section
@@ -61,6 +61,14 @@ export function CotizacionGuardada({ cotizacion, fueReenvio, alCotizarOtra }: Pr
         >
           Abrir la cotización
         </Link>
+        {/* Un enlace simple, sin JS propio: el nombre del archivo lo da la ruta. No es un `Link`: la ruta es un route handler y no se precarga. */}
+        <a
+          href={rutaDelPdf(cotizacion.id)}
+          download
+          className={buttonVariants({ variant: 'outline', className: 'min-h-11 md:min-h-8' })}
+        >
+          Descargar PDF
+        </a>
       </div>
     </section>
   )

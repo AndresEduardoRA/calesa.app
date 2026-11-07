@@ -2125,3 +2125,26 @@ Lo pidió la persona después de que el A hiciera el 4.16 y el 4.17-1: se parti�
   aparte; no sube sin el área. Todas las rutas siguen bajo su presupuesto; `/cotizaciones/nuevo` queda en 458,9 de 460 (4-73). Sacarlo del grafo (un `import()` que Turbopack
   ignore) obligaría a trazar el paquete a mano para desplegarlo: frágil, no se hizo.
 - **La guarda de `diferidos` permite ese `import()`** por su ruta (`infra/tarjeta/pdf/pdf-de-la-tarjeta`): es servidor, no un componente del navegador.
+
+## 2026-11-06 — Paso 4.18-3b: «Copiar texto», «Descargar PDF» y el hito 4-A
+
+- **El texto es el espejo del PDF (C1):** `textoDeLaTarjeta()` (puro, `entities/tarjeta/`) escribe el mismo `ModeloDeTarjeta` en el orden del PDF (`documento-de-la-tarjeta.tsx`):
+  el título, «<fecha> · Cotización n.º N» (con « · Vencida»), «Asesor:», el vehículo, cada grupo con sus columnas y filas, el total con su leyenda, el Bs y lo aparte, y la nota;
+  bloques separados por una línea en blanco. Los montos con `formatearMonto()` y siempre con cifras, como el PDF (P7 y P8 del 4.18-3). El espacio duro que separa la moneda no
+  se toca: el texto pegado dice lo mismo que la tarjeta.
+- **P2 (la recomendada, 2026-11-06):** «Copiar texto» queda apagado mientras el modal dice «Total desactualizado.» o el total no tiene valor (`avisoDelTotal()`), y lo nombra por
+  `aria-describedby` el aviso o «Falta el total para copiarlo.». Nunca se le manda al cliente un total que no es el de la hoja.
+- **P1, microdecisión (`.claude/rules/ui.md`):** en el modal, «Descargar PDF» pide la ruta desde el navegador (`fetch` con `redirect: 'manual'` y `cache: 'no-store'`) y baja el
+  blob con un `<a download>` de un momento; mientras pide dice «Descargando…»; un 404, la sesión que no vale (la redirección al ingreso o a cerrar la sesión) u otro fallo se dicen
+  en el pie con textos propios y «Reintentar». Un `<a>` sin `download` sacaría de la página; uno con `download` se llevaría la página de ingreso como archivo si la sesión venció con el modal abierto. En la tarjeta de lo
+  guardado de la hoja nueva sí vale el `<a download>`: aparece recién guardada, con la sesión que acaba de guardar, y no puede pagar el JS de la descarga (4-73).
+- **El enlace de la hoja nueva no lleva JS (C6):** la tarjeta de lo guardado ofrece un `<a href={rutaDelPdf(id)} download>`; el nombre lo da la ruta. Lo de la descarga del modal
+  viaja en su chunk diferido: `/cotizaciones/nuevo` pasó de 458,9 a 459,0 KB de 460 (4-73).
+- **Los componentes del pie son dos archivos** (`copiar-texto-de-la-tarjeta.tsx` y `descargar-pdf-de-la-tarjeta.tsx`), no uno `acciones-de-la-tarjeta.tsx` como decía el plan:
+  un componente por archivo (`.claude/rules/modulos.md`), y cada commit trae el suyo.
+- **La tarea de oro 2 llega al PDF con 29 teclas de control** (25 antes: 3 Tab desde Ctrl+S hasta «Descargar PDF» y su Enter), igual en los dos proyectos; el foco no se pierde al
+  guardar y no hay pulido que anotar. KLM 15,5 s con 4 decisiones.
+- **El hito 4-A:** el completo de escritorio dio 980 en verde, 16 saltados y 2 caídas que pasan 3 de 3 solas: `cotizar-encima.spec.ts:104` (el 4-85, conocido) y
+  `leads-recorrido-cierre-2.spec.ts:213` (nueva, 4-99). Con la tarea de oro 2 verde hasta el PDF en los dos proyectos, se cotiza de punta a punta con su PDF: el hito se anota.
+  El CI del PR lo confirma.
+- **T13 del mapa se sube en el mismo commit que el barril** (commit `fix(ci)` aparte, heredado del 4.18-3a): la ficha de `cotizaciones` lo dice en «Áreas».

@@ -2,7 +2,7 @@
 # El cierre de un paso «listo» (se hace `source` desde bucle.sh). El modelo nunca publica: el paso deja commits, sin push, y es el bucle,
 # en bash y fuera de toda sesión, el que comprueba, verifica y empuja, en este orden:
 #
-#   a) el árbol está limpio y cada commit de `ultimo.json` existe en `HEAD de arranque..HEAD` (y no hay otros sin listar);
+#   a) el árbol está limpio (un paso sin commits ni cambios se cierra sin más) y cada commit de `ultimo.json` existe en `HEAD de arranque..HEAD` (y no hay otros sin listar);
 #   c) compuerta «guardas» si el rango toca las guardas (`scripts/piloto/`, `scripts/guardas/`, `scripts/candado.sh`, `.claude/settings*.json`,
 #      `.claude/hooks/`, `.claude/agents/`, `.claude/skills/piloto*`, `lefthook.yml`, `.github/workflows/` o las líneas de los scripts
 #      `db:*` y `test:e2e*` de package.json). Aprobada y con `scripts/piloto/` en el rango, la vuelta termina sin verificar ni publicar y
@@ -68,6 +68,14 @@ cerrar_listo() {
   # a)
   if ! [ -z "$(git status --porcelain)" ]; then
     parada "el árbol no quedó limpio tras «listo» ($paso)" "$paso" "${SOLO_REINTENTO[@]}"
+    return 0
+  fi
+  # Un paso que no cambió nada (un arreglo de CI que ya estaba hecho, una decisión sin código): ultimo.json no lista commits y el rango
+  # está vacío. No hay nada que verificar ni publicar: se cierra sin avisar. Con commits en el rango que ultimo.json no lista, sigue el aviso.
+  if [ -z "$(git rev-list "$desde..HEAD")" ] && [ "$(jq '.commits | length' "$ESTADO/ultimo.json")" -eq 0 ]; then
+    registro "$paso listo sin cambios: no hay commits que verificar ni publicar."
+    rm -f "$ESTADO/en-curso.json"
+    echo 0 >"$ESTADO/fallas"
     return 0
   fi
   if ! motivo=$(commits_coinciden "$desde"); then
