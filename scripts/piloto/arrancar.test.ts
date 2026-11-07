@@ -1,76 +1,25 @@
-import { execFileSync, spawn, spawnSync } from 'node:child_process'
-import {
-  chmodSync,
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  readdirSync,
-  rmSync,
-  statSync,
-  symlinkSync,
-  writeFileSync,
-} from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { execFileSync, spawnSync } from 'node:child_process'
+import { chmodSync, mkdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
+import {
+  arrancar,
+  comun,
+  copia,
+  limpiar,
+  preparar,
+  raiz,
+  repo,
+  SCRIPT,
+  tmux,
+} from './arrancar.arnes'
 
 // `arrancar.sh` copia `scripts/piloto/` (sin pruebas) a `<común>/piloto/bin/` con su `bin.sha256` y lanza ESA copia en tmux: es lo que
 // impide que un paso cambie el código con que se lo verifica y publica. Se prueba con un `tmux` y un `claude` falsos y un repo temporal
-// que lleva la carpeta `scripts/piloto/` real: lo que importa es la copia, su firma, y qué se lanza.
-const SCRIPT = resolve('scripts/piloto/arrancar.sh')
-
-let raiz = ''
-let repo = ''
-let comun = ''
-const raices: string[] = []
-
-beforeEach(() => {
-  raiz = mkdtempSync(join(tmpdir(), 'arrancar-'))
-  raices.push(raiz)
-  repo = join(raiz, 'repo')
-  mkdirSync(repo)
-  execFileSync('git', ['init', '-q', '-b', 'main', repo])
-  execFileSync('cp', ['-r', resolve('scripts/piloto'), join(repo, 'scripts-piloto-copia')])
-  mkdirSync(join(repo, 'scripts'))
-  execFileSync('mv', [join(repo, 'scripts-piloto-copia'), join(repo, 'scripts/piloto')])
-  comun = join(repo, '.git/piloto')
-  mkdirSync(join(raiz, 'bin'))
-  for (const [nombre, texto] of [
-    [
-      'tmux',
-      `#!/usr/bin/env bash\necho "$*" >> "${join(raiz, 'tmux.txt')}"\n[ "$1" = has-session ] && exit 1\nexit 0\n`,
-    ],
-    ['claude', '#!/usr/bin/env bash\nexit 0\n'],
-    ['gh', '#!/usr/bin/env bash\nexit 0\n'],
-  ] as const) {
-    writeFileSync(join(raiz, 'bin', nombre), texto)
-    chmodSync(join(raiz, 'bin', nombre), 0o755)
-  }
-})
-afterAll(() => {
-  for (const r of raices) {
-    execFileSync('chmod', ['-R', 'u+w', r])
-    rmSync(r, { recursive: true, force: true })
-  }
-})
-
-function arrancar(...args: string[]) {
-  return spawnSync('bash', [SCRIPT, ...args], {
-    cwd: repo,
-    encoding: 'utf8',
-    env: {
-      NODE_ENV: 'test',
-      HOME: raiz,
-      PATH: `${join(raiz, 'bin')}:${process.env['PATH'] ?? ''}`,
-      PILOTO_RAIZ: repo,
-      CLAUDE_BIN: join(raiz, 'bin/claude'),
-    },
-  })
-}
-const tmux = () =>
-  existsSync(join(raiz, 'tmux.txt')) ? readFileSync(join(raiz, 'tmux.txt'), 'utf8') : ''
-const copia = () => readdirSync(join(comun, 'bin')).sort()
+// que lleva la carpeta `scripts/piloto/` real: lo que importa es la copia, su firma, y qué se lanza. La copia de origin/main y el vigía
+// (FLUJO-1), en arrancar-main.test.ts.
+beforeEach(preparar)
+afterAll(limpiar)
 
 describe('arrancar.sh › la copia', () => {
   it('copia las piezas del bucle y ninguna prueba, y anota un sha256 por archivo', () => {
@@ -123,74 +72,6 @@ describe('arrancar.sh › la copia', () => {
     expect(() =>
       execFileSync('sha256sum', ['-c', '--quiet', 'bin.sha256'], { cwd: join(comun, 'bin') }),
     ).not.toThrow()
-  })
-})
-
-describe('arrancar.sh › la copia sale de origin/main (copiar-bin.sh)', () => {
-  const GIT = ['-c', 'user.name=t', '-c', 'user.email=t@ejemplo.test']
-  const conMain = () => {
-    const remoto = join(raiz, 'remoto.git')
-    execFileSync('git', ['init', '-q', '--bare', '-b', 'main', remoto])
-    execFileSync('git', [...GIT, 'add', '.'], { cwd: repo })
-    execFileSync('git', [...GIT, 'commit', '-q', '-m', 'inicio'], { cwd: repo })
-    execFileSync('git', ['remote', 'add', 'origin', remoto], { cwd: repo })
-    execFileSync('git', ['push', '-q', 'origin', 'HEAD:main'], { cwd: repo })
-    execFileSync('git', ['fetch', '-q', 'origin'], { cwd: repo })
-  }
-  const copiar = (...args: string[]) =>
-    spawnSync('bash', [join(repo, 'scripts/piloto/copiar-bin.sh'), ...args], {
-      cwd: repo,
-      encoding: 'utf8',
-      env: { NODE_ENV: 'test', PATH: process.env['PATH'] ?? '', PILOTO_RAIZ: repo, HOME: raiz },
-    })
-
-  it('copia lo integrado en main, no lo que la rama del carril tenga sin integrar, y anota de dónde salió', () => {
-    conMain()
-    writeFileSync(
-      join(repo, 'scripts/piloto/parar.sh'),
-      '#!/usr/bin/env bash\n# una versión vieja de la rama\n',
-    )
-    const r = arrancar()
-    expect(r.status, r.stderr).toBe(0)
-    expect(readFileSync(join(comun, 'bin/parar.sh'), 'utf8')).not.toContain('versión vieja')
-    expect(readFileSync(join(comun, 'bin.origen'), 'utf8').trim()).toBe(
-      execFileSync('git', ['rev-parse', 'origin/main:scripts/piloto'], {
-        cwd: repo,
-        encoding: 'utf8',
-      }).trim(),
-    )
-  })
-
-  it('--si-cambio no copia si main no cambió (0) y copia si cambió (10)', () => {
-    conMain()
-    expect(copiar().status).toBe(0)
-    expect(copiar('--si-cambio').status).toBe(0)
-    writeFileSync(
-      join(repo, 'scripts/piloto/parar.sh'),
-      '#!/usr/bin/env bash\n# versión nueva de main\n',
-    )
-    execFileSync('git', [...GIT, 'commit', '-qam', 'nueva'], { cwd: repo })
-    execFileSync('git', ['push', '-q', 'origin', 'HEAD:main'], { cwd: repo })
-    execFileSync('git', ['fetch', '-q', 'origin'], { cwd: repo })
-    const r = copiar('--si-cambio')
-    expect(r.status, r.stderr).toBe(10)
-    expect(readFileSync(join(comun, 'bin/parar.sh'), 'utf8')).toContain('versión nueva de main')
-    expect(() =>
-      execFileSync('sha256sum', ['-c', '--quiet', 'bin.sha256'], { cwd: join(comun, 'bin') }),
-    ).not.toThrow()
-  })
-
-  it('una copia de main sin bucle.sh no reemplaza a la que hay', () => {
-    conMain()
-    expect(copiar().status).toBe(0)
-    execFileSync('git', [...GIT, 'rm', '-q', 'scripts/piloto/bucle.sh'], { cwd: repo })
-    execFileSync('git', [...GIT, 'commit', '-qm', 'roto'], { cwd: repo })
-    execFileSync('git', ['push', '-q', 'origin', 'HEAD:main'], { cwd: repo })
-    execFileSync('git', ['fetch', '-q', 'origin'], { cwd: repo })
-    const r = copiar('--si-cambio')
-    expect(r.status).toBe(1)
-    expect(r.stderr).toContain('no trae bucle.sh')
-    expect(existsSync(join(comun, 'bin/bucle.sh'))).toBe(true)
   })
 })
 
@@ -255,51 +136,6 @@ describe('arrancar.sh › lo que lanza', () => {
     })
     expect(r.status).toBe(1)
     expect(r.stderr).toContain('claude')
-  })
-})
-
-describe('arrancar.sh › --si-caido (el vigía de systemd)', () => {
-  const registro = (linea: string) => {
-    mkdirSync(join(repo, '.piloto'), { recursive: true })
-    writeFileSync(join(repo, '.piloto/registro.md'), `- 2026-11-07T03:00:00-04:00 ${linea}\n`)
-  }
-
-  it('con el bucle caído y sin parada a propósito, cierra el tmux viejo y lo levanta', () => {
-    registro('paso 4.21 (opus, high, nueva 27a194c1).')
-    const r = arrancar('--carril', 'b', '--si-caido')
-    expect(r.status, r.stderr).toBe(0)
-    expect(r.stderr).toContain('no corría y nadie lo paró')
-    expect(tmux()).toContain('kill-session -t piloto-bucle-b')
-    expect(tmux()).toContain('new-session -d -s piloto-bucle-b')
-    expect(readFileSync(join(repo, '.piloto/registro.md'), 'utf8')).toContain(
-      'vigía: el bucle no corría',
-    )
-  })
-
-  it.each([
-    ['la persona dijo «parado»', 'parado por la persona en la compuerta de 4.24-3.'],
-    ['el carril terminó', 'carril b: el coordinador no tiene más pasos para este carril.'],
-    ['llegó a --hasta', 'llegamos a 4.21.'],
-  ])('no lo levanta si %s', (_c, linea) => {
-    registro(linea)
-    const r = arrancar('--carril', 'b', '--si-caido')
-    expect(r.status, r.stderr).toBe(0)
-    expect(tmux()).toBe('')
-  })
-
-  it('no lo levanta con PARAR ni con un bucle vivo (que tiene bucle.lock)', async () => {
-    registro('paso 4.21 (opus, high, nueva x).')
-    writeFileSync(join(repo, '.piloto/PARAR'), '')
-    expect(arrancar('--carril', 'b', '--si-caido').status).toBe(0)
-    expect(tmux()).toBe('')
-    rmSync(join(repo, '.piloto/PARAR'))
-    const vivo = spawn('flock', [join(repo, '.piloto/bucle.lock'), 'sleep', '3'], {
-      stdio: 'ignore',
-    })
-    await new Promise((seguir) => setTimeout(seguir, 300))
-    expect(arrancar('--carril', 'b', '--si-caido').status).toBe(0)
-    expect(tmux()).toBe('')
-    vivo.kill()
   })
 })
 

@@ -10,6 +10,10 @@
 #   copiar-bin.sh               copia siempre
 #   copiar-bin.sh --si-cambio   copia sólo si `origin/main:scripts/piloto` ya no es el de bin.origen; exit 10 si copió, 0 si no hacía falta
 # Un candado (`<común>/piloto/bin.lock`) evita que dos carriles la rehagan a la vez. Variables: las de comun.sh y PILOTO_COPIA_DESDE.
+#
+# Cada copia es una carpeta propia (`bin.<árbol>-<hora>`) y `bin` es un enlace a la vigente, que se cambia de una vez (`mv -T` de un enlace): nunca
+# hay un instante sin `bin/`, y un bucle que ya corre sigue con SU carpeta (comun.sh resuelve el enlace) hasta relanzarse, sin mezclar piezas
+# viejas en memoria con nuevas en disco. Las carpetas viejas se borran pasadas 24 h (ningún paso dura tanto).
 set -uo pipefail
 # shellcheck source=comun.sh
 source "$(dirname "${BASH_SOURCE[0]}")/comun.sh"
@@ -35,7 +39,7 @@ if [ "$SI_CAMBIO" = 1 ]; then
   [ "$(cat "$COMUN/bin.origen" 2>/dev/null)" = "$ORIGEN" ] && [ -s "$COMUN/bin/bin.sha256" ] && exit 0
 fi
 
-NUEVA="$COMUN/bin.nueva"
+NUEVA="$COMUN/bin.${ORIGEN:0:12}-$(date +%s)"
 rm -rf "$NUEVA"
 mkdir -p "$NUEVA"
 if [ "$ORIGEN" = arbol ]; then
@@ -54,10 +58,12 @@ done
 chmod a+x "$NUEVA"/*.sh 2>/dev/null
 (cd "$NUEVA" && sha256sum -- * >bin.sha256 2>/dev/null; grep -v ' bin.sha256$' bin.sha256 >bin.tmp && mv bin.tmp bin.sha256)
 chmod a-w "$NUEVA"/*
-chmod -R u+w "$COMUN/bin" 2>/dev/null
-rm -rf "$COMUN/bin"
-mv "$NUEVA" "$COMUN/bin"
+# La primera vez `bin` es una carpeta de antes: se aparta (un único instante sin copia, con el candado tomado).
+if [ -d "$COMUN/bin" ] && [ ! -L "$COMUN/bin" ]; then mv "$COMUN/bin" "$COMUN/bin.antes-$(date +%s)"; fi
+ln -sfn "$(basename "$NUEVA")" "$COMUN/bin.enlace" && mv -T "$COMUN/bin.enlace" "$COMUN/bin" || falta "no pude cambiar el enlace de la copia."
 printf '%s\n' "$ORIGEN" >"$COMUN/bin.origen"
+# Las copias viejas, pasadas 24 h (la vigente nunca).
+find "$COMUN" -maxdepth 1 -mindepth 1 -type d -name 'bin.*' ! -name "$(basename "$NUEVA")" ! -name 'bin.tar.*' -mmin +1440 -exec rm -rf {} + 2>/dev/null
 if [ "$ORIGEN" = arbol ]; then de="el árbol"; else de="origin/main (scripts/piloto ${ORIGEN:0:8})"; fi
 echo "copiar-bin: copia en $COMUN/bin ($(wc -l <"$COMUN/bin/bin.sha256") archivos, de $de)."
 [ "$SI_CAMBIO" = 1 ] && exit 10
