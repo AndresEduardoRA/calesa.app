@@ -21,6 +21,7 @@ import { carrerasDeOrigenes } from './carreras/origenes.mjs'
 import { carrerasDeTipos } from './carreras/tipos.mjs'
 import { carrerasDeTonos } from './carreras/tonos.mjs'
 import { carrerasDeNiveles } from './carreras/niveles.mjs'
+import { carrerasDePlantillas } from './carreras/plantillas.mjs'
 import { carrerasDeCotizaciones } from './carreras/cotizaciones.mjs'
 import { carrerasDeGuardar } from './carreras/cotizaciones-guardar.mjs'
 import { carrerasDeEncima } from './carreras/cotizaciones-encima.mjs'
@@ -332,6 +333,7 @@ try {
   await carrerasDeOrigenes({ orquesta, carrera, espero })
   await carrerasDeTipos({ orquesta, carrera, espero })
   await carrerasDeTonos({ orquesta, carrera, espero })
+  await carrerasDePlantillas({ orquesta, carrera, espero })
   await carrerasDeNiveles({ orquesta, carrera, espero, conectar, esperarBloqueo })
   await carrerasDeCotizaciones({ orquesta, carrera, espero, conectar, esperarBloqueo })
   await carrerasDeGuardar({ orquesta, carrera, espero, conectar, esperarBloqueo })
