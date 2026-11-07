@@ -211,12 +211,20 @@ export function duenoDe(plan, ruta, salvo) {
 }
 
 const PEDIDO_ABIERTO = new Set(['pendiente', 'asignado', 'publicado'])
+// asignado → integrado: el dueño lo cerró sin cambios (ya estaba hecho); sin esto el coordinador se lo volvía a dar sin fin.
 const TRANSICIONES_PEDIDO = {
   pendiente: ['asignado'],
-  asignado: ['publicado', 'pendiente'],
+  asignado: ['publicado', 'pendiente', 'integrado'],
   publicado: ['integrado', 'asignado'],
   integrado: [],
 }
+
+// Las rutas que protegen al piloto (las de la compuerta «guardas», scripts/piloto/cierre.sh). Un PR que las toca no se integra solo: la
+// copia del bucle sale de main y los tres carriles se recargan con ella, así que es la persona quien lo deja entrar.
+const GUARDAS =
+  /^(scripts\/piloto\/|scripts\/guardas\/|scripts\/candado\.sh$|\.claude\/settings[^/]*\.json$|\.claude\/hooks\/|\.claude\/agents\/|\.claude\/skills\/piloto|lefthook\.yml$|\.github\/workflows\/)/
+/** Las rutas de `rutas` que son guardas del piloto. */
+export const guardasEn = (rutas) => rutas.filter((r) => GUARDAS.test(r))
 
 /**
  * Anota un pedido del carril `de` (que espera en su paso `paso`). Uno abierto por paso: si ya hay, lo devuelve. Va al dueño de sus
@@ -238,6 +246,14 @@ export function pedir(
     plan.carriles.find((c) => c.base && c.id !== de)?.id
   if (!para) throw new Error(`no hay a qué carril pedirle lo del carril ${de}`)
   if (para === de) throw new Error(`el carril ${de} posee lo que pide: va en su paso`)
+  // Dos carriles que se esperan: el dueño está parado esperando a quien le pide, y ninguno llega a tomar el pedido del otro.
+  const inverso = pedidos.find(
+    (p) => p.de === para && p.para === de && PEDIDO_ABIERTO.has(p.estado),
+  )
+  if (inverso)
+    throw new Error(
+      `ciclo: el carril ${para} espera al ${de} (${inverso.id}); lo decide la persona`,
+    )
   const n = pedidos.reduce((m, p) => Math.max(m, p.n ?? 0), 0) + 1
   const pedido = {
     id: `pedido-${n}`,
@@ -330,8 +346,14 @@ export function siguiente(plan, estado, carril, { cuota = null, umbral = 0.8 } =
       retomar: true,
       arreglar: estado.pasos[roto.id].arreglar,
     }
+  // Un carril con sus pasos integrados sigue atento a los pedidos hasta que termine el plan entero (un bucle que sale no atiende ninguno).
   if (propios.every((p) => estado.pasos[p.id]?.estado === 'integrado'))
-    return { accion: 'terminado' }
+    return plan.pasos.every((p) => estado.pasos[p.id]?.estado === 'integrado')
+      ? { accion: 'terminado' }
+      : {
+          accion: 'esperar',
+          motivo: 'sus pasos están integrados: atiende pedidos hasta que el plan termine',
+        }
 
   const integrado = (id) => estado.pasos[id]?.estado === 'integrado'
   const pendientes = propios.filter((p) => estado.pasos[p.id]?.estado === 'pendiente')

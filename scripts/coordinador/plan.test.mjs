@@ -5,6 +5,7 @@ import {
   desfases,
   estadoInicial,
   fraccionDeCuota,
+  guardasEn,
   integraSolo,
   leerConsumo,
   leerPlan,
@@ -193,10 +194,13 @@ test('con la cuota sobre el umbral sólo avanza el camino crítico; en el tope, 
   assert.equal(siguiente(PLAN, e, 'datos', { cuota: null }).paso.id, 'P02')
 })
 
-test('terminado cuando todos los pasos del carril están integrados', () => {
+test('con sus pasos integrados, el carril espera pedidos hasta que termine el plan entero', () => {
   let e = estadoInicial(PLAN)
-  for (const id of ['P01', 'P02'])
-    e = marcar(marcar(marcar(e, id, 'asignado'), id, 'publicado', { pr: 1 }), id, 'integrado')
+  const integrar = (est, id) =>
+    marcar(marcar(marcar(est, id, 'asignado'), id, 'publicado', { pr: 1 }), id, 'integrado')
+  for (const id of ['P01', 'P02']) e = integrar(e, id)
+  assert.match(siguiente(PLAN, e, 'datos').motivo, /atiende pedidos hasta que el plan termine/)
+  for (const id of ['P03', 'P04', 'P05']) e = integrar(e, id)
   assert.deepEqual(siguiente(PLAN, e, 'datos'), { accion: 'terminado' })
 })
 
@@ -255,6 +259,44 @@ test('pedir: va al dueño más preciso de sus archivos, si no al base; uno abier
   )
   // El estado lo conserva al recargar el plan.
   assert.equal(estadoInicial(CON_BASE, r.estado).pedidos.length, 2)
+})
+
+test('pedir: dos carriles que se esperan son un ciclo, y un pedido se cierra sin cambios', () => {
+  let e = estadoInicial(CON_BASE)
+  e = pedir(CON_BASE, e, {
+    de: 'ui',
+    paso: 'P04',
+    texto: 'algo',
+    archivos: ['supabase/x.sql'],
+  }).estado
+  assert.throws(
+    () =>
+      pedir(CON_BASE, e, {
+        de: 'datos',
+        paso: 'P02',
+        texto: 'otra cosa',
+        archivos: ['scripts/guardas/registro-ui.ts'],
+      }),
+    /ciclo: el carril ui espera al datos \(pedido-1\)/,
+  )
+  e = marcarPedido(marcarPedido(e, 'pedido-1', 'asignado'), 'pedido-1', 'integrado', {
+    sin_cambios: true,
+  })
+  assert.equal(e.pedidos[0].estado, 'integrado')
+  assert.equal(siguiente(CON_BASE, e, 'datos').paso.id, 'P01') // cerrado: ya no se lo vuelve a dar
+})
+
+test('guardasEn: las rutas que protegen al piloto', () => {
+  assert.deepEqual(
+    guardasEn([
+      'scripts/piloto/bucle.sh',
+      'src/app/x.tsx',
+      '.github/workflows/ci.yml',
+      '.claude/skills/piloto/SKILL.md',
+      '.claude/skills/feature/SKILL.md',
+    ]),
+    ['scripts/piloto/bucle.sh', '.github/workflows/ci.yml', '.claude/skills/piloto/SKILL.md'],
+  )
 })
 
 test('siguiente: un pedido va antes que lo propio del carril, también entre partes de un paso asignado', () => {

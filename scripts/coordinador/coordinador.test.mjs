@@ -42,7 +42,7 @@ function repo() {
     `#!/usr/bin/env bash
 case "$1 $2" in
   "pr view") cat "${respuestas}/$3.json" ;;
-  "pr merge") echo "$3" >> "${respuestas}/merges"; echo '{"state":"MERGED"}' > "${respuestas}/$3.json" ;;
+  "pr merge") echo "$3" >> "${respuestas}/merges"; echo "$*" >> "${respuestas}/merges-args"; echo '{"state":"MERGED"}' > "${respuestas}/$3.json" ;;
   *) exit 2 ;;
 esac
 `,
@@ -197,5 +197,48 @@ test('un pedido: lo anota quien espera, lo toma el dueño antes que lo suyo y el
   assert.equal(readFileSync(join(respuestas, 'merges'), 'utf8').trim(), '41')
   const estado = JSON.parse(readFileSync(join(dir, '.git/coordinador/estado.json'), 'utf8'))
   assert.equal(estado.pedidos[0].estado, 'integrado')
+  assert.equal(JSON.parse(correr('siguiente', 'datos')).paso, 'P01')
+})
+
+test('integra el commit que vio el CI, y un PR que toca las guardas del piloto lo deja para la persona', () => {
+  const { correr, pr, respuestas } = repo()
+  correr('siguiente', 'ui')
+  correr('publicado', 'P02', '61')
+  pr(61, {
+    state: 'OPEN',
+    mergeable: 'MERGEABLE',
+    statusCheckRollup: verde,
+    headRefOid: 'abc123',
+    files: [{ path: 'scripts/piloto/bucle.sh' }, { path: 'src/app/x.tsx' }],
+  })
+  assert.match(
+    correr('sincronizar'),
+    /P02: #61 toca las guardas del piloto \(scripts\/piloto\/bucle\.sh\): lo integra la persona/,
+  )
+  pr(61, {
+    state: 'OPEN',
+    mergeable: 'MERGEABLE',
+    statusCheckRollup: verde,
+    headRefOid: 'abc123',
+    files: [{ path: 'src/app/x.tsx' }],
+  })
+  assert.match(correr('sincronizar'), /P02: integrado por el coordinador \(#61, verde\)/)
+  assert.match(
+    readFileSync(join(respuestas, 'merges-args'), 'utf8'),
+    /pr merge 61 --squash --delete-branch --match-head-commit abc123/,
+  )
+})
+
+test('cerrar-pedido: el dueño lo cerró sin cambios y no se lo vuelve a dar; pedido <id> lo muestra', () => {
+  const { correr } = repo()
+  correr('pedir', 'ui', 'P02', 'un índice', 'supabase/migrations/x.sql')
+  assert.equal(JSON.parse(correr('siguiente', 'datos')).paso, 'pedido-1')
+  assert.match(correr('cerrar-pedido', 'pedido-1', 'ya', 'estaba'), /cerrado sin cambios/)
+  assert.deepEqual(
+    (({ estado, sin_cambios, motivo }) => ({ estado, sin_cambios, motivo }))(
+      JSON.parse(correr('pedido', 'pedido-1')),
+    ),
+    { estado: 'integrado', sin_cambios: true, motivo: 'ya estaba' },
+  )
   assert.equal(JSON.parse(correr('siguiente', 'datos')).paso, 'P01')
 })
