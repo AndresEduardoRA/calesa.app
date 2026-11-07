@@ -905,3 +905,217 @@ con la recomendada) y plan aprobado antes de ejecutar. Nivel 1 con interfaz, sin
 - **Abiertos:** 4-99 nuevo; 4-73 medido; 4-85 vuelve a caer una vez; 4-96 suma que T13 cayó por el número.
 - **Commits:** `53eab5a1` (T13), `db378e41` («Copiar texto»), `2cdcab8c` («Descargar PDF» del modal) y `bc2c334c` (el enlace y la tarea de oro).
   e2e completo: sí (4.18-3b, hito 4-A, Nivel 2: escritorio, 980 en verde, 16 saltados, 6 sin correr, 2 caídas de 4-85 y 4-99 y 3 de 3 solas, 39,2 min)
+
+<!-- paso:4.20-2b -->
+
+## 2026-11-06 — Paso 4.20-2b: publicar el borrador con nota y revertir a una archivada, desde la pestaña «Fórmula»
+
+- **Hecho:** el 4.20-2b se partió en 4.20-2b (publicar y revertir) y 4.20-2c (descartar el borrador, con `<Confirmar>`: necesita del A un registro de `confirmar-con-url`). Este 4.20-2b: en Configuración › Cotización › «Fórmula», «Publicar…» en el borrador al día abre `?panel=publicar-formula` (nota validada antes de pedir, hasta 2.000 caracteres; `formula_publicar()` con la publicada que se leyó) y «Revertir» en cada archivada (de cualquier página, si hay publicada) abre `?panel=revertir-formula&version=<id>` con la nota escrita («Vuelve a la versión N.»; `formula_revertir()`). Las actions vuelven a mirar `cotizaciones.configurar` del origen; los PT409 de la base se muestran tal cual (sin «Recargá») con «Recargar», que conserva la nota; tras recargar, un borrador que ya no está o quedó atrasado no se publica. La URL se revisa al llegar; la lista vuelve a la primera página con otra publicada; cambiar de pestaña limpia `version`. Sin migración, sin RPC nueva, sin policy ni clave.
+- **Verificación** (`.piloto/salidas/4.20-2b/`): rojos guardados antes del código (publicar contra `bab8ade2`: `rojo-head-vitest-publicar.txt`, `rojo-head-e2e-publicar.txt`; revertir contra el commit de publicar: `rojo-head-vitest-revertir.txt`, `rojo-head-e2e-revertir.txt`); `nivel.mjs`: Nivel 1, interfaz (`nivel.txt`); `lint` y `typecheck` en verde; `pnpm test` 6.535 de 6.541: `auto-carriles.test.ts` (5, los carriles abiertos en la máquina, como en el 4.20-1 y el 4.20-2a) y T13 de `mapa.test.ts` por tiempo con la máquina en carga 19 (sola pasa, `mapa-test-sola.txt`); e2e dirigidos en escritorio y móvil (`e2e-dirigidos.txt`): 107 de 108 — cayó una vez `configuracion-cotizacion-niveles-casos.spec.ts:145` en móvil (dos «En uso» en la fila: `filaDeNivel` mira `tr, li` sin filtrar lo visible y la pantalla anterior quedó escondida en el DOM) y pasa sola (`e2e-niveles-casos-movil.txt`, 6 de 6); `cotizar-hoja.spec.ts -g «Falta publicar la fórmula»` en los dos (`e2e-dirigidos-hoja.txt`). Topes de nodos de la lista medidos de nuevo (`e2e-formula-medir-escritorio.json`: 121 y 3.001). Sin `db:probar` (no toca `supabase/`).
+- **Abiertos:** para el 4.20-2c, la esperada de `formula_descartar_borrador()` (pregunta con recomendación en `decisiones.md`) y el registro `confirmar-con-url-formula.ts` del A; para el A, la ficha de `cotizaciones` y `filaDeNivel` de `e2e/soporte/niveles.ts`, que puede ver dos filas (una escondida) en móvil.
+- **Commits:** `a1056ce5` (publicar el borrador de la fórmula con nota) y `fe322b89` (revertir la fórmula a una versión archivada).
+  e2e completo: no (4.20-2b, pantalla, 2 de 3)
+
+<!-- paso:4.20-2c -->
+
+## 2026-11-06 — Paso 4.20-2c: descartar el borrador de la fórmula con `<Confirmar>` por URL
+
+- **Hecho:** en Configuración › Cotización › «Fórmula», «Descartar…» en la tarjeta del borrador (al día y atrasado) abre `?panel=descartar-borrador`, un `<Confirmar>` que nombra el borrador (de quién es y cuándo se guardó) y llama `formula_descartar_borrador()` por la action `descartar-borrador.ts`, que vuelve a mirar `cotizaciones.configurar` del origen. Entró: «Se descartó el borrador.» y la pestaña sin él; la publicada no cambia. Lo que no entró queda en el diálogo. La URL se revisa al llegar («No hay borrador para descartar.»). El diálogo está en el registro `confirmar-con-url-formula.ts`. Sin migración, sin RPC nueva, sin policy ni clave. P1 y P2 las contestó la persona (`decisiones.md`).
+- **Verificación** (`.piloto/salidas/4.20-2c/`): rojos guardados contra `b0d2fa5d` antes del código (`rojo-head-e2e.txt`: no hay «Descartar…»; `rojo-head-vitest.txt`: 3 pruebas caen y 2 archivos no resuelven su módulo); `lint` y `typecheck` en verde; las pruebas del área y las guardas del registro (`verde-vitest-area.txt`); `pnpm test`: la primera corrida (`test.txt`) cayó también en la prueba del A de `confirmar-con-url-areas.test.ts`, que daba por vacío el registro de la fórmula; el paso paró en una compuerta `afuera` hasta que el A la arregló (`c3ec9a11`, PR #20), y la segunda (`test-2.txt`) sólo cae en `auto-carriles.test.ts` (5, los carriles abiertos en la máquina, como en los pasos anteriores del 4.20); las guardas y el área, 1.086 de 1.086 (`verde-vitest-guardas.txt`); e2e dirigidos en escritorio y móvil con `E2E_SIN_FUNCIONES=1` (`e2e-dirigidos.txt`): `configuracion-cotizacion-formula`, `-publicar`, `-revertir` y el nuevo `-descartar`, 31 de 31. Sin `db:probar` (no toca `supabase/`). Sin mutaciones (pantalla pura).
+- **Abiertos:** para el A, la ficha de `cotizaciones` y las excepciones de `datos.md`/`migraciones.md` (`decisiones.md`); la esperada de `formula_descartar_borrador()`, al 4.21.
+  e2e completo: no (4.20-2c, pantalla, 1 de 3)
+
+<!-- paso:4.20-3a -->
+
+## 2026-11-06 — Paso 4.20-3a: lo puro, la escritura y la lectura del ⚙ de una constante, sin pantalla
+
+- **Hecho:** el 4.20-3 se partió en tres (3a, 3b la pantalla del ⚙ de una constante, 3c el ⚙ de un tipo de cambio; `decisiones.md`). Este 3a deja, sin dibujar nada: `entities/formula/ajuste.ts` (qué nodos ajusta el ⚙ de una celda, la celda y su secundario; el valor tipeado, con un porcentaje en puntos que viaja como fracción y normalizado a 15 cifras como la XCell; el texto con que abre el campo); la action `features/formula/actions/cambiar-constante.ts` sobre `repositorioDeLaFormula.cambiarConstante` (`formula_cambiar_constante()` con la publicada esperada siempre; vuelve a mirar `cotizaciones.configurar` del origen; el 22023 con `hint = 'valor'` llega como `porCampo.valor`; **sin revalidar ni refrescar**, porque en Next 16.4.3 eso remonta la hoja desde la que se llama); y la lectura del valor por defecto desde el navegador (`infra/formula/consulta-del-valor-por-defecto.ts`, una fila por `formulas_publicada_unica`, por `areas/formula/composicion.client.ts`) con su hook `useValorPorDefecto` (el pedido que llega tarde no pisa al último). Nada de esto lo importa todavía una pantalla: lo usa el 4.20-3b. Sin migración, sin RPC, sin policy ni clave. El registro de `<Drawer>` que el 3b pide al A no está en `main` (`abd2ee3d`).
+- **Commits:** `7211e7b2` (las reglas puras), `4bdda372` (cambiar una constante sin revalidar la hoja), `a5b7618d` (leer el valor por defecto).
+- **Verificación** (`.piloto/salidas/4.20-3a/`): rojos guardados contra `4c595684` antes del código de cada commit (`rojo-head-vitest-{1,2,3}.txt`: no resuelven el módulo, o `cambiarConstante` no existe); verdes (`verde-vitest-{1,2,3}.txt`); diez mutaciones, las diez caen y los archivos vuelven idénticos (`mutaciones.txt`: M1–M5, M9–M12 y M10b, el `refresh()`); `lint` y `typecheck` en verde; `pnpm test` (`test.txt`): 6.620 en verde y sólo caen las 5 de `auto-carriles.test.ts` (los carriles abiertos en la máquina, como en los pasos anteriores del 4.20); e2e dirigidos en escritorio con `E2E_SIN_FUNCIONES=1` (`e2e-dirigidos.txt`): `configuracion-cotizacion-formula`, `-publicar`, `-revertir` y `-descartar`, 16 de 16; `mapa.sh --check` en verde; `saltadas.mjs 4c595684..HEAD`: 0 nuevas. Sin `db:probar` (no toca `supabase/`). Plan con dos auditorías (bloqueo y observaciones) e informe auditado.
+- **Abiertos:** para el A, el registro de `<Drawer>` del área y los textos de la ficha y de `datos.md` (`decisiones.md` › «Necesita del carril A»); P1–P4, al 4.20-3b.
+  e2e completo: no (4.20-3a, sin interfaz, Nivel 1: dirigidos de escritorio)
+
+<!-- paso:4.20-3b -->
+
+## 2026-11-06 — Paso 4.20-3b: la pantalla del ⚙ de una constante
+
+- **Hecho:** el ⚙ de una celda en la hoja nueva y en la guardada. Abre «Valor por defecto de <celda>» (`?ajuste=celda&nodo=`), que lee la publicada del origen y, por cada constante (la celda y el porcentaje de su par), dibuja el valor por defecto, lo que afecta, «Valor nuevo» (un porcentaje en puntos; con el Modo Live, un campo de contraseña) y «Aplicar también a esta cotización» si la celda se edita aquí; «Cambiar el valor por defecto» publica la N+1 con `formula_cambiar_constante()` y la publicada leída como esperada (P2). Un PT409 o la falta de red piden «Volver a leer», que conserva lo tipeado; la hoja no se vuelve a montar. Una celda de tipo de cambio dice que se cambia en Configuración › Empresa › Monedas (P3; su ⚙ es el 4.20-3c). El `Proveedor` del hueco es de servidor y pasa al navegador sólo el origen; el panel viaja con `diferido()`. El tope de nodos de la hoja se mide sin ⚙ (500) y con ⚙ (585), por P1. Las cinco decisiones (P1–P5) las contestó la persona con la recomendada; el registro de `<Drawer>` del área llegó a `main` (`73dd21e1`) y se integró en la rama (`2a067c30`).
+- **Commits:** `d394275f` (el estado del ⚙), `2fbde9e4` (el panel y su fila en `drawers-con-salida-formula.ts`), `f14b080a` (el ⚙ en la hoja, el spec nuevo y el tope de nodos) y `498841da` (lo que pidió la auditoría del informe en los e2e).
+- **Verificación** (`.piloto/salidas/4.20-3b/`): la partida sobre el merge, sin el `Proveedor` (`partida-js.txt`, `partida-nodos.txt`: 458,5 KB y 469/491 nodos); rojos contra el merge antes del código de cada commit (`rojo-head-vitest-{1,2,3}.txt`, `rojo-registro-2.txt`, `rojo-head-e2e-3.txt`: sin ⚙ que pulsar); verdes (`verde-vitest-{1,2,3}.txt`, `verde-registro-2.txt`); once mutaciones (M1–M11), las once caen y los archivos vuelven idénticos (`mutaciones.txt`); `vitest related` 36 de 36 y `scripts/guardas` 991 de 991; `lint` y `typecheck` en verde; `saltadas.mjs`: 0 nuevas. e2e dirigidos, 34 specs en escritorio y móvil (`dirigidos-e2e.txt`): 373 en verde y 6 caídas de tres specs (`cotizaciones-listado` E8, `cotizar-guardada-revisiones` «Ir a una fecha» y `cotizar-vista-previa`) porque a la base local del carril le faltaban 12 migraciones llegadas con `main` (el listado por lead, las revisiones por fecha, la tarjeta, la papelera); tras `pnpm db:reset`, esos tres y el spec nuevo en los dos proyectos, 62 de 62 (`r3-tras-reset.txt`); sobre HEAD, `cotizar-ajuste-constante` y `cotizar-hoja-200` en los dos proyectos, 28 de 28 (`r4-head.txt`). Plan e informe auditados (observaciones, atendidas). Sin `db:probar` (no toca `supabase/`).
+- **Abiertos:** para el A, el comentario «Hoy no hay» de `con-proveedor-de-la-hoja.tsx`, que `LugarDelAjuste` recuerde la última celda (pulido), exportar `normalizar` y `MARCAS_DE_GESTORES`, y el texto de la ficha (`decisiones.md` › «Necesita del carril A»); el ⚙ de un tipo de cambio, 4.20-3c.
+  e2e completo: no (4.20-3b, pantalla, 1 de 3)
+
+<!-- paso:4.20-3c -->
+
+## 2026-11-06 — Paso 4.20-3c: la lectura del tipo de cambio que nombra un nodo, sin pantalla
+
+- **Hecho:** `formula_tipo_cambio_del_nodo(p_formula, p_nodo)`, `security definer` (P1, la persona: «aprobar»): a quien gestiona los tipos de cambio y ve el nodo en esa versión (`_nodos_visibles()`), la fila de `tipos_cambio` que nombra un nodo `tipo_cambio`, con su `actualizado_en` exacto (la esperada de `tipo_cambio_guardar()`); un borrador, un nodo que no se ve, de otro tipo o que no existe, y una tarifa sin fila dan `null`. Entra al inventario de lo oculto como `recorta`, cubierta por T4. La lee el navegador con `leerTipoCambioDelNodo({ formulaId, nodo })` (composición del área `formula`; nada la monta todavía). Lo puro de «Valor nuevo» de un tipo de cambio: `tipoCambioTipeado()` y `textoInicialDeTipoCambio()` (`entities/formula/tipo-cambio.ts`). Sin pantalla: el ⚙ de un tipo de cambio es el 4.20-3d.
+- **Commits:** `368440f7` (lo puro del valor tipeado), `b5048570` (la función, sus pruebas, el inventario y `database.types.ts`), `26da337e` (la lectura desde el navegador) y el merge de `origin/main` `abd69301`.
+- **Verificación** (`.piloto/salidas/4.20-3c/`): rojos contra HEAD antes del código de cada commit (`rojo-head-vitest-1.txt`, `rojo-head-sql.txt`: T1–T9 sin la función, `rojo-registro.txt`: «sin registrar», `rojo-head-vitest-3.txt`); verdes (`verde-sql.txt`, `verde-registro.txt`, `verde-vitest-3.txt`); catorce mutaciones (M1–M14), las catorce caen y los archivos vuelven idénticos (`mutaciones.txt`); `db:reset`, `db:types` y `db:probar` entero (617 ✓, 0 ✗, `db-probar.txt`); `db:lint` sin avisos de la función nueva; `typecheck` en verde; `vitest related` 84 de 84 y `scripts/guardas` 994 de 994; `saltadas.mjs`: 0 nuevas. e2e dirigidos en escritorio (`empresa-tipos-cambio-guardado`, `cotizar-ajuste-constante`, `presupuesto-js`): 17 de 17 (`dirigidos-e2e.txt`). JS de `/cotizaciones/nuevo` 459 KB de 460 (458,6 al cerrar el 3b, antes del merge de `main` `8f34bd1b`): ningún texto ni la RPC nuevos llegan a un chunk del navegador (`js-chunks.txt`), así que la diferencia es del merge. Plan e informe auditados (observaciones las dos, atendidas). Se integró `origin/main` (`abd69301`) para el rojo heredado de T13 de `scripts/mapa.test.ts` (del merge `8f34bd1b`, también en el CI de la rama): en verde, y `scripts/guardas` 995 de 995.
+- **Abiertos:** para el A, la RPC en la ficha y exportar `valorTipeado` de `empresa` (`decisiones.md` › «Necesita del carril A»); la pantalla del ⚙ de un tipo de cambio, 4.20-3d; vigencia y vehículo obligatorio, 4.20-4.
+  e2e completo: no (4.20-3c, sin interfaz, Nivel 1 + cadena db: dirigidos de escritorio)
+
+<!-- paso:4.24-1a -->
+
+## 2026-11-06 — Paso 4.24-1a: la papelera propia de cotizaciones, en la base: enviar pide ver (4-68), enviar por lote con versión y la lista de lotes
+
+- **Hecho:** el 4.24 se partió en cuatro (4.24-1a y 4.24-1b la base; 4.24-2 la pantalla; 4.24-3 «Deshacer» en la guardada). Este 4.24-1a, sólo base.
+  Mandar una cotización a la papelera pide lo que pide guardarla: `_cotizacion_a_papelera()` mira si quien llama la ve **antes** de tomar la fila (lo que no
+  ve, lo inexistente y lo que ya está en la papelera dan el mismo 42501 «No tienes acceso a esta cotización.», también con `moderar`) y otra vez sobre la fila
+  tomada (`for no key update`), y el permiso de su clase (una preventa, `editar` o `moderar`; una final, `cotizaciones.final.gestionar` del origen, P3). La
+  genérica `papelera_enviar()` pasa por el mismo ayudante, todo o nada, con su firma, su retorno y sus textos salvo el de permiso, y su lote queda con el
+  resumen completo y su versión; `cotizacion_marcar_final()`, que la llama, ya no manda a la papelera una preventa que quien marca no ve (P9). Cierra 4-68.
+  `cotizaciones_papelera_enviar([{id, actualizado_en}])`, como la de vehículos: cada una en su bloque, `rechazados` con código y motivo (el título sólo de lo
+  que se ve) y el resto en un lote con su resumen y su versión. `cotizaciones_papelera_listar()` (por cursor, 6 hasta 51 lotes, 20 hasta 200 por lote) y
+  `cotizaciones_papelera_lote()`: sólo lotes de cotizaciones pendientes y con algo en la papelera (P8), todos con `cotizaciones.papelera.purgar` y los propios
+  sin ella; de cada cotización, número, título, clase, origen y fecha (P6). «Le queda alguna» es una sonda por lote, no un `exists` (decisiones). P1–P9 con
+  las recomendadas; la compuerta `datos`, aprobada.
+- **Verificación** (`.piloto/salidas/4.24-1a/`): rojos contra HEAD de las tres pruebas nuevas (`rojo-head-pide-ver.txt`: E7 quien edita sin ver la envía,
+  E5 una final se va con `editar`, E9 marcar la manda, E11 el texto viejo; `rojo-head-enviar.txt`, `rojo-head-listar.txt`: las funciones no existían);
+  14 mutaciones (20 corridas: M1 y M3 otra vez con `enviar.sql`, y las de la lista otra vez tras la sonda por lote) en `mutaciones.txt`, cada una cae donde dice el plan (M20, quitar la segunda mirada de ver, no la ve ninguna prueba de una sesión: equivalente,
+  va a la carrera del A; M21 tumba `auditoria-leads.sql` y `escala.sql`; M22 a M24, de las pruebas que pidió la auditoría del informe: E2, L7 y L6); `db:reset`, `db:types` y `db:probar` en cada commit (y el job `schema` de lefthook);
+  `db:lint` sin avisos en las funciones nuevas; `medir-escala.sql` 3 de 3 en verde sobre `db:sembrar-volumen` (`medir-escala-{1,2,3}.txt`): la RPC 0,9–2,5 ms;
+  la consulta de adentro, como la ve plpgsql, por `lotes_papelera_tipo_idx` sin recorrer tablas: Ana descarta 506 (tope 600), la dueña por el cursor del lote
+  400, 0; la forma con `exists` en el plan genérico, en `forma-explorar.txt`, y la de la sonda, en `forma-variante.txt` (la 1.ª corrida, con literales, se sobrescribió). `lint` y `typecheck` en verde; `pnpm test` 6.452 de 6.458:
+  `auto-carriles.test.ts` (5) cae porque lee los carriles que corren en la máquina (4-83) y `mapa.test.ts` T13 tardó 10.369 ms en la corrida entera y pasa sola en 3,2 s (4-96; `test-mapa-solo.txt`).
+  El completo de escritorio (`e2e-completo.txt`; sus carreras, «Todas las carreras en verde»): 944 en verde, 16 saltados y una caída, `cotizar-guardada-guardar.spec.ts:128` (4-90: la
+  versión llegó con cinco dígitos de microsegundos, `…53.69756+00:00`), y 3 sin correr, las seriales de ese archivo; solo, 3 de 3 en verde
+  (`e2e-guardada-guardar-sola-{1,2,3}.txt`). Ningún spec llama a lo que cambió.
+  e2e completo: sí (4.24-1a, base, Nivel 2: escritorio, 944 en verde, 16 saltados, 1 caída de 4-90 y 3 de 3 sola)
+- **Abiertos:** 4-68 cerrado en la propia y en la genérica; `marcar_final` es otra puerta (4.25, decisiones). Nuevos, en `decisiones.md`: lo que necesita del
+  carril A (las carreras de la espera del candado, `vehiculos_papelera_restaurar` contra los índices únicos, el catálogo, la ficha, el ESTADO y el `exists` de
+  las otras papeleras). 4-70 sigue para el 4.24-1b.
+- **Commits:** `bd1c2b2e` fix(db): pedir lo de guardar al mandar una cotización a la papelera · `dcae6566` feat(db): enviar cotizaciones a su papelera por
+  lote con versión · `330f0094` feat(db): listar por cursor la papelera de cotizaciones · `9e3e939b` test(db): fijar el 22023, la sonda y el lote vacío de la papelera
+  (lo que pidió la auditoría del informe) · y el de docs.
+
+<!-- paso:4.24-1b -->
+
+## 2026-11-06 — Paso 4.24-1b: la papelera propia de cotizaciones, en la base: restaurar sin el 23505 (4-70), purgar por lote y la purga automática
+
+- **Hecho:** sólo base, en tres commits. Restaurar: un ayudante restaura una a una; lo que choca con otra viva (una versión nueva, una final del vehículo),
+  cuelga de un vehículo o cliente en la papelera o es una final sin vehículo queda «pendiente» con su motivo y el resto vuelve (P5, P7, P12). Toma `for key
+share` los vehículos y después los leads del lote, por id, antes de cualquier cotización (el orden de quien los purga). `cotizaciones_papelera_restaurar()`
+  por lote con versión: quien lo envió o `cotizaciones.papelera.purgar`, mirado antes de tomar el lote (P10), sin mirar ver por cotización (P11). La genérica
+  `papelera_restaurar()` conserva firma, retorno y textos y es todo o nada, con PT409 y el motivo. Cierra 4-70. Purgar: un ayudante borra una a una con sus
+  hijas; lo que otra tabla necesita (un comprobante, 23001) queda bloqueado y sigue en la papelera (P4); las rutas de los adjuntos se encolan después del
+  borrado y por refcount. `cotizaciones_papelera_purgar()` pide la clave antes de mirar el lote; la genérica `papelera_purgar()` ya no aborta con una
+  bloqueada. La purga automática (`papelera_purgar_vencidos()`) suma los lotes de cotizaciones (una sonda por lote; el lote tomado con `skip locked`), y
+  `cotizaciones_adjuntos_ruta_idx` hace que el refcount de cada adjunto no recorra la tabla. P10–P12 con las recomendadas; la compuerta `datos`, aprobada.
+- **Verificación** (`.piloto/salidas/4.24-1b/`): rojos contra HEAD de las cuatro pruebas nuevas (`rojo-head-*.txt`; R7, PU5, PA1–PA3 por la conducta: el
+  23505 de `cotizaciones_encima_unica`, el 23001 del comprobante, el job que no mira cotizaciones); `medir-jobs.sql` en rojo sin el índice (`Seq Scan` del
+  refcount) y con el job de antes (purga leads y ninguna cotización). 27 mutaciones, las 27 caen donde dice el plan (`mutaciones.txt`); M10b, de la
+  auditoría del informe, también (`mutaciones-r9.txt`). Un recorrido de tres conexiones contra la base del carril (`carrera.mjs`): restaurar contra purgar
+  el vehículo (K1) o el lead (K2), sin interbloqueo; con el orden de antes (M6), 40P01 en las dos. `db:reset`, `db:types` y `db:probar` (547 en verde,
+  0 caídas; el job `schema` de lefthook en cada commit); `db:lint` sin avisos en las funciones nuevas; `db:carreras` en verde; `medir-jobs.sql` 3 de 3:
+  10.000 cotizaciones por corrida en 8.099, 9.207 y 8.276 ms (presupuesto 25.000). `lint` y
+  `typecheck` en verde; `pnpm test` 6.566 de 6.571 (las 5 de `auto-carriles.test.ts`, 4-83). El completo de escritorio (`e2e-completo.txt`): 962 en verde,
+  16 saltados, ninguna caída, 35,2 min; sus carreras, «Todas las carreras en verde». Ningún spec llama a lo que cambió.
+  e2e completo: sí (4.24-1b, base, Nivel 2: escritorio, 962 en verde, 16 saltados, 0 caídas)
+- **Abiertos:** 4-70 cerrado en la propia y en la genérica. Nuevos, en `decisiones.md` › «Necesita del carril A»: P12 (a), bloquear purgar un vehículo o un
+  lead que una cotización de la papelera nombra (y el 23514 de una final al purgar su vehículo); las carreras, con el riesgo del orden contra el job; el job y
+  sus 50 lotes que no se purgan; `documentos.ruta` sin índice; la deuda del ESTADO; la ficha.
+- **Commits:** `5ab0be07` feat(db): restaurar por lote la papelera de cotizaciones sin el 23505 · `61aa1a0c` feat(db): purgar por lote la papelera de
+  cotizaciones · `7009d3ce` feat(db): sumar las cotizaciones a la purga automática de la papelera · `9c1847c4` test(db): fijar que la genérica mire quién
+  antes de tomar el lote (lo que pidió la auditoría del informe) · y el de docs.
+
+<!-- paso:4.24-2 -->
+
+## 2026-11-06 — Paso 4.24-2: la pantalla de la papelera de cotizaciones, con restaurar, y su enlace junto a «Nueva cotización»
+
+- **Hecho:** pantalla pura, tres commits. `/cotizaciones/papelera`: los lotes por cursor (5 por página, con las primeras 20 de cada uno y «Mostrar los N» desde el
+  navegador), cada cotización con su número, clase, origen y fecha (nada de total, cliente ni vehículo: P4 a); «Restaurar» una por una o «Restaurar el lote»
+  (si quedan más de una), sin preguntar, y el aviso dice el resultado entero (lo pendiente con su motivo, hasta tres y «Y N más.»: P3 a). La abre quien puede
+  enviar a la papelera (`cotizaciones.editar|moderar|final.gestionar`) o vaciarla (`cotizaciones.papelera.purgar`: P2 a); restaura quien envió el lote o quien
+  puede vaciarla (P10 del 1b). Debajo del título dice, siempre, que las cotizaciones que se fueron con su vehículo vuelven al restaurar el vehículo, con el
+  enlace a la papelera de vehículos sólo para quien puede abrirla. El enlace «Papelera» antes de «Nueva cotización» en `/cotizaciones` (hueco `Junto`; Server
+  Component: ningún JS de más). **Sin purgar**: es el 4.24-2b. P2–P4 con las recomendadas; compuerta `datos`, «aprobar».
+- **Verificación** (`.piloto/salidas/4.24-2/`): rojos contra HEAD del módulo `lotes` y de los de `resultados`, `purga` y `acceso` (el módulo no existe:
+  `rojo-head-entities.txt`, `rojo-head-entities-2.txt`), del componente (`rojo-head-componentes.txt`), del registro de páginas con `listar.ts` y sin sus dos
+  entradas (`rojo-sin-registro.txt`: «agrégalas a scripts/guardas/paginas-en-la-base.ts»), del enlace (`rojo-head-enlace.txt`: `Junto` no está) y del e2e (`rojo-head-e2e.txt`:
+  E1 no halla el título, la ruta no existe). Verde: 37 de Vitest en `entities/papelera` y `features/papelera`, y las guardas de `scripts/guardas` **salvo un caso**: `paginas-en-la-base.test.ts` › «sin nada de la papelera, es el núcleo» cae desde el commit 1 (el registro de la papelera ya no está vacío) y lo arregla el A (`decisiones.md` › «Necesita del carril A», 0). e2e dirigidos en
+  `escritorio` y `movil` (`verde-e2e-6.txt`, 47 en verde): `cotizaciones-papelera.spec.ts` (E1 a E8), `cotizaciones-listado.spec.ts` y `presupuesto-js.spec.ts`. Medido
+  (E8): JS en frío de `/cotizaciones/papelera` 417,9 KB en 23 chunks (`/perfil` mide 417,2: casi todo es el marco); la página 1 con 5 lotes × 20 filas, 1.119 nodos
+  y 342.488 B con lotes de 21 y 1.119 nodos y 342.808 B con lotes de 200 (escritorio; en movil 341.956 y 342.296): no crece con el lote. Con la papelera vacía el
+  documento mide 91.005 B. `lint` y `typecheck` los corrió el hook de cada commit.
+  e2e completo: no (4.24-2, pantalla, Nivel 1: lo dirigido en escritorio y movil)
+- **Abiertos:** ninguno cierra. Nuevos, en `decisiones.md` › «Necesita del carril A»: **0 (bloqueante)** `paginas-en-la-base.test.ts` falla desde el commit 1
+  («sin nada de la papelera, es el núcleo»); el registro de `<Confirmar>` para el 4.24-2b; la ficha del módulo; el presupuesto de JS de la ruta; los textos
+  de purga repetidos; `RUTAS`. Para un paso de base del C, si la persona lo pide: P3 (el motivo de lo pendiente en el lote) y P4 (los ids del cliente y del vehículo).
+- **Commits:** `8a90385e` feat(cotizaciones): leer por cursor la papelera de cotizaciones · `d348c9c7` feat(cotizaciones): dibujar la papelera de cotizaciones con
+  restaurar · `ea6cca4c` feat(cotizaciones): enlazar la papelera desde el listado · y el de docs.
+
+<!-- paso:4.24-2b -->
+
+## 2026-11-06 — Paso 4.24-2b: purgar desde la papelera de cotizaciones, con `<Confirmar>` por su URL
+
+- **Hecho:** pantalla pura, dos commits de código. Con `cotizaciones.papelera.purgar`, «Purgar» en cada cotización (después de «Restaurar») y «Purgar el lote» si
+  quedan más de una. Abren un `<Confirmar>` montado una vez, con su URL `?panel=purgar&lote=<id>[&cotizacion=<id>]` (registrado en
+  `scripts/guardas/confirmar-con-url-papelera.ts`, el pedazo que abrió el A en `2f87361d`). El diálogo nombra lo que se borra: una, por su título; un lote de N, hasta
+  cinco títulos y «y K más», y pide tipear «purgar N». La action pide la clave antes de llamar a `cotizaciones_papelera_purgar`; la base la vuelve a pedir.
+  Lo que la base rechaza se dice en el diálogo: un conflicto apaga el botón y ofrece «Recargar». El resultado va en el aviso: lo purgado y lo bloqueado con su
+  motivo, como una final con comprobante. La URL que no abre avisa y se limpia: sin la clave, un lote que no está en la página o una cotización de otro lote.
+  La cabecera con la clave suma «, o antes si lo purgas». Arrancó tras la compuerta `afuera` (P1): se esperó el registro del A, «Aprobar y esperar al A».
+- **Verificación** (`.piloto/salidas/4.24-2b/`):
+  - Rojos contra HEAD: `rojo-head-entities.txt` (12 de `purga`, `resultados` y la action, que no existían), `rojo-head-pantalla.txt` (`url` no existe;
+    «Purgar» y el texto de la cabecera no están), `rojo-sin-registro.txt` (la guarda pide la fila de `confirmar-purga.tsx`) y `rojo-head-e2e.txt` (P1, con lo nuevo de
+    `src/` apartado: la cabecera no tiene el texto).
+  - Verde: `verde-commit1.txt` (58 de Vitest) y `verde-commit2-vitest.txt` (1.059 de `entities/papelera`, `features/papelera` y `scripts/guardas`).
+  - e2e dirigidos en `escritorio` y `movil`: `e2e-dirigidos.txt`, 24 en verde y E8 rojo por el tope de bytes; tras fijar el tope, `e2e-e8.txt`, E8 en verde en los dos.
+    Son `cotizaciones-papelera-purgar.spec.ts` (P1 a P5) y `cotizaciones-papelera.spec.ts` (E1 a E8).
+  - Medido (E8, con la dueña): JS en frío 424,5 KB en 23 chunks (presupuesto 440); página 1, 1.329 nodos. Bytes: 451.595 con lotes de 21 y 451.973 con lotes de 200
+    (escritorio; en movil, 451.084 y 451.504). No crece con el lote. `lint` y `typecheck` los corrió el hook de cada commit.
+    e2e completo: no (4.24-2b, pantalla, Nivel 1: lo dirigido en escritorio y movil)
+- **Abiertos:** ninguno nuevo de código. 4-68 y 4-70 ya los cerraron el 4.24-1a y el 4.24-1b en la base (`decisiones.md` › «Para el coordinador»).
+- **Commits:** `96bd2299` feat(cotizaciones): purgar un lote de la papelera por su action · `971193e2` feat(cotizaciones): confirmar la purga de la papelera por
+  su url · y el de docs.
+
+<!-- paso:4.20-3d -->
+
+## 2026-11-07 — Paso 4.20-3d: la pantalla del ⚙ de un tipo de cambio
+
+- **Hecho:** el ⚙ de una celda de tipo de cambio abre «Tipo de cambio de <celda>» (P3). En la hoja nueva lee la fila que nombra el nodo (`useTipoCambioDelNodo` sobre `leerTipoCambioDelNodo` del 4.20-3c, el último pedido gana), dice «Valor de hoy» por `<Monto>` con `decimalesDeTipoCambio()` y lo que afecta, y «Valor nuevo» (con el Modo Live, contraseña con las marcas de los gestores: P4) manda a `guardarTipoCambio` de `@/modules/empresa/client` sólo `{ id, actualizadoEnEsperado, valor }` (`useAjusteDeTipoCambio`). PT409 y sin red piden «Volver a leer» sin perder lo tipeado; el valor de hoy no se pide. Con la respuesta buena avisa «Cambiaste el tipo de cambio <nombre> para toda la empresa.» y cierra; la revalidación de la action vuelve a abrir la hoja con el valor nuevo y lo tipeado vuelve con el borrador (P2). Sin fila o desactivado, dice dónde se cambia. En una guardada, el texto de Monedas y «Esta cotización conserva el tipo de cambio con que se guardó.», sin lectura (P1). Las marcas de los gestores quedan en `marcas-de-gestores.ts`, para las dos.
+- **Commits:** `56626a72` (el estado: los dos hooks y lo puro), `a618a1f1` (el panel, sus pruebas y E5 del spec de la constante), `fc80fde8` (`e2e/cotizar-ajuste-tipo-cambio.spec.ts`).
+- **Verificación** (`.piloto/salidas/4.20-3d/`): JS de partida sobre `7e26f609` (`partida-js.txt`: `/cotizaciones/nuevo` 459 de 460, `/cotizaciones/[id]` 438,2 de 448). Rojos contra HEAD antes del código: `rojo-head-vitest-1.txt` (sin la función ni los hooks), `rojo-head-vitest-2.txt` (12 rojos del panel), `rojo-head-e2e.txt` (E5 de la constante y E1 del spec nuevo, escritorio). Verdes: `verde-vitest-1.txt` (30), `verde-vitest-2.txt` (80 en `features/formula/`), `vitest-related.txt` (58), `guardas.txt` (995), `typecheck.txt`, `saltadas.txt` (0 nuevas). e2e en escritorio (`dirigidos-escritorio.txt`: constante 8 de 8, `empresa-tipos-cambio-guardado` y `presupuesto-js` en verde, JS igual a la partida; E1 cayó por una afirmación del spec, «7,80» en una celda `raw` que dice «7,8», corregida y otra vez sobre el mismo build: `tipo-cambio-escritorio.txt`, 4 de 4, y con el tope de bytes, `tipo-cambio-escritorio-tope.txt`) y en movil (`dirigidos-movil.txt`: 12 de 12). Tras cambiar el tipo de cambio el panel queda cerrado y hay una sola lectura.
+- **Abiertos:** para el A, las fichas, exportar de `empresa` lo que el área copia y el texto del botón ⚙ (`decisiones.md` › «Necesita del carril A»); vigencia y vehículo obligatorio, 4.20-4 (A).
+  e2e completo: no (4.20-3d, pantalla, 1 de 3)
+
+<!-- paso:4.20-4 -->
+
+## 2026-11-07 — Paso 4.20-4: la vigencia y el vehículo obligatorio pasan al A
+
+- **Hecho:** sin código. Hoy nada escribe la vigencia ni el vehículo obligatorio de `ajustes_empresa`, y escribirlos pide una RPC nueva y código en `empresa`, del carril A. El B deja el plan del A versionado (`docs/pasos/4.20-4/plan-del-a.md`: 4.20-4a, la base, la regla y la action; 4.20-4b, el formulario y la pestaña «Ajustes») y las decisiones de la persona (P1, P2, P5 y P6, las recomendadas) en `decisiones.md`. El plan se auditó dos veces: la 1.ª bloqueó porque el plan del A sólo vivía en `.piloto/`, que no se versiona; la 2.ª dejó observaciones, atendidas.
+- **Aviso:** antes de integrar el PR de `b/4.20`, sumar el 4.20-4a y el 4.20-4b a `docs/plan.yaml` y cambiar el `terminado` del 4.20 (`decisiones.md` › «Cómo se anota»): al fusionarse, el 4.20 se anota integrado solo y libera el 4.21.
+- **Verificación:** `bash scripts/mapa.sh --check` (sin código, sin pruebas que correr).
+- **Abiertos:** todo el 4.20-4 (A), y los siete abiertos del `terminado` del 4.20 (`decisiones.md` › «Necesita del carril A»).
+  e2e completo: no (4.20-4, notas, sin código)
+
+<!-- paso:4.19-1 -->
+
+## 2026-11-07 — Paso 4.19-1: la versión esperada de la plantilla de la tarjeta, en la base
+
+- **Hecho:** el 4.19 se partió en cuatro (4.19-1 la base; 4.19-2 `validarPlantilla()` de TS; 4.19-3 el editor; 4.19-4 la vista previa en vivo). Este 4.19-1, sólo base.
+  `plantilla_guardar_borrador(p_origen, p_actualizado_en_esperado, p_def, p_nota)` devuelve la versión nueva: con la esperada nula **crea** (si ya hay borrador, PT409 «Ya hay
+  un borrador de esta plantilla, guardado hace 2 min.»; nunca pisa); con la esperada, un borrador de otra versión da PT409 «El borrador de esta plantilla cambió hace 2 min,
+  mientras lo editabas.» (sin nombre: P1). `plantilla_publicar(p_origen, p_actualizado_en_esperado, p_nota)` pide la versión (la nula, la excepción de `_exigir_version`, sin
+  PT409) y una nota (22023 «Publicar pide una nota.», hint `nota`; P4) y sigue devolviendo `uuid` (con `jsonb` el inventario de `cotizaciones-visibilidad.sql` la daría por
+  «sin registrar»). `plantilla_descartar_borrador(p_origen, p_actualizado_en_esperado)` nace con su versión (P2). Las tres, tras el permiso (`cotizaciones.configurar` del origen,
+  P3) y lo que se rechaza sin mirar el estado, toman `pg_advisory_xact_lock(hashtextextended('plantillas:' || origen, 0))` y leen el borrador `for update`; sin borrador
+  y con esperada, `_plantilla_borrador_ausente()` da PT409 «El borrador ya no está: la versión N se publicó …» o «…: se descartó.». La regla de `.claude/rules/migraciones.md`
+  pierde la excepción de la plantilla, escribe el caso «esperada nula = crear» y suma lo que dejó el B (4.20-1: `p_publicada_esperada` de la fórmula; `formula_guardar_borrador`
+  «hasta el 4.21»); `docs/COTIZADOR.md` › «Versiones de la plantilla (4.19-1)». P1–P6 con las recomendadas (compuerta `producto`/`datos`).
+- **Lo que midió HEAD, y no es lo que decía la fila de PLAN:** dos publicaciones a la vez **no** daban el 23505 de `plantillas_publicada_unica`. Publicar no hace ningún
+  `insert`, sólo dos `update … where id =`: la segunda esperaba la fila de la primera, la volvía a mirar por id y publicaba también, pisando su nota (K1 en HEAD: las dos
+  `ok`, la publicada v2 con la nota «Pierde B»). Dos crear y dos guardar con la misma versión: B pisaba el borrador de A (K2, K4); guardar mientras se publicaba creaba un borrador
+  nuevo (K3).
+- **Verificación** (`.piloto/salidas/4.19-1/`): rojos contra HEAD (`rojo-head-probar.txt`: T1, T2, T3 y T5 con 42883; `rojo-head-probar-descartar.txt`: T4 y T5;
+  `rojo-head-carreras.txt`: K1–K4); `db:reset`, `db:types` y `db:probar` en cada commit (623 ✓, sin ✗); `db:lint` sin avisos en las funciones nuevas; `db:carreras` con las cinco
+  nuevas en verde (`verde-carreras.txt`; en cada una B espera el candado de A); 12 mutaciones, cada una cae donde dice el plan (`mut-*.txt`: M1 K2 con 23505; M2 K1; M3 T2 y K4;
+  M4 T1 y K2; M5 T3; M6 T2, T3 y T4; M7 T3; M8 T5 y `privilegios-de-anon.sql`; M9 «sin registrar: plantilla_publicar»; M10 T4; M11 K5; M12, de la auditoría del informe: abrir la
+  ayudante a `authenticated` cae en T5); `pnpm lint`, `pnpm typecheck` y `scripts/guardas` (996) en verde; los e2e `cotizar-vista-previa` y `cotizar-pdf` en escritorio (16 en
+  verde) son humo: ningún spec llama a las RPC. Informe auditado: observaciones, atendidas en un `fix`.
+  e2e completo: no (4.19-1, base, Nivel 1 + cadena db + db:carreras: lo dirigido en escritorio es humo; el completo lo corre el CI del PR por la migración)
+- **Abiertos:** ninguno nuevo. 4-64: `scripts/carreras.mjs` 357 → 359. Lo que el B dejó para el A (4.20-1): la ficha y la regla, hechas aquí.
+- **Commits:** `203c56ec` feat(db): pedir la versión esperada al guardar y publicar la plantilla · `f7d2868b` feat(db): descartar el borrador de la plantilla con su versión ·
+  `2d271102` test(db): sumar las carreras de la plantilla de la tarjeta · `7a7c3ddb` test(db): vigilar los privilegios de la ayudante de la plantilla (el `fix` de la auditoría
+  del informe) · y el de docs.

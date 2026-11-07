@@ -31,5 +31,6 @@ describe('mapa.sh › la API de un módulo que reexporta por área', () => {
     expect(resto).toBeGreaterThanOrEqual(77)
     expect(cliente).toContain('`useLectorDeOpciones`')
     expect(cliente).not.toContain('* ./')
-  })
+    // `mapa.sh` entero tarda 2,3 s en reposo y 5,1 con la máquina cargada (4-96: 5.088 ms de los 5.000 de Vitest): el tope es de esta prueba, no de la suite.
+  }, 30_000)
 })

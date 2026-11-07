@@ -181,3 +181,34 @@ describe('bucle.sh › la compuerta de producto se contesta sola con las recomen
     expect(a.secuencia()[0]).toBe('decidir:abrir parada 4.99')
   })
 })
+
+// La persona, 2026-11-07: el C esperó 1 h 15 min un atasco del 4.25. Uno por paso; el segundo del mismo paso sí la espera.
+describe('bucle.sh › un atasco se contesta solo una vez por paso', () => {
+  const AUTO = { PILOTO_AUTO: 'producto,datos,guardas,atasco' }
+
+  it('el primero se contesta con la recomendada, queda anotado y el paso se retoma', () => {
+    a.paso(1, pasoCompuerta('atasco'))
+    a.paso(2, pasoListo({ 'src/a.ts': 'a' }))
+    const r = a.correr(['--hasta', '4.99'], AUTO)
+    expect(r.estado, r.salida).toBe(0)
+    expect(a.secuencia().some((l) => l.startsWith('decidir:'))).toBe(false)
+    expect(a.llamadas('paso')[1]).toContain('--resume')
+    expect(r.salida).toContain(
+      'compuerta atasco (4.99) contestada sola con la recomendada: aprobar',
+    )
+    expect(a.estado('decisiones-automaticas.md')).toContain('compuerta atasco (contestada sola)')
+  })
+
+  it('el segundo del mismo paso va a la persona', () => {
+    a.paso(1, pasoCompuerta('atasco'))
+    a.paso(2, pasoCompuerta('atasco'))
+    a.decidir(1, responder('parar'))
+    a.correr([], AUTO)
+    expect(a.secuencia()[0]).toBe('decidir:abrir atasco 4.99')
+    expect(a.llamadas('paso')).toHaveLength(2)
+  })
+
+  it('por omisión (PILOTO_AUTO sin definir) atasco está entre los que se contestan solos', () => {
+    expect(a.leerBin('compuerta.sh')).toContain('${PILOTO_AUTO-producto,datos,guardas,atasco}')
+  })
+})

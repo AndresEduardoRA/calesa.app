@@ -162,7 +162,8 @@ for (const texto of ['al 100 %', 'al 200 %']) {
     }
     await ir(page, origen.id)
     await tipearEnLaHoja(page, 'pub', '1200')
-    await expect(totalDeLaHoja(page)).toContainText('1.205,00')
+    // El total llega del recálculo del servidor: con la máquina cargada superó los 5 s de siempre (4-86). Mismo tope que `alDia()` (`soporte/cotizar-vista-previa.ts`).
+    await expect(totalDeLaHoja(page)).toContainText('1.205,00', { timeout: 15_000 })
     // 4-50 (4.14-3b): con las dos barras encima de la hoja (vehículo y cliente) y la página arriba de todo, cuánto queda el borde de abajo del resumen bajo el de la ventana. Sólo se informa.
     await page.evaluate(() => {
       window.scrollTo(0, 0)

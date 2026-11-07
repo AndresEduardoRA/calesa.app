@@ -101,9 +101,9 @@ test('E2E con otra versión publicada: «Cotizar encima» crea la versión 2 y l
     'Esta cotización usa la versión 1; la de hoy es la 2.',
   )
   await botonEncima(page).click()
-  await expect(page).toHaveURL(/\/cotizaciones\/[0-9a-f-]{36}$/)
+  // La URL de la página de antes ya cumple `/cotizaciones/<uuid>`: lo que espera es que la action haya escrito la nueva (4-85), y recién entonces se lee su id.
+  await expect.poll(() => encimaDe(anterior)).not.toBe('')
   const nueva = encimaDe(anterior)
-  expect(nueva).not.toBe('')
   await expect(page).toHaveURL(new RegExp(`/cotizaciones/${nueva}$`))
   const numero = numeroDeLaCotizacion(nueva)
   await expect(page.getByText(`Versión 2 creada (n.º ${numero}).`)).toBeVisible()

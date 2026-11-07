@@ -198,7 +198,7 @@ motor lo ignora; otro nodo con `texto` es `forma`.
 
 ### El editor (4.21-1)
 
-Lo puro de «cada fila se edita en texto», en `entities/formula/` (sin pantalla ni base; la pantalla es del 4.21-3a). Todo es puro, nunca lanza, no toca lo que recibe y es
+Lo puro de «cada fila se edita en texto», en `entities/formula/` (sin pantalla ni base; la pantalla es del 4.21-3a, abajo). Todo es puro, nunca lanza, no toca lo que recibe y es
 lineal con el medidor; `compilarExpresion()` no cambia.
 
 - **Fila y auxiliares** (`filas.ts`, `filasDe()`): una fila es un nodo que no es auxiliar de otra. Las auxiliares de una fila con `texto` son los k nodos de justo antes
@@ -213,6 +213,7 @@ lineal con el medidor; `compilarExpresion()` no cambia.
   fila queda `reescrito`; si no (no compila, otra estructura, un negativo, un `-0`), `no_manda` con su motivo. Un negativo no se escribe por decisión. Recompilar una fila `no_manda`
   que cambia o quita una constante da `pisa_un_valor` hasta que llega `confirmaPisar`: nunca se deshace un ⚙ en silencio.
 - **Las filas sembradas** no traen texto: `textoDeNodo()` lo escribe desde el nodo (`a+b+c`, `SI(b; x)`, sin el «=») sólo si compilarlo da exactamente ese nodo; si no, `null` y la fila se muestra por sus campos.
+- **La pantalla** (4.21-3a-1, `features/formula/components/editor/`, `?panel=editar-formula`): lee la definición del borrador o de la publicada desde el navegador, muestra cada fila con `textoVigente()` / `textoDeNodo()` (o por sus campos), compila al aplicar con `compilarFila()` (sin llamar a `validarFormula()` en un error de la fila: 4-6), valida la fórmula de trabajo tras cada cambio (el rechazo, en su fila) y guarda lo aplicado en la pestaña; nada va a la base hasta el 4.21-3b.
 
 ## Tipos de cambio y modos (D7, H1)
 
@@ -294,8 +295,18 @@ update` y los tonos de sus grupos `for key share`, valida fórmula y diseño com
   la publicada no tiene `publicado_en`. Una esperada en un origen sin publicada: «La versión que tenías ya no es la publicada, y el
   origen no tiene otra.». Estos PT409 se muestran tal cual (sólo nombran a una persona, una versión y cuándo).
 - **Dónde se ven** (4.20-2a): la pestaña «Fórmula» de Configuración › Cotización lee la publicada, el borrador (atrasado si su versión de origen ya no es la publicada) y las versiones por cursor, por PostgREST y sin lo oculto (`docs/UX.md` › «Cotización: fórmula (estados propios)»). Desde ahí se publica el borrador con nota y se revierte a una archivada (4.20-2b), por `formula_publicar()` y `formula_revertir()` con la publicada que se leyó; sus PT409 se muestran tal cual. Descartar el borrador: 4.20-2c.
-- **Pendiente:** la versión esperada de `formula_guardar_borrador()` va con el editor (4.21); las carreras mixtas (⚙ contra publicar el
-  borrador, revertir contra ⚙) las suma el carril A.
+- **La versión esperada del borrador (4.21-2, 4-8):** guardar, descartar y publicar el borrador toman el mismo candado del origen,
+  después del permiso (42501 antes de cualquier PT409) y, en guardar, de la validación. `formula_guardar_borrador(…, nota,
+publicada_esperada?, actualizado_en_esperado?)` **sin hora crea**: si ya hay borrador, PT409 «Ya hay un borrador: lo empezó Ana y se
+  guardó hace 2 min.» («lo empezaste tú», «lo empezó otra persona»); si la publicada esperada ya no es la publicada, PT409 «Mientras
+  editabas, Ana publicó la versión 4 hace 2 min.». **Con hora pisa** sólo si es la del borrador (la publicada no se compara: publicarlo
+  atrasado da su PT409) y devuelve `{id, actualizado_en}` de la fila escrita, con el que se vuelve a guardar sin releer.
+  `formula_descartar_borrador(origen, actualizado_en_esperado?)` y `formula_publicar(…, publicada_esperada?, actualizado_en_esperado?)`
+  con hora: si cambió, PT409 «El borrador cambió después de que lo abriste: se guardó de nuevo hace 2 min.»; si ya no está, «El borrador
+  que abriste ya no está: se publicó o se descartó.» (publicar mira primero la publicada esperada). Sin hora, como antes (descartar el
+  que haya; publicar el que haya o «No hay borrador»): la app la manda desde el 4.21-3b. Una excepción a `migraciones.md`, aprobada (P1).
+- **Pendiente:** las carreras mixtas (⚙ contra publicar el borrador, revertir contra ⚙, dos que crean el primer borrador a la vez) las
+  suma el carril A.
 
 ## Niveles de acceso (D7, H3 y H4)
 
@@ -590,9 +601,28 @@ DETAIL y el `donde` en HINT; el primer rechazo manda, en este orden: `forma` (la
 `nodo_inexistente` y `nodo_sin_lugar` (una clave de `etiquetas`/`leyendas` es un miembro de un grupo, el total o lo aparte de `tarjeta_total`),
 `nodo_restringido` (un miembro, el total o lo aparte sin `ver: todos` en la visibilidad compilada; **no figurar cuenta como restringido**) y, con
 `columnas.tipo_cambio`, `tipo_de_cambio_restringido` (el tipo de cambio del bucket de un grupo, por omisión o en un modo). Con `def` nulo, sólo la
-forma. Juego común: `entities/plantilla/casos-de-plantilla.json` (lo corre `plantilla-validar.sql`; lo correrá `validarPlantilla()` de TS, 4.19).
+forma. Juego común: `entities/plantilla/casos-de-plantilla.json` (lo corre `plantilla-validar.sql`; lo correrá `validarPlantilla()` de TS, 4.19-2).
 `plantilla_guardar_borrador` valida la forma; `plantilla_publicar`, contra la fórmula **publicada** del origen y los tonos del catálogo, antes de
 archivar nada (sin fórmula publicada, `formula_sin_publicar@origen`). La tabla la lee sólo quien tiene `cotizaciones.configurar` del origen.
+
+### Versiones de la plantilla (4.19-1)
+
+Guardar el borrador, publicarlo y descartarlo piden la versión que se vio en pantalla (`plantillas_tarjeta.actualizado_en`, como texto: un `Date` pierde los
+microsegundos) y pasan en serie por un candado por origen (`pg_advisory_xact_lock(hashtextextended('plantillas:' || origen, 0))`), tomado tras el permiso
+(`cotizaciones.configurar` del origen) y lo que se rechaza sin mirar el estado, y antes de leer el borrador `for update`. Sin el candado, dos publicar a la
+vez publicaban las dos (el segundo `update … where id =` esperaba la fila del primero, la releía y pisaba su nota; no daba 23505).
+
+- `plantilla_guardar_borrador(p_origen, p_actualizado_en_esperado, p_def, p_nota default null) returns timestamptz` (la versión nueva). **Esperada nula = crear**:
+  sin borrador lo inserta; con borrador, PT409 «Ya hay un borrador de esta plantilla, guardado hace 2 min.» y nada cambia. Con la esperada, un borrador de otra
+  versión da PT409 «El borrador de esta plantilla cambió hace 2 min, mientras lo editabas.» (sin nombre: la tabla no guarda quién). La forma se valida antes del candado.
+- `plantilla_publicar(p_origen, p_actualizado_en_esperado, p_nota) returns uuid` (sigue en `uuid`: una función que devuelve `jsonb` y lee `public.formulas` cae
+  en el inventario de lo oculto de `cotizaciones-visibilidad.sql`). Esperada nula: la excepción de `_exigir_version()`, sin PT409. Nota en blanco: 22023
+  «Publicar pide una nota.» (hint `nota`). Después, lo de siempre (valida contra la fórmula publicada y los tonos; un rechazo no archiva nada).
+- `plantilla_descartar_borrador(p_origen, p_actualizado_en_esperado) returns void`: borra el borrador de esa versión; otra versión, PT409.
+- **Sin borrador y con esperada** (`_plantilla_borrador_ausente()`), PT409: «El borrador ya no está: la versión 3 se publicó hace un momento.» si la publicada
+  tiene `publicado_en >= esperada`; si no, «El borrador ya no está: se descartó.».
+- Dentro de una transacción `now()` no se mueve (el trigger genérico): una esperada «vieja» es la de la fila menos 1 µs en `db:probar`; que guardar mueve la
+  versión entre transacciones lo prueban las carreras (`scripts/carreras/plantillas.mjs`).
 
 ### La lectura de la tarjeta (4.18-1)
 

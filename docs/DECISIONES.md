@@ -2148,3 +2148,347 @@ Lo pidió la persona después de que el A hiciera el 4.16 y el 4.17-1: se parti�
   `leads-recorrido-cierre-2.spec.ts:213` (nueva, 4-99). Con la tarea de oro 2 verde hasta el PDF en los dos proyectos, se cotiza de punta a punta con su PDF: el hito se anota.
   El CI del PR lo confirma.
 - **T13 del mapa se sube en el mismo commit que el barril** (commit `fix(ci)` aparte, heredado del 4.18-3a): la ficha de `cotizaciones` lo dice en «Áreas».
+
+<!-- paso:4.20-2b -->
+
+## 2026-11-06 — Paso 4.20-2b
+
+- **El 4.20-2b se parte otra vez:** 4.20-2b (publicar el borrador con nota y revertir a una archivada) y 4.20-2c (descartar el borrador). Descartar es irreversible y `ui.md` lo pide como `<Confirmar>` con su URL; todo `<Confirmar>` de `src/` tiene que figurar en `scripts/guardas/confirmar-con-url.ts` o cae `confirmar-con-url.test.ts`, y `scripts/` es del carril A: este carril no puede dejar el árbol en verde con un `<Confirmar>` nuevo. Plan: `.piloto/planes/4.20.md`.
+- **Para el coordinador (o el A).** Encima de las particiones del 4.20-1 y del 4.20-2a (tampoco anotadas en HEAD): en `docs/PLAN.md`, fila del 4.20, «El 4.20-2b se parte en 4.20-2b (publicar el borrador con nota y revertir a una archivada) y 4.20-2c (descartar el borrador, con `<Confirmar>`: necesita del A el registro `confirmar-con-url-formula.ts`)». En `docs/plan.yaml`: el `4.20-2b` con `depende_de: ['4.20-2a']` y `terminado` «Desde la pestaña «Fórmula», publicar el borrador con nota y revertir a una archivada publican la N+1 por las RPC del 4.20-1, con su PT409 tal cual; la nota vacía se rechaza antes de pedir»; nace el `4.20-2c` (`depende_de: ['4.20-2b']` y el paso del A que crea el registro; `terminado` «Descartar el borrador del origen con `<Confirmar>` por URL»). El `4.21` sigue dependiendo del `4.20-2b`. **Este PR no marca `integrado 4.20`.**
+- **Lo que el 4.20-2c necesita del A:** un registro por área, como `paginas-en-la-base-papelera.ts` del C: `scripts/guardas/confirmar-con-url-formula.ts` (vacío, `Record<string, ConfirmarConUrl>`) que `confirmar-con-url.test.ts` sume a `CONFIRMAR_CON_URL`, y en `docs/plan.yaml` dentro de `b.dueno_de`. Con eso el 2c suma su fila en su PR; sin eso, el 2c lo hace el A.
+- **Pregunta abierta del 4.20-2c** (heredada del 4.20-2a; el 2b no la cierra): `formula_descartar_borrador(p_origen)` borra el borrador sin versión esperada, así que quien descarta puede borrar lo que otra persona acaba de guardar encima. Recomendación: usar la RPC de hoy y llevar su esperada al 4.21 junto con la de `formula_guardar_borrador()`, porque (1) el riesgo pide un `formula_guardar_borrador()` concurrente y hasta el 4.21 ningún código de `src/` lo llama (sólo `scripts/carreras/` y la semilla), y el `<Confirmar>` nombra el borrador («de <autor>, guardado <cuándo>»); (2) la versión que compararía es el `actualizado_en` del borrador, la misma que el 4.21 tiene que sumar a `formula_guardar_borrador()`: una migración, no dos; (3) hacerlo ahora es una migración con `security definer`, rigor máximo y compuerta `datos`. La alternativa: `formula_descartar_borrador(p_origen, p_actualizado_en_esperado)` en el 2c, que cambia su tipo. Como acepta que se borre un borrador ajeno («un dato que se guarda», `ui.md`), la contesta la persona en la compuerta del 2c.
+- **Sin compuerta `datos`:** ni policy, ni grant, ni `security definer`, ni clave nueva. Las dos RPC (del 4.20-1) ya piden `cotizaciones.configurar` del origen y tienen `execute` para `authenticated`; las actions lo vuelven a mirar con `puede(ctx.permisos, …, origenId)` antes de llamar. **Es pantalla pura aunque cree `entities/formula/{publicacion,reversion,repositorio}.ts` e `infra/formula/`:** son textos, la forma de la URL, tipos y un adaptador de dos RPC que ya existen, sin regla de dinero ni dato nuevo (como el 2a); la regla (permiso, nota, esperada, atrasado, validación) vive en las RPC y su rigor fue del 4.20-1.
+- **«Publicar…» sólo con el borrador al día:** atrasado, publicar da PT409 seguro, y el aviso de la tarjeta ya dice por qué. Por la URL, un atrasado no abre.
+- **La nota:** se valida en el navegador y en la action con el mismo `esquemaDeNota` (recortada; vacía, «Publicar pide una nota.», el texto de la base; hasta 2.000 caracteres, el tope de `oportunidades_notas_largo`, porque la base no tiene). La de revertir viene escrita («Vuelve a la versión N.»): se puede cambiar.
+- **Los PT409 de `formula_publicar()` y `formula_revertir()` se muestran tal cual** (la excepción que pidió el 4.20-1): dicen quién publicó qué versión y cuándo, sin «Recargá» (el e2e lo comprueba). Los 22023 también (están escritos para la persona). «Recargar» hace `router.refresh()` y conserva la nota; el conflicto se va cuando llega otra publicada (`useConflictoHastaLaVersion`). El hook del formulario es propio (`useFormularioDePublicacion`) porque `useEnvioDeModal` no da conflicto; lo comparten los dos modales.
+- **De dónde sale la versión que se revierte:** las filas cargadas viven en `usePaginasDeVersiones` (dentro de `ListaDeVersiones`) y la revisión de la URL corre en cada apertura. Por eso «Revertir» entrega su fila a `usePanelDeLaFormula` antes de escribir `?version=`, y la revisión acepta la recién elegida (de cualquier página) o una archivada de la página del servidor (llegar por un enlace o recargar). Recargar con una de la 2.ª página avisa «Esa versión no está en la lista…». El modal fija la versión al abrir (`useUltimo`).
+- **La lista vuelve a la primera página con otra publicada** (`key` con el origen y el id de la publicada): «Desde la versión N» se pierde, como al recargar.
+- **Los specs del 2b van aparte** (`configuracion-cotizacion-formula-publicar.spec.ts` y `-revertir.spec.ts`), uno por commit. El de revertir comprueba por SQL que la actividad de la versión nueva lleva `version_copiada = 1` (las archivadas sembradas son iguales). En el del 2a, `getByLabel('Ir a la versión')` pasa a `exact`: el nombre «Revertir a la versión N» lo contiene.
+- **Tachar en `docs/PLAN.md`:** «`formula_publicar` deja de decir «Recargá»» (cerrado en la base por el 4.20-1 y comprobado en pantalla aquí). El **4-8** se ve en pantalla (el PT409 con quién; revertir copia el diseño) pero no se cierra: la esperada de `formula_guardar_borrador()` sigue en el 4.21.
+- **Textos para el A** (la ficha `src/modules/cotizaciones/CLAUDE.md`): en «Entra y sale», tras la línea de la pestaña «Fórmula» del 4.20-2a, «La pestaña publica el borrador con nota (`?panel=publicar-formula`) y revierte a una archivada (`?panel=revertir-formula&version=<id>`, 4.20-2b), por `features/formula/actions/{publicar-borrador,revertir-version}.ts` sobre `repositorioDeLaFormula` (`areas/formula/composicion.ts` → `infra/formula/publicacion.ts`, `formula_publicar()` y `formula_revertir()` con la publicada que se leyó)»; en «No se rompe», que la excepción de los textos del candado incluye los PT409 de `formula_publicar()` y `formula_revertir()` que esa pestaña muestra tal cual.
+
+<!-- paso:4.20-2c -->
+
+## 2026-11-06 — Paso 4.20-2c
+
+- **P1 (la persona, compuerta de producto):** descartar el borrador usa la RPC de hoy, `formula_descartar_borrador(p_origen)`, sin versión esperada; la esperada llega en el 4.21, junto con la de `formula_guardar_borrador()`: una migración, no dos. Hasta el 4.21 ningún código de `src/` guarda un borrador (sólo `scripts/carreras/`, `scripts/mediciones.mjs` y pruebas SQL), así que ninguna pantalla puede pisar uno; el diálogo nombra el borrador («de <persona>», cuándo se guardó). El costo aceptado: si otra persona lo publicó o lo descartó entre abrir y confirmar, no se borra nada y el aviso igual dice «Se descartó el borrador.».
+- **P2 (la persona):** descarta el borrador todo el que tiene `cotizaciones.configurar` del origen, lo mismo que deja la base (no sólo quien lo guardó): un borrador olvidado por alguien que se fue se puede limpiar. «Descartar…» sale de `puede()`, como las demás acciones de la pestaña.
+- **Es pantalla pura aunque cree `entities/formula/descarte.ts` y toque `entities/formula/repositorio.ts` e `infra/formula/`:** como en el 4.20-2b (`docs/pasos/4.20-2b/decisiones.md`), son textos, la forma de la URL, un tipo y el adaptador de una RPC que existe; borrar el borrador no toca la publicada (la única con la que se cotiza) ni ningún cálculo, y el permiso y el borrado los pone la base.
+- **Microdecisiones (ui.md):** «Descartar…» (`outline`) va junto a «Publicar…» y también con el borrador atrasado (ya no se publica, y se descarta). El `<Confirmar>`: «Descartar el borrador de <persona>», «Guardado <cuándo>. Se borra y no se puede deshacer; la versión publicada no cambia.», «Descartar borrador». Lo que no entró queda en un `<Aviso tono="peligro">` dentro del diálogo, que no se cierra: el mensaje de la base tal cual; sin respuesta, «No sabemos si se descartó: recarga para verlo.» (`enviarAccion()` da `sinRed` también si el servidor ya borró y se cortó la vuelta). **Sin reintento al volver la red:** es irreversible y se confirma otra vez a mano (repetir tras un borrado no borra nada). El borrador que nombra se fija al abrir (`useUltimo`). El mensaje de validación de la action: «No pudimos leer el pedido. Recarga y vuelve a intentar.».
+- **El registro del diálogo:** su fila va en `scripts/guardas/confirmar-con-url-formula.ts` (del B, `a22c4151`), con `abre` = `use-panel-de-la-formula.ts` y `senal` = `PANEL_DESCARTAR_BORRADOR`.
+- **La prueba del registro** (`scripts/guardas/confirmar-con-url-areas.test.ts`, «sin nada de la fórmula, es el núcleo»), del A, importaba el registro real de la fórmula y daba por hecho que estaba vacío: caía en cuanto el B registraba su diálogo. El paso paró en una compuerta `afuera` y el A la arregló simulando el registro vacío (`c3ec9a11`, PR #20). Un registro por área que el carril dueño va a llenar se prueba con el área simulada, nunca con el archivo real.
+- **Para el coordinador (o el A):** en `docs/PLAN.md`, fila del 4.20, «4.20-2c hecho: descartar el borrador con `<Confirmar>` por URL (P1: la RPC de hoy, la esperada en el 4.21; P2: todo el que configura el origen)»; en `docs/plan.yaml`, el `4.20-2c` (`depende_de: ['4.20-2b']`) con `terminado` «Descartar el borrador del origen con `<Confirmar>` por URL»; siguen `4.20-3` (el ⚙ en la hoja) y `4.20-4` (vigencia y vehículo obligatorio, del A). Al **4-8**: el 4.21 suma también la esperada de `formula_descartar_borrador()`. **Este PR no marca `integrado 4.20`.**
+- **Pulido para la Fase 9** (`docs/PLAN.md` › «Pulido para la Fase 9»): «Tras publicar o descartar el borrador de la fórmula, el foco cae al `body` (el botón que abrió el diálogo ya no está).»
+- **Textos para el A:** en la ficha `src/modules/cotizaciones/CLAUDE.md` › «Entra y sale», tras la línea del 4.20-2b: «y descarta el borrador con `<Confirmar>` (`?panel=descartar-borrador`, 4.20-2c) por `features/formula/actions/descartar-borrador.ts` sobre `repositorioDeLaFormula.descartar` (`formula_descartar_borrador()`, sin versión esperada hasta el 4.21)»; en `.claude/rules/datos.md` («Toda edición manda `p_actualizado_en_esperado`…») y `migraciones.md`, sumar `formula_descartar_borrador` a las excepciones que esperan al 4.21.
+
+<!-- paso:4.20-3a -->
+
+## 2026-11-06 — Paso 4.20-3a
+
+- **El 4.20-3 se parte en tres:** 4.20-3a (este: lo puro, la escritura y la lectura del ⚙ de una constante, sin pantalla), 4.20-3b (la pantalla del ⚙ de una constante: el `Proveedor` de `pantallas/formula-hoja.ts`, el panel, la esperada, «Aplicar también a esta cotización», la celda de tipo de cambio que dice dónde se cambia y el tope de nodos de la hoja) y 4.20-3c (el ⚙ de un tipo de cambio: pide saber qué tarifa nombra la celda). La pantalla sale del 3a porque el panel es un `<Drawer>` (se abre también dentro del modal «Avanzado» y `ui.md` prohíbe un modal sobre otro) y todo `<Drawer>` de `src/` tiene que estar en `DRAWERS` de `scripts/guardas/drawers-con-salida.ts`, del A, sin pedazo por área. Se descartaron la compuerta `afuera` (es para algo fuera del repo), parar a mitad del paso y que el B sume su fila al registro del A. El enlace de «Falta publicar la fórmula» ya lo hizo el 4.20-2a. Plan: `.piloto/planes/4.20.md` (y `4.20-3a.*`).
+- **Rigor máximo** (`.claude/rules/e2e.md`): escribe los `params` de una fórmula del cotizador y convierte lo tipeado (13 → 0,13) antes de mandarlo. Plan con dos rondas de auditoría, pruebas en rojo contra HEAD, diez mutaciones e informe auditado; sin carreras nuevas (no cambia SQL: la carrera de dos ⚙ o de un ⚙ y «Publicar» la decide la base con la esperada, `supabase/tests/publicar-diseno.sql`).
+- **El ⚙ no revalida ni refresca** (`features/formula/actions/cambiar-constante.ts`), excepción a `datos.md` («`revalidatePath` en la action que muta»): en Next 16.4.3 `revalidatePath` con **cualquier** ruta (`// TODO: only revalidate if the path matches`, `node_modules/next/dist/server/web/spec-extension/revalidate.js`), `revalidateTag` sin perfil, `updateTag` y `refresh` hacen que la action vuelva a dibujar la página desde la que se llama; `/cotizaciones/nuevo` volvería a leer `cotizacion_hoja()` y la `key` de la hoja la remontaría con otra abierta, a medio tipear. Es el mismo motivo de `crear-cotizacion.ts`. La pestaña «Fórmula» es dinámica y se vuelve a leer al ir a ella; vista desde el historial («atrás»), sus escrituras dan el PT409 de la base. Lo fijan dos pruebas: el espía de `next/cache` y una que lee el archivo y exige que no importe `next/cache`.
+- **El 22023 con `hint = 'valor'`** («La constante ya tiene ese valor.», el único de `formula_cambiar_constante()` que lo lleva) cruza como `campo: 'valor'` desde el adaptador y llega a la pantalla como `porCampo.valor`, como el adaptador de `leads/infra/tipos.ts`; otro 22023 queda como `regla` sin campo. Límite conocido: el `hint` de `_formula_rechazar` es el id de un nodo, así que una fórmula con un nodo llamado `valor` pintaría su rechazo bajo el campo.
+- **Lo tipeado se normaliza a 15 cifras**, como la XCell (`normalizar()` de `src/shared/ui/xcell/estado.ts`, que no se exporta): «1,1» en un porcentaje manda 0,011 y no 0,011000000000000001; la comparación con el valor por defecto también va a 15 cifras. `normalizar` queda privada de `entities/formula/ajuste.ts`.
+- **La lectura del valor por defecto** pide `params->nodo` (el valor JSON tal cual) en vez de `params->>nodo`: un número llega como número y un texto que parece número no pasa por uno. Una fila por `formulas_publicada_unica`.
+- **Lo que el 4.20-3b tiene que saber del hook y la lectura:** `useValorPorDefecto` da `sin_constante` sólo si no hay publicada o faltan **todos** los nodos; con dos nodos y uno que falta queda `listo` con ese valor nulo, y el panel dice cuál falta (`MENSAJE_SIN_LA_CONSTANTE`). Si cambian `origenId` o `nodos` el estado no vuelve a `leyendo`: el 3b monta el hook con `key` por celda. `consultaDelValorPorDefecto` interpola los nodos en el `select` y confía en que llegan validados con `esquemaId` (lo hace `valor-por-defecto.client.ts`, su único camino desde la pantalla). La base lee la constante como `(params ->> p_nodo)::numeric`: un `"5"` guardado como texto la base lo acepta y el ⚙ diría «ya no tiene esta constante»; no puede existir: `_formula_forma()` (F69, la que corre al validar una fórmula) exige que cada constante de `params` sea un número JSON. La forma real de la respuesta de PostgREST la prueba el E1 del 3b (que se vea el 5).
+- **La cuenta de e2e:** vale la que da `node scripts/piloto/cuenta-e2e.mjs docs/BITACORA.md` (la que lee el bucle), no la suma a mano de las notas del 2a, 2b y 2c. Este paso no es de pantalla, así que no la mueve.
+- **P1–P4 quedan para el 4.20-3b** (en su plan, con la recomendada primero): el tope de nodos de la hoja con el ⚙ (P1, cambia el techo de 500 que fijó la persona en P7 del 4.13-4b3), qué publicada espera el ⚙ (P2: la que el panel leyó), el ⚙ de un tipo de cambio en el 3b (P3: dice que se cambia en Configuración › Empresa › Monedas) y «En esta cotización» (P4: el panel muestra el valor por defecto y el nuevo).
+- **Necesita del carril A** (para el 4.20-3b; mirado con `git ls-tree --name-only origin/main scripts/guardas/drawers-con-salida-formula.ts` tras `git fetch origin main`, `origin/main` = `abd2ee3d`: **no está**): (1) un registro de `<Drawer>` del área, `scripts/guardas/drawers-con-salida-formula.ts` (vacío, `Record<string, RegistroDeDrawer>`), que `scripts/guardas/drawers-con-salida.test.ts` sume a `DRAWERS`, en `docs/plan.yaml` › `b.dueno_de` (y, si se quiere, en los `modulos` del `4.20`), con su prueba hecha sobre el área **simulada** (la lección de `c3ec9a11`); llenarlo en el 3b abre la compuerta `guardas`; (2) `src/app/(app)/cotizaciones/con-proveedor-de-la-hoja.tsx:13-14` dice «Hoy no hay» `Proveedor`: con el 3b lo hay; (3) exportar `normalizar` (a `src/shared/lib`) y `MARCAS_DE_GESTORES` de la XCell, para que el ⚙ no los copie; (4) la cuenta de e2e ordena por nombre las notas que el plan no conoce: el `sí` del 4.24-1a (carril C) cae después de las `4.20-x` y deja la del B en 0 mientras no se consoliden.
+- **Textos para el A:** en la ficha `src/modules/cotizaciones/CLAUDE.md` (› «Áreas» o «Archivos clave»): «`areas/formula/composicion.client.ts` da también `leerValorPorDefecto()` (4.20-3a): la publicada de un origen con su id, su versión y el valor de unas constantes, por `formulas_publicada_unica`; la action `features/formula/actions/cambiar-constante.ts` (`formula_cambiar_constante()` con la esperada siempre, sin revalidar ni refrescar: la llama el ⚙ del 4.20-3b)»; en `.claude/rules/datos.md`, junto a «`revalidatePath` en la action que muta»: «salvo la action que se llama desde la hoja (`crear-cotizacion.ts`, `cambiar-constante.ts`): revalidar remonta la hoja».
+- **Para el coordinador (o el A):** en `docs/PLAN.md`, fila del 4.20, encima de las particiones del 4.20-1, 2a, 2b y 2c: «El 4.20-3 se parte en 4.20-3a (lo puro, la action y la lectura del ⚙ de una constante, sin pantalla), 4.20-3b (la pantalla del ⚙ de una constante con «Aplicar también a esta cotización»; una celda de tipo de cambio dice dónde se cambia; pide el registro de `<Drawer>` del área al A) y 4.20-3c (el ⚙ de un tipo de cambio)». La línea «Llena el hueco de la hoja con un `Proveedor`…» no la cierra el 3a. En `docs/plan.yaml` no hay pasos `4.20-x`: la dependencia del 3b con el registro la lleva este «Necesita del carril A». **Este PR no marca `integrado 4.20`.**
+
+<!-- paso:4.20-3b -->
+
+## 2026-11-06 — Paso 4.20-3b
+
+- **Las cinco decisiones de la persona** (compuerta `producto`, «seguir con la recomendación» en todas): **P1**, el techo de 500 nodos de la hoja (P7 del 4.13-4b3) se mide como quien cotiza sin ⚙ (un rol con el nivel «costos», `cotizaciones.ver|crear` y sin `cotizaciones.configurar` ni `empresa.tipos_cambio.gestionar`), y quien configura tiene su tope: lo medido con la hoja usada más un 5 %, con techo en 600 y la misma regla de parar y reportar. **P2**, el ⚙ espera la publicada que el panel leyó, nunca la versión que dibuja la hoja; si no son la misma, el panel lo dice («Esta hoja usa la versión N de la fórmula; cambias la M, la publicada.»). **P3**, hasta el 4.20-3c, el ⚙ de un tipo de cambio dice dónde se cambia (Configuración › Empresa › Monedas), sin formulario. **P4**, el panel muestra el valor por defecto y el nuevo; el de esta cotización queda en su celda. **P5**, si el ⚙ pasaba el presupuesto de JS de `/cotizaciones/nuevo`, subía sólo lo del ⚙; no hizo falta (458,5 → 458,6 KB de 460).
+- **El tope de nodos con ⚙: 585.** La subasta como la dueña mide 532 al abrir (21 ⚙) y 557 usada (22: la garantía, al encenderse, suma el suyo); sin ⚙, 469 y 491, igual que antes del paso. `cotizar-hoja-200.spec.ts` comprueba además que las dos personas ven las mismas celdas y que la diferencia es exactamente 3 nodos por ⚙ (la ayuda de una tabla depende de quién mira: misma cantidad de celdas no es misma cantidad de nodos).
+- **El panel se desmonta al cerrar.** `LugarDelAjuste` (núcleo) dibuja el `Ajuste` sólo mientras la URL nombra la celda, así que el `<Drawer>` nace abierto, no sale deslizándose y no alcanza a devolver el foco: el cuerpo lo devuelve a mano al ⚙ de su celda (por `data-nodo` y el prefijo de su nombre) al desmontarse. Lo tipeado no tiene borrador, así que cerrar con algo escrito pregunta (`useCambiosSinGuardar(…, { preguntaAlCerrar: true })`), con **una sola llamada para todo el panel** (dos se pisarían: el `<Drawer>` guarda un estado). La fila de `drawers-con-salida-formula.ts` apunta a `cuerpo-del-ajuste.tsx` con `mecanismo: 'contexto'`.
+- **El `Proveedor` es de servidor.** `ConProveedorDeLaHoja` (de servidor) le pasa `PropsDelProveedor` con los permisos; `ProveedorDelAjuste` pasa al navegador sólo el origen (`ProveedorDelAjusteCliente`, que pone `ContextoDelAjuste` y el contexto del origen): quién ve el ⚙ lo dice la base por celda (`ajustes`) y la escritura vuelve a mirar el permiso en la action y en `formula_cambiar_constante()`. El panel, su hook, la lectura y la action viajan con `diferido()` (`components/hoja/diferidos.tsx`, aparte del de la pestaña «Fórmula»).
+- **«Aplicar también a esta cotización»** sólo aparece si el nodo se edita en esta hoja (`editable`; con candado o en sólo lectura no) y llama `alConfirmar(nodo, valor)` con el mismo nodo y la misma fracción que se publicó, después de la respuesta buena y antes de cerrar. Con un PT409 o sin red, nunca; sin red el panel dice «No sabemos si se cambió: vuelve a leer el valor por defecto.» y pide «Volver a leer», que conserva lo tipeado.
+- **Con el Modo Live, «Valor nuevo» es un campo de contraseña**, como la entrada de la XCell (`inputMode="decimal"`, `autoComplete="off"` y las marcas de los gestores, copiadas de `src/shared/ui/xcell/entrada-de-xcell.tsx`, que no las exporta).
+- **Necesita del carril A:** (1) el comentario «Hoy no hay» de `src/app/(app)/cotizaciones/con-proveedor-de-la-hoja.tsx`: desde el 4.20-3b el área `formula` llena el `Proveedor`; (2) que `LugarDelAjuste` recuerde la última celda (como `AyudaDeCelda`) para que el panel salga deslizándose y el `<Drawer>` devuelva el foco solo (pulido, Fase 9); (3) exportar `normalizar` (a `src/shared/lib`) y `MARCAS_DE_GESTORES` de la XCell, para que el ⚙ no los copie (sigue del 3a); (4) en la ficha `src/modules/cotizaciones/CLAUDE.md` › «Los huecos»: «`Proveedor` lo llena `ProveedorDelAjuste` (4.20-3b, de servidor: pasa sólo el origen): el panel del ⚙ de una constante por `diferido()`, con la publicada que leyó como esperada y «Aplicar también a esta cotización» sólo si la celda se edita; una celda de tipo de cambio dice dónde se cambia (su ⚙, 4.20-3c)».
+- **Para el coordinador (o el A):** en `docs/PLAN.md`, fila del 4.20, la línea «Llena el hueco de la hoja con un `Proveedor` (el ⚙ de una celda y «Aplicar también a esta cotización»)» queda hecha para las constantes; el tipo de cambio la cierra el 4.20-3c. **Este PR no marca `integrado 4.20`.**
+
+<!-- paso:4.20-3c -->
+
+## 2026-11-06 — Paso 4.20-3c
+
+- **La decisión de la persona** (compuerta `datos`, P1, «aprobar»): el ⚙ de una celda de tipo de cambio sabe qué tarifa nombra por una función del área, **`formula_tipo_cambio_del_nodo(p_formula, p_nodo)`**, `security definer`, y no porque el núcleo sume la clave a la celda (`_cotizacion_hoja()`, del A) ni porque sólo la tenga quien configura el origen. La celda no trae la clave del tipo de cambio: vive en `formulas.definicion`, que sólo lee quien tiene `cotizaciones.configurar` (D7), y el ⚙ de un tipo de cambio lo tiene quien gestiona los tipos de cambio de la empresa (`ajustes`).
+- **Qué da y a quién.** Pide `empresa.tipos_cambio.gestionar` (42501; el mismo permiso que da el ⚙ y que `tipo_cambio_guardar()` vuelve a pedir) y que quien llama vea el nodo en esa versión (`_nodos_visibles()`: lo que un nivel esconde no sale; quien configura sin ver recibe sólo los nodos que no figuran en `visibilidad`, como en la hoja, y no filtra nada porque ya lee la definición). Devuelve sólo la fila de `tipos_cambio` (que lee toda cuenta): `id`, `clave`, `nombre`, las monedas, `valor`, `activo` y `actualizado_en` exacto, con sus microsegundos, que es la esperada de `tipo_cambio_guardar()`. De la fórmula no sale nada más (ni el nodo, ni su etiqueta, ni `params`). Un nodo que no se ve, uno que no existe, uno de otro tipo, una versión que no existe y una tarifa sin fila responden igual: `null`.
+- **Un borrador no cuenta**: una hoja dibuja la publicada o la versión de una guardada (también archivada), nunca un borrador.
+- **En el inventario de lo oculto es `recorta`**, no `no_devuelve`: lo que devuelve sale de contenido de la fórmula (la `clave` del nodo, recortada por `_nodos_visibles()`). La cubre T4 de `supabase/tests/areas/formula/tipo-cambio-del-nodo.sql`, por nivel, como `cotizacion_tarjeta` y `cotizacion_encima` en sus archivos.
+- **Lo puro del valor tipeado** (`entities/formula/tipo-cambio.ts`): «Valor nuevo» de un tipo de cambio se lee con el lector de toda la app y el locale de la empresa, mayor que cero, con hasta 6 decimales, menor que un billón y distinto del de hoy («El tipo de cambio ya tiene ese valor.»: la base lo aceptaría sin dejar historial). Los textos son los de Monedas y del esquema de `guardarTipoCambio`. Copia la regla de `valorTipeado` de `empresa`, que no sale por su `client.ts`.
+- **La partición** (para el coordinador; el B no edita `PLAN.md`): en `docs/PLAN.md`, fila del 4.20, junto a las particiones anteriores: «El 4.20-3c se parte en 4.20-3c (la lectura del tipo de cambio que nombra un nodo: `formula_tipo_cambio_del_nodo()`, `security definer`, y lo puro del valor tipeado; sin pantalla) y 4.20-3d (la pantalla del ⚙ de un tipo de cambio con `guardarTipoCambio`)». Después quedan el **4.20-3d** (B) y el **4.20-4** (vigencia y vehículo obligatorio, del A).
+- **Lo que el 4.20-3d va a preguntar** (compuerta `producto`): (a) la guardada conserva sus tipos de cambio, así que cambiar el de la empresa desde ella no la mueve: la recomendada será el formulario sólo en la hoja nueva y, en la guardada, el texto del 3b más «Esta cotización conserva el tipo de cambio con que se guardó.»; (b) `guardarTipoCambio` hace `revalidatePath(inicio, 'layout')` y eso vuelve a abrir la hoja con otra abierta, que recalcula con el tipo de cambio nuevo y repone lo tipeado del borrador: la recomendada será aceptarlo sin tocar `empresa`; (c) el título del panel y si «Valor nuevo» va como contraseña con el Modo Live.
+- **4-33** no lo cierra (es de `cotizacion_crear`, del A). Para el 3d: una escritura desde el ⚙ empieza después de abrir la hoja, así que su `cambiado_en` es posterior a la apertura y cuenta como cambiada; la ventana de 4-33 la sufren las otras hojas abiertas durante esa transacción.
+- **Necesita del carril A:** (1) en la ficha `src/modules/cotizaciones/CLAUDE.md` › «Tablas», sumar `formula_tipo_cambio_del_nodo` a la lista de RPC («el tipo de cambio que nombra un nodo que se ve, para el ⚙ de su celda; con `empresa.tipos_cambio.gestionar`»); (2) exportar la regla de lo tipeado de un tipo de cambio (`valorTipeado`, `VALOR_INVALIDO`) por `empresa/client.ts`, para que el ⚙ no la copie. **Este PR no marca `integrado 4.20`.**
+
+<!-- paso:4.24-1a -->
+
+## 2026-11-06 — Paso 4.24-1a
+
+- **El 4.24 se parte en cuatro, en cadena:** 4.24-1a (la base: enviar pide ver antes del candado, también la genérica; enviar por lote con versión; la lista
+  y el lote por cursor; cierra 4-68), 4.24-1b (la base: restaurar por lote sin 23505, también la genérica; purgar; la purga automática con `medir-jobs.sql`;
+  cierra 4-70), 4.24-2 (la pantalla y el enlace junto a «Nueva») y 4.24-3 («Enviar a la papelera» con «Deshacer» en la guardada). Con un commit por intención
+  la base sola eran 6 de código. Plan: `.piloto/planes/4.24.md` (lo que el 1b no debe perder, en «Lo que sigue en el 4.24-1b»).
+- **Para el coordinador (o el A), en `docs/PLAN.md`, fila del 4.24:** «Se parte en **4.24-1a** (la base: enviar pide ver antes del candado, también la
+  genérica; enviar por lote con versión; la lista y el lote por cursor; cierra 4-68), **4.24-1b** (la base: restaurar por lote sin 23505, también la genérica;
+  purgar; la purga automática con `medir-jobs.sql`; cierra 4-70), **4.24-2** (la pantalla y el enlace junto a «Nueva») y **4.24-3** («Enviar a la papelera» con
+  «Deshacer» en la guardada)». En `docs/plan.yaml` el id `4.24` se reemplaza por cuatro, carril `c`: `4.24-1a` (el `depende_de` de hoy; riesgo `rojo`;
+  `verificacion` «Nivel 2 + cadena db + db:carreras + db:medir:volumen»; `terminado` «Enviar a la papelera de cotizaciones pide ver antes del candado, también
+  la genérica; enviar por lote con versión; la lista de lotes por cursor medida con volumen; cierra 4-68»; `modulos` `[docs/]`), `4.24-1b` (`['4.24-1a']`;
+  `rojo`; «Nivel 2 + cadena db + db:carreras + medir-jobs.sql»; «Restaurar por lote no da 23505, también la genérica; purgar por lote; la purga automática
+  incluye cotizaciones; cierra 4-70»; `[docs/]`), `4.24-2` (`['4.24-1b']`; `ambar`; `features/papelera/`, `entities/papelera/`, `infra/papelera/`,
+  `pantallas/papelera.ts`, `pantallas/papelera-listado.ts`, `areas/papelera/`, `src/app/(app)/cotizaciones/papelera/`,
+  `scripts/guardas/paginas-en-la-base-papelera.ts` y `docs/`) y `4.24-3` (`['4.24-2']`; `ambar`; `features/papelera/`, `pantallas/papelera-cotizacion.ts` y
+  `docs/`). El `4.25` pasa de `['4.24']` a `['4.24-3']`. **Este PR no marca `integrado 4.24`:** integra sólo el 4.24-1a.
+- **Para el coordinador, en 4-64** (archivos de más de 300 líneas que crecen): `supabase/tests/medir-escala.sql` 892 → 954, `auditoria-leads.sql` 436 → 441 y
+  `cotizaciones-visibilidad.sql` 1.921 → 1.922. Y en 4-96: en la corrida entera de `pnpm test` de este paso, T13 de `mapa.test.ts` tardó 10.369 ms (sola, 3,2 s).
+- **Lo que contestó la persona** (compuerta `datos`, «aprobar»: la recomendada en cada una). El 1b y el 2 las leen de acá.
+  - P1 · Las RPC propias se llaman `cotizaciones_papelera_enviar|listar|lote|restaurar|purgar`, como las de leads y vehículos (la migración empieza por `papelera_`).
+  - P2 · Las genéricas `papelera_enviar|restaurar|purgar` se quedan, con su firma, su retorno y sus textos, y pasan por los mismos ayudantes (enviar en el 1a;
+    restaurar y purgar en el 1b). Las llaman `cotizacion_marcar_final()` y archivos del A; el A las retira cuando nadie las llame.
+  - P3 · Una final la manda a la papelera quien puede guardarla: `cotizaciones.ver` y `cotizaciones.final.gestionar` del origen. Una preventa, ver y `editar` por
+    su alcance, o `moderar`.
+  - P4 · Una cotización con comprobante: se decide en el 4.26. Hoy enviar la acepta y la purga (1b) la deja «bloqueada» por la FK `restrict`.
+  - P5 · (1b) Restaurar una N+1 cuya anterior ya tiene otra viva, o una final cuando el vehículo ya tiene otra: queda «pendiente» con su motivo y el resto
+    del lote se restaura; la genérica (todo o nada) da PT409 con ese texto.
+  - P6 · El lote dice de cada cotización número, título («Cotización #n» sin título), clase, origen y fecha: nada que la RLS esconda a quien tiene la clave y no la ve.
+  - P7 · (1b) Restaurar una cuyo vehículo o lead está en la papelera o ya se purgó: «pendiente» con su motivo, atrapando también 23514 por cotización.
+  - P8 · La papelera de cotizaciones lista sólo lotes `tipo = 'cotizaciones'`; la pantalla (4.24-2) dice que las que se fueron con su vehículo vuelven al
+    restaurar el vehículo, en su papelera.
+  - P9 · `cotizacion_marcar_final()` llama a la genérica con los derechos de quien marca: desde este paso, si no ve una preventa viva del vehículo, no marca y
+    recibe 42501 «No tienes acceso a esta cotización.» (el de lo inexistente). El 4.25, que la reescribe, decide su texto.
+- **Lo no obvio:**
+  - Mandar a la papelera mira ver **antes** de tomar la fila y otra vez sobre la fila tomada, como guardar (4-34): quien no la ve recibe lo mismo que con una
+    inexistente, en el texto y en el momento, y nunca espera su candado. La fila se toma `for no key update`, como `marcar_final`: `for update` choca con el
+    `for key share` de las hijas (comentarios, revisiones, la N+1). En `db:probar` (una sesión) la espera no se ve: la prueba mira el orden en el cuerpo de la
+    función (E10) y la carrera es del A (abajo).
+  - La genérica es todo o nada y ya no saltea en silencio, con `moderar`, un id inexistente o ya en la papelera. Conserva sus textos (los esperan `matriz-leads.sql`,
+    `humo.sql` y las carreras) salvo el de permiso, que pasa de «Sin permiso para eliminar la cotización <id>» a «No tienes permiso para enviarla a la papelera.»
+    (nadie lo esperaba). Su lote queda con el resumen completo (`cantidad`, `restaurados`, `purgados`) y su versión, como el de vehículos.
+  - La propia acepta 22023 («Falta la versión…») en `rechazados` con su texto, además de PT409, 42501, 23514 y P0001: también es nuestro.
+  - «Le queda alguna en la papelera» es una sonda por lote (`(select true … limit 1)`) y no el `exists` de vehículos: con pocas en la papelera, el plan genérico
+    del `exists` es un semi join que lee entero `cotizaciones_lote_papelera_idx` (crece con la papelera, no con la página). Medido en este paso
+    (`.piloto/salidas/4.24-1a/forma-explorar.txt`: el `exists` en el plan genérico, sin cursor y por el cursor; `forma-variante.txt`, la sonda); con 20.000 más en la papelera el `exists` se vuelve sonda, la variante es sonda siempre.
+  - `medir-escala.sql` mide la forma de la lista con una sentencia preparada (`v_todo` y `v_yo` como parámetros, el plan genérico): con literales el planificador
+    elige `lotes_papelera_creado_por_idx` para Ana y un recorrido de la tabla para la dueña, que no es lo que corre (la 1.ª corrida, con literales; su salida se
+    sobrescribió al repetir la medición: `escala()` fuerza el plan genérico, pero con literales en el texto no hay parámetros). Su sección va después de las demás
+    mediciones (no cambia ninguna) y antes de `$violaciones$`, para que su violación haga caer la corrida.
+  - Las pruebas de `supabase/tests/areas/papelera/` no usan a la dueña de `humo.sql`: con `SOLO=` no corre. Cada archivo crea «la jefa».
+  - `database.types.ts` lista también los ayudantes `_…` (el generador no mira los grants): `_cotizacion_a_papelera` aparece aunque nadie de la app lo ejecute.
+- **Abiertos nuevos para el 4.25 (del C):** `cotizacion_marcar_final()` toma su cotización `for no key update` sin mirar ver (quien no la ve espera su candado,
+  y quien tiene `final.gestionar` marca final una que no ve: el defecto de 4-34 en otra puerta) y toma `for no key update` también las preventas que no ve antes
+  de llamar a la genérica. El 4.25: pedir ver antes del candado propio, no tomar las preventas que no ve, y el texto de P9.
+- **Necesita del carril A:**
+  1. `vehiculos_papelera_restaurar()` restaura las cotizaciones del lote del vehículo sin mirar `cotizaciones_encima_unica` ni `cotizaciones_final_por_vehiculo`:
+     sale «Choca con otro registro que ya existe.» para el vehículo entero.
+  2. Las carreras en `scripts/carreras/`: quien no ve la cotización no espera su candado al enviarla, por la propia y por la genérica, mientras otra sesión la
+     tiene tomada (como `cotizaciones-guardar.mjs:470`; demuestra la mutación M18); enviar con versión contra guardar; y una que cambia de clase entre la mirada
+     sin candado y la de la fila tomada (M20, equivalente en una sesión).
+  3. El `aplicado_en` de `cotizaciones.papelera.purgar` en `supabase/seed.sql` y en su catálogo pasa a nombrar `cotizaciones_papelera_*` (T1 de
+     `cotizaciones-papelera-permiso.sql` fija hoy el texto).
+  4. Retirar las genéricas cuando el 4.25 deje de llamar a `papelera_enviar`.
+  5. La ficha `src/modules/cotizaciones/CLAUDE.md` suma las RPC de la papelera.
+  6. En `docs/ESTADO.md`, la deuda «La papelera de cotizaciones no tiene versión ni purga automática (4.24)» pasa a «no tiene purga automática ni restaurar o
+     purgar con versión (4.24-1b)»: `papelera_restaurar|purgar(p_lote)` siguen sin versión.
+  7. `vehiculos_papelera_listar()` y `leads_papelera_listar()` tienen el mismo `exists`; sin medir si su plan genérico, con poco en la papelera, también lee
+     entero el índice del lote (en la de cotizaciones sí: arriba). La sonda por lote lo evita.
+
+<!-- paso:4.24-1b -->
+
+## 2026-11-06 — Paso 4.24-1b
+
+- **Lo que contestó la persona** (compuerta `producto`, la recomendada en las tres; después la `datos`, «aprobar»). El 4.24-2 las lee de acá.
+  - P10 · Quien no envió el lote y no tiene `cotizaciones.papelera.purgar` recibe 42501 «Sólo lo restaura quien lo envió o quien puede vaciar la papelera.»
+    (el texto de vehículos), antes de tomar el lote.
+  - P11 · Quien envió el lote lo restaura entero aunque ya no vea una de sus cotizaciones: restaurar deshace su propio envío, como en vehículos y leads.
+  - P12 · Una cotización de la papelera cuyo vehículo o cliente se purgó no se distingue de una que nunca lo tuvo (las FK son `set null`). Se resuelve en el A:
+    purgar un vehículo o un lead queda «bloqueado» mientras una cotización de la papelera lo nombre («Necesita del carril A», 1). Hasta entonces, la preventa
+    o la cotización cuyo vínculo se purgó vuelve sin él; la final sin vehículo queda pendiente («Su vehículo ya no existe.»).
+- **Lo no obvio:**
+  - Restaurar toma la cotización `for no key update` (no choca con el `for key share` de sus hijas) y purgar la toma `for update`: el `delete` pide ese
+    candado, y tomarlo de entrada evita subirlo a mitad. Se aparta de lo que el plan del 1a dejaba para el 1b («`for no key update`» para las dos).
+  - El ayudante de restaurar toma `for key share` los vehículos y después los leads del lote, por id, **antes de tomar cotización alguna**: es el orden de quien
+    los purga (primero su fila; la FK `set null` actualiza después la cotización). Al revés, restaurar contra purgar el vehículo o el lead es un 40P01. Lo
+    mostró un recorrido de tres conexiones contra la base del carril (`.piloto/salidas/4.24-1b/carrera.mjs`): con este orden no hay
+    interbloqueo, B purga y la preventa vuelve sin vínculo (`carrera-verde.txt`); con el orden de antes (M6), 40P01 en K1 y K2 (`carrera-m6.txt`). Hasta que
+    el A lo pase a `scripts/carreras/`, el CI sólo lo protege por R9, que mira el orden en el texto de la función.
+  - La purga automática toma el lote de cotizaciones `for no key update skip locked`: el job, que ya retiene las filas de los lotes de vehículos o leads que
+    purgó en su transacción, esperaría el lote que tiene un restaurar que a su vez espera uno de esos vehículos o leads. Saltado, vuelve en la corrida siguiente.
+  - La genérica de restaurar es todo o nada (con algo pendiente, PT409 con el motivo de la primera por id, y nada vuelve) y la de purgar ya no: lo bloqueado se
+    queda en la papelera y el lote sigue pendiente. Las dos conservan firma, retorno y textos (P2). La genérica de restaurar ya no vuelve a sellar un lote ya
+    restaurado ni registra otra actividad (devuelve 0), y su actividad lleva el detalle `{tipo, cantidad}` en `p_detalle`, como la propia.
+  - Una cotización con comprobante da **23001** (`restrict_violation`, la FK es `on delete restrict`), no 23503: el ayudante de purgar atrapa los dos. El de
+    vehículos atrapa sólo 23503, pero allí `_vehiculo_motivo_de_bloqueo` ya bloquea un vehículo con comprobante antes de borrar.
+  - La genérica de restaurar conserva de antes `v_por <> (select auth.uid())` (la propia usa `is distinct from`): sin sesión no pide la clave, como hoy. Con
+    `creado_por` nulo quien no tiene la clave no recibiría el 42501, pero no se llega: enviar siempre graba quién y la FK a `perfiles` no es `set null`.
+  - El ayudante de restaurar atrapa también 23514 con su texto (P7: la red por si `cotizacion_validar` suma reglas); la prueba R5b lo fija con un trigger
+    temporal.
+  - `cotizaciones_adjuntos_ruta_idx` (el disparador 6 del Nivel 2): cada adjunto purgado pasa por `storage_refcount('cotizaciones', ruta)`, que sin índice
+    recorría la tabla. `medir-jobs.sql` lo mide en una sección al final, antes del `rollback` (lo de antes no cambia): 100.000 cotizaciones en 500 lotes, cada
+    una con una revisión y un adjunto, más viejas que los lotes de leads; 10.000 por corrida en 8.099, 9.207 y 8.276 ms (presupuesto 25.000). Sin el índice,
+    (a) cae por el `Seq Scan` del refcount; con el job de antes, (c) cae porque purga leads y ninguna cotización (`medir-jobs-rojo-head-{a,c}.txt`).
+  - En las pruebas de `areas/papelera/` con `SOLO=`, la primera cuenta de cada bloque nace dueña (no corre `humo.sql`): una prueba de «sin la clave» crea antes
+    a quien la tiene (PU4). Los teléfonos de los leads de prueba son fijos (`telefonos-en-pruebas.test.ts` prohíbe `random()`).
+- **Necesita del carril A:**
+  1. P12 (a): `_vehiculo_motivo_de_bloqueo` y `_lead_motivo_de_bloqueo` dan «Tiene cotizaciones en la papelera.» mientras una cotización de la papelera de
+     cotizaciones los nombre. Arregla además el defecto de hoy: una **final** en la papelera de cotizaciones impide purgar su vehículo (la FK `set null` corre
+     `cotizacion_validar` y da 23514, que `_papelera_purgar_vehiculos` no atrapa: cae la purga entera del lote; el job lo reintenta cada hora con un `warning`).
+  2. Las carreras en `scripts/carreras/`: K1 y K2 (restaurar contra purgar el vehículo o el lead; el esqueleto en `.piloto/salidas/4.24-1b/carrera.mjs`);
+     restaurar una versión nueva contra cotizar encima la misma anterior; restaurar contra mandar su vehículo o su lead a la papelera; purgar contra restaurar el
+     mismo lote; la propia contra la genérica; y el job contra restaurar (el `skip locked`). **Riesgo que queda:** restaurar toma vehículos por id y después
+     leads; el job purga lotes de vehículos y de leads por `creado_en` en una sola transacción y retiene lo tomado de cada uno: un job que tiene el vehículo 5 y
+     pide el 1 contra un restaurar que tiene el 1 y pide el 5 es un 40P01 (si cae el job, su `exception when others` lo vuelve un `warning`; si cae restaurar,
+     la persona ve un error técnico). Medirlo y, si se da, decidir un orden común.
+  3. El job toma siempre los 50 lotes vencidos más viejos: 50 que no se pueden purgar del todo (un pago, un portal, un comprobante) ocupan todas las corridas y
+     los más nuevos no se purgan nunca. Vale para los tres tipos; es lo de hoy.
+  4. `documentos.ruta` no tiene índice y `_papelera_purgar_vehiculos` encola documentos por refcount: el mismo recorrido por ruta en la papelera de vehículos.
+  5. En `docs/ESTADO.md` › «Deuda aceptada» sale la frase de que la papelera de cotizaciones no tiene versión ni purga automática: restaurar y purgar ya
+     van por lote con versión y la purga automática la vacía.
+  6. La ficha `src/modules/cotizaciones/CLAUDE.md` suma `cotizaciones_papelera_restaurar|purgar` (con lo pedido en el 1a, 5); el `aplicado_en` de
+     `cotizaciones.papelera.purgar` sigue pendiente del 1a, 3.
+  7. En `supabase/tests/volumen/sembrar-cotizaciones.sql` (o RENDIMIENTO › jobs, ya anotado): desde este paso el job purga los lotes vencidos de cotizaciones
+     de la siembra.
+- **Para el coordinador (o el A):** el 4.24-1b cierra **4-70** (en la propia y en la genérica); con 4-68 (1a) quedan cerrados los dos del `terminado` del 4.24.
+  El PR no marca `integrado 4.24`: integra sólo el 4.24-1b. En **4-64**: `auditoria-leads.sql` 441 → 445, `numero-global.sql` 411 → 413 (los dos ya pasaban de
+  300). `medir-jobs.sql` 114 → 211.
+
+<!-- paso:4.24-2 -->
+
+## 2026-11-06 — Paso 4.24-2
+
+- **Lo que contestó la persona** (compuerta `producto`, la recomendada en las tres; después la `datos`, «aprobar»). El 4.24-2b y el 4.24-3 las leen de acá.
+  - P2 · La papelera de cotizaciones, y el enlace de «Papelera» en `/cotizaciones`, los ve quien puede enviar cotizaciones a la papelera en algún origen
+    (`cotizaciones.editar`, `.moderar` o `.final.gestionar`) o vaciarla (`cotizaciones.papelera.purgar`), como en vehículos y leads. Los lotes que ve los decide la base.
+  - P3 · Por qué una cotización no volvió lo dice el aviso del resultado de restaurar (hasta tres motivos y «Y N más.»); la fila no lo dibuja.
+  - P4 · La fila no muestra el cliente ni el vehículo: sólo número, título, clase, origen y fecha.
+- **Partición** (decisión del orquestador, tras la 1.ª auditoría del plan): purgar necesita una fila en el registro de `<Confirmar>` (`scripts/guardas/confirmar-con-url.ts`),
+  que es del A; el C no puede crearla (la guarda de carriles hace caer el PR). El 4.24-2 queda sin purgar y **purgar es el 4.24-2b** (borrador:
+  `.piloto/planes/4.24-2b.borrador.md`).
+- **Lo no obvio:**
+  - Textos: la cabecera con la clave dice «Se purga solo cuando vence.» (el 2b suma «, o antes si lo purgas»); la línea de las que se fueron con su vehículo va siempre
+    (P8 a) y el enlace a la papelera de vehículos sólo a quien puede abrirla (`puedeAbrirLaPapelera` de vehículos, compuesto en `src/app`: `cotizaciones` no importa
+    `vehiculos`). «Envío de una» / «Lote de N · quedan M», «Restaurar el lote» sólo si quedan más de una. Restaurar no pregunta ni ofrece «Deshacer»: enviar de nuevo lo deshace.
+  - La fila del lote se parte en `cotizacion-en-papelera.tsx` (el lote pasa de 100 líneas con ella).
+  - El presupuesto de JS de la ruta (440 KB; medido 417,9) y los topes de la página (3.000 nodos; 360.000 B, medido 342.808) viven en el spec, porque `presupuestos.ts` es del A. Los
+    previos del plan no alcanzaron en bytes: 150.000 B era una suposición (≈ 600 B por fila) y cada fila pesa ≈ 2,5 KB en el documento (HTML con sus clases y payload de RSC;
+    el reparto exacto no se midió), contra 91.005 B del marco con la papelera vacía. Lo que protege la lista es que no crezca con el lote: con 21 o con 200 por lote, los mismos
+    1.119 nodos y los bytes a ±0,1 %. Se fijó lo medido más un 5 %. Los 380 KB previos de JS tampoco: casi todo es el marco (`/perfil` 417,2).
+  - La limpieza del spec va en un orden: cotizaciones del origen, lotes, leads, personas y roles. Un lote no se borra mientras una cotización lo nombra
+    (`cotizaciones_lote_papelera_id_fkey`) ni una persona mientras un lote la nombra; el primer intento falló en el `afterAll` y dejó la base sucia para el siguiente.
+  - Cambiar de persona en la misma página pide `page.context().clearCookies()` antes de `entrar`: `{ fresco: true }` no descarta la sesión y `/ingreso` rebota.
+  - El lote en `/cotizaciones/papelera` se reconoce en los e2e por una cotización que no se restaura primero (el filtro de un `getByRole` se vuelve a evaluar).
+- **Necesita del carril A:** 0. **Bloqueante.** `scripts/guardas/paginas-en-la-base.test.ts` › «sin nada de la papelera, es el núcleo» da `RPC_PAGINADAS` igual a `RPC_PAGINADAS_DEL_NUCLEO` con el registro
+  de la papelera real: falla desde que el registro de cotizaciones (4.24-2, commit 1: `p_tope` y `p_primeros`) dejó de estar vacío. Hay que mockear
+  `./paginas-en-la-base-papelera` con `RPC_PAGINADAS_DE_LA_PAPELERA: []` en ese caso (el C no puede editarlo: es del A). Hasta entonces, `pnpm test` cae en ese caso (y el CI del PR).
+  1. Para el **4.24-2b**: el registro `scripts/guardas/confirmar-con-url-papelera.ts` (vacío, sumado en `confirmar-con-url.ts` tras el núcleo y la fórmula, su caso en
+     `confirmar-con-url-areas.test.ts` con el área simulada —la lección del 4.20-2c, `c3ec9a11`—, y el archivo en `c.dueno_de` y en los `modulos` del 4.24-2b). Si no está cuando le
+     toque al 2b, el 2b para en compuerta `afuera`.
+  2. La ficha `src/modules/cotizaciones/CLAUDE.md` › «Entra y sale» suma `/cotizaciones/papelera` y nombra `areas/papelera/CLAUDE.md` (con lo pedido en el 1a, 5, y el 1b, 6).
+  3. Mudar el presupuesto de JS de la ruta (`PRESUPUESTO_DE_JS_DE_LA_PAPELERA_EN_KB`, 440) y los topes de la página a `e2e/soporte/presupuestos.ts`.
+  4. `diasParaLaPurga`, `textoDePurga` y el resumen del resultado de restaurar quedan en tres módulos (leads, vehículos, cotizaciones): a `src/shared/lib` cuando el A lo decida.
+  5. `RUTAS.papeleraDeCotizaciones` en `src/shared/lib/rutas.ts` (hoy `RUTA_DE_LA_PAPELERA_DE_COTIZACIONES` en `entities/papelera/ruta.ts`), si quiere todas juntas.
+- **Para un paso de base del C, si la persona lo pide:** P3 (`motivo_de_restaurar` y `motivo_de_bloqueo` en el JSON del lote) y P4 (`lead_id` y `vehiculo_id` en cada cotización del lote).
+- **Para el coordinador (o el A):** en `docs/PLAN.md`, fila del 4.24: «el 4.24-2 se parte en 4.24-2 (la pantalla con restaurar y el enlace, sin purgar) y 4.24-2b (purgar con
+  `<Confirmar>` por URL: necesita del A el registro `confirmar-con-url-papelera.ts`)». En `docs/plan.yaml` (hoy sólo tiene `'4.24'`): el `4.24-2` como lo pidió el 1a
+  (`docs/pasos/4.24-1a/decisiones.md`) y un `4.24-2b` con `depende_de: ['4.24-2']` (`ambar`; `modulos`: `features/papelera/`, `entities/papelera/`, `infra/papelera/`,
+  `areas/papelera/`, `scripts/guardas/confirmar-con-url-papelera.ts`, `docs/`); el `4.24-3` sigue en `['4.24-2']` y el `4.25` pasa a `['4.24-3', '4.24-2b']`. **Este PR no
+  marca `integrado 4.24`:** integra sólo el 4.24-2 (`parcial: true`).
+- **En 4-64:** ninguno de los archivos nuevos pasa de 300 líneas (el más largo, el spec, 250).
+
+<!-- paso:4.24-2b -->
+
+## 2026-11-06 — Paso 4.24-2b
+
+- **Lo que contestó la persona:** compuerta `datos` del plan: «Aprobar y esperar al A». Compuerta `afuera` (P1), en dos vueltas: primero «Seguir con el 4.24-3
+  mientras»; después el registro llegó a `main` (`2f87361d`, PR #39) y el paso se ejecutó con el plan aprobado.
+- **Lo que se aprobó en permisos:** dos puertas en la app, ninguna en la base. La action mira `cotizaciones.papelera.purgar` antes de llamar. La revisión de
+  `?panel=purgar` también la mira: leads no lo hace, pero aquí quien no purga ve sus propios lotes y una URL escrita a mano le abriría el diálogo.
+- **Lo no obvio:**
+  - Mismo rechazo, dos textos. La app dice «No tienes permiso para purgar la papelera de cotizaciones.» (nombra su papelera) y la base, «No tienes permiso para
+    purgar la papelera.» (la misma para todas). En la app es una constante, `MENSAJE_SIN_PERMISO_DE_PURGAR`, que usan la action y la revisión de la URL.
+  - «Purgar» va con `variant="destructive"`, como en leads y vehículos, y no `outline` como decía el plan: lo irreversible se ve distinto en las tres papeleras.
+    El orden es «Restaurar» y después «Purgar» (la destructiva al final).
+  - **El tope de bytes de E8 pasa de 360.000 a 475.000 B.** Con la dueña, la página 1 dibuja 100 «Purgar» y 5 «Purgar el lote» y mide 452.015 B: ≈ 1 KB por
+    botón (342.808 B en el 4.24-2). Casi todo son las 598 letras de clases de la base de `Button` (`src/shared/ui/button.tsx`, del A). Medido el largo de las
+    clases por variante: `ghost` ahorraría ≈ 107 por botón (≈ 11 KB, 2,5 %) y `outline` ≈ 44. No compensa perder el tono de lo destructivo, así que el tope
+    queda en lo medido más un 5 %. La razón: una papelera es una pantalla de trabajo de quien la vacía, sin SEO, y lo que la protege es que no crezca con el lote.
+    Con 21 o con 200, mide lo mismo (±0,1 %). Nodos 1.329 de 3.000; JS 424,5 de 440.
+  - `resumenDeRestauracion` y `resumenDePurga` comparten un `resumir()` con sus palabras (el mismo esquema que leads). `usePapelera` avisa el resultado de
+    purgar; el error lo dice el diálogo, y por eso `purgar` devuelve el `Resultado`.
+  - Las acciones de un lote y de una fila salen de `<AccionesDePapelera>`, como `Acciones` de leads. El lote sólo las ubica.
+  - La prueba de la pantalla monta `NuqsTestingAdapter`, porque ahora la pantalla lee `?panel=purgar`.
+  - La limpieza del soporte e2e borra primero los comprobantes de la serie `E2E-PAPELERA` y su contador. Un comprobante frena el borrado de su cotización (`restrict`)
+    y nombra a quien lo emitió: sin esto caían el `afterAll` y el `prepararPapelera` del proyecto `movil`. `irALaPapelera`, `lotesDeLaPagina` y `filasDe` pasaron al
+    soporte para los dos specs.
+- **Para el coordinador (o el A):**
+  - 4-68 y 4-70 (`docs/PLAN.md`) ya están cerrados en la base: 4-68 en el 4.24-1a (`docs/pasos/4.24-1a/bitacora.md`) y 4-70 en el 4.24-1b
+    (`docs/pasos/4.24-1b/decisiones.md`). Se quitan al integrar el 4.24.
+  - El 4.24-2b (`depende_de: ['4.24-2']` y el chore del registro) purga desde `/cotizaciones/papelera`. El 4.25 depende de `4.24-3` y de `4.24-2b`.
+  - Este PR **no marca `integrado 4.24`**: el 4.24 sigue con el 4.24-3 («Enviar a la papelera» con «Deshacer»).
+  - Sigue abierto para un paso de base del C, si la persona lo pide: el motivo de lo bloqueado en la fila del lote (P3 del 4.24-2).
+
+<!-- paso:4.20-3d -->
+
+## 2026-11-07 — Paso 4.20-3d
+
+- **Las decisiones de la persona** (compuerta `producto`, las cuatro «aprobar»): **P1**, el formulario sólo en la hoja nueva; en la guardada, el texto de Monedas y «Esta cotización conserva el tipo de cambio con que se guardó.», sin lectura (la guardada calcula con los tipos de cambio que congeló: cambiar el de la empresa desde ella no la mueve). **P2**, se acepta el `revalidatePath(inicio, 'layout')` de `guardarTipoCambio` sin tocar `empresa`: la hoja nueva se vuelve a abrir con otra abierta, la celda dice el valor nuevo, lo tipeado vuelve con el aviso «Recuperamos…» y «Descartar», y guardar no da el D2. **P3**, «Tipo de cambio de <celda>» para una celda de tipo de cambio; una constante sigue con «Valor por defecto de <celda>». **P4**, con el Modo Live «Valor nuevo» es de contraseña con las marcas de los gestores, como en una constante, y «Valor de hoy» se tapa por `<Monto>`.
+- **Sólo tres claves.** El ⚙ manda `{ id, actualizadoEnEsperado, valor }`: la action de `empresa` toca lo que viaja, y el ⚙ no puede cambiar el nombre, `activo` ni el por defecto. La esperada es la `actualizadoEn` de la última fila leída, con sus microsegundos (nunca por `Date`); tras un PT409 se manda la nueva sólo después de «Volver a leer». Cada elección mala cae en una prueba: la esperada vieja, E2 contra la base y el caso del PT409 del hook; claves de más, «sólo esas claves» (`toStrictEqual`); el valor leído en vez del tipeado, E1 por SQL; otro `id`, E1 (cambia la fila propia y no `oficial`).
+- **El remonte (V10, que era suposición) se midió** en E1, en los dos proyectos: tras la respuesta buena el panel queda cerrado (sin `ajuste=` en la URL), la hoja relee y hay una sola lectura del tipo de cambio.
+- **Desactivado, sin formulario**: la hoja no usa un tipo de cambio inactivo (`_cotizacion_armar()`, `base.sql:1292`, `and t.activo`), así que cambiarle el valor desde la hoja no mueve nada; se activa en Monedas, y el panel lo dice.
+- **4-33** no lo cierra (del A): la hoja desde la que se cambia se vuelve a abrir con otra abierta y no da el D2; las otras hojas abiertas sí lo dan al guardar, como hoy con Monedas.
+- **Microdecisiones:** los textos de C4 a C8 del plan (`.piloto/planes/4.20-3d.md`); mientras lee la primera vez, sólo el esqueleto «Cargando el tipo de cambio» (el nombre del formulario llega con la lectura) y, al releer, el formulario con el valor de hoy en esqueleto y el campo apagado; `EsqueletoDelValor` recibe su letrero; las marcas de los gestores en un solo archivo del área.
+- **Necesita del carril A:** (1) `src/modules/empresa/CLAUDE.md` › `client.ts`: «nadie lo usa todavía» → «lo usa el ⚙ de un tipo de cambio de la hoja (4.20-3d)»; (2) `src/modules/cotizaciones/CLAUDE.md` › «Los huecos»: «una celda de tipo de cambio abre «Tipo de cambio de <celda>»: en la hoja nueva lee la fila con `formula_tipo_cambio_del_nodo()` y la cambia con `guardarTipoCambio` (la hoja se reabre con el valor nuevo); en la guardada dice que conserva el suyo», y la RPC en «Tablas» (sigue del 3c); (3) exportar de `empresa` `valorTipeado`, `textoParaEditar` y `decimalesDeValor` (el área copia las tres: `tipoCambioTipeado`, `textoInicialDeTipoCambio`, `decimalesDeTipoCambio`); (4) el texto del botón ⚙ de la XCell para un tipo de cambio (sigue «Cambiar el valor por defecto de <celda>», `src/shared/ui/xcell`; pulido). En `docs/PLAN.md`, fila del 4.20: la línea «Llena el hueco de la hoja con un `Proveedor` (el ⚙ de una celda …)» queda hecha también para los tipos de cambio. Del 4.20 queda el 4.20-4 (A); **este PR no marca `integrado 4.20`**.
+
+<!-- paso:4.20-4 -->
+
+## 2026-11-07 — Paso 4.20-4
+
+- **Aviso para quien integre el PR de `b/4.20`:** el 4.20 del B queda terminado salvo la vigencia y el vehículo obligatorio, que pasan al A (4.20-4a y 4.20-4b). **Antes de integrar el PR de `b/4.20`, sumarlos a `docs/plan.yaml`** (abajo): al fusionarse, `sincronizar` anota integrado el 4.20 solo (`scripts/coordinador/coordinador.mjs:170-173`) y libera el 4.21 (`plan.yaml:422`); sin los dos ids nuevos, la vigencia queda sin paso en ningún lado.
+- **Por qué no lo hace el B:** hoy nada escribe `ajustes_empresa.vigencia_dias` ni `ajustes_empresa.vehiculo_obligatorio_al_cotizar` (`empresa_guardar_ajustes()` pide `empresa.ajustes.gestionar` y no las nombra, `base.sql:10003-10032`; sólo un soporte de e2e las cambia por SQL). Escribirlas pide una RPC nueva con su migración y la lectura, la action y el formulario de `empresa`: fuera del `dueno_de` del B y de sus migraciones (`formula|diseno|tablas`). Llamar `formula_…` a la migración pasaría la guarda (mira sólo el nombre, `scripts/guardas/carriles.mjs:82-84`), pero escribe una tabla de `empresa` y el dominio es el prefijo de sus tablas (`.claude/rules/migraciones.md`): descartado. Ya estaba anotado del A en el 4.20-1 (`docs/DECISIONES.md:2023`).
+- **Las decisiones de la persona** (compuerta `producto`, las cuatro «aprobar»): **P1**, del A en dos pasos: **4.20-4a** (la RPC con su catálogo, la lectura, la regla de quién cambia, la action y las pruebas de la base; rigor máximo, Nivel 1 + cadena db) y **4.20-4b** (el formulario, la pestaña y el hub; pantalla pura, Nivel 1). **P2**, los cambia `cotizaciones.configurar` **concedida en todos los orígenes** (la concesión sin origen; el dueño la tiene): un ajuste de toda la empresa no lo cambia quien configura un origen. Es una regla nueva en la base (`tiene_permiso()` sin origen hoy es «en alguno»). **P5**, una pestaña «Ajustes» al final de Configuración › Cotización (`?seccion=ajustes`), para que quien sólo configura la fórmula siga cayendo en «Fórmula». **P6**, la ve quien tiene `cotizaciones.configurar` en algún origen; quien no cumple P2, con los campos apagados y el motivo «Cambiar estos ajustes pide configurar el cotizador en todos los orígenes.». P3 (RPC nueva `empresa_guardar_ajustes_de_cotizacion()` con su `p_actualizado_en_esperado`, o sumarlas a la de Empresa) queda para la compuerta `datos` del 4.20-4a, que también confirma P2 como permiso. P4 se retiró: que cambiar la vigencia mueva las ya guardadas lo decide D1 (`docs/PLAN.md:41`, `docs/DECISIONES.md:863`).
+- **El plan del A** está en `docs/pasos/4.20-4/plan-del-a.md` (versionado; C1–C10, archivos, pruebas T1–T8, mutaciones M1–M10, docs y commits de cada parte).
+- **Cómo se anota** (`docs/plan.yaml` y `docs/PLAN.md`, lo escribe la persona o el A):
+  - El **`4.20` queda de una pieza**: la anotación del 4.20-1 que lo partía en `4.20-1`…`4.20-4` (`docs/DECISIONES.md:2024`) **no se aplica**, porque el coordinador ya lleva el `4.20` publicado con su PR y el `4.21` depende de él. Su `terminado` (`plan.yaml:419`) pasa a «El ⚙ y revertir publican la N+1 desde la publicada sin pisar el borrador; Configuración › Cotización › Fórmula; el ⚙ en la hoja; cierra 4-36 y la parte de 4-8 del ⚙ y de revertir; la vigencia y el vehículo obligatorio, al 4.20-4a y 4.20-4b (A)».
+  - **`4.20-4a`**, carril `a`, `depende_de: ['4.15-4', '4.15-5', '4.15-6c']` (no toca nada del B), riesgo `rojo`, verificación `Nivel 1 + cadena db`, `modulos` de las filas 4a de «Archivos» del plan del A, `terminado`: «La base guarda la vigencia y el vehículo obligatorio con `cotizaciones.configurar` en todos los orígenes y su versión, y `empresa` los lee y los guarda por action».
+  - **`4.20-4b`**, carril `a`, `depende_de: ['4.20-4a', '4.20']` (edita `pestanas.ts` y `page.tsx` de `src/app/(app)/configuracion/cotizacion/`, que son del 4.20 del B), riesgo `ambar`, verificación `Nivel 1`, `modulos` de las filas 4b, `terminado`: «La vigencia y el vehículo obligatorio se cambian en Configuración › Cotización › Ajustes».
+  - `docs/PLAN.md`, fila del 4.20: «Se partió en 4.20-1, 4.20-2 (a–c) y 4.20-3 (a–d), del B, y 4.20-4a y 4.20-4b (vigencia y vehículo obligatorio, **del A**)», y dos filas 4.20-4a y 4.20-4b que citan `docs/pasos/4.20-4/plan-del-a.md`.
+- **Necesita del carril A:** (1) el 4.20-4a y el 4.20-4b según `docs/pasos/4.20-4/plan-del-a.md`; (2) la anotación de `plan.yaml` y PLAN de arriba, si no la hizo la persona al integrar; (3) los siete abiertos que el `terminado` del 4.20 nombraba, todavía con «(4.20)» en `docs/PLAN.md`: **4-36** cerrado (4.20-1); **4-8**, la parte del ⚙ y de revertir cerrada (4.20-1) y la del borrador al 4.21; **4-33**, **4-19** y **4-20** al A; **5a-29** y **5a-30** a la Fase 9; **4-30** al 4.22; (4) `src/modules/empresa/CLAUDE.md:24` dice que `AjustesEmpresa` trae `vehiculoObligatorioAlCotizar` y es falso (`src/modules/empresa/entities/ajustes-empresa.ts:6-35`: la lee la base, no el tipo): sacar ese inciso y, con el 4.20-4a, nombrar `AjustesDeCotizacion`. Los textos de fichas que dejó el 4.20-3d siguen en `docs/pasos/4.20-3d/decisiones.md`.
+
+<!-- paso:4.19-1 -->
+
+## 2026-11-07 — Paso 4.19-1
+
+- **El 4.19 se parte en cuatro, en cadena:** 4.19-1 (la base: la versión esperada y el candado por origen, descartar, la nota), 4.19-2 (`validarPlantilla()` de TS y el aviso del
+  tono), 4.19-3 (el editor) y 4.19-4 (la vista previa en vivo). Con un commit por intención eran 9 o más de código. Plan: `.piloto/planes/4.19.md`. `docs/plan.yaml` conserva un solo
+  `4.19` (como el 4.18): **este PR no marca `integrado 4.19`**; a sus `modulos` se suman `supabase/`, `scripts/carreras/`, `scripts/carreras.mjs`, `scripts/probar-schema.mjs`,
+  `src/shared/types/database.types.ts`, la ficha de `cotizaciones` y `.claude/rules/`.
+- **P1 a P6 contestadas el 2026-11-07, todas las recomendadas:** P1 el conflicto no dice quién guardó o publicó (la tabla no guarda quién; con nombre eran dos columnas y Nivel 2);
+  P2 se puede descartar el borrador; P3 quien tiene `cotizaciones.configurar` del origen, sin clave nueva; P4 publicar pide una nota; **P5 (4.19-3)** el editor es una pestaña
+  «Tarjeta» de Configuración › Cotización, tras «Fórmula» (esa carpeta es del `dueno_de` del B; el 4.19-3 toca `page.tsx` y `pestanas.ts` mientras el B hace el 4.21: integrar con
+  cuidado); **P6 (4.19-4)** la vista previa muestra cifras de ejemplo, dichas («Cifras de ejemplo.»).
+- **Esperada nula = crear** (`plantilla_guardar_borrador`): sólo hay una fila de su clase por origen (el borrador), así que la RPC que crea y edita toma la nula como crear y, si la
+  fila ya existe, PT409; nunca `on conflict … do update`. Se aparta de «las de crear no pasan por `_exigir_version()`», y la regla lo dice ahora.
+- **`plantilla_publicar` sigue en `uuid`:** una función que devuelve `jsonb` y lee `public.formulas` entra en el inventario de lo oculto de `cotizaciones-visibilidad.sql` y cae
+  «sin registrar» (M9).
+- **El rojo de K1 no era el 23505 de la fila de PLAN:** publicar son dos `update … where id =` sin `insert`; en READ COMMITTED la segunda espera, relee por id y publica también,
+  pisando la nota de la primera (`rojo-head-carreras.txt`). PLAN y la fila del 4.19 dicen ahora lo medido.
+- **La ayudante `_plantilla_borrador_ausente()` sólo es de `service_role`** (y la llaman las RPC, definer): su PT409 dice la versión y la hora de la publicada de un origen, y abierta
+  a `authenticated` se saltaría la RLS de `plantillas_tarjeta`. T5 lo vigila.
+- **Una `esperada` vieja en `db:probar` es la de la fila menos 1 µs:** dentro de una transacción `now()` no se mueve (trigger genérico); que guardar mueve la versión lo prueban
+  K3 y K4 entre transacciones.
+- **Terreno de las carreras:** un origen propio por carrera (prefijo «Carreras»), la fórmula `mini` del juego de la plantilla publicada por `insert` y la plantilla del caso «mínima»
+  (sin tonos); lo que deja lo borra `limpiar()` con el origen (cascada de `plantillas_tarjeta_origen_id_fkey`).
+- **`SOLO=` en `db:probar`** necesita `humo.sql` (crea las cuentas): `SOLO=humo.sql,plantilla-version.sql` corre en 7 s.
+
+## 2026-11-07 — El plan sin cadenas de carril (la persona)
+
+- **Medido del 6-11 00:00 al 7-11 11:36:** el B estuvo 32 % sin paso o esperando a main y el C 38 % sin paso; el A, 72 % trabajando. Parte de
+  eso eran dependencias que `plan.yaml` no tomó de `PLAN.md`: el 4.22 (depende de 4.09 y 4.20), el 4.23 (de 4.05 y 4.20) y el 4.27 (de 4.10)
+  iban detrás del paso anterior de su carril, que además tenía que integrarse antes de dar el siguiente.
+- **`plan.yaml` dice ahora las de `PLAN.md`** (4.22 y 4.23 tras el 4.20; el 4.27 tras el 4.15-6c, por las áreas) y **el 4.27 pasa del C al A**:
+  el C tenía tres rojos en cadena (4.25 → 4.26 → 4.27), el camino más largo de la fase; el A es base, dueño del módulo entero, y lleva el
+  registro de RPC con tamaño que el 4.27 pide (4-91). El 4.28 depende de cada paso que no tiene otro detrás (el 4.20-4b faltaba).

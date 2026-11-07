@@ -204,6 +204,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Fórmula como texto** — `compilarExpresion()` (`entities/compilador.ts`): `=(remate+fees)*4%`, `=SUMA(aduana)`; se compila a nodos al configurar.
 - **Nodo auxiliar** — `<fila>__<n>` en `compilarExpresion()`: cada operación anidada o número de una fórmula como texto es un nodo propio, numerado en post-orden.
 - **Fila (de la fórmula)** — `Fila`, `filasDe()` (`entities/formula/filas.ts`): un nodo de la fórmula que no es auxiliar de otra, con sus auxiliares y su `texto`; lo que el editor muestra como una línea.
+- **Editor de la fórmula** — `EditorDeLaFormula` (`features/formula/components/editor/`), `?panel=editar-formula`: donde quien configura escribe en texto las filas de la fórmula de un origen, sobre el borrador o la publicada; compila cada fila al aplicar y no guarda en la base hasta el 4.21-3b.
 - **Texto vigente** — `textoVigente()` (`entities/formula/texto-vigente.ts`): el texto de una fila con el valor que dejó el ⚙ de una constante escrito en su lugar (`al_dia`, `reescrito`) o «el texto ya no manda» (`no_manda`).
 - **Tramo (de un error de texto)** — `Tramo`, `ErrorDeCompilacion` (`entities/motivos-del-compilador.ts`): dónde está el error en una fórmula como texto (`desde`, `largo`; `linea`, `columna`).
 - **Vigencia** — `ajustes_empresa.vigencia_dias` (7 por defecto, de 1 a 365): cuántos días vale una cotización desde el día de su `creado_en`.

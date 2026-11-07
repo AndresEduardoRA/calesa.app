@@ -16,3 +16,9 @@ export const ModalDeRevertirDiferido = diferido(() =>
 export const DescartarBorradorDiferido = diferido(() =>
   import('./descartar-borrador').then((modulo) => modulo.DescartarBorrador),
 )
+
+// El editor de la fórmula en texto (4.21-3a-1): ocupa el lugar de las tarjetas y la lista, y trae el compilador y el validador, que la pestaña no carga para mostrarse.
+export const EditorDeLaFormulaDiferido = diferido(
+  () => import('./editor/editor-de-la-formula').then((modulo) => modulo.EditorDeLaFormula),
+  { aviso: 'aqui' },
+)
