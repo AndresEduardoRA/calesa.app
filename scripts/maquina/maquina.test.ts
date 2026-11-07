@@ -89,6 +89,8 @@ describe('instalar-servicios.sh', () => {
       'ExecStart=/usr/bin/env bash scripts/piloto/arrancar.sh --carril b --si-caido',
     )
     expect(r.salida).toContain('OnUnitActiveSec=10min')
+    // Si el servicio levantó el servidor de tmux, terminar no lo mata (ni al bucle que vive en él).
+    expect(r.salida.match(/^KillMode=process$/gm)).toHaveLength(4)
   })
 
   it('con CARRILES_DIR los carriles ≠ a viven ahí (otro disco)', () => {

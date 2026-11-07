@@ -28,6 +28,8 @@ After=network-online.target docker.service
 [Service]
 Type=oneshot
 RemainAfterExit=yes
+# El bucle vive en tmux: si este servicio levantó el servidor de tmux, pararlo o terminarlo no tiene que matarlo (sólo a arrancar.sh).
+KillMode=process
 WorkingDirectory=$arbol
 ExecStart=/usr/bin/env bash scripts/piloto/arrancar.sh --carril $c
 ExecStop=/usr/bin/env bash scripts/piloto/parar.sh
@@ -41,6 +43,8 @@ Description=Vigía del piloto de importadora, carril $c
 
 [Service]
 Type=oneshot
+# Al terminar un oneshot, systemd mata lo que quede en su grupo: con el servidor de tmux que levantó, también el bucle. Sólo arrancar.sh.
+KillMode=process
 WorkingDirectory=$arbol
 ExecStart=/usr/bin/env bash scripts/piloto/arrancar.sh --carril $c --si-caido
 Environment=PATH=$PATH"
