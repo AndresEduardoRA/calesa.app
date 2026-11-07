@@ -10,6 +10,7 @@ import type { CeldaDeHoja } from '../../../../entities/hoja'
 import type { PropsDelAjuste } from '../../../hoja/components/huecos'
 import { useAjusteDeConstante } from '../../hooks/use-ajuste-de-constante'
 import { BloqueDeConstante } from './bloque-de-constante'
+import { TipoCambioDelAjuste } from './tipo-cambio-del-ajuste'
 import { TipoDeCambioEnLaEmpresa } from './tipo-de-cambio-en-la-empresa'
 
 type Props = PropsDelAjuste & { origenId: string }
@@ -22,11 +23,14 @@ const botonDelAjuste = (celda: CeldaDeHoja) =>
     ...document.querySelectorAll<HTMLElement>(`[data-nodo="${CSS.escape(celda.nodo)}"] button`),
   ].find((boton) => boton.getAttribute('aria-label')?.startsWith(PREFIJO_DEL_AJUSTE))
 
-// Lo de adentro del panel del ⚙ (4.20-3b): un bloque por constante y, para un tipo de cambio, dónde se cambia. Al desmontarse, el foco vuelve al ⚙ de su celda.
+const EN_UNA_GUARDADA = 'Esta cotización conserva el tipo de cambio con que se guardó.'
+
+// Lo de adentro del panel del ⚙ (4.20-3b): un bloque por constante o, para un tipo de cambio, su formulario en la hoja nueva y, en una guardada, dónde se cambia y que
+// ella conserva el suyo (P1 del 4.20-3d). Al desmontarse, el foco vuelve al ⚙ de su celda.
 export function CuerpoDelAjuste({ celda, cerrar, hoja, origenId }: Props) {
   const nodos = nodosDelAjuste(celda)
   const constantes = nodos.filter((n) => n.tipo === 'constante')
-  const hayTipoDeCambio = nodos.some((n) => n.tipo === 'tipo_cambio')
+  const tipoDeCambio = nodos.find((n) => n.tipo === 'tipo_cambio')
   useEffect(
     () => () => {
       window.setTimeout(() => {
@@ -40,7 +44,11 @@ export function CuerpoDelAjuste({ celda, cerrar, hoja, origenId }: Props) {
       {constantes.length > 0 ? (
         <ConstantesDelAjuste nodos={constantes} cerrar={cerrar} hoja={hoja} origenId={origenId} />
       ) : null}
-      {hayTipoDeCambio ? <TipoDeCambioEnLaEmpresa /> : null}
+      {tipoDeCambio === undefined ? null : hoja.de.tipo === 'abierta' ? (
+        <TipoCambioDelAjuste nodo={tipoDeCambio.nodo} hoja={hoja} cerrar={cerrar} />
+      ) : (
+        <TipoDeCambioEnLaEmpresa nota={EN_UNA_GUARDADA} />
+      )}
     </div>
   )
 }

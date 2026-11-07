@@ -20,6 +20,7 @@ vi.mock('next-safe-action/hooks', async () => {
   return { useAction: () => ({ executeAsync: soporte.ejecutar }) }
 })
 vi.mock('../../actions/cambiar-constante', () => ({ cambiarConstante: {} }))
+vi.mock('@/modules/empresa/client', () => ({ guardarTipoCambio: {} }))
 vi.mock('@/shared/ui/toasts', async () => {
   const soporte = await import('../../hooks/use-ajuste-de-constante.soporte')
   return { avisarExito: soporte.avisarExito }
@@ -222,12 +223,27 @@ describe('PanelDelAjuste: cerrar y el tipo de cambio', () => {
     expect(cerrar).toHaveBeenCalledTimes(1)
   })
 
-  it('una celda de tipo de cambio dice dónde se cambia, sin leer nada', () => {
-    montar(celda({ nodo: 'tc', etiqueta: 'TC', tipoDeNodo: 'tipo_cambio' }))
+  it('en una guardada, una celda de tipo de cambio dice dónde se cambia y que conserva el suyo, sin leer nada', () => {
+    const { hoja } = hojaDePrueba()
+    const guardada = {
+      ...hoja,
+      de: { tipo: 'guardada' as const, cotizacionId: '66666666-6666-4666-8666-666666666666' },
+    }
+    render(
+      <PanelDelAjuste
+        celda={celda({ nodo: 'tc', etiqueta: 'TC', tipoDeNodo: 'tipo_cambio' })}
+        cerrar={vi.fn()}
+        hoja={guardada}
+        origenId={ORIGEN}
+      />,
+    )
     expect(
       screen.getByText(
         'Los tipos de cambio son de la empresa y valen para todos los orígenes: se cambian en Configuración › Empresa › Monedas.',
       ),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('Esta cotización conserva el tipo de cambio con que se guardó.'),
     ).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Ir a Monedas' })).toHaveAttribute(
       'href',

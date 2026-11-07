@@ -21,7 +21,7 @@ import { literal, sql } from './soporte/sql'
 
 // El ⚙ de una constante en la hoja (paso 4.20-3b, `docs/UX.md` › «Cotizar»): el botón de la celda abre «Valor por defecto de <celda>» (`?ajuste=celda&nodo=`), que lee la publicada
 // del origen, publica la N+1 con `formula_cambiar_constante()` y, con «Aplicar también a esta cotización», cambia la celda. La hoja no se vuelve a montar (no se revalida). Un
-// tipo de cambio dice dónde se cambia. Quien no configura el origen no ve ningún ⚙. La fórmula de prueba (`con_ayuda`, 5; `tc`) y una copia de la subasta (`fees_pct`, `flete`).
+// tipo de cambio abre su propio panel (4.20-3d). Quien no configura el origen no ve ningún ⚙. La fórmula de prueba (`con_ayuda`, 5; `tc`) y una copia de la subasta (`fees_pct`, `flete`).
 test.describe.configure({ mode: 'serial' })
 
 // La respuesta de la lectura del valor por defecto (una fila: id, versión y el valor): medida en 66 B (4.20-3b, los dos proyectos); lo medido más un 5 %.
@@ -195,15 +195,16 @@ test('E4: el porcentaje de un par se tipea en puntos y se publica como fracción
   )
 })
 
-test('E5: una celda de tipo de cambio dice dónde se cambia', async ({ page }) => {
+// No se cambia: `oficial` lo usan los demás specs (el recorrido entero, con un tipo de cambio propio, está en `cotizar-ajuste-tipo-cambio.spec.ts`).
+test('E5: una celda de tipo de cambio abre su propio panel, con «Valor nuevo»', async ({
+  page,
+}) => {
   await abrir(page)
   await engranaje(page, 'TC').click()
-  const abierto = panel(page, 'TC')
-  await expect(abierto.getByText(/se cambian en Configuración › Empresa › Monedas/)).toBeVisible()
-  await expect(abierto.getByRole('link', { name: 'Ir a Monedas' })).toHaveAttribute(
-    'href',
-    '/configuracion/empresa?seccion=monedas',
-  )
+  const abierto = page.getByRole('dialog', { name: 'Tipo de cambio de TC' })
+  await expect(abierto.getByLabel('Valor nuevo')).toBeVisible()
+  await expect(abierto.getByRole('button', { name: 'Cambiar el tipo de cambio' })).toBeVisible()
+  await expect(abierto.getByRole('button', { name: 'Cambiar el valor por defecto' })).toHaveCount(0)
 })
 
 test('E6: quien no configura el origen no ve ningún ⚙ y la URL no abre nada', async ({ page }) => {
