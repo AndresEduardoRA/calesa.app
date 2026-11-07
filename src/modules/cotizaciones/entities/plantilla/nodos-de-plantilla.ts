@@ -11,11 +11,18 @@ export type NodoParaPlantilla = {
   readonly id: string
   readonly grupo?: string | null
   readonly salida?: string | null
+  // Lo que el editor dibuja (4.19-3b): la etiqueta del nodo y la del grupo, y el tono del grupo. `validarPlantilla()` no las mira.
+  readonly etiqueta?: string | null
 }
 export type DefinicionParaPlantilla = {
   readonly nodos?: readonly NodoParaPlantilla[]
   readonly buckets?: Readonly<Record<string, string>>
-  readonly grupos?: readonly { readonly id: string; readonly bucket?: string | null }[]
+  readonly grupos?: readonly {
+    readonly id: string
+    readonly bucket?: string | null
+    readonly etiqueta?: string | null
+    readonly tono?: string | null
+  }[]
 }
 export type DisenoParaPlantilla = {
   readonly cabecera?: {
@@ -76,7 +83,8 @@ function tipoDeCambioRestringido(
 }
 
 // Los nodos de la fórmula, el total, sus miembros, lo aparte y los que tienen lugar en la tarjeta.
-function lugaresDe({ definicion, diseno }: ContextoDeNodos) {
+// Exportada para el editor (4.19-3b): qué nodos tienen lugar en la tarjeta es la misma regla que la de la base.
+export function lugaresDe({ definicion, diseno }: ContextoDeNodos) {
   const nodos = definicion.nodos ?? []
   const total = nodos.find((n) => n.salida === 'total')?.id
   const miembros = nodos.flatMap((n) => (n.grupo == null ? [] : [n.id]))

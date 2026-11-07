@@ -35,10 +35,24 @@ export type FilaDeVersionDePlantilla = {
 // de la tarjeta): ya la validó la base al publicarla, y leerla con el Zod entero de la fórmula ataría la plantilla a cada cambio de la fórmula.
 export const esquemaDefinicionParaPlantilla = z.looseObject({
   nodos: z.array(
-    z.looseObject({ id: z.string(), grupo: z.string().nullish(), salida: z.string().nullish() }),
+    z.looseObject({
+      id: z.string(),
+      grupo: z.string().nullish(),
+      salida: z.string().nullish(),
+      etiqueta: z.string().nullish(),
+    }),
   ),
   buckets: z.record(z.string(), z.string()).optional(),
-  grupos: z.array(z.looseObject({ id: z.string(), bucket: z.string().nullish() })).optional(),
+  grupos: z
+    .array(
+      z.looseObject({
+        id: z.string(),
+        bucket: z.string().nullish(),
+        etiqueta: z.string().nullish(),
+        tono: z.string().nullish(),
+      }),
+    )
+    .optional(),
 })
 export const esquemaDisenoParaPlantilla = z.looseObject({
   cabecera: z
