@@ -31,6 +31,7 @@ const pagina: DatosDeLaPagina = {
   vencida: false,
   guardadaEl: null,
   logo: null,
+  cotizacionId: null,
 }
 
 function dibujar(mas: Partial<React.ComponentProps<typeof VistaPreviaDeLaTarjeta>> = {}) {
@@ -175,6 +176,20 @@ describe('<VistaPreviaDeLaTarjeta>: el pie', () => {
     expect(texto).toContain('Asesor: Ana Pérez')
     expect(texto).toContain('TOTAL DÓLARES: ')
     expect(screen.getByRole('button', { name: 'Modo Live: ocultar los montos' })).toBeTruthy()
+    // La hoja nueva no tiene PDF que bajar.
+    expect(screen.queryByRole('button', { name: 'Descargar PDF' })).toBeNull()
+  })
+
+  it('en una guardada el pie suma «Descargar PDF»', async () => {
+    dibujar({
+      pagina: { ...pagina, numero: 9, cotizacionId: '00000000-0000-4000-8000-0000000000bb' },
+    })
+    pedidos[0]?.resolver(lista())
+    await waitFor(() => {
+      expect(screen.getByText('TOTAL DÓLARES')).toBeTruthy()
+    })
+    expect(screen.getByRole('button', { name: 'Descargar PDF' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Copiar texto' })).toBeTruthy()
   })
 
   it('con el total desactualizado «Copiar texto» queda apagado y lo nombra el aviso', async () => {

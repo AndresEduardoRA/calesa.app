@@ -13,10 +13,11 @@ import type { ModeloDeTarjeta } from '../../../entities/tarjeta/modelo-de-la-tar
 import type { EstadoDeLaLectura } from '../hooks/use-lectura-de-la-tarjeta'
 import { useModeloDeLaTarjeta, type PaginaDelModelo } from '../hooks/use-modelo-de-la-tarjeta'
 import { CopiarTextoDeLaTarjeta } from './copiar-texto-de-la-tarjeta'
+import { DescargarPdfDeLaTarjeta } from './descargar-pdf-de-la-tarjeta'
 import { TarjetaDeCotizacion } from './tarjeta-de-cotizacion'
 
-// Lo que la página sabe de la tarjeta y la hoja no: lo da `<ProveedorDeLaTarjeta>`.
-export type DatosDeLaPagina = PaginaDelModelo
+// Lo que la página sabe de la tarjeta y la hoja no: lo da `<ProveedorDeLaTarjeta>`. `cotizacionId`: la de una guardada, que tiene PDF; nulo en la hoja nueva.
+export type DatosDeLaPagina = PaginaDelModelo & { cotizacionId: string | null }
 
 type Props = PropsDeLaVistaPrevia & { pagina: DatosDeLaPagina }
 
@@ -147,6 +148,12 @@ export default function VistaPreviaDeLaTarjeta(props: Props) {
             aviso={aviso}
             idDelDesactualizado={idDelDesactualizado}
           />
+          {props.pagina.cotizacionId === null ? null : (
+            <DescargarPdfDeLaTarjeta
+              cotizacionId={props.pagina.cotizacionId}
+              numero={props.pagina.numero}
+            />
+          )}
         </>
       }
     >

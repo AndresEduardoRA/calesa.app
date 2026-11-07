@@ -1,6 +1,7 @@
 // Lo que comparten los e2e del PDF de una cotización (paso 4.18-3a): pedirlo con la sesión del contexto, leerlo con el lector de las pruebas y la cuenta de su total contra
 // sus líneas (C13). Los tipos de cambio, los grupos con su bucket y los modos salen del snapshot de la cotización y de SU versión de la fórmula (SQL), nunca del spec.
-import { expect, type APIResponse, type Page } from '@playwright/test'
+import { readFile } from 'node:fs/promises'
+import { expect, type APIResponse, type Download, type Page } from '@playwright/test'
 import { textoDelPdf, type TextoDelPdf } from '../../scripts/pdf/texto-del-pdf'
 import { formatearMonto } from '../../src/shared/lib/formato'
 import { guardarConElAtajo, tarjetaGuardada, vigilarGuardados } from './cotizar-guardar'
@@ -42,6 +43,20 @@ export async function leerElPdf(page: Page, id: string): Promise<PdfLeido> {
   expect(respuesta.status(), cuerpo.toString('utf8').slice(0, 200)).toBe(200)
   const leido = textoDelPdf(new Uint8Array(cuerpo))
   return { leido, lineas: leido.paginas.flatMap((p) => p.lineas), bytes: cuerpo.length, ms }
+}
+
+// Un PDF que el navegador bajó (4.18-3b): su nombre y sus líneas, con el mismo lector.
+export async function leerLaDescarga(
+  descarga: Download,
+): Promise<{ nombre: string; lineas: string[]; bytes: number }> {
+  const ruta = await descarga.path()
+  const cuerpo = await readFile(ruta)
+  const leido = textoDelPdf(new Uint8Array(cuerpo))
+  return {
+    nombre: descarga.suggestedFilename(),
+    lineas: leido.paginas.flatMap((p) => p.lineas),
+    bytes: cuerpo.length,
+  }
 }
 
 // Guarda la hoja abierta con Ctrl+S y devuelve el id de la cotización nueva.
