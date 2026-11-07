@@ -50,6 +50,25 @@ describe('bucle.sh › a) los commits son los que dice ultimo.json', () => {
     )
   })
 
+  // El 4.21-2 del 7-11 listó también los 37 commits de su primera parte, ya integrada: el rango tenía 5 y el carril quedó en avisos.
+  it('los commits de antes del arranque que ultimo.json lista también no cuentan: publica', () => {
+    const r = correrListo(
+      `ANTES=$(git rev-parse HEAD)\n${pasoListo({ 'src/a.ts': 'a' })}\n` +
+        `jq --arg c "$ANTES" '.commits += [$c]' .piloto/ultimo.json > u.tmp && mv u.tmp .piloto/ultimo.json`,
+    )
+    expect(r.estado, r.salida).toBe(0)
+    expect(a.secuencia()).toEqual(['verificar:copia', 'publicar:4.99'])
+  })
+
+  it('los que ya están en origin/main tampoco: el rango y lo listado coinciden en los demás', () => {
+    const r = correrListo(
+      `${pasoListo({ 'src/a.ts': 'a', 'src/b.ts': 'b' }, { unPorArchivo: true })}\n` +
+        'git update-ref refs/remotes/origin/main "${SHAS[0]}"',
+    )
+    expect(r.estado, r.salida).toBe(0)
+    expect(a.secuencia()).toEqual(['verificar:copia', 'publicar:4.99'])
+  })
+
   it('con un commit que no existe y un archivo de guardas, la compuerta de guardas ni se pregunta: a) va antes que c)', () => {
     correrListo(
       pasoListo(
@@ -77,6 +96,15 @@ EOF`
     expect(a.secuencia()).toEqual([])
     expect(a.estado('registro.md')).toContain('4.99 listo sin cambios')
     expect(a.estado('en-curso.json')).toBe('')
+  })
+
+  it('con el rango vacío y sólo commits de antes del arranque listados, también cierra sin aviso', () => {
+    const r = correrListo(
+      `${sinCambios}\njq --arg c "$(git rev-parse HEAD)" '.commits = [$c]' .piloto/ultimo.json > u.tmp && mv u.tmp .piloto/ultimo.json`,
+    )
+    expect(r.estado, r.salida).toBe(0)
+    expect(a.secuencia()).toEqual([])
+    expect(a.estado('registro.md')).toContain('4.99 listo sin cambios')
   })
 })
 
