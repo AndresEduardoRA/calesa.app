@@ -44,6 +44,8 @@ case "$1 $2" in
   "pr view") cat "${respuestas}/$3.json" ;;
   "pr merge") echo "$3" >> "${respuestas}/merges"; echo "$*" >> "${respuestas}/merges-args"; echo '{"state":"MERGED"}' > "${respuestas}/$3.json" ;;
   "api -X") echo "$*" >> "${respuestas}/api" ;;
+  "run list") cat "${respuestas}/runs.json" 2>/dev/null || echo '[]' ;;
+  "run rerun") echo "$*" >> "${respuestas}/reruns" ;;
   *) exit 2 ;;
 esac
 `,
@@ -167,6 +169,50 @@ test('un estado de commit pendiente (el de Vercel) no es un CI en rojo: espera; 
     ],
   })
   assert.match(correr('sincronizar'), /P02: CI en rojo \(#9\)/)
+})
+
+test('un CI rojo se vuelve a correr una vez por commit antes de devolver el paso; la segunda, vuelve a su carril', () => {
+  const { correr, pr, respuestas } = repo()
+  correr('siguiente', 'ui')
+  correr('publicado', 'P02', '12')
+  const rojo = {
+    state: 'OPEN',
+    mergeable: 'MERGEABLE',
+    headRefOid: 'def456',
+    statusCheckRollup: [...verde, { status: 'COMPLETED', conclusion: 'FAILURE' }],
+  }
+  pr(12, rojo)
+  writeFileSync(
+    join(respuestas, 'runs.json'),
+    JSON.stringify([
+      { databaseId: 77, conclusion: 'failure' },
+      { databaseId: 78, conclusion: 'success' },
+    ]),
+  )
+  assert.match(
+    correr('sincronizar'),
+    /P02: CI en rojo \(#12\): vuelvo a correr lo que cayó, una vez/,
+  )
+  assert.equal(readFileSync(join(respuestas, 'reruns'), 'utf8').trim(), 'run rerun 77 --failed')
+  assert.equal(JSON.parse(correr('siguiente', 'ui')).accion, 'esperar') // no vuelve al carril todavía
+  pr(12, rojo) // el mismo commit sigue rojo tras el reintento
+  assert.match(correr('sincronizar'), /P02: CI en rojo \(#12\): vuelve a su carril/)
+  assert.equal(readFileSync(join(respuestas, 'reruns'), 'utf8').trim(), 'run rerun 77 --failed')
+})
+
+test('con un job todavía corriendo, un rojo no devuelve el paso: espera a que termine', () => {
+  const { correr, pr } = repo()
+  correr('siguiente', 'ui')
+  correr('publicado', 'P02', '13')
+  pr(13, {
+    state: 'OPEN',
+    mergeable: 'MERGEABLE',
+    statusCheckRollup: [
+      { status: 'COMPLETED', conclusion: 'FAILURE' },
+      { status: 'IN_PROGRESS', conclusion: null },
+    ],
+  })
+  assert.equal(correr('sincronizar').trim(), '')
 })
 
 test('un job cancelado no es un CI en rojo: el PR espera la corrida siguiente', () => {
