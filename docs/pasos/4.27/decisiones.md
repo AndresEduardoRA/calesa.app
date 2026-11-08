@@ -1,0 +1,35 @@
+## 2026-11-08 — Paso 4.27-1
+
+- **Lo que contestó la persona:** la compuerta `datos` del plan, «aprobar», con las recomendadas de P1 a P11:
+  - P1 comenta quien ve la cotización.
+  - P2 adjunta quien puede guardarla: preventa, ver y editar; final, ver y `final.gestionar` del origen.
+  - P3 un solo nivel de respuestas.
+  - P4 raíces de la más nueva a la más vieja, de a 20, con sus primeras 20 respuestas.
+  - P5 el autor edita y borra; quien modera borra lo ajeno y no lo edita.
+  - P6 reportar no cambia el estado ni la versión; moderar es invalidar o descartar los reportes.
+  - P7 moderar una final pide `final.gestionar`.
+  - P8 los tipos del bucket, hasta 20 por cotización, sin repetir el archivo.
+  - P9 todo por RPC, con las escrituras directas revocadas.
+  - P10 «los niveles» del terminado son los permisos de la cotización.
+  - P11 la favorita es una marca privada; el filtro del listado no entra.
+- **Lo que se aprobó en permisos (la base):**
+  - Policies de `storage.objects` («cotizaciones: leer», «subir») y de `cotizaciones_adjuntos` («crear», «borrar») con ver y la regla de guardar (4-69).
+  - «cotizaciones_reportes: leer» pide moderar y ver.
+  - Sin insert, update ni delete para `authenticated` en comentarios, adjuntos, reportes y favoritos.
+  - Doce funciones `security definer` (`cotizacion_puede_adjuntar` y las once RPC), todas con `search_path = ''` y sólo de `authenticated` y `service_role`; `_comentario_item` y
+    el trigger, de nadie; `_cotizacion_de_objeto`, inmutable de invocador.
+  - `cotizacion_moderar` cambia de firma: `(uuid, timestamptz, estado_cotizacion)`.
+  - Sin permisos nuevos; el catálogo dice que comentar es de `ver` (antes decía `editar`).
+- **Lo no obvio:**
+  - **Borrar quita la fila salvo en una raíz con respuestas**, y la última respuesta se lleva la raíz eliminada: así `cotizacion_comentarios` lee sin descartar
+    filas que crecen con la profundidad (`.claude/rules/escala.md`), y un `check` impide una respuesta eliminada. La migración normaliza antes lo que hubiera entrado por
+    PostgREST (re-cuelga respuestas anidadas, quita respuestas eliminadas y raíces eliminadas sin respuestas) y crea los `check` `not valid` + `validate`.
+  - **Reportar no mueve la versión** (los contadores no la mueven): quien tiene la cotización abierta no recibe un conflicto porque otra persona la reportó.
+    «Descartar los reportes» es moderar a `activa` una que ya está activa: borra los reportes y, como el estado no cambia, la versión tampoco. `sin_cambios` sólo
+    con el mismo estado y, si es `activa`, sin reportes.
+  - **Orden de candados:** raíz → respuesta (comentar toma la raíz `for share`; borrar una respuesta, la raíz y la respuesta `for update`); cotización → reportes (moderar
+    la toma `for no key update` y borra los reportes; retirar la toma antes de borrar el suyo, porque el trigger de contadores la toma después y se cruzaba con
+    moderar: 40P01). Moderar mira el permiso global antes de tomar la fila.
+  - **La carpeta y el objeto se comprueban en `cotizacion_adjuntar`, no en un trigger:** es la única que escribe, y las pruebas de la purga y `medir-jobs.sql`
+    insertan adjuntos sin objeto. El trigger sólo rescata la ruta de la cola de limpieza. Tipo y tamaño salen de la metadata de storage cuando está.
+  - El tope de 20 adjuntos se mira sin candado: dos a la vez pueden dejar 21 (aceptado).

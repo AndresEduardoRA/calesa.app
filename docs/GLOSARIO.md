@@ -146,7 +146,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Marca** — `MarcasDeLead` / `leads_vista.es_favorito`, `esta_tachado`, `etiquetas`: favorito, tachado y etiquetas que una persona pone a un lead; privadas.
 - **Etiqueta** — `etiquetas`, `leads_etiquetas` / `etiqueta_*()`, `lead_etiquetas_poner()`: marca con nombre y color, privada (hasta 50; 20 por lead).
 - **Color de etiqueta** — `etiquetas.color` / `CLAVES_DE_COLOR`, `--etiqueta-<clave>`: uno de ocho de la paleta cerrada, guardado como clave.
-- **Favorito / Tachado** — `leads_favoritos`, `leads_tachados` / `lead_favorito_poner()`, `lead_tachado_poner()`: marcas por persona; no reordenan.
+- **Favorito / Tachado** — `leads_favoritos`, `leads_tachados` / `lead_favorito_poner()`, `lead_tachado_poner()`: marcas por persona; no reordenan. Una cotización también se marca como favorita (`cotizaciones_favoritos` / `cotizacion_favorito_poner()`, 4.27-1).
 - **Tus marcas** — `SECCION_MARCAS` / `filtrosDeMarcas()`: sección de arriba del panel de filtros («Solo las ves tú»).
 - **Tachados ocultos** — `?tachados=` (`ocultar` · `incluir` · `solo`) / `ocultaTachados()`, `ocultos`: el listado oculta lo tachado y avisa cuántos, con «Mostrarlos».
 - **Gestionar etiquetas** — `?panel=etiquetas` / `<DialogoDeEtiquetas>`: crear, renombrar, recolorear y eliminar las propias.
@@ -189,7 +189,10 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Vista previa** — `?panel=vista-previa`, `<VistaPreviaDeLaHoja>`: el modal que dibuja la tarjeta de la cotización (`<TarjetaDeCotizacion>`, `modeloDeLaTarjeta()`) tal como la vería el cliente; en una guardada dibuja lo guardado (4.18-2).
 - **PDF de la cotización** — `GET /cotizaciones/<id>/pdf`, `pdfDeUnaGuardada()`: la tarjeta de **lo guardado** de una cotización en A4, para el cliente; lo descarga quien la ve (4.18-3a). No es «Compartir» (eso es dar acceso a un lead): la cotización tiene «Copiar texto» y «Descargar PDF» en el pie de «Vista previa» (el PDF, sólo en una guardada) y «Descargar PDF» en la tarjeta de lo guardado de la hoja nueva (4.18-3b).
 - **Revisión** — `cotizaciones_revisiones`: diff de cada edición.
-- **Reporte** — `cotizaciones_reportes` / `cotizacion_moderar`: marca de problema; sólo quien modera invalida.
+- **Reporte** — `cotizaciones_reportes` / `cotizacion_reportar()`, `cotizacion_reporte_retirar()`: marca de problema, uno por persona y con motivo; no cambia el estado ni la versión. Una cotización «reportada» es una activa con reportes (el valor `reportada` del enum no se usa, 4.27-1).
+- **Moderar** — `cotizacion_moderar()` (`cotizaciones.moderar`): «Invalidar» (estado `invalida`, conserva los reportes) o «Descartar los reportes» (`activa`); pide ver la cotización y la versión, y en una final `cotizaciones.final.gestionar` del origen. Quien modera también borra comentarios y quita adjuntos ajenos.
+- **Comentario / Respuesta** — `cotizaciones_comentarios` (`padre_id`) / `cotizacion_comentarios()`, `cotizacion_comentar()`: lo escribe quien ve la cotización; un solo nivel (la respuesta a una respuesta cuelga de su raíz). Una raíz borrada con respuestas queda como «Comentario eliminado.»; una respuesta o una raíz sola se quitan.
+- **Adjunto** — `cotizaciones_adjuntos` / `cotizacion_adjuntar()`, `cotizacion_adjunto_quitar()`: archivo del bucket `cotizaciones` registrado en una cotización; lo sube quien puede guardarla (`cotizacion_puede_adjuntar()`), hasta 20.
 - **Comprobante** — `comprobantes`, `comprobantes_contadores`: comprobante de venta interno, numeración sin huecos; se anula, no se borra.
 - **Tipo de cambio oficial / paralelo** — `tipos_cambio.clave` (`oficial`, `paralelo`): los dos del Excel (TCO y TCP); cada fila o grupo elige el suyo.
 - **Modo de tipo de cambio** — `diseno.cabecera.modos[]` / `cotizaciones.modo_tc`: lo declara el diseño: un nombre (Aduana, Paralelo, Unificado…) y qué tipo de cambio llena cada bucket. La hoja abre con el primero marcado (`Entradas.modoTc`); con uno solo no se elige y el resumen lo nombra.
