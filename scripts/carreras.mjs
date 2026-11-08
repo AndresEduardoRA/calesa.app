@@ -33,6 +33,10 @@ import { carrerasDeLaRueda } from './carreras/rueda.mjs'
 import { stackLocal } from './lib/stack-local.mjs'
 import { carrerasDeLaCartera, carrerasDePrivacidad } from './carreras/cartera.mjs'
 import { carrerasDeLoReciente } from './carreras/cartera-reciente.mjs'
+import {
+  carrerasDeComprobantes,
+  limpiarComprobantes,
+} from '../supabase/tests/areas/comprobantes/carreras.mjs'
 
 // La base de ESTE worktree (la principal o un carril: scripts/lib/stack-local.mjs).
 const url = process.env.CARRERAS_DB_URL ?? stackLocal().urlDb
@@ -118,6 +122,8 @@ const { duena, compartido, supervision, destino } = PERSONAS
 const orquesta = await conectar()
 const inicio = Date.now()
 try {
+  // Un comprobante frena el borrado de su cotización: lo de comprobantes (4.26-1) se limpia antes que el terreno.
+  await limpiarComprobantes(orquesta)
   await limpiar(orquesta)
   await sembrar(orquesta)
 
@@ -347,7 +353,11 @@ try {
   await carrerasDePrivacidad({ orquesta, carrera, espero })
   await carrerasDeLoReciente({ orquesta, carrera, espero })
   await carrerasDeLaRueda({ orquesta, espero, conectar, esperarBloqueo })
+  await carrerasDeComprobantes({ orquesta, espero, conectar, esperarBloqueo })
 } finally {
+  await limpiarComprobantes(orquesta).catch((e) =>
+    fallas.push(`limpiar los comprobantes: ${e.message}`),
+  )
   await limpiar(orquesta).catch((e) => fallas.push(`limpiar: ${e.message}`))
   await orquesta.end()
 }
