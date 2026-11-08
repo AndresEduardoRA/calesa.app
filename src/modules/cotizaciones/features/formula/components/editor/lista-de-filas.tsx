@@ -11,16 +11,24 @@ import { useEditorDeLaFormula } from '../../hooks/use-editor-de-la-formula'
 import { filasVisibles } from '../../hooks/use-editor-de-la-formula.soporte'
 import { BuscarFila } from './buscar-fila'
 import { FilaDelEditor } from './fila-del-editor'
+import { GuardarBorrador } from './guardar-borrador'
 import { propsDeLaFila } from './props-de-la-fila'
 import { VistaPreviaDeLaFormula } from './vista-previa-de-la-formula'
 
-type Props = { origenId: string; nombreDelOrigen: string; leida: FormulaParaEditar }
+type Props = {
+  origenId: string
+  nombreDelOrigen: string
+  leida: FormulaParaEditar
+  // Tras un conflicto al guardar: trae la pestaña de nuevo y vuelve a montar el editor sobre lo que haya.
+  recargando: boolean
+  alRecargar: () => void
+}
 
 const SIN_CIFRA: CifraDeLaFila = { tipo: 'nada' }
 
 // Las filas de la versión leída, en su orden (C4–C8): hasta `TOPE_DE_LO_CARGADO`, con «Buscar fila» como camino a las demás. Un rechazo de `validarFormula()` que no
-// nombra ninguna fila va arriba de la lista.
-export function ListaDeFilas({ origenId, nombreDelOrigen, leida }: Props) {
+// nombra ninguna fila va arriba de la lista. «Guardar el borrador» (4.21-3b-1) va arriba de todo.
+export function ListaDeFilas({ origenId, nombreDelOrigen, leida, recargando, alRecargar }: Props) {
   const editor = useEditorDeLaFormula({ origenId, leida })
   const [busqueda, setBusqueda] = useState('')
   const { nueva } = editor
@@ -42,8 +50,21 @@ export function ListaDeFilas({ origenId, nombreDelOrigen, leida }: Props) {
       ),
     [editor.filas, editor.vista],
   )
+  const { guardado } = editor
   return (
     <div className="grid min-w-0 gap-3">
+      <GuardarBorrador
+        nombreDelOrigen={nombreDelOrigen}
+        enCurso={guardado.enCurso}
+        estado={guardado.estado}
+        motivo={guardado.motivo}
+        avisoDelDiseno={guardado.avisoDelDiseno}
+        recargando={recargando}
+        alGuardar={() => {
+          void guardado.guardar()
+        }}
+        alRecargar={alRecargar}
+      />
       {rechazo && rechazo.filaId === null ? (
         <p
           role="alert"

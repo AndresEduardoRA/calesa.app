@@ -56,13 +56,14 @@ por plan, más que ejecutar un paso de pantalla. Lo que baja es el número de vu
 `.piloto/planes/<paso>.md`, con la plantilla de `.claude/skills/piloto/plantilla-plan.md` (si no existe en tu árbol, usa las secciones de abajo). **Tope: 60 KB**
 medidos con `wc -c` (el del 4.13-3b pesó 87 KB: repetía la conducta en el alcance, los archivos, las pruebas y las mutaciones, y traía las respuestas al auditor). La
 conducta va **una vez**, numerada (`Cn`), y lo demás la cita; lo que das por cierto del código va en «Precondiciones verificables», `Vn · afirmación · archivo:línea`. Un
-plan que no cabe en 60 KB o en hasta 3 commits de código es un paso que no cabe: pártelo. Secciones:
+plan que no cabe en 60 KB o en hasta 6 commits de código es un paso que no cabe: pártelo. **Pruebas sólo en lo clave** (`.claude/rules/e2e.md` › «Pulido y
+rigor por tipo de paso», la persona, 2026-11-08): dinero, fórmula, permisos, RLS, carreras donde hay candados o numeración y un e2e del camino feliz por pantalla;
+nada de volumen de interfaz, mutaciones fuera del motor y el dinero, `medir-*.sql` de configuración ni `movil` en Configuración. Secciones:
 paso y cita de su fila; alcance y fuera de alcance; partición (y cómo se anota en PLAN); precondiciones verificables; conducta; archivos; nivel (salida de `nivel.mjs`, cuenta `n de 3`, e2e
-dirigidos por el texto tocado: grepea `e2e/`); pruebas que fallan primero (contra HEAD, guardadas); mutaciones (mutación → la prueba que debe
-caer); abiertos de PLAN que toca; seguridad y permisos; rendimiento (filas de RENDIMIENTO); docs (PLAN, ESTADO por sustitución ≤ 60 líneas medido con
-`wc -l`, BITACORA con su marcador, DECISIONES con `TZ=America/La_Paz date +%F`, fichas, MAPA por `mapa.sh`); commits (hasta 3 de código y el de docs,
+dirigidos por el texto tocado: grepea `e2e/`); pruebas que fallan primero (sólo las clave; su salida roja no se guarda); mutaciones (sólo motor de la fórmula y dinero; si no, «No aplica»); abiertos de PLAN que toca; seguridad y permisos; rendimiento (filas de RENDIMIENTO); docs (PLAN, ESTADO por sustitución ≤ 60 líneas medido con
+`wc -l`, BITACORA con su marcador, DECISIONES con `TZ=America/La_Paz date +%F`, fichas, MAPA por `mapa.sh`); commits (hasta 6 de código y el de docs,
 uno por intención, asunto en minúsculas ≤ 72 caracteres; el `fix` que pida la auditoría del informe va aparte y no cuenta); preguntas abiertas; modelo y esfuerzo sugeridos.
 
-Cuando te devuelven objeciones del auditor, contéstalas una por una en **`.piloto/planes/<paso>.respuestas.md`** (qué cambió en el plan o por qué no), no en el plan,
+Si te devuelven objeciones del auditor (una sola ronda; la sesión del paso suele corregirlas sola), contéstalas una por una en **`.piloto/planes/<paso>.respuestas.md`** (qué cambió en el plan o por qué no), no en el plan,
 y **corrige el plan con `Edit`, sin reescribirlo entero**: en el 4.13-3b, reescribirlo dos veces fueron 173 K tokens de salida. No repitas lo que ya estaba bien.
 Termina diciendo la ruta del plan y, en una línea, lo que decidiste partir o dejar como pregunta.

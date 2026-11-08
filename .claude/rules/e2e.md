@@ -10,9 +10,9 @@ paths:
 
 - En local un e2e que falla no se reintenta (`retries: 0`): se busca la causa en `e2e-fallos/<fecha>/` (traza,
   video, captura, reporte), que guarda `e2e/soporte/reporter-de-fallos.ts` en toda corrida que falla. En CI hay un
-  reintento (FLUJO-1, decidido por la persona el 2026-11-07): la que pasa al reintentar no pone el PR en rojo, pero
-  `e2e/soporte/reporter-de-inestables.ts` la anota en el PR y en el resumen de la corrida, y es un abierto con su causa
-  por buscar, como cualquier inestable.
+  reintento (FLUJO-1, decidido por la persona el 2026-11-07): la que pasa al reintentar no pone el PR en rojo y
+  `e2e/soporte/reporter-de-inestables.ts` la anota en el PR y en el resumen de la corrida. **No es un abierto ni un
+  pedido** (2026-11-08): sólo se arregla si cae dos noches seguidas en el completo (abajo, «Pulido y rigor»).
   Un `pnpm test` que cae deja su salida en `test-salidas/<fecha_hora-pid>/`. «La máquina estaba
   ocupada» no explica nada: se mide.
 - La base local y el servidor de e2e de un stack son de una sola sesión a la vez: `db:reset`, `db:types`,
@@ -39,9 +39,9 @@ paths:
   índice (la base no cambia nunca). Además de lo dirigido, el e2e completo: lo corre el CI del PR en sus
   cuatro bloques (`scripts/e2e-dirigidos.mjs` pasa a modo completo cuando el PR toca un disparador), no la
   sesión. En local, sólo lo dirigido.
-- Rigor máximo (mutaciones, carreras, volumen, el auditor que bloquea) sólo en fórmulas del cotizador,
-  dinero, RLS y permisos; lo demás, con el nivel que le toque y sin pruebas de más. En CI, un PR corre el
-  Nivel 1 y los e2e dirigidos (`scripts/e2e-dirigidos.mjs`); cada noche, el completo (`docs/ORCA.md`).
+- Qué pruebas se escriben: sólo las de «Pulido y rigor por tipo de paso» › «Pruebas: sólo lo clave» (abajo).
+  En CI, un PR corre el Nivel 1 y los e2e dirigidos (`scripts/e2e-dirigidos.mjs`); cada noche, el completo
+  (`docs/ORCA.md`).
 - Nivel 3, un cierre de fase: `pnpm test:e2e:completo` con los dos proyectos. La BITACORA dice cuál se
   corrió: `e2e completo: sí|no (<tarea>)`. Un nivel no corrido se dice.
 - Fase 4 (`docs/DECISIONES.md`): los pasos de pura pantalla (4.12–4.14, 4.16–4.23) van con el Nivel 1
@@ -59,13 +59,32 @@ paths:
 
 ## Pulido y rigor por tipo de paso
 
-Medido en el 4.14-2a2 a 2a6 (el 4-49, foco tras recargar y «atrás»): 5 sub-pasos, ≈15 h de reloj y ≈86 USD en pulido de accesibilidad. El rigor va donde
-se pierde dinero o se filtran datos; el pulido espera a la auditoría AA de la Fase 9. El plan de un paso dice de cuál de estos dos tipos es:
+### Pruebas: sólo lo clave (la persona, 2026-11-08)
 
-- **Rigor máximo:** fórmulas del cotizador, dinero, RLS, permisos, `security definer`, migraciones y `src/shared/lib`. Plan auditado (con 2.ª ronda si bloquea),
-  pruebas en rojo contra HEAD, mutaciones, informe auditado, carreras y volumen, como en «Niveles de verificación».
-- **Pantalla pura** (sólo `features/`, `components/`, `pantallas/` o `src/app/`, sin datos ni permisos nuevos): el plan se audita una vez; las pruebas que fallan
-  primero sí (son baratas), pero **sin mutaciones, sin sondas de medición contra HEAD, sin capturas para mirar y sin informe auditado**. Verifica el bucle.
+Para cerrar la Fase 4 rápido. Pedido de la persona: «no quiero sobretestear; sólo las partes clave». El rigor va donde se pierde dinero o se filtran datos.
+Las pruebas que ya existen siguen corriendo y no se rompen; esto decide **qué se escribe de aquí en adelante**.
+
+- **Se escriben:** los tests de `entities/` con dinero, fórmula o permisos; las pruebas SQL (`db:probar`) de RLS, permisos y `security definer`; las carreras
+  (`scripts/carreras/`) sólo donde hay candados o numeración (marcar final, comprobantes); **un** e2e del camino feliz por pantalla nueva, en `escritorio`.
+- **No se escriben:** mutaciones (salvo el motor de la fórmula y el dinero); salidas «en rojo contra HEAD» guardadas (la prueba se escribe primero, su
+  salida roja no se guarda); sondas de medición contra HEAD; e2e de volumen de interfaz (nodos, bytes, pedidos) salvo las listas de leads, vehículos o
+  cotizaciones; e2e de conflicto o de versión si la RPC ya tiene su prueba SQL; `medir-*.sql` para tablas de configuración (decenas de filas: plantillas,
+  versiones de la fórmula, tablas de referencia, series); capturas para mirar; e2e en `movil` de las pantallas de Configuración (el archivo lleva
+  `// @sin-celular-archivo:` con un motivo de ≥ 40 caracteres, «Celular» abajo).
+- **Inestables:** una prueba que pasa al reintentar en CI no es un abierto ni un pedido; sólo se arregla si cae dos noches seguidas en el completo. No se
+  piden pasos «estabilizar» (el pedido-1 y el pedido-2 costaron ≈ 3 h del carril A).
+- **Presupuestos** (JS por ruta, nodos, bytes): si un paso los pasa por ≤ 5 %, sube el tope con una línea en `docs/RENDIMIENTO.md` y sigue; no se
+  refactoriza ni se difiere código en el paso para entrar.
+
+### Por tipo de paso
+
+Medido en el 4.14-2a2 a 2a6 (el 4-49, foco tras recargar y «atrás»): 5 sub-pasos, ≈15 h de reloj y ≈86 USD en pulido de accesibilidad. El pulido espera a la
+auditoría AA de la Fase 9. El plan de un paso dice de cuál de estos dos tipos es:
+
+- **Datos y dinero:** fórmulas del cotizador, dinero, RLS, permisos, `security definer` y migraciones. Plan auditado **una vez** (si bloquea, la sesión corrige
+  sus objeciones en el plan y sigue, o achica el paso); informe auditado sólo si toca RLS, permisos, `security definer` o dinero; las pruebas de «Se escriben».
+- **Pantalla** (sólo `features/`, `components/`, `pantallas/` o `src/app/`, sin datos ni permisos nuevos; los pasos `verde` y `ambar`): **sin auditor**, ni del
+  plan ni del informe; un e2e del camino feliz y los tests de lo que tenga lógica. Verifica el bucle y el CI.
 
 **Pulido** (no se recoge en un paso de producto, no abre otro paso y no se escribe prueba nueva para él): el texto o el diseño al 200 %; el foco tras recargar o
 tras «atrás»; `aLaVistaSinDesplazar()` o `sinScrollHorizontal()` nuevos; las capturas para juzgar con `E2E_CAPTURAS`. `ui.md` sigue diciendo cómo se

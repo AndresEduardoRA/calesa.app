@@ -104,10 +104,18 @@ describe('carriles › lo que un carril que no es base toca fuera de lo suyo (P2
       rutas.map((ruta) => ({ estado: 'M', ruta })),
     )
 
-  it('lo ajeno cae, con quién lo pide', () => {
-    for (const ruta of [`${M}features/hoja/hoja.tsx`, 'src/shared/lib/permisos.ts']) {
-      expect(toca(ruta)).toEqual([expect.stringContaining(`${ruta}: no es del carril b`)])
-    }
+  it('lo de otro carril no base cae, con quién lo tiene', () => {
+    expect(toca(`${M}areas/papelera/index.ts`)).toEqual([
+      expect.stringContaining(`${M}areas/papelera/index.ts: es del carril c`),
+    ])
+  })
+
+  it('lo del núcleo (del carril base) lo edita y lo agrega en su PR, sin esperar un pedido; no lo borra', () => {
+    expect(toca(`${M}features/hoja/hoja.tsx`, 'src/shared/lib/permisos.ts')).toEqual([])
+    expect(revisar('b/x', [{ estado: 'A', ruta: 'src/shared/lib/nuevo.ts' }])).toEqual([])
+    expect(revisar('b/x', [{ estado: 'D', ruta: 'src/shared/lib/permisos.ts' }])).toEqual([
+      expect.stringContaining('pero no lo borra'),
+    ])
   })
 
   it('lo suyo, docs/ y compartido (agrega y edita) pasan', () => {
@@ -140,7 +148,11 @@ describe('carriles › lo que un carril que no es base toca fuera de lo suyo (P2
       revisar('b/x', [
         { estado: 'R100', antes: `${M}entities/hoja.ts`, ruta: `${M}areas/formula/hoja.ts` },
       ]),
-    ).toEqual([expect.stringContaining(`${M}entities/hoja.ts: no es del carril b`)])
+    ).toEqual([
+      expect.stringContaining(
+        `${M}entities/hoja.ts: el carril b edita y agrega lo del núcleo, pero no lo borra`,
+      ),
+    ])
   })
 
   it('lo sumado en el mismo PR (C5) cuenta como suyo', () => {
