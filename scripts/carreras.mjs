@@ -26,6 +26,7 @@ import { carrerasDeCotizaciones } from './carreras/cotizaciones.mjs'
 import { carrerasDeGuardar } from './carreras/cotizaciones-guardar.mjs'
 import { carrerasDeEncima } from './carreras/cotizaciones-encima.mjs'
 import { carrerasDeConfiguracionDeLeads } from './carreras/configuracion-de-leads.mjs'
+import { carrerasDeTablas } from './carreras/tablas.mjs'
 import { carrerasDeMarcas } from './carreras/marcas.mjs'
 import { carrerasDeNumeros } from './carreras/numeros.mjs'
 import { carrerasDeLaRueda } from './carreras/rueda.mjs'
@@ -338,6 +339,7 @@ try {
   await carrerasDeCotizaciones({ orquesta, carrera, espero, conectar, esperarBloqueo })
   await carrerasDeGuardar({ orquesta, carrera, espero, conectar, esperarBloqueo })
   await carrerasDeEncima({ orquesta, carrera, espero })
+  await carrerasDeTablas({ orquesta, carrera, espero })
   await carrerasDeConfiguracionDeLeads({ orquesta, carrera, espero })
   await carrerasDeMarcas({ orquesta, carrera, espero })
   await carrerasDeNumeros({ orquesta, carrera, espero, conectar, esperarBloqueo })
