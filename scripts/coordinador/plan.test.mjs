@@ -13,6 +13,7 @@ import {
   marcarPedido,
   ordenTopologico,
   pedir,
+  prestable,
   problemasDelPlan,
   siguiente,
   tablero,
@@ -201,6 +202,56 @@ test('con sus pasos integrados, el carril espera pedidos hasta que termine el pl
   assert.match(siguiente(PLAN, e, 'datos').motivo, /atiende pedidos hasta que el plan termine/)
   for (const id of ['P03', 'P04', 'P05']) e = integrar(e, id)
   assert.deepEqual(siguiente(PLAN, e, 'datos'), { accion: 'terminado' })
+})
+
+// ui con dos pasos listos e independientes tras P01 (P03 y P06): mientras ui hace P03, datos (sin nada propio listo) toma P06.
+const CON_PRESTAMO = {
+  ...PLAN,
+  pasos: [...PLAN.pasos, paso('P06', 'ui', ['P01'], ['src/modules/x/features/otra/'], 'verde')],
+}
+const integrarYa = (est, id) =>
+  marcar(marcar(marcar(est, id, 'asignado'), id, 'publicado', { pr: 1 }), id, 'integrado')
+
+test('prestado: un carril sin paso listo toma uno de otro carril ocupado, si no toca lo que está en curso', () => {
+  let e = integrarYa(integrarYa(estadoInicial(CON_PRESTAMO), 'P01'), 'P02')
+  // ui libre: datos no le quita nada (ui lo toma en su próxima vuelta).
+  assert.match(siguiente(CON_PRESTAMO, e, 'datos').motivo, /atiende pedidos/)
+  e = marcar(e, 'P03', 'asignado', { carril: 'ui' })
+  const r = siguiente(CON_PRESTAMO, e, 'datos')
+  assert.equal(r.accion, 'paso')
+  assert.equal(r.paso.id, 'P06')
+  assert.equal(r.rama, 'datos/p06')
+  assert.equal(r.prestado, true)
+  // Asignado a datos: datos lo retoma; ui, al terminar P03, no lo toma por suyo.
+  e = marcar(e, 'P06', 'asignado', { carril: 'datos' })
+  assert.equal(siguiente(CON_PRESTAMO, e, 'datos').paso.id, 'P06')
+  assert.equal(siguiente(CON_PRESTAMO, e, 'datos').retomar, true)
+  e = marcar(e, 'P03', 'publicado', { pr: 3 })
+  assert.equal(siguiente(CON_PRESTAMO, e, 'ui').accion, 'esperar')
+  // Su PR en rojo vuelve a quien lo hizo.
+  e = marcar(e, 'P06', 'publicado', { pr: 6 })
+  e.pasos.P06.arreglar = 'CI en rojo'
+  assert.equal(siguiente(CON_PRESTAMO, e, 'datos').paso.id, 'P06')
+  assert.equal(siguiente(CON_PRESTAMO, e, 'datos').arreglar, 'CI en rojo')
+  assert.equal(siguiente(CON_PRESTAMO, e, 'ui').accion, 'esperar')
+  assert.match(tablero(CON_PRESTAMO, e), /P06 t P06 \(lo hace datos\)/)
+})
+
+test('prestado: no si toca lo que está en curso o con el PR abierto, ni con la cuota sobre el umbral', () => {
+  const plan = {
+    ...PLAN,
+    pasos: [...PLAN.pasos, paso('P06', 'ui', ['P01'], ['src/app/otra/', 'docs/'], 'verde')],
+  }
+  let e = integrarYa(integrarYa(estadoInicial(plan), 'P01'), 'P02')
+  e = marcar(e, 'P03', 'asignado', { carril: 'ui' }) // P03 toca src/app/, que contiene src/app/otra/
+  assert.equal(prestable(plan, e, 'datos'), null)
+  assert.equal(siguiente(plan, e, 'datos').accion, 'esperar')
+  e = marcar(e, 'P03', 'publicado', { pr: 3 }) // con el PR abierto, tampoco
+  assert.equal(prestable(plan, e, 'datos'), null)
+  let e2 = integrarYa(integrarYa(estadoInicial(CON_PRESTAMO), 'P01'), 'P02')
+  e2 = marcar(e2, 'P03', 'asignado', { carril: 'ui' })
+  assert.equal(siguiente(CON_PRESTAMO, e2, 'datos', { cuota: 0.9 }).accion, 'esperar')
+  assert.equal(siguiente(CON_PRESTAMO, e2, 'datos', { cuota: 0.5 }).paso.id, 'P06')
 })
 
 test('transiciones inválidas fallan', () => {
