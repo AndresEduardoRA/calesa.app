@@ -8165,6 +8165,7 @@ export type Database = {
         }
         Returns: Json
       }
+      cotizacion_favorito_poner: { Args: { p_cotizacion: string; p_valor: boolean }; Returns: Json }
       cotizacion_guardar: {
         Args: {
           p_actualizado_en_esperado: string
