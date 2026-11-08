@@ -55,6 +55,25 @@ describe('bucle.sh › revisión de FLUJO-1: pedidos y pasos que cierran sin cam
     expect(a.llamadas('paso')).toHaveLength(1)
   })
 
+  it('sin cambios, asignado y con su PR abierto (volvió por un falso rojo): vuelve a publicado sin preguntar, una vez', () => {
+    const f = plan(paso('4.99'))
+    coordinador(f, 'siguiente', 'formula')
+    coordinador(f, 'publicado', '4.99', '5')
+    coordinador(f, 'siguiente', 'formula') // nada propio: espera (publicado)
+    const est = estadoCoord()
+    const vuelto = { ...est.pasos['4.99'], estado: 'asignado', arreglar: 'CI en rojo' }
+    writeFileSync(
+      join(dirCoord(), 'estado.json'),
+      JSON.stringify({ ...est, pasos: { ...est.pasos, '4.99': vuelto } }),
+    )
+    a.paso(1, pasoSinCambios('4.99'))
+    const r = a.correr(['--una-vuelta'], entorno(f, { PILOTO_AUTO: 'parada' }))
+    expect(r.estado, r.salida).toBe(0)
+    expect(a.secuencia().filter((l) => l.startsWith('decidir:'))).toEqual([])
+    expect(a.estado('registro.md')).toContain('su PR #5 sigue abierto; vuelve a publicado')
+    expect(estadoCoord().pasos['4.99']).toMatchObject({ estado: 'publicado', pr: 5 })
+  })
+
   it('un paso que falla va directo a la persona, aunque los avisos se reintenten solos', () => {
     a.paso(
       1,

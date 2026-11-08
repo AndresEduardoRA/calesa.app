@@ -599,6 +599,43 @@ export type Database = {
           },
         ]
       }
+      comprobantes_ajustes: {
+        Row: {
+          actualizado_en: string
+          actualizado_por: string | null
+          serie: string
+          unica: boolean
+        }
+        ComputedFields: never
+        Insert: {
+          actualizado_en?: string
+          actualizado_por?: string | null
+          serie: string
+          unica?: boolean
+        }
+        Update: {
+          actualizado_en?: string
+          actualizado_por?: string | null
+          serie?: string
+          unica?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'comprobantes_ajustes_actualizado_por_fkey'
+            columns: ['actualizado_por']
+            isOneToOne: false
+            referencedRelation: 'perfiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'comprobantes_ajustes_serie_fkey'
+            columns: ['serie']
+            isOneToOne: false
+            referencedRelation: 'comprobantes_contadores'
+            referencedColumns: ['serie']
+          },
+        ]
+      }
       comprobantes_contadores: {
         Row: {
           serie: string
@@ -7132,6 +7169,7 @@ export type Database = {
         }
         Returns: Json
       }
+      _diseno_auxiliares: { Args: { p_def: Json }; Returns: Json }
       _diseno_forma: { Args: { p_diseno: Json }; Returns: undefined }
       _diseno_forma_item: { Args: { p_i: Json }; Returns: boolean }
       _diseno_maximo_de_items: { Args: Record<PropertyKey, never>; Returns: number }
@@ -8117,9 +8155,13 @@ export type Database = {
         }
         Returns: undefined
       }
-      comprobante_anular: { Args: { p_comprobante: string; p_motivo: string }; Returns: undefined }
+      comprobante_anular: { Args: { p_comprobante: string; p_motivo: string }; Returns: Json }
       comprobante_emitir: {
-        Args: { p_cotizacion: string; p_datos: Json; p_serie: string }
+        Args: { p_cotizacion: string; p_cotizacion_esperada: string }
+        Returns: Json
+      }
+      comprobantes_serie_cambiar: {
+        Args: { p_actualizado_en_esperado: string; p_serie: string }
         Returns: Json
       }
       concesion_dominada: {

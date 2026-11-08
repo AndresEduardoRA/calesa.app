@@ -3,6 +3,8 @@ import { Suspense } from 'react'
 import { SeccionDelDiseno } from '@/modules/cotizaciones/pantallas/diseno'
 import { SeccionDeLosTonos } from '@/modules/cotizaciones/pantallas/diseno-tonos'
 import { SeccionDeLaFormula } from '@/modules/cotizaciones/pantallas/formula'
+import { SeccionDeLasTablas } from '@/modules/cotizaciones/pantallas/tablas'
+import { puedeCambiarAjustesDeCotizacion } from '@/modules/empresa'
 import { puede, requerirSesion } from '@/modules/equipo'
 import { getOrigenes } from '@/modules/origenes'
 import { unParametro } from '@/shared/lib/rutas'
@@ -11,13 +13,15 @@ import { EstadoSinPermiso } from '@/shared/ui/estados'
 import { alMenosUna } from '../empresa/pestanas'
 import { pestanaDe, pestanasVisibles } from './pestanas'
 import { PestanasDeCotizacion } from './pestanas-de-cotizacion'
+import { SeccionAjustes } from './seccion-ajustes'
 import { SeccionNiveles } from './seccion-niveles'
 
 export const metadata: Metadata = { title: 'Cotización' }
 
 // Configuración › Cotización. Entra quien ve alguna pestaña (`pestanas.ts`): «Niveles de acceso» con `equipo.roles.ver` (los cambia quien tiene
-// `equipo.roles.gestionar`: cada nivel es un permiso de la matriz de Roles) «Fórmula», «Diseño» y «Tonos» con `cotizaciones.configurar` en algún origen (4.20-2a, 4.22-2, 4.22-4). La base vuelve a
-// exigir lo suyo en cada RPC y en la policy de `formulas`. Sin ninguna, «No tienes permiso» (y la sección no figura en Configuración).
+// `equipo.roles.gestionar`: cada nivel es un permiso de la matriz de Roles), «Fórmula», «Diseño» y «Tonos» con `cotizaciones.configurar` en algún origen
+// (4.20-2a, 4.22-2, 4.22-4), «Tablas» con la misma clave (4.23-3) y «Ajustes» con la misma clave (la cambia quien la tiene en todos los orígenes). La base
+// vuelve a exigir lo suyo en cada RPC y en las policies de `formulas` y `tablas_referencia`. Sin ninguna, «No tienes permiso» (y la sección no figura en Configuración).
 export default async function PaginaDeCotizacion({
   searchParams,
 }: PageProps<'/configuracion/cotizacion'>) {
@@ -28,6 +32,7 @@ export default async function PaginaDeCotizacion({
   }
   const pestana = pestanaDe(unParametro(parametros['seccion']), visibles)
   const origenPedido = unParametro(parametros['origen'])
+  const tablaPedida = unParametro(parametros['tabla'])
   // La barra no recibe los permisos: sólo cuáles pestañas dibujar.
   const [primera, ...resto] = visibles
   const quitarPermisos = ({ clave, titulo }: { clave: string; titulo: string }) => ({
@@ -74,6 +79,24 @@ export default async function PaginaDeCotizacion({
       {pestana === 'tonos' ? (
         <Suspense fallback={<EsqueletoFormulario bloques={2} campos={2} />}>
           <SeccionDeLosTonos />
+        </Suspense>
+      ) : null}
+      {pestana === 'tablas' ? (
+        <Suspense
+          key={`${origenPedido ?? ''}:${tablaPedida ?? ''}`}
+          fallback={<EsqueletoFormulario bloques={2} campos={4} />}
+        >
+          <SeccionDeLasTablas
+            origenes={getOrigenes(true)}
+            permisos={sesion.permisos}
+            origenPedido={origenPedido}
+            tablaPedida={tablaPedida}
+          />
+        </Suspense>
+      ) : null}
+      {pestana === 'ajustes' ? (
+        <Suspense fallback={<EsqueletoFormulario bloques={1} campos={2} />}>
+          <SeccionAjustes puedeCambiar={puedeCambiarAjustesDeCotizacion(sesion.permisos)} />
         </Suspense>
       ) : null}
     </div>

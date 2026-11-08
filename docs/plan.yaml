@@ -73,6 +73,8 @@ carriles:
       - src/modules/cotizaciones/entities/casos-de-formula.json
       - src/modules/cotizaciones/entities/casos-del-compilador.json
       - src/modules/cotizaciones/entities/compilador-arbol.ts
+      - src/modules/cotizaciones/entities/compilador-auxiliares.test.ts
+      - src/modules/cotizaciones/entities/compilador-auxiliares.ts
       - src/modules/cotizaciones/entities/compilador-casos-de-formula.test.ts
       - src/modules/cotizaciones/entities/compilador-emitir.ts
       - src/modules/cotizaciones/entities/compilador-escala.test.ts

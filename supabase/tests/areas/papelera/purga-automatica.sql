@@ -130,6 +130,14 @@ begin
   return public.papelera_purgar_vencidos();
 end $f$;
 
+-- Un comprobante heredado (de antes del 4.26) sobre una cotización que ya está en la papelera: como postgres, en la serie PA de la prueba. Hoy emitir pide una
+-- final viva y la papelera rechaza una cotización con comprobante; lo que queda por cubrir en la purga es el caso que ya estaba en la base.
+create or replace function pg_temp.pa_comprobante(p_c uuid) returns void language sql as $f$
+  insert into public.comprobantes_contadores (serie, ultimo) values ('PA', 0) on conflict do nothing;
+  with n as (update public.comprobantes_contadores set ultimo = ultimo + 1 where serie = 'PA' returning ultimo)
+  insert into public.comprobantes (cotizacion_id, serie, numero, datos) select p_c, 'PA', n.ultimo, '{}'::jsonb from n;
+$f$;
+
 -- @test papelera de cotizaciones: la purga automática purga los lotes vencidos de cotizaciones y nunca lo bloqueado (PA1)
 begin;
 do $$
@@ -140,11 +148,10 @@ begin
   perform pg_temp.pa_job();
   c1 := pg_temp.pa_cot(jefa, e); c2 := pg_temp.pa_cot(jefa, e); nv := pg_temp.pa_cot(jefa, e);
   f := pg_temp.pa_cot(jefa, e, pg_temp.pa_vehiculo(e), 'final'); p := pg_temp.pa_cot(jefa, e);
-  r := pg_temp.pa_corre(jefa, format('select public.comprobante_emitir(%L, %L, %L::jsonb)', f, 'PA', '{"cliente": "PA"}'));
-  if r ? 'error' then raise exception 'no se emitió el comprobante: %', r; end if;
   l_venc := (pg_temp.pa_enviar(jefa, array[c1, c2]) ->> 'lote')::uuid;
   l_nuevo := (pg_temp.pa_enviar(jefa, array[nv]) ->> 'lote')::uuid;
   l_bloq := (pg_temp.pa_enviar(jefa, array[f, p]) ->> 'lote')::uuid;
+  perform pg_temp.pa_comprobante(f);
   perform pg_temp.pa_vencer(l_venc); perform pg_temp.pa_vencer(l_bloq);
 
   n := pg_temp.pa_job();

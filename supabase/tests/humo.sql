@@ -345,7 +345,7 @@ do $$ declare v uuid; r jsonb; begin
   exception when invalid_parameter_value then null; end;
   begin perform 1 from public.papelera_listar('vehiculos'); raise exception 'la genérica listó vehículos';
   exception when invalid_parameter_value then null; end;
-  perform public.comprobante_emitir((select id from public.cotizaciones where clase = 'final'), 'A', '{"cliente": "Ana Quispe"}');
+  perform public.comprobante_emitir((select id from public.cotizaciones where clase = 'final'), (select actualizado_en from public.cotizaciones where clase = 'final'));
   r := public.vehiculos_papelera_enviar(jsonb_build_array(jsonb_build_object('id', v, 'actualizado_en', (select actualizado_en from public.vehiculos where id = v))));
   if r ->> 'lote' is not null or jsonb_array_length(r -> 'enviados') <> 0 or r -> 'rechazados' -> 0 ->> 'codigo' <> '23514' then raise exception 'un vehículo vendido entró a la papelera: %', r; end if;
   if (select count(*) from public.vehiculos where id = v) <> 1 then raise exception 'el vehículo rechazado dejó de verse'; end if;
@@ -6604,4 +6604,28 @@ begin
   end;
   if v_codigo <> '42501' then raise exception 'la dueña editó una tabla por PostgREST (%)', v_codigo; end if;
   reset role;
+end $$;
+
+-- @test comprobantes: la serie vigente y los contadores sólo los lee quien emite o quien gestiona Empresa (policies «comprobantes_ajustes: leer» y «comprobantes_contadores: leer», 4.26-1)
+do $$
+declare v_rol uuid := (select id from public.roles where clave = 'asesor'); v_n int; v_plan text; v_init boolean := false;
+begin
+  if exists (select 1 from public.roles_permisos where rol_id = v_rol and permiso_clave in ('cotizaciones.comprobantes.emitir', 'empresa.ajustes.gestionar')) then
+    raise exception 'la asesora no debía emitir ni gestionar Empresa'; end if;
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000b1', true);
+  set local role authenticated;
+  select (select count(*) from public.comprobantes_ajustes) + (select count(*) from public.comprobantes_contadores) into v_n;
+  if v_n <> 0 then raise exception 'la asesora lee % filas de la serie y los contadores', v_n; end if;
+  reset role;
+
+  insert into public.roles_permisos (rol_id, permiso_clave) values (v_rol, 'empresa.ajustes.gestionar');
+  set local role authenticated;
+  if (select count(*) from public.comprobantes_ajustes) <> 1 or (select count(*) from public.comprobantes_contadores) = 0 then
+    raise exception 'con empresa.ajustes.gestionar no lee la serie vigente o los contadores'; end if;
+  for v_plan in execute 'explain select serie from public.comprobantes_ajustes' loop
+    v_init := v_init or v_plan ~ 'InitPlan';
+  end loop;
+  if not v_init then raise exception 'la policy de comprobantes_ajustes no es un InitPlan'; end if;
+  reset role;
+  delete from public.roles_permisos where rol_id = v_rol and permiso_clave = 'empresa.ajustes.gestionar';
 end $$;

@@ -15,6 +15,30 @@
 
 GUARDAS='^(scripts/piloto/|scripts/guardas/|scripts/candado\.sh$|\.claude/settings[^/]*\.json$|\.claude/hooks/|\.claude/agents/|\.claude/skills/piloto|lefthook\.yml$|\.github/workflows/)'
 SOLO_REINTENTO=('parado — no sigue (recomendado)' 'reintentar — vuelve a verificar y publicar')
+# El mismo patrón que publicar.sh › SEGURIDAD (lo vigila bucle-sin-compuertas.test.ts): SQL que otorga o quita permisos.
+SEGURIDAD_SQL='(create|alter|drop)[[:space:]]+policy|enable[[:space:]]+row[[:space:]]+level[[:space:]]+security|security[[:space:]]+definer|\bgrant\b|\brevoke\b|\bvault\b'
+
+# Sin compuertas (2026-11-08): con PILOTO_AUTO «todo» o «datos», el SQL de seguridad del rango se aprueba solo antes de publicar (publicar.sh
+# exige `aprobado-<paso>`; el 4.20-4a y el 4.22-6 se trabaron ahí porque su sesión no pidió la compuerta). Queda en decisiones-automaticas.md.
+aprobar_seguridad_solo() { # <paso> <desde>
+  local archivo
+  archivo="$COMUN/aprobado-$(sanear "$1")"
+  [ -f "$archivo" ] && return 0
+  auto_nombra datos || return 0
+  git diff -U0 "$2..HEAD" -- 'supabase/*.sql' | grep -E '^\+' | grep -vE '^\+\+\+' | grep -qiE "$SEGURIDAD_SQL" || return 0
+  echo "aprobado $(ahora_lapaz) (solo)" >"$archivo"
+  { echo "## $(ahora_lapaz) · $1 · SQL de seguridad aprobado solo"; echo "- el rango agrega policy, RLS, security definer, grant/revoke o Vault"; echo; } >>"$ESTADO/decisiones-automaticas.md"
+  registro "SQL de seguridad de $1 aprobado solo (sin compuertas)."
+}
+
+# Merges sin empujar en la rama del carril (traer main, o el choque con main que resolvió la sesión): sin commits propios, pero el PR los
+# necesita para dejar de chocar (el 4.19 del 8-11 resolvió su choque con un merge y la vuelta se cerraba «sin cambios» sin empujarlo).
+sin_empujar() {
+  local r
+  r=$(git symbolic-ref --quiet --short HEAD) || return 1
+  git rev-parse --verify --quiet "refs/remotes/origin/$r" >/dev/null || return 1
+  [ -n "$(git rev-list -n 1 "origin/$r..HEAD")" ]
+}
 
 # Los commits propios del paso: los de `desde..HEAD` que no son mezclas ni están ya en origin/main. Traer main a la rama (el bucle lo hace al
 # retomar un paso partido o tras esperar a main) dejaba el rango con 54 o 165 commits ajenos y el cierre no coincidía (5 al 7-11-2026).
@@ -104,6 +128,15 @@ cerrar_listo() {
   # (o sólo los que ya estaban en main) y el rango está vacío. No hay nada que verificar ni publicar: se cierra sin avisar. Con commits en
   # el rango que ultimo.json no lista, sigue el aviso.
   if [ -z "$(rango_propio "$desde")" ] && [ -z "$(declarados_propios "$desde")" ]; then
+    if modo_carril && sin_empujar; then
+      aprobar_seguridad_solo "$paso" "$desde"
+      if bash "$BIN/verificar.sh" "$desde" "$ESTADO/ultimo.json" 2>"$ESTADO/verificar.err" &&
+        bash "$BIN/publicar.sh" "$paso" "$desde" 2>"$ESTADO/publicar.err"; then
+        registro "$paso: sin commits propios, pero empujé lo que la rama traía de main ($(git rev-parse --short HEAD))."
+      else
+        registro "$paso: no pude empujar lo que la rama traía de main: $(tail -n 1 "$ESTADO/publicar.err" 2>/dev/null | cut -c1-200)"
+      fi
+    fi
     # Con carril, el coordinador tiene que saberlo: si no, vuelve a dar el mismo pedido o paso y cada vuelta paga una sesión nueva que
     # dice otra vez «ya está» (la revisión de FLUJO-1). Un pedido sin cambios se cierra; un paso del plan que sigue asignado sin nada
     # que publicar es un estado que no cuadra (el 4.20-4 del 7-11): lo mira la persona.
@@ -112,8 +145,27 @@ cerrar_listo() {
         registro "el coordinador no cerró $paso: $(tail -n 1 "$ESTADO/coordinador.err")"
       rm -f "$ESTADO/asignado.json"
     elif modo_carril && [ "$paso" != ci-fix ] && [ -f "$ESTADO/asignado.json" ]; then
-      PARADA_HUMANA=1 parada "$paso dijo «listo» sin cambios y el coordinador lo sigue teniendo asignado: ¿está hecho (se integra a mano) o falta algo?" "$paso" \
-        'parado — lo miro (recomendado)' 'sigo — cierra esta vuelta y vuelve a pedir el paso al coordinador'
+      # Antes de ir a la persona, lo que dice el coordinador (2026-11-08, el 4.20-4a: volvió por un falso rojo, su PR ya estaba verde y la
+      # pregunta llegó tres veces, la última con el paso ya integrado): integrado o publicado, se suelta la asignación local; asignado con
+      # su PR abierto, vuelve a publicado una vez por paso (el coordinador lo integra o lo devuelve); si no, la persona.
+      local del_plan info ya pr_del_paso
+      del_plan=$(jq -r '.paso // empty' "$ESTADO/asignado.json" 2>/dev/null)
+      del_plan=${del_plan:-$paso}
+      info=$(coordinador estado "$del_plan" 2>/dev/null)
+      ya=$(jq -r '.estado // empty' <<<"$info" 2>/dev/null)
+      pr_del_paso=$(jq -r 'if .pr_parcial then empty else (.pr // empty) end' <<<"$info" 2>/dev/null)
+      if [ "$ya" = integrado ] || [ "$ya" = publicado ]; then
+        registro "$paso listo sin cambios: el coordinador ya lo tiene $ya; suelto la asignación."
+        rm -f "$ESTADO/asignado.json"
+      elif [ "$ya" = asignado ] && [ -n "$pr_del_paso" ] && [ ! -f "$ESTADO/republicado-$del_plan" ] &&
+        coordinador publicado "$del_plan" "$pr_del_paso" >/dev/null 2>"$ESTADO/coordinador.err"; then
+        touch "$ESTADO/republicado-$del_plan"
+        registro "$paso listo sin cambios: su PR #$pr_del_paso sigue abierto; vuelve a publicado."
+        rm -f "$ESTADO/asignado.json"
+      else
+        PARADA_HUMANA=1 parada "$paso dijo «listo» sin cambios y el coordinador lo sigue teniendo asignado: ¿está hecho (se integra a mano) o falta algo?" "$paso" \
+          'parado — lo miro (recomendado)' 'sigo — cierra esta vuelta y vuelve a pedir el paso al coordinador'
+      fi
     fi
     registro "$paso listo sin cambios: no hay commits que verificar ni publicar."
     rm -f "$ESTADO/en-curso.json"
@@ -151,6 +203,7 @@ cerrar_listo() {
   fi
 
   # d)
+  aprobar_seguridad_solo "$paso" "$desde"
   if ! bash "$BIN/publicar.sh" "$paso" "$desde" 2>"$ESTADO/publicar.err"; then
     parada "no se pudo publicar $paso: $(tail -n 3 "$ESTADO/publicar.err" | tr '\n' ' ')" "$paso" "${SOLO_REINTENTO[@]}"
     return 0

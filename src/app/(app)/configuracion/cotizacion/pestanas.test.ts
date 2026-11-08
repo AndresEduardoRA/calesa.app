@@ -24,22 +24,24 @@ describe('pestanasVisibles', () => {
     ])
   })
 
-  it('quien sólo configura la fórmula de un origen, la fórmula, el diseño y los tonos', () => {
+  it('quien configura un origen, la fórmula, el diseño, los tonos, las tablas y los ajustes (que lee sin cambiar), en ese orden', () => {
     expect(claves(pestanasVisibles(permisos({ 'cotizaciones.configurar': [O1] })))).toEqual([
       'formula',
       'diseno',
       'tonos',
+      'tablas',
+      'ajustes',
     ])
   })
 
-  it('con las dos, en su orden: niveles primero', () => {
+  it('con las dos, en su orden: niveles primero y ajustes al final', () => {
     expect(
       claves(
         pestanasVisibles(
           permisos({ 'equipo.roles.gestionar': 'global', 'cotizaciones.configurar': 'global' }),
         ),
       ),
-    ).toEqual(['niveles', 'formula', 'diseno', 'tonos'])
+    ).toEqual(['niveles', 'formula', 'diseno', 'tonos', 'tablas', 'ajustes'])
   })
 
   it('sin ninguna, ninguna', () => {
@@ -50,23 +52,32 @@ describe('pestanasVisibles', () => {
 describe('pestanaDe', () => {
   const soloFormula = alMenosUna([{ clave: 'formula' as const }])
   const las2 = alMenosUna([{ clave: 'niveles' as const }, { clave: 'formula' as const }])
-  if (!soloFormula || !las2) {
+  const deUnOrigen = alMenosUna([{ clave: 'formula' as const }, { clave: 'ajustes' as const }])
+  if (!soloFormula || !las2 || !deUnOrigen) {
     throw new Error('las listas no están vacías')
   }
 
   it('abre la que dice la URL si es una de las suyas', () => {
     expect(pestanaDe('formula', las2)).toBe('formula')
     expect(pestanaDe('niveles', las2)).toBe('niveles')
+    expect(pestanaDe('ajustes', deUnOrigen)).toBe('ajustes')
   })
 
   it('una que no es suya abre la primera de las suyas', () => {
     expect(pestanaDe('niveles', soloFormula)).toBe('formula')
+    expect(pestanaDe('ajustes', las2)).toBe('niveles')
     expect(pestanaDe('diseno', soloFormula)).toBe('formula')
   })
 
   it('«diseno» abre el diseño cuando es una de las suyas', () => {
     const conDiseno = alMenosUna([{ clave: 'formula' as const }, { clave: 'diseno' as const }])
     expect(pestanaDe('diseno', conDiseno ?? soloFormula)).toBe('diseno')
+  })
+
+  it('sin configurar, «Tablas» no está y su URL abre la primera de las suyas', () => {
+    const soloNiveles = alMenosUna(pestanasVisibles(permisos({ 'equipo.roles.ver': 'global' })))
+    if (!soloNiveles) throw new Error('ve los niveles')
+    expect(pestanaDe('tablas', soloNiveles)).toBe('niveles')
   })
 
   it('lo que no es una pestaña abre la primera', () => {

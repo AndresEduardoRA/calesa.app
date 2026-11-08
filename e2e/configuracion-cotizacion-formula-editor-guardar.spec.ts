@@ -37,6 +37,7 @@ let choca = { id: '', nombre: '' }
 let empieza = { id: '', nombre: '' }
 let sinCelda = { id: '', nombre: '' }
 let estados = { id: '', nombre: '' }
+let auxiliar = { id: '', nombre: '' }
 
 test.beforeAll(async ({}, info) => {
   proyecto = info.project.name
@@ -60,6 +61,8 @@ test.beforeAll(async ({}, info) => {
   publicarFormulaConTexto(sinCelda.id)
   estados = await crearOrigenDeCotizar(proyecto, 'gestados', false)
   publicarFormulaConTexto(estados.id)
+  auxiliar = await crearOrigenDeCotizar(proyecto, 'gauxiliar', false)
+  publicarFormulaConTexto(auxiliar.id)
 })
 
 test.afterAll(async () => {
@@ -225,6 +228,33 @@ test('G4 (P1): una constante sin celda en el diseño se guarda con su aviso, y p
       `select version from public.formulas where origen_id = ${literal(sinCelda.id)}::uuid and estado = 'publicada'`,
     ),
   ).toBe('1')
+})
+
+test('G8 (P2): la auxiliar de un número nuevo no pide celda: no se avisa y publicar entra (4.21-3b-2)', async ({
+  page,
+}) => {
+  await entrar(page, duena, { fresco: true })
+  await abrirSobreLaPublicada(page, auxiliar.id)
+  await escribirLaComision(page, '=pub*5%+100')
+  await expect(editor(page)).not.toContainText('tiene que mostrar')
+  await guardar(page).click()
+  await expect(estado(page)).toHaveText('Se guardó el borrador.')
+
+  await page.getByRole('button', { name: 'Volver a la fórmula' }).click()
+  await page.getByRole('button', { name: 'Publicar…' }).click()
+  const modal = page.getByRole('dialog', { name: 'Publicar el borrador' })
+  await modal.getByLabel('Nota').fill('Con un número nuevo')
+  await modal.getByRole('button', { name: 'Publicar', exact: true }).click()
+  await expect(modal).toBeHidden()
+  const publicada = (columna: string) =>
+    sql(
+      `select ${columna} from public.formulas where origen_id = ${literal(auxiliar.id)}::uuid and estado = 'publicada'`,
+    )
+  expect(publicada('version')).toBe('2')
+  // `comision__3` (el 100) quedó en la fórmula, sin celda: la visibilidad no la nombra; la del 5 % sigue con la suya.
+  expect(publicada(`(params ->> 'comision__3')`)).toBe('100')
+  expect(publicada(`(visibilidad ? 'comision__3')::text`)).toBe('false')
+  expect(publicada(`(visibilidad ? '${AUXILIAR_DEL_PORCENTAJE}')::text`)).toBe('true')
 })
 
 test('G5: con una fila abierta, sin cambios o con la fórmula inválida, el botón espera y dice por qué', async ({

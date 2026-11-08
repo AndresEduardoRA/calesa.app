@@ -1,6 +1,6 @@
 -- validar_diseno() contra validarDiseno() de TS (paso 4.08, prompt 1; docs/COTIZADOR.md › «El diseño de la hoja»).
 -- `scripts/probar-schema.mjs` carga antes los JSON en tablas temporales (la base no lee archivos del repo):
---   _juego_de_diseno    ← src/modules/cotizaciones/entities/casos-de-diseno.json (los 248 casos, una regla por caso)
+--   _juego_de_diseno    ← src/modules/cotizaciones/entities/casos-de-diseno.json (los 262 casos, una regla por caso)
 --   _juego_de_formula   ← src/modules/cotizaciones/entities/casos-de-formula.json (las fórmulas que nombra «formula_de»)
 --   _corpus_de_diseno   ← supabase/tests/corpus-de-diseno.json (el corpus diferencial: los diseños válidos mutados)
 -- Un rechazo cuenta sólo si es 22023 y su DETAIL es el código de una regla: los errores propios de jsonb de Postgres también son
@@ -59,10 +59,10 @@ begin
     perform public.validar_formula(v_f -> 'definicion', v_f -> 'params');
     v_n := v_n + 1;
   end loop;
-  if v_n <> 248 then raise exception 'se esperaban 248 casos y hay %', v_n; end if;
+  if v_n <> 262 then raise exception 'se esperaban 262 casos y hay %', v_n; end if;
 end $$;
 
--- @test diseño: los 248 casos de casos-de-diseno.json dan la misma regla y el mismo donde que validar-diseno.ts
+-- @test diseño: los 262 casos de casos-de-diseno.json dan la misma regla y el mismo donde que validar-diseno.ts
 do $$
 declare v_malos text[]; v_n int;
 begin
@@ -71,7 +71,7 @@ begin
     from pg_temp.paridad_de_diseno((select doc -> 'casos' from _juego_de_diseno)) p
    where p.visto is distinct from p.esperado;
   v_n := jsonb_array_length((select doc -> 'casos' from _juego_de_diseno));
-  if v_n <> 248 then raise exception 'el juego tiene % casos, no 248', v_n; end if;
+  if v_n <> 262 then raise exception 'el juego tiene % casos, no 262', v_n; end if;
   if v_malos is not null then
     raise exception '% de % casos no dan lo de validar-diseno.ts:%', cardinality(v_malos), v_n, E'\n  ' || array_to_string(v_malos, E'\n  ');
   end if;
@@ -161,7 +161,8 @@ begin
     'public.validar_diseno(jsonb,jsonb,text[],text[],text[])', 'public._diseno_forma_item(jsonb)', 'public._diseno_forma(jsonb)',
     'public._diseno_nivel(text,text,jsonb,jsonb)', 'public._diseno_modos(jsonb,jsonb,integer,text,jsonb,text[])',
     'public._diseno_secciones(jsonb,jsonb,text[],text[],text[],text[],boolean[],text[],jsonb,jsonb,jsonb,jsonb,jsonb)',
-    'public._diseno_maximo_de_items()'
+    'public._diseno_maximo_de_items()',
+    'public._diseno_auxiliares(jsonb)'
   ] loop
     if not has_function_privilege('authenticated', f, 'execute') then raise exception 'authenticated no ejecuta %', f; end if;
     if has_function_privilege('anon', f, 'execute') then raise exception 'anon ejecuta %', f; end if;
@@ -174,7 +175,8 @@ end $$;
 
 -- @test diseño: validar_diseno y sus ayudantes son STABLE, invoker y con search_path vacío
 -- Como validar_formula (…005100): con IMMUTABLE el planificador la evaluaría al planificar con constantes; con definer correría con
--- los derechos de la base. Son siete: la función, la forma de un ítem y del diseño, un nivel, los modos, las secciones y el tope de ítems.
+-- los derechos de la base. Son ocho: la función, la forma de un ítem y del diseño, un nivel, los modos, las secciones, el tope de ítems y las auxiliares
+-- de los textos (4.21-3b-2).
 do $$
 declare r record;
 begin
@@ -187,7 +189,7 @@ begin
     end if;
   end loop;
   if (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-       where n.nspname = 'public' and (p.proname = 'validar_diseno' or p.proname like '\_diseno\_%')) <> 7 then
-    raise exception 'se esperaban validar_diseno y sus 6 ayudantes';
+       where n.nspname = 'public' and (p.proname = 'validar_diseno' or p.proname like '\_diseno\_%')) <> 8 then
+    raise exception 'se esperaban validar_diseno y sus 7 ayudantes';
   end if;
 end $$;

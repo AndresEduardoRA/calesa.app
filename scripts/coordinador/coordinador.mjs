@@ -12,6 +12,7 @@
 //   coordinador.mjs cerrar-pedido <id> [motivo] el dueño lo cerró sin cambios (ya estaba hecho)
 //   coordinador.mjs liberar <paso> [motivo]     el paso vuelve a pendiente (el piloto lo abandonó)
 //   coordinador.mjs integrado <paso>            la persona lo integró a mano (lo normal es que lo vea `sincronizar`)
+//   coordinador.mjs estado <paso>               JSON del estado de un paso (el bucle lo mira antes de preguntar por uno sin cambios)
 //   coordinador.mjs sincronizar                 mira los PR publicados: integra los que puede (verde/ámbar con CI verde) y anota el resto
 //   coordinador.mjs cuota                       la fracción usada de la ventana de 5 h, si está calibrada
 //   coordinador.mjs tablero                     el tablero en Markdown (y en <común>/coordinador/TABLERO.md)
@@ -196,8 +197,9 @@ function mirarPr(numero) {
   const rojo = checks.some(
     (c) => estadoDe(c) === 'COMPLETED' && !CHECK_BIEN.has(c.conclusion ?? c.state),
   )
+  // Rojo es con el CI terminado: con un job todavía corriendo, el reintento de los caídos no se puede pedir (reintentarUnaVez).
   const arreglar =
-    pr.mergeable === 'CONFLICTING' ? 'conflicto con main' : rojo ? 'CI en rojo' : null
+    pr.mergeable === 'CONFLICTING' ? 'conflicto con main' : rojo && !pendiente ? 'CI en rojo' : null
   const listo = !arreglar && !pendiente && checks.length > 0 && pr.mergeable === 'MERGEABLE'
   const guardas = GUARDAS_SOLAS ? [] : guardasEn((pr.files ?? []).map((f) => f.path))
   return {
@@ -225,6 +227,27 @@ function integrar(numero, pr, ...modo) {
     }
   }
 }
+// Un CI rojo se vuelve a correr una vez por commit (sólo los jobs que cayeron) antes de devolver el paso a su carril: un contenedor de
+// Supabase que no arrancó en el runner o un e2e inestable no es un arreglo del carril (el PR 69 del 2026-11-08 volvía al A por eso).
+// Devuelve el estado con el commit anotado en `reintentos` y si se pidió el reintento.
+function reintentarUnaVez(numero, pr, estado) {
+  if (!pr.oid || estado.reintentos?.[numero] === pr.oid) return { estado, reintentado: false }
+  let caidos
+  try {
+    caidos = JSON.parse(gh('run', 'list', '--commit', pr.oid, '--json', 'databaseId,conclusion'))
+      .filter((r) => r.conclusion === 'failure')
+      .map((r) => String(r.databaseId))
+    for (const id of caidos) gh('run', 'rerun', id, '--failed')
+  } catch {
+    return { estado, reintentado: false }
+  }
+  if (caidos.length === 0) return { estado, reintentado: false }
+  return {
+    estado: { ...estado, reintentos: { ...(estado.reintentos ?? {}), [numero]: pr.oid } },
+    reintentado: true,
+  }
+}
+
 const textoGuardas = (g) =>
   `toca las guardas del piloto (${g.slice(0, 3).join(', ')}${g.length > 3 ? '…' : ''}): lo integra la persona`
 
@@ -257,6 +280,16 @@ function sincronizarParciales(plan, estado, informe) {
       informe.push(`${paso.id}: la parte #${e.pr_parcial} se cerró sin integrar`)
       quitar()
       continue
+    }
+    if (pr.arreglar === 'CI en rojo') {
+      const r = reintentarUnaVez(e.pr_parcial, pr, estado)
+      estado = r.estado
+      if (r.reintentado) {
+        informe.push(
+          `${paso.id}: la parte #${e.pr_parcial} quedó en rojo: vuelvo a correr lo que cayó, una vez`,
+        )
+        continue
+      }
     }
     if (!pr.listo) continue
     if (!integraSolo(paso, MERGE_AUTO)) {
@@ -363,6 +396,14 @@ function sincronizar(plan, estado) {
     if (pr.estado === 'CLOSED') {
       informe.push(`${paso.id}: el PR #${e.pr} se cerró sin integrar: lo decide la persona`)
       continue
+    }
+    if (pr.arreglar === 'CI en rojo') {
+      const r = reintentarUnaVez(e.pr, pr, estado)
+      estado = r.estado
+      if (r.reintentado) {
+        informe.push(`${paso.id}: CI en rojo (#${e.pr}): vuelvo a correr lo que cayó, una vez`)
+        continue
+      }
     }
     if (pr.arreglar !== (e.arreglar ?? null)) {
       estado = { ...estado, pasos: { ...estado.pasos, [paso.id]: { ...e, arreglar: pr.arreglar } } }
@@ -538,6 +579,14 @@ try {
       console.log(`✓ ${paso} vuelve a pendiente`)
       break
     }
+    case 'estado': {
+      const [paso] = args
+      if (!paso) fallar('uso: estado <paso>', 64)
+      const e = leerEstado(cargarPlan()).pasos[paso]
+      if (!e) fallar(`el paso ${paso} no está en el plan`)
+      console.log(JSON.stringify(e))
+      break
+    }
     case 'integrado': {
       const [paso] = args
       if (!paso) fallar('uso: integrado <paso>', 64)
@@ -579,7 +628,7 @@ try {
     }
     default:
       fallar(
-        'órdenes: validar · siguiente <carril> · publicado <paso> <pr> · parcial <paso> <pr> · pedir <carril> <paso> <texto> [archivo…] · pedido <id> · cerrar-pedido <id> [motivo] · liberar <paso> · integrado <paso> · sincronizar · cuota · tablero',
+        'órdenes: validar · siguiente <carril> · publicado <paso> <pr> · parcial <paso> <pr> · pedir <carril> <paso> <texto> [archivo…] · pedido <id> · cerrar-pedido <id> [motivo] · liberar <paso> · integrado <paso> · estado <paso> · sincronizar · cuota · tablero',
         64,
       )
   }

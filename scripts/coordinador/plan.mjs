@@ -201,7 +201,14 @@ export function caminoCritico(plan) {
 export function estadoInicial(plan, previo = { pasos: {} }) {
   const pasos = {}
   for (const p of plan.pasos) pasos[p.id] = previo.pasos?.[p.id] ?? { estado: 'pendiente' }
-  return previo.pedidos?.length ? { pasos, pedidos: previo.pedidos } : { pasos }
+  return {
+    pasos,
+    ...(previo.pedidos?.length ? { pedidos: previo.pedidos } : {}),
+    // El commit de cada PR cuyo CI rojo ya se volvió a correr (coordinador.mjs › reintentarUnaVez).
+    ...(previo.reintentos && Object.keys(previo.reintentos).length
+      ? { reintentos: previo.reintentos }
+      : {}),
+  }
 }
 
 /** El carril que posee una ruta, sin contar a `salvo`: el de la carpeta más precisa; si ninguno, el base. */

@@ -23,6 +23,7 @@ export function PestanasDeCotizacion({ pestanas }: Props) {
       tono: parseAsString,
       origen: parseAsString,
       version: parseAsString,
+      tabla: parseAsString,
     }),
     [pestanas],
   )
@@ -39,6 +40,7 @@ export function PestanasDeCotizacion({ pestanas }: Props) {
           tono: null,
           origen: null,
           version: null,
+          tabla: null,
         })
       }}
     />

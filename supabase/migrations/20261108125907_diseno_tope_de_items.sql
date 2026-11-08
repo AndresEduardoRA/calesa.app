@@ -2,6 +2,7 @@
 -- (de cualquier tipo, principal o avanzado; la cabecera y la tarjeta no cuentan). La semilla más grande, `subasta_usa`, tiene 39; con
 -- 40 la hoja queda en el techo de nodos (docs/RENDIMIENTO.md › «Cotizador»). `validar_diseno()` lo revisa tras la forma y antes de los
 -- modos, con la regla `demasiados_items` y la sección en `hint`; el borrador lo admite (sólo mira la forma) y publicar lo rechaza.
+-- Esta `validar_diseno()` es la de main con las auxiliares de los textos (4.21-3b-2, `_diseno_auxiliares()`) más el tope.
 -- El espejo TS: `MAXIMO_DE_ITEMS_DEL_DISENO` y `validarDiseno()` (src/modules/cotizaciones/entities/). El número vive en una función
 -- aparte para que las mediciones de escala (`medir-validar-diseno.sql`, `medir-publicar.sql`) lo apaguen en su transacción revertida.
 
@@ -41,6 +42,8 @@ declare
   v_modos jsonb;
   v_max integer;
   v_items integer := 0;
+  v_aux jsonb;
+  v_tipos_hoja text[];
 begin
   -- §0 la forma.
   perform public._diseno_forma(p_diseno);
@@ -73,6 +76,12 @@ begin
     into v_pos, v_ids, v_tipos, v_ops, v_salidas, v_sobres, v_pcts, v_cond, v_req
     from jsonb_array_elements(v_nodos) with ordinality as x(value, pos);
 
+  -- Las auxiliares de los textos (4.21-3b-2): una constante auxiliar no pide celda en §5.
+  v_aux := public._diseno_auxiliares(p_def);
+  v_tipos_hoja := array(select case when t.tipo = 'constante' and v_aux ? t.id then 'constante_auxiliar' else t.tipo end
+                          from unnest(v_ids, v_tipos) with ordinality as t(id, tipo, ord)
+                         order by t.ord);
+
   -- El contexto, como conjuntos.
   select coalesce(jsonb_object_agg(x, true), '{}'::jsonb) into v_niv from unnest(p_niveles) x where x is not null;
   select coalesce(jsonb_object_agg(x, true), '{}'::jsonb) into v_ret from unnest(p_retirados) x where x is not null;
@@ -84,7 +93,7 @@ begin
                                v_total_en, v_pos, v_tipos);
 
   -- §2 a §5 las secciones, la tarjeta, los atajos y la cobertura.
-  perform public._diseno_secciones(p_diseno -> 'secciones', p_diseno -> 'tarjeta_total', v_ids, v_tipos, v_ops, v_salidas, v_sobres, v_pcts,
+  perform public._diseno_secciones(p_diseno -> 'secciones', p_diseno -> 'tarjeta_total', v_ids, v_tipos_hoja, v_ops, v_salidas, v_sobres, v_pcts,
                                    v_pos, v_cond, v_req, v_niv, v_ret);
 
   -- §6 el tono de cada grupo de la fórmula está en el catálogo de la empresa.
