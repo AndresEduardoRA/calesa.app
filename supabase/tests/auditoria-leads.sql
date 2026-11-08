@@ -80,6 +80,8 @@ declare
     ('leads_importacion_deshacer(uuid)', 'X'),
     ('leads_importaciones_recientes()', 'X'),
     ('web_confirmar_contacto(uuid,uuid)', 'X'),
+    -- Marcar final (4.25-1) recibe una cotización, no un lead: sobre el lead mira `puede_actuar_lead(lead, 'leads.editar')` antes del candado y
+    -- otra vez con el lead tomado (P2 a, como vincular), y su matriz es `areas/final/marcar.sql`.
     ('cotizacion_marcar_final(uuid)', 'X'),
     ('equipo_dar_de_baja(uuid)', 'X'),
     ('equipo_vista_previa_baja(uuid)', 'X'),

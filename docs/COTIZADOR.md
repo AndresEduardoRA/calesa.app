@@ -518,6 +518,25 @@ y «Guardar» la deja con lo de hoy. «Guardar» llama a `cotizacion_guardar` co
 pierde los microsegundos), las entradas del recálculo al día y el título, las notas y el vehículo de la cotización sin tocarlos; lo que la hoja no manda lo conserva la base. El PT409
 dice quién y cuándo; «Recargar» vuelve a montar la hoja con la lectura nueva y lo tipeado no vuelve sobre la versión de la otra persona.
 
+### Marcar final (4.25-1)
+
+**`cotizacion_marcar_final(id)`** elige la final del vehículo (a lo sumo una activa, `cotizaciones_final_por_vehiculo`). En este orden:
+
+1. **Sin candado:** la cotización viva y visible (si no, 42501 «No tienes acceso a esta cotización.», igual para inexistente o en la papelera),
+   `cotizaciones.final.gestionar` del origen, el vehículo, el lead (vivo; en la papelera, 23514), el lead en la cartera con `leads.editar` (como vincular),
+   y que quien marca pueda mandar a la papelera todas las demás vivas del vehículo (si no, 42501 «Este vehículo tiene preventas que no puedes mandar…»).
+2. **Candados:** el lead `for no key update`, el vehículo `for key share` y, en una sola pasada por id, la cotización y todas las vivas del vehículo. El
+   vehículo se escribe recién con todo tomado. Es el orden de vincular (lead → vehículo) y de la papelera de vehículos (vehículo → cotizaciones), y convive con
+   el trigger `trg_vehiculo_cotizado` de crear, encima y guardar. La tabla de quién choca con quién está en `docs/pasos/4.25/decisiones.md`.
+3. **Si algo cambió mientras esperaba** (la fila ya no está viva, otro vehículo u otro lead), otra vuelta desde el paso 1; a la tercera, PT409. Con todo tomado
+   vuelve a mirar el lead, ver, las demás y el vínculo, releído después de la pasada: un vehículo de otro lead da 23514.
+4. **Los efectos** (`_final_aplicar`): la final anterior tomada baja a preventa, la cotización pasa a final, las preventas tomadas van a un lote de la papelera de
+   quien marca, el vehículo sin lead queda con el de la cotización, el lead pasa al primer tipo activo de la clase cliente (por orden y nombre) si no era de esa
+   clase, y la actividad `cotizacion.final`. Marcar otra vez no falla ni cambia nada.
+
+Una final activa ancla el vehículo en la limpieza automática (`'cotizacion_final'`) y su vínculo no cambia (`vehiculo_vincular`: 23514). Una creada con
+`cotizacion_crear` todavía no hace lo de marcarla: 4-17, el 4.25-1b.
+
 ## Lo que se guarda en una cotización
 
 `formula_id` (recalcular o editar usa **esa** versión, nunca la vigente); `valores` (`{nodo_id: número | null}` de TODOS los nodos; el
@@ -584,7 +603,7 @@ DETAIL y el `donde` en HINT; el primer rechazo manda, en este orden: `forma` (la
 `nodo_inexistente` y `nodo_sin_lugar` (una clave de `etiquetas`/`leyendas` es un miembro de un grupo, el total o lo aparte de `tarjeta_total`),
 `nodo_restringido` (un miembro, el total o lo aparte sin `ver: todos` en la visibilidad compilada; **no figurar cuenta como restringido**) y, con
 `columnas.tipo_cambio`, `tipo_de_cambio_restringido` (el tipo de cambio del bucket de un grupo, por omisión o en un modo). Con `def` nulo, sólo la
-forma. Juego común: `entities/plantilla/casos-de-plantilla.json` (lo corre `plantilla-validar.sql`; lo correrá `validarPlantilla()` de TS, 4.19-2).
+forma. Juego común: `entities/plantilla/casos-de-plantilla.json` (lo corren `plantilla-validar.sql` y `validarPlantilla()` de TS, 4.19-2; sus casos «borde: …» cazan las trampas del espejo y `octetos` fija el texto de `jsonb` que cuenta el tope de 32 KB).
 `plantilla_guardar_borrador` valida la forma; `plantilla_publicar`, contra la fórmula **publicada** del origen y los tonos del catálogo, antes de
 archivar nada (sin fórmula publicada, `formula_sin_publicar@origen`). La tabla la lee sólo quien tiene `cotizaciones.configurar` del origen.
 
@@ -606,6 +625,18 @@ vez publicaban las dos (el segundo `update … where id =` esperaba la fila del 
   tiene `publicado_en >= esperada`; si no, «El borrador ya no está: se descartó.».
 - Dentro de una transacción `now()` no se mueve (el trigger genérico): una esperada «vieja» es la de la fila menos 1 µs en `db:probar`; que guardar mueve la
   versión entre transacciones lo prueban las carreras (`scripts/carreras/plantillas.mjs`).
+
+### Lo que lee y escribe la plantilla desde TypeScript (4.19-3a)
+
+- **Del lado de TS:** la versión esperada es el `actualizado_en` que dio la base, como texto y con sus microsegundos (`z.iso.datetime({ offset: true })`; nunca un `Date`). `guardar`
+  la manda siempre, `null` explícito para crear (los tipos generados la dan `string`: un `const` con nombre hace el cast), y no manda `p_nota`. Un 22023 de `validar_plantilla()`
+  (la regla en `details`, el `donde` en `hint`) va a `porCampo[donde]` con el mensaje de la base tal cual; «Publicar pide una nota.» (`hint = 'nota'`), a `porCampo.nota`; el PT409 es un
+  conflicto sin nombre. **Guardar sólo valida la forma** (sin contexto): lo que cruza con la fórmula y los tonos lo rechaza publicar.
+- **El texto que la base no lee:** un `\u0000` o un surrogate suelto no lo rechaza `validar_plantilla()` sino la base al leer el JSON (22P02, 22P05). La action de guardar lo ataja antes
+  (`revisarTextoParaLaBase()`, con una pila y un tope de 8 niveles) y lo dice junto al campo.
+- **La lectura** (`leerPlantillaDelOrigen()`): el borrador y la publicada (la que ya no tiene la forma llega con su `motivo` y sin plantilla), la fórmula publicada del origen con lo que
+  mira el validador (no su esquema entero) y el catálogo de tonos (tope 24); sin fórmula publicada no hay contexto. Desde el 4.19-3a el editor lee `plantillas_tarjeta` con la sesión de
+  quien mira (la policy limita; el comentario de `20261106190219_plantillas_tarjeta_leer.sql`, «Nadie en la app lee la tabla», ya no vale y la migración no se edita).
 
 ### La lectura de la tarjeta (4.18-1)
 

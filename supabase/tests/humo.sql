@@ -258,6 +258,9 @@ update public.cotizaciones set notas = 'ajuste' where id = current_setting('humo
 do $$ begin
   if (select count(*) from public.cotizaciones_revisiones where cotizacion_id = current_setting('humo.cotizacion')::uuid) <> 1 then raise exception 'sin revisión con diff'; end if;
 end $$;
+-- Marcar la final pide el lead en la cartera de quien marca (4.25-1, P2 a): la dueña lo recibe compartido sólo para marcarla (se le quita después).
+insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso)
+select c.lead_id, '00000000-0000-0000-0000-000000000001', 'compartido' from public.cotizaciones c where c.id = current_setting('humo.cotizacion')::uuid;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
 set role authenticated;
 do $$ declare c uuid; v uuid; f_comp uuid; h bigint; res jsonb; begin
@@ -273,6 +276,8 @@ do $$ declare c uuid; v uuid; f_comp uuid; h bigint; res jsonb; begin
   if (select count(*) from public.revisar_flujo((select flujo_id from public.fases where id = f_comp)) where nivel = 'error') <> 0 then raise exception 'el flujo de ejemplo no debería tener errores'; end if;
 end $$;
 reset role;
+delete from public.leads_asesores la using public.cotizaciones c
+ where c.id = current_setting('humo.cotizacion')::uuid and la.lead_id = c.lead_id and la.usuario_id = '00000000-0000-0000-0000-000000000001' and la.tipo_acceso = 'compartido';
 
 -- @test cola web: sin asesores → respaldo; con asesora habilitada → turno asignado y notificación; contacté
 select set_config('request.jwt.claim.sub', '', false);
