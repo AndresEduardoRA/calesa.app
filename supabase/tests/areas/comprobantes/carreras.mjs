@@ -1,34 +1,28 @@
 // Las carreras de la numeración de comprobantes (paso 4.26-1), con dos conexiones reales a la base del Supabase LOCAL. El orden que prueban: la cotización
 // `for no key update` → `comprobantes_ajustes` (la serie vigente) `for update` → el contador (`update … returning`), y `comprobantes_serie_cambiar`, que toma
 // ajustes → contador (`…_comprobantes_emitir_y_serie.sql`). Después de cada una, los números de cada serie usada son 1..último, sin huecos ni repetidos, y
-// ninguna termina en 40P01. A abre su transacción y actúa, B lanza, se espera a que B quede esperando un candado y A confirma (o revierte, K2). La serie
+// ninguna termina en 40P01 (K6 y K7, contra la papelera y marcar final, en `carreras-papelera.mjs`). A abre su transacción y actúa, B lanza, se espera a que B quede esperando un candado y A confirma (o revierte, K2). La serie
 // `CARRERAS` se fija como vigente al empezar y `limpiarComprobantes()` deja «A». Las corre `scripts/carreras.mjs` (`pnpm db:carreras`) y, solas,
 // `correr-carreras.mjs`. Terreno con el prefijo «Carreras», como las demás.
-import { PERSONAS, comoPersona } from '../../../../scripts/carreras/terreno.mjs'
+import { comoPersona } from '../../../../scripts/carreras/terreno.mjs'
 import {
   insertaCotizacion,
   nuevoVehiculo,
   terreno,
 } from '../../../../scripts/carreras/cotizaciones.mjs'
+import {
+  SERIE,
+  YA_ANULADO,
+  armarCarrera,
+  duena,
+  emitir,
+  fila,
+  nuevoId,
+  sinHuecos,
+  sinInterbloqueo,
+} from './carreras-comun.mjs'
+import { carrerasDePapelera } from './carreras-papelera.mjs'
 
-const { duena } = PERSONAS
-const SERIE = 'CARRERAS'
-const YA_ANULADO = 'Este comprobante ya estaba anulado.'
-
-let n = 0
-const nuevoId = () => `00000000-0000-4000-8000-0000000e${String(6000 + ++n).padStart(4, '0')}`
-
-const comoValor = (promesa) =>
-  promesa.then(
-    (r) => ({ ok: true, valor: r.rows[0]?.r ?? null }),
-    (e) => ({ ok: false, codigo: e.code, mensaje: e.message }),
-  )
-const fila = async (db, sql, args) => (await db.query(sql, args)).rows[0]
-
-const emitir = (c) => ({
-  sql: 'public.comprobante_emitir($1, (select actualizado_en from public.cotizaciones where id = $1))',
-  args: [c],
-})
 const cambiarSerie = (serie) => ({
   sql: 'public.comprobantes_serie_cambiar($1, (select actualizado_en from public.comprobantes_ajustes))',
   args: [serie],
@@ -58,43 +52,8 @@ async function fijarSerie(db, serie = SERIE) {
   await db.query(`update public.comprobantes_ajustes set serie = $1`, [serie])
 }
 
-// Sin huecos: en cada serie de las carreras, los números son exactamente 1..último.
-async function sinHuecos(db) {
-  const { rows } = await db.query(
-    `select k.serie, k.ultimo, coalesce(array_agg(cp.numero order by cp.numero) filter (where cp.numero is not null), '{}') as numeros
-       from public.comprobantes_contadores k left join public.comprobantes cp on cp.serie = k.serie
-      where k.serie like $1 group by k.serie, k.ultimo`,
-    [`${SERIE}%`],
-  )
-  return rows.every(
-    (r) =>
-      r.numeros.length === Number(r.ultimo) &&
-      r.numeros.every((numero, i) => Number(numero) === i + 1),
-  )
-}
-
-const sinInterbloqueo = (...rs) => rs.every((r) => r?.codigo !== '40P01')
-
 export async function carrerasDeComprobantes({ orquesta, espero, conectar, esperarBloqueo }) {
-  // A actúa en su transacción, B lanza y se espera a que B espere un candado; A confirma o, con `revierte`, se deshace.
-  async function carrera({ a, b, revierte = false }) {
-    const [ca, cb] = [await conectar(), await conectar()]
-    try {
-      await comoPersona(ca, duena)
-      await comoPersona(cb, duena)
-      await ca.query('begin')
-      const primero = await comoValor(ca.query(`select ${a.sql} as r`, a.args))
-      if (!primero.ok) throw new Error(`A falló antes de la carrera: ${primero.mensaje}`)
-      const pidB = (await cb.query('select pg_backend_pid() as pid')).rows[0].pid
-      const segundo = comoValor(cb.query(`select ${b.sql} as r`, b.args))
-      await esperarBloqueo(orquesta, pidB)
-      await ca.query(revierte ? 'rollback' : 'commit')
-      return { a: primero, b: await segundo }
-    } finally {
-      await ca.end()
-      await cb.end()
-    }
-  }
+  const carrera = armarCarrera({ orquesta, conectar, esperarBloqueo })
 
   // Quien emite y cambia la serie: la dueña de las carreras suma las dos claves (el rol se borra con los `carreras_%`).
   await limpiarComprobantes(orquesta)
@@ -223,6 +182,8 @@ export async function carrerasDeComprobantes({ orquesta, espero, conectar, esper
         r,
       )
     }
+
+    await carrerasDePapelera({ orquesta, espero, carrera })
   } finally {
     await orquesta.query('reset role')
     await limpiarComprobantes(orquesta)

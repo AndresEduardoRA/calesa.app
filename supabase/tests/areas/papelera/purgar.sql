@@ -11,6 +11,7 @@
 --   PU5. La genérica: no aborta con la bloqueada, encola por refcount y, sin sesión, registra la purga como automática.
 --   PU6. Purgar una anterior deja viva su versión nueva, sin anterior.
 --   PU7. Privilegios.
+--   PU8. Una cotización con comprobante no entra a la papelera (4.26-1, P3 a): la propia la deja en rechazados con 23514, la genérica aborta.
 
 create or replace function pg_temp.pu_persona(p_concesiones text[]) returns uuid language plpgsql as $f$
 declare v_id uuid := gen_random_uuid(); v_rol uuid; c text;
@@ -299,3 +300,24 @@ begin
       raise exception '% con privilegios de más o de menos', f; end if;
   end loop;
 end $$;
+
+-- @test papelera de cotizaciones: una cotización con comprobante, anulado o no, no entra; la propia la rechaza y la genérica aborta (PU8, 4.26-1)
+begin;
+do $$
+declare jefa uuid := pg_temp.pu_jefa_k(); e jsonb := pg_temp.pu_origen(); f uuid; p uuid; r jsonb;
+begin
+  f := pg_temp.pu_cot(jefa, e, pg_temp.pu_vehiculo(e), 'final'); p := pg_temp.pu_cot(jefa, e);
+  perform pg_temp.pu_comprobante(f);
+  update public.comprobantes set anulado_en = now(), motivo_anulacion = 'PU8' where cotizacion_id = f;
+  r := pg_temp.pu_corre(jefa, format('select public.cotizaciones_papelera_enviar(%L::jsonb)',
+    (select jsonb_agg(jsonb_build_object('id', c.id, 'actualizado_en', c.actualizado_en)) from public.cotizaciones c where c.id in (f, p))));
+  if r ? 'error' or jsonb_array_length(r -> 'enviados') <> 1 or r -> 'enviados' -> 0 ->> 'id' <> p::text then raise exception 'la preventa debía enviarse sola: %', r; end if;
+  if jsonb_array_length(r -> 'rechazados') <> 1 or r -> 'rechazados' -> 0 ->> 'id' <> f::text or r -> 'rechazados' -> 0 ->> 'codigo' <> '23514'
+     or r -> 'rechazados' -> 0 ->> 'motivo' <> 'Tiene un comprobante emitido.' then raise exception 'la final con comprobante debía quedar en rechazados con su motivo: %', r; end if;
+  if not pg_temp.pu_viva(f) then raise exception 'la final con comprobante entró a la papelera'; end if;
+  r := pg_temp.pu_corre(jefa, format('select to_jsonb(public.papelera_enviar(%L, array[%L::uuid]))', 'cotizaciones', f));
+  if r ->> 'error' is distinct from '23514' or r ->> 'mensaje' is distinct from 'Tiene un comprobante emitido.' then raise exception 'la genérica debía abortar con 23514: %', r; end if;
+  if not pg_temp.pu_viva(f) then raise exception 'la genérica la mandó a la papelera'; end if;
+end $$;
+reset role;
+rollback;
