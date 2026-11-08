@@ -89,7 +89,13 @@ function conCandado(fn) {
         }
         if (Date.now() - statSync(CANDADO).mtimeMs > 600_000) viejo = true
       } catch {
-        viejo = Date.now() - (existsSync(CANDADO) ? statSync(CANDADO).mtimeMs : 0) > 5_000
+        // Sin pid legible: el candado se está creando o el otro lo acaba de soltar (entre existsSync y statSync caía con ENOENT:
+        // el CI del PR 69, «dos carriles piden a la vez»). Viejo sólo si lleva más de 5 s así; si ya no está, se reintenta.
+        try {
+          viejo = Date.now() - statSync(CANDADO).mtimeMs > 5_000
+        } catch {
+          viejo = false
+        }
       }
       if (viejo) rmSync(CANDADO, { recursive: true, force: true })
       else if (Date.now() > limite)
