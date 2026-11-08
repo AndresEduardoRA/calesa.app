@@ -184,9 +184,13 @@ function mirarPr(numero) {
     ),
   )
   const checks = pr.statusCheckRollup ?? []
-  const pendiente = checks.some((c) => (c.status ?? 'COMPLETED') !== 'COMPLETED')
+  // Un estado de commit (el de Vercel: `state`, sin `status`) en PENDING o EXPECTED sigue corriendo; antes contaba como terminado y
+  // rojo, y el paso volvía a su carril por un «CI en rojo» que un minuto después era verde (el PR 80, 2026-11-08).
+  const estadoDe = (c) =>
+    c.status ?? (['PENDING', 'EXPECTED'].includes(c.state) ? 'PENDING' : 'COMPLETED')
+  const pendiente = checks.some((c) => estadoDe(c) !== 'COMPLETED')
   const rojo = checks.some(
-    (c) => (c.status ?? 'COMPLETED') === 'COMPLETED' && !CHECK_BIEN.has(c.conclusion ?? c.state),
+    (c) => estadoDe(c) === 'COMPLETED' && !CHECK_BIEN.has(c.conclusion ?? c.state),
   )
   const arreglar =
     pr.mergeable === 'CONFLICTING' ? 'conflicto con main' : rojo ? 'CI en rojo' : null
