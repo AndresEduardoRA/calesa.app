@@ -14,9 +14,9 @@ describe('la sección Cotización de Configuración', () => {
     ])
   })
 
-  it('su descripción nombra la fórmula', () => {
+  it('su descripción nombra la fórmula y la vigencia', () => {
     expect(SECCION_DE_COTIZACION.descripcion).toBe(
-      'La fórmula de cada origen y los niveles de acceso de la hoja.',
+      'La fórmula de cada origen, la vigencia y los niveles de acceso de la hoja.',
     )
   })
 })
