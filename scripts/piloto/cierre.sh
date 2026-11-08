@@ -15,6 +15,21 @@
 
 GUARDAS='^(scripts/piloto/|scripts/guardas/|scripts/candado\.sh$|\.claude/settings[^/]*\.json$|\.claude/hooks/|\.claude/agents/|\.claude/skills/piloto|lefthook\.yml$|\.github/workflows/)'
 SOLO_REINTENTO=('parado — no sigue (recomendado)' 'reintentar — vuelve a verificar y publicar')
+# El mismo patrón que publicar.sh › SEGURIDAD (lo vigila bucle-sin-compuertas.test.ts): SQL que otorga o quita permisos.
+SEGURIDAD_SQL='(create|alter|drop)[[:space:]]+policy|enable[[:space:]]+row[[:space:]]+level[[:space:]]+security|security[[:space:]]+definer|\bgrant\b|\brevoke\b|\bvault\b'
+
+# Sin compuertas (2026-11-08): con PILOTO_AUTO «todo» o «datos», el SQL de seguridad del rango se aprueba solo antes de publicar (publicar.sh
+# exige `aprobado-<paso>`; el 4.20-4a y el 4.22-6 se trabaron ahí porque su sesión no pidió la compuerta). Queda en decisiones-automaticas.md.
+aprobar_seguridad_solo() { # <paso> <desde>
+  local archivo
+  archivo="$COMUN/aprobado-$(sanear "$1")"
+  [ -f "$archivo" ] && return 0
+  auto_nombra datos || return 0
+  git diff -U0 "$2..HEAD" -- 'supabase/*.sql' | grep -E '^\+' | grep -vE '^\+\+\+' | grep -qiE "$SEGURIDAD_SQL" || return 0
+  echo "aprobado $(ahora_lapaz) (solo)" >"$archivo"
+  { echo "## $(ahora_lapaz) · $1 · SQL de seguridad aprobado solo"; echo "- el rango agrega policy, RLS, security definer, grant/revoke o Vault"; echo; } >>"$ESTADO/decisiones-automaticas.md"
+  registro "SQL de seguridad de $1 aprobado solo (sin compuertas)."
+}
 
 # Los commits propios del paso: los de `desde..HEAD` que no son mezclas ni están ya en origin/main. Traer main a la rama (el bucle lo hace al
 # retomar un paso partido o tras esperar a main) dejaba el rango con 54 o 165 commits ajenos y el cierre no coincidía (5 al 7-11-2026).
@@ -151,6 +166,7 @@ cerrar_listo() {
   fi
 
   # d)
+  aprobar_seguridad_solo "$paso" "$desde"
   if ! bash "$BIN/publicar.sh" "$paso" "$desde" 2>"$ESTADO/publicar.err"; then
     parada "no se pudo publicar $paso: $(tail -n 3 "$ESTADO/publicar.err" | tr '\n' ' ')" "$paso" "${SOLO_REINTENTO[@]}"
     return 0
