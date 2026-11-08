@@ -45,6 +45,7 @@ export function FormularioRecuperar({ aviso }: { aviso: AvisoDeAcceso | null }) 
       {!error && aviso ? <Aviso tono={aviso.tono}>{aviso.mensaje}</Aviso> : null}
 
       <form
+        method="post"
         ref={formulario}
         noValidate
         className="grid gap-4"
