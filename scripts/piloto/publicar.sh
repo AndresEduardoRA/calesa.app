@@ -25,8 +25,12 @@ negar() {
 }
 
 RAMA=$(git symbolic-ref --quiet --short HEAD)
+# La que el coordinador asignó también vale: un arreglo prestado sigue en la rama del PR de otro carril (el C arregla `b/4.26`).
+ASIGNADA=""
+[ -n "${PILOTO_CARRIL:-}" ] && ASIGNADA=$(jq -r '.rama // empty' "$ESTADO/asignado.json" 2>/dev/null)
 # La del carril va primero: con `PILOTO_CARRIL=a` la rama `a/4.19` es la suya (antes caía en `a/?*` y se negaba: 4.19, 2026-11-07).
 case "$RAMA" in
+  "${ASIGNADA:-/}") ;;
   "${PILOTO_CARRIL:-/}"/?*) ;;
   a/?*) [ -z "${PILOTO_CARRIL:-}" ] || negar "el carril $PILOTO_CARRIL publica sólo ramas $PILOTO_CARRIL/…: se está en «$RAMA»." ;;
   *) negar "el piloto publica sólo la rama del carril A (a/…), nunca main: se está en «${RAMA:-HEAD suelto}»." ;;
@@ -76,7 +80,8 @@ if [ -n "${PILOTO_CARRIL:-}" ]; then
   registro() { echo "publicar: $*" >&2; }
   # shellcheck source=carril.sh
   source "$(dirname "${BASH_SOURCE[0]}")/carril.sh"
-  PARCIAL=$(jq -r '.parcial // false' "$ESTADO/ultimo.json" 2>/dev/null || echo false)
+  # Un remiendo sin sesión (carril.sh) no tiene ultimo.json propio: el de antes podía ser de una parte.
+  PARCIAL=${PILOTO_PARCIAL:-$(jq -r '.parcial // false' "$ESTADO/ultimo.json" 2>/dev/null || echo false)}
   [ -n "$PR" ] && carril_publicado "$PASO" "$PR" "$PARCIAL"
 fi
 echo "publicar: $PASO en $RAMA ($CORTO), PR ${PR:-nuevo}."

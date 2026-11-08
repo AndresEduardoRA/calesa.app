@@ -350,9 +350,10 @@ export function siguiente(plan, estado, carril, { cuota = null, umbral = 0.8 } =
   const propios = plan.pasos.filter((p) => p.carril === carril)
   // Lo que hace este carril: lo suyo del plan y lo que tomó prestado (`carril` del estado); lo suyo que hace otro, no.
   const haceEste = (p) => (estado.pasos[p.id]?.carril ?? p.carril) === carril
+  // La rama de un paso es la que quedó anotada al asignarlo (un arreglo prestado sigue en la del PR de otro carril, `b/4.26`).
+  const ramaDe = (p) => estado.pasos[p.id]?.rama ?? rama(carril, p.id)
   const enCurso = plan.pasos.find((p) => estado.pasos[p.id]?.estado === 'asignado' && haceEste(p))
-  if (enCurso)
-    return { accion: 'paso', paso: enCurso, rama: rama(carril, enCurso.id), retomar: true }
+  if (enCurso) return { accion: 'paso', paso: enCurso, rama: ramaDe(enCurso), retomar: true }
   // Un PR propio con el CI rojo o en conflicto con main va antes que un paso nuevo: bloquea a los que dependen de él.
   const roto = plan.pasos.find(
     (p) =>
@@ -362,7 +363,7 @@ export function siguiente(plan, estado, carril, { cuota = null, umbral = 0.8 } =
     return {
       accion: 'paso',
       paso: roto,
-      rama: rama(carril, roto.id),
+      rama: ramaDe(roto),
       retomar: true,
       arreglar: estado.pasos[roto.id].arreglar,
     }
@@ -372,6 +373,20 @@ export function siguiente(plan, estado, carril, { cuota = null, umbral = 0.8 } =
   const pendientes = propios.filter((p) => estado.pasos[p.id]?.estado === 'pendiente')
   const listos = pendientes.filter((p) => (p.depende_de ?? []).every(integrado))
   if (listos.length === 0) {
+    // Antes que un paso prestado, el PR roto de un carril ocupado: se arregla en su misma rama (2026-11-08: el B alternaba el 4.22 y el
+    // 4.26, los dos en conflicto, mientras el A y el C esperaban sin paso).
+    const ajeno = arregloAjeno(plan, estado, carril)
+    if (ajeno)
+      return {
+        accion: 'paso',
+        paso: ajeno,
+        rama:
+          estado.pasos[ajeno.id].rama ??
+          rama(estado.pasos[ajeno.id].carril ?? ajeno.carril, ajeno.id),
+        retomar: true,
+        arreglar: estado.pasos[ajeno.id].arreglar,
+        prestado: true,
+      }
     const prestado =
       cuota !== null && cuota >= umbral ? null : prestable(plan, estado, carril, largo)
     if (prestado)
@@ -466,6 +481,26 @@ export function prestable(plan, estado, carril, largo = caminoCritico(plan)) {
           afinidad(b) - afinidad(a) ||
           a.id.localeCompare(b.id),
       )[0] ?? null
+  )
+}
+
+/**
+ * El paso publicado de otro carril con el PR en rojo o en conflicto que `carril` puede arreglar, o null: sólo si quien lo hizo está ocupado
+ * con otro paso o un pedido (uno libre lo toma él mismo en su próxima vuelta). Se arregla en la rama de su PR, sin abrir otro.
+ */
+export function arregloAjeno(plan, estado, carril) {
+  const quien = (p) => estado.pasos[p.id]?.carril ?? p.carril
+  const ocupados = new Set(
+    plan.pasos.filter((p) => estado.pasos[p.id]?.estado === 'asignado').map(quien),
+  )
+  for (const pd of estado.pedidos ?? []) if (pd.estado === 'asignado') ocupados.add(pd.para)
+  return (
+    plan.pasos.find((p) => {
+      const e = estado.pasos[p.id]
+      return (
+        e?.estado === 'publicado' && e.arreglar && quien(p) !== carril && ocupados.has(quien(p))
+      )
+    }) ?? null
   )
 }
 

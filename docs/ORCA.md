@@ -65,7 +65,8 @@ del B sin coordinador.
   y `preparar.sh`.
 - **Al traer `main`** (después de que se integró el PR del otro carril): `git merge origin/main` en la rama, nunca rebase con push
   forzado. Si el otro carril integró una migración con versión posterior a una tuya todavía sin integrar, la tuya se vuelve a crear con
-  `supabase migration new` (mismo contenido, versión nueva) y se borra la vieja: la guarda de orden lo exige.
+  `supabase migration new` (mismo contenido, versión nueva) y se borra la vieja: la guarda de orden lo exige. Con el piloto lo hace el
+  bucle al traer main (`carril.sh` › `renumerar_migraciones`, `docs/PILOTO.md`).
 
 ## Verificación por niveles
 
