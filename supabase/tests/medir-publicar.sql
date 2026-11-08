@@ -21,6 +21,9 @@
 -- espacio libre en ningún lugar (un `vacuum` simple sólo trunca las páginas vacías del final). Va fuera de la transacción.
 vacuum (full, analyze) public.formulas;
 begin;
+-- Sin el tope de la hoja (40 ítems, 4.22-6): las sintéticas tienen unos 200 y 2.000; se apaga en esta transacción revertida para seguir midiendo
+-- que el validador es lineal si el tope sube.
+create or replace function public._diseno_maximo_de_items() returns integer language sql stable set search_path = '' as $$ select 2147483647 $$;
 \set carga `cat /proc/loadavg`
 select set_config('medir.carga', :'carga', true) \g /dev/null
 
