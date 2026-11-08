@@ -13,7 +13,8 @@
 //   coordinador.mjs liberar <paso> [motivo]     el paso vuelve a pendiente (el piloto lo abandonó)
 //   coordinador.mjs integrado <paso>            la persona lo integró a mano (lo normal es que lo vea `sincronizar`)
 //   coordinador.mjs estado <paso>               JSON del estado de un paso (el bucle lo mira antes de preguntar por uno sin cambios)
-//   coordinador.mjs sincronizar                 mira los PR publicados: integra los que puede (verde/ámbar con CI verde) y anota el resto
+//   coordinador.mjs sincronizar                 mira los PR publicados: integra los que puede (verde/ámbar con CI verde) y anota el resto;
+//                                               después borra las ramas ya integradas (limpiar-ramas.mjs; COORD_LIMPIAR=0 lo apaga)
 //   coordinador.mjs cuota                       la fracción usada de la ventana de 5 h, si está calibrada
 //   coordinador.mjs tablero                     el tablero en Markdown (y en <común>/coordinador/TABLERO.md)
 //
@@ -31,6 +32,7 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { join } from 'node:path'
+import { limpiarRamas, ramasProtegidas } from './limpiar-ramas.mjs'
 import {
   estadoInicial,
   fraccionDeCuota,
@@ -460,6 +462,7 @@ try {
         } else if (r.accion === 'paso' && estado.pasos[r.paso.id].estado !== 'asignado') {
           estado = marcar(estado, r.paso.id, 'asignado', {
             carril,
+            rama: r.rama,
             arreglar: r.arreglar ?? null,
             motivo_arreglo: r.arreglar ?? null,
           })
@@ -601,12 +604,23 @@ try {
     }
     case 'sincronizar': {
       const plan = cargarPlan()
+      let protegidas
       const informe = conCandado(() => {
         const r = sincronizar(plan, leerEstado(plan))
         guardarEstado(r.estado)
+        protegidas = ramasProtegidas(plan, r.estado)
         return r.informe
       })
       for (const l of informe) console.log(l)
+      // Fuera del candado: borrar ramas no cambia el estado y no hace esperar a los carriles. COORD_LIMPIAR=0 lo apaga.
+      if (process.env.COORD_LIMPIAR !== '0') {
+        try {
+          const borradas = limpiarRamas({ gh, git, protegidas })
+          if (borradas.length) console.log(`ramas integradas borradas: ${borradas.join(', ')}`)
+        } catch (err) {
+          console.log(`no se pudieron limpiar las ramas (${String(err.message).split('\n')[0]})`)
+        }
+      }
       break
     }
     case 'cuota': {

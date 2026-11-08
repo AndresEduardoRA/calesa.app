@@ -33,17 +33,27 @@ carril_asignar() {
   esac
   paso=$(jq -r .paso <<<"$r") rama=$(jq -r .rama <<<"$r")
   git fetch --quiet origin main 8>&- || return 1
+  local retomar remoto=""
+  retomar=$(jq -r '.retomar // false' <<<"$r")
+  # La rama del PR puede haber avanzado sin este carril: la remendó otro carril, o es un arreglo prestado de otro (`b/4.26` en el C).
+  [ "$retomar" = true ] && git fetch --quiet origin "$rama" 8>&- 2>/dev/null &&
+    git show-ref --verify --quiet "refs/remotes/origin/$rama" && remoto="origin/$rama"
   if [ "$(git symbolic-ref --short HEAD 2>/dev/null)" != "$rama" ]; then
-    # Un paso nuevo parte de lo último integrado; uno que se retoma (`retomar`) sigue en su rama si tiene commits propios. Una rama local
-    # sin nada propio es una vieja (b/4.21 nació un día antes, 160 commits atrás de main): se rehace desde origin/main.
-    if [ "$(jq -r '.retomar // false' <<<"$r")" = true ] && git show-ref --verify --quiet "refs/heads/$rama" &&
+    # Un paso nuevo parte de lo último integrado; uno que se retoma (`retomar`) sigue en su rama si tiene commits propios, o en la de su
+    # PR. Una rama local sin nada propio es una vieja (b/4.21 nació un día antes, 160 commits atrás de main): se rehace desde origin/main.
+    if [ "$retomar" = true ] && git show-ref --verify --quiet "refs/heads/$rama" &&
       [ -n "$(git rev-list -n 1 "origin/main..$rama" 2>/dev/null)" ]; then
       git checkout --quiet "$rama" 8>&- || return 1
+    elif [ -n "$remoto" ]; then
+      git checkout --quiet -B "$rama" "$remoto" 8>&- || return 1
     else
       git checkout --quiet -B "$rama" origin/main 8>&- || return 1
     fi
   fi
-  traer_main "$rama" || return 1
+  ALINEAR_CHOCA=0
+  [ -n "$remoto" ] && { alinear_con_remoto "$rama" "$remoto" || return 1; }
+  # Con la rama separada de su PR, traer main borraría la nota del choque: primero lo resuelve la sesión.
+  [ "$ALINEAR_CHOCA" = 1 ] || traer_main "$rama" || return 1
   # Otro carril empezó con la rama de otro paso: lo de antes (CI rojos de esa rama, sus intentos de ci-fix) no es de éste. Un PR rojo
   # de un paso publicado lo devuelve el coordinador (`arreglar`), no ci-rojos.md.
   if [ "$(jq -r '.paso // empty' "$ESTADO/asignado-anterior.json" 2>/dev/null)" != "$paso" ]; then
@@ -52,6 +62,59 @@ carril_asignar() {
   printf '%s\n' "$r" >"$ESTADO/asignado.json"
   cp -f "$ESTADO/asignado.json" "$ESTADO/asignado-anterior.json"
   registro "carril $PILOTO_CARRIL: el coordinador asignó $paso en $rama."
+  remendar_sin_sesion "$paso" "$rama" "$(jq -r '.arreglar // empty' <<<"$r")" "$remoto" && return 12
+  return 0
+}
+
+# remendar_sin_sesion <paso> <rama> <arreglar> <origin/rama o vacío>: un PR devuelto que traer_main ya dejó listo se publica sin gastar una
+# sesión: en conflicto, si main entró sin choques de código; en rojo, sólo si se renumeraron migraciones (la guarda de orden; otro rojo
+# es un arreglo de verdad). 0 si se publicó. El 2026-11-08, 19 conflictos y la migración del 4.22 costaron una sesión y un CI cada uno.
+remendar_sin_sesion() {
+  local paso="$1" rama="$2" arreglar="$3" remoto="$4"
+  [ -n "$arreglar" ] && [ -n "$remoto" ] && [ ! -f "$ESTADO/conflicto-con-main.md" ] && [ "${UNION_DUDOSA:-0}" = 0 ] || return 1
+  [ "$(git rev-parse HEAD)" != "$(git rev-parse "$remoto")" ] || return 1
+  case "$arreglar" in
+    "conflicto con main") ;;
+    # Renumeradas ahora o en una vuelta anterior sin publicar (traer_main corre también antes de pedir el paso): renombres sin publicar.
+    "CI en rojo")
+      [ "${RENUMERADAS:-0}" = 1 ] ||
+        [ -n "$(git diff --name-only -M --diff-filter=R "$remoto" HEAD -- supabase/migrations/)" ] || return 1
+      ;;
+    *) return 1 ;;
+  esac
+  # El rango para la regla del SQL de seguridad es vacío: lo que entró es main (ya integrado) y una migración renombrada sin cambios.
+  if PILOTO_PARCIAL=false bash "$(dirname "${BASH_SOURCE[0]}")/publicar.sh" "$paso" "$(git rev-parse HEAD)" \
+    >"$ESTADO/remendar.log" 2>&1 8>&-; then
+    registro "carril ${PILOTO_CARRIL:-}: $paso remendado sin sesión ($arreglar): traje main y lo publiqué en $rama."
+    return 0
+  fi
+  registro "carril ${PILOTO_CARRIL:-}: no pude publicar el remiendo de $paso ($(tail -n 1 "$ESTADO/remendar.log")); sigue la sesión."
+  return 1
+}
+
+# alinear_con_remoto <rama> <origin/rama>: la rama local trae lo que su PR tiene y ella no (si no, publicar se negaría por divergencia).
+# Detrás: avanza; desviada: merge; un choque se aborta y queda para la sesión, como uno con main.
+alinear_con_remoto() {
+  local rama="$1" remoto="$2"
+  ALINEAR_CHOCA=0
+  git merge-base --is-ancestor "$remoto" HEAD && return 0
+  if git merge-base --is-ancestor HEAD "$remoto"; then
+    git merge --quiet --ff-only "$remoto" 8>&- >/dev/null 2>&1 || return 1
+    registro "carril ${PILOTO_CARRIL:-}: $rama avanzó hasta $remoto ($(git rev-parse --short HEAD))."
+    return 0
+  fi
+  if git merge --quiet --no-edit "$remoto" >"$ESTADO/traer-main.log" 2>&1 8>&-; then
+    registro "carril ${PILOTO_CARRIL:-}: uní $remoto a $rama."
+    return 0
+  fi
+  git merge --abort >/dev/null 2>&1
+  ALINEAR_CHOCA=1
+  {
+    echo "# La rama $rama se separó de $remoto"
+    echo
+    echo "Antes que nada: \`git merge $remoto\`, resuelve los choques (lo de las dos ramas es del mismo paso) y sigue."
+  } >"$ESTADO/conflicto-con-main.md"
+  registro "carril ${PILOTO_CARRIL:-}: $rama choca con $remoto; lo resuelve la sesión (.piloto/conflicto-con-main.md)."
   return 0
 }
 
@@ -62,7 +125,56 @@ carril_asignar() {
 # resuelve uniendo las dos versiones; uno en código se aborta y queda en `.piloto/conflicto-con-main.md`, que la sesión del paso resuelve
 # antes que nada (skill piloto, «Orientarte»). Antes se abortaba y nadie lo resolvía: el PR 69 (4.19-3b) quedó en conflicto por dos
 # líneas de docs/RENDIMIENTO.md, y el coordinador no devuelve las partes.
+#
+# Después, si main quedó sin choques, `renumerar_migraciones` (RENUMERADAS=1 si renumeró).
 traer_main() {
+  RENUMERADAS=0 UNION_DUDOSA=0
+  traer_main_merge "$@" || return 1
+  [ -f "$ESTADO/conflicto-con-main.md" ] || renumerar_migraciones
+  return 0
+}
+
+# renumerar_migraciones: las migraciones que la rama agrega llevan una versión posterior a la última de origin/main (lo exige la guarda de
+# carriles, docs/ORCA.md › «Migraciones»). Si una quedó atrás (otro carril integró una más nueva), se renombran TODAS las de la rama, en su
+# orden, a versiones nuevas: el mismo contenido, otra versión, y la versión vieja reemplazada en los archivos que la rama cambió. Es lo
+# que la sesión hacía a mano con `supabase migration new` (el 4.22 volvió en rojo por eso, 2026-11-08). Un commit que no pasa sus hooks se
+# deshace y queda para la sesión.
+renumerar_migraciones() {
+  local tope propias f v nuevo seg ahora pares=() par otros
+  tope=$(git ls-tree --name-only origin/main supabase/migrations/ 2>/dev/null |
+    sed -n 's#^supabase/migrations/\([0-9]\{14\}\)_.*\.sql$#\1#p' | sort | tail -n 1)
+  [ -n "$tope" ] || return 0
+  propias=$(git diff --name-only --diff-filter=A origin/main HEAD -- supabase/migrations/ | grep -E '/[0-9]{14}_[^/]*\.sql$' | sort)
+  [ -n "$propias" ] || return 0
+  [ "$(basename "$(head -n 1 <<<"$propias")" | cut -c1-14)" -le "$tope" ] || return 0
+  seg=$(date -u -d "${tope:0:8} ${tope:8:2}:${tope:10:2}:${tope:12:2}" +%s) || return 0
+  ahora=$(date -u +%s)
+  [ "$ahora" -gt "$seg" ] && seg=$((ahora - 1))
+  while IFS= read -r f; do
+    v=$(basename "$f" | cut -c1-14)
+    seg=$((seg + 1))
+    nuevo=$(date -u -d "@$seg" +%Y%m%d%H%M%S)
+    git mv "$f" "supabase/migrations/$nuevo${f#supabase/migrations/"$v"}" || { git reset --quiet --hard HEAD; return 0; }
+    pares+=("$v:$nuevo")
+  done <<<"$propias"
+  otros=$(git diff --name-only origin/main -- . ':(exclude)supabase/migrations/')
+  for par in "${pares[@]}"; do
+    while IFS= read -r f; do
+      [ -f "$f" ] && grep -q "${par%%:*}" "$f" && sed -i "s/${par%%:*}/${par##*:}/g" "$f" && git add -- "$f"
+    done <<<"$otros"
+  done
+  bash scripts/mapa.sh >/dev/null 2>&1
+  if git commit --quiet -m "fix(db): renumerar las migraciones que main dejó atrás" >>"$ESTADO/traer-main.log" 2>&1 8>&-; then
+    RENUMERADAS=1
+    registro "carril ${PILOTO_CARRIL:-}: renumeré las migraciones de la rama tras main (${pares[*]})."
+  else
+    git reset --quiet --hard HEAD
+    registro "carril ${PILOTO_CARRIL:-}: no pude renumerar las migraciones (${pares[*]}): el commit no pasó sus hooks; lo hace la sesión."
+  fi
+  return 0
+}
+
+traer_main_merge() {
   local rama="$1" corto chocan
   git merge-base --is-ancestor origin/main HEAD 2>/dev/null && { rm -f "$ESTADO/conflicto-con-main.md"; return 0; }
   if [ -z "$(git rev-list -n 1 origin/main..HEAD)" ]; then
@@ -108,6 +220,11 @@ unir_docs() {
         git show ":2:$f" >"$tmp/nuestro" 2>/dev/null || { quedan=1; continue; }
         git show ":3:$f" >"$tmp/suyo" 2>/dev/null || { quedan=1; continue; }
         git show ":1:$f" >"$tmp/base" 2>/dev/null || : >"$tmp/base"
+        # Dudosa si en algún choque los dos lados cambiaron líneas que ya existían (la unión las deja dos veces: las filas de
+        # docs/UX.md en el 4.26); si sólo agregaron, la unión es la respuesta. Una dudosa no se publica sin sesión.
+        # (merge-file sale con el número de choques: con pipefail, sin el `|| :` la tubería fallaba aunque awk acertara.)
+        { git merge-file --diff3 -p "$tmp/nuestro" "$tmp/base" "$tmp/suyo" 2>/dev/null || :; } |
+          awk '/^\|\|\|\|\|\|\|/{b=1;n=0;next} /^=======/{if(b&&n)d=1;b=0;next} b{n++} END{exit !d}' && UNION_DUDOSA=1
         git merge-file --union -p "$tmp/nuestro" "$tmp/base" "$tmp/suyo" >"$f" 2>/dev/null
         git add -- "$f" || quedan=1
         ;;

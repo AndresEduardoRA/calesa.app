@@ -166,6 +166,8 @@ paradas_deterministas() {
   case "$(hecho .rama)" in
     a/?*) modo_carril || true ;;
     "${PILOTO_CARRIL:-/}"/?*) ;;
+    # Un arreglo prestado trabaja en la rama del PR de otro carril (la que asignó el coordinador).
+    "$(modo_carril && jq -r '.rama // "/"' "$ESTADO/asignado.json" 2>/dev/null || echo /)") ;;
     *)
       # Con carril, sin un paso en curso y con el árbol limpio, la rama la saca carril_asignar: un worktree que quedó en main (el
       # coordinador integraba con --delete-branch y pasaba a main el árbol del A, 2026-11-08) no es motivo de parar.
@@ -462,6 +464,7 @@ vuelta() {
     carril_asignar
     case "$?" in
       0) regenerar_hechos || return 0 ;;
+      12) return 0 ;; # remendado y publicado sin sesión (carril.sh › remendar_sin_sesion): otra vuelta, sin esperar
       10) registro "carril $PILOTO_CARRIL: sin paso libre; espero ${PILOTO_ESPERA_S:-120} s."; $DORMIR "${PILOTO_ESPERA_S:-120}"; return 0 ;;
       11) registro "carril $PILOTO_CARRIL: el coordinador no tiene más pasos para este carril."; exit 0 ;;
       *) parada "el coordinador no pudo asignar un paso al carril $PILOTO_CARRIL: $(tail -n 1 "$ESTADO/coordinador.err" 2>/dev/null)"; return 0 ;;
