@@ -6581,3 +6581,27 @@ begin
   if v_n <> v_total then raise exception 'la dueña lee % de % plantillas', v_n, v_total; end if;
   reset role;
 end $$;
+
+-- @test tablas de referencia: se leen como antes y nadie las escribe por PostgREST, ni la dueña; sólo tabla_referencia_publicar() (4.23-1)
+do $$
+declare v_tabla uuid := (select id from public.tablas_referencia order by id limit 1); v_n int; v_codigo text;
+begin
+  if v_tabla is null then raise exception 'la prueba necesita una tabla de referencia de la semilla'; end if;
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
+  set local role authenticated;
+  select count(*) into v_n from public.tablas_referencia_filas where tabla_id = v_tabla;
+  if v_n = 0 then raise exception 'la dueña ya no lee las filas de una tabla'; end if;
+  begin
+    insert into public.tablas_referencia_filas (tabla_id, valores, orden) values (v_tabla, '{}', 99);
+    v_codigo := 'sin error';
+  exception when others then v_codigo := sqlstate;
+  end;
+  if v_codigo <> '42501' then raise exception 'la dueña insertó una fila por PostgREST (%)', v_codigo; end if;
+  begin
+    update public.tablas_referencia set nombre = nombre where id = v_tabla;
+    v_codigo := 'sin error';
+  exception when others then v_codigo := sqlstate;
+  end;
+  if v_codigo <> '42501' then raise exception 'la dueña editó una tabla por PostgREST (%)', v_codigo; end if;
+  reset role;
+end $$;

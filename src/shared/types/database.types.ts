@@ -5271,7 +5271,11 @@ export type Database = {
           descripcion: string | null
           id: string
           nombre: string
+          nota: string | null
           origen_id: string | null
+          publicado_en: string | null
+          publicado_por: string | null
+          version: number
         }
         ComputedFields: never
         Insert: {
@@ -5283,7 +5287,11 @@ export type Database = {
           descripcion?: string | null
           id?: string
           nombre: string
+          nota?: string | null
           origen_id?: string | null
+          publicado_en?: string | null
+          publicado_por?: string | null
+          version?: number
         }
         Update: {
           activa?: boolean
@@ -5294,7 +5302,11 @@ export type Database = {
           descripcion?: string | null
           id?: string
           nombre?: string
+          nota?: string | null
           origen_id?: string | null
+          publicado_en?: string | null
+          publicado_por?: string | null
+          version?: number
         }
         Relationships: [
           {
@@ -5302,6 +5314,13 @@ export type Database = {
             columns: ['origen_id']
             isOneToOne: false
             referencedRelation: 'origenes'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'tablas_referencia_publicado_por_fkey'
+            columns: ['publicado_por']
+            isOneToOne: false
+            referencedRelation: 'perfiles'
             referencedColumns: ['id']
           },
         ]
