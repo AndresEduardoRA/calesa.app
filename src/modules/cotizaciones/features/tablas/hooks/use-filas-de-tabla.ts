@@ -35,10 +35,17 @@ export function useFilasDeTabla({ columnas, leidas, inicial, locale }: Args) {
   const [pagina, setPagina] = useState(0)
   const [anuncio, setAnuncio] = useState('')
   const foco = useRef<string | null>(null)
+  // Después del cuadro siguiente: un menú que se cierra («⋯» › «Sumar una fila debajo») devuelve el foco a su botón y lo pisaría.
   useEffect(() => {
-    if (foco.current === null) return
-    document.getElementById(foco.current)?.focus()
+    const id = foco.current
+    if (id === null) return
     foco.current = null
+    // Sin cancelar: otro dibujo en el medio (un anuncio) no tiene que perder el foco pedido.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.getElementById(id)?.focus()
+      })
+    })
   })
   const listaDePaginas = useMemo(
     () => paginas(estado.filas.length, locale),

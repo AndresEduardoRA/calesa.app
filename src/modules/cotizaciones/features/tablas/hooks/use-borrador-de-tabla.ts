@@ -30,20 +30,23 @@ export function useBorradorAlAbrir(tablaId: string, version: number): BorradorRe
 
 type Args = { tablaId: string; version: number; estado: EstadoDelEditor; cambios: boolean }
 
-// Guarda lo editado 300 ms después del último cambio y, sin cambios, no deja borrador. `apagar()` (tras publicar) lo borra y deja de guardar: lo que quede en memoria es
-// de la versión vieja hasta que el editor se vuelva a montar con la nueva.
+const guardarYa = (clave: string, version: number, estado: EstadoDelEditor, cambios: boolean) => {
+  if (cambios) {
+    guardarBorrador(sessionStorage, clave, borradorParaGuardar({ version, ...estado }))
+  } else {
+    borrarBorrador(sessionStorage, clave)
+  }
+}
+
+// Guarda lo editado 300 ms después del último cambio y, sin cambios, no deja borrador. Mientras se publica no guarda y no queda borrador (`pausar()`): si entra, el editor
+// se vuelve a montar con la versión nueva y no tiene que encontrar uno viejo; si no entra, `reanudar()` lo vuelve a guardar.
 export function useBorradorDeTabla({ tablaId, version, estado, cambios }: Args) {
   const clave = claveDelBorradorDeTabla(tablaId)
-  const apagado = useRef(false)
+  const pausado = useRef(false)
   useEffect(() => {
-    if (apagado.current) return
+    if (pausado.current) return
     const espera = setTimeout(() => {
-      if (apagado.current) return
-      if (cambios) {
-        guardarBorrador(sessionStorage, clave, borradorParaGuardar({ version, ...estado }))
-      } else {
-        borrarBorrador(sessionStorage, clave)
-      }
+      if (!pausado.current) guardarYa(clave, version, estado, cambios)
     }, ESPERA_MS)
     return () => {
       clearTimeout(espera)
@@ -53,9 +56,15 @@ export function useBorradorDeTabla({ tablaId, version, estado, cambios }: Args) 
     borrar: () => {
       borrarBorrador(sessionStorage, clave)
     },
-    apagar: () => {
-      apagado.current = true
+    pausar: () => {
+      pausado.current = true
       borrarBorrador(sessionStorage, clave)
+    },
+    reanudar: () => {
+      pausado.current = false
+      guardarYa(clave, version, estado, cambios)
     },
   }
 }
+
+export type BorradorDeTablaEnUso = ReturnType<typeof useBorradorDeTabla>

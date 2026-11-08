@@ -7,3 +7,8 @@ export const EditorDeTablaDiferido = diferido(
   () => import('./editor-de-tabla').then((modulo) => modulo.EditorDeTabla),
   { aviso: 'aqui' },
 )
+
+// «Publicar <nombre>» se pide recién al abrirse; se monta con `useAbiertoAlgunaVez()`.
+export const ModalDePublicarTablaDiferido = diferido(() =>
+  import('./modal-de-publicar-tabla').then((modulo) => modulo.ModalDePublicarTabla),
+)

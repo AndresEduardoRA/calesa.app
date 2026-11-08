@@ -14,7 +14,7 @@ type Props = {
 export function BarraDeCambios({ cambios, alDescartar, children }: Props) {
   return (
     <div className="flex flex-wrap items-center gap-2 border-t border-(--color-line) pt-3">
-      <p className="min-w-0 flex-1 text-(length:--text-sm) text-(--color-ink-soft)">
+      <p className="min-w-0 flex-1 basis-60 text-(length:--text-sm) text-(--color-ink-soft)">
         {cambios
           ? 'Cambios sin publicar: quedan en esta pestaña del navegador hasta que publiques o los descartes.'
           : 'Sin cambios que publicar.'}

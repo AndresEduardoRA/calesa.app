@@ -3,6 +3,7 @@ import type { ColumnaDeTabla } from '../tabla-de-ayuda'
 import { moverFila, type FilaEditable } from './edicion'
 import {
   aplicarTexto,
+  destinoDeCamino,
   devolverFila,
   FILAS_POR_PAGINA_DEL_EDITOR,
   hayCambios,
@@ -160,5 +161,32 @@ describe('quitar y devolver', () => {
   it('una fila que no está no cambia nada', () => {
     const inicio = estado(filas(2))
     expect(quitarConCrudos(inicio, 'nada')).toEqual({ estado: inicio, quitada: null })
+  })
+})
+
+describe('destinoDeCamino', () => {
+  it('lleva el camino de la base a su fila, su página y su campo', () => {
+    const lista = estado(filas(150))
+    expect(
+      destinoDeCamino(COLUMNAS, lista, { camino: 'filas.120.factor', mensaje: 'La fila 121: x.' }),
+    ).toEqual({
+      indice: 120,
+      mensaje: 'La fila 121: x.',
+      filaId: 'f120',
+      clave: 'factor',
+      pagina: 1,
+      conCelda: true,
+    })
+  })
+
+  it('sin fila o sin columna declarada no hay campo', () => {
+    const lista = estado(filas(2))
+    expect(destinoDeCamino(COLUMNAS, lista, { camino: 'filas', mensaje: 'm' }).conCelda).toBe(false)
+    expect(
+      destinoDeCamino(COLUMNAS, lista, { camino: 'filas.9.factor', mensaje: 'm' }).filaId,
+    ).toBeNull()
+    expect(
+      destinoDeCamino(COLUMNAS, lista, { camino: 'filas.0.otra', mensaje: 'm' }).conCelda,
+    ).toBe(false)
   })
 })

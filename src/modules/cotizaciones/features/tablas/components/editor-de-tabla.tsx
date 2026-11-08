@@ -1,12 +1,10 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { Button } from '@/shared/ui/button'
 import { useRegional } from '@/shared/ui/regional'
 import { avisar, avisarConDeshacer } from '@/shared/ui/toasts'
 import type { FilaEditable } from '../../../entities/tablas/edicion'
 import type { TablaDeReferencia } from '../../../entities/tablas/lectura'
-import { TOPE_DE_FILAS } from '../../../entities/tablas/validacion'
 import type { EstadoDelEditor } from '../../../entities/tablas/vista-del-editor'
 import { useBorradorAlAbrir, useBorradorDeTabla } from '../hooks/use-borrador-de-tabla'
 import { useFilasDeTabla } from '../hooks/use-filas-de-tabla'
@@ -15,6 +13,7 @@ import { BarraDeCambios } from './barra-de-cambios'
 import { EncabezadoDelEditor } from './encabezado-del-editor'
 import { FilasDelEditor } from './filas-del-editor'
 import { PaginasDelEditor } from './paginas-del-editor'
+import { PublicarTabla } from './publicar-tabla'
 
 type Props = {
   // La viva, con su versión (la que «Publicar» manda como esperada) y `tapada` del ítem de la lista.
@@ -90,25 +89,14 @@ export function EditorDeTabla({ tabla, filas, origen }: Props) {
         edicion={edicion}
         locale={locale}
       />
-      {edicion.pagina === edicion.paginas.length - 1 ? (
-        <Button
-          type="button"
-          variant="outline"
-          className="min-h-11 w-fit md:min-h-9"
-          disabled={estado.filas.length >= TOPE_DE_FILAS}
-          onClick={() => {
-            edicion.sumar(estado.filas.length)
-          }}
-        >
-          Sumar una fila
-        </Button>
-      ) : null}
       <PaginasDelEditor
         paginas={edicion.paginas}
         pagina={edicion.pagina}
         alElegir={edicion.setPagina}
       />
-      <BarraDeCambios cambios={cambios} alDescartar={descartar} />
+      <BarraDeCambios cambios={cambios} alDescartar={descartar}>
+        <PublicarTabla tabla={tabla} edicion={edicion} borrador={borrador} />
+      </BarraDeCambios>
     </section>
   )
 }

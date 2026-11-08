@@ -123,20 +123,31 @@ const declarada = (columnas: readonly ColumnaDeTabla[], clave: string | null) =>
   clave !== null && columnas.some((c) => c.clave === clave)
 
 // El del espejo de la base, con su fila (`filas.<i>.<clave>`); `filas` solo (el tope) no tiene fila.
-function errorValidado(columnas: readonly ColumnaDeTabla[], estado: EstadoDelEditor) {
-  const validado = validarFilas(columnas, filasParaPublicar(estado.filas))
-  if (!validado) return null
-  const partes = CAMINO.exec(validado.camino)
+// La celda que nombra un camino de la base (`filas.<i>.<clave>`, el `hint` de un 22023 o el del espejo) con su mensaje; `filas` solo (el tope) no tiene fila. «Ir a la
+// celda» de un rechazo al publicar lo usa.
+export function destinoDeCamino(
+  columnas: readonly ColumnaDeTabla[],
+  estado: EstadoDelEditor,
+  { camino, mensaje }: { camino: string; mensaje: string },
+): PrimerError & { indice: number } {
+  const partes = CAMINO.exec(camino)
   const indice = partes ? Number(partes[1]) : -1
   const fila = estado.filas[indice]
   const clave = partes?.[2] ?? null
-  const error: PrimerError = {
-    mensaje: validado.mensaje,
+  return {
+    indice,
+    mensaje,
     filaId: fila?.id ?? null,
     clave,
     pagina: fila ? paginaDe(indice) : 0,
     conCelda: fila !== undefined && declarada(columnas, clave),
   }
+}
+
+function errorValidado(columnas: readonly ColumnaDeTabla[], estado: EstadoDelEditor) {
+  const validado = validarFilas(columnas, filasParaPublicar(estado.filas))
+  if (!validado) return null
+  const { indice, ...error } = destinoDeCamino(columnas, estado, validado)
   return { indice, error }
 }
 
