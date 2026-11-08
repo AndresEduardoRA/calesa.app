@@ -158,6 +158,39 @@ export async function carrerasDeConfiguracionDeLeads({ orquesta, carrera, espero
     )
   }
 
+  // 5b-7: en la de arriba A reescribe el lugar de y, así que B espera aunque no haya candado de tabla. Aquí A no toca la tarjeta
+  // que mueve B (P): sin el `lock table` B lee la lista de antes y reaplica lugares viejos; lo delata el orden final, no la espera.
+  console.log('Dos personas reordenan sin tocar la misma tarjeta')
+  {
+    const p = await tipoNuevo(orquesta, 'orden p')
+    const q = await tipoNuevo(orquesta, 'orden q')
+    const r_ = await tipoNuevo(orquesta, 'orden r')
+    const s = await tipoNuevo(orquesta, 'orden s')
+    // La premisa: la lista está normalizada (cada `orden` es su rango × 10). Con huecos, A renumeraría también a P y la carrera
+    // no distinguiría nada.
+    const { rows: antes } = await orquesta.query(
+      `select orden, (row_number() over (order by orden, clave) * 10)::int as rango from public.tipos_seguimiento`,
+    )
+    if (antes.some((f) => f.orden !== f.rango))
+      throw new Error('la carrera no prueba: la lista de tipos de seguimiento no está normalizada')
+    const mover = async (id, despuesDe) => ({
+      persona: configura,
+      sql: 'public.tipo_seguimiento_mover($1, $2, $3)',
+      args: [id, await version(orquesta, 'tipos_seguimiento', id), despuesDe],
+    })
+    const r = await carrera(orquesta, { a: await mover(s, p), b: await mover(p, r_) })
+    const { rows } = await orquesta.query(
+      `select id, orden from public.tipos_seguimiento order by orden, clave`,
+    )
+    const distintos = new Set(rows.map((f) => f.orden)).size === rows.length
+    const cola = rows.slice(-4).map((f) => f.id)
+    espero(
+      'B espera el candado de la tabla y mueve con la lista de A: S, Q, R, P y nadie comparte lugar',
+      r.a.ok && r.b.ok && distintos && cola.join() === [s, q, r_, p].join(),
+      { r, cola, esperado: [s, q, r_, p], distintos },
+    )
+  }
+
   console.log('El tipo de seguimiento número 100 y el 101 a la vez')
   {
     const { rows } = await orquesta.query(`select count(*)::int as n from public.tipos_seguimiento`)

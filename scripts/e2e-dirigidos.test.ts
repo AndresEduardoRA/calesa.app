@@ -127,6 +127,21 @@ describe('e2e-dirigidos › ninguno y la salida de GitHub', () => {
     ])
   })
 
+  it('dirigidos con muchos specs: un bloque cada 20, hasta 4 (91 specs en uno pasaban los 45 min)', () => {
+    const con = (n: number) =>
+      salidaDeGithub({
+        modo: 'dirigidos',
+        motivo: '',
+        specs: Array.from({ length: n }, (_, i) => `e2e/s${String(i)}.spec.ts`),
+        interfaz: true,
+      })
+    expect(con(20)).toContain('e2e_bloques=[1]')
+    expect(con(21)).toContain('e2e_bloques=[1,2]')
+    expect(con(45)).toContain('e2e_de=3')
+    expect(con(91)).toContain('e2e_bloques=[1,2,3,4]')
+    expect(con(91)).toContain('e2e_de=4')
+  })
+
   it('el CLI sobre el repo real: un rango vacío no pide e2e', () => {
     const salida = execFileSync(
       'node',

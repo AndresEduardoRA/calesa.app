@@ -1,6 +1,7 @@
 // Lo que los casos de uso de `features/` necesitan de afuera, dicho como interfaces. La
 // implementación (Supabase) vive en `infra/` y se la entrega `composicion.ts`.
 import type { Resultado } from '@/shared/lib/errores'
+import type { AjustesDeCotizacion } from './ajustes-de-cotizacion'
 import type { AjustesEmpresa, CambiosDeAjustes } from './ajustes-empresa'
 import type { ClaveIntegracion, Integracion } from './integraciones'
 import type { CambioDeValor, Moneda, TipoCambio } from './tipos-cambio'
@@ -12,6 +13,15 @@ type Editado = { actualizadoEn: string }
 export type RepositorioEmpresa = {
   guardar: (pedido: {
     cambios: CambiosDeAjustes
+    actualizadoEnEsperado: string
+  }) => Promise<Resultado<Editado>>
+}
+
+// La vigencia y el vehículo obligatorio al cotizar, con la misma versión de la fila que el formulario de Empresa.
+export type RepositorioAjustesDeCotizacion = {
+  guardar: (pedido: {
+    vigenciaDias: number
+    vehiculoObligatorioAlCotizar: boolean
     actualizadoEnEsperado: string
   }) => Promise<Resultado<Editado>>
 }
@@ -77,3 +87,5 @@ export type LectorDeAjustes = () => Promise<Resultado<AjustesParaEditar>>
 export type LectorDeMonedasYTiposCambio = () => Promise<Resultado<MonedasYTiposCambio>>
 export type LectorDeHistorial = (tipoCambioId: string) => Promise<Resultado<CambioDeValor[]>>
 export type LectorDeIntegraciones = () => Promise<Resultado<Integracion[]>>
+// La vigencia y el vehículo obligatorio con la versión de la fila; falla en vez de dar los de fábrica.
+export type LectorDeAjustesDeCotizacion = () => Promise<Resultado<AjustesDeCotizacion>>

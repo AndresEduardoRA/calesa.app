@@ -1,5 +1,5 @@
-// Lo común de las carreras de marcar final (paso 4.25-1): los textos que se esperan, los ayudantes y la carrera en dos pasos. La usan `carreras.mjs`
-// y `carreras-de-candados.mjs`.
+// Lo común de las carreras de marcar final (paso 4.25-1) y de crear una final (4.25-1b): los textos que se esperan, los ayudantes y la carrera en dos
+// pasos. La usan `carreras.mjs`, `carreras-de-candados.mjs`, `carreras-crear.mjs` y `carreras-crear-candados.mjs`.
 import { comoPersona } from '../../../../scripts/carreras/terreno.mjs'
 
 export const ACCESO = 'No tienes acceso a esta cotización.'
@@ -9,6 +9,12 @@ export const LEAD_EN_PAPELERA =
   'El lead de esta cotización está en la papelera. Restáuralo antes de marcarla final.'
 export const NO_PUEDE =
   'Este vehículo tiene preventas que no puedes mandar a la papelera. Pídeselo a quien las cotizó o a quien modera.'
+// Los de crear una final (4.25-1b).
+export const OTRO_LEAD_CREAR =
+  'Este vehículo está vinculado a otro lead. Desvincúlalo antes de crear la final.'
+export const YA_FINAL = 'Este vehículo ya tiene una cotización final activa.'
+export const SIN_VEHICULO = 'No tienes acceso a este vehículo.'
+export const LEAD_AJENO = 'No encontramos este lead o no tienes acceso.'
 
 // Ids propios de cada archivo de carreras (base distinta), para que no choquen.
 export const idsDesde = (base) => {
@@ -35,6 +41,14 @@ export const cot = (db, id) =>
   )
 export const leadDe = async (db, v) =>
   (await fila(db, 'select lead_id from public.vehiculos where id = $1', [v])).lead_id
+export const claseDelLead = async (db, lead) =>
+  (
+    await fila(
+      db,
+      'select t.clase::text as clase from public.leads l join public.tipos_lead t on t.id = l.tipo_lead_id where l.id = $1',
+      [lead],
+    )
+  ).clase
 
 // B termina o queda esperando un candado; lo que pase primero.
 async function bloqueadoOTermino(orquesta, pid, termino) {

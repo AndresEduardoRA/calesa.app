@@ -1,8 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { ConfirmarConUrl } from './confirmar-con-url'
+import { sumarObjetos } from './registros-de-carriles'
 
-// El carril B registra los `<Confirmar>` de la fórmula en su propio archivo, sin tocar el registro del A (4.20-2c).
+// El carril B registra los `<Confirmar>` de la fórmula en su propio archivo, sin tocar el registro del A (4.20-2c). Lo de los carriles en
+// `areas-*/confirmar-con-url.ts` (borrar un comentario, 4.27-2) se suma siempre al final.
+const DE_LAS_AREAS = sumarObjetos<ConfirmarConUrl>(
+  import.meta.glob('./areas-*/confirmar-con-url.ts', { eager: true }),
+)
 afterEach(() => {
   vi.doUnmock('./confirmar-con-url-formula')
   vi.doUnmock('./confirmar-con-url-papelera')
@@ -21,6 +26,7 @@ describe('CONFIRMAR_CON_URL', () => {
     expect(CONFIRMAR_CON_URL).toEqual({
       ...CONFIRMAR_CON_URL_DEL_NUCLEO,
       'src/inventado.tsx': inventado,
+      ...DE_LAS_AREAS,
     })
     expect(Object.keys(CONFIRMAR_CON_URL_DEL_NUCLEO).length).toBeGreaterThan(0)
   })
@@ -33,7 +39,7 @@ describe('CONFIRMAR_CON_URL', () => {
     }))
     vi.doMock('./confirmar-con-url-papelera', () => ({ CONFIRMAR_CON_URL_DE_LA_PAPELERA: {} }))
     const { CONFIRMAR_CON_URL, CONFIRMAR_CON_URL_DEL_NUCLEO } = await import('./confirmar-con-url')
-    expect(CONFIRMAR_CON_URL).toEqual(CONFIRMAR_CON_URL_DEL_NUCLEO)
+    expect(CONFIRMAR_CON_URL).toEqual({ ...CONFIRMAR_CON_URL_DEL_NUCLEO, ...DE_LAS_AREAS })
   })
 
   it('suma, después de los del núcleo, los que registra la papelera', async () => {
@@ -47,6 +53,7 @@ describe('CONFIRMAR_CON_URL', () => {
     expect(CONFIRMAR_CON_URL).toEqual({
       ...CONFIRMAR_CON_URL_DEL_NUCLEO,
       'src/inventado.tsx': inventado,
+      ...DE_LAS_AREAS,
     })
   })
 })
