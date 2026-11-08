@@ -7,10 +7,11 @@ import { AvisoDeTope } from '@/shared/ui/aviso-de-tope'
 import { EstadoSinResultados } from '@/shared/ui/estados'
 import type { FormulaParaEditar } from '../../../../entities/formula/edicion'
 import { cifraDeLaFila, type CifraDeLaFila } from '../../../../entities/formula/vista-previa'
-import { useEditorDeLaFormula } from '../../hooks/use-editor-de-la-formula'
+import { useEditorDeLaFormula, type RechazoEnElEditor } from '../../hooks/use-editor-de-la-formula'
 import { filasVisibles } from '../../hooks/use-editor-de-la-formula.soporte'
 import { BuscarFila } from './buscar-fila'
 import { FilaDelEditor } from './fila-del-editor'
+import { GruposDeLaFormula } from './grupos-de-la-formula'
 import { GuardarBorrador } from './guardar-borrador'
 import { propsDeLaFila } from './props-de-la-fila'
 import { VistaPreviaDeLaFormula } from './vista-previa-de-la-formula'
@@ -26,8 +27,21 @@ type Props = {
 
 const SIN_CIFRA: CifraDeLaFila = { tipo: 'nada' }
 
+// Un rechazo que no nombra una fila ni un grupo va arriba de la lista.
+function RechazoDeArriba({ rechazo }: { rechazo: RechazoEnElEditor | null }) {
+  if (rechazo === null || rechazo.filaId !== null || rechazo.grupoId !== null) return null
+  return (
+    <p
+      role="alert"
+      className="rounded-(--radius-md) bg-(--color-aviso-soft) p-2 text-(length:--text-sm) text-(--color-aviso-ink)"
+    >
+      {rechazo.mensaje}
+    </p>
+  )
+}
+
 // Las filas de la versión leída, en su orden (C4–C8): hasta `TOPE_DE_LO_CARGADO`, con «Buscar fila» como camino a las demás. Un rechazo de `validarFormula()` que no
-// nombra ninguna fila va arriba de la lista. «Guardar el borrador» (4.21-3b-1) va arriba de todo.
+// nombra ninguna fila ni grupo va arriba de la lista. «Guardar el borrador» (4.21-3b-1) va arriba de todo; la sección «Grupos» (4.21-3c), tras la vista previa.
 export function ListaDeFilas({ origenId, nombreDelOrigen, leida, recargando, alRecargar }: Props) {
   const editor = useEditorDeLaFormula({ origenId, leida })
   const [busqueda, setBusqueda] = useState('')
@@ -65,14 +79,7 @@ export function ListaDeFilas({ origenId, nombreDelOrigen, leida, recargando, alR
         }}
         alRecargar={alRecargar}
       />
-      {rechazo && rechazo.filaId === null ? (
-        <p
-          role="alert"
-          className="rounded-(--radius-md) bg-(--color-aviso-soft) p-2 text-(length:--text-sm) text-(--color-aviso-ink)"
-        >
-          {rechazo.mensaje}
-        </p>
-      ) : null}
+      <RechazoDeArriba rechazo={rechazo} />
       <VistaPreviaDeLaFormula
         lectura={editor.lectura}
         vista={editor.vista}
@@ -80,6 +87,7 @@ export function ListaDeFilas({ origenId, nombreDelOrigen, leida, recargando, alR
         nombreDelOrigen={nombreDelOrigen}
         alReintentar={editor.reintentarLaLectura}
       />
+      <GruposDeLaFormula editor={editor} diseno={leida.diseno} />
       <BuscarFila valor={busqueda} alCambiar={setBusqueda} />
       <ul aria-label="Filas de la fórmula" className="grid grid-cols-[minmax(0,1fr)] gap-2">
         {visibles.filas.map((fila) => (

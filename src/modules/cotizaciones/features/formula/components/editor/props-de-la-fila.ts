@@ -9,6 +9,10 @@ const delTexto = (editor: EditorDeLaFormula, fila: FilaParaDibujar) => ({
   soltados: editor.aplicada?.id === fila.id ? editor.aplicada.soltados : [],
 })
 
+// Mientras se guarda el borrador, se suma una fila o hay un grupo abierto (4.21-3c), nada se abre ni se suma (4.21-3b-1, C3).
+const hayOtraCosa = (editor: EditorDeLaFormula) =>
+  editor.nueva.sumando !== null || editor.guardado.enCurso || editor.grupos.abierto !== null
+
 // Lo que cada fila sabe del editor (C4 a C6): su cifra, si está abierta, si espera a otra cosa abierta (una fila en edición, el formulario de «Sumar fila» o un guardado) y lo que
 // el último intento dejó dicho en ella. Una función aparte para que la lista no cargue con tantas condiciones.
 export function propsDeLaFila(
@@ -18,8 +22,7 @@ export function propsDeLaFila(
 ): FilaDelEditorProps {
   const { abierta, nueva } = editor
   const sumandoTras = nueva.sumando?.tras ?? null
-  // Mientras se guarda el borrador, nada se abre ni se suma (4.21-3b-1, C3).
-  const otraCosa = sumandoTras !== null || editor.guardado.enCurso
+  const otraCosa = hayOtraCosa(editor)
   return {
     ...delTexto(editor, fila),
     fila,
