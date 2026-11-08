@@ -6965,6 +6965,19 @@ export type Database = {
       _candado_de_objeto: { Args: { p_bucket: string; p_ruta: string }; Returns: number }
       _color_contraste: { Args: { p_a: string; p_b: string }; Returns: number }
       _color_luminancia: { Args: { p_hex: string }; Returns: number }
+      _comentario_item: {
+        Args: {
+          p_actualizado_en: string
+          p_autor: string
+          p_creado_en: string
+          p_cuerpo: string
+          p_eliminado_en: string
+          p_id: string
+          p_nombre: string
+          p_yo: string
+        }
+        Returns: Json
+      }
       _compilar_visibilidad: { Args: { p_def: Json; p_diseno: Json }; Returns: Json }
       _conflicto_de_edicion: {
         Args: { p_cuando: string; p_registro: string; p_sujeto: string; p_tabla: string }
@@ -8080,6 +8093,25 @@ export type Database = {
           p_origen: string
         }
         Returns: boolean
+      }
+      cotizacion_comentario_respuestas: {
+        Args: {
+          p_comentario: string
+          p_despues_en?: string
+          p_despues_id?: string
+          p_tope?: number
+        }
+        Returns: Json
+      }
+      cotizacion_comentarios: {
+        Args: {
+          p_antes_en?: string
+          p_antes_id?: string
+          p_cotizacion: string
+          p_primeros?: number
+          p_tope?: number
+        }
+        Returns: Json
       }
       cotizacion_crear: {
         Args: {
