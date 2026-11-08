@@ -82,7 +82,12 @@ o seguridad, compuerta `datos` como en cualquier paso. Si no se puede (no es tuy
 
 ## Cuando necesitas algo de otro carril: compuerta `espera`
 
-Si lo que te falta no es tuyo (está en el `dueno_de` de otro carril en `docs/plan.yaml`, o es del carril A y tú eres B o C), **no** pidas una `afuera` ni ofrezcas
+**Lo del núcleo lo haces tú, en tu PR** (2026-11-08): si eres B o C y te falta algo de lo que posee el carril A (un registro de una guarda, una línea en
+`src/app`, una prueba del núcleo, un archivo de `src/shared`), lo agregas o lo editas tú mismo, chico y con su prueba, en un commit propio de tu paso: la guarda
+de carriles te deja agregar y editar lo del base (no borrarlo) y el coordinador integra tu PR. No esperas al A. Sólo pides `espera` por lo de **otro carril
+no base** (el `dueno_de` de B o de C), por una migración de un dominio que no es tuyo, o por un borrado en el núcleo.
+
+Si lo que te falta no es tuyo (está en el `dueno_de` de otro carril no base en `docs/plan.yaml`), **no** pidas una `afuera` ni ofrezcas
 opciones que el bucle no sabe cumplir («seguir mientras…»): termina con `resultado: compuerta` y una compuerta `espera` con `pedido` (qué archivo, qué cambio y por qué,
 para que su dueño lo haga sin preguntarte) y `archivos` (**obligatorio**: las rutas que tienen que crearse o cambiar en `origin/main`). El bucle se lo pide al carril
 dueño, espera a que **todos** esos archivos cambien en `main` (o a que el dueño cierre el pedido), lo trae a tu rama y te retoma con `continuar`; la respuesta dice qué

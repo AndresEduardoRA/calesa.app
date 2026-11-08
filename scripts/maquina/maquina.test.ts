@@ -81,6 +81,8 @@ describe('instalar-servicios.sh', () => {
     expect(r.salida).toContain(`WorkingDirectory=${repo}\n`)
     expect(r.salida).toContain(`WorkingDirectory=${repo}.carriles/b`)
     expect(r.salida).toContain('ExecStart=/usr/bin/env bash scripts/piloto/arrancar.sh --carril b')
+    // Apagar la máquina no es «parar»: un ExecStop con parar.sh dejaba PARAR y el carril no volvía tras el reinicio.
+    expect(r.salida).not.toMatch(/^ExecStop=/m)
     expect(r.salida).toContain('OnCalendar=*-*-* 00/6:00:00')
     expect(r.salida).not.toContain('--carril c')
     // El vigía de cada carril: lo levanta si se cayó (FLUJO-1).

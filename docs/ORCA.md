@@ -48,8 +48,10 @@ cierra con `entregar` sin tocar ESTADO, PLAN, DECISIONES ni BITACORA (eso va a `
 `src/shared` lo pide con una compuerta `espera` (su `pedido`): el coordinador se lo da al dueño como `pedido-<n>`, antes que sus pasos, y el que pidió se retoma solo cuando llega a `main`
 (`docs/PILOTO.md` › «El flujo continuo»). El coordinador integra con el CI en verde los pasos, sus partes y los pedidos, también los rojos
 (`COORD_MERGE_AUTO` en `piloto.config`, decisión de la persona del 2026-11-07); lo que toca las guardas del piloto, la persona.
-Un carril no toca fuera de su `dueno_de`, `docs/` y `compartido` (donde agrega y edita, no borra); en `plan.yaml` sólo suma archivos de las
-familias del compilador que crea (B). Un cambio a la guarda o al plan rige desde el PR siguiente. `docs/carriles/b.md` es para una sesión
+Un carril toca su `dueno_de` y `docs/`; en `compartido` y en lo del carril base (el núcleo) agrega y edita, no borra: lo que necesita del A
+lo hace en su PR, sin esperar (2026-11-08); lo de otro carril no base, nunca (eso sí es una `espera`). En `plan.yaml` sólo suma archivos de las
+familias del compilador que crea (B). **Préstamo:** un carril sin paso propio listo toma uno listo de otro carril que está ocupado, si no toca lo
+que está en curso; trabaja en `<su carril>/<paso>` y la guarda lo juzga con el carril del paso (`coordinador.mjs` › `prestable`). Un cambio a la guarda o al plan rige desde el PR siguiente. `docs/carriles/b.md` es para una sesión
 del B sin coordinador.
 
 ## Reglas de los carriles
@@ -58,7 +60,7 @@ del B sin coordinador.
   `.claude/hooks/bloquear-peligrosos.sh`; con `PILOTO=1`, ninguna sesión empuja (lo hace el bucle).
 - **Migraciones:** una nueva por cambio, con `supabase migration new` (fecha real) y **posterior a la última de `main`**; ninguna
   aplicada se edita. Las de un carril que no es base llevan uno de sus dominios (`migraciones` en `docs/plan.yaml`) al principio del nombre
-  (`<versión>_formula_….sql`); la de otro dominio, `cotizacion_…` o `cotizaciones_…`, la crea A. Lo hace cumplir la guarda de CI `scripts/guardas/carriles.mjs`.
+  (`<versión>_formula_….sql`); la de otro dominio, `cotizacion_…` o `cotizaciones_…`, la crea A. Lo hace cumplir la guarda de CI `scripts/guardas/carriles.mjs` (en un paso prestado, con los dominios del carril del paso).
 - **Docs compartidos:** ESTADO, PLAN, DECISIONES y BITACORA, sólo el carril base (A); los otros, `docs/pasos/<paso>/`. `docs/MAPA.md` no se versiona: lo regeneran lefthook, el hook Stop
   y `preparar.sh`.
 - **Al traer `main`** (después de que se integró el PR del otro carril): `git merge origin/main` en la rama, nunca rebase con push
