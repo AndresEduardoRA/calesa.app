@@ -84,3 +84,40 @@
 - **Pendiente propio:** partir `supabase/tests/cotizacion-crear.sql` (730 líneas).
 - **Commits:** `755a76ac` feat(db): crear una final deja el estado de marcarla · `db947e4b` test(db): carreras de crear una final contra marcar y vincular · y el
   de docs.
+
+## 2026-11-08 — Paso 4.25-2: «Marcar final» en la cabecera de la guardada
+
+- **Hecho:** pantalla pura, dos commits de código. El plan pasó la auditoría con observaciones (ya aplicadas) y la persona lo aprobó con las recomendadas: P1 a
+  (sin versión esperada), P2 a (se puede marcar una vencida) y P3 a (el diálogo avisa que lo no guardado se pierde).
+  - «Marcar final» en la cabecera de `/cotizaciones/[id]`, después de «Revisiones»: lo ve, en una preventa, quien tiene `cotizaciones.final.gestionar` del origen.
+    Sin vehículo o sin cliente queda apagado con su motivo, y la URL escrita a mano avisa y se limpia.
+  - El `<Confirmar>` en `?panel=marcar-final`, cargado con `diferido()`. Al entrar cierra la URL, avisa y la cabecera pasa a «Final». Si la base lo rechaza, el
+    diálogo dice el motivo; el 23505 del índice sale con texto propio.
+  - La action `marcarFinal` sobre `cotizacion_marcar_final`, con su repositorio en `infra/final/` y la composición del área.
+  - **Desvío del plan:** el `<Confirmar>` se registró en `scripts/guardas/confirmar-con-url-papelera.ts` (del C) y no en `scripts/guardas/areas-c/`.
+    `confirmar-con-url-areas.test.ts` (del A) simula vacíos los registros de la fórmula y la papelera, pero no los `areas-*` que descubre el glob: con el primer
+    registro de `areas-c/` caen sus tres pruebas.
+  - Con eso el 4.25 queda entero: 4.25-1, 4.25-1b y 4.25-2.
+- **Verificación** (`.piloto/salidas/4.25-2/`):
+  - Rojo contra HEAD (`rojo-vitest.txt`): `acceso.test.ts`, `marcar-final.test.ts` y `marcar-final.test.tsx`, 3 archivos que no importan. El spec e2e no se corrió
+    contra HEAD (pantalla pura: hacía falta otro build de HEAD).
+  - Verde: `vitest related` de lo tocado, 36 ✓ (`verde-vitest-related.txt`). `scripts/guardas` entero, 1.004 ✓ (`verde-guardas.txt`). `lint` y `typecheck` sin
+    avisos.
+  - e2e dirigidos en `escritorio` y `movil` con `E2E_SIN_FUNCIONES=1` (`e2e-1.txt`): `cotizaciones-final-marcar` (nuevo, E1–E5), `cotizaciones-papelera-enviar`,
+    `cotizar-guardada`, `cotizar-encima`, `cotizar-guardada-revisiones`, `cotizar-guardada-guardar` y `presupuesto-js`. Dieron 74 ✓ y 1 ✗: N4 de la papelera en
+    `movil`, en el ingreso (el formulario salió por GET antes de hidratar). Repetido solo, 4 ✓ (`e2e-2-papelera-movil.txt`).
+  - JS en frío de `/cotizaciones/[id]`: 439,8 KB de 448.
+  - Se confirmó que la `revalidatePath` de la action vuelve a dibujar la cabecera en «Final» sin `router.refresh()` (E1).
+    e2e completo: no (4.25-2, pantalla, Nivel 1: lo dirigido en escritorio y movil)
+- **Necesita del carril A** (además de lo del 4.25-1 y el 4.25-1b):
+  1. `docs/PLAN.md`: «4.25-2 (hecho el 2026-11-08)» y el 4.25 cerrado.
+  2. `src/modules/cotizaciones/CLAUDE.md`: «Marcar final» en la cabecera de la guardada (`areas/final`), junto a «Enviar a la papelera». Sigue el pedido 2 del
+     4.25-1b.
+  3. P1 a: sumar `cotizacion_marcar_final` a las excepciones de «Toda RPC de edición nace con `p_actualizado_en_esperado`» en `.claude/rules/migraciones.md` y a
+     `.claude/rules/datos.md:35`. Ya está en el abierto 4-95.
+  4. `scripts/guardas/confirmar-con-url-areas.test.ts`: que simule vacíos también los registros `areas-*` del glob, o que los sume a lo esperado. Hecho eso, el
+     C pasa el diálogo de la final a `scripts/guardas/areas-c/confirmar-con-url.ts`.
+  5. `docs/ESTADO.md`: el 4.25 hecho.
+  6. Recordatorio: siguen abiertos los pedidos del 4.25-1 (1, 2, 3, 6, 7 y 8) y del 4.25-1b (2, 3 y 4).
+- **Commits:** `4cc4f232` feat(cotizaciones): marcar final por una action sobre la base · `cbbea36c` feat(cotizaciones): marcar final en la cabecera de la
+  guardada · y el de docs.

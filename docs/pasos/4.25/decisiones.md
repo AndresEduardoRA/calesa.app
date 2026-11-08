@@ -88,3 +88,22 @@
 - **M4, la mutación del orden pasada → `insert`, tiene que sacar la fila propia de lo tomado.** Si no, la segunda mirada ve la final recién insertada y toda
   final da 23505: la mutación cae por un motivo ajeno y no prueba la carrera (Q7).
 - **El desvío de la fila:** N1 va en `areas/final/crear.sql` (ver la bitácora).
+
+## 2026-11-08 — Paso 4.25-2
+
+- **Lo que contestó la persona:** P1 a, P2 a y P3 a, las tres recomendadas.
+- **P1 a: marcar no lleva versión esperada.** Es una excepción razonada a `datos.md:35`. Pasarla «sin default» rompe 7 llamadas de un argumento que no son
+  del C: las carreras del A en `cotizaciones.mjs` y `cotizaciones-guardar.mjs`, `humo.sql`, `cotizaciones-visibilidad.sql` y `auditoria-leads.sql`. Haría falta
+  un paso de base con rigor máximo.
+  - Precedentes: `cotizacion_moderar`, `comprobante_emitir` y el abierto 4-95.
+  - **Lo que se acepta:** si el autor guarda otro vehículo u otro cliente un segundo antes, se marca eso. Deshacerlo pide mandar la final a la papelera, y el
+    lead no vuelve solo a prospecto.
+- **P2 a: se puede marcar una vencida o de otra versión de la fórmula**, como en la base. El aviso de versión de la página basta.
+- **P3 a: lo no guardado se pierde**, y el diálogo lo dice. Es lo mismo que decidió el 4.24-3.
+- **La URL sin botón no hace nada.** Con una final o sin la clave, `?panel=marcar-final` no tiene quién la lea: no hay un dato que filtrar y la página ya dice
+  la clase. Con el botón apagado, la URL avisa el motivo y se limpia.
+- **La action mira la clave sin origen.** Sin `cotizaciones.final.gestionar` en ningún origen no llama a la base; el origen lo mira la base.
+- **El aviso no dice cuántas preventas fueron a la papelera**, porque la RPC no lo devuelve: «Si el vehículo tenía otras, están en tu papelera.».
+- **El diálogo se desmonta al entrar.** Por eso `marcarLaFinal()` cierra la URL y avisa antes de volver, y no toca estado después.
+- **Un `<button>` con las clases de `<Button>`**, como «Enviar a la papelera»: el JS en frío de `/cotizaciones/[id]` tiene 8 KB de margen.
+- **El registro del `<Confirmar>`** va en `confirmar-con-url-papelera.ts` y no en `areas-c/` (ver la bitácora, pedido 4).
