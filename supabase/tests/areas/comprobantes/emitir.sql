@@ -8,7 +8,9 @@
 --   E3. `datos` del nivel «todos» aunque emita quien ve los costos: claves exactas, sin el nodo «costos», del cliente y del vehículo sólo los ids, y lo mismo
 --       que `cotizacion_leer()` le da a quien sólo tiene `cotizaciones.ver`.
 --   E4. La serie la pone la base (la vigente, aunque otra tenga contador): n y n+1; la respuesta trae exactamente {id, serie, numero, emitido_en}.
---   E5. Un vigente: la segunda emisión da PT409 y el contador no se mueve (también si quien llama atrapa el error y sigue); tras anular, el siguiente número.
+--   E5. Un vigente: la segunda emisión da PT409 en el chequeo previo y el contador no se mueve; tras anular, el siguiente número.
+--   E7. Si un vigente se cuela después del chequeo previo (sólo bajo una escritura que no tomó la cotización), el índice lo frena dentro del bloque
+--       contador + comprobante: el PT409 de un vigente, sin número consumido ni comprobante.
 
 create sequence if not exists pg_temp.cpb_telefono;
 
@@ -201,7 +203,7 @@ end $$;
 reset role;
 rollback;
 
--- @test comprobantes: un vigente por cotización; la segunda emisión no consume número, ni si quien llama atrapa el error; tras anular, el siguiente (E5)
+-- @test comprobantes: un vigente por cotización; la segunda emisión no consume número; tras anular, el siguiente (E5)
 begin;
 do $$
 declare t jsonb := pg_temp.cpb_terreno(); duena uuid := pg_temp.cpb_persona('cotizaciones.ver', 'cotizaciones.comprobantes.emitir'); c uuid; r jsonb; r2 jsonb;
@@ -210,13 +212,34 @@ begin
   c := pg_temp.cpb_cot(t, duena);
   r := pg_temp.cpb_emitir(duena, c);
   if r ? 'error' then raise exception 'no emitió: %', r; end if;
-  -- cm_corre atrapa el error en su bloque y sigue: es quien llama y confirma.
   perform pg_temp.cpb_da_error('la segunda', pg_temp.cpb_emitir(duena, c), 'PT409', 'Esta cotización ya tiene el comprobante «CM-1» vigente: anúlalo para emitir otro.');
   if pg_temp.cpb_ultimo('CM') <> 1 or (select count(*) from public.comprobantes where cotizacion_id = c) <> 1 then raise exception 'la segunda consumió número o dejó comprobante'; end if;
   r2 := pg_temp.cpb_corre(duena, format('select public.comprobante_anular(%L, %L)', r ->> 'id', 'Error de tipeo'));
   if r2 ? 'error' then raise exception 'no anuló: %', r2; end if;
   r2 := pg_temp.cpb_emitir(duena, c);
   if r2 ? 'error' or (r2 ->> 'numero')::bigint <> 2 then raise exception 'tras anular debía emitir CM-2: %', r2; end if;
+end $$;
+reset role;
+rollback;
+
+-- @test comprobantes: un vigente que se cuela después del chequeo previo lo frena el índice dentro del bloque: PT409, sin número ni comprobante (E7)
+-- Un trigger de la prueba, que se va con el rollback, inserta un vigente de la misma cotización justo después de que emitir sube el contador.
+begin;
+create function public.cpb_colar_vigente() returns trigger language plpgsql set search_path = '' as $f$
+begin
+  insert into public.comprobantes (cotizacion_id, serie, numero, datos) values (current_setting('cpb.colar')::uuid, new.serie, 1000000 + new.ultimo, '{}'::jsonb);
+  return new;
+end $f$;
+create trigger cpb_colar_vigente after update on public.comprobantes_contadores for each row execute function public.cpb_colar_vigente();
+do $$
+declare t jsonb := pg_temp.cpb_terreno(); duena uuid := pg_temp.cpb_persona('cotizaciones.ver', 'cotizaciones.comprobantes.emitir'); c uuid;
+begin
+  perform pg_temp.cpb_serie('CM', 3);
+  c := pg_temp.cpb_cot(t, duena);
+  perform set_config('cpb.colar', c::text, true);
+  perform pg_temp.cpb_da_error('el vigente colado', pg_temp.cpb_emitir(duena, c), 'PT409', 'Esta cotización ya tiene un comprobante vigente: anúlalo para emitir otro.');
+  if pg_temp.cpb_ultimo('CM') <> 3 then raise exception 'el número no volvió: el contador quedó en %', pg_temp.cpb_ultimo('CM'); end if;
+  if exists (select 1 from public.comprobantes where cotizacion_id = c) then raise exception 'quedó un comprobante del bloque revertido'; end if;
 end $$;
 reset role;
 rollback;
