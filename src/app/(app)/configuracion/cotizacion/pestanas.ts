@@ -1,6 +1,6 @@
 // Las pestañas de Configuración › Cotización. Cuál está abierta vive en la URL (`?seccion=`). Cada una lleva sus permisos: «Niveles de acceso» los de la matriz de
-// Roles (cada nivel es un permiso) y «Fórmula» `cotizaciones.configurar` (4.20-2a), en cualquier origen. Niveles va primero: quien entra por el hub con los dos cae en
-// la de siempre. Las tablas y la tarjeta llegan después (docs/PLAN.md, Fase 4).
+// Roles (cada nivel es un permiso), «Fórmula» `cotizaciones.configurar` (4.20-2a) y «Tablas» (las tablas de referencia, 4.23-3) la misma clave, en cualquier
+// origen. Niveles va primero: quien entra por el hub con todas cae en la de siempre. La tarjeta llega después (docs/PLAN.md, Fase 4).
 import { puede, type ClavePermiso, type Permisos } from '@/shared/lib/permisos'
 import type { AlMenosUna } from '../empresa/pestanas'
 
@@ -17,6 +17,7 @@ export const PESTANAS = [
     permisos: ['equipo.roles.ver', 'equipo.roles.gestionar'],
   },
   { clave: 'formula', titulo: 'Fórmula', permisos: ['cotizaciones.configurar'] },
+  { clave: 'tablas', titulo: 'Tablas', permisos: ['cotizaciones.configurar'] },
 ] as const satisfies readonly PestanaDeCotizacion[]
 
 export type Pestana = (typeof PESTANAS)[number]['clave']
