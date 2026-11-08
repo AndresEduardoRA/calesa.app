@@ -1119,3 +1119,197 @@ share` los vehículos y después los leads del lote, por id, antes de cualquier 
 - **Commits:** `203c56ec` feat(db): pedir la versión esperada al guardar y publicar la plantilla · `f7d2868b` feat(db): descartar el borrador de la plantilla con su versión ·
   `2d271102` test(db): sumar las carreras de la plantilla de la tarjeta · `7a7c3ddb` test(db): vigilar los privilegios de la ayudante de la plantilla (el `fix` de la auditoría
   del informe) · y el de docs.
+
+<!-- paso:4.24 -->
+
+# 4.24 · Cierre: el rojo de CI de la rama
+
+- 2026-11-07 · El coordinador retomó el 4.24 para arreglar el CI en rojo. El último rojo terminado de `c/4.24` era el del 4.24-2b
+  (corrida 42339363068): `e2e/cotizaciones-listado-resumen.spec.ts` › R2, sólo en `movil`. Causa: nuqs dibuja el resumen al
+  instante y escribe `?cotizacion=` después (su cola); R2 recargaba en cuanto veía el diálogo y, en el celular, recargaba la URL
+  de antes. Arreglo determinista en la prueba: esperar la clave en la URL antes de `reload()` (`5f9aca95`), sin reintento.
+  Los otros dos rojos de la rama ya no siguen: el del 4.24-1b fue el arranque de los contenedores del CI, y el del 4.24-2
+  (`scripts/mapa.test.ts` › T13) pasó en el CI del 2b y pasa en local.
+  Verificación: el spec entero, `--repeat-each=3`, escritorio y movil: 36 en verde (`.piloto/salidas/4.24/e2e-listado-resumen.txt`);
+  `scripts/mapa.test.ts` en verde. Para el coordinador: el `integrado 4.24` sigue siendo el del PR del 4.24-3 con su CI en verde.
+- e2e completo: no (4.24, ci, Nivel 1: el spec arreglado en escritorio y movil)
+
+<!-- paso:4.19-2 -->
+
+## 2026-11-07 — Paso 4.19-2: validarPlantilla() de TS y el aviso del tono
+
+- **Hecho:** `validarPlantilla(entrada, contexto | null)` en `entities/plantilla/` espeja `validar_plantilla()` (20261106185900): las 9 reglas en su orden, el mismo `donde`
+  y el mismo mensaje (`rechazoDePlantilla()`), sobre lo que viaja como JSON (una propiedad `undefined` es una clave ausente; lo que no es JSON, `forma@definicion`, como un
+  nulo de SQL). Sin contexto valida sólo la forma; sin `tonos`, no mira el catálogo; nunca lanza. Piezas: `forma-de-plantilla.ts` (F1–F15 de `_plantilla_forma`),
+  `nodos-de-plantilla.ts` (`_plantilla_nodos`: lo nombrado, lo dibujado y el tipo de cambio por la clave `(d, modo·1000 + n.º, bucket)`), `json-de-la-base.ts` (code points,
+  `btrim` sólo espacios, orden `collate "C"` por code point, bytes del texto jsonb con `", "` y `": "`), `motivos-de-plantilla.ts`. `tonosQueYaNoEstan()` es el único predicado
+  del aviso del tono (4.19-3) y de `tono_inexistente`. Nada lo importa todavía: sin cambio visible ni en las entradas del área.
+- **El juego común suma 17 casos «borde: …»** (`casos-de-plantilla.json`, 47 → 64) que cazan una trampa del espejo cada uno (`btrim` frente a `.trim()` con un tabulador y
+  U+00A0, 40 y 160 emojis, un emoji con tono de piel = 2, «Ａ» antes que «🚗» y «Z» antes que «a», un diccionario clave por clave, `__proto__` y `constructor`, nulo frente a
+  ausente, las columnas en otro orden) y la lista `octetos`: T1 de `plantilla-validar.sql` comprueba `octet_length(valor::text)` de cada uno y cae si falta o está vacía. Los 17
+  dieron lo esperado contra la base de HEAD a la primera (ningún caso se corrigió).
+- **Verificación** (`.piloto/salidas/4.19-2/`): `verde-head-juego.txt` (los casos nuevos contra la base, antes del código); `sonda-octetos.txt` (un `bytes` mal esperado hace caer
+  T1); `rojo-head-ts.txt` (los seis tests de TS sin el código: «Failed to resolve import»); `verde-ts.txt` (6 archivos, 143 pruebas); `sondas-espejo.txt` (`.trim()`, `.length`,
+  orden UTF-16 y `localeCompare` hacen caer su caso del juego); lint y `typecheck.txt` sin avisos; `guardas.txt` (32 archivos, 1003); `mapa.sh --check` en verde; `db:probar`
+  completo en verde en el hook del commit del juego (`commit-1.txt`). No es de rigor máximo (la base vuelve a validar al guardar y al publicar): sin mutaciones formales.
+  e2e completo: no (4.19-2, entities, Nivel 1)
+- **Abiertos:** ninguno nuevo; 4-74 sigue abierto (aquí sólo se aplica su lección).
+- **Commits:** `bad7a2bc` test(cotizaciones): sumar casos de borde al juego de la plantilla · `266b0746` feat(cotizaciones): decir qué tono de la plantilla ya no está ·
+  `58146ba3` feat(cotizaciones): validar la plantilla de la tarjeta como la base · y el de docs. Sigue el **4.19-3** (el editor, pestaña «Tarjeta»).
+
+<!-- paso:4.21-1 -->
+
+## 2026-11-07 — Paso 4.21-1: lo puro del texto de una fila
+
+- **Hecho:** en `entities/formula/`, sin pantalla ni base y sin tocar el compilador: `filasDe()` (las filas de una fórmula con sus auxiliares y su texto), `compilarFila()` (compila el texto de una fila en su lugar, con el tope de 2.000 en unidades UTF-16: **4-6, la regla en lo puro**), `textoVigente()` y `escribirLiteral()` (el valor que dejó el ⚙ vuelve a su tramo del texto, o «el texto ya no manda» y recompilar pregunta antes de pisarlo: **4-5, la regla en lo puro**) y `textoDeNodo()` (el texto de una fila sembrada, que no lo trae). Contestado en la compuerta `producto`: P1 «reescribir el número en el texto» y P2 «escribir el texto desde el nodo» (las recomendadas).
+- **Verificación:** 16 archivos de `entities/formula/` (nueve nuevos, 112 pruebas) con 194 pruebas en verde; pruebas rojas primero contra HEAD (el módulo no existía y, con un stub, por su `expect`); 34 mutaciones (M1–M29 del plan y cinco más, M30 a M34) y todas hacen caer su prueba; `eslint` sin avisos, `pnpm typecheck` y `scripts/guardas` (1.001) en verde, `mapa.sh --check` y `coordinador validar` sin hallazgos, cero saltadas nuevas. Salidas en `.piloto/salidas/4.21-1/` (no se versiona).
+- **Abiertos:** 4-5 y 4-6 siguen abiertos: los cierra el 4.21-3a con su e2e (la fila reabierta en pantalla y los 2.001 caracteres con el error en su fila). Siguen el 4.21-2 (la versión esperada de las RPC del borrador, 4-8; base, compuerta `datos`), el 4.21-3a, el 4.21-3b y el 4.21-3c. Nuevo menor, 4-74 suma que el texto de una fila se mide en unidades UTF-16 (Zod) y la base en caracteres.
+- **Commits:** `1d042633`, `fad34054` y `66fddd93`; y `3098292e` (`fix`, de la auditoría del informe: `tipo_no_editable` y el mensaje con la etiqueta).
+  e2e completo: no (4.21-1, entities, Nivel 1)
+
+<!-- paso:4.21-2 -->
+
+## 2026-11-07 — Paso 4.21-2: la versión esperada del borrador de la fórmula
+
+- **Hecho:** en la base, con tres migraciones `formula_…` (`security definer`, compuerta `datos` aprobada). `formula_guardar_borrador()` crea sin hora y, si ya hay borrador o la publicada esperada ya no es la publicada, da PT409. Con la `actualizado_en` que leyó, pisa sólo si es la del borrador, y devuelve `{id, actualizado_en}` de la fila escrita. `formula_descartar_borrador()` y `formula_publicar()` aceptan la hora: si el borrador cambió o ya no está, PT409. Las tres miran primero el permiso, después (sólo guardar) validan la fórmula, y luego toman el candado del origen y comparan las esperadas. **Cierra 4-8 en la base.** La compuerta `producto` se contestó con las recomendadas (P1 parámetros al final con `default null`, P2 publicar también, P3 guardar un borrador atrasado entra, P4 descartar sin borrador da PT409).
+- **Verificación:** 20 bloques en `supabase/tests/areas/formula/borrador-{guardar,descartar-publicar,firmas}.sql` (B1–B10, D1–D4, P1–P5 y F1), en rojo primero contra el commit anterior de cada uno, salvo los de regresión (B4, D1 y P4). `db:probar` entero en cada commit (639 ✓), `db:reset`, `db:types`, `db:lint`, `db:carreras` (también las del A con la firma nueva) y `db:medir`: guardar 11,0 / 106,1 ms, dentro del tope de 36 / 320. 17 mutaciones, y todas hacen caer su prueba. Los e2e dirigidos de descartar y publicar (7, en escritorio), `typecheck`, `vitest related` (68) y `scripts/guardas` (1.003), en verde. Salidas en `.piloto/salidas/4.21-2/` (no se versiona).
+- **Abiertos:** el 4.21-3b manda las esperadas desde la app. Abierto nuevo: con eso, decidir si la hora nula deja de valer en descartar y publicar, y qué hacer con el residual R1 (la primera publicación de un origen). Siguen el 4.21-3a, el 4.21-3b y el 4.21-3c.
+- **Commits:** `5fd09200`, `4d6871eb` y `02c023f4`; y el `fix` de la auditoría del informe, que parte las pruebas en tres archivos (ninguno pasa de 300 líneas).
+  e2e completo: no (4.21-2, base, Nivel 1 + cadena db: dirigidos en escritorio)
+
+<!-- paso:4.21-3a-1 -->
+
+## 2026-11-07 — Paso 4.21-3a-1: el editor de la fórmula en texto
+
+- **Hecho:** Configuración › Cotización › «Fórmula» suma el editor en texto, en `?panel=editar-formula`. Se entra con «Editar» en el borrador o, sin él, con «Editar en un borrador» en la publicada, y ocupa el lugar de la pestaña.
+  - Lee desde el navegador la definición del borrador o de la publicada, por `formulas_pkey`.
+  - Muestra cada fila con su texto vigente tras un ⚙ (reescrito, o «El texto ya no manda»), el texto escrito desde el nodo o sus campos.
+  - Compila cada fila al aplicar con `compilarFila()`. El error queda en su fila: el del compilador, el de 2.001 caracteres, «Pisar el valor» y el rechazo de `validarFormula()`.
+  - Guarda lo aplicado en la pestaña con `useBorradorDeEstado`.
+  - Dibuja hasta 500 filas, con su aviso y «Buscar fila».
+  - **Cierra 4-5 y 4-6.** La compuerta `producto` se contestó con las seis recomendadas (P4–P6 son para el 3a-2). El 4.21-3a se partió en 3a-1 y 3a-2.
+- **Verificación:**
+  - Contra HEAD, en rojo: el e2e nuevo (cae en «Editar en un borrador») y las pruebas de Vitest, que caen porque el archivo que prueban no existía (T1–T5).
+  - Después, en verde: T1–T5 (41), `vitest related` (125) y `scripts/guardas` (1.003). Los seis e2e dirigidos, en escritorio y movil: el editor, la lista de versiones, publicar, revertir, descartar y `cotizar-hoja`.
+  - Medido con 600 filas: 77.017 B de la lectura, 3.992 nodos de la lista con 500 y 957 ms del clic a la lista. Salidas en `.piloto/salidas/4.21-3a-1/` (no se versiona).
+- **Abiertos:** el editor tarda en abrir O(filas × nodos): ~1 s con 600 filas y ~2 s con 2.000. Sigue el 4.21-3a-2 (la vista previa y las filas nuevas), después el 3b y el 3c.
+  e2e completo: no (4.21-3a-1, pantalla, Nivel 1: lo dirigido en escritorio y movil)
+
+<!-- paso:4.24-3 -->
+
+## 2026-11-07 — Paso 4.24-3: «Enviar a la papelera» con «Deshacer» en la cabecera de una guardada
+
+- **Hecho:** pantalla pura, dos commits de código, sin migración ni RPC nuevas (usa `cotizaciones_papelera_enviar` del 1a y `_restaurar` del 1b). La cabecera de
+  `/cotizaciones/[id]` suma «Enviar a la papelera» (`outline`, después de «Revisiones»). Lo ve quien puede guardarla o, en una preventa, quien modera
+  (`puedeEnviarLaCotizacion`). Manda la versión de la página tal cual; al entrar lleva a `/cotizaciones` con ««T» se envió a la papelera.» y «Deshacer» 10 s, que
+  restaura ese lote con la versión que devolvió el envío. Una versión vieja avisa el PT409 con «Recargar» y se queda. La action pide editar, moderar o gestionar
+  finales antes de llamar a la base. Esperó dos chores del A: `ef8f4dd7` (la prueba de huecos vacíos) y `9bf2d6cd` + `5b1154ef` (`loading.tsx` sin el barril y
+  `server-only` simulado).
+- **Verificación** (`.piloto/salidas/4.24-3/`):
+  - Rojos contra HEAD: `rojo-head-entities.txt` (16 de 23: no exportan), `rojo-head-pantalla.txt` (la action no existe; el hueco es `{}`), `rojo-head-e2e.txt`
+    (N1, con lo nuevo de `src/` apartado: no hay «Enviar a la papelera»).
+  - Verde: `verde-commit1.txt` (3.015 pruebas de `src/modules/cotizaciones`, `scripts/guardas` y `src/app/(app)/cotizaciones` con el árbol del commit 1) y
+    `verde-commit2-vitest.txt` (211 archivos, 3.143 pruebas, con el botón).
+  - e2e dirigidos en `escritorio` y `movil` (`verde-e2e-2.txt`): 77 en verde, 7 omitidos (los de `presupuesto-js` en movil, por diseño):
+    `cotizaciones-papelera-enviar.spec.ts` (N1–N4, nuevo), `cotizaciones-papelera.spec.ts`, `cotizaciones-papelera-purgar.spec.ts`, `cotizar-guardada.spec.ts`,
+    `cotizar-guardada-revisiones.spec.ts`, `cotizar-guardada-guardar.spec.ts` y `presupuesto-js.spec.ts`.
+  - Medido: JS en frío de `/cotizaciones/[id]` 439,2 KB de 448 (438,4 en el HEAD de arranque; 450,7 antes del arreglo del A, `js.txt`, `js-head.txt`, `js-exp.txt`).
+    `lint` y `typecheck` los corrió el hook de cada commit.
+    e2e completo: no (4.24-3, pantalla, Nivel 1: lo dirigido en escritorio y movil)
+- **Abiertos:** los de `decisiones.md` › «Para el coordinador» (lo tipeado sin guardar y el guardado pendiente tras «Deshacer», del núcleo; el título nulo de
+  `enviados` en la base).
+- **Commits:** `8830012a` feat(cotizaciones): enviar una cotización a la papelera por su action · `fa9fbf9c` feat(cotizaciones): enviar a la papelera desde la guardada con deshacer · y el de docs.
+
+<!-- paso:pedido-1 -->
+
+## 2026-11-07 — Pedido del carril persona (estabilizar-1): cinco e2e inestables
+
+- **Hecho:** tres arreglos en `e2e/` (sólo pruebas, sin código de `src/`), dos commits. Cada prueba se reprodujo con `--repeat-each` en `escritorio`
+  (y las tres que no caían solas, con la CPU del navegador frenada con `Emulation.setCPUThrottlingRate`, un parche temporal de `e2e/soporte/prueba.ts`
+  que no se commitea). Salidas en `.piloto/salidas/pedido-1/` (`repro-1` a `repro-9`).
+  - **4-99** `leads-recorrido-cierre-2.spec.ts:213`: causa medida. El botón «Salir de este lead» ya está en el HTML antes de hidratar y un clic de esa
+    ventana se pierde: con 8 procesos que queman CPU cae **6 de 6** (`repro-3.log`), sin carga 0 de 16 (`repro-1`, `repro-2`). Ahora repite el clic hasta que
+    abre, sin volver a pulsar si la URL ya pide el panel.
+  - **4-97** `paneles-foco-al-volver-configuracion.spec.ts` (el `:148` de ahora es `:156`): causa medida en la traza de dos caídas con el navegador 8 veces más
+    lento (`repro-6`, `repro-7`). El primer clic en «Editar» ya escribió `?panel=editar-tipo`, pero el modal tardó más del 1 s del `toPass`; cada reintento
+    volvió a abrir el «⋯» y a pulsar «Editar» (4 veces) y sumó otra entrada igual al historial, así que «atrás» cayó en una entrada que todavía tenía el
+    panel y el modal siguió abierto (la caída de «atrás»), o el reintento pulsó con el modal ya tapando el «⋯» y el clic esperó los 30 s. Ahora `hastaAbrir`
+    no pulsa si la URL ya tiene `panel` y los clics tienen tope de 3 s. Es la regla que ya cumplía `abrirConN` de `soporte/alta.ts`.
+  - **4-80** `leads-etiquetas.spec.ts:216`: escribe el nombre y pulsa Enter sin esperar que la opción esté resaltada. Ahora espera a que la etiqueta que ya
+    existe sea la opción `aria-selected` y a que no haya «Crear «…»». **No se reprodujo** (0 de 8 escritorio, 0 de 8 movil, 0 de 6 con CPU cargada, 0 de 12 con
+    el navegador 8×): el arreglo cierra la carrera que describe 4-80, sin caída medida antes.
+  - **4-92** `leads-alta-casos.spec.ts:302` y **4-93** `vehiculos.spec.ts:106`: **no se dejaron reproducir y no se tocaron**. 4-92: 0 de 8 (escritorio), 0 de 8
+    (movil), 0 de 6 y 0 de 12 con CPU cargada (20 procesos), 0 de 40 sin carga, 0 de 10 con el navegador 8× y 0 de 8 a 16×. 4-93: lo mismo, mas 0 de 40 sin carga.
+    Sin traza de la caída (la de `e2e-fallos/2026-11-06_07-35/` ya no existe) no hay causa que arreglar; siguen abiertos con lo medido.
+  - Verde final del código nuevo: `repro-8.log` (144 en verde, navegador 8×: 4-80, 4-97, 4-99) y `repro-9.log` (104 en verde a 16×, los cinco), y
+    `movil-final.log` (24 en verde en movil). `scripts/guardas/sin-celular.test.ts` en verde. Antes del arreglo, 4-97 cayó 1 de 109 y 1 de 132 a 8×.
+    e2e completo: no (pedido-1, sólo `e2e/`: lo dirigido en escritorio y movil)
+- **Abiertos:** 4-92 y 4-93 siguen sin causa. Para quien consolida `docs/PLAN.md`: 4-80, 4-97 y 4-99 pasan a cerrados con lo de arriba; 4-92 y 4-93 anotan
+  «0 de 100+ con carga y con el navegador frenado». El mismo patrón (`toPass` que repite un clic aunque la URL ya pide el panel) lo tiene
+  `paneles-foco-al-volver-ficha.spec.ts:55` (`hastaAbrir`) y varios `abrir…` de `e2e/soporte/`; no se cambiaron.
+
+<!-- paso:pedido-2 -->
+
+## 2026-11-07 — Pedido del carril persona (estabilizar-2): seis pruebas inestables más 4-90, 4-96 y 4-63
+
+- **Hecho:** cuatro arreglos en `e2e/`, uno en una prueba de `scripts/` y una medición de la base (`supabase/tests/`); sin código de `src/`. Salidas en
+  `.piloto/salidas/pedido-2/` (`a`–`d`: intentos de reproducir con la CPU del navegador frenada; `e`–`k`: latencia inyectada, HEAD contra lo nuevo;
+  `z`: verde final; `inventario-contra-hoy-0.txt` y `-1.txt`). Las 6 pruebas no cayeron solas: 0 de 36 a 6× y 0 de 40 (más 0 de 10 el oro) a 16×.
+  Se reprodujeron **inyectando latencia** con un parche temporal de `e2e/soporte/prueba.ts` (no se commitea): `page.route` que demora las lecturas de la
+  pantalla (`rsc`), los `rpc` de PostgREST, las Server Actions o los scripts. El HEAD cae y lo nuevo pasa, con el mismo parche:
+  - **4-81** `cotizar-tarea-de-oro-cliente.spec.ts:116`: el nombre en la barra lo dibuja el servidor al devolver la hoja con `lead=`. Con 6 s de latencia en
+    las lecturas cae igual que en el CI: «Cliente: Selecciona un cliente» tras 5 s (`e.log`). Ahora espera 15 s, el mismo tope de `alDia()`; el límite de la
+    tarea (30 s) sigue midiendo el robot.
+  - **4-86** `cotizar-hoja-resumen.spec.ts:165`: el total llega del recálculo (un `rpc`). Con 6 s de latencia en los `rpc` el total queda en «USD 5,00•••»
+    como en el CI (`f.log`). Ahora espera 15 s (al 100 % y al 200 %).
+  - **4-85** `cotizar-encima.spec.ts:104`: `toHaveURL(/cotizaciones/<uuid>$/)` ya lo cumple la página de antes y `encimaDe(anterior)` se leía antes de que
+    la action escribiera la versión nueva: con 2,5 s en las Server Actions cae en `expect(nueva).not.toBe('')` (`g.log`). Ahora espera con
+    `expect.poll(() => encimaDe(anterior))` a que exista y recién entonces la URL de la nueva.
+  - **4-85** `cotizaciones-listado.spec.ts:102` (E2): **no se reprodujo** ni con 4 s de latencia en las lecturas (`i.log`): la prueba ya esperaba a que Ana
+    saliera de la lista. Se ordenó (Ana fuera, y recién entonces las 10) y «Siguiente» espera a que cambie la primera fila antes de elegir el filtro.
+  - **R2** `cotizaciones-listado-resumen.spec.ts:87` (movil): **no se reprodujo** (a 16×, con 1,5 y 4 s de latencia y con 3 s de demora en los scripts:
+    `h`, `i`, `k`, `c`). Tras abrir y tras «atrás» ahora espera la URL (`cotizacion=`), como ya hacía antes de recargar. Queda abierta como **4-100**.
+  - **4-82** `medir-vehiculos-inventario.sql`: se quitó el assert de crecimiento en ms entre 50.000 y 250.000 (el 4.17-1 lo vio caer con un autovacuum y
+    +568 MB de WAL: «2.6 → 8.5»). El crecimiento lo juzgan los bloques de `vehiculos` por relación (`pg_stat_get_xact_blocks_fetched`, ya medidos ahí) y el
+    tiempo queda como dato (`detalle|crecimiento`) y con sus topes absolutos. Con volumen sembrado: la función pasa (`inventario-contra-hoy-0.txt`, bloques
+    iguales: chica 14 → 14, Pía 60 → 60, Vera 12.417 → 12.518) y «contra lo de hoy» sigue cayendo, ahora por bloques (`inventario-contra-hoy-1.txt`: chica
+    5.981 → 10.881).
+  - **4-96** `scripts/mapa.test.ts` T13: sólo estaba arreglada la mitad (el número, en main). El tiempo no: la prueba corre `mapa.sh` entero (2,3 s en
+    reposo) bajo los 5 s de Vitest. Ahora lleva su tope de 30 s, con el motivo en un comentario.
+  - **4-90** y **4-63**: ya tenían su arreglo en main (`0d11c94a`, regex `\d{1,6}`; `2c75a250`, `aad3bfeb` y `e1284c0f` en el lead rápido): se cierran sin tocar.
+  - Verde final: `z.log`, los cinco specs enteros en escritorio y movil, `--repeat-each=3`: 210 en verde, ninguna caída. `scripts/guardas` y `mapa.test.ts`: 1004 en verde.
+    e2e completo: no (pedido-2, sólo `e2e/`, `scripts/` y `supabase/tests/`: lo dirigido en escritorio y movil)
+- **PLAN:** se quitaron 4-63, 4-81, 4-82, 4-85, 4-86, 4-90 y 4-96 (cerrados) y se sumó 4-100 (R2, abierto sin causa). `docs/ESTADO.md` no se tocó: lo lleva el carril a
+  al consolidar y cita «cotizar-encima.s…» en su línea 14 (el completo del hito 4-A).
+- **Abiertos:** 4-100 (R2). 4-92 y 4-93 siguen como los dejó pedido-1.
+
+<!-- paso:4.19-3a -->
+
+## 2026-11-07 — Paso 4.19-3a: lo que lee y escribe la plantilla de la tarjeta (sin pantalla)
+
+- **Hecho:** el 4.19-3 (el editor) se partió en tres y esta es la primera: el servidor. **Lectura** (`leerPlantillaDelOrigen(origenId)`, con la sesión de quien mira; `leerPlantillaSobre(cliente, origenId)`
+  sin `server-only`): el borrador y la publicada del origen (`VersionDePlantilla`: las horas como el texto de la base, la `plantilla` ya leída con `formaDePlantilla()` o nula con su
+  `motivo`), la fórmula publicada con lo que mira el validador y el catálogo de tonos (tope 24); `contexto` es lo que se le pasa tal cual a `validarPlantilla()`. **Escritura**
+  (`RepositorioDeLaPlantilla`, `plantillaSobre(cliente)`): `guardar` (la esperada siempre explícita, `null` para crear, sin `p_nota`), `publicar` y `descartar`; un 22023 de
+  `validar_plantilla()` va a `porCampo[donde]` con el mensaje de la base tal cual, «Publicar pide una nota.» a `porCampo.nota`, el PT409 es `conflicto` sin quién (P1).
+  **Las tres Server Actions** (`guardarBorrador`, `publicarBorrador`, `descartarBorrador`): Zod → `puede(…, 'cotizaciones.configurar', origenId)` → el repositorio → `revalidatePath`
+  sólo si entró. **`revisarTextoParaLaBase()`** ataja antes de la base un `\u0000`, un surrogate suelto, una clave mala, un valor que no es JSON y lo de más de 8 niveles
+  (`profundo`: protege el `JSON.stringify` recursivo de supabase-js); recorre con una pila, y con 100.000 niveles da `porCampo` sin `RangeError`. Cierra la nota de ESTADO del 4.19-2.
+- **Lo que midió el e2e contra PostgREST** (`e2e/plantilla-postgrest.spec.ts`, E1 a E6, sin navegador): supabase-js manda el `null` explícito de la esperada y PostgREST lo toma como
+  nulo (la suposición del plan); la hora que da `guardar` es la que lee la lectura, con sus 6 decimales; guardar **sólo valida la forma** (sin contexto): un grupo ajeno se guarda y
+  lo rechaza publicar (`grupo_inexistente`); una persona que no configura el origen lee `null` y recibe `sin_permiso`; sin la guarda, un surrogate suelto y un `\u0000` llegan a la base
+  y vuelven «inesperado».
+- **La fórmula se lee con lo que mira el validador, no con `esquemaDefinicion`:** la «mini» del juego común no pasa el Zod estricto de la fórmula (el primer e2e cayó con «No pudimos
+  leer la fórmula») y atar la plantilla al esquema entero de la fórmula la rompería con cada cambio de ésta. Ver decisiones.
+- **Verificación** (`.piloto/salidas/4.19-3a/`): `rojo-head-lectura.txt`, `rojo-head-escritura.txt`, `rojo-head-e2e.txt` y `rojo-head-actions.txt` (los módulos no existen:
+  «Failed to resolve import»); `e2e-plantilla-postgrest.txt` (6 de 6); `vitest-cotizaciones-guardas.txt` (230 archivos, 3.407 pruebas, `src/modules/cotizaciones` y `scripts/guardas`);
+  `sondas.txt` (S1 sin mirar las claves, S2b sin tope de profundidad —cae por memoria: los caminos crecen con el cuadrado de la profundidad—, S3 sin el `null` explícito, S4 la
+  action llama al repositorio antes de `puede()` y S5 la hora por `Date`: todas cayeron; S2, el recorrido recursivo, no se corrió: la prueba de 100.000 niveles ya exige el recorrido
+  iterativo y S2b muestra qué pasa sin el tope). Lint y `typecheck` en el hook de cada commit; `mapa.sh --check` en verde. No es de rigor máximo (sin dinero, RLS ni migración: la
+  base vuelve a decidir permisos y reglas): sin mutaciones formales.
+  e2e completo: no (4.19-3a, servidor, Nivel 1)
+- **No hecho / desvíos:** el peso de JS no se mide (no hay JS nuevo en ninguna ruta: 4-73 no se toca). La fila de `docs/RENDIMIENTO.md` de la pestaña «Tarjeta» la escribe el 4.19-3b.
+  El tope de 2.000 caracteres de la nota se repite de `entities/formula/publicacion.ts` (4-74 se aplica: se cuentan caracteres).
+- **Abiertos:** ninguno nuevo. Sigue el **4.19-3b** (la pestaña «Tarjeta» y el editor que guarda) y el **4.19-3c** (publicar con nota y descartar); la cuenta de e2e sigue en 1 de 3.
+- **Commits:** `9b77f082` feat(cotizaciones): leer la plantilla de la tarjeta de un origen · `c5b33601` feat(cotizaciones): escribir la plantilla de la tarjeta en la base ·
+  `4ad7eb43` feat(cotizaciones): guardar, publicar y descartar la plantilla · y el de docs.

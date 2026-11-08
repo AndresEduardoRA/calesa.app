@@ -214,6 +214,7 @@ lineal con el medidor; `compilarExpresion()` no cambia.
   que cambia o quita una constante da `pisa_un_valor` hasta que llega `confirmaPisar`: nunca se deshace un ⚙ en silencio.
 - **Las filas sembradas** no traen texto: `textoDeNodo()` lo escribe desde el nodo (`a+b+c`, `SI(b; x)`, sin el «=») sólo si compilarlo da exactamente ese nodo; si no, `null` y la fila se muestra por sus campos.
 - **La pantalla** (4.21-3a-1, `features/formula/components/editor/`, `?panel=editar-formula`): lee la definición del borrador o de la publicada desde el navegador, muestra cada fila con `textoVigente()` / `textoDeNodo()` (o por sus campos), compila al aplicar con `compilarFila()` (sin llamar a `validarFormula()` en un error de la fila: 4-6), valida la fórmula de trabajo tras cada cambio (el rechazo, en su fila) y guarda lo aplicado en la pestaña; nada va a la base hasta el 4.21-3b.
+- **La vista previa y las filas nuevas** (4.21-3a-2): el editor usa el motor TS (`evaluar()`), que D7 reservaba para esto: `calcularLaVistaPrevia()` (`entities/formula/vista-previa.ts`, puro, nunca lanza) calcula la fórmula que devolvió `validarFormula()` con `entradaDePrueba()` (datos en 0, banderas apagadas, variante por defecto, sin overrides) y los tipos de cambio y tablas que lee el navegador (`infra/formula/consulta-del-terreno-de-prueba.ts`: `tablasVivasDe()`, `elegirTablas()` —la del origen gana a la compartida, como `evaluar_formula()`— y `aceptarPagina()`, por páginas de 1.000 filas, el `max_rows`); la congelada de `params.tablas` manda sobre la viva (D5). «Sumar fila» (`entities/formula/fila-nueva.ts`: `idDeFilaNueva()`, `sumarFila()`) crea la fila con `compilarFila()` y un destino nuevo, y revisa que lo compilado sea el tipo elegido.
 
 ## Tipos de cambio y modos (D7, H1)
 
@@ -609,7 +610,7 @@ DETAIL y el `donde` en HINT; el primer rechazo manda, en este orden: `forma` (la
 `nodo_inexistente` y `nodo_sin_lugar` (una clave de `etiquetas`/`leyendas` es un miembro de un grupo, el total o lo aparte de `tarjeta_total`),
 `nodo_restringido` (un miembro, el total o lo aparte sin `ver: todos` en la visibilidad compilada; **no figurar cuenta como restringido**) y, con
 `columnas.tipo_cambio`, `tipo_de_cambio_restringido` (el tipo de cambio del bucket de un grupo, por omisión o en un modo). Con `def` nulo, sólo la
-forma. Juego común: `entities/plantilla/casos-de-plantilla.json` (lo corre `plantilla-validar.sql`; lo correrá `validarPlantilla()` de TS, 4.19-2).
+forma. Juego común: `entities/plantilla/casos-de-plantilla.json` (lo corren `plantilla-validar.sql` y `validarPlantilla()` de TS, 4.19-2; sus casos «borde: …» cazan las trampas del espejo y `octetos` fija el texto de `jsonb` que cuenta el tope de 32 KB).
 `plantilla_guardar_borrador` valida la forma; `plantilla_publicar`, contra la fórmula **publicada** del origen y los tonos del catálogo, antes de
 archivar nada (sin fórmula publicada, `formula_sin_publicar@origen`). La tabla la lee sólo quien tiene `cotizaciones.configurar` del origen.
 
@@ -631,6 +632,18 @@ vez publicaban las dos (el segundo `update … where id =` esperaba la fila del 
   tiene `publicado_en >= esperada`; si no, «El borrador ya no está: se descartó.».
 - Dentro de una transacción `now()` no se mueve (el trigger genérico): una esperada «vieja» es la de la fila menos 1 µs en `db:probar`; que guardar mueve la
   versión entre transacciones lo prueban las carreras (`scripts/carreras/plantillas.mjs`).
+
+### Lo que lee y escribe la plantilla desde TypeScript (4.19-3a)
+
+- **Del lado de TS:** la versión esperada es el `actualizado_en` que dio la base, como texto y con sus microsegundos (`z.iso.datetime({ offset: true })`; nunca un `Date`). `guardar`
+  la manda siempre, `null` explícito para crear (los tipos generados la dan `string`: un `const` con nombre hace el cast), y no manda `p_nota`. Un 22023 de `validar_plantilla()`
+  (la regla en `details`, el `donde` en `hint`) va a `porCampo[donde]` con el mensaje de la base tal cual; «Publicar pide una nota.» (`hint = 'nota'`), a `porCampo.nota`; el PT409 es un
+  conflicto sin nombre. **Guardar sólo valida la forma** (sin contexto): lo que cruza con la fórmula y los tonos lo rechaza publicar.
+- **El texto que la base no lee:** un `\u0000` o un surrogate suelto no lo rechaza `validar_plantilla()` sino la base al leer el JSON (22P02, 22P05). La action de guardar lo ataja antes
+  (`revisarTextoParaLaBase()`, con una pila y un tope de 8 niveles) y lo dice junto al campo.
+- **La lectura** (`leerPlantillaDelOrigen()`): el borrador y la publicada (la que ya no tiene la forma llega con su `motivo` y sin plantilla), la fórmula publicada del origen con lo que
+  mira el validador (no su esquema entero) y el catálogo de tonos (tope 24); sin fórmula publicada no hay contexto. Desde el 4.19-3a el editor lee `plantillas_tarjeta` con la sesión de
+  quien mira (la policy limita; el comentario de `20261106190219_plantillas_tarjeta_leer.sql`, «Nadie en la app lee la tabla», ya no vale y la migración no se edita).
 
 ### La lectura de la tarjeta (4.18-1)
 

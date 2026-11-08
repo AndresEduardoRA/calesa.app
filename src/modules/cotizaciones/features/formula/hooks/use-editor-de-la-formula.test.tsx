@@ -18,6 +18,19 @@ vi.mock('../../../entities/formula/texto-vigente', async (original) => {
   const real = await original<typeof ModuloDelTextoVigente>()
   return { ...real, textoVigente: vi.fn(real.textoVigente) }
 })
+// Lo de prueba de la vista previa (4.21-3a-2): sin red, un tipo de cambio y ninguna tabla.
+vi.mock('../../../areas/formula/composicion.client', () => ({
+  leerElTerrenoDePrueba: () =>
+    Promise.resolve({
+      ok: true as const,
+      data: {
+        tipos_cambio: { oficial: 6.96 },
+        monedas: { oficial: 'BOB' },
+        tablas: {},
+        avisos: [],
+      },
+    }),
+}))
 type Accion = { etiqueta: string; alHacer: () => void }
 const avisos: { mensaje: string; accion?: Accion }[] = []
 vi.mock('@/shared/ui/toasts', () => ({

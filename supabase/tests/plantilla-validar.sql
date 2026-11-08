@@ -109,7 +109,7 @@ begin
 end $$;
 rollback;
 
--- @test plantilla T1: cada caso del juego común da «válida» o su regla con su donde (22023, la regla en DETAIL y el donde en HINT)
+-- @test plantilla T1: cada caso del juego común da «válida» o su regla con su donde (22023, la regla en DETAIL y el donde en HINT), y sus `octetos` los bytes de su texto jsonb
 begin;
 do $$
 declare j jsonb; c jsonb; fo jsonb; v_tonos text[]; v_esperado text; v_dio text; v_malos text[] := '{}'; v_n int := 0; v_reglas text[];
@@ -132,6 +132,14 @@ begin
                                      'tipo_de_cambio_restringido', 'tono_inexistente'] then
     raise exception 'el juego no cubre todas las reglas: %', v_reglas;
   end if;
+  -- `octetos`: los bytes del texto jsonb de cada valor (lo que mide el tope de 32 KB), los mismos que cuenta bytesComoJsonb() de TS (4.19-2).
+  if jsonb_typeof(j -> 'octetos') is distinct from 'array' or jsonb_array_length(j -> 'octetos') = 0 then raise exception 'el juego no trae octetos'; end if;
+  for c in select * from jsonb_array_elements(j -> 'octetos') loop
+    if octet_length((c -> 'valor')::text) is distinct from (c ->> 'bytes')::int then
+      v_malos := v_malos || format('%s: esperaba %s bytes y son %s', (c -> 'valor')::text, c ->> 'bytes', octet_length((c -> 'valor')::text));
+    end if;
+  end loop;
+  if cardinality(v_malos) > 0 then raise exception 'octetos que no dan lo esperado: %', array_to_string(v_malos, ' | '); end if;
   -- Sin la fórmula valida sólo la forma: un grupo que no existe pasa.
   if pg_temp.pv_veredicto(j -> 'casos' -> 0 -> 'plantilla' || '{"grupos": [{"grupo": "no_existe"}]}', null, null, null, null) <> 'válida' then
     raise exception 'sin la fórmula, validar_plantilla mira más que la forma';
