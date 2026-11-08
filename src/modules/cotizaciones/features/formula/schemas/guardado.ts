@@ -13,11 +13,9 @@ const esquemaDeEsperada = z.discriminatedUnion('sobre', [
 export const esquemaDeGuardarBorrador = z.object({
   origenId: z.guid(),
   definicion: esquemaDefinicion,
-  params: z
-    .record(z.string(), z.unknown())
-    .refine((p) => esquemaParams.safeParse(p).success, {
-      error: 'Los valores no tienen su forma.',
-    }),
+  params: z.record(z.string(), z.unknown()).refine((p) => esquemaParams.safeParse(p).success, {
+    error: 'Los valores no tienen su forma.',
+  }),
   diseno: esquemaDiseno.nullable(),
   nota: z.string().max(2000).nullable(),
   esperada: esquemaDeEsperada,
