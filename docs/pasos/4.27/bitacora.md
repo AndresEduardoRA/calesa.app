@@ -70,3 +70,30 @@
 1. **ESTADO:** «4.27-2 (C): los comentarios bajo la guardada (comentar, responder, editar y borrar, por cursor hasta 500 con «Ir a una fecha»); siguen 4.27-3 y 4.27-4».
 2. **Abiertos:** cerrar **4-91** (`scripts/guardas/areas-c/paginas-en-la-base.ts`).
 3. **BITACORA:** la línea con el marcador de arriba (2 de 3).
+
+## 2026-11-08 — Paso 4.27-3: los adjuntos en pantalla
+
+- **Hecho:** paso rojo sin migración, policy, RLS ni `security definer` (usa las RPC y las policies de storage del 4.27-1 tal cual). Plan auditado una vez
+  (observaciones, atendidas); el informe no se audita. La compuerta `datos` del plan se contestó «aprobar» (P1–P4 con las recomendadas).
+  - El bloque «Adjuntos» arriba del campo de la sección «Comentarios» de `/cotizaciones/[id]`: quien puede guardarla sube PDF, imágenes (WebP ≤ 1600 px) o Word al bucket
+    privado por hash, de a uno y con su fila; todos los que la ven bajan por URL firmada (60 s, al tocar «Descargar»); quitar, quien lo subió (si todavía puede adjuntar) o
+    quien modera, con `<Confirmar>` por `?panel=quitar-adjunto&adjunto=<id>`.
+  - `entities/comentarios/adjunto.ts` (tipos, tope, nombre, `puedeQuitarAdjunto`, con tests) y `quitado.ts`; `infra/comentarios/adjuntos.client.ts` (leer, subir, firmar) y
+    `adjuntos.ts` (las dos RPC); dos actions sin `revalidatePath`; el registro del `<Confirmar>` nuevo en `scripts/guardas/areas-c/confirmar-con-url.ts`.
+- **Verificación** (`.piloto/salidas/4.27-3/`):
+  - `vitest` de `entities/comentarios/adjunto.test.ts`: 13 ✓ (`vitest-adjunto.txt`); `vitest related` de lo tocado: 4 archivos, 22 ✓, y `scripts/guardas`: 32 archivos,
+    1.010 ✓ (`vitest-related-y-guardas.txt`). `tsc --noEmit` 0 errores; lint y formato por el hook de cada commit.
+  - `nivel.mjs` con los archivos reales: Nivel 1, sin disparadores, con interfaz (`nivel.txt`).
+  - e2e dirigidos en escritorio y móvil, contra el build (`e2e-dirigidos.txt`): `cotizaciones-adjuntos` (nuevo), `cotizaciones-comentarios`, `cotizar-guardada`,
+    `cotizaciones-papelera-enviar` y `presupuesto-js`: 35 ✓, 7 saltadas por su marca de celular. JS en frío de `/cotizaciones/[id]`: 440,1 KB (tope 448, sin cambio).
+    e2e completo: no (4.27-3, pantalla, Nivel 1: lo dirigido en escritorio y movil; 3 de 3 tras consolidar el 4.27-2)
+- **Desvíos del plan:** «Quitar» y su diálogo entraron en el mismo commit que el bloque (el `<Confirmar>` sin su registro hace caer la guarda): cinco commits de código, no
+  seis. El `mime` de lo que se sube quedó tipado con los del bucket (`MIMES_DE_ADJUNTO`, `MIME_DE_IMAGEN`) en ese mismo commit, porque la action lo pide como enum.
+- **Sin hacer:** favorita, reportar y moderar (4.27-4); miniaturas; tiempo real; barrer un objeto subido cuyo registro falló.
+
+### Al A (4.27-3)
+
+1. **ESTADO:** «4.27-3 (C): los adjuntos en la sección de comentarios —subir por hash al bucket privado, descargar por URL firmada, quitar con su diálogo—; sigue 4.27-4».
+2. **BITACORA:** la línea con el marcador de arriba.
+3. **Abiertos nuevos:** (a) ensanchar `subirPorHash` (`src/shared/lib/supabase/almacen.client.ts`) a los buckets privados y llevar ahí la subida de
+   `infra/comentarios/adjuntos.client.ts`; (b) barrer los objetos del bucket `cotizaciones` que se subieron y nunca se registraron (hoy quedan, como en vehículos).

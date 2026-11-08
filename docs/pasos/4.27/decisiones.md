@@ -45,3 +45,14 @@
 - **«Cancelar» de editar descarta sin preguntar:** lo original sigue en la base. Los borradores de editar y responder viven en la sección por clave, aparte de la lista, para
   que «Recargar» tras un conflicto los conserve y «Guardar» mande la versión nueva.
 - **Se responde también a una raíz eliminada** que sigue con respuestas (la base lo admite).
+
+## 2026-11-08 — Paso 4.27-3
+
+- **Lo que contestó la persona** (compuerta `datos` del plan, «aprobar»): P1 a, el bloque «Adjuntos» dentro de la sección «Comentarios», arriba del campo, leído con la
+  primera página y en el mismo `diferido()`; P2 a, quitar con `<Confirmar>` por URL (deshacer cambiaría el autor); P3 a, `mio` por el `sub` de `getClaims()` del navegador
+  (tras la auditoría: el hueco sigue síncrono y sin depender de `equipo`); P4 a, sin miniaturas (bajarían el original de 1600 px por imagen en una lista).
+- **Subida propia al bucket privado:** `subirPorHash` sólo admite buckets públicos y `src/shared` no es del C; `infra/comentarios/adjuntos.client.ts` copia su forma (hash,
+  `upsert: false`, «ya existe» no es error). Se pide al A unificarla.
+- **El bucket por constante** (`BUCKET_DE_ADJUNTOS`): un `.from('cotizaciones')` literal lo marca la guarda de escala como consulta sin tope.
+- **`puedeModerar` de la lectura de comentarios**, como borrar un comentario: una sola fuente en la sección y, con «Ver como», la base usa los permisos reales.
+- **«Tú» para lo propio** y la URL firmada pedida por clic (60 s), nunca al leer la lista. El e2e no borra la cola de limpieza: `storage-gc` barre el PDF quitado.
