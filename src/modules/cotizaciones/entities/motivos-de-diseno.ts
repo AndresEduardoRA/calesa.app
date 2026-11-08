@@ -1,8 +1,10 @@
 // Por qué se rechaza un diseño. El código es el contrato con `validar_diseno()` de la base y con el juego de `casos-de-diseno.json`; el
 // texto es de cada lado. `donde` es el id de la sección, del nodo, del modo o del grupo donde se rompe: la base lo pone en `hint`.
+import { MAXIMO_DE_ITEMS_DEL_DISENO } from './diseno'
 
 export const REGLAS_DE_DISENO = [
   'forma',
+  'demasiados_items',
   'modo_duplicado',
   'modo_sin_total_en',
   'modo_bucket_inexistente',
@@ -55,6 +57,8 @@ const q = (s: string | undefined) => `«${s ?? '?'}»`
 
 const MENSAJES: Record<ReglaDeDiseno, (d: DatosDeRechazoDeDiseno) => string> = {
   forma: (d) => `El diseño no tiene la forma esperada en ${q(d.campo)}.`,
+  demasiados_items: (d) =>
+    `La hoja admite hasta ${MAXIMO_DE_ITEMS_DEL_DISENO} ítems y el diseño pasa de ese tope en ${q(d.donde)}: quita alguno.`,
   modo_duplicado: (d) => `Hay dos modos de tipo de cambio con la clave ${q(d.donde)}.`,
   modo_sin_total_en: (d) =>
     `El modo ${q(d.donde)} trae su propio «total_en», y la fórmula no tiene uno: con un modo el total cambiaría de cuenta.`,

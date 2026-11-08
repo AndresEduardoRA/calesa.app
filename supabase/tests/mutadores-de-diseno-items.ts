@@ -1,5 +1,6 @@
 // Los mutadores del corpus diferencial de `validar_diseno()` que rompen una regla de los ítems: lo que cada uno dibuja, su nivel y que
 // un nodo no se dibuje dos veces. Cada uno cambia la entrada en su lugar y devuelve qué hizo, o null si no se aplica a ese diseño.
+import { MAXIMO_DE_ITEMS_DEL_DISENO } from '@/modules/cotizaciones/entities/diseno'
 import { elegir } from './mutadores-de-formula'
 import {
   celdaDe,
@@ -230,6 +231,20 @@ export const MUTADORES_DE_ITEMS: readonly MutadorDeDiseno[] = [
       if (!yo || pct === undefined || !s) return null
       poner(s, celdaDe(pct))
       return `porcentaje_dos_veces(${pct})`
+    },
+  },
+  {
+    // Clona un ítem en su sección hasta pasar el tope de la hoja: los repetidos no importan, el tope va antes que `nodo_repetido`.
+    nombre: 'demasiados_items',
+    aplicar: (e, azar) => {
+      const yo = elegir(azar, itemsDe(e))
+      if (!yo) return null
+      let n = itemsDe(e).length
+      while (n <= MAXIMO_DE_ITEMS_DEL_DISENO) {
+        poner(yo.s, clonar(yo.it))
+        n += 1
+      }
+      return `demasiados_items(${texto(yo.s, 'id') ?? '?'})`
     },
   },
 ]

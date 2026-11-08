@@ -25,7 +25,11 @@ function visitas(s: DisenoSintetico): number {
   const f = validarFormula(s.definicion, s.params)
   if (!f.ok) throw new Error(f.error.mensaje)
   const medidor = { visitas: 0 }
-  const r = validarDiseno(f.formula.definicion, s.diseno, s.contexto, medidor)
+  // Sin el tope de la hoja (40 ítems): mide que el validador es lineal si el tope sube.
+  const r = validarDiseno(f.formula.definicion, s.diseno, s.contexto, {
+    medidor,
+    maximoDeItems: Number.POSITIVE_INFINITY,
+  })
   // Si no valida, el mensaje dice por qué.
   expect(r.ok ? r : r.error).toMatchObject({ ok: true })
   return medidor.visitas

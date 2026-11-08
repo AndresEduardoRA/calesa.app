@@ -4,9 +4,9 @@
 //
 // La definición llega ya validada por `validarFormula()` (el publicar llama a las dos, en ese orden): acá no se revisa de nuevo.
 import type { z } from 'zod'
-import { esquemaDiseno, type Diseno } from './diseno'
+import { esquemaDiseno, MAXIMO_DE_ITEMS_DEL_DISENO, type Diseno } from './diseno'
 import type { Definicion } from './formula'
-import type { Medidor } from './medidor'
+import { recorrer, type Medidor } from './medidor'
 import { fallo, type FalloDeDiseno } from './motivos-de-diseno'
 import { estadoVacio, indexar, type ContextoDeDiseno } from './validar-diseno-contexto'
 import { revisarAtajos, revisarCobertura, revisarTonos } from './validar-diseno-cobertura'
@@ -15,17 +15,23 @@ import { revisarSecciones, revisarTarjeta } from './validar-diseno-secciones'
 
 export type { ContextoDeDiseno } from './validar-diseno-contexto'
 export type ResultadoDeValidacionDeDiseno = { ok: true; diseno: Diseno } | FalloDeDiseno
+// Sólo para las pruebas de escala: el contador de visitas, y el tope de ítems apagado con `Number.POSITIVE_INFINITY` (como las mediciones SQL
+// reemplazan `_diseno_maximo_de_items()`).
+export type OpcionesDeValidacionDeDiseno = { medidor?: Medidor; maximoDeItems?: number }
 
 export function validarDiseno(
   definicion: Definicion,
   diseno: unknown,
   contexto: ContextoDeDiseno,
-  medidor?: Medidor,
+  opciones: OpcionesDeValidacionDeDiseno = {},
 ): ResultadoDeValidacionDeDiseno {
-  const m = medidor ?? { visitas: 0 }
+  const m = opciones.medidor ?? { visitas: 0 }
+  const maximoDeItems = opciones.maximoDeItems ?? MAXIMO_DE_ITEMS_DEL_DISENO
   const leido = esquemaDiseno.safeParse(diseno)
   if (!leido.success) return fallo('forma', datosDeForma(leido.error, diseno))
   const d = leido.data
+  const grande = revisarTamano(d, maximoDeItems, m)
+  if (grande) return grande
   const ix = indexar(definicion, contexto, m)
   const e = estadoVacio()
   const rechazo =
@@ -36,6 +42,16 @@ export function validarDiseno(
     revisarCobertura(ix, e) ??
     revisarTonos(ix)
   return rechazo ?? { ok: true, diseno: d }
+}
+
+// El tamaño va tras la forma y antes que todo lo demás (es sólo contar): `donde` es la sección en la que la suma pasa del tope.
+function revisarTamano(d: Diseno, maximo: number, m: Medidor): FalloDeDiseno | null {
+  let items = 0
+  for (const s of recorrer(d.secciones, m)) {
+    items += s.items.length
+    if (items > maximo) return fallo('demasiados_items', { donde: s.id })
+  }
+  return null
 }
 
 // `donde` es el id (crudo, si es un texto) de la sección donde está el primer error de Zod; en la cabecera, la tarjeta o la raíz, nada.
