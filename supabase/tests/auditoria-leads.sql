@@ -155,6 +155,7 @@ declare
     ('vehiculos_inventario(uuid,integer,jsonb,timestamp with time zone,uuid,boolean)', 'L'),
     -- Crear una cotización (4.10-2): el lead es obligatorio y se pide visible (`leads.ver`, la regla de la policy de insert que se fue), no de la cartera: una cotización cuelga de un lead que quien
     -- cotiza ve (D3). Lo bloquea `for key share` entre dos comprobaciones, igual para el que no existe y el que no ve (`cotizacion-crear.sql` y `cotizaciones-visibilidad.sql`).
+    -- Una final (4.25-1b), como marcar: el lead en la cartera con `leads.editar` antes de tomarlo y con todo tomado, y lo toma `for no key update` (`areas/final/crear.sql`).
     ('cotizacion_crear(uuid,uuid,uuid,jsonb,text,uuid,jsonb,text,clase_cotizacion,boolean,boolean)', 'X'),
     -- Cotizar encima (4.15-2): el lead es el de la anterior y se pide visible como en cotizacion_crear (comprobar, for key share, volver a comprobar), después de ver la anterior.
     ('cotizacion_encima(uuid,uuid)', 'X'),
