@@ -89,7 +89,13 @@ function conCandado(fn) {
         }
         if (Date.now() - statSync(CANDADO).mtimeMs > 600_000) viejo = true
       } catch {
-        viejo = Date.now() - (existsSync(CANDADO) ? statSync(CANDADO).mtimeMs : 0) > 5_000
+        // Sin pid legible: el candado se está creando o el otro lo acaba de soltar (entre existsSync y statSync caía con ENOENT:
+        // el CI del PR 69, «dos carriles piden a la vez»). Viejo sólo si lleva más de 5 s así; si ya no está, se reintenta.
+        try {
+          viejo = Date.now() - statSync(CANDADO).mtimeMs > 5_000
+        } catch {
+          viejo = false
+        }
       }
       if (viejo) rmSync(CANDADO, { recursive: true, force: true })
       else if (Date.now() > limite)
@@ -178,9 +184,13 @@ function mirarPr(numero) {
     ),
   )
   const checks = pr.statusCheckRollup ?? []
-  const pendiente = checks.some((c) => (c.status ?? 'COMPLETED') !== 'COMPLETED')
+  // Un estado de commit (el de Vercel: `state`, sin `status`) en PENDING o EXPECTED sigue corriendo; antes contaba como terminado y
+  // rojo, y el paso volvía a su carril por un «CI en rojo» que un minuto después era verde (el PR 80, 2026-11-08).
+  const estadoDe = (c) =>
+    c.status ?? (['PENDING', 'EXPECTED'].includes(c.state) ? 'PENDING' : 'COMPLETED')
+  const pendiente = checks.some((c) => estadoDe(c) !== 'COMPLETED')
   const rojo = checks.some(
-    (c) => (c.status ?? 'COMPLETED') === 'COMPLETED' && !CHECK_BIEN.has(c.conclusion ?? c.state),
+    (c) => estadoDe(c) === 'COMPLETED' && !CHECK_BIEN.has(c.conclusion ?? c.state),
   )
   const arreglar =
     pr.mergeable === 'CONFLICTING' ? 'conflicto con main' : rojo ? 'CI en rojo' : null
