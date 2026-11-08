@@ -49,6 +49,9 @@ begin
   insert into public.origenes (clave, nombre) values ('prueba_tf2', 'Prueba tf2') returning id into o2;
   perform pg_temp.tf_persona('00000000-0000-4000-8000-00000000b00a', 'Ana Tf', array['cotizaciones.configurar', 'cotizaciones.crear', 'cotizaciones.ver'], array[o, o2]);
   perform pg_temp.tf_persona('00000000-0000-4000-8000-00000000b00c', 'Uma Tf', array['cotizaciones.configurar'], array[o]);
+  insert into public.roles_permisos (rol_id, permiso_clave, origen_id, alcance)
+  select ur.rol_id, k, null, 'todos' from public.usuarios_roles ur, unnest(array['leads.ver', 'vehiculos.ver']) k
+   where ur.usuario_id = '00000000-0000-4000-8000-00000000b00a';
   insert into public.formulas (id, origen_id, version, estado, definicion, params, diseno, visibilidad, nota, publicado_en)
   values ('00000000-0000-4000-8000-00000000b001', o, 1, 'publicada', v_def, v_par, v_dis, public._preparar_publicacion(v_def, v_par, v_dis, true), 'v1', now()),
          ('00000000-0000-4000-8000-00000000b002', o2, 1, 'publicada', v_def, v_par2, v_dis, public._preparar_publicacion(v_def, v_par2, v_dis, true), 'v1', now());
@@ -90,6 +93,18 @@ begin
   return 'sin error';
 exception when others then
   return sqlstate || '|' || sqlerrm;
+end $f$;
+-- Corre un SQL como esa persona y, si falla, dice por qué.
+create or replace function pg_temp.tf_igual_cot(p_quien uuid, p_sql text) returns void language plpgsql as $f$
+declare v_m text;
+begin
+  perform pg_temp.tf_como(p_quien);
+  set local role authenticated;
+  execute p_sql;
+  reset role;
+exception when others then
+  get stacked diagnostics v_m = message_text;
+  raise exception 'guardar la cotización falló: % %', sqlstate, v_m;
 end $f$;
 -- La comisión de la moto con esa versión de la fórmula (la llama Ana: cotizaciones.crear del origen).
 create or replace function pg_temp.tf_comision(p_formula uuid) returns numeric language plpgsql as $f$
@@ -186,11 +201,12 @@ begin
 end $$;
 rollback;
 
--- @test tablas: dinero: la N+1 calcula con la fila nueva; la versión anterior que congeló, con la de antes; la que leía la viva, con la nueva
+-- @test tablas: dinero: la N+1 calcula con la fila nueva; la versión anterior que congeló, con la de antes; la que leía la viva, con la nueva; lo guardado no cambia
 begin;
 select pg_temp.tf_preparar();
 do $$
 declare o uuid := pg_temp.tf_o('prueba_tf'); o2 uuid := pg_temp.tf_o('prueba_tf2'); a uuid := '00000000-0000-4000-8000-00000000b00a'; v_antes numeric;
+        v_cot uuid := gen_random_uuid(); v_lead uuid; v_veh uuid; v_guardada jsonb;
 begin
   v_antes := pg_temp.tf_comision('00000000-0000-4000-8000-00000000b001');
   if v_antes is null or v_antes = 453 then raise exception 'la comisión de la moto de la semilla no sirve para la prueba: %', v_antes; end if;
@@ -199,9 +215,21 @@ begin
   perform pg_temp.tf_publicar(a, pg_temp.tf_t('tp_comision', o), pg_temp.tf_filas(pg_temp.tf_t('tp_comision', o), 453), 1);
   if pg_temp.tf_comision((pg_temp.tf_pub(o)).id) <> 453 then raise exception 'la N+1 no calcula con la fila nueva'; end if;
   if pg_temp.tf_comision('00000000-0000-4000-8000-00000000b001') <> v_antes then raise exception 'la v1 congelada cambió su cifra'; end if;
-  -- La compartida: la v1 de `prueba_tf2` leía la viva y recalcula con la nueva (lo guardado de una cotización no lo toca: manda su snapshot).
+  -- Una cotización guardada de `prueba_tf2` con su v1, que lee la compartida viva.
+  insert into public.leads (nombre, telefono_principal, creado_por) values ('TF lead', '59871234567', a) returning id into v_lead;
+  insert into public.origenes_campos (origen_id, clave, etiqueta, tipo) values (o2, 'tipo_vehiculo', 'Tipo', 'texto');
+  insert into public.vehiculos (origen_id, titulo, marca, anio, atributos) values (o2, 'TF vehículo', 'toyota', 2022, '{"tipo_vehiculo": "autos"}') returning id into v_veh;
+  perform pg_temp.tf_como(a);
+  perform pg_temp.tf_igual_cot(a, format('select public.cotizacion_crear(%L, %L, %L, %L::jsonb, %L, %L, null, null, %L::public.clase_cotizacion)',
+    v_cot, o2, v_lead, '{"variante": "moto", "inputs": {"remate": 14200}}', public._cotizacion_abierta_firmar(o2, '00000000-0000-4000-8000-00000000b002', now()), v_veh, 'preventa'));
+  select jsonb_build_object('formula_id', formula_id, 'valores', valores, 'totales', totales, 'total_base', total_base, 'actualizado_en', actualizado_en)
+    into v_guardada from public.cotizaciones where id = v_cot;
+  if (v_guardada -> 'valores' ->> 'comision')::numeric is distinct from v_antes then raise exception 'la guardada no tiene la comisión de antes: %', v_guardada -> 'valores'; end if;
+  -- La compartida: la v1 de `prueba_tf2` leía la viva y recalcula con la nueva; lo guardado de la cotización no cambia (manda su snapshot).
   perform pg_temp.tf_publicar(a, pg_temp.tf_t('tp_comision', null), pg_temp.tf_filas(pg_temp.tf_t('tp_comision', null), 454), 1);
   if pg_temp.tf_comision((pg_temp.tf_pub(o2)).id) <> 454 then raise exception 'la N+1 de la compartida no calcula con la fila nueva'; end if;
   if pg_temp.tf_comision('00000000-0000-4000-8000-00000000b002') <> 454 then raise exception 'la v1 que leía la viva no recalcula con la fila nueva'; end if;
+  if (select jsonb_build_object('formula_id', formula_id, 'valores', valores, 'totales', totales, 'total_base', total_base, 'actualizado_en', actualizado_en)
+        from public.cotizaciones where id = v_cot) <> v_guardada then raise exception 'publicar la compartida cambió lo guardado de una cotización'; end if;
 end $$;
 rollback;

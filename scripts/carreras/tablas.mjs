@@ -1,8 +1,9 @@
 // Las carreras de publicar una tabla de referencia (4.23-1): dos personas publican la misma tabla, el ⚙ contra publicar una tabla del mismo origen y
-// dos tablas del mismo origen a la vez. Candados: la fila de la tabla (`for update`) y después `formulas:<origen>`, como el ⚙ y revertir. Cada una
-// abre una transacción de A y deja a B esperando un lock (el arnés de `scripts/carreras.mjs`): si B no espera, la carrera no se probó. Trabaja en un
-// origen propio (prefijo «Carreras»): `limpiar()` lo borra, y con él sus fórmulas y sus tablas.
+// dos tablas del mismo origen a la vez (las de una compartida, en `tablas-compartida.mjs`). Candados: la fila de la tabla (`for update`) y después
+// `formulas:<origen>`, como el ⚙ y revertir. Cada una abre una transacción de A y deja a B esperando un lock (el arnés de `scripts/carreras.mjs`):
+// si B no espera, la carrera no se probó. Trabaja en un origen propio (prefijo «Carreras»): `limpiar()` lo borra, y con él sus fórmulas y sus tablas.
 import { PERSONAS, PREFIJO } from './terreno.mjs'
+import { carrerasDeTablasCompartidas } from './tablas-compartida.mjs'
 
 const { configura } = PERSONAS
 
@@ -149,4 +150,6 @@ export async function carrerasDeTablas({ orquesta, carrera, espero }) {
       { a: r.a, b: r.b, version: pub.version },
     )
   }
+
+  await carrerasDeTablasCompartidas({ orquesta, carrera, espero })
 }
