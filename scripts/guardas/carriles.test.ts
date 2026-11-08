@@ -30,6 +30,41 @@ const revisar = (rama: string, ...cambios: Cambio[]) =>
 const nueva = (nombre: string) => ({ estado: 'A', ruta: `supabase/migrations/${nombre}.sql` })
 const SOLO_DE_A = ['docs/ESTADO.md', 'docs/PLAN.md', 'docs/DECISIONES.md', 'docs/BITACORA.md']
 
+describe('carriles › un paso prestado se juzga con el carril del paso', () => {
+  const CON_PASOS = leerPlan(`
+esquema: plan/v1
+compartido: [supabase/migrations/]
+carriles:
+  - id: a
+    base: true
+    dueno_de: [src/, docs/]
+  - id: b
+    migraciones: [diseno]
+    dueno_de: [src/modules/cotizaciones/areas/diseno/]
+  - id: c
+    migraciones: [papelera]
+    dueno_de: [src/modules/cotizaciones/areas/papelera/]
+pasos:
+  - { id: '4.22', carril: b, riesgo: ambar, modulos: [src/modules/cotizaciones/areas/diseno/] }
+  - { id: '4.27', carril: a, riesgo: rojo, modulos: [src/] }
+`)
+  const juzgar = (rama: string, ...cambios: Cambio[]) =>
+    problemasDelPr({ rama, cambios, ultimaDeLaBase: BASE, plan: CON_PASOS })
+  it('c/4.22 (del b) crea migraciones de diseño y toca el área del b; no las de la papelera', () => {
+    const area = { estado: 'M', ruta: 'src/modules/cotizaciones/areas/diseno/x.ts' }
+    expect(juzgar('c/4.22', nueva('20261108000000_diseno_x'), area)).toEqual([])
+    expect(juzgar('c/4.22', nueva('20261108000000_papelera_x'))).toEqual([
+      expect.stringContaining('el carril b crea migraciones sólo de diseno'),
+    ])
+  })
+  it('b/4.27 (del base) toca lo que quiere; un pedido o una rama sin paso, por su prefijo', () => {
+    expect(juzgar('b/4.27', { estado: 'M', ruta: 'docs/ESTADO.md' })).toEqual([])
+    expect(juzgar('b/pedido-4', { estado: 'M', ruta: 'docs/ESTADO.md' })).toEqual([
+      expect.stringContaining('lo escribe en docs/pasos/'),
+    ])
+  })
+})
+
 describe('carriles › un carril que no es base', () => {
   it.each(['b/4.20', 'c/4.24'])('%s no edita ESTADO, PLAN, DECISIONES ni BITACORA', (rama) => {
     for (const ruta of SOLO_DE_A) {

@@ -168,6 +168,47 @@ describe('bucle.sh › la rama del carril se trae main antes de cada parte', () 
   })
 })
 
+describe('bucle.sh › un choque con main al traerlo (2026-11-08)', () => {
+  // La rama del carril con un commit propio sobre un archivo que main también cambió después.
+  const ramaQueChoca = (ruta: string, base: string, deLaRama: string, deMain: string) => {
+    integrarEnMain(ruta, base)
+    a.git('fetch', '-q', 'origin')
+    a.git('checkout', '-q', '-b', 'formula/4.99', 'origin/main')
+    a.escribirRepo(ruta, deLaRama)
+    a.git('add', '.')
+    a.git(...GIT, 'commit', '-q', '-m', 'parte 1')
+    integrarEnMain(ruta, deMain)
+  }
+
+  it('en docs/ se resuelve solo, con las líneas de los dos lados', () => {
+    const f = plan(paso('4.99'))
+    coordinador(f, 'siguiente', 'formula')
+    ramaQueChoca('docs/notas.md', 'uno\n', 'uno\nde la rama\n', 'uno\nde main\n')
+    a.paso(1, pasoListo({ 'src/f/a.ts': 'a' }))
+    const r = a.correr(['--una-vuelta'], entorno(f))
+    expect(r.estado, r.salida).toBe(0)
+    expect(a.estado('registro.md')).toContain('los choques en docs/ se unieron (docs/notas.md)')
+    const notas = readFileSync(join(a.repo, 'docs/notas.md'), 'utf8')
+    expect(notas).toContain('de la rama')
+    expect(notas).toContain('de main')
+    expect(a.git('merge-base', '--is-ancestor', 'origin/main', 'HEAD')).toBe('')
+    expect(existsSync(join(a.repo, '.piloto/conflicto-con-main.md'))).toBe(false)
+  })
+
+  it('en código se aborta y queda anotado para la sesión del paso, que corre igual', () => {
+    const f = plan(paso('4.99'))
+    coordinador(f, 'siguiente', 'formula')
+    ramaQueChoca('src/f/hoja.ts', 'uno\n', 'de la rama\n', 'de main\n')
+    a.paso(1, pasoListo({ 'src/f/a.ts': 'a' }))
+    const r = a.correr(['--una-vuelta'], entorno(f))
+    expect(r.estado, r.salida).toBe(0)
+    expect(a.estado('registro.md')).toContain('choca: src/f/hoja.ts')
+    expect(a.estado('conflicto-con-main.md')).toContain('`src/f/hoja.ts`')
+    expect(readFileSync(join(a.repo, 'src/f/hoja.ts'), 'utf8')).toBe('de la rama\n')
+    expect(a.llamadas('paso')).toHaveLength(1)
+  })
+})
+
 describe('bucle.sh › la copia se pone al día con main', () => {
   it('si origin/main trae otros scripts del piloto, entre pasos rehace la copia y se relanza con ella', () => {
     // main trae una copia completa de las piezas (las de la copia de ahora, con copiar-bin.sh) y un bucle.sh que se reconoce.

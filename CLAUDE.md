@@ -28,8 +28,8 @@ chat, agenda y la web pública. Una empresa por despliegue. Sólo español, de t
 ## Reglas
 
 - Código que se pide al usarse: `diferido()`, nunca `next/dynamic`. Un número que se muestra nunca es un total exacto. Toda lista para miles
-  de filas, probada con volumen (`.claude/rules/escala.md`).
-- Un archivo, una responsabilidad (> 300 líneas: se parte). Toda función exportada de `entities/` lleva test.
+  de filas; con volumen sólo la de una tabla que crece (`.claude/rules/escala.md`).
+- Un archivo, una responsabilidad (> 300 líneas: se parte). Lleva test lo de `entities/` con dinero, fórmula o permisos (`.claude/rules/e2e.md`).
 - Zod en todo límite (formulario, action, params, RPC); ids con `z.guid()`. Errores como valores (`{ ok: false, error }`).
 - Ningún componente ni hook consulta Supabase: lecturas en `infra/`, mutaciones por Server Actions (`next-safe-action`), realtime en `*.client.ts`.
 - Lo que otorga permisos (fase, dueño, vitrina, papelera, publicar fórmula) se escribe por RPC, nunca con `.update()`.
@@ -37,7 +37,7 @@ chat, agenda y la web pública. Una empresa por despliegue. Sólo español, de t
 - Unidad nueva = su `CLAUDE.md`. Término nuevo = entrada en `docs/GLOSARIO.md`, y ese nombre en tipos, tablas y UI; nunca un sinónimo.
 - `docs/MAPA.md` lo genera `scripts/mapa.sh` y no se versiona (si falta, córrelo). Fechas de DECISIONES y BITACORA: `TZ=America/La_Paz date +%F`.
 - Orígenes, fases, tipos de documento, categorías y monedas salen de la base: ningún texto fijo los nombra.
-- Nadie prueba a mano: toda verificación es un test o un recorrido de la IA.
+- Nadie prueba a mano: toda verificación es un test o un recorrido de la IA. Pruebas sólo en lo clave (`.claude/rules/e2e.md`).
 
 ## Stack: lo que muerde
 
@@ -61,7 +61,7 @@ web, buscador, tablero, datos, shared, app, db, ci, deps, config, docs. Un commi
 
 ## Terminado significa
 
-`lint` y `typecheck` sin warnings · `test` (lo nuevo con test) y `db:probar` si tocaste `supabase/` · los estados de `docs/UX.md` y
+`lint` y `typecheck` sin warnings · `test` (lo clave con test) y `db:probar` si tocaste `supabase/` · los estados de `docs/UX.md` y
 `.claude/rules/ui.md` · capas respetadas · `docs/ESTADO.md` al día y `mapa.sh --check` · la decisión no obvia en `docs/DECISIONES.md` ·
 commit convencional.
 

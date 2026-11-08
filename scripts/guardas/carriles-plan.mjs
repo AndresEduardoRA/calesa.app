@@ -1,7 +1,8 @@
 // Lo que un carril que no es base puede tocar fuera de lo que ya hace `carriles.mjs` (docs/ORCA.md, docs/plan.yaml de la base). Puro.
 // - C5: en `docs/plan.yaml` sólo suma a su `dueno_de` archivos de las familias del compilador que el mismo PR crea; todo lo demás queda
 //   como en la base (los `pasos`, y su `riesgo`, deciden si el coordinador integra solo).
-// - C6: sólo toca su `dueno_de` (más lo que C5 deja sumar), `docs/` y las carpetas `compartido`, donde agrega y edita, no borra.
+// - C6: toca su `dueno_de` (más lo que C5 deja sumar) y `docs/`; en las carpetas `compartido` y en lo del carril base agrega y edita,
+//   no borra (2026-11-08: lo que necesita del núcleo lo hace en su PR, sin esperar un pedido al A); lo de otro carril no base, nunca.
 // Se prueba en `carriles.test.ts`.
 import { isDeepStrictEqual } from 'node:util'
 
@@ -69,8 +70,24 @@ export function problemasDeAlcance({ carril, plan, cambios, sumadas }) {
   const suyas = [...(carril.dueno_de ?? []), ...sumadas]
   const compartido = plan.compartido ?? []
   const problemas = []
+  // De otro carril no base: la carpeta más precisa que la contiene es de un carril que no es el base ni éste.
+  const deOtro = (ruta) => {
+    let mejor = null
+    for (const c of plan.carriles)
+      for (const d of c.dueno_de ?? [])
+        if (dentro(ruta, d) && (!mejor || d.length > mejor.d.length)) mejor = { c, d }
+    return mejor && mejor.c.base !== true && mejor.c.id !== carril.id ? mejor.c.id : null
+  }
   const del = (ruta, borrando) => {
     if (suyas.some((d) => dentro(ruta, d)) || ruta.startsWith('docs/')) return
+    const otro = deOtro(ruta)
+    if (!otro && !compartido.some((d) => dentro(ruta, d))) {
+      if (borrando)
+        problemas.push(
+          `${ruta}: el carril ${carril.id} edita y agrega lo del núcleo, pero no lo borra; pídelo al carril a en docs/pasos/<paso>/ («Necesita del carril A»).`,
+        )
+      return
+    }
     if (compartido.some((d) => dentro(ruta, d))) {
       if (borrando)
         problemas.push(
@@ -79,7 +96,7 @@ export function problemasDeAlcance({ carril, plan, cambios, sumadas }) {
       return
     }
     problemas.push(
-      `${ruta}: no es del carril ${carril.id} (docs/plan.yaml › dueno_de); pídelo al carril a en docs/pasos/<paso>/ («Necesita del carril A»).`,
+      `${ruta}: es del carril ${otro} (docs/plan.yaml › dueno_de), no del ${carril.id}; pídeselo con una compuerta \`espera\`.`,
     )
   }
   for (const c of cambios) {

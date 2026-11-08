@@ -5,6 +5,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 import { errorDePostgrest, fallo, ok, type Resultado } from '@/shared/lib/errores'
 import type { Database } from '@/shared/types/database.types'
+import { esquemaDiseno } from '../../entities/diseno'
 import { esquemaFormula } from '../../entities/formula'
 import type { FormulaParaEditar } from '../../entities/formula/edicion'
 
@@ -14,18 +15,23 @@ type Cliente = SupabaseClient<Database>
 export function consultaDeLaDefinicion(cliente: Cliente, formulaId: string) {
   return cliente
     .from('formulas')
-    .select('id, definicion, params, actualizado_en')
+    .select('id, estado, definicion, params, diseno, nota, actualizado_en')
     .eq('id', formulaId)
     .limit(1)
 }
 
+// El editor abre el borrador o, sin borrador, la publicada: otro estado no se edita. El diseño se lee por su esquema (sólo la forma, como lo guarda la base).
 const esquemaDeLaFila = z.strictObject({
   id: z.guid(),
+  estado: z.enum(['borrador', 'publicada']),
   definicion: z.unknown(),
   params: z.unknown(),
+  diseno: esquemaDiseno.nullable(),
+  nota: z.string().nullable(),
   actualizado_en: z.string(),
 })
 
+// Con la definición vienen, de la misma fila y en el mismo pedido, su estado, su diseño y su nota: sobre qué guarda el editor (4.21-3b-1), de una sola foto.
 // La forma (el Zod de `formula.ts`) se exige aquí: lo que no la tiene no se puede editar. Las reglas que cruzan nodos (`validarFormula()`) las mira el editor,
 // que dice el rechazo en su fila.
 export async function leerDefinicionSobre(
@@ -48,5 +54,6 @@ export async function leerDefinicionSobre(
   if (!fila.success || !formula?.success) {
     return fallo('inesperado', 'No pudimos leer la fórmula.')
   }
-  return ok({ id: fila.data.id, actualizadoEn: fila.data.actualizado_en, formula: formula.data })
+  const { id, estado, diseno, nota, actualizado_en } = fila.data
+  return ok({ id, actualizadoEn: actualizado_en, estado, diseno, nota, formula: formula.data })
 }

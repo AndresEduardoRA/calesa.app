@@ -26,10 +26,17 @@ export const SOLO_DE_A = [
 ]
 
 const MIGRACION = /^supabase\/migrations\/(\d{14})_([^/]+)\.sql$/
-/** El carril no base de la rama (`b/4.20` → el de `id: b`), o null: carril base, rama sin carril o plan ilegible. */
+/**
+ * El carril no base de la rama (`b/4.20` → el de `id: b`), o null: carril base, rama sin carril o plan ilegible. Si lo de después de la
+ * `/` es un paso del plan, manda el carril de ESE paso: un paso prestado (`c/4.22`, el coordinador se lo dio al c mientras el b estaba
+ * ocupado) se juzga con los permisos de su carril, no con los de quien lo hizo.
+ */
 export function carrilDe(rama, plan) {
-  const id = rama.split('/')[0] ?? ''
-  const carril = rama.includes('/') ? plan?.carriles.find((c) => c.id === id) : undefined
+  if (!rama.includes('/')) return null
+  const [prefijo = '', resto = ''] = rama.split('/')
+  const delPaso = plan?.pasos?.find((p) => String(p.id).toLowerCase() === resto.toLowerCase())
+  const id = delPaso?.carril ?? prefijo
+  const carril = plan?.carriles.find((c) => c.id === id)
   return carril && carril.base !== true ? carril : null
 }
 // La base aplastada (docs/PREPARACION.md, etapa 1) reemplazó a las 146 migraciones anteriores: el PR que la trae las borra. Es la
