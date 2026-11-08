@@ -1,5 +1,5 @@
 // Composición del área `comentarios` en el navegador: leer los comentarios de una cotización y las respuestas de uno (4.27-2), y leer, subir y bajar sus adjuntos
-// (4.27-3). La importa sólo su feature y ningún barril la reexporta (`src/modules/cotizaciones/CLAUDE.md` › «Áreas»).
+// (4.27-3), y los reportes de una cotización para quien modera (4.27-4). La importa sólo su feature y ningún barril la reexporta (`src/modules/cotizaciones/CLAUDE.md` › «Áreas»).
 export {
   leerComentarios,
   leerRespuestas,
@@ -11,3 +11,4 @@ export {
   subirAdjunto,
   urlDeDescarga,
 } from '../../infra/comentarios/adjuntos.client'
+export { leerReportes, NO_SE_CARGARON_LOS_REPORTES } from '../../infra/comentarios/reportes.client'
