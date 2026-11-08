@@ -137,3 +137,15 @@ export async function crearConfiguradoraDeTarjeta(
   })
   return email
 }
+
+// La plantilla publicada del origen (o nada): su versión, su nota y su definición.
+export function plantillaPublicada(
+  origenId: string,
+): { version: number; nota: string | null; definicion: Plantilla } | null {
+  const fila = sql(`
+    select json_build_object('version', version, 'nota', nota, 'definicion', definicion)
+    from public.plantillas_tarjeta where origen_id = ${literal(origenId)}::uuid and estado = 'publicada'`)
+  return fila === ''
+    ? null
+    : (JSON.parse(fila) as { version: number; nota: string | null; definicion: Plantilla })
+}

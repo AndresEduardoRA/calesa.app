@@ -55,6 +55,7 @@ const props = (extra: Partial<PropsDelEditor> = {}, n = 2): PropsDelEditor => ({
   ...extra,
 })
 
+const ACCIONES = { alPublicar: vi.fn(), alDescartar: vi.fn() }
 const escribir = (campo: HTMLElement, valor: string) => {
   fireEvent.change(campo, { target: { value: valor } })
 }
@@ -73,7 +74,7 @@ beforeEach(() => {
 
 describe('EditorDeLaPlantilla', () => {
   it('dibuja los bloques con sus campos y «Guardar» apagado sin cambios', () => {
-    render(<EditorDeLaPlantilla {...props()} />)
+    render(<EditorDeLaPlantilla {...props()} {...ACCIONES} />)
     expect(screen.getByText('Tarjeta de Origen')).toBeTruthy()
     for (const titulo of ['Grupos', 'Total', 'Filas', 'Pie y columnas'])
       expect(screen.getAllByText(titulo, { selector: 'summary *' }).length).toBeGreaterThan(0)
@@ -85,7 +86,7 @@ describe('EditorDeLaPlantilla', () => {
   })
 
   it('el contador cuenta emojis como uno y ningún campo lleva maxLength', () => {
-    render(<EditorDeLaPlantilla {...props()} />)
+    render(<EditorDeLaPlantilla {...props()} {...ACCIONES} />)
     const campo = screen.getByLabelText('Etiqueta del total')
     escribir(campo, '')
     escribir(campo, '😀😀😀')
@@ -101,6 +102,7 @@ describe('EditorDeLaPlantilla', () => {
         {...p}
         inicial={{ ...p.inicial, grupos: [{ grupo: 'compra', tono: 'rojo' }, { grupo: 'aduana' }] }}
         guardada={null}
+        {...ACCIONES}
       />,
     )
     expect((screen.getByLabelText('Tono de «Compra»') as HTMLSelectElement).value).toBe('rojo')
@@ -111,7 +113,7 @@ describe('EditorDeLaPlantilla', () => {
   })
 
   it('un rechazo de forma sale junto a su campo, con el bloque abierto, y apaga «Guardar»', () => {
-    render(<EditorDeLaPlantilla {...props()} />)
+    render(<EditorDeLaPlantilla {...props()} {...ACCIONES} />)
     const campo = screen.getByLabelText('Etiqueta del total')
     escribir(campo, '')
     expect(screen.getByText('El total lleva de 1 a 40 caracteres.')).toBeTruthy()
@@ -128,7 +130,7 @@ describe('EditorDeLaPlantilla', () => {
         porCampo: { nota: 'Hay un carácter que no se puede guardar.' },
       },
     })
-    render(<EditorDeLaPlantilla {...props()} />)
+    render(<EditorDeLaPlantilla {...props()} {...ACCIONES} />)
     escribir(screen.getByLabelText('Nota de la tarjeta'), 'x')
     pulsar(screen.getByRole('button', { name: 'Guardar' }))
     expect(await screen.findByText('Hay un carácter que no se puede guardar.')).toBeTruthy()
@@ -136,7 +138,7 @@ describe('EditorDeLaPlantilla', () => {
   })
 
   it('con más de 500 filas muestra 500 con el aviso, y «Buscar fila» halla la que el tope dejaba fuera', () => {
-    render(<EditorDeLaPlantilla {...props({}, 600)} />)
+    render(<EditorDeLaPlantilla {...props({}, 600)} {...ACCIONES} />)
     pulsar(screen.getByText('Filas', { selector: 'summary *' }))
     expect(screen.getByText(/Se muestran las 500 primeras filas/)).toBeTruthy()
     expect(screen.queryByLabelText('Etiqueta de «Nodo 599»')).toBeNull()
@@ -147,13 +149,36 @@ describe('EditorDeLaPlantilla', () => {
     escribir(screen.getByLabelText('Buscar fila'), 'no existe')
     expect(screen.getByText('Ninguna fila coincide con «no existe».')).toBeTruthy()
   })
+})
 
+describe('EditorDeLaPlantilla: publicar y descartar', () => {
   it('«Buscar fila» no cuenta como cambio ni envía con Enter', () => {
-    render(<EditorDeLaPlantilla {...props()} />)
+    render(<EditorDeLaPlantilla {...props()} {...ACCIONES} />)
     fireEvent.keyDown(screen.getByLabelText('Buscar fila'), { key: 'Enter' })
     expect(guardarBorrador).not.toHaveBeenCalled()
     expect((screen.getByRole('button', { name: 'Guardar' }) as HTMLButtonElement).disabled).toBe(
       true,
     )
+  })
+
+  it('la fila de «Guardar» trae los botones; con cambios sin guardar «Publicar…» está apagado y dice por qué', () => {
+    render(<EditorDeLaPlantilla {...props()} {...ACCIONES} />)
+    const publicar = screen.getByRole('button', { name: 'Publicar…' }) as HTMLButtonElement
+    expect(publicar.disabled).toBe(false)
+    expect(screen.getByRole('button', { name: 'Descartar borrador…' })).toBeTruthy()
+    escribir(screen.getByLabelText('Etiqueta del total'), 'TOTAL FINAL')
+    expect(publicar.disabled).toBe(true)
+    expect(screen.getByText('Guarda los cambios para poder publicarlos.')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Descartar borrador…' }))
+    expect(ACCIONES.alDescartar).toHaveBeenCalledTimes(1)
+  })
+
+  it('sin borrador «Publicar…» pide guardar uno y no hay «Descartar borrador…»', () => {
+    render(<EditorDeLaPlantilla {...props({ esperada: null, guardada: null })} {...ACCIONES} />)
+    expect((screen.getByRole('button', { name: 'Publicar…' }) as HTMLButtonElement).disabled).toBe(
+      true,
+    )
+    expect(screen.getByText('Guarda un borrador para poder publicarlo.')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Descartar borrador…' })).toBeNull()
   })
 })

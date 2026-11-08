@@ -104,7 +104,8 @@ test('E1: sin borrador ni publicada el editor parte de los grupos de la fórmula
   const guardado = borradorGuardado(origenId())
   expect(guardado?.definicion.total.etiqueta).toBe('TOTAL EN DÓLARES')
   expect(guardado?.definicion.grupos[0]?.tono).toBeTruthy()
-  expect(guardado?.actualizadoEn).toMatch(/\.\d{6}/)
+  // La base escribe los microsegundos sin los ceros del final: lo que prueba que no pasó por un `Date` (3 decimales) son al menos 4.
+  expect(guardado?.actualizadoEn).toMatch(/\.\d{4,6}[+-]/)
 })
 
 test('E2: sin la clave no hay pestaña ni se abre por la URL; un origen ajeno abre el suyo; sin fórmula, el vacío con su enlace', async ({
@@ -137,7 +138,7 @@ test('E4: lo tipeado y sin guardar vuelve tras recargar con «Descartar», y «D
   await page.reload()
   await expect(page.getByText('Recuperamos lo que habías escrito y no guardaste.')).toBeVisible()
   await expect(page.getByLabel('Nota de la tarjeta')).toHaveValue('Escrita y sin guardar')
-  await page.getByRole('button', { name: 'Descartar' }).click()
+  await page.getByRole('button', { name: 'Descartar', exact: true }).click()
   await expect(page.getByLabel('Nota de la tarjeta')).toHaveValue('')
   await expect(guardar(page)).toBeDisabled()
 })

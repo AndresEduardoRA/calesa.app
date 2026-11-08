@@ -10,7 +10,7 @@ import { leerPlantillaDelOrigen } from '../../../areas/plantilla/composicion'
 import { origenElegido } from '../../../entities/origenes-para-cotizar'
 import { origenesDeLaTarjeta } from '../../../entities/plantilla/origenes-de-la-tarjeta'
 import { propsDelEditor } from '../../../entities/plantilla/props-del-editor'
-import { EditorDeLaPlantillaDiferido } from './diferidos'
+import { PestanaDeLaTarjeta } from './pestana-de-la-tarjeta'
 import { SelectorDeOrigen } from './selector-de-origen'
 
 type Origen = { id: string; nombre: string; activo: boolean }
@@ -61,7 +61,7 @@ export async function SeccionDeLaPlantilla({ origenes, permisos, origenPedido }:
           compacto
         />
       ) : (
-        <EditorDeLaPlantillaDiferido key={`${origen.id}:${editor.esperada ?? 'sin'}`} {...editor} />
+        <PestanaDeLaTarjeta editor={editor} />
       )}
     </>
   )

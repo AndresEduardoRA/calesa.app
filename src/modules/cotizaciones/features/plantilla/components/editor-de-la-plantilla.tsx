@@ -9,12 +9,23 @@ import { useEditorDeLaPlantilla } from '../hooks/use-editor-de-la-plantilla'
 import { useGuardarLaPlantilla } from '../hooks/use-guardar-la-plantilla'
 import { useMotivosDelEditor } from '../hooks/use-motivos-del-editor'
 import { AvisosDelEditor } from './avisos-del-editor'
+import { BotonesDeLaPlantilla } from './botones-de-la-plantilla'
 import { CuerpoDelEditor } from './cuerpo-del-editor'
 import { EncabezadoDelEditor } from './encabezado-del-editor'
 
-// El editor de la plantilla de la tarjeta (4.19-3b): guarda el **borrador** del origen (publicar y descartar son del 4.19-3c). Nace de la plantilla que le arma el
-// servidor (`propsDelEditor()`) y, con una versión nueva (`key` de la pestaña), se monta otro.
-export function EditorDeLaPlantilla(props: PropsDelEditor) {
+// Lo que el editor le pide a la pestaña: abrir los modales de publicar y de descartar el borrador (4.19-3c), que viven afuera, fuera de su `key`.
+export type PropsDelEditorConAcciones = PropsDelEditor & {
+  alPublicar: () => void
+  alDescartar: () => void
+}
+
+// El editor de la plantilla de la tarjeta (4.19-3b): guarda el **borrador** del origen y, en su fila de botones, ofrece «Publicar…» y «Descartar borrador…» (4.19-3c).
+// Nace de la plantilla que le arma el servidor (`propsDelEditor()`) y, con una versión nueva (`key` de la pestaña), se monta otro.
+export function EditorDeLaPlantilla({
+  alPublicar,
+  alDescartar,
+  ...props
+}: PropsDelEditorConAcciones) {
   const { origen, esperada, inicial, guardada, contexto, tonos, avisos } = props
   const editor = useEditorDeLaPlantilla({
     origenId: origen.id,
@@ -82,6 +93,13 @@ export function EditorDeLaPlantilla(props: PropsDelEditor) {
         >
           {guardar.enCurso ? 'Guardando…' : 'Guardar'}
         </Button>
+        <BotonesDeLaPlantilla
+          esperada={esperada}
+          hayCambios={editor.hayCambios}
+          ocupado={deshabilitado || guardar.conflicto !== null}
+          alPublicar={alPublicar}
+          alDescartar={alDescartar}
+        />
       </div>
     </form>
   )
