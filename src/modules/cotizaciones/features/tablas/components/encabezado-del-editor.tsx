@@ -15,9 +15,9 @@ type Props = {
 // El encabezado del editor de una tabla (4.23-3, C10): su nombre, la versión que se edita y, en una compartida, a quién le cambia publicarla. «Volver a las tablas» no
 // pregunta: el borrador conserva lo hecho.
 export function EncabezadoDelEditor({ tabla, origen }: Props) {
-  const { zonaHoraria } = useRegional()
+  const { zonaHoraria, locale } = useRegional()
   const publicada = [
-    `Versión ${formatearNumero(tabla.version, { decimales: 0 })}`,
+    `Versión ${formatearNumero(tabla.version, { locale, decimales: 0 })}`,
     tabla.publicadoPor,
     tabla.publicadoEn ? fechaRelativa(tabla.publicadoEn, { zona: zonaHoraria }) : null,
   ].filter((parte): parte is string => parte !== null)

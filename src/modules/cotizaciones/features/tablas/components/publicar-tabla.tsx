@@ -1,13 +1,14 @@
 'use client'
 
+import { formatearNumero } from '@/shared/lib/formato'
 import { Button } from '@/shared/ui/button'
+import { useRegional } from '@/shared/ui/regional'
 import { avisarExito } from '@/shared/ui/toasts'
 import { useAbiertoAlgunaVez } from '@/shared/ui/use-abierto-alguna-vez'
 import { usePanelPorUrl } from '@/shared/ui/use-panel-por-url'
 import { filasParaPublicar } from '../../../entities/tablas/edicion'
 import type { PublicacionDeTabla } from '../../../entities/tablas/publicacion'
 import type { TablaDeReferencia } from '../../../entities/tablas/lectura'
-import { formatearNumero } from '@/shared/lib/formato'
 import { destinoDeCamino } from '../../../entities/tablas/vista-del-editor'
 import type { BorradorDeTablaEnUso } from '../hooks/use-borrador-de-tabla'
 import type { FilasDeTabla } from '../hooks/use-filas-de-tabla'
@@ -23,14 +24,19 @@ export const PANEL_PUBLICAR_TABLA = 'publicar-tabla'
 const SIN_CAMBIOS = 'No hay cambios por publicar.'
 const CON_ERROR = 'Corrige la celda marcada para publicar.'
 
-const avisoDePublicada = (nombre: string, { version, formulas }: PublicacionDeTabla) =>
-  `Publicaste la versión ${formatearNumero(version, { decimales: 0 })} de «${nombre}».${
+const avisoDePublicada = (
+  nombre: string,
+  { version, formulas }: PublicacionDeTabla,
+  locale: string,
+) =>
+  `Publicaste la versión ${formatearNumero(version, { locale, decimales: 0 })} de «${nombre}».${
     formulas.length > 0 ? ' Las fórmulas que la usan pasaron a su versión siguiente.' : ''
   }`
 
 // «Publicar» del editor de tablas (4.23-3, C9): apagado sin cambios o con una celda marcada; abre `?panel=publicar-tabla`. Entró: se cierra, se avisa y la ruta
 // revalidada vuelve a montar el editor con la versión nueva.
 export function PublicarTabla({ tabla, edicion, borrador }: Props) {
+  const { locale } = useRegional()
   const panel = usePanelPorUrl(PANEL_PUBLICAR_TABLA)
   const montado = useAbiertoAlgunaVez(panel.abierto)
   const { estado, cambios, error } = edicion
@@ -65,7 +71,7 @@ export function PublicarTabla({ tabla, edicion, borrador }: Props) {
           alNoEntrar={borrador.reanudar}
           alPublicar={(publicacion) => {
             panel.cerrar()
-            avisarExito(avisoDePublicada(tabla.nombre, publicacion))
+            avisarExito(avisoDePublicada(tabla.nombre, publicacion, locale))
           }}
           alIrALaCelda={(rechazo) => {
             panel.cerrar()

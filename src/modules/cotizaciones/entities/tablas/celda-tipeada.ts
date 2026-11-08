@@ -36,7 +36,7 @@ export function valorTipeado(columna: ColumnaDeTabla, texto: string, locale: str
   }
 }
 
-// Lo que muestra el campo: un número con toda su precisión, sin miles y con el decimal del locale (salir con Tab no cambia nada); un booleano (sólo por SQL) como
+// Lo que muestra el campo: un número con 15 cifras significativas (las del cast de la base), sin miles y con el decimal del locale (salir con Tab no cambia nada: el editor no aplica un texto igual a este); un booleano (sólo por SQL) como
 // texto, para que `motivoDeCelda` lo marque.
 export function textoParaEditar(
   _columna: ColumnaDeTabla,

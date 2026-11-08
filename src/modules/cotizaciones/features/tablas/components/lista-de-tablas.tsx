@@ -24,9 +24,9 @@ const etiquetaDe = (origen: Origen) =>
   origen.activo ? origen.nombre : `${origen.nombre} (inactivo)`
 
 function Publicada({ tabla }: { tabla: TablaDeReferencia }) {
-  const { zonaHoraria } = useRegional()
+  const { zonaHoraria, locale } = useRegional()
   const partes = [
-    `Versión ${formatearNumero(tabla.version, { decimales: 0 })}`,
+    `Versión ${formatearNumero(tabla.version, { locale, decimales: 0 })}`,
     tabla.publicadoPor,
     tabla.publicadoEn ? fechaRelativa(tabla.publicadoEn, { zona: zonaHoraria }) : null,
   ].filter((parte): parte is string => parte !== null)
@@ -36,6 +36,7 @@ function Publicada({ tabla }: { tabla: TablaDeReferencia }) {
 // La lista de tablas de referencia de un origen y las compartidas (4.23-3, C3): con más de un origen, un selector que escribe `?origen=` (y borra `?tabla=`); cada tabla
 // abre su editor. Las tablas nuevas y sus columnas se crean por SQL (P5 del 4.23-1).
 export function ListaDeTablas({ origenes, origen, lectura }: Props) {
+  const { locale } = useRegional()
   const [url, setUrl] = useQueryStates(
     { origen: parseAsString, tabla: parseAsString },
     { shallow: false },
@@ -94,7 +95,7 @@ export function ListaDeTablas({ origenes, origen, lectura }: Props) {
       )}
       {lectura.hayMas ? (
         <AvisoDeTope
-          texto={`Mostrando las ${formatearNumero(TOPE_DE_TABLAS, { decimales: 0 })} primeras tablas.`}
+          texto={`Mostrando las ${formatearNumero(TOPE_DE_TABLAS, { locale, decimales: 0 })} primeras tablas.`}
         />
       ) : null}
     </>

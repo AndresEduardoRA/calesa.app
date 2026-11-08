@@ -46,8 +46,14 @@ export function EditorDeTabla({ tabla, filas, origen }: Props) {
     cambios,
   })
 
+  // Lo último editado: el «Descartar» del aviso al abrir se llama después y tiene que deshacer hasta ahí, no hasta lo recuperado.
+  const ultimo = useRef(estado)
+  useEffect(() => {
+    ultimo.current = estado
+  })
+
   function descartar() {
-    const previo = estado
+    const previo = ultimo.current
     edicion.reponer(leido)
     borrador.borrar()
     avisarConDeshacer('Descartaste los cambios sin publicar.', () => {

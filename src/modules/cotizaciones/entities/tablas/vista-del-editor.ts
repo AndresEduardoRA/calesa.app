@@ -122,7 +122,6 @@ const CAMINO = /^filas\.(\d+)(?:\.(.+))?$/
 const declarada = (columnas: readonly ColumnaDeTabla[], clave: string | null) =>
   clave !== null && columnas.some((c) => c.clave === clave)
 
-// El del espejo de la base, con su fila (`filas.<i>.<clave>`); `filas` solo (el tope) no tiene fila.
 // La celda que nombra un camino de la base (`filas.<i>.<clave>`, el `hint` de un 22023 o el del espejo) con su mensaje; `filas` solo (el tope) no tiene fila. «Ir a la
 // celda» de un rechazo al publicar lo usa.
 export function destinoDeCamino(
