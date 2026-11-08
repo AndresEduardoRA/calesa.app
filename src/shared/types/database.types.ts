@@ -8094,6 +8094,18 @@ export type Database = {
         }
         Returns: boolean
       }
+      cotizacion_comentar: {
+        Args: { p_cotizacion: string; p_cuerpo: string; p_padre: string }
+        Returns: Json
+      }
+      cotizacion_comentario_borrar: {
+        Args: { p_actualizado_en_esperado: string; p_comentario: string }
+        Returns: Json
+      }
+      cotizacion_comentario_editar: {
+        Args: { p_actualizado_en_esperado: string; p_comentario: string; p_cuerpo: string }
+        Returns: Json
+      }
       cotizacion_comentario_respuestas: {
         Args: {
           p_comentario: string
