@@ -1,6 +1,7 @@
 // Editar el diseño de un origen desde Configuración › Cotización › Diseño (4.22-2): la versión que se abre, las operaciones puras sobre una sección y una celda,
 // el pedido de guardar el borrador y si hay algo por guardar. Nada muta lo que recibe. El diseño que sale de aquí lo vuelve a revisar `validarDiseno()` en cada cambio
 // y la base al publicar; guardar un borrador no exige que valide (como la fórmula, 4.21-3b-1).
+import type { Resultado } from '@/shared/lib/errores'
 import { type Diseno, type SeccionDeDiseno, ANCHOS, PRESENTACIONES } from '../diseno'
 import type { Definicion } from '../formula'
 import type { ContextoDeDiseno } from '../validar-diseno'
@@ -35,6 +36,14 @@ export type PedidoDeGuardarDiseno = {
 
 // La fila escrita: su id y la hora que le puso la base, para volver a guardar sin releer.
 export type BorradorDelDisenoGuardado = { id: string; actualizadoEn: string }
+
+// Lo que escribe el editor del diseño: guarda el borrador por `formula_guardar_borrador()` (sobre la publicada lo crea, sobre el borrador lo pisa con su hora).
+export interface RepositorioDelDiseno {
+  guardarBorrador(pedido: PedidoDeGuardarDiseno): Promise<Resultado<BorradorDelDisenoGuardado>>
+}
+
+export const MOTIVO_SIN_PERMISO_DEL_DISENO =
+  'No tienes permiso para configurar el diseño de este origen.'
 
 export const MAXIMO_DEL_TITULO = 80
 
