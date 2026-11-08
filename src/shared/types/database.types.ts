@@ -7231,6 +7231,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      _final_crear_mirar: {
+        Args: { p_ids: string[]; p_lead: string; p_vehiculo: string }
+        Returns: undefined
+      }
       _formula_cambio_y_grupos: {
         Args: {
           p_buckets: Json
