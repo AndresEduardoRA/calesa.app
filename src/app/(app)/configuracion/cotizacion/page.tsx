@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { SeccionDeLaFormula } from '@/modules/cotizaciones/pantallas/formula'
+import { SeccionDeLaPlantilla } from '@/modules/cotizaciones/pantallas/plantilla'
 import { puede, requerirSesion } from '@/modules/equipo'
 import { getOrigenes } from '@/modules/origenes'
 import { unParametro } from '@/shared/lib/rutas'
@@ -14,7 +15,7 @@ import { SeccionNiveles } from './seccion-niveles'
 export const metadata: Metadata = { title: 'Cotización' }
 
 // Configuración › Cotización. Entra quien ve alguna pestaña (`pestanas.ts`): «Niveles de acceso» con `equipo.roles.ver` (los cambia quien tiene
-// `equipo.roles.gestionar`: cada nivel es un permiso de la matriz de Roles) y «Fórmula» con `cotizaciones.configurar` en algún origen (4.20-2a). La base vuelve a
+// `equipo.roles.gestionar`: cada nivel es un permiso de la matriz de Roles) y «Fórmula» y «Tarjeta» con `cotizaciones.configurar` en algún origen (4.20-2a, 4.19-3b). La base vuelve a
 // exigir lo suyo en cada RPC y en la policy de `formulas`. Sin ninguna, «No tienes permiso» (y la sección no figura en Configuración).
 export default async function PaginaDeCotizacion({
   searchParams,
@@ -51,6 +52,18 @@ export default async function PaginaDeCotizacion({
           fallback={<EsqueletoFormulario bloques={2} campos={4} />}
         >
           <SeccionDeLaFormula
+            origenes={getOrigenes(true)}
+            permisos={sesion.permisos}
+            origenPedido={origenPedido}
+          />
+        </Suspense>
+      ) : null}
+      {pestana === 'tarjeta' ? (
+        <Suspense
+          key={origenPedido ?? ''}
+          fallback={<EsqueletoFormulario bloques={2} campos={4} />}
+        >
+          <SeccionDeLaPlantilla
             origenes={getOrigenes(true)}
             permisos={sesion.permisos}
             origenPedido={origenPedido}

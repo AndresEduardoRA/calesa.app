@@ -24,20 +24,21 @@ describe('pestanasVisibles', () => {
     ])
   })
 
-  it('quien sólo configura la fórmula de un origen, la fórmula', () => {
+  it('quien configura un origen, la fórmula y la tarjeta, en ese orden', () => {
     expect(claves(pestanasVisibles(permisos({ 'cotizaciones.configurar': [O1] })))).toEqual([
       'formula',
+      'tarjeta',
     ])
   })
 
-  it('con las dos, en su orden: niveles primero', () => {
+  it('con las tres, en su orden: niveles primero', () => {
     expect(
       claves(
         pestanasVisibles(
           permisos({ 'equipo.roles.gestionar': 'global', 'cotizaciones.configurar': 'global' }),
         ),
       ),
-    ).toEqual(['niveles', 'formula'])
+    ).toEqual(['niveles', 'formula', 'tarjeta'])
   })
 
   it('sin ninguna, ninguna', () => {
@@ -55,6 +56,16 @@ describe('pestanaDe', () => {
   it('abre la que dice la URL si es una de las suyas', () => {
     expect(pestanaDe('formula', las2)).toBe('formula')
     expect(pestanaDe('niveles', las2)).toBe('niveles')
+  })
+
+  it('«tarjeta» sin la clave abre la primera de las suyas', () => {
+    const soloNiveles = alMenosUna([{ clave: 'niveles' as const }])
+    if (!soloNiveles) throw new Error('la lista no está vacía')
+    expect(pestanaDe('tarjeta', soloNiveles)).toBe('niveles')
+    expect(pestanaDe('tarjeta', las2)).toBe('niveles')
+    expect(pestanaDe('tarjeta', alMenosUna([{ clave: 'tarjeta' as const }]) ?? las2)).toBe(
+      'tarjeta',
+    )
   })
 
   it('una que no es suya abre la primera de las suyas', () => {
