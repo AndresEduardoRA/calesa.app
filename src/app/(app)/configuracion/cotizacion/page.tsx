@@ -3,6 +3,7 @@ import { Suspense } from 'react'
 import { VistaPreviaDeLaPlantillaDiferida } from '@/modules/cotizaciones/pantallas/tarjeta-plantilla'
 import { SeccionDeLaFormula } from '@/modules/cotizaciones/pantallas/formula'
 import { SeccionDeLaPlantilla } from '@/modules/cotizaciones/pantallas/plantilla'
+import { puedeCambiarAjustesDeCotizacion } from '@/modules/empresa'
 import { puede, requerirSesion } from '@/modules/equipo'
 import { getOrigenes } from '@/modules/origenes'
 import { unParametro } from '@/shared/lib/rutas'
@@ -11,13 +12,14 @@ import { EstadoSinPermiso } from '@/shared/ui/estados'
 import { alMenosUna } from '../empresa/pestanas'
 import { pestanaDe, pestanasVisibles } from './pestanas'
 import { PestanasDeCotizacion } from './pestanas-de-cotizacion'
+import { SeccionAjustes } from './seccion-ajustes'
 import { SeccionNiveles } from './seccion-niveles'
 
 export const metadata: Metadata = { title: 'Cotización' }
 
 // Configuración › Cotización. Entra quien ve alguna pestaña (`pestanas.ts`): «Niveles de acceso» con `equipo.roles.ver` (los cambia quien tiene
-// `equipo.roles.gestionar`: cada nivel es un permiso de la matriz de Roles) y «Fórmula» y «Tarjeta» con `cotizaciones.configurar` en algún origen (4.20-2a, 4.19-3b). La base vuelve a
-// exigir lo suyo en cada RPC y en la policy de `formulas`. Sin ninguna, «No tienes permiso» (y la sección no figura en Configuración).
+// `equipo.roles.gestionar`: cada nivel es un permiso de la matriz de Roles) y «Fórmula» y «Tarjeta» con `cotizaciones.configurar` en algún origen (4.20-2a, 4.19-3b) y «Ajustes» con la misma
+// clave (la cambia quien la tiene en todos los orígenes). La base vuelve a exigir lo suyo en cada RPC y en la policy de `formulas`. Sin ninguna, «No tienes permiso» (y la sección no figura en Configuración).
 export default async function PaginaDeCotizacion({
   searchParams,
 }: PageProps<'/configuracion/cotizacion'>) {
@@ -70,6 +72,11 @@ export default async function PaginaDeCotizacion({
             origenPedido={origenPedido}
             VistaPrevia={VistaPreviaDeLaPlantillaDiferida}
           />
+        </Suspense>
+      ) : null}
+      {pestana === 'ajustes' ? (
+        <Suspense fallback={<EsqueletoFormulario bloques={1} campos={2} />}>
+          <SeccionAjustes puedeCambiar={puedeCambiarAjustesDeCotizacion(sesion.permisos)} />
         </Suspense>
       ) : null}
     </div>

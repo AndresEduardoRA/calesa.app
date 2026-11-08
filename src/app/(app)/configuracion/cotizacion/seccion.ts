@@ -8,7 +8,7 @@ import type { SeccionDeConfiguracion } from '../secciones'
 export const SECCION_DE_COTIZACION = {
   clave: 'cotizacion',
   titulo: 'Cotización',
-  descripcion: 'La fórmula de cada origen y los niveles de acceso de la hoja.',
+  descripcion: 'La fórmula de cada origen, la vigencia y los niveles de acceso de la hoja.',
   ruta: RUTAS.configuracionDeCotizacion,
   Icono: CalculatorIcon,
   permisos: ['equipo.roles.ver', 'equipo.roles.gestionar', 'cotizaciones.configurar'],

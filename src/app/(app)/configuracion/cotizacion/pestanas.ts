@@ -1,6 +1,7 @@
 // Las pestañas de Configuración › Cotización. Cuál está abierta vive en la URL (`?seccion=`). Cada una lleva sus permisos: «Niveles de acceso» los de la matriz de
-// Roles (cada nivel es un permiso) y «Fórmula» y «Tarjeta» `cotizaciones.configurar` (4.20-2a, 4.19-3b), en cualquier origen. Niveles va primero: quien entra por el
-// hub con los dos cae en la de siempre; «Tarjeta» va después de «Fórmula» (la tarjeta se arma con los grupos de la fórmula). Las tablas llegan después (docs/PLAN.md, Fase 4).
+// Roles (cada nivel es un permiso), «Fórmula» y «Tarjeta» `cotizaciones.configurar` (4.20-2a, 4.19-3b), en cualquier origen, y «Ajustes» (la vigencia y el vehículo
+// obligatorio) la misma clave en cualquier origen: la ve quien configura algún origen y la cambia quien la tiene en todos (`puedeCambiarAjustesDeCotizacion`). Niveles va
+// primero y Ajustes al final: quien entra por el hub cae en la de siempre; «Tarjeta» va después de «Fórmula» (la tarjeta se arma con los grupos de la fórmula).
 import { puede, type ClavePermiso, type Permisos } from '@/shared/lib/permisos'
 import type { AlMenosUna } from '../empresa/pestanas'
 
@@ -18,6 +19,7 @@ export const PESTANAS = [
   },
   { clave: 'formula', titulo: 'Fórmula', permisos: ['cotizaciones.configurar'] },
   { clave: 'tarjeta', titulo: 'Tarjeta', permisos: ['cotizaciones.configurar'] },
+  { clave: 'ajustes', titulo: 'Ajustes', permisos: ['cotizaciones.configurar'] },
 ] as const satisfies readonly PestanaDeCotizacion[]
 
 export type Pestana = (typeof PESTANAS)[number]['clave']

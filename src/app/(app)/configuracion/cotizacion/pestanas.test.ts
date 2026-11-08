@@ -24,21 +24,22 @@ describe('pestanasVisibles', () => {
     ])
   })
 
-  it('quien configura un origen, la fórmula y la tarjeta, en ese orden', () => {
+  it('quien configura un origen, la fórmula, la tarjeta y los ajustes, en ese orden', () => {
     expect(claves(pestanasVisibles(permisos({ 'cotizaciones.configurar': [O1] })))).toEqual([
       'formula',
       'tarjeta',
+      'ajustes',
     ])
   })
 
-  it('con las tres, en su orden: niveles primero', () => {
+  it('con las tres, en su orden: niveles primero y ajustes al final', () => {
     expect(
       claves(
         pestanasVisibles(
           permisos({ 'equipo.roles.gestionar': 'global', 'cotizaciones.configurar': 'global' }),
         ),
       ),
-    ).toEqual(['niveles', 'formula', 'tarjeta'])
+    ).toEqual(['niveles', 'formula', 'tarjeta', 'ajustes'])
   })
 
   it('sin ninguna, ninguna', () => {
@@ -49,13 +50,15 @@ describe('pestanasVisibles', () => {
 describe('pestanaDe', () => {
   const soloFormula = alMenosUna([{ clave: 'formula' as const }])
   const las2 = alMenosUna([{ clave: 'niveles' as const }, { clave: 'formula' as const }])
-  if (!soloFormula || !las2) {
+  const deUnOrigen = alMenosUna([{ clave: 'formula' as const }, { clave: 'ajustes' as const }])
+  if (!soloFormula || !las2 || !deUnOrigen) {
     throw new Error('las listas no están vacías')
   }
 
   it('abre la que dice la URL si es una de las suyas', () => {
     expect(pestanaDe('formula', las2)).toBe('formula')
     expect(pestanaDe('niveles', las2)).toBe('niveles')
+    expect(pestanaDe('ajustes', deUnOrigen)).toBe('ajustes')
   })
 
   it('«tarjeta» sin la clave abre la primera de las suyas', () => {
@@ -70,6 +73,7 @@ describe('pestanaDe', () => {
 
   it('una que no es suya abre la primera de las suyas', () => {
     expect(pestanaDe('niveles', soloFormula)).toBe('formula')
+    expect(pestanaDe('ajustes', las2)).toBe('niveles')
   })
 
   it('lo que no es una pestaña abre la primera', () => {
