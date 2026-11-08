@@ -272,9 +272,11 @@ export async function crearOrigenDeSubastaDeCotizar(
   return origen
 }
 
-// Las cotizaciones guardadas de esos orígenes se van primero (4.13-3b): retienen el origen y la fórmula. Después sus vehículos (los del panel del vehículo, 4.14-2a): retienen el origen.
+// Las cotizaciones guardadas de esos orígenes se van primero (4.13-3b): retienen el origen y la fórmula. Antes que ellas, sus comprobantes (4.26: `restrict`; los
+// deja un spec de comprobantes que se cortó a la mitad). Después sus vehículos (los del panel del vehículo, 4.14-2a): retienen el origen.
 export function borrarOrigenesDeCotizar(): void {
   sql(`
+    delete from public.comprobantes where cotizacion_id in (select c.id from public.cotizaciones c join public.origenes o on o.id = c.origen_id where o.clave like '${CLAVE_BASE}%');
     delete from public.cotizaciones where origen_id in (select id from public.origenes where clave like '${CLAVE_BASE}%');
     delete from public.vehiculos where origen_id in (select id from public.origenes where clave like '${CLAVE_BASE}%');
     delete from public.origenes where clave like '${CLAVE_BASE}%'`)
