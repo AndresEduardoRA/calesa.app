@@ -79,6 +79,13 @@ describe('carriles › lo que un carril que no es base cambia en docs/plan.yaml 
     }
   })
 
+  it('suma en cualquier lugar de su dueno_de, no sólo al final (PR 76)', () => {
+    const nuevo = `${M}entities/compilador-auxiliares.ts`
+    const p = clon()
+    p.carriles[1].dueno_de.splice(1, 0, nuevo)
+    expect(revisar('b/x', [PLAN_YAML, { estado: 'A', ruta: nuevo }], p)).toEqual([])
+  })
+
   it('borrar docs/plan.yaml o dejarlo ilegible cae', () => {
     expect(revisar('b/x', [{ estado: 'D', ruta: 'docs/plan.yaml' }], null)).toEqual([
       expect.stringContaining('docs/plan.yaml: el carril b no lo borra'),
