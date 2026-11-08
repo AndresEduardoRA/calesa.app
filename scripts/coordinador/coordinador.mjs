@@ -197,8 +197,9 @@ function mirarPr(numero) {
   const rojo = checks.some(
     (c) => estadoDe(c) === 'COMPLETED' && !CHECK_BIEN.has(c.conclusion ?? c.state),
   )
+  // Rojo es con el CI terminado: con un job todavía corriendo, el reintento de los caídos no se puede pedir (reintentarUnaVez).
   const arreglar =
-    pr.mergeable === 'CONFLICTING' ? 'conflicto con main' : rojo ? 'CI en rojo' : null
+    pr.mergeable === 'CONFLICTING' ? 'conflicto con main' : rojo && !pendiente ? 'CI en rojo' : null
   const listo = !arreglar && !pendiente && checks.length > 0 && pr.mergeable === 'MERGEABLE'
   const guardas = GUARDAS_SOLAS ? [] : guardasEn((pr.files ?? []).map((f) => f.path))
   return {
@@ -226,6 +227,27 @@ function integrar(numero, pr, ...modo) {
     }
   }
 }
+// Un CI rojo se vuelve a correr una vez por commit (sólo los jobs que cayeron) antes de devolver el paso a su carril: un contenedor de
+// Supabase que no arrancó en el runner o un e2e inestable no es un arreglo del carril (el PR 69 del 2026-11-08 volvía al A por eso).
+// Devuelve el estado con el commit anotado en `reintentos` y si se pidió el reintento.
+function reintentarUnaVez(numero, pr, estado) {
+  if (!pr.oid || estado.reintentos?.[numero] === pr.oid) return { estado, reintentado: false }
+  let caidos
+  try {
+    caidos = JSON.parse(gh('run', 'list', '--commit', pr.oid, '--json', 'databaseId,conclusion'))
+      .filter((r) => r.conclusion === 'failure')
+      .map((r) => String(r.databaseId))
+    for (const id of caidos) gh('run', 'rerun', id, '--failed')
+  } catch {
+    return { estado, reintentado: false }
+  }
+  if (caidos.length === 0) return { estado, reintentado: false }
+  return {
+    estado: { ...estado, reintentos: { ...(estado.reintentos ?? {}), [numero]: pr.oid } },
+    reintentado: true,
+  }
+}
+
 const textoGuardas = (g) =>
   `toca las guardas del piloto (${g.slice(0, 3).join(', ')}${g.length > 3 ? '…' : ''}): lo integra la persona`
 
@@ -258,6 +280,16 @@ function sincronizarParciales(plan, estado, informe) {
       informe.push(`${paso.id}: la parte #${e.pr_parcial} se cerró sin integrar`)
       quitar()
       continue
+    }
+    if (pr.arreglar === 'CI en rojo') {
+      const r = reintentarUnaVez(e.pr_parcial, pr, estado)
+      estado = r.estado
+      if (r.reintentado) {
+        informe.push(
+          `${paso.id}: la parte #${e.pr_parcial} quedó en rojo: vuelvo a correr lo que cayó, una vez`,
+        )
+        continue
+      }
     }
     if (!pr.listo) continue
     if (!integraSolo(paso, MERGE_AUTO)) {
@@ -364,6 +396,14 @@ function sincronizar(plan, estado) {
     if (pr.estado === 'CLOSED') {
       informe.push(`${paso.id}: el PR #${e.pr} se cerró sin integrar: lo decide la persona`)
       continue
+    }
+    if (pr.arreglar === 'CI en rojo') {
+      const r = reintentarUnaVez(e.pr, pr, estado)
+      estado = r.estado
+      if (r.reintentado) {
+        informe.push(`${paso.id}: CI en rojo (#${e.pr}): vuelvo a correr lo que cayó, una vez`)
+        continue
+      }
     }
     if (pr.arreglar !== (e.arreglar ?? null)) {
       estado = { ...estado, pasos: { ...estado.pasos, [paso.id]: { ...e, arreglar: pr.arreglar } } }
