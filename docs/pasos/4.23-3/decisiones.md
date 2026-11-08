@@ -30,6 +30,7 @@
   - **4-47:** la primera mitad («una tabla de más de 1.000 filas llega a todas desde el editor») queda cumplida; el enlace desde la ayuda, con el 4.23-4. La segunda
     mitad («una tabla congelada sin viva se rotula con etiquetas») **sigue abierta**: P5 permite la baja por SQL (`activa = false`), `cotizacion_tabla` lee sólo
     las vivas activas, y rotular sin viva exige congelar también las `columnas` (un cambio de base). Va al paso que traiga la baja de tablas o ese cambio.
-  - **Choque probable con el 4.20-4b del A** (la pestaña «Ajustes» en los mismos `pestanas.ts`, `page.tsx` y `pestanas-de-cotizacion.tsx`): se unen las dos
-    pestañas. «Tablas» quedó al final de `PESTANAS`, su bloque al final del JSX de `page.tsx` y en la barra sólo una clave más (`tabla`).
+  - **Choque con el 4.20-4b del A** (la pestaña «Ajustes» en los mismos `pestanas.ts`, `seccion.ts`, `page.tsx` y sus tests): resuelto en el merge `d3ce0c46`
+    juntando las dos pestañas en el orden niveles, fórmula, tablas, ajustes. «Ajustes» sigue al final (lo pide su comentario: Niveles primero y Ajustes al
+    final) y «Tablas» va junto a «Fórmula», porque sus tablas son parámetros de la fórmula. En la barra, sólo una clave más (`tabla`).
   - **`db:carreras` de la fila no se corrió en esta parte:** no toca `supabase/` ni un candado; las carreras de `tabla_referencia_publicar()` las corrió el 4.23-1.
