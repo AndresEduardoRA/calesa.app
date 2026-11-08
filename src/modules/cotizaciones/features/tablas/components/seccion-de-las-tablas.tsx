@@ -5,6 +5,7 @@ import { EstadoVacio } from '@/shared/ui/estados'
 import { leerTablasDeReferencia } from '../../../areas/tablas/composicion'
 import { origenElegido } from '../../../entities/origenes-para-cotizar'
 import { ListaDeTablas } from './lista-de-tablas'
+import { TablaAbierta } from './tabla-abierta'
 
 type Origen = { id: string; nombre: string; activo: boolean }
 
@@ -18,10 +19,21 @@ type Props = {
   tablaPedida: string | undefined
 }
 
+// La lista del origen o, con `?tabla=`, el editor de una de ellas.
+async function contenido(visibles: Origen[], origen: Origen, tablaPedida: string | undefined) {
+  const lectura = datosO(await leerTablasDeReferencia(origen.id))
+  if (tablaPedida !== undefined) {
+    const item = lectura.tablas.find((tabla) => tabla.id === tablaPedida)
+    return <TablaAbierta origen={origen} item={item} />
+  }
+  return <ListaDeTablas origenes={visibles} origen={origen} lectura={lectura} />
+}
+
 // La pestaña «Tablas» de Configuración › Cotización (4.23-3), leída en el servidor con la sesión de quien mira y detrás de `<Suspense>`: los orígenes donde tiene
 // `cotizaciones.configurar` (la misma línea que el área `formula`: un área no importa otra) y las tablas de referencia del abierto. La base vuelve a decidir (policy
-// `tablas_referencia: leer`). Una lectura que falla sube al `error.tsx` de la ruta, que ofrece «Reintentar».
-export async function SeccionDeLasTablas({ origenes, permisos, origenPedido }: Props) {
+// `tablas_referencia: leer`). Una lectura que falla sube al `error.tsx` de la ruta, que ofrece «Reintentar». Con `?tabla=`, el editor ocupa el lugar del selector y la
+// lista (como el de la fórmula).
+export async function SeccionDeLasTablas({ origenes, permisos, origenPedido, tablaPedida }: Props) {
   const visibles = datosO(await origenes)
     .filter((origen) => puede(permisos, 'cotizaciones.configurar', origen.id))
     .map(({ id, nombre, activo }) => ({ id, nombre, activo }))
@@ -38,11 +50,7 @@ export async function SeccionDeLasTablas({ origenes, permisos, origenPedido }: P
         </p>
       </div>
       {origen ? (
-        <ListaDeTablas
-          origenes={visibles}
-          origen={origen}
-          lectura={datosO(await leerTablasDeReferencia(origen.id))}
-        />
+        await contenido(visibles, origen, tablaPedida)
       ) : (
         <EstadoVacio
           Icono={TableIcon}
