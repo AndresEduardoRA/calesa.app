@@ -1,7 +1,10 @@
 'use client'
 
+import { useMemo } from 'react'
 import type { Diseno } from '../../../entities/diseno'
+import { tablasParaAyuda } from '../../../entities/diseno/edicion-de-items'
 import type { DisenoParaEditar, NivelDelDiseno } from '../../../entities/diseno/edicion-del-diseno'
+import { useEdicionesDelDiseno } from '../hooks/use-ediciones-del-diseno'
 import { useEditorDelDiseno } from '../hooks/use-editor-del-diseno'
 import { AvisosDelDiseno } from './avisos-del-diseno'
 import { BarraDeGuardado } from './barra-de-guardado'
@@ -16,8 +19,7 @@ type Props = {
   alRecargar: () => void
 }
 
-// El diseño de un origen en edición (4.22-2): «Guardar el borrador», el aviso y las secciones con sus celdas. Los ítems que no son celdas se dibujan de sólo lectura
-// (4.22-3 los edita). Cada cambio se aplica en el acto y `validarDiseno()` lo revisa; mientras guarda, todo espera.
+// El diseño de un origen en edición (4.22-2 y 4.22-3): «Guardar el borrador», el aviso y las secciones con sus ítems. Cada cambio se aplica en el acto y `validarDiseno()` lo revisa; mientras guarda, todo espera.
 export function EditorDelDiseno({
   origen,
   leida,
@@ -28,6 +30,8 @@ export function EditorDelDiseno({
 }: Props) {
   const editor = useEditorDelDiseno({ origenId: origen.id, leida, disenoLeido, niveles })
   const { guardado } = editor
+  const ediciones = useEdicionesDelDiseno(editor.aplicar, leida.definicion)
+  const tablas = useMemo(() => tablasParaAyuda(leida.definicion), [leida.definicion])
   return (
     <div className="grid min-w-0 gap-3">
       <BarraDeGuardado
@@ -48,6 +52,8 @@ export function EditorDelDiseno({
             nodos={editor.nodos}
             etiquetas={editor.nombresDeNodos}
             niveles={niveles}
+            tablas={tablas}
+            ediciones={ediciones}
             ocupado={editor.ocupado}
             alPonerSeccion={(cambios) => {
               editor.ponerSeccion(seccion.id, cambios)

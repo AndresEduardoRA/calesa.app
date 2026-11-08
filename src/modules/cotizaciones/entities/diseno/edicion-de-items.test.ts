@@ -76,8 +76,8 @@ describe('ayuda de una celda', () => {
 
   it('T4 · el texto quita la tabla, la tabla quita el texto, vacío quita la clave, 301 se cortan a 300', () => {
     const d = congelar(capturas)
-    const texto = ponerAyuda(d, 'logistica', 'transporte_bolivia', { texto: 'Hola' })
-    expect(celda(texto)).toMatchObject({ ayuda: { texto: 'Hola' } })
+    const texto = ponerAyuda(d, 'logistica', 'transporte_bolivia', { texto: 'Hola mundo ' })
+    expect(celda(texto)).toMatchObject({ ayuda: { texto: 'Hola mundo ' } })
     expect(celda(texto)).not.toHaveProperty('ayuda.tabla')
     const tabla = ponerAyuda(texto, 'logistica', 'transporte_bolivia', { tabla: 'depreciacion' })
     expect(celda(tabla)).toMatchObject({ ayuda: { tabla: 'depreciacion' } })

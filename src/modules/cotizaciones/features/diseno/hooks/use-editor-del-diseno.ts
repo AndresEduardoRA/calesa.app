@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useUnEnvioALaVez } from '@/shared/ui/use-un-envio-a-la-vez'
 import type { Diseno } from '../../../entities/diseno'
 import { nodosPorId } from '../../../entities/diseno/admite-nivel'
@@ -62,6 +62,10 @@ export function useEditorDelDiseno({ origenId, leida, disenoLeido, niveles }: Ar
     [definicion, trabajo, nombresDeNodos, nombresDeNiveles],
   )
 
+  const aplicar = useCallback((cambio: (d: Diseno) => Diseno) => {
+    setTrabajo(cambio)
+  }, [])
+
   const guardado = useGuardadoDelDiseno({
     origenId,
     leida,
@@ -80,6 +84,8 @@ export function useEditorDelDiseno({ origenId, leida, disenoLeido, niveles }: Ar
     guardado,
     // Mientras guarda, nada cambia.
     ocupado: envio.enCurso,
+    // Aplica una operación pura sobre el diseño de trabajo (las de ítems, cabecera y tarjeta: `use-ediciones-del-diseno.ts`).
+    aplicar,
     ponerSeccion: (seccionId: string, cambios: Parameters<typeof ponerSeccion>[2]) => {
       setTrabajo((d) => ponerSeccion(d, seccionId, cambios))
     },

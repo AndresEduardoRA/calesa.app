@@ -8,8 +8,10 @@ import {
 } from '../../../entities/diseno'
 import { celdaAdmiteNivel, type NodosPorId } from '../../../entities/diseno/admite-nivel'
 import type { NivelDelDiseno } from '../../../entities/diseno/edicion-del-diseno'
+import type { AyudaDeCelda } from '../../../entities/diseno/edicion-de-items'
 import type { CambioDeNiveles } from '../../../entities/diseno/niveles'
 import { CampoSeleccion } from '@/shared/ui/campo-seleccion'
+import { CamposDeLaAyuda } from './campos-de-la-ayuda'
 import { SelectorDeNivel } from './selector-de-nivel'
 
 const ANCHO: Record<(typeof ANCHOS)[number], string> = {
@@ -26,21 +28,25 @@ type Props = {
   etiqueta: string
   nodos: NodosPorId
   niveles: readonly NivelDelDiseno[]
+  tablas: readonly string[]
   ocupado: boolean
   alPonerAncho: (ancho: (typeof ANCHOS)[number]) => void
   alPonerNiveles: (cambios: CambioDeNiveles) => void
+  alPonerAyuda: (ayuda: AyudaDeCelda | null) => void
 }
 
-// Una celda de la sección: su etiqueta, el ancho y quién la ve y quién la edita. La celda gana a su sección: el nivel que rige es el propio y, sin él, el de la sección.
+// Una celda de la sección: su etiqueta, el ancho, quién la ve y quién la edita, y su ayuda. La celda gana a su sección: el nivel que rige es el propio y, sin él, el de la sección.
 export function CeldaEditable({
   seccion,
   celda,
   etiqueta,
   nodos,
   niveles,
+  tablas,
   ocupado,
   alPonerAncho,
   alPonerNiveles,
+  alPonerAyuda,
 }: Props) {
   const base = `${seccion.id}__${celda.nodo}`
   const admite = celdaAdmiteNivel(celda, nodos)
@@ -84,6 +90,13 @@ export function CeldaEditable({
           }}
         />
       </div>
+      <CamposDeLaAyuda
+        base={base}
+        ayuda={celda.ayuda}
+        tablas={tablas}
+        ocupado={ocupado}
+        alPonerAyuda={alPonerAyuda}
+      />
     </li>
   )
 }

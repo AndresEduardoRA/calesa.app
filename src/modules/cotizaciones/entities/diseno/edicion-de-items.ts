@@ -79,7 +79,7 @@ export function ponerEfecto(
   )
 }
 
-// La ayuda es una tabla o un texto, no las dos: escribir una quita la otra; vacía, sin tabla o `null` quita la clave. Un texto más largo se corta.
+// La ayuda es una tabla o un texto, no las dos: escribir una quita la otra; vacía, de blancos, sin tabla o `null` quita la clave. Un texto más largo se corta.
 export function ponerAyuda(
   diseno: Diseno,
   seccionId: string,
@@ -89,8 +89,9 @@ export function ponerAyuda(
   const limpia = ((): AyudaDeCelda | null => {
     if (ayuda === null) return null
     if ('tabla' in ayuda) return ayuda.tabla === '' ? null : { tabla: ayuda.tabla }
-    const texto = Array.from(ayuda.texto.trim()).slice(0, MAXIMO_DE_LA_AYUDA).join('')
-    return texto === '' ? null : { texto }
+    // Sin `trim()`: el texto se escribe letra a letra y un espacio al final es el de la palabra que sigue. Sólo blancos = sin ayuda.
+    const texto = Array.from(ayuda.texto).slice(0, MAXIMO_DE_LA_AYUDA).join('')
+    return texto.trim() === '' ? null : { texto }
   })()
   return enItem(diseno, { seccion: seccionId, tipo: 'celda', nodo: nodoId }, (it) => {
     if (it.tipo !== 'celda') return it
