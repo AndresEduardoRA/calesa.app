@@ -58,22 +58,64 @@ carril_asignar() {
 # traer_main <rama>: la rama del carril al día con origin/main antes de empezar una parte (nunca a mitad de un paso: lo llama
 # carril_asignar, sin en-curso.json, con el árbol limpio). Así cada parte corre con las skills, los agentes y las guardas de main (el
 # 2026-11-07 las tres ramas iban sin el PR 49 y el planificador seguía en opus) y el PR no queda en conflicto. Sin commits propios, la
-# rama pasa a ser origin/main; con commits, `git merge` (nunca rebase con push forzado: docs/ORCA.md). Un conflicto se aborta y se anota:
-# el PR queda en conflicto y el coordinador lo devuelve con `arreglar`.
+# rama pasa a ser origin/main; con commits, `git merge` (nunca rebase con push forzado: docs/ORCA.md). Un choque sólo en `docs/*.md` se
+# resuelve uniendo las dos versiones; uno en código se aborta y queda en `.piloto/conflicto-con-main.md`, que la sesión del paso resuelve
+# antes que nada (skill piloto, «Orientarte»). Antes se abortaba y nadie lo resolvía: el PR 69 (4.19-3b) quedó en conflicto por dos
+# líneas de docs/RENDIMIENTO.md, y el coordinador no devuelve las partes.
 traer_main() {
-  local rama="$1"
-  git merge-base --is-ancestor origin/main HEAD 2>/dev/null && return 0
+  local rama="$1" corto chocan
+  git merge-base --is-ancestor origin/main HEAD 2>/dev/null && { rm -f "$ESTADO/conflicto-con-main.md"; return 0; }
   if [ -z "$(git rev-list -n 1 origin/main..HEAD)" ]; then
     git checkout --quiet -B "$rama" origin/main 8>&- || return 1
+    rm -f "$ESTADO/conflicto-con-main.md"
     return 0
   fi
+  corto=$(git rev-parse --short origin/main)
   if git merge --quiet --no-edit origin/main >"$ESTADO/traer-main.log" 2>&1 8>&-; then
-    registro "carril ${PILOTO_CARRIL:-}: traje origin/main a $rama ($(git rev-parse --short origin/main))."
-  else
-    git merge --abort >/dev/null 2>&1
-    registro "carril ${PILOTO_CARRIL:-}: no pude traer origin/main a $rama ($(grep -m1 -iE 'conflict|error|fatal' "$ESTADO/traer-main.log" | head -c 160)); sigo sin traerlo (si el PR queda en conflicto, el coordinador lo devuelve)."
+    registro "carril ${PILOTO_CARRIL:-}: traje origin/main a $rama ($corto)."
+    rm -f "$ESTADO/conflicto-con-main.md"
+    return 0
   fi
+  chocan=$(git diff --name-only --diff-filter=U | tr '\n' ' ')
+  if [ -n "$chocan" ] && unir_docs && git commit --quiet --no-edit >>"$ESTADO/traer-main.log" 2>&1 8>&-; then
+    registro "carril ${PILOTO_CARRIL:-}: traje origin/main a $rama ($corto); los choques en docs/ se unieron (${chocan% })."
+    rm -f "$ESTADO/conflicto-con-main.md"
+    return 0
+  fi
+  chocan=$(git diff --name-only --diff-filter=U | tr '\n' ' ')
+  git merge --abort >/dev/null 2>&1
+  {
+    echo "# La rama $rama choca con origin/main ($corto)"
+    echo
+    echo "Antes que nada: \`git merge origin/main\`, resuelve estos choques (lo de main manda en lo que tu paso no cambió; en lo tuyo, junta las"
+    echo "dos intenciones), commit de merge con el mensaje por omisión, y sigue con el paso. El merge no va en \`commits\` de ultimo.json."
+    echo
+    for f in $chocan; do echo "- \`$f\`"; done
+  } >"$ESTADO/conflicto-con-main.md"
+  registro "carril ${PILOTO_CARRIL:-}: no pude traer origin/main a $rama (choca: ${chocan% }); lo resuelve la sesión del paso al empezar (.piloto/conflicto-con-main.md)."
   return 0
+}
+
+# unir_docs: en un merge a medias, cada choque de `docs/*.md` se resuelve con las líneas de los dos lados (git merge-file --union): son
+# notas que los carriles agregan, y la sesión las ordena en su commit de docs. 0 si no queda ningún choque (también en código).
+unir_docs() {
+  local f quedan=0 tmp
+  tmp=$(mktemp -d)
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    case "$f" in
+      docs/*.md)
+        git show ":2:$f" >"$tmp/nuestro" 2>/dev/null || { quedan=1; continue; }
+        git show ":3:$f" >"$tmp/suyo" 2>/dev/null || { quedan=1; continue; }
+        git show ":1:$f" >"$tmp/base" 2>/dev/null || : >"$tmp/base"
+        git merge-file --union -p "$tmp/nuestro" "$tmp/base" "$tmp/suyo" >"$f" 2>/dev/null
+        git add -- "$f" || quedan=1
+        ;;
+      *) quedan=1 ;;
+    esac
+  done < <(git diff --name-only --diff-filter=U)
+  rm -rf "$tmp"
+  return "$quedan"
 }
 
 # carril_publicado <paso> <pr> [parcial]: el PR del paso quedó abierto; el paso deja de estar asignado. Con `parcial` en true (el paso se

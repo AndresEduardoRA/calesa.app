@@ -171,7 +171,8 @@ scripts ya no hacen falta. Las decisiones, en `docs/pasos/flujo-1/decisiones.md`
   cada bucle sigue con la suya y se relanza (`exec`) entre pasos cuando main cambia `scripts/piloto/`. `PILOTO_RECARGAR=0` lo apaga.
 - **La rama del carril trae main antes de cada parte** (`carril.sh` › `traer_main`): sin commits propios pasa a ser `origin/main` (una rama
   local vieja ya no se retoma); con commits, `git merge`. Así cada parte corre con las skills, los agentes y las guardas de main. Un
-  conflicto se aborta y se anota: el coordinador devuelve el PR.
+  choque sólo en `docs/*.md` se resuelve uniendo las dos versiones; uno en código se aborta y queda en `.piloto/conflicto-con-main.md`, que la
+  sesión del paso resuelve antes que nada (2026-11-08: antes nadie lo resolvía y el coordinador no devuelve las partes).
 - **La espera a main** (compuerta `espera`, con `pedido` y `archivos`, obligatorios): el bucle le deja el pedido al coordinador, mira
   `origin/main` cada `PILOTO_ESPERA_MAIN_POLL` s (120) hasta que **todos** los `archivos` cambien (o el dueño cierre el pedido), lo trae a la
   rama y retoma el paso con la respuesta en `hechos.json` › `decision`. Hasta `PILOTO_ESPERA_MAIN_VECES` (3) esperas por paso y
@@ -194,6 +195,13 @@ scripts ya no hacen falta. Las decisiones, en `docs/pasos/flujo-1/decisiones.md`
   (`e2e/soporte/reporter-de-inestables.ts`, `.claude/rules/e2e.md`).
 - **El carril A publica con coordinador** su rama `a/<paso>`. La sesión de funciones edge es una por carril (`piloto-funciones-<c>`). Lo que el
   bucle corre por fuera no hereda su candado (fd 8).
+
+**Sin esperas (2026-11-08).** Del 7 al 8-11 los tres carriles estuvieron diez horas parados: el `ExecStop` de cada servicio corría `parar.sh` al
+apagar la máquina y, tras el reinicio, arrancaban y se paraban por `PARAR`. Ya no hay `ExecStop` (apagar no es parar). Además: un carril sin paso
+propio listo toma prestado uno de otro carril ocupado (`prestable` en `plan.mjs`); lo que un carril necesita del núcleo lo hace en su PR (la guarda
+le deja agregar y editar lo del base); y el coordinador integra solo los PR que tocan `scripts/guardas/` salvo las guardas del piloto y de los
+carriles (los registros de cada carril ya no esperan a la persona). **Antes de iniciar sesión** tras un reinicio, `gh` y `git fetch` fallan si la
+credencial vive en el llavero del escritorio: `gh auth login --insecure-storage`, `gh auth setup-git` y el remoto por HTTPS lo evitan.
 
 Para que un carril se levante solo tras un corte de luz, un reinicio o un bucle que se cayó: `bash scripts/maquina/instalar-servicios.sh a b c` (en el árbol del A). Escribe, por carril, la unidad
 `systemd --user` que corre `arrancar.sh --carril` al iniciar y un **vigía** cada 10 min (`arrancar.sh --carril <c> --si-caido`): levanta el bucle si nadie tiene `.piloto/bucle.lock` y no se paró a

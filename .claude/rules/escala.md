@@ -8,9 +8,12 @@ paths:
 
 # Escala
 
-Toda lista se diseña para miles de filas, aunque la semilla tenga 20, y se verifica con volumen
-sembrado, no a ojo (`pnpm db:sembrar-volumen`, `pnpm db:medir:volumen`). Cada superficie con su tope,
-índice y presupuesto está en `docs/RENDIMIENTO.md`.
+Toda lista se diseña para miles de filas, aunque la semilla tenga 20 (cursor, tope e índice, abajo). Se
+verifica con volumen sembrado, no a ojo (`pnpm db:sembrar-volumen`, `pnpm db:medir:volumen`), **sólo si va
+sobre una tabla que crece**: leads, vehículos, cotizaciones, revisiones, comentarios y papeleras. Las de
+configuración (plantillas, versiones de la fórmula, tablas de referencia, series: decenas de filas) no se
+miden (`.claude/rules/e2e.md` › «Pulido y rigor por tipo de paso», 2026-11-08). Cada superficie con su
+tope, índice y presupuesto está en `docs/RENDIMIENTO.md`.
 
 ## Paginación y topes
 
@@ -66,8 +69,9 @@ sembrado, no a ojo (`pnpm db:sembrar-volumen`, `pnpm db:medir:volumen`). Cada su
   prohíbe). Un modal o panel se monta con `useAbiertoAlgunaVez()`.
 - Lo que importa `src/app/(app)/layout.tsx` viaja en toda pantalla: importa `@/modules/<x>/shell`
   (y `shell.client` en `_shell/`), nunca el `index.ts` del módulo.
-- Toda lista nueva se prueba con volumen sembrado por SQL (`generate_series`, `e2e/soporte/sql.ts`):
-  bytes de la primera respuesta, plan y nodos del DOM.
+- Una lista nueva sobre una tabla que crece (arriba) se prueba con volumen sembrado por SQL
+  (`generate_series`, `e2e/soporte/sql.ts`): el plan en `db:medir:volumen`; bytes y nodos del DOM sólo en
+  leads, vehículos y cotizaciones. Un presupuesto pasado por ≤ 5 % se sube en `docs/RENDIMIENTO.md`.
 
 ## Las guardas (qué falla si la próxima lista no cumple)
 

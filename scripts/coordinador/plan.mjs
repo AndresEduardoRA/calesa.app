@@ -7,6 +7,9 @@
 // Un paso partido publica sus partes sin dejar de estar asignado: el PR de la parte va en `pr_parcial` y se integra igual (sincronizar).
 // Un PEDIDO es lo que un carril necesita de lo que posee otro (un registro, una prueba, un archivo de src/app): lo deja el bucle del que
 // espera (`pedir`), el carril dueño lo toma antes que sus propios pasos y, al integrarse, el que esperaba se retoma solo.
+// PRESTADO (2026-11-08): un carril sin paso propio listo toma uno listo de otro carril que está ocupado, si no toca lo que está en curso.
+// El paso conserva su carril del plan (el de sus permisos: la guarda de CI juzga la rama `<quien lo hace>/<paso>` con el carril del paso)
+// y el estado anota en `carril` quién lo hace: ése lo retoma, lo publica y lo arregla.
 import { parse } from 'yaml'
 import { problemasDeMigraciones } from './plan-migraciones.mjs'
 
@@ -222,10 +225,12 @@ const TRANSICIONES_PEDIDO = {
   integrado: [],
 }
 
-// Las rutas que protegen al piloto (las de la compuerta «guardas», scripts/piloto/cierre.sh). Un PR que las toca no se integra solo: la
-// copia del bucle sale de main y los tres carriles se recargan con ella, así que es la persona quien lo deja entrar.
+// Las rutas que protegen al piloto. Un PR que las toca no se integra solo: la copia del bucle sale de main y los tres carriles se recargan
+// con ella, así que es la persona quien lo deja entrar. De `scripts/guardas/`, sólo las que protegen al piloto y a los carriles (2026-11-08):
+// las demás son de la app (escala, páginas, los registros de cada carril) y entraban con la persona sin motivo (la compuerta «guardas» del
+// cierre, scripts/piloto/cierre.sh, sigue mirando la carpeta entera).
 const GUARDAS =
-  /^(scripts\/piloto\/|scripts\/guardas\/|scripts\/candado\.sh$|\.claude\/settings[^/]*\.json$|\.claude\/hooks\/|\.claude\/agents\/|\.claude\/skills\/piloto|lefthook\.yml$|\.github\/workflows\/)/
+  /^(scripts\/piloto\/|scripts\/guardas\/(ajustes|bloquear-peligrosos|carriles|carriles-plan|escribir-solo-en-piloto|guardar-autorizaciones|ignorados-del-piloto|por-agente|solo-lectura|verificar-al-terminar|workflows)[.]|scripts\/candado\.sh$|\.claude\/settings[^/]*\.json$|\.claude\/hooks\/|\.claude\/agents\/|\.claude\/skills\/piloto|lefthook\.yml$|\.github\/workflows\/)/
 /** Las rutas de `rutas` que son guardas del piloto. */
 export const guardasEn = (rutas) => rutas.filter((r) => GUARDAS.test(r))
 
@@ -336,14 +341,15 @@ export function siguiente(plan, estado, carril, { cuota = null, umbral = 0.8 } =
       ...(pd.arreglar ? { arreglar: pd.arreglar } : {}),
     }
   const propios = plan.pasos.filter((p) => p.carril === carril)
-  if (propios.length === 0)
-    return { accion: 'esperar', motivo: `el carril ${carril} no tiene pasos en el plan` }
-  const enCurso = propios.find((p) => estado.pasos[p.id]?.estado === 'asignado')
+  // Lo que hace este carril: lo suyo del plan y lo que tomó prestado (`carril` del estado); lo suyo que hace otro, no.
+  const haceEste = (p) => (estado.pasos[p.id]?.carril ?? p.carril) === carril
+  const enCurso = plan.pasos.find((p) => estado.pasos[p.id]?.estado === 'asignado' && haceEste(p))
   if (enCurso)
     return { accion: 'paso', paso: enCurso, rama: rama(carril, enCurso.id), retomar: true }
   // Un PR propio con el CI rojo o en conflicto con main va antes que un paso nuevo: bloquea a los que dependen de él.
-  const roto = propios.find(
-    (p) => estado.pasos[p.id]?.estado === 'publicado' && estado.pasos[p.id]?.arreglar,
+  const roto = plan.pasos.find(
+    (p) =>
+      estado.pasos[p.id]?.estado === 'publicado' && estado.pasos[p.id]?.arreglar && haceEste(p),
   )
   if (roto)
     return {
@@ -353,19 +359,31 @@ export function siguiente(plan, estado, carril, { cuota = null, umbral = 0.8 } =
       retomar: true,
       arreglar: estado.pasos[roto.id].arreglar,
     }
-  // Un carril con sus pasos integrados sigue atento a los pedidos hasta que termine el plan entero (un bucle que sale no atiende ninguno).
-  if (propios.every((p) => estado.pasos[p.id]?.estado === 'integrado'))
-    return plan.pasos.every((p) => estado.pasos[p.id]?.estado === 'integrado')
-      ? { accion: 'terminado' }
-      : {
-          accion: 'esperar',
-          motivo: 'sus pasos están integrados: atiende pedidos hasta que el plan termine',
-        }
-
   const integrado = (id) => estado.pasos[id]?.estado === 'integrado'
+  const largo = caminoCritico(plan)
+  if (plan.pasos.every((p) => integrado(p.id))) return { accion: 'terminado' }
   const pendientes = propios.filter((p) => estado.pasos[p.id]?.estado === 'pendiente')
   const listos = pendientes.filter((p) => (p.depende_de ?? []).every(integrado))
   if (listos.length === 0) {
+    const prestado =
+      cuota !== null && cuota >= umbral ? null : prestable(plan, estado, carril, largo)
+    if (prestado)
+      return {
+        accion: 'paso',
+        paso: prestado,
+        rama: rama(carril, prestado.id),
+        retomar: false,
+        prestado: true,
+      }
+    // Un carril con sus pasos integrados sigue atento a los pedidos hasta que termine el plan entero (un bucle que sale no atiende ninguno).
+    if (propios.every((p) => integrado(p.id)))
+      return {
+        accion: 'esperar',
+        motivo:
+          propios.length === 0
+            ? `el carril ${carril} no tiene pasos en el plan ni uno listo que tomar de otro`
+            : 'sus pasos están integrados: atiende pedidos hasta que el plan termine',
+      }
     if (pendientes.length === 0)
       return { accion: 'esperar', motivo: 'sus pasos están publicados: falta que se integren' }
     // Lo que bloquea al primero de sus pasos en el orden del plan (los demás esperan detrás de él).
@@ -378,7 +396,6 @@ export function siguiente(plan, estado, carril, { cuota = null, umbral = 0.8 } =
     }
   }
 
-  const largo = caminoCritico(plan)
   if (cuota !== null && cuota >= 1)
     return { accion: 'esperar', motivo: 'cuota: se llegó al tope de la ventana de 5 h' }
   let candidatos = listos
@@ -399,6 +416,50 @@ export function siguiente(plan, estado, carril, { cuota = null, umbral = 0.8 } =
     (a, b) => largo.get(b.id) - largo.get(a.id) || a.id.localeCompare(b.id),
   )[0]
   return { accion: 'paso', paso: elegido, rama: rama(carril, elegido.id), retomar: false }
+}
+
+/**
+ * El paso de otro carril que `carril` puede tomar prestado, o null: pendiente, con sus dependencias integradas, de un carril que ya está
+ * ocupado con un paso asignado (uno libre lo toma él mismo en su próxima vuelta) y sin tocar nada de lo que está en curso o con el PR
+ * abierto (salvo `docs/` y `compartido`). El de camino más largo primero y, a igual largo, el que más toca lo de `carril` (el 4.27, de
+ * comentarios, al c, que posee esas áreas).
+ */
+export function prestable(plan, estado, carril, largo = caminoCritico(plan)) {
+  const integrado = (id) => estado.pasos[id]?.estado === 'integrado'
+  const suyas = plan.carriles.find((c) => c.id === carril)?.dueno_de ?? []
+  const afinidad = (p) => (p.modulos ?? []).filter((m) => suyas.some((d) => dentro(m, d))).length
+  const quien = (p) => estado.pasos[p.id]?.carril ?? p.carril
+  const ocupados = new Set(
+    plan.pasos.filter((p) => estado.pasos[p.id]?.estado === 'asignado').map(quien),
+  )
+  for (const pd of estado.pedidos ?? []) if (pd.estado === 'asignado') ocupados.add(pd.para)
+  const vivos = plan.pasos.filter((p) =>
+    ['asignado', 'publicado'].includes(estado.pasos[p.id]?.estado),
+  )
+  const choca = (p) =>
+    vivos.some((v) =>
+      (p.modulos ?? []).some(
+        (m) =>
+          !esLibre(m, plan) && (v.modulos ?? []).some((n) => !esLibre(n, plan) && solapan(m, n)),
+      ),
+    )
+  return (
+    plan.pasos
+      .filter(
+        (p) =>
+          p.carril !== carril &&
+          ocupados.has(p.carril) &&
+          estado.pasos[p.id]?.estado === 'pendiente' &&
+          (p.depende_de ?? []).every(integrado) &&
+          !choca(p),
+      )
+      .sort(
+        (a, b) =>
+          largo.get(b.id) - largo.get(a.id) ||
+          afinidad(b) - afinidad(a) ||
+          a.id.localeCompare(b.id),
+      )[0] ?? null
+  )
 }
 
 export const rama = (carril, paso) => `${carril}/${paso.toLowerCase()}`
@@ -439,8 +500,10 @@ export function tablero(plan, estado, { cuota = null, ahora = new Date().toISOSt
     for (const p of plan.pasos.filter((x) => x.carril === c.id)) {
       const e = estado.pasos[p.id] ?? { estado: 'pendiente' }
       const pr = [e.pr && `#${e.pr}`, e.pr_parcial && `#${e.pr_parcial} (parte)`].filter(Boolean)
+      const prestado =
+        e.carril && e.carril !== c.id && e.estado !== 'pendiente' ? ` (lo hace ${e.carril})` : ''
       lineas.push(
-        `| ${marca[e.estado]} | ${p.id} ${p.titulo} | ${p.riesgo} | ${(p.depende_de ?? []).join(', ') || '—'} | ${pr.join(', ') || '—'} |`,
+        `| ${marca[e.estado]} | ${p.id} ${p.titulo}${prestado} | ${p.riesgo} | ${(p.depende_de ?? []).join(', ') || '—'} | ${pr.join(', ') || '—'} |`,
       )
     }
   }
