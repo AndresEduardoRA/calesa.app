@@ -32,7 +32,8 @@ del área fuera de la entrada de la guardada.
     vehículo se escribe recién en `_final_aplicar`, con todo tomado.
   - **C3:** si lo tomado ya no está vivo o cambió (otro vehículo u otro lead), otra vuelta desde C1 (subtransacción con `PF425`); a la tercera, PT409. Con todo
     tomado vuelve a mirar el lead, ver, P3 a y el vínculo, éste releído después de la pasada (otro lead: 23514, P4 a).
-- `_final_aplicar(c, p_tomadas)` (de nadie): la final anterior tomada baja a preventa (por id), `c` pasa a final, las preventas tomadas van a **un** lote de la
+- `_final_aplicar(c, p_tomadas)` (de nadie): si otra tomada tiene un comprobante vigente, 23514 (4.26-1, P7 a; con sólo anulados baja a preventa y
+  queda viva, fuera del lote); la final anterior tomada baja a preventa (por id), `c` pasa a final, las preventas tomadas van a **un** lote de la
   papelera de quien marca, el vehículo sin lead queda con el de `c` (cinturón: otro lead, 23514), el lead pasa al primer tipo activo de clase cliente por
   `orden, nombre`, y la actividad `cotizacion.final`. No toma candados y escribe cotizaciones sólo por id.
 - `_limpieza_ancla` devuelve `'cotizacion_final'` con una final activa y viva (`…_final_ancla_de_la_limpieza.sql`). `vehiculo_vincular` no desvincula ni

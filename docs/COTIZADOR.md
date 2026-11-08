@@ -613,6 +613,14 @@ conserva sin red o con respuesta ilegible. Con el total nulo, «Guardar» se apa
 `details` y `hint` (`entities/guardado.ts`) con textos propios, nunca el mensaje de la base; D2 va en línea («Guardar con la versión
 N» reenvía con `p_con_la_abierta`).
 
+## Comprobantes (4.26-1)
+
+Un comprobante se emite sobre una final activa con `comprobante_emitir(cotización, versión)` y se anula con `comprobante_anular(id, motivo)`; la serie vigente la
+cambia `comprobantes_serie_cambiar(serie, versión)` en Empresa. La serie y `datos` los pone la base: `datos` congela el recorte del nivel «todos» (el que lee
+quien sólo tiene `cotizaciones.ver`, con `_cotizacion_contexto` y `_cotizacion_recorte`), las etiquetas de esos nodos y, del cliente y del vehículo, sólo los ids.
+Los candados van cotización → serie vigente → contador, y la numeración no tiene huecos (un contador por serie, nunca una sequence). Un vigente por cotización;
+una cotización con comprobante no va a la papelera ni la baja marcar otra final. Los errores y las pruebas: `src/modules/cotizaciones/areas/comprobantes/CLAUDE.md`.
+
 ## Plantilla de tarjeta (PDF)
 
 Filas por grupo con el tono del grupo (o el que la plantilla elija del catálogo), título de la opción de la variante y la garantía
