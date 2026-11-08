@@ -23,3 +23,9 @@ export const ModalDeTonoDiferido = diferido(() =>
 export const EliminarTonoDiferido = diferido(() =>
   import('./eliminar-tono').then((modulo) => modulo.EliminarTono),
 )
+
+// La vista previa de la hoja (4.22-5) trae la hoja de cotizar entera; abrir la pestaña «Diseño» no la carga, sólo «Vista previa».
+export const VistaPreviaDelDisenoDiferido = diferido(
+  () => import('./vista-previa-del-diseno').then((modulo) => modulo.VistaPreviaDelDiseno),
+  { aviso: 'aqui' },
+)

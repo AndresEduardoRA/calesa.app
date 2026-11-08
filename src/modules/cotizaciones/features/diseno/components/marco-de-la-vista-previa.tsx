@@ -3,9 +3,7 @@
 import { useRef, type ReactNode } from 'react'
 import { PistaDeDesborde } from '@/shared/ui/pista-de-desborde'
 import { useDesborde } from '@/shared/ui/use-desborde'
-
-export const ANCHOS_DE_LA_VISTA_PREVIA = ['412', '1280', '200'] as const
-export type AnchoDeLaVistaPrevia = (typeof ANCHOS_DE_LA_VISTA_PREVIA)[number]
+import type { AnchoDeLaVistaPrevia } from '../../../entities/diseno/anchos-de-la-vista-previa'
 
 // El celular con el texto al doble: el hijo mide la mitad de 412 y lleva `zoom: 2`, así que ocupa 412 px en pantalla con todo (los `rem` de los cortes por contenedor también) al doble.
 const MEDIDAS: Record<AnchoDeLaVistaPrevia, { width: number; zoom?: number }> = {

@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
+import type { Tono } from '@/shared/ui/xcell'
 import type { DisenoParaEditar, NivelDelDiseno } from '../../../entities/diseno/edicion-del-diseno'
 import { EditorDelDiseno } from './editor-del-diseno'
 import { SelectorDeOrigen } from './selector-de-origen'
@@ -14,12 +15,14 @@ type Props = {
   // La versión que se edita; con diseño nulo no hay nada que editar.
   leida: DisenoParaEditar | null
   niveles: readonly NivelDelDiseno[]
+  // Los tonos del catálogo, en la forma de la celda; sin ellos la vista previa se dibuja sin colores.
+  tonos: readonly Tono[]
 }
 
 // La pestaña «Diseño» de Configuración › Cotización (4.22-2): el origen (con 2 o más, un selector que escribe `?origen=`) y su diseño. Sin versión o sin diseño, un
 // vacío. El editor no se vuelve a montar al guardar (su `key` no lleva la versión); sólo «Recargar» tras un conflicto lo monta de nuevo, en la misma transición que
 // trae la pestaña, sobre lo que haya entonces.
-export function DisenoDelOrigen({ origenes, origen, leida, niveles }: Props) {
+export function DisenoDelOrigen({ origenes, origen, leida, niveles, tonos }: Props) {
   const router = useRouter()
   const [vuelta, setVuelta] = useState(0)
   const [recargando, recargarPagina] = useTransition()
@@ -55,6 +58,7 @@ export function DisenoDelOrigen({ origenes, origen, leida, niveles }: Props) {
           leida={leida}
           disenoLeido={diseno}
           niveles={niveles}
+          tonos={tonos}
           recargando={recargando}
           alRecargar={recargar}
         />

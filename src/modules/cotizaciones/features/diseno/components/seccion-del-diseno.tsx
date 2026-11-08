@@ -2,7 +2,11 @@ import { PaletteIcon } from 'lucide-react'
 import { datosO, type Resultado } from '@/shared/lib/errores'
 import { puede, type Permisos } from '@/shared/lib/permisos'
 import { EstadoVacio } from '@/shared/ui/estados'
-import { leerDisenoDelOrigen, leerNivelesDelDiseno } from '../../../areas/diseno/composicion'
+import {
+  leerDisenoDelOrigen,
+  leerNivelesDelDiseno,
+  leerTonosDelCatalogo,
+} from '../../../areas/diseno/composicion'
 import { origenElegido } from '../../../entities/origenes-para-cotizar'
 import { DisenoDelOrigenDiferido } from './diferidos'
 
@@ -33,16 +37,26 @@ export async function SeccionDelDiseno({ origenes, permisos, origenPedido }: Pro
       />
     )
   }
-  const [leida, niveles] = await Promise.all([
+  const [leida, niveles, catalogo] = await Promise.all([
     leerDisenoDelOrigen(origen.id),
     leerNivelesDelDiseno(),
+    leerTonosDelCatalogo(),
   ])
+  // El tono es adorno de la vista previa: si su lectura falla, la hoja se dibuja sin colores y la pestaña sigue.
+  const tonos = catalogo.ok
+    ? catalogo.data.tonos.map((t) => ({
+        clave: t.clave,
+        claro: t.colores.claro,
+        oscuro: t.colores.oscuro,
+      }))
+    : []
   return (
     <DisenoDelOrigenDiferido
       origenes={visibles}
       origen={origen}
       leida={datosO(leida)}
       niveles={datosO(niveles)}
+      tonos={tonos}
     />
   )
 }

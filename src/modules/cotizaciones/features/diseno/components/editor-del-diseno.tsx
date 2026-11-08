@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import type { Tono } from '@/shared/ui/xcell'
 import type { Diseno } from '../../../entities/diseno'
 import { apartesPosibles, totalesPosibles } from '../../../entities/diseno/edicion-de-la-tarjeta'
 import { tiposDeCambio } from '../../../entities/diseno/edicion-de-la-cabecera'
@@ -11,6 +12,7 @@ import { useEditorDelDiseno } from '../hooks/use-editor-del-diseno'
 import { AvisosDelDiseno } from './avisos-del-diseno'
 import { BarraDeGuardado } from './barra-de-guardado'
 import { CabeceraDelDiseno } from './cabecera-del-diseno'
+import { PanelDeLaVistaPrevia } from './panel-de-la-vista-previa'
 import { SeccionEditable } from './seccion-editable'
 import { TarjetaDelDiseno } from './tarjeta-del-diseno'
 
@@ -19,6 +21,8 @@ type Props = {
   leida: DisenoParaEditar
   disenoLeido: Diseno
   niveles: readonly NivelDelDiseno[]
+  // Los tonos del catálogo, para pintar las celdas de la vista previa.
+  tonos: readonly Tono[]
   recargando: boolean
   alRecargar: () => void
 }
@@ -29,6 +33,7 @@ export function EditorDelDiseno({
   leida,
   disenoLeido,
   niveles,
+  tonos,
   recargando,
   alRecargar,
 }: Props) {
@@ -50,6 +55,7 @@ export function EditorDelDiseno({
         alGuardar={() => void guardado.guardar()}
         alRecargar={alRecargar}
       />
+      <PanelDeLaVistaPrevia origen={origen} trabajo={editor.trabajo} leida={leida} tonos={tonos} />
       <AvisosDelDiseno rechazo={editor.rechazo} avisos={editor.avisos} />
       <CabeceraDelDiseno
         cabecera={editor.trabajo.cabecera}
