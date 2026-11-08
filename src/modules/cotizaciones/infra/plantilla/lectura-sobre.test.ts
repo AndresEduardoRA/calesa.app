@@ -64,9 +64,31 @@ const filaFormula = {
   diseno: null,
   visibilidad: { flete: { ver: 'todos' } },
 }
+const filaDeTono = (clave: string, nombre: string, c: string) => ({
+  clave,
+  nombre,
+  claro_fondo: `#${c}1`.padEnd(7, '0'),
+  claro_borde: `#${c}2`.padEnd(7, '0'),
+  claro_tinta: `#${c}3`.padEnd(7, '0'),
+  oscuro_fondo: `#${c}4`.padEnd(7, '0'),
+  oscuro_borde: `#${c}5`.padEnd(7, '0'),
+  oscuro_tinta: `#${c}6`.padEnd(7, '0'),
+})
+const FILAS_DE_TONOS = [filaDeTono('verde', 'Verde', 'a'), filaDeTono('azul', 'Azul', 'b')]
+// Los seis colores de la base llegan al editor como `claro` y `oscuro` (4.19-4).
 const TONOS = [
-  { clave: 'verde', nombre: 'Verde' },
-  { clave: 'azul', nombre: 'Azul' },
+  {
+    clave: 'verde',
+    nombre: 'Verde',
+    claro: { fondo: '#a10000', borde: '#a20000', tinta: '#a30000' },
+    oscuro: { fondo: '#a40000', borde: '#a50000', tinta: '#a60000' },
+  },
+  {
+    clave: 'azul',
+    nombre: 'Azul',
+    claro: { fondo: '#b10000', borde: '#b20000', tinta: '#b30000' },
+    oscuro: { fondo: '#b40000', borde: '#b50000', tinta: '#b60000' },
+  },
 ]
 const ok = (data: unknown): Respuesta => ({ data, error: null })
 
@@ -85,7 +107,7 @@ describe('leerPlantillaSobre', () => {
     const { cliente, tablas } = clienteFalso({
       plantillas_tarjeta: ok([filaBorrador, filaPublicada]),
       formulas: ok([filaFormula]),
-      tonos: ok(TONOS),
+      tonos: ok(FILAS_DE_TONOS),
     })
     const r = await leerPlantillaSobre(cliente, ORIGEN)
     if (!r.ok) throw new Error(r.error.mensaje)
@@ -107,7 +129,7 @@ describe('leerPlantillaSobre', () => {
 
 describe('leerPlantillaSobre: lo que no se esperaba', () => {
   it('lo que la policy no deja ver vuelve vacío: sin plantillas ni fórmula, y los tonos siguen', async () => {
-    const { cliente } = clienteFalso({ tonos: ok(TONOS) })
+    const { cliente } = clienteFalso({ tonos: ok(FILAS_DE_TONOS) })
     const r = await leerPlantillaSobre(cliente, ORIGEN)
     expect(r).toEqual({
       ok: true,

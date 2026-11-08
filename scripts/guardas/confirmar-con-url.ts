@@ -42,6 +42,10 @@ export const CONFIRMAR_CON_URL_DEL_NUCLEO: Record<string, ConfirmarConUrl> = {
     abre: 'src/modules/leads/features/tipos-de-seguimiento/hooks/use-eliminar-tipo-de-seguimiento-por-url.ts',
     senal: 'PANEL_ELIMINAR_TIPO_DE_SEGUIMIENTO',
   },
+  'src/modules/cotizaciones/features/plantilla/components/descartar-la-plantilla.tsx': {
+    abre: 'src/modules/cotizaciones/features/plantilla/hooks/use-panel-de-la-tarjeta.ts',
+    senal: 'PANEL_DESCARTAR_PLANTILLA',
+  },
   'src/modules/cotizaciones/features/niveles/components/eliminar-nivel.tsx': {
     abre: 'src/modules/cotizaciones/features/niveles/hooks/use-eliminar-nivel-por-url.ts',
     senal: 'PANEL_ELIMINAR_NIVEL',

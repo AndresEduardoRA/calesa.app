@@ -2919,6 +2919,56 @@ Las pruebas que ya existen siguen corriendo; borrar las caras se decide aparte. 
 - **La carpeta es `features/ajustes-de-cotizacion/`** (el término del glosario), no `features/cotizacion/` como decía `docs/pasos/4.20-4/plan-del-a.md`: dentro de `empresa`, «cotizacion» se confunde con el módulo `cotizaciones`. El 4.20-4b pone ahí el formulario.
 - **El `22023` no se vuelve error por campo:** `errorDePostgrest()` no lleva el `hint` y el esquema Zod rechaza antes lo mismo que la base (1 a 365, booleano); el `22023` sólo llega si alguien salta el formulario.
 
+<!-- paso:4.19-3b -->
+
+## 2026-11-08 — Paso 4.19-3b
+
+- **Con qué nace el editor:** el borrador; sin él, **la copia de la publicada**; sin ninguna, la **omisión** (los grupos de la fórmula en su orden, el total con la etiqueta del nodo
+  `total` recortada a 40 caracteres o «Total», `logo: true` y las tres columnas apagadas). Un borrador o una publicada ilegibles no se editan a medias: se dice por qué y se parte de la siguiente.
+- **Lo alineado con la fórmula no se guarda solo:** quitar un grupo ajeno o sumar el nuevo cuenta como cambio y se guarda con «Guardar». «Guardar» está activo desde el principio sin borrador.
+- **Lo que sólo rechaza `completa` no apaga «Guardar»:** lo que cruza con la fórmula (un nodo o un tipo de cambio de otro nivel) lo rechaza publicar; el editor lo dice arriba, «Con esto no se podría publicar».
+- **Al navegador llega un contexto reducido** (`contextoParaElNavegador()`), no la `definicion`: su equivalencia con el contexto entero vale sobre el juego común y después de alinear (sin alinear, `{a sin lugar, z inexistente}` difieren).
+- **Sin `maxLength` (4-74):** los topes cuentan caracteres (`caracteres()`); un emoji es uno.
+- **«Buscar fila» es el camino a lo que pasa de 500 filas** (filtra en el navegador sobre todas las cargadas); mover, agregar o quitar grupos a mano queda como **4-101**.
+- **Se rehacen en `plantilla` los orígenes de la pestaña** (`origenesDeLaTarjeta()` y la etiqueta «(inactivo)»), sin importar del área `formula` (la guarda de áreas lo prohíbe); si dos áreas lo necesitan, va al núcleo en otro paso.
+- **La sección no lleva Vitest** (es un Server Component async): lo que decide está en `propsDelEditor()` y `origenesDeLaTarjeta()`, y la cubren E2 y E7. **No se cambia la descripción del hub** (`seccion.ts`).
+- **El conflicto se va al llegar la versión**, no al pulsar «Recargar» (`useConflictoHastaLaVersion`); el editor se remonta con `key` por origen y esperada.
+
+<!-- paso:4.19-3c -->
+
+## 2026-11-08 — Paso 4.19-3c
+
+- **Los botones viven en el editor y los modales fuera de su `key`:** los botones necesitan saber si hay cambios sin guardar (`hayCambios`), que sólo el editor sabe; los modales los monta
+  `PestanaDeLaTarjeta`, sin `key` de versión, para que «Recargar» tras un PT409 remonte el editor y no pierda la nota.
+- **«Publicar…» se apaga con su motivo a la vista y no por «Con esto no se podría publicar»:** sin borrador o con cambios sin guardar (se publica lo guardado, no lo que se ve). El
+  contexto del navegador es reducido: lo que sólo ve la fórmula lo decide la base y su rechazo vuelve arriba del modal con la nota intacta.
+- **«Descartar borrador…» se ofrece también con cambios sin guardar:** descarta lo guardado; lo sin guardar de esa versión no vuelve (queda bajo la clave de la versión vieja).
+- **Un solo hook de panel** (`usePanelDeLaTarjeta`) con dos paneles: `useVueltaDelFoco` se llama una vez por clave y dos hooks con la misma se pisarían. Los nombres `publicar-tarjeta` y
+  `descartar-plantilla` los fijaron los planes del 4.19-3 y 3b; la asimetría «tarjeta» / «plantilla» se conserva para no renombrar lo ya escrito en docs y planes.
+- **«Nota de la versión», no «Nota»:** el pie del editor ya tiene una «Nota de la tarjeta». El texto dice «aquí» y no el «acá» del modal de la fórmula (tú neutro).
+- **Se rehacen en `plantilla` el modal, el hook de publicación, el diálogo y las acciones** en vez de importar los de `formula`: la guarda de áreas lo prohíbe. Mover la nota al núcleo
+  para que las dos áreas compartan un esquema sigue pendiente (de 4.19-3a).
+- **El diálogo de descartar tiene PT409 y la fórmula no:** la base de la plantilla pide la versión esperada (4.19-1), así que el diálogo la manda, dice el conflicto y espera el borrador nuevo.
+- **E1 de 3b sin aserción sobre los decimales de `actualizadoEn`** (ver bitácora): la precisión la prueba el PT409 de `-conflicto.spec.ts`.
+
+<!-- paso:4.19-4 -->
+
+## 2026-11-08 — Paso 4.19-4
+
+- **El hueco es un tipo del núcleo con una lectura plana, no un contexto:** `plantilla` no puede importar `tarjeta` (ni su tipo), así que `entities/vista-previa-de-la-plantilla.ts` lleva la
+  lectura (sin `Map`, porque cruza props de la página al editor) y `tarjeta` la vuelve `TarjetaLista` con un adaptador puro. La página de `src/app` pasa el componente por la sección,
+  la pestaña y el editor. Va en `pantallas/tarjeta-plantilla.ts` y no en `tarjeta.ts`, para no sumar al JS de `/cotizaciones/nuevo` (4-73).
+- **Lugar:** al costado desde `xl` (columna `minmax(0, 24rem)`, pegada arriba); debajo, tras el cuerpo del editor y antes de «Guardar». La página se ensancha a `max-w-6xl` sólo en «Tarjeta».
+  La columna no es de `24rem` fijos: con el texto al 200 % (`html { font-size: 200% }`) los media queries siguen en 1280 px y una columna fija ensanchaba la página.
+- **Tipo de cambio y leyenda:** el tipo de cambio es la etiqueta del nodo del bucket, no el nombre de `tipos_cambio`; la leyenda es sólo la escrita (**4-103**: lo demás no viaja al navegador).
+- **Cifras de ejemplo (P6), deterministas:** la fila n-ésima vale `(n mod 8 + 1) × 250` USD, lo aparte `100 × (posición + 1)` y el total es la suma de las filas dibujadas. Pasan por `<Monto>`:
+  con el Modo Live encendido se ocultan, como en cualquier pantalla.
+- **Tope de 4 filas por grupo** (`FILAS_POR_GRUPO_EN_LA_VISTA_PREVIA`): con 500 miembros en un grupo la vista previa suma ≈ 150 nodos; el aviso lo dice.
+- **Página de ejemplo sin `Date`** (desajustaría la hidratación): textos fijos y la marca sin logo, para que el interruptor «Logo» se note.
+- **Un tono sin colores válidos se ve neutro:** `<EstiloDeTonos>` lo descarta entero. `claro` y `oscuro` son opcionales en `TonoDelCatalogo` para no tocar cada fixture; la lectura de la base siempre los trae.
+- **E1 corre también en móvil** por precedente de los cinco specs de la pestaña (la regla de «sin `movil` en Configuración» no se estrenó para esta pestaña).
+- **Sólo `diferidos.tsx` puede declarar una diferida** (guarda `diferidos.test.ts`): la de la vista previa va en el de `tarjeta`, con un `div` de esqueleto y no `<Skeleton>`, para no sumar un import al archivo que viaja con la hoja.
+
 <!-- paso:4.20-4b -->
 
 ## Paso 4.20-4b (2026-11-08)
