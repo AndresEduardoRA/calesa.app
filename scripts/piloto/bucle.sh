@@ -162,7 +162,13 @@ paradas_deterministas() {
   case "$(hecho .rama)" in
     a/?*) modo_carril || true ;;
     "${PILOTO_CARRIL:-/}"/?*) ;;
-    *) chequeo rama "la rama es «$(hecho .rama)», no la del carril ${PILOTO_CARRIL:-A} (${PILOTO_CARRIL:-a}/…)" || return 1 ;;
+    *)
+      # Con carril, sin un paso en curso y con el árbol limpio, la rama la saca carril_asignar: un worktree que quedó en main (el
+      # coordinador integraba con --delete-branch y pasaba a main el árbol del A, 2026-11-08) no es motivo de parar.
+      if ! { modo_carril && [ ! -f "$ESTADO/en-curso.json" ] && [ "$(hecho .arbol_limpio)" = true ]; }; then
+        chequeo rama "la rama es «$(hecho .rama)», no la del carril ${PILOTO_CARRIL:-A} (${PILOTO_CARRIL:-a}/…)" || return 1
+      fi
+      ;;
   esac
   if [ "$(hecho .arbol_limpio)" != true ] && [ ! -f "$ESTADO/en-curso.json" ]; then
     chequeo arbol "el árbol está sucio y no hay un paso en curso" || return 1

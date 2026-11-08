@@ -168,6 +168,20 @@ describe('bucle.sh › la rama del carril se trae main antes de cada parte', () 
   })
 })
 
+describe('bucle.sh › un worktree de carril que quedó en main (2026-11-08)', () => {
+  it('no para: sin paso en curso y limpio, el carril saca la rama del paso asignado', () => {
+    const f = plan(paso('4.99'))
+    a.git('fetch', '-q', 'origin')
+    a.git('checkout', '-q', '-B', 'main', 'origin/main')
+    a.paso(1, pasoListo({ 'src/f/a.ts': 'a' }))
+    const r = a.correr(['--una-vuelta'], entorno(f))
+    expect(r.estado, r.salida).toBe(0)
+    expect(a.secuencia().filter((l) => l.startsWith('decidir:'))).toEqual([])
+    expect(a.estado('registro.md')).toContain('el coordinador asignó 4.99 en formula/4.99')
+    expect(a.llamadas('paso')).toHaveLength(1)
+  })
+})
+
 describe('bucle.sh › un choque con main al traerlo (2026-11-08)', () => {
   // La rama del carril con un commit propio sobre un archivo que main también cambió después.
   const ramaQueChoca = (ruta: string, base: string, deLaRama: string, deMain: string) => {
