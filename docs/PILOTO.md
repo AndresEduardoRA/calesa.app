@@ -171,7 +171,8 @@ scripts ya no hacen falta. Las decisiones, en `docs/pasos/flujo-1/decisiones.md`
   cada bucle sigue con la suya y se relanza (`exec`) entre pasos cuando main cambia `scripts/piloto/`. `PILOTO_RECARGAR=0` lo apaga.
 - **La rama del carril trae main antes de cada parte** (`carril.sh` › `traer_main`): sin commits propios pasa a ser `origin/main` (una rama
   local vieja ya no se retoma); con commits, `git merge`. Así cada parte corre con las skills, los agentes y las guardas de main. Un
-  conflicto se aborta y se anota: el coordinador devuelve el PR.
+  choque sólo en `docs/*.md` se resuelve uniendo las dos versiones; uno en código se aborta y queda en `.piloto/conflicto-con-main.md`, que la
+  sesión del paso resuelve antes que nada (2026-11-08: antes nadie lo resolvía y el coordinador no devuelve las partes).
 - **La espera a main** (compuerta `espera`, con `pedido` y `archivos`, obligatorios): el bucle le deja el pedido al coordinador, mira
   `origin/main` cada `PILOTO_ESPERA_MAIN_POLL` s (120) hasta que **todos** los `archivos` cambien (o el dueño cierre el pedido), lo trae a la
   rama y retoma el paso con la respuesta en `hechos.json` › `decision`. Hasta `PILOTO_ESPERA_MAIN_VECES` (3) esperas por paso y
