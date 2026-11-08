@@ -2,12 +2,14 @@
 
 import { useMemo } from 'react'
 import type { Diseno } from '../../../entities/diseno'
+import { tiposDeCambio } from '../../../entities/diseno/edicion-de-la-cabecera'
 import { tablasParaAyuda } from '../../../entities/diseno/edicion-de-items'
 import type { DisenoParaEditar, NivelDelDiseno } from '../../../entities/diseno/edicion-del-diseno'
 import { useEdicionesDelDiseno } from '../hooks/use-ediciones-del-diseno'
 import { useEditorDelDiseno } from '../hooks/use-editor-del-diseno'
 import { AvisosDelDiseno } from './avisos-del-diseno'
 import { BarraDeGuardado } from './barra-de-guardado'
+import { CabeceraDelDiseno } from './cabecera-del-diseno'
 import { SeccionEditable } from './seccion-editable'
 
 type Props = {
@@ -32,6 +34,7 @@ export function EditorDelDiseno({
   const { guardado } = editor
   const ediciones = useEdicionesDelDiseno(editor.aplicar, leida.definicion)
   const tablas = useMemo(() => tablasParaAyuda(leida.definicion), [leida.definicion])
+  const tipos = useMemo(() => tiposDeCambio(leida.definicion), [leida.definicion])
   return (
     <div className="grid min-w-0 gap-3">
       <BarraDeGuardado
@@ -44,6 +47,14 @@ export function EditorDelDiseno({
         alRecargar={alRecargar}
       />
       <AvisosDelDiseno rechazo={editor.rechazo} avisos={editor.avisos} />
+      <CabeceraDelDiseno
+        cabecera={editor.trabajo.cabecera}
+        tieneTotalEn={leida.definicion.total_en !== undefined}
+        nBuckets={Object.keys(leida.definicion.buckets ?? {}).length}
+        tipos={tipos}
+        ediciones={ediciones}
+        ocupado={editor.ocupado}
+      />
       <ul className="grid grid-cols-[minmax(0,1fr)] gap-3">
         {editor.trabajo.secciones.map((seccion) => (
           <SeccionEditable
