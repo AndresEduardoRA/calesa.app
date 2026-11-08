@@ -112,8 +112,27 @@ cerrar_listo() {
         registro "el coordinador no cerró $paso: $(tail -n 1 "$ESTADO/coordinador.err")"
       rm -f "$ESTADO/asignado.json"
     elif modo_carril && [ "$paso" != ci-fix ] && [ -f "$ESTADO/asignado.json" ]; then
-      PARADA_HUMANA=1 parada "$paso dijo «listo» sin cambios y el coordinador lo sigue teniendo asignado: ¿está hecho (se integra a mano) o falta algo?" "$paso" \
-        'parado — lo miro (recomendado)' 'sigo — cierra esta vuelta y vuelve a pedir el paso al coordinador'
+      # Antes de ir a la persona, lo que dice el coordinador (2026-11-08, el 4.20-4a: volvió por un falso rojo, su PR ya estaba verde y la
+      # pregunta llegó tres veces, la última con el paso ya integrado): integrado o publicado, se suelta la asignación local; asignado con
+      # su PR abierto, vuelve a publicado una vez por paso (el coordinador lo integra o lo devuelve); si no, la persona.
+      local del_plan info ya pr_del_paso
+      del_plan=$(jq -r '.paso // empty' "$ESTADO/asignado.json" 2>/dev/null)
+      del_plan=${del_plan:-$paso}
+      info=$(coordinador estado "$del_plan" 2>/dev/null)
+      ya=$(jq -r '.estado // empty' <<<"$info" 2>/dev/null)
+      pr_del_paso=$(jq -r 'if .pr_parcial then empty else (.pr // empty) end' <<<"$info" 2>/dev/null)
+      if [ "$ya" = integrado ] || [ "$ya" = publicado ]; then
+        registro "$paso listo sin cambios: el coordinador ya lo tiene $ya; suelto la asignación."
+        rm -f "$ESTADO/asignado.json"
+      elif [ "$ya" = asignado ] && [ -n "$pr_del_paso" ] && [ ! -f "$ESTADO/republicado-$del_plan" ] &&
+        coordinador publicado "$del_plan" "$pr_del_paso" >/dev/null 2>"$ESTADO/coordinador.err"; then
+        touch "$ESTADO/republicado-$del_plan"
+        registro "$paso listo sin cambios: su PR #$pr_del_paso sigue abierto; vuelve a publicado."
+        rm -f "$ESTADO/asignado.json"
+      else
+        PARADA_HUMANA=1 parada "$paso dijo «listo» sin cambios y el coordinador lo sigue teniendo asignado: ¿está hecho (se integra a mano) o falta algo?" "$paso" \
+          'parado — lo miro (recomendado)' 'sigo — cierra esta vuelta y vuelve a pedir el paso al coordinador'
+      fi
     fi
     registro "$paso listo sin cambios: no hay commits que verificar ni publicar."
     rm -f "$ESTADO/en-curso.json"

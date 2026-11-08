@@ -12,6 +12,7 @@
 //   coordinador.mjs cerrar-pedido <id> [motivo] el dueño lo cerró sin cambios (ya estaba hecho)
 //   coordinador.mjs liberar <paso> [motivo]     el paso vuelve a pendiente (el piloto lo abandonó)
 //   coordinador.mjs integrado <paso>            la persona lo integró a mano (lo normal es que lo vea `sincronizar`)
+//   coordinador.mjs estado <paso>               JSON del estado de un paso (el bucle lo mira antes de preguntar por uno sin cambios)
 //   coordinador.mjs sincronizar                 mira los PR publicados: integra los que puede (verde/ámbar con CI verde) y anota el resto
 //   coordinador.mjs cuota                       la fracción usada de la ventana de 5 h, si está calibrada
 //   coordinador.mjs tablero                     el tablero en Markdown (y en <común>/coordinador/TABLERO.md)
@@ -538,6 +539,14 @@ try {
       console.log(`✓ ${paso} vuelve a pendiente`)
       break
     }
+    case 'estado': {
+      const [paso] = args
+      if (!paso) fallar('uso: estado <paso>', 64)
+      const e = leerEstado(cargarPlan()).pasos[paso]
+      if (!e) fallar(`el paso ${paso} no está en el plan`)
+      console.log(JSON.stringify(e))
+      break
+    }
     case 'integrado': {
       const [paso] = args
       if (!paso) fallar('uso: integrado <paso>', 64)
@@ -579,7 +588,7 @@ try {
     }
     default:
       fallar(
-        'órdenes: validar · siguiente <carril> · publicado <paso> <pr> · parcial <paso> <pr> · pedir <carril> <paso> <texto> [archivo…] · pedido <id> · cerrar-pedido <id> [motivo] · liberar <paso> · integrado <paso> · sincronizar · cuota · tablero',
+        'órdenes: validar · siguiente <carril> · publicado <paso> <pr> · parcial <paso> <pr> · pedir <carril> <paso> <texto> [archivo…] · pedido <id> · cerrar-pedido <id> [motivo] · liberar <paso> · integrado <paso> · estado <paso> · sincronizar · cuota · tablero',
         64,
       )
   }
