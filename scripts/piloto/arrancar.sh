@@ -36,7 +36,7 @@ if [ "$SI_CAIDO" = 1 ]; then
   mkdir -p "$ESTADO"
   flock -n "$ESTADO/bucle.lock" true 2>/dev/null || exit 0
   case "$(tail -n 1 "$ESTADO/registro.md" 2>/dev/null)" in
-    *"parado por la persona"* | *"PARAR"* | *"no tiene más pasos"* | *"llegamos a "* | *"no ve ningún paso por avanzar"*) exit 0 ;;
+    *"parado por la persona"* | *"parado (decisión automática"* | *"PARAR"* | *"no tiene más pasos"* | *"llegamos a "* | *"no ve ningún paso por avanzar"*) exit 0 ;;
   esac
   echo "arrancar: el bucle de ${CARRIL:-este árbol} no corría y nadie lo paró: lo levanto." >&2
   echo "- $(ahora_lapaz) vigía: el bucle no corría y nadie lo paró: lo levanto." >>"$ESTADO/registro.md"
