@@ -24,9 +24,10 @@ describe('pestanasVisibles', () => {
     ])
   })
 
-  it('quien sólo configura la fórmula de un origen, la fórmula', () => {
+  it('quien sólo configura la fórmula de un origen, la fórmula y el diseño', () => {
     expect(claves(pestanasVisibles(permisos({ 'cotizaciones.configurar': [O1] })))).toEqual([
       'formula',
+      'diseno',
     ])
   })
 
@@ -37,7 +38,7 @@ describe('pestanasVisibles', () => {
           permisos({ 'equipo.roles.gestionar': 'global', 'cotizaciones.configurar': 'global' }),
         ),
       ),
-    ).toEqual(['niveles', 'formula'])
+    ).toEqual(['niveles', 'formula', 'diseno'])
   })
 
   it('sin ninguna, ninguna', () => {
@@ -59,6 +60,12 @@ describe('pestanaDe', () => {
 
   it('una que no es suya abre la primera de las suyas', () => {
     expect(pestanaDe('niveles', soloFormula)).toBe('formula')
+    expect(pestanaDe('diseno', soloFormula)).toBe('formula')
+  })
+
+  it('«diseno» abre el diseño cuando es una de las suyas', () => {
+    const conDiseno = alMenosUna([{ clave: 'formula' as const }, { clave: 'diseno' as const }])
+    expect(pestanaDe('diseno', conDiseno ?? soloFormula)).toBe('diseno')
   })
 
   it('lo que no es una pestaña abre la primera', () => {
