@@ -8,7 +8,18 @@ import type { ContextoDePlantilla } from './validar-plantilla'
 // El catálogo de tonos tiene un tope en la base (`_tonos_tope()`, 24): no deja crear el 25.º, así que se lee entero y no hay «Ver más» ni aviso de tope.
 export const TOPE_DE_TONOS = 24
 
-export type TonoDelCatalogo = { readonly clave: string; readonly nombre: string }
+// Los colores (4.19-4) son los de `tonos` en claro y en oscuro, como texto: la vista previa los pasa a `<EstiloDeTonos>`, que descarta un tono con un color inválido.
+export type ColoresDelTonoDelCatalogo = {
+  readonly fondo: string
+  readonly borde: string
+  readonly tinta: string
+}
+export type TonoDelCatalogo = {
+  readonly clave: string
+  readonly nombre: string
+  readonly claro?: ColoresDelTonoDelCatalogo
+  readonly oscuro?: ColoresDelTonoDelCatalogo
+}
 
 // Una plantilla del origen (el borrador o la publicada). Las dos horas son el texto que da la base, con sus microsegundos: la versión esperada de guardar, publicar y
 // descartar es ese texto y nunca pasa por `Date`. `plantilla` es nula si lo guardado ya no tiene la forma (el editor no la dibuja a medias) y `motivo` dice por qué.
@@ -35,10 +46,25 @@ export type FilaDeVersionDePlantilla = {
 // de la tarjeta): ya la validó la base al publicarla, y leerla con el Zod entero de la fórmula ataría la plantilla a cada cambio de la fórmula.
 export const esquemaDefinicionParaPlantilla = z.looseObject({
   nodos: z.array(
-    z.looseObject({ id: z.string(), grupo: z.string().nullish(), salida: z.string().nullish() }),
+    z.looseObject({
+      id: z.string(),
+      grupo: z.string().nullish(),
+      salida: z.string().nullish(),
+      etiqueta: z.string().nullish(),
+    }),
   ),
   buckets: z.record(z.string(), z.string()).optional(),
-  grupos: z.array(z.looseObject({ id: z.string(), bucket: z.string().nullish() })).optional(),
+  grupos: z
+    .array(
+      z.looseObject({
+        id: z.string(),
+        bucket: z.string().nullish(),
+        etiqueta: z.string().nullish(),
+        tono: z.string().nullish(),
+        plazo: z.unknown().optional(),
+      }),
+    )
+    .optional(),
 })
 export const esquemaDisenoParaPlantilla = z.looseObject({
   cabecera: z
