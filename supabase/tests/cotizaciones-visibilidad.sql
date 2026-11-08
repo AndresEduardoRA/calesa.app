@@ -134,6 +134,7 @@ end $f$;
 --   no_devuelve   lee esas tablas pero lo que devuelve no es contenido: conteos, ids, nombres o textos de motivo
 create or replace function pg_temp.cv_registro() returns jsonb language sql as $f$
   select jsonb_build_object(
+    'comprobante_emitir', jsonb_build_object('clase', 'no_devuelve', 'motivo', 'devuelve id, serie, numero y emitido_en; lo que congela en comprobantes.datos es el recorte del nivel «todos» (areas/comprobantes/emitir.sql)'),
     'nivel_crear', jsonb_build_object('clase', 'no_devuelve', 'motivo', 'devuelve la lista de niveles con el uso de cada uno: conteos y el texto del motivo; _nivel_uso() lee formulas.diseno y sólo cuenta'),
     'nivel_renombrar', jsonb_build_object('clase', 'no_devuelve', 'motivo', 'devuelve la lista de niveles con el uso de cada uno: conteos y el texto del motivo'),
     'nivel_retirar', jsonb_build_object('clase', 'no_devuelve', 'motivo', 'devuelve la lista de niveles con el uso de cada uno: conteos y el texto del motivo'),

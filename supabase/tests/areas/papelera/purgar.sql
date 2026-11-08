@@ -98,6 +98,14 @@ begin
 end $f$;
 
 
+-- Un comprobante heredado (de antes del 4.26) sobre una cotización que ya está en la papelera: como postgres, en la serie PU de la prueba. Hoy emitir pide una
+-- final viva y la papelera rechaza una cotización con comprobante; lo que queda por cubrir en la purga es el caso que ya estaba en la base.
+create or replace function pg_temp.pu_comprobante(p_c uuid) returns void language sql as $f$
+  insert into public.comprobantes_contadores (serie, ultimo) values ('PU', 0) on conflict do nothing;
+  with n as (update public.comprobantes_contadores set ultimo = ultimo + 1 where serie = 'PU' returning ultimo)
+  insert into public.comprobantes (cotizacion_id, serie, numero, datos) select p_c, 'PU', n.ultimo, '{}'::jsonb from n;
+$f$;
+
 create or replace function pg_temp.pu_version(p_lote uuid) returns timestamptz language sql as $f$
   select actualizado_en from public.lotes_papelera where id = p_lote;
 $f$;
@@ -178,9 +186,8 @@ do $$
 declare jefa uuid := pg_temp.pu_jefa_k(); e jsonb := pg_temp.pu_origen(); f uuid; p uuid; s jsonb; r jsonb;
 begin
   f := pg_temp.pu_cot(jefa, e, pg_temp.pu_vehiculo(e), 'final'); p := pg_temp.pu_cot(jefa, e);
-  r := pg_temp.pu_corre(jefa, format('select public.comprobante_emitir(%L, %L, %L::jsonb)', f, 'PU', '{"cliente": "PU"}'));
-  if r ? 'error' then raise exception 'no se emitió el comprobante: %', r; end if;
   s := pg_temp.pu_enviar(jefa, array[f, p]);
+  perform pg_temp.pu_comprobante(f);
   r := pg_temp.pu_purgar(jefa, (s ->> 'lote')::uuid, (s ->> 'actualizado_en')::timestamptz);
   if r ? 'error' then raise exception 'purgar abortó: %', r; end if;
   if pg_temp.pu_bloqueo(r, f) is distinct from 'Otros registros dependen de ella.' then raise exception 'la final con comprobante: %', r; end if;
@@ -243,10 +250,9 @@ do $$
 declare jefa uuid := pg_temp.pu_jefa_k(); e jsonb := pg_temp.pu_origen(); f uuid; p uuid; w uuid; s jsonb; r jsonb; v_lote uuid;
 begin
   f := pg_temp.pu_cot(jefa, e, pg_temp.pu_vehiculo(e), 'final'); p := pg_temp.pu_cot(jefa, e); w := pg_temp.pu_cot(jefa, e);
-  r := pg_temp.pu_corre(jefa, format('select public.comprobante_emitir(%L, %L, %L::jsonb)', f, 'PU', '{"cliente": "PU"}'));
-  if r ? 'error' then raise exception 'no se emitió el comprobante: %', r; end if;
   perform pg_temp.pu_hijas(w, w || '/compartido.pdf'); perform pg_temp.pu_hijas(p, w || '/compartido.pdf');
   s := pg_temp.pu_enviar(jefa, array[f, p]);
+  perform pg_temp.pu_comprobante(f);
   r := pg_temp.pu_generica(jefa, (s ->> 'lote')::uuid);
   if r is distinct from '1'::jsonb then raise exception 'la genérica debía purgar una: %', r; end if;
   if pg_temp.pu_existe(p) or not pg_temp.pu_existe(f) then raise exception 'debía purgarse sólo la preventa'; end if;
