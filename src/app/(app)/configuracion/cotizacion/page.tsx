@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
+import { VistaPreviaDeLaPlantillaDiferida } from '@/modules/cotizaciones/pantallas/tarjeta-plantilla'
 import { SeccionDeLaFormula } from '@/modules/cotizaciones/pantallas/formula'
 import { SeccionDeLaPlantilla } from '@/modules/cotizaciones/pantallas/plantilla'
 import { puede, requerirSesion } from '@/modules/equipo'
@@ -35,7 +36,7 @@ export default async function PaginaDeCotizacion({
   })
   const paraLaBarra = [quitarPermisos(primera), ...resto.map(quitarPermisos)] as const
   return (
-    <div className="grid max-w-3xl gap-4">
+    <div className={`grid gap-4 ${pestana === 'tarjeta' ? 'max-w-6xl' : 'max-w-3xl'}`}>
       <div className="grid gap-1">
         <h1 className="text-(length:--text-xl) font-semibold text-(--color-ink)">Cotización</h1>
         <p className="text-(length:--text-sm) text-(--color-ink-soft)">
@@ -67,6 +68,7 @@ export default async function PaginaDeCotizacion({
             origenes={getOrigenes(true)}
             permisos={sesion.permisos}
             origenPedido={origenPedido}
+            VistaPrevia={VistaPreviaDeLaPlantillaDiferida}
           />
         </Suspense>
       ) : null}

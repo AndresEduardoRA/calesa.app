@@ -182,3 +182,28 @@ describe('EditorDeLaPlantilla: publicar y descartar', () => {
     expect(screen.queryByRole('button', { name: 'Descartar borrador…' })).toBeNull()
   })
 })
+
+describe('EditorDeLaPlantilla: la vista previa (4.19-4)', () => {
+  const Falsa = ({ lectura }: { lectura: { total: { etiqueta: string } } }) => (
+    <p data-vista-falsa="">{lectura.total.etiqueta}</p>
+  )
+
+  it('recibe la lectura y cambia al tipear, sin guardar', () => {
+    render(<EditorDeLaPlantilla {...props()} {...ACCIONES} VistaPrevia={Falsa} />)
+    expect(screen.getByText('TOTAL', { selector: '[data-vista-falsa]' })).toBeTruthy()
+    escribir(screen.getByLabelText('Etiqueta del total'), 'Total final')
+    expect(screen.getByText('Total final', { selector: '[data-vista-falsa]' })).toBeTruthy()
+    expect(guardarBorrador).not.toHaveBeenCalled()
+  })
+
+  it('sigue a la plantilla aunque la forma no valide (campo en blanco: «Total»)', () => {
+    render(<EditorDeLaPlantilla {...props()} {...ACCIONES} VistaPrevia={Falsa} />)
+    escribir(screen.getByLabelText('Etiqueta del total'), '')
+    expect(screen.getByText('Total', { selector: '[data-vista-falsa]' })).toBeTruthy()
+  })
+
+  it('sin VistaPrevia, el editor no dibuja nada de eso', () => {
+    const { container } = render(<EditorDeLaPlantilla {...props()} {...ACCIONES} />)
+    expect(container.querySelector('[data-vista-falsa]')).toBeNull()
+  })
+})
