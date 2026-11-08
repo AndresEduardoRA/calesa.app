@@ -1,6 +1,6 @@
 # Plan del paso <N> — <título>
 
-> Lo escribe el `planificador` en `.piloto/planes/<paso>.md`. Lo audita el `auditor`. Corto y concreto: lo que la persona revisaría antes de que se ejecute.
+> Lo escribe el `planificador` en `.piloto/planes/<paso>.md`. Lo audita el `auditor` **una vez y sólo en un paso de datos o dinero** (en pantalla, `verde` o `ambar`, no se audita). Corto y concreto: lo que la persona revisaría antes de que se ejecute.
 >
 > - **Tope: 60 KB** medidos con `wc -c` (el del 4.13-3b pesó 87 KB). Un plan que no cabe es un paso que no cabe: se parte.
 > - **La conducta se escribe una vez**, numerada (`C1…Cn`); archivos, pruebas y mutaciones la citan por número, no la vuelven a contar.
@@ -23,7 +23,7 @@ Qué entra, en una lista corta que cita la conducta (`C3`, `C4`), y aparte qué 
 ## Partición
 
 Si junta capas con verificación distinta (la base, `src/shared`, la pantalla): en qué pasos se parte, y **cómo se anota en `docs/PLAN.md`**. Si no se parte, por qué cabe
-(en 60 KB y en hasta 3 commits de código).
+(en 60 KB y en hasta 6 commits de código).
 
 ## Precondiciones verificables
 
@@ -47,11 +47,13 @@ Una tabla: `ruta · capa (entities / infra / features / app / shared / supabase)
 
 ## Pruebas que fallan primero
 
-Una tabla: `archivo · prueba · Cn · dónde queda en rojo contra HEAD` (`.piloto/salidas/<paso>/`).
+**Sólo las clave** (`.claude/rules/e2e.md` › «Pulido y rigor por tipo de paso»): dinero, fórmula, permisos, RLS, carreras donde hay candados o numeración, y un e2e
+del camino feliz por pantalla nueva (en `escritorio`; las de Configuración, sin `movil`). Una tabla: `archivo · prueba · Cn`. Se escriben antes que el código; su
+salida en rojo no se guarda. Nada de e2e de volumen de interfaz, de conflicto ya cubierto por SQL, ni `medir-*.sql` de tablas de configuración.
 
 ## Mutaciones
 
-Sólo en un paso de rigor máximo (`.claude/rules/e2e.md` › «Pulido y rigor por tipo de paso»); en pantalla pura, «No aplica». Una tabla: `Mn · archivo de producto · qué se rompe · Cn · la prueba que debe caer`. Se hacen después de verde y se revierten con `cp` + `cmp`.
+Sólo en el motor de la fórmula y el dinero (`.claude/rules/e2e.md` › «Pulido y rigor por tipo de paso»); en lo demás, «No aplica». Una tabla: `Mn · archivo de producto · qué se rompe · Cn · la prueba que debe caer`. Se hacen después de verde y se revierten con `cp` + `cmp`.
 
 ## Abiertos de `docs/PLAN.md` que toca
 
@@ -63,7 +65,7 @@ Claves de `permisos`, RLS, RPC, `security definer`, Vault. Nada que un nivel ocu
 
 ## Rendimiento
 
-Las filas de `docs/RENDIMIENTO.md` de cada lista que toca: tope, índice y presupuesto. Qué volumen se siembra para probar.
+Las filas de `docs/RENDIMIENTO.md` de cada lista que toca: tope, índice y presupuesto. Qué volumen se siembra, sólo si la lista va sobre una tabla que crece.
 
 ## Docs
 
@@ -72,7 +74,7 @@ Las filas de `docs/RENDIMIENTO.md` de cada lista que toca: tope, índice y presu
 
 ## Commits
 
-**Hasta 3 commits de código y el de docs**, uno por intención, en orden, con su asunto (español, minúscula, ≤ 72 caracteres) y qué lleva cada uno. Si el plan necesita más,
+**Hasta 6 commits de código y el de docs**, uno por intención, en orden, con su asunto (español, minúscula, ≤ 72 caracteres) y qué lleva cada uno. Si el plan necesita más,
 el paso no cabe y se parte. El `fix` que pida la auditoría del informe va aparte y no cuenta.
 
 ## Modelo y esfuerzo sugeridos

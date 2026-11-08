@@ -2756,3 +2756,14 @@ Lo pidió la persona después de que el A hiciera el 4.16 y el 4.17-1: se parti�
 - **La nota de publicar tiene su propio esquema** (`esquemaDeNotaDePlantilla`): `entities/formula/publicacion.ts` es del carril B y de otra área. Los dos topes son 2.000; **pendiente:**
   mover la nota al núcleo y que las dos áreas usen una. Cuenta caracteres con `caracteres()`, no `.max(n)` (4-74).
 - **La versión esperada se valida como `z.iso.datetime({ offset: true })`:** admite los 6 decimales y la zona de la base; un `Date`, un instante sin zona o vacío no pasan.
+
+## 2026-11-08 — Pruebas sólo en lo clave
+
+La persona: «elimina el testing innecesario; no quiero sobretestear la app, sólo las partes clave», para cerrar la Fase 4 rápido. Se escriben los tests de
+`entities/` con dinero, fórmula o permisos, las pruebas SQL de RLS, permisos y `security definer`, las carreras donde hay candados o numeración y **un** e2e del
+camino feliz por pantalla nueva. Se dejan de escribir: mutaciones fuera del motor de la fórmula y el dinero, salidas en rojo contra HEAD, sondas de medición,
+e2e de volumen de interfaz (salvo leads, vehículos y cotizaciones), e2e de conflicto ya cubierto por SQL, `medir-*.sql` de tablas de configuración, `movil` en
+Configuración y capturas. Una inestable que pasa al reintentar no es un abierto ni un pedido (el pedido-1 y el pedido-2 costaron ≈ 3 h del carril A); un
+presupuesto pasado por ≤ 5 % se sube en RENDIMIENTO. El auditor del plan corre una vez y sólo en pasos de datos o dinero (bloquea → la sesión corrige o achica),
+el del informe sólo con RLS, permisos, `security definer` o dinero; hasta 6 commits de código por parte (eran 3: cada parte de más es un ciclo de plan, PR y CI).
+Las pruebas que ya existen siguen corriendo; borrar las caras se decide aparte. Regla en `.claude/rules/e2e.md` › «Pulido y rigor por tipo de paso».
