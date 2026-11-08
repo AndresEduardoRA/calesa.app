@@ -25,6 +25,8 @@ export function useDescarteDeLaPlantilla({ esperada, pedir, alDescartar }: Opcio
   const [aviso, setAviso] = useState<string | null>(null)
   const [conflicto, setConflicto] = useConflictoHastaLaVersion(esperada)
   const [recargando, recargarPagina] = useTransition()
+  // Ya entró: lo que cambie mientras el diálogo se va (el borrador deja de estar) no se dice.
+  const [descartado, setDescartado] = useState(false)
 
   async function confirmar() {
     if (conflicto !== null || esperada === null) return
@@ -32,6 +34,7 @@ export function useDescarteDeLaPlantilla({ esperada, pedir, alDescartar }: Opcio
     const envio = await mandar(() => pedir(esperada))
     if (envio === null) return
     if (envio.ok) {
+      setDescartado(true)
       alDescartar()
       return
     }
@@ -49,6 +52,7 @@ export function useDescarteDeLaPlantilla({ esperada, pedir, alDescartar }: Opcio
     aviso,
     conflicto,
     recargando,
+    descartado,
     confirmar,
     recargar: () => {
       recargarPagina(() => {

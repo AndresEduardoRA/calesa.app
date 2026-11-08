@@ -104,8 +104,9 @@ test('E1: sin borrador ni publicada el editor parte de los grupos de la fórmula
   const guardado = borradorGuardado(origenId())
   expect(guardado?.definicion.total.etiqueta).toBe('TOTAL EN DÓLARES')
   expect(guardado?.definicion.grupos[0]?.tono).toBeTruthy()
-  // La base escribe los microsegundos sin los ceros del final: lo que prueba que no pasó por un `Date` (3 decimales) son al menos 4.
-  expect(guardado?.actualizadoEn).toMatch(/\.\d{4,6}[+-]/)
+  // Sin aserción sobre los decimales de `actualizadoEn`: la base los escribe sin los ceros del final y el reloj de esta máquina da a veces sólo 3 o 5 (cayó con
+  // «.695», «.43929» y «.62499»). Que la versión esperada conserve los microsegundos lo prueba el PT409 de `-conflicto.spec.ts`.
+  expect(guardado?.actualizadoEn).toBeTruthy()
 })
 
 test('E2: sin la clave no hay pestaña ni se abre por la URL; un origen ajeno abre el suyo; sin fórmula, el vacío con su enlace', async ({

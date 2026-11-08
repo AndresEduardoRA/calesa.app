@@ -38,6 +38,7 @@ describe('useDescarteDeLaPlantilla', () => {
     expect(pedir).toHaveBeenCalledWith(V1)
     expect(alDescartar).toHaveBeenCalledTimes(1)
     expect(result.current.aviso).toBeNull()
+    expect(result.current.descartado).toBe(true)
   })
 
   it('un PT409 queda como conflicto, no vuelve a pedir y se va al CAMBIAR la esperada; «Recargar» refresca', async () => {

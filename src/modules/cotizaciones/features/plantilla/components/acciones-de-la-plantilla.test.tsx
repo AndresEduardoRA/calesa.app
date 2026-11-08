@@ -6,6 +6,13 @@ import { AccionesDeLaPlantilla } from './acciones-de-la-plantilla'
 const avisarError = vi.fn()
 vi.mock('@/shared/ui/toasts', () => ({ avisarError: (e: unknown) => avisarError(e) }))
 vi.mock('./diferidos', () => ({
+  DescartarLaPlantillaDiferido: (p: { abierto: boolean; nombrado: string }) => (
+    <div
+      data-testid="dialogo-descartar"
+      data-abierto={String(p.abierto)}
+      data-nombrado={p.nombrado}
+    />
+  ),
   ModalDePublicarLaTarjetaDiferido: (p: { abierto: boolean; esperada: string | null }) => (
     <div
       data-testid="modal-publicar"
@@ -63,5 +70,35 @@ describe('AccionesDeLaPlantilla', () => {
     expect(modal.getAttribute('data-abierto')).toBe('true')
     expect(modal.getAttribute('data-esperada')).toBe(HORA)
     expect(avisarError).not.toHaveBeenCalled()
+  })
+
+  it('?panel=descartar-plantilla sin borrador no monta el diálogo, avisa y limpia la URL', () => {
+    const cerrar = vi.fn()
+    render(
+      <AccionesDeLaPlantilla
+        panel={panel({ descartando: true }, cerrar)}
+        origen={ORIGEN}
+        esperada={null}
+      />,
+    )
+    expect(screen.queryByTestId('dialogo-descartar')).toBeNull()
+    expect(avisarError).toHaveBeenCalledWith({
+      codigo: 'no_encontrado',
+      mensaje: 'No hay borrador para descartar.',
+    })
+    expect(cerrar).toHaveBeenCalledTimes(1)
+  })
+
+  it('con borrador monta el diálogo abierto con el borrador que nombra', () => {
+    render(
+      <AccionesDeLaPlantilla
+        panel={panel({ descartando: true })}
+        origen={ORIGEN}
+        esperada={HORA}
+      />,
+    )
+    const dialogo = screen.getByTestId('dialogo-descartar')
+    expect(dialogo.getAttribute('data-abierto')).toBe('true')
+    expect(dialogo.getAttribute('data-nombrado')).toBe(HORA)
   })
 })

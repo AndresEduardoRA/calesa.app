@@ -12,3 +12,8 @@ export const EditorDeLaPlantillaDiferido = diferido(
 export const ModalDePublicarLaTarjetaDiferido = diferido(() =>
   import('./modal-de-publicar-la-tarjeta').then((modulo) => modulo.ModalDePublicarLaTarjeta),
 )
+
+// «Descartar el borrador de la tarjeta de <Origen>» (4.19-3c), igual.
+export const DescartarLaPlantillaDiferido = diferido(() =>
+  import('./descartar-la-plantilla').then((modulo) => modulo.DescartarLaPlantilla),
+)
