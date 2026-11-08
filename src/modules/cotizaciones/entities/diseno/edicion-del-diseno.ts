@@ -67,7 +67,7 @@ export function pedidoDeGuardarDiseno(
       }
 }
 
-const conSeccion = (
+export const conSeccion = (
   diseno: Diseno,
   seccionId: string,
   cambiar: (s: SeccionDeDiseno) => SeccionDeDiseno,
