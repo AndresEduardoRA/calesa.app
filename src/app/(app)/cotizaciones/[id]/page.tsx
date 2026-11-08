@@ -99,6 +99,7 @@ async function Cotizacion({ params }: { params: PageProps<'/cotizaciones/[id]'>[
         cliente={cliente?.nombre ?? null}
         vehiculo={vehiculo?.titulo ?? null}
         acciones={dibujarHuecos(HUECOS_DE_LA_GUARDADA, 'Acciones', props)}
+        insignias={dibujarHuecos(HUECOS_DE_LA_GUARDADA, 'Insignias', props)}
       />
       <ConProveedorDeLaHoja
         origenId={hoja.cotizacion.origenId}

@@ -56,6 +56,14 @@ describe('huecos de una guardada', () => {
     }
   })
 
+  it('`Insignias` da sólo los componentes de ese lugar, en orden (4.27-4)', () => {
+    const lista = [{ Insignias: A, Acciones: B }, { Debajo: B }, { Insignias: C }]
+    const insignias = dibujarHuecos(lista, 'Insignias', props)
+    const tipos = (Array.isArray(insignias) ? insignias : []).map((e: { type: unknown }) => e.type)
+    expect(tipos).toEqual([A, C])
+    expect(dibujarHuecos([{}, {}, {}, {}], 'Insignias', props)).toBeUndefined()
+  })
+
   it('un lugar que ningún hueco trae da `undefined`, aunque otro lugar sí', () => {
     expect(dibujarHuecos([{ Acciones: A }], 'Debajo', props)).toBeUndefined()
   })

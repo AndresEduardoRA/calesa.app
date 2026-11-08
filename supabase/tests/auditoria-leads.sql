@@ -139,7 +139,22 @@ declare
     ('origen_eliminar(uuid,timestamp with time zone)', 'X'),
     ('origenes_resumen()', 'X'),
     ('comprobante_emitir(uuid,text,jsonb)', 'X'),
-    ('cotizacion_moderar(uuid,estado_cotizacion)', 'X'),
+    -- Moderar (4.27-1): recibe una cotización, no un lead; pide ver (antes y con la fila tomada), moderar y, en una final, final.gestionar del origen; su matriz, `areas/comentarios/reportar-y-moderar.sql`.
+    ('cotizacion_moderar(uuid,timestamp with time zone,estado_cotizacion)', 'X'),
+    -- Comentarios y adjuntos (4.27-1): reciben una cotización, no un lead, y piden verla (`puede_cotizacion`); sus pruebas, `areas/comentarios/`.
+    ('cotizacion_puede_adjuntar(uuid)', 'L'),
+    ('cotizacion_comentarios(uuid,timestamp with time zone,uuid,integer,integer)', 'L'),
+    ('cotizacion_comentario_respuestas(uuid,timestamp with time zone,uuid,integer)', 'L'),
+    -- Escriben comentarios y adjuntos de una cotización que se ve (comentar pide ver; adjuntar, poder guardarla; editar es del autor; borrar y quitar, del autor o de moderar).
+    ('cotizacion_comentar(uuid,uuid,text)', 'X'),
+    ('cotizacion_comentario_editar(uuid,timestamp with time zone,text)', 'X'),
+    ('cotizacion_comentario_borrar(uuid,timestamp with time zone)', 'X'),
+    ('cotizacion_adjuntar(uuid,text,text,text,integer)', 'X'),
+    ('cotizacion_adjunto_quitar(uuid)', 'X'),
+    -- Marcas de quien mira: su reporte (retirar toma la cotización antes del reporte, como moderar) y su favorita.
+    ('cotizacion_reportar(uuid,text)', 'M'),
+    ('cotizacion_reporte_retirar(uuid)', 'M'),
+    ('cotizacion_favorito_poner(uuid,boolean)', 'M'),
     ('evaluar_requisitos(uuid,uuid,uuid)', 'X'),
     ('margen_vehiculo(uuid)', 'X'),
     -- Lee una cotización recortada por nivel (4.10): el recorte lo prueba cotizaciones-visibilidad.sql.
