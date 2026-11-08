@@ -1,0 +1,21 @@
+// Los `<Confirmar>` del carril C fuera de la papelera (4.27-2): borrar un comentario de una cotización quitar uno de sus adjuntos (4.27-3) y moderarla (4.27-4). Es un pedazo de `CONFIRMAR_CON_URL` (`confirmar-con-url.ts`,
+// del A) que la guarda suma con `import.meta.glob('./areas-*/confirmar-con-url.ts')` (`registros-de-carriles.ts`).
+import type { ConfirmarConUrl } from '../confirmar-con-url'
+
+export const REGISTRO: Record<string, ConfirmarConUrl> = {
+  // `?panel=borrar-comentario&comentario=<id>`.
+  'src/modules/cotizaciones/features/comentarios/components/confirmar-borrado.tsx': {
+    abre: 'src/modules/cotizaciones/features/comentarios/hooks/use-borrado-por-url.ts',
+    senal: 'PANEL_BORRAR_COMENTARIO',
+  },
+  // `?panel=quitar-adjunto&adjunto=<id>` (4.27-3).
+  'src/modules/cotizaciones/features/comentarios/components/confirmar-quitado.tsx': {
+    abre: 'src/modules/cotizaciones/features/comentarios/hooks/use-quitado-por-url.ts',
+    senal: 'PANEL_QUITAR_ADJUNTO',
+  },
+  // `?panel=moderar&accion=invalidar|descartar|reactivar` (4.27-4).
+  'src/modules/cotizaciones/features/comentarios/components/confirmar-moderacion.tsx': {
+    abre: 'src/modules/cotizaciones/features/comentarios/hooks/use-moderacion-por-url.ts',
+    senal: 'PANEL_MODERAR',
+  },
+}

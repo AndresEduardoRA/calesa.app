@@ -89,14 +89,13 @@ function conCandado(fn) {
         }
         if (Date.now() - statSync(CANDADO).mtimeMs > 600_000) viejo = true
       } catch {
-        // Otro proceso pudo soltar el candado entre mirar y leer: sin directorio no hay nada que romper.
-        let mtime = 0
+        // Sin pid legible: el candado se está creando o el otro lo acaba de soltar (entre existsSync y statSync caía con ENOENT:
+        // el CI del PR 69, «dos carriles piden a la vez»). Viejo sólo si lleva más de 5 s así; si ya no está, se reintenta.
         try {
-          mtime = statSync(CANDADO).mtimeMs
+          viejo = Date.now() - statSync(CANDADO).mtimeMs > 5_000
         } catch {
-          mtime = Date.now()
+          viejo = false
         }
-        viejo = Date.now() - mtime > 5_000
       }
       if (viejo) rmSync(CANDADO, { recursive: true, force: true })
       else if (Date.now() > limite)
@@ -181,22 +180,50 @@ function mirarPr(numero) {
       'view',
       String(numero),
       '--json',
-      'state,mergeable,statusCheckRollup,headRefOid,files',
+      'state,mergeable,statusCheckRollup,headRefOid,headRefName,files',
     ),
   )
   const checks = pr.statusCheckRollup ?? []
-  const pendiente = checks.some((c) => (c.status ?? 'COMPLETED') !== 'COMPLETED')
+  // Un estado de commit (el de Vercel: `state`, sin `status`) en PENDING o EXPECTED sigue corriendo; antes contaba como terminado y
+  // rojo, y el paso volvía a su carril por un «CI en rojo» que un minuto después era verde (el PR 80, 2026-11-08).
+  // Un job cancelado (lo cancela el push siguiente o su tope de tiempo) tampoco es rojo: no hubo veredicto, y el paso volvía a su
+  // carril a «arreglar» un CI que no había fallado (PR 69, 2026-11-08). Queda pendiente hasta la corrida siguiente.
+  const estadoDe = (c) =>
+    c.conclusion === 'CANCELLED'
+      ? 'PENDING'
+      : (c.status ?? (['PENDING', 'EXPECTED'].includes(c.state) ? 'PENDING' : 'COMPLETED'))
+  const pendiente = checks.some((c) => estadoDe(c) !== 'COMPLETED')
   const rojo = checks.some(
-    (c) => (c.status ?? 'COMPLETED') === 'COMPLETED' && !CHECK_BIEN.has(c.conclusion ?? c.state),
+    (c) => estadoDe(c) === 'COMPLETED' && !CHECK_BIEN.has(c.conclusion ?? c.state),
   )
   const arreglar =
     pr.mergeable === 'CONFLICTING' ? 'conflicto con main' : rojo ? 'CI en rojo' : null
   const listo = !arreglar && !pendiente && checks.length > 0 && pr.mergeable === 'MERGEABLE'
   const guardas = GUARDAS_SOLAS ? [] : guardasEn((pr.files ?? []).map((f) => f.path))
-  return { estado: pr.state, arreglar, pendiente, listo, oid: pr.headRefOid ?? null, guardas }
+  return {
+    estado: pr.state,
+    arreglar,
+    pendiente,
+    listo,
+    oid: pr.headRefOid ?? null,
+    rama: pr.headRefName ?? null,
+    guardas,
+  }
 }
+// `gh pr merge --delete-branch` borra también la rama LOCAL y, si es la de ahora, pasa ese árbol a main: el coordinador corre en el
+// worktree del carril A y, al integrar el PR 80 (a/4.20-4a), dejó al A en main y su bucle paraba por «la rama no es a/…» (2026-11-08).
+// La rama remota se borra por la API, sin tocar ningún worktree; si falla, queda (no impide nada).
 function integrar(numero, pr, ...modo) {
-  gh('pr', 'merge', String(numero), ...modo, ...(pr.oid ? ['--match-head-commit', pr.oid] : []))
+  const borrar = modo.includes('--delete-branch')
+  const resto = modo.filter((m) => m !== '--delete-branch')
+  gh('pr', 'merge', String(numero), ...resto, ...(pr.oid ? ['--match-head-commit', pr.oid] : []))
+  if (borrar && pr.rama) {
+    try {
+      gh('api', '-X', 'DELETE', `repos/{owner}/{repo}/git/refs/heads/${pr.rama}`)
+    } catch {
+      // La rama remota queda: GitHub puede borrarla sola, y una rama vieja no bloquea a nadie.
+    }
+  }
 }
 const textoGuardas = (g) =>
   `toca las guardas del piloto (${g.slice(0, 3).join(', ')}${g.length > 3 ? '…' : ''}): lo integra la persona`

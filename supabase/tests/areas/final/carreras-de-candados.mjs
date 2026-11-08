@@ -20,7 +20,7 @@ import {
 
 const { duena } = PERSONAS
 const nuevoId = idsDesde(6000)
-// Quien marca y sólo ve (y edita) las cotizaciones suyas y las de su cartera (R8). El arnés la borra con las demás («carreras-», «carreras_»).
+// Quien marca (o crea una final) y sólo ve (y edita) las cotizaciones suyas y las de su cartera (R8, Q10, Q11). El arnés la borra con las demás («carreras-», «carreras_»).
 export const MARCA_PROPIOS = '00000000-0000-4000-8000-0000000c0f01'
 
 export async function sembrarFinal(db) {
@@ -42,7 +42,10 @@ export async function sembrarFinal(db) {
     ['cotizaciones.ver', 'propios'],
     ['cotizaciones.editar', 'propios'],
     ['cotizaciones.final.gestionar', 'todos'],
-    ['leads.ver', 'propios'],
+    // Crear una final (Q10, Q11 del 4.25-1b): cotiza, ve los vehículos y ve todos los leads (así sólo la cartera, con `leads.editar`, la frena).
+    ['cotizaciones.crear', 'todos'],
+    ['vehiculos.ver', 'todos'],
+    ['leads.ver', 'todos'],
     ['leads.editar', 'propios'],
   ]) {
     await db.query(

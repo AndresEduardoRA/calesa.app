@@ -292,6 +292,7 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   que esa pantalla abra con `cotizaciones.configurar`. Cierra **4-8**, **4-33**, **4-36**, **4-19**, **4-20**, **5a-29** y **5a-30**;
   **4-30** aquí o en 4.22. Llena el hueco de la hoja con un `Proveedor` (el ⚙ de una celda y «Aplicar también a esta cotización») y el enlace de «Falta publicar la fórmula» en `pantallas/formula-hoja.ts` (4.15-6a). Depende de 4.12, 4.13 y 4.15 (hasta el 4.15-6c). Nivel 1 + cadena db. Prompts: 2. **Se partió** en 4.20-1, 4.20-2 (a–c) y 4.20-3 (a–d), del B; la vigencia y el vehículo obligatorio pasaron al A como **4.20-4a** y **4.20-4b** (`docs/pasos/4.20-4/decisiones.md`).
 - **4.20-4a** — Los ajustes de cotización de la empresa: la RPC con su catálogo y su migración, la lectura, la regla de quién los cambia (`cotizaciones.configurar` concedida en todos los orígenes), la action y las pruebas de la base. Carril A. Nivel 1 + cadena db. Plan: `docs/pasos/4.20-4/plan-del-a.md`. Prompts: 1.
+  **Hecho** el 2026-11-08 (`docs/DECISIONES.md` › «Paso 4.20-4a»; P1 y P2 de la compuerta `datos` con la recomendada): `empresa_guardar_ajustes_de_cotizacion()` con `cotizaciones.configurar` sin origen y la versión de la fila; en `empresa`, `leerAjustesDeCotizacion()`, `puedeCambiarAjustesDeCotizacion()` y `guardarAjustesDeCotizacion`. e2e completo: no (1 de 3).
 - **4.20-4b** — Configuración › Cotización › Ajustes (`?seccion=ajustes`): el formulario, la pestaña y el hub. Depende de 4.20-4a y 4.20. Carril A. Nivel 1. Plan: `docs/pasos/4.20-4/plan-del-a.md`. Prompts: 1.
 - **4.21** — El editor de la fórmula como el Excel (filas, grupos, tipo de cambio, plazo; cada fila en texto, compilada por 4.07, que
   guarda `{ ...raíz compilada, texto }`); evalúa con el motor TS, porque quien lo usa ya ve la fórmula. Cierra **4-5** y **4-6**.
@@ -354,7 +355,7 @@ Sólo los abiertos; lo cerrado vive en `docs/archivo/PLAN.md`. Los de otras fase
 - **4-6** (4.21): `compilarExpresion` no mira `MAXIMO_DE_TEXTO`; sólo `validarFormula()` y `validar_formula()` rechazan una fila con
   `texto` de más de 2.000 (`forma`, en `definicion.nodos.<i>.texto`) — un e2e o prueba del editor que escribe 2.001 caracteres en una fila
   y ve el error en esa fila, sin llamar a `validarFormula()`; con 2.000 no hay error (`MAXIMO_DE_TEXTO` de `index.ts`).
-- **4-8** (4.20): el ⚙ pisa el borrador en curso, y guardar el borrador no pide su versión. `formula_cambiar_constante()` guarda un
+- **4-8** (la parte del ⚙ y de revertir, cerrada en el 4.20-1; la del borrador, 4.21): el ⚙ pisa el borrador en curso, y guardar el borrador no pide su versión. `formula_cambiar_constante()` guarda un
   borrador con la definición y el diseño de la publicada y lo publica; `formula_guardar_borrador()` (sin `p_actualizado_en_esperado`,
   excepción de `.claude/rules/migraciones.md`) pisa el de otra persona; publicar toma el borrador más reciente — una carrera o prueba: A
   guarda un borrador, B hace el ⚙ y A ve un conflicto (PT409) al guardar o publicar, o el ⚙ se niega diciendo que hay un borrador;
@@ -385,10 +386,10 @@ p_clase := 'final')` exige `cotizaciones.final.gestionar`, un vehículo y el ín
   clase cliente — en `cotizacion-crear.sql`, que crear una final y marcar una preventa como final dejen el mismo estado (vehículo
   vinculado, preventas en la papelera, lead en la clase cliente), o que crear una final sin pasar por la preventa se rechace con su
   motivo. `cotizacion_marcar_final` ya toma primero su cotización.
-- **4-19** (4.20): el «·» entre el estado y el uso queda solo al comienzo de una línea al 200 % — en
+- **4-19** (A, sin paso: pulido): el «·» entre el estado y el uso queda solo al comienzo de una línea al 200 % — en
   `e2e/configuracion-cotizacion-niveles-200.spec.ts`, ninguna línea de «Estado · Uso» empieza por «·» (el separador va pegado al final de
   la anterior); `src/modules/cotizaciones/features/niveles/components/lista-de-niveles.tsx` (`EstadoYUso`).
-- **4-20** (4.20, con la persona: ancho contra altura): el aviso de escritorio es angosto (216 px al 100 %): una descripción larga ocupa
+- **4-20** (A, sin paso: pulido; con la persona: ancho contra altura): el aviso de escritorio es angosto (216 px al 100 %): una descripción larga ocupa
   unas diez líneas y al 200 % (432 px) un aviso cubre campos de un panel — en `e2e/avisos-con-descripcion.spec.ts`, al 100 % en
   escritorio el aviso con descripción cabe en seis líneas o menos, y ningún aviso cubre un campo con foco (`src/shared/ui/sonner.tsx` y
   `--ancho-del-aviso` de `src/app/globals.css`; el pie del panel no se tapa: `avisoNoTapaElPie`).
@@ -416,10 +417,10 @@ playwright test --shard=2/4 --project=escritorio`), con `log_min_duration_statem
   su ventana (checkpoint con su `sync`, autovacuum y de qué tabla, sentencia de más de 250 ms, espera de candado), con la causa escrita
   aquí; si es de 5a-40 o 5a-42, se dice cuánto WAL escribe la siembra y se decide junto a ese punto. Si 10 + 2 corridas no la reproducen,
   se cierra «no reproducida» con los números y **9-11** queda como el camino para verla en CI. Nada queda «a vigilar».
-- **4-30** (4.22 o 4.20): un diseño de la hoja no tiene tope de tamaño (`validar_diseno()` no limita los ítems; la hoja más grande real,
+- **4-30** (4.22): un diseño de la hoja no tiene tope de tamaño (`validar_diseno()` no limita los ítems; la hoja más grande real,
   `subasta_usa`, tiene 39 ítems y 430 nodos del DOM; ≈ 15 nodos por celda) — publicar un diseño de más de N ítems es rechazado con la
   regla y su `donde` (N sale de medir: el tope de nodos de la hoja es 460), o la hoja las divide.
-- **4-33** (4.20, el ⚙ de un tipo de cambio desde la hoja): un `tipo_cambio_guardar` que empezó antes de abrir la hoja y confirmó después
+- **4-33** (A, sin paso: pulido; el ⚙ de un tipo de cambio desde la hoja): un `tipo_cambio_guardar` que empezó antes de abrir la hoja y confirmó después
   cuenta como visto (`tipos_cambio_historial.cambiado_en` es el `now()` de la transacción que escribe; la ventana dura lo que una
   transacción) — una tarifa que confirma después de abrir la hoja y con `cambiado_en` anterior a la apertura da `desactualizada` al
   guardar. Salida sugerida: `abierta` lleva una huella con clave de las tarifas vistas al abrir (el formato opaco la admite sin cambiar
@@ -428,7 +429,7 @@ playwright test --shard=2/4 --project=escritorio`), con `log_min_duration_statem
 - **4-34** (**cerrado** en el 4.15-1, 2026-11-04: `_cotizacion_puede_guardar()` pide ver y editar antes y después del candado. Lo que pasaba de verdad: quien edita sin ver no escribía —`_cotizacion_armar` pide ver—, pero antes de esa línea tomaba el candado y respondía distinto de lo inexistente: PT409 con quién y cuándo, 22023 del vehículo o del título, `intento_reusado`; 4.15): `cotizacion_guardar` deja editar con `cotizaciones.editar` y sin `cotizaciones.ver` (usa
   `puede_cotizacion(id, 'cotizaciones.editar')` y `_nodos_visibles()` pide `ver`: nada se ve ni se edita, y lo guardado se conserva) —
   un rol con sólo `cotizaciones.editar` no puede guardar (42501), como `cotizacion_crear` sin `ver`.
-- **4-36** (4.20, publicar la fórmula con su diseño: misma ruta que mide; elegido al integrar el A0): `supabase/tests/medir-publicar.sql`
+- **4-36** (cerrado en el 4.20-1; publicar la fórmula con su diseño: misma ruta que mide; elegido al integrar el A0): `supabase/tests/medir-publicar.sql`
   no se puede repetir sin `db:reset` — dos `pnpm db:medir` seguidas, sin `db:reset` entre ellas, pasan las dos.
 - **4-39** (sin fase: lo decide la persona; el original sugiere un refactor sin pantalla antes del 4.16): cuatro archivos de `entities/`
   pasan de 300 líneas — `vehiculos/entities/vitrina.ts` 358, `leads/entities/oportunidad.ts` 321, `leads/entities/alta.ts` 331 y
@@ -555,11 +556,11 @@ playwright test --shard=2/4 --project=escritorio`), con `log_min_duration_statem
   anota el tiempo de cada proyecto para que la persona decida con números si vale la segunda pila local (dos pilas de Supabase con otro
   `project_id`, otros puertos y `scripts/e2e-completo.mjs` lanzando los dos a la vez).
 - **5a-12** (**Cerrado en el 4.17-2**: la sección «Oportunidades» de la ficha lee 10 en el servidor y «Ver más» de a `TAMANO_DE_VER_MAS` (20) desde el navegador con `lead_oportunidades()` (la base, del 4.17-1), hasta `TOPE_DE_LO_CARGADO` (500), con el aviso «Mostrando las 500 más recientes, las abiertas primero.» y el camino «Buscarlas en tu embudo» (el kanban del embudo de la última cargada con el nombre del lead; P1 = 1); se fue «Ver todas» (`?todas=1`, P2 = 1); `leads-oportunidades-ver-todas.spec.ts` con 1.000 sembradas por SQL: la sección aporta 62,7 KB con 1.000 y 61,7 con 10, cada «Ver más» pesa ≈ 15,5 KB desde la 1.ª hasta la 25.ª y los nodos pasan de 238 a 11.509 con 500): un lead con 1.000 oportunidades llegaba sólo a 100 y cada una pesaba 3,5 KB en el documento.
-- **5a-29** (4.20): la «Clave interna» de un origen se corta en el borde de la pantalla al 200 % en el celular (`e2e_largo_capturas_movil`,
+- **5a-29** (Fase 9): la «Clave interna» de un origen se corta en el borde de la pantalla al 200 % en el celular (`e2e_largo_capturas_movil`,
   monoespaciada, llega a x = 412; no ensancha la página, así que `sinScrollHorizontal()` no lo ve) — `aLaVistaSinDesplazar()` sobre el
   valor de la clave al 200 % en 412 px (la clave se parte, o se desplaza dentro de su caja). Lugar:
   `src/modules/origenes/features/origenes/components/datos-del-origen.tsx` (línea 34) y `e2e/configuracion-200.spec.ts`.
-- **5a-30** (4.20): el paso «Revisa los permisos» de la ficha de un origen queda en una columna de ~130 px al 200 % en el celular («Abrir
+- **5a-30** (Fase 9): el paso «Revisa los permisos» de la ficha de un origen queda en una columna de ~130 px al 200 % en el celular («Abrir
   →» no cede; el paso «Publica la fórmula» ganaría su «Abrir →» y heredaría el defecto) — el texto del paso mide al menos 12 rem de
   ancho al 200 % en 412 px, o «Abrir» pasa debajo (`@container`, como las tarjetas), con su prueba en `e2e/`
   (`src/modules/origenes/features/pasos/components/siguientes-pasos.tsx`).

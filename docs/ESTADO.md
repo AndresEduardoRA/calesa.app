@@ -32,22 +32,23 @@
 
 ## Siguiente
 
-1. **Carril A: el 4.20-4a (vigencia y vehículo obligatorio en la base; rojo), con el piloto**, y en orden hasta el 4.28, **un prompt a la vez, y se para a reportar**. El **4.19** quedó completo
-   (el 4.19-4: la vista previa en vivo). Cuenta sin completo: **3 de 3** (`cuenta-e2e.mjs` no pide el completo local: sólo el hito 4-A y el cierre). Abiertos nuevos: 4-101 (mover grupos a mano; decide la persona mirando la vista previa), 4-102 y 4-103; la lista, en `docs/PLAN.md` › «Abiertos de la Fase 4».
-2. **Abiertos sin fase, los decide la persona:** 5a-39 («Dadas de baja» dice «Por ahora el equipo eres tú»), 5a-40 (`cartera` indexada:
-   la baja de 200.000 sin updates HOT), 5a-42 (`medir-bajas.sql` cae con un `sync` de disco largo) y 4-39 (cuatro `entities/` de más de
-   300 líneas). Los demás abiertos, con su paso, en `docs/PLAN.md` › «Abiertos de la Fase 4» y en cada fase.
-
-- **En curso.** A, **4.19** (el editor de la plantilla) completo: el -4 pone la vista previa en vivo al costado del editor. B, **4.21**
+- **En curso.** A, **4.20-4** (vigencia y vehículo obligatorio): hecho el -4a (la RPC con `cotizaciones.configurar` sin origen, la lectura y
+  la action), sigue el -4b (su formulario); el 4.19 (el editor de la plantilla) quedó hecho con el -4 (abiertos nuevos: 4-101, 4-102 y 4-103, en `docs/PLAN.md`). B, **4.21**
   (el editor de la fórmula como el Excel): hechos el -1, -2, -3a y -3b-1 (guardar el borrador, PR #68), siguen el -3b-2 y el -3c. C, **4.25**
   (marcar final): hecho el -1 (candados en el orden de vincular, la final como ancla, desvincular con final), sigue el -2.
-- **Lo que falta para cerrar la Fase 4:** A, 4.20-4a (vigencia y vehículo obligatorio en la base, rojo) → 4.20-4b (su formulario). B, 4.22 (el
+- **Lo que falta para cerrar la Fase 4:** A, 4.20-4b (el formulario de la vigencia y el vehículo obligatorio). B, 4.22 (el
   editor del diseño) y 4.23 (las tablas de referencia con versión, rojo), independientes. C, 4.26 (comprobantes sin huecos, rojo). 4.27 (comentarios,
   adjuntos, favoritos, reportes y moderar; rojo): lo toma el primer carril libre (el C posee sus áreas). Y 4.28, el cierre (A, Nivel 3).
 - **Para la persona:** la credencial sin escritorio (`gh auth login --insecure-storage`, `gh auth setup-git` y el remoto por HTTPS: sin eso, tras un
   reinicio y antes de iniciar sesión, los carriles no traen main ni abren PR); `decidir.sh --prueba-tandas`. Abiertos que decide: 4-67, 4-79, 4-94,
   4-95, 5a-39, 5a-40, 5a-42 y 4-39. Los demás, con su paso, en `docs/PLAN.md` › «Abiertos de la Fase 4»; las inestables que pasan al reintentar en CI
   (4-80, 4-81, 4-86, 4-90, 4-92, 4-93, 4-97, 4-99) ya no son abiertos salvo que caigan dos noches seguidas.
+
+## Pendientes que se arrastran
+
+- **Ficha del lead:** «Datos» 39,2 de 43 KB y «Oportunidades» 61,2 de 66. **Portal:** su texto por empresa; `api/portal/*` en la Fase 8. **Lead sin
+  dueño** tras una baja: lo rescata la supervisión (`p_dueno_esperado` nulo). **Fase 6:** publicar sin mover la versión de la ficha; la papelera manual
+  no mira `documentos`. **Fases 7 a 9:** notificar al compartir, transferir y limpiar; «Escribirle por chat»; `recordatorios_notificar()` sin cron.
 
 ## Deuda aceptada
 

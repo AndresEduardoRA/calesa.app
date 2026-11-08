@@ -239,6 +239,7 @@ const LISTA_FIJA = [
   'niveles-con-uso.sql',
   'cotizaciones-visibilidad.sql',
   'cotizaciones-papelera-permiso.sql',
+  'empresa-ajustes-de-cotizacion.sql',
   'cotizacion-crear.sql',
   'cotizacion-conservar.sql',
   'cotizacion-guardar.sql',

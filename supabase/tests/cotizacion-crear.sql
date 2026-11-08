@@ -71,7 +71,7 @@ $f$;
 --   sl (sin lead)   cotizaciones.ver y .crear, sin leads.ver
 --   sv (sin veh.)   cotizaciones.ver y .crear y leads.ver, sin vehículos.ver
 --   sc (sin crear)  cotizaciones.ver y leads.ver
---   fg (final)      lo de a, más cotizaciones.final.gestionar
+--   fg (final)      lo de a, más cotizaciones.final.gestionar y leads.editar (una final pide el lead en su cartera, 4.25-1b)
 create or replace function pg_temp.cc_preparar() returns jsonb language plpgsql as $f$
 declare
   o uuid; f uuid; l uuid; v uuid; v_def jsonb; v_vis jsonb;
@@ -99,7 +99,7 @@ begin
   perform pg_temp.cc_persona(sl, pg_temp.cc_conc('cotizaciones.ver', 'cotizaciones.crear', 'vehiculos.ver'));
   perform pg_temp.cc_persona(sv, pg_temp.cc_conc('cotizaciones.ver', 'cotizaciones.crear', 'leads.ver'));
   perform pg_temp.cc_persona(sc, pg_temp.cc_conc('cotizaciones.ver', 'leads.ver', 'vehiculos.ver'));
-  perform pg_temp.cc_persona(fg, pg_temp.cc_conc(variadic v_base || array['cotizaciones.final.gestionar']));
+  perform pg_temp.cc_persona(fg, pg_temp.cc_conc(variadic v_base || array['cotizaciones.final.gestionar', 'leads.editar']));
   return jsonb_build_object('o', o, 'f', f, 'l', l, 'v', v, 'a', a, 'k', k, 'kv', kv, 'ke', ke, 'sl', sl, 'sv', sv, 'sc', sc, 'fg', fg);
 end $f$;
 
@@ -294,10 +294,14 @@ declare
 begin
   r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, '{}', v, null, null, 'final'));
   if r ->> 'error' is distinct from '42501' or coalesce(r ->> 'mensaje', '') not like '%cotizaciones.final.gestionar%' then raise exception 'una final sin el permiso debía dar 42501: %', r; end if;
+  -- Una final pide el lead en la cartera de quien la crea (4.25-1b, P2 a): la dueña se lo comparte.
+  insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, compartido_por) values (l, fg, 'compartido', '00000000-0000-0000-0000-000000000001');
   r := pg_temp.cc_corre(fg, pg_temp.cc_sql(gen_random_uuid(), o, l, '{}', v, null, null, 'final'));
   if r ? 'error' then raise exception 'una final con el permiso debía crearse: %', r; end if;
   select * into c from public.cotizaciones where id = (r -> 'cotizacion' ->> 'id')::uuid;
   if c.clase is distinct from 'final' or c.vehiculo_id is distinct from v then raise exception 'la final no quedó como final de ese vehículo: %', to_jsonb(c); end if;
+  -- Y deja lo de marcarla (4-17): el vehículo, vinculado al lead.
+  if (select lead_id from public.vehiculos where id = v) is distinct from l then raise exception 'la final no vinculó el vehículo al lead'; end if;
   -- Otra final activa para el mismo vehículo: el error del índice, claro y con la pista.
   r := pg_temp.cc_corre(fg, pg_temp.cc_sql(gen_random_uuid(), o, l, '{}', v, null, null, 'final'));
   if r ->> 'error' is distinct from '23505' or r ->> 'mensaje' is distinct from 'Este vehículo ya tiene una cotización final activa.' or r ->> 'hint' is distinct from 'vehiculo' then raise exception 'la segunda final no dio el error claro: %', r; end if;

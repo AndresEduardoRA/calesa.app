@@ -1314,7 +1314,7 @@ share` los vehículos y después los leads del lote, por id, antes de cualquier 
 - **Commits:** `9b77f082` feat(cotizaciones): leer la plantilla de la tarjeta de un origen · `c5b33601` feat(cotizaciones): escribir la plantilla de la tarjeta en la base ·
   `4ad7eb43` feat(cotizaciones): guardar, publicar y descartar la plantilla · y el de docs.
 
-<!-- paso:4.19-3b -->
+<!-- paso:4.25 -->
 
 ## 2026-11-07 — Paso 4.25-1: marcar final en el orden de candados de vincular, la final como ancla y desvincular con final
 
@@ -1362,7 +1362,7 @@ share` los vehículos y después los leads del lote, por id, antes de cualquier 
   `362c02b9` feat(db): no cambiar el vínculo de un vehículo con cotización final · `9de5ab84` test(db): afirmar si marcar espera en las carreras de candados · y
   el de docs.
 
-<!-- paso:4.19-4 -->
+<!-- paso:4.21-3a-2 -->
 
 ## 2026-11-07 — Paso 4.21-3a-2: el editor de la fórmula, vista previa y filas nuevas
 
@@ -1410,6 +1410,17 @@ share` los vehículos y después los leads del lote, por id, antes de cualquier 
 - **Abiertos:** la auxiliar de un número sin celda deja el borrador sin poder publicarse hasta el 3b-2 (P2: la migración de `validar_diseno()`, con compuerta
   `datos`). El O(filas × nodos) de abrir el editor (3a-1) sigue. Sigue el 4.21-3b-2 y el 4.21-3c.
   e2e completo: no (4.21-3b-1, pantalla y escritura, Nivel 1: lo dirigido en escritorio y movil)
+
+<!-- paso:4.20-4a -->
+
+## 2026-11-08 — Paso 4.20-4a: los ajustes de cotización de la empresa en la base, la lectura y la action
+
+- **Hecho:** `empresa_guardar_ajustes_de_cotizacion()` guarda la vigencia (1 a 365 días) y el vehículo obligatorio al cotizar con `cotizaciones.configurar` en todos los orígenes (la concesión sin origen) y la misma versión de la fila que `empresa_guardar_ajustes()`, que sigue sin aceptarlas. El catálogo de la clave lo dice, en la migración y en el seed. En `empresa`: `AjustesDeCotizacion`, `leerAjustesDeCotizacion()` (falla en vez de dar los de fábrica), `puedeCambiarAjustesDeCotizacion()` y la action `guardarAjustesDeCotizacion` (`features/ajustes-de-cotizacion/`), sin salir por `client.ts`. Glosario: «Ajustes de cotización».
+- **Verificación:** Nivel 1 + cadena db. `db:reset`, `db:types`, `db:probar` entero (674 ✓, 0 ✗; T1–T6 nuevos: permiso sin origen, guardado, versión, rango con `hint`, separación de la RPC de Empresa, definición), `db:lint` sin avisos de la función. Vitest de lo tocado (174 de 174; la regla y la action con sus pruebas). e2e dirigido `e2e/empresa.spec.ts` en escritorio, 7 de 7. Plan e informe auditados (observaciones, atendidas).
+- **Abiertos:** el formulario y la pestaña «Ajustes» de Configuración › Cotización, 4.20-4b.
+  e2e completo: no (4.20-4a, base, regla y action sin interfaz, Nivel 1 + cadena db)
+
+<!-- paso:4.19-3b -->
 
 ## 2026-11-08 — Paso 4.19-3b: la pestaña «Tarjeta» y el editor que guarda
 
@@ -1464,7 +1475,7 @@ share` los vehículos y después los leads del lote, por id, antes de cualquier 
 - **Commits:** `23a23417` feat(cotizaciones): preparar los paneles de la tarjeta sin pantalla · `c1cce295` feat(cotizaciones): publicar la tarjeta con nota · `319404d6` feat(cotizaciones):
   descartar el borrador de la tarjeta · y el de docs.
 
-<!-- paso:4.25 -->
+<!-- paso:4.19-4 -->
 
 ## 2026-11-08 — Paso 4.19-4: la vista previa en vivo del editor de la plantilla
 
@@ -1485,5 +1496,3 @@ share` los vehículos y después los leads del lote, por id, antes de cualquier 
 - **Pendientes que se arrastran** (salieron de `docs/ESTADO.md` para dejarlo en 60 líneas): ficha del lead («Datos» 39,2 de 43 KB, «Oportunidades» 61,2 de 66); portal (su texto por empresa;
   `api/portal/*` en la Fase 8); lead sin dueño tras una baja (lo rescata la supervisión); Fase 6 (publicar sin mover la versión de la ficha; la papelera manual no mira `documentos`); Fases 7 a 9
   (notificar al compartir, transferir y limpiar; «Escribirle por chat»; `recordatorios_notificar()` sin cron).
-
-<!-- paso:4.21-3a-2 -->
