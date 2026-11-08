@@ -205,7 +205,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 4 bloques para el completo; 1 para los dirigidos de un PR (scripts/e2e-dirigidos.mjs).
+        # 4 bloques para el completo; los dirigidos de un PR, uno cada 20 specs y hasta 4 (scripts/e2e-dirigidos.mjs).
         bloque: ${{ fromJSON(needs.cambios.outputs.e2e_bloques || '[1,2,3,4]') }}
     env:
       # Escritorio por defecto; `proyectos: ambos` (workflow_dispatch) corre los dos, el Nivel 3. Los dirigidos de un PR que toca
