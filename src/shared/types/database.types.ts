@@ -7811,6 +7811,18 @@ export type Database = {
         Returns: Database['public']['Enums']['visibilidad_seguimiento']
       }
       _sin_tildes: { Args: { p_texto: string }; Returns: string }
+      _tabla_referencia_filas_validas: {
+        Args: { p_columnas: Json; p_filas: Json }
+        Returns: undefined
+      }
+      _tabla_referencia_publicada_por: { Args: { p_tabla: string }; Returns: string }
+      _tabla_referencia_usada_en: {
+        Args: { p_origen?: string; p_tabla: string }
+        Returns: {
+          formula_id: string
+          origen_id: string
+        }[]
+      }
       _tarjeta_grupos: { Args: { p_def: Json; p_plantilla: Json; p_tonos: Json }; Returns: Json }
       _tarjeta_json: {
         Args: {
@@ -8908,6 +8920,10 @@ export type Database = {
       }
       storage_gc_rescatar: { Args: { p_bucket: string; p_ruta: string }; Returns: undefined }
       storage_refcount: { Args: { p_bucket: string; p_ruta: string }; Returns: number }
+      tabla_referencia_publicar: {
+        Args: { p_filas: Json; p_nota: string; p_tabla: string; p_version_esperada: number }
+        Returns: Json
+      }
       telefono_lead: { Args: { p_lead: string }; Returns: string }
       tiene_permiso: { Args: { p_clave: string; p_origen?: string }; Returns: boolean }
       tipo_cambio_crear: {
