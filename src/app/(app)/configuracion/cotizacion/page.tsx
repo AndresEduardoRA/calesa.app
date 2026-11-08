@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { SeccionDelDiseno } from '@/modules/cotizaciones/pantallas/diseno'
+import { SeccionDeLosTonos } from '@/modules/cotizaciones/pantallas/diseno-tonos'
 import { SeccionDeLaFormula } from '@/modules/cotizaciones/pantallas/formula'
 import { puede, requerirSesion } from '@/modules/equipo'
 import { getOrigenes } from '@/modules/origenes'
@@ -15,7 +16,7 @@ import { SeccionNiveles } from './seccion-niveles'
 export const metadata: Metadata = { title: 'Cotización' }
 
 // Configuración › Cotización. Entra quien ve alguna pestaña (`pestanas.ts`): «Niveles de acceso» con `equipo.roles.ver` (los cambia quien tiene
-// `equipo.roles.gestionar`: cada nivel es un permiso de la matriz de Roles) «Fórmula» y «Diseño» con `cotizaciones.configurar` en algún origen (4.20-2a, 4.22-2). La base vuelve a
+// `equipo.roles.gestionar`: cada nivel es un permiso de la matriz de Roles) «Fórmula», «Diseño» y «Tonos» con `cotizaciones.configurar` en algún origen (4.20-2a, 4.22-2, 4.22-4). La base vuelve a
 // exigir lo suyo en cada RPC y en la policy de `formulas`. Sin ninguna, «No tienes permiso» (y la sección no figura en Configuración).
 export default async function PaginaDeCotizacion({
   searchParams,
@@ -68,6 +69,11 @@ export default async function PaginaDeCotizacion({
             permisos={sesion.permisos}
             origenPedido={origenPedido}
           />
+        </Suspense>
+      ) : null}
+      {pestana === 'tonos' ? (
+        <Suspense fallback={<EsqueletoFormulario bloques={2} campos={2} />}>
+          <SeccionDeLosTonos />
         </Suspense>
       ) : null}
     </div>

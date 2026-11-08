@@ -20,6 +20,7 @@ export function PestanasDeCotizacion({ pestanas }: Props) {
       // Lo abierto en una pestaña no sobrevive al cambiar a otra.
       panel: parseAsString,
       nivel: parseAsString,
+      tono: parseAsString,
       origen: parseAsString,
       version: parseAsString,
     }),
@@ -35,6 +36,7 @@ export function PestanasDeCotizacion({ pestanas }: Props) {
           seccion: elegida,
           panel: null,
           nivel: null,
+          tono: null,
           origen: null,
           version: null,
         })

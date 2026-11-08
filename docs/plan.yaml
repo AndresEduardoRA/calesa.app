@@ -60,6 +60,7 @@ carriles:
       - src/modules/cotizaciones/infra/diseno/
       - src/modules/cotizaciones/areas/diseno/
       - src/modules/cotizaciones/pantallas/diseno.ts
+      - src/modules/cotizaciones/pantallas/diseno-tonos.ts
       - src/modules/cotizaciones/features/tablas/
       - src/modules/cotizaciones/entities/tablas/
       - src/modules/cotizaciones/infra/tablas/

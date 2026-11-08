@@ -24,10 +24,11 @@ describe('pestanasVisibles', () => {
     ])
   })
 
-  it('quien sólo configura la fórmula de un origen, la fórmula y el diseño', () => {
+  it('quien sólo configura la fórmula de un origen, la fórmula, el diseño y los tonos', () => {
     expect(claves(pestanasVisibles(permisos({ 'cotizaciones.configurar': [O1] })))).toEqual([
       'formula',
       'diseno',
+      'tonos',
     ])
   })
 
@@ -38,7 +39,7 @@ describe('pestanasVisibles', () => {
           permisos({ 'equipo.roles.gestionar': 'global', 'cotizaciones.configurar': 'global' }),
         ),
       ),
-    ).toEqual(['niveles', 'formula', 'diseno'])
+    ).toEqual(['niveles', 'formula', 'diseno', 'tonos'])
   })
 
   it('sin ninguna, ninguna', () => {
