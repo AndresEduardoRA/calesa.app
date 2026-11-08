@@ -5,11 +5,16 @@ import { textoDelTope } from '@/shared/lib/conteo'
 import { TOPE_DE_LO_CARGADO } from '@/shared/lib/paginacion'
 import { AvisoDeTope } from '@/shared/ui/aviso-de-tope'
 import type { Formula } from '../../../../entities/formula'
-import { opcionesDeBucket, type CambiosDelGrupo } from '../../../../entities/formula/grupos'
+import {
+  filasQuePuedenSumar,
+  opcionesDeBucket,
+  type CambiosDelGrupo,
+} from '../../../../entities/formula/grupos'
 import type { Diseno } from '../../../../entities/diseno'
 import type { EditorDeLaFormula, RechazoEnElEditor } from '../../hooks/use-editor-de-la-formula'
 import type { GrupoAbierto, MovidasDelGrupo } from '../../hooks/use-grupos-del-editor'
 import { useTonos } from '../../hooks/use-tonos'
+import type { FilaCandidata } from './filas-del-grupo'
 import { GrupoDelEditor } from './grupo-del-editor'
 
 type Props = {
@@ -64,6 +69,17 @@ function miembrosPorGrupo(trabajo: Formula): Map<string, Miembro[]> {
 }
 
 const SIN_MIEMBROS: Miembro[] = []
+const SIN_CANDIDATAS: FilaCandidata[] = []
+
+// Las filas que pueden sumar a un grupo, con la etiqueta del grupo donde están.
+function candidatasDe(trabajo: Formula): FilaCandidata[] {
+  const etiquetas = new Map((trabajo.definicion.grupos ?? []).map((g) => [g.id, g.etiqueta]))
+  return filasQuePuedenSumar(trabajo).map((n) => ({
+    id: n.id,
+    etiqueta: n.etiqueta,
+    grupo: n.grupo === undefined ? null : (etiquetas.get(n.grupo) ?? n.grupo),
+  }))
+}
 
 // La sección «Grupos» del editor de la fórmula (4.21-3c, C1): una tarjeta por grupo, en el orden de `grupos`, hasta `TOPE_DE_LO_CARGADO`. Los tonos del catálogo se
 // leen al montarse (C3).
@@ -73,6 +89,12 @@ function SeccionDeGrupos(p: Props) {
   const grupos = p.trabajo.definicion.grupos ?? []
   const buckets = useMemo(() => opcionesDeBucket(p.trabajo), [p.trabajo])
   const miembros = useMemo(() => miembrosPorGrupo(p.trabajo), [p.trabajo])
+  // Sólo con un grupo abierto: «Sumar una fila» dibuja sus opciones con el formulario.
+  const hayAbierto = p.abierto !== null
+  const candidatas = useMemo(
+    () => (hayAbierto ? candidatasDe(p.trabajo) : SIN_CANDIDATAS),
+    [hayAbierto, p.trabajo],
+  )
   return (
     <section aria-labelledby={idDelTitulo} className="grid min-w-0 gap-2">
       <h4 id={idDelTitulo} className="text-(length:--text-sm) font-semibold text-(--color-ink)">
@@ -86,6 +108,7 @@ function SeccionDeGrupos(p: Props) {
               key={grupo.id}
               grupo={grupo}
               miembros={miembros.get(grupo.id) ?? SIN_MIEMBROS}
+              candidatas={candidatas}
               tonos={tonos.estado}
               buckets={buckets}
               conModos={p.conModos}

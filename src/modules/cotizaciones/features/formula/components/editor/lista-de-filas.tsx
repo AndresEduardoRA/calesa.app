@@ -65,6 +65,10 @@ export function ListaDeFilas({ origenId, nombreDelOrigen, leida, recargando, alR
     [editor.filas, editor.vista],
   )
   const { guardado } = editor
+  const grupos = useMemo(
+    () => new Map((editor.trabajo.definicion.grupos ?? []).map((g) => [g.id, g.etiqueta])),
+    [editor.trabajo],
+  )
   return (
     <div className="grid min-w-0 gap-3">
       <GuardarBorrador
@@ -93,7 +97,7 @@ export function ListaDeFilas({ origenId, nombreDelOrigen, leida, recargando, alR
         {visibles.filas.map((fila) => (
           <FilaDelEditor
             key={fila.id}
-            {...propsDeLaFila(editor, fila, cifras.get(fila.id) ?? SIN_CIFRA)}
+            {...propsDeLaFila(editor, fila, cifras.get(fila.id) ?? SIN_CIFRA, grupos)}
           />
         ))}
       </ul>

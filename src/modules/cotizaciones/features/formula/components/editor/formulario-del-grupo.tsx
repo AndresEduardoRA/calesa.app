@@ -11,12 +11,15 @@ import type {
   ErrorDelGrupo,
   OpcionDeBucket,
 } from '../../../../entities/formula/grupos'
+import { useMiembrosDelGrupo } from '../../hooks/use-miembros-del-grupo'
 import type { EstadoDeLosTonos } from '../../hooks/use-tonos'
+import { FilasDelGrupo, type FilaCandidata, type FilaDelGrupo } from './filas-del-grupo'
 
 type Props = {
   grupo: Grupo
-  // Los ids de sus filas al abrir.
-  miembros: readonly string[]
+  // Sus filas al abrir y todas las que pueden sumar, en el orden de la fórmula.
+  miembros: readonly FilaDelGrupo[]
+  candidatas: readonly FilaCandidata[]
   errores: readonly ErrorDelGrupo[]
   tonos: EstadoDeLosTonos
   buckets: readonly OpcionDeBucket[]
@@ -64,6 +67,40 @@ function EstadoDeLosTonosDelFormulario({
         Reintentar
       </Button>
     </div>
+  )
+}
+
+function CamposDeTexto(p: {
+  uid: string
+  etiqueta: string
+  plazo: string
+  deError: (campo: CampoDelGrupo) => string | undefined
+  alCambiarEtiqueta: (etiqueta: string) => void
+  alCambiarPlazo: (plazo: string) => void
+}) {
+  return (
+    <>
+      <Campo
+        nombre={`${p.uid}-etiqueta`}
+        etiqueta="Etiqueta"
+        value={p.etiqueta}
+        error={p.deError('etiqueta')}
+        onChange={(evento) => {
+          p.alCambiarEtiqueta(evento.target.value)
+        }}
+      />
+      <Campo
+        nombre={`${p.uid}-plazo`}
+        etiqueta="Plazo de pago"
+        placeholder="2 días"
+        value={p.plazo}
+        error={p.deError('plazo')}
+        ayuda="Opcional."
+        onChange={(evento) => {
+          p.alCambiarPlazo(evento.target.value)
+        }}
+      />
+    </>
   )
 }
 
@@ -135,16 +172,16 @@ function BotonesDelGrupo(p: { listo: boolean; alAplicar: () => void; alCancelar:
   )
 }
 
-// El formulario «Grupo <etiqueta>» de la sección «Grupos» (4.21-3c, C2 y C3): etiqueta, plazo de pago, tono y tipo de cambio, sin campo de id. «Aplicar» o Ctrl/Cmd+Enter
+// El formulario «Grupo <etiqueta>» de la sección «Grupos» (4.21-3c, C2 a C4): etiqueta, plazo de pago, tono, tipo de cambio y sus filas, sin campo de id. «Aplicar» o Ctrl/Cmd+Enter
 // aplican; «Cancelar» o Esc cierran sin cambiar nada; un error queda junto a su campo, con lo escrito y el foco en el primero. Sin el catálogo leído, «Aplicar» espera.
 export function FormularioDelGrupo(props: Props) {
   const { grupo, miembros, errores, tonos, buckets, conModos, alCancelar } = props
+  const filas = useMiembrosDelGrupo(miembros, props.candidatas)
   const uid = useId()
   const [etiqueta, setEtiqueta] = useState(grupo.etiqueta)
   const [plazo, setPlazo] = useState(grupo.plazo ?? '')
   const [tono, setTono] = useState(grupo.tono)
   const [bucket, setBucket] = useState(grupo.bucket)
-  const campoId = (campo: CampoDelGrupo) => `${uid}-${campo}`
   const deError = (campo: CampoDelGrupo) => errores.find((e) => e.campo === campo)?.mensaje
 
   // Al abrir el foco va a la etiqueta; con errores nuevos, al primero.
@@ -156,7 +193,7 @@ export function FormularioDelGrupo(props: Props) {
   const listo = tonos.tipo === 'listo'
   const aplicar = () => {
     if (tonos.tipo !== 'listo') return
-    props.alAplicar({ etiqueta, plazo, tono, bucket, miembros }, tonos.claves)
+    props.alAplicar({ etiqueta, plazo, tono, bucket, miembros: filas.ids }, tonos.claves)
   }
 
   return (
@@ -180,25 +217,13 @@ export function FormularioDelGrupo(props: Props) {
           {deError('grupo')}
         </p>
       ) : null}
-      <Campo
-        nombre={campoId('etiqueta')}
-        etiqueta="Etiqueta"
-        value={etiqueta}
-        error={deError('etiqueta')}
-        onChange={(evento) => {
-          setEtiqueta(evento.target.value)
-        }}
-      />
-      <Campo
-        nombre={campoId('plazo')}
-        etiqueta="Plazo de pago"
-        placeholder="2 días"
-        value={plazo}
-        error={deError('plazo')}
-        ayuda="Opcional."
-        onChange={(evento) => {
-          setPlazo(evento.target.value)
-        }}
+      <CamposDeTexto
+        uid={uid}
+        etiqueta={etiqueta}
+        plazo={plazo}
+        deError={deError}
+        alCambiarEtiqueta={setEtiqueta}
+        alCambiarPlazo={setPlazo}
       />
       <SelectoresDelGrupo
         uid={uid}
@@ -210,6 +235,15 @@ export function FormularioDelGrupo(props: Props) {
         deError={deError}
         alCambiarTono={setTono}
         alCambiarBucket={setBucket}
+      />
+      <FilasDelGrupo
+        uid={uid}
+        originales={miembros}
+        quedan={filas.quedan}
+        candidatas={filas.libres}
+        error={deError('miembros')}
+        alQuitar={filas.quitar}
+        alSumar={filas.sumar}
       />
       <EstadoDeLosTonosDelFormulario tonos={tonos} alReintentar={props.alReintentarTonos} />
       <BotonesDelGrupo listo={listo} alAplicar={aplicar} alCancelar={alCancelar} />

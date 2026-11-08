@@ -5,12 +5,15 @@ import type { Grupo } from '../../../../entities/formula'
 import type { CambiosDelGrupo, OpcionDeBucket } from '../../../../entities/formula/grupos'
 import type { GrupoAbierto, MovidasDelGrupo } from '../../hooks/use-grupos-del-editor'
 import type { EstadoDeLosTonos } from '../../hooks/use-tonos'
+import type { FilaCandidata, FilaDelGrupo } from './filas-del-grupo'
 import { FormularioDelGrupo } from './formulario-del-grupo'
 
 export type GrupoDelEditorProps = {
   grupo: Grupo
   // Las filas del grupo, en el orden de la fórmula.
-  miembros: readonly { id: string; etiqueta: string }[]
+  miembros: readonly FilaDelGrupo[]
+  // Todas las filas que pueden sumar a un grupo, en el orden de la fórmula.
+  candidatas: readonly FilaCandidata[]
   tonos: EstadoDeLosTonos
   buckets: readonly OpcionDeBucket[]
   conModos: boolean
@@ -107,7 +110,8 @@ export function GrupoDelEditor(p: GrupoDelEditorProps) {
       {p.abierto ? (
         <FormularioDelGrupo
           grupo={p.grupo}
-          miembros={p.miembros.map((m) => m.id)}
+          miembros={p.miembros}
+          candidatas={p.candidatas}
           errores={p.abierto.errores}
           tonos={p.tonos}
           buckets={p.buckets}
