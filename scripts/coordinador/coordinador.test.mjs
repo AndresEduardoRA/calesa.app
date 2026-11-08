@@ -169,6 +169,19 @@ test('un estado de commit pendiente (el de Vercel) no es un CI en rojo: espera; 
   assert.match(correr('sincronizar'), /P02: CI en rojo \(#9\)/)
 })
 
+test('un job cancelado no es un CI en rojo: el PR espera la corrida siguiente', () => {
+  const { correr, pr } = repo()
+  correr('siguiente', 'ui')
+  correr('publicado', 'P02', '10')
+  pr(10, {
+    state: 'OPEN',
+    mergeable: 'MERGEABLE',
+    statusCheckRollup: [...verde, { status: 'COMPLETED', conclusion: 'CANCELLED' }],
+  })
+  assert.equal(correr('sincronizar').trim(), '')
+  assert.equal(JSON.parse(correr('siguiente', 'ui')).accion, 'esperar')
+})
+
 test('liberar e integrado a mano; transición inválida falla con mensaje', () => {
   const { correr } = repo()
   correr('siguiente', 'datos')
