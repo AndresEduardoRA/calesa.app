@@ -8,7 +8,12 @@ describe('scripts/coordinador', () => {
   it('sus pruebas de node:test pasan', () => {
     const r = spawnSync(
       process.execPath,
-      ['--test', 'scripts/coordinador/plan.test.mjs', 'scripts/coordinador/coordinador.test.mjs'],
+      [
+        '--test',
+        'scripts/coordinador/plan.test.mjs',
+        'scripts/coordinador/coordinador.test.mjs',
+        'scripts/coordinador/limpiar-ramas.test.mjs',
+      ],
       { encoding: 'utf8' },
     )
     expect(r.status, r.stdout + r.stderr).toBe(0)

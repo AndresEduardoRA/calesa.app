@@ -56,12 +56,12 @@ esac
       cwd: dir,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
-      env: { ...process.env, COORD_GH: gh, COORD_USD_VENTANA: '' },
+      env: { ...process.env, COORD_GH: gh, COORD_USD_VENTANA: '', COORD_LIMPIAR: '0' },
     })
   const correrAsync = (...args) =>
     promisify(execFile)('node', [CLI, ...args], {
       cwd: dir,
-      env: { ...process.env, COORD_GH: gh, COORD_USD_VENTANA: '' },
+      env: { ...process.env, COORD_GH: gh, COORD_USD_VENTANA: '', COORD_LIMPIAR: '0' },
     })
   const pr = (n, datos) => writeFileSync(join(respuestas, `${n}.json`), JSON.stringify(datos))
   return { dir, correr, correrAsync, pr, respuestas }
