@@ -208,7 +208,7 @@ describe('bucle.sh › un atasco se contesta solo una vez por paso', () => {
     expect(a.llamadas('paso')).toHaveLength(2)
   })
 
-  it('por omisión (PILOTO_AUTO sin definir) atasco está entre los que se contestan solos', () => {
-    expect(a.leerBin('compuerta.sh')).toContain('${PILOTO_AUTO-producto,datos,guardas,atasco}')
+  it('por omisión (PILOTO_AUTO sin definir) es «todo»: atasco también se contesta solo (sin compuertas, 2026-11-08)', () => {
+    expect(a.leerBin('compuerta.sh')).toContain('${PILOTO_AUTO-todo}')
   })
 })

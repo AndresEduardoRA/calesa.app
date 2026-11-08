@@ -38,7 +38,7 @@ function candadoTomado() {
   ])
 }
 
-function compuerta(tipo: string, segundos: number) {
+function compuerta(tipo: string, segundos: number, extra: Record<string, string> = {}) {
   return spawnSync(
     'timeout',
     [
@@ -62,6 +62,7 @@ function compuerta(tipo: string, segundos: number) {
         BIN: join(raiz, 'bin-que-no-existe'),
         POLL: '1',
         PILOTO_CARRIL: 'c',
+        ...extra,
       },
     },
   )
@@ -79,9 +80,18 @@ describe('compuerta.sh › el candado común es sólo de las compuertas humanas'
     expect(existsSync(join(comun, 'compuerta.md'))).toBe(false)
   })
 
-  it('una compuerta humana sigue esperando el candado común', () => {
+  it('una compuerta humana (sin PILOTO_AUTO) sigue esperando el candado común', () => {
     candadoTomado()
-    const r = compuerta('afuera', 2)
+    const r = compuerta('afuera', 2, { PILOTO_AUTO: '' })
     expect(r.status).toBe(124)
+  })
+
+  it('sin compuertas (lo de omisión, «todo»), una «afuera» se contesta sola y no espera el candado', () => {
+    candadoTomado()
+    const r = compuerta('afuera', 10)
+    expect(r.status, r.stdout + r.stderr).toBe(0)
+    expect(readFileSync(join(estado, 'decision-sola.md'), 'utf8')).toContain(
+      'opcion: seguir con la recomendación',
+    )
   })
 })
