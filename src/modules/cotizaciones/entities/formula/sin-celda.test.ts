@@ -40,11 +40,15 @@ describe('nodosSinCelda y filasSinCelda: lo que el diseño no muestra (C6, la re
     expect(filasSinCelda(f.definicion, d)).toEqual({ tipo: 'filas', filas: ['seguro'] })
   })
 
-  it('la auxiliar de un número sube a su fila, una vez aunque falten dos', () => {
+  it('la auxiliar de un número sin celda no se nombra (4.21-3b-2); la fila constante sí', () => {
     const f = formulaDePrueba([{ id: 'total', texto: '=remate*4%+100', etiqueta: 'Total' }])
     const d = disenoCon(INPUTS, [celda('total')])
-    expect(nodosSinCelda(f.definicion, d)).toEqual(['total__1', 'total__3'])
-    expect(filasSinCelda(f.definicion, d)).toEqual({ tipo: 'filas', filas: ['total'] })
+    expect(nodosSinCelda(f.definicion, d)).toEqual([])
+    expect(filasSinCelda(f.definicion, d)).toEqual({ tipo: 'filas', filas: [] })
+    const conSeguro = formula()
+    expect(nodosSinCelda(conSeguro.definicion, disenoCon(INPUTS, [celda('total')]))).toEqual([
+      'seguro',
+    ])
   })
 
   it('una celda con secundario sobre un porcentaje_de cubre su pct; sin secundario, no', () => {
@@ -57,7 +61,8 @@ describe('nodosSinCelda y filasSinCelda: lo que el diseño no muestra (C6, la re
     const conSecundario = disenoCon(INPUTS, [celda('comision', 'porcentaje'), celda('total')])
     expect(nodosSinCelda(conPar.definicion, conSecundario)).toEqual([])
     const sinSecundario = disenoCon(INPUTS, [celda('comision'), celda('total')])
-    expect(nodosSinCelda(conPar.definicion, sinSecundario)).toEqual(['comision__1'])
+    // `comision__1` (el 4 %) es auxiliar: ya no pide celda.
+    expect(nodosSinCelda(conPar.definicion, sinSecundario)).toEqual([])
   })
 
   it('un atajos sobre la constante no es su celda', () => {

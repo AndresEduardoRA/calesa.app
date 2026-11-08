@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import {
   auxiliaresDe,
@@ -158,5 +159,14 @@ describe('el patrón de la base da los mismos nombres que el léxico (T1b)', () 
       for (let j = 0; j < largo; j += 1) t += PIEZAS[Math.floor(azar() * PIEZAS.length)] ?? ''
       expect(nombresDelPatron(t), JSON.stringify(t)).toEqual(nombresDelTexto(t, { visitas: 0 }))
     }
+  })
+})
+
+// La base lo copia letra por letra (T1c). La ruta va por una variable: Vite reescribe un `new URL` literal.
+describe('la migración copia el patrón (T1c)', () => {
+  it('_diseno_auxiliares() usa el mismo patrón que T1b', () => {
+    const ruta = '../../../../supabase/migrations/20261108043918_diseno_auxiliar_sin_celda.sql'
+    const sql = readFileSync(new URL(ruta, import.meta.url), 'utf8')
+    expect(sql).toContain(`regexp_matches(v_texto, '${PATRON_DE_NOMBRES}', 'g')`)
   })
 })
