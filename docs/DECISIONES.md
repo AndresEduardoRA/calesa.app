@@ -2800,6 +2800,75 @@ Lo pidió la persona después de que el A hiciera el 4.16 y el 4.17-1: se parti�
     devuelve «temprano» en 1 ms sin revisar nada. La cifra de este paso salió de la misma siembra con `now() + 16 h`, sin finales: mide la sonda nueva del ancla en los
     100.000 que no anclan, no el camino que devuelve `cotizacion_final`.
 
+## 2026-11-08 — Paso 4.25-1b
+
+- **Lo que contestó la persona:** la compuerta `producto`, con la recomendada en las dos. P7 «rechazar»: crear una final sobre un vehículo con otra final activa
+  se rechaza (23505) y no la reemplaza como marcar. D1 «aprobar»: la función nueva `_final_crear_mirar`.
+- **Lo que se aprobó en permisos (la base):**
+  - `cotizacion_crear` con una final pide ahora, además de `cotizaciones.crear|ver` y `final.gestionar` del origen, las miradas de marcar:
+    - el lead en la cartera con `leads.editar` (P2 a), antes del candado y con todo tomado;
+    - poder mandar a la papelera todas las demás vivas del vehículo (P3 a);
+    - un vehículo sin lead o del mismo lead (P4 a).
+  - `_final_crear_mirar` es `security definer`, sólo de `service_role` y no toma candados.
+  - Sin tablas, policies ni claves nuevas. La preventa no cambia.
+- **Lo no obvio:**
+  - **La excepción del 4-17 con P7 a:** crear una final sobre otra final activa da 23505 y no la baja como marcar. «El mismo estado que marcarla» vale para
+    todo lo demás: el vínculo, las preventas en un lote de quien crea, el lead a cliente y la actividad (N1). Una final `reportada` o `invalida` no ocupa el
+    índice: crear la baja a preventa y la manda al lote, como marcar (N5 ii).
+  - **P7 va antes del cálculo:** una final sobre otra activa se rechaza sin esperar la fórmula ni calcular (N5 i: gana el 23505 sobre un 22023 del cálculo). Con
+    todo tomado se vuelve a mirar (una final confirmada mientras se esperaba, Q4). Si una final se confirma después de la pasada, el índice sigue dando el
+    23505 de siempre.
+  - **Ver el vehículo va antes que la ayudante:** si no, quien no ve el vehículo recibiría 23505, 23514 o el 42501 de las preventas, y sabría si tiene una final,
+    un vínculo o preventas (N11, M20). La cartera va antes que el vehículo: un lead ajeno da el 42501 del lead, no el 23514 del vínculo (N2 iii, M7).
+  - **Sin vuelta `PF425`:** marcar la necesita porque su cotización puede cambiar de vehículo o de lead mientras espera. Crear recibe el lead y el vehículo como
+    parámetros: un lead o un vehículo que se fue a la papelera mientras se esperaba da el 42501 de siempre («no encontramos este lead», «no tienes acceso a este
+    vehículo»), no el 23514 del lead en la papelera de marcar.
+  - **El orden:** lead `for no key update` → vehículo `for key share` → fórmula `for share` → después del cálculo, las vivas del vehículo `for no key update` en
+    orden de id → `insert` (el trigger sube el vehículo a `for no key update`) → `_final_aplicar`. Es el de marcar, con lo de crear en el medio. Con quién choca:
+
+| Contra                            | Su orden                                                     | Por qué no cierra ciclo                                                   | Carrera                    |
+| --------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------- | -------------------------- |
+| vincular, mismo lead              | lead FU → vehículo FU                                        | Se ordenan en el lead                                                     | Q1                         |
+| vincular a otro lead              | lead' FU → vehículo FU                                       | Se encuentran sólo en el vehículo; crear relee el vínculo con todo tomado | Q2                         |
+| papelera de vehículos             | vehículo FU → sus cotizaciones                               | Crear espera en el vehículo antes de su pasada                            | Q3                         |
+| otra final, mismo lead            | igual                                                        | Se ordenan en el lead                                                     | Q4, Q9                     |
+| otra final, otro lead             | igual                                                        | Se ordenan en la primera viva común (por id) o en el índice               | Q5                         |
+| marcar                            | lead NKU → vehículo KS → vivas NKU                           | El mismo orden                                                            | Q6                         |
+| encima                            | anterior S → lead KS → vehículo KS → `insert` (vehículo NKU) | La pasada de crear espera la anterior antes de su trigger                 | Q7                         |
+| restaurar cotizaciones            | vehículo KS → lead KS → las de la papelera NKU               | Todo compatible; la pasada no toma las de la papelera                     | Q8                         |
+| guardar                           | vehículo KS → la cotización NKU → (vehículo NKU)             | Guardar nunca espera algo que crear tome después de esperarlo a él        | «fin2», «g11», «g14» del A |
+| crear una preventa                | lead KS → vehículo KS → `insert` (vehículo NKU)              | No toma cotizaciones ajenas                                               | —                          |
+| limpieza                          | vehículo FU `skip locked`                                    | Salta el que crear tiene                                                  | —                          |
+| papelera de leads                 | sus leads FU por id                                          | No toma cotizaciones ni vehículos                                         | —                          |
+| mandar cotizaciones a la papelera | cada una NKU por id                                          | No toma lead ni vehículo; las dos pasadas van por id                      | —                          |
+| editar el lead (`_lead_mio`)      | lead FU                                                      | Sólo el lead                                                              | —                          |
+
+- **Lo que cede**, igual que en marcar: una preventa que llega después de la pasada (encima, restaurar, otra alta) queda viva al lado de la final (Q7, Q8).
+- **Q10 inserta la preventa en la transacción de A**, no por otra conexión. Si B tomara algo que A necesita, la espera de A por una inserción en otra conexión
+  no la ve Postgres (A está en el cliente) y la corrida se cuelga. En la misma transacción sale como 40P01 (M1 lo mostró).
+- **M4, la mutación del orden pasada → `insert`, tiene que sacar la fila propia de lo tomado.** Si no, la segunda mirada ve la final recién insertada y toda
+  final da 23505: la mutación cae por un motivo ajeno y no prueba la carrera (Q7).
+- **El desvío de la fila:** N1 va en `areas/final/crear.sql` (ver la bitácora).
+
+## 2026-11-08 — Paso 4.25-2
+
+- **Lo que contestó la persona:** P1 a, P2 a y P3 a, las tres recomendadas.
+- **P1 a: marcar no lleva versión esperada.** Es una excepción razonada a `datos.md:35`. Pasarla «sin default» rompe 7 llamadas de un argumento que no son
+  del C: las carreras del A en `cotizaciones.mjs` y `cotizaciones-guardar.mjs`, `humo.sql`, `cotizaciones-visibilidad.sql` y `auditoria-leads.sql`. Haría falta
+  un paso de base con rigor máximo.
+  - Precedentes: `cotizacion_moderar`, `comprobante_emitir` y el abierto 4-95.
+  - **Lo que se acepta:** si el autor guarda otro vehículo u otro cliente un segundo antes, se marca eso. Deshacerlo pide mandar la final a la papelera, y el
+    lead no vuelve solo a prospecto.
+- **P2 a: se puede marcar una vencida o de otra versión de la fórmula**, como en la base. El aviso de versión de la página basta.
+- **P3 a: lo no guardado se pierde**, y el diálogo lo dice. Es lo mismo que decidió el 4.24-3.
+- **La URL sin botón no hace nada.** Con una final o sin la clave, `?panel=marcar-final` no tiene quién la lea: no hay un dato que filtrar y la página ya dice
+  la clase. Con el botón apagado, la URL avisa el motivo y se limpia.
+- **La action mira la clave sin origen.** Sin `cotizaciones.final.gestionar` en ningún origen no llama a la base; el origen lo mira la base.
+- **El aviso no dice cuántas preventas fueron a la papelera**, porque la RPC no lo devuelve: «Si el vehículo tenía otras, están en tu papelera.».
+- **El diálogo se desmonta al entrar.** Por eso `marcarLaFinal()` cierra la URL y avisa antes de volver, y no toca estado después.
+- **Un `<button>` con las clases de `<Button>`**, como «Enviar a la papelera»: el JS en frío de `/cotizaciones/[id]` tiene 8 KB de margen.
+- **El registro del `<Confirmar>`** va en `confirmar-con-url-papelera.ts` y no en `areas-c/` (ver la bitácora, pedido 4).
+
 <!-- paso:4.21-3a-2 -->
 
 ## Paso 4.21-3a-2 (2026-11-07)
@@ -3213,3 +3282,244 @@ Las pruebas que ya existen siguen corriendo; borrar las caras se decide aparte. 
     1.000». Se suma a la del 4.23-1.
   - **Copias en el área `tablas`** (un área no importa otra): la nota de publicar (`esquemaDeNotaDeTabla`, igual a `esquemaDeNota` de `formula`) y el pedido
     de 1.000 filas (`FILAS_POR_PEDIDO`, igual a `FILAS_POR_PAGINA` de `formula`). Si el A los quiere compartir, van al núcleo.
+
+<!-- paso:4.22-1 -->
+
+## 2026-11-08 — Paso 4.22-1
+
+- **Se parte en seis** (el 4.22 junta lo puro, la pantalla, la vista previa y una migración): **4.22-1** lo puro (hecho); **4.22-2** la pestaña con secciones y
+  celdas, el aviso visible y guardar el borrador (`guardarBorrador` ya acepta `diseno`); **4.22-3** variantes, interruptores, atajos, subtotales, modos y tarjeta;
+  **4.22-4** el catálogo de tonos (`tono_crear|guardar|eliminar` ya existen); **4.22-5** la vista previa a 412 y 1.280 px y al 200 %; **4.22-6** 4-30 (rojo, datos).
+- **Preguntas que quedan para las partes que siguen** (la recomendada, primero; sin respuesta se toma ésta):
+  - **P1 (producto/UX, 4.22-2) dónde vive el editor:** (a) pestaña nueva «Diseño» en Configuración › Cotización; (b) panel dentro de «Fórmula» (choca con `b/4.21`); (c) ruta propia.
+  - **P2 (producto/UX, 4.22-5) cómo se ve 1.280 px en `max-w-3xl`:** (a) caja con scroll horizontal al ancho real; (b) escalada con `transform`; (c) sin el tope de ancho.
+  - **P3 (producto, 4.22-5) de dónde sale la hoja de la vista previa:** (a) un armador puro en TS con cifras de prueba; (b) sólo la estructura (ya no sería «el mismo componente»).
+  - **P4 (datos, 4.22-6) 4-30:** (a) `validar_diseno()` rechaza publicar un diseño de más de N ítems (regla nueva, espejo TS; N sale de medir); (b) sin tope, sólo aviso; (c) la hoja divide.
+- **Lo no obvio:**
+  - La visibilidad que da el diseño sigue siendo la que compila la base al publicar; `visibilidadDelDiseno()` es su espejo para mostrar y avisar, no la autoridad.
+  - `docs/COTIZADOR.md` dice que lo no dibujado entra como `{todos, null}`; el SQL sólo lo hace con el total y lo `aparte`. Se sigue el SQL.
+  - **Límites del aviso:** sólo la suma directa (`op: 'suma'`); no sigue cadenas (suma de sumas), ni `restar`, ni `porcentaje_de`. Si dos sumandos quedan sin ver, o uno sin
+    dibujar además del restringido, no avisa (no se deduce con dos incógnitas). Es un aviso, no una garantía: la base nunca deja de enviar el total.
+  - `ponerNiveles()`: «todos» se omite en una sección; en una celda se escribe si su sección está restringida (la celda gana a su sección: omitirlo la dejaría restringida).
+- **Para el coordinador:** en la fila del 4.22 de `docs/PLAN.md`, tras «Prompts: 3.», sumar «Se parte en 4.22-1 (lo puro: visibilidad del diseño, aviso de deducción y
+  par ver/editar), 4.22-2 (la pestaña: secciones y celdas; guarda el borrador), 4.22-3 (variantes, interruptores, atajos, modos y tarjeta), 4.22-4 (el catálogo de tonos),
+  4.22-5 (la vista previa) y 4.22-6 (4-30, rojo de datos); cada parte menos la última sale con `parcial`.» `docs/ESTADO.md`: «4.22-1, lo puro del editor del diseño».
+  **4-30 sigue abierto** hasta el 4.22-6. `docs/COTIZADOR.md` (el límite del aviso) dirá que cubre las sumas directas.
+
+<!-- paso:4.22-2 -->
+
+## 2026-11-08 — Paso 4.22-2
+
+- **Preguntas sin respuesta → la recomendada** (la decisión vigente era de otras preguntas, las del 4.21): **P1 (a)** pestaña nueva «Diseño» en Configuración › Cotización
+  (hecha aquí). **P2** (1.280 px: caja con scroll al ancho real), **P3** (armador puro con cifras de prueba) y **P4** (4-30: regla nueva en `validar_diseno()`, datos) siguen
+  para las partes 5 y 6; P4 es compuerta `datos`.
+- **Lo no obvio:**
+  - El área `diseno` replica la lectura y la escritura de `formula` (su repositorio, su esquema de guardado, la comparación en profundidad): la guarda de áreas impide
+    importar otra. Compartirlas subiéndolas al núcleo lo decide el carril A.
+  - Los niveles se leen de `cotizaciones_niveles` (`select` para `authenticated`), no de `niveles_con_uso()` (pide `equipo.roles.ver|gestionar`).
+  - Lo que `validarDiseno()` rechaza tras un cambio **queda aplicado y se dice**; «Guardar» no se apaga (un borrador puede quedar sin publicar; la base valida al publicar).
+    Se pasan como `tonos` los de los grupos de la propia definición, así `tono_inexistente` no se dispara aquí (es del catálogo, 4.22-4).
+  - Sólo «Quién la ve» se apaga donde la base daría `nivel_no_admitido` (total, lo aparte, la variante, el pct aparte; una sección que lo contiene). «Quién la edita»
+    queda abierto: ver abierto con editar restringido vale.
+  - `guardarDiseno` manda `definicion` y `params` como se leyeron, nunca los reconstruye; el e2e lo comprueba contra la publicada (jsonb a jsonb).
+  - Se quitó del e2e el 200 % (es pulido, `e2e.md`): `min-w-0`, `grid-cols-[minmax(0,1fr)]` y `@container` ya van en los componentes.
+- **Para el coordinador:**
+  - **Mover, sumar y quitar secciones o ítems** (la estructura) no lo nombra ninguna parte de 4.22-2 a 4.22-6: asignarlo al 4.22-3 o a una 4.22-2b.
+  - `docs/ESTADO.md`: «4.22-2: pestaña «Diseño» con secciones y celdas, aviso y guardar el borrador; siguen 4.22-3 a -6; mover/sumar/quitar sin dueño». `docs/PLAN.md`: nada
+    nuevo si la fila ya lleva la partición del 4.22-1. `docs/COTIZADOR.md`: la pestaña «Diseño».
+  - El hub dice «La fórmula y el diseño de la hoja de cada origen y los niveles de acceso.» (`seccion.ts`): el 4.20-4b (carril A) edita la misma línea; al integrar, unir ambos textos.
+
+<!-- paso:4.22-3 -->
+
+## 2026-11-08 — Paso 4.22-3
+
+- **Preguntas:** ninguna nueva; P1–P4 siguen como las dejó el 4.22-1 (la recomendada). P2 y P3 son del 4.22-5; P4 (4-30), del 4.22-6, compuerta `datos`.
+- **Lo no obvio:**
+  - **Variante y subtotal sin campo:** no tienen más que su nodo (y el nivel de un ítem que no es celda lo hereda de su sección); cambiarles el nodo es mover estructura.
+    Se dibujan como tarjeta de sólo lectura.
+  - **Atajos:** la columna ofrece las claves de `match` y la `columna` del nodo `tabla` más la actual, sin leer la tabla de referencia (la base admite esas columnas).
+  - **Ayuda de tabla:** sale de las tablas que nombran los nodos de la fórmula (`tabla` de tabla, tramo y depreciar) más la actual.
+  - **`sumarModo` copia** `buckets` y `total_en` de la fórmula: valida de entrada. La clave se deriva del nombre (minúsculas sin tildes, `_`, `_2`…) y no cambia si se
+    renombra el modo. Sin `total_en` o sin buckets no hay modos nuevos; los que ya hubiera siguen editables.
+  - **`ver_total_bs`** no lo mira ninguna regla de `validarDiseno()`: el interruptor siempre está habilitado.
+  - **Texto sin recortar al escribir:** la ayuda no pasa por `trim()` (un espacio al final es el de la palabra que sigue); sólo blancos la quitan. El nombre de un modo
+    se aplica al salir del campo, por lo mismo. (El título de una sección, del 4.22-2, sí recorta al escribir.)
+- **Para el coordinador:**
+  - **Mover, sumar y quitar secciones o ítems** (la estructura) sigue sin dueño: asignarlo como un 4.22-3b o descartarlo.
+  - `docs/ESTADO.md`: «4.22-3: ítems, cabecera y tarjeta del diseño; siguen 4.22-4 (tonos), -5 (vista previa) y -6 (4-30); mover/sumar/quitar sin dueño». `docs/PLAN.md`: en la fila
+    del 4.22, sumar «4.22-3 (ítems, cabecera y tarjeta)».
+  - El hub dice «La fórmula y el diseño de la hoja de cada origen y los niveles de acceso.» (`seccion.ts`): el 4.20-4b (carril A) edita la misma línea; al integrar, unir ambos textos.
+
+<!-- paso:4.22-4 -->
+
+## 2026-11-08 — Paso 4.22-4
+
+- **Preguntas** (contestadas con la recomendada): **P1**, una pestaña propia «Tonos» después de «Diseño» (`?seccion=tonos`): el catálogo es de la empresa, se guarda al instante y no depende del selector de origen ni de «Guardar el borrador». **P2**, selector nativo más `#rrggbb`, muestra «Aa» y contraste en vivo, con «Guardar» siempre habilitado: al enviar, el motivo queda junto al campo.
+- **Lo no obvio:**
+  - **La lectura de tonos del 4.21 (`bcf1e208`) no se reusó:** no está en esta rama y sirve a otro uso (allá el navegador lee `clave` y `nombre` para elegir el tono de un grupo; aquí el servidor lee todo para editar). Al integrar no chocan; unificarlas sería un paso de pulido.
+  - **«En uso» sólo lo dice el rechazo de la base:** `_tonos_lista()` no trae cuáles usa una fórmula, así que «Eliminar» siempre se ofrece y un 23503 sale como aviso con la frase de la base (nombra la fórmula). Una columna `en_uso` sería una migración de `datos`; no se abrió.
+  - **La clave de un tono no cambia** (la nombran los grupos de una fórmula): editar manda sólo `nombre` y/o `colores`, y sólo lo que cambió, porque la base no vuelve a pedir AA a unos colores que no se tocaron.
+  - **El AA se mira con los tres colores del tema bien escritos** y el motivo del AA reemplaza a la línea en vivo; un color a medio escribir no da contraste ni motivo de AA.
+  - **El `<Confirmar>` de eliminar** se registró en `confirmar-con-url-formula.ts` (del B), no con el `REGISTRO` por carril (`areas-b/`): `confirmar-con-url-areas.test.ts` mockea ese archivo y habría caído con un registro más.
+  - Las lecturas y escrituras del área `diseno` importan `features/niveles/actions/resultado.ts` (`comoResultado`), que es núcleo: es genérico y `FalloDeTono` tiene la misma forma que `FalloDeNivel`.
+- **Para el coordinador:**
+  - `docs/plan.yaml`: ya se sumó `pantallas/diseno-tonos.ts` al `dueno_de` del B en este PR (la guarda `areas-de-cotizaciones-plan` lo pide por cada segunda pantalla).
+  - `docs/ESTADO.md`: «4.22-4: el catálogo de tonos (pestaña «Tonos»); siguen 4.22-5 (vista previa) y 4.22-6 (4-30, datos); mover/sumar/quitar secciones o ítems sigue sin dueño». `docs/PLAN.md`: en la fila del 4.22, «4.22-4 hecho: la pestaña «Tonos»».
+  - El hub dice «La fórmula y el diseño de la hoja de cada origen y los niveles de acceso.» (`seccion.ts`); si quiere nombrar los tonos, es el mismo texto que edita el 4.20-4b: no se tocó.
+
+<!-- paso:4.22-5 -->
+
+## 2026-11-08 — Paso 4.22-5
+
+- **Preguntas** (contestadas con la recomendada; ninguna toca datos ni permisos): **P1**, 1.280 px dentro de la pestaña es una caja con scroll horizontal al ancho real: es lo único que dispara los cortes de la hoja, que miran su contenedor. **P2**, un armador puro en TS que dibuja con los componentes de la hoja de verdad. **P3**, cifras de prueba que no leen nada (datos en 0, sin tipos de cambio ni tablas vivas): el objetivo es el ancho y el orden, no el número; leer el terreno como el editor de la fórmula pide subir `leerElTerrenoDePrueba` al núcleo y eso lo decide el carril A. **P4**, la vista previa lo ve todo (sin recortar por nivel; un «Ver como: <nivel>» sería otro paso de pulido). **P5**, un ancho a la vez, y «200 %» es el celular (412 px) con el texto al doble.
+- **Lo no obvio:**
+  - **El armador espeja `_cotizacion_hoja()` sin la parte de niveles:** si cambia esa función (un campo nuevo en la celda), hay que cambiar también `entities/diseno/hoja-del-diseno.ts`. No hay un juego compartido entre los dos; T1 sólo prueba el armador.
+  - **No se reusó `calcularLaVistaPrevia()` ni `TERRENO_VACIO`:** son del área `formula` y la guarda de áreas impide importar otra. El área `diseno` escribe su entrada mínima con `evaluar()` y `validarFormula()` del núcleo.
+  - **Las cifras se calculan una vez por versión leída** (dependen de la definición y los `params`, que este editor no cambia); el diseño sí vuelve a armarse con cada cambio. Con la fórmula del e2e (total con tipo de cambio) el total de dólares puede salir 0 o «—», y la vista previa lo dice con las palabras de la hoja.
+  - **V15 se cumplió sin respaldo:** `zoom: 2` sobre un hijo de 206 px dobla el texto (la altura del título de una sección pasa de 1,8 veces la de 412 px) y la página no se ensancha. No se probó el respaldo de `transform: scale(2)`.
+  - **Dibuja `SeccionDeHoja` y no `LugaresDeLaHoja`:** este último arrastra `?ayuda=` y `?panel=avanzado` de la URL de la hoja. Por eso las secciones «Avanzado» sólo se nombran.
+  - **El spec no lleva la marca de sin celular:** mide la disposición, y la guarda `sin-celular` la rechaza («el celular sí le agrega algo»); corre en escritorio y en móvil y pasa en los dos.
+  - **Los controles y el panel diferido se partieron distinto que en el plan:** `controles-de-la-vista-previa.tsx` y `panel-de-la-vista-previa.tsx` (los que carga la pestaña) y `vista-previa-del-diseno.tsx` (lo que pide el `diferido()`), para que la pestaña no cargue la hoja; el plan tenía los botones en el archivo diferido. `EditorDelDiseno` pasaba de 80 líneas con el panel adentro.
+- **Para el coordinador:**
+  - `docs/ESTADO.md`: «4.22-5: vista previa del diseño (412, 1.280 y 200 %); sigue 4.22-6 (4-30, datos)». `docs/PLAN.md`: en la fila del 4.22, tras «4.22-4 hecho: la pestaña «Tonos»», sumar «4.22-5 hecho: la vista previa (412, 1.280 y 200 %)».
+  - No se tocó `docs/plan.yaml`, `areas/diseno/*` ni `supabase/`; la cuenta de la API de `docs/MAPA.md` no se movió.
+  - El 4-30 (tope de tamaño del diseño) sigue abierto para el 4.22-6.
+
+<!-- paso:4.22-6 -->
+
+## 2026-11-08 — Paso 4.22-6
+
+- **Preguntas:** ninguna nueva. P4 del 4.22-1 (4-30) con la recomendada, aprobada: **(a)** `validar_diseno()` rechaza publicar un diseño de más de N ítems.
+- **Lo no obvio:**
+  - **N = 40 es una cota estimada con lo ya medido, no una medición nueva** (no se hizo sonda: `.claude/rules/e2e.md`). Es el menor que deja válido todo lo
+    de hoy (`subasta_usa` tiene 39 ítems; el juego ya traía un diseño válido de 40) y el mayor que entra en el techo de nodos: 491 nodos medidos para 39 ítems
+    son 12,6 por ítem, una cota que **sobreestima** (le carga a los ítems también la parte fija de la hoja); con ella, 40 ítems ≈ 504 nodos contra el techo de
+    500 (+0,8 %, dentro de la regla del 5 %); como quien configura (⚙), 557 / 39 = 14,3 por ítem, ≈ 571 contra 585 (`docs/RENDIMIENTO.md:168-171`).
+  - **Qué cuenta:** todo ítem de toda sección, de cualquier tipo (`celda`, `atajos`, `variante`, `interruptor`, `subtotal`), principal o avanzado (los 491
+    nodos se midieron con «Avanzado» abierto). La cabecera (modos, «Ver total Bs») y la tarjeta del total no cuentan. `donde` = la sección en la que la suma
+    pasa de 40.
+  - **Va tras la forma y antes de los modos** (sólo cuenta y acota todo lo demás): la forma le gana; el tope gana a todo lo cruzado. En TS es el 2.º código de
+    `REGLAS_DE_DISENO`.
+  - **El borrador lo admite** (`formula_guardar_borrador` sólo mira la forma); **publicar, el ⚙ y revertir** lo rechazan (pasan por `_preparar_publicacion()`).
+    El editor del diseño lo dice con su aviso de siempre sin apagar «Guardar»; como no agrega ni quita ítems, la pantalla no cambió.
+  - **El número vive en `_diseno_maximo_de_items()`** (invocadora, STABLE, `search_path ''`, sólo `authenticated` y `service_role`) para que
+    `medir-validar-diseno.sql` y `medir-publicar.sql` lo apaguen dentro de su transacción revertida (devuelve `2147483647`) y sigan midiendo las sintéticas
+    de 200 y 2.000 ítems; en TS, `validarDiseno()` cambia su 4.º parámetro (el medidor) por `opciones: { medidor?, maximoDeItems? }` (por omisión, `MAXIMO_DE_ITEMS_DEL_DISENO`; `max-params` no admite un 5.º) y las pruebas de
+    escala pasan `Number.POSITIVE_INFINITY`. Esas dos mediciones no se corrieron (no están en el CI ni en este paso).
+  - **Consecuencia para la persona:** la cobertura obliga a dibujar todo input, constante, la variante y cada bandera que condiciona algo
+    (`validar-diseno-cobertura.ts`), así que **una fórmula con más de 40 de ésos tampoco se puede publicar**; `subasta_usa` sólo puede crecer un ítem. Si
+    hace falta más, se sube el tope (una migración que reemplaza `_diseno_maximo_de_items()` y la constante) midiendo la hoja, o la hoja divide (la otra
+    rama de 4-30, descartada hoy).
+  - El corpus diferencial (`supabase/tests/corpus-de-diseno.json`) se rehízo entero con `ACTUALIZAR_CORPUS=1`: el mutador nuevo cambia las tiradas de la
+    semilla fija. 820 casos; `demasiados_items` es primer rechazo en 21 y ninguna regla baja de 6.
+- **Para el coordinador:**
+  - `docs/ESTADO.md` (por sustitución, ≤ 60 líneas con `wc -l`): «**4.22 cerrado:** el editor del diseño (secciones, celdas, ítems, tonos y vista previa);
+    4.22-6, un diseño de más de 40 ítems no se publica (`demasiados_items`, cierra 4-30)».
+  - `docs/PLAN.md`: en la fila del 4.22, tras «4.22-5 hecho: la vista previa (412, 1.280 y 200 %)», sumar «4.22-6 hecho: el tope de 40 ítems
+    (`demasiados_items`); 4.22 cerrado». **Cerrar 4-30** (`docs/PLAN.md:420-422`): «cerrado en el 4.22-6: `validar_diseno()` rechaza publicar un diseño de
+    más de 40 ítems con `demasiados_items` y la sección en `hint`; el borrador lo admite».
+  - `docs/BITACORA.md`: la entrada de `docs/pasos/4.22-6/bitacora.md`, con su marcador.
+  - Este PR cierra el 4.22 (`parcial: false`). Sigue sin dueño «mover, sumar y quitar secciones o ítems» del editor (lo dijo el 4.22-2).
+
+<!-- paso:4.22-7 -->
+
+## 2026-11-08 — Paso 4.22-7
+
+- **Subir el tope en vez de recortar el HTML.** El primer HTML de «Tarjeta» con 500 miembros pasó de 147.448 a 155.874 B (+5,7 %). La regla del 5 % del proyecto
+  (`docs/ESTADO.md`: «se sube el tope») manda medir y subir; el nuevo tope es lo medido más 5 %. Queda abierto si el aumento es de las dos pestañas nuevas o de lo
+  que trajo main; si el tope vuelve a romperse, ahí se mira.
+
+<!-- paso:4.23-3 -->
+
+## 2026-11-08 — Paso 4.23-3
+
+- **Lo no obvio:**
+  - **Lo tipeado en una celda es dinero** (una tabla de precios de referencia): sale sólo de `leerNumeroTipeado` con el locale de la empresa (en es-BO
+    «9.200,5» es 9200,5 y «1.5» es un aviso). Un año va sin decimales; un texto se recorta (una clave con un espacio al final no casaría en un `match`); una
+    columna de otro tipo (sólo por SQL) toma el número si se lee y si no, el texto. Lo que no se lee queda como texto crudo de la celda con su motivo y la fila
+    conserva el valor de antes: nunca se publica un número distinto del que se ve escrito (el modal tampoco manda con un crudo, ni si se llega por la URL).
+  - **Salir de una celda sin tocarla no cambia nada:** se aplica sólo si el texto difiere del que muestra el campo (`formatearParaEditar`, 15 cifras). Si no, un
+    valor guardado con más precisión se redondearía al pasar con Tab y se publicaría. La otra cara (auditoría del informe): un valor de más de 15 cifras significativas (sólo por SQL) se ve redondeado y, si no se toca, se publica
+    entero; desde la cifra 16 lo que se ve y lo que se publica difieren. Se acepta: es la precisión del cast de la base.
+  - **Las páginas son de lo que está en memoria** (100 filas, el mayor de `TAMANOS_DE_PAGINA`): la tabla se lee entera (4.23-2), así que una de más de 1.000 filas
+    llega a todas desde el editor y lo que se publica nunca está recortado. El selector dice «Desde la fila n», sin total, y la página no va a la URL.
+  - **El borrador es por versión:** sobre la misma versión se repone; si la tabla se publicó después, se borra y se dice. Mientras se publica se pausa y se borra
+    (si entra, el editor se vuelve a montar con la versión nueva y no tiene que encontrar uno viejo); si no entra, se vuelve a guardar.
+  - **«Volver a las tablas» no pregunta** (el borrador conserva lo hecho) y **quitar una fila no pregunta** («Deshacer»): nada se escribe hasta publicar.
+  - **`tapada` sale del ítem de la lista:** la lectura de una tabla no la sabe. Y una tabla se abre sólo si está en la lista del origen elegido.
+  - **Copias en el área `tablas`** (un área no importa otra): el formulario de publicar (`usePublicacionDeTabla`, del de la fórmula, con la celda rechazada) y el
+    campo de la nota.
+- **Para el coordinador:**
+  - **Línea de ESTADO:** «B/C, 4.23-3: las tablas de referencia se editan, reordenan y publican desde Configuración › Cotización; el enlace desde la ayuda, 4.23-4
+    del A».
+  - **Partición:** el 4.23 pasa a 4 partes. `docs/PLAN.md`, fila del 4.23: «4.23-3: la pestaña «Tablas» de Configuración › Cotización (editar, mover y publicar con
+    nota; el editor llega a todas las filas). 4.23-4 (carril A): «Ver la tabla entera» desde la ayuda de una tabla de la hoja.». `docs/plan.yaml`: `4.23-3`
+    terminado «Se editan, reordenan y publican desde Configuración › Cotización»; nuevo `4.23-4` (`carril: a`, `depende_de: ['4.23-3']`, riesgo verde, módulos
+    `features/hoja/`), terminado «La ayuda de una tabla en su tope lleva a la tabla entera»; el `4.28` pasa a depender del `4.23-4`.
+    - **Por qué se parte** (la guarda de carriles no lo impide: B y C editan lo del núcleo): la convención de áreas (B y C no editan los archivos compartidos de
+      la hoja), el JS en frío de `/cotizaciones/nuevo` (459,0 de 460 KB, `docs/RENDIMIENTO.md`), que el enlace mueve, y que los e2e de la hoja se verifican aparte.
+    - **Pregunta del 4.23-4:** quién ve el enlace. Recomendada: sólo quien tiene `cotizaciones.configurar` en el origen de la hoja (el editor pide esa clave); los
+      demás siguen viendo «Mostrando las 1.000 primeras filas.».
+  - **4-47:** la primera mitad («una tabla de más de 1.000 filas llega a todas desde el editor») queda cumplida; el enlace desde la ayuda, con el 4.23-4. La segunda
+    mitad («una tabla congelada sin viva se rotula con etiquetas») **sigue abierta**: P5 permite la baja por SQL (`activa = false`), `cotizacion_tabla` lee sólo
+    las vivas activas, y rotular sin viva exige congelar también las `columnas` (un cambio de base). Va al paso que traiga la baja de tablas o ese cambio.
+  - **Choque con el 4.20-4b del A** (la pestaña «Ajustes» en los mismos `pestanas.ts`, `seccion.ts`, `page.tsx` y sus tests): resuelto en el merge `d3ce0c46`
+    juntando las dos pestañas en el orden niveles, fórmula, tablas, ajustes. «Ajustes» sigue al final (lo pide su comentario: Niveles primero y Ajustes al
+    final) y «Tablas» va junto a «Fórmula», porque sus tablas son parámetros de la fórmula. En la barra, sólo una clave más (`tabla`).
+  - **`db:carreras` de la fila no se corrió en esta parte:** no toca `supabase/` ni un candado; las carreras de `tabla_referencia_publicar()` las corrió el 4.23-1.
+
+<!-- paso:4.26-1 -->
+
+## 2026-11-08 — Paso 4.26-1
+
+- **Lo que contestó la persona:** la compuerta `datos` del plan, «aprobar», con las recomendadas de P1 a P7:
+  - P1 la serie la cambia y la pestaña de Empresa la ve `empresa.ajustes.gestionar` (cierra 4-89 en la regla; la pestaña llega en el 4.26-3).
+  - P2 un comprobante vigente por cotización: para emitir otro se anula el vigente.
+  - P3 una cotización con comprobante, anulado o no, no va a la papelera (resuelve el P4 del 4.24).
+  - P4 `datos` congela el recorte del nivel «todos» con sus etiquetas, la cotización, el origen, la razón social y el NIT; del cliente y del vehículo, sólo los
+    ids (la auditoría del plan bloqueó congelar el nombre del cliente: lo leería quien ve la cotización y no el lead).
+  - P5 anula la misma clave que emite, con motivo.
+  - P6 una serie es de 1 a 12 caracteres A–Z, 0–9 y guion, en mayúsculas.
+  - P7 con un comprobante vigente en la final actual no se marca otra final del vehículo; con sólo anulados, la vieja baja a preventa y queda viva.
+- **Lo que se aprobó en permisos (la base):**
+  - Tabla `comprobantes_ajustes` con RLS, sólo `select` para `authenticated` y la policy «leer» = emitir **o** `empresa.ajustes.gestionar`; la de
+    `comprobantes_contadores` pasa a la misma regla.
+  - `comprobante_emitir(uuid, timestamptz)` y `comprobante_anular(uuid, text) returns jsonb` reemplazan a las de la base (`drop` + `create`); nueva
+    `comprobantes_serie_cambiar(text, timestamptz)`. Las tres `security definer`, `search_path = ''`, sólo de `authenticated` y `service_role`.
+  - `_cotizacion_a_papelera` y `_final_aplicar` (de nadie) suman el chequeo del comprobante. Sin permisos nuevos; `aplicado_en` al día en la migración y en el seed.
+- **Lo no obvio:**
+  - **Una fila de ajustes y no una marca `vigente` en el contador:** con `for update` sobre «el contador vigente», una emisión que espera mientras se cambia la
+    serie relee una fila que ya no es la vigente y no encuentra ninguna. La fila única se relee igual, con su serie nueva (K4).
+  - **Orden de candados:** cotización `for no key update` → `comprobantes_ajustes` `for update` → contador. Cambiar la serie toma ajustes → contador; la papelera
+    y marcar, sólo cotizaciones. Nadie toma esos candados al revés. `datos` se arma antes de tomar la serie, para que el candado del contador, que serializa todas
+    las emisiones, dure sólo el `update` y el `insert`.
+  - **El `update` del contador y el `insert` en un solo bloque `begin … exception`:** el `unique_violation` del índice de un vigente (sólo llega si alguien
+    escribe un comprobante sin tomar la cotización) se traduce al PT409 de un vigente y la subtransacción devuelve el número (E7). Es defensivo: en Postgres,
+    quien atrapa el error vuelve a su propio savepoint, que ya incluye todo lo que hizo emitir; el bloque cuida que un cambio futuro del manejador no deje el
+    número consumido.
+  - **`comprobantes_serie_cambiar` compara la versión a mano** y no con `_exigir_version()`: la esperada nula tiene que dar 22023 (la de la regla da P0001), y
+    la distinta, un PT409 con texto propio de la serie («La serie cambió mientras la editabas…»). Los códigos son los de la regla.
+  - **Emitir pide la versión de la cotización:** lo que se congela es lo que quien emite tenía en pantalla.
+  - **Anular no devuelve el número:** la serie sigue y el anulado se queda con el suyo.
+  - **Desvío del plan:** el 23514 de P7 no dice cuál comprobante («La final actual tiene un comprobante vigente: anúlalo antes de marcar otra final.»). Leer su
+    serie y número en `_final_aplicar` la volvía fuente del inventario de `supabase/tests/numero-global.sql` (el detector busca la palabra y «lead» en el cuerpo),
+    y con ella a `cotizacion_crear`, `cotizacion_hoja` y `cotizacion_evaluar`, que no devuelven el número de ningún lead. La sección «Comprobantes» del 4.26-2
+    muestra cuál es.
+  - **El comprobante heredado en las pruebas de la papelera:** PU2, PU5, PA1 y el P4 del spec de purgar mandan la final a la papelera y después insertan el
+    comprobante como postgres: hoy emitir pide una final viva y la papelera rechaza una cotización con comprobante, y el caso que la purga sigue cubriendo es el
+    que ya estaba en la base.
+
+<!-- paso:4.26-2 -->
+
+## 2026-11-08 — Paso 4.26-2 y 4.26-3 (microdecisiones de UX; ninguna pregunta a la persona)
+
+- La sección «Comprobantes» se dibuja sólo en una final o en una cotización que ya tiene alguno (una final que bajó a preventa con sólo anulados, P7 a). En una
+  preventa sin comprobantes no gana ni un nodo.
+- Anular abre un `ModalDeFormulario` (lleva un motivo tipeado), no un `<Confirmar>`; emitir, un `<Confirmar>` (no hay nada que tipear).
+- `?panel=anular-comprobante` no lleva el id: hay a lo sumo un vigente (P2 a) y la isla lo recibe del servidor.
+- «Emitir comprobante» sólo en una final **activa** (una reportada o inválida no lo ve): lo pide la partición del 4.26 y lo dijo la auditoría del plan.
+- La lista se lee en el servidor tras `<Suspense>` y no se mide con volumen: no crece con el uso (un vigente y los anulados de una sola cotización), como los
+  adjuntos (≤ 20).
+- Los textos de error de `comprobante_emitir`, `comprobante_anular` y `comprobantes_serie_cambiar` se muestran tal cual (excepción anotada en la ficha del
+  módulo): la base ya los escribe para la persona.
+- El PT409 de la serie en Empresa va por el aviso con «Recargar» (`avisarError`), como el otro formulario con versión de Configuración.
