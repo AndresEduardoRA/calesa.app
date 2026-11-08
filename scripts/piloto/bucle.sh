@@ -90,7 +90,11 @@ copia_al_dia() {
   git remote get-url origin >/dev/null 2>&1 || return 0
   timeout 60 git fetch -q origin main 2>/dev/null 8>&-
   bash "$BIN/copiar-bin.sh" --si-cambio >>"$ESTADO/copiar-bin.log" 2>&1 8>&-
-  [ "$?" = 10 ] || return 0
+  local rc=$?
+  # La copia es común: si otro carril ya la puso al día (bin.origen ya es el de main), copiar-bin no copia y este bucle seguía con SU carpeta
+  # vieja. Manda la carpeta que corre contra la vigente (`bin`), no quién copió: el C corrió la copia de las 04:06 hasta las 10:22 del 8-11,
+  # sin «sin compuertas» ni empujar el merge que resolvía su choque.
+  [ "$rc" = 10 ] || [ "$(readlink -f "$COMUN/bin" 2>/dev/null)" != "$(readlink -f "$BIN")" ] || return 0
   registro "los scripts del piloto cambiaron en main: me relanzo con la copia nueva ($(cut -c1-8 "$COMUN/bin.origen" 2>/dev/null))."
   exec 8>&-
   PILOTO_RELANZADO=1 exec bash "$COMUN/bin/bucle.sh" "${ARGS_BUCLE[@]+"${ARGS_BUCLE[@]}"}"
