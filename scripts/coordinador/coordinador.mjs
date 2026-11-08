@@ -89,7 +89,14 @@ function conCandado(fn) {
         }
         if (Date.now() - statSync(CANDADO).mtimeMs > 600_000) viejo = true
       } catch {
-        viejo = Date.now() - (existsSync(CANDADO) ? statSync(CANDADO).mtimeMs : 0) > 5_000
+        // Otro proceso pudo soltar el candado entre mirar y leer: sin directorio no hay nada que romper.
+        let mtime = 0
+        try {
+          mtime = statSync(CANDADO).mtimeMs
+        } catch {
+          mtime = Date.now()
+        }
+        viejo = Date.now() - mtime > 5_000
       }
       if (viejo) rmSync(CANDADO, { recursive: true, force: true })
       else if (Date.now() > limite)
