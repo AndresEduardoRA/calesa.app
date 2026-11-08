@@ -37,12 +37,13 @@ export function problemasDelPlanDelPr({ carril, cambios, crudos }) {
   }
   const creadas = new Set(cambios.filter(crea).map((c) => c.ruta))
   const antes = cb.dueno_de ?? []
-  const extra = cp.dueno_de.slice(antes.length)
+  // Suma en cualquier lugar (2026-11-08: el B sumó dos archivos en orden alfabético y el PR 76 cayó por «sólo al final»); no quita nada.
+  const extra = cp.dueno_de.filter((r) => !antes.includes(r))
   const problemas = []
   const sumadas = []
-  if (!isDeepStrictEqual(cp.dueno_de.slice(0, antes.length), antes))
+  if (antes.some((r) => !cp.dueno_de.includes(r)))
     problemas.push(
-      `docs/plan.yaml: el carril ${nombre} quita o reordena su dueno_de; sólo suma al final; lo demás lo cambia el carril a.`,
+      `docs/plan.yaml: el carril ${nombre} quita algo de su dueno_de; sólo suma; lo demás lo cambia el carril a.`,
     )
   for (const ruta of extra) {
     if (creadas.has(ruta) && esFamilia(ruta)) sumadas.push(ruta)
