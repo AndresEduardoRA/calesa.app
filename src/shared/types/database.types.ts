@@ -8094,6 +8094,17 @@ export type Database = {
         }
         Returns: boolean
       }
+      cotizacion_adjuntar: {
+        Args: {
+          p_bytes: number
+          p_cotizacion: string
+          p_mime: string
+          p_nombre: string
+          p_ruta: string
+        }
+        Returns: Json
+      }
+      cotizacion_adjunto_quitar: { Args: { p_adjunto: string }; Returns: Json }
       cotizacion_comentar: {
         Args: { p_cotizacion: string; p_cuerpo: string; p_padre: string }
         Returns: Json
