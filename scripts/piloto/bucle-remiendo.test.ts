@@ -55,6 +55,40 @@ describe('carril.sh › remendar sin sesión', () => {
     expect(existsSync(join(a.repo, 'src/p/otro.ts'))).toBe(true)
   })
 
+  // docs/UX.md con una tabla: la rama y main tocan el mismo lugar.
+  const choqueEnDocs = (f: string, deLaRama: string, deMain: string) => {
+    integrarEnMain('docs/UX.md', '| a | 1 |\n| b | 2 |\n')
+    publicadoYDevuelto(f, 'formula/4.99', 'docs/UX.md', 'conflicto con main')
+    a.git('checkout', '-q', 'formula/4.99')
+    a.git('reset', '-q', '--hard', 'origin/main')
+    a.escribirRepo('docs/UX.md', deLaRama)
+    a.git('add', '.')
+    a.git(...GIT, 'commit', '-q', '-m', 'docs de la rama')
+    a.git('push', '-q', '-f', 'origin', 'formula/4.99')
+    a.git('checkout', '-q', '--detach')
+    integrarEnMain('docs/UX.md', deMain)
+  }
+
+  it('un choque en docs/ de puros agregados se une y se publica sin sesión', () => {
+    const f = plan(paso('4.99'))
+    choqueEnDocs(f, '| a | 1 |\n| b | 2 |\n| rama | 3 |\n', '| a | 1 |\n| b | 2 |\n| main | 4 |\n')
+    a.paso(1, pasoListo({ 'src/f/b.ts': 'x' }))
+    const r = a.correr(['--una-vuelta'], entorno(f))
+    expect(r.estado, r.salida).toBe(0)
+    expect(a.estado('registro.md')).toContain('4.99 remendado sin sesión')
+    expect(a.llamadas('paso')).toHaveLength(0)
+  })
+
+  it('un choque en docs/ sobre la misma fila (la unión la dejaría dos veces) va a la sesión', () => {
+    const f = plan(paso('4.99'))
+    choqueEnDocs(f, '| a | 1 |\n| b | rama |\n', '| a | 1 |\n| b | main |\n')
+    a.paso(1, pasoListo({ 'src/f/b.ts': 'x' }))
+    const r = a.correr(['--una-vuelta'], entorno(f))
+    expect(r.estado, r.salida).toBe(0)
+    expect(a.estado('registro.md')).not.toContain('remendado sin sesión')
+    expect(a.llamadas('paso')).toHaveLength(1)
+  })
+
   it('un rojo por la migración atrás de main la renumera (mismo contenido) y se publica sin lanzar el paso', () => {
     const f = plan(paso('4.99'))
     const vieja = 'supabase/migrations/20261108125907_formula_tope.sql'

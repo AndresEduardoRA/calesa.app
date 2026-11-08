@@ -210,8 +210,9 @@ sesión y otro CI, mientras el A y el C pasaban ≈ 2,4 h «sin paso libre» y e
 
 - **Las migraciones se renumeran solas** al traer main (`renumerar_migraciones`): si una de la rama quedó atrás de la última de `origin/main`,
   todas las de la rama pasan, en su orden, a versiones nuevas con el mismo contenido, y la versión vieja se cambia en los archivos que la rama tocó.
-- **Un PR devuelto se remienda sin sesión** (`remendar_sin_sesion`): en conflicto, si main entra sin choques de código (o sólo de `docs/`); en
-  rojo, sólo si se renumeró una migración. El bucle lo publica y sigue; si queda un choque de código, corre la sesión como antes.
+- **Un PR devuelto se remienda sin sesión** (`remendar_sin_sesion`): en conflicto, si main entra sin choques de código (o sólo de `docs/` con
+  puros agregados: si los dos lados cambiaron la misma línea, la unión la deja dos veces, como las filas de `docs/UX.md` en el 4.26, y va a la
+  sesión); en rojo, sólo si se renumeró una migración. El bucle lo publica y sigue; si queda un choque de código, corre la sesión como antes.
 - **Arreglo prestado:** el PR roto de un carril ocupado con otro paso lo toma un carril sin paso propio listo, en la **misma** rama del PR
   (`b/4.26` en el C), sin abrir otro; el coordinador anota la `rama` de cada paso asignado, y `publicar.sh` y el bucle aceptan la asignada.
   Al retomar, la rama local se alinea con la de su PR (avanza o se une) antes de traer main.

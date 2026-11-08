@@ -71,7 +71,7 @@ carril_asignar() {
 # es un arreglo de verdad). 0 si se publicó. El 2026-11-08, 19 conflictos y la migración del 4.22 costaron una sesión y un CI cada uno.
 remendar_sin_sesion() {
   local paso="$1" rama="$2" arreglar="$3" remoto="$4"
-  [ -n "$arreglar" ] && [ -n "$remoto" ] && [ ! -f "$ESTADO/conflicto-con-main.md" ] || return 1
+  [ -n "$arreglar" ] && [ -n "$remoto" ] && [ ! -f "$ESTADO/conflicto-con-main.md" ] && [ "${UNION_DUDOSA:-0}" = 0 ] || return 1
   [ "$(git rev-parse HEAD)" != "$(git rev-parse "$remoto")" ] || return 1
   case "$arreglar" in
     "conflicto con main") ;;
@@ -128,7 +128,7 @@ alinear_con_remoto() {
 #
 # Después, si main quedó sin choques, `renumerar_migraciones` (RENUMERADAS=1 si renumeró).
 traer_main() {
-  RENUMERADAS=0
+  RENUMERADAS=0 UNION_DUDOSA=0
   traer_main_merge "$@" || return 1
   [ -f "$ESTADO/conflicto-con-main.md" ] || renumerar_migraciones
   return 0
@@ -220,6 +220,11 @@ unir_docs() {
         git show ":2:$f" >"$tmp/nuestro" 2>/dev/null || { quedan=1; continue; }
         git show ":3:$f" >"$tmp/suyo" 2>/dev/null || { quedan=1; continue; }
         git show ":1:$f" >"$tmp/base" 2>/dev/null || : >"$tmp/base"
+        # Dudosa si en algún choque los dos lados cambiaron líneas que ya existían (la unión las deja dos veces: las filas de
+        # docs/UX.md en el 4.26); si sólo agregaron, la unión es la respuesta. Una dudosa no se publica sin sesión.
+        # (merge-file sale con el número de choques: con pipefail, sin el `|| :` la tubería fallaba aunque awk acertara.)
+        { git merge-file --diff3 -p "$tmp/nuestro" "$tmp/base" "$tmp/suyo" 2>/dev/null || :; } |
+          awk '/^\|\|\|\|\|\|\|/{b=1;n=0;next} /^=======/{if(b&&n)d=1;b=0;next} b{n++} END{exit !d}' && UNION_DUDOSA=1
         git merge-file --union -p "$tmp/nuestro" "$tmp/base" "$tmp/suyo" >"$f" 2>/dev/null
         git add -- "$f" || quedan=1
         ;;
