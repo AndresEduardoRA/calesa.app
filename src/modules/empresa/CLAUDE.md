@@ -13,7 +13,7 @@ Ficha completa: `docs/archivo/modulos/empresa.md`, sólo con grep.
   - `getTiposCambio()` — vigentes, el por defecto adelante; lista vacía si falla. Lo usa `app/` (`<TiposCambioVigentes>`); lo usará `cotizaciones`, que congela los que usa.
   - `integracionActiva('apibara')` — si la base no responde, no.
   - `PESO_MAXIMO_LOGO` (1 MB, `entities/marca.ts`): el tope de un logo en Storage; el PDF de una cotización no baja uno más pesado (`cotizaciones`, 4.18-3a). `leerAjustes()` lo usa también ese PDF: a diferencia de `getAjustes()`, falla en vez de dar lo de fábrica.
-  - Pantalla: `leerAjustes()`, `leerMonedasYTiposCambio()`, `leerHistorial()`, `leerIntegraciones()`, `zonasHorarias()`. Íconos: `iconosDelManifest()`, `urlDeIcono()`, `claveDeIconoVigente()` (para `app/manifest.ts` y `app/iconos/vigente/[tamano]`).
+  - Pantalla: `leerAjustes()`, `leerMonedasYTiposCambio()`, `leerHistorial()`, `leerIntegraciones()`, `zonasHorarias()`. Configuración › Cotización › Ajustes (4.20-4b): `leerAjustesDeCotizacion()` (la vigencia y el vehículo obligatorio con la versión de la fila; falla en vez de dar los de fábrica) y `type AjustesDeCotizacion`. Íconos: `iconosDelManifest()`, `urlDeIcono()`, `claveDeIconoVigente()` (para `app/manifest.ts` y `app/iconos/vigente/[tamano]`).
 - Componentes (`<FormularioEmpresa>`, `<MonedasYTiposCambio>`, `<Integraciones>`, `<IconosDeLaApp>`) por `pantallas/configuracion-empresa.ts`, sólo `src/app`.
 - `shell.ts` (sólo layout `(app)`): `getAjustes()`, `getTiposCambio()`, `<TiposCambioVigentes>`.
 - `client.ts` (Client Components de `app/` u otro módulo): `guardarTipoCambio` y `EntradaDeGuardarTipoCambio`, para el ⚙ de un tipo de cambio de la hoja (4.20); nadie lo usa todavía. La action exige `empresa.tipos_cambio.gestionar` en el servidor.
@@ -21,7 +21,7 @@ Ficha completa: `docs/archivo/modulos/empresa.md`, sólo con grep.
 
 ## Archivos clave
 
-- `entities/ajustes.ts` — `Ajustes`, `ajustesDesde()`, `registroDisponible()`, `AJUSTES_POR_DEFECTO`. `entities/ajustes-empresa.ts` — `AjustesEmpresa` (fila entera con versión; `vehiculoObligatorioAlCotizar` lo lee `cotizacion_crear`; `telefonoCc` completa teléfonos de lead sin «+» ni «00»), `cambiosComoColumnas()`, `PoliticaDeLimpieza`.
+- `entities/ajustes.ts` — `Ajustes`, `ajustesDesde()`, `registroDisponible()`, `AJUSTES_POR_DEFECTO`. `entities/ajustes-empresa.ts` — `AjustesEmpresa` (fila entera con versión; `telefonoCc` completa teléfonos de lead sin «+» ni «00»), `cambiosComoColumnas()`, `PoliticaDeLimpieza`. `entities/ajustes-de-cotizacion.ts` — `AjustesDeCotizacion` (vigencia y vehículo obligatorio al cotizar con la versión), `ajustesDeCotizacionDesde()`, `VIGENCIA_MINIMA_DIAS`/`VIGENCIA_MAXIMA_DIAS` (1 a 365, como la base).
 - `entities/marca.ts` — `validarColorDeMarca()` (contraste AA con motivo y tono cercano) y reglas del logo (`motivoDeSvgInvalido()`, `medidasDeSvg()`). `entities/regional.ts` — `localeCanonico()`, `zonaHorariaValida()`, `codigoDeMoneda()` contra `Intl`. `entities/iconos.ts`.
 - `entities/tipos-cambio.ts` (`CAMBIOS_A_LA_VISTA` = 30; `textoParaEditar()`, `valorTipeado()` con `shared/lib/numero-tipeado`), `entities/integraciones.ts` (`CLAVES_INTEGRACION`), `entities/uso-apibara.ts`, `entities/motivos.ts`, `entities/repositorios.ts`.
 - `infra/queries/` (`server-only`); `infra/{empresa,tipos-cambio,integraciones}.ts` escrituras por RPC; `infra/{logo,iconos}.client.ts` (Storage desde el navegador); `infra/apibara.client.ts` (`consultarUso()` por `invocarFuncion()`). `composicion.ts` / `composicion.client.ts`.
