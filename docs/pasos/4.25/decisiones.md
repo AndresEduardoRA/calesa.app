@@ -38,3 +38,53 @@
   - **`medir-jobs.sql` no mide la limpieza a cualquier hora:** corre el job con `now() + 12 h`. Corrido entre las 12:00 y las 15:00 de La Paz cae antes de la hora del job (03:00) y
     devuelve «temprano» en 1 ms sin revisar nada. La cifra de este paso salió de la misma siembra con `now() + 16 h`, sin finales: mide la sonda nueva del ancla en los
     100.000 que no anclan, no el camino que devuelve `cotizacion_final`.
+
+## 2026-11-08 — Paso 4.25-1b
+
+- **Lo que contestó la persona:** la compuerta `producto`, con la recomendada en las dos. P7 «rechazar»: crear una final sobre un vehículo con otra final activa
+  se rechaza (23505) y no la reemplaza como marcar. D1 «aprobar»: la función nueva `_final_crear_mirar`.
+- **Lo que se aprobó en permisos (la base):**
+  - `cotizacion_crear` con una final pide ahora, además de `cotizaciones.crear|ver` y `final.gestionar` del origen, las miradas de marcar:
+    - el lead en la cartera con `leads.editar` (P2 a), antes del candado y con todo tomado;
+    - poder mandar a la papelera todas las demás vivas del vehículo (P3 a);
+    - un vehículo sin lead o del mismo lead (P4 a).
+  - `_final_crear_mirar` es `security definer`, sólo de `service_role` y no toma candados.
+  - Sin tablas, policies ni claves nuevas. La preventa no cambia.
+- **Lo no obvio:**
+  - **La excepción del 4-17 con P7 a:** crear una final sobre otra final activa da 23505 y no la baja como marcar. «El mismo estado que marcarla» vale para
+    todo lo demás: el vínculo, las preventas en un lote de quien crea, el lead a cliente y la actividad (N1). Una final `reportada` o `invalida` no ocupa el
+    índice: crear la baja a preventa y la manda al lote, como marcar (N5 ii).
+  - **P7 va antes del cálculo:** una final sobre otra activa se rechaza sin esperar la fórmula ni calcular (N5 i: gana el 23505 sobre un 22023 del cálculo). Con
+    todo tomado se vuelve a mirar (una final confirmada mientras se esperaba, Q4). Si una final se confirma después de la pasada, el índice sigue dando el
+    23505 de siempre.
+  - **Ver el vehículo va antes que la ayudante:** si no, quien no ve el vehículo recibiría 23505, 23514 o el 42501 de las preventas, y sabría si tiene una final,
+    un vínculo o preventas (N11, M20). La cartera va antes que el vehículo: un lead ajeno da el 42501 del lead, no el 23514 del vínculo (N2 iii, M7).
+  - **Sin vuelta `PF425`:** marcar la necesita porque su cotización puede cambiar de vehículo o de lead mientras espera. Crear recibe el lead y el vehículo como
+    parámetros: un lead o un vehículo que se fue a la papelera mientras se esperaba da el 42501 de siempre («no encontramos este lead», «no tienes acceso a este
+    vehículo»), no el 23514 del lead en la papelera de marcar.
+  - **El orden:** lead `for no key update` → vehículo `for key share` → fórmula `for share` → después del cálculo, las vivas del vehículo `for no key update` en
+    orden de id → `insert` (el trigger sube el vehículo a `for no key update`) → `_final_aplicar`. Es el de marcar, con lo de crear en el medio. Con quién choca:
+
+| Contra                            | Su orden                                                     | Por qué no cierra ciclo                                                   | Carrera                    |
+| --------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------- | -------------------------- |
+| vincular, mismo lead              | lead FU → vehículo FU                                        | Se ordenan en el lead                                                     | Q1                         |
+| vincular a otro lead              | lead' FU → vehículo FU                                       | Se encuentran sólo en el vehículo; crear relee el vínculo con todo tomado | Q2                         |
+| papelera de vehículos             | vehículo FU → sus cotizaciones                               | Crear espera en el vehículo antes de su pasada                            | Q3                         |
+| otra final, mismo lead            | igual                                                        | Se ordenan en el lead                                                     | Q4, Q9                     |
+| otra final, otro lead             | igual                                                        | Se ordenan en la primera viva común (por id) o en el índice               | Q5                         |
+| marcar                            | lead NKU → vehículo KS → vivas NKU                           | El mismo orden                                                            | Q6                         |
+| encima                            | anterior S → lead KS → vehículo KS → `insert` (vehículo NKU) | La pasada de crear espera la anterior antes de su trigger                 | Q7                         |
+| restaurar cotizaciones            | vehículo KS → lead KS → las de la papelera NKU               | Todo compatible; la pasada no toma las de la papelera                     | Q8                         |
+| guardar                           | vehículo KS → la cotización NKU → (vehículo NKU)             | Guardar nunca espera algo que crear tome después de esperarlo a él        | «fin2», «g11», «g14» del A |
+| crear una preventa                | lead KS → vehículo KS → `insert` (vehículo NKU)              | No toma cotizaciones ajenas                                               | —                          |
+| limpieza                          | vehículo FU `skip locked`                                    | Salta el que crear tiene                                                  | —                          |
+| papelera de leads                 | sus leads FU por id                                          | No toma cotizaciones ni vehículos                                         | —                          |
+| mandar cotizaciones a la papelera | cada una NKU por id                                          | No toma lead ni vehículo; las dos pasadas van por id                      | —                          |
+| editar el lead (`_lead_mio`)      | lead FU                                                      | Sólo el lead                                                              | —                          |
+
+- **Lo que cede**, igual que en marcar: una preventa que llega después de la pasada (encima, restaurar, otra alta) queda viva al lado de la final (Q7, Q8).
+- **Q10 inserta la preventa en la transacción de A**, no por otra conexión. Si B tomara algo que A necesita, la espera de A por una inserción en otra conexión
+  no la ve Postgres (A está en el cliente) y la corrida se cuelga. En la misma transacción sale como 40P01 (M1 lo mostró).
+- **M4, la mutación del orden pasada → `insert`, tiene que sacar la fila propia de lo tomado.** Si no, la segunda mirada ve la final recién insertada y toda
+  final da 23505: la mutación cae por un motivo ajeno y no prueba la carrera (Q7).
+- **El desvío de la fila:** N1 va en `areas/final/crear.sql` (ver la bitácora).

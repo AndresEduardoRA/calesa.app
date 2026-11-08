@@ -376,7 +376,8 @@ repetido}`, recortado por `_cotizacion_respuesta()` (el recorte de `cotizacion_l
 2. **El intento** (`p_id`, lo manda el cliente): un candado consultivo por id ordena dos llamadas a la vez; si el id existe y es **mío,
    de este origen y de una cotización viva**, se devuelve con `repetido: true`; un id ajeno no se mira (42501 en el `insert`, para no
    servir de sonda).
-3. **El lead es obligatorio** (D3) y tiene que verlo quien llama (`leads.ver`); se bloquea con `for key share`.
+3. **El lead es obligatorio** (D3) y tiene que verlo quien llama (`leads.ver`); se bloquea con `for key share`. Una final pide además el lead en la cartera
+   con `leads.editar` y lo toma `for no key update` (4.25-1b).
 4. **El vehículo:** obligatorio si `ajustes_empresa.vehiculo_obligatorio_al_cotizar` (sí por defecto) y siempre en una final. «Cargar a
    mano» (`p_vehiculo_nuevo`) llama a `vehiculo_crear()` en la misma transacción. Uno que quien llama no ve: 42501.
 5. **La fórmula** publicada, `for share` (publicar espera a las altas en curso; si publicaron, se relee: tres vueltas y PT409).
@@ -390,10 +391,10 @@ repetido}`, recortado por `_cotizacion_respuesta()` (el recorte de `cotizacion_l
    **enteros** (los nodos que quien llama no ve, y los que no mandó, con el valor de la fórmula), `totales`, `modo_tc` y `tipos_cambio`
    (las tarifas de la empresa que usó). **`total_base` es el total en la moneda base de la empresa** (`USD` o `BOB`, otra → 22023; sin
    valor, `total_sin_valor`; si no cabe en `numeric(18,2)`, `fuera_de_rango`).
-9. **El `insert`:** el índice único `cotizaciones_final_por_vehiculo` da 23505. Una final creada directo no hace lo de marcarla
-   (vincular el vehículo al lead, preventas a la papelera, lead a cliente): pendiente 4-17.
+9. **El `insert`:** el índice único `cotizaciones_final_por_vehiculo` da 23505. Una final mira lo de marcar (P2–P4), rechaza otra final activa con 23505
+   antes del cálculo y, tras el `insert`, aplica `_final_aplicar`: vincula el vehículo, manda las preventas a un lote y pasa el lead a cliente (4.25-1b).
 
-Candados: intento, lead, vehículo, fórmula. **D2** vive en `cotizacion_crear()`: «Cómo se guarda (4.10-3)».
+Candados: intento, lead, vehículo, fórmula; una final, el lead `for no key update` y, después del cálculo, las vivas del vehículo. **D2** vive en `cotizacion_crear()`: «Cómo se guarda (4.10-3)».
 
 ### Cómo se guarda (4.10-3)
 
@@ -532,8 +533,15 @@ dice quién y cuándo; «Recargar» vuelve a montar la hoja con la lectura nueva
    quien marca, el vehículo sin lead queda con el de la cotización, el lead pasa al primer tipo activo de la clase cliente (por orden y nombre) si no era de esa
    clase, y la actividad `cotizacion.final`. Marcar otra vez no falla ni cambia nada.
 
-Una final activa ancla el vehículo en la limpieza automática (`'cotizacion_final'`) y su vínculo no cambia (`vehiculo_vincular`: 23514). Una creada con
-`cotizacion_crear` todavía no hace lo de marcarla: 4-17, el 4.25-1b.
+Una final activa ancla el vehículo en la limpieza automática (`'cotizacion_final'`) y su vínculo no cambia (`vehiculo_vincular`: 23514).
+
+### Crear una final (4.25-1b)
+
+`cotizacion_crear(…, p_clase := 'final')` deja el estado de marcarla (cierra 4-17). Sin candado mira la final sin vehículo (22023), el lead en la cartera con
+`leads.editar`, que vea el vehículo y, en `_final_crear_mirar` (de nadie, sin candados), otra final activa (23505: se rechaza, no se reemplaza como al marcar;
+P7 a), las preventas que no puede mandar a la papelera (42501) y el vínculo de otro lead (23514). Toma el lead `for no key update`, el vehículo `for key
+share`, la fórmula y, después del cálculo, las vivas del vehículo en una pasada por id; con todo tomado vuelve a mirar la cartera y la ayudante (el vínculo, en una
+sentencia nueva). Inserta y aplica `_final_aplicar`. No hay otra vuelta: lo que crear toma son sus parámetros. La preventa no cambia.
 
 ## Lo que se guarda en una cotización
 
