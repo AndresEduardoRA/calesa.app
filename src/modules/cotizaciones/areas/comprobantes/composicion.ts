@@ -5,3 +5,6 @@ import { comprobantesSupabase } from '../../infra/comprobantes/escribir'
 
 // Emitir y anular (4.26-2). Las actions de `features/comprobantes/` lo usan.
 export const repositorioDeComprobantes: RepositorioDeComprobantes = comprobantesSupabase
+
+// Los comprobantes de una cotización, para la cabecera y la sección de la guardada (4.26-2).
+export { leerComprobantesDeLaCotizacion } from '../../infra/comprobantes/leer'
