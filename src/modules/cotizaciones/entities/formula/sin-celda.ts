@@ -1,10 +1,11 @@
-// Lo que el diseño de la hoja no muestra (4.21-3b-1, C6; P1: guardar y avisar): `validar_diseno()` pide una celda a todo input, constante y opción (§5), también a
-// las auxiliares de un número escrito en un texto, y publicar rechaza la que falta con `nodo_sin_seccion`. Guardar no la rechaza (sólo mira la forma del diseño):
+// Lo que el diseño de la hoja no muestra (4.21-3b-1, C6; P1: guardar y avisar): `validar_diseno()` pide una celda a todo input, constante y opción (§5), menos a
+// la constante auxiliar de un número escrito en un texto (4.21-3b-2), y publicar rechaza la que falta con `nodo_sin_seccion`. Guardar no la rechaza (sólo mira la forma del diseño):
 // el editor avisa antes y después de guardar qué filas tendrá que mostrar el diseño. No reemplaza a `validarDiseno()` —no mira tonos ni niveles— y publicar
 // sigue siendo la autoridad. Puro, O(nodos + ítems).
 import type { Diseno } from '../diseno'
 import type { Definicion } from '../formula'
 import type { Nodo } from '../nodos'
+import { auxiliaresDe } from '../compilador-auxiliares'
 import { filasDe } from './filas'
 
 export type LoQueElDisenoNoMuestra = { tipo: 'sin_diseno' } | { tipo: 'filas'; filas: string[] }
@@ -15,7 +16,9 @@ export const TEXTO_SIN_DISENO =
 // Cuántas filas se nombran en el aviso antes de «y N más».
 const NOMBRADAS = 5
 
-const pideCelda = (n: Nodo) => n.tipo === 'input' || n.tipo === 'constante' || n.tipo === 'opcion'
+// Como §5: una constante auxiliar de un número escrito en un texto no pide celda (4.21-3b-2).
+const pideCelda = (n: Nodo, auxiliares: ReadonlySet<string>) =>
+  n.tipo === 'input' || (n.tipo === 'constante' && !auxiliares.has(n.id)) || n.tipo === 'opcion'
 
 // Dónde se dibuja un nodo, con la regla del espejo (`registrar` de `validar-diseno-secciones.ts`): el `nodo` de todo ítem menos un `atajos`, y el `pct` sólo de una
 // celda con `secundario` cuyo nodo es un `porcentaje_de`.
@@ -35,10 +38,13 @@ function aparecen(definicion: Definicion, diseno: Diseno): Set<string> {
   return vistos
 }
 
-// Los inputs, constantes y opciones que ningún ítem del diseño dibuja, en el orden de la fórmula.
+// Los inputs, constantes (no auxiliares) y opciones que ningún ítem del diseño dibuja, en el orden de la fórmula.
 export function nodosSinCelda(definicion: Definicion, diseno: Diseno): string[] {
   const vistos = aparecen(definicion, diseno)
-  return definicion.nodos.filter((n) => pideCelda(n) && !vistos.has(n.id)).map((n) => n.id)
+  const auxiliares = auxiliaresDe(definicion)
+  return definicion.nodos
+    .filter((n) => pideCelda(n, auxiliares) && !vistos.has(n.id))
+    .map((n) => n.id)
 }
 
 // Las filas dueñas de esos nodos (una auxiliar, la de su fila), en orden y sin repetir; sin diseño, el caso propio.

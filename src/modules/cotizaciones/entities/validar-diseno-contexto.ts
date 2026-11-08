@@ -1,5 +1,6 @@
 // Lo que comparten las pasadas de `validarDiseno()`: el índice de la fórmula (cada id con su nodo, el total y qué banderas condicionan
 // algo), los conjuntos del contexto (niveles, retirados, tonos) y lo que las secciones van dejando (dónde se dibuja cada nodo).
+import { auxiliaresDe } from './compilador-auxiliares'
 import type { Definicion } from './formula'
 import { esta, recorrer, type Medidor } from './medidor'
 import type { FalloDeDiseno } from './motivos-de-diseno'
@@ -22,6 +23,8 @@ export type Indice = {
   // Las banderas que algún nodo lee en su `condicion` o que algún input pide en `requerido_si`.
   condicionadas: ReadonlySet<string>
   requeridas: ReadonlySet<string>
+  // Las constantes auxiliares de un número escrito en un texto (4.21-3b-2): no piden celda (§5).
+  auxiliares: ReadonlySet<string>
   niveles: ReadonlySet<string>
   retirados: ReadonlySet<string>
   tonos: ReadonlySet<string>
@@ -45,6 +48,7 @@ export function indexar(def: Definicion, contexto: ContextoDeDiseno, m: Medidor)
     nodos,
     condicionadas,
     requeridas,
+    auxiliares: auxiliaresDe(def, m),
     niveles: new Set(recorrer(contexto.niveles, m)),
     retirados: new Set(recorrer(contexto.retirados, m)),
     tonos: new Set(recorrer(contexto.tonos, m)),

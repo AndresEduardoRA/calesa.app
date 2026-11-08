@@ -9,21 +9,30 @@ const delTexto = (editor: EditorDeLaFormula, fila: FilaParaDibujar) => ({
   soltados: editor.aplicada?.id === fila.id ? editor.aplicada.soltados : [],
 })
 
+const grupoDe = (fila: FilaParaDibujar, grupos: ReadonlyMap<string, string>) =>
+  fila.nodo.grupo === undefined ? null : (grupos.get(fila.nodo.grupo) ?? fila.nodo.grupo)
+
+// Mientras se guarda el borrador, se suma una fila o hay un grupo abierto (4.21-3c), nada se abre ni se suma (4.21-3b-1, C3).
+const hayOtraCosa = (editor: EditorDeLaFormula) =>
+  editor.nueva.sumando !== null || editor.guardado.enCurso || editor.grupos.abierto !== null
+
 // Lo que cada fila sabe del editor (C4 a C6): su cifra, si está abierta, si espera a otra cosa abierta (una fila en edición, el formulario de «Sumar fila» o un guardado) y lo que
 // el último intento dejó dicho en ella. Una función aparte para que la lista no cargue con tantas condiciones.
 export function propsDeLaFila(
   editor: EditorDeLaFormula,
   fila: FilaParaDibujar,
   cifra: CifraDeLaFila,
+  // De grupo a etiqueta (4.21-3c, C7): un `Map` por fórmula de trabajo.
+  grupos: ReadonlyMap<string, string>,
 ): FilaDelEditorProps {
   const { abierta, nueva } = editor
   const sumandoTras = nueva.sumando?.tras ?? null
-  // Mientras se guarda el borrador, nada se abre ni se suma (4.21-3b-1, C3).
-  const otraCosa = sumandoTras !== null || editor.guardado.enCurso
+  const otraCosa = hayOtraCosa(editor)
   return {
     ...delTexto(editor, fila),
     fila,
     cifra,
+    grupo: grupoDe(fila, grupos),
     abierta: abierta?.id === fila.id ? abierta : null,
     bloqueada: (abierta !== null && abierta.id !== fila.id) || otraCosa,
     alAbrir: editor.abrir,
