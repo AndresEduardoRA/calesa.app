@@ -1,3 +1,4 @@
+import { execFileSync, spawnSync } from 'node:child_process'
 import {
   copyFileSync,
   existsSync,
@@ -220,6 +221,60 @@ describe('bucle.sh › un choque con main al traerlo (2026-11-08)', () => {
     expect(a.estado('conflicto-con-main.md')).toContain('`src/f/hoja.ts`')
     expect(readFileSync(join(a.repo, 'src/f/hoja.ts'), 'utf8')).toBe('de la rama\n')
     expect(a.llamadas('paso')).toHaveLength(1)
+  })
+})
+
+describe('bucle.sh › la copia común que puso al día otro carril', () => {
+  it('si otro carril ya puso al día la copia común, este bucle igual se relanza con ella (manda la carpeta que corre)', () => {
+    copyFileSync(resolve('scripts/piloto/copiar-bin.sh'), join(a.bin, 'copiar-bin.sh'))
+    a.firmar()
+    mkdirSync(join(a.repo, 'scripts/piloto'), { recursive: true })
+    for (const pieza of readdirSync(a.bin).filter((p) => p !== 'bin.sha256'))
+      copyFileSync(join(a.bin, pieza), join(a.repo, 'scripts/piloto', pieza))
+    const bucle = join(a.repo, 'scripts/piloto/bucle.sh')
+    writeFileSync(
+      bucle,
+      readFileSync(bucle, 'utf8').replace(
+        'set -uo pipefail\n',
+        'set -uo pipefail\necho "BUCLE NUEVO"\n',
+      ),
+    )
+    a.git('add', '.')
+    a.git(...GIT, 'commit', '-q', '-m', 'piloto nuevo')
+    a.git('push', '-q', 'origin', 'HEAD:main')
+    // Otro carril copia primero: bin.origen ya es el de main y `bin` apunta a la carpeta nueva; este bucle arranca desde la vieja.
+    const vieja = join(a.comun, 'bin-vieja')
+    execFileSync('cp', ['-a', a.bin, vieja])
+    const copia = spawnSync('bash', [join(a.bin, 'copiar-bin.sh'), '--si-cambio'], {
+      cwd: a.repo,
+      encoding: 'utf8',
+      env: { ...process.env, PILOTO_RAIZ: a.repo, PILOTO_COMUN: a.comun },
+    })
+    expect(copia.status, copia.stdout + copia.stderr).toBe(10)
+    a.paso(1, pasoListo({ 'src/a.ts': 'a' }))
+    const r = spawnSync('bash', [join(vieja, 'bucle.sh'), '--una-vuelta'], {
+      cwd: a.repo,
+      encoding: 'utf8',
+      timeout: 60_000,
+      env: {
+        ...process.env,
+        NODE_ENV: 'test',
+        PATH: `${join(a.fake, 'bin')}:${process.env['PATH'] ?? ''}`,
+        HOME: a.raiz,
+        PILOTO_RAIZ: a.repo,
+        PILOTO_COMUN: a.comun,
+        PILOTO_POLL: '0.05',
+        PILOTO_AUTO: '',
+        PILOTO_REPARAR: '0',
+        PILOTO_DORMIR: join(a.fake, 'dormir'),
+        PILOTO_PGREP_PATRON: 'un-proceso-que-no-existe-ni-existira',
+        CLAUDE_BIN: join(a.fake, 'claude'),
+        FAKE_DIR: a.fake,
+      },
+    })
+    const salida = r.stdout + r.stderr
+    expect(salida).toContain('me relanzo con la copia nueva')
+    expect(salida).toContain('BUCLE NUEVO')
   })
 })
 
