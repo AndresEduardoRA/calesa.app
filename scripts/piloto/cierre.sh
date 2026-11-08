@@ -31,6 +31,15 @@ aprobar_seguridad_solo() { # <paso> <desde>
   registro "SQL de seguridad de $1 aprobado solo (sin compuertas)."
 }
 
+# Merges sin empujar en la rama del carril (traer main, o el choque con main que resolvió la sesión): sin commits propios, pero el PR los
+# necesita para dejar de chocar (el 4.19 del 8-11 resolvió su choque con un merge y la vuelta se cerraba «sin cambios» sin empujarlo).
+sin_empujar() {
+  local r
+  r=$(git symbolic-ref --quiet --short HEAD) || return 1
+  git rev-parse --verify --quiet "refs/remotes/origin/$r" >/dev/null || return 1
+  [ -n "$(git rev-list -n 1 "origin/$r..HEAD")" ]
+}
+
 # Los commits propios del paso: los de `desde..HEAD` que no son mezclas ni están ya en origin/main. Traer main a la rama (el bucle lo hace al
 # retomar un paso partido o tras esperar a main) dejaba el rango con 54 o 165 commits ajenos y el cierre no coincidía (5 al 7-11-2026).
 rango_propio() { # <desde>
@@ -119,6 +128,15 @@ cerrar_listo() {
   # (o sólo los que ya estaban en main) y el rango está vacío. No hay nada que verificar ni publicar: se cierra sin avisar. Con commits en
   # el rango que ultimo.json no lista, sigue el aviso.
   if [ -z "$(rango_propio "$desde")" ] && [ -z "$(declarados_propios "$desde")" ]; then
+    if modo_carril && sin_empujar; then
+      aprobar_seguridad_solo "$paso" "$desde"
+      if bash "$BIN/verificar.sh" "$desde" "$ESTADO/ultimo.json" 2>"$ESTADO/verificar.err" &&
+        bash "$BIN/publicar.sh" "$paso" "$desde" 2>"$ESTADO/publicar.err"; then
+        registro "$paso: sin commits propios, pero empujé lo que la rama traía de main ($(git rev-parse --short HEAD))."
+      else
+        registro "$paso: no pude empujar lo que la rama traía de main: $(tail -n 1 "$ESTADO/publicar.err" 2>/dev/null | cut -c1-200)"
+      fi
+    fi
     # Con carril, el coordinador tiene que saberlo: si no, vuelve a dar el mismo pedido o paso y cada vuelta paga una sesión nueva que
     # dice otra vez «ya está» (la revisión de FLUJO-1). Un pedido sin cambios se cierra; un paso del plan que sigue asignado sin nada
     # que publicar es un estado que no cuadra (el 4.20-4 del 7-11): lo mira la persona.
