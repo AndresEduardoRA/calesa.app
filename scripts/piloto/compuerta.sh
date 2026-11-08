@@ -121,17 +121,47 @@ esperar_decision() {
 # no se contesta: parada_sola), `dependencia` ni `afuera`: son avisos de algo que el piloto no puede juzgar.
 # `atasco`, una vez por paso (la persona, 2026-11-07: el C la esperó 1 h 15 min en el 4.25): la recomendada puede ser otra ronda, y sin
 # tope serían rondas sin fin pagando sesiones; la segunda del mismo paso va a la persona. La cuenta, en `.piloto/atascos-solos/<paso>`.
+# **Sin compuertas (la persona, 2026-11-08: «ya no quiero compuertas, todo decídelo tú en automático»):** `todo`, lo de omisión, contesta
+# también `parada`, `dependencia` y `afuera`, y hasta tres `atasco` por paso. Una parada, una dependencia o una afuera se contestan con la
+# primera opción que no para (eleccion_que_sigue); tras PILOTO_PARADAS_AUTO_MAX (3) del mismo motivo, con la que para: lo que repetir no
+# arregla para ese carril, y queda dicho en decisiones-automaticas.md.
+auto_nombra() { # <tipo>
+  [[ ",${PILOTO_AUTO-todo}," == *",$1,"* || ",${PILOTO_AUTO-todo}," == *",todo,"* ]]
+}
 auto_contesta() { # <tipo> <paso>
   [ "${EN_SECO:-0}" != 1 ] || return 1
   # «espera» no es una pregunta: el bucle ya esperó a main y lo trajo (bucle.sh › esperar_main); sólo le deja la respuesta al paso.
   [ "$1" = espera ] && return 0
-  [[ ",${PILOTO_AUTO-producto,datos,guardas,atasco}," == *",$1,"* ]] || return 1
+  auto_nombra "$1" || return 1
+  local atascos
   case "$1" in
     producto) [ -n "${PREGUNTAS:-}" ] ;;
     datos | guardas) [ -z "${PREGUNTAS:-}" ] ;;
-    atasco) [ -z "${PREGUNTAS:-}" ] && [ ! -f "$ESTADO/atascos-solos/$(sanear "$2")" ] ;;
+    atasco)
+      atascos=$(cat "$ESTADO/atascos-solos/$(sanear "$2")" 2>/dev/null | wc -l)
+      [ -z "${PREGUNTAS:-}" ] && { [ "$atascos" -eq 0 ] || { auto_nombra todo && [ "$atascos" -lt 3 ]; }; } ;;
+    parada | dependencia | afuera) [ -z "${PREGUNTAS:-}" ] && auto_nombra todo ;;
     *) return 1 ;;
   esac
+}
+# eleccion_que_sigue <tipo> [opciones…]: la primera opción que no para («sigo» antes que «reintentar»); agotadas las del mismo motivo
+# (`.piloto/paradas-auto/`), la que para.
+eleccion_que_sigue() {
+  local tipo="$1" op ops=() clave n archivo
+  shift
+  if [ "$#" -gt 0 ]; then ops=("$@"); else mapfile -t ops < <(opciones_de "$tipo"); fi
+  clave=$(printf '%s %s' "$tipo" "${MOTIVO_COMPUERTA:-}" | tr -d '0-9' | sha256sum | cut -c1-16)
+  archivo="$ESTADO/paradas-auto/$clave"
+  mkdir -p "$ESTADO/paradas-auto"
+  n=$(cat "$archivo" 2>/dev/null | wc -l)
+  if [ "$n" -lt "${PILOTO_PARADAS_AUTO_MAX:-3}" ]; then
+    ahora_lapaz >>"$archivo"
+    for op in "${ops[@]}"; do [ "$(clave_de "$op")" = sigo ] && { echo "$op"; return 0; }; done
+    for op in "${ops[@]}"; do [ "$(clave_de "$op")" = reintentar ] && { echo "$op"; return 0; }; done
+    for op in "${ops[@]}"; do [ "$(clave_de "$op")" != parar ] && { echo "$op"; return 0; }; done
+  fi
+  for op in "${ops[@]}"; do [ "$(clave_de "$op")" = parar ] && { echo "$op"; return 0; }; done
+  echo "${ops[0]}"
 }
 contestar_solo() { # <tipo> <paso> [opciones…]
   local tipo="$1" paso="$2" elegidas tmp primera
@@ -148,13 +178,16 @@ contestar_solo() { # <tipo> <paso> [opciones…]
       (.[] | "- \(.id): \(.opciones[0].etiqueta) (Recommended)"),
       "me respondió: «\([.[] | "\(.id): \(.opciones[0].etiqueta) (Recommended)"] | join("; "))»"' <<<"$PREGUNTAS" >"$tmp" || { rm -f "$tmp"; return 1; }
   else
-    primera="${1:-$(opciones_de "$tipo" | head -n 1)}"
+    case "$tipo" in
+      parada | dependencia | afuera) primera=$(eleccion_que_sigue "$tipo" "$@") ;;
+      *) primera="${1:-$(opciones_de "$tipo" | head -n 1)}" ;;
+    esac
     elegidas="${primera%% — *}"
     { echo "id: $COMPUERTA_ID"; echo "opcion: $elegidas"; echo "notas: "; echo "creada: $(date +%s)"; echo "me respondió: «$elegidas»"; } >"$tmp"
   fi
   mv -f "$tmp" "${DECISION_MD:-$COMUN/decision.md}"
   if [ "$tipo" = atasco ]; then
-    mkdir -p "$ESTADO/atascos-solos" && ahora_lapaz >"$ESTADO/atascos-solos/$(sanear "$paso")"
+    mkdir -p "$ESTADO/atascos-solos" && ahora_lapaz >>"$ESTADO/atascos-solos/$(sanear "$paso")"
   fi
   {
     echo "## $(ahora_lapaz) · $paso · compuerta $tipo (contestada sola)"
@@ -167,7 +200,10 @@ contestar_solo() { # <tipo> <paso> [opciones…]
     fi
     echo
   } >>"$ESTADO/decisiones-automaticas.md"
-  registro "compuerta $tipo ($paso) contestada sola con la recomendada: $elegidas"
+  case "$tipo" in
+    parada | dependencia | afuera) registro "compuerta $tipo ($paso) contestada sola, sin compuertas: $elegidas" ;;
+    *) registro "compuerta $tipo ($paso) contestada sola con la recomendada: $elegidas" ;;
+  esac
 }
 
 # Una compuerta humana a la vez en toda la máquina: `compuerta.md` y `decision.md` comunes son los de la sesión de decidir, así que con
@@ -197,7 +233,7 @@ _compuerta() {
   local tipo="$1" paso="$2" clave
   escribir_compuerta "$@"
   if auto_contesta "$tipo" "$paso"; then
-    MOTIVO_COMPUERTA="$3" contestar_solo "$tipo" "$paso" "${@:5:1}" || return 3
+    MOTIVO_COMPUERTA="$3" contestar_solo "$tipo" "$paso" "${@:5}" || return 3
     DECISION_OPCION=$(sed -n 's/^opcion: *//p' "$DECISION_MD" | head -n 1)
     DECISION_TEXTO=$(sed -n 's/^me respondió: *//p' "$DECISION_MD" | head -n 1)
   else
@@ -235,7 +271,7 @@ _compuerta() {
 # fuera del repo. Las cuentas van en `.piloto/paradas-solas/` y un paso publicado las borra (cierre.sh).
 parada_sola() { # <motivo>
   [ "${EN_SECO:-0}" != 1 ] || return 1
-  [[ ",${PILOTO_AUTO-producto,datos,guardas,parada}," == *",parada,"* ]] || return 1
+  auto_nombra parada || return 1
   # Lo que repetir no arregla va directo a la persona: el tope de gasto, el árbol que el paso dejó sucio.
   [ "${PARADA_HUMANA:-0}" = 1 ] && return 1
   local clave n archivo esperas=()
@@ -277,6 +313,7 @@ parada() {
   case "$rc" in
     1 | 2) return "$rc" ;;
   esac
-  registro "parado por la persona: $motivo"
+  if auto_nombra todo; then registro "parado (decisión automática, ${PILOTO_PARADAS_AUTO_MAX:-3} veces el mismo aviso): $motivo"
+  else registro "parado por la persona: $motivo"; fi
   exit 0
 }

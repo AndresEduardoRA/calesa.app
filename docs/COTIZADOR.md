@@ -217,7 +217,8 @@ lineal con el medidor; `compilarExpresion()` no cambia.
 
 - **Fila y auxiliares** (`filas.ts`, `filasDe()`): una fila es un nodo que no es auxiliar de otra. Las auxiliares de una fila con `texto` son los k nodos de justo antes
   con ids `<id>__1…k` (el mismo recorte que `idAuxiliar()` si el id pasa de 37 caracteres, 38 desde `__10`), sin texto propio, cada uno nombrado por exactamente un nodo de la cadena
-  o por la fila; si el **texto** de la fila nombra una (`=total__1+remate`), ese nodo es una fila propia que la fila lee.
+  o por la fila; si el **texto** de la fila nombra una (`=total__1+remate`), ese nodo es una fila propia que la fila lee. La regla vive en el núcleo (`entities/compilador-auxiliares.ts`,
+  `auxiliaresDe()`) y su espejo en la base es `_diseno_auxiliares()` (4.21-3b-2).
 - **Compilar una fila en su lugar** (`compilarFila()`): el contexto es lo anterior a su primera auxiliar; reemplaza la fila y sus auxiliares, y quita y suma sus `params`. El tope de
   2.000 se mide **en unidades UTF-16** (como el Zod; la base cuenta caracteres): `texto_demasiado_largo` con el tramo desde la unidad 2.001 (4-6). Conserva `seccion`,
   `color`, `sobrescribible` (si sigue siendo cálculo) y `condicion` sólo como interruptor: en un `SI` la bandera la decide el texto. Lo que suelta se dice en `soltados`. Si otra fila
@@ -229,6 +230,7 @@ lineal con el medidor; `compilarExpresion()` no cambia.
 - **Las filas sembradas** no traen texto: `textoDeNodo()` lo escribe desde el nodo (`a+b+c`, `SI(b; x)`, sin el «=») sólo si compilarlo da exactamente ese nodo; si no, `null` y la fila se muestra por sus campos.
 - **La pantalla** (4.21-3a-1, `features/formula/components/editor/`, `?panel=editar-formula`): lee la definición del borrador o de la publicada desde el navegador, muestra cada fila con `textoVigente()` / `textoDeNodo()` (o por sus campos), compila al aplicar con `compilarFila()` (sin llamar a `validarFormula()` en un error de la fila: 4-6), valida la fórmula de trabajo tras cada cambio (el rechazo, en su fila) y guarda lo aplicado en la pestaña; nada va a la base hasta el 4.21-3b.
 - **La vista previa y las filas nuevas** (4.21-3a-2): el editor usa el motor TS (`evaluar()`), que D7 reservaba para esto: `calcularLaVistaPrevia()` (`entities/formula/vista-previa.ts`, puro, nunca lanza) calcula la fórmula que devolvió `validarFormula()` con `entradaDePrueba()` (datos en 0, banderas apagadas, variante por defecto, sin overrides) y los tipos de cambio y tablas que lee el navegador (`infra/formula/consulta-del-terreno-de-prueba.ts`: `tablasVivasDe()`, `elegirTablas()` —la del origen gana a la compartida, como `evaluar_formula()`— y `aceptarPagina()`, por páginas de 1.000 filas, el `max_rows`); la congelada de `params.tablas` manda sobre la viva (D5). «Sumar fila» (`entities/formula/fila-nueva.ts`: `idDeFilaNueva()`, `sumarFila()`) crea la fila con `compilarFila()` y un destino nuevo, y revisa que lo compilado sea el tipo elegido.
+- **Los grupos** (4.21-3c): `aplicarGrupo()` (`entities/formula/grupos.ts`, puro, nunca lanza) edita uno de los grupos que hay —etiqueta, plazo, tono, el bucket que le da su tipo de cambio y qué filas suman a él— en su lugar, sin tocar el texto, las auxiliares ni el orden de los nodos; sólo pueden sumar las raíces que `validarFormula()` acepta como miembro (`puedeSumarAlGrupo()`), y una fila quitada queda sin la clave `grupo`. No suma ni quita grupos, ni edita `buckets`, `total_en` o los modos. Mover una fila a un grupo de otro bucket cambia qué tipo de cambio la convierte: el total en Bs cambia en su USD × (tc nuevo − tc viejo) (T5 de `grupos.test.ts`). Lo que vale la fórmula entera lo sigue diciendo `validarFormula()` y la base al guardar.
 
 ## Tipos de cambio y modos (D7, H1)
 
@@ -270,6 +272,8 @@ Forma: `{ cabecera: {modos[], ver_total_bs}, secciones[], tarjeta_total: {nodo, 
 `editar_sin_ver` (ver restringido con editar ausente o «todos»; **ver abierto con editar restringido vale**). El primero que falla
 manda. **La definición llega ya validada.** `validar_diseno(def, diseno, niveles, retirados, tonos)`: STABLE, invoker, `search_path`
 vacío, 22023 con la regla en DETAIL y `donde` en HINT.
+Una `constante` auxiliar de un número escrito en el texto de su fila no pide celda (`nodo_sin_seccion` no la nombra): se edita por ese texto, y lo
+que la visibilidad no nombra sólo llega a `cotizaciones.configurar`. Si tiene celda, vale como siempre; una fila constante sí la pide (4.21-3b-2).
 
 ### En la base (4.08-2)
 

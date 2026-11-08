@@ -127,6 +127,6 @@ describe('áreas de cotizaciones › el plan real', () => {
       b.dueno_de.filter(
         (r) => r.includes('/entities/') && !/\/entities\/(formula|diseno|tablas)\/$/.test(r),
       ),
-    ).toHaveLength(37)
+    ).toHaveLength(39)
   })
 })
