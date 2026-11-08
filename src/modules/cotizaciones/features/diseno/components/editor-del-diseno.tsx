@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import type { Diseno } from '../../../entities/diseno'
+import { apartesPosibles, totalesPosibles } from '../../../entities/diseno/edicion-de-la-tarjeta'
 import { tiposDeCambio } from '../../../entities/diseno/edicion-de-la-cabecera'
 import { tablasParaAyuda } from '../../../entities/diseno/edicion-de-items'
 import type { DisenoParaEditar, NivelDelDiseno } from '../../../entities/diseno/edicion-del-diseno'
@@ -11,6 +12,7 @@ import { AvisosDelDiseno } from './avisos-del-diseno'
 import { BarraDeGuardado } from './barra-de-guardado'
 import { CabeceraDelDiseno } from './cabecera-del-diseno'
 import { SeccionEditable } from './seccion-editable'
+import { TarjetaDelDiseno } from './tarjeta-del-diseno'
 
 type Props = {
   origen: { id: string; nombre: string }
@@ -34,6 +36,8 @@ export function EditorDelDiseno({
   const { guardado } = editor
   const ediciones = useEdicionesDelDiseno(editor.aplicar, leida.definicion)
   const tablas = useMemo(() => tablasParaAyuda(leida.definicion), [leida.definicion])
+  const totales = useMemo(() => totalesPosibles(leida.definicion), [leida.definicion])
+  const apartes = useMemo(() => apartesPosibles(leida.definicion), [leida.definicion])
   const tipos = useMemo(() => tiposDeCambio(leida.definicion), [leida.definicion])
   return (
     <div className="grid min-w-0 gap-3">
@@ -78,6 +82,14 @@ export function EditorDelDiseno({
           />
         ))}
       </ul>
+      <TarjetaDelDiseno
+        tarjeta={editor.trabajo.tarjeta_total}
+        totales={totales}
+        apartes={apartes}
+        etiquetas={editor.nombresDeNodos}
+        ediciones={ediciones}
+        ocupado={editor.ocupado}
+      />
     </div>
   )
 }
