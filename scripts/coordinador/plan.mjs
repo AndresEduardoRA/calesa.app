@@ -225,10 +225,12 @@ const TRANSICIONES_PEDIDO = {
   integrado: [],
 }
 
-// Las rutas que protegen al piloto (las de la compuerta «guardas», scripts/piloto/cierre.sh). Un PR que las toca no se integra solo: la
-// copia del bucle sale de main y los tres carriles se recargan con ella, así que es la persona quien lo deja entrar.
+// Las rutas que protegen al piloto. Un PR que las toca no se integra solo: la copia del bucle sale de main y los tres carriles se recargan
+// con ella, así que es la persona quien lo deja entrar. De `scripts/guardas/`, sólo las que protegen al piloto y a los carriles (2026-11-08):
+// las demás son de la app (escala, páginas, los registros de cada carril) y entraban con la persona sin motivo (la compuerta «guardas» del
+// cierre, scripts/piloto/cierre.sh, sigue mirando la carpeta entera).
 const GUARDAS =
-  /^(scripts\/piloto\/|scripts\/guardas\/|scripts\/candado\.sh$|\.claude\/settings[^/]*\.json$|\.claude\/hooks\/|\.claude\/agents\/|\.claude\/skills\/piloto|lefthook\.yml$|\.github\/workflows\/)/
+  /^(scripts\/piloto\/|scripts\/guardas\/(ajustes|bloquear-peligrosos|carriles|carriles-plan|escribir-solo-en-piloto|guardar-autorizaciones|ignorados-del-piloto|por-agente|solo-lectura|verificar-al-terminar|workflows)[.]|scripts\/candado\.sh$|\.claude\/settings[^/]*\.json$|\.claude\/hooks\/|\.claude\/agents\/|\.claude\/skills\/piloto|lefthook\.yml$|\.github\/workflows\/)/
 /** Las rutas de `rutas` que son guardas del piloto. */
 export const guardasEn = (rutas) => rutas.filter((r) => GUARDAS.test(r))
 

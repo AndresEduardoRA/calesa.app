@@ -362,8 +362,19 @@ test('guardasEn: las rutas que protegen al piloto', () => {
       '.github/workflows/ci.yml',
       '.claude/skills/piloto/SKILL.md',
       '.claude/skills/feature/SKILL.md',
+      'scripts/guardas/carriles.mjs',
+      'scripts/guardas/bloquear-peligrosos.test.ts',
+      'scripts/guardas/confirmar-con-url-formula.ts',
+      'scripts/guardas/areas-b/registro.ts',
+      'scripts/guardas/escala.test.ts',
     ]),
-    ['scripts/piloto/bucle.sh', '.github/workflows/ci.yml', '.claude/skills/piloto/SKILL.md'],
+    [
+      'scripts/piloto/bucle.sh',
+      '.github/workflows/ci.yml',
+      '.claude/skills/piloto/SKILL.md',
+      'scripts/guardas/carriles.mjs',
+      'scripts/guardas/bloquear-peligrosos.test.ts',
+    ],
   )
 })
 
