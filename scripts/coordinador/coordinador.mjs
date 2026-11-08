@@ -180,7 +180,7 @@ function mirarPr(numero) {
       'view',
       String(numero),
       '--json',
-      'state,mergeable,statusCheckRollup,headRefOid,files',
+      'state,mergeable,statusCheckRollup,headRefOid,headRefName,files',
     ),
   )
   const checks = pr.statusCheckRollup ?? []
@@ -196,10 +196,30 @@ function mirarPr(numero) {
     pr.mergeable === 'CONFLICTING' ? 'conflicto con main' : rojo ? 'CI en rojo' : null
   const listo = !arreglar && !pendiente && checks.length > 0 && pr.mergeable === 'MERGEABLE'
   const guardas = GUARDAS_SOLAS ? [] : guardasEn((pr.files ?? []).map((f) => f.path))
-  return { estado: pr.state, arreglar, pendiente, listo, oid: pr.headRefOid ?? null, guardas }
+  return {
+    estado: pr.state,
+    arreglar,
+    pendiente,
+    listo,
+    oid: pr.headRefOid ?? null,
+    rama: pr.headRefName ?? null,
+    guardas,
+  }
 }
+// `gh pr merge --delete-branch` borra también la rama LOCAL y, si es la de ahora, pasa ese árbol a main: el coordinador corre en el
+// worktree del carril A y, al integrar el PR 80 (a/4.20-4a), dejó al A en main y su bucle paraba por «la rama no es a/…» (2026-11-08).
+// La rama remota se borra por la API, sin tocar ningún worktree; si falla, queda (no impide nada).
 function integrar(numero, pr, ...modo) {
-  gh('pr', 'merge', String(numero), ...modo, ...(pr.oid ? ['--match-head-commit', pr.oid] : []))
+  const borrar = modo.includes('--delete-branch')
+  const resto = modo.filter((m) => m !== '--delete-branch')
+  gh('pr', 'merge', String(numero), ...resto, ...(pr.oid ? ['--match-head-commit', pr.oid] : []))
+  if (borrar && pr.rama) {
+    try {
+      gh('api', '-X', 'DELETE', `repos/{owner}/{repo}/git/refs/heads/${pr.rama}`)
+    } catch {
+      // La rama remota queda: GitHub puede borrarla sola, y una rama vieja no bloquea a nadie.
+    }
+  }
 }
 const textoGuardas = (g) =>
   `toca las guardas del piloto (${g.slice(0, 3).join(', ')}${g.length > 3 ? '…' : ''}): lo integra la persona`
