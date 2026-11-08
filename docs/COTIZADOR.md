@@ -617,14 +617,15 @@ vez publicaban las dos (el segundo `update … where id =` esperaba la fila del 
   mira el validador (no su esquema entero) y el catálogo de tonos (tope 24); sin fórmula publicada no hay contexto. Desde el 4.19-3a el editor lee `plantillas_tarjeta` con la sesión de
   quien mira (la policy limita; el comentario de `20261106190219_plantillas_tarjeta_leer.sql`, «Nadie en la app lee la tabla», ya no vale y la migración no se edita).
 
-### El editor de la plantilla (4.19-3b)
+### El editor de la plantilla (4.19-3b y 4.19-3c)
 
 - **La pestaña «Tarjeta»** (`?seccion=tarjeta&origen=`, `cotizaciones.configurar` del origen) edita el **borrador**: el servidor arma `propsDelEditor()` (con qué nace —el borrador, la copia
   de la publicada o la omisión—, sus avisos y el contexto reducido) y el navegador valida al tipear con `validarPlantilla()` sobre ese contexto. Al navegador no viaja la `definicion`
   de la fórmula: sólo los nodos con lugar en la tarjeta (o de tipo de cambio), los grupos, los modos, los secundarios y el `{ver}` de la visibilidad.
 - **Alinear con la fórmula** (`alinearConLaFormula()`): un grupo que ya no está se quita, el nuevo se suma al final sin tono, una etiqueta o leyenda sin lugar se quita; no se guarda solo.
   «Guardar» depende de la forma y de que haya cambios; lo que sólo ve la fórmula (`nodo_restringido`, `tipo_de_cambio_restringido`, un tono que ya no está) avisa «Con esto no se podría publicar».
-- **Guardar** manda la `esperada` como texto (el `actualizado_en` del borrador) y el PT409 se dice con el mensaje de la base; publicar y descartar son del 4.19-3c.
+- **Guardar** manda la `esperada` como texto (el `actualizado_en` del borrador) y el PT409 se dice con el mensaje de la base.
+- **Publicar con nota y descartar** (4.19-3c): «Publicar…» (`?panel=publicar-tarjeta`, nota obligatoria) y «Descartar borrador…» (`?panel=descartar-plantilla`, `<Confirmar>`) mandan la misma `esperada`; el PT409 de la base se dice tal cual, sin quién (P1), y se va al llegar el borrador nuevo. «Publicar…» sólo se ofrece sin cambios sin guardar (publica lo guardado); lo que sólo ve la fórmula lo rechaza la base y vuelve arriba del modal. Los modales los monta `PestanaDeLaTarjeta` **fuera de la `key`** del editor: «Recargar» remonta el editor y no pierde la nota.
 
 ### La lectura de la tarjeta (4.18-1)
 
