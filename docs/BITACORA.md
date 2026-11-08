@@ -1316,6 +1316,101 @@ share` los vehículos y después los leads del lote, por id, antes de cualquier 
 
 <!-- paso:4.19-3b -->
 
+## 2026-11-07 — Paso 4.25-1: marcar final en el orden de candados de vincular, la final como ancla y desvincular con final
+
+- **Hecho:** rigor máximo, base sola, tres commits de código con su migración (`final_marcar`, `final_ancla_de_la_limpieza`, `final_desvincular`) y uno de prueba
+  que pidió la auditoría del informe. El plan necesitó cuatro rondas de auditoría (dos `atasco` contestados por la persona) y una compuerta `producto` (P1–P6, todas
+  (a)); la compuerta `datos`, «aprobar».
+  - `cotizacion_marcar_final` mira sin candado (ver, `final.gestionar`, el lead vivo y en la cartera, las demás del vehículo que pueda mandar a la papelera).
+    Toma lead `for no key update` → vehículo `for key share` → la cotización y las vivas del vehículo en una pasada por id. Si algo cambió mientras esperaba,
+    hace otra vuelta (a la tercera, PT409) y con todo tomado relee el vínculo.
+  - Los efectos van en `_final_aplicar` (de nadie; lo reusa el 4.25-1b): la final anterior tomada baja por id, las preventas a un lote de quien marca, el vínculo
+    con cinturón, el lead al primer tipo activo de clase cliente y la actividad.
+  - `_limpieza_ancla` da `'cotizacion_final'`. `vehiculo_vincular` no desvincula ni reemplaza con una final activa con lead (P5 a).
+  - El 4.25 se parte: sigue el **4.25-1b** (4-17, crear una final, P6 a) y el **4.25-2** (la pantalla).
+- **Verificación** (`.piloto/salidas/4.25-1/`):
+  - Rojos contra HEAD: `rojo-marcar.txt` (12 ✗; F7 y F8 verdes), `rojo-carreras.txt` (R1, R2 y R5c en 40P01; R3, R4, R5, R5b, R7 y R8 con lo de antes; R6 y R7b
+    verdes), `rojo-ancla.txt` (A1) y `rojo-desvincular.txt` (A3).
+  - Verde: `db:probar` entero en el hook del commit 3 (635 ✓, 0 ✗); las carreras R1–R8 (`verde-carreras-final.txt`, 11 ✓, sin 40P01); `db:carreras` entero con fin2,
+    fin3, g11, g11b y g14 del A (`db-carreras-final.txt`); `scripts/guardas` (1.003 pruebas) y `carriles.mjs origin/main c/4.25` (14 archivos).
+  - e2e dirigidos en `escritorio` (`e2e-dirigidos.txt`): 21 en verde, en `vehiculos-limpieza`, `leads-vehiculos`, `leads-vehiculos-acceso`,
+    `vehiculos-confirmar-por-url` y `vehiculos-vinculo`.
+  - Mutaciones: 26 (`mutaciones/`). Caen 25, cada una donde dice el plan. M17 cayó después de sumar a F9 que el rechazo de C1.8 va antes del primer candado. M19
+    sobrevive y es equivalente en el efecto (`decisiones.md`).
+  - Medido, en una siembra de volumen y con la ancla de antes y la nueva aplicadas por psql:
+    - La limpieza con 100.000 candidatos: 438,5 y 391,8 ms antes; 440,2 y 451,6 ms después (tope 8.000).
+    - El inventario por rutas (`limpieza_el` por fila): mismos bloques y ms en su banda (`medir-limpieza-{antes,despues}.txt`).
+    - `db:medir:volumen` entero cortó en `medir-evaluar.sql` (p95 51,27 ms contra 50, ajeno). Su limpieza dio 1 ms por la hora de la corrida (`decisiones.md`).
+  - `lint` lo corrió el hook; `typecheck` lo saltó el hook (`PILOTO=1`): lo corren el hook de Stop y el CI.
+    e2e completo: no (4.25-1, base, Nivel 1: lo dirigido en escritorio)
+- **Necesita del carril A:**
+  1. Dos líneas en `scripts/carreras.mjs` para que `db:carreras` y el CI corran R1–R8 (P1 a): `import { carrerasDeFinal } from
+'../supabase/tests/areas/final/carreras.mjs'` y, con las demás, `await carrerasDeFinal({ orquesta, carrera, espero, conectar })`. Siembra y limpia su persona
+     sola (`carreras-final-propios@ejemplo.com`, rol `carreras_final_propios`, que el arnés borra por prefijo).
+  2. `cotizacion_final: ['con cotización final', 'con cotización final']` en `ETIQUETA_DE_ANCLA` (`src/modules/vehiculos/entities/limpieza.ts`) con su prueba. Hasta
+     entonces, el resumen de la limpieza dice «retenidos».
+  3. `src/modules/vehiculos/CLAUDE.md:49`: marcar ya toma lead → vehículo, como vincular, y desvincular con una final ya se frena (P5 a).
+  4. `docs/ESTADO.md:41-42` y `:51-52`: el deadlock de marcar, «vincula sin mirar la papelera», el ancla y desvincular con final, cerrados.
+  5. `docs/PLAN.md`: la fila 4.25 partida en «4.25-1 (hecho el 2026-11-07), 4.25-1b, 4.25-2», y 4-17 al 4.25-1b.
+  6. `_vehiculo_motivo_de_bloqueo` no frena mandar a la papelera un vehículo con final sin lead (abierto, no lo pidió la fila).
+  7. Encima contra la papelera de vehículos ya es un ciclo hoy (encima: anterior `for share` → vehículo `for key share`; la papelera: vehículo `for update` → sus
+     cotizaciones). Pide que `cotizacion_encima` tome lead y vehículo antes que la anterior. No bloquea este paso: marcar con encima no cierra ciclo (R7).
+  8. `supabase/tests/medir-jobs.sql` corre la limpieza con `now() + 12 h`: corrido entre las 12:00 y las 15:00 de La Paz da «temprano» en 1 ms y no mide nada.
+- **Abierto propio del C:** vincular contra restaurar la papelera de cotizaciones ya es un ciclo hoy (restaurar: vehículo → lead `for key share`; vincular: lead
+  `for update` → vehículo `for update`). La salida es invertir a lead → vehículo en `_papelera_restaurar_cotizaciones`, con su carrera. Este paso no lo empeora.
+- **Commits:** `b2a3624c` feat(db): marcar final en el orden de candados de vincular · `8432f0c0` feat(db): la cotización final como ancla de la limpieza ·
+  `362c02b9` feat(db): no cambiar el vínculo de un vehículo con cotización final · `9de5ab84` test(db): afirmar si marcar espera en las carreras de candados · y
+  el de docs.
+
+<!-- paso:4.19-4 -->
+
+## 2026-11-07 — Paso 4.21-3a-2: el editor de la fórmula, vista previa y filas nuevas
+
+- **Hecho:** el editor de la fórmula (`?panel=editar-formula`) suma la vista previa con cifras de prueba y «Sumar fila».
+  - **Vista previa** (P5): la sección «Vista previa» dice «Cifras de prueba.» y da el total en dólares y en Bs; cada fila dibuja su cifra o por qué no la tiene. Calcula con `evaluar()` los datos en 0, las opciones apagadas, la variante por defecto, los tipos de cambio de hoy y las tablas vivas del origen (la del origen gana a la compartida; la que la fórmula congeló gana a las dos).
+  - **Lo de prueba se lee desde el navegador** en tres tiempos: tipos de cambio, tablas y sus filas por páginas de `limit(1000)`, que es el `max_rows` de PostgREST. En el caso habitual son 3 pedidos y como mucho 8; una tabla se lee si tiene hasta 999 filas. Se lee una vez por conjunto de lo que la fórmula nombra; `validarFormula()` y `evaluar()` corren una vez por cambio aplicado, nunca al tipear.
+  - **«Sumar fila»** (P4 y P6): una fila nueva debajo de otra, cálculo o constante, con su etiqueta y un nombre propuesto desde ella que se puede cambiar; cada error va junto a su campo y lo escrito queda; hay una sola cosa abierta a la vez; lo creado se repone con el borrador local. Una fila que existe no cambia de nombre.
+- **Verificación:**
+  - Contra HEAD, en rojo (`.piloto/salidas/4.21-3a-2/rojo-head-*.txt`): las pruebas de Vitest (los archivos que prueban no existían) y los e2e (no hay «Vista previa» ni «Sumar fila»).
+  - En verde: Vitest de `features/formula`, `entities/formula`, `infra/formula` y `scripts/guardas` (1.467); los nueve e2e dirigidos en escritorio y movil (87 + 20 tras fijar el tope de nodos). Una caída de `entrar()` (`/ingreso`) en la primera corrida del base en movil, verde al repetirla.
+  - Mutaciones de lo puro, con Vitest (`mutaciones-commit1.txt`): M1 `elegirTablas` prefiere la compartida, M2 la congelada vacía no cuenta, M3 acepta la última tabla de una página llena, M4 `limit(1001)` o un ciclo sin tope, M5 `__` o sin recortar a 41, M6 acepta como vacías las que la página no trajo; las seis hacen caer su prueba.
+  - Medido con 600 filas: 5.996 nodos con 500 filas (3.992 sin la cifra ni «Sumar fila»; tope 6.300); el chunk del editor, 74,4 KB y 24,0 KB gzip (sin medida de antes). No se midió el tiempo ni los bytes de la lectura de una tabla de 999 filas.
+- **Abiertos:** el O(filas × nodos) de abrir el editor (3a-1) sigue. Una constante nueva no tiene celda en el diseño y publicar la rechazaría con `nodo_sin_seccion`: lo decide el 3b y lo coloca el 4.22. Los `EXPLAIN` de las tres lecturas nuevas, en `db:medir:volumen`: del A. Sigue el 4.21-3b (guardar el borrador) y el 4.21-3c.
+  e2e completo: no (4.21-3a-2, pantalla, Nivel 1: lo dirigido en escritorio y movil)
+
+<!-- paso:4.21-3b-1 -->
+
+## 2026-11-07 — Paso 4.21-3b-1: guardar el borrador desde el editor de la fórmula
+
+- **Hecho:** el editor de la fórmula (`?panel=editar-formula`) guarda el borrador por `formula_guardar_borrador` (la RPC del 4.21-2), con la action
+  `guardarBorrador`, y publicar y descartar mandan la hora del borrador. Cierra 4-8 de punta a punta.
+  - **Guardar:** sobre la publicada crea el borrador con su diseño; sobre el borrador lo pisa con su hora, su diseño y su nota; tras guardar, la base es la fila
+    que devolvió la RPC, sin releer, y el editor no se vuelve a montar (su `key` ya no lleva la versión). Una fila que el ⚙ reescribió guarda el texto con el
+    valor nuevo (4-5).
+  - **El botón:** arriba de la lista, con su motivo (fila abierta, fórmula que no valida, sin cambios), «Guardando…» (mientras, «Editar» y «Sumar fila»
+    esperan), «Se guardó el borrador.», el conflicto de la base con «Recargar» (vuelve a montar el editor sobre lo de ahora) y textos propios para la regla, el
+    permiso y la falta de respuesta.
+  - **P1, guardar y avisar:** «Para publicar, el diseño de la hoja tiene que mostrar: «…». Puedes guardar igual.» con las filas cuyas constantes, inputs u
+    opciones no tienen celda (también la auxiliar de un número, que sube a su fila; `entities/formula/sin-celda.ts`, espejo de §5 con paridad sobre
+    `casos-de-diseno.json`); sin diseño, su propio aviso.
+  - **Publicar y descartar:** mandan `p_actualizado_en_esperado`; el PT409 «El borrador cambió después de que lo abriste…» va con «Recargar» en el modal (que
+    conserva la nota) y en el `<Confirmar>`.
+- **Verificación:**
+  - Contra HEAD, en rojo (`.piloto/salidas/4.21-3b-1/rojo-head-*.txt`): T1, T3–T5 del commit 1 (9 caídas y 2 archivos que no resolvían); el e2e de guardar
+    (G1, sin el botón); T2, T6 y T7 del commit 2; T4 de la hora (3 caídas) y G6 (publica sin conflicto) del commit 3. G7 se escribió con el código ya hecho: no
+    se guardó en rojo contra HEAD.
+  - En verde: Vitest de lo tocado y `scripts/guardas` en cada commit (231, 190 y 190); los 11 e2e dirigidos en escritorio y movil, 111 pasaron
+    (`dirigidos.txt`).
+  - Mutaciones (`mutacion-*.txt`), cada una cae: M1 sin las reescritas, M2 crear en vez de pisar, M4 y M4b el diseño nulo o la nota de la publicada, M6 sin
+    `puede()` (Vitest, commit 1); M3 la base que no cambia tras entrar (T6); M5 a–d el `pct` sin contar, contado sin `secundario`, la auxiliar sin subir a su
+    fila y un `atajos` como celda (T2); M8 la `key` con la versión (G1: «No hay cambios por guardar.» en vez de «Se guardó», el editor se volvió a montar);
+    M7 publicar y descartar sin la hora (T4 y G6).
+  - Medido: el pedido de guardar con 600 filas, 69.372 B y 130 ms hasta «Se guardó» (G7, escritorio); 2.000 nodos con 2.000 ítems de diseño, 400.650 B, bajo
+    el tope de 1 MB de una Server Action.
+- **Abiertos:** la auxiliar de un número sin celda deja el borrador sin poder publicarse hasta el 3b-2 (P2: la migración de `validar_diseno()`, con compuerta
+  `datos`). El O(filas × nodos) de abrir el editor (3a-1) sigue. Sigue el 4.21-3b-2 y el 4.21-3c.
+  e2e completo: no (4.21-3b-1, pantalla y escritura, Nivel 1: lo dirigido en escritorio y movil)
+
 ## 2026-11-08 — Paso 4.19-3b: la pestaña «Tarjeta» y el editor que guarda
 
 - **Hecho:** la segunda parte del 4.19-3. **Puros** (`entities/plantilla/`, cada uno con su test): `contextoParaElNavegador()` (del contexto de `validarPlantilla()` sólo los nodos
@@ -1368,3 +1463,27 @@ share` los vehículos y después los leads del lote, por id, antes de cualquier 
   vivo); la cuenta de e2e pasa a 3 de 3 y ese paso de pantalla correría el completo (confirmarlo con `cuenta-e2e.mjs`).
 - **Commits:** `23a23417` feat(cotizaciones): preparar los paneles de la tarjeta sin pantalla · `c1cce295` feat(cotizaciones): publicar la tarjeta con nota · `319404d6` feat(cotizaciones):
   descartar el borrador de la tarjeta · y el de docs.
+
+<!-- paso:4.25 -->
+
+## 2026-11-08 — Paso 4.19-4: la vista previa en vivo del editor de la plantilla
+
+- **Hecho:** cierra el 4.19. **Commit 1:** la consulta de tonos pide los seis colores (`TonoDelCatalogo` suma `claro` y `oscuro`) y el contexto reducido lleva el `plazo` de cada grupo.
+  **Commit 2:** `entities/vista-previa-de-la-plantilla.ts` (el hueco: tipo sin código, lectura plana y `FILAS_POR_GRUPO_EN_LA_VISTA_PREVIA = 4`) y
+  `entities/plantilla/lectura-para-la-vista-previa.ts` (grupos en el orden de la plantilla, filas en el de la fórmula, etiqueta escrita o la del nodo, leyenda sólo la escrita, tono
+  si sigue en el catálogo, tope de 4 filas cortado antes de mapear). **Commit 3:** `entities/tarjeta/vista-previa-de-ejemplo.ts` (adaptador a `TarjetaLista`, cifras de ejemplo, página
+  de ejemplo), `VistaPreviaDeLaPlantilla`, su diferida y `pantallas/tarjeta-plantilla.ts`. **Commit 4:** `VistaPreviaDelEditor`, el editor (`VistaPrevia?`, grilla a dos columnas desde
+  `xl`), la pestaña, la sección y la página (`max-w-6xl` sólo en «Tarjeta»), con E1.
+- **Verificación** (`.piloto/salidas/4.19-4/`): vitest de lo tocado (lectura 6, ejemplo 4, componente 3, editor +3, contexto y lectura de tonos +2); `scripts/guardas` 1.007 en verde;
+  `e1.txt` (E1, 2 de 2 en escritorio y móvil); `dirigidos.txt` (los cinco specs de la pestaña y E1: **44 de 44** en los dos proyectos; E7 con 500 y 600 miembros dentro de los topes
+  de 154.900 B y 5.000 nodos, sin tocarlos); `presupuesto-js.txt` (`/cotizaciones/nuevo`: 439,5 KB de 460 con gzip).
+  e2e completo: no (4.19-4, pantalla, 3 de 3)
+- **Desvío:** la primera corrida de los cinco specs cayó en `E9` de descartar y `E10` de publicar (escritorio, al 200 % de texto: `24rem` fijos de la columna de la vista previa
+  ensanchaban la página). La columna pasó a `minmax(0, 24rem)`; no hay defecto de pulido nuevo.
+- **Abiertos:** sigue **4-101** (mover, agregar o quitar grupos a mano: la persona lo decide mirando la vista previa) y **4-102**; nuevo **4-103** (la vista previa no muestra la
+  descripción del nodo, el nombre de `tipos_cambio` ni el título de la variante: no viajan al navegador).
+- **Pendientes que se arrastran** (salieron de `docs/ESTADO.md` para dejarlo en 60 líneas): ficha del lead («Datos» 39,2 de 43 KB, «Oportunidades» 61,2 de 66); portal (su texto por empresa;
+  `api/portal/*` en la Fase 8); lead sin dueño tras una baja (lo rescata la supervisión); Fase 6 (publicar sin mover la versión de la ficha; la papelera manual no mira `documentos`); Fases 7 a 9
+  (notificar al compartir, transferir y limpiar; «Escribirle por chat»; `recordatorios_notificar()` sin cron).
+
+<!-- paso:4.21-3a-2 -->

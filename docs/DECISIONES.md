@@ -2759,6 +2759,49 @@ Lo pidió la persona después de que el A hiciera el 4.16 y el 4.17-1: se parti�
 
 <!-- paso:4.19-3b -->
 
+## 2026-11-07 — Paso 4.25-1
+
+- **Lo que contestó la persona:** la compuerta `atasco` del plan, dos veces: «3.ª ronda acotada a C2» y «4.ª ronda acotada a C3.iv». La 4.ª pasó con observaciones,
+  ya aplicadas. La compuerta `producto`, todas con (a): P1 la carrera en `supabase/tests/areas/final/` con su corredor (el A suma dos líneas a
+  `scripts/carreras.mjs`); P2 marcar pide el lead en la cartera con `leads.editar`, como vincular; P3 si hay preventas del vehículo que quien marca no ve o no puede
+  mandar a la papelera, se rechaza; P4 un vehículo vinculado a otro lead se rechaza; P5 con una final activa el vínculo no cambia; P6 (para el 4.25-1b) una final
+  creada con `cotizacion_crear` deja el estado de marcarla. Y la compuerta `datos`: «aprobar».
+- **Lo que se aprobó en permisos (la base):** `cotizacion_marcar_final` pide, además de ver la cotización y `cotizaciones.final.gestionar` del origen,
+  `puede_actuar_lead(lead, 'leads.editar')` antes del candado y otra vez con el lead tomado (P2 a). Rechaza si alguna otra cotización viva del vehículo no pasa
+  lo que pide `_cotizacion_a_papelera` para quien marca (P3 a). Rechaza también un vehículo de otro lead (P4 a). `vehiculo_vincular` rechaza desvincular o
+  reemplazar con una final activa con lead (P5 a). `_final_aplicar` es nueva, `security definer`, sólo de `service_role`. Sin tablas, policies ni claves nuevas.
+- **Lo no obvio:**
+  - **El orden de candados es lead → vehículo → cotizaciones**, el de vincular (lead → vehículo) y el de la papelera de vehículos (vehículo → sus cotizaciones).
+    Antes marcar tomaba primero su cotización, después las preventas y al final el vehículo (el `update` del vínculo) y el lead (la FK). R1 contra vincular y R2
+    contra la papelera de vehículos daban 40P01 contra HEAD.
+  - **El lead va `for no key update`** (no `for update`): marcar sólo cambia `tipo_lead_id`, que no está en ninguna clave. Choca con vincular, `_lead_mio`, la
+    papelera de leads y otro marcar (`for update`, `for no key update`) y convive con el `for key share` de crear, encima, guardar y restaurar. Con `for update`,
+    restaurar cotizaciones (vehículo → lead `for key share`) cerraba un ciclo (M16 hace caer R6).
+  - **El vehículo va `for key share` y se escribe recién al final**, con todas las cotizaciones tomadas. El trigger `trg_vehiculo_cotizado` de crear, encima y
+    guardar escribe el vehículo (`cotizado_en`, `for no key update`) después de tomar su cotización. Con el vehículo `for no key update` en el paso 2, encima
+    contra marcar era un 40P01 (M14 hace caer R7 y R7b). `for key share` sigue frenando a quien lo toma `for update` (vincular, las papeleras de vehículos, la
+    limpieza, que lo salta con `skip locked`).
+  - **El vínculo se relee después de la pasada**, con una sentencia nueva: otro marcar sobre el mismo vehículo con otro lead pudo escribirlo mientras se esperaba
+    (R5c). Se suma un cinturón en `_final_aplicar` (`where lead_id is null` y, si no tocó la fila y el lead es otro, el 23514), que reusa el 4.25-1b.
+  - **Lo que cede:** crear, encima o guardar no esperan a marcar para sumar una preventa al vehículo. Su trigger espera a que marcar confirme si llega después del
+    `update` del vínculo; si llega antes, marcar espera a que confirmen. Una preventa que no estaba confirmada al empezar la pasada queda viva al lado de la final,
+    igual que si se creara un segundo después (crear lo permite). R6 y R7 lo fijan: la preventa restaurada y la versión encima quedan vivas.
+  - **Una sola pasada en orden de id** (la cotización y todas las vivas del vehículo), el mismo orden que la papelera de cotizaciones. La final anterior baja por id
+    (sólo si se tomó): una final confirmada después de la pasada da 23505, nunca se baja sin tomarla (F12).
+  - **La vuelta:** si algo cambió mientras se esperaba (la fila ya no está viva, otro vehículo u otro lead), se suelta la vuelta con una subtransacción que atrapa
+    sólo un SQLSTATE propio (`PF425`) y se vuelve a C1, que responde sin candado. A la tercera, PT409. «fin2» del A lo pide (guardar cambia el vehículo mientras
+    marcar espera).
+  - **El rechazo de P3 no filtra datos:** mandar a la papelera de quien marca preventas que no ve le mostraba número, título y clase en su papelera y le dejaba
+    restaurarlas. Por eso se rechaza, sin candado (C1.8) y otra vez con todo tomado (C3.iii): sólo delata que existen, como el 42501 de antes.
+  - **C3 mira que la cotización siga viva aunque (ii) ya lo cubre:** quitar esa mirada (M19) es equivalente en el efecto. Con la cotización en la papelera,
+    `puede_cotizacion` da falso y responde 42501 sin aplicar nada. No en el texto: si además se perdió la cartera del lead, (i) responde antes «No encontramos este
+    lead…» en vez de «No tienes acceso…» (los dos 42501). Se deja: es la regla única de C3 («lo que ya no está vivo, otra vuelta»).
+  - **`medir-jobs.sql` no mide la limpieza a cualquier hora:** corre el job con `now() + 12 h`. Corrido entre las 12:00 y las 15:00 de La Paz cae antes de la hora del job (03:00) y
+    devuelve «temprano» en 1 ms sin revisar nada. La cifra de este paso salió de la misma siembra con `now() + 16 h`, sin finales: mide la sonda nueva del ancla en los
+    100.000 que no anclan, no el camino que devuelve `cotizacion_final`.
+
+<!-- paso:4.19-4 -->
+
 ## 2026-11-08 — Paso 4.19-3b
 
 - **Con qué nace el editor:** el borrador; sin él, **la copia de la publicada**; sin ninguna, la **omisión** (los grupos de la fórmula en su orden, el total con la etiqueta del nodo
@@ -2799,3 +2842,119 @@ Configuración y capturas. Una inestable que pasa al reintentar no es un abierto
 presupuesto pasado por ≤ 5 % se sube en RENDIMIENTO. El auditor del plan corre una vez y sólo en pasos de datos o dinero (bloquea → la sesión corrige o achica),
 el del informe sólo con RLS, permisos, `security definer` o dinero; hasta 6 commits de código por parte (eran 3: cada parte de más es un ciclo de plan, PR y CI).
 Las pruebas que ya existen siguen corriendo; borrar las caras se decide aparte. Regla en `.claude/rules/e2e.md` › «Pulido y rigor por tipo de paso».
+
+<!-- paso:4.25 -->
+
+## 2026-11-08 — Paso 4.19-4
+
+- **El hueco es un tipo del núcleo con una lectura plana, no un contexto:** `plantilla` no puede importar `tarjeta` (ni su tipo), así que `entities/vista-previa-de-la-plantilla.ts` lleva la
+  lectura (sin `Map`, porque cruza props de la página al editor) y `tarjeta` la vuelve `TarjetaLista` con un adaptador puro. La página de `src/app` pasa el componente por la sección,
+  la pestaña y el editor. Va en `pantallas/tarjeta-plantilla.ts` y no en `tarjeta.ts`, para no sumar al JS de `/cotizaciones/nuevo` (4-73).
+- **Lugar:** al costado desde `xl` (columna `minmax(0, 24rem)`, pegada arriba); debajo, tras el cuerpo del editor y antes de «Guardar». La página se ensancha a `max-w-6xl` sólo en «Tarjeta».
+  La columna no es de `24rem` fijos: con el texto al 200 % (`html { font-size: 200% }`) los media queries siguen en 1280 px y una columna fija ensanchaba la página.
+- **Tipo de cambio y leyenda:** el tipo de cambio es la etiqueta del nodo del bucket, no el nombre de `tipos_cambio`; la leyenda es sólo la escrita (**4-103**: lo demás no viaja al navegador).
+- **Cifras de ejemplo (P6), deterministas:** la fila n-ésima vale `(n mod 8 + 1) × 250` USD, lo aparte `100 × (posición + 1)` y el total es la suma de las filas dibujadas. Pasan por `<Monto>`:
+  con el Modo Live encendido se ocultan, como en cualquier pantalla.
+- **Tope de 4 filas por grupo** (`FILAS_POR_GRUPO_EN_LA_VISTA_PREVIA`): con 500 miembros en un grupo la vista previa suma ≈ 150 nodos; el aviso lo dice.
+- **Página de ejemplo sin `Date`** (desajustaría la hidratación): textos fijos y la marca sin logo, para que el interruptor «Logo» se note.
+- **Un tono sin colores válidos se ve neutro:** `<EstiloDeTonos>` lo descarta entero. `claro` y `oscuro` son opcionales en `TonoDelCatalogo` para no tocar cada fixture; la lectura de la base siempre los trae.
+- **E1 corre también en móvil** por precedente de los cinco specs de la pestaña (la regla de «sin `movil` en Configuración» no se estrenó para esta pestaña).
+- **Sólo `diferidos.tsx` puede declarar una diferida** (guarda `diferidos.test.ts`): la de la vista previa va en el de `tarjeta`, con un `div` de esqueleto y no `<Skeleton>`, para no sumar un import al archivo que viaja con la hoja.
+
+<!-- paso:4.21-3a-2 -->
+
+## Paso 4.21-3a-2 (2026-11-07)
+
+- **P4 a P6 como se aplicaron** (las recomendadas, contestadas en el 3a-1):
+  - P4: ninguna fila existente cambia de id; «Editar» no tiene campo de nombre. Una fila con otro nombre es una fila nueva («Sumar fila»).
+  - P5: la vista previa dice «Cifras de prueba.» con los datos en 0, las opciones apagadas, la variante por defecto, los tipos de cambio de hoy y las tablas vivas del origen; no se guarda en ninguna parte.
+  - P6: «Sumar fila» debajo de una fila, cálculo o constante, con su etiqueta y un nombre propuesto desde ella (minúsculas ASCII y `_`, hasta 41, sin chocar con un nodo, una constante, un grupo, un bucket ni una clave de cambio) que se puede cambiar antes de crearla.
+- **Lo de prueba se lee por páginas de 1.000 filas.** PostgREST no devuelve más de 1.000 filas por pedido (`max_rows`): una página de menos es entera y una de exactamente 1.000 puede estar cortada. La última tabla de una página llena queda pendiente, las anteriores se aceptan y las que la página no alcanzó siguen pendientes (jamás se aceptan como vacías); una tabla que ocupa sola una página tiene 1.000 filas o más y no se usa, con su aviso. Hasta 6 pedidos de filas (8 en total); 40 tablas y 100 claves de cambio como máximo, con su aviso. No se usa `.range()` (lo prohíbe `escala.md`): cada pedido es un `in` sobre las pendientes.
+- **La moneda de los Bs sale de la base.** «Total en Bs» usa la `moneda_a` del tipo de cambio de `total_en` (o del primer bucket), que viaja con la lectura de los tipos de cambio; «Total en dólares» es USD.
+- **Microdecisiones** (`ui.md`):
+  - Las cifras llevan 2 decimales (`ValorDeConstante` recibe `decimales`, 6 por omisión sólo para porcentajes y números; a `<Monto>` sólo llega el valor explícito).
+  - La cifra va en la cabecera de la fila, tras el tipo; una fila apagada dice «Fuera de la variante.» o «Condición apagada.», sin cifra 0.
+  - La vista previa no es sticky.
+  - «Sumar fila» y «Editar» se agrupan a la derecha de la cabecera y esperan con «Aplica o cancela la fila abierta.»; la fila bajo la que se suma, la que está en edición y la recién creada se dibujan aunque «Buscar fila» o el tope no las nombren.
+  - Lo creado lleva el foco a su «Editar».
+  - El tipo elegido se revisa contra lo compilado (`tipo_distinto`, junto al texto).
+  - El aviso de la constante dice «Una constante nueva aún no aparece en la hoja: hay que colocarla en el diseño.» (el plan traía «(4.22)»: un número de paso no va en la interfaz).
+  - El caso «un texto que compila y deja la fórmula inválida» de E5 se cubre en `use-editor-de-la-formula.previa.test.tsx` (T6): `no_valida` y el rechazo en su fila.
+- **El tope de nodos con 500 filas sube** de 4.200 a 6.300 (medido 5.996, +5 %) en el spec base y en el de volumen: cada fila suma su cifra y su botón; es el costo de la función, no un tope aflojado para pasar.
+- **Para el coordinador:**
+  - En la fila del 4.21 de `docs/PLAN.md`: «**4.21-3a-2** (la vista previa con `evaluar()` y las filas nuevas) está hecho; sigue el 3b».
+  - `ESTADO`: «4.21-3a-2: la vista previa con cifras de prueba y las filas nuevas del editor de la fórmula».
+  - **Abierto nuevo:** una constante nueva (C5) no tiene celda en el diseño y `validar_diseno()` la rechaza al publicar con `nodo_sin_seccion`; un cálculo no. El 3b decide si avisa al guardar y el 4.22 la coloca.
+- **Para el A:**
+  - En `src/modules/cotizaciones/CLAUDE.md` (núcleo), en «Entra y sale», tras el texto del 3a-1: «la vista previa calcula con `evaluar()` (`entities/formula/vista-previa.ts`) las cifras de prueba —datos en 0, variante por defecto, tipos de cambio de hoy y tablas vivas, que lee desde el navegador `infra/formula/terreno-de-prueba.client.ts` en 3 pedidos (hasta 8, las filas por páginas de `limit(1000)`)— y «Sumar fila» crea una fila nueva con `compilarFila()` y un id propuesto (`entities/formula/fila-nueva.ts`)».
+  - **EXPLAIN** (`escala.md`): sumar a `pnpm db:medir:volumen` el `EXPLAIN` de las tres lecturas del terreno de prueba: `tabla_id in (…) and activa order by tabla_id, orden, id limit 1000` sobre `tablas_referencia_filas_tabla_orden_idx` (sin ordenar ni descartar), `tablas_referencia` por `(origen_id, clave)` y `tipos_cambio` por `tipos_cambio_clave_key`.
+- **Para el 3b:** las filas nuevas viven sólo en la fórmula de trabajo; una constante nueva no tiene celda en el diseño; el terreno de prueba no se guarda.
+
+<!-- paso:4.21-3b-1 -->
+
+## Paso 4.21-3b-1 (2026-11-07)
+
+- **La partición del 4.21-3b.** Junta dos capas con verificación distinta: guardar desde el editor (pantalla, sin base: la RPC `formula_guardar_borrador` ya
+  existe desde el 4.21-2) y lo que la base cambie según P2–P4. Va primero la pantalla: **4.21-3b-1** (este) y **4.21-3b-2** (la migración de P2).
+- **P1 a P4, como las contestó la persona** (todas las recomendadas):
+  - P1 (una constante sin celda en el diseño, al guardar): **guardar y avisar**. El editor dice, cerca del botón y mientras haya, «Para publicar, el diseño de la
+    hoja tiene que mostrar: «…». Puedes guardar igual.» (las cinco primeras filas y «y N más»); sin diseño, «Este borrador no tiene el diseño de la hoja: todavía
+    no se puede publicar.». Guardar entra y publicar sigue rechazando con su texto de siempre (`nodo_sin_seccion`).
+  - P2 (¿una auxiliar `<fila>__<n>` tiene que tener celda?): **que el diseño no la pida**. Es el 4.21-3b-2: una migración de `validar_diseno()`, su espejo
+    `validar-diseno-cobertura.ts`, sus casos en `casos-de-diseno.json` y el aviso de C6 sin auxiliares; compuerta `datos`.
+  - P3 (la hora nula en publicar y descartar): **la base sigue aceptándola**. Desde este paso la app la manda siempre; el residual R1 del 4.21-2 queda anotado.
+  - P4 (la fórmula desde cero): **después del 4.22** (hoy daría un borrador que no se puede publicar: `diseno_faltante`).
+- **Lo que el editor guarda.** Sobre la publicada, crea el borrador con su diseño y la nota nula (la de la publicada es de su publicación); sobre el borrador, lo
+  pisa con su hora, su diseño y su nota (la RPC los escribe tal cual: mandarlos nulos los borraría). La lectura del editor suma `estado, diseno, nota` en el mismo
+  pedido y la misma fila (una sola foto). Tras guardar, la base pasa a ser la fila que devolvió la RPC (`{id, actualizado_en}`), **sin releer**: releer dejaría
+  entrar a otra persona entremedio. Una fila `reescrita` por el ⚙ guarda el texto que ya dice el valor nuevo (cierra lo que quedaba del 4-5).
+- **El pedido se arma en `features`, no en `entities`** (`use-guardar-borrador.soporte.ts`): usa `FilaParaDibujar`, `TextoDeLaFila` y `paramsPlanos`, que viven en
+  el soporte del editor, y `entities` sólo importa `entities` y `shared`. Lleva su test igual. Sus funciones: `formulaParaGuardar(trabajo, filas)` (la fórmula
+  con los textos reescritos), `pedidoDeGuardar(base, guardable, origenId)` y `hayCambiosPorGuardar(guardada, guardable)`; el plan nombraba
+  `definicionParaGuardar` y `pedidoDeGuardar(base, trabajo, filas, origenId)`: se juntó en una fórmula para que el editor la tome tal cual al entrar.
+- **Las esperadas, exactamente una, por su forma:** `esperada: { sobre: 'publicada', publicadaId } | { sobre: 'borrador', actualizadoEn }`, cada rama estricta
+  (Zod `discriminatedUnion`), en vez de dos campos opcionales: lo que no es una de las dos no pasa el esquema. La hora es un ISO con zona (`z.iso.datetime({ offset:
+true })`), tal cual la da la base con sus microsegundos.
+- **Microdecisiones** (`ui.md`):
+  - «Guardar el borrador» va arriba de la lista, bajo la cabecera del editor y antes de la vista previa, con una línea `role="status"`.
+  - El botón espera, en este orden: con una fila abierta o el formulario de «Sumar fila», «Aplica o cancela la fila abierta.»; con un rechazo de
+    `validarFormula()`, «Corrige lo marcado para guardar.»; sin cambios, «No hay cambios por guardar.»; con un conflicto, apagado (el aviso lo dice).
+  - Tras guardar y sin cambios, «Se guardó el borrador.» ocupa el lugar de «No hay cambios por guardar.».
+  - Una fila `reescrita` cuenta como cambio: guardarla es lo que la arregla.
+  - No se confirma antes de guardar, ni sobre el borrador de otra persona: la cabecera ya dice de quién es («Sobre el borrador de <persona>.») y la base no
+    deja pisar uno que cambió. Sin atajo de teclado.
+  - Mientras guarda, «Editar» y «Sumar fila» esperan (`ui.md`: un formulario que se reemplaza al llegar lo guardado apaga sus campos): nada cambia el trabajo
+    durante el envío, así que reemplazarlo y limpiar el borrador local no pisa nada.
+  - El 22023 de guardar dice un texto propio, nunca el de la base: «La base no aceptó la fórmula por una regla que el editor no revisó: no se guardó.». El 42501,
+    «Ya no configuras <Origen>: no se puede guardar.»; sin respuesta, «No sabemos si se guardó: recarga para verlo.» (como al descartar); cualquier otro error, «No pudimos guardar el borrador. Vuelve a intentar en un
+    momento.». Sólo el PT409 muestra el texto de la base. Al volver a guardar, lo que dijo el intento anterior se borra mientras corre el nuevo.
+  - El conflicto muestra el texto de la base (nombra a una persona y cuándo), «Recargar trae el borrador como quedó; lo que aplicaste y no guardaste se
+    pierde.» y «Recargar».
+  - **La `key` del editor ya no lleva la versión:** es `<origen>:<vuelta>`, y `vuelta` sube sólo con «Recargar», que hace `router.refresh()` y la sube en la misma
+    transición. El editor fija el `formulaId` con el que abrió: guardar sobre la publicada cambia la versión de la pestaña («Sobre el borrador de <yo>.») sin
+    volver a montar el editor ni releer.
+  - En publicar, la versión del formulario es la publicada y la hora del borrador juntas: el conflicto se va cuando «Recargar» trae cualquiera de las dos. En
+    descartar, el PT409 va dentro del `<Confirmar>` con «Recargar», y el diálogo pasa a nombrar el borrador de ahora.
+- **Medido:**
+  - El pedido de guardar con 600 filas (sin diseño), en el navegador: **69.372 B**, 130 ms del clic a «Se guardó el borrador.» (informativo, escritorio).
+  - Una fórmula sintética de 2.000 nodos con un diseño de unos 2.000 ítems: **400.650 B** de JSON, bajo el tope de 1 MB de una Server Action (Next no lo fija en
+    `next.config.ts`: rige el de fábrica). Lo fija un test de Vitest; si un día pasa de 1 MB, es un hallazgo que decide la persona.
+  - Abrir el editor con 600 filas sigue bajo los 80.900 B del spec base (lee además `estado, diseno, nota`, nulos en ese borrador).
+- **Para el coordinador:**
+  - En la fila del 4.21 de `docs/PLAN.md`: «El 4.21-3b se parte en **4.21-3b-1** (guardar el borrador desde el editor: crear sobre la publicada o pisar el
+    borrador con su hora, el texto que reescribió el ⚙, el aviso de lo que el diseño no muestra, y publicar y descartar con la hora del borrador; cierra 4-8 de
+    punta a punta) y **4.21-3b-2** (la auxiliar sin celda, P2: la migración de `validar_diseno()`)».
+  - **4-8, cerrado de punta a punta:** la base lo cerró en el 4.21-2 y la app manda ahora las esperadas al guardar, publicar y descartar.
+  - `ESTADO`: «4.21-3b-1: guardar el borrador desde el editor de la fórmula (cierra 4-8)».
+- **Para el A:**
+  - En `src/modules/cotizaciones/CLAUDE.md`, «Entra y sale», tras el texto del 3a-2: «guarda el borrador con `guardarBorrador` (`formula_guardar_borrador`): crea
+    sobre la publicada con su diseño o pisa el borrador con su hora, sin releer, y escribe el texto que reescribió el ⚙; publicar y descartar mandan la hora del
+    borrador (4.21-3b-1)». En «No se rompe», sumar a las excepciones de los textos de la base los PT409 de `formula_guardar_borrador()` y
+    `formula_descartar_borrador()` (nombran a una persona y cuándo; el 22023 de guardar no se muestra).
+  - En `.claude/rules/migraciones.md:59`, la excepción «`formula_guardar_borrador` hasta el 4.21» pasa a decir que la app manda siempre la hora (4.21-3b-1) y la
+    base sigue aceptando la nula (P3).
+- **Abierto (viene del 4.20-2c):** al descartar y al publicar, un error que no es PT409 ni falta de red sigue mostrando `error.mensaje`, que puede ser el texto
+  de la base; guardar ya usa su texto propio. Se arregla en el paso que vuelva a tocar esos formularios.
+- **Para el 3b-2:** P2 = a: `validar_diseno()` deja de pedir celda a una auxiliar `<fila>__<n>` (la que tiene celda sigue valiendo), con su espejo, sus casos y
+  `nodosSinCelda()` (`entities/formula/sin-celda.ts`) sin auxiliares; compuerta `datos`, porque cambia qué acepta publicar sobre nodos ocultos. El soporte de los e2e
+  que le pone celda a mano a `comision__1` (`e2e/soporte/formula-editor.ts:34-43`) puede quedar.
