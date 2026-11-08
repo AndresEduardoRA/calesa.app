@@ -214,6 +214,7 @@ lineal con el medidor; `compilarExpresion()` no cambia.
   que cambia o quita una constante da `pisa_un_valor` hasta que llega `confirmaPisar`: nunca se deshace un ⚙ en silencio.
 - **Las filas sembradas** no traen texto: `textoDeNodo()` lo escribe desde el nodo (`a+b+c`, `SI(b; x)`, sin el «=») sólo si compilarlo da exactamente ese nodo; si no, `null` y la fila se muestra por sus campos.
 - **La pantalla** (4.21-3a-1, `features/formula/components/editor/`, `?panel=editar-formula`): lee la definición del borrador o de la publicada desde el navegador, muestra cada fila con `textoVigente()` / `textoDeNodo()` (o por sus campos), compila al aplicar con `compilarFila()` (sin llamar a `validarFormula()` en un error de la fila: 4-6), valida la fórmula de trabajo tras cada cambio (el rechazo, en su fila) y guarda lo aplicado en la pestaña; nada va a la base hasta el 4.21-3b.
+- **La vista previa y las filas nuevas** (4.21-3a-2): el editor usa el motor TS (`evaluar()`), que D7 reservaba para esto: `calcularLaVistaPrevia()` (`entities/formula/vista-previa.ts`, puro, nunca lanza) calcula la fórmula que devolvió `validarFormula()` con `entradaDePrueba()` (datos en 0, banderas apagadas, variante por defecto, sin overrides) y los tipos de cambio y tablas que lee el navegador (`infra/formula/consulta-del-terreno-de-prueba.ts`: `tablasVivasDe()`, `elegirTablas()` —la del origen gana a la compartida, como `evaluar_formula()`— y `aceptarPagina()`, por páginas de 1.000 filas, el `max_rows`); la congelada de `params.tablas` manda sobre la viva (D5). «Sumar fila» (`entities/formula/fila-nueva.ts`: `idDeFilaNueva()`, `sumarFila()`) crea la fila con `compilarFila()` y un destino nuevo, y revisa que lo compilado sea el tipo elegido.
 
 ## Tipos de cambio y modos (D7, H1)
 
@@ -304,7 +305,8 @@ publicada_esperada?, actualizado_en_esperado?)` **sin hora crea**: si ya hay bor
   `formula_descartar_borrador(origen, actualizado_en_esperado?)` y `formula_publicar(…, publicada_esperada?, actualizado_en_esperado?)`
   con hora: si cambió, PT409 «El borrador cambió después de que lo abriste: se guardó de nuevo hace 2 min.»; si ya no está, «El borrador
   que abriste ya no está: se publicó o se descartó.» (publicar mira primero la publicada esperada). Sin hora, como antes (descartar el
-  que haya; publicar el que haya o «No hay borrador»): la app la manda desde el 4.21-3b. Una excepción a `migraciones.md`, aprobada (P1).
+  que haya; publicar el que haya o «No hay borrador»): la app manda siempre las esperadas desde el 4.21-3b-1 (guardar, publicar y
+  descartar) y la base sigue aceptando la nula (P3 del 4.21-3b). Una excepción a `migraciones.md`, aprobada (P1).
 - **Pendiente:** las carreras mixtas (⚙ contra publicar el borrador, revertir contra ⚙, dos que crean el primer borrador a la vez) las
   suma el carril A.
 
@@ -515,6 +517,25 @@ referencia **vivas** y los datos de hoy del vehículo: si no da lo guardado (sus
 y «Guardar» la deja con lo de hoy. «Guardar» llama a `cotizacion_guardar` con la versión que vio quien edita (`actualizadoEn` como el texto de la base, nunca por `Date`, que
 pierde los microsegundos), las entradas del recálculo al día y el título, las notas y el vehículo de la cotización sin tocarlos; lo que la hoja no manda lo conserva la base. El PT409
 dice quién y cuándo; «Recargar» vuelve a montar la hoja con la lectura nueva y lo tipeado no vuelve sobre la versión de la otra persona.
+
+### Marcar final (4.25-1)
+
+**`cotizacion_marcar_final(id)`** elige la final del vehículo (a lo sumo una activa, `cotizaciones_final_por_vehiculo`). En este orden:
+
+1. **Sin candado:** la cotización viva y visible (si no, 42501 «No tienes acceso a esta cotización.», igual para inexistente o en la papelera),
+   `cotizaciones.final.gestionar` del origen, el vehículo, el lead (vivo; en la papelera, 23514), el lead en la cartera con `leads.editar` (como vincular),
+   y que quien marca pueda mandar a la papelera todas las demás vivas del vehículo (si no, 42501 «Este vehículo tiene preventas que no puedes mandar…»).
+2. **Candados:** el lead `for no key update`, el vehículo `for key share` y, en una sola pasada por id, la cotización y todas las vivas del vehículo. El
+   vehículo se escribe recién con todo tomado. Es el orden de vincular (lead → vehículo) y de la papelera de vehículos (vehículo → cotizaciones), y convive con
+   el trigger `trg_vehiculo_cotizado` de crear, encima y guardar. La tabla de quién choca con quién está en `docs/pasos/4.25/decisiones.md`.
+3. **Si algo cambió mientras esperaba** (la fila ya no está viva, otro vehículo u otro lead), otra vuelta desde el paso 1; a la tercera, PT409. Con todo tomado
+   vuelve a mirar el lead, ver, las demás y el vínculo, releído después de la pasada: un vehículo de otro lead da 23514.
+4. **Los efectos** (`_final_aplicar`): la final anterior tomada baja a preventa, la cotización pasa a final, las preventas tomadas van a un lote de la papelera de
+   quien marca, el vehículo sin lead queda con el de la cotización, el lead pasa al primer tipo activo de la clase cliente (por orden y nombre) si no era de esa
+   clase, y la actividad `cotizacion.final`. Marcar otra vez no falla ni cambia nada.
+
+Una final activa ancla el vehículo en la limpieza automática (`'cotizacion_final'`) y su vínculo no cambia (`vehiculo_vincular`: 23514). Una creada con
+`cotizacion_crear` todavía no hace lo de marcarla: 4-17, el 4.25-1b.
 
 ## Lo que se guarda en una cotización
 

@@ -8,7 +8,7 @@
 --        lote queda con su resumen y su versión.
 --   E5.  Una final pide `cotizaciones.final.gestionar` del origen (como guardarla): con `ver` y `editar`, no; con `ver` y `final.gestionar`, sí.
 --   E11. Quien la ve y no puede recibe «No tienes permiso para enviarla a la papelera.».
---   E9.  `cotizacion_marcar_final()` llama a la genérica con los derechos de quien marca: si no ve una preventa viva del vehículo, no marca (P9 a).
+--   E9.  `cotizacion_marcar_final()` mira con los derechos de quien marca: si no ve una preventa viva del vehículo, no marca (P9 a; el texto es del 4.25-1).
 --   E10. El ayudante mira ver antes de tomar la fila, y la toma con `for no key update`.
 --   E12. El ayudante compara la versión cuando se la piden: vieja da PT409, nula da 22023.
 --   E8a. Privilegios: la genérica sigue con `prosecdef`, `search_path` vacío, `execute` de authenticated y no de anon ni PUBLIC; el ayudante no es de nadie.
@@ -185,22 +185,27 @@ end $$;
 reset role;
 rollback;
 
--- @test papelera de cotizaciones: marcar final no manda a la papelera una preventa que quien marca no ve (E9, P9 a)
+-- @test papelera de cotizaciones: marcar final no manda a la papelera una preventa que quien marca no ve (E9, P9 a; el texto es del 4.25-1, P3 a)
 begin;
 do $$
 declare
-  jefa uuid := pg_temp.pv_jefa();
-  e jsonb := pg_temp.pv_origen(); m uuid; v uuid; a uuid; b uuid;
+  jefa uuid := pg_temp.pv_persona(array['cotizaciones.ver', 'cotizaciones.editar', 'cotizaciones.final.gestionar', 'leads.ver', 'leads.editar']);
+  e jsonb := pg_temp.pv_origen(); m uuid; v uuid; l uuid; a uuid; b uuid;
 begin
-  m := pg_temp.pv_persona(array['cotizaciones.ver:propios', 'cotizaciones.final.gestionar', 'cotizaciones.moderar']);
+  m := pg_temp.pv_persona(array['cotizaciones.ver:propios', 'cotizaciones.final.gestionar', 'cotizaciones.moderar', 'leads.ver', 'leads.editar']);
   v := pg_temp.pv_vehiculo(e);
+  -- El lead de la marcada es de quien marca y la jefa lo comparte (marcar pide el lead en la cartera, P2 a); la otra preventa no tiene lead: m no la ve.
+  insert into public.leads (nombre, telefono_principal, creado_por) values ('PV lead', '59' || lpad((('x' || substr(md5(gen_random_uuid()::text), 1, 7))::bit(28)::int % 100000000)::text, 8, '0'), m)
+  returning id into l;
+  insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso) values (l, jefa, 'compartido');
   a := pg_temp.pv_cot(m, e, v);
+  update public.cotizaciones set lead_id = l where id = a;
   b := pg_temp.pv_cot(jefa, e, v);
   perform pg_temp.pv_da_error('marcar final con una preventa que no ve', pg_temp.pv_corre(m, format('select to_jsonb(public.cotizacion_marcar_final(%L))', a)),
-    '42501', 'No tienes acceso a esta cotización.');
+    '42501', 'Este vehículo tiene preventas que no puedes mandar a la papelera. Pídeselo a quien las cotizó o a quien modera.');
   if (select clase::text from public.cotizaciones where id = a) <> 'preventa' then raise exception 'la marcada cambió de clase aunque la marca abortó'; end if;
   if not pg_temp.pv_viva(b) then raise exception 'la preventa que no ve se fue a la papelera'; end if;
-  -- La jefa ve todo: marca y la manda (lo de hoy).
+  -- La jefa ve todo y tiene el lead: marca y la manda.
   perform set_config('request.jwt.claim.sub', jefa::text, true);
   perform public.cotizacion_marcar_final(a);
   if (select clase::text from public.cotizaciones where id = a) <> 'final' then raise exception 'la jefa no marcó la final'; end if;

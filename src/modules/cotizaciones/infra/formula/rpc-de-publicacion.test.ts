@@ -23,32 +23,45 @@ function clienteFalso(respuesta: Respuesta) {
 const ORIGEN = '11111111-1111-4111-8111-111111111111'
 const PUBLICADA = '22222222-2222-4222-8222-222222222222'
 const NUEVA = '33333333-3333-4333-8333-333333333333'
+const HORA = '2026-11-07T15:00:00.123456+00:00'
 
 describe('publicacionSobre › publicar', () => {
-  it('llama formula_publicar con el origen, la nota y la publicada que se leyó', async () => {
+  it('llama formula_publicar con el origen, la nota, la publicada que se leyó y la hora del borrador', async () => {
     const { cliente, llamadas } = clienteFalso({ data: NUEVA, error: null })
     const hecho = await publicacionSobre(cliente).publicar({
       origenId: ORIGEN,
       nota: 'Subo el flete',
+      actualizadoEsperado: HORA,
       publicadaEsperada: PUBLICADA,
     })
     expect(llamadas).toEqual([
       [
         'formula_publicar',
-        { p_origen: ORIGEN, p_nota: 'Subo el flete', p_publicada_esperada: PUBLICADA },
+        {
+          p_origen: ORIGEN,
+          p_nota: 'Subo el flete',
+          p_publicada_esperada: PUBLICADA,
+          p_actualizado_en_esperado: HORA,
+        },
       ],
     ])
     expect(hecho).toEqual({ ok: true, data: NUEVA })
   })
 
-  it('sin publicada no manda esperada (la base la toma nula)', async () => {
+  it('sin publicada no manda esa esperada (la base la toma nula); la hora del borrador, siempre', async () => {
     const { cliente, llamadas } = clienteFalso({ data: NUEVA, error: null })
     await publicacionSobre(cliente).publicar({
       origenId: ORIGEN,
       nota: 'Primera',
+      actualizadoEsperado: HORA,
       publicadaEsperada: null,
     })
-    expect(llamadas).toEqual([['formula_publicar', { p_origen: ORIGEN, p_nota: 'Primera' }]])
+    expect(llamadas).toEqual([
+      [
+        'formula_publicar',
+        { p_origen: ORIGEN, p_nota: 'Primera', p_actualizado_en_esperado: HORA },
+      ],
+    ])
   })
 
   it('el PT409 es un conflicto con el mensaje de la base intacto', async () => {
@@ -59,6 +72,7 @@ describe('publicacionSobre › publicar', () => {
     const hecho = await publicacionSobre(cliente).publicar({
       origenId: ORIGEN,
       nota: 'x',
+      actualizadoEsperado: HORA,
       publicadaEsperada: PUBLICADA,
     })
     expect(hecho).toEqual({
@@ -66,7 +80,9 @@ describe('publicacionSobre › publicar', () => {
       error: { codigo: 'conflicto', mensaje: 'Ana publicó la versión 3 hace 2 min.' },
     })
   })
+})
 
+describe('publicacionSobre › publicar: los errores', () => {
   it('un 22023 es una regla con su mensaje; un 42501, sin permiso', async () => {
     const regla = clienteFalso({
       data: null,
@@ -76,6 +92,7 @@ describe('publicacionSobre › publicar', () => {
       await publicacionSobre(regla.cliente).publicar({
         origenId: ORIGEN,
         nota: 'x',
+        actualizadoEsperado: HORA,
         publicadaEsperada: null,
       }),
     ).toEqual({
@@ -86,6 +103,7 @@ describe('publicacionSobre › publicar', () => {
     const sinPermiso = await publicacionSobre(permiso.cliente).publicar({
       origenId: ORIGEN,
       nota: 'x',
+      actualizadoEsperado: HORA,
       publicadaEsperada: null,
     })
     expect(sinPermiso.ok ? null : sinPermiso.error.codigo).toBe('sin_permiso')
@@ -96,6 +114,7 @@ describe('publicacionSobre › publicar', () => {
     const hecho = await publicacionSobre(cliente).publicar({
       origenId: ORIGEN,
       nota: 'x',
+      actualizadoEsperado: HORA,
       publicadaEsperada: null,
     })
     expect(hecho.ok ? null : hecho.error.codigo).toBe('inesperado')
@@ -159,11 +178,24 @@ describe('publicacionSobre › revertir', () => {
 })
 
 describe('publicacionSobre › descartar', () => {
-  it('llama formula_descartar_borrador con el origen y, sin error, entra', async () => {
+  it('llama formula_descartar_borrador con el origen y la hora del borrador y, sin error, entra', async () => {
     const { cliente, llamadas } = clienteFalso({ data: null, error: null })
-    const hecho = await publicacionSobre(cliente).descartar({ origenId: ORIGEN })
-    expect(llamadas).toEqual([['formula_descartar_borrador', { p_origen: ORIGEN }]])
+    const hecho = await publicacionSobre(cliente).descartar({
+      origenId: ORIGEN,
+      actualizadoEsperado: HORA,
+    })
+    expect(llamadas).toEqual([
+      ['formula_descartar_borrador', { p_origen: ORIGEN, p_actualizado_en_esperado: HORA }],
+    ])
     expect(hecho).toEqual({ ok: true, data: null })
+  })
+
+  it('el PT409 de la hora llega con su texto', async () => {
+    const mensaje = 'El borrador cambió después de que lo abriste: se guardó de nuevo hace 1 min.'
+    const { cliente } = clienteFalso({ data: null, error: { code: 'PT409', message: mensaje } })
+    expect(
+      await publicacionSobre(cliente).descartar({ origenId: ORIGEN, actualizadoEsperado: HORA }),
+    ).toEqual({ ok: false, error: { codigo: 'conflicto', mensaje } })
   })
 
   it('un 42501 es sin permiso con el mensaje de la base', async () => {
@@ -171,7 +203,10 @@ describe('publicacionSobre › descartar', () => {
       data: null,
       error: { code: '42501', message: 'No tienes permiso para configurar la fórmula.' },
     })
-    const hecho = await publicacionSobre(cliente).descartar({ origenId: ORIGEN })
+    const hecho = await publicacionSobre(cliente).descartar({
+      origenId: ORIGEN,
+      actualizadoEsperado: HORA,
+    })
     expect(hecho.ok ? null : hecho.error.codigo).toBe('sin_permiso')
   })
 })

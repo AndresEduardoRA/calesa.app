@@ -205,6 +205,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Nodo auxiliar** — `<fila>__<n>` en `compilarExpresion()`: cada operación anidada o número de una fórmula como texto es un nodo propio, numerado en post-orden.
 - **Fila (de la fórmula)** — `Fila`, `filasDe()` (`entities/formula/filas.ts`): un nodo de la fórmula que no es auxiliar de otra, con sus auxiliares y su `texto`; lo que el editor muestra como una línea.
 - **Editor de la fórmula** — `EditorDeLaFormula` (`features/formula/components/editor/`), `?panel=editar-formula`: donde quien configura escribe en texto las filas de la fórmula de un origen, sobre el borrador o la publicada; compila cada fila al aplicar y no guarda en la base hasta el 4.21-3b.
+- **Cifras de prueba** — `calcularLaVistaPrevia()` (`entities/formula/vista-previa.ts`), «Vista previa» del editor de la fórmula: lo que el editor calcula con `evaluar()` para que quien configura vea cómo queda: los datos en 0, las opciones apagadas, la variante por defecto, los tipos de cambio de hoy y las tablas vivas del origen; no se guarda ni es una cotización.
 - **Texto vigente** — `textoVigente()` (`entities/formula/texto-vigente.ts`): el texto de una fila con el valor que dejó el ⚙ de una constante escrito en su lugar (`al_dia`, `reescrito`) o «el texto ya no manda» (`no_manda`).
 - **Tramo (de un error de texto)** — `Tramo`, `ErrorDeCompilacion` (`entities/motivos-del-compilador.ts`): dónde está el error en una fórmula como texto (`desde`, `largo`; `linea`, `columna`).
 - **Vigencia** — `ajustes_empresa.vigencia_dias` (7 por defecto, de 1 a 365): cuántos días vale una cotización desde el día de su `creado_en`.
@@ -323,7 +324,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Fotos de la subasta** — `fotosDeSubasta()` / `<BotonTraerFotos>`: las primeras 24 imágenes de la respuesta (la primera, portada).
 - **Cuota de apibara** — `UsoDeApibara` / `<UsoDeApibara>`: consultas hechas y restantes en el período; agotada (429), la API calla hasta que vence.
 - **Limpieza automática** — `limpieza_automatica_correr()`, `ajustes_empresa.limpieza_automatica`: cada madrugada manda a la papelera, en un lote, los importados de subasta terminada hace más de los días de gracia y sin ancla.
-- **Ancla** — `_limpieza_ancla()`: lo que retiene de la limpieza: «Conservar», vínculo con lead, fase posterior a la inicial, documentos, gastos o pagos, estar publicado.
+- **Ancla** — `_limpieza_ancla()`: lo que retiene de la limpieza: «Conservar», vínculo con lead, fase posterior a la inicial, documentos, gastos o pagos, estar publicado, una cotización final activa.
 - **Conservar** — `vehiculos_conservados` / `vehiculo_conservar()`, `<BotonConservar>`: marca que saca un vehículo de la limpieza.
 - **Días de gracia** — `ajustes_empresa.limpieza_dias_gracia`: días desde que terminó la subasta hasta que un vehículo sin ancla se limpia: 7 por defecto, de 1 a 90.
 - **Se limpiará pronto** — `FILTRO_LIMPIEZA`, `limpieza_el()`, `VENTANA_DE_AVISO_DIAS`: filtro e insignia «Se limpia el dd/mm» de lo que se limpia en 3 días.

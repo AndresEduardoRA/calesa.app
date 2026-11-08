@@ -29,36 +29,39 @@ el número del paso y, opcionales, `continuar` (retomas esta sesión tras una co
 ## El camino
 
 1. **Orientarte** (poco): `.piloto/hechos.json`, `docs/ESTADO.md`, y con `continuar`, `.piloto/planes/<paso>.md` y `.piloto/informes/<paso>.md` si existen.
+   **Si existe `.piloto/conflicto-con-main.md`, eso va primero:** tu rama choca con `origin/main` en código (los choques de `docs/` el bucle ya los unió) y
+   el PR no se integra hasta resolverlo. `git merge origin/main`, resuelve lo que lista, commit de merge con el mensaje por omisión (no va en `commits` de
+   `ultimo.json`), y sigue con el paso.
 2. **Planificar.** Invoca al subagente `planificador`: orienta, parte si hace falta y escribe `.piloto/planes/<paso>.md` con
    [plantilla-plan.md](plantilla-plan.md). No escribes tú el plan: el planificador es el único que lo hace, y su Bash es de sólo lectura. Corre en opus,
    salvo en un paso que el ruteo mandó con `modelo: sonnet` (el de pantalla; lo dice `.piloto/ruteo.json`): ahí pásale `model: "sonnet"`. Del 5 al 7 de
    noviembre, en esos pasos opus se llevaba 184 de 266 USD planificando y auditando, más que ejecutar. El auditor sigue siempre en opus.
-3. **Auditar el plan.** Invoca al subagente `auditor` (opus, en un contexto aparte) sobre ese plan. Su primera línea es `VEREDICTO: pasa|observaciones|bloquea`.
-   `observaciones`: las atiendes en el plan y sigues. `bloquea`: un `planificador` nuevo con sus objeciones, otra auditoría.
-   Antes de esa 2.ª ronda copia el plan auditado a `.piloto/planes/<paso>.auditado.md` y dile al auditor que es la segunda: audita sólo lo cambiado y
-   `<paso>.respuestas.md` (en el 4.13-3b la 2.ª ronda volvió a verificar todo: 2,63 USD). El planificador contesta las objeciones en ese archivo y corrige el plan con
-   `Edit`, sin reescribirlo; el plan pesa ≤ 60 KB (`wc -c`).
-   **Si la 2.ª ronda también bloquea, no hay 3.ª: achica el paso, sin preguntar** (la persona, 2026-11-07: el 4.25 llevó cuatro rondas y dos atascos
-   sin una línea de código). Un `planificador` parte el plan en dos: esta parte, con lo que el auditor ya no objeta, y la parte siguiente, con lo
-   bloqueado y sus objeciones copiadas tal cual. Esta sesión ejecuta la primera y termina con `parcial: true`; la siguiente se planea y se audita
-   de cero en su propia sesión. Sólo si lo que pasó depende de lo bloqueado, o no queda nada sin objetar, es una compuerta `atasco`.
+3. **Auditar el plan, una sola vez y sólo en un paso de datos o dinero** (`.claude/rules/e2e.md` › «Pulido y rigor por tipo de paso», la persona, 2026-11-08).
+   Un paso `verde` o `ambar` sin datos ni permisos nuevos (el riesgo está en `.piloto/asignado.json` › `riesgo`; sin él, mira si el plan toca policy, RLS,
+   permisos, `security definer`, migraciones o dinero) **no se audita**: del plan pasas a ejecutar. En los demás, invoca al subagente `auditor` (opus, en un
+   contexto aparte). Su primera línea es `VEREDICTO: pasa|observaciones|bloquea`. `observaciones`: las atiendes en el plan y sigues. **`bloquea`: no hay 2.ª
+   ronda.** Corrige tú las objeciones en el plan con `Edit` (contéstalas en `.piloto/planes/<paso>.respuestas.md`) y ejecuta; si alguna no la puedes resolver
+   sin rediseñar, **achica el paso, sin preguntar**: esta parte lleva lo que el auditor no objeta y termina con `parcial: true`; lo bloqueado, con sus objeciones
+   copiadas tal cual, pasa a la parte siguiente, que se planea de cero en su propia sesión. Sólo si no queda nada sin objetar es una compuerta `atasco`. El plan
+   pesa ≤ 60 KB (`wc -c`).
 4. **Compuertas del plan** ([compuertas.md](compuertas.md)): si el plan toca datos o seguridad (policy, RLS, permiso, `security definer`, Vault), pide una dependencia
    nueva o deja una pregunta de producto o de UX abierta → termina con `resultado: compuerta` (ver «Terminar»). Con `--hasta-plan`, tras auditar el plan terminas
    **siempre** con una compuerta `datos` que lleve el plan en su `contexto`: la persona lo ve antes de que se ejecute. Si el plan corre el completo en local (sólo el hito 4-A y un cierre)
    y `hechos.json` › `funciones` no las tiene todas en `true`, compuerta `afuera` antes de ejecutar («faltan las funciones edge (…): `pnpm funciones`»): el
    completo las exige y el bucle no las levanta. El bucle ya lo mira por el nivel del ruteo; esto cubre el plan que sube de nivel.
-5. **Ejecutar y verificar** (Nivel 1, 2 o 3 de `.claude/rules/e2e.md`, el que dice el plan): primero las pruebas que fallan, **guardadas en rojo contra HEAD**; después el
-   código; después las mutaciones del plan (cada una tiene que hacer caer su prueba), sólo en un paso de rigor máximo: en pantalla pura no hay mutaciones ni sondas de medición (`.claude/rules/e2e.md` › «Pulido y rigor por tipo de paso»). Cada salida va a `.piloto/salidas/<paso>/` con `tee`; las corridas largas con
+5. **Ejecutar y verificar** (Nivel 1, 2 o 3 de `.claude/rules/e2e.md`, el que dice el plan): primero las pruebas, **sólo las clave** (`.claude/rules/e2e.md` ›
+   «Pulido y rigor por tipo de paso»: dinero, fórmula, permisos, RLS, carreras donde hay candados, un e2e del camino feliz por pantalla); se escriben antes que el
+   código, sin guardar su salida en rojo. Mutaciones sólo en el motor de la fórmula y el dinero; nada de sondas de medición, volumen de interfaz ni capturas. Cada salida va a `.piloto/salidas/<paso>/` con `tee`; las corridas largas con
    `nohup … ; echo $? > <algo>.fin` y una espera de primer plano. **Antes de una corrida pesada** (e2e, mediciones, carreras) espera, en un bucle de primer plano
    de ≤ 9 minutos, a que no haya procesos pesados **en este mismo árbol** (`playwright`, `next build`, `vitest`, `carreras`, `medir`, `supabase db|start`) y a que `loadavg` sea menor que
    los núcleos (`nproc`). Los otros carriles tienen su árbol y su base: esperar a que la máquina quede ociosa con tres carriles no termina nunca (con `loadavg` < 1,5 cada parte perdía
    sus 9 minutos, 2026-11-06). **Qué no se corre en local** (`.claude/rules/e2e.md`, Nivel 1): `lint` y `typecheck` los corre el hook del commit; la suite entera de vitest, el hook de
    Stop al cerrar el paso (en el paso, sólo `pnpm exec vitest related --run <archivos>` y `scripts/guardas`); el e2e completo, el CI del PR, salvo en el hito 4-A y en un cierre.
 6. **Informe** en `.piloto/informes/<paso>.md` ([plantilla-informe.md](plantilla-informe.md)): qué se hizo, la salida real de cada prueba (con su ruta), lo que no se hizo.
-7. **Auditar el informe**, sólo en un paso de rigor máximo (en pantalla pura se salta: verifica el bucle). Mismo `auditor`, mismo tope: dos bloqueos y es una compuerta `atasco`.
+7. **Auditar el informe**, sólo si el paso toca RLS, permisos, `security definer` o dinero (si no, se salta: verifica el bucle y el CI). Mismo `auditor`: si bloquea, corriges con un `fix` y sigues; un segundo bloqueo es una compuerta `atasco`.
 8. **Docs y commits.** **Con `asignado` en `hechos.json` (un carril con coordinador) no edites `docs/ESTADO.md`, `PLAN.md`, `BITACORA.md` ni `DECISIONES.md`** (los editarían todos los carriles a la vez): escribe lo mismo en `docs/pasos/<paso>/` (`bitacora.md`, con el marcador `e2e completo: …`, y `decisiones.md`); el carril `a` los pasa con `node scripts/coordinador/consolidar-docs.mjs` antes de su commit de docs, y el `ESTADO` lo lleva el carril `a`. Sin `asignado`: los docs que dice el plan (ESTADO por sustitución, ≤ 60 líneas medido con `wc -l`; BITACORA con el marcador `e2e completo: sí|no (…)`; DECISIONES con
    la fecha de `TZ=America/La_Paz date +%F`; fichas; `bash scripts/mapa.sh`). **Commits por intención**, asunto en español, minúscula, ≤ 72 caracteres, mensaje con `-F`, `mapa.sh`
-   antes: **hasta 3 de código y el de docs** (si el plan necesitaba más, el paso no cabía y se partía); el `fix` que pida la auditoría del informe va aparte y no cuenta.
+   antes: **hasta 6 de código y el de docs** (menos partes son menos ciclos de plan, PR y CI; si el plan necesitaba más, el paso se parte); el `fix` que pida la auditoría del informe va aparte y no cuenta.
    **Sin push.** Verifica con `git log` que existen.
 9. **Terminar.** Escribe `.piloto/ultimo.json` (abajo) y responde con una línea. El bucle lo valida con `jq`; un `ultimo.json` que falte o no valide es un fallo del proceso.
 
@@ -82,7 +85,12 @@ o seguridad, compuerta `datos` como en cualquier paso. Si no se puede (no es tuy
 
 ## Cuando necesitas algo de otro carril: compuerta `espera`
 
-Si lo que te falta no es tuyo (está en el `dueno_de` de otro carril en `docs/plan.yaml`, o es del carril A y tú eres B o C), **no** pidas una `afuera` ni ofrezcas
+**Lo del núcleo lo haces tú, en tu PR** (2026-11-08): si eres B o C y te falta algo de lo que posee el carril A (un registro de una guarda, una línea en
+`src/app`, una prueba del núcleo, un archivo de `src/shared`), lo agregas o lo editas tú mismo, chico y con su prueba, en un commit propio de tu paso: la guarda
+de carriles te deja agregar y editar lo del base (no borrarlo) y el coordinador integra tu PR. No esperas al A. Sólo pides `espera` por lo de **otro carril
+no base** (el `dueno_de` de B o de C), por una migración de un dominio que no es tuyo, o por un borrado en el núcleo.
+
+Si lo que te falta no es tuyo (está en el `dueno_de` de otro carril no base en `docs/plan.yaml`), **no** pidas una `afuera` ni ofrezcas
 opciones que el bucle no sabe cumplir («seguir mientras…»): termina con `resultado: compuerta` y una compuerta `espera` con `pedido` (qué archivo, qué cambio y por qué,
 para que su dueño lo haga sin preguntarte) y `archivos` (**obligatorio**: las rutas que tienen que crearse o cambiar en `origin/main`). El bucle se lo pide al carril
 dueño, espera a que **todos** esos archivos cambien en `main` (o a que el dueño cierre el pedido), lo trae a tu rama y te retoma con `continuar`; la respuesta dice qué

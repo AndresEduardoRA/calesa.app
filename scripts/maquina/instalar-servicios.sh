@@ -29,10 +29,11 @@ After=network-online.target docker.service
 Type=oneshot
 RemainAfterExit=yes
 # El bucle vive en tmux: si este servicio levantó el servidor de tmux, pararlo o terminarlo no tiene que matarlo (sólo a arrancar.sh).
+# Sin ExecStop: el que había corría parar.sh y dejaba .piloto/PARAR al apagar, y tras cada reinicio los tres carriles arrancaban y se
+# paraban solos (7-11, 14:19 a 00:04: diez horas parados). Un paso cortado por el apagado se retoma con --resume (en-curso.json).
 KillMode=process
 WorkingDirectory=$arbol
 ExecStart=/usr/bin/env bash scripts/piloto/arrancar.sh --carril $c
-ExecStop=/usr/bin/env bash scripts/piloto/parar.sh
 Environment=PATH=$PATH
 
 [Install]

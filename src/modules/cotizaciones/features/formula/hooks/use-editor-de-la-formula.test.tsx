@@ -9,6 +9,11 @@ import { textoVigente } from '../../../entities/formula/texto-vigente'
 import { validarFormula } from '../../../entities/validar'
 import { useEditorDeLaFormula } from './use-editor-de-la-formula'
 
+// «Guardar el borrador» (4.21-3b-1): la action no llega aquí (su composición es del servidor).
+vi.mock('../actions/guardar-borrador', () => ({
+  guardarBorrador: () => Promise.resolve(undefined),
+}))
+
 // `validarFormula()` y `textoVigente()` envueltas, llamando a las reales: para contar cuándo se llaman.
 vi.mock('../../../entities/validar', async (original) => {
   const real = await original<typeof ModuloDeValidar>()
@@ -18,6 +23,19 @@ vi.mock('../../../entities/formula/texto-vigente', async (original) => {
   const real = await original<typeof ModuloDelTextoVigente>()
   return { ...real, textoVigente: vi.fn(real.textoVigente) }
 })
+// Lo de prueba de la vista previa (4.21-3a-2): sin red, un tipo de cambio y ninguna tabla.
+vi.mock('../../../areas/formula/composicion.client', () => ({
+  leerElTerrenoDePrueba: () =>
+    Promise.resolve({
+      ok: true as const,
+      data: {
+        tipos_cambio: { oficial: 6.96 },
+        monedas: { oficial: 'BOB' },
+        tablas: {},
+        avisos: [],
+      },
+    }),
+}))
 type Accion = { etiqueta: string; alHacer: () => void }
 const avisos: { mensaje: string; accion?: Accion }[] = []
 vi.mock('@/shared/ui/toasts', () => ({
@@ -38,6 +56,9 @@ const formula = () =>
 const leidaDe = (f: Formula, hora = HORA): FormulaParaEditar => ({
   id: FORMULA,
   actualizadoEn: hora,
+  estado: 'borrador',
+  diseno: null,
+  nota: null,
   formula: f,
 })
 const montar = (leida: FormulaParaEditar = leidaDe(formula())) =>
