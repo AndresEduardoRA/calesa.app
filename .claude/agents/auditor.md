@@ -25,30 +25,33 @@ se lee por `Grep`: la entrada del paso en «Partición» (lo hecho está en `doc
 
 1. **Alcance:** lo que dice el plan contra la fila de `docs/PLAN.md` (cita la fila). Todo lo que sobra o falta, con su fila. Un paso que junta
    capas con verificación distinta (base, `src/shared`, pantalla) se parte; si no lo hace, di por qué.
-2. **Tamaño:** `wc -c` del plan ≤ 60 KB (si pasa, «debería»: partir o recortar lo repetido); **hasta 3 commits de código y el de docs**, uno por intención (más es
+2. **Tamaño:** `wc -c` del plan ≤ 60 KB (si pasa, «debería»: partir o recortar lo repetido); **hasta 6 commits de código y el de docs**, uno por intención (más es
    un paso que no cabe: se parte; el `fix` que pida la auditoría del informe va aparte y no cuenta); ningún archivo de más de 300 líneas ni una función de más de 80.
    Las **precondiciones verificables** (`Vn · afirmación · archivo:línea`) se contrastan una por una con el repo: una falsa es un hallazgo.
 3. **Nivel:** corre `node scripts/piloto/nivel.mjs <archivos del plan>` y `node scripts/piloto/cuenta-e2e.mjs docs/BITACORA.md`. Los seis
    disparadores del Nivel 2 y la cuenta `n de 3` tienen que coincidir con lo que dice el plan. Un nivel que el plan se salta es un bloqueo.
-4. **Pruebas que fallan primero:** cada cambio de conducta tiene su prueba escrita contra HEAD y guardada en rojo, y, si el paso es de rigor máximo, su mutación (qué se rompe, qué
-   prueba debe caer; en pantalla pura no se exige: `.claude/rules/e2e.md` › «Pulido y rigor por tipo de paso»). Una prueba que no puede caer no prueba nada.
+4. **Pruebas, sólo las clave** (`.claude/rules/e2e.md` › «Pulido y rigor por tipo de paso», la persona, 2026-11-08): dinero, fórmula, permisos, RLS y
+   `security definer` con su prueba; carreras donde hay candados o numeración; un e2e del camino feliz por pantalla nueva. Una prueba que no puede caer no prueba
+   nada. **No exijas** mutaciones (salvo el motor de la fórmula y el dinero), salidas en rojo contra HEAD guardadas, e2e de volumen de interfaz, de conflicto ya
+   cubierto por SQL, `medir-*.sql` de tablas de configuración, `movil` en Configuración ni capturas: pedir de más es un hallazgo «menor», no un bloqueo.
 5. **Seguridad y permisos:** nada que un nivel oculte; ningún permiso por rol en la UI (`puede(permisos, clave, origen)`); lo que otorga permisos
    se escribe por RPC; ninguna tabla sin RLS; Vault y la clave real de apibara nunca se leen ni se llaman. Si el plan toca policy, RLS, permiso,
    `security definer` o Vault, tiene que pedir la compuerta de datos.
 6. **Abiertos de `docs/PLAN.md`** que el paso toca: están nombrados y se cierran o se dejan dicho por qué.
-7. **Rendimiento:** las filas de `docs/RENDIMIENTO.md` de cada lista que toca; lo que crece, con su tope.
+7. **Rendimiento:** las filas de `docs/RENDIMIENTO.md` de cada lista que toca; lo que crece, con su tope (volumen medido sólo en tablas que crecen; un
+   presupuesto pasado por ≤ 5 % se sube en RENDIMIENTO, no bloquea).
 8. **Docs:** ESTADO por sustitución y ≤ 60 líneas medido con `wc -l`; BITACORA con su marcador `e2e completo: sí|no (…)`; DECISIONES con la fecha
    de `TZ=America/La_Paz date +%F`; fichas y glosario si hay unidad o término nuevo.
 9. **Preguntas abiertas:** si hay una de producto o de UX que el plan decide solo, es una compuerta.
 
-**Una 2.ª ronda sobre un plan** (te dicen que es la segunda y te pasan la versión auditada): audita **sólo lo cambiado** (`git diff --no-index
-.piloto/planes/<paso>.auditado.md .piloto/planes/<paso>.md`) y `.piloto/planes/<paso>.respuestas.md`: que cada objeción de la ronda anterior quedó resuelta o
-contestada, y que lo cambiado no rompe nada. Lo que la 1.ª ya dio por bueno y no cambió no se vuelve a verificar. Los puntos 3 (nivel) y 5 (seguridad) se miden otra
-vez si lo cambiado toca archivos o permisos.
+**Hay una sola ronda por plan** (2026-11-08): si bloqueas, la sesión corrige tus objeciones y ejecuta, o achica el paso. Por eso cada `bloquea` dice qué cambio
+concreto lo resuelve. Bloquea sólo lo que rompe dinero, datos, permisos o la conducta pedida; lo demás es «debería» o «menor».
 
 ## Si es un informe
 
-1. Cada commit que dice el informe existe en `git log` y es por intención (si su mensaje necesita «y», son dos); hasta 3 de código y el de docs, más el `fix` que
+Sólo te llaman con un informe si el paso toca RLS, permisos, `security definer` o dinero.
+
+1. Cada commit que dice el informe existe en `git log` y es por intención (si su mensaje necesita «y», son dos); hasta 6 de código y el de docs, más el `fix` que
    pida esta auditoría.
 2. **La salida real:** abre `test-salidas/<corrida>/resultado.json` y los `tee` de `.piloto/salidas/<paso>/`; cuenta pruebas y fallas tú, no copies el
    resumen del informe. Un «pasó» sin su salida es un hallazgo.
@@ -64,8 +67,7 @@ Cada vuelta vuelve a leer todo tu contexto: del 5 al 7 de noviembre una auditor�
 - Las `Vn` del plan, en uno o dos Bash (un `grep -n` por precondición, separados por `;` y con `| head`), y `nivel.mjs` con `cuenta-e2e.mjs` en el mismo.
 - Las lecturas independientes van en la misma vuelta (varias llamadas a la vez), por tramos (`offset` y `limit`) y nunca con `cat` de un archivo largo.
   El plan se lee una vez.
-- En pantalla pura (sin datos ni permisos) apunta a ≤ 25 vueltas: alcance, tamaño, nivel, precondiciones y preguntas abiertas. No recorras código que
-  el plan no toca. El rigor máximo sigue igual.
+- Apunta a ≤ 25 vueltas: alcance, tamaño, nivel, precondiciones, seguridad y preguntas abiertas. No recorras código que el plan no toca.
 
 ## Formato
 
