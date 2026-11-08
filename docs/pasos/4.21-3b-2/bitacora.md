@@ -5,7 +5,7 @@
   - **El núcleo** (commit 1, sin cambio de conducta): la regla de las auxiliares pasa de `formula/filas.ts` a `entities/compilador-auxiliares.ts`, y `filasDe()`
     la usa.
   - **La base** (commit 2): `_diseno_auxiliares(p_def)` y `validar_diseno()`, que le pasa a `_diseno_secciones()` los tipos con la constante auxiliar marcada
-    (sólo §5 lo mira). Una migración, `20261108043918_diseno_auxiliar_sin_celda.sql`. La firma de `_diseno_secciones()` no cambia.
+    (sólo §5 lo mira). Una migración, `20261108124129_diseno_auxiliar_sin_celda.sql`. La firma de `_diseno_secciones()` no cambia.
   - **El espejo y el aviso:** `Indice.auxiliares` y la excepción en `revisarCobertura`; `nodosSinCelda()` con la misma excepción.
   - **El juego:** 14 casos nuevos en `casos-de-diseno.json` (de 244 a 258) sobre 12 fórmulas nuevas, y el corpus regenerado.
 - **Verificación:**

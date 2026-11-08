@@ -165,7 +165,7 @@ describe('el patrón de la base da los mismos nombres que el léxico (T1b)', () 
 // La base lo copia letra por letra (T1c). La ruta va por una variable: Vite reescribe un `new URL` literal.
 describe('la migración copia el patrón (T1c)', () => {
   it('_diseno_auxiliares() usa el mismo patrón que T1b', () => {
-    const ruta = '../../../../supabase/migrations/20261108043918_diseno_auxiliar_sin_celda.sql'
+    const ruta = '../../../../supabase/migrations/20261108124129_diseno_auxiliar_sin_celda.sql'
     const sql = readFileSync(new URL(ruta, import.meta.url), 'utf8')
     expect(sql).toContain(`regexp_matches(v_texto, '${PATRON_DE_NOMBRES}', 'g')`)
   })
