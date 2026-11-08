@@ -203,6 +203,21 @@ le deja agregar y editar lo del base); y el coordinador integra solo los PR que 
 carriles (los registros de cada carril ya no esperan a la persona). **Antes de iniciar sesión** tras un reinicio, `gh` y `git fetch` fallan si la
 credencial vive en el llavero del escritorio: `gh auth login --insecure-storage`, `gh auth setup-git` y el remoto por HTTPS lo evitan.
 
+**Remiendos sin sesión, arreglos prestados y ramas limpias (2026-11-08, tarde).** Ese día hubo 19 PR devueltos por «conflicto con main» (cada
+carril sumaba su pestaña a `configuracion/cotizacion/pestanas.ts`) y uno por una migración más vieja que la última de main; cada uno costó una
+sesión y otro CI, mientras el A y el C pasaban ≈ 2,4 h «sin paso libre» y el B alternaba el 4.22 y el 4.26. Ahora (`carril.sh`, `plan.mjs`,
+`limpiar-ramas.mjs`; pruebas en `bucle-remiendo.test.ts`, `plan.test.mjs` y `limpiar-ramas.test.mjs`):
+
+- **Las migraciones se renumeran solas** al traer main (`renumerar_migraciones`): si una de la rama quedó atrás de la última de `origin/main`,
+  todas las de la rama pasan, en su orden, a versiones nuevas con el mismo contenido, y la versión vieja se cambia en los archivos que la rama tocó.
+- **Un PR devuelto se remienda sin sesión** (`remendar_sin_sesion`): en conflicto, si main entra sin choques de código (o sólo de `docs/`); en
+  rojo, sólo si se renumeró una migración. El bucle lo publica y sigue; si queda un choque de código, corre la sesión como antes.
+- **Arreglo prestado:** el PR roto de un carril ocupado con otro paso lo toma un carril sin paso propio listo, en la **misma** rama del PR
+  (`b/4.26` en el C), sin abrir otro; el coordinador anota la `rama` de cada paso asignado, y `publicar.sh` y el bucle aceptan la asignada.
+  Al retomar, la rama local se alinea con la de su PR (avanza o se une) antes de traer main.
+- **Ramas:** el coordinador borra en cada vuelta las ramas integradas, remotas y locales: PR `MERGED`, sin otro abierto, con la punta que se
+  integró (o detrás de ella), sin worktree y sin ser la de un paso o pedido vivo. `COORD_LIMPIAR=0` lo apaga.
+
 Para que un carril se levante solo tras un corte de luz, un reinicio o un bucle que se cayó: `bash scripts/maquina/instalar-servicios.sh a b c` (en el árbol del A). Escribe, por carril, la unidad
 `systemd --user` que corre `arrancar.sh --carril` al iniciar y un **vigía** cada 10 min (`arrancar.sh --carril <c> --si-caido`): levanta el bucle si nadie tiene `.piloto/bucle.lock` y no se paró a
 propósito (PARAR, «parado» de la persona, el carril terminó o llegó a `--hasta`). Reemplaza a `vigilar-carriles.sh`.
