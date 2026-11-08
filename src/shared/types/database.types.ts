@@ -7172,6 +7172,7 @@ export type Database = {
       _diseno_auxiliares: { Args: { p_def: Json }; Returns: Json }
       _diseno_forma: { Args: { p_diseno: Json }; Returns: undefined }
       _diseno_forma_item: { Args: { p_i: Json }; Returns: boolean }
+      _diseno_maximo_de_items: { Args: Record<PropertyKey, never>; Returns: number }
       _diseno_modos: {
         Args: {
           p_buckets: Json

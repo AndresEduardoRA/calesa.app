@@ -11,6 +11,9 @@ export const SECUNDARIOS = ['porcentaje', 'monto'] as const
 export const EFECTOS_DE_INTERRUPTOR = ['habilita', 'muestra'] as const
 // Cuántas filas de una tabla se ofrecen como chips (los años del factor de depreciación).
 export const MAXIMO_DE_ATAJOS = 12
+// Cuántos ítems lleva un diseño publicable, sumando todas sus secciones (4-30): la hoja de 40 ítems queda en el techo de nodos
+// (docs/RENDIMIENTO.md › «Cotizador»). `validar_diseno()` lo lee de `_diseno_maximo_de_items()`.
+export const MAXIMO_DE_ITEMS_DEL_DISENO = 40
 // El nivel que todos tienen: no se crea, no se retira y no genera permisos (D7).
 export const NIVEL_TODOS = 'todos'
 

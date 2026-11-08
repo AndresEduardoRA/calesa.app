@@ -24,10 +24,12 @@ describe('pestanasVisibles', () => {
     ])
   })
 
-  it('quien configura un origen, la fórmula, la tarjeta, las tablas y los ajustes, en ese orden', () => {
+  it('quien configura un origen, la fórmula, la tarjeta, el diseño, los tonos, las tablas y los ajustes (que lee sin cambiar), en ese orden', () => {
     expect(claves(pestanasVisibles(permisos({ 'cotizaciones.configurar': [O1] })))).toEqual([
       'formula',
       'tarjeta',
+      'diseno',
+      'tonos',
       'tablas',
       'ajustes',
     ])
@@ -40,7 +42,7 @@ describe('pestanasVisibles', () => {
           permisos({ 'equipo.roles.gestionar': 'global', 'cotizaciones.configurar': 'global' }),
         ),
       ),
-    ).toEqual(['niveles', 'formula', 'tarjeta', 'tablas', 'ajustes'])
+    ).toEqual(['niveles', 'formula', 'tarjeta', 'diseno', 'tonos', 'tablas', 'ajustes'])
   })
 
   it('sin ninguna, ninguna', () => {
@@ -75,6 +77,12 @@ describe('pestanaDe', () => {
   it('una que no es suya abre la primera de las suyas', () => {
     expect(pestanaDe('niveles', soloFormula)).toBe('formula')
     expect(pestanaDe('ajustes', las2)).toBe('niveles')
+    expect(pestanaDe('diseno', soloFormula)).toBe('formula')
+  })
+
+  it('«diseno» abre el diseño cuando es una de las suyas', () => {
+    const conDiseno = alMenosUna([{ clave: 'formula' as const }, { clave: 'diseno' as const }])
+    expect(pestanaDe('diseno', conDiseno ?? soloFormula)).toBe('diseno')
   })
 
   it('sin configurar, «Tablas» no está y su URL abre la primera de las suyas', () => {

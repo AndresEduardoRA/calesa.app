@@ -84,7 +84,7 @@ test('E1: sin borrador ni publicada el editor parte de los grupos de la fórmula
   await entrar(page, configuradora, { fresco: true })
   await page.goto('/configuracion/cotizacion')
   const pestanas = page.getByRole('tab')
-  await expect(pestanas).toHaveText(['Fórmula', 'Tarjeta', 'Tablas', 'Ajustes'])
+  await expect(pestanas).toHaveText(['Fórmula', 'Tarjeta', 'Diseño', 'Tonos', 'Tablas', 'Ajustes'])
   await page.getByRole('tab', { name: 'Tarjeta' }).click()
   await expect(page.getByRole('heading', { name: /^Tarjeta de / })).toBeVisible()
   await expect(

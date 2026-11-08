@@ -122,7 +122,10 @@ describe('disenoSintetico', () => {
       const f = validarFormula(s.definicion, s.params)
       expect(f.ok ? f : f.error).toMatchObject({ ok: true })
       if (!f.ok) continue
-      const r = validarDiseno(f.formula.definicion, s.diseno, s.contexto)
+      // Con 40 unidades pasa de 200 ítems: el tope de la hoja se apaga, como en las pruebas de escala.
+      const r = validarDiseno(f.formula.definicion, s.diseno, s.contexto, {
+        maximoDeItems: Number.POSITIVE_INFINITY,
+      })
       expect(r.ok ? r : r.error).toMatchObject({ ok: true })
     }
     expect(disenoSintetico(40).definicion.nodos.length).toBeGreaterThan(

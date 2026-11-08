@@ -139,7 +139,10 @@ describe('corpus-de-diseno.json', () => {
     for (const s of [sinteticas.chica, sinteticas.grande]) {
       const f = validarFormula(s.definicion, s.params)
       if (!f.ok) throw new Error(f.error.mensaje)
-      const r = validarDiseno(f.formula.definicion as Definicion, s.diseno, s.contexto)
+      // Sin el tope de la hoja (40 ítems), como las mediciones SQL: lo que se guarda es que validan.
+      const r = validarDiseno(f.formula.definicion as Definicion, s.diseno, s.contexto, {
+        maximoDeItems: Number.POSITIVE_INFINITY,
+      })
       expect(r.ok ? r : r.error).toMatchObject({ ok: true })
     }
     const items = (s: typeof sinteticas.chica) =>

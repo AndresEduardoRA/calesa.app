@@ -13,8 +13,9 @@ import { borrarPersonasDePrueba, borrarRolesDePrueba } from './soporte/base'
 // pestaña; con 600, el tope de 500 filas dice dónde buscar y «Buscar fila» halla la que el tope dejaba fuera.
 test.describe.configure({ mode: 'serial' })
 
-// Lo medido en escritorio con 500 miembros (4.19-3b: 147.484 B del primer HTML y 4.754 nodos con «Filas» abierto), más un 5 %. Va a docs/RENDIMIENTO.md.
-const TOPE_DE_BYTES_DEL_HTML = 154_900
+// Lo medido en escritorio con 500 miembros (4.19-3b: 147.484 B del primer HTML y 4.754 nodos con «Filas» abierto; 4.22-7: 155.874 B con las pestañas Diseño y Tonos y lo
+// que trajo main), más un 5 %. Va a docs/RENDIMIENTO.md.
+const TOPE_DE_BYTES_DEL_HTML = 163_700
 const TOPE_DE_NODOS_CON_500 = 5_000
 
 let configuradora = ''

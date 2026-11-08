@@ -266,7 +266,10 @@ Forma: `{ cabecera: {modos[], ver_total_bs}, secciones[], tarjeta_total: {nodo, 
 
 ### Las reglas (4.08-1)
 
-**Primero la forma (`forma`)**, el Zod de `diseno.ts`; **después, 28 reglas cruzadas** con código estable (lista en
+**Primero la forma (`forma`)**, el Zod de `diseno.ts`; **después, el tamaño (`demasiados_items`, 4.22-6)**: a lo sumo 40 ítems sumando
+todas las secciones (de cualquier tipo, principal o avanzado; la cabecera y la tarjeta no cuentan), con `donde` = la sección en la que la
+suma pasa del tope (`MAXIMO_DE_ITEMS_DEL_DISENO`; en la base, `_diseno_maximo_de_items()`). El borrador lo admite; publicar lo rechaza.
+**Después, 28 reglas cruzadas** con código estable (lista en
 `entities/motivos-de-diseno.ts`; `donde` = id del nodo, sección, modo o grupo; en la base, `hint`). Las de nivel: `nivel_no_admitido`
 (el total, lo `aparte` o la variante con nivel efectivo de ver que no es «todos»: la base siempre manda el total y lo `aparte`) y
 `editar_sin_ver` (ver restringido con editar ausente o «todos»; **ver abierto con editar restringido vale**). El primero que falla
