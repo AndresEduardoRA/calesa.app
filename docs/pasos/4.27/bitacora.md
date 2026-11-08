@@ -40,3 +40,33 @@
    y `cotizacion_comentario_respuestas` por sus índices (`cotizaciones_comentarios_raices_idx`, `…_respuestas_idx`), sin `Sort`, sin crecer entre 100 y 1.000
    (`pg_stat_get_xact_blocks_fetched` por relación). El presupuesto va a la fila de `docs/RENDIMIENTO.md` («Comentarios de una cotización»).
 4. **ESTADO:** «4.27-1 (C): la base de comentarios, adjuntos, reportes, moderar y favorita, por RPC y con 4-69 cerrado; siguen 4.27-2 a 4.27-4 (pantallas)».
+
+## 2026-11-08 — Paso 4.27-2: los comentarios en pantalla
+
+- **Hecho:** paso de pantalla (sin migración, policy, RLS ni `security definer`: usa las RPC del 4.27-1 tal cual), sin auditor. La compuerta `producto` (P1, P2) se
+  contestó con las recomendadas: la sección bajo la hoja y «Ir a una fecha» al tope.
+  - La sección «Comentarios» llena el hueco `Debajo` de `/cotizaciones/[id]`: lee desde el navegador la primera vez que está a la vista (`diferido()`), comenta,
+    responde (un nivel), edita lo propio y borra con `<Confirmar>` por `?panel=borrar-comentario&comentario=<id>`. De a 20 raíces con sus primeras 20 respuestas hasta 500
+    entre todos, con «Ir a una fecha».
+  - `entities/comentarios/` (parseo con Zod, permisos puros, la lista cargada que borra como la base, con tests), `infra/comentarios/` (lectura en el navegador, escritura en el
+    servidor), tres actions sin `revalidatePath`.
+  - Registros del C: `scripts/guardas/areas-c/paginas-en-la-base.ts` (las tres llamadas con tamaño; cierra **4-91**) y `scripts/guardas/areas-c/confirmar-con-url.ts`. Las pruebas del
+    núcleo que fijaban el registro sin áreas (`paginas-en-la-base.test.ts`, `confirmar-con-url-areas.test.ts`) suman ahora lo de `areas-*/`.
+- **Verificación** (`.piloto/salidas/4.27-2/`):
+  - `vitest` de `entities/comentarios/`: 2 archivos, 14 ✓ (`vitest-entities.txt`); `vitest related` de lo tocado: 3 archivos, 18 ✓ (`vitest-related.txt`).
+  - `scripts/guardas`: 32 archivos, 1.010 ✓ (`guardas.txt`). `typecheck` 0 errores (`typecheck.txt`); `eslint --max-warnings 0` de lo tocado, limpio; `mapa.sh --check` 0.
+  - `nivel.mjs` con los archivos reales: Nivel 1, sin disparadores, con interfaz (`nivel.txt`).
+  - e2e dirigidos en escritorio y móvil, contra el build (`e2e-dirigidos.txt`): `cotizaciones-comentarios` (nuevo), `cotizar-guardada`, `cotizar-guardada-revisiones`,
+    `cotizaciones-papelera-enviar` y `presupuesto-js`: 41 ✓, 7 saltadas por su marca de celular. JS en frío de `/cotizaciones/[id]`: 440 KB (tope 448, sin cambio).
+    e2e completo: no (4.27-2, pantalla, Nivel 1: lo dirigido en escritorio y movil; 2 de 3)
+- **Desvíos del plan:** `puedeModerar` sale de la lectura (`puede_moderar` de `cotizacion_comentarios`), no de `puede()` en el servidor: es el mismo `tiene_permiso` que mira
+  borrar, y el hueco sólo pasa el id. «Borrar» con su diálogo entró en el mismo commit que la sección (los componentes ya lo nombraban): cinco commits de código, no seis.
+  Las funciones de más de 80 líneas se partieron (`raiz-de-comentario.tsx`, `pie-de-comentarios.tsx`, `use-envio-del-campo.ts`, `estado-de-comentarios.ts`,
+  `use-acciones-de-comentario.ts`).
+- **Sin hacer:** adjuntos (4.27-3), favorita, reportar y moderar (4.27-4); tiempo real; la medición con volumen (sigue pedida para el 4.28).
+
+### Al A (4.27-2)
+
+1. **ESTADO:** «4.27-2 (C): los comentarios bajo la guardada (comentar, responder, editar y borrar, por cursor hasta 500 con «Ir a una fecha»); siguen 4.27-3 y 4.27-4».
+2. **Abiertos:** cerrar **4-91** (`scripts/guardas/areas-c/paginas-en-la-base.ts`).
+3. **BITACORA:** la línea con el marcador de arriba (2 de 3).

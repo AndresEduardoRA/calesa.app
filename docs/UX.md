@@ -156,6 +156,15 @@ Configuración › Cotización (`/configuracion/cotizacion?seccion=niveles`). He
 - **Eliminar con uso:** apagado, con lo que dice la base; sin uso confirma nombrándolo (`?panel=eliminar-nivel&nivel=<id>`). Nuevo y renombrar: modal por URL (`?panel=nuevo-nivel`, `renombrar-nivel&nivel=<id>`); vacío, > 40 o repetido se rechaza junto al campo. **Tope** 10 contando «todos» y retirados. Estados: esqueleto, error con «Reintentar», lista llena.
 - **Dónde se nota:** cada nivel son **dos permisos por origen** (`Ver el nivel «X»`, `Editar el nivel «X»`) en la matriz de Roles; el dueño los recibe al nacer. La tabla de escritorio tiene dos columnas, «Nombre» y «⋯» (estado y uso bajo el nombre).
 
+### Cotización: comentarios (estados propios)
+
+La sección «Comentarios» bajo la hoja de una cotización guardada (`/cotizaciones/[id]`, 4.27-2). Un nivel de respuestas; adjuntos (4.27-3), favorita, reportar y moderar (4.27-4) van aparte.
+
+- **Dónde y cuándo se lee:** siempre presente bajo la hoja; la lista y su código llegan la primera vez que la sección está a la vista (o enseguida si la URL trae `?panel=borrar-comentario`). Mientras lee, esqueleto de tres renglones con el campo ya dibujado y apagado; sin comentarios, «Todavía no hay comentarios.»; un fallo, su mensaje con «Reintentar»; sin acceso, «No tienes acceso a esta cotización.» sin campo.
+- **Comentar y responder:** «Escribe un comentario» arriba (lo más nuevo va primero) y «Comentar»; `Ctrl/Cmd+Enter` envía. «Responder» sólo en una raíz (también eliminada) abre «Escribe una respuesta» al pie de sus respuestas. Vacío o de más de 4.000: «Escribe el comentario (hasta 4.000 caracteres).» sin pedir nada; un rechazo deja lo escrito y lo dice bajo el campo («Ese comentario ya no está.» con «Recargar»).
+- **Editar y borrar:** «Editar» sólo lo propio y vivo (campo con «Guardar» y «Cancelar», `Esc` cancela sin preguntar; un conflicto ofrece «Recargar» y conserva lo escrito). «Borrar» lo propio o, con `cotizaciones.moderar`, lo ajeno: abre «Borrar tu comentario» / «Borrar el comentario de <nombre>» por `?panel=borrar-comentario&comentario=<id>`, cita el comienzo y, en una raíz con respuestas, «Las respuestas quedan.». Una raíz con respuestas queda «Comentario eliminado.» y se va con su última respuesta. Una URL que no abre avisa «Ese comentario ya no está.» y se limpia.
+- **Cuántos:** de a 20 raíces, cada una con sus primeras 20 respuestas («Ver más comentarios», «Ver más respuestas») hasta 500 entre todos; ahí «Mostrando los 500 más recientes.» con «Ir a una fecha», que muestra ese día y lo anterior («Comentarios hasta el …» con «Volver a los más recientes»). Lo de otra persona aparece al recargar (sin tiempo real).
+
 ### Cotización: fórmula (estados propios)
 
 Configuración › Cotización (`/configuracion/cotizacion?seccion=formula&origen=<id>`, 4.20-2a). Publicar el borrador y revertir a una archivada, 4.20-2b; descartar el borrador, 4.20-2c; el editor en texto, 4.21-3a-1; su vista previa y las filas nuevas, 4.21-3a-2; guardar el borrador, 4.21-3b-1.

@@ -33,3 +33,15 @@
   - **La carpeta y el objeto se comprueban en `cotizacion_adjuntar`, no en un trigger:** es la única que escribe, y las pruebas de la purga y `medir-jobs.sql`
     insertan adjuntos sin objeto. El trigger sólo rescata la ruta de la cola de limpieza. Tipo y tamaño salen de la metadata de storage cuando está.
   - El tope de 20 adjuntos se mira sin candado: dos a la vez pueden dejar 21 (aceptado).
+
+## 2026-11-08 — Paso 4.27-2
+
+- **Lo que contestó la persona** (compuerta `producto`, recomendadas): P1 a, la sección «Comentarios» siempre bajo la hoja, que lee al llegar a la vista; P2 a, al tope de 500
+  «Ir a una fecha».
+- **Sin `revalidatePath`** en comentar, editar y borrar: la sección lleva su propia lista y refrescar la página volvería a dibujar la hoja (y su recálculo).
+- **«Ir a una fecha» sin migración:** el cursor `(inicio del día siguiente en la zona, 00000000-0000-0000-0000-000000000000)` trae ese día y lo anterior, porque ningún uuid es
+  menor que el nulo y la RPC compara `(creado_en, id) <`.
+- **`puedeModerar` lo dice la lectura**, no la sesión: el hueco sólo cruza el id al navegador y la base contesta con el mismo `tiene_permiso` que mira al borrar.
+- **«Cancelar» de editar descarta sin preguntar:** lo original sigue en la base. Los borradores de editar y responder viven en la sección por clave, aparte de la lista, para
+  que «Recargar» tras un conflicto los conserve y «Guardar» mande la versión nueva.
+- **Se responde también a una raíz eliminada** que sigue con respuestas (la base lo admite).
