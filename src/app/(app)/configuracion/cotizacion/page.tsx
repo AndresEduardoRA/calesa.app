@@ -1,26 +1,17 @@
 import type { Metadata } from 'next'
-import { Suspense } from 'react'
-import { SeccionDelDiseno } from '@/modules/cotizaciones/pantallas/diseno'
-import { SeccionDeLosTonos } from '@/modules/cotizaciones/pantallas/diseno-tonos'
-import { SeccionDeLaFormula } from '@/modules/cotizaciones/pantallas/formula'
-import { SeccionDeLasTablas } from '@/modules/cotizaciones/pantallas/tablas'
-import { puedeCambiarAjustesDeCotizacion } from '@/modules/empresa'
-import { puede, requerirSesion } from '@/modules/equipo'
-import { getOrigenes } from '@/modules/origenes'
+import { requerirSesion } from '@/modules/equipo'
 import { unParametro } from '@/shared/lib/rutas'
-import { EsqueletoFormulario } from '@/shared/ui/esqueletos'
 import { EstadoSinPermiso } from '@/shared/ui/estados'
 import { alMenosUna } from '../empresa/pestanas'
 import { pestanaDe, pestanasVisibles } from './pestanas'
 import { PestanasDeCotizacion } from './pestanas-de-cotizacion'
-import { SeccionAjustes } from './seccion-ajustes'
-import { SeccionNiveles } from './seccion-niveles'
+import { SeccionAbierta } from './seccion-abierta'
 
 export const metadata: Metadata = { title: 'Cotización' }
 
 // Configuración › Cotización. Entra quien ve alguna pestaña (`pestanas.ts`): «Niveles de acceso» con `equipo.roles.ver` (los cambia quien tiene
-// `equipo.roles.gestionar`: cada nivel es un permiso de la matriz de Roles), «Fórmula», «Diseño» y «Tonos» con `cotizaciones.configurar` en algún origen
-// (4.20-2a, 4.22-2, 4.22-4), «Tablas» con la misma clave (4.23-3) y «Ajustes» con la misma clave (la cambia quien la tiene en todos los orígenes). La base
+// `equipo.roles.gestionar`: cada nivel es un permiso de la matriz de Roles), «Fórmula», «Tarjeta», «Diseño» y «Tonos» con `cotizaciones.configurar` en algún origen
+// (4.20-2a, 4.19-3b, 4.22-2, 4.22-4), «Tablas» con la misma clave (4.23-3) y «Ajustes» con la misma clave (la cambia quien la tiene en todos los orígenes). La base
 // vuelve a exigir lo suyo en cada RPC y en las policies de `formulas` y `tablas_referencia`. Sin ninguna, «No tienes permiso» (y la sección no figura en Configuración).
 export default async function PaginaDeCotizacion({
   searchParams,
@@ -41,7 +32,7 @@ export default async function PaginaDeCotizacion({
   })
   const paraLaBarra = [quitarPermisos(primera), ...resto.map(quitarPermisos)] as const
   return (
-    <div className="grid max-w-3xl gap-4">
+    <div className={`grid gap-4 ${pestana === 'tarjeta' ? 'max-w-6xl' : 'max-w-3xl'}`}>
       <div className="grid gap-1">
         <h1 className="text-(length:--text-xl) font-semibold text-(--color-ink)">Cotización</h1>
         <p className="text-(length:--text-sm) text-(--color-ink-soft)">
@@ -49,56 +40,12 @@ export default async function PaginaDeCotizacion({
         </p>
       </div>
       <PestanasDeCotizacion pestanas={paraLaBarra} />
-      {pestana === 'niveles' ? (
-        <SeccionNiveles puedeGestionar={puede(sesion.permisos, 'equipo.roles.gestionar')} />
-      ) : null}
-      {pestana === 'formula' ? (
-        <Suspense
-          key={origenPedido ?? ''}
-          fallback={<EsqueletoFormulario bloques={2} campos={4} />}
-        >
-          <SeccionDeLaFormula
-            origenes={getOrigenes(true)}
-            permisos={sesion.permisos}
-            origenPedido={origenPedido}
-          />
-        </Suspense>
-      ) : null}
-      {pestana === 'diseno' ? (
-        <Suspense
-          key={origenPedido ?? ''}
-          fallback={<EsqueletoFormulario bloques={2} campos={4} />}
-        >
-          <SeccionDelDiseno
-            origenes={getOrigenes(true)}
-            permisos={sesion.permisos}
-            origenPedido={origenPedido}
-          />
-        </Suspense>
-      ) : null}
-      {pestana === 'tonos' ? (
-        <Suspense fallback={<EsqueletoFormulario bloques={2} campos={2} />}>
-          <SeccionDeLosTonos />
-        </Suspense>
-      ) : null}
-      {pestana === 'tablas' ? (
-        <Suspense
-          key={`${origenPedido ?? ''}:${tablaPedida ?? ''}`}
-          fallback={<EsqueletoFormulario bloques={2} campos={4} />}
-        >
-          <SeccionDeLasTablas
-            origenes={getOrigenes(true)}
-            permisos={sesion.permisos}
-            origenPedido={origenPedido}
-            tablaPedida={tablaPedida}
-          />
-        </Suspense>
-      ) : null}
-      {pestana === 'ajustes' ? (
-        <Suspense fallback={<EsqueletoFormulario bloques={1} campos={2} />}>
-          <SeccionAjustes puedeCambiar={puedeCambiarAjustesDeCotizacion(sesion.permisos)} />
-        </Suspense>
-      ) : null}
+      <SeccionAbierta
+        pestana={pestana}
+        permisos={sesion.permisos}
+        origenPedido={origenPedido}
+        tablaPedida={tablaPedida}
+      />
     </div>
   )
 }

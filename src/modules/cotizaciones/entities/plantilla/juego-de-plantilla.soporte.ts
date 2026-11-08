@@ -6,10 +6,24 @@ import { REGLAS_DE_PLANTILLA } from './motivos-de-plantilla'
 // Lo que el validador lee de la fórmula; lo demás pasa sin mirar.
 const esquemaDefinicion = z.looseObject({
   nodos: z.array(
-    z.looseObject({ id: z.string(), grupo: z.string().nullish(), salida: z.string().nullish() }),
+    z.looseObject({
+      id: z.string(),
+      grupo: z.string().nullish(),
+      salida: z.string().nullish(),
+      etiqueta: z.string().nullish(),
+    }),
   ),
   buckets: z.record(z.string(), z.string()).optional(),
-  grupos: z.array(z.looseObject({ id: z.string(), bucket: z.string().nullish() })).optional(),
+  grupos: z
+    .array(
+      z.looseObject({
+        id: z.string(),
+        bucket: z.string().nullish(),
+        etiqueta: z.string().nullish(),
+        tono: z.string().nullish(),
+      }),
+    )
+    .optional(),
 })
 const esquemaDiseno = z.looseObject({
   cabecera: z

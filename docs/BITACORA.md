@@ -1420,6 +1420,83 @@ share` los vehículos y después los leads del lote, por id, antes de cualquier 
 - **Abiertos:** el formulario y la pestaña «Ajustes» de Configuración › Cotización, 4.20-4b.
   e2e completo: no (4.20-4a, base, regla y action sin interfaz, Nivel 1 + cadena db)
 
+<!-- paso:4.19-3b -->
+
+## 2026-11-08 — Paso 4.19-3b: la pestaña «Tarjeta» y el editor que guarda
+
+- **Hecho:** la segunda parte del 4.19-3. **Puros** (`entities/plantilla/`, cada uno con su test): `contextoParaElNavegador()` (del contexto de `validarPlantilla()` sólo los nodos
+  con lugar o de tipo de cambio, con su etiqueta, grupo y salida; los grupos; del diseño los modos y los secundarios; y el `{ver}` de la visibilidad; nunca el cuerpo de un nodo),
+  `plantillaParaEditar()` y `alinearConLaFormula()` (el borrador, o la copia de la publicada, o la omisión; un grupo que la fórmula ya no tiene se quita, uno nuevo se suma al final),
+  `avisosDeTonos()`, los cambios (`conEtiqueta`, `conTotal`, `conNota`…), `filasDelEditor()` y `filtrarFilas()`, `origenesDeLaTarjeta()` y `propsDelEditor()` (lo único que la sección
+  calcula, probado porque un Server Component async no se monta en Vitest). **Editor** (`features/plantilla/`): `useEditorDeLaPlantilla` (estado, forma y `completa` al tipear, borrador en
+  la pestaña por versión), `useGuardarLaPlantilla` (un envío a la vez, PT409 que se va al llegar la versión, sin conexión), `useMotivosDelEditor`, y los bloques «Grupos», «Total»,
+  «Filas» (con «Buscar fila») y «Pie y columnas»; cada campo dice «n de <tope>» con `caracteres()` y ninguno lleva `maxLength` (4-74 aplicado). **Pestaña:** `?seccion=tarjeta&origen=`
+  con `cotizaciones.configurar`, después de «Fórmula»; el selector de origen, el vacío sin fórmula con su enlace y el editor por `diferido()`.
+- **Lo que midió E7** (`e2e/configuracion-cotizacion-tarjeta-volumen.spec.ts`, escritorio, con 500 miembros): **147.484 B** del primer HTML y **4.754 nodos** del DOM con «Filas»
+  abierto (topes 154.900 y 5.000, +5 %). El primer HTML con la «mini» no lleva el cuerpo de un nodo («Probabilidad de compra en subasta»). Con 600 miembros el aviso de tope aparece y
+  «Buscar fila» halla la fila 600. El plan suponía un HTML mucho menor: lo que pesa es `contexto` + `inicial` en el payload de la pestaña (≈ 100 B por nodo con lugar y por fila).
+- **Verificación** (`.piloto/salidas/4.19-3b/`): `rojo-head-puro.txt`, `rojo-head-editor.txt` (los módulos no existen) y `rojo-head-e2e.txt` (sin la pestaña el build no compila: `pestanas.test.ts`
+  nombra «tarjeta»); `verde.txt` (los tres specs, 22 de 22 en escritorio y móvil); `dirigidos.txt` y `dir2.txt` (los diez specs de Configuración › Cotización y `configuracion-200`, en los dos
+  proyectos, sin caídas); vitest de `src/modules/cotizaciones`, `src/app` y `scripts/guardas`: 254 archivos, 3.611 pruebas. **Sondas** (pantalla pura, sin mutaciones formales): S1 (el
+  contexto entero), S4 (no quitar el grupo ajeno), S2 (la esperada por `Date`), S3 (el conflicto que se va al pulsar), S7 (`maxLength`) y S8 («Guardar» apagado por `completa`) caen en su
+  prueba; S3 sólo en `use-guardar-la-plantilla.test.tsx` (el hueco entre «Recargar» y la versión nueva no se reproduce con certeza en e2e).
+  e2e completo: no (4.19-3b, pantalla, 2 de 3)
+- **No hecho / desvíos:** `docs/RENDIMIENTO.md` lleva la fila de la pestaña con lo medido. No hay presupuesto de JS para `/configuracion/cotizacion` (el editor va por `diferido()`);
+  4-73 no se toca. `docs/UX.md` se escribió en el commit de la pestaña porque `mapa.sh --check` pide que exista el título que cita el spec.
+- **Abiertos:** nuevo **4-101** (el editor no mueve el orden de los grupos ni agrega o quita grupos a mano; lo decide la persona con la vista previa del 4.19-4). Sigue el **4.19-3c**
+  (publicar con nota y descartar); la cuenta de e2e pasa a 2 de 3.
+- **Commits:** `5cb4f238` feat(cotizaciones): preparar la plantilla de la tarjeta para editarla · `b49e52f7` feat(cotizaciones): editar y guardar la plantilla de la tarjeta · `55fed1b1`
+  feat(cotizaciones): pestaña de la tarjeta en configuración › cotización · y el de docs.
+
+<!-- paso:4.19-3c -->
+
+## 2026-11-08 — Paso 4.19-3c: publicar la tarjeta con nota y descartar su borrador
+
+- **Hecho:** la tercera y última parte del 4.19-3. **Puros** (`entities/plantilla/`, con su test): `publicar-la-plantilla.ts` (`PANEL_PUBLICAR_TARJETA`, `motivoParaNoPublicar()`,
+  `motivoParaNoAbrirPublicar()`, `noDisponibleAlPublicar()` y los textos del modal) y `descartar-la-plantilla.ts` (`PANEL_DESCARTAR_PLANTILLA`, los motivos, los textos y el mensaje sin red).
+  **Hooks** (`features/plantilla/hooks/`): `usePanelDeLaTarjeta` (un solo hook para los dos paneles: `useVueltaDelFoco` se llama una vez por clave), `useAperturaDeLaTarjeta`,
+  `useFormularioDePublicacionDeLaTarjeta` (la nota con el esquema de la action, PT409 que conserva la nota y se va al llegar el borrador nuevo, sin conexión, una regla de la base
+  arriba) y `useDescarteDeLaPlantilla` (PT409 con «Recargar», sin reintento al volver la red, `descartado` para no decir «ya no está» mientras el diálogo se va). **Pantalla:**
+  «Publicar…» y «Descartar borrador…» en la fila de «Guardar» (`BotonesDeLaPlantilla`: «Publicar…» apagado con su motivo escrito a la vista), `ModalDePublicarLaTarjeta`
+  (`?panel=publicar-tarjeta`, «Nota de la versión» obligatoria, con «n de 2.000» y sin `maxLength`), `DescartarLaPlantilla` (`<Confirmar>`, `?panel=descartar-plantilla`, registrado en
+  `confirmar-con-url.ts`), `AccionesDeLaPlantilla` y `PestanaDeLaTarjeta`, que dibuja el editor con su `key` y, al lado, los modales **sin** `key` de versión (si no, «Recargar»
+  los remontaría y perdería la nota: lo prueba `pestana-de-la-tarjeta.test.tsx`).
+- **Lo que midió E7** (`e2e/configuracion-cotizacion-tarjeta-volumen.spec.ts`, escritorio, 500 miembros): **147.448 B** del primer HTML y **4.756 nodos** (topes 154.900 y 5.000; antes
+  147.484 B y 4.754). Los topes no se tocaron.
+- **Verificación** (`.piloto/salidas/4.19-3c/`): `rojo-head-puro.txt` (los seis archivos de pruebas de lo puro y los hooks caen contra HEAD: los módulos no existen) y
+  `rojo-head-e2e.txt` (E1 de publicar contra HEAD: no hay botón «Publicar…»; sólo E1, no E7); `e2e-commit2.txt` (30 de 30) y `e2e-commit3.txt` (los cinco specs de la pestaña, 42 de 42 en escritorio y móvil);
+  `e7-medido.txt`. Vitest de `features/plantilla`, `entities/plantilla` y `scripts/guardas`: 108 y 1.005 pruebas en verde.
+  e2e completo: no (4.19-3c, pantalla, 3 de 3)
+- **Desvíos:** (1) el E1 de `configuracion-cotizacion-tarjeta.spec.ts` pedía seis decimales de microsegundos y cayó tres veces seguidas (`.695`, `.43929`, `.62499`): la base los escribe
+  sin los ceros del final y el reloj de esta máquina a veces da pocos; se quitó esa aserción (la precisión de la esperada la prueba el PT409 de `-conflicto.spec.ts`), de la familia de 4-90.
+  (2) Los botones del pie de `<Confirmar>` miden 42 px en móvil (es de `shared/ui`, no de este paso): E9 no los exige táctiles. (3) E4 de 3b pulsa «Descartar» con `exact`.
+- **Abiertos:** nuevo **4-102** (los botones del pie de `<Confirmar>` miden 42 px de alto en móvil, bajo los 44 de `ui.md`; es de `src/shared/ui`, Nivel 2). Sigue el **4.19-4** (la vista previa en
+  vivo); la cuenta de e2e pasa a 3 de 3 y ese paso de pantalla correría el completo (confirmarlo con `cuenta-e2e.mjs`).
+- **Commits:** `23a23417` feat(cotizaciones): preparar los paneles de la tarjeta sin pantalla · `c1cce295` feat(cotizaciones): publicar la tarjeta con nota · `319404d6` feat(cotizaciones):
+  descartar el borrador de la tarjeta · y el de docs.
+
+<!-- paso:4.19-4 -->
+
+## 2026-11-08 — Paso 4.19-4: la vista previa en vivo del editor de la plantilla
+
+- **Hecho:** cierra el 4.19. **Commit 1:** la consulta de tonos pide los seis colores (`TonoDelCatalogo` suma `claro` y `oscuro`) y el contexto reducido lleva el `plazo` de cada grupo.
+  **Commit 2:** `entities/vista-previa-de-la-plantilla.ts` (el hueco: tipo sin código, lectura plana y `FILAS_POR_GRUPO_EN_LA_VISTA_PREVIA = 4`) y
+  `entities/plantilla/lectura-para-la-vista-previa.ts` (grupos en el orden de la plantilla, filas en el de la fórmula, etiqueta escrita o la del nodo, leyenda sólo la escrita, tono
+  si sigue en el catálogo, tope de 4 filas cortado antes de mapear). **Commit 3:** `entities/tarjeta/vista-previa-de-ejemplo.ts` (adaptador a `TarjetaLista`, cifras de ejemplo, página
+  de ejemplo), `VistaPreviaDeLaPlantilla`, su diferida y `pantallas/tarjeta-plantilla.ts`. **Commit 4:** `VistaPreviaDelEditor`, el editor (`VistaPrevia?`, grilla a dos columnas desde
+  `xl`), la pestaña, la sección y la página (`max-w-6xl` sólo en «Tarjeta»), con E1.
+- **Verificación** (`.piloto/salidas/4.19-4/`): vitest de lo tocado (lectura 6, ejemplo 4, componente 3, editor +3, contexto y lectura de tonos +2); `scripts/guardas` 1.007 en verde;
+  `e1.txt` (E1, 2 de 2 en escritorio y móvil); `dirigidos.txt` (los cinco specs de la pestaña y E1: **44 de 44** en los dos proyectos; E7 con 500 y 600 miembros dentro de los topes
+  de 154.900 B y 5.000 nodos, sin tocarlos); `presupuesto-js.txt` (`/cotizaciones/nuevo`: 439,5 KB de 460 con gzip).
+  e2e completo: no (4.19-4, pantalla, 3 de 3)
+- **Desvío:** la primera corrida de los cinco specs cayó en `E9` de descartar y `E10` de publicar (escritorio, al 200 % de texto: `24rem` fijos de la columna de la vista previa
+  ensanchaban la página). La columna pasó a `minmax(0, 24rem)`; no hay defecto de pulido nuevo.
+- **Abiertos:** sigue **4-101** (mover, agregar o quitar grupos a mano: la persona lo decide mirando la vista previa) y **4-102**; nuevo **4-103** (la vista previa no muestra la
+  descripción del nodo, el nombre de `tipos_cambio` ni el título de la variante: no viajan al navegador).
+- **Pendientes que se arrastran** (salieron de `docs/ESTADO.md` para dejarlo en 60 líneas): ficha del lead («Datos» 39,2 de 43 KB, «Oportunidades» 61,2 de 66); portal (su texto por empresa;
+  `api/portal/*` en la Fase 8); lead sin dueño tras una baja (lo rescata la supervisión); Fase 6 (publicar sin mover la versión de la ficha; la papelera manual no mira `documentos`); Fases 7 a 9
+  (notificar al compartir, transferir y limpiar; «Escribirle por chat»; `recordatorios_notificar()` sin cron).
+
 <!-- paso:4.20-4b -->
 
 ## 2026-11-08 — Paso 4.20-4b: Configuración › Cotización › Ajustes, el formulario de la vigencia y el vehículo obligatorio

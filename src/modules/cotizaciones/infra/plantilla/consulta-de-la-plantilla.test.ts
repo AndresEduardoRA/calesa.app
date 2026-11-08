@@ -63,7 +63,10 @@ describe('consultaDeLosTonos', () => {
     void consultaDeLosTonos(cliente)
     expect(llamadas).toEqual([
       ['from', 'tonos'],
-      ['select', 'clave, nombre'],
+      [
+        'select',
+        'clave, nombre, claro_fondo, claro_borde, claro_tinta, oscuro_fondo, oscuro_borde, oscuro_tinta',
+      ],
       ['order', 'nombre'],
       ['limit', 24],
     ])

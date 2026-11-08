@@ -28,12 +28,12 @@
   de cotizaciones (clave, versión, purga por lotes, «Enviar a la papelera» con «Deshacer»).
 - **Verdes:** lint, typecheck, test, `db:probar`, `db:lint`, `db:carreras` y `mapa.sh`. Último e2e completo: el del 4.18-3b, 980 en verde, 16 saltados.
   CI: `nivel-1` siempre, `carriles` en cada PR, `base` si cambia código, e2e dirigidos; el completo de escritorio cada noche.
-- **Presupuestos al borde:** JS de `/cotizaciones/nuevo` 459,0 de 460 KB y la hoja, 491 nodos de 500 (con la regla del 5 %, se sube el tope).
+- **Presupuestos al borde:** la hoja, 491 nodos de 500; JS de `/cotizaciones/nuevo` 439,5 de 460 KB (medido en el 4.19-4). Con la regla del 5 %, se sube el tope.
 
 ## Siguiente
 
 - **En curso.** A, **4.20-4** (vigencia y vehículo obligatorio) hecho: el -4a (la RPC, la lectura y la action) y el -4b (la pestaña «Ajustes» de
-  Configuración › Cotización). B, **4.21**
+  Configuración › Cotización); el 4.19 (el editor de la plantilla) quedó hecho con el -4 (abiertos nuevos: 4-101, 4-102 y 4-103, en `docs/PLAN.md`). B, **4.21**
   (el editor de la fórmula como el Excel): hechos el -1, -2, -3a y -3b-1 (guardar el borrador, PR #68), siguen el -3b-2 y el -3c. C, **4.25**
   (marcar final): hecho el -1 (candados en el orden de vincular, la final como ancla, desvincular con final), sigue el -2.
 - **Lo que falta para cerrar la Fase 4:** B, 4.22 (el

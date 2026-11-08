@@ -42,7 +42,18 @@ const esquemaDeLaFormula = z.strictObject({
   visibilidad: z.unknown(),
 })
 
-const esquemaDeLosTonos = z.array(z.strictObject({ clave: z.string(), nombre: z.string() }))
+const esquemaDeLosTonos = z.array(
+  z.strictObject({
+    clave: z.string(),
+    nombre: z.string(),
+    claro_fondo: z.string(),
+    claro_borde: z.string(),
+    claro_tinta: z.string(),
+    oscuro_fondo: z.string(),
+    oscuro_borde: z.string(),
+    oscuro_tinta: z.string(),
+  }),
+)
 
 const filas = (data: unknown): unknown[] => (Array.isArray(data) ? data : [])
 
@@ -105,7 +116,15 @@ function leerFormula(data: unknown): Resultado<FormulaParaLaPlantilla | null> {
 
 function leerTonos(data: unknown): Resultado<readonly TonoDelCatalogo[]> {
   const leidos = esquemaDeLosTonos.safeParse(filas(data))
-  return leidos.success ? ok(leidos.data) : fallo('inesperado', 'No pudimos leer los tonos.')
+  if (!leidos.success) return fallo('inesperado', 'No pudimos leer los tonos.')
+  return ok(
+    leidos.data.map((t) => ({
+      clave: t.clave,
+      nombre: t.nombre,
+      claro: { fondo: t.claro_fondo, borde: t.claro_borde, tinta: t.claro_tinta },
+      oscuro: { fondo: t.oscuro_fondo, borde: t.oscuro_borde, tinta: t.oscuro_tinta },
+    })),
+  )
 }
 
 // El primer error de las tres (en el orden plantillas, fórmula, tonos): una lectura que falla sube al `error.tsx` de la ruta, con `datosO()`.
