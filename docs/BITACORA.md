@@ -1419,3 +1419,262 @@ share` los vehículos y después los leads del lote, por id, antes de cualquier 
 - **Verificación:** Nivel 1 + cadena db. `db:reset`, `db:types`, `db:probar` entero (674 ✓, 0 ✗; T1–T6 nuevos: permiso sin origen, guardado, versión, rango con `hint`, separación de la RPC de Empresa, definición), `db:lint` sin avisos de la función. Vitest de lo tocado (174 de 174; la regla y la action con sus pruebas). e2e dirigido `e2e/empresa.spec.ts` en escritorio, 7 de 7. Plan e informe auditados (observaciones, atendidas).
 - **Abiertos:** el formulario y la pestaña «Ajustes» de Configuración › Cotización, 4.20-4b.
   e2e completo: no (4.20-4a, base, regla y action sin interfaz, Nivel 1 + cadena db)
+
+<!-- paso:4.20-4b -->
+
+## 2026-11-08 — Paso 4.20-4b: Configuración › Cotización › Ajustes, el formulario de la vigencia y el vehículo obligatorio
+
+- **Hecho:** la pestaña «Ajustes» al final de Configuración › Cotización (`?seccion=ajustes`): la ve quien tiene `cotizaciones.configurar` en algún origen y la cambia quien la tiene en todos (`puedeCambiarAjustesDeCotizacion`); sin eso, los campos apagados con el motivo y sin «Guardar». En `empresa`, `<FormularioDeAjustesDeCotizacion>` (por `pantallas/configuracion-cotizacion.ts`) con «Vigencia (días)» y el interruptor «Vehículo obligatorio al cotizar», y su hook sobre la action del 4.20-4a; sin borrador; remonta con `key` = versión. El hub dice «La fórmula de cada origen, la vigencia y los niveles de acceso de la hoja.». UX: «Cotización: ajustes (estados propios)».
+- **Verificación:** Nivel 1. Vitest de lo tocado (3 archivos, 14 de 14) y `scripts/guardas` (32 archivos, 1.023 de 1.023). e2e dirigidos con `E2E_SIN_FUNCIONES=1`, 63 de 63: `configuracion-cotizacion-ajustes` (nuevo: la dueña guarda 30 días y el vehículo apagado, comprobado por SQL y al recargar; quien configura un solo origen lo ve apagado), `-formula` y `-niveles-permisos` en escritorio; `-niveles-200` y `configuracion-200` en escritorio y movil. Sin auditor (paso de pantalla, ámbar).
+- **Abiertos:** ninguno nuevo.
+  e2e completo: no (4.20-4b, pantalla de Configuración: Nivel 1, dirigidos en escritorio; el completo lo corre el CI del PR)
+
+<!-- paso:4.27 -->
+
+## 2026-11-08 — Paso 4.27-1: comentarios, adjuntos, reportes, moderar y favorita en la base
+
+- **Hecho:** paso rojo, base sola, seis commits de código, cada uno con su migración `comentarios_*` y su prueba en `supabase/tests/areas/comentarios/`, más un
+  `fix` que pidió la auditoría del informe. El plan se auditó una vez (bloquea; las 10 objeciones se corrigieron en el plan). La compuerta `datos`, con P1–P11
+  recomendadas: «aprobar».
+  - **4-69** (`09c029a0`): storage «cotizaciones: subir» y la tabla de adjuntos piden lo que pide guardarla (`cotizacion_puede_adjuntar`); leer un objeto pide ver
+    sin castear el primer tramo (`_cotizacion_de_objeto`, nulo fuera de una carpeta).
+  - Leer por cursor (`1a992d03`): `cotizacion_comentarios` (raíces de la más nueva a la más vieja, de a 20, cada una con sus primeras 20 respuestas) y
+    `cotizacion_comentario_respuestas`; dos índices; sin filtro en el recorrido.
+  - Escribir (`9bce0d30`): comentar (pide ver; un nivel), editar (el autor, con la versión), borrar (el autor o quien modera y ve; quita la fila o vacía una raíz
+    con respuestas). Normaliza lo de antes y agrega dos `check`. El catálogo: comentar es de `ver`.
+  - Adjuntos (`be382212`): `cotizacion_adjuntar` (carpeta, objeto, tipo y tamaño de storage, hasta 20, sin repetir) y `cotizacion_adjunto_quitar` (encola la ruta).
+  - Reportar y moderar (`27638782`): reportar y retirar no mueven el estado ni la versión; `cotizacion_moderar` con firma nueva (ver, fila tomada, versión, y en
+    una final `final.gestionar`); leer reportes ajenos pide moderar y ver.
+  - Favorita (`6195b86f`): `cotizacion_favorito_poner`.
+  - `fix` (`18dc4f8f`): retirar un reporte toma la cotización antes del reporte (con moderar se cruzaban: 40P01) y moderar mira su permiso global antes de tomar
+    la fila; las RPC del paso quedan registradas en `auditoria-leads.sql`.
+  - Se revocan las escrituras directas de las cuatro tablas: todo pasa por RPC (P9 a).
+- **Verificación** (`.piloto/salidas/4.27/`):
+  - `db:probar` entero en el hook de cada commit: 0 ✗; en el commit 6, 694 ✓ (28 de `areas/comentarios/`: 22 pruebas y 6 cabeceras) (`db-probar-entero.txt`,
+    `commit-fix.txt`). Por commit, `SOLO=` de su archivo (`c1-solo.txt` … `c6-solo.txt`, `fix-solo.txt`) y `db:reset` + `db:types` + `db:lint` (`c*-reset.txt`).
+  - `scripts/guardas`: 32 archivos, 1.007 ✓ (`guardas.txt`); `carriles.mjs origin/main c/4.27`: 15 archivos cumplen; `mapa.sh --check` 0; saltadas 0.
+  - `nivel.mjs` con los archivos reales: Nivel 2 (`rls` y `estructura`), sin interfaz. Sin e2e dirigidos: ningún spec nombra estas tablas ni RPC.
+  - `lint` lo corrió el hook; `typecheck` lo saltó el hook (`PILOTO=1`; sólo cambió `database.types.ts` regenerado): lo corren el hook de Stop y el CI.
+    e2e completo: no (4.27-1, base, Nivel 2: el completo lo corre el CI del PR; 1 de 3)
+- **Desvíos:** el `aplicado_en` de `ver` y `moderar` se completa en el commit de cada RPC (con su línea del seed), no todo en el 3 y el 5. El `aplicado_en` de `ver` no
+  nombra todas las RPC que piden ver (sólo las que lee o escribe quien sólo ve): es texto del catálogo. El cinturón de `auditoria-leads.sql` no exige las RPC que
+  nombran `public.cotizaciones_<tabla>` (su `\M`); se registraron igual en el `fix`.
+- **Sin hacer:** las pantallas (4.27-2 comentarios, con `scripts/guardas/areas-c/paginas-en-la-base.ts` y la `infra/`; 4.27-3 adjuntos; 4.27-4 favorita, reportar y
+  moderar en la cabecera). Sin `db:carreras` de los candados nuevos (pruebas de una sesión). Sin medición con volumen.
+
+### Al A
+
+1. **`docs/PLAN.md`, fila del 4.27:** «**Se parte en cuatro** (el 2026-11-08, en su plan): **4.27-1** la base (rojo, Nivel 2), **4.27-2** los comentarios,
+   **4.27-3** los adjuntos, **4.27-4** favorita, reportar y moderar (pantalla, Nivel 1)». En `docs/plan.yaml`, los cuatro ids: 4.27-2 y 4.27-4 dependen del 4.27-1;
+   4.27-3, del 4.27-2.
+2. **Abiertos:** cerrar **4-69** (hecho en `09c029a0`) y **4-91** (el registro por carril ya existe, `registros-de-carriles.ts`; el C crea
+   `scripts/guardas/areas-c/paginas-en-la-base.ts` en el 4.27-2, con la `infra/` que llama a las RPC).
+3. **Abierto nuevo (para el 4.28):** una medición en `scripts/mediciones.mjs` con una cotización de 1.000 comentarios raíz y 500 respuestas: `cotizacion_comentarios`
+   y `cotizacion_comentario_respuestas` por sus índices (`cotizaciones_comentarios_raices_idx`, `…_respuestas_idx`), sin `Sort`, sin crecer entre 100 y 1.000
+   (`pg_stat_get_xact_blocks_fetched` por relación). El presupuesto va a la fila de `docs/RENDIMIENTO.md` («Comentarios de una cotización»).
+4. **ESTADO:** «4.27-1 (C): la base de comentarios, adjuntos, reportes, moderar y favorita, por RPC y con 4-69 cerrado; siguen 4.27-2 a 4.27-4 (pantallas)».
+
+## 2026-11-08 — Paso 4.27-2: los comentarios en pantalla
+
+- **Hecho:** paso de pantalla (sin migración, policy, RLS ni `security definer`: usa las RPC del 4.27-1 tal cual), sin auditor. La compuerta `producto` (P1, P2) se
+  contestó con las recomendadas: la sección bajo la hoja y «Ir a una fecha» al tope.
+  - La sección «Comentarios» llena el hueco `Debajo` de `/cotizaciones/[id]`: lee desde el navegador la primera vez que está a la vista (`diferido()`), comenta,
+    responde (un nivel), edita lo propio y borra con `<Confirmar>` por `?panel=borrar-comentario&comentario=<id>`. De a 20 raíces con sus primeras 20 respuestas hasta 500
+    entre todos, con «Ir a una fecha».
+  - `entities/comentarios/` (parseo con Zod, permisos puros, la lista cargada que borra como la base, con tests), `infra/comentarios/` (lectura en el navegador, escritura en el
+    servidor), tres actions sin `revalidatePath`.
+  - Registros del C: `scripts/guardas/areas-c/paginas-en-la-base.ts` (las tres llamadas con tamaño; cierra **4-91**) y `scripts/guardas/areas-c/confirmar-con-url.ts`. Las pruebas del
+    núcleo que fijaban el registro sin áreas (`paginas-en-la-base.test.ts`, `confirmar-con-url-areas.test.ts`) suman ahora lo de `areas-*/`.
+- **Verificación** (`.piloto/salidas/4.27-2/`):
+  - `vitest` de `entities/comentarios/`: 2 archivos, 14 ✓ (`vitest-entities.txt`); `vitest related` de lo tocado: 3 archivos, 18 ✓ (`vitest-related.txt`).
+  - `scripts/guardas`: 32 archivos, 1.010 ✓ (`guardas.txt`). `typecheck` 0 errores (`typecheck.txt`); `eslint --max-warnings 0` de lo tocado, limpio; `mapa.sh --check` 0.
+  - `nivel.mjs` con los archivos reales: Nivel 1, sin disparadores, con interfaz (`nivel.txt`).
+  - e2e dirigidos en escritorio y móvil, contra el build (`e2e-dirigidos.txt`): `cotizaciones-comentarios` (nuevo), `cotizar-guardada`, `cotizar-guardada-revisiones`,
+    `cotizaciones-papelera-enviar` y `presupuesto-js`: 41 ✓, 7 saltadas por su marca de celular. JS en frío de `/cotizaciones/[id]`: 440 KB (tope 448, sin cambio).
+    e2e completo: no (4.27-2, pantalla, Nivel 1: lo dirigido en escritorio y movil; 2 de 3)
+- **Desvíos del plan:** `puedeModerar` sale de la lectura (`puede_moderar` de `cotizacion_comentarios`), no de `puede()` en el servidor: es el mismo `tiene_permiso` que mira
+  borrar, y el hueco sólo pasa el id. «Borrar» con su diálogo entró en el mismo commit que la sección (los componentes ya lo nombraban): cinco commits de código, no seis.
+  Las funciones de más de 80 líneas se partieron (`raiz-de-comentario.tsx`, `pie-de-comentarios.tsx`, `use-envio-del-campo.ts`, `estado-de-comentarios.ts`,
+  `use-acciones-de-comentario.ts`).
+- **Sin hacer:** adjuntos (4.27-3), favorita, reportar y moderar (4.27-4); tiempo real; la medición con volumen (sigue pedida para el 4.28).
+
+### Al A (4.27-2)
+
+1. **ESTADO:** «4.27-2 (C): los comentarios bajo la guardada (comentar, responder, editar y borrar, por cursor hasta 500 con «Ir a una fecha»); siguen 4.27-3 y 4.27-4».
+2. **Abiertos:** cerrar **4-91** (`scripts/guardas/areas-c/paginas-en-la-base.ts`).
+3. **BITACORA:** la línea con el marcador de arriba (2 de 3).
+
+## 2026-11-08 — Paso 4.27-3: los adjuntos en pantalla
+
+- **Hecho:** paso rojo sin migración, policy, RLS ni `security definer` (usa las RPC y las policies de storage del 4.27-1 tal cual). Plan auditado una vez
+  (observaciones, atendidas); el informe no se audita. La compuerta `datos` del plan se contestó «aprobar» (P1–P4 con las recomendadas).
+  - El bloque «Adjuntos» arriba del campo de la sección «Comentarios» de `/cotizaciones/[id]`: quien puede guardarla sube PDF, imágenes (WebP ≤ 1600 px) o Word al bucket
+    privado por hash, de a uno y con su fila; todos los que la ven bajan por URL firmada (60 s, al tocar «Descargar»); quitar, quien lo subió (si todavía puede adjuntar) o
+    quien modera, con `<Confirmar>` por `?panel=quitar-adjunto&adjunto=<id>`.
+  - `entities/comentarios/adjunto.ts` (tipos, tope, nombre, `puedeQuitarAdjunto`, con tests) y `quitado.ts`; `infra/comentarios/adjuntos.client.ts` (leer, subir, firmar) y
+    `adjuntos.ts` (las dos RPC); dos actions sin `revalidatePath`; el registro del `<Confirmar>` nuevo en `scripts/guardas/areas-c/confirmar-con-url.ts`.
+- **Verificación** (`.piloto/salidas/4.27-3/`):
+  - `vitest` de `entities/comentarios/adjunto.test.ts`: 13 ✓ (`vitest-adjunto.txt`); `vitest related` de lo tocado: 4 archivos, 22 ✓, y `scripts/guardas`: 32 archivos,
+    1.010 ✓ (`vitest-related-y-guardas.txt`). `tsc --noEmit` 0 errores; lint y formato por el hook de cada commit.
+  - `nivel.mjs` con los archivos reales: Nivel 1, sin disparadores, con interfaz (`nivel.txt`).
+  - e2e dirigidos en escritorio y móvil, contra el build (`e2e-dirigidos.txt`): `cotizaciones-adjuntos` (nuevo), `cotizaciones-comentarios`, `cotizar-guardada`,
+    `cotizaciones-papelera-enviar` y `presupuesto-js`: 35 ✓, 7 saltadas por su marca de celular. JS en frío de `/cotizaciones/[id]`: 440,1 KB (tope 448, sin cambio).
+    e2e completo: no (4.27-3, pantalla, Nivel 1: lo dirigido en escritorio y movil; 3 de 3 tras consolidar el 4.27-2)
+- **Desvíos del plan:** «Quitar» y su diálogo entraron en el mismo commit que el bloque (el `<Confirmar>` sin su registro hace caer la guarda): cinco commits de código, no
+  seis. El `mime` de lo que se sube quedó tipado con los del bucket (`MIMES_DE_ADJUNTO`, `MIME_DE_IMAGEN`) en ese mismo commit, porque la action lo pide como enum.
+- **Sin hacer:** favorita, reportar y moderar (4.27-4); miniaturas; tiempo real; barrer un objeto subido cuyo registro falló.
+
+### Al A (4.27-3)
+
+1. **ESTADO:** «4.27-3 (C): los adjuntos en la sección de comentarios —subir por hash al bucket privado, descargar por URL firmada, quitar con su diálogo—; sigue 4.27-4».
+2. **BITACORA:** la línea con el marcador de arriba.
+3. **Abiertos nuevos:** (a) ensanchar `subirPorHash` (`src/shared/lib/supabase/almacen.client.ts`) a los buckets privados y llevar ahí la subida de
+   `infra/comentarios/adjuntos.client.ts`; (b) barrer los objetos del bucket `cotizaciones` que se subieron y nunca se registraron (hoy quedan, como en vehículos).
+
+## 2026-11-08 — Paso 4.27-4: favorita, reportar y moderar en la cabecera
+
+- **Hecho:** parte de pantalla del paso rojo, sin migración, policy, RLS, `security definer` ni claves nuevas (usa las cuatro RPC del 4.27-1 tal cual). Plan auditado
+  una vez (observaciones, atendidas en el plan); el informe no se audita (no toca RLS, permisos ni dinero: el único razonamiento de permisos es un espejo con test).
+  La compuerta `datos` del plan (`--hasta-plan`) se contestó «aprobar»: P1 a, P2 a, P3 a.
+  - En la cabecera de `/cotizaciones/[id]`: «Favorita» (estrella, cambia al tocar), «Reportar…» (`?panel=reportar`, motivo 1–500, «Retirar mi reporte» con
+    «Deshacer») y, para quien modera, «Invalidar…», «Descartar los reportes…» y «Reactivar…» (`?panel=moderar&accion=…`, `<Confirmar>` con los motivos); la
+    insignia «Inválida» (todos) o «Reportada» (sólo quien modera) en un hueco nuevo del núcleo, `Insignias`.
+  - `entities/comentarios/moderacion.ts` (espejo de `cotizacion_moderar`, insignia y acciones, con tests) y `moderacion-lectura.ts` (Zod, fuera del JS en frío);
+    `infra/comentarios/marcas.ts` (tres lecturas por clave primaria con `cache()` y las cuatro RPC) y `reportes.client.ts`; cuatro actions; el registro del
+    `<Confirmar>` nuevo en `scripts/guardas/areas-c/confirmar-con-url.ts`.
+- **Verificación** (`.piloto/salidas/4.27-4/`):
+  - `vitest` de `entities/comentarios/moderacion.test.ts`: 11 ✓; los del núcleo (cabecera y huecos, un caso nuevo cada uno): 2 archivos, 15 ✓ (`vitest-nucleo.txt`);
+    `vitest related` de lo tocado: 6 archivos, 53 ✓ (`vitest-related.txt`); `scripts/guardas`: 32 archivos, 1.010 ✓ (`guardas.txt`). `tsc --noEmit` 0 errores; lint y
+    formato por el hook de cada commit.
+  - `nivel.mjs` con los archivos reales: Nivel 1, sin disparadores, con interfaz (`nivel.txt`). `saltadas.mjs`: ninguna nueva (`saltadas.txt`).
+  - e2e dirigidos en escritorio y movil, contra el build (`e2e-dirigidos.txt`): `cotizaciones-moderar` (nuevo), `cotizar-guardada`, `cotizar-guardada-revisiones`,
+    `cotizaciones-papelera-enviar`, `cotizaciones-comentarios`, `cotizaciones-adjuntos` y `presupuesto-js`: 45 ✓, 7 saltadas por su marca de celular. JS en frío de
+    `/cotizaciones/[id]`: 441,9 KB (tope 448, sin cambio).
+    e2e completo: no (4.27-4, pantalla, Nivel 1: lo dirigido en escritorio y movil)
+- **Desvíos del plan:** al navegador llegan las acciones de moderar ya calculadas por el servidor (el hook de la URL no importa `moderacion.ts` ni `permisos.ts`);
+  la lista de reportes y el retiro con «Deshacer» van en su componente y su hook (`lista-de-reportes.tsx`, `use-reportes.ts`, `use-retiro-del-reporte.ts`) para no pasar
+  de 80 líneas por función. La favorita usa `useState` con «el último toque manda» en vez de `useOptimistic`. Cinco commits de código, sin el sexto (el JS entró).
+- **Sin hacer:** el filtro «Favoritas» y la insignia en el listado (área `listado`, del A); el nombre de quien reportó en la lista; tiempo real.
+
+### Al A (4.27-4)
+
+1. **ESTADO:** «4.27-4 (C): favorita, reportar y moderar en la cabecera de la guardada; cierra el 4.27».
+2. **PLAN:** la fila del 4.27 ya partida en cuatro, marcada hecha; cierra **4-69** (lo hizo el 4.27-1).
+3. **BITACORA:** la línea con el marcador de arriba.
+4. **Abierto nuevo:** invalidar o reactivar mueven la versión y el `router.refresh()` vuelve a montar la hoja (`pantalla-de-una-guardada.tsx`: la `key` lleva
+   `actualizadoEn`, y el borrador va por versión): lo no guardado de quien modera se pierde sin aviso de conflicto. El Confirmar lo avisa; que la hoja lo conserve
+   cuando sólo cambia el estado de la cotización es del núcleo.
+
+<!-- paso:4.21-3b-2 -->
+
+## 2026-11-08 — Paso 4.21-3b-2: la auxiliar de un número no pide celda en el diseño
+
+- **Hecho:** P2 del 3b-1. Una `constante` auxiliar de un número escrito en el texto de su fila ya no pide celda: publicar la acepta sin celda y el aviso del
+  editor deja de nombrar su fila. La compuerta `datos` (P1) aprobó la regla del editor, entera.
+  - **El núcleo** (commit 1, sin cambio de conducta): la regla de las auxiliares pasa de `formula/filas.ts` a `entities/compilador-auxiliares.ts`, y `filasDe()`
+    la usa.
+  - **La base** (commit 2): `_diseno_auxiliares(p_def)` y `validar_diseno()`, que le pasa a `_diseno_secciones()` los tipos con la constante auxiliar marcada
+    (sólo §5 lo mira). Una migración, `20261108124129_diseno_auxiliar_sin_celda.sql`. La firma de `_diseno_secciones()` no cambia.
+  - **El espejo y el aviso:** `Indice.auxiliares` y la excepción en `revisarCobertura`; `nodosSinCelda()` con la misma excepción.
+  - **El juego:** 14 casos nuevos en `casos-de-diseno.json` (de 244 a 258) sobre 12 fórmulas nuevas, y el corpus regenerado.
+- **Verificación:**
+  - **Contra HEAD, en rojo:** T1a y T1b no resolvían (el módulo no existía). Con el código de antes, 13 caídas en Vitest (`rojo-head-vitest.txt`). En
+    `db:probar` sin la migración, los casos, el corpus, los privilegios, las 7 funciones y S1–S6 caen (`rojo-head-db-probar.txt`); S1–S4 por
+    «zz__1 no está en ninguna sección del diseño».
+  - **En verde:** Vitest de lo tocado sobre el árbol final, 578 (`vitest-verde-final.txt`); `scripts/guardas`, 1.004 (`guardas.txt`); `db:probar` entero (`db-probar.txt`); `db:lint` sin
+    avisos nuevos; `db:reset` y `db:types` (suma `_diseno_auxiliares`). Los 6 e2e dirigidos en escritorio, 36 pasaron, G8 nuevo incluido
+    (`e2e-dirigidos.txt`). Sin interfaz: no corre en `movil`.
+  - **Mutaciones** (`mutaciones-sql.txt`, `mutacion-*.txt`). Cada una cae:
+    - en la base, MS1 sin la excepción, MS2 la excepción para cualquier tipo, MS3 sin (e), MS4 el patrón sin la rama del número (cayó al sumar el caso
+      `=remate+.total__1`), MS5 sin (d), MS6 sin (c), MS7 sin el recorte a 41 y MS9 una raíz sin texto;
+    - en la visibilidad, MS11 (`_nodos_visibles` da lo no nombrado a todos: caen S2 y S3/S4) y MS12 (`_compilar_visibilidad` da «todos» a lo no dibujado: caen
+      S1–S4);
+    - en TS, MT1 la cobertura sin la excepción, MT2 sin (e) en el núcleo, MT3 el aviso sin la excepción, y MT4 el patrón de la migración con un carácter menos
+      (T1c).
+    - **MS8 (aceptar ceros a la izquierda) es equivalente:** (b) exige que el último eslabón sea `aux(raíz, k)`, que nunca lleva cero. Se dice, no se prueba.
+  - **Medido:** `db:medir` dentro de sus topes (`validar_diseno` 6,5 / 58,8 ms; `formula_publicar` 20,1 / 191,3 ms; `db-medir.txt`). El ayudante solo crece
+    lineal hasta 4.000 filas (`medir-auxiliares-3-tamanos.txt`). La primera versión era cuadrática y se corrigió (`decisiones.md`).
+  - **No se hizo:** G8 no se corrió contra HEAD (el rojo de la base y del aviso ya está en Vitest y en `db:probar`). Tampoco se sumaron los mutadores nuevos del
+    corpus del plan.
+- **Abiertos:** la fila constante sin celda («Sumar fila», un cálculo que pasa a número) sigue sin poder publicarse hasta el 4.22, con su aviso. Sigue el
+  4.21-3c.
+  e2e completo: no (4.21-3b-2, base y espejo de validar_diseno, Nivel 1: lo dirigido en escritorio)
+
+<!-- paso:4.21-3c -->
+
+## 2026-11-08 — Paso 4.21-3c: los grupos de la fórmula en el editor (cierra el 4.21)
+
+- **Hecho:** el editor de la fórmula edita los grupos que hay: etiqueta, plazo, tono, el bucket que le da su tipo de cambio y qué filas suman a cada uno. Un
+  rechazo de un grupo va a su tarjeta y cada fila dice su grupo. La compuerta `producto` se contestó con las recomendadas (P1–P4). Es la última parte del 4.21:
+  sale sin `parcial`.
+  - **Lo puro:** `entities/formula/grupos.ts` (`aplicarGrupo()`, `grupoDelRechazo()`, `puedeSumarAlGrupo()`, `filasQuePuedenSumar()`, `opcionesDeBucket()`).
+  - **La lectura:** el catálogo de tonos desde el navegador (`infra/formula/tonos.client.ts`, por la composición del área), con `limit` 24.
+  - **La pantalla:** la sección «Grupos» (`grupos-de-la-formula.tsx`, `grupo-del-editor.tsx`, `formulario-del-grupo.tsx`, `filas-del-grupo.tsx`), con
+    `use-grupos-del-editor.ts`, `use-miembros-del-grupo.ts` y `use-tonos.ts`. El «Aplicar» de una fila pasó a `use-aplicar-fila.ts`, sin cambiar su conducta.
+- **Verificación:**
+  - `grupos.test.ts`: 7 pasaron (T1–T6). T5 es la de dinero: con tipos de cambio 7 y 10, mover una constante de 5 sube el total en Bs en 15.
+  - Dos mutaciones: `nodoConGrupo` sin escribir `grupo` hace caer T5 y los dos T3 (`mutacion-sin-grupo.txt`), y `filasQuePuedenSumar()` sobre todos los nodos hace caer
+    T4 (`mutacion-auxiliar-suma.txt`; la prueba es el `fix` de la auditoría del informe).
+  - Vitest de `features/formula` y `entities/formula`: 526 pasaron. `scripts/guardas`: 1.019 pasaron. Typecheck 0, y el hook pasó en los cinco commits.
+  - e2e dirigidos en escritorio: 27 pasaron (grupos, editor, filas, previa, guardar y previa-volumen), con E1 nuevo. Configuración no corre en `movil`.
+  - Las salidas están en `.piloto/salidas/4.21-3c/`.
+- **Abiertos:** sumar y quitar grupos, y editar `buckets`, `total_en` y los modos, esperan a que la plantilla de la tarjeta se edite junto con la fórmula (P2.1 y P1.1).
+- **CI del PR (2026-11-08):** la guarda de carriles cayó porque la migración de la auxiliar (`20261108043918`) era anterior a la última de main
+  (`20261108084712`); pasó a `20261108124129_diseno_auxiliar_sin_celda.sql` sin cambiar su contenido (`db:reset`, `db:types` sin diferencia, `db:probar`
+  739 ✓ y 0 ✗, `.piloto/salidas/4.21/`). **Ojo al integrar con el PR 78 (4.22-6):** las dos migraciones reescriben `validar_diseno()` entera desde la base;
+  la que se aplique después pisa a la otra (la auxiliar sin celda o `demasiados_items`). La del PR que se integre segundo se rehace sobre la otra.
+  e2e completo: no (4.21-3c, grupos del editor de la fórmula, Nivel 1: lo dirigido en escritorio)
+
+<!-- paso:4.23-1 -->
+
+## 2026-11-08 — Paso 4.23-1: las tablas de referencia tienen versión y se publican con la N+1 de sus fórmulas; cierra 5b-7
+
+- **Hecho:** un paso de datos y dinero, sólo la base. Son cuatro commits de código y uno de pruebas que pidió la auditoría del informe.
+  - El plan se auditó una vez y bloqueó: las 11 objeciones se atendieron en el plan y no hubo que achicar el paso.
+  - La compuerta `datos` se aprobó, y P1–P5 van con su recomendada (`decisiones.md`).
+  - El 4.23 se parte: siguen el **4.23-2** (entidades, lectura por cursor y la action) y el **4.23-3** (la pestaña «Tablas» y 4-47).
+- **Lo que quedó:**
+  - **5b-7.** La carrera «Dos personas reordenan sin tocar la misma tarjeta» (`scripts/carreras/configuracion-de-leads.mjs`): A mueve S después de P
+    sin tocar P y B mueve P después de R.
+    - Sin el `lock table` de `tipo_seguimiento_mover` cae: R y S quedan las dos en 150. La carrera vieja (x/w/y) seguía verde sin él.
+    - Con el candado queda S, Q, R, P. La función no cambia.
+  - **`20261108084608_tablas_referencia_version`.** Suma `version`, `nota`, `publicado_por` y `publicado_en`, y quita las seis policies y el
+    `insert, update, delete` de `authenticated` en las dos tablas.
+  - **`20261108084712_tablas_referencia_publicar`.** Crea `tabla_referencia_publicar()` y tres internas (`_tabla_referencia_filas_validas`,
+    `_tabla_referencia_usada_en`, `_tabla_referencia_publicada_por`), y cambia `aplicado_en` de `cotizaciones.configurar`. Detalle:
+    `docs/COTIZADOR.md` › «Las tablas congeladas (D5)».
+  - **Pruebas.** `supabase/tests/areas/tablas/{escritura,publicar,publicar-formulas}.sql`, un caso en `humo.sql`, el registro `no_devuelve` en
+    `cotizaciones-visibilidad.sql`, y `scripts/carreras/tablas.mjs` (R1–R3) más `tablas-compartida.mjs` (R4–R5).
+- **Verificación** (`.piloto/salidas/4.23/`):
+  - `db:probar` entero: 704 ✓ y 0 ✗ (`probar-todo.txt`). Después lo corrió el hook en cada commit con SQL.
+  - `db:carreras` en verde, también tras traer main (`carreras-tras-merge.txt`, `carreras-compartida.txt`). `db:lint`: 0 (`db-lint-final.txt`).
+  - e2e dirigidos en `escritorio` (`cotizar-guardada`, `cotizar-hoja-ayuda-tabla`, `configuracion-cotizacion-formula-editor-previa`): 22 en verde.
+  - Guardas: 1.019 en verde; `carriles` dice «12 archivos cumplen».
+  - Mutaciones, cada una con lo que cayó:
+    - M1 (pisar las otras copias): R3 y `db:probar`.
+    - M2 (leer la publicada antes del candado del origen): R2 y R3.
+    - M3 (sin `for update` de la tabla): R1.
+    - M4 (sin el permiso tras releer): R4.
+  - `nivel.mjs`: Nivel 2 (rls, estructura).
+- e2e completo: no (4.23-1, base: Nivel 2, el completo lo corre el CI del PR; en local, lo dirigido en escritorio + db:carreras)
+
+<!-- paso:4.23-2 -->
+
+## 2026-11-08 — Paso 4.23-2: las tablas de referencia se leen enteras por cursor y se publican por una action
+
+- **Hecho:** entidades, lectura y la action del área `tablas`, sin pantalla ni base. Son cuatro commits de código.
+  - El plan se auditó una vez y bloqueó por la lectura: paraba con una página corta, y con un `max_rows` menor que 1.000 una tabla se habría leído a medias y,
+    al publicarla, perdido filas. Se corrigió en el plan junto con las observaciones (`.piloto/planes/4.23.respuestas.md`).
+  - Sigue el **4.23-3** (la pestaña «Tablas» y 4-47).
+- **Lo que quedó:**
+  - `entities/tablas/validacion.ts`: el espejo de `_tabla_referencia_filas_validas` (mensajes, camino, puntos de código, orden C, `btrim`), `motivoDeCelda` y el
+    Zod de una fila.
+  - `entities/tablas/edicion.ts`: editar, sumar, quitar y mover filas en memoria, y las filas que se publican.
+  - `infra/tablas/lectura.ts`: `leerTablasDeReferencia` (un pedido, tope 100) y `leerTablaParaEditar` (la versión y después todas las filas por cursor
+    `(orden, id)`; entera o nada).
+  - `features/tablas/actions/publicar-tabla.ts`: `publicarTabla`, con `puede()` antes y el PT409 y el 22023 de la base tal cual.
+- **Verificación** (`.piloto/salidas/4.23-2/`):
+  - vitest del área: 49 en verde (`vitest-tablas.txt`). Guardas y `mapa.test.ts`: 1.023 en verde (`guardas.txt`). `tsc`: 0 errores (`tsc.txt`).
+  - Mutación M1 (parar con una página corta): caen 3, entre ellas la del `max_rows` de 500 (`m1.txt`).
+  - `nivel.mjs`: Nivel 1, sin disparadores (`nivel.txt`). Sin e2e dirigidos: ningún texto dibujado cambia.
+- e2e completo: no (4.23-2, entidades e infra: Nivel 1, sin interfaz; el completo lo corre el CI del PR)

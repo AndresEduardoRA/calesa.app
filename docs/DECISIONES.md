@@ -2918,3 +2918,248 @@ Las pruebas que ya existen siguen corriendo; borrar las caras se decide aparte. 
 - **Sin `client.ts`:** la action no sale por la entrada de cliente; su formulario (4.20-4b) vive en `empresa` y la importa por ruta relativa.
 - **La carpeta es `features/ajustes-de-cotizacion/`** (el término del glosario), no `features/cotizacion/` como decía `docs/pasos/4.20-4/plan-del-a.md`: dentro de `empresa`, «cotizacion» se confunde con el módulo `cotizaciones`. El 4.20-4b pone ahí el formulario.
 - **El `22023` no se vuelve error por campo:** `errorDePostgrest()` no lleva el `hint` y el esquema Zod rechaza antes lo mismo que la base (1 a 365, booleano); el `22023` sólo llega si alguien salta el formulario.
+
+<!-- paso:4.20-4b -->
+
+## Paso 4.20-4b (2026-11-08)
+
+- **Sólo lo clave:** del plan del B (`docs/pasos/4.20-4/plan-del-a.md`) no se escribieron el e2e del conflicto (E3: lo prueba la T3 de `supabase/tests/empresa-ajustes-de-cotizacion.sql`), el de la hoja sin vehículo (E4: sin código nuevo, la hoja ya lee el ajuste al abrir) ni el test de componente: la regla «Pruebas: sólo lo clave» de la persona (2026-11-08) es posterior. Quedan un e2e del camino feliz y uno de quien configura un solo origen.
+- **Nombres:** el componente es `FormularioDeAjustesDeCotizacion` (`AjustesDeCotizacion` ya es el tipo); el aviso, «Ajustes de cotización guardados», como «Ajustes de la empresa guardados». El motivo sin permiso va en un `<Aviso>` arriba del bloque, como en Empresa.
+- **Ajustes al final:** la pestaña va después de «Fórmula»: quien configura un solo origen sigue entrando por «Fórmula» y quien tiene todo, por «Niveles de acceso».
+
+<!-- paso:4.27 -->
+
+## 2026-11-08 — Paso 4.27-1
+
+- **Lo que contestó la persona:** la compuerta `datos` del plan, «aprobar», con las recomendadas de P1 a P11:
+  - P1 comenta quien ve la cotización.
+  - P2 adjunta quien puede guardarla: preventa, ver y editar; final, ver y `final.gestionar` del origen.
+  - P3 un solo nivel de respuestas.
+  - P4 raíces de la más nueva a la más vieja, de a 20, con sus primeras 20 respuestas.
+  - P5 el autor edita y borra; quien modera borra lo ajeno y no lo edita.
+  - P6 reportar no cambia el estado ni la versión; moderar es invalidar o descartar los reportes.
+  - P7 moderar una final pide `final.gestionar`.
+  - P8 los tipos del bucket, hasta 20 por cotización, sin repetir el archivo.
+  - P9 todo por RPC, con las escrituras directas revocadas.
+  - P10 «los niveles» del terminado son los permisos de la cotización.
+  - P11 la favorita es una marca privada; el filtro del listado no entra.
+- **Lo que se aprobó en permisos (la base):**
+  - Policies de `storage.objects` («cotizaciones: leer», «subir») y de `cotizaciones_adjuntos` («crear», «borrar») con ver y la regla de guardar (4-69).
+  - «cotizaciones_reportes: leer» pide moderar y ver.
+  - Sin insert, update ni delete para `authenticated` en comentarios, adjuntos, reportes y favoritos.
+  - Doce funciones `security definer` (`cotizacion_puede_adjuntar` y las once RPC), todas con `search_path = ''` y sólo de `authenticated` y `service_role`; `_comentario_item` y
+    el trigger, de nadie; `_cotizacion_de_objeto`, inmutable de invocador.
+  - `cotizacion_moderar` cambia de firma: `(uuid, timestamptz, estado_cotizacion)`.
+  - Sin permisos nuevos; el catálogo dice que comentar es de `ver` (antes decía `editar`).
+- **Lo no obvio:**
+  - **Borrar quita la fila salvo en una raíz con respuestas**, y la última respuesta se lleva la raíz eliminada: así `cotizacion_comentarios` lee sin descartar
+    filas que crecen con la profundidad (`.claude/rules/escala.md`), y un `check` impide una respuesta eliminada. La migración normaliza antes lo que hubiera entrado por
+    PostgREST (re-cuelga respuestas anidadas, quita respuestas eliminadas y raíces eliminadas sin respuestas) y crea los `check` `not valid` + `validate`.
+  - **Reportar no mueve la versión** (los contadores no la mueven): quien tiene la cotización abierta no recibe un conflicto porque otra persona la reportó.
+    «Descartar los reportes» es moderar a `activa` una que ya está activa: borra los reportes y, como el estado no cambia, la versión tampoco. `sin_cambios` sólo
+    con el mismo estado y, si es `activa`, sin reportes.
+  - **Orden de candados:** raíz → respuesta (comentar toma la raíz `for share`; borrar una respuesta, la raíz y la respuesta `for update`); cotización → reportes (moderar
+    la toma `for no key update` y borra los reportes; retirar la toma antes de borrar el suyo, porque el trigger de contadores la toma después y se cruzaba con
+    moderar: 40P01). Moderar mira el permiso global antes de tomar la fila.
+  - **La carpeta y el objeto se comprueban en `cotizacion_adjuntar`, no en un trigger:** es la única que escribe, y las pruebas de la purga y `medir-jobs.sql`
+    insertan adjuntos sin objeto. El trigger sólo rescata la ruta de la cola de limpieza. Tipo y tamaño salen de la metadata de storage cuando está.
+  - El tope de 20 adjuntos se mira sin candado: dos a la vez pueden dejar 21 (aceptado).
+
+## 2026-11-08 — Paso 4.27-2
+
+- **Lo que contestó la persona** (compuerta `producto`, recomendadas): P1 a, la sección «Comentarios» siempre bajo la hoja, que lee al llegar a la vista; P2 a, al tope de 500
+  «Ir a una fecha».
+- **Sin `revalidatePath`** en comentar, editar y borrar: la sección lleva su propia lista y refrescar la página volvería a dibujar la hoja (y su recálculo).
+- **«Ir a una fecha» sin migración:** el cursor `(inicio del día siguiente en la zona, 00000000-0000-0000-0000-000000000000)` trae ese día y lo anterior, porque ningún uuid es
+  menor que el nulo y la RPC compara `(creado_en, id) <`.
+- **`puedeModerar` lo dice la lectura**, no la sesión: el hueco sólo cruza el id al navegador y la base contesta con el mismo `tiene_permiso` que mira al borrar.
+- **«Cancelar» de editar descarta sin preguntar:** lo original sigue en la base. Los borradores de editar y responder viven en la sección por clave, aparte de la lista, para
+  que «Recargar» tras un conflicto los conserve y «Guardar» mande la versión nueva.
+- **Se responde también a una raíz eliminada** que sigue con respuestas (la base lo admite).
+
+## 2026-11-08 — Paso 4.27-3
+
+- **Lo que contestó la persona** (compuerta `datos` del plan, «aprobar»): P1 a, el bloque «Adjuntos» dentro de la sección «Comentarios», arriba del campo, leído con la
+  primera página y en el mismo `diferido()`; P2 a, quitar con `<Confirmar>` por URL (deshacer cambiaría el autor); P3 a, `mio` por el `sub` de `getClaims()` del navegador
+  (tras la auditoría: el hueco sigue síncrono y sin depender de `equipo`); P4 a, sin miniaturas (bajarían el original de 1600 px por imagen en una lista).
+- **Subida propia al bucket privado:** `subirPorHash` sólo admite buckets públicos y `src/shared` no es del C; `infra/comentarios/adjuntos.client.ts` copia su forma (hash,
+  `upsert: false`, «ya existe» no es error). Se pide al A unificarla.
+- **El bucket por constante** (`BUCKET_DE_ADJUNTOS`): un `.from('cotizaciones')` literal lo marca la guarda de escala como consulta sin tope.
+- **`puedeModerar` de la lectura de comentarios**, como borrar un comentario: una sola fuente en la sección y, con «Ver como», la base usa los permisos reales.
+- **«Tú» para lo propio** y la URL firmada pedida por clic (60 s), nunca al leer la lista. El e2e no borra la cola de limpieza: `storage-gc` barre el PDF quitado.
+
+## 2026-11-08 — Paso 4.27-4
+
+- **Lo que contestó la persona** (compuerta `datos` del plan, «aprobar»): P1 a, «Reportada» sólo para quien puede moderar (quien reportó lo ve en su botón); P2 a,
+  «Reactivar…» con `<Confirmar>`, que también descarta los reportes; P3 a, «Invalidar…» en toda cotización activa, con o sin reportes.
+- **La insignia va en un hueco nuevo del núcleo** (`Insignias`, después de la clase y la vigencia), no dentro de `Acciones`: es estado de la cotización, no una acción,
+  y su lugar es junto a «Vencida». El C lo agregó en su PR, chico y con sus pruebas.
+- **Las marcas se leen en el servidor**, tras `<Suspense>` y con `cache()` (la usan los dos huecos): la hoja no las trae, y leerlas en el navegador sumaba el cliente
+  y Zod al JS en frío de la guardada (cerca de su tope). Al navegador llegan el id, la versión, la marca propia y las acciones de moderar ya calculadas.
+- **Los reportes del Confirmar, hasta 21 sin «Ver más»:** hay uno por persona (lo acota el equipo) y moderar no depende de leerlos todos.
+- **«Retirar mi reporte» sin confirmar, con «Deshacer»** (vuelve a reportar con el motivo que tenía): es reversible.
+- **Invalidar y reactivar avisan que lo no guardado se descarta:** mueven la versión y la hoja se vuelve a montar (auditoría del plan); arreglarlo es del núcleo.
+
+<!-- paso:4.21-3b-2 -->
+
+## Paso 4.21-3b-2 (2026-11-08)
+
+- **P2 del 3b-1, hecho:** una `constante` auxiliar de un número escrito en el texto de su fila (`<fila>__<n>`, la que crea el compilador) **no pide celda** en el
+  diseño. Se edita por el texto de su fila. Si tiene celda, vale como siempre. Una fila constante («Sumar fila», un cálculo que pasa a número) sí la pide.
+- **P1 de este paso, compuerta `datos`, como la contestó la persona:** «aprobar: la regla del editor, entera». La base reconoce la auxiliar con la misma regla con
+  la que el editor decide qué es una fila (`filasDe`), incluido que el texto de la fila **no la nombre**. Por eso una fila escrita a mano como `total__1`, que el
+  texto de `total` nombra, sigue pidiendo celda.
+- **La regla, una sola vez en TS:** `entities/compilador-auxiliares.ts` (núcleo, del carril b: se sumó a su `dueno_de` en `docs/plan.yaml` y T12 de
+  `areas-de-cotizaciones-plan.test.ts` pasó de 37 a 39 archivos de las familias del compilador). `filasDe()`, `validarDiseno()` (§5) y el aviso del editor
+  (`nodosSinCelda()`) la usan. Su espejo en la base es `_diseno_auxiliares(p_def)`: invocadora, STABLE, `search_path` vacío, sin leer tablas, con los grants de los
+  demás `_diseno_*`.
+- **(e), el texto, en SQL:** los nombres salen de un patrón de clases **enumeradas**, sin rangos (no dependen de la colación) y sin grupos de captura
+  (`regexp_matches(…, 'g')` devolvería el grupo). T1b compara, en 5.000 textos al azar con semilla fija, los nombres del patrón con los del léxico del compilador.
+  T1c exige que la migración copie el patrón letra por letra. Antes del patrón, `strpos`: si ningún id de la cadena aparece como subcadena, no aparece como nombre.
+- **(f), la posición tomada por otra cadena, no se alcanza:** una cadena anterior de raíz q no pasa por q, que tiene texto, así que (c) la corta antes. Se espeja
+  literal y no lleva caso ni mutación.
+- **La excepción es sólo de `constante`:** el compilador sólo crea `constante` y `calculo`, y el `calculo` nunca pidió celda. Un `input` con id de auxiliar dentro de
+  una cadena sigue pidiéndola (su caso en el juego).
+- **Cómo se le dice a §5, sin copiar `_diseno_secciones()` (cambio sobre el plan):** el plan cambiaba la firma de `_diseno_secciones()` (14 argumentos) y copiaba
+  sus ≈ 217 líneas en una migración aparte. En cambio, `validar_diseno()` le pasa los tipos con cada constante auxiliar marcada como `constante_auxiliar`. Ese
+  arreglo sólo decide §5: en §2 a §4, `_diseno_secciones()` compara el tipo con `opcion`, `bandera`, `tabla` y `calculo`, nunca con `constante`. Así una auxiliar
+  con celda, con atajos o con subtotal se revisa como antes (`atajos_no_es_tabla`, `subtotal_no_es_calculo`). Con eso queda una sola migración de ≈ 210 líneas,
+  la firma no cambia y no queda un cuerpo copiado que pueda desviarse de la base. `_diseno_modos()` sigue recibiendo los tipos de verdad.
+- **Sin los mutadores nuevos del corpus (cambio sobre el plan):** el plan sumaba `auxiliar_sin_celda` y `fila_parecida_sin_celda` a los mutadores del corpus. No se
+  sumaron (la persona, 2026-11-08: pruebas sólo en lo clave). Lo cubren los 14 casos nuevos del juego, que corren en TS y en la base. El corpus se regeneró
+  porque se generan desde los casos válidos.
+- **Seguridad, como la vio la compuerta:** publicar acepta ahora una auxiliar `constante` sin celda (antes, `nodo_sin_seccion`). No entra a la `visibilidad`
+  (`_compilar_visibilidad` sólo nombra lo dibujado), `_nodos_visibles` la da sólo a `cotizaciones.configurar`, sin editar, y el recorte la deja fuera de la hoja y
+  del recálculo de quien cotiza. Lo prueba `supabase/tests/areas/formula/auxiliar-sin-celda.sql` (S1–S4, S6), y dos mutaciones de la visibilidad lo hacen caer.
+  Ninguna policy, RLS, `security definer`, permiso ni Vault nuevo.
+- **Medido:** `db:medir` dentro de sus topes: `validar_diseno` 6,5 / 58,8 ms (topes 15 / 136; razón 9,0), 290 / 1.860 buffers de columna externa;
+  `formula_publicar` 20,1 / 191,3 ms (topes 55 / 550). El ayudante solo, con una auxiliar por fila: 1,9 / 18 / 72 ms con 100 / 1.000 / 4.000 filas de texto
+  corto, y 31 / 307 / 1.243 ms con textos de ≈ 2.000 caracteres que obligan al patrón en cada fila. Es lineal. El sintético de `db:medir` no lleva texto (no
+  recorre el camino nuevo), y ese peor caso con texto pasa el tope de `validar_diseno` con 2.018 ítems desde unas 450 filas: queda informativo, sin guarda. La primera versión era cuadrática (40 → 308 ms de
+  1.000 a 4.000 filas): una consulta dentro del bucle nombraba `v_refs[i]` y recibía el arreglo entero como parámetro. Ahora el elemento va antes a una
+  variable, y el objeto final se arma con `jsonb_object_agg`, no concatenando.
+- **Para el coordinador:**
+  - En la fila del 4.21 de `docs/PLAN.md`: «4.21-3b-2 (la auxiliar de un número escrito en un texto ya no pide celda en el diseño: P2; compuerta `datos`)».
+  - `ESTADO`: «4.21-3b-2: la auxiliar de un número no pide celda en el diseño (P2)».
+  - El abierto de la constante sin celda queda sólo para la fila constante, hasta el 4.22.
+  - `asignado.modulos` del 4.21 no lista `validar-diseno-*.ts` ni `casos-de-diseno.json` (el `dueno_de` sí). `compilador-auxiliares.ts` se sumó al `dueno_de`.
+- **Para el A:** en `src/modules/cotizaciones/CLAUDE.md` › «Archivos clave», en la viñeta de la validación, tras «`validar-diseno*.ts` a `validar_diseno()` (28)»: «una
+  `constante` auxiliar de un número escrito en el texto de su fila (`compilador-auxiliares.ts`, `_diseno_auxiliares()`) no pide celda (4.21-3b-2)».
+
+<!-- paso:4.21-3c -->
+
+## Paso 4.21-3c (2026-11-08)
+
+- **La compuerta `producto`, como la contestó la persona** (todas las recomendadas):
+  - **P1:** del tipo de cambio sólo se edita el de cada grupo, eligiendo su bucket. `buckets` y `total_en` no se editan: con modos en el diseño, la hoja usa
+    los del modo, y los modos son del 4.22.
+  - **P2:** no se suman ni quitan grupos en el 4.21. La plantilla de la tarjeta tiene que nombrar exactamente los grupos de la fórmula (`validar-plantilla.ts`);
+    con uno de más o de menos, esa versión se quedaría sin tarjeta ni PDF.
+  - **P3:** una fila se puede sacar de su grupo, con el aviso «Sin grupo, una fila no entra en el total.».
+  - **P4:** el grupo de una fila se cambia en el formulario del grupo («Filas del grupo», «Quitar», «Sumar una fila»). La lista sólo dice el grupo de cada fila
+    y no suma un selector por fila.
+- **Qué puede sumar a un grupo:** una fila raíz (nunca una auxiliar) que `validarFormula()` acepta como miembro: da un monto, tiene formato de monto y no tiene
+  salida (`puedeSumarAlGrupo()`). T4 lo compara con `miembro_no_es_monto` y `miembro_con_salida` en cada tipo de nodo de la fórmula de prueba.
+- **Mover una fila sólo cambia `grupo` de su raíz:** su texto, sus auxiliares y su lugar no se tocan. Una fila quitada queda **sin** la clave `grupo` (no con un
+  valor vacío).
+- **El tono de la tarjeta (obs. 6 de la auditoría):** la plantilla puede elegir el tono de un grupo (`forma-de-plantilla.ts`, `tono?`). En la tarjeta y el PDF, el
+  tono del grupo manda sólo si la plantilla no elige otro. El formulario lo dice bajo «Tono».
+- **El «Aplicar» de una fila, a su hook:** `use-aplicar-fila.ts` recibe los `set` de `useState`, para que `aplicar` siga estable para las `FilaDelEditor` con
+  `memo` (con un callback nuevo en cada render se volverían a dibujar las 500 filas).
+- **Un `feat` con una extracción (obs. 3 de la auditoría del informe):** `4ff55f8f` lleva también el paso del «Aplicar» de una fila a `use-aplicar-fila.ts`, sin cambio de conducta. Lo impuso el lint de 80 líneas al sumar los grupos al hook del editor: es una excepción consciente a «un commit, un cambio».
+- **Una auxiliar nunca suma a un grupo:** lo prueba T4 con una auxiliar `usd` en una cadena de `filasDe()` (el `fix` de la auditoría del informe, `83a18e41`). Una auxiliar compilada lleva `raw` o `pct` y ya la rechaza `esMonto`.
+- **Microdecisiones de texto (`ui.md`):**
+  - El botón dice «Editar», con el nombre accesible «Editar el grupo <etiqueta>».
+  - «Queda sin grupo» se dice antes de aplicar y «Quedó sin grupo» después.
+  - «n fila(s)» es el número de miembros de la fórmula en memoria, no un conteo de la base.
+  - Una fórmula sin grupos no monta la sección ni lee los tonos.
+- **Para el coordinador:**
+  - En la fila del 4.21 de `docs/PLAN.md`: «**4.21-3c** (editar los grupos: etiqueta, plazo, tono, tipo de cambio y sus filas) está hecho; **el 4.21 está
+    hecho**». Marcar el 4.21 hecho en `plan.yaml`.
+  - `ESTADO`: «4.21-3c: los grupos de la fórmula en el editor (plazo, tono, tipo de cambio y sus filas); cierra el 4.21».
+  - **Un abierto nuevo** para los abiertos de la Fase 4: sumar y quitar grupos en el editor, y editar `buckets`, `total_en` y los modos, esperan a que la
+    plantilla de la tarjeta se edite junto con la fórmula (P2.1, P1.1). Lugar: `entities/formula/grupos.ts` y `entities/plantilla/validar-plantilla.ts`.
+  - 4-5, 4-6 y 4-8 ya los cerraron el 3a-1 y el 3b-1. Si siguen como abiertos en `docs/PLAN.md`, márcalos cerrados.
+  - El 4.21 tiene `riesgo: rojo`, sale sin `parcial` y no se integra solo.
+  - **Pulido para la Fase 9** (una línea en `docs/PLAN.md`): con más de 500 grupos, el `<AvisoDeTope>` de la sección «Grupos» ofrece «Busca una fila por su nombre o su etiqueta.», que no lleva a los grupos que quedan fuera (`grupos-de-la-formula.tsx`). No pasa en la práctica: la plantilla nombra cada grupo.
+  - (obs. 5) `TOPE_DE_TONOS_DEL_EDITOR` (`entities/formula/grupos.ts`) repite `TOPE_DE_TONOS` del área `plantilla` (`entities/plantilla/lectura-de-la-plantilla.ts`),
+    porque un área no importa otra. Moverlo al núcleo cuando el A pueda.
+- **Para el A:** el texto de la ficha `src/modules/cotizaciones/CLAUDE.md` (núcleo; «Entra y sale», tras lo del 3a-2): «edita los grupos que hay (etiqueta, plazo,
+  tono, tipo de cambio por su bucket y sus filas) en la sección «Grupos» del editor (4.21-3c): `entities/formula/grupos.ts`, con los tonos leídos desde el
+  navegador (`infra/formula/tonos.client.ts`)».
+
+<!-- paso:4.23-1 -->
+
+## 2026-11-08 — Paso 4.23-1
+
+- **Lo que contestó la persona:** la compuerta `datos` («aprobar»), con P1–P5 en su recomendada:
+  - **P1:** la pantalla edita y reordena en su memoria y publica la tabla entera con nota y versión. No hay borrador en la base ni RPC por fila, así que
+    reordenar no es una escritura propia y la carrera de 5b-7 no puede darse en las tablas.
+  - **P2:** una compartida pide `cotizaciones.configurar` en **cada** origen que la usa.
+  - **P3:** se revoca la escritura directa.
+  - **P4:** el tope es de 2.000 filas.
+  - **P5:** columnas, alta y baja de tablas quedan fuera del 4.23 (por ahora, sólo por SQL).
+- **Lo no obvio:**
+  - **Un origen está afectado si su publicada usa la tabla en un nodo o en su copia** (`params.tablas ? clave`). Si sólo contara el nodo, una copia sin nodo
+    se quedaría vieja y un borrador que vuelva a sumar el nodo la publicaría sin PT409.
+    - La lista se arma tras el `for update` de la tabla y la publicada se relee dentro del candado de cada origen: si dejó de usarla, se salta; si empezó,
+      se pide su permiso (R4 y R5).
+    - Un origen inactivo cuenta igual: su fórmula existe y la usa, así que recibe la N+1 y su permiso se pide.
+  - **«La tabla no cambió.» mira también las publicadas.** Tras `formula_revertir`, la publicada vuelve a la copia vieja y la viva sigue en la versión
+    nueva: publicar las mismas filas tiene que devolverle la tabla.
+    - **Para el 4.23-3:** el editor muestra la viva, no la copia de la publicada.
+  - **Una compartida deja ver que otro origen la usa.** Quien configura un solo origen recibe 42501 si otro la usa, aunque no pueda leer la fórmula de ese
+    otro (se acepta con P2).
+  - **`p_version_esperada integer`,** no `p_actualizado_en_esperado`: la versión entera es la que el PT409 nombra («… la versión 3 de esta tabla …»), como
+    la publicada esperada de la fórmula es una versión y no una hora (`.claude/rules/migraciones.md` › «Forma»).
+  - **`aplicado_en`** queda `policy tablas_referencia (leer), tabla_referencia_publicar`: la lectura sigue siendo la policy con ese permiso.
+  - **El `hint` de una fila va desde 0** (`filas.1.monto`, como un camino de Zod) y el mensaje dice la fila desde 1 («La fila 2: …»). Un `anio` es entero.
+    `_tabla_referencia_filas_validas` es `stable` (con `immutable`, `db:lint` daba un aviso nuevo por el `raise`).
+  - **Las filas inactivas se borran al publicar:** el cálculo y la copia sólo leen las activas, y la historia queda en las copias de cada versión de la
+    fórmula. Una celda nula se guarda ausente (`jsonb_strip_nulls`) y así se compara.
+  - **La base no congela al publicar una fórmula** (`_formula_forma` sólo valida). Una versión anterior que leía la viva recalcula con las filas nuevas;
+    lo guardado de una cotización no cambia (la prueba de dinero guarda una y lo comprueba).
+- **Para el coordinador:**
+  - **La partición.** En `docs/PLAN.md`, la fila del 4.23 se parte en tres:
+    - 4.23-1: la base (5b-7, versión de la tabla, `tabla_referencia_publicar` con la N+1 de sus fórmulas). Nivel 2 + `db:carreras`. Hecho.
+    - 4.23-2: entidades, lectura por cursor y la action. Nivel 1.
+    - 4.23-3: la pestaña «Tablas» de Configuración › Cotización y 4-47. Nivel 1.
+  - **`plan.yaml`.** El id `4.23` se reemplaza por tres:
+    - `4.23-1`: `depende_de: ['4.20']`, terminado «Las tablas de referencia tienen versión y se publican con la N+1 de sus fórmulas; cierra 5b-7».
+    - `4.23-2`: `['4.23-1']`.
+    - `4.23-3`: `['4.23-2']`, terminado «Se editan, reordenan y publican desde Configuración › Cotización; cierra 4-47».
+    - El `4.28` pasa a depender de `4.23-3`.
+  - **Línea de ESTADO:** «B/C, 4.23-1: las tablas de referencia tienen versión y se publican con la N+1 de sus fórmulas (5b-7 cerrado)».
+  - **5b-7, cerrado.** El candado de `tipo_seguimiento_mover` se queda: la carrera nueva cae sin él.
+  - **4-47** sigue para el 4.23-3. Su segunda mitad (una congelada sin viva se rotula con la clave): ninguna RPC deja hoy una congelada sin viva (no hay baja
+    de tablas, P5), y el 4.23-3 decide si la cierra con ese argumento o rotula.
+  - **RENDIMIENTO:** «Tablas de referencia: hasta 2.000 filas por tabla (`tabla_referencia_publicar`). La copia congelada viaja entera en cada
+    `cotizacion_evaluar`, y el tope la acota.»
+  - **`scripts/carreras.mjs` ya pasa de 300 líneas** (361). No se partió en este paso: R4 y R5 van en `scripts/carreras/tablas-compartida.mjs`, que llama
+    `tablas.mjs`, y sólo se sumaron una importación y una llamada.
+
+<!-- paso:4.23-2 -->
+
+## 2026-11-08 — Paso 4.23-2
+
+- **Lo no obvio:**
+  - **Primero la versión y después las filas.** Si alguien publica entre los pedidos, se mezclan filas viejas y nuevas, pero la versión leída es la vieja y
+    publicar da PT409: nunca se pisan filas nuevas.
+  - **La lectura es entera o nada.** `tabla_referencia_publicar()` borra todas las filas y pone las que recibe: una fila que no se lee, o más de 2.000, y
+    `leerTablaParaEditar` no devuelve la tabla (el tipo no deja armar un pedido con una tabla cortada).
+    - Se para sólo con una página vacía o con el tope + 1, nunca con una página corta: `max_rows` es del despliegue (en la nube no lo fija `config.toml`). Cuesta un
+      pedido más: 3 con `max_rows` 1.000.
+  - **El 22023 con `hint` va con el mensaje tal cual,** no por `errorDePostgrest`: «… la tabla no tiene la columna «x».» dice «column» y se cambiaría por el
+    genérico (`src/shared/lib/errores.ts`). El PT409 también va tal cual.
+  - **El espejo copia tres detalles de la base:** el largo en puntos de código (`char_length`), las claves por punto de código con un comparador propio
+    (`collate "C"`; el `<` de JS compara unidades UTF-16 y difiere fuera del BMP) y la etiqueta recortada sólo de espacios U+0020 (`btrim`). Además rechaza un
+    `\u0000` y un surrogate suelto, que la base rechaza fuera del 22023 al pasar a jsonb.
+  - **Diferencia aceptada del espejo:** una `etiqueta` que no es texto (sólo por SQL, P5) cae a la clave; la base la muestra como texto con `->>`.
+  - **Una celda es número, texto, nulo o booleano.** El booleano sólo entra por SQL: se conserva y la base lo rechaza al publicar con su celda. Una celda que es
+    un objeto o una lista hace fallar la lectura: esa tabla no se edita desde la pantalla.
+- **Para el coordinador:**
+  - **Línea de ESTADO:** «B/C, 4.23-2: las tablas de referencia se leen enteras por cursor y se publican por una action (sigue el 4.23-3)».
+  - **RENDIMIENTO:** «El editor de tablas lee una tabla entera por `(orden, id)` hasta una página vacía o el tope de 2.000 + 1: ≤ 3 pedidos con `max_rows`
+    1.000». Se suma a la del 4.23-1.
+  - **Copias en el área `tablas`** (un área no importa otra): la nota de publicar (`esquemaDeNotaDeTabla`, igual a `esquemaDeNota` de `formula`) y el pedido
+    de 1.000 filas (`FILAS_POR_PEDIDO`, igual a `FILAS_POR_PAGINA` de `formula`). Si el A los quiere compartir, van al núcleo.
