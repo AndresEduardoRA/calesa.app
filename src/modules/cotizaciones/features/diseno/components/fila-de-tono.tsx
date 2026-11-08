@@ -1,19 +1,22 @@
-import type { ReactNode } from 'react'
+import { Button } from '@/shared/ui/button'
 import { TEMAS_DE_UN_TONO, type Tono } from '../../../entities/diseno/tonos'
 import { MuestraDeTono } from './muestra-de-tono'
 
 type Props = {
   tono: Tono
-  // Lo que se hace con el tono (editar y eliminar), si hay.
-  acciones?: ReactNode
+  alEditar: (id: string) => void
+  alPedirEliminar: (id: string) => void
 }
 
-// Un tono del catálogo: su nombre, su clave en texto suave (la nombran los grupos de una fórmula y no cambia) y sus dos muestras. Al 200 % la fila se apila.
-export function FilaDeTono({ tono, acciones }: Props) {
+const BOTON = 'h-11 md:h-8'
+
+// Un tono del catálogo: su nombre, su clave en texto suave (la nombran los grupos de una fórmula y no cambia), sus dos muestras y «Editar» y «Eliminar» con el nombre
+// en el `aria-label`. Al 200 % la fila se apila (`flex-wrap` sobre una base en rem).
+export function FilaDeTono({ tono, alEditar, alPedirEliminar }: Props) {
   return (
     <li
       data-tono={tono.clave}
-      className="@container rounded-(--radius-card) border border-(--color-line) bg-(--color-surface) p-3"
+      className="rounded-(--radius-card) border border-(--color-line) bg-(--color-surface) p-3"
     >
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <div className="grid min-w-0 flex-1 basis-48 gap-0.5">
@@ -29,7 +32,30 @@ export function FilaDeTono({ tono, acciones }: Props) {
             <MuestraDeTono key={tema} tema={tema} colores={tono.colores[tema]} />
           ))}
         </div>
-        {acciones}
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className={BOTON}
+            data-editar-tono={tono.id}
+            aria-label={`Editar «${tono.nombre}»`}
+            onClick={() => {
+              alEditar(tono.id)
+            }}
+          >
+            Editar
+          </Button>
+          <Button
+            variant="outline"
+            className={BOTON}
+            data-eliminar-tono={tono.id}
+            aria-label={`Eliminar «${tono.nombre}»`}
+            onClick={() => {
+              alPedirEliminar(tono.id)
+            }}
+          >
+            Eliminar
+          </Button>
+        </div>
       </div>
     </li>
   )

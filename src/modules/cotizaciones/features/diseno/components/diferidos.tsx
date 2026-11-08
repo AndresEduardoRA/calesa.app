@@ -13,3 +13,13 @@ export const TonosDelCatalogoDiferido = diferido(
   () => import('./tonos-del-catalogo').then((modulo) => modulo.TonosDelCatalogo),
   { aviso: 'aqui' },
 )
+
+// «Nuevo tono» y «Editar tono» se piden recién al abrirse (`useAbiertoAlgunaVez()`): la lista no carga el formulario para mostrarse.
+export const ModalDeTonoDiferido = diferido(() =>
+  import('./modal-de-tono').then((modulo) => modulo.ModalDeTono),
+)
+
+// La confirmación de eliminar un tono se pide al abrirse (`useAbiertoAlgunaVez()`).
+export const EliminarTonoDiferido = diferido(() =>
+  import('./eliminar-tono').then((modulo) => modulo.EliminarTono),
+)
