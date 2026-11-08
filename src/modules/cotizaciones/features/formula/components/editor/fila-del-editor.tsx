@@ -17,6 +17,8 @@ export type FilaDelEditorProps = {
   fila: FilaParaDibujar
   // La cifra de prueba de la fila (vista previa, 4.21-3a-2).
   cifra: CifraDeLaFila
+  // La etiqueta de su grupo (4.21-3c, C7), o nula si no tiene.
+  grupo: string | null
   abierta: FilaAbierta | null
   // Otra fila está abierta: «Editar» espera.
   bloqueada: boolean
@@ -59,11 +61,22 @@ const CAMPOS: Record<string, string> = {
   formato: 'formato',
 }
 
+// Lo que el último «Aplicar» soltó de la fila.
+function LoSoltado({ soltados }: { soltados: string[] }) {
+  if (soltados.length === 0) return null
+  return (
+    <p className="text-(--color-ink-soft)">
+      Esta fila dejó de llevar: {soltados.map((campo) => CAMPOS[campo] ?? campo).join(', ')}.
+    </p>
+  )
+}
+
 const textoInicial = (fila: FilaParaDibujar) => ('texto' in fila.texto ? fila.texto.texto : '')
 
 export const FilaDelEditor = memo(function FilaDelEditor({
   fila,
   cifra,
+  grupo,
   abierta,
   bloqueada,
   rechazo,
@@ -89,6 +102,7 @@ export const FilaDelEditor = memo(function FilaDelEditor({
         <span className="font-semibold break-words text-(--color-ink)">{fila.etiqueta}</span>
         <code className="break-all text-(--color-ink-soft)">{fila.id}</code>
         <span className="text-(--color-ink-soft)">{TIPOS[fila.nodo.tipo]}</span>
+        {grupo === null ? null : <span className="text-(--color-ink-soft)">Grupo: {grupo}</span>}
         <CifraDePrueba cifra={cifra} />
         <BotonesDeLaFila
           etiqueta={fila.etiqueta}
@@ -117,11 +131,7 @@ export const FilaDelEditor = memo(function FilaDelEditor({
       ) : (
         <EstadoDelTexto texto={fila.texto} />
       )}
-      {soltados.length > 0 ? (
-        <p className="text-(--color-ink-soft)">
-          Esta fila dejó de llevar: {soltados.map((campo) => CAMPOS[campo] ?? campo).join(', ')}.
-        </p>
-      ) : null}
+      <LoSoltado soltados={soltados} />
       {rechazo ? (
         <p
           role="alert"

@@ -44,6 +44,14 @@ function Total({
   )
 }
 
+// Dónde dice el rechazo qué corregir: su fila, la tarjeta de su grupo (4.21-3c) o el aviso de arriba de la lista.
+function textoDelRechazo(rechazo: RechazoEnElEditor | null): string {
+  if (rechazo?.grupoId) return 'la tarjeta del grupo dice qué corregir.'
+  return rechazo?.filaId === null
+    ? 'el aviso de arriba de la lista dice qué corregir.'
+    : 'la fila marcada dice qué corregir.'
+}
+
 function Cuerpo({ lectura, vista, rechazo, nombreDelOrigen, alReintentar }: Props) {
   if (lectura.tipo === 'leyendo' || vista === null) {
     return lectura.tipo === 'error' ? (
@@ -58,10 +66,7 @@ function Cuerpo({ lectura, vista, rechazo, nombreDelOrigen, alReintentar }: Prop
   if (vista.tipo === 'no_valida') {
     return (
       <p className="text-(--color-ink-soft)">
-        La vista previa espera una fórmula válida:{' '}
-        {rechazo?.filaId === null
-          ? 'el aviso de arriba de la lista dice qué corregir.'
-          : 'la fila marcada dice qué corregir.'}
+        La vista previa espera una fórmula válida: {textoDelRechazo(rechazo)}
       </p>
     )
   }

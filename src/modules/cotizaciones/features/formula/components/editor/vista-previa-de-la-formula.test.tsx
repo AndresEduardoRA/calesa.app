@@ -53,14 +53,22 @@ describe('VistaPreviaDeLaFormula (T7)', () => {
   })
 
   it('no_valida: dice que espera una fórmula válida, con la fila o con lo de arriba', () => {
-    montar({ vista: { tipo: 'no_valida' }, rechazo: { mensaje: 'x', filaId: 'total' } })
+    montar({
+      vista: { tipo: 'no_valida' },
+      rechazo: { mensaje: 'x', filaId: 'total', grupoId: null },
+    })
     expect(screen.getByText(/La vista previa espera una fórmula válida:/).textContent).toContain(
       'la fila marcada dice qué corregir.',
     )
     cleanup()
-    montar({ vista: { tipo: 'no_valida' }, rechazo: { mensaje: 'x', filaId: null } })
+    montar({ vista: { tipo: 'no_valida' }, rechazo: { mensaje: 'x', filaId: null, grupoId: null } })
     expect(screen.getByText(/La vista previa espera/).textContent).toContain(
       'el aviso de arriba de la lista',
+    )
+    cleanup()
+    montar({ vista: { tipo: 'no_valida' }, rechazo: { mensaje: 'x', filaId: null, grupoId: 'g' } })
+    expect(screen.getByText(/La vista previa espera/).textContent).toContain(
+      'la tarjeta del grupo dice qué corregir.',
     )
   })
 

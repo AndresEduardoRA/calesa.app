@@ -176,6 +176,7 @@ describe('useEditorDeLaFormula: pisar un ⚙ y validar (T3)', () => {
     expect(result.current.rechazo).toEqual({
       mensaje: expect.stringContaining('El total «total» no puede depender') as unknown as string,
       filaId: 'total',
+      grupoId: null,
     })
   })
 

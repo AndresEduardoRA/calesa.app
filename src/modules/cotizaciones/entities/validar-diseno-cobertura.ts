@@ -17,13 +17,14 @@ export function revisarAtajos(ix: Indice, e: Estado): FalloDeDiseno | undefined 
   return undefined
 }
 
-// §5, en el orden de la fórmula. Un input y una constante se editan en una celda; la variante, en sus chips (sin ellos el motor falla en
+// §5, en el orden de la fórmula. Un input y una constante se editan en una celda (la constante auxiliar de un número escrito en el texto de su
+// fila no: se edita por ese texto, 4.21-3b-2); la variante, en sus chips (sin ellos el motor falla en
 // cada cálculo si no tiene opción por defecto, y con una no se podría cambiar); y una bandera que condiciona algo, en su interruptor.
 export function revisarCobertura(ix: Indice, e: Estado): FalloDeDiseno | undefined {
   for (const n of recorrer(ix.def.nodos, ix.m)) {
     const pide =
       n.tipo === 'input' ||
-      n.tipo === 'constante' ||
+      (n.tipo === 'constante' && !esta(ix.auxiliares, n.id, ix.m)) ||
       n.tipo === 'opcion' ||
       (n.tipo === 'bandera' &&
         (esta(ix.condicionadas, n.id, ix.m) || esta(ix.requeridas, n.id, ix.m)))

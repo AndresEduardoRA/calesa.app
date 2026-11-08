@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import type { Formula } from '../../../entities/formula'
 import { clavesDeCambioDe, tablasVivasDe } from '../../../entities/formula/terreno-de-prueba'
 import { calcularLaVistaPrevia, type VistaPrevia } from '../../../entities/formula/vista-previa'
+import { grupoDelRechazo } from '../../../entities/formula/grupos'
 import { validarFormula } from '../../../entities/validar'
 import type { RechazoEnElEditor } from './use-editor-de-la-formula'
 import {
@@ -26,12 +27,12 @@ export function useVistaPrevia({
 }) {
   const validacion = useMemo((): { rechazo: RechazoEnElEditor | null; formula: Formula | null } => {
     const v = validarFormula(trabajo.definicion, paramsPlanos(trabajo))
-    return v.ok
-      ? { rechazo: null, formula: v.formula }
-      : {
-          rechazo: { mensaje: v.error.mensaje, filaId: filaDelRechazo(v.error, filas) },
-          formula: null,
-        }
+    if (v.ok) return { rechazo: null, formula: v.formula }
+    // Una fila primero; si no nombra ninguna, un grupo (4.21-3c, C6); si tampoco, va arriba de la lista.
+    const filaId = filaDelRechazo(v.error, filas)
+    const grupoId =
+      filaId === null ? grupoDelRechazo(v.error, trabajo.definicion.grupos ?? []) : null
+    return { rechazo: { mensaje: v.error.mensaje, filaId, grupoId }, formula: null }
   }, [trabajo, filas])
   const tablas = useMemo(() => tablasVivasDe(trabajo), [trabajo])
   const cambios = useMemo(() => clavesDeCambioDe(trabajo), [trabajo])
