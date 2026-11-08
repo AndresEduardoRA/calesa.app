@@ -3,6 +3,7 @@ import type { Formula } from '../formula'
 import { evaluar } from '../motor'
 import type { Nodo } from '../nodos'
 import { validarFormula } from '../validar'
+import { filasDe } from './filas'
 import {
   aplicarGrupo,
   grupoDelRechazo,
@@ -46,6 +47,24 @@ const FORMULA: Formula = {
 }
 
 const TONOS = new Set(['verde', 'naranja', 'azul'])
+
+// `dos` escrita en texto (`=suelta+2`) con su auxiliar `dos__1` antes. La auxiliar lleva formato `usd` a propósito: así da un monto sin salida y sólo la regla
+// «una auxiliar nunca suma a un grupo» (las filas raíz de `filasDe()`) la deja afuera.
+const CON_AUXILIAR: Formula = {
+  ...FORMULA,
+  definicion: {
+    ...FORMULA.definicion,
+    nodos: FORMULA.definicion.nodos.flatMap((n): Nodo[] =>
+      n.id === 'dos'
+        ? ([
+            { id: 'dos__1', tipo: 'constante', etiqueta: '2', formato: 'usd' },
+            { ...n, tipo: 'calculo', op: 'suma', de: ['suelta', 'dos__1'], texto: '=suelta+2' },
+          ] as Nodo[])
+        : [n],
+    ),
+  },
+  params: { ...FORMULA.params, constantes: { ...FORMULA.params.constantes, dos__1: 2 } },
+}
 
 const cambiosDe = (formula: Formula, id: string): CambiosDelGrupo => {
   const g = formula.definicion.grupos?.find((x) => x.id === id)
@@ -165,45 +184,43 @@ describe('aplicarGrupo: las filas', () => {
   })
 
   it('T3: con texto y auxiliares, mover la fila no toca su texto, sus auxiliares ni su lugar', () => {
-    const conTexto: Formula = {
-      ...FORMULA,
-      definicion: {
-        ...FORMULA.definicion,
-        nodos: FORMULA.definicion.nodos.flatMap((n): Nodo[] =>
-          n.id === 'dos'
-            ? [
-                { id: 'dos__1', tipo: 'constante', etiqueta: 'dos__1' } as Nodo,
-                { ...n, texto: '=2' } as Nodo,
-              ]
-            : [n],
-        ),
-      },
-      params: { ...FORMULA.params, constantes: { ...FORMULA.params.constantes, dos__1: 2 } },
-    }
     const r = aplicarGrupo(
-      conTexto,
+      CON_AUXILIAR,
       'ga',
-      { ...cambiosDe(conTexto, 'ga'), miembros: ['cinco', 'uno', 'dos'] },
+      { ...cambiosDe(CON_AUXILIAR, 'ga'), miembros: ['cinco', 'uno', 'dos'] },
       TONOS,
     )
     if (!r.ok) throw new Error(JSON.stringify(r.errores))
     const nodos = r.formula.definicion.nodos
-    expect(nodos.map((n) => n.id)).toEqual(conTexto.definicion.nodos.map((n) => n.id))
+    expect(nodos.map((n) => n.id)).toEqual(CON_AUXILIAR.definicion.nodos.map((n) => n.id))
     expect(nodos.find((n) => n.id === 'dos__1')).toEqual(
-      conTexto.definicion.nodos.find((n) => n.id === 'dos__1'),
+      CON_AUXILIAR.definicion.nodos.find((n) => n.id === 'dos__1'),
     )
-    expect(nodos.find((n) => n.id === 'dos')).toMatchObject({ grupo: 'ga', texto: '=2' })
+    expect(nodos.find((n) => n.id === 'dos')).toMatchObject({ grupo: 'ga', texto: '=suelta+2' })
   })
 })
 
 describe('aplicarGrupo: quién suma y el dinero', () => {
   it('T4: una salida, un pct, una bandera o un id que no existe no pueden sumar; puedeSumarAlGrupo coincide con validarFormula()', () => {
     const base = cambiosDe(FORMULA, 'ga')
-    for (const id of ['total', 'pct', 'bandera', 'tca', 'no_existe', 'dos__1']) {
+    for (const id of ['total', 'pct', 'bandera', 'tca', 'no_existe']) {
       const r = aplicarGrupo(FORMULA, 'ga', { ...base, miembros: [...base.miembros, id] }, TONOS)
       expect(r.ok, id).toBe(false)
       if (!r.ok) expect(r.errores.map((e) => e.campo)).toEqual(['miembros'])
     }
+    // Una auxiliar (aquí un monto sin salida) nunca suma: sólo las filas raíz.
+    const aux = CON_AUXILIAR.definicion.nodos.find((n) => n.id === 'dos__1')
+    expect(aux && puedeSumarAlGrupo(aux)).toBe(true)
+    expect(filasDe(CON_AUXILIAR.definicion).find((f) => f.nodo.id === 'dos')?.auxiliares).toEqual([
+      'dos__1',
+    ])
+    const conAux = aplicarGrupo(
+      CON_AUXILIAR,
+      'ga',
+      { ...cambiosDe(CON_AUXILIAR, 'ga'), miembros: ['cinco', 'uno', 'dos__1'] },
+      TONOS,
+    )
+    expect(conAux.ok ? [] : conAux.errores.map((e) => e.campo)).toEqual(['miembros'])
     // Cada nodo, solo como miembro de `gb` junto a `dos`: puede sumar si y sólo si validarFormula() no lo rechaza como miembro.
     for (const n of NODOS) {
       const nodos = NODOS.map((x) => (x.id === n.id ? { ...x, grupo: 'gb' } : x)) as Nodo[]
