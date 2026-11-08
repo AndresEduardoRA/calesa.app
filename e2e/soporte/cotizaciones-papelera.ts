@@ -103,26 +103,29 @@ export function sembrarConTitulos(datos: {
   return ids.split('\n').filter((id) => id !== '')
 }
 
-// Una final con su comprobante (como PU2 de `supabase/tests/areas/papelera/purgar.sql`): purgarla la frena el comprobante. La emite quien la creó, con su sesión.
-export async function sembrarFinalConComprobante(datos: {
+// Una final sin comprobante todavía (P4 del spec de purgar). Desde el 4.26-1 una cotización con comprobante no entra a la papelera: el caso que la purga sigue
+// cubriendo es el heredado, el comprobante que ya estaba sobre una que está en la papelera (`ponerComprobante()`, después de enviarla).
+export function sembrarFinal(datos: {
   origenId: string
   creadoPor: string
   titulo: string
-}): Promise<string> {
+}): string {
   const vehiculoId = crearVehiculoEn(datos.origenId, `Vehículo de ${datos.titulo}`)
   const [id] = sembrarConTitulos({ ...datos, titulos: [datos.titulo], final: { vehiculoId } })
   if (!id) {
     throw new Error('No se sembró la final')
   }
-  const emision = await rpcComo(datos.creadoPor, 'comprobante_emitir', {
-    p_cotizacion: id,
-    p_serie: SERIE_DE_PRUEBA,
-    p_datos: { cliente: 'E2E' },
-  })
-  if (emision.error) {
-    throw new Error(`No se emitió el comprobante: ${emision.error.message}`)
-  }
   return id
+}
+
+// El comprobante heredado (como PU2 de `supabase/tests/areas/papelera/purgar.sql`): por SQL, en la serie de prueba y sin tocar la serie vigente, así
+// `vaciarLaPapelera()` lo borra con su contador. Purgar la cotización lo frena (`restrict`).
+export function ponerComprobante(cotizacionId: string): void {
+  sql(`
+    insert into public.comprobantes_contadores (serie, ultimo) values (${literal(SERIE_DE_PRUEBA)}, 0) on conflict do nothing;
+    with n as (update public.comprobantes_contadores set ultimo = ultimo + 1 where serie = ${literal(SERIE_DE_PRUEBA)} returning ultimo)
+    insert into public.comprobantes (cotizacion_id, serie, numero, datos)
+    select ${literal(cotizacionId)}, ${literal(SERIE_DE_PRUEBA)}, n.ultimo, '{}'::jsonb from n`)
 }
 
 export const lotesDeLaPagina = (page: Page): Locator =>

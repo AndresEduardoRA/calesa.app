@@ -11,8 +11,9 @@ import {
   irALaPapelera,
   limpiarPapelera,
   prepararPapelera,
+  ponerComprobante,
   sembrarConTitulos,
-  sembrarFinalConComprobante,
+  sembrarFinal,
   titulosNumerados,
   versionDelLote,
   type TerrenoDeLaPapelera,
@@ -147,13 +148,14 @@ test('P3 una URL que no abre avisa y se limpia: un lote que no está, una cotiza
 test('P4 una final con comprobante no se purga: el aviso dice cuál y por qué, y queda en el lote', async ({
   page,
 }) => {
-  const final = await sembrarFinalConComprobante({
+  const final = sembrarFinal({
     origenId: t.origen.id,
     creadoPor: t.duena,
     titulo: 'P4 final con comprobante',
   })
   const [preventa] = sembrar(['P4 preventa'])
   await enviarAPapelera(t.duena, [final, preventa ?? ''])
+  ponerComprobante(final)
   await irALaPapelera(page, t.duena)
   const lote = loteCon(page, 'P4 final con comprobante')
   await lote.getByRole('button', { name: 'Purgar el lote' }).click()
