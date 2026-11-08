@@ -37,6 +37,7 @@ vi.mock('../../../areas/comprobantes/composicion', async () => {
 
 const { emitirComprobante } = await import('./emitir')
 const { anularComprobante } = await import('./anular')
+const { cambiarSerie } = await import('./cambiar-serie')
 
 const conClave = (clave: string) => [{ clave, origen_id: null, alcance: 'todos' as const }]
 
@@ -141,6 +142,49 @@ describe('anularComprobante', () => {
   it('un motivo vacío no llega a la base', async () => {
     const respuesta = await anularComprobante({ comprobanteId: COMPROBANTE, motivo: '   ' })
     expect(respuesta.validationErrors).toBeTruthy()
+    expect(h.llamadas).toEqual([])
+  })
+})
+
+describe('cambiarSerie', () => {
+  const ACTUALIZADO = '2026-11-08 09:00:00.5+00'
+
+  it('con la clave de emitir y sin empresa.ajustes.gestionar no llama a la base (P1 a)', async () => {
+    const respuesta = await cambiarSerie({ serie: 'B', actualizadoEn: ACTUALIZADO })
+    expect(respuesta.data).toEqual({
+      ok: false,
+      error: { codigo: 'sin_permiso', mensaje: 'No tienes permiso para cambiar la serie.' },
+    })
+    expect(h.llamadas).toEqual([])
+    expect(h.cache.revalidatePath).not.toHaveBeenCalled()
+  })
+
+  it('entra: manda la serie en mayúsculas y sin espacios, con la versión, y revalida Empresa', async () => {
+    h.permisos = conClave('empresa.ajustes.gestionar')
+    h.respuesta = {
+      data: { serie: 'PU-2', siguiente: 1, actualizado_en: '2026-11-08T15:00:00+00:00' },
+      error: null,
+    }
+    const respuesta = await cambiarSerie({ serie: ' pu-2 ', actualizadoEn: ACTUALIZADO })
+    expect(h.llamadas).toEqual([
+      {
+        nombre: 'comprobantes_serie_cambiar',
+        args: { p_serie: 'PU-2', p_actualizado_en_esperado: ACTUALIZADO },
+      },
+    ])
+    expect(respuesta.data).toEqual({
+      ok: true,
+      data: { serie: 'PU-2', siguiente: 1, actualizadoEn: '2026-11-08T15:00:00+00:00' },
+    })
+    expect(h.cache.revalidatePath).toHaveBeenCalledWith('/configuracion/empresa')
+  })
+
+  it('una serie con espacios adentro o de más de 12 no llega a la base', async () => {
+    h.permisos = conClave('empresa.ajustes.gestionar')
+    for (const serie of ['A B', 'ABCDEFGHIJKLM', '']) {
+      const respuesta = await cambiarSerie({ serie, actualizadoEn: ACTUALIZADO })
+      expect(respuesta.validationErrors).toBeTruthy()
+    }
     expect(h.llamadas).toEqual([])
   })
 })

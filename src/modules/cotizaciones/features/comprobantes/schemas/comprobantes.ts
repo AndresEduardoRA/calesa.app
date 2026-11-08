@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { esquemaDelMotivo } from '../../../entities/comprobantes/motivo'
+import { esquemaDeSerie } from '../../../entities/comprobantes/serie'
 
 // Emitir el comprobante de una cotización (4.26-2): su id y la versión que se ve (el `actualizado_en` de la base, tal cual).
 export const esquemaEmitirComprobante = z.object({
@@ -11,4 +12,10 @@ export const esquemaEmitirComprobante = z.object({
 export const esquemaAnularComprobante = z.object({
   comprobanteId: z.guid(),
   motivo: esquemaDelMotivo,
+})
+
+// Cambiar la serie vigente (4.26-3): la serie nueva y la versión de la que se ve.
+export const esquemaCambiarSerie = z.object({
+  serie: esquemaDeSerie,
+  actualizadoEn: z.string().min(10).max(64),
 })

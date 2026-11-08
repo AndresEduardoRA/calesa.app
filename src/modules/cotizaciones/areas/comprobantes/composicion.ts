@@ -8,3 +8,6 @@ export const repositorioDeComprobantes: RepositorioDeComprobantes = comprobantes
 
 // Los comprobantes de una cotización, para la cabecera y la sección de la guardada (4.26-2).
 export { leerComprobantesDeLaCotizacion } from '../../infra/comprobantes/leer'
+
+// La serie vigente, para su pestaña de Configuración › Empresa (4.26-3).
+export { leerSerieVigente } from '../../infra/comprobantes/serie'

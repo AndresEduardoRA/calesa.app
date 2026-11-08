@@ -6,6 +6,8 @@ export type ComprobanteEmitido = { id: string; serie: string; numero: number; em
 
 export type ComprobanteAnulado = { id: string; anuladoEn: string }
 
+export type SerieCambiada = { serie: string; siguiente: number; actualizadoEn: string }
+
 export type RepositorioDeComprobantes = {
   // `cotizacionEsperada`: el `actualizado_en` de la cotización que se ve (la versión).
   emitir: (
@@ -13,4 +15,6 @@ export type RepositorioDeComprobantes = {
     cotizacionEsperada: string,
   ) => Promise<Resultado<ComprobanteEmitido>>
   anular: (comprobanteId: string, motivo: string) => Promise<Resultado<ComprobanteAnulado>>
+  // `actualizadoEn`: la versión de la serie vigente que se ve (4.26-3). Devuelve el número que llevará el próximo comprobante.
+  cambiarSerie: (serie: string, actualizadoEn: string) => Promise<Resultado<SerieCambiada>>
 }
