@@ -70,10 +70,11 @@ export type PropsDeUnHuecoDeLaGuardada = {
   permisos: Permisos
 }
 
-// Los huecos de una cotización guardada (4.15-6b): `Acciones` va en la cabecera, después de «Revisiones»; `Debajo`, bajo la hoja. Los llenan `final`, `comprobantes`,
-// `comentarios` y `papelera`; la página de `src/app` los ordena (`[id]/huecos-de-la-guardada.tsx`).
+// Los huecos de una cotización guardada (4.15-6b): `Acciones` va en la cabecera, después de «Revisiones»; `Debajo`, bajo la hoja; `Insignias` (4.27-4), en la cabecera
+// después de la clase y de la vigencia. Los llenan `final`, `comprobantes`, `comentarios` y `papelera`; la página de `src/app` los ordena (`[id]/huecos-de-la-guardada.tsx`).
 export type HuecosDeLaGuardada = {
   Acciones?: ComponentType<PropsDeUnHuecoDeLaGuardada>
+  Insignias?: ComponentType<PropsDeUnHuecoDeLaGuardada>
   Debajo?: ComponentType<PropsDeUnHuecoDeLaGuardada>
 }
 

@@ -127,6 +127,15 @@ describe('CabeceraDeLaGuardada: las acciones (4.15-6b, C2)', () => {
     expect(accion.parentElement).toBe(fila)
   })
 
+  it('con `insignias`, van después de la vigencia y antes de «Revisiones», sin envoltorio (4.27-4)', () => {
+    render(<CabeceraDeLaGuardada {...props} insignias={<span>Insignia de prueba</span>} />)
+    const { contenedor, fila } = filaDeLaCabecera()
+    const insignia = screen.getByText('Insignia de prueba')
+    expect(insignia.parentElement).toBe(fila)
+    expect(insignia.nextElementSibling).toBe(contenedor)
+    expect(insignia.previousElementSibling?.textContent).toMatch(/^Vale hasta el /)
+  })
+
   it('sin `acciones`, la fila tiene los cuatro hijos de siempre y «Revisiones» es el último (C9)', () => {
     render(<CabeceraDeLaGuardada {...props} />)
     const { contenedor, fila } = filaDeLaCabecera()
