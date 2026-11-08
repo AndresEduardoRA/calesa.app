@@ -10,6 +10,7 @@ import {
   useEscrituraDeComentarios,
   type EscrituraDeComentarios,
 } from '../hooks/use-escritura-de-comentarios'
+import { Adjuntos } from './adjuntos'
 import { CampoDeComentario } from './campo-de-comentario'
 import type { AccionesDeComentario } from './comentario'
 import { ConfirmarBorradoDeComentario } from './confirmar-borrado'
@@ -74,9 +75,16 @@ function ListaDeComentarios({ comentarios, escritura, acciones }: PropsDeLaLista
   )
 }
 
-// Los comentarios de una cotización guardada (4.27-2): el campo «Escribe un comentario» arriba (lo más nuevo va primero), la lista por cursor con sus respuestas,
-// el pie y el diálogo de borrar. Se monta cuando la sección llega a la pantalla (`diferido()`).
-export function Comentarios({ cotizacionId }: { cotizacionId: string }) {
+// Los comentarios de una cotización guardada (4.27-2): los adjuntos (4.27-3), el campo «Escribe un comentario» arriba (lo más nuevo va primero), la lista por cursor
+// con sus respuestas, el pie y el diálogo de borrar. Se monta cuando la sección llega a la pantalla (`diferido()`). `puedeAdjuntar` es `puedeGuardar` de la
+// guardada; quién modera lo dice la lectura de comentarios (mientras no llega, «Quitar» lo ajeno no se dibuja).
+export function Comentarios({
+  cotizacionId,
+  puedeAdjuntar,
+}: {
+  cotizacionId: string
+  puedeAdjuntar: boolean
+}) {
   const { zonaHoraria } = useRegional()
   const comentarios = useComentarios(cotizacionId, zonaHoraria)
   const escritura = useEscrituraDeComentarios(cotizacionId, comentarios.aplicar)
@@ -100,6 +108,10 @@ export function Comentarios({ cotizacionId }: { cotizacionId: string }) {
   }
   return (
     <div className="grid min-w-0 gap-4">
+      <Adjuntos
+        cotizacionId={cotizacionId}
+        quien={{ puedeAdjuntar, puedeModerar: comentarios.puedeModerar }}
+      />
       <CampoDeComentario
         etiqueta="Escribe un comentario"
         texto={nuevo}

@@ -14,6 +14,7 @@ import {
   adjuntosDesde,
   BUCKET_DE_ADJUNTOS,
   claseDeArchivo,
+  MIME_DE_IMAGEN,
   MIME_DE_PDF,
   MIME_DE_WORD,
   nombreDelAdjunto,
@@ -21,6 +22,7 @@ import {
   TOPE_DE_ADJUNTOS,
   type Adjunto,
   type ArchivoSubido,
+  type MimeDeAdjunto,
 } from '../../entities/comentarios/adjunto'
 
 export const NO_SE_CARGARON_LOS_ADJUNTOS = 'No se pudieron cargar los adjuntos.'
@@ -57,7 +59,7 @@ export async function leerAdjuntos(cotizacionId: string): Promise<Resultado<Adju
   return adjuntos ? ok(adjuntos) : fallo('inesperado', NO_SE_CARGARON_LOS_ADJUNTOS)
 }
 
-type Preparado = { contenido: Blob; extension: string; mime: string }
+type Preparado = { contenido: Blob; extension: string; mime: MimeDeAdjunto }
 
 // Una imagen pasa a WebP ≤ 1600 px (JPEG si el navegador no codifica WebP); PDF y Word van tal cual, con su tipo (no el que diga el navegador).
 async function preparar(archivo: File): Promise<Resultado<Preparado>> {
@@ -75,7 +77,7 @@ async function preparar(archivo: File): Promise<Resultado<Preparado>> {
     const imagen = await comprimirImagen(archivo)
     const extension = extensionDe(imagen.type)
     return extension
-      ? ok({ contenido: imagen, extension, mime: imagen.type })
+      ? ok({ contenido: imagen, extension, mime: MIME_DE_IMAGEN[extension] })
       : fallo('validacion', `No se pudo leer la imagen ${archivo.name}.`)
   } catch {
     return fallo('validacion', `No se pudo leer la imagen ${archivo.name}.`)

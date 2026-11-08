@@ -13,6 +13,21 @@ export const BUCKET_DE_ADJUNTOS = 'cotizaciones'
 export const MIME_DE_PDF = 'application/pdf'
 export const MIME_DE_WORD =
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+// Los tipos que admiten el bucket y `cotizacion_adjuntar`, y el de cada extensión de imagen que sale del navegador.
+export const MIMES_DE_ADJUNTO = [
+  MIME_DE_PDF,
+  MIME_DE_WORD,
+  'image/webp',
+  'image/jpeg',
+  'image/png',
+] as const
+export type MimeDeAdjunto = (typeof MIMES_DE_ADJUNTO)[number]
+export const MIME_DE_IMAGEN = {
+  webp: 'image/webp',
+  jpg: 'image/jpeg',
+  png: 'image/png',
+} as const satisfies Record<string, MimeDeAdjunto>
+
 // Lo que ofrece el selector del sistema; lo soltado no pasa por ahí y se revisa con `repartirElegidos`.
 export const TIPOS_QUE_SE_ELIGEN = `${MIME_DE_PDF},image/*,.docx,${MIME_DE_WORD}`
 
@@ -35,7 +50,7 @@ export type Adjunto = {
 }
 
 // Lo que se manda a registrar tras subir el archivo.
-export type ArchivoSubido = Pick<Adjunto, 'ruta' | 'nombre' | 'mime' | 'bytes'>
+export type ArchivoSubido = Pick<Adjunto, 'ruta' | 'nombre' | 'bytes'> & { mime: MimeDeAdjunto }
 
 const EXTENSIONES = /\.([a-z0-9]+)$/i
 
