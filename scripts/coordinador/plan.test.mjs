@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
+  arregloAjeno,
   caminoCritico,
   desfases,
   estadoInicial,
@@ -235,6 +236,27 @@ test('prestado: un carril sin paso listo toma uno de otro carril ocupado, si no 
   assert.equal(siguiente(CON_PRESTAMO, e, 'datos').arreglar, 'CI en rojo')
   assert.equal(siguiente(CON_PRESTAMO, e, 'ui').accion, 'esperar')
   assert.match(tablero(CON_PRESTAMO, e), /P06 t P06 \(lo hace datos\)/)
+})
+
+test('arreglo prestado: el PR roto de un carril ocupado lo arregla uno libre, en la misma rama y sin otro PR', () => {
+  let e = integrarYa(integrarYa(estadoInicial(CON_PRESTAMO), 'P01'), 'P02')
+  e = marcar(e, 'P06', 'asignado', { carril: 'ui', rama: 'ui/p06' })
+  e = marcar(e, 'P06', 'publicado', { pr: 6 })
+  e.pasos.P06.arreglar = 'conflicto con main'
+  // ui libre: lo arregla él mismo en su próxima vuelta; datos no se lo quita.
+  assert.equal(arregloAjeno(CON_PRESTAMO, e, 'datos'), null)
+  // ui ocupado con P03: datos (sin nada propio listo) lo toma en ui/p06, antes que un paso prestado.
+  e = marcar(e, 'P03', 'asignado', { carril: 'ui' })
+  const r = siguiente(CON_PRESTAMO, e, 'datos')
+  assert.equal(r.paso.id, 'P06')
+  assert.equal(r.rama, 'ui/p06')
+  assert.equal(r.retomar, true)
+  assert.equal(r.arreglar, 'conflicto con main')
+  // Asignado a datos con su rama anotada: lo retoma en ui/p06, y ui no lo ve como suyo.
+  e = marcar(e, 'P06', 'asignado', { carril: 'datos', rama: r.rama })
+  assert.equal(siguiente(CON_PRESTAMO, e, 'datos').rama, 'ui/p06')
+  e = marcar(e, 'P03', 'publicado', { pr: 3 })
+  assert.equal(siguiente(CON_PRESTAMO, e, 'ui').accion, 'esperar')
 })
 
 test('prestado: no si toca lo que está en curso o con el PR abierto, ni con la cuota sobre el umbral', () => {
