@@ -8227,6 +8227,14 @@ export type Database = {
         Args: { p_actualizado_en_esperado: string; p_cambios: Json }
         Returns: string
       }
+      empresa_guardar_ajustes_de_cotizacion: {
+        Args: {
+          p_actualizado_en_esperado: string
+          p_vehiculo_obligatorio: boolean
+          p_vigencia_dias: number
+        }
+        Returns: string
+      }
       en_cartera: { Args: { p_lead: string }; Returns: boolean }
       enmascarar_telefono: { Args: { p: string }; Returns: string }
       equipo_aceptar_invitacion: { Args: Record<PropertyKey, never>; Returns: undefined }

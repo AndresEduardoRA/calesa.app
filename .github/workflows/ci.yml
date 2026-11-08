@@ -78,9 +78,12 @@ jobs:
           fetch-depth: 0
       - uses: ./.github/acciones/preparar
       - env:
-          BASE_PR: ${{ github.event.pull_request.base.sha }}
+          BASE_REF: ${{ github.base_ref }}
           RAMA: ${{ github.head_ref }}
+        # La base es la rama base de AHORA, no pull_request.base.sha: ése queda viejo y, cuando la rama del carril trae main (antes de
+        # cada parte), lo que main sumó después aparecía como del PR (los PR 72, 76 y 78 cayeron así el 2026-11-08).
         run: |
+          BASE_PR=$(git rev-parse "origin/$BASE_REF")
           git worktree add --detach .guarda-base "$BASE_PR"
           node .guarda-base/scripts/guardas/carriles.mjs "$BASE_PR" "$RAMA"
 

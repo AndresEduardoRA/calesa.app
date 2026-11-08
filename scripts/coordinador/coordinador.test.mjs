@@ -144,6 +144,30 @@ test('CI todavía corriendo: no integra', () => {
   assert.equal(correr('sincronizar').trim(), '')
 })
 
+test('un estado de commit pendiente (el de Vercel) no es un CI en rojo: espera; en ERROR, sí', () => {
+  const { correr, pr } = repo()
+  correr('siguiente', 'ui')
+  correr('publicado', 'P02', '9')
+  pr(9, {
+    state: 'OPEN',
+    mergeable: 'MERGEABLE',
+    statusCheckRollup: [
+      ...verde,
+      { __typename: 'StatusContext', context: 'Vercel', state: 'PENDING' },
+    ],
+  })
+  assert.equal(correr('sincronizar').trim(), '')
+  pr(9, {
+    state: 'OPEN',
+    mergeable: 'MERGEABLE',
+    statusCheckRollup: [
+      ...verde,
+      { __typename: 'StatusContext', context: 'Vercel', state: 'ERROR' },
+    ],
+  })
+  assert.match(correr('sincronizar'), /P02: CI en rojo \(#9\)/)
+})
+
 test('liberar e integrado a mano; transición inválida falla con mensaje', () => {
   const { correr } = repo()
   correr('siguiente', 'datos')
