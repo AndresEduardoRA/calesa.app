@@ -51,10 +51,18 @@ describe('carriles › lo que un carril que no es base cambia en docs/plan.yaml 
     expect(revisar('b/x', [PLAN_YAML], base)).toEqual([])
   })
 
+  it('suma un archivo que crea en el PR aunque no sea del compilador (PR 78: pantallas/diseno-tonos.ts)', () => {
+    const nuevo = `${M}pantallas/diseno-tonos.ts`
+    expect(revisar('b/x', [PLAN_YAML, { estado: 'A', ruta: nuevo }], suma(nuevo))).toEqual([])
+  })
+
   it.each([
     ['uno que no crea', `${M}entities/validar-x.ts`, []],
-    ['uno fuera del módulo', 'src/shared/lib/x.ts', [{ estado: 'A', ruta: 'src/shared/lib/x.ts' }]],
-    ['uno del núcleo', `${M}entities/hoja-x.ts`, [{ estado: 'A', ruta: `${M}entities/hoja-x.ts` }]],
+    [
+      'uno que crea dentro de otro carril',
+      `${M}areas/papelera/x.ts`,
+      [{ estado: 'A', ruta: `${M}areas/papelera/x.ts` }],
+    ],
   ])('suma %s → cae', (_t, ruta, creados) => {
     expect(revisar('b/x', [PLAN_YAML, ...creados], suma(ruta))).toEqual(
       expect.arrayContaining([expect.stringContaining(`suma ${ruta} a su dueno_de`)]),
