@@ -63,6 +63,20 @@ Editar una tabla de referencia publica la N+1 de cada fórmula de su origen que 
 filas que usa: recalcular con su versión vale también para las tablas. **El motor usa la congelada si existe, aunque esté vacía**; si
 no, la viva (`tablas_referencia_filas`); sin ninguna, `tabla_sin_filas`.
 
+**Publicar una tabla (4.23-1).** Una tabla tiene versión (`version`, `nota`, `publicado_por`, `publicado_en`) y se escribe sólo con
+`tabla_referencia_publicar(p_tabla, p_filas, p_nota, p_version_esperada)`: `authenticated` no tiene `insert`, `update` ni `delete` en
+`tablas_referencia(_filas)`. La pantalla manda la tabla **entera** (las filas en su orden) con nota y la versión que leyó; la base reemplaza las filas
+(también las inactivas), sube la versión y publica la N+1 de cada fórmula publicada que la usa (un nodo con `tabla = clave` **o** la copia en
+`params.tablas`) con la copia nueva en `params.tablas[clave]` y todo lo demás igual; el borrador no se toca (uno empezado antes da PT409 al
+publicarse). Una compartida (origen nulo) va a los orígenes sin tabla propia activa de esa clave y pide `cotizaciones.configurar` en **cada** origen
+que la usa. El orden: 42501 con el mismo texto (tabla inexistente, inactiva o ajena), esperada nula, nota vacía; tras el `for update` de la tabla, el
+permiso de cada origen que la usa, PT409 («Ana publicó la versión 3 de esta tabla hace 2 min.»), las filas contra `columnas` (hasta 2.000; `numero`
+→ número, `anio` → entero, `texto` → hasta 200; `hint` `filas.<i>.<clave>`, desde 0) y «La tabla no cambió.» (las mismas vivas y cada publicada ya
+con esa copia: tras revertir, publicar las mismas filas devuelve la tabla). Candados: la tabla, después `formulas:<origen>` en orden de origen, y la
+publicada se relee dentro de cada uno (si ya no la usa, se salta; si empezó a usarla, se pide su permiso). Devuelve `{version, formulas: [{origen_id,
+version}]}`. **La base no congela al publicar una fórmula:** una versión anterior que leía la viva recalcula con las filas nuevas; una que congeló, con
+su copia; lo guardado de una cotización no cambia (manda su snapshot).
+
 ## Las reglas
 
 **Primero la forma (`forma`):** el Zod de `nodos.ts` y `formula.ts`. **Después, 30 reglas cruzadas,** con código estable (contrato con

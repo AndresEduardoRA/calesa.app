@@ -183,6 +183,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **XCell** — `src/shared/ui/xcell`: celda numérica editable del cotizador: valor, default, revertir, ayuda, ⚙, sugerido, teclado.
 - **Modo Live** — `useLive()` / `<Monto>`: oculta cifras y símbolos de moneda en toda la app.
 - **Tabla de referencia** — `tablas_referencia`, `_filas`: tablas que alimentan nodos tabla/tramo (impuestos, tramos, tarifas, depreciación).
+- **Publicar una tabla de referencia** — `tabla_referencia_publicar()`: reemplaza sus filas, sube su versión (`tablas_referencia.version`) y publica la N+1 de cada fórmula que la usa con la copia congelada (4.23-1).
 - **Plantilla de tarjeta** — `plantillas_tarjeta`: cómo se ve la cotización (tarjeta y PDF), versionada aparte; declarativa (los grupos de la fórmula con su tono, etiquetas y leyendas por nodo, el total, la nota, el logo y las columnas) y validada por `validar_plantilla()` (4.18-1).
 - **Lectura de la tarjeta** — `cotizacion_tarjeta()`: lo que dibujan la tarjeta y el PDF de una versión de la fórmula, con la plantilla publicada validada contra esa versión y sólo lo del nivel «todos». No es la **Tarjeta del total** (`diseno.tarjeta_total`, el resumen fijo de la hoja).
 - **Tarjeta por omisión** — `{estado: 'sin_plantilla'}` de `cotizacion_tarjeta()`: la plantilla publicada no le sirve a esa versión y la tarjeta muestra sólo el total (encabezado, vehículo y logo; sin filas ni lo aparte: lo aparte que tiene la pantalla es el de la hoja de quien mira y podría ser de un nivel restringido; P4 del 4.18-2).
