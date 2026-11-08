@@ -195,6 +195,13 @@ scripts ya no hacen falta. Las decisiones, en `docs/pasos/flujo-1/decisiones.md`
 - **El carril A publica con coordinador** su rama `a/<paso>`. La sesión de funciones edge es una por carril (`piloto-funciones-<c>`). Lo que el
   bucle corre por fuera no hereda su candado (fd 8).
 
+**Sin esperas (2026-11-08).** Del 7 al 8-11 los tres carriles estuvieron diez horas parados: el `ExecStop` de cada servicio corría `parar.sh` al
+apagar la máquina y, tras el reinicio, arrancaban y se paraban por `PARAR`. Ya no hay `ExecStop` (apagar no es parar). Además: un carril sin paso
+propio listo toma prestado uno de otro carril ocupado (`prestable` en `plan.mjs`); lo que un carril necesita del núcleo lo hace en su PR (la guarda
+le deja agregar y editar lo del base); y el coordinador integra solo los PR que tocan `scripts/guardas/` salvo las guardas del piloto y de los
+carriles (los registros de cada carril ya no esperan a la persona). **Antes de iniciar sesión** tras un reinicio, `gh` y `git fetch` fallan si la
+credencial vive en el llavero del escritorio: `gh auth login --insecure-storage`, `gh auth setup-git` y el remoto por HTTPS lo evitan.
+
 Para que un carril se levante solo tras un corte de luz, un reinicio o un bucle que se cayó: `bash scripts/maquina/instalar-servicios.sh a b c` (en el árbol del A). Escribe, por carril, la unidad
 `systemd --user` que corre `arrancar.sh --carril` al iniciar y un **vigía** cada 10 min (`arrancar.sh --carril <c> --si-caido`): levanta el bucle si nadie tiene `.piloto/bucle.lock` y no se paró a
 propósito (PARAR, «parado» de la persona, el carril terminó o llegó a `--hasta`). Reemplaza a `vigilar-carriles.sh`.
