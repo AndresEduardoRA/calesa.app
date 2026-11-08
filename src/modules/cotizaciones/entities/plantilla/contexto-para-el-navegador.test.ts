@@ -97,3 +97,20 @@ describe('contextoParaElNavegador', () => {
     expect(validarPlantilla(a, reducido).ok).toBe(true)
   })
 })
+
+describe('contextoParaElNavegador: el plazo', () => {
+  it('el plazo del grupo pasa sólo si es un texto', () => {
+    const contexto = {
+      definicion: {
+        nodos: [],
+        grupos: [{ id: 'a', plazo: '2 días' }, { id: 'b', plazo: 5 }, { id: 'c' }],
+        buckets: {},
+      },
+      diseno: null,
+      visibilidad: null,
+      tonos: [],
+    } as unknown as ContextoDePlantilla
+    const grupos = contextoParaElNavegador(contexto).definicion.grupos ?? []
+    expect(grupos.map((g) => g.plazo)).toEqual(['2 días', null, null])
+  })
+})

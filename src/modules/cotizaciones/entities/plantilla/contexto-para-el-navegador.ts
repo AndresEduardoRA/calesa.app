@@ -39,6 +39,7 @@ export function contextoParaElNavegador(contexto: ContextoDePlantilla): Contexto
       etiqueta: g.etiqueta ?? null,
       tono: g.tono ?? null,
       bucket: g.bucket ?? null,
+      plazo: typeof g.plazo === 'string' ? g.plazo : null,
     })),
   }
   const disenoReducido: DisenoParaPlantilla | null =

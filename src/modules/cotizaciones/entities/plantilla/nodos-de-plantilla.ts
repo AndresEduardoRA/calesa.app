@@ -22,6 +22,8 @@ export type DefinicionParaPlantilla = {
     readonly bucket?: string | null
     readonly etiqueta?: string | null
     readonly tono?: string | null
+    // Lo que la vista previa del editor dibuja del grupo (4.19-4): su plazo (la definición lo trae sin forma; el contexto reducido lo deja texto o nulo).
+    readonly plazo?: unknown
   }[]
 }
 export type DisenoParaPlantilla = {
