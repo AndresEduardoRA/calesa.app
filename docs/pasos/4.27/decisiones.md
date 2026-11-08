@@ -56,3 +56,15 @@
 - **El bucket por constante** (`BUCKET_DE_ADJUNTOS`): un `.from('cotizaciones')` literal lo marca la guarda de escala como consulta sin tope.
 - **`puedeModerar` de la lectura de comentarios**, como borrar un comentario: una sola fuente en la sección y, con «Ver como», la base usa los permisos reales.
 - **«Tú» para lo propio** y la URL firmada pedida por clic (60 s), nunca al leer la lista. El e2e no borra la cola de limpieza: `storage-gc` barre el PDF quitado.
+
+## 2026-11-08 — Paso 4.27-4
+
+- **Lo que contestó la persona** (compuerta `datos` del plan, «aprobar»): P1 a, «Reportada» sólo para quien puede moderar (quien reportó lo ve en su botón); P2 a,
+  «Reactivar…» con `<Confirmar>`, que también descarta los reportes; P3 a, «Invalidar…» en toda cotización activa, con o sin reportes.
+- **La insignia va en un hueco nuevo del núcleo** (`Insignias`, después de la clase y la vigencia), no dentro de `Acciones`: es estado de la cotización, no una acción,
+  y su lugar es junto a «Vencida». El C lo agregó en su PR, chico y con sus pruebas.
+- **Las marcas se leen en el servidor**, tras `<Suspense>` y con `cache()` (la usan los dos huecos): la hoja no las trae, y leerlas en el navegador sumaba el cliente
+  y Zod al JS en frío de la guardada (cerca de su tope). Al navegador llegan el id, la versión, la marca propia y las acciones de moderar ya calculadas.
+- **Los reportes del Confirmar, hasta 21 sin «Ver más»:** hay uno por persona (lo acota el equipo) y moderar no depende de leerlos todos.
+- **«Retirar mi reporte» sin confirmar, con «Deshacer»** (vuelve a reportar con el motivo que tenía): es reversible.
+- **Invalidar y reactivar avisan que lo no guardado se descarta:** mueven la versión y la hoja se vuelve a montar (auditoría del plan); arreglarlo es del núcleo.

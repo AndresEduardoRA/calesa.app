@@ -97,3 +97,37 @@
 2. **BITACORA:** la línea con el marcador de arriba.
 3. **Abiertos nuevos:** (a) ensanchar `subirPorHash` (`src/shared/lib/supabase/almacen.client.ts`) a los buckets privados y llevar ahí la subida de
    `infra/comentarios/adjuntos.client.ts`; (b) barrer los objetos del bucket `cotizaciones` que se subieron y nunca se registraron (hoy quedan, como en vehículos).
+
+## 2026-11-08 — Paso 4.27-4: favorita, reportar y moderar en la cabecera
+
+- **Hecho:** parte de pantalla del paso rojo, sin migración, policy, RLS, `security definer` ni claves nuevas (usa las cuatro RPC del 4.27-1 tal cual). Plan auditado
+  una vez (observaciones, atendidas en el plan); el informe no se audita (no toca RLS, permisos ni dinero: el único razonamiento de permisos es un espejo con test).
+  La compuerta `datos` del plan (`--hasta-plan`) se contestó «aprobar»: P1 a, P2 a, P3 a.
+  - En la cabecera de `/cotizaciones/[id]`: «Favorita» (estrella, cambia al tocar), «Reportar…» (`?panel=reportar`, motivo 1–500, «Retirar mi reporte» con
+    «Deshacer») y, para quien modera, «Invalidar…», «Descartar los reportes…» y «Reactivar…» (`?panel=moderar&accion=…`, `<Confirmar>` con los motivos); la
+    insignia «Inválida» (todos) o «Reportada» (sólo quien modera) en un hueco nuevo del núcleo, `Insignias`.
+  - `entities/comentarios/moderacion.ts` (espejo de `cotizacion_moderar`, insignia y acciones, con tests) y `moderacion-lectura.ts` (Zod, fuera del JS en frío);
+    `infra/comentarios/marcas.ts` (tres lecturas por clave primaria con `cache()` y las cuatro RPC) y `reportes.client.ts`; cuatro actions; el registro del
+    `<Confirmar>` nuevo en `scripts/guardas/areas-c/confirmar-con-url.ts`.
+- **Verificación** (`.piloto/salidas/4.27-4/`):
+  - `vitest` de `entities/comentarios/moderacion.test.ts`: 11 ✓; los del núcleo (cabecera y huecos, un caso nuevo cada uno): 2 archivos, 15 ✓ (`vitest-nucleo.txt`);
+    `vitest related` de lo tocado: 6 archivos, 53 ✓ (`vitest-related.txt`); `scripts/guardas`: 32 archivos, 1.010 ✓ (`guardas.txt`). `tsc --noEmit` 0 errores; lint y
+    formato por el hook de cada commit.
+  - `nivel.mjs` con los archivos reales: Nivel 1, sin disparadores, con interfaz (`nivel.txt`). `saltadas.mjs`: ninguna nueva (`saltadas.txt`).
+  - e2e dirigidos en escritorio y movil, contra el build (`e2e-dirigidos.txt`): `cotizaciones-moderar` (nuevo), `cotizar-guardada`, `cotizar-guardada-revisiones`,
+    `cotizaciones-papelera-enviar`, `cotizaciones-comentarios`, `cotizaciones-adjuntos` y `presupuesto-js`: 45 ✓, 7 saltadas por su marca de celular. JS en frío de
+    `/cotizaciones/[id]`: 441,9 KB (tope 448, sin cambio).
+    e2e completo: no (4.27-4, pantalla, Nivel 1: lo dirigido en escritorio y movil)
+- **Desvíos del plan:** al navegador llegan las acciones de moderar ya calculadas por el servidor (el hook de la URL no importa `moderacion.ts` ni `permisos.ts`);
+  la lista de reportes y el retiro con «Deshacer» van en su componente y su hook (`lista-de-reportes.tsx`, `use-reportes.ts`, `use-retiro-del-reporte.ts`) para no pasar
+  de 80 líneas por función. La favorita usa `useState` con «el último toque manda» en vez de `useOptimistic`. Cinco commits de código, sin el sexto (el JS entró).
+- **Sin hacer:** el filtro «Favoritas» y la insignia en el listado (área `listado`, del A); el nombre de quien reportó en la lista; tiempo real.
+
+### Al A (4.27-4)
+
+1. **ESTADO:** «4.27-4 (C): favorita, reportar y moderar en la cabecera de la guardada; cierra el 4.27».
+2. **PLAN:** la fila del 4.27 ya partida en cuatro, marcada hecha; cierra **4-69** (lo hizo el 4.27-1).
+3. **BITACORA:** la línea con el marcador de arriba.
+4. **Abierto nuevo:** invalidar o reactivar mueven la versión y el `router.refresh()` vuelve a montar la hoja (`pantalla-de-una-guardada.tsx`: la `key` lleva
+   `actualizadoEn`, y el borrador va por versión): lo no guardado de quien modera se pierde sin aviso de conflicto. El Confirmar lo avisa; que la hoja lo conserve
+   cuando sólo cambia el estado de la cotización es del núcleo.
