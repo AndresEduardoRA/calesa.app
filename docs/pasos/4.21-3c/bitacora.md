@@ -15,4 +15,8 @@
   - e2e dirigidos en escritorio: 27 pasaron (grupos, editor, filas, previa, guardar y previa-volumen), con E1 nuevo. Configuración no corre en `movil`.
   - Las salidas están en `.piloto/salidas/4.21-3c/`.
 - **Abiertos:** sumar y quitar grupos, y editar `buckets`, `total_en` y los modos, esperan a que la plantilla de la tarjeta se edite junto con la fórmula (P2.1 y P1.1).
+- **CI del PR (2026-11-08):** la guarda de carriles cayó porque la migración de la auxiliar (`20261108043918`) era anterior a la última de main
+  (`20261108084712`); pasó a `20261108124129_diseno_auxiliar_sin_celda.sql` sin cambiar su contenido (`db:reset`, `db:types` sin diferencia, `db:probar`
+  739 ✓ y 0 ✗, `.piloto/salidas/4.21/`). **Ojo al integrar con el PR 78 (4.22-6):** las dos migraciones reescriben `validar_diseno()` entera desde la base;
+  la que se aplique después pisa a la otra (la auxiliar sin celda o `demasiados_items`). La del PR que se integre segundo se rehace sobre la otra.
   e2e completo: no (4.21-3c, grupos del editor de la fórmula, Nivel 1: lo dirigido en escritorio)
