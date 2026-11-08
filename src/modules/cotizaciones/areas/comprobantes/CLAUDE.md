@@ -6,8 +6,8 @@ vigente que se configura en Empresa. Ficha del módulo: `../../CLAUDE.md` › «
 ## Qué es
 
 Un **comprobante** es interno (no fiscal): se emite sobre una **final activa**, congela en `datos` lo que se vendió y se anula, nunca se borra. Una cotización
-tiene a lo sumo un **comprobante vigente** (sin anular). Lleva serie y número: el número es global por serie (no por origen, D6) y no tiene huecos. Hoy vive
-sólo en la base (4.26-1); `client.ts`, `index.ts` y `composicion.ts` siguen vacíos.
+tiene a lo sumo un **comprobante vigente** (sin anular). Lleva serie y número: el número es global por serie (no por origen, D6) y no tiene huecos. La base es del
+4.26-1; la guardada, del 4.26-2; la pestaña de Empresa, del 4.26-3. `client.ts` e `index.ts` siguen vacíos: lo de afuera entra por `pantallas/`.
 
 ## En la base (4.26-1, `…_comprobantes_emitir_y_serie.sql`)
 
@@ -30,17 +30,29 @@ empresa: {razon_social, nit}, valores, totales, tipos_cambio, etiquetas}`. El re
   Marcar o crear otra final del vehículo con un comprobante vigente en la actual da 23514; con sólo anulados, la vieja baja a preventa y queda viva (P7 a,
   `…_final_con_comprobante.sql`, en `_final_aplicar`).
 
+## En la app (4.26-2 y 4.26-3)
+
+- `entities/comprobantes/`: `acceso.ts` (emitir: final **activa** sin vigente, con `cotizaciones.comprobantes.emitir`; anular, la misma clave; la sección se ve
+  en una final o con algún comprobante), `comprobante.ts` (el tipo sin `datos`, «S-N», el vigente), `motivo.ts`, `serie.ts` (P6 a), `url.ts`, `repositorio.ts`.
+- `infra/comprobantes/`: `leer.ts` (el `estado` de la cotización y sus comprobantes con `limit 21`, en `cache`), `escribir.ts` (las tres RPC, respuesta por
+  Zod), `serie.ts` (la vigente con el `ultimo` de su contador).
+- `features/comprobantes/`: las actions (`emitir`, `anular`, `cambiar-serie`, con la clave antes de llamar a la base); en la guardada, «Emitir comprobante»
+  (hueco `Acciones`, `<Confirmar>` diferido en `?panel=emitir-comprobante`, registrado en `scripts/guardas/areas-c/confirmar-con-url.ts`) y la sección
+  «Comprobantes» (hueco `Debajo`, «Anular» con un `ModalDeFormulario` diferido en `?panel=anular-comprobante`); en Empresa, `SerieDeComprobantes`
+  (`pantallas/comprobantes-empresa.ts`), que dibuja `src/app/(app)/configuracion/empresa/comprobantes/seccion.tsx`.
+- La pestaña «Comprobantes» de Empresa pide `empresa.ajustes.gestionar` (P1 a, cierra 4-89): nadie nuevo entra a Empresa.
+- Los textos de error de las tres RPC se muestran tal cual (la excepción está en la ficha del módulo): la base ya los escribe para la persona.
+
 ## Pruebas
 
 - `supabase/tests/areas/comprobantes/`: `emitir.sql` (E1–E5), `anular.sql` (A1–A2), `serie.sql` (S1–S4), `final.sql` (E6, marcar con comprobante) y el caso de
   `humo.sql` (la policy). PU8 de `areas/papelera/purgar.sql` (la papelera la rechaza).
 - Carreras: `carreras.mjs` (K1–K5, la numeración) y `carreras-papelera.mjs` (K6 contra la papelera, K7 contra marcar), con `carreras-comun.mjs`. Las corre
   `pnpm db:carreras`; solas, `bash scripts/candado.sh db:carreras -- node supabase/tests/areas/comprobantes/correr-carreras.mjs`.
+- App: `entities/comprobantes/acceso.test.ts`, `features/comprobantes/actions/comprobantes.test.ts` (sin la clave no se llama a la base),
+  `configuracion/empresa/comprobantes/pestanas.test.ts` (quién ve la pestaña) y los e2e `cotizaciones-comprobantes.spec.ts` (emitir y anular) y
+  `empresa-comprobantes.spec.ts` (cambiar la serie), que usan series propias (`e2e/soporte/cotizaciones-comprobantes.ts`) y devuelven la vigente.
 
 ## Lo que falta
 
-- **4.26-2:** `entities/comprobantes` (quién emite y anula, el número a mostrar, los textos de error), `infra/comprobantes` (la lectura por cotización con tope, las
-  RPC), `features/comprobantes` (las actions; «Emitir comprobante» en `Acciones` de la guardada para una final activa con la clave; la sección «Comprobantes» en
-  `Debajo`; «Anular» con su modal en `?panel=`), `pantallas/comprobantes-cotizacion.ts` y un e2e del camino feliz.
-- **4.26-3:** la pestaña «Comprobantes» de Configuración › Empresa (`pantallas/comprobantes-empresa.ts`, `src/app/(app)/configuracion/empresa/comprobantes/`), con
-  `empresa.ajustes.gestionar`: la serie vigente, el próximo número y cambiarla con versión.
+- Nada del 4.26. Fuera de la fila: mostrar o imprimir lo que congela `datos` (un PDF del comprobante) sería un paso nuevo.
