@@ -1,7 +1,7 @@
 # cotizaciones › comentarios
 
 El área `comentarios` de `cotizaciones` (4.27): comentarios de una cotización con un nivel de respuestas; en el 4.27-3 los adjuntos y en el 4.27-4 favorita,
-reportar y moderar. Ficha del módulo: `../../CLAUDE.md` › «Áreas».
+reportar y moderar (en la cabecera). Ficha del módulo: `../../CLAUDE.md` › «Áreas».
 
 ## Qué es
 
@@ -17,6 +17,9 @@ La base lo decide todo (4.27-1, `supabase/tests/areas/comentarios/`): comentar p
   privado por hash; `subirPorHash` no admite un bucket privado) y `urlDeDescarga(adjunto)` (URL firmada de 60 s, por clic) (`infra/comentarios/adjuntos.client.ts`, 4.27-3).
 - `composicion.ts` (servidor): `repositorioDeComentarios.comentar|editar|borrar` (`infra/comentarios/escribir.ts`) y `repositorioDeAdjuntos.adjuntar|quitar`
   (`infra/comentarios/adjuntos.ts`, 4.27-3), que usan las actions de `features/comentarios/actions/` (sin `revalidatePath`: la sección lleva su propia lista).
+  También (4.27-4) `repositorioDeMarcas.ponerFavorita|reportar|retirarReporte|moderar` y `leerMarcasDeLaCotizacion(id)` (`infra/comentarios/marcas.ts`: la
+  fila, la favorita propia y el reporte propio, tres lecturas por clave primaria con `cache()`; el reporte se filtra por el `sub` de `getClaims()` porque quien
+  modera lee todos). En `composicion.client.ts`, `leerReportes(id)` (hasta 21, para el Confirmar de moderar).
 - `index.ts` y `client.ts` siguen vacíos: el área no suma nada a quien importa la raíz.
 
 ## La pantalla
@@ -31,6 +34,13 @@ Los adjuntos (4.27-3): `<Adjuntos>` arriba del campo, dentro de `<Comentarios>`.
 `cotizacion_puede_adjuntar`); `puedeModerar` sale de la lectura de comentarios. Las reglas puras están en `entities/comentarios/adjunto.ts` (tipos, tope, nombre,
 `puedeQuitarAdjunto`, con tests); las constantes de la URL, en `quitado.ts`, sin imports. Quitar abre `<ConfirmarQuitadoDeAdjunto>` por
 `?panel=quitar-adjunto&adjunto=<id>` (`useQuitadoPorUrl`, registrado en `scripts/guardas/areas-c/confirmar-con-url.ts`). e2e: `e2e/cotizaciones-adjuntos.spec.ts`.
+
+Favorita, reportar y moderar (4.27-4), en la cabecera: el hueco `Acciones` (`<MarcasDeLaGuardada>`, servidor tras `<Suspense>`) decide quién ve qué con
+`entities/comentarios/moderacion.ts` (espejo de `cotizacion_moderar`, con tests) y pasa al navegador sólo el id, la versión, la marca propia y las acciones ya
+calculadas; el hueco `Insignias` (`<InsigniaDeLaGuardada>`, sin JS) dibuja «Inválida» para todos y «Reportada» sólo para quien modera. `<BotonFavorita>` cambia al
+tocar; «Reportar…» abre `?panel=reportar` (`<ModalDeReportar>`, diferido) y moderar, `?panel=moderar&accion=invalidar|descartar|reactivar`
+(`useModeracionPorUrl`, `<ConfirmarModeracion>`, diferido, registrado en `confirmar-con-url.ts`). El Zod de la lectura vive en `moderacion-lectura.ts`, que no
+viaja en frío. e2e: `e2e/cotizaciones-moderar.spec.ts`.
 
 ## No se rompe
 
