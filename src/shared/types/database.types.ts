@@ -5271,7 +5271,11 @@ export type Database = {
           descripcion: string | null
           id: string
           nombre: string
+          nota: string | null
           origen_id: string | null
+          publicado_en: string | null
+          publicado_por: string | null
+          version: number
         }
         ComputedFields: never
         Insert: {
@@ -5283,7 +5287,11 @@ export type Database = {
           descripcion?: string | null
           id?: string
           nombre: string
+          nota?: string | null
           origen_id?: string | null
+          publicado_en?: string | null
+          publicado_por?: string | null
+          version?: number
         }
         Update: {
           activa?: boolean
@@ -5294,7 +5302,11 @@ export type Database = {
           descripcion?: string | null
           id?: string
           nombre?: string
+          nota?: string | null
           origen_id?: string | null
+          publicado_en?: string | null
+          publicado_por?: string | null
+          version?: number
         }
         Relationships: [
           {
@@ -5302,6 +5314,13 @@ export type Database = {
             columns: ['origen_id']
             isOneToOne: false
             referencedRelation: 'origenes'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'tablas_referencia_publicado_por_fkey'
+            columns: ['publicado_por']
+            isOneToOne: false
+            referencedRelation: 'perfiles'
             referencedColumns: ['id']
           },
         ]
@@ -6965,6 +6984,19 @@ export type Database = {
       _candado_de_objeto: { Args: { p_bucket: string; p_ruta: string }; Returns: number }
       _color_contraste: { Args: { p_a: string; p_b: string }; Returns: number }
       _color_luminancia: { Args: { p_hex: string }; Returns: number }
+      _comentario_item: {
+        Args: {
+          p_actualizado_en: string
+          p_autor: string
+          p_creado_en: string
+          p_cuerpo: string
+          p_eliminado_en: string
+          p_id: string
+          p_nombre: string
+          p_yo: string
+        }
+        Returns: Json
+      }
       _compilar_visibilidad: { Args: { p_def: Json; p_diseno: Json }; Returns: Json }
       _conflicto_de_edicion: {
         Args: { p_cuando: string; p_registro: string; p_sujeto: string; p_tabla: string }
@@ -7029,6 +7061,7 @@ export type Database = {
         Args: { p_def: Json; p_visibilidad: Json; p_visibles: string[] }
         Returns: Json
       }
+      _cotizacion_de_objeto: { Args: { p_nombre: string }; Returns: string }
       _cotizacion_descartados: {
         Args: {
           p_def_ant: Json
@@ -7230,6 +7263,10 @@ export type Database = {
           >
           p_tomadas: string[]
         }
+        Returns: undefined
+      }
+      _final_crear_mirar: {
+        Args: { p_ids: string[]; p_lead: string; p_vehiculo: string }
         Returns: undefined
       }
       _formula_cambio_y_grupos: {
@@ -7789,6 +7826,18 @@ export type Database = {
         Returns: Database['public']['Enums']['visibilidad_seguimiento']
       }
       _sin_tildes: { Args: { p_texto: string }; Returns: string }
+      _tabla_referencia_filas_validas: {
+        Args: { p_columnas: Json; p_filas: Json }
+        Returns: undefined
+      }
+      _tabla_referencia_publicada_por: { Args: { p_tabla: string }; Returns: string }
+      _tabla_referencia_usada_en: {
+        Args: { p_origen?: string; p_tabla: string }
+        Returns: {
+          formula_id: string
+          origen_id: string
+        }[]
+      }
       _tarjeta_grupos: { Args: { p_def: Json; p_plantilla: Json; p_tonos: Json }; Returns: Json }
       _tarjeta_json: {
         Args: {
@@ -8081,6 +8130,48 @@ export type Database = {
         }
         Returns: boolean
       }
+      cotizacion_adjuntar: {
+        Args: {
+          p_bytes: number
+          p_cotizacion: string
+          p_mime: string
+          p_nombre: string
+          p_ruta: string
+        }
+        Returns: Json
+      }
+      cotizacion_adjunto_quitar: { Args: { p_adjunto: string }; Returns: Json }
+      cotizacion_comentar: {
+        Args: { p_cotizacion: string; p_cuerpo: string; p_padre: string }
+        Returns: Json
+      }
+      cotizacion_comentario_borrar: {
+        Args: { p_actualizado_en_esperado: string; p_comentario: string }
+        Returns: Json
+      }
+      cotizacion_comentario_editar: {
+        Args: { p_actualizado_en_esperado: string; p_comentario: string; p_cuerpo: string }
+        Returns: Json
+      }
+      cotizacion_comentario_respuestas: {
+        Args: {
+          p_comentario: string
+          p_despues_en?: string
+          p_despues_id?: string
+          p_tope?: number
+        }
+        Returns: Json
+      }
+      cotizacion_comentarios: {
+        Args: {
+          p_antes_en?: string
+          p_antes_id?: string
+          p_cotizacion: string
+          p_primeros?: number
+          p_tope?: number
+        }
+        Returns: Json
+      }
       cotizacion_crear: {
         Args: {
           p_abierta: string
@@ -8110,6 +8201,7 @@ export type Database = {
         }
         Returns: Json
       }
+      cotizacion_favorito_poner: { Args: { p_cotizacion: string; p_valor: boolean }; Returns: Json }
       cotizacion_guardar: {
         Args: {
           p_actualizado_en_esperado: string
@@ -8129,9 +8221,16 @@ export type Database = {
       cotizacion_leer: { Args: { p_id: string }; Returns: Json }
       cotizacion_marcar_final: { Args: { p_cotizacion: string }; Returns: undefined }
       cotizacion_moderar: {
-        Args: { p_cotizacion: string; p_estado: Database['public']['Enums']['estado_cotizacion'] }
-        Returns: undefined
+        Args: {
+          p_actualizado_en_esperado: string
+          p_cotizacion: string
+          p_estado: Database['public']['Enums']['estado_cotizacion']
+        }
+        Returns: Json
       }
+      cotizacion_puede_adjuntar: { Args: { p_cot: string }; Returns: boolean }
+      cotizacion_reportar: { Args: { p_cotizacion: string; p_motivo: string }; Returns: Json }
+      cotizacion_reporte_retirar: { Args: { p_cotizacion: string }; Returns: Json }
       cotizacion_revisiones: {
         Args: { p_antes?: number; p_cotizacion: string; p_hasta?: string; p_tamano?: number }
         Returns: Json
@@ -8886,6 +8985,10 @@ export type Database = {
       }
       storage_gc_rescatar: { Args: { p_bucket: string; p_ruta: string }; Returns: undefined }
       storage_refcount: { Args: { p_bucket: string; p_ruta: string }; Returns: number }
+      tabla_referencia_publicar: {
+        Args: { p_filas: Json; p_nota: string; p_tabla: string; p_version_esperada: number }
+        Returns: Json
+      }
       telefono_lead: { Args: { p_lead: string }; Returns: string }
       tiene_permiso: { Args: { p_clave: string; p_origen?: string }; Returns: boolean }
       tipo_cambio_crear: {

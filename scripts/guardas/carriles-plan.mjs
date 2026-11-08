@@ -1,5 +1,5 @@
 // Lo que un carril que no es base puede tocar fuera de lo que ya hace `carriles.mjs` (docs/ORCA.md, docs/plan.yaml de la base). Puro.
-// - C5: en `docs/plan.yaml` sólo suma a su `dueno_de` archivos de las familias del compilador que el mismo PR crea; todo lo demás queda
+// - C5: en `docs/plan.yaml` sólo suma a su `dueno_de` archivos que el mismo PR crea y no son de otro carril; todo lo demás queda
 //   como en la base (los `pasos`, y su `riesgo`, deciden si el coordinador integra solo).
 // - C6: toca su `dueno_de` (más lo que C5 deja sumar) y `docs/`; en las carpetas `compartido` y en lo del carril base agrega y edita,
 //   no borra (2026-11-08: lo que necesita del núcleo lo hace en su PR, sin esperar un pedido al A); lo de otro carril no base, nunca.
@@ -45,11 +45,20 @@ export function problemasDelPlanDelPr({ carril, cambios, crudos }) {
     problemas.push(
       `docs/plan.yaml: el carril ${nombre} quita algo de su dueno_de; sólo suma; lo demás lo cambia el carril a.`,
     )
+  // Suma lo que crea en el mismo PR (2026-11-08: el B creó pantallas/diseno-tonos.ts, la guarda de áreas pedía que fuera suyo y ésta no lo
+  // dejaba sumar: PR 78), salvo lo que cae dentro del dueno_de de otro carril que no es base.
+  const deOtro = (ruta) =>
+    (base.carriles ?? []).some(
+      (c) =>
+        c.id !== nombre &&
+        c.base !== true &&
+        (c.dueno_de ?? []).some((d) => dentro(String(ruta), String(d))),
+    )
   for (const ruta of extra) {
-    if (creadas.has(ruta) && esFamilia(ruta)) sumadas.push(ruta)
+    if (creadas.has(ruta) && (esFamilia(ruta) || !deOtro(ruta))) sumadas.push(ruta)
     else
       problemas.push(
-        `docs/plan.yaml: el carril ${nombre} suma ${String(ruta)} a su dueno_de; sólo puede sumar archivos de las familias del compilador que crea en este PR.`,
+        `docs/plan.yaml: el carril ${nombre} suma ${String(ruta)} a su dueno_de; sólo puede sumar archivos que crea en este PR y que no son de otro carril.`,
       )
   }
   const igual = {
