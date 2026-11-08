@@ -151,3 +151,23 @@ test('una ruta protegida manda al ingreso y después vuelve a donde iba', async 
   await page.goto('/ingreso')
   await expect(page).toHaveURL('/')
 })
+
+// Si «Ingresar» se pulsa antes de que la página hidrate (red lenta; en el completo del 4.28, el ingreso de `equipo-busqueda-minima`), el navegador envía el
+// formulario solo. Sin `method="post"` era un GET: la contraseña quedaba en la URL, el historial y los logs del servidor. Sin el JS de React (los chunks
+// bloqueados; los scripts en línea del streaming sí corren) la página queda como antes de hidratar.
+test('el ingreso enviado antes de hidratar no pone la contraseña en la URL', async ({ page }) => {
+  await page.route('**/_next/static/chunks/**', (ruta) => ruta.abort())
+  await page.goto('/ingreso')
+  await expect(page.getByLabel('Correo')).toBeVisible()
+  const envios: { metodo: string; url: string }[] = []
+  page.on('request', (pedido) => {
+    if (pedido.isNavigationRequest()) envios.push({ metodo: pedido.method(), url: pedido.url() })
+  })
+  await page.getByLabel('Correo').fill(correoDePrueba('nadie'))
+  await page.getByLabel('Contraseña').fill('una-clave-que-no-viaja')
+  await page.getByRole('button', { name: 'Ingresar' }).click()
+  await page.waitForLoadState('load')
+  expect(envios.map((envio) => envio.metodo)).toEqual(['POST'])
+  expect(page.url()).not.toContain('una-clave-que-no-viaja')
+  expect(envios[0]?.url ?? '').not.toContain('contrasena')
+})

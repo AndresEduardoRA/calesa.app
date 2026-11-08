@@ -1755,3 +1755,325 @@ share` los vehículos y después los leads del lote, por id, antes de cualquier 
   - Mutación M1 (parar con una página corta): caen 3, entre ellas la del `max_rows` de 500 (`m1.txt`).
   - `nivel.mjs`: Nivel 1, sin disparadores (`nivel.txt`). Sin e2e dirigidos: ningún texto dibujado cambia.
 - e2e completo: no (4.23-2, entidades e infra: Nivel 1, sin interfaz; el completo lo corre el CI del PR)
+
+<!-- paso:4.22-1 -->
+
+## 2026-11-08 — Paso 4.22-1: lo puro del editor del diseño (primera parte del 4.22)
+
+- **Hecho:** nivel 1, sin interfaz ni base (sólo `entities/diseno/`, tres commits de código). El 4.22 se parte en seis (`decisiones.md`); éste es el primero.
+  - `visibilidadDelDiseno()`: espejo de `_compilar_visibilidad()` (`base.sql:988`): nodo → `{ ver, editar }`. Ítems `celda`, `subtotal`, `variante` e `interruptor`;
+    el pct de una celda con `secundario` hereda el par; un `total` o `aparte` lo ve todo el mundo y, sin dibujar, entra `{todos, null}`; los `atajos` no entran.
+  - `deduccionesDelDiseno()`: el aviso «se deduce restando»: por suma y nivel, el único sumando directo oculto de una suma visible. No bloquea.
+  - `ponerNiveles()`: pone ver y editar de una sección o de una celda juntos, así el editor no da `editar_sin_ver`.
+- **Verificación:** `vitest run src/modules/cotizaciones/entities/diseno` en verde (T1–T6, la última contra el diseño `capturas` del juego compartido con la base, que
+  sigue válido con una sección y una celda a «costos»); `eslint` y `tsc --noEmit` limpios. Sin mutaciones, sin e2e (no hay `.tsx` ni texto de interfaz).
+  e2e completo: no (4.22-1, lo puro, Nivel 1: sin interfaz)
+- **Commits:** `feat(cotizaciones)` ×3 (visibilidad, deducción, niveles).
+
+<!-- paso:4.22-2 -->
+
+## 2026-11-08 — Paso 4.22-2: la pestaña «Diseño» (segunda parte del 4.22)
+
+- **Hecho:** nivel 1, pantalla de configuración sin migración, RLS ni permiso nuevo (ámbar, sin auditor). Seis commits de código.
+  - Lo puro (`entities/diseno/`): `ponerSeccion`, `ponerAncho`, `pedidoDeGuardarDiseno`, `hayCambiosEnElDiseno`, `contextoDelEditor`; `admite-nivel.ts` (espejo de
+    `nivel_no_admitido`) y la frase del aviso «se deduce restando» (`aviso-de-deduccion.ts`, 3 y «Y N más.»).
+  - Lectura (`infra/diseno/`): el borrador o, sin él, la publicada de un origen, y los niveles de `cotizaciones_niveles`; por `areas/diseno/composicion.ts`.
+  - Guardar: `guardarDiseno` (action, `cotizaciones.configurar` del origen, esperada de la publicada o hora del borrador) sobre `formula_guardar_borrador`; los hooks
+    `useEditorDelDiseno` y `useGuardadoDelDiseno`.
+  - La pestaña `?seccion=diseno&origen=`: selector de origen, secciones y celdas (título, «Dónde va», ancho, ver y editar juntos), aviso sin bloquear y «Guardar el borrador».
+- **Verificación:** `vitest run` de lo nuevo, `scripts/guardas` y `scripts/mapa.test.ts`: 45 archivos, 1070 pruebas en verde (T1–T8); e2e `configuracion-cotizacion-diseno`
+  (D1, escritorio) y los vecinos de Configuración › Cotización (12 en verde); `tsc` y `mapa.sh --check` limpios. Sin mutaciones (no es fórmula ni dinero).
+  e2e completo: no (4.22-2, pantalla de configuración, Nivel 1: lo dirigido en escritorio)
+- **Commits:** `feat(cotizaciones)` ×5 (lo puro, la lectura, guardar, los hooks, la pestaña) y `test(cotizaciones)` (el e2e).
+
+<!-- paso:4.22-3 -->
+
+## 2026-11-08 — Paso 4.22-3: ítems, cabecera y tarjeta del diseño (tercera parte del 4.22)
+
+- **Hecho:** nivel 1, pantalla de configuración sin migración, RLS ni permiso nuevo (ámbar, sin auditor). Seis commits de código.
+  - Lo puro (`entities/diseno/`): `edicion-de-items.ts` (atajos: columna y filas de 1 a 12; efecto del interruptor; ayuda de una celda, tabla o texto, nunca las dos),
+    `edicion-de-la-cabecera.ts` (`ponerVerTotalBs`, `sumarModo` que copia el mapa de la fórmula y valida de entrada, `ponerModo`, `quitarModo`, `claveDeModo`) y
+    `edicion-de-la-tarjeta.ts` (el total y los secundarios «aparte»).
+  - Los componentes: `ItemDeAtajos`, `ItemDeInterruptor`, `ItemDeLectura` (variante y subtotal), `CamposDeLaAyuda`, `ItemDeLaSeccion` (despacho por tipo),
+    `CabeceraDelDiseno` con `ModoEditable` y `SumarUnModo`, y `TarjetaDelDiseno`. El hook gana `aplicar` y `useEdicionesDelDiseno` ata las operaciones puras.
+- **Verificación:** `vitest run` de lo nuevo, `scripts/guardas` y `scripts/mapa.test.ts`: 44 archivos, 1073 pruebas en verde (T1–T4); e2e `configuracion-cotizacion-diseno-items`
+  (D2) y `configuracion-cotizacion-diseno` (D1), escritorio, 2 en verde; `tsc` y `mapa.sh --check` limpios. Sin mutaciones (no es fórmula ni dinero).
+  e2e completo: no (4.22-3, pantalla de configuración, Nivel 1: lo dirigido en escritorio)
+- **Commits:** `feat(cotizaciones)` ×5 (ítems en lo puro, modos y tarjeta en lo puro, ítems, cabecera, tarjeta) y `test(cotizaciones)` (el e2e).
+
+<!-- paso:4.22-4 -->
+
+## 2026-11-08 — Paso 4.22-4: el catálogo de tonos (cuarta parte del 4.22)
+
+- **Hecho:** nivel 1, pantalla de configuración sin migración, RLS ni permiso nuevo (ámbar, sin auditor). Seis commits de código.
+  - Lo puro (`entities/diseno/tonos.ts`, `panel-de-tonos.ts`, `respuesta-de-tonos.ts`): validar un tono con los textos de la base (nombre, `#rrggbb`, AA con la razón truncada), el contraste en vivo, `cambiosDeUnTono()` (sólo lo que cambió), el panel de la URL y la forma de las respuestas.
+  - Infra del área `diseno`: `leerTonosSobre()` (tabla `tonos`, por nombre, `limit(24)`) y `escrituraDeTonosSobre()` (`tono_crear|guardar|eliminar`, cada una con su lista entera); salen por `areas/diseno/composicion.ts`.
+  - Tres Server Actions (`crear|guardar|eliminar-tono`) con `cotizaciones.configurar` sin origen y `revalidatePath` sólo si entró.
+  - La pestaña «Tonos» (`?seccion=tonos`, `pantallas/diseno-tonos.ts`): lista con muestras en claro y oscuro, modal de crear y editar (selector nativo + `#rrggbb`, contraste en vivo, «Guardar» no se apaga por el AA) y `<Confirmar>` por URL para eliminar.
+  - Registros: `docs/plan.yaml` (la segunda pantalla del área `diseno` en el `dueno_de` del B) y `scripts/guardas/confirmar-con-url-formula.ts` (el `<Confirmar>` de eliminar un tono).
+- **Verificación:** vitest de lo nuevo (tonos 10, panel 3, lectura y escritura 12, actions 4 + las del diseño, pestañas) y `scripts/guardas` + `mapa.test.ts` en verde; e2e `configuracion-cotizacion-tonos` (T5) más diseño, diseño-ítems, niveles y fórmula, escritorio: 16 en verde; `tsc` y `mapa.sh --check` limpios. Sin mutaciones (no es fórmula ni dinero: el AA tiene el corpus de 360 pares).
+  e2e completo: no (4.22-4, pantalla de configuración, Nivel 1: lo dirigido en escritorio)
+- **Commits:** `feat(cotizaciones)` ×5 (lo puro, leer y escribir, las actions, la pestaña, el modal y eliminar) y `test(cotizaciones)` (el e2e).
+
+<!-- paso:4.22-5 -->
+
+## 2026-11-08 — Paso 4.22-5: la vista previa del diseño (quinta parte del 4.22)
+
+- **Hecho:** nivel 1, pantalla de configuración sin migración, RLS ni permiso nuevo (ámbar, sin auditor). Cuatro commits de código.
+  - Lo puro (`entities/diseno/hoja-del-diseno.ts`, `cifras-del-diseno.ts`, `anchos-de-la-vista-previa.ts`): `hojaDeLaVistaPrevia()` arma el `DisenoDeHoja` desde el diseño en edición y la definición (espejo de `_cotizacion_hoja()` sin niveles, tablas ni dato del vehículo; omite un nodo que ya no existe; sólo los tonos del catálogo que el diseño usa) y `cifrasDelDiseno()` evalúa con los datos en 0 y nunca lanza.
+  - El marco y la hoja de prueba (`features/diseno/components/marco-de-la-vista-previa.tsx`, `hoja-de-prueba.tsx`): una caja con scroll de costado y un hijo de ancho propio (412, 1.280 o 206 con `zoom: 2`), `inert`, que dibuja con la cabecera, las secciones y el resumen de la hoja de verdad.
+  - El cableado: «Vista previa» y los tres anchos (`controles-de-la-vista-previa.tsx`, `panel-de-la-vista-previa.tsx`, `use-vista-previa-del-diseno.ts`, `?vista=`), la vista previa en un `diferido()` aparte y los tonos del catálogo, que `SeccionDelDiseno` lee ahora junto a las otras dos lecturas.
+- **Verificación:** vitest de lo nuevo (T1 armador 2, T2 cifras 3, anchos 1) y `scripts/guardas` + `mapa.test.ts` en verde; e2e `configuracion-cotizacion-diseno-vista-previa` (V1) en escritorio y en móvil, más diseño, diseño-ítems y tonos en escritorio: 5 en verde (`.piloto/salidas/4.22-5/`); `tsc`, `eslint` y `mapa.sh --check` limpios. Sin mutaciones (no es fórmula ni dinero).
+  e2e completo: no (4.22-5, pantalla de configuración, Nivel 1: lo dirigido en escritorio)
+- **Commits:** `feat(cotizaciones)` ×3 (lo puro, el marco y la hoja, el cableado) y `test(cotizaciones)` (el e2e).
+
+<!-- paso:4.22-6 -->
+
+## 2026-11-08 — Paso 4.22-6: el tope de tamaño del diseño (sexta y última parte del 4.22)
+
+- **Hecho:** nivel 1, paso de datos (una migración que cambia `validar_diseno()`; sin policy, RLS, tabla, permiso ni `security definer`). Plan auditado una vez
+  (observaciones, atendidas). Cierra 4-30 y el 4.22.
+  - La base (`supabase/migrations/20261108161200_diseno_tope_de_items.sql`): `_diseno_maximo_de_items()` (40) y `validar_diseno()` con §0b, el tamaño tras la
+    forma: la regla `demasiados_items` con la sección en `hint`.
+  - El espejo TS: `MAXIMO_DE_ITEMS_DEL_DISENO` (`entities/diseno.ts`), el código y su mensaje (`motivos-de-diseno.ts`, 30 reglas) y `revisarTamano()` en
+    `validarDiseno()` (el 4.º parámetro pasa a `opciones: { medidor?, maximoDeItems? }`).
+  - Las pruebas: 4 casos del juego compartido (248), el mutador `demasiados_items` y el corpus regenerado (820), y
+    `supabase/tests/areas/formula/publicar-tope-de-items.sql` (el borrador de 41 se guarda, publicarlo da `22023:demasiados_items@<última sección>`, sin
+    los dos de más se publica). Las pruebas de escala y las dos mediciones sintéticas apagan el tope.
+- **Verificación:** vitest de lo tocado (6 archivos, 286 en verde), `db:reset`, `db:types` y `db:probar` entero, `scripts/guardas` y el e2e dirigido
+  `configuracion-cotizacion-formula-publicar` en escritorio (`.piloto/salidas/4.22-6/`). `medir-validar-diseno.sql` y `medir-publicar.sql` no se corrieron
+  (no están en el CI). Sin mutaciones (no es el motor ni dinero).
+  e2e completo: no (4.22-6, validación del diseño, Nivel 1: lo dirigido en escritorio)
+- **Commits:** `feat(cotizaciones)` (la regla en la base y en TS, con su juego y su corpus), `test(db)` ×2 (publicar 41 ítems; las mediciones sin tope) y el
+  de docs.
+
+- **CI en rojo (job Carriles, corrida 42481247619):** la migración del tope (`…075329`) quedó anterior a la última de `main` (`…084712`, el 4.23). Pasa a `20261108161200` sin cambiar su contenido. `main` no vuelve a definir `validar_diseno()` después de la base. Ojo: el PR del 4.21 (`b/4.21`, migración `20261108124129_diseno_auxiliar_sin_celda`) también la reescribe entera; el que se integre segundo se rehace sobre la otra.
+
+<!-- paso:4.22-7 -->
+
+## 2026-11-08 — Paso 4.22-7: el CI en rojo tras unir main (e2e bloque 1 de 4)
+
+- **Hecho:** arreglo de dos specs que cayeron en el CI del PR (run 42503883574, `cae5d445`), sin código de producción.
+  - `e2e/configuracion-cotizacion-tarjeta.spec.ts` (E1): la barra de Configuración › Cotización ya tiene seis pestañas (Fórmula, Tarjeta, Diseño, Tonos, Tablas,
+    Ajustes) desde que el 4.22 y el 4.19-3b se unieron; el spec esperaba cuatro.
+  - `e2e/configuracion-cotizacion-tarjeta-volumen.spec.ts` (E7): el primer HTML de la pestaña «Tarjeta» con 500 miembros midió **155.874 B** (tope de 154.900; en
+    local da lo mismo, es determinista). El tope pasa a **163.700 B** (155.874 + 5 %); `docs/RENDIMIENTO.md` lo dice. Los nodos del DOM siguen bajo 5.000.
+- **Verificación:** los dos specs en escritorio, 7 en verde (`.piloto/salidas/4.22/ci-fix-e2e.txt`). El otro rojo anotado («Carriles», run 42496082053) es de un
+  commit anterior y el CI de `cae5d445` ya no lo trae.
+- **Lo que no se hizo:** no se atribuyó el +8,4 KB a una pestaña o a un cambio de main: probar sin las pestañas Diseño y Tonos no compila (`seccion-abierta.tsx` las usa).
+  e2e completo: no (4.22-7, arreglo de dos specs, Nivel 1: lo dirigido en escritorio)
+
+<!-- paso:4.23-3 -->
+
+## 2026-11-08 — Paso 4.23-3: las tablas de referencia se editan, reordenan y publican desde Configuración › Cotización
+
+- **Hecho:** la pestaña «Tablas» (`?seccion=tablas&origen=&tabla=`, `cotizaciones.configurar`): la lista del origen y las compartidas, y el editor de una tabla
+  con la tabla entera en memoria, de a 100 filas, que edita celdas con el locale de la empresa, suma, quita con «Deshacer» y mueve filas, marca el primer error
+  con «Ir a la celda», guarda un borrador por versión en la pestaña y publica con nota (`?panel=publicar-tabla`). Seis commits de código.
+  - El plan se auditó una vez (`observaciones`, atendidas en el plan; `.piloto/planes/4.23.respuestas.md`). El 4.23 se parte en cuatro: el enlace «Ver la tabla
+    entera» desde la ayuda de la hoja va a un 4.23-4 del carril A (`decisiones.md`).
+- **Lo que quedó:**
+  - `entities/tablas/celda-tipeada.ts` (lo tipeado a número, año o texto; sólo `leerNumeroTipeado`), `vista-del-editor.ts` (páginas, crudos, primer error,
+    cambios, el camino de la base a su celda) y `borrador-de-tabla.ts` (por versión), con sus tests; `rutas.ts`.
+  - `features/tablas/`: la sección y la lista, `TablaAbierta` (sólo si está en la lista del origen), el editor por `diferido()` y «Publicar» con
+    `ModalDeFormulario`.
+  - `src/app/(app)/configuracion/cotizacion/`: la pestaña «Tablas» al final, su bloque en la página, `tabla` en la barra y la descripción del hub.
+- **Verificación** (`.piloto/salidas/4.23-3/`):
+  - vitest de lo tocado: 75 en verde (`vitest-related.txt`); entidades del área: 64 (`vitest-entidades.txt`). Guardas y `mapa.test.ts`: 1.024 (`guardas.txt`).
+    `tsc`: 0 errores (`tsc.txt`). `mapa.sh --check`: 0.
+  - Mutaciones de C1 (dinero): M1 (`Number` con coma por punto en vez de `leerNumeroTipeado`) cae en 3; M2 (el año sin mirar decimales) y M3 (el texto sin
+    recortar) en 1 cada una (`mutaciones.txt`).
+  - e2e en escritorio: el nuevo `configuracion-cotizacion-tablas.spec.ts`, 1 en verde (`e2e-tablas.txt`); los dirigidos por la barra de pestañas
+    (`configuracion-cotizacion-formula`, `-niveles-permisos`, `-niveles`, `configuracion-200`), 41 en verde (`e2e-dirigidos.txt`).
+  - `nivel.mjs`: Nivel 1, sin disparadores, con interfaz (`nivel.txt`). Sin `db:carreras` ni `db:probar`: no toca `supabase/`.
+- e2e completo: no (4.23-3, pantalla de Configuración: Nivel 1, lo dirigido en escritorio; el completo lo corre el CI del PR)
+
+<!-- paso:4.26-1 -->
+
+## 2026-11-08 — Paso 4.26-1: comprobantes en la base: la serie vigente, emitir y anular sin huecos, y la papelera y marcar final con comprobante
+
+- **Hecho:** base sola, cuatro commits de código. El plan pasó por una auditoría que bloqueó (marcar otra final mandaba a la papelera la final con comprobante;
+  congelar el nombre del cliente lo filtraba): las 11 objeciones se corrigieron en el plan sin 2.ª ronda, y la compuerta `datos` se contestó «aprobar» con las
+  recomendadas de P1 a P7 (`decisiones.md`).
+  - `comprobantes_ajustes` guarda la serie vigente («A») y la cambia `comprobantes_serie_cambiar` con `empresa.ajustes.gestionar` y versión.
+  - `comprobante_emitir(cotización, versión)`: la serie y `datos` los pone la base (el recorte del nivel «todos», sin nombre de cliente); pide ver la cotización,
+    final activa y su versión; un vigente por cotización; candados cotización → serie → contador; el número sin huecos.
+  - `comprobante_anular`: ver la cotización, motivo de hasta 500 y PT409 si ya estaba anulado.
+  - La papelera rechaza una cotización con comprobante (P3 a) y `_final_aplicar` no reemplaza una final con comprobante vigente (P7 a).
+  - El 4.26 se parte: sigue el **4.26-2** (la guardada: emitir, la sección «Comprobantes» y anular) y el **4.26-3** (la pestaña «Comprobantes» de Empresa).
+- **Verificación** (`.piloto/salidas/4.26/`):
+  - Las pruebas nuevas se escribieron antes que el código; su rojo (la firma vieja) no se guardó, como pide el paso.
+  - `db:probar` entero en el hook del commit 4: 758 ✓, 0 ✗ (`commit-4.txt`). Las de comprobantes solas: 14 ✓ (`db-probar-comprobantes-3.txt`); las de la
+    papelera, `areas/final` y E6: 84 ✓ (`db-probar-papelera-final-1.txt`).
+  - E7 (pedida por la auditoría del informe): un vigente colado después del chequeo previo llega al índice dentro del bloque y da el PT409 sin número ni
+    comprobante (`db-probar-e7.txt`, 7 ✓ en `emitir.sql`).
+  - E6 prueba marcar; crear una final pasa por el mismo `_final_aplicar`, pero con una final activa cae antes con el 23505 de `_final_crear_mirar`.
+  - Carreras: K1–K7 en verde, sin 40P01 (`carreras-comprobantes-2.txt`, y K6–K7 también dentro de `db-carreras.txt`); `db:carreras` entero, 200 ✓, ya con las de comprobantes (`db-carreras.txt`); las de
+    marcar y crear final, 22 ✓ (`carreras-final.txt`).
+  - `db:lint` sin errores (avisos viejos, ninguno de estas funciones: `db-lint.txt`); `db:types` regenerado; `carriles.mjs origin/main b/4.26`, 22 archivos
+    (`guarda-carriles.txt`); `scripts/guardas`, 1.023 ✓ (`guardas.txt`); `typecheck` 0 (`typecheck.txt`); `mapa.sh --check` 0 (`mapa-check.txt`, con su código); saltadas nuevas: 0 (`saltadas.txt`).
+  - `nivel.mjs` con los archivos reales: Nivel 2 (disparadores `rls` y `estructura`, `nivel.txt`).
+  - e2e dirigido en `escritorio` con `E2E_SIN_FUNCIONES=1`: `cotizaciones-papelera-purgar.spec.ts`, 5 ✓ (`e2e-dirigido.txt`).
+    e2e completo: no (4.26-1, base: Nivel 2, el completo lo corre el CI del PR; en local, lo dirigido en escritorio + carreras de comprobantes + db:carreras)
+- **Para el carril A:**
+  1. `docs/PLAN.md`: la fila 4.26 dice «se parte en 4.26-1 (la base: serie vigente, emitir y anular, carreras; hecho el 2026-11-08), 4.26-2 (la guardada) y
+     4.26-3 (la pestaña de Empresa); cada parte menos la última sale con `parcial`». En `plan.yaml`, `4.26-1`, `-2` y `-3` en el carril c, con los mismos
+     `modulos`, encadenados.
+  2. 4-89 (`PLAN.md`): decidido con P1 a (`empresa.ajustes.gestionar`, que ya abre Empresa: no hace falta tocar `NAVEGACION`); se cierra en el 4.26-3.
+  3. El P4 del 4.24 (`DECISIONES.md`, «se decide en el 4.26»): resuelto con P3 a.
+  4. `scripts/carreras.mjs` ya corre las de comprobantes (commit 3); las de `areas/final` siguen fuera.
+  5. `src/modules/cotizaciones/CLAUDE.md` ya nombra `comprobantes_ajustes` y `comprobantes_serie_cambiar` (editado en este paso).
+- **Abierto nuevo:** la papelera de **vehículos** mira los comprobantes (`_vehiculo_motivo_de_bloqueo`) sin tomar las cotizaciones del vehículo: si se emite entre ese
+  chequeo y el `update` que se las lleva, la final con comprobante entra a la papelera con el vehículo. Es raro y no se arregla aquí. La salida que propuso la
+  auditoría: que emitir tome el vehículo `for key share` antes de la cotización (el orden de marcar), con su carrera contra vincular y las papeleras.
+- **Commits:** `6fe9a77a` feat(db): emitir y anular comprobantes con la serie vigente · `a5cf675c` test(db): permisos, rls y datos de los comprobantes ·
+  `7bb03e75` test(db): carreras de la numeración de comprobantes · `dfb0a28e` feat(db): una cotización con comprobante no va a la papelera · `7fc6b168` test(db)
+  de E7, que pidió la auditoría del informe · y el de docs.
+
+<!-- paso:4.26-2 -->
+
+## 2026-11-08 — Paso 4.26-2: los comprobantes en la cotización guardada (emitir, la sección y anular)
+
+- **Hecho:** tres commits de código sobre las RPC del 4.26-1, sin tocar `supabase/`. El plan pasó por una auditoría (observaciones: la limpieza de los e2e, emitir
+  sólo de una final **activa**, la excepción de los textos de la base; atendidas en el plan).
+  - `entities/comprobantes/`: quién emite (final activa sin vigente, con `cotizaciones.comprobantes.emitir`) y quién anula (la misma clave, P5 a), «S-N», el
+    vigente, el motivo.
+  - Las actions `emitirComprobante` y `anularComprobante` no llaman a la base sin la clave; la respuesta de cada RPC pasa por Zod.
+  - En `/cotizaciones/[id]`: «Emitir comprobante» en la cabecera (`?panel=emitir-comprobante`, `<Confirmar>` diferido); la sección «Comprobantes» bajo la hoja
+    (en una final o con alguno; tope de 20 con su aviso; sin `datos`, P4 a); «Anular» en el vigente con un modal de motivo (`?panel=anular-comprobante`).
+  - La lectura (`infra/comprobantes/leer.ts`) trae el `estado` de la cotización por su clave primaria y los comprobantes con `limit 21`, una vez por pedido.
+- **Verificación** (`.piloto/salidas/4.26-2/`):
+  - `entities/comprobantes`: 11 ✓ (`vitest-entities.txt`); actions: 7 ✓ (`vitest-actions.txt`); guardas y lo de Configuración: 1.112 ✓ (`vitest-empresa.txt`).
+    T11 de áreas cayó una vez (el tipo de estado venía de `comentarios`) y se arregló antes del commit.
+  - e2e dirigido en `escritorio` (build de producción): 53 ✓, con `cotizaciones-comprobantes` (nuevo), final, papelera, comentarios y `presupuesto-js`
+    (`e2e-escritorio.txt`); en `movil`: 10 ✓, con el nuevo, final y papelera (`e2e-movil.txt`). El spec nuevo corre también en celular (no lleva marca: no hacía
+    falta sacarlo).
+  - JS en frío de `/cotizaciones/[id]`: 442,8 KB (tope 448; antes 441,9).
+  - `typecheck` 0, `mapa.sh --check` 0, guarda de carriles 38 archivos (`62051fde` → `b/4.26`), saltadas nuevas 0, `nivel.mjs` Nivel 1.
+  - La auditoría del informe pidió que un spec de comprobantes cortado a la mitad no frene la limpieza de los demás: `borrarOrigenesDeCotizar()` borra antes los
+    comprobantes de sus cotizaciones y `borrarPersonasDePrueba()` suelta la serie de prueba (`e2e-fix-limpieza.txt`: con una serie colgada, 9 ✓ y vuelve a «A»).
+    e2e completo: no (4.26-2, pantalla: Nivel 1; el completo lo corre el CI del PR por las migraciones del 4.26-1; en local, lo dirigido en escritorio y celular)
+- **Commits:** `4f453464` las reglas · `236e64ee` las actions de emitir y anular · `4bae1191` la guardada · `4029413e` fix de la limpieza de los e2e · y el de docs.
+
+<!-- paso:4.26-3 -->
+
+## 2026-11-08 — Paso 4.26-3: la pestaña «Comprobantes» de Configuración › Empresa
+
+- **Hecho:** dos commits de código. La regla de la serie (de 1 a 12 letras, números o guiones, en mayúsculas: P6 a), su lectura con el último número del
+  contador y la action `cambiarSerie` (sólo `empresa.ajustes.gestionar`, P1 a). La pestaña «Comprobantes» de Empresa pide esa clave: nadie nuevo entra a
+  Empresa; quien sólo emite comprobantes o sólo gestiona tipos de cambio no la ve. Muestra la serie vigente, el próximo comprobante y el campo para cambiarla con
+  su versión.
+- **Verificación** (`.piloto/salidas/4.26-2/`): `comprobantes.test.ts` con `cambiarSerie`, 10 ✓ y `pestanas.test.ts` de la pestaña, 3 ✓ (dentro de los 1.112 ✓
+  de `vitest-empresa.txt`); e2e `empresa-comprobantes.spec.ts` (`@sin-celular-archivo`), `empresa` y `configuracion-200` dentro de los 53 ✓ de
+  `e2e-escritorio.txt`. `secciones.test.ts` sigue verde: la clave ya estaba en `NAVEGACION`.
+  e2e completo: no (4.26-3, pantalla: Nivel 1; el completo lo corre el CI del PR por las migraciones del 4.26-1; en local, lo dirigido en escritorio)
+- **Para el carril A:**
+  1. `docs/PLAN.md`: la fila 4.26 pasa a «hecho el 2026-11-08, en 4.26-1 (la base), 4.26-2 (la guardada) y 4.26-3 (la pestaña de Empresa)»; en `plan.yaml`,
+     `4.26-2` y `4.26-3` hechos.
+  2. **4-89** queda cerrado con P1 a: la pestaña de un área de Empresa pide `empresa.ajustes.gestionar`, que ya abre Empresa.
+  3. El tope de JS de `/cotizaciones/[id]` no se subió (442,8 de 448).
+  4. `e2e/soporte/base.ts` (`borrarPersonasDePrueba`) y `cotizar-formula.ts` (`borrarOrigenesDeCotizar`) sueltan antes los comprobantes y la serie de prueba
+     (`fix` `4029413e`): son del núcleo de e2e, se editaron sin borrar nada.
+  5. Abierto que sigue del 4.26-1: emitir contra la papelera de vehículos.
+- **Commits:** `c6d1258c` cambiar la serie desde una action · `ed8ffb3d` la pestaña de Empresa · y el de docs.
+
+## 2026-11-08 — Paso 4.25-1b: crear una final deja el estado de marcarla (cierra 4-17)
+
+- **Hecho:** rigor máximo, base sola, dos commits de código. El plan pasó la auditoría con observaciones, ya aplicadas, y una compuerta `producto` contestada con
+  la recomendada: P7 «rechazar» y D1 (la ayudante `security definer`) «aprobar».
+  - `cotizacion_crear(…, p_clase := 'final')`:
+    - sin candado: la final sin vehículo (22023, adelantado), el lead en la cartera con `leads.editar` y que vea el vehículo;
+    - en `_final_crear_mirar` (nueva, de nadie, sin candados): otra final activa (23505, P7 a), las preventas que no puede mandar a la papelera (42501) y el
+      vínculo de otro lead (23514);
+    - toma el lead `for no key update`, el vehículo `for key share`, la fórmula y, después del cálculo, las vivas del vehículo en una pasada por id;
+    - con todo tomado vuelve a mirar, inserta y aplica `_final_aplicar` del 4.25-1. La preventa no cambia.
+  - **Desvío de la fila:** la prueba de 4-17 (N1) va en `supabase/tests/areas/final/crear.sql`, no en `cotizacion-crear.sql`. Ese archivo es compartido, ya tenía
+    726 líneas y N1 usa lo del área. `cotizacion-crear.sql` sólo suma el vínculo en su bloque de la final.
+  - Sigue el **4.25-2** (la pantalla).
+- **Verificación** (`.piloto/salidas/4.25-1b/`):
+  - Rojos contra HEAD:
+    - `rojo-crear.txt`: N1–N5 ✗; N11 ✓ como guarda.
+    - `rojo-crear-candados.txt`: N6–N8 y N10 ✗; N9 ✓ como guarda.
+    - `rojo-cotizacion-crear.txt`: el bloque de la final.
+    - `rojo-carreras-2.txt`: Q1, Q2 y Q4–Q11 ✗; Q3 ✓ como guarda.
+  - Verde:
+    - `db:probar` entero en el hook del commit 1 (679 ✓, 0 ✗).
+    - Las carreras R1–R8 y Q1–Q11 (22 ✓, sin 40P01; `verde-carreras.txt`).
+    - `db:carreras` entero, con «fin» del A (`db-carreras-1.txt`).
+    - `scripts/guardas` (1.003 pruebas) y `carriles.mjs 8cc375ea c/4.25` (25 archivos).
+  - e2e dirigidos en `escritorio` (`e2e-dirigidos.txt`): 6 en verde, en `cotizar-guardar` y `cotizar-guardar-intento`, con `E2E_SIN_FUNCIONES=1`.
+  - Mutaciones: 20, todas caen donde dice el plan (`mutaciones/`). M4 se rehízo: la primera versión dejaba que la final se viera a sí misma.
+  - Medido: `cotizacion_crear` con 250.000, la preventa en 6,3 ms y 359 buffers y «a mano» en 7,4 ms y 401, sin recorrer la tabla (`medir.txt`). `db:medir` no
+    terminó: la persona paró el bucle durante `cotizacion_guardar`.
+  - `lint` lo corrió el hook; `typecheck` lo saltó el hook (`PILOTO=1`): lo corren el hook de Stop y el CI.
+    e2e completo: no (4.25-1b, base, Nivel 1: lo dirigido en escritorio)
+- **Necesita del carril A** (además de lo del 4.25-1):
+  1. `docs/PLAN.md`: 4-17 cerrado y la fila «4.25-1b (hecho el 2026-11-08)».
+  2. `src/modules/cotizaciones/CLAUDE.md` › «No se rompe»: «A lo sumo una final activa por vehículo (`cotizacion_marcar_final`, que toma primero su cotización)» ya
+     no es cierto. Crear y marcar toman lead → vehículo → cotizaciones.
+  3. `scripts/carreras/cotizaciones.mjs:497` («fin»): la segunda espera el lead, no el índice. Su afirmación sigue valiendo (P7 a).
+  4. Recordatorio: Q1–Q11, igual que R1–R8, no corren en `db:carreras` ni en el CI hasta que se conecte `carrerasDeFinal` en `scripts/carreras.mjs` (pedido 1 del
+     4.25-1). `carrerasDeFinal` ya llama a las de crear: no hacen falta líneas nuevas.
+- **Pendiente propio:** partir `supabase/tests/cotizacion-crear.sql` (730 líneas).
+- **Commits:** `755a76ac` feat(db): crear una final deja el estado de marcarla · `db947e4b` test(db): carreras de crear una final contra marcar y vincular · y el
+  de docs.
+
+## 2026-11-08 — Paso 4.25-2: «Marcar final» en la cabecera de la guardada
+
+- **Hecho:** pantalla pura, dos commits de código. El plan pasó la auditoría con observaciones (ya aplicadas) y la persona lo aprobó con las recomendadas: P1 a
+  (sin versión esperada), P2 a (se puede marcar una vencida) y P3 a (el diálogo avisa que lo no guardado se pierde).
+  - «Marcar final» en la cabecera de `/cotizaciones/[id]`, después de «Revisiones»: lo ve, en una preventa, quien tiene `cotizaciones.final.gestionar` del origen.
+    Sin vehículo o sin cliente queda apagado con su motivo, y la URL escrita a mano avisa y se limpia.
+  - El `<Confirmar>` en `?panel=marcar-final`, cargado con `diferido()`. Al entrar cierra la URL, avisa y la cabecera pasa a «Final». Si la base lo rechaza, el
+    diálogo dice el motivo; el 23505 del índice sale con texto propio.
+  - La action `marcarFinal` sobre `cotizacion_marcar_final`, con su repositorio en `infra/final/` y la composición del área.
+  - **Desvío del plan:** el `<Confirmar>` se registró en `scripts/guardas/confirmar-con-url-papelera.ts` (del C) y no en `scripts/guardas/areas-c/`.
+    `confirmar-con-url-areas.test.ts` (del A) simula vacíos los registros de la fórmula y la papelera, pero no los `areas-*` que descubre el glob: con el primer
+    registro de `areas-c/` caen sus tres pruebas.
+  - Con eso el 4.25 queda entero: 4.25-1, 4.25-1b y 4.25-2.
+- **Verificación** (`.piloto/salidas/4.25-2/`):
+  - Rojo contra HEAD (`rojo-vitest.txt`): `acceso.test.ts`, `marcar-final.test.ts` y `marcar-final.test.tsx`, 3 archivos que no importan. El spec e2e no se corrió
+    contra HEAD (pantalla pura: hacía falta otro build de HEAD).
+  - Verde: `vitest related` de lo tocado, 36 ✓ (`verde-vitest-related.txt`). `scripts/guardas` entero, 1.004 ✓ (`verde-guardas.txt`). `lint` y `typecheck` sin
+    avisos.
+  - e2e dirigidos en `escritorio` y `movil` con `E2E_SIN_FUNCIONES=1` (`e2e-1.txt`): `cotizaciones-final-marcar` (nuevo, E1–E5), `cotizaciones-papelera-enviar`,
+    `cotizar-guardada`, `cotizar-encima`, `cotizar-guardada-revisiones`, `cotizar-guardada-guardar` y `presupuesto-js`. Dieron 74 ✓ y 1 ✗: N4 de la papelera en
+    `movil`, en el ingreso (el formulario salió por GET antes de hidratar). Repetido solo, 4 ✓ (`e2e-2-papelera-movil.txt`).
+  - JS en frío de `/cotizaciones/[id]`: 439,8 KB de 448.
+  - Se confirmó que la `revalidatePath` de la action vuelve a dibujar la cabecera en «Final» sin `router.refresh()` (E1).
+    e2e completo: no (4.25-2, pantalla, Nivel 1: lo dirigido en escritorio y movil)
+- **Necesita del carril A** (además de lo del 4.25-1 y el 4.25-1b):
+  1. `docs/PLAN.md`: «4.25-2 (hecho el 2026-11-08)» y el 4.25 cerrado.
+  2. `src/modules/cotizaciones/CLAUDE.md`: «Marcar final» en la cabecera de la guardada (`areas/final`), junto a «Enviar a la papelera». Sigue el pedido 2 del
+     4.25-1b.
+  3. P1 a: sumar `cotizacion_marcar_final` a las excepciones de «Toda RPC de edición nace con `p_actualizado_en_esperado`» en `.claude/rules/migraciones.md` y a
+     `.claude/rules/datos.md:35`. Ya está en el abierto 4-95.
+  4. `scripts/guardas/confirmar-con-url-areas.test.ts`: que simule vacíos también los registros `areas-*` del glob, o que los sume a lo esperado. Hecho eso, el
+     C pasa el diálogo de la final a `scripts/guardas/areas-c/confirmar-con-url.ts`.
+  5. `docs/ESTADO.md`: el 4.25 hecho.
+  6. Recordatorio: siguen abiertos los pedidos del 4.25-1 (1, 2, 3, 6, 7 y 8) y del 4.25-1b (2, 3 y 4).
+- **Commits:** `4cc4f232` feat(cotizaciones): marcar final por una action sobre la base · `cbbea36c` feat(cotizaciones): marcar final en la cabecera de la
+  guardada · y el de docs.
+
+<!-- paso:4.28 -->
+
+## 2026-11-08 — Paso 4.28: el cierre de la Fase 4
+
+- **Hecho:** el recorrido de la IA con dos cuentas por la tarea de oro 2 entera (`e2e/cotizar-tarea-de-oro-recorrido.spec.ts`, con sus tramos en
+  `e2e/soporte/cotizar-recorrido.ts`): desde `/cotizaciones`, sólo con el teclado, la asesora cotiza con un enlace de Copart (apibara simulado en la
+  página) y la dueña con un vehículo del inventario, las dos hasta el PDF; la dueña abre después, desde el listado, la de la asesora. La tabla de criterios y
+  el cierre en `docs/PLAN.md` › «Fase 4»; los abiertos reconciliados (cerrados, pulido a la Fase 9, «lo decide la persona», «sin fase»); 5a-33, pulido sin
+  código; 5a-4b, medido por proyecto y a la persona. La consolidación de `docs/pasos/` de los carriles (4.22-1 a 4.22-7, 4.23-3, 4.26-1 a 4.26-3, y a mano
+  las partes 4.25-1b y 4.25-2, que el script no pasaba: 4-104).
+- **Un arreglo que salió del completo:** la caída de `equipo-busqueda-minima.spec.ts:98` en el celular (3 de 3 sola: inestable) mostró que el ingreso enviado
+  antes de hidratar iba por GET con la contraseña en la URL. `method="post"` en los cuatro formularios de auth y su prueba en `acceso.spec.ts` (bloquea los
+  chunks de JS); la prueba cae sin el arreglo (`["GET"]`) y pasa con él.
+- **Verificación** (`.piloto/salidas/4.28/`): el recorrido, 3 ✓ en escritorio y 3 ✓ en celular (`recorrido-escritorio.txt`, `recorrido-movil.txt`): la
+  asesora 56 teclas de control y KLM 56,7 s, la dueña 52 y 41,1 s (celular: 53 y 54,5 s, 49 y 37,5 s), robot ≤ 5,1 s; `acceso.spec.ts` 6 ✓ en escritorio y 3 ✓
+  en celular (`acceso-*.txt`); la inestable sola, 5 ✓ tres veces (`busqueda-minima-movil-{1,2,3}.txt`). El Nivel 3 por proyecto, cada uno desde `db:reset` y
+  `db:carreras`: escritorio sobre `d3852065`, 1.046 ✓, 16 saltadas, 0 caídas, 38,6 min (39,5 de reloj, `completo-escritorio.txt`); celular sobre `d3852065`,
+  763 ✓, 21 saltadas, 2 sin correr, 1 caída, 29,9 min (30,9, `completo-movil.txt`); y otra vez el celular sobre `2bfef1ed` (el arreglo toca auth), 767 ✓, 21
+  saltadas, 0 caídas, 29,9 min (`completo-movil-2.txt`). El escritorio no se repitió tras el arreglo: lo dirigido (`acceso.spec.ts`) y el CI del PR, que corre
+  el completo porque toca auth.
+  e2e completo: sí (4.28, cierre, Nivel 3: escritorio 1.046 en verde, 16 saltadas, 0 caídas, 38,6 min; movil 767 en verde, 21 saltadas, 0 caídas, 29,9 min)
+- **Commits:** `d3852065` el recorrido de la tarea de oro 2 entera · `2bfef1ed` el ingreso por POST antes de hidratar · la consolidación de docs · el cierre.

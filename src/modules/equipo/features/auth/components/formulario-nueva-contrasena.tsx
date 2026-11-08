@@ -42,6 +42,7 @@ export function FormularioNuevaContrasena() {
       ) : null}
 
       <form
+        method="post"
         ref={formulario}
         noValidate
         className="grid gap-4"

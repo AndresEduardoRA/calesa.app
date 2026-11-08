@@ -43,6 +43,7 @@ export function FormularioRegistro({ primerRegistro }: Props) {
       ) : null}
 
       <form
+        method="post"
         ref={formulario}
         noValidate
         className="grid gap-4"

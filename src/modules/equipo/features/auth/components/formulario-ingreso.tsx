@@ -52,6 +52,7 @@ export function FormularioIngreso({ returnTo, conRegistro, conGoogle, aviso }: P
       ) : null}
 
       <form
+        method="post"
         ref={formulario}
         noValidate
         className="grid gap-4"
