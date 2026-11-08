@@ -7,7 +7,7 @@ import { conflicto, errorDePostgrest, fallo, ok } from '@/shared/lib/errores'
 
 // Copia de la nota de publicar la fórmula (`entities/formula/publicacion.ts`): un área no importa otra.
 const MENSAJE_DE_NOTA_VACIA = 'Publicar pide una nota.'
-const LARGO_MAXIMO_DE_NOTA = 2000
+export const LARGO_MAXIMO_DE_NOTA = 2000
 const MENSAJE_DE_NOTA_LARGA = 'La nota pasa de 2.000 caracteres.'
 
 export const esquemaDeNotaDeTabla = z

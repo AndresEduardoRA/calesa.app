@@ -24,9 +24,10 @@ describe('pestanasVisibles', () => {
     ])
   })
 
-  it('quien sólo configura la fórmula de un origen, la fórmula y los ajustes (que lee sin cambiar)', () => {
+  it('quien configura un origen, la fórmula, las tablas y los ajustes (que lee sin cambiar), en ese orden', () => {
     expect(claves(pestanasVisibles(permisos({ 'cotizaciones.configurar': [O1] })))).toEqual([
       'formula',
+      'tablas',
       'ajustes',
     ])
   })
@@ -38,7 +39,7 @@ describe('pestanasVisibles', () => {
           permisos({ 'equipo.roles.gestionar': 'global', 'cotizaciones.configurar': 'global' }),
         ),
       ),
-    ).toEqual(['niveles', 'formula', 'ajustes'])
+    ).toEqual(['niveles', 'formula', 'tablas', 'ajustes'])
   })
 
   it('sin ninguna, ninguna', () => {
@@ -63,6 +64,12 @@ describe('pestanaDe', () => {
   it('una que no es suya abre la primera de las suyas', () => {
     expect(pestanaDe('niveles', soloFormula)).toBe('formula')
     expect(pestanaDe('ajustes', las2)).toBe('niveles')
+  })
+
+  it('sin configurar, «Tablas» no está y su URL abre la primera de las suyas', () => {
+    const soloNiveles = alMenosUna(pestanasVisibles(permisos({ 'equipo.roles.ver': 'global' })))
+    if (!soloNiveles) throw new Error('ve los niveles')
+    expect(pestanaDe('tablas', soloNiveles)).toBe('niveles')
   })
 
   it('lo que no es una pestaña abre la primera', () => {
