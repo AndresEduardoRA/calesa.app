@@ -139,7 +139,8 @@ declare
     ('origen_eliminar(uuid,timestamp with time zone)', 'X'),
     ('origenes_resumen()', 'X'),
     ('comprobante_emitir(uuid,text,jsonb)', 'X'),
-    ('cotizacion_moderar(uuid,estado_cotizacion)', 'X'),
+    -- Moderar (4.27-1): recibe una cotización, no un lead; pide ver (antes y con la fila tomada), moderar y, en una final, final.gestionar del origen; su matriz, `areas/comentarios/reportar-y-moderar.sql`.
+    ('cotizacion_moderar(uuid,timestamp with time zone,estado_cotizacion)', 'X'),
     -- Comentarios y adjuntos (4.27-1): reciben una cotización, no un lead, y piden verla (`puede_cotizacion`); sus pruebas, `areas/comentarios/`.
     ('cotizacion_puede_adjuntar(uuid)', 'L'),
     ('evaluar_requisitos(uuid,uuid,uuid)', 'X'),

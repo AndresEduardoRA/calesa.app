@@ -8184,10 +8184,16 @@ export type Database = {
       cotizacion_leer: { Args: { p_id: string }; Returns: Json }
       cotizacion_marcar_final: { Args: { p_cotizacion: string }; Returns: undefined }
       cotizacion_moderar: {
-        Args: { p_cotizacion: string; p_estado: Database['public']['Enums']['estado_cotizacion'] }
-        Returns: undefined
+        Args: {
+          p_actualizado_en_esperado: string
+          p_cotizacion: string
+          p_estado: Database['public']['Enums']['estado_cotizacion']
+        }
+        Returns: Json
       }
       cotizacion_puede_adjuntar: { Args: { p_cot: string }; Returns: boolean }
+      cotizacion_reportar: { Args: { p_cotizacion: string; p_motivo: string }; Returns: Json }
+      cotizacion_reporte_retirar: { Args: { p_cotizacion: string }; Returns: Json }
       cotizacion_revisiones: {
         Args: { p_antes?: number; p_cotizacion: string; p_hasta?: string; p_tamano?: number }
         Returns: Json
