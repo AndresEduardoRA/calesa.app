@@ -3,9 +3,14 @@ import { describe, expect, it, vi } from 'vitest'
 import type { Envio } from '@/shared/lib/enviar-accion'
 import { useDescarteDelBorrador } from './use-descarte-del-borrador'
 
+const HORA = '2026-11-07T15:00:00.123456+00:00'
+
 function montar(pedir: () => Promise<Envio<null>>) {
   const alDescartar = vi.fn()
-  const hook = renderHook(() => useDescarteDelBorrador({ pedir, alDescartar }))
+  const hook = renderHook(
+    ({ version }) => useDescarteDelBorrador({ version, pedir, alDescartar }),
+    { initialProps: { version: HORA } },
+  )
   return { ...hook, alDescartar }
 }
 
@@ -16,6 +21,18 @@ const confirmar = async (result: { current: { confirmar: () => Promise<void> } }
 }
 
 describe('useDescarteDelBorrador', () => {
+  it('el PT409 de la hora es un conflicto con el texto de la base, que se va cuando llega otra hora', async () => {
+    const mensaje = 'El borrador cambió después de que lo abriste: se guardó de nuevo hace 1 min.'
+    const pedir = vi.fn().mockResolvedValue({ ok: false, error: { codigo: 'conflicto', mensaje } })
+    const { result, rerender, alDescartar } = montar(pedir)
+    await confirmar(result)
+    expect(result.current.conflicto).toBe(mensaje)
+    expect(result.current.aviso).toBeNull()
+    expect(alDescartar).not.toHaveBeenCalled()
+    rerender({ version: '2026-11-07T15:01:00.000001+00:00' })
+    expect(result.current.conflicto).toBeNull()
+  })
+
   it('entró: avisa a quien lo usa una vez y no deja aviso', async () => {
     const pedir = vi.fn().mockResolvedValue({ ok: true, data: null })
     const { result, alDescartar } = montar(pedir)

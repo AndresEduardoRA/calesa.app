@@ -37,6 +37,7 @@ export function AccionesDeLaFormula({ panel, origen, formula }: Props) {
           alCerrar={panel.cerrar}
           origen={origen}
           publicadaId={publicadaId}
+          borradorActualizadoEn={formula.borrador?.actualizadoEn ?? null}
           noDisponible={noDisponibleAlPublicar(formula)}
         />
       ) : null}

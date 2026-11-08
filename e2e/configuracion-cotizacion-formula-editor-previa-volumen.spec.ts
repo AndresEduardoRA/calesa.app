@@ -7,6 +7,8 @@ import {
   crearDuenaDePrueba,
 } from './soporte/base'
 import { borrarOrigenesDeCotizar, crearOrigenDeCotizar } from './soporte/cotizar-formula'
+import { sembrarBorradorDeNFilas } from './soporte/formula-editor'
+import { leerBorrador } from './soporte/formula-editor-guardar'
 import {
   borrarLoDePrevia,
   claveDeVolumen,
@@ -27,6 +29,7 @@ let duena = ''
 let grande = { id: '', nombre: '' }
 let enormes = { id: '', nombre: '' }
 let dosDeSeiscientas = { id: '', nombre: '' }
+let paraGuardar = { id: '', nombre: '' }
 
 test.beforeAll(async ({}, info) => {
   proyecto = info.project.name
@@ -61,6 +64,8 @@ test.beforeAll(async ({}, info) => {
     definicionConTablas(1, de(claves.a600, claves.b600)),
     duena,
   )
+  paraGuardar = await crearOrigenDeCotizar(proyecto, 'pvguardar', false)
+  sembrarBorradorDeNFilas(paraGuardar.id, 600, duena)
 })
 
 test.afterAll(async () => {
@@ -147,4 +152,37 @@ test('E6: dos tablas de 600 filas se leen enteras, en dos pedidos de filas', asy
   await expect(fila(page, 't_2').locator('[data-cifra]')).toHaveText('1')
   await expect(previa(page)).not.toContainText('no se pudo leer entera')
   expect(cuenta).toEqual({ tipos: 1, tablas: 1, filas: 2 })
+})
+
+test('G7 (4.21-3b-1): con 600 filas sin diseño, el aviso del diseño y guardar entra; se miden los bytes del pedido y el tiempo hasta «Se guardó»', async ({
+  page,
+}, info) => {
+  await entrar(page, duena, { fresco: true })
+  await abrirEditor(page, paraGuardar.id)
+  await expect(
+    page.getByText('Este borrador no tiene el diseño de la hoja: todavía no se puede publicar.'),
+  ).toBeVisible()
+  await page.getByRole('searchbox', { name: 'Buscar fila' }).fill('fila_599')
+  await fila(page, 'fila_599').getByRole('button', { name: 'Editar Fila 599' }).click()
+  await page.getByRole('textbox', { name: 'Texto de Fila 599' }).fill('=remate*2')
+  await fila(page, 'fila_599').getByRole('button', { name: 'Aplicar', exact: true }).click()
+  const pedidos: number[] = []
+  page.on('request', (r) => {
+    if (r.method() === 'POST' && r.headers()['next-action'] !== undefined) {
+      pedidos.push(Buffer.byteLength(r.postData() ?? ''))
+    }
+  })
+  const desde = Date.now()
+  await page.getByRole('button', { name: 'Guardar el borrador', exact: true }).click()
+  await expect(page.locator('[data-guardado] [role="status"]')).toHaveText('Se guardó el borrador.')
+  const ms = Date.now() - desde
+  expect(pedidos).toHaveLength(1)
+  const [bytes = 0] = pedidos
+  info.annotations.push({
+    type: 'medida',
+    description: `guardar con 600 filas: ${String(bytes)} B del pedido, ${String(ms)} ms hasta «Se guardó»`,
+  })
+  expect(bytes).toBeLessThan(1024 * 1024)
+  const guardado = leerBorrador(paraGuardar.id)
+  expect(guardado?.definicion.nodos.find((n) => n.id === 'fila_599')?.texto).toBe('=remate*2')
 })

@@ -6,6 +6,11 @@ import { calcularLaVistaPrevia } from '../../../entities/formula/vista-previa'
 import type * as ModuloDeLaVistaPrevia from '../../../entities/formula/vista-previa'
 import { useEditorDeLaFormula } from './use-editor-de-la-formula'
 
+// «Guardar el borrador» (4.21-3b-1): la action no llega aquí (su composición es del servidor).
+vi.mock('../actions/guardar-borrador', () => ({
+  guardarBorrador: () => Promise.resolve(undefined),
+}))
+
 // `calcularLaVistaPrevia()` envuelta, llamando a la real: para contar cuándo se llama.
 vi.mock('../../../entities/formula/vista-previa', async (original) => {
   const real = await original<typeof ModuloDeLaVistaPrevia>()
@@ -24,6 +29,9 @@ const ORIGEN = '11111111-1111-4111-8111-111111111111'
 const leida = (): FormulaParaEditar => ({
   id: '22222222-2222-4222-8222-222222222222',
   actualizadoEn: '2026-11-07T15:00:00.123456+00:00',
+  estado: 'borrador',
+  diseno: null,
+  nota: null,
   formula: formulaDePrueba([
     { id: 'base', texto: '900', etiqueta: 'Base' },
     { id: 'total', texto: '=base*2', etiqueta: 'Total' },
