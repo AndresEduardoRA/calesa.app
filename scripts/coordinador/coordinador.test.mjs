@@ -43,6 +43,7 @@ function repo() {
 case "$1 $2" in
   "pr view") cat "${respuestas}/$3.json" ;;
   "pr merge") echo "$3" >> "${respuestas}/merges"; echo "$*" >> "${respuestas}/merges-args"; echo '{"state":"MERGED"}' > "${respuestas}/$3.json" ;;
+  "api -X") echo "$*" >> "${respuestas}/api" ;;
   *) exit 2 ;;
 esac
 `,
@@ -144,6 +145,30 @@ test('CI todavía corriendo: no integra', () => {
   assert.equal(correr('sincronizar').trim(), '')
 })
 
+test('un estado de commit pendiente (el de Vercel) no es un CI en rojo: espera; en ERROR, sí', () => {
+  const { correr, pr } = repo()
+  correr('siguiente', 'ui')
+  correr('publicado', 'P02', '9')
+  pr(9, {
+    state: 'OPEN',
+    mergeable: 'MERGEABLE',
+    statusCheckRollup: [
+      ...verde,
+      { __typename: 'StatusContext', context: 'Vercel', state: 'PENDING' },
+    ],
+  })
+  assert.equal(correr('sincronizar').trim(), '')
+  pr(9, {
+    state: 'OPEN',
+    mergeable: 'MERGEABLE',
+    statusCheckRollup: [
+      ...verde,
+      { __typename: 'StatusContext', context: 'Vercel', state: 'ERROR' },
+    ],
+  })
+  assert.match(correr('sincronizar'), /P02: CI en rojo \(#9\)/)
+})
+
 test('liberar e integrado a mano; transición inválida falla con mensaje', () => {
   const { correr } = repo()
   correr('siguiente', 'datos')
@@ -220,12 +245,19 @@ test('integra el commit que vio el CI, y un PR que toca las guardas del piloto l
     mergeable: 'MERGEABLE',
     statusCheckRollup: verde,
     headRefOid: 'abc123',
+    headRefName: 'ui/p02',
     files: [{ path: 'src/app/x.tsx' }],
   })
   assert.match(correr('sincronizar'), /P02: integrado por el coordinador \(#61, verde\)/)
+  // Sin --delete-branch (borraba la rama local y pasaba a main el worktree donde corre el coordinador): la remota, por la API.
   assert.match(
     readFileSync(join(respuestas, 'merges-args'), 'utf8'),
-    /pr merge 61 --squash --delete-branch --match-head-commit abc123/,
+    /pr merge 61 --squash --match-head-commit abc123/,
+  )
+  assert.doesNotMatch(readFileSync(join(respuestas, 'merges-args'), 'utf8'), /--delete-branch/)
+  assert.match(
+    readFileSync(join(respuestas, 'api'), 'utf8'),
+    /api -X DELETE repos\/\{owner\}\/\{repo\}\/git\/refs\/heads\/ui\/p02/,
   )
 })
 

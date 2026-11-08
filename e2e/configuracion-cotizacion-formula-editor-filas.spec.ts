@@ -1,3 +1,4 @@
+// @sin-celular-archivo: Configuración se usa en escritorio; la persona pidió no probarla en celular (2026-11-08)
 import { expect, test, type Page } from './soporte/prueba'
 import { CONTRASENA, entrar } from './soporte/alta'
 import {

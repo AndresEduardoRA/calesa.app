@@ -32,10 +32,11 @@
 
 ## Siguiente
 
-- **En curso.** A, **4.19** (el editor de la plantilla): hechos el -1, -2, -3a y -3b (la pestaña «Tarjeta», PR #69), sigue el -3c. B, **4.21**
+- **En curso.** A, **4.20-4** (vigencia y vehículo obligatorio): hecho el -4a (la RPC con `cotizaciones.configurar` sin origen, la lectura y
+  la action), sigue el -4b (su formulario); el 4.19 (el editor de la plantilla) quedó hecho con el -4. B, **4.21**
   (el editor de la fórmula como el Excel): hechos el -1, -2, -3a y -3b-1 (guardar el borrador, PR #68), siguen el -3b-2 y el -3c. C, **4.25**
   (marcar final): hecho el -1 (candados en el orden de vincular, la final como ancla, desvincular con final), sigue el -2.
-- **Lo que falta para cerrar la Fase 4:** A, 4.20-4a (vigencia y vehículo obligatorio en la base, rojo) → 4.20-4b (su formulario). B, 4.22 (el
+- **Lo que falta para cerrar la Fase 4:** A, 4.20-4b (el formulario de la vigencia y el vehículo obligatorio). B, 4.22 (el
   editor del diseño) y 4.23 (las tablas de referencia con versión, rojo), independientes. C, 4.26 (comprobantes sin huecos, rojo). 4.27 (comentarios,
   adjuntos, favoritos, reportes y moderar; rojo): lo toma el primer carril libre (el C posee sus áreas). Y 4.28, el cierre (A, Nivel 3).
 - **Para la persona:** la credencial sin escritorio (`gh auth login --insecure-storage`, `gh auth setup-git` y el remoto por HTTPS: sin eso, tras un
