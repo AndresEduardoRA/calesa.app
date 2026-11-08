@@ -10,6 +10,8 @@ export const COLORES_DE_UN_TEMA = ['fondo', 'borde', 'tinta'] as const
 export const TOPE_DE_TONOS = 24
 export const LARGO_MAXIMO_DEL_NOMBRE_DE_TONO = 40
 
+export const MOTIVO_SIN_PERMISO_DE_TONOS = 'No tienes permiso para configurar los tonos.'
+
 export type TemaDeUnTono = (typeof TEMAS_DE_UN_TONO)[number]
 export type ColorDeUnTema = (typeof COLORES_DE_UN_TEMA)[number]
 export type ColoresDeUnTema = Record<ColorDeUnTema, string>
