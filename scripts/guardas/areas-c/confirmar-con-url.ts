@@ -1,4 +1,4 @@
-// Los `<Confirmar>` del carril C fuera de la papelera (4.27-2): borrar un comentario de una cotización quitar uno de sus adjuntos (4.27-3) y moderarla (4.27-4). Es un pedazo de `CONFIRMAR_CON_URL` (`confirmar-con-url.ts`,
+// Los `<Confirmar>` del carril C fuera de la papelera (4.27-2): borrar un comentario de una cotización quitar uno de sus adjuntos (4.27-3) moderarla (4.27-4) y emitir un comprobante (4.26-2). Es un pedazo de `CONFIRMAR_CON_URL` (`confirmar-con-url.ts`,
 // del A) que la guarda suma con `import.meta.glob('./areas-*/confirmar-con-url.ts')` (`registros-de-carriles.ts`).
 import type { ConfirmarConUrl } from '../confirmar-con-url'
 
@@ -17,5 +17,10 @@ export const REGISTRO: Record<string, ConfirmarConUrl> = {
   'src/modules/cotizaciones/features/comentarios/components/confirmar-moderacion.tsx': {
     abre: 'src/modules/cotizaciones/features/comentarios/hooks/use-moderacion-por-url.ts',
     senal: 'PANEL_MODERAR',
+  },
+  // `?panel=emitir-comprobante` (4.26-2).
+  'src/modules/cotizaciones/features/comprobantes/components/confirmar-emitir-comprobante.tsx': {
+    abre: 'src/modules/cotizaciones/features/comprobantes/components/boton-emitir-comprobante.tsx',
+    senal: 'PANEL_EMITIR_COMPROBANTE',
   },
 }

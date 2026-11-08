@@ -1,3 +1,5 @@
+import { puede } from '@/modules/equipo'
+import { SerieDeComprobantes } from '@/modules/cotizaciones/pantallas/comprobantes-empresa'
 import type { Permisos } from '@/shared/lib/permisos'
 
 type Props = {
@@ -8,8 +10,11 @@ type Props = {
   parametros: Record<string, string | string[] | undefined>
 }
 
-// La sección de una pestaña del área de comprobantes. Es del carril C: el 4.26 dibuja aquí lo que exporte
-// `pantallas/comprobantes-empresa.ts`. Hoy no hay pestañas de un área y nunca se alcanza.
-export function SeccionDeComprobantes(_props: Props) {
-  return null
+// La sección de una pestaña del área de comprobantes (4.26-3, del carril C): «Comprobantes» dibuja la serie vigente y su cambio, con
+// `empresa.ajustes.gestionar`. No usa `parametros`: no tiene estado de URL propio.
+export function SeccionDeComprobantes({ pestana, permisos }: Props) {
+  if (pestana !== 'comprobantes') {
+    return null
+  }
+  return <SerieDeComprobantes puedeCambiar={puede(permisos, 'empresa.ajustes.gestionar')} />
 }

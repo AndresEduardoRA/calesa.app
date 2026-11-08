@@ -91,7 +91,21 @@ export async function personasAjenas(): Promise<number> {
 // Borra las cuentas de prueba. La más vieja es la dueña (la primera que se creó) y el guardián de la base no deja que el equipo quede
 // sin quien lo administre mientras haya más gente: las demás se borran a la vez (cada `deleteUser` tarda ~55 ms y eran seis o siete en
 // fila en cada `afterAll`) y la dueña, al final. `docs/RENDIMIENTO.md`, «Preparar y limpiar un spec».
+// Un comprobante nombra a quien lo emitió y la serie vigente a quien la cambió (FK sin `on delete`, 4.26-1): si una corrida de los specs de comprobantes se cortó
+// a la mitad, lo de sus series de prueba (`E2E-…`) frenaría el borrado de las personas. Se suelta antes: la serie vigente de prueba vuelve a «A» sin autor y se
+// borran los comprobantes y contadores de prueba.
+function soltarComprobantesDePrueba(): void {
+  sql(`
+    insert into public.comprobantes_contadores (serie, ultimo) values ('A', 0) on conflict do nothing;
+    update public.comprobantes_ajustes set serie = 'A', actualizado_por = null where serie like 'E2E-%';
+    update public.comprobantes_ajustes set actualizado_por = null
+      where actualizado_por in (select id from auth.users where email like ${literal(`%@${DOMINIO_E2E}`)});
+    delete from public.comprobantes where serie like 'E2E-%';
+    delete from public.comprobantes_contadores where serie like 'E2E-%'`)
+}
+
 export async function borrarPersonasDePrueba(): Promise<void> {
+  soltarComprobantesDePrueba()
   const dePrueba = (await cuentas())
     .filter((cuenta) => cuenta.email?.endsWith(`@${DOMINIO_E2E}`))
     .sort((a, b) => a.created_at.localeCompare(b.created_at))
