@@ -1,6 +1,7 @@
 // Los ajustes de cotización (docs/GLOSARIO.md): la vigencia (D1) y el vehículo obligatorio al cotizar (D3), las dos columnas de
 // `ajustes_empresa` que valen para todas las cotizaciones. Los cambia `empresa_guardar_ajustes_de_cotizacion()` con la misma
 // versión de la fila que el formulario de Empresa; la pantalla, Configuración › Cotización › Ajustes (4.20-4b).
+import { origenesCon, type Permisos } from '@/shared/lib/permisos'
 import type { Tables } from '@/shared/types/database.types'
 
 export type AjustesDeCotizacion = {
@@ -25,4 +26,10 @@ export function ajustesDeCotizacionDesde(fila: FilaDeAjustesDeCotizacion): Ajust
     vehiculoObligatorioAlCotizar: fila.vehiculo_obligatorio_al_cotizar,
     actualizadoEn: fila.actualizado_en,
   }
+}
+
+// Valen para todas las cotizaciones de todos los orígenes: los cambia quien configura el cotizador en todos (la concesión sin
+// origen), no quien lo configura en uno. Espejo de `empresa_guardar_ajustes_de_cotizacion()`, que mira `mis_permisos()` sin origen.
+export function puedeCambiarAjustesDeCotizacion(permisos: Permisos): boolean {
+  return origenesCon(permisos, 'cotizaciones.configurar') === 'todos'
 }

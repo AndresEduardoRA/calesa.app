@@ -17,6 +17,15 @@ export type RepositorioEmpresa = {
   }) => Promise<Resultado<Editado>>
 }
 
+// La vigencia y el vehículo obligatorio al cotizar, con la misma versión de la fila que el formulario de Empresa.
+export type RepositorioAjustesDeCotizacion = {
+  guardar: (pedido: {
+    vigenciaDias: number
+    vehiculoObligatorioAlCotizar: boolean
+    actualizadoEnEsperado: string
+  }) => Promise<Resultado<Editado>>
+}
+
 export type RepositorioTiposCambio = {
   crear: (nuevo: {
     clave: string

@@ -21,6 +21,7 @@ export type { TipoCambio } from './entities/tipos-cambio'
 
 // Configuración › Cotización › Ajustes (4.20-4b): la vigencia y el vehículo obligatorio al cotizar
 export { leerAjustesDeCotizacion } from './composicion'
+export { puedeCambiarAjustesDeCotizacion } from './entities/ajustes-de-cotizacion'
 export type { AjustesDeCotizacion } from './entities/ajustes-de-cotizacion'
 
 // Integraciones: el interruptor, lo no secreto y si están prendidas

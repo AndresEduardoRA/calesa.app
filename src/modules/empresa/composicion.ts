@@ -8,10 +8,12 @@ import type {
   LectorDeHistorial,
   LectorDeIntegraciones,
   LectorDeMonedasYTiposCambio,
+  RepositorioAjustesDeCotizacion,
   RepositorioEmpresa,
   RepositorioIntegraciones,
   RepositorioTiposCambio,
 } from './entities/repositorios'
+import { ajustesDeCotizacionSupabase } from './infra/ajustes-de-cotizacion'
 import { empresaSupabase } from './infra/empresa'
 import { integracionesSupabase } from './infra/integraciones'
 import { getAjustes, getAjustesParaEditar, getPoliticaDeLimpieza } from './infra/queries/ajustes'
@@ -23,6 +25,8 @@ import { tiposCambioSupabase } from './infra/tipos-cambio'
 export const repositorioEmpresa: RepositorioEmpresa = empresaSupabase
 export const repositorioTiposCambio: RepositorioTiposCambio = tiposCambioSupabase
 export const repositorioIntegraciones: RepositorioIntegraciones = integracionesSupabase
+export const repositorioAjustesDeCotizacion: RepositorioAjustesDeCotizacion =
+  ajustesDeCotizacionSupabase
 
 export const leerAjustes: LectorDeAjustes = getAjustesParaEditar
 export const leerMonedasYTiposCambio: LectorDeMonedasYTiposCambio = getMonedasYTiposCambio
