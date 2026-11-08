@@ -7029,6 +7029,7 @@ export type Database = {
         Args: { p_def: Json; p_visibilidad: Json; p_visibles: string[] }
         Returns: Json
       }
+      _cotizacion_de_objeto: { Args: { p_nombre: string }; Returns: string }
       _cotizacion_descartados: {
         Args: {
           p_def_ant: Json
@@ -8131,6 +8132,7 @@ export type Database = {
         Args: { p_cotizacion: string; p_estado: Database['public']['Enums']['estado_cotizacion'] }
         Returns: undefined
       }
+      cotizacion_puede_adjuntar: { Args: { p_cot: string }; Returns: boolean }
       cotizacion_revisiones: {
         Args: { p_antes?: number; p_cotizacion: string; p_hasta?: string; p_tamano?: number }
         Returns: Json

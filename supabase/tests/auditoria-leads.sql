@@ -140,6 +140,8 @@ declare
     ('origenes_resumen()', 'X'),
     ('comprobante_emitir(uuid,text,jsonb)', 'X'),
     ('cotizacion_moderar(uuid,estado_cotizacion)', 'X'),
+    -- Comentarios y adjuntos (4.27-1): reciben una cotización, no un lead, y piden verla (`puede_cotizacion`); sus pruebas, `areas/comentarios/`.
+    ('cotizacion_puede_adjuntar(uuid)', 'L'),
     ('evaluar_requisitos(uuid,uuid,uuid)', 'X'),
     ('margen_vehiculo(uuid)', 'X'),
     -- Lee una cotización recortada por nivel (4.10): el recorte lo prueba cotizaciones-visibilidad.sql.
