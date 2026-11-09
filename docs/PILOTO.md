@@ -24,16 +24,17 @@
 
 ## Arrancar, parar, retomar
 
-| Qué                            | Comando                                                                                                                                                            |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Arrancar (o re-arrancar)       | `bash scripts/piloto/arrancar.sh [--hasta <paso>]`                                                                                                                 |
-| Ver el bucle                   | `tmux attach -t piloto-bucle` (el registro: `.piloto/registro.md`, el gasto: `.piloto/consumo.csv`)                                                                |
-| Parar entre pasos              | `bash scripts/piloto/parar.sh` (o «para» a la sesión `piloto · control`, o «parar» en cualquier compuerta)                                                         |
-| Parar ya                       | `bash scripts/piloto/parar.sh --ya` (además `kill -INT` al paso en curso: cierra su turno)                                                                         |
-| Quitar la parada               | `rm .piloto/PARAR` y `arrancar.sh`                                                                                                                                 |
-| Retomar tras un reinicio       | `bash scripts/piloto/arrancar.sh`: un paso a medias se retoma con `--resume` de **su** sesión, nunca con una nueva                                                 |
-| Ensayo en seco                 | `bash scripts/piloto/arrancar.sh --en-seco --nota <archivo>`: un ruteo real y el paso sin ejecutar nada (planificador y auditor), por permisos y no por obediencia |
-| Probar el circuito del celular | `bash scripts/piloto/decidir.sh --prueba` (una compuerta de mentira); `--prueba-tandas`, otra con 5 preguntas en dos tandas, como la de producto                   |
+| Qué                            | Comando                                                                                                                                                                           |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Arrancar (o re-arrancar)       | `bash scripts/piloto/arrancar.sh [--hasta <paso>]`                                                                                                                                |
+| Ver el bucle                   | `tmux attach -t piloto-bucle` (el registro: `.piloto/registro.md`, el gasto: `.piloto/consumo.csv`)                                                                               |
+| Parar entre pasos              | `bash scripts/piloto/parar.sh` (o «para» a la sesión `piloto · control`, o «parar» en cualquier compuerta)                                                                        |
+| Parar ya                       | `bash scripts/piloto/parar.sh --ya` (además `kill -INT` al paso en curso: cierra su turno)                                                                                        |
+| Quitar la parada               | `rm .piloto/PARAR` y `arrancar.sh`                                                                                                                                                |
+| Retomar tras un reinicio       | `bash scripts/piloto/arrancar.sh`: un paso a medias se retoma con `--resume` de **su** sesión, nunca con una nueva                                                                |
+| Ensayo en seco                 | `bash scripts/piloto/arrancar.sh --en-seco --nota <archivo>`: un ruteo real y el paso sin ejecutar nada (planificador y auditor), por permisos y no por obediencia                |
+| Probar el circuito del celular | `bash scripts/piloto/decidir.sh --prueba` (una compuerta de mentira); `--prueba-tandas`, otra con 5 preguntas en dos tandas, como la de producto                                  |
+| Revisar y lanzar los carriles  | `bash scripts/maquina/lanzar.sh` revisa (cuenta de GitHub, plan, CI, cada carril, la máquina) sin cambiar nada; `--ya` quita `PARAR` y arranca; `--parar` los detiene entre pasos |
 
 `arrancar.sh` **copia** `scripts/piloto/` (sin pruebas) **de `origin/main`** a `<carpeta común de git>/piloto/bin/` (`copiar-bin.sh`), anota un sha256 por archivo en `bin.sha256` y de dónde salió en
 `bin.origen`, y lanza ESA copia. El bucle llama siempre a las piezas de la copia, nunca a las de `scripts/piloto/`: un paso no puede cambiar el código con que se lo verifica y publica. La copia es común a los
@@ -222,6 +223,51 @@ sesión y otro CI, mientras el A y el C pasaban ≈ 2,4 h «sin paso libre» y e
 Para que un carril se levante solo tras un corte de luz, un reinicio o un bucle que se cayó: `bash scripts/maquina/instalar-servicios.sh a b c` (en el árbol del A). Escribe, por carril, la unidad
 `systemd --user` que corre `arrancar.sh --carril` al iniciar y un **vigía** cada 10 min (`arrancar.sh --carril <c> --si-caido`): levanta el bucle si nadie tiene `.piloto/bucle.lock` y no se paró a
 propósito (PARAR, «parado» de la persona, el carril terminó o llegó a `--hasta`). Reemplaza a `vigilar-carriles.sh`.
+
+## De corrido (2026-11-09)
+
+Para correr las fases 5 a 9 sin nadie mirando. Medido en la Fase 4 (7 y 8-11, tres carriles): sólo el 27–33 % del reloj fue una sesión de paso viva; el
+resto, carriles parados por un reinicio con `PARAR` (≈ 30 h-carril), «sin paso libre» (≈ 23), una compuerta humana que retuvo el candado común de noche
+(≈ 12), un plan inválido (≈ 12), 21 PR devueltos por chocar en un mismo archivo y 2,6 h sin red. Lo que cambió (`docs/DECISIONES.md` › «FLUJO-2»; pruebas en
+`bucle-de-corrido.test.ts`, `bucle-decision.test.ts`, `arrancar-main.test.ts`, `plan.test.mjs` y `coordinador.test.mjs`):
+
+- **Nada para a un carril.** Con carriles y `PILOTO_AUTO` «todo» (lo de `piloto.config`), ninguna compuerta abre la sesión de decidir ni toma el candado
+  común: todas se contestan con su primera opción. Un aviso que agota sus reintentos y sus respuestas ya no termina en «parado (decisión automática…)»:
+  - **Lo que es de un paso se aparca** (`aparcar_paso`): el tope de gasto, una falla, dos fallos del proceso, una compuerta que recomienda parar, el cuarto
+    atasco, una espera a main agotada. El coordinador lo anota `aparcado` con su motivo (`coordinador.mjs aparcar`), lo sin commitear va a un stash con nombre,
+    queda una nota en `.piloto/aparcados/<paso>.md` y **el carril pide otro paso**. Lo que depende del aparcado espera; lo demás sigue. Cuando al carril no
+    le queda nada más, lo reintenta con una sesión nueva que lee esa nota (hasta `COORD_APARCADOS_MAX`, 2, y no antes de `COORD_APARCADO_ENFRIAR`, 1800 s).
+    Agotados, queda en el tablero («Aparcados») hasta que alguien lo devuelva a la cola: `node scripts/coordinador/coordinador.mjs reanudar <paso>`.
+  - **Lo que es del entorno se espera y se reintenta, sin fin** (`sin_salida`): GitHub caído, el disco, el coordinador, la rama. Duerme
+    `PILOTO_PARADA_LARGA` (1800 s) y repite la vuelta. Un aviso de un paso que puede ser del entorno (publicar, verificar) espera una vez antes de aparcar.
+  - **Sin red o con un error del servidor** («Can't reach the API server», `EAI_AGAIN`, 5xx, «overloaded») no es una falla del paso: espera 300, 600, 1200
+    y 1800 s y retoma, las veces que haga falta.
+  - Los contadores de respuestas automáticas (`.piloto/paradas-auto/`) se borran con cada paso publicado: antes se sumaban durante toda la corrida.
+- **El límite de uso se duerme, las veces que venga.** Ya no es un aviso a la segunda: el carril duerme hasta la hora que dice el mensaje (también el semanal,
+  con día: «resets Nov 12, 3pm»; nunca más de 7 días; una hora si no se lee) y retoma con `--resume`. La hora queda en `<común>/piloto/limite-hasta` y los
+  otros carriles duermen hasta entonces sin gastar una llamada. `PILOTO_LIMITE_VECES` le vuelve a poner un tope.
+- **La puerta de fase y el cierre salen del plan**, no del número del paso: `puerta: true` (antes de empezarlo, el CI de `main` en verde; una vez por paso,
+  `.piloto/puertas/`), `cierre: true` (Nivel 3, el completo en local) y `fase` en `docs/plan.yaml`. Sin compuertas, un paso de datos ya no corre con
+  `--hasta-plan` (era una retoma pagada para contestarse solo).
+- **El plan es el de `origin/main`**, como la copia de los scripts: el coordinador ya no lee el `plan.yaml` del árbol de cada carril (`validar` sí: es lo
+  que un PR cambia). El estado de un paso que una versión del plan no nombra se conserva (un carril atrasado lo borraba al guardar). Si el plan de main
+  deja de ser válido, se reparte con el último válido (`<común>/coordinador/plan.valido.json`) y se dice.
+- **La cuenta de GitHub es la del proyecto** (`PILOTO_GH_USUARIO` en `piloto.config`): cada pieza pide el token de esa cuenta (`gh auth token --user`) y lo
+  pasa por `GH_TOKEN`. La cuenta activa de `gh` es una para toda la máquina; el 9-11 pasó a ser otra, sin permiso de escritura aquí, y el primer push
+  habría fallado en los tres carriles.
+- **El coordinador no se cae en silencio.** Corre con `<común>/coordinador/sincronizar.lock`; el vigía de cada carril lo levanta si nadie lo tiene. Su
+  registro es uno, con fecha: `<común>/coordinador/coordinador.log`. Y al mirar un PR:
+  - no cuenta los checks que no son el CI (`COORD_IGNORAR_CHECKS`, por omisión el de Vercel: su vista previa usa la demo y no migra);
+  - un rojo de «Nivel 1» o «Carriles» (`COORD_ROJO_FIRME`) vuelve a su carril al momento, sin reintento y sin esperar a los e2e;
+  - un CI cancelado sin otra corrida detrás (lo cortó su tope) se vuelve a correr una vez, a los `COORD_COLGADO_ESPERA` s (600); si queda igual, es un rojo;
+  - una migración del PR que quedó atrás de la última de `main` lo devuelve («migración anterior a la última de main») y el carril la renumera sin sesión.
+- **Un carril que espera dice por qué, una vez** («sin paso libre (6.03 espera a que se integren: 6.02)»), no una línea cada dos minutos.
+- **Arrancar no molesta a los otros:** si la copia ya es la de main, `arrancar.sh` la usa (antes hacía una carpeta nueva y los demás bucles se relanzaban);
+  una copia vieja no se borra mientras un bucle corre desde ella; y una compuerta humana que quedó de antes se aparta.
+- **CI:** en CI cada prueba de Vitest tiene 15 s (una de 5,3 s puso `main` en rojo dos veces).
+
+**Lo que sigue necesitando a una persona:** un PR que toca las guardas del piloto (`scripts/piloto/`, hooks, ajustes, workflows: el coordinador no lo
+integra solo; `COORD_GUARDAS_SOLAS=1` lo dejaría), producción (variables, secretos, `db push`), un paso aparcado sin reintentos, y `aprobado-*` a mano.
 
 ## El ensayo en seco (2026-10-26)
 
