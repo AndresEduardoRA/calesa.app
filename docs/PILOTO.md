@@ -261,6 +261,8 @@ resto, carriles parados por un reinicio con `PARAR` (≈ 30 h-carril), «sin pas
   - un rojo de «Nivel 1» o «Carriles» (`COORD_ROJO_FIRME`) vuelve a su carril al momento, sin reintento y sin esperar a los e2e;
   - un CI cancelado sin otra corrida detrás (lo cortó su tope) se vuelve a correr una vez, a los `COORD_COLGADO_ESPERA` s (600); si queda igual, es un rojo;
   - una migración del PR que quedó atrás de la última de `main` lo devuelve («migración anterior a la última de main») y el carril la renumera sin sesión.
+- **Lo generado no se une a mano:** un choque con main en `src/shared/types/database.types.ts` (cada paso con migración lo regenera) se resuelve
+  tomando el de main y regenerándolo contra la base del carril (`pnpm db:reset` y `pnpm db:types`; `PILOTO_CMD_TIPOS`), y el PR se publica sin sesión.
 - **Un carril que espera dice por qué, una vez** («sin paso libre (6.03 espera a que se integren: 6.02)»), no una línea cada dos minutos.
 - **Arrancar no molesta a los otros:** si la copia ya es la de main, `arrancar.sh` la usa (antes hacía una carpeta nueva y los demás bucles se relanzaban);
   una copia vieja no se borra mientras un bucle corre desde ella; y una compuerta humana que quedó de antes se aparta.

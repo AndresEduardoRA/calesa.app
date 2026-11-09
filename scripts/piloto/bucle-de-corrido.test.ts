@@ -1,8 +1,17 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { type Arnes, pasoFalla, pasoListo } from './bucle.arnes'
-import { conMain, coordinador, entorno, estadoCoord, plan } from './bucle-flujo.arnes'
+import {
+  conMain,
+  coordinador,
+  dirCoord,
+  entorno,
+  estadoCoord,
+  GIT,
+  integrarEnMain,
+  plan,
+} from './bucle-flujo.arnes'
 
 // De corrido (2026-11-09: las fases 5 a 9 sin nadie mirando). Con carriles y sin compuertas, nada deja un carril parado esperando a una
 // persona que no va a venir: el paso que no cierra se aparca y el carril toma otro; lo del entorno se espera y se reintenta; la puerta de
@@ -233,5 +242,54 @@ describe('bucle.sh › sin compuertas, el plan de un paso de datos no espera a n
     expect(r.estado, r.salida).toBe(0)
     expect(a.llamadas('paso')[0]).not.toContain('--hasta-plan')
     expect(readFileSync(join(a.repo, '.piloto/registro.md'), 'utf8')).toContain('publicado 5.01')
+  })
+})
+
+// Con tres carriles creando tablas y RPC a la vez, dos ramas chocan en el archivo de tipos aunque sus migraciones no se toquen.
+describe('carril.sh › lo generado no se une a mano', () => {
+  const TIPOS = 'src/shared/types/database.types.ts'
+  const devueltoConChoqueEnTipos = (f: string) => {
+    integrarEnMain(TIPOS, 'export type Tablas = { a: 1 }\n')
+    coordinador(f, 'siguiente', 'formula')
+    coordinador(f, 'publicado', '5.01', '7')
+    a.git('fetch', '-q', 'origin')
+    a.git('checkout', '-q', '-b', 'formula/5.01', 'origin/main')
+    a.escribirRepo(TIPOS, 'export type Tablas = { a: 1; de_la_rama: 2 }\n')
+    a.escribirRepo('src/f/5.01/a.ts', 'de la rama\n')
+    a.git('add', '.')
+    a.git(...GIT, 'commit', '-q', '-m', 'el paso')
+    a.git('push', '-q', 'origin', 'formula/5.01')
+    a.git('checkout', '-q', '--detach')
+    const archivo = `${dirCoord()}/estado.json`
+    const estado = JSON.parse(readFileSync(archivo, 'utf8'))
+    estado.pasos['5.01'].arreglar = 'conflicto con main'
+    writeFileSync(archivo, JSON.stringify(estado))
+    integrarEnMain(TIPOS, 'export type Tablas = { a: 1; de_main: 3 }\n')
+  }
+
+  it('un choque sólo en database.types.ts se resuelve regenerándolo y el PR se publica sin sesión', () => {
+    const f = plan(pasoDelPlan('5.01'))
+    devueltoConChoqueEnTipos(f)
+    const regenerar = `printf 'export type Tablas = { a: 1; de_la_rama: 2; de_main: 3 }\\n' > ${TIPOS}`
+    const r = a.correr(['--una-vuelta'], entorno(f, { ...TODO, PILOTO_CMD_TIPOS: regenerar }))
+    expect(r.estado, r.salida).toBe(0)
+    const registro = a.estado('registro.md')
+    expect(registro).toContain('regeneré los tipos de la base tras traer main')
+    expect(registro).toContain('5.01 remendado sin sesión (conflicto con main)')
+    expect(a.llamadas('paso')).toHaveLength(0)
+    expect(readFileSync(join(a.repo, TIPOS), 'utf8')).toContain('de_la_rama: 2; de_main: 3')
+    expect(a.git('log', '-1', '--format=%s')).toBe('chore(db): regenerar los tipos tras traer main')
+    expect(a.git('status', '--porcelain')).toBe('')
+  })
+
+  it('si regenerar falla, no se publica sin sesión: lo resuelve el paso', () => {
+    const f = plan(pasoDelPlan('5.01'))
+    devueltoConChoqueEnTipos(f)
+    a.paso(1, pasoListo({ 'src/f/5.01/b.ts': 'b' }, { paso: '5.01' }))
+    const r = a.correr(['--una-vuelta'], entorno(f, { ...TODO, PILOTO_CMD_TIPOS: 'exit 1' }))
+    expect(r.estado, r.salida).toBe(0)
+    expect(a.estado('registro.md')).toContain('no pude regenerar los tipos de la base')
+    expect(a.estado('registro.md')).not.toContain('remendado sin sesión')
+    expect(a.llamadas('paso')).toHaveLength(1)
   })
 })
