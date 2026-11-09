@@ -53,7 +53,7 @@ else
   rm -rf "$TMP"
 fi
 # Una copia sin las piezas que la corren no reemplaza a la que hay (un main roto no deja a los carriles sin bucle).
-for pieza in bucle.sh comun.sh cierre.sh compuerta.sh copiar-bin.sh; do
+for pieza in bucle.sh comun.sh cierre.sh compuerta.sh corrido.sh copiar-bin.sh; do
   [ -s "$NUEVA/$pieza" ] || { rm -rf "$NUEVA"; falta "la copia de ${ORIGEN/#arbol/el árbol} no trae $pieza: dejo la que hay."; }
 done
 chmod a+x "$NUEVA"/*.sh 2>/dev/null
@@ -63,8 +63,16 @@ chmod a-w "$NUEVA"/*
 if [ -d "$COMUN/bin" ] && [ ! -L "$COMUN/bin" ]; then mv "$COMUN/bin" "$COMUN/bin.antes-$(date +%s)"; fi
 ln -sfn "$(basename "$NUEVA")" "$COMUN/bin.enlace" && mv -T "$COMUN/bin.enlace" "$COMUN/bin" || falta "no pude cambiar el enlace de la copia."
 printf '%s\n' "$ORIGEN" >"$COMUN/bin.origen"
-# Las copias viejas, pasadas 24 h (la vigente nunca).
-find "$COMUN" -maxdepth 1 -mindepth 1 -type d -name 'bin.*' ! -name "$(basename "$NUEVA")" ! -name 'bin.tar.*' -mmin +1440 -exec rm -rf {} + 2>/dev/null
+# Las copias viejas, pasadas 24 h (la vigente nunca), salvo la que todavía corre un bucle: uno que duerme por el límite de uso o lleva un
+# paso largo sigue con SU carpeta, y al cerrar llama a `verificar.sh` y `publicar.sh` de ella. Una carpeta de copia no tiene nada adentro
+# que no se rehaga: se quita sólo si es de las de este script (`bin.<algo>` bajo la carpeta común).
+while IFS= read -r vieja; do
+  case "$vieja" in "$COMUN"/bin.?*) ;; *) continue ;; esac
+  pgrep -f -- "$vieja/bucle.sh" >/dev/null 2>&1 && continue
+  chmod -R u+w -- "$vieja" 2>/dev/null
+  find "$vieja" -mindepth 1 -delete 2>/dev/null
+  rmdir -- "$vieja" 2>/dev/null
+done < <(find "$COMUN" -maxdepth 1 -mindepth 1 -type d -name 'bin.*' ! -name "$(basename "$NUEVA")" ! -name 'bin.tar.*' -mmin +1440 2>/dev/null)
 if [ "$ORIGEN" = arbol ]; then de="el árbol"; else de="origin/main (scripts/piloto ${ORIGEN:0:8})"; fi
 echo "copiar-bin: copia en $COMUN/bin ($(wc -l <"$COMUN/bin/bin.sha256") archivos, de $de)."
 [ "$SI_CAMBIO" = 1 ] && exit 10

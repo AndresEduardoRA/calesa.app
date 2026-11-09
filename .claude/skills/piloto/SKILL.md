@@ -29,6 +29,10 @@ el número del paso y, opcionales, `continuar` (retomas esta sesión tras una co
 ## El camino
 
 1. **Orientarte** (poco): `.piloto/hechos.json`, `docs/ESTADO.md`, y con `continuar`, `.piloto/planes/<paso>.md` y `.piloto/informes/<paso>.md` si existen.
+   **Si existe `.piloto/aparcados/<paso>.md`** (el paso del plan, sin el sufijo de la parte), este paso ya se intentó y quedó aparcado: léela antes que
+   nada. Dice por qué no cerró, en qué quedó la rama y si hay un stash con trabajo a medias. No repitas lo mismo: achica el paso (una parte que cierre con
+   `parcial: true`) o cambia de enfoque; si lo que falta no depende de ti (una clave, un servicio de afuera), déjalo hecho hasta donde se pueda con un
+   adaptador y su prueba de contrato, y dilo en el resumen.
    **Si existe `.piloto/conflicto-con-main.md`, eso va primero:** tu rama choca con `origin/main` en código (los choques de `docs/` el bucle ya los unió) y
    el PR no se integra hasta resolverlo. `git merge origin/main`, resuelve lo que lista, commit de merge con el mensaje por omisión (no va en `commits` de
    `ultimo.json`), y sigue con el paso.
@@ -46,7 +50,10 @@ el número del paso y, opcionales, `continuar` (retomas esta sesión tras una co
    pesa ≤ 60 KB (`wc -c`).
 4. **Compuertas del plan** ([compuertas.md](compuertas.md)): si el plan toca datos o seguridad (policy, RLS, permiso, `security definer`, Vault), pide una dependencia
    nueva o deja una pregunta de producto o de UX abierta → termina con `resultado: compuerta` (ver «Terminar»). Con `--hasta-plan`, tras auditar el plan terminas
-   **siempre** con una compuerta `datos` que lleve el plan en su `contexto`: la persona lo ve antes de que se ejecute. Si el plan corre el completo en local (sólo el hito 4-A y un cierre)
+   **siempre** con una compuerta `datos` que lleve el plan en su `contexto`: la persona lo ve antes de que se ejecute. **Sin compuertas** (lo de hoy: `PILOTO_AUTO`
+   con `todo`; el bucle ya no pasa `--hasta-plan`) nadie va a contestar: una compuerta se responde sola con su **primera opción**, así que la primera es siempre la que
+   deja seguir con tu recomendación, y sólo pones «parar» primero si de verdad el paso no puede seguir (entonces el bucle lo aparca y el carril toma otro). Una duda
+   de producto la decides tú con la recomendada del plan y la anotas en `docs/pasos/<paso>/decisiones.md`; no hace falta una compuerta para eso. Si el plan corre el completo en local (sólo un paso con `cierre: true` en `.piloto/asignado.json`)
    y `hechos.json` › `funciones` no las tiene todas en `true`, compuerta `afuera` antes de ejecutar («faltan las funciones edge (…): `pnpm funciones`»): el
    completo las exige y el bucle no las levanta. El bucle ya lo mira por el nivel del ruteo; esto cubre el plan que sube de nivel.
 5. **Ejecutar y verificar** (Nivel 1, 2 o 3 de `.claude/rules/e2e.md`, el que dice el plan): primero las pruebas, **sólo las clave** (`.claude/rules/e2e.md` ›
@@ -56,7 +63,7 @@ el número del paso y, opcionales, `continuar` (retomas esta sesión tras una co
    de ≤ 9 minutos, a que no haya procesos pesados **en este mismo árbol** (`playwright`, `next build`, `vitest`, `carreras`, `medir`, `supabase db|start`) y a que `loadavg` sea menor que
    los núcleos (`nproc`). Los otros carriles tienen su árbol y su base: esperar a que la máquina quede ociosa con tres carriles no termina nunca (con `loadavg` < 1,5 cada parte perdía
    sus 9 minutos, 2026-11-06). **Qué no se corre en local** (`.claude/rules/e2e.md`, Nivel 1): `lint` y `typecheck` los corre el hook del commit; la suite entera de vitest, el hook de
-   Stop al cerrar el paso (en el paso, sólo `pnpm exec vitest related --run <archivos>` y `scripts/guardas`); el e2e completo, el CI del PR, salvo en el hito 4-A y en un cierre.
+   Stop al cerrar el paso (en el paso, sólo `pnpm exec vitest related --run <archivos>` y `scripts/guardas`); el e2e completo, el CI del PR, salvo en un cierre de fase (`cierre: true` en `.piloto/asignado.json`).
 6. **Informe** en `.piloto/informes/<paso>.md` ([plantilla-informe.md](plantilla-informe.md)): qué se hizo, la salida real de cada prueba (con su ruta), lo que no se hizo.
 7. **Auditar el informe**, sólo si el paso toca RLS, permisos, `security definer` o dinero (si no, se salta: verifica el bucle y el CI). Mismo `auditor`: si bloquea, corriges con un `fix` y sigues; un segundo bloqueo es una compuerta `atasco`.
 8. **Docs y commits.** **Con `asignado` en `hechos.json` (un carril con coordinador) no edites `docs/ESTADO.md`, `PLAN.md`, `BITACORA.md` ni `DECISIONES.md`** (los editarían todos los carriles a la vez): escribe lo mismo en `docs/pasos/<paso>/` (`bitacora.md`, con el marcador `e2e completo: …`, y `decisiones.md`); el carril `a` los pasa con `node scripts/coordinador/consolidar-docs.mjs` antes de su commit de docs, y el `ESTADO` lo lleva el carril `a`. Sin `asignado`: los docs que dice el plan (ESTADO por sustitución, ≤ 60 líneas medido con `wc -l`; BITACORA con el marcador `e2e completo: sí|no (…)`; DECISIONES con

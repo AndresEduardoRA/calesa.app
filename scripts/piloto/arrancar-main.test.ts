@@ -143,3 +143,88 @@ describe('arrancar.sh › --si-caido (el vigía de systemd)', () => {
     vivo.kill()
   })
 })
+
+// De corrido (2026-11-09): si el coordinador se cae, nadie integra y ningún carril lo dice. El vigía de cada carril lo levanta.
+describe('arrancar.sh › el coordinador sigue vivo', () => {
+  const conCoordinador = () => {
+    mkdirSync(join(repo, 'scripts/coordinador'), { recursive: true })
+    writeFileSync(join(repo, 'scripts/coordinador/sincronizar.sh'), '#!/usr/bin/env bash\nexit 0\n')
+    mkdirSync(join(repo, '.piloto'), { recursive: true })
+  }
+  const bucleVivo = async () => {
+    const vivo = spawn('flock', [join(repo, '.piloto/bucle.lock'), 'sleep', '4'], {
+      stdio: 'ignore',
+    })
+    await new Promise((seguir) => setTimeout(seguir, 300))
+    return vivo
+  }
+
+  it('con el bucle vivo y el coordinador caído (nadie tiene sincronizar.lock), el vigía cierra su tmux viejo y lo lanza', async () => {
+    conCoordinador()
+    const vivo = await bucleVivo()
+    const r = arrancar('--carril', 'b', '--si-caido')
+    expect(r.status, r.stderr).toBe(0)
+    expect(tmux()).toContain('kill-session -t piloto-coordinador')
+    expect(tmux()).toMatch(/new-session -d -s piloto-coordinador .*sincronizar\.sh/)
+    // Un registro común y uno solo, no el del carril que lo lanzó.
+    expect(tmux()).toContain(join(repo, '.git/coordinador/coordinador.log'))
+    expect(tmux()).not.toContain('piloto-bucle-b')
+    vivo.kill()
+  })
+
+  it('con el coordinador vivo (tiene sincronizar.lock) no lo toca; con su PARAR, tampoco', async () => {
+    conCoordinador()
+    mkdirSync(join(repo, '.git/coordinador'), { recursive: true })
+    const vivo = await bucleVivo()
+    const coordinador = spawn(
+      'flock',
+      [join(repo, '.git/coordinador/sincronizar.lock'), 'sleep', '4'],
+      { stdio: 'ignore' },
+    )
+    await new Promise((seguir) => setTimeout(seguir, 300))
+    expect(arrancar('--carril', 'b', '--si-caido').status).toBe(0)
+    expect(tmux()).toBe('')
+    coordinador.kill()
+    await new Promise((seguir) => setTimeout(seguir, 300))
+    writeFileSync(join(repo, '.git/coordinador/PARAR'), '')
+    expect(arrancar('--carril', 'b', '--si-caido').status).toBe(0)
+    expect(tmux()).toBe('')
+    vivo.kill()
+  })
+})
+
+describe('arrancar.sh › no rehace la copia si ya es la de main', () => {
+  it('un segundo arranque con el mismo main deja la misma carpeta: los otros carriles no se relanzan por nada', () => {
+    execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@ejemplo.test', 'add', '.'], {
+      cwd: repo,
+    })
+    execFileSync(
+      'git',
+      ['-c', 'user.name=t', '-c', 'user.email=t@ejemplo.test', 'commit', '-qm', 'inicio'],
+      { cwd: repo },
+    )
+    const remoto = join(raiz, 'remoto.git')
+    execFileSync('git', ['init', '-q', '--bare', '-b', 'main', remoto])
+    execFileSync('git', ['remote', 'add', 'origin', remoto], { cwd: repo })
+    execFileSync('git', ['push', '-q', 'origin', 'HEAD:main'], { cwd: repo })
+    expect(arrancar('--carril', 'b').status).toBe(0)
+    const primera = realpathSync(join(comun, 'bin'))
+    expect(arrancar('--carril', 'c').status).toBe(0)
+    expect(realpathSync(join(comun, 'bin'))).toBe(primera)
+  })
+
+  it('una compuerta humana que quedó de antes no espera a nadie: al arrancar se aparta', () => {
+    mkdirSync(comun, { recursive: true })
+    mkdirSync(join(repo, '.piloto'), { recursive: true })
+    writeFileSync(join(comun, 'compuerta.md'), 'id: g-1\ntipo: parada\npaso: 4.22\ncarril: b\n')
+    writeFileSync(join(repo, '.piloto/compuerta.md'), 'id: g-1\n')
+    expect(arrancar('--carril', 'b').status).toBe(0)
+    expect(existsSync(join(comun, 'compuerta.md'))).toBe(false)
+    expect(existsSync(join(repo, '.piloto/compuerta.md'))).toBe(false)
+    // La de otro carril no es suya.
+    writeFileSync(join(comun, 'compuerta.md'), 'id: g-2\ntipo: parada\npaso: 4.23\ncarril: c\n')
+    writeFileSync(join(raiz, 'tmux.txt'), '')
+    expect(arrancar('--carril', 'b').status).toBe(0)
+    expect(existsSync(join(comun, 'compuerta.md'))).toBe(true)
+  })
+})

@@ -202,15 +202,22 @@ cerrar_listo() {
     return 0
   fi
 
-  # d)
+  # d) (publicar suelta la asignación: el paso del plan y si era una parte se leen antes)
+  local del_plan era_parte
+  del_plan=$(jq -r '.paso // empty' "$ESTADO/asignado.json" 2>/dev/null)
+  era_parte=$(jq -r '.parcial // false' "$ESTADO/ultimo.json" 2>/dev/null)
   aprobar_seguridad_solo "$paso" "$desde"
   if ! bash "$BIN/publicar.sh" "$paso" "$desde" 2>"$ESTADO/publicar.err"; then
     parada "no se pudo publicar $paso: $(tail -n 3 "$ESTADO/publicar.err" | tr '\n' ' ')" "$paso" "${SOLO_REINTENTO[@]}"
     return 0
   fi
   registro "publicado $paso ($(git rev-parse --short HEAD))."
-  rm -f "$ESTADO/en-curso.json"
-  rm -rf "$ESTADO/paradas-solas"
+  rm -f "$ESTADO/en-curso.json" "$ESTADO/agotado-$(sanear "$paso")"
+  # También los de las respuestas automáticas: su clave no lleva cifras, así que sin esto se sumaban de un paso al otro durante toda la
+  # corrida y al tercer aviso parecido, aunque fuera semanas después, el carril se daba por parado.
+  rm -rf "$ESTADO/paradas-solas" "$ESTADO/paradas-auto"
+  # Un paso que estuvo aparcado y por fin cerró entero: su nota ya no le sirve a nadie.
+  [ "$era_parte" = true ] || rm -f "$ESTADO/aparcados/$(sanear "${del_plan:-$paso}").md" "$ESTADO/aparcados/$(sanear "${del_plan:-$paso}").en-curso.json"
   echo 0 >"$ESTADO/fallas"
   return 0
 }

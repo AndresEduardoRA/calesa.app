@@ -26,7 +26,7 @@ carril_asignar() {
   }
   accion=$(jq -r '.accion // empty' <<<"$r" 2>/dev/null)
   case "$accion" in
-    esperar) return 10 ;;
+    esperar) ESPERA_MOTIVO=$(jq -r '.motivo // empty' <<<"$r" 2>/dev/null); return 10 ;;
     terminado) return 11 ;;
     paso) ;;
     *) registro "el coordinador respondió algo ilegible: ${r:0:200}"; return 1 ;;
@@ -76,7 +76,7 @@ remendar_sin_sesion() {
   case "$arreglar" in
     "conflicto con main") ;;
     # Renumeradas ahora o en una vuelta anterior sin publicar (traer_main corre también antes de pedir el paso): renombres sin publicar.
-    "CI en rojo")
+    "CI en rojo" | "migración anterior a la última de main")
       [ "${RENUMERADAS:-0}" = 1 ] ||
         [ -n "$(git diff --name-only -M --diff-filter=R "$remoto" HEAD -- supabase/migrations/)" ] || return 1
       ;;

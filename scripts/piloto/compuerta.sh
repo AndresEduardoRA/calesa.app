@@ -135,13 +135,17 @@ auto_contesta() { # <tipo> <paso>
   auto_nombra "$1" || return 1
   local atascos
   case "$1" in
-    producto) [ -n "${PREGUNTAS:-}" ] ;;
-    datos | guardas) [ -z "${PREGUNTAS:-}" ] ;;
     atasco)
       atascos=$(cat "$ESTADO/atascos-solos/$(sanear "$2")" 2>/dev/null | wc -l)
       [ -z "${PREGUNTAS:-}" ] && { [ "$atascos" -eq 0 ] || { auto_nombra todo && [ "$atascos" -lt 3 ]; }; } ;;
-    parada | dependencia | afuera) [ -z "${PREGUNTAS:-}" ] && auto_nombra todo ;;
-    *) return 1 ;;
+    # Con «todo» no queda ninguna forma que vaya a la persona: una «producto» sin preguntas, una «datos» con ellas, un «hito» o una «fase»
+    # abrían la compuerta humana y tomaban el candado común (2026-11-08: los tres carriles, cinco horas detrás de una sola).
+    *) auto_nombra todo && return 0
+      case "$1" in
+        producto) [ -n "${PREGUNTAS:-}" ] ;;
+        datos | guardas) [ -z "${PREGUNTAS:-}" ] ;;
+        *) return 1 ;;
+      esac ;;
   esac
 }
 # eleccion_que_sigue <tipo> [opciones…]: la primera opción que no para («sigo» antes que «reintentar»); agotadas las del mismo motivo
@@ -217,6 +221,12 @@ compuerta() {
     COMPUERTA_MD="$ESTADO/compuerta-sola.md" DECISION_MD="$ESTADO/decision-sola.md"
     _compuerta "$@"
     return $?
+  fi
+  # Sin compuertas no hay a quién esperar: lo que ya no se contesta solo (el cuarto atasco de un paso) no abre la compuerta humana ni
+  # toma el candado común. Devuelve «parar»; el bucle aparca el paso y el carril sigue con otro (bucle.sh › parar_o_aparcar).
+  if [ "${EN_SECO:-0}" != 1 ] && auto_nombra todo; then
+    registro "compuerta $1 ($2) sin respuesta automática que quede: ${3:0:300}"
+    return 3
   fi
   COMPUERTA_MD="$COMUN/compuerta.md" DECISION_MD="$COMUN/decision.md"
   exec 9>"$COMUN/compuerta.lock"
@@ -313,7 +323,10 @@ parada() {
   case "$rc" in
     1 | 2) return "$rc" ;;
   esac
-  if auto_nombra todo; then registro "parado (decisión automática, ${PILOTO_PARADAS_AUTO_MAX:-3} veces el mismo aviso): $motivo"
+  if auto_nombra todo; then
+    # Con carriles, nadie para al carril: el paso se aparca o se espera y se vuelve a intentar (bucle.sh › sin_salida).
+    if declare -F sin_salida >/dev/null && sin_salida "$paso" "$motivo"; then return 1; fi
+    registro "parado (decisión automática, ${PILOTO_PARADAS_AUTO_MAX:-3} veces el mismo aviso): $motivo"
   else registro "parado por la persona: $motivo"; fi
   exit 0
 }

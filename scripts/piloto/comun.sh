@@ -14,6 +14,26 @@ ESTADO="${PILOTO_DIR:-$RAIZ/.piloto}"
 # Resuelto (`pwd -P`): `bin` es un enlace a la copia vigente, y un bucle que corre sigue con la suya aunque otro carril la cambie (copiar-bin.sh).
 BIN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 
+# La configuración del proyecto (`piloto.config`, versionada, sin secretos), exportada: la leen también el coordinador y `gh`, que son
+# otros procesos. Lo que ya viene del entorno manda (el archivo usa `${X:-…}` donde importa; las pruebas fijan lo suyo).
+if [ -z "${PILOTO_CONFIG_LEIDA:-}" ] && [ -f "$RAIZ/piloto.config" ]; then
+  set -a
+  # shellcheck source=../../piloto.config
+  source "$RAIZ/piloto.config"
+  set +a
+  export PILOTO_CONFIG_LEIDA=1
+fi
+
+# La cuenta de GitHub del piloto (`PILOTO_GH_USUARIO`): `gh` y `git push` usan la cuenta ACTIVA de la máquina, y es una sola para todos los
+# proyectos. El 2026-11-09 la persona entró con otra cuenta para otro trabajo y la activa pasó a ser una sin permiso de escritura aquí:
+# el primer push o merge del piloto habría fallado en los tres carriles. Con la variable, cada pieza pide el token de ESA cuenta
+# (`gh auth token --user`, que no lo imprime) y lo pasa por `GH_TOKEN`, que `gh` y su ayudante de credenciales de git respetan; la cuenta
+# activa de la máquina no se toca. Sin la variable, o si esa cuenta no tiene sesión, queda como estaba (y `verificar-entorno.sh` lo dice).
+if [ -z "${GH_TOKEN:-}" ] && [ -n "${PILOTO_GH_USUARIO:-}" ] && command -v gh >/dev/null 2>&1; then
+  _t=$(gh auth token --user "$PILOTO_GH_USUARIO" 2>/dev/null) && [ -n "$_t" ] && export GH_TOKEN="$_t"
+  unset _t
+fi
+
 ahora_lapaz() { TZ=America/La_Paz date +%Y-%m-%dT%H:%M:%S%:z; }
 
 # El binario de Claude Code: CLAUDE_BIN, si no `claude` del PATH, si no el más nuevo de la extensión de VS Code.
