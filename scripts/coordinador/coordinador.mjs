@@ -11,6 +11,8 @@
 //   coordinador.mjs pedido <id>                 JSON de un pedido (el bucle que espera mira si ya se cerró)
 //   coordinador.mjs cerrar-pedido <id> [motivo] el dueño lo cerró sin cambios (ya estaba hecho)
 //   coordinador.mjs liberar <paso> [motivo]     el paso vuelve a pendiente (el piloto lo abandonó)
+//   coordinador.mjs aparcar <paso> <motivo>     el carril no logra cerrarlo: queda aparcado y el carril sigue con otro (lo reintenta después)
+//   coordinador.mjs reanudar <paso>             la persona devuelve a la cola un paso aparcado, con la cuenta en cero
 //   coordinador.mjs integrado <paso>            la persona lo integró a mano (lo normal es que lo vea `sincronizar`)
 //   coordinador.mjs estado <paso>               JSON del estado de un paso (el bucle lo mira antes de preguntar por uno sin cambios)
 //   coordinador.mjs sincronizar                 mira los PR publicados: integra los que puede (verde/ámbar con CI verde) y anota el resto;
@@ -18,7 +20,10 @@
 //   coordinador.mjs cuota                       la fracción usada de la ventana de 5 h, si está calibrada
 //   coordinador.mjs tablero                     el tablero en Markdown (y en <común>/coordinador/TABLERO.md)
 //
-// Variables: COORD_PLAN (docs/plan.yaml), COORD_DIR (<común>/coordinador), COORD_GH (gh), COORD_MERGE_AUTO (verde,ambar),
+// El plan se lee de `origin/main:docs/plan.yaml` (lo integrado, como la copia de los scripts del piloto): cada carril corre esto desde su
+// árbol, y con el plan de la rama dos carriles podían ver planes distintos. `validar` mira el archivo del árbol (es lo que un PR cambia), y
+// `COORD_PLAN` manda sobre los dos. Sin `origin/main` (un repo sin remoto, las pruebas), el archivo del árbol.
+// Variables: COORD_PLAN (docs/plan.yaml), COORD_APARCADOS_MAX (2: reintentos de un paso aparcado), COORD_APARCADO_ENFRIAR (1800 s), COORD_DIR (<común>/coordinador), COORD_GH (gh), COORD_MERGE_AUTO (verde,ambar),
 // COORD_USD_VENTANA (USD equivalentes de una ventana de 5 h entera, medidos; sin él la cuota no se calcula), COORD_TOPE_PCT (100: el
 // % de la ventana que puede usar este proyecto, de la semilla), COORD_UMBRAL (0.8). Se prueba en `coordinador.test.mjs`.
 import { execFileSync } from 'node:child_process'
@@ -33,10 +38,11 @@ import {
 } from 'node:fs'
 import { join } from 'node:path'
 import { limpiarRamas, ramasProtegidas } from './limpiar-ramas.mjs'
+import { atenderColgado, gh, integrar, mirarPr, reintentarUnaVez } from './pr.mjs'
 import {
+  aparcar,
   estadoInicial,
   fraccionDeCuota,
-  guardasEn,
   integraSolo,
   leerConsumo,
   leerPlan,
@@ -44,6 +50,7 @@ import {
   marcarPedido,
   pedir,
   problemasDelPlan,
+  reanudar,
   siguiente,
   tablero,
 } from './plan.mjs'
@@ -54,7 +61,7 @@ const DIR =
   process.env.COORD_DIR ||
   join(git('rev-parse', '--path-format=absolute', '--git-common-dir'), 'coordinador')
 const PLAN = process.env.COORD_PLAN || join(raiz(), 'docs/plan.yaml')
-const GH = process.env.COORD_GH || 'gh'
+const PLAN_EN_MAIN = 'origin/main:docs/plan.yaml'
 const MERGE_AUTO = (process.env.COORD_MERGE_AUTO ?? 'verde,ambar')
   .split(',')
   .map((s) => s.trim())
@@ -67,7 +74,19 @@ function fallar(msg, codigo = 1) {
   process.exit(codigo)
 }
 
-function cargarPlan() {
+function cargarPlan({ delArbol = false } = {}) {
+  if (!delArbol && !process.env.COORD_PLAN) {
+    try {
+      const texto = execFileSync('git', ['show', PLAN_EN_MAIN], {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+        maxBuffer: 16 * 1024 * 1024,
+      })
+      if (texto.trim()) return leerPlan(texto)
+    } catch {
+      // Sin remoto o sin el archivo en main: vale el del árbol.
+    }
+  }
   if (!existsSync(PLAN)) fallar(`no está el plan en ${PLAN} (COORD_PLAN)`)
   return leerPlan(readFileSync(PLAN, 'utf8'))
 }
@@ -111,6 +130,34 @@ function conCandado(fn) {
   } finally {
     rmSync(CANDADO, { recursive: true, force: true })
   }
+}
+
+// El plan para repartir: el de main si es válido, y entonces queda guardado; si no lo es (un PR que lo rompió y se integró en rojo), el
+// último válido, y se dice por stderr. El 7-11 un plan inválido dejó al carril A cuatro horas sin poder pedir paso.
+function planParaRepartir() {
+  const plan = cargarPlan()
+  const problemas = problemasDelPlan(plan)
+  const guardado = join(DIR, 'plan.valido.json')
+  if (problemas.length === 0) {
+    try {
+      mkdirSync(DIR, { recursive: true })
+      const texto = JSON.stringify(plan)
+      if (!existsSync(guardado) || readFileSync(guardado, 'utf8') !== texto) {
+        writeFileSync(`${guardado}.${process.pid}.tmp`, texto)
+        renameSync(`${guardado}.${process.pid}.tmp`, guardado)
+      }
+    } catch {
+      // Sin poder guardarlo, nada cambia: la próxima vez se intenta de nuevo.
+    }
+    return plan
+  }
+  if (existsSync(guardado)) {
+    console.error(
+      `coordinador: el plan no es válido (${problemas[0]}): sigo con el último válido hasta que main traiga uno bueno.`,
+    )
+    return JSON.parse(readFileSync(guardado, 'utf8'))
+  }
+  return fallar(`el plan no es válido: ${problemas[0]} (corre «validar»)`)
 }
 
 function leerEstado(plan) {
@@ -165,91 +212,6 @@ function cuota() {
   )
 }
 
-function gh(...args) {
-  return execFileSync(GH, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
-}
-
-const CHECK_BIEN = new Set(['SUCCESS', 'SKIPPED', 'NEUTRAL'])
-
-// Lo que dice GitHub de un PR: su estado y, si está abierto, si hay que arreglarlo, si su CI sigue y si se puede integrar.
-// Se integra el commit que vio el CI y no otro (`--match-head-commit`: si el carril empujó entre medio, gh se niega y se reintenta en la
-// vuelta siguiente), y un PR que toca las guardas del piloto no se integra solo: la copia del bucle sale de main y los tres carriles se
-// recargan con ella (COORD_GUARDAS_SOLAS=1 lo deja).
-const GUARDAS_SOLAS = process.env.COORD_GUARDAS_SOLAS === '1'
-function mirarPr(numero) {
-  const pr = JSON.parse(
-    gh(
-      'pr',
-      'view',
-      String(numero),
-      '--json',
-      'state,mergeable,statusCheckRollup,headRefOid,headRefName,files',
-    ),
-  )
-  const checks = pr.statusCheckRollup ?? []
-  // Un estado de commit (el de Vercel: `state`, sin `status`) en PENDING o EXPECTED sigue corriendo; antes contaba como terminado y
-  // rojo, y el paso volvía a su carril por un «CI en rojo» que un minuto después era verde (el PR 80, 2026-11-08).
-  // Un job cancelado (lo cancela el push siguiente o su tope de tiempo) tampoco es rojo: no hubo veredicto, y el paso volvía a su
-  // carril a «arreglar» un CI que no había fallado (PR 69, 2026-11-08). Queda pendiente hasta la corrida siguiente.
-  const estadoDe = (c) =>
-    c.conclusion === 'CANCELLED'
-      ? 'PENDING'
-      : (c.status ?? (['PENDING', 'EXPECTED'].includes(c.state) ? 'PENDING' : 'COMPLETED'))
-  const pendiente = checks.some((c) => estadoDe(c) !== 'COMPLETED')
-  const rojo = checks.some(
-    (c) => estadoDe(c) === 'COMPLETED' && !CHECK_BIEN.has(c.conclusion ?? c.state),
-  )
-  // Rojo es con el CI terminado: con un job todavía corriendo, el reintento de los caídos no se puede pedir (reintentarUnaVez).
-  const arreglar =
-    pr.mergeable === 'CONFLICTING' ? 'conflicto con main' : rojo && !pendiente ? 'CI en rojo' : null
-  const listo = !arreglar && !pendiente && checks.length > 0 && pr.mergeable === 'MERGEABLE'
-  const guardas = GUARDAS_SOLAS ? [] : guardasEn((pr.files ?? []).map((f) => f.path))
-  return {
-    estado: pr.state,
-    arreglar,
-    pendiente,
-    listo,
-    oid: pr.headRefOid ?? null,
-    rama: pr.headRefName ?? null,
-    guardas,
-  }
-}
-// `gh pr merge --delete-branch` borra también la rama LOCAL y, si es la de ahora, pasa ese árbol a main: el coordinador corre en el
-// worktree del carril A y, al integrar el PR 80 (a/4.20-4a), dejó al A en main y su bucle paraba por «la rama no es a/…» (2026-11-08).
-// La rama remota se borra por la API, sin tocar ningún worktree; si falla, queda (no impide nada).
-function integrar(numero, pr, ...modo) {
-  const borrar = modo.includes('--delete-branch')
-  const resto = modo.filter((m) => m !== '--delete-branch')
-  gh('pr', 'merge', String(numero), ...resto, ...(pr.oid ? ['--match-head-commit', pr.oid] : []))
-  if (borrar && pr.rama) {
-    try {
-      gh('api', '-X', 'DELETE', `repos/{owner}/{repo}/git/refs/heads/${pr.rama}`)
-    } catch {
-      // La rama remota queda: GitHub puede borrarla sola, y una rama vieja no bloquea a nadie.
-    }
-  }
-}
-// Un CI rojo se vuelve a correr una vez por commit (sólo los jobs que cayeron) antes de devolver el paso a su carril: un contenedor de
-// Supabase que no arrancó en el runner o un e2e inestable no es un arreglo del carril (el PR 69 del 2026-11-08 volvía al A por eso).
-// Devuelve el estado con el commit anotado en `reintentos` y si se pidió el reintento.
-function reintentarUnaVez(numero, pr, estado) {
-  if (!pr.oid || estado.reintentos?.[numero] === pr.oid) return { estado, reintentado: false }
-  let caidos
-  try {
-    caidos = JSON.parse(gh('run', 'list', '--commit', pr.oid, '--json', 'databaseId,conclusion'))
-      .filter((r) => r.conclusion === 'failure')
-      .map((r) => String(r.databaseId))
-    for (const id of caidos) gh('run', 'rerun', id, '--failed')
-  } catch {
-    return { estado, reintentado: false }
-  }
-  if (caidos.length === 0) return { estado, reintentado: false }
-  return {
-    estado: { ...estado, reintentos: { ...(estado.reintentos ?? {}), [numero]: pr.oid } },
-    reintentado: true,
-  }
-}
-
 const textoGuardas = (g) =>
   `toca las guardas del piloto (${g.slice(0, 3).join(', ')}${g.length > 3 ? '…' : ''}): lo integra la persona`
 
@@ -283,6 +245,7 @@ function sincronizarParciales(plan, estado, informe) {
       quitar()
       continue
     }
+    ;({ estado, pr } = atenderColgado(e.pr_parcial, pr, estado, informe, paso.id))
     if (pr.arreglar === 'CI en rojo') {
       const r = reintentarUnaVez(e.pr_parcial, pr, estado)
       estado = r.estado
@@ -342,6 +305,7 @@ function sincronizarPedidos(estado, informe) {
       informe.push(`${pd.id}: el PR #${pd.pr} se cerró sin integrar: lo decide la persona`)
       continue
     }
+    ;({ estado, pr } = atenderColgado(pd.pr, pr, estado, informe, pd.id))
     if (pr.arreglar !== (pd.arreglar ?? null)) {
       estado = {
         ...estado,
@@ -380,6 +344,18 @@ function sincronizar(plan, estado) {
   estado = sincronizarPedidos(estado, informe)
   for (const paso of plan.pasos) {
     const e = estado.pasos[paso.id]
+    // Un paso aparcado con su PR abierto: si ese PR se integró (su CI se puso verde tras el aviso, o lo integró alguien), está hecho.
+    if (e.estado === 'aparcado' && e.pr && !e.pr_parcial) {
+      try {
+        if (mirarPr(e.pr).estado === 'MERGED') {
+          estado = marcar(estado, paso.id, 'integrado', { arreglar: null })
+          informe.push(`${paso.id}: estaba aparcado y su PR #${e.pr} ya está integrado: integrado`)
+        }
+      } catch {
+        // Se vuelve a mirar en la vuelta siguiente.
+      }
+      continue
+    }
     if (e.estado !== 'publicado' || !e.pr) continue
     let pr
     try {
@@ -399,6 +375,7 @@ function sincronizar(plan, estado) {
       informe.push(`${paso.id}: el PR #${e.pr} se cerró sin integrar: lo decide la persona`)
       continue
     }
+    ;({ estado, pr } = atenderColgado(e.pr, pr, estado, informe, paso.id))
     if (pr.arreglar === 'CI en rojo') {
       const r = reintentarUnaVez(e.pr, pr, estado)
       estado = r.estado
@@ -408,7 +385,10 @@ function sincronizar(plan, estado) {
       }
     }
     if (pr.arreglar !== (e.arreglar ?? null)) {
-      estado = { ...estado, pasos: { ...estado.pasos, [paso.id]: { ...e, arreglar: pr.arreglar } } }
+      estado = {
+        ...estado,
+        pasos: { ...estado.pasos, [paso.id]: { ...estado.pasos[paso.id], arreglar: pr.arreglar } },
+      }
       if (pr.arreglar) informe.push(`${paso.id}: ${pr.arreglar} (#${e.pr}): vuelve a su carril`)
     }
     if (!pr.listo) continue
@@ -437,7 +417,7 @@ const [orden, ...args] = process.argv.slice(2)
 try {
   switch (orden) {
     case 'validar': {
-      const problemas = problemasDelPlan(cargarPlan())
+      const problemas = problemasDelPlan(cargarPlan({ delArbol: true }))
       for (const p of problemas) console.error(`✗ ${p}`)
       if (problemas.length) process.exit(1)
       console.log('✓ el plan corre en paralelo sin choques')
@@ -446,15 +426,15 @@ try {
     case 'siguiente': {
       const [carril] = args
       if (!carril) fallar('uso: siguiente <carril>', 64)
-      const plan = cargarPlan()
-      const problemas = problemasDelPlan(plan)
-      if (problemas.length) fallar(`el plan no es válido: ${problemas[0]} (corre «validar»)`)
+      const plan = planParaRepartir()
       const fraccion = cuota()
       const salida = conCandado(() => {
         let estado = leerEstado(plan)
         const r = siguiente(plan, estado, carril, {
           cuota: fraccion,
           umbral: Number(process.env.COORD_UMBRAL || 0.8),
+          maxAparcado: Number(process.env.COORD_APARCADOS_MAX ?? 2),
+          enfriar: Number(process.env.COORD_APARCADO_ENFRIAR ?? 1800) * 1000,
         })
         if (r.accion === 'paso' && r.pedido) {
           if (r.pedido.estado !== 'asignado')
@@ -482,6 +462,11 @@ try {
               terminado: r.paso.terminado,
               decisiones: r.paso.decisiones ?? [],
               modulos: r.paso.modulos,
+              fase: r.paso.fase ?? null,
+              puerta: r.paso.puerta === true,
+              cierre: r.paso.cierre === true,
+              ...(r.reintento ? { reintento: r.reintento } : {}),
+              ...(r.prestado ? { prestado: true } : {}),
               ...(r.pedido
                 ? {
                     pedido: {
@@ -582,6 +567,26 @@ try {
       console.log(`✓ ${paso} vuelve a pendiente`)
       break
     }
+    case 'aparcar': {
+      const [paso, ...motivo] = args
+      if (!paso || motivo.length === 0) fallar('uso: aparcar <paso> <motivo>', 64)
+      const plan = cargarPlan()
+      const veces = conCandado(() => {
+        const estado = aparcar(leerEstado(plan), paso, motivo.join(' '))
+        guardarEstado(estado)
+        return estado.pasos[paso].aparcado_veces
+      })
+      console.log(`✓ ${paso} aparcado (${veces}.ª vez)`)
+      break
+    }
+    case 'reanudar': {
+      const [paso] = args
+      if (!paso) fallar('uso: reanudar <paso>', 64)
+      const plan = cargarPlan()
+      conCandado(() => guardarEstado(reanudar(leerEstado(plan), paso)))
+      console.log(`✓ ${paso} vuelve a la cola`)
+      break
+    }
     case 'estado': {
       const [paso] = args
       if (!paso) fallar('uso: estado <paso>', 64)
@@ -642,7 +647,7 @@ try {
     }
     default:
       fallar(
-        'órdenes: validar · siguiente <carril> · publicado <paso> <pr> · parcial <paso> <pr> · pedir <carril> <paso> <texto> [archivo…] · pedido <id> · cerrar-pedido <id> [motivo] · liberar <paso> · integrado <paso> · estado <paso> · sincronizar · cuota · tablero',
+        'órdenes: validar · siguiente <carril> · publicado <paso> <pr> · parcial <paso> <pr> · pedir <carril> <paso> <texto> [archivo…] · pedido <id> · cerrar-pedido <id> [motivo] · liberar <paso> · aparcar <paso> <motivo> · reanudar <paso> · integrado <paso> · estado <paso> · sincronizar · cuota · tablero',
         64,
       )
   }

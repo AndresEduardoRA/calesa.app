@@ -242,11 +242,11 @@ describe('bucle.sh › el límite de uso', () => {
     expect(a.estado('fallas').trim()).toBe('0')
   })
 
-  it('si el límite vuelve tras dormir: aviso', () => {
+  it('con PILOTO_LIMITE_VECES, pasado ese número de siestas vuelve a ser un aviso', () => {
     a.paso(1, 'true', { salida: LIMITE, salida_codigo: 1 })
     a.paso(2, 'true', { salida: LIMITE, salida_codigo: 1 })
     a.decidir(1, responder('parado'))
-    a.correr()
+    a.correr([], { PILOTO_LIMITE_VECES: '1' })
     expect(a.lineas('dormir.log')).toHaveLength(1)
     expect(a.llamadas('paso')).toHaveLength(2)
     expect(a.secuencia()[0]).toBe('decidir:abrir parada 4.99')

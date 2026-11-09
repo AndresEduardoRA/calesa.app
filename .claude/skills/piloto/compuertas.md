@@ -3,6 +3,10 @@
 Una compuerta es lo único que el piloto le pregunta a la persona (al celular, por una sesión corta). Quién la detecta decide cuándo se pregunta; si la detectas tú
 (la sesión del paso), terminas con `resultado: compuerta` en `.piloto/ultimo.json`, **con la recomendación primero**, y te retoman con `continuar`.
 
+**Sin compuertas (lo de hoy, `PILOTO_AUTO` «todo»):** nadie contesta. Toda compuerta se responde sola con su **primera opción** y te retoman al momento: la
+primera es siempre la que deja seguir con tu recomendación. Pon «parar» primero sólo si el paso de verdad no puede seguir: el bucle lo aparca (queda en el
+tablero con tu `motivo`) y el carril toma otro. Una duda de producto no necesita compuerta: decídela con la recomendada y anótala.
+
 | Tipo          | Cuándo                                                                                                                                                                                                                                                                    | Quién la detecta                                                   |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
 | `datos`       | El plan toca policy, RLS, permisos, `security definer` o Vault; o el paso es de datos y seguridad (4.15, 4.24–4.27: corren con `--hasta-plan`)                                                                                                                            | el bucle (por el paso), el planificador y el auditor (por el plan) |

@@ -24,7 +24,7 @@ escribir bajo `.piloto/planes/` (un hook lo hace cumplir) y tu Bash es de sólo 
 ## Orientarte, en este orden
 
 1. `docs/ESTADO.md` y el final de `docs/BITACORA.md` (el marcador `e2e completo` y la cuenta `n de 3`).
-2. La entrada del paso en `docs/PLAN.md` › «Partición» **por `Grep`** (`- **4.xx** —`) y las vecinas que la citan; lo hecho está en `docs/archivo/PLAN.md` (sólo grep).
+2. La entrada del paso en `docs/PLAN.md` › «Partición» de su fase **por `Grep`** (`- **6.03** —`) y las vecinas que la citan (las que nombra en «depende de»); lo hecho está en `docs/archivo/PLAN.md` (sólo grep). La fila dice qué entra, el assert, el lugar y sus **dudas con la opción recomendada**: una duda con recomendada no es una pregunta abierta, es una decisión tomada (la anotas en el plan como `Dn`). `.piloto/asignado.json` trae `modulos` (dónde vive lo del paso; en un carril que no es base lista sólo lo suyo: lo del núcleo que el paso necesite lo agrega o lo edita en su PR, sin borrarlo), `riesgo` y si es `cierre`. Qué deja cada primer paso de un módulo y dónde va lo que varios llenan (bandeja, huecos del shell, pruebas SQL, registros de guardas): `docs/PLAN.md` › «Carriles de las fases 5 a 9».
 3. `docs/MAPA.md` para saber el archivo exacto antes de buscar con grep; la ficha `CLAUDE.md` de cada módulo que toca el paso.
 4. `.claude/rules/` de lo que toca (`e2e.md` siempre; `escala.md`, `ui.md`, `datos.md`, `migraciones.md`, `acciones.md`, `modulos.md` según el caso).
 5. Las entradas de `docs/DECISIONES.md` del paso y `.piloto/hechos.json` (hora, rama, disco, CI, la decisión vigente: el paso la lee de ahí).
@@ -34,6 +34,10 @@ escribir bajo `.piloto/planes/` (un hook lo hace cumplir) y tu Bash es de sólo 
 - Si el paso junta capas con verificación distinta (la base, `src/shared`, la pantalla), lo **partes** en pasos que se cierran solos y dices cómo se
   anota en PLAN. Un paso que no cabe en una sesión no se planifica entero.
 - El nivel sale de `node scripts/piloto/nivel.mjs <archivos>` y la cuenta de `node scripts/piloto/cuenta-e2e.mjs docs/BITACORA.md`; no lo adivines.
+- **Sin compuertas (lo de hoy):** nadie va a contestar una pregunta. Una duda de producto o de UX la resuelves tú con la opción más conservadora y reversible,
+  dices por qué en una línea (`Dn`) y sigue; no instales dependencias nuevas (se hace con lo que hay) y, si algo depende de afuera del repo (una clave, un
+  servicio, producción), el plan lo deja hecho hasta donde se puede: adaptador, prueba de contrato y la variable en `docs/ENTORNOS.md`. Sólo si el bucle
+  corre con compuertas a la persona (`PILOTO_AUTO` vacío):
 - Si hay una pregunta de producto o de UX abierta, un dato o un permiso que decidir, una dependencia nueva, o una policy/RLS/`security definer`/Vault:
   no la resuelvas: ponla en «Preguntas abiertas», **una por decisión** con su `Pn` y de 2 a 4 opciones, tu recomendación primero; el paso la lleva como compuerta
   (la de `producto` copia cada `Pn` a una pregunta propia).

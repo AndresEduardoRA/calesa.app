@@ -3549,3 +3549,45 @@ Las pruebas que ya existen siguen corriendo; borrar las caras se decide aparte. 
   JavaScript el streaming ni dibuja el formulario). La inestable en sí no se estabiliza.
 - **La consolidación de `docs/pasos/` pierde partes:** `consolidar-docs.mjs` marca un paso entero con `<!-- paso:<id> -->` la primera vez, y las partes que su
   carpeta suma después (4.25-1b y 4.25-2) ya no pasan. Se copiaron a mano: en BITACORA al final (por el orden de fechas que exige `mapa.sh`), en DECISIONES tras el bloque del 4.25. El script queda como está (abierto 4-104).
+
+## 2026-11-09 — FLUJO-2: el piloto de corrido (preparativos de las fases 5 a 9)
+
+La persona pidió correr el resto del proyecto sin interrupciones. Antes de partir las fases se midió la Fase 4 con tres carriles (7 y 8-11): sólo el
+27–33 % del reloj fue una sesión de paso viva; 1.104 USD en 72 partes (10,4 USD y 0,84 h por parte en el flujo del 8-11); 30 de 167 corridas de PR en
+rojo. El detalle de cada cambio, en `docs/PILOTO.md` › «De corrido».
+
+- **Un paso que no cierra se aparca; el carril no para.** La alternativa era seguir como estaba («tres veces el mismo aviso y el carril queda parado»): con
+  nadie mirando, un carril parado no vuelve, y una caída de red de 2,6 h (la del 8-11) habría dejado a los tres así. Aparcar conserva el trabajo (rama, stash
+  y nota), deja avanzar lo que no depende de ese paso y lo reintenta dos veces con una sesión nueva; lo que queda aparcado al final es la lista de lo que
+  la persona tiene que mirar. Lo del entorno no se aparca (no es del paso): se espera media hora y se repite.
+- **El límite de uso y la red no son fallas.** Se duerme y se retoma sin tope de veces; el límite se comparte entre carriles por un archivo.
+- **El plan y la cuenta de GitHub dejan de depender del árbol y de la máquina.** El plan se lee de `origin/main`; la cuenta es la de `piloto.config`. No se
+  cambió la cuenta activa de `gh` de la persona: se pide el token de la otra por `gh auth token --user`.
+- **Las guardas del piloto siguen sin integrarse solas.** Sin compuertas, lo único que separa a una sesión de cambiar los hooks y los scripts que la vigilan
+  es que ese PR no entra sin alguien que lo mire. Se deja así a propósito; los pasos que tocan workflows o guardas van al final del plan para que un PR
+  retenido no trabe al resto.
+- **No se quitó el ruteo ni se cambió de modelo.** El ruteo costó el 1,3 % (0,07 USD por vuelta) y no falló; el planificador en opus se lleva ≈ 9 % en los
+  pasos de datos, que es donde más rinde. La persona dijo que el uso no es problema: se deja la política calibrada.
+- **Lo que no se arregla aquí y se evita con el plan:** los 21 PR devueltos por chocar en `pestanas.ts` (cada carril sumaba su pestaña al mismo archivo). En
+  las fases 5 a 9 el primer paso de cada módulo deja las entradas por área y los «huecos», y los siguientes sólo agregan archivos propios
+  (lo dice la partición de cada fase en `docs/PLAN.md`).
+
+## 2026-11-09 — El plan de las fases 5 a 9: 69 pasos, cinco fases abiertas a la vez
+
+La persona pidió dejar todo listo para correr el proyecto hasta el final. Cinco lecturas en paralelo (una por fase) propusieron la partición
+contra lo que la base ya tiene; aquí se unieron (`docs/PLAN.md` › «Carriles de las fases 5 a 9»; `docs/plan.yaml`).
+
+- **Las cinco fases a la vez, con dependencias por paso y no por fase.** La alternativa, una fase tras otra, repetía lo de la Fase 4: carriles
+  sin paso (23 h-carril en dos días). La Fase 7 y casi toda la 8 y la 9 no necesitan nada de la 5 ni de la 6. Simulado con la duración medida
+  (0,84 h de sesión y 0,4 de CI por parte): los 69 pasos caben en ≈ 4 días de reloj con tres carriles, con 5 a 12 h de espera por carril.
+- **Lo que comparte funciones de la base va en serie aunque sea de fases distintas** (6.02 tras 5.05 y 5.07; 8.08 tras 5.07 y 6.02): dos
+  migraciones que recrean la misma función no chocan en git, y la segunda en integrarse borraría lo de la primera sin que nadie lo viera.
+- **`cotizaciones` vuelve entero al carril base;** `b` y `c` llevan áreas o módulos enteros de las fases nuevas. Un paso de `b` o `c` declara en
+  `modulos` sólo lo suyo: lo del núcleo que necesita lo agrega o edita en su PR.
+- **Una sola casa para lo que varios llenan.** Tres propuestas ponían los bloques de la bandeja en tres lugares: queda el del 9.02
+  (`tablero/features/bandeja/bloques/<clave>.tsx`), que pasa al carril base y va antes que 6.12, 7.07, 8.05 y 8.13.
+- **Las dudas de cada fila ya traen su recomendada, y esa es la decisión** (sin compuertas nadie las contesta). Las que más pesan, para que la
+  persona las mire cuando quiera: la versión de la configuración de un flujo es una por flujo (5.01); «trabado» se define en el 6.12; el
+  tablero muestra totales exactos como excepción escrita (9.07); «exportar todo» no lleva teléfonos ni campos privados de carteras ajenas
+  (9.05); sin dependencias nuevas (gráficas en SVG, cookie del portal con `node:crypto`).
+- **El despliegue no se ejecuta:** el 9.13 deja la guía, la lista de la persona y todo probado en seco.

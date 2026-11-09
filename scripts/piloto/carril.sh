@@ -26,7 +26,7 @@ carril_asignar() {
   }
   accion=$(jq -r '.accion // empty' <<<"$r" 2>/dev/null)
   case "$accion" in
-    esperar) return 10 ;;
+    esperar) ESPERA_MOTIVO=$(jq -r '.motivo // empty' <<<"$r" 2>/dev/null); return 10 ;;
     terminado) return 11 ;;
     paso) ;;
     *) registro "el coordinador respondió algo ilegible: ${r:0:200}"; return 1 ;;
@@ -76,7 +76,7 @@ remendar_sin_sesion() {
   case "$arreglar" in
     "conflicto con main") ;;
     # Renumeradas ahora o en una vuelta anterior sin publicar (traer_main corre también antes de pedir el paso): renombres sin publicar.
-    "CI en rojo")
+    "CI en rojo" | "migración anterior a la última de main")
       [ "${RENUMERADAS:-0}" = 1 ] ||
         [ -n "$(git diff --name-only -M --diff-filter=R "$remoto" HEAD -- supabase/migrations/)" ] || return 1
       ;;
@@ -128,10 +128,52 @@ alinear_con_remoto() {
 #
 # Después, si main quedó sin choques, `renumerar_migraciones` (RENUMERADAS=1 si renumeró).
 traer_main() {
-  RENUMERADAS=0 UNION_DUDOSA=0
+  RENUMERADAS=0 UNION_DUDOSA=0 REGENERAR_TIPOS=0
   traer_main_merge "$@" || return 1
   [ -f "$ESTADO/conflicto-con-main.md" ] || renumerar_migraciones
+  [ "$REGENERAR_TIPOS" = 1 ] && [ ! -f "$ESTADO/conflicto-con-main.md" ] && regenerar_tipos
   return 0
+}
+
+# Lo generado no se une a mano. `src/shared/types/database.types.ts` lo escribe `pnpm db:types` y cada paso con migración lo regenera:
+# con tres carriles creando tablas y RPC a la vez (33 pasos con migración en las fases 5 a 9), dos ramas chocan ahí aunque sus migraciones
+# no se toquen, y cada choque era una sesión. En el merge se toma el de main (unir_docs) y, con las migraciones de las dos ya juntas, se
+# regenera contra la base del carril: PILOTO_CMD_TIPOS (por omisión `pnpm db:reset` y `pnpm db:types`, con el candado de su pila; aquí no
+# hay un paso en curso). Si no sale (la base no levanta, el commit no pasa sus hooks), queda para la sesión: no se publica sin ella.
+ARCHIVO_DE_TIPOS=src/shared/types/database.types.ts
+regenerar_tipos() {
+  local cmd="${PILOTO_CMD_TIPOS:-CANDADO_ESPERA=900 pnpm db:reset && CANDADO_ESPERA=900 pnpm db:types}"
+  if ! timeout "${PILOTO_TIPOS_MAX:-2400}" bash -c "$cmd" >>"$ESTADO/traer-main.log" 2>&1 8>&-; then
+    git restore --quiet --worktree -- "$ARCHIVO_DE_TIPOS" 2>/dev/null
+    UNION_DUDOSA=1
+    tipos_para_la_sesion
+    registro "carril ${PILOTO_CARRIL:-}: no pude regenerar los tipos de la base tras traer main; lo hace la sesión (pnpm db:reset y db:types)."
+    return 0
+  fi
+  if [ -z "$(git status --porcelain -- "$ARCHIVO_DE_TIPOS")" ]; then
+    registro "carril ${PILOTO_CARRIL:-}: regeneré los tipos de la base tras traer main: quedaron como los de main."
+    return 0
+  fi
+  if git add -- "$ARCHIVO_DE_TIPOS" && git commit --quiet -m "chore(db): regenerar los tipos tras traer main" >>"$ESTADO/traer-main.log" 2>&1 8>&-; then
+    registro "carril ${PILOTO_CARRIL:-}: regeneré los tipos de la base tras traer main (chocaban en $ARCHIVO_DE_TIPOS)."
+  else
+    git restore --quiet --staged --worktree -- "$ARCHIVO_DE_TIPOS" 2>/dev/null
+    UNION_DUDOSA=1
+    tipos_para_la_sesion
+    registro "carril ${PILOTO_CARRIL:-}: regeneré los tipos pero el commit no pasó sus hooks; lo hace la sesión."
+  fi
+  return 0
+}
+# Lo que el bucle no pudo, dicho donde la sesión del paso lo lee antes que nada (skill piloto, «Orientarte»): main ya está unido, pero
+# el archivo de tipos quedó como el de main, sin lo de esta rama. Sin la nota, el paso seguía y publicaba con tipos viejos.
+tipos_para_la_sesion() {
+  {
+    echo "# Falta regenerar los tipos de la base"
+    echo
+    echo "\`origin/main\` ya está unido a tu rama, pero las dos tocaban \`$ARCHIVO_DE_TIPOS\` (generado) y quedó el de main. Antes que"
+    echo "nada: \`pnpm db:reset\` y \`pnpm db:types\` (con el candado), revisa que el diff sólo sume lo de tus migraciones y commitea"
+    echo "\`chore(db): regenerar los tipos tras traer main\`. Ese commit sí va en \`commits\` de ultimo.json."
+  } >"$ESTADO/conflicto-con-main.md"
 }
 
 # renumerar_migraciones: las migraciones que la rama agrega llevan una versión posterior a la última de origin/main (lo exige la guarda de
@@ -227,6 +269,10 @@ unir_docs() {
           awk '/^\|\|\|\|\|\|\|/{b=1;n=0;next} /^=======/{if(b&&n)d=1;b=0;next} b{n++} END{exit !d}' && UNION_DUDOSA=1
         git merge-file --union -p "$tmp/nuestro" "$tmp/base" "$tmp/suyo" >"$f" 2>/dev/null
         git add -- "$f" || quedan=1
+        ;;
+      "$ARCHIVO_DE_TIPOS")
+        # Generado: el de main ahora, y se regenera con el merge hecho (regenerar_tipos).
+        if git show ":3:$f" >"$f" 2>/dev/null && git add -- "$f"; then REGENERAR_TIPOS=1; else quedan=1; fi
         ;;
       *) quedan=1 ;;
     esac

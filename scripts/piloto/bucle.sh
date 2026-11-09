@@ -29,6 +29,8 @@ source "$BIN/cierre.sh"
 source "$BIN/gasto.sh"
 # shellcheck source=ci.sh
 source "$BIN/ci.sh"
+# shellcheck source=corrido.sh
+source "$BIN/corrido.sh"
 cd "$RAIZ" || exit 1
 
 HASTA="" EN_SECO=0 NOTA="" UNA_VUELTA=0
@@ -63,6 +65,9 @@ if [ -n "${PILOTO_RELANZADO:-}" ]; then
 else
   flock -n 8 || { echo "bucle: ya corre otro bucle (flock sobre $ESTADO/bucle.lock)." >&2; exit 1; }
 fi
+
+# La carpeta de la copia con la que corre este bucle: copiar-bin.sh no borra una copia vieja que un bucle vivo todavía usa.
+printf '%s\n' "$BIN" >"$ESTADO/bin-en-uso" 2>/dev/null
 
 registro() {
   local linea
@@ -100,28 +105,6 @@ copia_al_dia() {
   PILOTO_RELANZADO=1 exec bash "$COMUN/bin/bucle.sh" "${ARGS_BUCLE[@]+"${ARGS_BUCLE[@]}"}"
 }
 
-# El texto documentado del límite de uso: «You've hit your session limit · resets 3:45pm». Imprime los segundos que hay que dormir
-# (hasta esa hora de La Paz y 5 minutos más; 60 minutos si la hora no se lee). Cómo sale en `-p` no está documentado: se mira el JSON y stderr.
-segundos_de_limite() {
-  local texto hora objetivo ahora
-  texto="$(jq -r '(.result // "") + " " + (.error // "")' "$1" 2>/dev/null) $(cat "$2" 2>/dev/null)"
-  # «session limit», «weekly limit» y «5-hour limit» (el texto real del 31-oct-2026): entre «your» y «limit» cabe una palabra con cifras y
-  # guion. La señal estructurada (429 + usage_limit_reached) vale aunque el texto cambie.
-  if ! [[ "$texto" =~ hit\ your\ [A-Za-z0-9\ -]{0,30}limit ]] &&
-    ! jq -e '.api_error == "usage_limit_reached"' "$1" >/dev/null 2>&1; then
-    return 1
-  fi
-  if [[ "$texto" =~ resets\ ([0-9]{1,2}(:[0-9]{2})?\ ?[apAP][mM]) ]]; then
-    hora="${BASH_REMATCH[1]}"
-    ahora=$(date +%s)
-    objetivo=$(TZ=America/La_Paz date -d "$hora" +%s 2>/dev/null) || objetivo=$((ahora - 1))
-    [ "$objetivo" -gt "$ahora" ] || objetivo=$((objetivo + 86400))
-    echo $((objetivo - ahora + 300))
-  else
-    echo 3600
-  fi
-}
-
 # 3. El ruteo: sólo lee, por construcción (sin Bash ni Edit). Un resultado válido o un segundo intento; si no, aviso.
 ruteo_valido() {
   jq -e '.structured_output | type == "object" and (.paso | type == "string") and (.modelo | IN("sonnet", "opus"))
@@ -129,8 +112,9 @@ ruteo_valido() {
     and (.compuerta.tipo | IN("ninguna", "datos", "dependencia", "hito", "fase", "producto", "atasco", "afuera"))' "$1" >/dev/null 2>&1
 }
 rutear() {
-  local salida="$ESTADO/llamadas/ruteo-ultimo.json" intento espera inicio
-  for intento in 1 2; do
+  local salida="$ESTADO/llamadas/ruteo-ultimo.json" intento=0 espera inicio red=0
+  while [ "$intento" -lt 2 ]; do
+    respetar_limite
     inicio=$SECONDS
     PILOTO=1 PILOTO_SESION=ruteo "$CLAUDE" -p "/piloto-ruteo" --model sonnet --effort low --tools "Read,Grep,Glob" \
       --disallowedTools "mcp__*" --permission-mode dontAsk --permission-prompts none --max-turns 25 \
@@ -141,10 +125,20 @@ rutear() {
       jq -c .structured_output "$salida" >"$ESTADO/ruteo.json"
       return 0
     fi
+    # Ni el límite ni un corte de red gastan un intento: se duerme y se vuelve a rutear.
     if espera=$(segundos_de_limite "$salida" "$ESTADO/llamadas/ruteo.err"); then
       registro "límite de uso en el ruteo: duermo $espera s."
-      $DORMIR "$espera"
+      anotar_limite "$espera"
+      dormir_largo "$espera"
+      continue
     fi
+    if [ "$red" -lt "${PILOTO_RED_VECES:-24}" ] && espera=$(segundos_de_red "$salida" "$ESTADO/llamadas/ruteo.err" "$((red + 1))"); then
+      red=$((red + 1))
+      registro "sin red, error del servidor o sesión vencida en el ruteo (vez $red): espero $espera s."
+      dormir_largo "$espera"
+      continue
+    fi
+    intento=$((intento + 1))
   done
   return 1
 }
@@ -224,10 +218,11 @@ lanzar_paso() { # <modo: nueva|resume> <session_id> <prompt> <modelo> <effort> [
 # session_id, una vez). Deja el resultado en $SALIDA_PASO y en ultimo.json; devuelve 1 si no hubo un ultimo.json válido y 3 si el
 # paso llegó a su tope (o le queda menos de PILOTO_TOPE_USD_MIN): eso no es un fallo, no se reintenta.
 correr_paso() { # <paso> <modo> <session_id> <prompt> <modelo> <effort> [banderas…]
-  local paso="$1" modo="$2" sid="$3" prompt="$4" modelo="$5" effort="$6" rc espera limite=0 reintento=0 resultado inicio dur
+  local paso="$1" modo="$2" sid="$3" prompt="$4" modelo="$5" effort="$6" rc espera limite=0 reintento=0 resultado inicio dur red=0
   shift 6
   while :; do
     le_queda || return 3
+    respetar_limite
     inicio=$SECONDS
     lanzar_paso "$modo" "$sid" "$prompt" "$modelo" "$effort" "$@"
     rc=$?
@@ -235,10 +230,14 @@ correr_paso() { # <paso> <modo> <session_id> <prompt> <modelo> <effort> [bandera
     anotar_gasto "$SALIDA_PASO"
     if espera=$(segundos_de_limite "$SALIDA_PASO" "$ESTADO/llamadas/paso.err"); then
       consumo paso "$paso" "$modelo" "$effort" limite "$SALIDA_PASO" "$dur"
-      if [ "$limite" = 1 ]; then registro "el límite de uso volvió tras dormir: aviso."; return 2; fi
-      limite=1
-      registro "límite de uso en $paso: duermo $espera s y retomo con --resume."
-      $DORMIR "$espera"
+      limite=$((limite + 1))
+      if [ "${PILOTO_LIMITE_VECES:-0}" -gt 0 ] && [ "$limite" -gt "$PILOTO_LIMITE_VECES" ]; then
+        registro "el límite de uso volvió $limite veces en $paso: aviso."
+        return 2
+      fi
+      registro "límite de uso en $paso (vez $limite): duermo $espera s y retomo con --resume."
+      anotar_limite "$espera"
+      dormir_largo "$espera"
       modo=resume prompt="/piloto $paso continuar"
       continue
     fi
@@ -250,6 +249,16 @@ correr_paso() { # <paso> <modo> <session_id> <prompt> <modelo> <effort> [bandera
       resultado=$(jq -r .resultado "$ESTADO/ultimo.json")
       consumo paso "$paso" "$modelo" "$effort" "$resultado" "$SALIDA_PASO" "$dur"
       return 0
+    fi
+    if [ "$red" -lt "${PILOTO_RED_VECES:-24}" ] && espera=$(segundos_de_red "$SALIDA_PASO" "$ESTADO/llamadas/paso.err" "$((red + 1))"); then
+      red=$((red + 1))
+      consumo paso "$paso" "$modelo" "$effort" sin-red "$SALIDA_PASO" "$dur"
+      registro "sin red, error del servidor o sesión vencida en $paso (vez $red): espero $espera s y retomo con --resume."
+      dormir_largo "$espera"
+      # Una sesión que no llegó a existir (cayó antes del primer turno) no se puede retomar: la misma llamada otra vez.
+      if [ "$modo" = nueva ] && ! ls "$HOME"/.claude/projects/*/"$sid".jsonl >/dev/null 2>&1; then continue; fi
+      modo=resume prompt="/piloto $paso continuar"
+      continue
     fi
     consumo paso "$paso" "$modelo" "$effort" fallo-proceso "$SALIDA_PASO" "$dur"
     if [ "$reintento" = 1 ]; then return 1; fi
@@ -345,7 +354,7 @@ compuerta_del_paso() { # <paso>
     "$(jq -r '.compuerta.pregunta // .compuerta.motivo // ""' "$ESTADO/ultimo.json")" "${opciones[@]}"
   rc=$?
   PREGUNTAS=""
-  [ "$rc" = 3 ] && { registro "parado por la persona en la compuerta de $paso."; exit 0; }
+  [ "$rc" = 3 ] && parar_o_aparcar "$paso" "compuerta $(jq -r .compuerta.tipo "$ESTADO/ultimo.json") sin salida: $(jq -r '.compuerta.motivo // .compuerta.pregunta // ""' "$ESTADO/ultimo.json" | head -c 300)"
   return 0
 }
 
@@ -435,6 +444,16 @@ puerta_de_fase() { # <paso>
   done
 }
 
+# La puerta que pide el plan para el paso asignado, si todavía no se pasó.
+puerta_del_plan() {
+  modo_carril && jq -e '.puerta == true' "$ESTADO/asignado.json" >/dev/null 2>&1 &&
+    [ ! -f "$ESTADO/puertas/$(sanear "$(jq -r .paso "$ESTADO/asignado.json")")" ]
+}
+puerta_pasada() {
+  modo_carril && jq -e '.puerta == true' "$ESTADO/asignado.json" >/dev/null 2>&1 || return 0
+  mkdir -p "$ESTADO/puertas" && touch "$ESTADO/puertas/$(sanear "$(jq -r .paso "$ESTADO/asignado.json")")"
+}
+
 # `hechos.json` lo lee el ruteo: se regenera al empezar la vuelta y otra vez tras asignar el paso de un carril (`carril_asignar` escribe
 # `asignado.json` después de los primeros hechos, y sin esto el ruteo veía `asignado: null` y elegía por ESTADO: 4.20-2 y 4.17-5b en vez de 4.21 y 4.24).
 regenerar_hechos() {
@@ -463,9 +482,18 @@ vuelta() {
   if modo_carril && [ ! -f "$ESTADO/en-curso.json" ] && [ ! -f "$ESTADO/forzar-ci-fix" ]; then
     carril_asignar
     case "$?" in
-      0) regenerar_hechos || return 0 ;;
+      0) rm -f "$ESTADO/esperando"; regenerar_hechos || return 0 ;;
       12) return 0 ;; # remendado y publicado sin sesión (carril.sh › remendar_sin_sesion): otra vuelta, sin esperar
-      10) registro "carril $PILOTO_CARRIL: sin paso libre; espero ${PILOTO_ESPERA_S:-120} s."; $DORMIR "${PILOTO_ESPERA_S:-120}"; return 0 ;;
+      10)
+        # Una línea cuando cambia el motivo, no una cada vuelta: un carril que espera días llenaba el registro (662 líneas el 7 y 8-11) y
+        # no decía por qué esperaba. La hora de la última mirada es la fecha de `.piloto/esperando`.
+        if [ "$(cat "$ESTADO/esperando" 2>/dev/null)" != "${ESPERA_MOTIVO:-}" ] || [ ! -f "$ESTADO/esperando" ]; then
+          registro "carril $PILOTO_CARRIL: sin paso libre (${ESPERA_MOTIVO:-el coordinador no dijo por qué}); miro cada ${PILOTO_ESPERA_S:-120} s."
+        fi
+        printf '%s' "${ESPERA_MOTIVO:-}" >"$ESTADO/esperando"
+        $DORMIR "${PILOTO_ESPERA_S:-120}"
+        return 0
+        ;;
       11) registro "carril $PILOTO_CARRIL: el coordinador no tiene más pasos para este carril."; exit 0 ;;
       *) parada "el coordinador no pudo asignar un paso al carril $PILOTO_CARRIL: $(tail -n 1 "$ESTADO/coordinador.err" 2>/dev/null)"; return 0 ;;
     esac
@@ -499,7 +527,11 @@ vuelta() {
   if [[ "$tipo_ruteo" =~ ^(dependencia|hito|producto|atasco|afuera)$ ]] && [ "$(cat "$ESTADO/ruteo-compuerta" 2>/dev/null)" != "$paso:$tipo_ruteo" ]; then
     echo "$paso:$tipo_ruteo" >"$ESTADO/ruteo-compuerta"
     compuerta "$tipo_ruteo" "$paso" "$(jq -r .compuerta.motivo "$ESTADO/ruteo.json")" "$(jq -r .compuerta.motivo "$ESTADO/ruteo.json")"
-    [ "$?" = 3 ] && { registro "parado por la persona en la compuerta de $paso."; exit 0; }
+    if [ "$?" = 3 ]; then
+      # Sin compuertas, el ruteo no para a nadie por algo que sólo supone: el paso corre y, si de verdad no puede, lo dirá él.
+      if modo_carril && auto_nombra todo; then registro "el ruteo pedía parar en $paso ($tipo_ruteo); sin compuertas, el paso corre igual."
+      else registro "parado por la persona en la compuerta de $paso."; exit 0; fi
+    fi
     return 0
   fi
 
@@ -529,8 +561,11 @@ vuelta() {
     # La puerta de fase (4.18, 4.28, abrir una fase): la decide el CI en verde, no la persona. Sólo al entrar (el paso entero o su
     # primera parte, 4.18-1 o 4.18-1a): las partes siguientes esperaban el CI de la parte anterior del mismo carril, 25–35 min
     # cada una (4.18-2, 2026-11-06), y un rojo suyo ya lo anota ci.sh y lo arregla un ci-fix.
-    if [[ "$paso" =~ ^4\.(18|28)(-1[a-z]?)?$ ]] || [ "$tipo_ruteo" = fase ]; then
+    # Con carriles la puerta la dice el plan (`puerta: true` en docs/plan.yaml: el primer paso de una fase que construye sobre la
+    # anterior, y su cierre), no el número del paso: una vez por paso (`.piloto/puertas/`), aunque se parta o se retome.
+    if [[ "$paso" =~ ^4\.(18|28)(-1[a-z]?)?$ ]] || [ "$tipo_ruteo" = fase ] || puerta_del_plan; then
       puerta_de_fase "$paso" || return 0
+      puerta_pasada
     fi
     modo=nueva sid=$(cat /proc/sys/kernel/random/uuid) desde=$(git rev-parse HEAD) prompt="/piloto $paso"
     if [ "$(jq -r .sesion.tipo "$ESTADO/ruteo.json")" = continuar ] && [ "$(jq -r '.sesion.session_id // ""' "$ESTADO/ruteo.json")" != "" ]; then
@@ -540,7 +575,10 @@ vuelta() {
   fi
 
   # Los pasos de datos y seguridad corren hasta el plan: la compuerta de datos se decide con el plan en la mano.
-  if { [[ "$paso" =~ ^4\.(15|24|25|26|27)(-|$) ]] || [ "$tipo_ruteo" = datos ]; } && [ ! -f "$COMUN/aprobado-$(sanear "$paso")" ]; then
+  # Sin compuertas (PILOTO_AUTO con «datos» o «todo») nadie mira ese plan: parar en él era una retoma pagada para que el bucle se
+  # contestara solo; el SQL de seguridad se aprueba al publicar (cierre.sh › aprobar_seguridad_solo).
+  if { [[ "$paso" =~ ^4\.(15|24|25|26|27)(-|$) ]] || [ "$tipo_ruteo" = datos ]; } && [ ! -f "$COMUN/aprobado-$(sanear "$paso")" ] &&
+    ! auto_nombra datos; then
     prompt="$prompt --hasta-plan"
   fi
 

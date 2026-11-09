@@ -10,15 +10,21 @@
 // PRESTADO (2026-11-08): un carril sin paso propio listo toma uno listo de otro carril que está ocupado, si no toca lo que está en curso.
 // El paso conserva su carril del plan (el de sus permisos: la guarda de CI juzga la rama `<quien lo hace>/<paso>` con el carril del paso)
 // y el estado anota en `carril` quién lo hace: ése lo retoma, lo publica y lo arregla.
+// APARCADO (2026-11-09, las fases 5 a 9 de corrido): un paso que su carril no logra cerrar (gastó su tope, falló dos veces, agotó sus
+// reintentos) no para al carril: queda aparcado con su motivo y el carril toma otro. Lo que depende de él espera. Cuando al carril no le
+// queda nada más, lo reintenta con una sesión nueva (hasta `maxAparcado` veces, y no antes de `enfriar` ms); después lo mira la persona
+// (`coordinador.mjs reanudar <paso>`).
 import { parse } from 'yaml'
 import { problemasDeMigraciones } from './plan-migraciones.mjs'
 
-export const ESTADOS = ['pendiente', 'asignado', 'publicado', 'integrado']
+export const ESTADOS = ['pendiente', 'asignado', 'publicado', 'integrado', 'aparcado']
 const TRANSICIONES = {
   pendiente: ['asignado'],
-  asignado: ['publicado', 'pendiente'],
+  asignado: ['publicado', 'pendiente', 'aparcado'],
   publicado: ['integrado', 'asignado'],
   integrado: [],
+  // → integrado: el PR de un paso aparcado terminó integrándose (su CI se puso verde, o alguien lo integró a mano).
+  aparcado: ['asignado', 'pendiente', 'integrado'],
 }
 const RIESGOS = ['rojo', 'ambar', 'verde']
 const AGENTES = ['claude', 'codex']
@@ -99,6 +105,13 @@ export function problemasDelPlan(plan) {
     ])
       if (paso[campo] === undefined) p.push(`${e} falta ${campo}`)
     if (!RIESGOS.includes(paso.riesgo)) p.push(`${e} riesgo inválido`)
+    // Lo que el bucle ya no saca del número del paso (antes, `4.18` y `4.28` escritos en bucle.sh): `puerta` (antes de empezarlo, el CI de
+    // main en verde), `cierre` (cierra su fase: Nivel 3, con el e2e completo en local) y `fase` (para el tablero).
+    for (const campo of ['puerta', 'cierre'])
+      if (paso[campo] !== undefined && typeof paso[campo] !== 'boolean')
+        p.push(`${e} ${campo} debe ser true o false`)
+    if (paso.fase !== undefined && !(Number.isInteger(paso.fase) && paso.fase >= 0))
+      p.push(`${e} fase debe ser un número entero`)
     const carril = carriles.get(paso.carril)
     if (!carril) p.push(`${e} el carril ${paso.carril} no existe`)
     for (const m of paso.modulos ?? [])
@@ -197,9 +210,13 @@ export function caminoCritico(plan) {
   return memo
 }
 
-/** El estado inicial: todos pendientes. Conserva lo que ya traía `previo` (un plan que creció en una versión nueva de la semilla). */
+/**
+ * El estado inicial: todos pendientes. Conserva lo que ya traía `previo`, también lo de los pasos que ESTA versión del plan no nombra: cada
+ * carril lee el plan de su árbol, y uno atrasado (sin un paso que main sumó después) borraba al guardar el estado de ese paso, que
+ * volvía a nacer `pendiente` y se hacía dos veces. Nadie recorre `estado.pasos`: todo parte de `plan.pasos`.
+ */
 export function estadoInicial(plan, previo = { pasos: {} }) {
-  const pasos = {}
+  const pasos = { ...(previo.pasos ?? {}) }
   for (const p of plan.pasos) pasos[p.id] = previo.pasos?.[p.id] ?? { estado: 'pendiente' }
   return {
     pasos,
@@ -207,6 +224,10 @@ export function estadoInicial(plan, previo = { pasos: {} }) {
     // El commit de cada PR cuyo CI rojo ya se volvió a correr (coordinador.mjs › reintentarUnaVez).
     ...(previo.reintentos && Object.keys(previo.reintentos).length
       ? { reintentos: previo.reintentos }
+      : {}),
+    // Los PR con el CI cancelado y sin otra corrida detrás, desde cuándo (coordinador.mjs › atenderColgado).
+    ...(previo.colgados && Object.keys(previo.colgados).length
+      ? { colgados: previo.colgados }
       : {}),
   }
 }
@@ -322,12 +343,63 @@ export function marcar(estado, id, nuevo, datos = {}, ahora = new Date().toISOSt
   }
 }
 
+/** Aparca un paso asignado: deja de ser de su carril hasta que se reintente o la persona lo reanude. Cuenta las veces. No muta. */
+export function aparcar(estado, id, motivo, ahora = new Date().toISOString()) {
+  const veces = (estado.pasos[id]?.aparcado_veces ?? 0) + 1
+  return marcar(
+    estado,
+    id,
+    'aparcado',
+    { motivo_aparcado: String(motivo ?? '').slice(0, 500), aparcado_veces: veces },
+    ahora,
+  )
+}
+
+/** La persona (o la supervisión) devuelve un paso aparcado a la cola, con la cuenta en cero. No muta. */
+export function reanudar(estado, id, ahora = new Date().toISOString()) {
+  return marcar(
+    estado,
+    id,
+    'pendiente',
+    { aparcado_veces: 0, motivo_aparcado: null, carril: undefined, rama: undefined },
+    ahora,
+  )
+}
+
+/**
+ * El paso aparcado que `carril` puede volver a intentar, o null: lo aparcó él (o es suyo y nadie lo tomó), lleva menos de `maxAparcado`
+ * veces y pasó `enfriar` desde que se aparcó (una causa del entorno suele pasar sola; reintentar al instante la repite).
+ */
+export function reintentable(
+  plan,
+  estado,
+  carril,
+  { maxAparcado = 2, enfriar = 30 * 60_000, ahora = Date.now() } = {},
+) {
+  return (
+    plan.pasos.find((p) => {
+      const e = estado.pasos[p.id]
+      return (
+        e?.estado === 'aparcado' &&
+        (e.carril ?? p.carril) === carril &&
+        (e.aparcado_veces ?? 1) <= maxAparcado &&
+        ahora - (Date.parse(e.desde ?? '') || 0) >= enfriar
+      )
+    }) ?? null
+  )
+}
+
 /**
  * Qué hace ahora el carril. `cuota` es la fracción usada de la ventana de 5 h (0 a 1, o null si no está calibrada); con `umbral` o más,
  * sólo avanzan los pasos del camino crítico; con 1 o más, nadie.
  * @returns {{accion: 'paso', paso: object, rama: string} | {accion: 'esperar', motivo: string} | {accion: 'terminado'}}
  */
-export function siguiente(plan, estado, carril, { cuota = null, umbral = 0.8 } = {}) {
+export function siguiente(
+  plan,
+  estado,
+  carril,
+  { cuota = null, umbral = 0.8, maxAparcado = 2, enfriar = 30 * 60_000, ahora = Date.now() } = {},
+) {
   // Un pedido de otro carril va antes que todo lo propio (entre partes de un paso, también): el otro carril está parado esperándolo.
   // Primero los de un carril que está parado esperándolo; después los de la persona (nadie espera), por orden de llegada.
   const esCarril = (id) => plan.carriles.some((c) => c.id === id)
@@ -397,6 +469,32 @@ export function siguiente(plan, estado, carril, { cuota = null, umbral = 0.8 } =
         retomar: false,
         prestado: true,
       }
+    // Sin nada más que hacer, lo aparcado: una sesión nueva sobre la rama que quedó (lo anota el bucle en `.piloto/aparcados/`).
+    const otraVez = reintentable(plan, estado, carril, { maxAparcado, enfriar, ahora })
+    if (otraVez)
+      return {
+        accion: 'paso',
+        paso: otraVez,
+        rama: estado.pasos[otraVez.id].rama ?? rama(carril, otraVez.id),
+        retomar: true,
+        reintento: estado.pasos[otraVez.id].aparcado_veces ?? 1,
+      }
+    const aparcados = plan.pasos.filter((p) => estado.pasos[p.id]?.estado === 'aparcado')
+    const vivos = plan.pasos.some((p) =>
+      ['asignado', 'publicado'].includes(estado.pasos[p.id]?.estado),
+    )
+    const alguienPuede = plan.pasos.some(
+      (p) => estado.pasos[p.id]?.estado === 'pendiente' && (p.depende_de ?? []).every(integrado),
+    )
+    // Nada corre, nada está listo, lo que queda cuelga de lo aparcado y a lo aparcado no le quedan reintentos (uno que sólo se está
+    // enfriando no cuenta): el plan llegó hasta donde puede sin la persona.
+    const leQuedan = aparcados.some((p) => (estado.pasos[p.id].aparcado_veces ?? 1) <= maxAparcado)
+    if (aparcados.length && !vivos && !alguienPuede && !leQuedan)
+      return {
+        accion: 'esperar',
+        atascado: true,
+        motivo: `atascado: ${aparcados.map((p) => p.id).join(', ')} ${aparcados.length === 1 ? 'está aparcado' : 'están aparcados'} y lo demás depende de ${aparcados.length === 1 ? 'él' : 'ellos'}; los mira la persona (coordinador.mjs reanudar <paso>)`,
+      }
     // Un carril con sus pasos integrados sigue atento a los pedidos hasta que termine el plan entero (un bucle que sale no atiende ninguno).
     if (propios.every((p) => integrado(p.id)))
       return {
@@ -407,14 +505,20 @@ export function siguiente(plan, estado, carril, { cuota = null, umbral = 0.8 } =
             : 'sus pasos están integrados: atiende pedidos hasta que el plan termine',
       }
     if (pendientes.length === 0)
-      return { accion: 'esperar', motivo: 'sus pasos están publicados: falta que se integren' }
+      return {
+        accion: 'esperar',
+        motivo: propios.some((p) => estado.pasos[p.id]?.estado === 'aparcado')
+          ? 'lo que le queda está aparcado (se reintenta más tarde) o publicado'
+          : 'sus pasos están publicados: falta que se integren',
+      }
     // Lo que bloquea al primero de sus pasos en el orden del plan (los demás esperan detrás de él).
     const orden = ordenTopologico(plan) ?? plan.pasos.map((p) => p.id)
     const primero = pendientes.sort((a, b) => orden.indexOf(a.id) - orden.indexOf(b.id))[0]
     const faltan = (primero.depende_de ?? []).filter((d) => !integrado(d))
+    const conMarca = (d) => (estado.pasos[d]?.estado === 'aparcado' ? `${d} (aparcado)` : d)
     return {
       accion: 'esperar',
-      motivo: `${primero.id} espera a que se integren: ${faltan.sort().join(', ')}`,
+      motivo: `${primero.id} espera a que se integren: ${faltan.sort().map(conMarca).join(', ')}`,
     }
   }
 
@@ -521,7 +625,7 @@ export function desfases(plan) {
 
 /** El tablero en Markdown: por carril, cada paso con su estado y su PR. */
 export function tablero(plan, estado, { cuota = null, ahora = new Date().toISOString() } = {}) {
-  const marca = { pendiente: '·', asignado: '▶', publicado: '⧗', integrado: '✓' }
+  const marca = { pendiente: '·', asignado: '▶', publicado: '⧗', integrado: '✓', aparcado: '✗' }
   const total = plan.pasos.length
   const hechos = plan.pasos.filter((p) => estado.pasos[p.id]?.estado === 'integrado').length
   const lineas = [
@@ -529,8 +633,18 @@ export function tablero(plan, estado, { cuota = null, ahora = new Date().toISOSt
     '',
     `${hechos} de ${total} pasos integrados · cuota de la ventana: ${cuota === null ? 'sin calibrar' : `${Math.round(cuota * 100)} %`} · ${ahora}`,
     '',
-    '`·` pendiente · `▶` en curso · `⧗` PR abierto · `✓` integrado',
+    '`·` pendiente · `▶` en curso · `⧗` PR abierto · `✓` integrado · `✗` aparcado',
   ]
+  const aparcados = plan.pasos.filter((p) => estado.pasos[p.id]?.estado === 'aparcado')
+  if (aparcados.length) {
+    lineas.push('', '## Aparcados (los mira la persona si se agotan los reintentos)', '')
+    for (const p of aparcados) {
+      const e = estado.pasos[p.id]
+      lineas.push(
+        `- **${p.id}** (${e.carril ?? p.carril}, ${e.aparcado_veces ?? 1}.ª vez, ${e.desde ?? '—'}): ${String(e.motivo_aparcado ?? 'sin motivo').replace(/\n/g, ' ')}`,
+      )
+    }
+  }
   for (const c of plan.carriles) {
     lineas.push(
       '',
@@ -541,6 +655,7 @@ export function tablero(plan, estado, { cuota = null, ahora = new Date().toISOSt
     )
     for (const p of plan.pasos.filter((x) => x.carril === c.id)) {
       const e = estado.pasos[p.id] ?? { estado: 'pendiente' }
+      // Un PR ya integrado de un paso aparcado es de una parte anterior: sigue a la vista.
       const pr = [e.pr && `#${e.pr}`, e.pr_parcial && `#${e.pr_parcial} (parte)`].filter(Boolean)
       const prestado =
         e.carril && e.carril !== c.id && e.estado !== 'pendiente' ? ` (lo hace ${e.carril})` : ''

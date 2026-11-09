@@ -30,10 +30,12 @@ permissions:
   contents: read
 
 # Un push nuevo a la misma rama (o al mismo PR) cancela la corrida anterior. Un dispatch (un e2e de 70 a 96 min, unas carreras)
-# tiene su propio grupo, con run_id, y nunca se cancela: ni un push lo corta ni otro dispatch lo deja en espera.
+# tiene su propio grupo, con run_id, y nunca se cancela: ni un push lo corta ni otro dispatch lo deja en espera. La corrida de cada
+# noche, igual: compartía grupo con los push a main y la integración siguiente la cancelaba (2026-11-08, a los 12 min); con un PR
+# integrado cada veinte minutos no habría terminado nunca, y de ella depende saber si una prueba cae dos noches seguidas.
 concurrency:
-  group: ${{ github.event_name == 'workflow_dispatch' && format('ci-manual-{0}-{1}', github.ref, github.run_id) || format('ci-{0}', github.head_ref || github.ref) }}
-  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
+  group: ${{ (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule') && format('ci-manual-{0}-{1}', github.ref, github.run_id) || format('ci-{0}', github.head_ref || github.ref) }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' && github.event_name != 'schedule' }}
 
 # Acciones de terceros admitidas, una por línea con su motivo (`# accion-de-terceros: <dueño/repo> — <motivo>`).
 # Hoy ninguna: sólo acciones de GitHub (`actions/*`), fijadas por SHA, y la local `./.github/acciones/preparar`.
@@ -198,7 +200,9 @@ jobs:
   # fallo va a los artefactos y a e2e-fallos/. Las carreras (`db:carreras`) van en su job, a mano (docs/PLAN.md, 9-6).
   e2e:
     name: e2e · bloque ${{ matrix.bloque }} de ${{ needs.cambios.outputs.e2e_de }}
-    needs: [cambios, nivel-1, e2e-build]
+    # Sin esperar al Nivel 1 (≈ 10 min): compilar tarda 1,2 y cada PR perdía unos 9 min con los runners libres. Si el Nivel 1 cae, el
+    # coordinador devuelve el paso sin esperar a estos bloques (COORD_ROJO_FIRME) y el push siguiente los cancela.
+    needs: [cambios, e2e-build]
     if: needs.cambios.outputs.e2e == 'true' && needs.cambios.outputs.e2e_modo != 'ninguno' && (github.event_name != 'workflow_dispatch' || inputs.e2e)
     runs-on: ubuntu-24.04
     timeout-minutes: 45

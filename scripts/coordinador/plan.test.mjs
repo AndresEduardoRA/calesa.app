@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
+  aparcar,
   arregloAjeno,
   caminoCritico,
   desfases,
@@ -16,6 +17,8 @@ import {
   pedir,
   prestable,
   problemasDelPlan,
+  reanudar,
+  reintentable,
   siguiente,
   tablero,
 } from './plan.mjs'
@@ -492,4 +495,84 @@ test('migraciones de un carril: opcional, bien escritas, sin repetir y sin pisar
   const base = con(['formula'], [])
   base.carriles[0].base = true
   assert.match(problemas(base)[0] ?? '', /el carril base crea migraciones de cualquier dominio/)
+})
+
+// De corrido (2026-11-09): un paso que no cierra se aparca; el carril sigue con otro y lo reintenta cuando no le queda nada más.
+test('aparcar: el paso deja de ser pendiente, lo suyo que estaba listo sigue, y lo que depende de él espera', () => {
+  let estado = estadoInicial(PLAN)
+  estado = marcar(estado, 'P01', 'asignado', { carril: 'datos' })
+  estado = marcar(estado, 'P01', 'publicado')
+  estado = marcar(estado, 'P01', 'integrado')
+  estado = marcar(estado, 'P03', 'asignado', { carril: 'ui', rama: 'ui/p03' })
+  estado = aparcar(estado, 'P03', 'el paso P03 terminó en falla', '2026-11-09T10:00:00.000Z')
+  assert.equal(estado.pasos.P03.estado, 'aparcado')
+  assert.equal(estado.pasos.P03.aparcado_veces, 1)
+  assert.equal(estado.pasos.P03.motivo_aparcado, 'el paso P03 terminó en falla')
+  // El carril ui no tiene otro listo (P04 depende de P03) y P03 se enfría: espera, y dice que se reintenta.
+  const ahora = Date.parse('2026-11-09T10:10:00.000Z')
+  const r = siguiente(PLAN, estado, 'ui', { ahora })
+  assert.equal(r.accion, 'esperar')
+  assert.match(r.motivo, /P04 espera a que se integren: P03 \(aparcado\)/)
+  assert.equal(r.atascado, undefined)
+  // El otro carril sigue con lo suyo.
+  assert.equal(siguiente(PLAN, estado, 'datos', { ahora }).paso.id, 'P02')
+  // Pasado el enfriamiento, el que lo aparcó lo reintenta en su rama, con la cuenta.
+  const tarde = Date.parse('2026-11-09T10:31:00.000Z')
+  assert.equal(reintentable(PLAN, estado, 'datos', { ahora: tarde }), null)
+  const otra = siguiente(PLAN, estado, 'ui', { ahora: tarde })
+  assert.deepEqual(
+    [otra.accion, otra.paso.id, otra.rama, otra.retomar, otra.reintento],
+    ['paso', 'P03', 'ui/p03', true, 1],
+  )
+})
+
+test('aparcado sin reintentos: no se vuelve a dar; con todo lo demás colgando de él, el plan está atascado y lo dice', () => {
+  let estado = estadoInicial(PLAN)
+  for (const id of ['P01', 'P02']) {
+    estado = marcar(estado, id, 'asignado', { carril: 'datos' })
+    estado = marcar(estado, id, 'publicado')
+    estado = marcar(estado, id, 'integrado')
+  }
+  const tarde = Date.parse('2026-11-10T00:00:00.000Z')
+  for (const hora of ['08', '09', '10']) {
+    estado = marcar(estado, 'P03', 'asignado', { carril: 'ui' })
+    estado = aparcar(estado, 'P03', 'falla', `2026-11-09T${hora}:00:00.000Z`)
+  }
+  assert.equal(estado.pasos.P03.aparcado_veces, 3)
+  assert.equal(reintentable(PLAN, estado, 'ui', { ahora: tarde }), null)
+  const r = siguiente(PLAN, estado, 'ui', { ahora: tarde })
+  assert.equal(r.accion, 'esperar')
+  assert.equal(r.atascado, true)
+  assert.match(r.motivo, /atascado: P03 está aparcado/)
+  // No es «terminado»: el carril sigue vivo para cuando la persona lo reanude.
+  assert.notEqual(siguiente(PLAN, estado, 'datos', { ahora: tarde }).accion, 'terminado')
+  estado = reanudar(estado, 'P03')
+  assert.deepEqual([estado.pasos.P03.estado, estado.pasos.P03.aparcado_veces], ['pendiente', 0])
+  assert.equal(siguiente(PLAN, estado, 'ui', { ahora: tarde }).paso.id, 'P03')
+  assert.match(
+    tablero(PLAN, aparcar(marcar(estado, 'P03', 'asignado'), 'P03', 'gastó su tope')),
+    /## Aparcados[\s\S]*\*\*P03\*\*[\s\S]*gastó su tope/,
+  )
+})
+
+test('estadoInicial conserva el estado de los pasos que esta versión del plan no nombra (un carril con el plan atrasado)', () => {
+  let estado = estadoInicial(PLAN)
+  estado = marcar(estado, 'P01', 'asignado', { carril: 'datos' })
+  const viejo = {
+    ...PLAN,
+    pasos: PLAN.pasos.filter((p) => p.id !== 'P01' && !p.depende_de.includes('P01')),
+  }
+  const visto = estadoInicial(viejo, estado)
+  assert.equal(visto.pasos.P01.estado, 'asignado')
+  assert.equal(estadoInicial(PLAN, visto).pasos.P01.carril, 'datos')
+})
+
+test('puerta, cierre y fase: opcionales y con su tipo', () => {
+  const con = structuredClone(PLAN)
+  Object.assign(con.pasos[0], { puerta: true, cierre: false, fase: 5 })
+  assert.deepEqual(problemasDelPlan(con), [])
+  Object.assign(con.pasos[0], { puerta: 'sí', fase: 'cinco' })
+  const p = problemasDelPlan(con).join('\n')
+  assert.match(p, /P01: puerta debe ser true o false/)
+  assert.match(p, /P01: fase debe ser un número entero/)
 })

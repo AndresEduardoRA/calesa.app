@@ -51,13 +51,15 @@ esac
 `,
   )
   chmodSync(gh, 0o755)
-  const correr = (...args) =>
+  const con = (extra, ...args) =>
     execFileSync('node', [CLI, ...args], {
       cwd: dir,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
-      env: { ...process.env, COORD_GH: gh, COORD_USD_VENTANA: '', COORD_LIMPIAR: '0' },
+      env: { ...process.env, COORD_GH: gh, COORD_USD_VENTANA: '', COORD_LIMPIAR: '0', ...extra },
     })
+  const correr = (...args) => con({}, ...args)
+  correr.con = con
   const correrAsync = (...args) =>
     promisify(execFile)('node', [CLI, ...args], {
       cwd: dir,
@@ -147,7 +149,7 @@ test('CI todavía corriendo: no integra', () => {
   assert.equal(correr('sincronizar').trim(), '')
 })
 
-test('un estado de commit pendiente (el de Vercel) no es un CI en rojo: espera; en ERROR, sí', () => {
+test('un estado de commit pendiente (otro servicio) no es un CI en rojo: espera; en ERROR, sí', () => {
   const { correr, pr } = repo()
   correr('siguiente', 'ui')
   correr('publicado', 'P02', '9')
@@ -156,7 +158,7 @@ test('un estado de commit pendiente (el de Vercel) no es un CI en rojo: espera; 
     mergeable: 'MERGEABLE',
     statusCheckRollup: [
       ...verde,
-      { __typename: 'StatusContext', context: 'Vercel', state: 'PENDING' },
+      { __typename: 'StatusContext', context: 'otro-servicio', state: 'PENDING' },
     ],
   })
   assert.equal(correr('sincronizar').trim(), '')
@@ -165,10 +167,87 @@ test('un estado de commit pendiente (el de Vercel) no es un CI en rojo: espera; 
     mergeable: 'MERGEABLE',
     statusCheckRollup: [
       ...verde,
-      { __typename: 'StatusContext', context: 'Vercel', state: 'ERROR' },
+      { __typename: 'StatusContext', context: 'otro-servicio', state: 'ERROR' },
     ],
   })
   assert.match(correr('sincronizar'), /P02: CI en rojo \(#9\)/)
+})
+
+// De corrido (2026-11-09): la vista previa de Vercel no es el CI del proyecto (usa la demo y no migra) y su tope diario de despliegues
+// daría rojos que no son del código.
+test('el estado de Vercel no decide: ni su pendiente frena ni su error devuelve el paso', () => {
+  const { correr, pr } = repo()
+  correr('siguiente', 'ui')
+  correr('publicado', 'P02', '9')
+  pr(9, {
+    state: 'OPEN',
+    mergeable: 'MERGEABLE',
+    statusCheckRollup: [
+      ...verde,
+      { __typename: 'StatusContext', context: 'Vercel', state: 'ERROR' },
+    ],
+  })
+  assert.match(correr('sincronizar'), /P02: integrado por el coordinador \(#9, verde\)/)
+})
+
+test('un rojo firme (Nivel 1, Carriles) vuelve a su carril sin reintento y sin esperar al resto del CI', () => {
+  const { correr, pr, respuestas } = repo()
+  correr('siguiente', 'ui')
+  correr('publicado', 'P02', '12')
+  pr(12, {
+    state: 'OPEN',
+    mergeable: 'MERGEABLE',
+    headRefOid: 'abc',
+    statusCheckRollup: [
+      { name: 'Carriles · lo que el PR puede tocar', status: 'COMPLETED', conclusion: 'FAILURE' },
+      { name: 'e2e · bloque 1 de 4', status: 'IN_PROGRESS' },
+    ],
+  })
+  writeFileSync(
+    join(respuestas, 'runs.json'),
+    JSON.stringify([{ databaseId: 77, conclusion: 'failure' }]),
+  )
+  assert.match(correr('sincronizar'), /P02: CI en rojo \(#12\): vuelve a su carril/)
+  assert.throws(() => readFileSync(join(respuestas, 'reruns'), 'utf8'))
+  assert.equal(JSON.parse(correr('siguiente', 'ui')).arreglar, 'CI en rojo')
+})
+
+test('un CI cancelado sin otra corrida detrás se vuelve a correr una vez; si queda igual, es un rojo', () => {
+  const { correr, pr, respuestas } = repo()
+  const env = { COORD_COLGADO_ESPERA: '0' }
+  correr('siguiente', 'ui')
+  correr('publicado', 'P02', '12')
+  const colgado = {
+    state: 'OPEN',
+    mergeable: 'MERGEABLE',
+    headRefOid: 'abc',
+    statusCheckRollup: [
+      ...verde,
+      { name: 'e2e · bloque 1 de 1', status: 'COMPLETED', conclusion: 'CANCELLED' },
+    ],
+  }
+  pr(12, colgado)
+  writeFileSync(
+    join(respuestas, 'runs.json'),
+    JSON.stringify([{ databaseId: 88, conclusion: 'cancelled' }]),
+  )
+  assert.equal(correr.con(env, 'sincronizar').trim(), '') // la primera vez sólo lo anota
+  assert.match(
+    correr.con(env, 'sincronizar'),
+    /el CI de #12 quedó cancelado sin otra corrida detrás: lo vuelvo a correr, una vez/,
+  )
+  assert.equal(readFileSync(join(respuestas, 'reruns'), 'utf8').trim(), 'run rerun 88')
+  assert.match(correr.con(env, 'sincronizar'), /P02: CI en rojo \(#12\): vuelve a su carril/)
+  // Con otra corrida en marcha no está colgado: espera.
+  const otro = repo()
+  otro.correr('siguiente', 'ui')
+  otro.correr('publicado', 'P02', '13')
+  otro.pr(13, {
+    ...colgado,
+    statusCheckRollup: [...colgado.statusCheckRollup, { name: 'Nivel 1', status: 'IN_PROGRESS' }],
+  })
+  assert.equal(otro.correr.con(env, 'sincronizar').trim(), '')
+  assert.equal(otro.correr.con(env, 'sincronizar').trim(), '')
 })
 
 test('un CI rojo se vuelve a correr una vez por commit antes de devolver el paso; la segunda, vuelve a su carril', () => {
@@ -332,4 +411,115 @@ test('cerrar-pedido: el dueño lo cerró sin cambios y no se lo vuelve a dar; pe
     { estado: 'integrado', sin_cambios: true, motivo: 'ya estaba' },
   )
   assert.equal(JSON.parse(correr('siguiente', 'datos')).paso, 'P01')
+})
+
+// De corrido (2026-11-09).
+test('aparcar y reanudar: el paso aparcado no se vuelve a dar hasta enfriarse; siguiente trae puerta, cierre y fase del plan', () => {
+  const { dir, correr } = repo()
+  const plan = readFileSync(join(dir, 'docs/plan.yaml'), 'utf8').replace(
+    'carril: ui, riesgo: verde',
+    'carril: ui, riesgo: verde, puerta: true, fase: 6',
+  )
+  writeFileSync(join(dir, 'docs/plan.yaml'), plan)
+  const dado = JSON.parse(correr('siguiente', 'ui'))
+  assert.deepEqual([dado.paso, dado.puerta, dado.cierre, dado.fase], ['P02', true, false, 6])
+  assert.match(
+    correr('aparcar', 'P02', 'el', 'paso', 'gastó', 'su', 'tope'),
+    /P02 aparcado \(1\.ª vez\)/,
+  )
+  const estado = JSON.parse(correr('estado', 'P02'))
+  assert.deepEqual([estado.estado, estado.motivo_aparcado], ['aparcado', 'el paso gastó su tope'])
+  assert.equal(JSON.parse(correr('siguiente', 'ui')).accion, 'esperar')
+  assert.match(correr('tablero'), /✗ \| P02/)
+  correr('reanudar', 'P02')
+  assert.equal(JSON.parse(correr('siguiente', 'ui')).paso, 'P02')
+})
+
+test('un plan que deja de ser válido no deja sin paso a los carriles: se reparte con el último válido', () => {
+  const { dir, correr } = repo()
+  assert.equal(JSON.parse(correr('siguiente', 'datos')).paso, 'P01')
+  writeFileSync(
+    join(dir, 'docs/plan.yaml'),
+    readFileSync(join(dir, 'docs/plan.yaml'), 'utf8').replace(
+      'depende_de: [P01, P02]',
+      'depende_de: [P01, P09]',
+    ),
+  )
+  assert.throws(() => correr('validar'), /P03: depende de P09, que no existe/)
+  assert.equal(JSON.parse(correr('siguiente', 'ui')).paso, 'P02')
+})
+
+test('sin un plan válido anterior, un plan inválido sí falla (y lo dice)', () => {
+  const { dir, correr } = repo()
+  writeFileSync(
+    join(dir, 'docs/plan.yaml'),
+    readFileSync(join(dir, 'docs/plan.yaml'), 'utf8').replace(
+      'depende_de: [P01, P02]',
+      'depende_de: [P01, P09]',
+    ),
+  )
+  assert.throws(() => correr('siguiente', 'ui'), /el plan no es válido: paso P03: depende de P09/)
+})
+
+test('el plan se lee de origin/main cuando existe: el del árbol de un carril atrasado no manda', () => {
+  const { dir, correr } = repo()
+  const g = (...a) =>
+    execFileSync('git', ['-c', 'user.email=a@b', '-c', 'user.name=t', ...a], { cwd: dir })
+  const remoto = mkdtempSync(join(tmpdir(), 'coord-remoto-'))
+  execFileSync('git', ['init', '-q', '--bare', '-b', 'main', remoto])
+  g('remote', 'add', 'origin', remoto)
+  g('push', '-q', 'origin', 'main')
+  g('fetch', '-q', 'origin')
+  // El árbol (la rama de un carril) pierde un paso que main sí tiene.
+  writeFileSync(
+    join(dir, 'docs/plan.yaml'),
+    readFileSync(join(dir, 'docs/plan.yaml'), 'utf8').split('  - {id: P03')[0],
+  )
+  assert.match(correr('tablero'), /P03 Lista/)
+})
+
+// La revisión de FLUJO-2: el relanzamiento de un CI colgado es uno por commit aunque entre medio el PR deje de estar colgado.
+test('un CI que vuelve a quedar cancelado tras relanzarlo no se relanza otra vez: vuelve a su carril', () => {
+  const { correr, pr, respuestas } = repo()
+  const env = { COORD_COLGADO_ESPERA: '0' }
+  correr('siguiente', 'ui')
+  correr('publicado', 'P02', '12')
+  const con = (checks) => ({
+    state: 'OPEN',
+    mergeable: 'MERGEABLE',
+    headRefOid: 'abc',
+    statusCheckRollup: checks,
+  })
+  const cancelado = { name: 'e2e · bloque 1 de 1', status: 'COMPLETED', conclusion: 'CANCELLED' }
+  writeFileSync(
+    join(respuestas, 'runs.json'),
+    JSON.stringify([{ databaseId: 88, conclusion: 'cancelled' }]),
+  )
+  pr(12, con([...verde, cancelado]))
+  correr.con(env, 'sincronizar')
+  assert.match(correr.con(env, 'sincronizar'), /lo vuelvo a correr, una vez/)
+  // El relanzamiento corre: el PR ya no está colgado, y no se olvida que se relanzó.
+  pr(12, con([...verde, { name: 'e2e · bloque 1 de 1', status: 'IN_PROGRESS' }]))
+  assert.equal(correr.con(env, 'sincronizar').trim(), '')
+  // Y se cancela otra vez (siempre pasa su tope): es un rojo, sin otro relanzamiento.
+  pr(12, con([...verde, cancelado]))
+  assert.match(correr.con(env, 'sincronizar'), /P02: CI en rojo \(#12\): vuelve a su carril/)
+  assert.equal(readFileSync(join(respuestas, 'reruns'), 'utf8').trim(), 'run rerun 88')
+  // Con un commit nuevo la cuenta empieza de cero.
+  pr(12, { ...con([...verde, cancelado]), headRefOid: 'def' })
+  correr.con(env, 'sincronizar')
+  assert.match(correr.con(env, 'sincronizar'), /lo vuelvo a correr, una vez/)
+})
+
+test('un paso aparcado cuyo PR termina integrado queda integrado', () => {
+  const { correr, pr } = repo()
+  correr('siguiente', 'ui')
+  correr('publicado', 'P02', '12')
+  pr(12, { state: 'OPEN', mergeable: 'CONFLICTING', statusCheckRollup: verde })
+  correr('sincronizar')
+  assert.equal(JSON.parse(correr('siguiente', 'ui')).arreglar, 'conflicto con main')
+  correr('aparcar', 'P02', 'no', 'pudo', 'resolver', 'el', 'choque')
+  pr(12, { state: 'MERGED' })
+  assert.match(correr('sincronizar'), /P02: estaba aparcado y su PR #12 ya está integrado/)
+  assert.equal(JSON.parse(correr('estado', 'P02')).estado, 'integrado')
 })
