@@ -648,7 +648,7 @@ Partidas el 2026-11-09 para correrlas de corrido, sin compuertas (`docs/PILOTO.m
   despliegue van con su adaptador, su prueba de contrato y su variable en `docs/ENTORNOS.md`. Ningún paso toca producción.
 
 **Lo que queda para la persona** (el piloto no lo hace): integrar un PR que toca las guardas del piloto o `.github/workflows/` (el 9.09
-tiene una parte así: va última, y para empujarla la cuenta de GitHub necesita el permiso `workflow`); producción (variables y secretos de
+tiene una parte así: va última); producción (variables y secretos de
 Vercel y Supabase, `db push`), con la guía y la lista que deja el 9.13; lo que sólo se ve en un teléfono (9-12, las fotos en iPhone); y
 un paso que quede aparcado sin reintentos (`node scripts/coordinador/coordinador.mjs tablero`).
 

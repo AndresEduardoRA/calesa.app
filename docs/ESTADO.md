@@ -36,8 +36,8 @@ cerró el 2026-11-08 con el 4.28. Los carriles están en `PARAR` hasta la orden 
 
 - **Lanzar** (la persona da la orden): `bash scripts/maquina/lanzar.sh` revisa; `--ya` arranca los tres carriles. Los primeros pasos, sin
   dependencias: 5.01, 5.02, 5.03, 6.10, 6.13, 7.01, 7.05, 7.06, 7.12, 8.01, 8.06, 9.01, 9.02, 9.03, 9.05 y 9.07.
-- **Queda para la persona:** integrar un PR que toca las guardas del piloto o `.github/workflows/` (para empujar estos la cuenta de GitHub
-  necesita el permiso `workflow`: la rama local `fix/ci-nocturno` espera por eso); producción; un paso aparcado sin reintentos.
+- **Queda para la persona:** integrar un PR que toca las guardas del piloto o `.github/workflows/` (el coordinador no lo integra solo);
+  producción; un paso aparcado sin reintentos.
 - **Para la persona**, con números: **5a-4b**: la suite completa con los dos proyectos tarda 70,4 min de reloj (escritorio 39,5; celular
   30,9), lejos de los 25 min del assert; decidir si vale la segunda pila local o seguir con los shards del CI. Abiertos que decide
   (`docs/PLAN.md` › «Abiertos de la Fase 4» › «Los decide la persona»): 4-39, 4-43, 4-46, 4-52, 4-54, 4-56, 4-64, 4-66, 4-67, 4-71, 4-72,
