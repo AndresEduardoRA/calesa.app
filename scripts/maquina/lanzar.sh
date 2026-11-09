@@ -130,6 +130,13 @@ for linea in "${CARRILES[@]}"; do
   rm -f "$dir/.piloto/PARAR"
   flock -n "$dir/.piloto/bucle.lock" true 2>/dev/null || { echo "· carril $c: ya corría."; continue; }
   tmux kill-session -t "piloto-bucle-$c" 2>/dev/null
+  # El árbol al día con main antes de arrancar: `arrancar.sh` y el coordinador corren los del árbol, y un carril que quedó en la rama de
+  # su último paso arrancaría con los de entonces. Sólo con el árbol limpio y sin un paso a medias (ya se revisó arriba); si no se puede,
+  # el bucle trae main igual al pedir su primer paso.
+  if [ ! -f "$dir/.piloto/en-curso.json" ] && [ -z "$(git -C "$dir" status --porcelain 2>/dev/null)" ]; then
+    git -C "$dir" checkout --quiet -B "$c/base" origin/main 2>/dev/null &&
+      echo "· carril $c: árbol en origin/main ($(git -C "$dir" rev-parse --short HEAD))"
+  fi
   # Por el servicio si está instalado (así el vigía y el arranque tras un reinicio son los mismos); si no, directo.
   if systemctl --user cat "piloto-$c.service" >/dev/null 2>&1; then
     systemctl --user restart "piloto-$c.service" && echo "✓ carril $c: lanzado (systemctl --user restart piloto-$c.service)"
