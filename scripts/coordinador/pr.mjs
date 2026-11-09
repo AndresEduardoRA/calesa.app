@@ -10,7 +10,12 @@ import { guardasEn } from './plan.mjs'
 const GH = process.env.COORD_GH || 'gh'
 
 export function gh(...args) {
-  return execFileSync(GH, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+  // Con tope: `sincronizar` llama con el candado del coordinador tomado, y un `gh` colgado dejaba a los carriles sin poder pedir paso.
+  return execFileSync(GH, args, {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    timeout: Number(process.env.COORD_GH_TIMEOUT ?? 90) * 1000,
+  })
 }
 
 const CHECK_BIEN = new Set(['SUCCESS', 'SKIPPED', 'NEUTRAL'])
@@ -121,16 +126,18 @@ export function atenderColgado(numero, pr, estado, informe, etiqueta) {
   const previo = estado.colgados?.[numero]
   const ahora = Date.now()
   if (!pr.colgado || !pr.oid) {
-    if (!previo) return { estado, pr }
+    // La nota se guarda mientras el commit sea el mismo: mientras corre el relanzamiento el PR no está colgado, y si se olvidara que
+    // ya se relanzó, un job que siempre pasa su tope se volvería a correr sin fin. Se borra cuando el PR cambia de commit.
+    if (!previo || !pr.oid || previo.oid === pr.oid) return { estado, pr }
     const colgados = { ...estado.colgados }
     delete colgados[numero]
     return { estado: { ...estado, colgados }, pr }
   }
   const anotar = (dato) => ({ ...estado, colgados: { ...(estado.colgados ?? {}), [numero]: dato } })
   if (!previo || previo.oid !== pr.oid) return { estado: anotar({ oid: pr.oid, desde: ahora }), pr }
-  if (ahora - previo.desde < COLGADO_ESPERA) return { estado, pr }
   if (previo.relanzado)
     return { estado, pr: { ...pr, arreglar: 'CI en rojo', pendiente: false, firme: true } }
+  if (ahora - previo.desde < COLGADO_ESPERA) return { estado, pr }
   try {
     const cortadas = JSON.parse(
       gh('run', 'list', '--commit', pr.oid, '--json', 'databaseId,conclusion'),

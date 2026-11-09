@@ -241,8 +241,15 @@ resto, carriles parados por un reinicio con `PARAR` (≈ 30 h-carril), «sin pas
   - **Lo que es del entorno se espera y se reintenta, sin fin** (`sin_salida`): GitHub caído, el disco, el coordinador, la rama. Duerme
     `PILOTO_PARADA_LARGA` (1800 s) y repite la vuelta. Un aviso de un paso que puede ser del entorno (publicar, verificar) espera una vez antes de aparcar.
   - **Sin red o con un error del servidor** («Can't reach the API server», `EAI_AGAIN`, 5xx, «overloaded») no es una falla del paso: espera 300, 600, 1200
-    y 1800 s y retoma, las veces que haga falta.
+    y 1800 s y retoma, hasta `PILOTO_RED_VECES` (24) seguidas; la sesión de Claude vencida, igual. Sólo se mira una llamada que terminó en error: el
+    texto de un paso que salió bien puede nombrar un límite sin que haya pasado ninguno.
   - Los contadores de respuestas automáticas (`.piloto/paradas-auto/`) se borran con cada paso publicado: antes se sumaban durante toda la corrida.
+  - **El disyuntor:** `PILOTO_APARCADOS_SEGUIDOS` (3) pasos aparcados sin publicar ninguno entre medio no son tres pasos difíciles, es algo común a
+    todos (la sesión de Claude vencida, la base, el disco). Desde ahí no se aparca más: el carril espera (media hora, y el doble cada vez hasta
+    cuatro) y reintenta el mismo paso; un paso publicado vuelve la cuenta a cero. Sin esto, una falla general vaciaba el plan en horas.
+  - **Aparcar deja el árbol limpio sin perder nada:** aborta un merge a medias, guarda lo sin commitear en un stash con nombre (o, si no entra,
+    en un diff y un tar junto a la nota) y no suelta el paso hasta que el coordinador lo anotó. Un paso que no puede ni empezar (su puerta de fase
+    no abre) se aparca tras `PILOTO_ESPERAS_SIN_EMPEZAR` (6) esperas, para que el carril siga con lo demás.
 - **El límite de uso se duerme, las veces que venga.** Ya no es un aviso a la segunda: el carril duerme hasta la hora que dice el mensaje (también el semanal,
   con día: «resets Nov 12, 3pm»; nunca más de 7 días; una hora si no se lee) y retoma con `--resume`. La hora queda en `<común>/piloto/limite-hasta` y los
   otros carriles duermen hasta entonces sin gastar una llamada. `PILOTO_LIMITE_VECES` le vuelve a poner un tope.

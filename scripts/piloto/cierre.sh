@@ -212,7 +212,7 @@ cerrar_listo() {
     return 0
   fi
   registro "publicado $paso ($(git rev-parse --short HEAD))."
-  rm -f "$ESTADO/en-curso.json" "$ESTADO/agotado-$(sanear "$paso")"
+  rm -f "$ESTADO/en-curso.json" "$ESTADO/agotado-$(sanear "$paso")" "$ESTADO/aparcados-seguidos"
   # También los de las respuestas automáticas: su clave no lleva cifras, así que sin esto se sumaban de un paso al otro durante toda la
   # corrida y al tercer aviso parecido, aunque fuera semanas después, el carril se daba por parado.
   rm -rf "$ESTADO/paradas-solas" "$ESTADO/paradas-auto"

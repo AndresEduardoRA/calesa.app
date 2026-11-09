@@ -344,6 +344,18 @@ function sincronizar(plan, estado) {
   estado = sincronizarPedidos(estado, informe)
   for (const paso of plan.pasos) {
     const e = estado.pasos[paso.id]
+    // Un paso aparcado con su PR abierto: si ese PR se integró (su CI se puso verde tras el aviso, o lo integró alguien), está hecho.
+    if (e.estado === 'aparcado' && e.pr && !e.pr_parcial) {
+      try {
+        if (mirarPr(e.pr).estado === 'MERGED') {
+          estado = marcar(estado, paso.id, 'integrado', { arreglar: null })
+          informe.push(`${paso.id}: estaba aparcado y su PR #${e.pr} ya está integrado: integrado`)
+        }
+      } catch {
+        // Se vuelve a mirar en la vuelta siguiente.
+      }
+      continue
+    }
     if (e.estado !== 'publicado' || !e.pr) continue
     let pr
     try {

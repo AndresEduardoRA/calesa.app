@@ -66,6 +66,9 @@ else
   flock -n 8 || { echo "bucle: ya corre otro bucle (flock sobre $ESTADO/bucle.lock)." >&2; exit 1; }
 fi
 
+# La carpeta de la copia con la que corre este bucle: copiar-bin.sh no borra una copia vieja que un bucle vivo todavía usa.
+printf '%s\n' "$BIN" >"$ESTADO/bin-en-uso" 2>/dev/null
+
 registro() {
   local linea
   linea="$(ahora_lapaz) $*"
@@ -126,13 +129,13 @@ rutear() {
     if espera=$(segundos_de_limite "$salida" "$ESTADO/llamadas/ruteo.err"); then
       registro "límite de uso en el ruteo: duermo $espera s."
       anotar_limite "$espera"
-      $DORMIR "$espera"
+      dormir_largo "$espera"
       continue
     fi
-    if espera=$(segundos_de_red "$salida" "$ESTADO/llamadas/ruteo.err" "$((red + 1))"); then
+    if [ "$red" -lt "${PILOTO_RED_VECES:-24}" ] && espera=$(segundos_de_red "$salida" "$ESTADO/llamadas/ruteo.err" "$((red + 1))"); then
       red=$((red + 1))
-      registro "sin red o error del servidor en el ruteo (vez $red): espero $espera s."
-      $DORMIR "$espera"
+      registro "sin red, error del servidor o sesión vencida en el ruteo (vez $red): espero $espera s."
+      dormir_largo "$espera"
       continue
     fi
     intento=$((intento + 1))
@@ -234,7 +237,7 @@ correr_paso() { # <paso> <modo> <session_id> <prompt> <modelo> <effort> [bandera
       fi
       registro "límite de uso en $paso (vez $limite): duermo $espera s y retomo con --resume."
       anotar_limite "$espera"
-      $DORMIR "$espera"
+      dormir_largo "$espera"
       modo=resume prompt="/piloto $paso continuar"
       continue
     fi
@@ -247,11 +250,11 @@ correr_paso() { # <paso> <modo> <session_id> <prompt> <modelo> <effort> [bandera
       consumo paso "$paso" "$modelo" "$effort" "$resultado" "$SALIDA_PASO" "$dur"
       return 0
     fi
-    if espera=$(segundos_de_red "$SALIDA_PASO" "$ESTADO/llamadas/paso.err" "$((red + 1))"); then
+    if [ "$red" -lt "${PILOTO_RED_VECES:-24}" ] && espera=$(segundos_de_red "$SALIDA_PASO" "$ESTADO/llamadas/paso.err" "$((red + 1))"); then
       red=$((red + 1))
       consumo paso "$paso" "$modelo" "$effort" sin-red "$SALIDA_PASO" "$dur"
-      registro "sin red o error del servidor en $paso (vez $red): espero $espera s y retomo con --resume."
-      $DORMIR "$espera"
+      registro "sin red, error del servidor o sesión vencida en $paso (vez $red): espero $espera s y retomo con --resume."
+      dormir_largo "$espera"
       # Una sesión que no llegó a existir (cayó antes del primer turno) no se puede retomar: la misma llamada otra vez.
       if [ "$modo" = nueva ] && ! ls "$HOME"/.claude/projects/*/"$sid".jsonl >/dev/null 2>&1; then continue; fi
       modo=resume prompt="/piloto $paso continuar"

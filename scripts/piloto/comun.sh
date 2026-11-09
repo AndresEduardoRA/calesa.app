@@ -16,12 +16,24 @@ BIN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 
 # La configuración del proyecto (`piloto.config`, versionada, sin secretos), exportada: la leen también el coordinador y `gh`, que son
 # otros procesos. Lo que ya viene del entorno manda (el archivo usa `${X:-…}` donde importa; las pruebas fijan lo suyo).
-if [ -z "${PILOTO_CONFIG_LEIDA:-}" ] && [ -f "$RAIZ/piloto.config" ]; then
-  set -a
-  # shellcheck source=../../piloto.config
-  source "$RAIZ/piloto.config"
-  set +a
-  export PILOTO_CONFIG_LEIDA=1
+# Se lee la de `origin/main`, como la copia de las piezas: el árbol de un carril puede estar en una rama de antes (los tres arrancan
+# la Fase 5 desde ramas de la 4, sin `PILOTO_GH_USUARIO`), y el bucle la carga una sola vez, al nacer. Sin `origin/main`, la del árbol.
+if [ -z "${PILOTO_CONFIG_LEIDA:-}" ]; then
+  _config=$(git -C "${RAIZ:-.}" show origin/main:piloto.config 2>/dev/null) || _config=""
+  [ -n "$_config" ] || { [ -f "$RAIZ/piloto.config" ] && _config=$(cat "$RAIZ/piloto.config"); }
+  if [ -n "$_config" ]; then
+    # Lo que ya viene del entorno manda, también sobre una línea del archivo que asigne sin `${X:-…}`: se guarda y se repone.
+    _antes=$(grep -oE '^[A-Z_][A-Z0-9_]*=' <<<"$_config" | tr -d '=' | sort -u | while IFS= read -r _n; do
+      [ -n "${!_n+x}" ] && printf '%s=%q\n' "$_n" "${!_n}"
+    done)
+    set -a
+    # shellcheck disable=SC1090
+    source /dev/stdin <<<"$_config"
+    [ -n "$_antes" ] && eval "$_antes"
+    set +a
+    export PILOTO_CONFIG_LEIDA=1
+  fi
+  unset _config _antes _n
 fi
 
 # La cuenta de GitHub del piloto (`PILOTO_GH_USUARIO`): `gh` y `git push` usan la cuenta ACTIVA de la máquina, y es una sola para todos los

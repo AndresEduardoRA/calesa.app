@@ -143,9 +143,10 @@ traer_main() {
 ARCHIVO_DE_TIPOS=src/shared/types/database.types.ts
 regenerar_tipos() {
   local cmd="${PILOTO_CMD_TIPOS:-CANDADO_ESPERA=900 pnpm db:reset && CANDADO_ESPERA=900 pnpm db:types}"
-  if ! bash -c "$cmd" >>"$ESTADO/traer-main.log" 2>&1 8>&-; then
+  if ! timeout "${PILOTO_TIPOS_MAX:-2400}" bash -c "$cmd" >>"$ESTADO/traer-main.log" 2>&1 8>&-; then
     git restore --quiet --worktree -- "$ARCHIVO_DE_TIPOS" 2>/dev/null
     UNION_DUDOSA=1
+    tipos_para_la_sesion
     registro "carril ${PILOTO_CARRIL:-}: no pude regenerar los tipos de la base tras traer main; lo hace la sesión (pnpm db:reset y db:types)."
     return 0
   fi
@@ -158,9 +159,21 @@ regenerar_tipos() {
   else
     git restore --quiet --staged --worktree -- "$ARCHIVO_DE_TIPOS" 2>/dev/null
     UNION_DUDOSA=1
+    tipos_para_la_sesion
     registro "carril ${PILOTO_CARRIL:-}: regeneré los tipos pero el commit no pasó sus hooks; lo hace la sesión."
   fi
   return 0
+}
+# Lo que el bucle no pudo, dicho donde la sesión del paso lo lee antes que nada (skill piloto, «Orientarte»): main ya está unido, pero
+# el archivo de tipos quedó como el de main, sin lo de esta rama. Sin la nota, el paso seguía y publicaba con tipos viejos.
+tipos_para_la_sesion() {
+  {
+    echo "# Falta regenerar los tipos de la base"
+    echo
+    echo "\`origin/main\` ya está unido a tu rama, pero las dos tocaban \`$ARCHIVO_DE_TIPOS\` (generado) y quedó el de main. Antes que"
+    echo "nada: \`pnpm db:reset\` y \`pnpm db:types\` (con el candado), revisa que el diff sólo sume lo de tus migraciones y commitea"
+    echo "\`chore(db): regenerar los tipos tras traer main\`. Ese commit sí va en \`commits\` de ultimo.json."
+  } >"$ESTADO/conflicto-con-main.md"
 }
 
 # renumerar_migraciones: las migraciones que la rama agrega llevan una versión posterior a la última de origin/main (lo exige la guarda de

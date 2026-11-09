@@ -66,9 +66,15 @@ printf '%s\n' "$ORIGEN" >"$COMUN/bin.origen"
 # Las copias viejas, pasadas 24 h (la vigente nunca), salvo la que todavía corre un bucle: uno que duerme por el límite de uso o lleva un
 # paso largo sigue con SU carpeta, y al cerrar llama a `verificar.sh` y `publicar.sh` de ella. Una carpeta de copia no tiene nada adentro
 # que no se rehaga: se quita sólo si es de las de este script (`bin.<algo>` bajo la carpeta común).
+# La que usa un bucle vivo: cada bucle anota su carpeta en `.piloto/bin-en-uso` de su árbol y tiene tomado `.piloto/bucle.lock` (el
+# proceso se ve como `bash <común>/bin/bucle.sh`, por el enlace: buscarlo por la ruta de la carpeta no lo encontraba).
+en_uso=$(git worktree list --porcelain 2>/dev/null | sed -n 's/^worktree //p' | while IFS= read -r arbol; do
+  [ -s "$arbol/.piloto/bin-en-uso" ] || continue
+  flock -n "$arbol/.piloto/bucle.lock" true 2>/dev/null || cat "$arbol/.piloto/bin-en-uso"
+done)
 while IFS= read -r vieja; do
   case "$vieja" in "$COMUN"/bin.?*) ;; *) continue ;; esac
-  pgrep -f -- "$vieja/bucle.sh" >/dev/null 2>&1 && continue
+  grep -qxF -- "$vieja" <<<"$en_uso" && continue
   chmod -R u+w -- "$vieja" 2>/dev/null
   find "$vieja" -mindepth 1 -delete 2>/dev/null
   rmdir -- "$vieja" 2>/dev/null

@@ -35,7 +35,8 @@ el número del paso y, opcionales, `continuar` (retomas esta sesión tras una co
    adaptador y su prueba de contrato, y dilo en el resumen.
    **Si existe `.piloto/conflicto-con-main.md`, eso va primero:** tu rama choca con `origin/main` en código (los choques de `docs/` el bucle ya los unió) y
    el PR no se integra hasta resolverlo. `git merge origin/main`, resuelve lo que lista, commit de merge con el mensaje por omisión (no va en `commits` de
-   `ultimo.json`), y sigue con el paso.
+   `ultimo.json`), y sigue con el paso. Si la nota dice que falta **regenerar los tipos de la base**, main ya está unido: haz lo que dice
+   (`pnpm db:reset`, `pnpm db:types` y su commit) y bórrala.
 2. **Planificar.** Invoca al subagente `planificador`: orienta, parte si hace falta y escribe `.piloto/planes/<paso>.md` con
    [plantilla-plan.md](plantilla-plan.md). No escribes tú el plan: el planificador es el único que lo hace, y su Bash es de sólo lectura. Corre en opus,
    salvo en un paso que el ruteo mandó con `modelo: sonnet` (el de pantalla; lo dice `.piloto/ruteo.json`): ahí pásale `model: "sonnet"`. Del 5 al 7 de

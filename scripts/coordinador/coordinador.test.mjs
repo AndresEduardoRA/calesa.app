@@ -477,3 +477,49 @@ test('el plan se lee de origin/main cuando existe: el del árbol de un carril at
   )
   assert.match(correr('tablero'), /P03 Lista/)
 })
+
+// La revisión de FLUJO-2: el relanzamiento de un CI colgado es uno por commit aunque entre medio el PR deje de estar colgado.
+test('un CI que vuelve a quedar cancelado tras relanzarlo no se relanza otra vez: vuelve a su carril', () => {
+  const { correr, pr, respuestas } = repo()
+  const env = { COORD_COLGADO_ESPERA: '0' }
+  correr('siguiente', 'ui')
+  correr('publicado', 'P02', '12')
+  const con = (checks) => ({
+    state: 'OPEN',
+    mergeable: 'MERGEABLE',
+    headRefOid: 'abc',
+    statusCheckRollup: checks,
+  })
+  const cancelado = { name: 'e2e · bloque 1 de 1', status: 'COMPLETED', conclusion: 'CANCELLED' }
+  writeFileSync(
+    join(respuestas, 'runs.json'),
+    JSON.stringify([{ databaseId: 88, conclusion: 'cancelled' }]),
+  )
+  pr(12, con([...verde, cancelado]))
+  correr.con(env, 'sincronizar')
+  assert.match(correr.con(env, 'sincronizar'), /lo vuelvo a correr, una vez/)
+  // El relanzamiento corre: el PR ya no está colgado, y no se olvida que se relanzó.
+  pr(12, con([...verde, { name: 'e2e · bloque 1 de 1', status: 'IN_PROGRESS' }]))
+  assert.equal(correr.con(env, 'sincronizar').trim(), '')
+  // Y se cancela otra vez (siempre pasa su tope): es un rojo, sin otro relanzamiento.
+  pr(12, con([...verde, cancelado]))
+  assert.match(correr.con(env, 'sincronizar'), /P02: CI en rojo \(#12\): vuelve a su carril/)
+  assert.equal(readFileSync(join(respuestas, 'reruns'), 'utf8').trim(), 'run rerun 88')
+  // Con un commit nuevo la cuenta empieza de cero.
+  pr(12, { ...con([...verde, cancelado]), headRefOid: 'def' })
+  correr.con(env, 'sincronizar')
+  assert.match(correr.con(env, 'sincronizar'), /lo vuelvo a correr, una vez/)
+})
+
+test('un paso aparcado cuyo PR termina integrado queda integrado', () => {
+  const { correr, pr } = repo()
+  correr('siguiente', 'ui')
+  correr('publicado', 'P02', '12')
+  pr(12, { state: 'OPEN', mergeable: 'CONFLICTING', statusCheckRollup: verde })
+  correr('sincronizar')
+  assert.equal(JSON.parse(correr('siguiente', 'ui')).arreglar, 'conflicto con main')
+  correr('aparcar', 'P02', 'no', 'pudo', 'resolver', 'el', 'choque')
+  pr(12, { state: 'MERGED' })
+  assert.match(correr('sincronizar'), /P02: estaba aparcado y su PR #12 ya está integrado/)
+  assert.equal(JSON.parse(correr('estado', 'P02')).estado, 'integrado')
+})

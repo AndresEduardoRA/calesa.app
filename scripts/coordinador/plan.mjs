@@ -23,7 +23,8 @@ const TRANSICIONES = {
   asignado: ['publicado', 'pendiente', 'aparcado'],
   publicado: ['integrado', 'asignado'],
   integrado: [],
-  aparcado: ['asignado', 'pendiente'],
+  // → integrado: el PR de un paso aparcado terminó integrándose (su CI se puso verde, o alguien lo integró a mano).
+  aparcado: ['asignado', 'pendiente', 'integrado'],
 }
 const RIESGOS = ['rojo', 'ambar', 'verde']
 const AGENTES = ['claude', 'codex']
