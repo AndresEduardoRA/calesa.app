@@ -144,3 +144,38 @@ describe('verificar-entorno.sh', () => {
     expect(r.salida).toContain('cosa(s) por arreglar')
   })
 })
+
+// De corrido (2026-11-09): una sola orden revisa que todo esté listo y lanza los carriles; sin `--ya` no cambia nada.
+describe('lanzar.sh', () => {
+  const GIT = ['-c', 'user.name=t', '-c', 'user.email=t@ejemplo.test']
+  const conCarril = () => {
+    writeFileSync(join(repo, 'README.md'), 'x\n')
+    execFileSync('git', [...GIT, 'add', '.'], { cwd: repo })
+    execFileSync('git', [...GIT, 'commit', '-qm', 'inicio'], { cwd: repo })
+    const carril = join(raiz, 'carril-b')
+    execFileSync('git', ['worktree', 'add', '-q', '-b', 'b/base', carril], { cwd: repo })
+    writeFileSync(join(carril, '.env.carril'), '# Carril b\nSUPABASE_PROJECT_ID=importadora-b\n')
+    return carril
+  }
+
+  it('--parar pone PARAR en cada carril (un worktree con .env.carril) y en ningún otro', () => {
+    const carril = conCarril()
+    const r = ejecutar('lanzar.sh', ['--parar'])
+    expect(r.estado, r.salida).toBe(0)
+    expect(r.salida).toContain('carril b: PARAR puesto')
+    expect(existsSync(join(carril, '.piloto/PARAR'))).toBe(true)
+    expect(existsSync(join(repo, '.piloto/PARAR'))).toBe(false)
+  })
+
+  it('sin --ya sólo revisa: dice lo que falta, sale con 1 y no quita el PARAR de nadie', () => {
+    const carril = conCarril()
+    mkdirSync(join(carril, '.piloto'))
+    writeFileSync(join(carril, '.piloto/PARAR'), '')
+    const r = ejecutar('lanzar.sh')
+    expect(r.estado, r.salida).toBe(1)
+    expect(r.salida).toContain('✗ origin/main no tiene docs/plan.yaml')
+    expect(r.salida).toMatch(/✗ carril b: /)
+    expect(r.salida).toContain('por arreglar antes de lanzar')
+    expect(existsSync(join(carril, '.piloto/PARAR'))).toBe(true)
+  })
+})
