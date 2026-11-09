@@ -117,16 +117,16 @@ describe('áreas de cotizaciones › docs/plan.yaml', () => {
 })
 
 describe('áreas de cotizaciones › el plan real', () => {
-  it('T12 docs/plan.yaml le da a cada carril áreas enteras y las familias del compilador a uno solo', () => {
+  // Con la Fase 4 cerrada (2026-11-08) el módulo volvió entero al carril base: el plan de las fases 5 a 9 no le da a `b` ni a `c` nada de
+  // `cotizaciones` (lo que necesiten de él lo agregan o editan en su PR, como lo demás del núcleo). Si una fase vuelve a repartirlo por
+  // áreas, esta prueba es la que exige áreas enteras y las familias del compilador en un solo carril.
+  it('T12 docs/plan.yaml no reparte el módulo a medias: o áreas enteras, o nada', () => {
     const plan = leerPlan(readFileSync(join(RAIZ, 'docs/plan.yaml'), 'utf8'))
     const rutas = archivosDelModulo().map((a) => a.ruta)
     expect(problemasDelPlanDeAreas(plan, rutas)).toEqual([])
-    const b = plan.carriles.find((c: { id?: unknown }) => c.id === 'b') as { dueno_de: string[] }
-    expect(b.dueno_de).toEqual(expect.arrayContaining(lugares('formula')))
-    expect(
-      b.dueno_de.filter(
-        (r) => r.includes('/entities/') && !/\/entities\/(formula|diseno|tablas)\/$/.test(r),
-      ),
-    ).toHaveLength(39)
+    const ajenos = (plan.carriles as { base?: boolean; dueno_de: string[] }[])
+      .filter((c) => c.base !== true)
+      .flatMap((c) => c.dueno_de.filter((r) => r.startsWith(MODULO)))
+    expect(ajenos).toEqual([])
   })
 })

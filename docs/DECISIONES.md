@@ -3571,3 +3571,23 @@ rojo. El detalle de cada cambio, en `docs/PILOTO.md` › «De corrido».
 - **Lo que no se arregla aquí y se evita con el plan:** los 21 PR devueltos por chocar en `pestanas.ts` (cada carril sumaba su pestaña al mismo archivo). En
   las fases 5 a 9 el primer paso de cada módulo deja las entradas por área y los «huecos», y los siguientes sólo agregan archivos propios
   (lo dice la partición de cada fase en `docs/PLAN.md`).
+
+## 2026-11-09 — El plan de las fases 5 a 9: 69 pasos, cinco fases abiertas a la vez
+
+La persona pidió dejar todo listo para correr el proyecto hasta el final. Cinco lecturas en paralelo (una por fase) propusieron la partición
+contra lo que la base ya tiene; aquí se unieron (`docs/PLAN.md` › «Carriles de las fases 5 a 9»; `docs/plan.yaml`).
+
+- **Las cinco fases a la vez, con dependencias por paso y no por fase.** La alternativa, una fase tras otra, repetía lo de la Fase 4: carriles
+  sin paso (23 h-carril en dos días). La Fase 7 y casi toda la 8 y la 9 no necesitan nada de la 5 ni de la 6. Simulado con la duración medida
+  (0,84 h de sesión y 0,4 de CI por parte): los 69 pasos caben en ≈ 4 días de reloj con tres carriles, con 5 a 12 h de espera por carril.
+- **Lo que comparte funciones de la base va en serie aunque sea de fases distintas** (6.02 tras 5.05 y 5.07; 8.08 tras 5.07 y 6.02): dos
+  migraciones que recrean la misma función no chocan en git, y la segunda en integrarse borraría lo de la primera sin que nadie lo viera.
+- **`cotizaciones` vuelve entero al carril base;** `b` y `c` llevan áreas o módulos enteros de las fases nuevas. Un paso de `b` o `c` declara en
+  `modulos` sólo lo suyo: lo del núcleo que necesita lo agrega o edita en su PR.
+- **Una sola casa para lo que varios llenan.** Tres propuestas ponían los bloques de la bandeja en tres lugares: queda el del 9.02
+  (`tablero/features/bandeja/bloques/<clave>.tsx`), que pasa al carril base y va antes que 6.12, 7.07, 8.05 y 8.13.
+- **Las dudas de cada fila ya traen su recomendada, y esa es la decisión** (sin compuertas nadie las contesta). Las que más pesan, para que la
+  persona las mire cuando quiera: la versión de la configuración de un flujo es una por flujo (5.01); «trabado» se define en el 6.12; el
+  tablero muestra totales exactos como excepción escrita (9.07); «exportar todo» no lleva teléfonos ni campos privados de carteras ajenas
+  (9.05); sin dependencias nuevas (gráficas en SVG, cookie del portal con `node:crypto`).
+- **El despliegue no se ejecuta:** el 9.13 deja la guía, la lista de la persona y todo probado en seco.

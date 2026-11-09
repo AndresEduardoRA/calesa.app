@@ -1,19 +1,23 @@
-# Orca: los carriles de la Fase 4
+# Orca: los carriles
 
 Tres carriles de trabajo en paralelo, cada uno en su worktree de Orca, con su rama, su stack de Supabase y su PR. Quién posee qué lo dice
 `docs/plan.yaml` (`dueno_de`, `migraciones`), y la guarda de CI `scripts/guardas/carriles.mjs` lo hace cumplir leyendo ese archivo **de la
 base del PR**. `main` lo integra la persona, o el coordinador (`scripts/coordinador/coordinador.mjs`) con los pasos verdes y ámbar
 con CI en verde; un paso rojo, sólo la persona. La preparación está en `docs/PREPARACION.md`.
 
-| Carril | Quién                                                                                    | Qué                                                                                                                                                  | Rama       |
-| ------ | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| A      | El piloto principal (`docs/PILOTO.md`): Opus, esfuerzo alto                              | Base: el núcleo de `cotizaciones`, el listado, la tarjeta, la plantilla, 4.15-5 a 4.19 y 4.28. El único que edita ESTADO, PLAN, DECISIONES, BITACORA | `a/…`      |
-| B      | Piloto con coordinador (`PILOTO.md`): fórmula, diseño y tablas (4.20 a 4.23)             | Sus áreas y el compilador de la fórmula, archivo por archivo; migraciones `formula`, `diseno`, `tablas`                                              | `b/<paso>` |
-| C      | Piloto con coordinador: papelera, marcar final, comprobantes y comentarios (4.24 a 4.27) | Sus áreas; migraciones `papelera`, `final`, `comprobantes`, `comentarios`                                                                            | `c/<paso>` |
+| Carril | Qué (fases 5 a 9; `docs/PLAN.md` › «Carriles de las fases 5 a 9»)                                                                                                                                               | Rama       |
+| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| A      | Base: el núcleo de cada módulo (entradas por área y pantallas con huecos), `src/shared`, el shell, `notificaciones`, lo que cruza módulos y los cierres. El único que edita ESTADO, PLAN, DECISIONES y BITACORA | `a/<paso>` |
+| B      | En `flujos`, las áreas `fases` y `transiciones`; en `logistica`, `documentos` y `transporte`; `agenda`; `buscador`; `web`; las métricas del `tablero`                                                           | `b/<paso>` |
+| C      | En `flujos`, `requisitos` y `documentos`; en `logistica`, `aduana`, `dinero` y `alertas`; `chat`; `repuestos`; `actividad` y `datos`                                                                            | `c/<paso>` |
+
+En la Fase 4 (cerrada el 2026-11-08) los carriles B y C llevaron áreas de `cotizaciones`; ese módulo volvió entero al base. Los tres
+corren con el piloto y el coordinador, **de corrido y sin compuertas** (`docs/PILOTO.md` › «De corrido»): se revisan y se lanzan con
+`bash scripts/maquina/lanzar.sh` (`--ya` arranca, `--parar` los detiene entre pasos).
 
 B y C no editan los docs del A: escriben en `docs/pasos/<paso>/` (`bitacora.md`, `decisiones.md`) y el A los consolida con
 `node scripts/coordinador/consolidar-docs.mjs` antes de su commit de docs. Los abre `scripts/piloto/auto-carriles.sh` o
-`scripts/coordinador/abrir-carriles.sh`. Después de la Fase 4, el plan de la siguiente lo decide la persona.
+`scripts/coordinador/abrir-carriles.sh`.
 
 ## Abrir un carril (una vez)
 

@@ -123,14 +123,19 @@ describe('carriles › un carril que no es base', () => {
     }
   })
 
-  it('el plan real: cada dominio de un carril es un área suya, y cada área suya es un dominio', () => {
+  // En la Fase 4 los dominios eran las áreas de `cotizaciones`; desde las fases 5 a 9 son los de las tablas que cada carril trabaja.
+  it('el plan real: cada carril que no es base tiene sus dominios de migración, con nombre de dominio y sin repetir', () => {
     const real = leerPlan(readFileSync('docs/plan.yaml', 'utf8'))
-    for (const c of real.carriles.filter((x: { base?: boolean }) => x.base !== true)) {
-      const areas = (c.dueno_de as string[])
-        .map((d) => /^src\/modules\/cotizaciones\/areas\/([a-z-]+)\/$/.exec(d)?.[1])
-        .filter(Boolean)
-      expect([...(c.migraciones as string[])].sort()).toEqual([...areas].sort())
+    const ajenos = real.carriles.filter((x: { base?: boolean }) => x.base !== true)
+    expect(ajenos.length).toBeGreaterThan(0)
+    const todos: string[] = []
+    for (const c of ajenos) {
+      const dominios = c.migraciones as string[]
+      expect(dominios.length, `carril ${String(c.id)}`).toBeGreaterThan(0)
+      for (const d of dominios) expect(d).toMatch(/^[a-z][a-z0-9]*(_[a-z0-9]+)*$/)
+      todos.push(...dominios)
     }
+    expect(new Set(todos).size).toBe(todos.length)
   })
 })
 
