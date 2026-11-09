@@ -21,6 +21,9 @@ export default defineConfig({
     // Vitest NO puede testear Server Components async. Esos van a Playwright (e2e/).
     exclude: ['**/node_modules/**', '**/e2e/**', '**/.next*/**'],
     passWithNoTests: true,
+    // En el runner de CI (2 vCPU) una prueba de componente con jsdom rozaba los 5 s de fábrica: `historial-del-vehiculo.test.tsx` cayó
+    // seis veces con 5,3–5,6 s, dos de ellas en main, y cada rojo de main contagia a los PR que salen de él.
+    testTimeout: process.env['CI'] ? 15_000 : 5_000,
     reporters: [
       isAgent ? 'agent' : 'default',
       ['json', { outputFile: `${CARPETA_DE_SALIDAS}/${corrida}/resultado.json` }],
