@@ -266,6 +266,26 @@ describe('las mutaciones de CI-1b caen', () => {
   })
 })
 
+// De corrido (2026-11-09): la corrida de cada noche, en el grupo de main, la cancelaba la integración siguiente.
+describe('las mutaciones de la corrida de cada noche caen', () => {
+  it.each([
+    [
+      'vuelve al grupo de main',
+      "(github.event_name == 'workflow_dispatch' || github.event_name == 'schedule') && format",
+      "github.event_name == 'workflow_dispatch' && format",
+      /un workflow_dispatch necesita su propio grupo/,
+    ],
+    [
+      'se cancela',
+      " && github.event_name != 'schedule' }}",
+      ' }}',
+      /cancel-in-progress tiene que ser/,
+    ],
+  ])('%s', (_, antes, despues, motivo) => {
+    expect(problemasDe(mutar(ci, antes, despues)).join('\n')).toMatch(motivo)
+  })
+})
+
 describe('la lista de excepciones de terceros', () => {
   const uso = '      - uses: pnpm/action-setup@0123456789abcdef0123456789abcdef01234567\n'
   const motivo = 'la instalación de pnpm con firma que npm no ofrece todavía'

@@ -273,7 +273,8 @@ resto, carriles parados por un reinicio con `PARAR` (≈ 30 h-carril), «sin pas
 - **Un carril que espera dice por qué, una vez** («sin paso libre (6.03 espera a que se integren: 6.02)»), no una línea cada dos minutos.
 - **Arrancar no molesta a los otros:** si la copia ya es la de main, `arrancar.sh` la usa (antes hacía una carpeta nueva y los demás bucles se relanzaban);
   una copia vieja no se borra mientras un bucle corre desde ella; y una compuerta humana que quedó de antes se aparta.
-- **CI:** en CI cada prueba de Vitest tiene 15 s (una de 5,3 s puso `main` en rojo dos veces).
+- **CI:** la corrida de cada noche tiene su grupo y no la cancela la integración siguiente; los bloques de e2e no esperan al Nivel 1 (≈ 9 min por PR); en
+  CI cada prueba de Vitest tiene 15 s (una de 5,3 s puso `main` en rojo dos veces).
 
 **Lo que sigue necesitando a una persona:** un PR que toca las guardas del piloto (`scripts/piloto/`, hooks, ajustes, workflows: el coordinador no lo
 integra solo; `COORD_GUARDAS_SOLAS=1` lo dejaría), producción (variables, secretos, `db push`), un paso aparcado sin reintentos, y `aprobado-*` a mano.
