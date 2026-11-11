@@ -1,6 +1,7 @@
 // Las carreras de la versión del flujo (paso 5.01-1), con conexiones reales a la base del Supabase LOCAL. K1: dos `fase_guardar` con la misma versión;
 // B espera el candado de la fila de `flujos` que tomó A y, cuando A confirma, recibe PT409 sin escribir. K2: mientras A tiene el candado, quien no puede
-// configurar el flujo recibe 42501 sin esperar (el permiso va antes del candado, `_flujo_para_editar`). Terreno con el prefijo «Carreras»: el origen
+// configurar el flujo recibe 42501 sin esperar (el permiso va antes del candado, `_flujo_para_editar`). K3: ese candado (`for no key update`)
+// no frena el key share de las FK de un cambio de fase. Terreno con el prefijo «Carreras»: el origen
 // (con su flujo y sus fases en cascada) y el rol los borra `limpiar()` de `scripts/carreras/terreno.mjs`. Las corre `scripts/carreras.mjs` (`pnpm db:carreras`).
 import { PERSONAS, PREFIJO, comoPersona } from '../../../../scripts/carreras/terreno.mjs'
 
@@ -110,6 +111,43 @@ export async function carrerasDeFases({ orquesta, carrera, espero, conectar }) {
     } finally {
       await ca.end()
       await cc.end()
+    }
+  }
+
+  console.log('Guardar una fase no frena el key share de las FK de un cambio de fase')
+  {
+    // Lo que toma `cambiar_fase` por sus FK: key share sobre la fase (`vehiculos.fase_id`) y sobre el flujo (`historial_fases.flujo_id`). Con
+    // `for update` en el contrato, esto esperaba a A (y en el orden de `cambiar_fase`, 40P01).
+    const v = await versionDelFlujo(orquesta, flujo)
+    const [ca, cb] = [await conectar(), await conectar()]
+    try {
+      await comoPersona(ca, duena)
+      await cb.query(`set lock_timeout = '2s'`)
+      await ca.query('begin')
+      await ca.query('select public.fase_guardar($1, $2, $3::jsonb)', [
+        fase,
+        v,
+        JSON.stringify({ color: '#123456' }),
+      ])
+      const r = await cb
+        .query(
+          `select (select 1 from public.fases where id = $1 for key share) as fase,
+                  (select 1 from public.flujos where id = $2 for key share) as flujo`,
+          [fase, flujo],
+        )
+        .then(
+          () => ({ ok: true }),
+          (e) => ({ ok: false, codigo: e.code, mensaje: e.message }),
+        )
+      await ca.query('rollback')
+      espero(
+        'K3: con la fase y el flujo tomados por fase_guardar, el key share de la fase y del flujo pasa al instante (sin 55P03)',
+        r.ok,
+        r,
+      )
+    } finally {
+      await ca.end()
+      await cb.end()
     }
   }
 }

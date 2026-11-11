@@ -89,7 +89,7 @@ begin;
 do $$
 declare a uuid := pg_temp.fg_flujo('manual'); yo uuid := pg_temp.fg_persona(array['flujos.configurar']); c jsonb;
 begin
-  foreach c in array array['{"nombre": "FG", "es_final": "si"}', '{"nombre": "FG", "demora_dias": 1.5}', '{"nombre": "FG", "demora_dias": 1e12}',
+  foreach c in array array['{"nombre": "FG", "es_final": "si"}', '{"nombre": "FG", "demora_dias": 1.5}', '{"nombre": "FG", "demora_dias": 1e12}', '{"nombre": "FG", "demora_dias": 1.0}',
                            '{"nombre": null}', '{"nombre": "FG", "color": null}', '{"nombre": "FG", "icono": 3}']::jsonb[] loop
     perform pg_temp.fg_es('G2 ' || c::text, pg_temp.fg_crear(yo, a, c), '22023',
       format('El dato «%s» no tiene el formato esperado.', (select k from jsonb_object_keys(c - 'nombre') k union all select 'nombre' limit 1)),
