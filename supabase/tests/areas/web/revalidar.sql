@@ -320,3 +320,37 @@ begin
 end $$;
 rollback;
 
+-- @test revalidar: el conteo de los vehículos que cambian al encender, acotado a 51 y con permiso (R9)
+begin;
+do $$
+declare
+  v_gestor uuid := pg_temp.wr_persona(array['empresa.ajustes.gestionar']);
+  v_nadie uuid := pg_temp.wr_persona(array[]::text[]);
+  v_fase uuid; v_otra uuid; v_origen uuid; v_antes int; r jsonb;
+begin
+  select f.id, fl.origen_id into v_fase, v_origen from public.fases f join public.flujos fl on fl.id = f.flujo_id
+  where f.publica_web and f.activa and fl.origen_id is not null order by f.orden limit 1;
+  select f.id into v_otra from public.fases f join public.flujos fl on fl.id = f.flujo_id
+  where fl.origen_id = v_origen and not f.publica_web order by f.orden limit 1;
+  if v_fase is null or v_otra is null then raise exception 'falta un origen con una fase pública y otra no en la semilla'; end if;
+  update public.ajustes_web set origenes_visibles = array[v_origen] where id = 1;
+  update public.integraciones set activa = false where clave = 'web_publica';
+  v_antes := (pg_temp.wr_corre(v_gestor, 'select to_jsonb(public.web_publica_vehiculos_que_cambian())'))::int;
+  insert into public.vehiculos (origen_id, titulo, creado_por) values (v_origen, 'R9 público', v_gestor), (v_origen, 'R9 en fase privada', v_gestor);
+  update public.vehiculos set fase_id = v_fase, publicado_web = true where titulo = 'R9 público';
+  update public.vehiculos set fase_id = v_otra, publicado_web = true where titulo = 'R9 en fase privada';
+  r := pg_temp.wr_corre(v_gestor, 'select to_jsonb(public.web_publica_vehiculos_que_cambian())');
+  if r::int <> least(v_antes + 1, 51) then
+    raise exception 'contó % (antes %): el público suma uno y el de fase privada ninguno', r, v_antes;
+  end if;
+  insert into public.vehiculos (origen_id, titulo, creado_por) select v_origen, 'R9 tope ' || g, v_gestor from generate_series(1, 60) g;
+  update public.vehiculos set fase_id = v_fase, publicado_web = true where titulo like 'R9 tope %';
+  r := pg_temp.wr_corre(v_gestor, 'select to_jsonb(public.web_publica_vehiculos_que_cambian())');
+  if r::int <> 51 then raise exception 'con más de 50, el conteo dio % (debía 51)', r; end if;
+  r := pg_temp.wr_corre(v_nadie, 'select to_jsonb(public.web_publica_vehiculos_que_cambian())');
+  if r ->> 'error' is distinct from '42501' then raise exception 'contó sin empresa.ajustes.gestionar: %', r; end if;
+  if has_function_privilege('anon', 'public.web_publica_vehiculos_que_cambian()', 'execute') then
+    raise exception 'anon puede contar los vehículos que cambian';
+  end if;
+end $$;
+rollback;
