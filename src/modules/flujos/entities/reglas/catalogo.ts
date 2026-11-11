@@ -119,3 +119,14 @@ export function reglaEncendida(
 ): boolean {
   return reglas.some((r) => r.regla === clave && r.activa)
 }
+
+// Lo que la pantalla dibuja: las del ámbito y, si el flujo trae encendida una que su ámbito no admite (un dato heredado), también esa: nunca se esconde
+// un estado real en silencio. Encenderla otra vez no se ofrece: la base la rechaza.
+export function reglasParaMostrar(
+  ambito: AmbitoDeFlujo,
+  reglas: readonly { regla: string; activa: boolean }[],
+): ReglaDelCatalogo[] {
+  return REGLAS_DEL_CATALOGO.filter(
+    (r) => r.ambitos.includes(ambito) || reglaEncendida(reglas, r.clave),
+  )
+}

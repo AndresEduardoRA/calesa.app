@@ -2,7 +2,13 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { definicionSql } from '../../../../../scripts/lib/definicion-sql'
-import { CLAVES_DE_REGLAS, REGLAS_DEL_CATALOGO, reglaEncendida, reglasDelAmbito } from './catalogo'
+import {
+  CLAVES_DE_REGLAS,
+  REGLAS_DEL_CATALOGO,
+  reglaEncendida,
+  reglasDelAmbito,
+  reglasParaMostrar,
+} from './catalogo'
 
 // La ruta va por una variable: Vite reescribe `new URL('…', import.meta.url)` literal.
 const BASE = join(process.cwd(), 'supabase/migrations/20261028180656_base.sql')
@@ -62,5 +68,14 @@ describe('reglaEncendida', () => {
     expect(reglaEncendida(reglas, 'aduana')).toBe(true)
     expect(reglaEncendida(reglas, 'pagos')).toBe(false)
     expect(reglaEncendida(reglas, 'gastos')).toBe(false)
+  })
+})
+
+describe('reglasParaMostrar', () => {
+  it('suma una regla heredada que el ámbito no admite pero está encendida', () => {
+    expect(reglasParaMostrar('repuestos', []).map((r) => r.clave)).not.toContain('aduana')
+    expect(
+      reglasParaMostrar('repuestos', [{ regla: 'aduana', activa: true }]).map((r) => r.clave),
+    ).toContain('aduana')
   })
 })
