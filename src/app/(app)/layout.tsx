@@ -21,7 +21,16 @@ import { BarraLateral } from './_shell/barra-lateral'
 import { EsqueletoShell } from './_shell/esqueleto-shell'
 import { Marco } from './_shell/marco'
 import { MenuUsuario } from './_shell/menu-usuario'
-import { entradasVisibles } from './_shell/navegacion'
+import { HuecoCampana } from './_shell/huecos/campana'
+import { HuecoChat } from './_shell/huecos/chat'
+import { NAVEGACION, entradasVisibles } from './_shell/navegacion'
+
+// Los caminos con pantalla (la navegación disponible y `/notificaciones`, que no está en la barra): un aviso cuya ruta
+// cae fuera de ellos no se enlaza, para no llevar a un 404.
+const RUTAS_CON_PANTALLA = [
+  ...NAVEGACION.filter((entrada) => entrada.disponible).map((entrada) => entrada.ruta),
+  '/notificaciones',
+]
 
 // Todo lo que depende de quién entró: la sesión, sus permisos y los ajustes de la empresa. Acá se
 // leen una vez y se reparten por props a un marco que no sabe de dónde salen.
@@ -78,6 +87,10 @@ async function Shell({ children }: { children: ReactNode }) {
               // el documento de la pantalla no lleva los catálogos del alta.
               nuevoLead={puede(sesion.permisos, 'leads.crear') ? <AltaDeLead /> : undefined}
               aviso={<BannerPerspectiva />}
+              campana={
+                <HuecoCampana usuarioId={sesion.usuarioId} disponibles={RUTAS_CON_PANTALLA} />
+              }
+              flotante={<HuecoChat />}
               menuUsuario={
                 <MenuUsuario
                   persona={{
