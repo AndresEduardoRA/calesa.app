@@ -41,6 +41,7 @@ const CAMPO = {
   filtrable: false,
   publico_web: false,
   clave_apibara: null,
+  principal: false,
   es_sistema: false,
   activo: true,
   actualizado_en: '2026-10-29T08:00:00+00:00',

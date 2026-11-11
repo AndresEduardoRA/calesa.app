@@ -40,7 +40,13 @@ const VALORES_DE_UN_CAMPO_NUEVO: ValoresDeCampo = {
   grupo: '',
   activo: true,
   valorDefecto: null,
-  banderas: { requerido: false, enTarjeta: false, filtrable: false, publicoWeb: false },
+  banderas: {
+    requerido: false,
+    enTarjeta: false,
+    filtrable: false,
+    publicoWeb: false,
+    principal: false,
+  },
   textos: { [CLAVE_APIBARA]: '' },
 }
 
@@ -61,6 +67,7 @@ function valoresIniciales(campo: CampoDeLayout | null): ValoresDeCampo {
       enTarjeta: campo.enTarjeta,
       filtrable: campo.filtrable,
       publicoWeb: campo.publicoWeb,
+      principal: campo.principal,
     },
     textos: { [CLAVE_APIBARA]: campo.claveApibara ?? '' },
   }
@@ -80,6 +87,8 @@ function cambiosDe(campo: CampoDeLayout, valores: ValoresDeCampo): CambiosDeCamp
     publicoWeb: banderas['publicoWeb'] ?? false,
     claveApibara: vacioANulo(valores.textos[CLAVE_APIBARA] ?? ''),
     activo: valores.activo,
+    // Sin la bandera en el formulario, lo guardado (la bandera «Principal» entra en el 6.13-2).
+    principal: banderas['principal'] ?? campo.principal,
     valorDefecto: valores.valorDefecto,
   })
 }
@@ -172,6 +181,7 @@ export function configuracionDeOrigen({
       publicoWeb: valores.banderas['publicoWeb'] ?? false,
       claveApibara: tipoDeOrigen === 'subasta' ? (valores.textos[CLAVE_APIBARA] ?? '') : null,
       valorDefecto: valores.valorDefecto,
+      principal: valores.banderas['principal'] ?? false,
     }),
     cambiosDe,
     conBandera: (clave, valor) => ({ [clave]: valor }),
