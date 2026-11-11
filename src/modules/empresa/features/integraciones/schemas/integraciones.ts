@@ -1,7 +1,9 @@
 import { z } from 'zod'
 import {
+  LARGO_MAXIMO_DIRECCION,
   LARGO_MAXIMO_SECRETO,
   LARGO_MINIMO_SECRETO,
+  esDireccionDeRevalidacion,
   esquemaConfigApibara,
 } from '../../../entities/integraciones'
 
@@ -23,14 +25,34 @@ export const esquemaGuardarApibara = z
     error: 'La configuración se guarda entera: la dirección y las plataformas.',
   })
 
+// Vacía, la dirección se borra. El formulario no sabe en qué entorno corre: acepta el loopback y
+// «Probar» lo corta en el servidor cuando la base es de la nube.
+const direccionDeRevalidacion = z
+  .string()
+  .trim()
+  .max(LARGO_MAXIMO_DIRECCION, { error: 'La dirección es demasiado larga.' })
+  .refine(
+    (direccion) => direccion === '' || esDireccionDeRevalidacion(direccion, { loopback: true }),
+    {
+      error: 'La dirección tiene que empezar con https:// y no puede apuntar a una red interna.',
+    },
+  )
+  .transform((direccion) => (direccion === '' ? null : direccion))
+
+export const esquemaGuardarWebPublica = z.object({
+  actualizadoEnEsperado: version,
+  activa: z.boolean().optional(),
+  revalidarUrl: direccionDeRevalidacion.optional(),
+})
+
 // El secreto entra una vez y no vuelve a salir: ninguna action lo devuelve.
 export const esquemaGuardarSecreto = z.object({
   // Las integraciones que llevan secreto.
-  clave: z.literal('apibara'),
+  clave: z.enum(['apibara', 'web_publica']),
   secreto: z
     .string()
     .trim()
-    .min(LARGO_MINIMO_SECRETO, { error: 'La clave tiene al menos 8 caracteres.' })
-    .max(LARGO_MAXIMO_SECRETO, { error: 'La clave no puede pasar de 500 caracteres.' }),
+    .min(LARGO_MINIMO_SECRETO, { error: 'Tiene al menos 8 caracteres.' })
+    .max(LARGO_MAXIMO_SECRETO, { error: 'No puede pasar de 500 caracteres.' }),
   actualizadoEnEsperado: version,
 })

@@ -1,4 +1,5 @@
-// Integraciones: un interruptor y su configuración no secreta. El secreto (la clave de la API)
+// Integraciones: un interruptor y su configuración no secreta. El secreto (la clave de la API o el
+// secreto de revalidación)
 // vive en Vault; de él la app sólo sabe cuándo se guardó (docs/DECISIONES.md).
 import { z } from 'zod'
 import { PLATAFORMAS_APIBARA, type PlataformaApibara } from '@/shared/lib/apibara'
@@ -80,6 +81,87 @@ export const CONFIG_APIBARA_POR_DEFECTO: ConfigApibara = {
 export function configDeApibara(config: unknown): ConfigApibara {
   const leida = esquemaConfigApibara.safeParse(config)
   return leida.success ? leida.data : CONFIG_APIBARA_POR_DEFECTO
+}
+
+// --- web pública: la base le avisa al sitio qué parte cambió (job `web-revalidar`) -----------
+
+// Lo mismo que acepta `integracion_guardar` para `web_publica`.
+export const LARGO_MAXIMO_DIRECCION = 2000
+
+// Espejo del `limit 51` de `web_publica_vehiculos_que_cambian()`.
+export const TOPE_DE_VEHICULOS_QUE_CAMBIAN = 50
+
+const DIRECCION_IPV4 = /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/
+
+// [primer octeto, segundo desde, segundo hasta]: las redes que no son internet.
+const REDES_INTERNAS: readonly (readonly [number, number, number])[] = [
+  [0, 0, 255],
+  [10, 0, 255],
+  [100, 64, 127],
+  [169, 254, 254],
+  [172, 16, 31],
+  [192, 168, 168],
+]
+
+// El host ya normalizado por WHATWG (`2130706433` y `0x7f.1` llegan como `127.0.0.1`), sin el
+// punto final que WHATWG conserva en un nombre (`localhost.`).
+function hostDe(url: URL): string {
+  return url.hostname.replace(/\.$/, '')
+}
+
+function esLoopback(host: string): boolean {
+  if (host === 'localhost' || host.endsWith('.localhost')) return true
+  return DIRECCION_IPV4.exec(host)?.[1] === '127'
+}
+
+function esRedInterna(host: string): boolean {
+  if (host.startsWith('[')) return true
+  const octetos = DIRECCION_IPV4.exec(host)
+  if (!octetos) return false
+  const primero = Number(octetos[1])
+  const segundo = Number(octetos[2])
+  return REDES_INTERNAS.some(
+    ([a, desde, hasta]) => primero === a && segundo >= desde && segundo <= hasta,
+  )
+}
+
+// «Probar» manda el secreto a esta dirección desde el servidor de la app: no puede apuntar a la
+// red del servidor (SSRF). Es más estricta que la base, que sólo mira el protocolo; el loopback
+// pasa sólo si quien llama lo permite (la base del despliegue es local: docs/pasos/8.06-2).
+export function esDireccionDeRevalidacion(
+  direccion: string,
+  { loopback }: { loopback: boolean },
+): boolean {
+  if (direccion.length > LARGO_MAXIMO_DIRECCION) return false
+  let url: URL
+  try {
+    url = new URL(direccion)
+  } catch {
+    return false
+  }
+  if (url.username !== '' || url.password !== '') return false
+  const host = hostDe(url)
+  if (esLoopback(host)) return loopback && (url.protocol === 'https:' || url.protocol === 'http:')
+  return url.protocol === 'https:' && !esRedInterna(host)
+}
+
+// Si la dirección es de esta misma máquina. Con la de la base dice si el despliegue es local.
+export function esDireccionLocal(direccion: string): boolean {
+  try {
+    return esLoopback(hostDe(new URL(direccion)))
+  } catch {
+    return false
+  }
+}
+
+export const esquemaConfigWebPublica = z.object({ revalidar_url: z.string().nullable() })
+
+export type ConfigWebPublica = z.infer<typeof esquemaConfigWebPublica>
+
+// La dirección guardada, o ninguna.
+export function configDeWebPublica(config: unknown): ConfigWebPublica {
+  const leida = esquemaConfigWebPublica.safeParse(config)
+  return leida.success ? leida.data : { revalidar_url: null }
 }
 
 // Lo mismo que exige `integracion_guardar_secreto()`.
