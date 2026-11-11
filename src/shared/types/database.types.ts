@@ -3831,9 +3831,11 @@ export type Database = {
           notas: string | null
           proyecto_repuestos_id: string | null
           tipo_cambio_aplicado: number | null
+          tipo_cambio_id: string | null
           vehiculo_id: string | null
+          _pago_exigir_edicion: undefined | null
         }
-        ComputedFields: never
+        ComputedFields: '_pago_exigir_edicion'
         Insert: {
           actualizado_en?: string
           comprobante_ruta?: string | null
@@ -3854,6 +3856,7 @@ export type Database = {
           notas?: string | null
           proyecto_repuestos_id?: string | null
           tipo_cambio_aplicado?: number | null
+          tipo_cambio_id?: string | null
           vehiculo_id?: string | null
         }
         Update: {
@@ -3876,6 +3879,7 @@ export type Database = {
           notas?: string | null
           proyecto_repuestos_id?: string | null
           tipo_cambio_aplicado?: number | null
+          tipo_cambio_id?: string | null
           vehiculo_id?: string | null
         }
         Relationships: [
@@ -3926,6 +3930,13 @@ export type Database = {
             columns: ['proyecto_repuestos_id']
             isOneToOne: false
             referencedRelation: 'repuestos_proyectos'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'pagos_tipo_cambio_id_fkey'
+            columns: ['tipo_cambio_id']
+            isOneToOne: false
+            referencedRelation: 'tipos_cambio'
             referencedColumns: ['id']
           },
           {
@@ -7800,6 +7811,105 @@ export type Database = {
       _origen_vehiculos_con_valor: { Args: { p_clave: string; p_origen: string }; Returns: number }
       _origenes_lead_json: { Args: Record<PropertyKey, never>; Returns: Json }
       _origenes_lead_tope: { Args: Record<PropertyKey, never>; Returns: number }
+      _pago_de_cambios: {
+        Args: {
+          o: Omit<
+            Database['public']['Tables']['pagos']['Row'],
+            Database['public']['Tables']['pagos']['ComputedFields']
+          >
+          p_cambios: Json
+        }
+        Returns: {
+          actualizado_en: string
+          comprobante_ruta: string | null
+          concepto: string
+          confirmado: boolean
+          confirmado_en: string | null
+          confirmado_por: string | null
+          creado_en: string
+          creado_por: string | null
+          eliminado_en: string | null
+          fecha: string
+          id: string
+          lead_id: string | null
+          metodo: string | null
+          moneda: string
+          monto: number
+          monto_base: number
+          notas: string | null
+          proyecto_repuestos_id: string | null
+          tipo_cambio_aplicado: number | null
+          tipo_cambio_id: string | null
+          vehiculo_id: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'pagos'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _pago_exigir_edicion: {
+        Args: {
+          p: Omit<
+            Database['public']['Tables']['pagos']['Row'],
+            Database['public']['Tables']['pagos']['ComputedFields']
+          >
+        }
+        Returns: undefined
+      }
+      _pago_respuesta: {
+        Args: {
+          p: Omit<
+            Database['public']['Tables']['pagos']['Row'],
+            Database['public']['Tables']['pagos']['ComputedFields']
+          >
+          p_extra: Json
+        }
+        Returns: Json
+      }
+      _pago_tomar: {
+        Args: { p_id: string }
+        Returns: {
+          actualizado_en: string
+          comprobante_ruta: string | null
+          concepto: string
+          confirmado: boolean
+          confirmado_en: string | null
+          confirmado_por: string | null
+          creado_en: string
+          creado_por: string | null
+          eliminado_en: string | null
+          fecha: string
+          id: string
+          lead_id: string | null
+          metodo: string | null
+          moneda: string
+          monto: number
+          monto_base: number
+          notas: string | null
+          proyecto_repuestos_id: string | null
+          tipo_cambio_aplicado: number | null
+          tipo_cambio_id: string | null
+          vehiculo_id: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'pagos'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _pago_validar: {
+        Args: {
+          p_concepto: string
+          p_metodo: string
+          p_monto: number
+          p_ruta: string
+          p_unidad: string
+        }
+        Returns: undefined
+      }
       _papelera_purgar_cotizaciones: { Args: { p_ids: string[]; p_lote: string }; Returns: Json }
       _papelera_purgar_leads: { Args: { p_leads: string[]; p_lote: string }; Returns: Json }
       _papelera_purgar_vehiculos: { Args: { p_lote: string; p_vehiculos: string[] }; Returns: Json }
@@ -8976,6 +9086,27 @@ export type Database = {
       }
       otorgar_portal: {
         Args: { p_clave: string; p_lead: string; p_otorgado_en_esperado: string }
+        Returns: Json
+      }
+      pago_eliminar: { Args: { p_actualizado_en_esperado: string; p_id: string }; Returns: Json }
+      pago_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_id: string }
+        Returns: Json
+      }
+      pago_registrar: {
+        Args: {
+          p_comprobante_ruta: string
+          p_concepto: string
+          p_fecha: string
+          p_id: string
+          p_lead: string
+          p_metodo: string
+          p_moneda: string
+          p_monto: number
+          p_notas: string
+          p_tipo_cambio: string
+          p_vehiculo: string
+        }
         Returns: Json
       }
       papelera_enviar: {

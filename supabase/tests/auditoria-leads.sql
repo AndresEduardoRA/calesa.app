@@ -180,6 +180,11 @@ declare
     -- (`puede_cotizacion`) y no toma el lead: lo prueban `cotizacion-guardar.sql` y `cotizaciones-visibilidad.sql`.
     ('cotizacion_guardar(uuid,uuid,timestamp with time zone,jsonb,text,text,text,uuid,boolean)', 'X'),
     ('reasignar_tarea(uuid,uuid)', 'X'),
+    -- Los pagos (6.10-1): escriben `public.pagos` y su `lead_id`, pero el lead lo exige `trg_lead_visible` dentro de la RPC (`puede_lead` con
+    -- `leads.ver`, el mismo mensaje para uno ajeno o inexistente) y no lo devuelven. Lo prueba `areas/dinero/pagos.sql`.
+    ('pago_registrar(uuid,uuid,uuid,text,text,numeric,uuid,text,date,text,text)', 'X'),
+    ('pago_guardar(uuid,timestamp with time zone,jsonb)', 'X'),
+    ('pago_eliminar(uuid,timestamp with time zone)', 'X'),
     ('storage_refcount(text,text)', 'X')
   ) t (f, c));
   r record; v_fallas text := '';
