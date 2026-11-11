@@ -7,6 +7,7 @@ let alEstado: ((estado: Estado) => void) | undefined
 let alSeñal: (() => void) | undefined
 const removeChannel = vi.fn()
 const nombres: string[] = []
+const setAuth = vi.fn(() => Promise.resolve())
 
 const canal = {
   on: vi.fn(
@@ -24,6 +25,7 @@ const canal = {
 
 vi.mock('./browser', () => ({
   createClient: () => ({
+    realtime: { setAuth },
     channel: (nombre: string) => {
       nombres.push(nombre)
       return canal
@@ -45,7 +47,10 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-function suscribir(eventos: ('INSERT' | 'UPDATE' | 'DELETE')[] = ['INSERT', 'UPDATE']) {
+// El canal se arma tras pedir el token: una vuelta de promesas.
+const esperarAlCanal = () => new Promise<void>((listo) => setTimeout(listo, 0))
+
+async function suscribir(eventos: ('INSERT' | 'UPDATE' | 'DELETE')[] = ['INSERT', 'UPDATE']) {
   const alCambiar = vi.fn()
   const alReconectar = vi.fn()
   const desuscribir = suscribirseACambios({
@@ -55,12 +60,13 @@ function suscribir(eventos: ('INSERT' | 'UPDATE' | 'DELETE')[] = ['INSERT', 'UPD
     alCambiar,
     alReconectar,
   })
+  await esperarAlCanal()
   return { alCambiar, alReconectar, desuscribir }
 }
 
 describe('suscribirseACambios', () => {
-  it('pide sólo los eventos dados, con su filtro, y nunca DELETE si no se pidió', () => {
-    suscribir()
+  it('pide sólo los eventos dados, con su filtro, y nunca DELETE si no se pidió', async () => {
+    await suscribir()
     expect(pedidos.map((p) => p.evento)).toEqual(['INSERT', 'UPDATE'])
     expect(pedidos.every((p) => p.filtro.filter === 'usuario_id=eq.u1')).toBe(true)
     expect(
@@ -68,21 +74,21 @@ describe('suscribirseACambios', () => {
     ).toBe(true)
   })
 
-  it('cada suscripción tiene su canal', () => {
-    suscribir()
-    suscribir()
+  it('cada suscripción tiene su canal', async () => {
+    await suscribir()
+    await suscribir()
     expect(new Set(nombres).size).toBe(2)
   })
 
-  it('una señal avisa sin pasar la fila', () => {
-    const { alCambiar } = suscribir()
+  it('una señal avisa sin pasar la fila', async () => {
+    const { alCambiar } = await suscribir()
     alSeñal?.()
     expect(alCambiar).toHaveBeenCalledTimes(1)
     expect(alCambiar).toHaveBeenCalledWith()
   })
 
-  it('la primera conexión no es una reconexión; la que sigue a un corte, sí', () => {
-    const { alReconectar } = suscribir()
+  it('la primera conexión no es una reconexión; la que sigue a un corte, sí', async () => {
+    const { alReconectar } = await suscribir()
     alEstado?.('SUBSCRIBED')
     expect(alReconectar).not.toHaveBeenCalled()
     alEstado?.('CHANNEL_ERROR')
@@ -96,8 +102,8 @@ describe('suscribirseACambios', () => {
     expect(alReconectar).toHaveBeenCalledTimes(2)
   })
 
-  it('al volver la pestaña a visible relee; oculta no', () => {
-    const { alReconectar } = suscribir()
+  it('al volver la pestaña a visible relee; oculta no', async () => {
+    const { alReconectar } = await suscribir()
     Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true })
     document.dispatchEvent(new Event('visibilitychange'))
     expect(alReconectar).not.toHaveBeenCalled()
@@ -106,8 +112,8 @@ describe('suscribirseACambios', () => {
     expect(alReconectar).toHaveBeenCalledTimes(1)
   })
 
-  it('desuscribir quita el canal y deja de oír la pestaña y los estados', () => {
-    const { alReconectar, desuscribir } = suscribir()
+  it('desuscribir quita el canal y deja de oír la pestaña y los estados', async () => {
+    const { alReconectar, desuscribir } = await suscribir()
     desuscribir()
     expect(removeChannel).toHaveBeenCalledWith(canal)
     document.dispatchEvent(new Event('visibilitychange'))
@@ -116,5 +122,36 @@ describe('suscribirseACambios', () => {
     expect(alReconectar).not.toHaveBeenCalled()
     desuscribir()
     expect(removeChannel).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('suscribirseACambios: cuándo se une', () => {
+  it('el canal se une después de pedir el token de la sesión, no antes', async () => {
+    const orden: string[] = []
+    setAuth.mockImplementationOnce(() => {
+      orden.push('token')
+      return Promise.resolve()
+    })
+    canal.subscribe.mockImplementationOnce((cb: (estado: Estado) => void) => {
+      orden.push('unirse')
+      alEstado = cb
+      return canal
+    })
+    await suscribir()
+    expect(orden).toEqual(['token', 'unirse'])
+  })
+
+  it('un desuscribir antes de que el canal exista lo cancela', async () => {
+    const desuscribir = suscribirseACambios({
+      tabla: 'notificaciones',
+      filtro: 'usuario_id=eq.u1',
+      eventos: ['INSERT'],
+      alCambiar: vi.fn(),
+      alReconectar: vi.fn(),
+    })
+    desuscribir()
+    await esperarAlCanal()
+    expect(canal.subscribe).not.toHaveBeenCalled()
+    expect(removeChannel).not.toHaveBeenCalled()
   })
 })

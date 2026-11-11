@@ -1,6 +1,7 @@
 // Realtime de una tabla como señal: «algo cambió, vuelve a leer». Nunca entrega la fila: quien llama relee con su
 // consulta (que pasa por la RLS) y no pinta nada de lo que viaja por el canal. Los `DELETE` no pasan por RLS en
 // Realtime (llegan a todo suscriptor con la clave): quien no los necesita no los pide.
+import type { RealtimeChannel } from '@supabase/supabase-js'
 import { createClient } from './browser'
 
 type Evento = 'INSERT' | 'UPDATE' | 'DELETE'
@@ -20,6 +21,10 @@ const SIN_CONEXION = new Set(['CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'])
 let contador = 0
 
 // Devuelve el `desuscribir()`. El reintento ante un corte es el de supabase-js.
+//
+// El canal se une **después** de pedirle a Realtime el token de la sesión (`realtime.setAuth()`): si se une antes
+// entra como `anon`, que no puede leer la tabla, y Realtime rechaza el filtro («invalid column for filter»). Un
+// `desuscribir()` que llega antes de que el canal exista lo cancela.
 export function suscribirseACambios({
   tabla,
   filtro,
@@ -29,30 +34,44 @@ export function suscribirseACambios({
 }: OpcionesDeCanal): () => void {
   const cliente = createClient()
   contador += 1
-  let canal = cliente.channel(`cambios:${tabla}:${contador}`)
-  for (const event of eventos) {
-    canal = canal.on(
-      'postgres_changes',
-      { event, schema: 'public', table: tabla, filter: filtro },
-      () => alCambiar(),
-    )
-  }
-
+  const nombre = `cambios:${tabla}:${contador}`
+  let canal: RealtimeChannel | null = null
   let cerrado = false
   let huboCorte = false
-  canal.subscribe((estado) => {
+
+  const armar = () => {
     if (cerrado) {
       return
     }
-    if (estado === 'SUBSCRIBED') {
-      if (huboCorte) {
-        huboCorte = false
-        alReconectar()
-      }
-    } else if (SIN_CONEXION.has(estado)) {
-      huboCorte = true
+    let nuevo = cliente.channel(nombre)
+    for (const event of eventos) {
+      nuevo = nuevo.on(
+        'postgres_changes',
+        { event, schema: 'public', table: tabla, filter: filtro },
+        () => alCambiar(),
+      )
     }
-  })
+    nuevo.subscribe((estado) => {
+      if (cerrado) {
+        return
+      }
+      if (estado === 'SUBSCRIBED') {
+        if (huboCorte) {
+          huboCorte = false
+          alReconectar()
+        }
+      } else if (SIN_CONEXION.has(estado)) {
+        huboCorte = true
+      }
+    })
+    canal = nuevo
+  }
+
+  // Un fallo al pedir el token no impide suscribirse: el canal entra con el que tenga.
+  void cliente.realtime
+    .setAuth()
+    .catch(() => undefined)
+    .then(armar)
 
   const alCambiarLaVisibilidad = () => {
     if (!cerrado && document.visibilityState === 'visible') {
@@ -67,6 +86,8 @@ export function suscribirseACambios({
     }
     cerrado = true
     document.removeEventListener('visibilitychange', alCambiarLaVisibilidad)
-    void cliente.removeChannel(canal)
+    if (canal) {
+      void cliente.removeChannel(canal)
+    }
   }
 }
