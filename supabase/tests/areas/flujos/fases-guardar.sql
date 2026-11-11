@@ -7,6 +7,7 @@
 --   G3. Cada validación da su mensaje y su campo; en guardar, sobre la fila mezclada.
 --   G4. Las reglas del flujo: aduana sin la regla (origen manual, repuestos) → 23514; con la regla, pasa; sin logística, crear deja `es_logistica` apagada.
 --   G5. Los únicos con mensaje humano: nombre repetido en el flujo y dos fases que cuentan la llegada de repuestos.
+--   V7. `authenticated` no escribe directo `fases` ni `flujos` (42501) y las policies de escritura ya no existen.
 
 create or replace function pg_temp.fg_persona(p_concesiones text[]) returns uuid language plpgsql as $f$
 declare v_id uuid := gen_random_uuid(); v_rol uuid; c text;
@@ -236,5 +237,24 @@ begin
   perform pg_temp.fg_pasa('G5 guardar llegada', pg_temp.fg_guardar(yo, f1, '{"cuenta_llegada_repuestos": true}'));
   perform pg_temp.fg_es('G5 guardar segunda llegada', pg_temp.fg_guardar(yo, f2, '{"cuenta_llegada_repuestos": true}'),
     '23505', 'Otra fase de este flujo ya cuenta la llegada de repuestos.', 'cuenta_llegada_repuestos');
+end $$;
+rollback;
+
+-- @test fases: authenticated no escribe directo fases ni flujos (42501) y las policies de escritura ya no existen (V7)
+begin;
+do $$
+declare
+  a uuid := pg_temp.fg_flujo('manual'); config_a uuid := pg_temp.fg_persona(array['flujos.configurar']); fa uuid := pg_temp.fg_fase(a, 'FG en A'); r jsonb;
+begin
+  r := pg_temp.fg_corre(config_a, format('insert into public.fases (flujo_id, nombre) values (%L, ''FG directa'')', a));
+  if r ->> 'error' is distinct from '42501' then raise exception 'V7: el insert directo en fases debía dar 42501 y dio %', r; end if;
+  r := pg_temp.fg_corre(config_a, format('update public.fases set nombre = ''FG directa'' where id = %L', fa));
+  if r ->> 'error' is distinct from '42501' then raise exception 'V7: el update directo de fases debía dar 42501 y dio %', r; end if;
+  r := pg_temp.fg_corre(config_a, format('update public.flujos set nombre = ''FG directa'' where id = %L', a));
+  if r ->> 'error' is distinct from '42501' then raise exception 'V7: el update directo de flujos debía dar 42501 y dio %', r; end if;
+  if exists (select 1 from pg_policies where schemaname = 'public' and policyname in ('fases: crear', 'fases: editar', 'flujos: editar')) then
+    raise exception 'V7: quedó una policy de escritura de fases o flujos';
+  end if;
+  if (select nombre from public.fases where id = fa) <> 'FG en A' then raise exception 'V7: una escritura directa cambió la fase'; end if;
 end $$;
 rollback;
