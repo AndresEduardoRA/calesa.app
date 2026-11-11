@@ -39,6 +39,7 @@ import {
 import { join } from 'node:path'
 import { limpiarRamas, ramasProtegidas } from './limpiar-ramas.mjs'
 import { atenderColgado, gh, integrar, integrarSueltos, mirarPr, reintentarUnaVez } from './pr.mjs'
+import { renumerarMigraciones } from './renumerar.mjs'
 import {
   aparcar,
   estadoInicial,
@@ -381,6 +382,25 @@ function sincronizar(plan, estado) {
         if (r.aviso) informe.push(`${paso.id}: CI en rojo (#${e.pr}): ${r.aviso}`)
         continue
       }
+    }
+    // Sólo le falta renumerar migraciones: lo hace el coordinador, sin esperar a que su carril termine el paso en curso (renumerar.mjs).
+    if (
+      pr.arreglar === 'migración anterior a la última de main' &&
+      process.env.COORD_RENUMERAR !== '0'
+    ) {
+      const r = renumerarMigraciones(pr.rama, pr.oid)
+      if (r.hecho) {
+        estado = {
+          ...estado,
+          pasos: { ...estado.pasos, [paso.id]: { ...estado.pasos[paso.id], arreglar: null } },
+        }
+        informe.push(
+          `${paso.id}: renumeré las migraciones de #${e.pr} (${r.pares.join(' ')}): su CI corre otra vez`,
+        )
+        continue
+      }
+      if (e.arreglar !== pr.arreglar)
+        informe.push(`${paso.id}: no pude renumerar #${e.pr} (${r.motivo})`)
     }
     if (pr.arreglar !== (e.arreglar ?? null)) {
       estado = {
