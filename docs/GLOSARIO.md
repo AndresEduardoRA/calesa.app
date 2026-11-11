@@ -294,6 +294,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Tarea** — `tareas` / `reasignar_tarea`: pendiente con responsable y vencimiento.
 - **Conversación / Mensaje** — `conversaciones`, `mensajes`: directa, grupo o canal global; mensajes de texto o fichas.
 - **Mención** — `mensajes_menciones`: `#` a vehículo, lead, cotización o persona; no otorga acceso.
+- **No leídos** — `chat_conversaciones().no_leidos`, `chat_no_leidos()`: mensajes de otras personas posteriores a tu última lectura de una conversación (`conversaciones_miembros.ultimo_leido_en`), contados entre las 100 entradas más nuevas (las propias ocupan lugar y no suman); 100 se muestra «99+». El total no suma las silenciadas.
 - **Notificación** — `notificaciones` / `notificar()`: aviso en la campana; `requiere_accion` para lo que pide clic.
 - **Push** — `suscripciones_push`: suscripción web push del navegador.
 - **Actividad** — `actividad` / `registrar_actividad()`: auditoría inmutable, 14 días.
