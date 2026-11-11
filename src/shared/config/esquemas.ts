@@ -27,8 +27,6 @@ export const esquemaDelServidor = z
     VAPID_SUBJECT: opcional(
       z.string().regex(/^(mailto:|https:\/\/)/, { error: 'empieza con mailto: o https://' }),
     ), // Fase 7
-    WEB_PUBLICA_REVALIDAR_URL: opcional(url), // Fase 8
-    WEB_PUBLICA_REVALIDAR_SECRETO: opcional(texto), // Fase 8
     EMAIL_PROVEEDOR: z
       .enum(PROVEEDORES_DE_EMAIL, { error: `es uno de ${PROVEEDORES_DE_EMAIL.join(', ')}` })
       .default('ninguno'),

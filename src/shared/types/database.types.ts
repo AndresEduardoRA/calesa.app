@@ -7482,6 +7482,59 @@ export type Database = {
         Args: { p_actual: string; p_esperado: string; p_mensaje: string }
         Returns: undefined
       }
+      _fase_aplicar: {
+        Args: {
+          p_datos: Json
+          p_fila: Omit<
+            Database['public']['Tables']['fases']['Row'],
+            Database['public']['Tables']['fases']['ComputedFields']
+          >
+        }
+        Returns: {
+          activa: boolean
+          actualizado_en: string
+          alerta_cada_horas: number | null
+          alias_portal: string | null
+          color: string
+          creado_en: string
+          cuenta_llegada_repuestos: boolean
+          demora_dias: number | null
+          descripcion: string | null
+          descripcion_portal: string | null
+          es_final: boolean
+          es_inicial: boolean
+          es_logistica: boolean
+          flujo_id: string
+          icono: string | null
+          id: string
+          nombre: string
+          nota_obligatoria: boolean
+          orden: number
+          permite_aduana: boolean
+          permite_contenedor: boolean
+          publica_web: boolean
+          visible_portal: boolean
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'fases'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _fase_forma: { Args: { p_datos: Json; p_vacio_vale: boolean }; Returns: undefined }
+      _fase_unico: { Args: { p_nombre: string; p_restriccion: string }; Returns: undefined }
+      _fase_uso: { Args: { p_fase: string }; Returns: Json }
+      _fase_validar: {
+        Args: {
+          p_claves: string[]
+          p_fila: Omit<
+            Database['public']['Tables']['fases']['Row'],
+            Database['public']['Tables']['fases']['ComputedFields']
+          >
+        }
+        Returns: undefined
+      }
       _final_aplicar: {
         Args: {
           c: Omit<
@@ -7496,6 +7549,25 @@ export type Database = {
         Args: { p_ids: string[]; p_lead: string; p_vehiculo: string }
         Returns: undefined
       }
+      _flujo_para_editar: {
+        Args: { p_actualizado_en_esperado: string; p_flujo: string }
+        Returns: {
+          activo: boolean
+          actualizado_en: string
+          ambito: Database['public']['Enums']['ambito_flujo']
+          creado_en: string
+          id: string
+          nombre: string
+          origen_id: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'flujos'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _flujo_tocar: { Args: { p_flujo: string }; Returns: string }
       _formula_cambio_y_grupos: {
         Args: {
           p_buckets: Json
@@ -8658,7 +8730,24 @@ export type Database = {
         }
         Returns: Json
       }
-      fase_eliminar: { Args: { p_fase: string }; Returns: Json }
+      fase_crear: {
+        Args: { p_actualizado_en_esperado: string; p_datos: Json; p_flujo: string; p_id: string }
+        Returns: string
+      }
+      fase_eliminar: { Args: { p_actualizado_en_esperado: string; p_fase: string }; Returns: Json }
+      fase_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_fase: string }
+        Returns: string
+      }
+      fase_impacto: { Args: { p_fase: string }; Returns: Json }
+      fase_mover: {
+        Args: { p_actualizado_en_esperado: string; p_despues_de?: string; p_fase: string }
+        Returns: string
+      }
+      fase_reactivar: {
+        Args: { p_actualizado_en_esperado: string; p_fase: string }
+        Returns: string
+      }
       flujo_de_fase: { Args: { p_fase: string }; Returns: string }
       flujo_regla_activa: { Args: { p_flujo: string; p_regla: string }; Returns: boolean }
       formula_cambiar_constante: {

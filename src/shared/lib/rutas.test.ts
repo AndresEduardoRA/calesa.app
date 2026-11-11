@@ -6,6 +6,7 @@ import {
   returnToSeguro,
   rutaDeIngreso,
   unParametro,
+  unidadDeLogistica,
 } from './rutas'
 
 describe('returnToSeguro', () => {
@@ -134,5 +135,17 @@ describe('unParametro', () => {
     expect(unParametro(['a', 'b'])).toBe('a')
     expect(unParametro(undefined)).toBeUndefined()
     expect(unParametro([])).toBeUndefined()
+  })
+})
+
+describe('unidadDeLogistica', () => {
+  it('es la ruta del panel de una unidad, la que abre la notificación de demora', () => {
+    expect(unidadDeLogistica('6f1b7c1e-2f0a-4e0f-9c52-1d7c1a2b3c4d')).toBe(
+      '/logistica/vehiculo/6f1b7c1e-2f0a-4e0f-9c52-1d7c1a2b3c4d',
+    )
+  })
+
+  it('un id con caracteres de ruta no sale de ella', () => {
+    expect(unidadDeLogistica('../x?y#z')).toBe('/logistica/vehiculo/..%2Fx%3Fy%23z')
   })
 })

@@ -16,5 +16,9 @@ export const MOTIVO_SIN_LOGO = 'Carga el logo y guarda: los íconos se dibujan a
 
 export const MOTIVO_SIN_SECRETO = 'Guarda la clave antes de activarla.'
 
+export const MOTIVO_PROBAR_SIN_DIRECCION = 'Guarda la dirección para probar.'
+
+export const MOTIVO_PROBAR_SIN_SECRETO = 'Guarda el secreto para probar.'
+
 export const MOTIVO_SIN_PERMISO_AJUSTES_DE_COTIZACION =
   'Cambiar estos ajustes pide configurar el cotizador en todos los orígenes.'

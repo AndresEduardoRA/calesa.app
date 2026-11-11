@@ -25,7 +25,7 @@ export { puedeCambiarAjustesDeCotizacion } from './entities/ajustes-de-cotizacio
 export type { AjustesDeCotizacion } from './entities/ajustes-de-cotizacion'
 
 // Integraciones: el interruptor, lo no secreto y si están prendidas
-export { integracionActiva, leerIntegraciones } from './composicion'
+export { integracionActiva, leerIntegraciones, leerVehiculosQueCambian } from './composicion'
 export type { ClaveIntegracion } from './entities/integraciones'
 
 // El tope de lo que pesa un logo en Storage (1 MB): el PDF de una cotización no baja uno más pesado (4.18-3a)

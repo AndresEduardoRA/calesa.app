@@ -58,15 +58,20 @@ const SOLO_EL_AYUDANTE_DE_DIFERIDOS = {
     'El código diferido pasa por diferido() de @/shared/ui/diferido: carga con reintento y, sin red, avisa en su lugar en vez de tumbar la pantalla.',
 }
 
-// El cliente admin salta la RLS. Fuera de `src/shared/lib/supabase` lo crea un solo archivo, que
-// comprueba el permiso antes y no expone más que `auth.admin` (.claude/rules/datos.md). Los route
-// handlers del portal, los webhooks y los crons se suman a esa lista cuando existan.
+// El cliente admin salta la RLS. Fuera de `src/shared/lib/supabase` lo crean dos archivos, que
+// comprueban el permiso antes con el cliente de quien pide: invitar (sólo expone `auth.admin`) y
+// probar la revalidación de la web pública (sólo llama `integracion_secreto('web_publica')`)
+// (.claude/rules/datos.md). Los route handlers del portal, los webhooks y los crons se suman a esa
+// lista cuando existan.
 const SOLO_DONDE_SE_PERMITE_EL_ADMIN = {
   name: '@/shared/lib/supabase/admin',
   message:
-    'El cliente admin sólo se crea en src/modules/equipo/infra/invitaciones.ts (.claude/rules/datos.md).',
+    'El cliente admin sólo se crea en src/modules/equipo/infra/invitaciones.ts y src/modules/empresa/infra/revalidacion-prueba.ts (.claude/rules/datos.md).',
 }
-const DONDE_SE_PERMITE_EL_ADMIN = ['src/modules/equipo/infra/invitaciones.ts']
+const DONDE_SE_PERMITE_EL_ADMIN = [
+  'src/modules/equipo/infra/invitaciones.ts',
+  'src/modules/empresa/infra/revalidacion-prueba.ts',
+]
 
 // El correo sale por un solo módulo, `src/shared/lib/email/` (`enviarEmail()`), con un adaptador por proveedor por su API REST: cambiar de
 // proveedor es cambiar variables, nunca código (docs/ENTORNOS.md). Nadie importa el SDK de un proveedor, tampoco el módulo.

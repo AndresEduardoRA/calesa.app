@@ -11,6 +11,7 @@ import { RUTAS } from '@/shared/lib/rutas'
 import { SECCION_DE_COTIZACION } from './cotizacion/seccion'
 import { PERMISOS_DE_EMPRESA } from './empresa/pestanas'
 import { SECCION_DE_FLUJOS } from './flujos/seccion'
+import { SECCIONES_DE_LOGISTICA } from './logistica/seccion'
 import { PERMISOS_DE_ORIGENES } from './origenes/acceso'
 
 // Las secciones de Configuración que ya tienen pantalla. Cada una se abre con cualquiera de sus
@@ -53,6 +54,7 @@ export const SECCIONES = [
   },
   SECCION_DE_COTIZACION,
   SECCION_DE_FLUJOS,
+  ...SECCIONES_DE_LOGISTICA,
   {
     clave: 'equipo',
     titulo: 'Equipo',

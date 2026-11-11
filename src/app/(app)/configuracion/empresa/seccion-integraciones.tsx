@@ -1,10 +1,11 @@
-import { leerIntegraciones } from '@/modules/empresa'
+import { leerIntegraciones, leerVehiculosQueCambian } from '@/modules/empresa'
 import { Integraciones } from '@/modules/empresa/pantallas/configuracion-empresa'
 import { datosO } from '@/shared/lib/errores'
 import { EstadoVacio } from '@/shared/ui/estados'
 
 // La pestaña «Integraciones». Si están activas lo lee cualquiera; editarlas y cargar su clave,
-// quien tiene `empresa.ajustes.gestionar`.
+// quien tiene `empresa.ajustes.gestionar`. El conteo de la web pública lo pide sólo quien puede
+// editar (la RPC exige el permiso); si falla, la tarjeta da la ayuda general.
 export async function SeccionIntegraciones({ puedeEditar }: { puedeEditar: boolean }) {
   const integraciones = datosO(await leerIntegraciones())
   const apibara = integraciones.find((una) => una.clave === 'apibara')
@@ -16,5 +17,14 @@ export async function SeccionIntegraciones({ puedeEditar }: { puedeEditar: boole
       />
     )
   }
-  return <Integraciones apibara={apibara} puedeEditar={puedeEditar} />
+  const webPublica = integraciones.find((una) => una.clave === 'web_publica')
+  const conteo = webPublica && puedeEditar ? await leerVehiculosQueCambian() : null
+  return (
+    <Integraciones
+      apibara={apibara}
+      webPublica={webPublica}
+      vehiculosQueCambian={conteo?.ok ? conteo.data : null}
+      puedeEditar={puedeEditar}
+    />
+  )
 }
