@@ -9,6 +9,7 @@
 --   Q3. Un confirmado no se corrige ni se elimina por las RPC (PT409 aunque la versión esté al día) ni con un UPDATE directo del dueño de la base (23514,
 --       también volver a no confirmado); ponerle `eliminado_en` pasa.
 --   Q4. Un insert del dueño de la base con `confirmado = true` y un sello nace sin confirmar y sin sello; confirmar sin sesión, 42501.
+--   Q5. Un confirmado suelta su lead (`lead_id` → nulo, lo que hace la FK al borrar el lead) pero no lo cambia por otro (23514).
 
 create sequence if not exists pg_temp.din_telefono;
 
@@ -213,6 +214,29 @@ begin
     raise exception 'Q4: confirmó sin sesión';
   exception when insufficient_privilege then null;
   end;
+end $$;
+reset role;
+rollback;
+
+-- @test dinero: un pago confirmado suelta su lead pero no lo cambia por otro (Q5)
+begin;
+do $$
+declare t jsonb := pg_temp.din_terreno(); p uuid; l1 uuid := pg_temp.din_lead(); l2 uuid := pg_temp.din_lead(); pid uuid;
+begin
+  p := pg_temp.din_persona('logistica.pagos.ver', 'logistica.pagos.confirmar');
+  -- Sin sesión, trg_lead_visible no mira el lead: lo que se prueba es el sello.
+  perform set_config('request.jwt.claim.sub', '', true);
+  insert into public.pagos (vehiculo_id, lead_id, concepto, moneda, monto, monto_base) values ((t ->> 'v')::uuid, l1, 'DIN', t ->> 'base', 10, 10)
+  returning pagos.id into pid;
+  if (pg_temp.din_confirmar(p, pid)) ->> 'error' is not null then raise exception 'Q5: no confirmó'; end if;
+  perform set_config('request.jwt.claim.sub', '', true);
+  begin
+    update public.pagos set lead_id = l2 where pagos.id = pid;
+    raise exception 'Q5: un confirmado cambió de lead';
+  exception when check_violation then null;
+  end;
+  update public.pagos set lead_id = null where pagos.id = pid;
+  if (select lead_id from public.pagos where pagos.id = pid) is not null then raise exception 'Q5: el confirmado debía soltar el lead'; end if;
 end $$;
 reset role;
 rollback;
