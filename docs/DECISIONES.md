@@ -3591,3 +3591,13 @@ contra lo que la base ya tiene; aquí se unieron (`docs/PLAN.md` › «Carriles 
   tablero muestra totales exactos como excepción escrita (9.07); «exportar todo» no lleva teléfonos ni campos privados de carteras ajenas
   (9.05); sin dependencias nuevas (gráficas en SVG, cookie del portal con `node:crypto`).
 - **El despliegue no se ejecuta:** el 9.13 deja la guía, la lista de la persona y todo probado en seco.
+
+## 2026-11-11 — FLUJO-3: los rojos del entorno no vuelven al carril y el commit no repite la base
+
+- **Por qué:** a 4 h de lanzar, 1 de 69 pasos integrado. `apt` caído en los runners tiró el e2e de los 7 PR; cada carril gastó una sesión en
+  descubrirlo y los tres quedaron esperando un arreglo de `ci.yml` que sólo integra la persona. En cada parte, un tercio del reloj era el hook
+  del commit repitiendo `probar-schema`.
+- **Qué:** el coordinador reconoce un rojo del entorno (cayó un paso que no es prueba y el log trae la señal de red) y lo vuelve a correr hasta 8
+  veces con espera creciente, sin devolver el paso; `lefthook.yml` salta `schema` con `PILOTO=1`; una parte que sigue se planifica desde el plan
+  de la anterior. Detalle y medidas: `docs/PILOTO.md` › «Rojos del entorno y commits sin espera».
+- **Lo que no cambió:** la auditoría del informe (RLS, permisos, `security definer`, dinero) y que las guardas las integra la persona.

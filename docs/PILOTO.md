@@ -279,6 +279,26 @@ resto, carriles parados por un reinicio con `PARAR` (≈ 30 h-carril), «sin pas
 **Lo que sigue necesitando a una persona:** un PR que toca las guardas del piloto (`scripts/piloto/`, hooks, ajustes, workflows: el coordinador no lo
 integra solo; `COORD_GUARDAS_SOLAS=1` lo dejaría), producción (variables, secretos, `db push`), un paso aparcado sin reintentos, y `aprobado-*` a mano.
 
+## Rojos del entorno y commits sin espera (2026-11-11)
+
+Medido el 2026-11-11, a 4 h de lanzar las fases 5 a 9: 1 paso integrado de 69 y 7 PR en rojo. La causa no era del código: `apt` no resolvía el espejo de
+Ubuntu en los runners y los cuatro bloques de e2e caían al instalar chromium. El coordinador volvía a correr una vez y devolvía cada paso a su
+carril; tres sesiones de opus diagnosticaron lo mismo, y el arreglo (`ci.yml`, una guarda) esperaba a la persona con los tres carriles parados.
+Dentro de una sesión, ≈ 22 de 62 min eran el hook del commit corriendo `probar-schema` (≈ 4 min 20 s por commit de SQL) y ≈ 16 min, y el 37 %
+de los tokens, el planificador y el auditor, que en cada parte volvían a orientarse de cero. La caché estaba sana (lo escrito ≈ el contexto
+final; lo leído son las vueltas por el tamaño del contexto): lo que baja el gasto son menos vueltas y menos subagentes, no la caché.
+
+- **Un rojo del entorno no vuelve a su carril** (`scripts/coordinador/pr.mjs` › `rojoDelEntorno`): si en todas las corridas caídas cayó un paso
+  que no es una prueba y su log trae la señal de una red o un runner que no respondió, se vuelve a correr lo que cayó hasta 8 veces por commit,
+  con espera creciente (10, 20, 30 min…), y el PR queda pendiente: el carril sigue con otro paso. Agotadas, es un rojo como cualquiera. Lo
+  ajustan `COORD_ENTORNO_MAX`, `COORD_ENTORNO_ESPERA`, `COORD_PASO_DE_PRUEBA` y `COORD_SENAL_DE_ENTORNO`.
+- **El hook del commit no corre `probar-schema` con `PILOTO=1`** (`lefthook.yml`): la sesión corre `pnpm db:probar` antes de su primer commit de
+  SQL y al final, y el job «Base» del CI lo repite.
+- **Una parte que sigue no se planifica de cero:** el planificador deja servida cada parte en «Partición» (alcance, archivos, `Vn`) y la parte
+  siguiente parte de ese plan y del informe anterior (≤ 20 vueltas).
+- **Sigue siendo de la persona:** integrar un PR que toca las guardas (`.github/workflows/`, `scripts/piloto/`, `.claude/`, `lefthook.yml`). Un
+  arreglo del CI pedido por un carril espera ahí: se ve en el tablero como «lo integra la persona».
+
 ## El ensayo en seco (2026-10-26)
 
 `bash scripts/piloto/arrancar.sh --en-seco --nota .piloto/contexto/3a.md` («el 3a está en curso en otra sesión: planear el 4.13-3b sobre su contrato»), con `PILOTO_TOPE_USD_PASO=15`:
