@@ -12,7 +12,7 @@ Lo que el CRM configura para la web pública y el portal del cliente: ajustes de
 
 - Existe: `entities/repositorios.ts`, `entities/rueda.ts` (`puedeEstarEnLaRueda`, los dos textos), `features/rueda/components/estado-en-la-rueda.tsx` (la sección «Turnos de la web» de `/perfil`, por `pantallas/perfil.ts`), `infra/queries/sitio.ts` (`getDireccionPublica`), `composicion.ts`. Lo demás llega con la Fase 8.
 - `entities/cola.ts` — **todavía no existe** (Fase 8): reglas de la rueda (orden, cupo, pegajoso, prioridad) documentadas y testeadas como espejo de `web.solicitar_asesor` (la base decide). Lo que sí existe es `entities/rueda.ts`, el espejo de «¿el rol recibe turnos?».
-- `infra/revalidar.ts` — trigger → POST a `WEB_PUBLICA_REVALIDAR_URL` con secreto de Vault; `app/api/portal/*` firma la cookie del portal.
+- Revalidar: desde el 8.06-1 lo hace la base (cola `interno.web_revalidar_pendiente`, triggers `web_revalidar`, job `web-revalidar`; dirección en `integraciones.config.revalidar_url`, secreto en Vault): no hay `infra/revalidar.ts` y el 8.06-2 quita `WEB_PUBLICA_REVALIDAR_*` y escribe aquí el contrato con el sitio. `app/api/portal/*` firma la cookie del portal.
 - `features/sitio/`, `features/guias/`, `features/faqs/`, `features/testimonios/`, `features/cola/`.
 
 ## Tablas
