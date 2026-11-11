@@ -227,7 +227,7 @@ do $$ declare v uuid; sin_fase uuid; f_sub uuid; f_comp uuid; pre jsonb; h bigin
   pre := public.previsualizar_cambio_fase(v, null, f_comp);
   if (pre ->> 'ok')::boolean or jsonb_array_length(pre -> 'faltan') <> 2 then raise exception 'esperaba 2 requisitos faltantes: %', pre; end if;
   begin
-    perform public.cambiar_fase(v, null, f_comp, 'x', null);
+    perform public.cambiar_fase(v, null, f_comp, 'x', f_sub);   -- la esperada real: la nula sólo vale sin fase (6.02-1)
     raise exception 'movió sin requisitos';
   exception when check_violation then null; end;
   begin
