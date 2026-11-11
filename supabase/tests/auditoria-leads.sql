@@ -202,6 +202,7 @@ declare
     ('mensaje_evento_crear(uuid,uuid,jsonb,uuid[])', 'X'),
     -- El chat (7.08-3): lecturas de lo propio; no reciben ni devuelven un lead; cuentan mensajes sin leer el cuerpo (`areas/chat/lista.sql`).
     ('chat_conversaciones(integer,timestamp with time zone,uuid)', 'X'),
+    ('chat_no_leidos()', 'X'),
     ('storage_refcount(text,text)', 'X')
   ) t (f, c));
   r record; v_fallas text := '';

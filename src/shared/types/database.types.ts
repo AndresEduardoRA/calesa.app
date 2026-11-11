@@ -8394,6 +8394,7 @@ export type Database = {
         Returns: Json
       }
       chat_leer: { Args: { p_conversacion: string; p_hasta: string }; Returns: Json }
+      chat_no_leidos: { Args: Record<PropertyKey, never>; Returns: number }
       chat_salir: { Args: { p_conversacion: string }; Returns: Json }
       chat_silenciar: { Args: { p_conversacion: string; p_silenciada: boolean }; Returns: Json }
       claves_dato_requisito: {

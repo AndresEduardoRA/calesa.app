@@ -184,3 +184,55 @@ begin
   if pg_temp.chl_fila(r, sin_par) #>> '{otro,id}' is distinct from a::text then raise exception 'desde B, otro de la directa sin par no es A: %', pg_temp.chl_fila(r, sin_par); end if;
 end $$;
 rollback;
+
+-- @test chat: el total de no leídos se acota a 100, no suma silenciadas, ajenas, dejadas, propias ni el global sin chat.global (L4, C5, D4, D9)
+begin;
+do $$
+declare
+  a uuid := pg_temp.chl_persona(array['chat.participar']);
+  b uuid := pg_temp.chl_persona(array['chat.participar', 'chat.global']);
+  c uuid := pg_temp.chl_persona(array['chat.participar']);
+  g1 uuid; g2 uuid; g3 uuid; ajena uuid; g uuid; r jsonb;
+begin
+  g1 := pg_temp.chl_conversacion(array[a, b]);
+  g2 := pg_temp.chl_conversacion(array[a, b]);
+  perform pg_temp.chl_mensajes(g1, b, 60);
+  perform pg_temp.chl_mensajes(g2, b, 60);
+  r := pg_temp.chl_corre(a, 'select to_jsonb(public.chat_no_leidos())');
+  if r is distinct from '100'::jsonb then raise exception 'el total no se acotó a 100: %', r; end if;
+
+  r := pg_temp.chl_corre(a, format('select public.chat_silenciar(%L, true)', g2));
+  if r ? 'error' then raise exception 'A no pudo silenciar: %', r; end if;
+  r := pg_temp.chl_corre(a, 'select to_jsonb(public.chat_no_leidos())');
+  if r is distinct from '60'::jsonb then raise exception 'la silenciada sumó: %', r; end if;
+  -- La lista sí trae los no leídos de la silenciada (la pantalla decide, D9).
+  if pg_temp.chl_fila(pg_temp.chl_corre(a, 'select public.chat_conversaciones()'), g2) -> 'no_leidos' is distinct from '60'::jsonb then raise exception 'la lista no trajo los no leídos de la silenciada'; end if;
+
+  select id into g from public.conversaciones where es_global;
+  insert into public.conversaciones_miembros (conversacion_id, usuario_id) values (g, a), (g, b);
+  perform pg_temp.chl_mensajes(g, b, 30);
+  r := pg_temp.chl_corre(a, 'select to_jsonb(public.chat_no_leidos())');
+  if r is distinct from '60'::jsonb then raise exception 'el global sin chat.global sumó: %', r; end if;
+  insert into public.roles_permisos (rol_id, permiso_clave, alcance) select ur.rol_id, 'chat.global', 'todos' from public.usuarios_roles ur where ur.usuario_id = a;
+  r := pg_temp.chl_corre(a, 'select to_jsonb(public.chat_no_leidos())');
+  if r is distinct from '90'::jsonb then raise exception 'el global con chat.global no sumó sus 30: %', r; end if;
+
+  perform pg_temp.chl_mensajes(g1, a, 10);
+  r := pg_temp.chl_corre(a, 'select to_jsonb(public.chat_no_leidos())');
+  if r is distinct from '90'::jsonb then raise exception 'los propios sumaron: %', r; end if;
+
+  ajena := pg_temp.chl_conversacion(array[b, c], 'CHL ajena');
+  perform pg_temp.chl_mensajes(ajena, b, 50);
+  r := pg_temp.chl_corre(a, 'select to_jsonb(public.chat_no_leidos())');
+  if r is distinct from '90'::jsonb then raise exception 'una conversación ajena sumó: %', r; end if;
+
+  g3 := pg_temp.chl_conversacion(array[a, b], 'CHL dejo');
+  perform pg_temp.chl_mensajes(g3, b, 5);
+  r := pg_temp.chl_corre(a, 'select to_jsonb(public.chat_no_leidos())');
+  if r is distinct from '95'::jsonb then raise exception 'un grupo nuevo no sumó sus 5: %', r; end if;
+  r := pg_temp.chl_corre(a, format('select public.chat_salir(%L)', g3));
+  if r ->> 'resultado' is distinct from 'salio' then raise exception 'A no pudo salir: %', r; end if;
+  r := pg_temp.chl_corre(a, 'select to_jsonb(public.chat_no_leidos())');
+  if r is distinct from '90'::jsonb then raise exception 'el grupo que dejó siguió sumando: %', r; end if;
+end $$;
+rollback;
