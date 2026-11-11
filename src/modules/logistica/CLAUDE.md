@@ -17,7 +17,8 @@ Operación diaria sobre el flujo: cadena por fase, mover con vista previa, docum
 ## Tablas
 
 `documentos`, `puertos`, `navieras`, `transportes` (1:1 con la unidad), `flujos_transporte_oferta`, `declaraciones_aduana`, `declaraciones_vehiculos`, `categorias_gasto`, `gastos`, `pagos`, `notas`.
-RPC: `margen_vehiculo`, `alertas_demora` (cron), `storage_refcount`; mover vía `flujos`.
+RPC: `margen_vehiculo`, `alertas_demora` (cron), `storage_refcount`; mover vía `flujos`. Gastos y pagos se escriben sólo por RPC (6.10): `gasto_registrar`,
+`gasto_guardar`, `gasto_eliminar`, `gastos_prorratear`, `pago_registrar`, `pago_guardar`, `pago_eliminar` y `pago_confirmar`.
 
 ## No se rompe
 

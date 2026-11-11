@@ -36,6 +36,9 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Tipo de cambio** — `tipos_cambio` (clave: oficial, paralelo…) / `TipoCambio`: valor nombrado entre dos monedas; un solo valor vigente por clave; se congela en cada cotización.
 - **Tipo de cambio por defecto** — `tipos_cambio.es_default`: el que se usa entre dos monedas cuando no se elige otro; uno solo por par.
 - **Historial de un tipo de cambio** — `tipos_cambio_historial` / `CambioDeValor`: de cuánto a cuánto cambió, quién y cuándo; lo escribe un trigger.
+- **Monto en moneda base** — `gastos.monto_base`, `pagos.monto_base` / `_monto_en_base()`: lo calcula la base con el tipo de cambio elegido (su valor de ese momento queda en `tipo_cambio_aplicado`); quien carga nunca lo manda.
+- **Prorratear** — `gastos_prorratear()` / `gastos.lote_id`: repartir un gasto entre 1 y 200 vehículos en partes iguales; los centavos que sobran, a los primeros, y la suma es exacta. Un reparto es un lote.
+- **Confirmar un pago** — `pago_confirmar()` / `logistica.pagos.confirmar`: acto aparte de registrarlo; el sello (quién y cuándo) lo pone la base y un pago confirmado ya no se edita ni se elimina.
 - **Integración** — `integraciones` / `Integracion`, `integracionActiva()`: interruptor + config no secreta (apibara, push, web pública).
 - **Secreto de una integración** — `integraciones.secreto_guardado_en` / `integracion_guardar_secreto()`: clave de API en Vault.
 - **Origen** — `origenes`: de dónde viene un vehículo (subasta USA, China, oficina, Corea…); tipo subasta o manual.
