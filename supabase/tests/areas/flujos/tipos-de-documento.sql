@@ -239,3 +239,31 @@ begin
   if r <> '22023/aviso_dias' then raise exception 'un aviso sin vencimiento dio %', r; end if;
 end $$;
 rollback;
+
+-- @test tipos de documento: mover pide el permiso del grupo de la fila y no cambia versiones
+begin;
+select pg_temp.td_preparar();
+do $$
+declare flor uuid := '00000000-0000-4000-8000-000000007d0f'; cata uuid := '00000000-0000-4000-8000-000000007d0c';
+        ana uuid := '00000000-0000-4000-8000-000000007d0a';
+        g uuid := '00000000-0000-4000-8000-000000007d01'; a uuid := '00000000-0000-4000-8000-000000007d02'; r text; v timestamptz;
+begin
+  r := pg_temp.td_codigo(flor, format('select public.tipo_documento_mover(%L, %L)', g, pg_temp.td_version(g)));
+  if r <> '42501' then raise exception 'Flor movió el global: %', r; end if;
+  r := pg_temp.td_codigo(cata, format('select public.tipo_documento_mover(%L, %L)', a, pg_temp.td_version(a)));
+  if r <> '42501' then raise exception 'Cata movió el de A: %', r; end if;
+  r := pg_temp.td_codigo(ana, format('select public.tipo_documento_mover(%L, %L)', a, pg_temp.td_version(a)));
+  if r <> '42501' then raise exception 'Ana movió el de A: %', r; end if;
+  v := pg_temp.td_version(g);
+  r := pg_temp.td_codigo(cata, format('select public.tipo_documento_mover(%L, %L)', g, v));
+  if r <> 'sin error' then raise exception 'Cata no movió el global: %', r; end if;
+  if (select min(orden) from public.tipos_documento where flujo_id is null) <> (select orden from public.tipos_documento where id = g)
+     or pg_temp.td_version(g) <> v then
+    raise exception 'el global no quedó primero o cambió su versión';
+  end if;
+  r := pg_temp.td_codigo(flor, format('select public.tipo_documento_mover(%L, %L, %L)', a, pg_temp.td_version(a), g));
+  if r <> 'PT409' then raise exception 'mover el de A después de un global dio %', r; end if;
+  r := pg_temp.td_codigo(flor, format('select public.tipo_documento_mover(%L, %L)', a, pg_temp.td_version(a)));
+  if r <> 'sin error' then raise exception 'Flor no movió el de A: %', r; end if;
+end $$;
+rollback;

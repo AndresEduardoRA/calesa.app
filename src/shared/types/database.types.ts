@@ -9136,6 +9136,10 @@ export type Database = {
         Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_id: string }
         Returns: Json
       }
+      tipo_documento_mover: {
+        Args: { p_actualizado_en_esperado: string; p_despues_de?: string; p_id: string }
+        Returns: Json
+      }
       tipo_lead_crear: {
         Args: { p_clase: string; p_icono?: string; p_id: string; p_nombre: string }
         Returns: Json
