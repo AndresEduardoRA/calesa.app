@@ -137,3 +137,53 @@ begin
   if r ->> 'error' is distinct from '42501' then raise exception 'sin chat.global marcó leído el canal: %', r; end if;
 end $$;
 rollback;
+
+-- @test chat: nadie escribe conversaciones ni miembros directo: insert, update y delete como authenticated dan 42501 (M2, C13)
+begin;
+do $$
+declare a uuid := pg_temp.chm_persona(array['chat.participar', 'chat.global']); b uuid := pg_temp.chm_persona(array['chat.participar']); conv uuid; q text; r jsonb;
+begin
+  conv := pg_temp.chm_conversacion(array[a, b]);
+  update public.conversaciones set creado_por = a where id = conv;
+  foreach q in array array[
+    format('insert into public.conversaciones (tipo, nombre, creado_por) values (%L, %L, %L) returning to_jsonb(id)', 'grupo', 'CHM directo', a),
+    format('update public.conversaciones set nombre = %L where id = %L returning to_jsonb(id)', 'otro', conv),
+    format('delete from public.conversaciones where id = %L returning to_jsonb(id)', conv),
+    format('insert into public.conversaciones_miembros (conversacion_id, usuario_id) values (%L, %L) returning to_jsonb(usuario_id)', conv, gen_random_uuid()),
+    format('insert into public.conversaciones_miembros (conversacion_id, usuario_id) select id, %L from public.conversaciones where es_global returning to_jsonb(usuario_id)', b),
+    format('update public.conversaciones_miembros set ultimo_leido_en = now() where conversacion_id = %L and usuario_id = %L returning to_jsonb(usuario_id)', conv, a),
+    format('update public.conversaciones_miembros set silenciada = true where conversacion_id = %L and usuario_id = %L returning to_jsonb(usuario_id)', conv, a),
+    format('delete from public.conversaciones_miembros where conversacion_id = %L and usuario_id = %L returning to_jsonb(usuario_id)', conv, b)
+  ] loop
+    r := pg_temp.chm_corre(a, q);
+    if r ->> 'error' is distinct from '42501' then raise exception 'una escritura directa no dio 42501: % → %', q, r; end if;
+  end loop;
+  if pg_temp.chm_cuenta(a, format('select 1 from public.conversaciones_miembros where conversacion_id = %L', conv)) <> '2' then raise exception 'un miembro dejó de leer'; end if;
+  if exists (select 1 from pg_policies where schemaname = 'public' and tablename in ('conversaciones', 'conversaciones_miembros') and cmd <> 'SELECT') then
+    raise exception 'quedó una policy de escritura en conversaciones o miembros';
+  end if;
+end $$;
+rollback;
+
+-- @test chat: las RPC del chat son definer con search_path vacío, de authenticated y no de anon ni PUBLIC; los ayudantes no son de authenticated (M5)
+begin;
+do $$
+declare f text; p oid;
+begin
+  foreach f in array array['chat_directa(uuid)', 'chat_global_entrar()', 'chat_grupo_crear(uuid,text,uuid[])', 'chat_grupo_miembros(uuid,uuid[],uuid[])',
+                           'chat_salir(uuid)', 'chat_leer(uuid,timestamp with time zone)', 'chat_silenciar(uuid,boolean)'] loop
+    p := ('public.' || f)::regprocedure;
+    if not (select prosecdef and proconfig @> array['search_path=""'] from pg_proc where oid = p) then raise exception '% no es definer con search_path vacío', f; end if;
+    if not has_function_privilege('authenticated', p, 'execute') then raise exception '% no es de authenticated', f; end if;
+    if has_function_privilege('anon', p, 'execute') then raise exception '% es de anon', f; end if;
+    if exists (select 1 from pg_proc, aclexplode(proacl) a where oid = p and a.grantee = 0) then raise exception '% es de PUBLIC', f; end if;
+  end loop;
+  foreach f in array array['_chat_puede_conversar(uuid)', '_chat_mover_ultimo_mensaje()'] loop
+    p := ('public.' || f)::regprocedure;
+    if has_function_privilege('authenticated', p, 'execute') or has_function_privilege('anon', p, 'execute') then raise exception '% es de authenticated o anon', f; end if;
+  end loop;
+  if not (select prosecdef and proconfig @> array['search_path=""'] from pg_proc where oid = 'public._chat_mover_ultimo_mensaje()'::regprocedure) then
+    raise exception 'el trigger no es definer con search_path vacío';
+  end if;
+end $$;
+rollback;
