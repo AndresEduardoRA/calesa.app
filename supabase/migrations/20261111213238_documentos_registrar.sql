@@ -138,7 +138,8 @@ set search_path = ''
 as $$
 begin
   if exists (select 1 from unnest(p_ids) i
-             where not exists (select 1 from public.documentos d where d.id = i and d.ruta = p_ruta and d.subido_por = (select auth.uid()))) then
+             where not exists (select 1 from public.documentos d
+                               where d.id = i and d.ruta = p_ruta and d.subido_por = (select auth.uid()) and d.eliminado_en is null)) then
     raise exception 'Ese registro ya existe con otros datos. Recarga e intenta de nuevo.' using errcode = '23505', hint = 'id';
   end if;
   return public._documentos_de(p_ids);

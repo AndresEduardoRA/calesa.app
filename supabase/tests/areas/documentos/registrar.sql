@@ -146,6 +146,10 @@ begin
   if r <> '23505/id' then raise exception 'el mismo p_id con otro conjunto dio %', r; end if;
   r := pg_temp.dc_codigo(bea, pg_temp.dc_reg(null, vs, null, pg_temp.dc_u(e, 'tg'), v_ruta));
   if r <> '22023/id' then raise exception 'p_id nulo dio %', r; end if;
+  -- Eliminada una de las filas, reintentar ya no devuelve ids muertos: 23505/id.
+  update public.documentos set eliminado_en = now() where id = (j -> 0 ->> 'id')::uuid;
+  r := pg_temp.dc_codigo(bea, pg_temp.dc_reg(v_id, vs, null, pg_temp.dc_u(e, 'tg'), v_ruta));
+  if r <> '23505/id' then raise exception 'reintentar tras eliminar una fila dio %', r; end if;
   -- Ni por la base nace aprobado (documento_sellos).
   insert into public.documentos (vehiculo_id, tipo_documento_id, estado) values (vs[1], pg_temp.dc_u(e, 'tg'), 'aprobado');
   if exists (select 1 from public.documentos where vehiculo_id = vs[1] and estado = 'aprobado') then raise exception 'nació aprobado por la base'; end if;
