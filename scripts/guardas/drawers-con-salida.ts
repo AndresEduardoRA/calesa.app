@@ -119,6 +119,11 @@ export const DRAWERS_DEL_NUCLEO: Record<string, RegistroDeDrawer> = {
   'src/app/(app)/_shell/menu-movil.tsx': {
     sinFormulario: 'la navegación del celular',
   },
+  // --- flujos
+  'src/modules/flujos/features/configuracion/components/inspector-de-fase.tsx': {
+    sinFormulario:
+      'de sólo lectura por ahora: lo que dice la fase en tres bloques; al sumarle un formulario (5.04) pasa a `formulario` con `contexto`',
+  },
   // --- cotizaciones
   'src/modules/cotizaciones/features/hoja/components/ayuda-de-celda.tsx': {
     sinFormulario: 'de sólo lectura: el texto de ayuda de una celda de la hoja',
