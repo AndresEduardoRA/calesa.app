@@ -16,7 +16,6 @@ declare
     ('_origen_vehiculos_con_valor', 'impacto de cambiar un campo de un origen (administración)'),
     ('_lead_campo_con_valor', 'impacto de cambiar un campo de los leads (administración)'),
     ('_campo_impacto', 'cuenta los valores de un campo de un origen, ya acotados por origen (administración)'),
-    ('flujo_regla_apagar_validar', 'apagar una regla de un flujo cuenta las fases que la usan (administración)'),
     ('fuera_de_regla', 'revisión de coherencia de un flujo (administración)'),
     ('revisar_flujo', 'revisión de coherencia de un flujo (administración)'),
     ('evaluar_requisitos', 'requisitos de una fase de UN vehículo o repuesto (sus documentos)'),
