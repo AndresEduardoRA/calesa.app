@@ -41,8 +41,7 @@ export function InspectorDeFase({
     >
       <div className="grid gap-4 px-4 pb-4">
         <Bloque titulo="Datos">
-          <LecturaDeDatos fase={fase} />
-          {Datos ? <Datos flujo={flujo} fase={fase} /> : null}
+          {Datos ? <Datos flujo={flujo} fase={fase} /> : <LecturaDeDatos fase={fase} />}
         </Bloque>
         <Bloque titulo="Salidas y quién mueve">
           <LecturaDeSalidas flujo={flujo} fase={fase} roles={roles} />

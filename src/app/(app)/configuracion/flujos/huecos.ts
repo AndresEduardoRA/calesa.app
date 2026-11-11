@@ -1,4 +1,4 @@
-import { AccionesDeFila, AccionesDeLaLista } from '@/modules/flujos/pantallas/fases'
+import { AccionesDeFila, AccionesDeLaLista, DatosDeLaFase } from '@/modules/flujos/pantallas/fases'
 import type { HuecosDelFlujo } from '@/modules/flujos/pantallas/configuracion'
 
 // Lo que cada área de `flujos` pone en la pantalla de flujos: la lista de acciones, el «⋯» y las salidas de cada fila, la franja de «Revisar» y los tres bloques
@@ -7,4 +7,5 @@ import type { HuecosDelFlujo } from '@/modules/flujos/pantallas/configuracion'
 export const HUECOS_DE_FLUJOS: HuecosDelFlujo = {
   accionesDeLaLista: AccionesDeLaLista,
   accionesDeFila: AccionesDeFila,
+  bloques: { datos: DatosDeLaFase },
 }

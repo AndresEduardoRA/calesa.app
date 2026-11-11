@@ -2,3 +2,4 @@
 // reexporta lo que esa pantalla dibuja y nada más. Una segunda pantalla del área va en `pantallas/fases-<pantalla>.ts`.
 export { AccionesDeLaLista } from '../features/fases/components/acciones-de-la-lista'
 export { AccionesDeFila } from '../features/fases/components/acciones-de-fila'
+export { DatosDeLaFase } from '../features/fases/components/datos-de-la-fase'
