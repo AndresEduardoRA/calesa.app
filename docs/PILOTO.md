@@ -267,7 +267,8 @@ resto, carriles parados por un reinicio con `PARAR` (≈ 30 h-carril), «sin pas
   - no cuenta los checks que no son el CI (`COORD_IGNORAR_CHECKS`, por omisión el de Vercel: su vista previa usa la demo y no migra);
   - un rojo de «Nivel 1» o «Carriles» (`COORD_ROJO_FIRME`) vuelve a su carril al momento, sin reintento y sin esperar a los e2e;
   - un CI cancelado sin otra corrida detrás (lo cortó su tope) se vuelve a correr una vez, a los `COORD_COLGADO_ESPERA` s (600); si queda igual, es un rojo;
-  - una migración del PR que quedó atrás de la última de `main` lo devuelve («migración anterior a la última de main») y el carril la renumera sin sesión.
+  - una migración del PR que quedó atrás de la última de `main` la renumera el mismo coordinador en la rama del PR (`renumerar.mjs`) y el CI corre otra
+    vez; sólo si no puede (la rama cambió, el push no avanza) vuelve a su carril, que la renumera sin sesión. `COORD_RENUMERAR=0` lo apaga.
 - **Lo generado no se une a mano:** un choque con main en `src/shared/types/database.types.ts` (cada paso con migración lo regenera) se resuelve
   tomando el de main y regenerándolo contra la base del carril (`pnpm db:reset` y `pnpm db:types`; `PILOTO_CMD_TIPOS`), y el PR se publica sin sesión.
 - **Un carril que espera dice por qué, una vez** («sin paso libre (6.03 espera a que se integren: 6.02)»), no una línea cada dos minutos.
