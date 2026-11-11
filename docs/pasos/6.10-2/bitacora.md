@@ -45,4 +45,8 @@
 - **CI del PR (retoma):** la corrida 43056797518 cayó en los 4 bloques e2e sin correr un spec: el runner no resolvía el espejo de
   Ubuntu en `playwright install --with-deps` (el mismo rojo del 5.03). Base, Nivel 1 y carriles en verde. Sin código que arreglar en la
   rama: el arreglo del workflow entró con #108 (chromium sin apt si el espejo no responde) y la rama trae ese main.
+- **Conflicto con main (retoma):** main 0c25467d chocaba en `scripts/carreras.mjs` (carreras de dinero y de fases: corren las dos) y en
+  `supabase/tests/auditoria-leads.sql` (las RPC de pagos junto a las de la agenda; sale `reasignar_tarea(uuid,uuid)`, que main cambió de
+  firma). Las 11 migraciones de gastos y pagos se renumeraron tras `20261111190411` (las fases de main), sin tocar su contenido.
+  `db:reset`, `db:types` (sin cambios), `db:probar` 939 ✓ 0 ✗, guardas 1.058 ✓ y `db:carreras` en verde.
 - e2e completo: no (6.10-2, Nivel 2 por rls y estructura: lo corre el CI del PR; sin interfaz)
