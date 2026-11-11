@@ -198,6 +198,8 @@ declare
     ('mensaje_enviar(uuid,uuid,text,jsonb,uuid,jsonb)', 'X'),
     ('mensaje_editar(uuid,timestamp with time zone,text,jsonb)', 'X'),
     ('mensaje_eliminar(uuid)', 'X'),
+    ('mensaje_tarea_crear(uuid,uuid,jsonb)', 'X'),
+    ('mensaje_evento_crear(uuid,uuid,jsonb,uuid[])', 'X'),
     ('storage_refcount(text,text)', 'X')
   ) t (f, c));
   r record; v_fallas text := '';

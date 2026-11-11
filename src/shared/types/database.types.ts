@@ -7214,6 +7214,15 @@ export type Database = {
         }[]
       }
       _candado_de_objeto: { Args: { p_bucket: string; p_ruta: string }; Returns: number }
+      _chat_cuerpo: { Args: { p_cuerpo: string; p_obligatorio: boolean }; Returns: string }
+      _chat_menciones_guardar: {
+        Args: { p_conversacion: string; p_cuerpo: string; p_menciones: Json; p_mensaje: string }
+        Returns: undefined
+      }
+      _chat_miembro_vigente: {
+        Args: { p_conversacion: string; p_usuario: string }
+        Returns: boolean
+      }
       _chat_puede_conversar: { Args: { p_usuario: string }; Returns: boolean }
       _color_contraste: { Args: { p_a: string; p_b: string }; Returns: number }
       _color_luminancia: { Args: { p_hex: string }; Returns: number }
@@ -8933,6 +8942,35 @@ export type Database = {
       }
       limpieza_ultima: { Args: Record<PropertyKey, never>; Returns: Json }
       margen_vehiculo: { Args: { p_vehiculo: string }; Returns: Json }
+      mensaje_editar: {
+        Args: {
+          p_actualizado_en_esperado: string
+          p_cuerpo: string
+          p_menciones?: Json
+          p_mensaje: string
+        }
+        Returns: Json
+      }
+      mensaje_eliminar: { Args: { p_mensaje: string }; Returns: Json }
+      mensaje_enviar: {
+        Args: {
+          p_conversacion: string
+          p_cuerpo: string
+          p_ficha?: Json
+          p_id: string
+          p_menciones?: Json
+          p_responde_a?: string
+        }
+        Returns: Json
+      }
+      mensaje_evento_crear: {
+        Args: { p_conversacion: string; p_datos: Json; p_destinatarios?: string[]; p_id: string }
+        Returns: Json
+      }
+      mensaje_tarea_crear: {
+        Args: { p_conversacion: string; p_datos: Json; p_id: string }
+        Returns: Json
+      }
       mi_sesion: { Args: { p_perspectiva?: string }; Returns: Json }
       mis_leads: { Args: Record<PropertyKey, never>; Returns: string[] }
       mis_permisos: {
