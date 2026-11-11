@@ -2180,6 +2180,7 @@ export type Database = {
           proveedor: string | null
           repuesto_id: string | null
           tipo_cambio_aplicado: number | null
+          tipo_cambio_id: string | null
           vehiculo_id: string | null
         }
         ComputedFields: never
@@ -2199,6 +2200,7 @@ export type Database = {
           proveedor?: string | null
           repuesto_id?: string | null
           tipo_cambio_aplicado?: number | null
+          tipo_cambio_id?: string | null
           vehiculo_id?: string | null
         }
         Update: {
@@ -2217,6 +2219,7 @@ export type Database = {
           proveedor?: string | null
           repuesto_id?: string | null
           tipo_cambio_aplicado?: number | null
+          tipo_cambio_id?: string | null
           vehiculo_id?: string | null
         }
         Relationships: [
@@ -2246,6 +2249,13 @@ export type Database = {
             columns: ['repuesto_id']
             isOneToOne: false
             referencedRelation: 'repuestos_items'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'gastos_tipo_cambio_id_fkey'
+            columns: ['tipo_cambio_id']
+            isOneToOne: false
+            referencedRelation: 'tipos_cambio'
             referencedColumns: ['id']
           },
           {
@@ -7035,6 +7045,7 @@ export type Database = {
         Returns: Json
       }
       _compilar_visibilidad: { Args: { p_def: Json; p_diseno: Json }; Returns: Json }
+      _comprobante_ruta_valida: { Args: { p_ruta: string; p_unidad: string }; Returns: boolean }
       _conflicto_de_edicion: {
         Args: { p_cuando: string; p_registro: string; p_sujeto: string; p_tabla: string }
         Returns: undefined
@@ -7168,6 +7179,10 @@ export type Database = {
           p_yo: string
         }
         Returns: Json
+      }
+      _dinero_regla_activa: {
+        Args: { p_regla: string; p_repuesto: string; p_vehiculo: string }
+        Returns: boolean
       }
       _diseno_auxiliares: { Args: { p_def: Json }; Returns: Json }
       _diseno_forma: { Args: { p_diseno: Json }; Returns: undefined }
@@ -7339,6 +7354,26 @@ export type Database = {
       }
       _fotos_exigir_version: {
         Args: { p_actual: string; p_esperado: string; p_vehiculo: string }
+        Returns: undefined
+      }
+      _gasto_respuesta: {
+        Args: {
+          g: Omit<
+            Database['public']['Tables']['gastos']['Row'],
+            Database['public']['Tables']['gastos']['ComputedFields']
+          >
+          p_extra: Json
+        }
+        Returns: Json
+      }
+      _gasto_validar: {
+        Args: {
+          p_categoria: string
+          p_monto: number
+          p_repuesto: string
+          p_ruta: string
+          p_vehiculo: string
+        }
         Returns: undefined
       }
       _gracia_de_storage: { Args: Record<PropertyKey, never>; Returns: string }
@@ -7598,6 +7633,10 @@ export type Database = {
         Returns: string
       }
       _lote_papelera_tocar: { Args: { p_lote: string }; Returns: string }
+      _monto_en_base: {
+        Args: { p_moneda: string; p_monto: number; p_tipo_cambio: string; p_valor?: number }
+        Returns: Record<string, unknown>
+      }
       _motor_borde_entre: { Args: { a: number; b: number }; Returns: number }
       _motor_borde_mas: { Args: { a: number; b: number }; Returns: number }
       _motor_borde_menos: { Args: { a: number; b: number }; Returns: number }
@@ -8464,6 +8503,22 @@ export type Database = {
           repuesto_id: string
           vehiculo_id: string
         }[]
+      }
+      gasto_registrar: {
+        Args: {
+          p_categoria: string
+          p_comprobante_ruta: string
+          p_fecha: string
+          p_id: string
+          p_moneda: string
+          p_monto: number
+          p_notas: string
+          p_proveedor: string
+          p_repuesto: string
+          p_tipo_cambio: string
+          p_vehiculo: string
+        }
+        Returns: Json
       }
       importaciones_vinculos_purgar: { Args: Record<PropertyKey, never>; Returns: number }
       integracion_guardar: {
