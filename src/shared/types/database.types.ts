@@ -8071,9 +8071,58 @@ export type Database = {
         }
       }
       _recordatorio_titulo: { Args: { p_hint: string; p_valor: string }; Returns: string }
+      _requisito_aplicar: {
+        Args: {
+          p_datos: Json
+          p_fila: Omit<
+            Database['public']['Tables']['fases_requisitos']['Row'],
+            Database['public']['Tables']['fases_requisitos']['ComputedFields']
+          >
+        }
+        Returns: {
+          bloqueante: boolean
+          clave_dato: string | null
+          config: NonNullable<Json>
+          espera_ambito: Database['public']['Enums']['ambito_espera'] | null
+          espera_fase_id: string | null
+          fase_id: string
+          formatos: string[] | null
+          id: string
+          max_archivos: number | null
+          min_archivos: number | null
+          notas: string | null
+          orden: number
+          tipo: Database['public']['Enums']['tipo_requisito']
+          tipo_documento_id: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'fases_requisitos'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       _requisito_dato_cumplido: {
         Args: { p_clave: string; p_config: Json; p_repuesto: string; p_vehiculo: string }
         Returns: boolean
+      }
+      _requisito_forma: {
+        Args: {
+          p_crear: boolean
+          p_datos: Json
+          p_tipo: Database['public']['Enums']['tipo_requisito']
+        }
+        Returns: undefined
+      }
+      _requisito_validar: {
+        Args: {
+          p_claves: string[]
+          p_fila: Omit<
+            Database['public']['Tables']['fases_requisitos']['Row'],
+            Database['public']['Tables']['fases_requisitos']['ComputedFields']
+          >
+        }
+        Returns: undefined
       }
       _revision_etiquetas: { Args: { p_def: Json; p_filas: Json }; Returns: Json }
       _rol_para_editar: { Args: { p_esperado: string; p_rol: string }; Returns: undefined }
@@ -9306,6 +9355,28 @@ export type Database = {
           p_tabla: string
         }
         Returns: undefined
+      }
+      requisito_crear: {
+        Args: {
+          p_actualizado_en_esperado: string
+          p_datos: Json
+          p_fase: string
+          p_id: string
+          p_tipo: Database['public']['Enums']['tipo_requisito']
+        }
+        Returns: string
+      }
+      requisito_eliminar: {
+        Args: { p_actualizado_en_esperado: string; p_requisito: string }
+        Returns: string
+      }
+      requisito_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_requisito: string }
+        Returns: string
+      }
+      requisito_mover: {
+        Args: { p_actualizado_en_esperado: string; p_despues_de?: string; p_requisito: string }
+        Returns: string
       }
       revisar_flujo: {
         Args: { p_flujo: string }
