@@ -75,7 +75,12 @@ test('la dueña ve las fases de un origen en orden, cambia a repuestos y abre un
   await page.goto('/configuracion')
   await page.getByRole('link', { name: /Flujos/ }).click()
   await expect(page.getByRole('heading', { name: 'Flujos', level: 1 })).toBeVisible()
-  // Un solo ámbito de pestañas: no hay barra de secciones, sí la de flujos.
+  // Con «Documentos» (5.09) hay barra de secciones: «Fases» abre primero; y la de flujos.
+  await expect(page.getByRole('tab', { name: 'Fases', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
+  await expect(page.getByRole('tab', { name: 'Documentos', exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Fases', level: 2 })).toBeVisible()
 
   // Un origen escrito a mano en la URL: lo que no es suyo abre el primero y no es un error.
