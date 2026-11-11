@@ -44,6 +44,7 @@ case "$1 $2" in
   "pr view") cat "${respuestas}/$3.json" ;;
   "pr merge") echo "$3" >> "${respuestas}/merges"; echo "$*" >> "${respuestas}/merges-args"; echo '{"state":"MERGED"}' > "${respuestas}/$3.json" ;;
   "api -X") echo "$*" >> "${respuestas}/api" ;;
+  "pr list") cat "${respuestas}/prs.json" 2>/dev/null || echo '[]' ;;
   "run list") cat "${respuestas}/runs.json" 2>/dev/null || echo '[]' ;;
   "run rerun") echo "$*" >> "${respuestas}/reruns" ;;
   "run view") if [[ "$*" == *--log-failed* ]]; then cat "${respuestas}/run-$3.log" || exit 2; else cat "${respuestas}/run-$3.json" || exit 2; fi ;;
@@ -347,6 +348,32 @@ test('una prueba que cae con la red en el log no es un rojo del entorno: una vez
   writeFileSync(join(respuestas, 'run-77.log'), 'Error: read ECONNRESET\n')
   assert.match(correr('sincronizar'), /vuelvo a correr lo que cayó, una vez/)
   assert.match(correr('sincronizar'), /P02: CI en rojo \(#12\): vuelve a su carril/)
+})
+
+test('un PR suelto de una rama fix/ de este repo se integra con el CI en verde; el de un fork, un borrador u otra rama, no', () => {
+  const { correr, pr, respuestas } = repo()
+  const listo = {
+    state: 'OPEN',
+    mergeable: 'MERGEABLE',
+    headRefOid: 'aaa111',
+    statusCheckRollup: verde,
+  }
+  for (const n of [31, 32, 33, 34]) pr(n, listo)
+  writeFileSync(
+    join(respuestas, 'prs.json'),
+    JSON.stringify([
+      { number: 31, headRefName: 'fix/ci', isCrossRepository: false, isDraft: false },
+      { number: 32, headRefName: 'fix/de-afuera', isCrossRepository: true, isDraft: false },
+      { number: 33, headRefName: 'fix/a-medias', isCrossRepository: false, isDraft: true },
+      { number: 34, headRefName: 'otra/cosa', isCrossRepository: false, isDraft: false },
+    ]),
+  )
+  assert.match(correr('sincronizar'), /#31 \(fix\/ci\): integrado por el coordinador/)
+  assert.equal(readFileSync(join(respuestas, 'merges'), 'utf8').trim(), '31')
+  assert.match(
+    readFileSync(join(respuestas, 'merges-args'), 'utf8'),
+    /--squash --match-head-commit aaa111/,
+  )
 })
 
 test('con un job todavía corriendo, un rojo no devuelve el paso: espera a que termine', () => {

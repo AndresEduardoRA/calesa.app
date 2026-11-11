@@ -38,7 +38,7 @@ import {
 } from 'node:fs'
 import { join } from 'node:path'
 import { limpiarRamas, ramasProtegidas } from './limpiar-ramas.mjs'
-import { atenderColgado, gh, integrar, mirarPr, reintentarUnaVez } from './pr.mjs'
+import { atenderColgado, gh, integrar, integrarSueltos, mirarPr, reintentarUnaVez } from './pr.mjs'
 import {
   aparcar,
   estadoInicial,
@@ -610,6 +610,7 @@ try {
       let protegidas
       const informe = conCandado(() => {
         const r = sincronizar(plan, leerEstado(plan))
+        r.estado = integrarSueltos(r.estado, r.informe)
         guardarEstado(r.estado)
         protegidas = ramasProtegidas(plan, r.estado)
         return r.informe

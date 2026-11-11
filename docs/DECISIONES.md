@@ -3600,4 +3600,7 @@ contra lo que la base ya tiene; aquí se unieron (`docs/PLAN.md` › «Carriles 
 - **Qué:** el coordinador reconoce un rojo del entorno (cayó un paso que no es prueba y el log trae la señal de red) y lo vuelve a correr hasta 8
   veces con espera creciente, sin devolver el paso; `lefthook.yml` salta `schema` con `PILOTO=1`; una parte que sigue se planifica desde el plan
   de la anterior. Detalle y medidas: `docs/PILOTO.md` › «Rojos del entorno y commits sin espera».
-- **Lo que no cambió:** la auditoría del informe (RLS, permisos, `security definer`, dinero) y que las guardas las integra la persona.
+- **Integrar es del coordinador, no de una sesión** (la persona, el mismo día: «que los PR los integres tú, agnóstico a la sesión, automático»):
+  con el CI en verde entra también lo que toca las guardas (`COORD_GUARDAS_SOLAS=1`) y los PR sueltos de una rama `fix/` de este repo. La barrera
+  que queda es el CI (Nivel 1, Carriles, Base y e2e) y la auditoría del plan. Se vuelve atrás con `COORD_GUARDAS_SOLAS=0` y `COORD_SUELTOS=`.
+- **Lo que no cambió:** la auditoría del informe (RLS, permisos, `security definer`, dinero); producción sigue siendo de la persona.

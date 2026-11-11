@@ -3,7 +3,7 @@
 // `sincronizar`; se prueba, de punta a punta con un `gh` falso, en `coordinador.test.mjs`.
 //
 // Variables: COORD_GH (gh), COORD_GUARDAS_SOLAS, COORD_IGNORAR_CHECKS (^Vercel), COORD_ROJO_FIRME (^(Nivel 1|Carriles)),
-// COORD_COLGADO_ESPERA (600 s), COORD_ENTORNO_MAX (8), COORD_ENTORNO_ESPERA (600 s), COORD_PASO_DE_PRUEBA y COORD_SENAL_DE_ENTORNO.
+// COORD_COLGADO_ESPERA (600 s), COORD_SUELTOS (^fix/), COORD_ENTORNO_MAX (8), COORD_ENTORNO_ESPERA (600 s), COORD_PASO_DE_PRUEBA y COORD_SENAL_DE_ENTORNO.
 import { execFileSync } from 'node:child_process'
 import { guardasEn } from './plan.mjs'
 
@@ -267,4 +267,52 @@ export function reintentarUnaVez(numero, pr, estado, ahora = Date.now()) {
       ? `rojo del entorno («${paso.slice(0, 60)}»), no del código: vuelvo a correr lo que cayó (${veces} de ${ENTORNO_MAX})`
       : 'vuelvo a correr lo que cayó, una vez',
   }
+}
+
+// Los PR que no son de ningún paso: una rama `fix/…` de este mismo repo (un arreglo del flujo o del CI que abrió una sesión de
+// supervisión). Antes esperaban a que esa sesión, o la persona, volviera a integrarlos: el 11-11-2026 el arreglo del CI estuvo listo y sin
+// entrar mientras los tres carriles lo esperaban. Con el CI en verde los integra el coordinador, como un paso (squash y sin rama); un
+// rojo se vuelve a correr como cualquiera y, si sigue, queda a la vista en GitHub. Nunca un PR de un fork ni un borrador.
+// COORD_SUELTOS es la expresión de la rama (`^fix/`); vacía, lo apaga.
+const SUELTOS = process.env.COORD_SUELTOS ?? '^fix/'
+export function integrarSueltos(estado, informe) {
+  if (!SUELTOS) return estado
+  const rama = new RegExp(SUELTOS)
+  let abiertos
+  try {
+    abiertos = JSON.parse(
+      gh('pr', 'list', '--state', 'open', '--json', 'number,headRefName,isCrossRepository,isDraft'),
+    )
+  } catch {
+    return estado
+  }
+  for (const a of abiertos) {
+    if (a.isCrossRepository !== false || a.isDraft || !rama.test(a.headRefName ?? '')) continue
+    const etiqueta = `#${a.number} (${a.headRefName})`
+    let pr
+    try {
+      pr = mirarPr(a.number)
+    } catch {
+      continue
+    }
+    ;({ estado, pr } = atenderColgado(a.number, pr, estado, informe, etiqueta))
+    if (pr.arreglar === 'CI en rojo') {
+      const r = reintentarUnaVez(a.number, pr, estado)
+      estado = r.estado
+      if (r.aviso) informe.push(`${etiqueta}: CI en rojo: ${r.aviso}`)
+      continue
+    }
+    if (!pr.listo) continue
+    if (pr.guardas.length) {
+      informe.push(`${etiqueta}: toca las guardas del piloto: lo integra la persona`)
+      continue
+    }
+    try {
+      integrar(a.number, pr, '--squash', '--delete-branch')
+      informe.push(`${etiqueta}: integrado por el coordinador`)
+    } catch (err) {
+      informe.push(`${etiqueta}: no se pudo integrar (${String(err.message).split('\n')[0]})`)
+    }
+  }
+  return estado
 }

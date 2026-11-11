@@ -188,8 +188,8 @@ scripts ya no hacen falta. Las decisiones, en `docs/pasos/flujo-1/decisiones.md`
 - **El coordinador manda sobre el ruteo:** si el ruteo elige otro paso que el asignado (o una «parte» que es otro paso del plan, o «ninguno»),
   corre el asignado. Un paso del plan que dice «listo» sin cambios y sigue asignado va a la persona.
 - **El coordinador integra** los pasos, sus partes (`coordinador.mjs parcial`: con merge y sin borrar la rama) y los pedidos, en el commit
-  que vio el CI (`--match-head-commit`). Lo rojo también (`COORD_MERGE_AUTO` en `piloto.config`, decisión de la persona del 2026-11-07). **Lo
-  que toca las guardas del piloto, no:** lo integra la persona (`COORD_GUARDAS_SOLAS=1` lo deja).
+  que vio el CI (`--match-head-commit`). Lo rojo también (`COORD_MERGE_AUTO` en `piloto.config`, decisión de la persona del 2026-11-07). Lo que toca
+  las guardas del piloto también, desde el 2026-11-11 (`COORD_GUARDAS_SOLAS=1` en `piloto.config`; con `0` lo integra la persona).
 - **La puerta de fase con carriles mira el CI de `main`** (la rama del paso es nueva y no tenía CI), y una corrida cancelada no cuenta si hay
   otra detrás. Un `ci-fix` no se repite hasta que corra un CI con su arreglo (`ci-fix-head`).
 - **En CI, los e2e tienen un reintento:** la prueba que pasa al reintentar no pone el PR en rojo, y queda anotada en el PR
@@ -296,8 +296,10 @@ final; lo leído son las vueltas por el tamaño del contexto): lo que baja el ga
   SQL y al final, y el job «Base» del CI lo repite.
 - **Una parte que sigue no se planifica de cero:** el planificador deja servida cada parte en «Partición» (alcance, archivos, `Vn`) y la parte
   siguiente parte de ese plan y del informe anterior (≤ 20 vueltas).
-- **Sigue siendo de la persona:** integrar un PR que toca las guardas (`.github/workflows/`, `scripts/piloto/`, `.claude/`, `lefthook.yml`). Un
-  arreglo del CI pedido por un carril espera ahí: se ve en el tablero como «lo integra la persona».
+- **El coordinador integra todo lo que está en verde, sin esperar a nadie** (la persona, 2026-11-11): también lo que toca las guardas
+  (`COORD_GUARDAS_SOLAS=1` en `piloto.config`; `0` lo devuelve a la persona) y los PR sueltos de una rama `fix/` de este repo
+  (`pr.mjs` › `integrarSueltos`, `COORD_SUELTOS`; nunca un fork ni un borrador). Y lee `piloto.config` de `origin/main` en cada vuelta
+  (`sincronizar.sh`): un cambio integrado le llega sin relanzarlo.
 
 ## El ensayo en seco (2026-10-26)
 
