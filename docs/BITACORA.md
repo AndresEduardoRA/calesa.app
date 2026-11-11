@@ -2077,3 +2077,78 @@ share` los vehículos y después los leads del lote, por id, antes de cualquier 
   el completo porque toca auth.
   e2e completo: sí (4.28, cierre, Nivel 3: escritorio 1.046 en verde, 16 saltadas, 0 caídas, 38,6 min; movil 767 en verde, 21 saltadas, 0 caídas, 29,9 min)
 - **Commits:** `d3852065` el recorrido de la tarea de oro 2 entera · `2bfef1ed` el ingreso por POST antes de hidratar · la consolidación de docs · el cierre.
+
+<!-- paso:5.02-1 -->
+
+## 2026-11-11 — Paso 5.02-1: la base del módulo `flujos` (parte 1 de 2 del 5.02)
+
+- **Hecho:** `flujos` partido en un núcleo y siete áreas vacías (`fases`, `transiciones`, `requisitos`, `reglas`, `documentos`, `revisar`, `mover`) con sus tres
+  entradas, sus lugares (`features|entities|infra/<área>/`) y su `pantallas/<área>.ts`; la raíz sólo hace `export *`; `scripts/guardas/areas-de-flujos.test.ts` lo
+  vigila (un área no importa otra, el núcleo no importa áreas, nada de carpetas sin dueño). El núcleo lee el flujo entero para configurarlo
+  (`entities/flujo.ts`: `FlujoParaConfigurar`, con la versión como texto; `leerFlujoParaConfigurar()` y `leerFlujosConfigurables(permisos)`, con tope por tabla y la
+  bandera `truncado`). `equipo` suma `leerRolesParaElegir()`. Se cierran 4-102 (botones de `<Confirmar>` con `min-h-11 md:min-h-9`) y 4-48 (la línea de la ficha de xcell).
+- **Commits:** `ac0b0e3f` (áreas y guarda), `3e01181a` (el flujo para configurar, con `flujo.test.ts`), `c9bb2503` (roles para elegir), `e96d0187` (4-102),
+  `ca46ff94` (4-48).
+- **Verificación** (`.piloto/salidas/5.02/`): `scripts/guardas` entero, 33 archivos y 1.043 pruebas en verde; `src/modules/flujos` y `equipo/entities` en verde; `tsc` y
+  `eslint` sin avisos; e2e dirigidos a `<Confirmar>` (`e2e-dirigidos.txt`): tarjeta-descartar, fórmula-descartar y papelera-purgar, 19 ✓ en escritorio y celular.
+- **5.02 sigue:** falta el **5.02-2** (C6 a C12 del plan: la ruta `/configuracion/flujos`, la sección, el paso «Flujo» de Orígenes con `?origen=`, el selector, la lista de
+  fases de sólo lectura, el inspector `?fase=`, `useVersionDelFlujo()` y `e2e/configuracion-flujos.spec.ts`). Este PR no marca integrado el paso (`parcial: true`).
+- e2e completo: no (5.02-1, Nivel 2 por `src/shared/ui/confirmar.tsx`: lo corre el CI del PR; sin pantalla nueva)
+
+<!-- paso:5.02-2 -->
+
+## 2026-11-11 — Paso 5.02-2: la pantalla `/configuracion/flujos` (parte 2 de 2: el 5.02 queda completo)
+
+- **Hecho:** la ruta `/configuracion/flujos` con su sección en el hub, el selector (un origen por pestaña y «Repuestos»; `?origen=`, `?ambito=repuestos`), la lista de fases de sólo lectura
+  (en el orden de la base, con «Inicial», «Final» y «Jubilada»), el inspector `?fase=<id>` con tres bloques de lectura y sus huecos, `useVersionDelFlujo()` con el aviso de conflicto,
+  los huecos de cada área y sus carpetas en `src/app`; el paso «Flujo» de Orígenes enlaza con `?origen=<id>`. Docs: UX (fila y estados), GLOSARIO (versión del flujo, inspector de fase) y ficha.
+- **Encontrado al correr el e2e:** la lectura de 5.02-1 caía en la base real: `fases_requisitos` apunta dos veces a `fases` y PostgREST responde ambiguo. Se nombró la FK
+  (`fases!fases_requisitos_fase_id_fkey!inner`). Los tests de 5.02-1 usaban filas de mentira: una lectura nueva con embebidos se prueba contra la base.
+- **Commits:** `5959eebd` (selector y textos), `03b54158` (pantalla del módulo), `417441ac` (ruta y enlace de Orígenes), `e3be4bbe` (fix de la lectura), `9861b1a7` (docs de la pantalla), `69aa8737` (e2e).
+- **Verificación** (`.piloto/salidas/5.02/`): `scripts/guardas`, `src/app` y `src/modules/flujos` en verde (53 archivos, 1.173 pruebas); `tsc` y `eslint` sin avisos;
+  e2e `escritorio`: `configuracion-flujos.spec.ts` 3 ✓ y `origenes.spec.ts` ✓ (el paso «Flujo» ahora tiene enlace: 2 «Abrir» y 1 «próxima etapa»).
+- **Para 5.04:** pasar `inspector-de-fase.tsx` de `sinFormulario` a `formulario` en `drawers-con-salida.ts` (D13); llenar `huecos.ts` y las pestañas de su área.
+- **Pendiente de la ruta:** `/configuracion/flujos` no está en `e2e/soporte/presupuestos.ts`; si el CI mide su JS en frío puede pedir una línea en `docs/RENDIMIENTO.md`.
+- e2e completo: no (5.02-2, Nivel 2 por src/shared/lib/rutas.ts: lo corre el CI del PR; un solo e2e de la pantalla nueva)
+
+<!-- paso:6.01-1 -->
+
+## 2026-11-11 — Paso 6.01-1: la base del módulo `logistica` (parte 1 de 3 del 6.01)
+
+- **Hecho:** `logistica` partido en un núcleo y siete áreas vacías (`cadena`, `mover`, `documentos`, `transporte`, `aduana`, `dinero`, `alertas`) con sus tres entradas, sus
+  lugares y su `pantallas/<área>.ts`; la raíz sólo hace `export *` y `scripts/guardas/areas-de-logistica.test.ts` lo vigila. El núcleo define `Unidad` (con `refDeUnidad`),
+  `HuecoDeLaUnidad` y `huecosVisibles` (orden fijo `ORDEN_DE_HUECOS`, permiso en el origen de la unidad, regla del flujo activa) y los tipos de los huecos de grupo, enlaces y
+  catálogos; trece archivos de hueco de `pantallas/` creados vacíos. `flujos/areas/mover` lee el flujo de un origen (`leerFlujoDeOrigen`, `reglaActiva`).
+- **Commits:** `8e59f7b4` (áreas y guarda), `8f2d50c4` (la unidad y los huecos), `b245f953` (archivos de hueco), `9fc8215c` (flujo de un origen para mover).
+- **Verificación** (`.piloto/salidas/6.01/`): guardas, `logistica` y `flujos`, 42 archivos y 1.107 pruebas en verde; `tsc` y `eslint` sin avisos; `mapa.sh --check` limpio.
+- **6.01 sigue:** falta la parte 2 (C7 a C12: `RUTAS`, `leerUnidad`, `<PanelDeLaUnidad>`, layout, `/logistica/vehiculo/[id]`, `e2e/soporte/logistica.ts` y
+  `e2e/logistica-unidad.spec.ts`) y la 3 (C13 a C15 y C17). Este PR no marca integrado el paso (`parcial: true`).
+- e2e completo: no (6.01-1, Nivel 1: sin pantalla nueva)
+
+<!-- paso:6.01-2 -->
+
+## 2026-11-11 — Paso 6.01-2: el panel de la unidad y su ruta (parte 2 de 3 del 6.01)
+
+- **Hecho:** `RUTAS` suma `logistica`, `embarques`, `aduana`, `gastosDeLogistica` y `configuracionDeLogistica` y la función `unidadDeLogistica(id)`. `logistica` lee la unidad (`leerUnidad`: entities con Zod,
+  `infra/nucleo/unidad.ts` bajo la RLS de quien mira) y dibuja `<PanelDeLaUnidad>` (cabecera con título, origen, fase y «Desde hace N días en esta fase»; un `BloqueDelHueco` plegado por hueco que monta su
+  contenido al abrirse). `src/app/(app)/logistica/` tiene `huecos-de-la-unidad.tsx` (junta los cinco arreglos y filtra con `huecosVisibles`), `unidad-abierta.tsx` (los estados y el panel, para la
+  página y el drawer de la parte 3), `layout.tsx` con la sub-navegación (sólo se dibuja con más de un enlace) y `vehiculo/[id]/page.tsx` con su `loading.tsx`. `<Bloque>` gana `onAbrir`.
+- **e2e** (`.piloto/salidas/6.01/e2e-unidad.txt`): `e2e/logistica-unidad.spec.ts`, 8 en verde (escritorio y celular); es la primera vez que `leerFlujoDeOrigen` corre contra la base (sin aviso de flujo).
+- **6.01 sigue:** falta la parte 3 (C13 a C15 y C17: `/logistica` con el drawer, `/configuracion/logistica`, `docs/UX.md`). Hasta entonces `/logistica` no tiene página: el enlace «Ir a Logística» del estado
+  «no disponible» da 404. Este PR no marca integrado el paso (`parcial: true`).
+- e2e completo: no (6.01-2, Nivel 2: lo corre el CI del PR; el dirigido `e2e/logistica-unidad.spec.ts` en verde)
+
+<!-- paso:6.01-3 -->
+
+## 2026-11-11 — Paso 6.01-3: `/logistica` con el drawer y Configuración › Logística (parte 3 de 3, cierra el 6.01)
+
+- **Hecho:** `/logistica` exige `logistica.ver` en algún origen y, hasta el 6.03, dibuja sólo el panel de `?vehiculo=<id>` en un `<Drawer>` por URL (`drawer-de-la-unidad.tsx`, registrado en
+  `drawers-con-salida.ts` como `sinFormulario`); sin parámetro dice «La cadena llega con el próximo paso.». `/configuracion/logistica` (`logistica.catalogos.gestionar`) dibuja como pestañas
+  `?seccion=` los `CATALOGOS_DE_TRANSPORTE` y `CATALOGOS_DE_DINERO` (vacíos hoy: «Por ahora no hay nada que configurar aquí.»); su tarjeta del hub (`SECCIONES_DE_LOGISTICA`) sólo existe cuando
+  algún catálogo está lleno, así que el hub no cambia. `docs/UX.md` gana «Logística: estados propios» y las filas de Logística y Logística (config).
+- **Commits:** `948ebfd4` (drawer de `/logistica`), `0797f87a` (configuración con sus catálogos), `f44f011e` (e2e de Configuración).
+- **Verificación** (`.piloto/salidas/6.01/`): `vitest run scripts/guardas` + Configuración + Logística de `src/app`, 48 archivos y 1.122 pruebas en verde (`vitest-3.txt`); `tsc` y `eslint` sin avisos;
+  `E2E_SIN_FUNCIONES=1 pnpm test:e2e e2e/logistica-unidad.spec.ts e2e/configuracion-logistica.spec.ts`: 18 en verde (`e2e-3.txt`; el de Configuración sólo en escritorio). Un primer intento cayó
+  porque la clave de la URL se importaba desde un archivo `'use client'` (llegaba al servidor como referencia): ver decisión D17.
+- **6.01 queda completo:** las tres partes (C1 a C17) están hechas; el kanban y los huecos llenos son de 6.03 y de cada área.
+- e2e completo: no (6.01-3, Nivel 1: lo corre el CI del PR; los dirigidos `e2e/logistica-unidad.spec.ts` y `e2e/configuracion-logistica.spec.ts` en verde)

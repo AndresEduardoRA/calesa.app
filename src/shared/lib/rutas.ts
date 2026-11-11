@@ -18,12 +18,22 @@ export const RUTAS = {
   configuracionDeLeads: '/configuracion/leads',
   configuracionDeCotizacion: '/configuracion/cotizacion',
   configuracionDeFlujos: '/configuracion/flujos',
+  configuracionDeLogistica: '/configuracion/logistica',
   leads: '/leads',
   papeleraDeLeads: '/leads/papelera',
   importarLeads: '/leads/importar',
   vehiculos: '/vehiculos',
   papeleraDeVehiculos: '/vehiculos/papelera',
+  logistica: '/logistica',
+  embarques: '/logistica/embarques',
+  aduana: '/logistica/aduana',
+  gastosDeLogistica: '/logistica/gastos',
 } as const
+
+// La unidad de logística (6.01) tiene su propia página: a ella apuntan las notificaciones de demora. `RUTAS` es un objeto fijo; la que lleva un id es una función.
+export function unidadDeLogistica(id: string): string {
+  return `${RUTAS.logistica}/vehiculo/${encodeURIComponent(id)}`
+}
 
 // Quien ya tiene sesión no tiene nada que hacer acá.
 const SOLO_SIN_SESION: readonly string[] = [RUTAS.ingreso, RUTAS.registro]
