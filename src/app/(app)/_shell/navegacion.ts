@@ -82,7 +82,7 @@ export const NAVEGACION = [
     Icono: RouteIcon,
     zona: 'principal',
     permisos: ['logistica.ver'],
-    disponible: false,
+    disponible: true,
   },
   {
     clave: 'repuestos',
