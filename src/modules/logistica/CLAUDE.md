@@ -18,7 +18,8 @@ Operación diaria sobre el flujo: cadena por fase, mover con vista previa, docum
 
 `documentos`, `puertos`, `navieras`, `transportes` (1:1 con la unidad), `flujos_transporte_oferta`, `declaraciones_aduana`, `declaraciones_vehiculos`, `categorias_gasto`, `gastos`, `pagos`, `notas`.
 RPC: `margen_vehiculo`, `alertas_demora` (cron), `storage_refcount`; mover vía `flujos`. Gastos y pagos se escriben sólo por RPC (6.10): `gasto_registrar`,
-`gasto_guardar`, `gasto_eliminar`, `gastos_prorratear`, `pago_registrar`, `pago_guardar`, `pago_eliminar` y `pago_confirmar`.
+`gasto_guardar`, `gasto_eliminar`, `gastos_prorratear`, `pago_registrar`, `pago_guardar`, `pago_eliminar`, `pago_confirmar` y `pago_anular`. Se leen
+por cursor con `gastos_listar` y `pagos_listar` (6.10-2); el bucket `comprobantes` lo abre `comprobante_puede` (la fila que nombra el objeto).
 
 ## No se rompe
 
