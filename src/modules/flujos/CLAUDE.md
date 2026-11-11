@@ -17,7 +17,7 @@ Motor único de flujos: fases, transiciones, requisitos (documento | dato | espe
 - `entities/revisar.ts` — tipos de los avisos de `revisar_flujo()` (sin salida, inalcanzable, esperas cruzadas, roles que nadie tiene).
 - `features/configuracion/` (núcleo, 5.02: `<PantallaDelFlujo>` —Server Component async, por `pantallas/configuracion.ts`—, el selector, la lista de fases y el inspector por fase; sólo la lista, sin «camino» ni «historial», D2). `entities/selector-de-flujos.ts` y `lectura-de-fase.ts` son los textos puros.
 - La pantalla `/configuracion/flujos` (`src/app/(app)/configuracion/flujos/`) recibe de `src/app` los orígenes (`getOrigenes(true)`) y los roles (`leerRolesParaElegir()`): `flujos` no importa `origenes` ni `equipo`. `?fase=` lo lee `useFaseAbierta()`: un id que no es de una fase del flujo se ignora. `useVersionDelFlujo()` (dentro de `<ProveedorDelFlujo>`) entrega la `version` y `avisarConflicto()`; no sale por `client.ts` (D20).
-- **Huecos** (`HuecosDelFlujo`, 5.02): `franjaDeRevisar`, `accionesDeLaLista`, `accionesDeFila`, `salidasDeFila` y `bloques.datos|salidas|requisitos` del inspector. Son **componentes de cliente** opcionales; cada área suma su línea en `src/app/(app)/configuracion/flujos/huecos.ts` al llenarlos. El inspector está registrado en `drawers-con-salida.ts` como `sinFormulario`: el paso que le ponga un formulario lo pasa a `formulario`.
+- **Huecos** (`HuecosDelFlujo`, 5.02): `franjaDeRevisar`, `accionesDeLaLista`, `accionesDeFila`, `salidasDeFila` y `bloques.datos|salidas|requisitos` del inspector. Son **componentes de cliente** opcionales; cada área suma su línea en `src/app/(app)/configuracion/flujos/huecos.ts` al llenarlos. El inspector está registrado en `drawers-con-salida.ts` con el formulario de «Datos» (`formulario-de-datos-de-la-fase.tsx`, mecanismo `contexto`).
 
 ## Áreas (5.02)
 
@@ -53,7 +53,12 @@ El módulo se parte por área, como `cotizaciones` (`scripts/guardas/areas-de-fl
   `entities/fases/panel-de-fase.ts`; registrada en `scripts/guardas/areas-b/confirmar-con-url.ts`). La confirmación lee `fase_impacto` al abrirse
   (`leerImpactoDeUnaFase`); una bloqueada se explica y no se confirma. Cada escritura la hace `useListaDeFases` (una a la vez), manda la `version` del flujo y,
   ante `PT409`, `avisarConflicto()`; la lista se relee, no se siembra. Sin permiso en la interfaz: el selector sólo ofrece flujos configurables (D1).
-- Nada de esta área sale por `index.ts` ni `client.ts`: los componentes salen por `pantallas/fases.ts` (el inspector, 5.04-3, suma `<DatosDeLaFase>`).
+- **El inspector › Datos (5.04-3):** `pantallas/fases.ts` suma `<DatosDeLaFase>` (hueco `bloques.datos`, en `huecos.ts`). Es un formulario en cinco `<Bloque>`s
+  (Identidad, En el flujo, Alerta por demora, Transporte y aduana, Web y portal; `entities/fases/bloques-de-fase.ts` dice qué campo va en cuál, su orden visual y su
+  `id`), uno por archivo `bloque-*.tsx`, con `<InterruptorConMotivo>` (la regla del flujo apagada lo deshabilita con su motivo, `motivoDelInterruptor`). Lo maneja
+  `useFormularioDeDatos` (valida con `validarFase`, manda a `fase_guardar` sólo `cambiosParaGuardar`, deja el motivo junto al campo y el foco en el primero, borrador
+  `fase-<id>` en `sessionStorage`, red y conflicto) sobre `useValoresDeFase`. Se reinicia con una `key` (`fase.id` + versión del flujo) al llegar la fase releída.
+- Nada de esta área sale por `index.ts` ni `client.ts`: los componentes salen por `pantallas/fases.ts`.
 
 ## Tablas
 
