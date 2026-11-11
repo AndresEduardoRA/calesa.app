@@ -3,6 +3,8 @@
 --
 -- Qué asegura:
 --   E4. La matriz de lectura: privado, público y seleccionados × creador, destinatario, tercero y agenda.ver_todo.
+--   E11. `eventos: leer` en línea (7.06-2, C1): no pasa por `puede_evento`; `_agenda_soy_destinatario` es definer y sólo de authenticated; un evento
+--        eliminado (privado, público o seleccionados) no lo lee nadie.
 
 -- Una persona activa con un rol propio y estas concesiones: 'clave' (alcance «todos») o 'clave:propios'.
 create or replace function pg_temp.ag_persona(p_concesiones text[] default '{}') returns uuid language plpgsql as $f$
@@ -76,6 +78,38 @@ begin
     if r -> 'priv' <> esperado -> 'priv' -> (i - 1) or r -> 'pub' <> esperado -> 'pub' -> (i - 1) or r -> 'sel' <> esperado -> 'sel' -> (i - 1)
        or r -> 'dest' <> esperado -> 'sel' -> (i - 1) then
       raise exception 'la persona % de [creador, destinatario, tercero, ver_todo] leyó %', i, r;
+    end if;
+  end loop;
+end $$;
+rollback;
+
+-- @test agenda: la policy de leer eventos es en línea y un evento eliminado no lo lee nadie (E11)
+begin;
+do $$
+declare
+  c uuid := pg_temp.ag_persona(); d uuid := pg_temp.ag_persona(); t uuid := pg_temp.ag_persona(); vt uuid := pg_temp.ag_persona(array['agenda.ver_todo']);
+  v_qual text; v_ids uuid[]; quien uuid; r jsonb; f record;
+begin
+  select qual into v_qual from pg_policies where schemaname = 'public' and tablename = 'eventos' and policyname = 'eventos: leer';
+  if v_qual is null or v_qual like '%puede_evento%' or v_qual not like '%_agenda_soy_destinatario%' or v_qual not like '%tiene_permiso%' then
+    raise exception 'eventos: leer no es la policy en línea: %', v_qual;
+  end if;
+  select p.prosecdef, p.proconfig into f from pg_proc p where p.oid = 'public._agenda_soy_destinatario(uuid)'::regprocedure;
+  if not f.prosecdef or f.proconfig is distinct from array['search_path=""'] then
+    raise exception '_agenda_soy_destinatario: definer % y config %', f.prosecdef, f.proconfig;
+  end if;
+  if not has_function_privilege('authenticated', 'public._agenda_soy_destinatario(uuid)', 'execute')
+     or has_function_privilege('anon', 'public._agenda_soy_destinatario(uuid)', 'execute')
+     or exists (select 1 from pg_proc p, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
+               where p.oid = 'public._agenda_soy_destinatario(uuid)'::regprocedure and a.grantee = 0 and a.privilege_type = 'EXECUTE') then
+    raise exception '_agenda_soy_destinatario: execute de authenticated sí, de anon y PUBLIC no';
+  end if;
+  v_ids := array[pg_temp.ag_evento(c), pg_temp.ag_evento(c, 'publico'), pg_temp.ag_evento(c, 'seleccionados', array[d])];
+  update public.eventos set eliminado_en = now() where id = any (v_ids);
+  foreach quien in array array[c, d, t, vt] loop
+    r := pg_temp.ag_corre(quien, format('select to_jsonb(count(*)) from public.eventos where id = any (%L::uuid[])', v_ids));
+    if r <> '0'::jsonb then
+      raise exception 'la persona % leyó % eventos eliminados', quien, r;
     end if;
   end loop;
 end $$;

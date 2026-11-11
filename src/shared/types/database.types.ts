@@ -7011,6 +7011,7 @@ export type Database = {
       }
       _agenda_fecha: { Args: { p_hint: string; p_valor: Json }; Returns: string }
       _agenda_puede_recibir: { Args: { p_usuario: string }; Returns: boolean }
+      _agenda_soy_destinatario: { Args: { p_evento: string }; Returns: boolean }
       _agenda_tarea_accionar: { Args: { p_tarea: string; p_usuario: string }; Returns: undefined }
       _agenda_tarea_datos: {
         Args: {

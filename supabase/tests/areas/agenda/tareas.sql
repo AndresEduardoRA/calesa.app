@@ -247,7 +247,9 @@ begin
   end loop;
   if n <> 5 then raise exception 'se esperaban 5 RPC de tareas (sin sobrecargas) y hay %', n; end if;
   for r in select f.oid, f.proname, f.proconfig from pg_proc f join pg_namespace s on s.oid = f.pronamespace
-            where s.nspname = 'public' and f.proname like '\_agenda\_%' loop
+            where s.nspname = 'public' and f.proname like '\_agenda\_%'
+              -- `_agenda_soy_destinatario` la evalúa la policy `eventos: leer` como invocador: es de authenticated (7.06-2, E11 la cubre).
+              and f.proname <> '_agenda_soy_destinatario' loop
     if has_function_privilege('authenticated', r.oid, 'execute') or has_function_privilege('anon', r.oid, 'execute') then
       raise exception 'authenticated o anon pueden ejecutar el ayudante %', r.proname; end if;
     if r.proconfig is distinct from array['search_path=""'] then raise exception 'el ayudante % no tiene el search_path vacío', r.proname; end if;

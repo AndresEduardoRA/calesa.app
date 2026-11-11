@@ -31,6 +31,9 @@ RPC: `evento_crear` y `tarea_crear` (id del navegador); `evento_guardar`, `event
   Darla a otro exige `agenda.tareas.asignar` y que quien la recibe esté activo, sin bloqueo y con `agenda.tareas.recibir`; si nació en el chat,
   que sea miembro. No vence en el pasado. `responsable_id` sólo cambia por `reasignar_tarea`. Completar, eliminar o reasignar accionan la
   `tarea_asignada` abierta del responsable (del anterior, al reasignar).
+- Un evento vivo lo leen su creador, todos si es público, sus destinatarios y quien tiene `agenda.ver_todo`. `eventos: leer` es **en línea** sobre
+  columnas (7.06-2), con `_agenda_soy_destinatario(id)` (definer, de authenticated: la evalúa la policy); `puede_evento` queda para
+  `eventos_destinatarios: leer` y `evento_guardar`. No vuelvas a llamar a `puede_evento(id)` desde la policy: relee la fila por cada evento.
 - Un evento lo edita y lo elimina sólo quien lo creó; uno público o «seleccionados» exige `agenda.eventos.publicar` al crear, en todo guardar
   y al eliminar. Destinatarios sólo en «seleccionados»: de 1 a 50, activos; cada nuevo recibe `evento_invitacion`.
 - Las subastas no se duplican como eventos: se proyectan desde el vehículo en la consulta.
