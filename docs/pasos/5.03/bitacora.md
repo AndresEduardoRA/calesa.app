@@ -16,3 +16,6 @@
   - `nivel.mjs` sobre el diff da `{"nivel":2,"disparadores":[{"id":"rls",…}],"toca_interfaz":false}` (`nivel.log`).
     e2e completo: no (5.03, Nivel 2: lo corre el CI del PR)
 - **Commits:** `3821303c` crear · `f7c26d12` guardar · `b471de06` ordenar · `a79a1183` eliminar o desactivar · `f0f4c173` sin escritura directa · docs.
+- **CI del PR (retoma):** la corrida 43033261995 cayó dos veces sin correr un spec: el runner no resolvía el espejo de Ubuntu en
+  `playwright install --with-deps` (igual en main y en todos los PR desde las 13:53 UTC). Sin código que arreglar en la rama: se pidió al
+  carril A (pedido-4), entró con #108 (chromium sin apt si el espejo no responde) y la rama trae ese main.
