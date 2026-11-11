@@ -31,3 +31,19 @@ Fecha: 2026-11-11 (`TZ=America/La_Paz date +%F`). Sin compuertas: las dudas del 
   300; 4-64) suma un import y una llamada: las carreras nuevas viven en `supabase/tests/areas/origenes/carreras.mjs`.
 - **K2** (observación menor de la auditoría): la traducción del `23505` del índice a `PT409` sí tiene prueba que puede caer: una sesión
   `postgres` marca un principal sin confirmar y `guardar` espera en el índice y sale `PT409` con el mensaje humano.
+
+## 6.13-2 (2026-11-11)
+
+- **D13** La identidad recibe **el campo principal, no la lista**: `identidadDeVehiculo(vehiculo, principal, formato)`, con
+  `campoPrincipalDe(campos)` aparte. Logística sólo tiene un `CampoPrincipal` de `origenes` (clave, etiqueta, tipo, opciones), no un
+  `CampoDeVehiculo`: con la firma por lista no compilaba sin inventar campos. Cambia la firma, no la conducta.
+- **D14** El panel del campo, con la bandera encendida, dice **antes de guardar** los dos rechazos de la base (monto, desactivado) con los
+  mismos textos, y si desmarca a otro principal. Es ayuda, no bloquea: decide la RPC.
+- **D15** El e2e también abre `/logistica/vehiculo/<id>`: es la única prueba de la identidad en el panel de la unidad.
+- **D16** `configuracionDeOrigen` recibe el principal actual opcional (ausente = ninguno): el test del formulario de campo no cambia.
+- **D17** La página `/vehiculos/[id]`, el PDF, la web, la hoja de cotizar y `leerTitulosDeVehiculos()` siguen con el título: la fila de
+  PLAN nombra la lista, el resumen y logística. La misma función sirve después.
+- **D18** (cambia lo del plan) La composición cruzada de logística no puede vivir en `areas/nucleo/composicion.ts`: el lint
+  (`boundaries`) no deja que una entrada importe otro módulo. Va a `features/nucleo/unidad-con-identidad.ts` (como
+  `vehiculos/features/alta/fuentes.ts`), que lee también `getAjustes()` de `empresa`: el principal de número o fecha sale con el formato
+  regional de la empresa, sin deuda. Si el principal no se puede leer, queda el título.

@@ -12,3 +12,14 @@ el aviso y la insignia; `identidadDeVehiculo` e `identidadEnUnaLinea` con su Vit
 el panel de logística por la composición del núcleo; `e2e/origenes-campo-principal.spec.ts`; fichas de `vehiculos` y `logistica`.
 
 - e2e completo: no (6.13-1, Nivel 2: lo corre el CI del PR)
+
+## 6.13-2 · el campo «principal»: el interruptor, la identidad y las pantallas (2026-11-11)
+
+Parte 2 de 2: termina el paso. Entró: la bandera «Principal» en el panel del campo de un origen, con su ayuda, una línea de aviso (monto,
+desactivado o «<otro> deja de ser el principal») y la insignia «Principal» en la fila del layout; `identidadDeVehiculo`,
+`identidadEnUnaLinea` y `campoPrincipalDe` en `vehiculos/entities/identidad.ts` con su Vitest; la fila, la tarjeta y el resumen de
+`/vehiculos` se nombran por el valor del principal (el título va debajo); el panel de la unidad de logística dice «<principal> · <título>»
+(`features/nucleo/unidad-con-identidad.ts`, con el formato de la empresa); `e2e/origenes-campo-principal.spec.ts` (escritorio).
+Sin cambios de base. Abierto **6-1**: cerrado.
+
+- e2e completo: no (6.13-2, Nivel 2: lo corre el CI del PR)
