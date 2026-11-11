@@ -153,6 +153,31 @@ begin
 end $$;
 rollback;
 
+-- @test chat: purgar lo que una ficha nombra deja la ficha sin su referencia y no frena el borrado (E7, fix del informe)
+begin;
+do $$
+declare a uuid := pg_temp.chms_persona(); b uuid := pg_temp.chms_persona(); conv uuid; o uuid; v_veh uuid; v_lead uuid; m_veh uuid; m_lead uuid;
+begin
+  conv := pg_temp.chms_conversacion(array[a, b]);
+  insert into public.origenes (clave, nombre) values ('chms_' || substr(gen_random_uuid()::text, 1, 8), 'CHMS origen ' || substr(gen_random_uuid()::text, 1, 8)) returning id into o;
+  insert into public.vehiculos (origen_id, titulo, marca) values (o, 'CHMS vehículo', 'toyota') returning id into v_veh;
+  insert into public.leads (nombre, telefono_principal, creado_por)
+  values ('CHMS lead', '59' || lpad((('x' || substr(md5(gen_random_uuid()::text), 1, 7))::bit(28)::int % 100000000)::text, 8, '0'), a) returning id into v_lead;
+  insert into public.mensajes (conversacion_id, autor_id, tipo, vehiculo_id) values (conv, a, 'vehiculo', v_veh) returning id into m_veh;
+  insert into public.mensajes (conversacion_id, autor_id, tipo, lead_id) values (conv, a, 'lead', v_lead) returning id into m_lead;
+  delete from public.vehiculos where id = v_veh;
+  delete from public.leads where id = v_lead;
+  if (select vehiculo_id from public.mensajes where id = m_veh) is not null or (select lead_id from public.mensajes where id = m_lead) is not null then
+    raise exception 'la ficha conservó una referencia purgada';
+  end if;
+  begin
+    insert into public.mensajes (conversacion_id, autor_id, tipo) values (conv, a, 'tarea');
+    raise exception 'una ficha de tarea sin tarea entró';
+  exception when check_violation then null;
+  end;
+end $$;
+rollback;
+
 -- @test chat: nadie escribe mensajes ni menciones directo: insert, update (también des-borrar) y delete como authenticated dan 42501 (E5, C13)
 begin;
 do $$
