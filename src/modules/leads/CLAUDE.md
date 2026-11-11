@@ -44,6 +44,10 @@ Ficha completa (historia, partes, mediciones, trampas viejas): `docs/archivo/mod
 - **Visibilidad:** `_lead_visible_para(eliminado_en, cartera, alcance, yo, fuera)`; una función que lee `leads_asesores … revocado_en is null` entra al inventario de `humo.sql` o filtra con `_bajas_en_curso()`.
 - **Lo reciente en la cartera:** `leads_asesores.lead_reciente_en` es una copia de `coalesce(ultimo_seguimiento_en, creado_en)` en **todas** las filas del lead, también las revocadas (compartir revive una fila por `on conflict` y ahí lo del `before insert` se descarta). La llena `leads_asesores_creado_en()`, la sigue `leads_reciente_seguir()` (trigger de `leads`) y nadie más la escribe (`leads_asesores_creado_en_guarda()`); las dos vistas la exponen como `reciente_en`. Un `insert` en `leads_asesores` con los triggers apagados nombra las dos copias.
 - Ningún componente decide qué número de lead mostrar: dibujan el global si llegó, si no el propio.
+- **Recordatorios:** avisa el job `recordatorios-notificar` (cada minuto, `recordatorios_notificar()`, 7.01-1), una vez por hora fijada. La `ruta` del aviso
+  nombra el lead sólo si su dueño todavía lo tiene vivo en la cartera; si no, `/agenda?recordatorio=<id>`. Cambiar la hora reemplaza el aviso abierto.
+- **La cartera avisa** (7.01-2): `lead_compartir` deja un `lead_compartido` a quien recibe y `lead_transferir`, un `lead_transferido` al destino (al
+  saliente no); `sin_cambios` no avisa. Repetir reemplaza el aviso abierto. Ningún título ni cuerpo lleva el teléfono, el número ni el nombre del lead: se abre por la `ruta` (`supabase/tests/areas/notificaciones/avisos-de-cartera.sql`).
 
 ## Ojo
 
