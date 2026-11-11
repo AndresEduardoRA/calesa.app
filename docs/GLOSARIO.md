@@ -291,6 +291,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Evento** — `eventos`, `eventos_destinatarios`: cita con visibilidad privada/pública/seleccionados.
 - **Destinatario** — `eventos_destinatarios`: persona que ve un evento «seleccionados» (de 1 a 50); en la pantalla, «Destinatarios» y «¿Con quién?». Sólo lo ve quien creó el evento.
 - **Tarea** — `tareas` / `reasignar_tarea`: pendiente con responsable y vencimiento.
+- **Tareas sin fecha** — `agenda_tareas_sin_fecha()`: mis tareas sin vencimiento, en una sección plegable bajo el calendario de `/agenda`; el calendario no las dibuja.
 - **Conversación / Mensaje** — `conversaciones`, `mensajes`: directa, grupo o canal global; mensajes de texto o fichas.
 - **Mención** — `mensajes_menciones`: `#` a vehículo, lead, cotización o persona; no otorga acceso.
 - **Notificación** — `notificaciones` / `notificar()`: aviso en la campana; `requiere_accion` para lo que pide clic.
