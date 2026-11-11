@@ -8078,6 +8078,7 @@ export type Database = {
       _revision_etiquetas: { Args: { p_def: Json; p_filas: Json }; Returns: Json }
       _rol_para_editar: { Args: { p_esperado: string; p_rol: string }; Returns: undefined }
       _rol_tocar: { Args: { p_rol: string }; Returns: string }
+      _roles_de_lista: { Args: { p_roles: string[] }; Returns: string[] }
       _seguimiento_conflicto: { Args: { p_cuando: string }; Returns: undefined }
       _seguimiento_detalle: { Args: { p_doc: Json }; Returns: string }
       _seguimiento_fecha: { Args: { p_valor: Json }; Returns: string }
@@ -8828,6 +8829,10 @@ export type Database = {
         Args: { p_actualizado_en_esperado: string; p_fase: string }
         Returns: string
       }
+      fase_roles_poner: {
+        Args: { p_actualizado_en_esperado: string; p_fase: string; p_roles: string[] }
+        Returns: string
+      }
       flujo_de_fase: { Args: { p_fase: string }; Returns: string }
       flujo_regla_activa: { Args: { p_flujo: string; p_regla: string }; Returns: boolean }
       formula_cambiar_constante: {
@@ -9563,6 +9568,10 @@ export type Database = {
       }
       transicion_guardar: {
         Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_transicion: string }
+        Returns: string
+      }
+      transicion_roles_poner: {
+        Args: { p_actualizado_en_esperado: string; p_roles: string[]; p_transicion: string }
         Returns: string
       }
       unidad_llego_a_fase: {
