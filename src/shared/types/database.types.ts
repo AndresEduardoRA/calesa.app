@@ -8204,12 +8204,87 @@ export type Database = {
         Returns: Json
       }
       _telefono_o_nulo: { Args: { p_cc: string; p_tel: string }; Returns: string }
+      _tipo_documento_de_jsonb: {
+        Args: {
+          p_al_crear: boolean
+          p_base: Omit<
+            Database['public']['Tables']['tipos_documento']['Row'],
+            Database['public']['Tables']['tipos_documento']['ComputedFields']
+          >
+          p_datos: Json
+        }
+        Returns: {
+          activo: boolean
+          actualizado_en: string
+          aviso_dias: number | null
+          creado_en: string
+          descripcion: string | null
+          flujo_id: string | null
+          formatos: string[]
+          id: string
+          modo_vencimiento: Database['public']['Enums']['modo_vencimiento']
+          nombre: string
+          orden: number
+          proposito: string | null
+          vigencia_dias: number | null
+          visible_portal_permitido: boolean
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'tipos_documento'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _tipo_documento_dias: {
+        Args: { p_campo: string; p_mensaje: string; p_valor: Json }
+        Returns: number
+      }
+      _tipo_documento_exigir_permiso: { Args: { p_flujo: string }; Returns: undefined }
+      _tipo_documento_nombre_libre: {
+        Args: { p_activo: boolean; p_flujo: string; p_id: string; p_nombre: string }
+        Returns: undefined
+      }
+      _tipo_documento_uso: { Args: { p_id: string }; Returns: Record<string, unknown> }
+      _tipo_documento_validar: {
+        Args: {
+          p_tipo: Omit<
+            Database['public']['Tables']['tipos_documento']['Row'],
+            Database['public']['Tables']['tipos_documento']['ComputedFields']
+          >
+          p_validos: string[]
+        }
+        Returns: {
+          activo: boolean
+          actualizado_en: string
+          aviso_dias: number | null
+          creado_en: string
+          descripcion: string | null
+          flujo_id: string | null
+          formatos: string[]
+          id: string
+          modo_vencimiento: Database['public']['Enums']['modo_vencimiento']
+          nombre: string
+          orden: number
+          proposito: string | null
+          vigencia_dias: number | null
+          visible_portal_permitido: boolean
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'tipos_documento'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       _tipo_lead_clave: { Args: { p_nombre: string }; Returns: string }
       _tipo_lead_exigir_activo: { Args: { p_id: string }; Returns: undefined }
       _tipo_lead_nombre: { Args: { p_texto: string }; Returns: string }
       _tipo_lead_por_defecto: { Args: Record<PropertyKey, never>; Returns: string }
       _tipo_seguimiento_clave: { Args: { p_nombre: string }; Returns: string }
       _tipo_seguimiento_nombre: { Args: { p_texto: string }; Returns: string }
+      _tipos_documento_formatos: { Args: Record<PropertyKey, never>; Returns: string[] }
+      _tipos_documento_tope: { Args: Record<PropertyKey, never>; Returns: number }
       _tipos_lead_lista: { Args: Record<PropertyKey, never>; Returns: Json }
       _tipos_lead_tope: { Args: Record<PropertyKey, never>; Returns: number }
       _tipos_seguimiento_lista: { Args: Record<PropertyKey, never>; Returns: Json }
@@ -9472,6 +9547,22 @@ export type Database = {
         }
         Returns: string
       }
+      tipo_documento_crear: {
+        Args: { p_datos: Json; p_flujo: string; p_id: string }
+        Returns: Json
+      }
+      tipo_documento_eliminar: {
+        Args: { p_actualizado_en_esperado: string; p_id: string }
+        Returns: Json
+      }
+      tipo_documento_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_id: string }
+        Returns: Json
+      }
+      tipo_documento_mover: {
+        Args: { p_actualizado_en_esperado: string; p_despues_de?: string; p_id: string }
+        Returns: Json
+      }
       tipo_lead_crear: {
         Args: { p_clase: string; p_icono?: string; p_id: string; p_nombre: string }
         Returns: Json
@@ -9503,6 +9594,14 @@ export type Database = {
       tipo_seguimiento_mover: {
         Args: { p_actualizado_en_esperado: string; p_despues_de?: string; p_id: string }
         Returns: Json
+      }
+      tipos_documento_con_uso: {
+        Args: { p_flujo: string }
+        Returns: {
+          documentos: number
+          requisitos: number
+          tipo_id: string
+        }[]
       }
       tipos_lead_con_uso: { Args: Record<PropertyKey, never>; Returns: Json }
       tipos_seguimiento_con_uso: { Args: Record<PropertyKey, never>; Returns: Json }
