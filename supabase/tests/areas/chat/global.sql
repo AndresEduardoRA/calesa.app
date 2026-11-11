@@ -63,3 +63,40 @@ begin
   if (select tipo from public.conversaciones where es_global) <> 'grupo' then raise exception 'el canal global no es un grupo'; end if;
 end $$;
 rollback;
+
+-- @test chat: sin chat.global no se lee el canal, sus miembros, sus mensajes, sus menciones ni sus tareas, y no se escribe (G3, C5)
+begin;
+do $$
+declare
+  yo uuid := pg_temp.chgl_persona(array['chat.participar', 'chat.global', 'agenda.tareas.recibir']);
+  otra uuid := pg_temp.chgl_persona(array['chat.participar', 'chat.global', 'agenda.tareas.asignar', 'agenda.tareas.recibir']);
+  resp uuid := pg_temp.chgl_persona(array['chat.participar', 'chat.global', 'agenda.tareas.recibir']);
+  g uuid; msj uuid; t uuid; r jsonb; v timestamptz;
+begin
+  select id into g from public.conversaciones where es_global;
+  insert into public.conversaciones_miembros (conversacion_id, usuario_id) values (g, yo), (g, otra), (g, resp);
+  insert into public.mensajes (conversacion_id, autor_id, cuerpo) values (g, otra, 'hola equipo') returning id into msj;
+  insert into public.mensajes_menciones (mensaje_id, tipo, referencia_id) values (msj, 'usuario', yo);
+  insert into public.tareas (titulo, creado_por, responsable_id, conversacion_id) values ('CHGL tarea', otra, resp, g) returning id, actualizado_en into t, v;
+
+  if pg_temp.chgl_cuenta(yo, format('select 1 from public.conversaciones where id = %L', g)) <> '1' then raise exception 'con chat.global no leyó el canal'; end if;
+  if pg_temp.chgl_cuenta(yo, format('select 1 from public.conversaciones_miembros where conversacion_id = %L', g))::int < 3 then raise exception 'con chat.global no leyó los miembros'; end if;
+  if pg_temp.chgl_cuenta(yo, format('select 1 from public.mensajes where id = %L', msj)) <> '1' then raise exception 'con chat.global no leyó el mensaje'; end if;
+  if pg_temp.chgl_cuenta(yo, format('select 1 from public.mensajes_menciones where mensaje_id = %L', msj)) <> '1' then raise exception 'con chat.global no leyó la mención'; end if;
+  if pg_temp.chgl_cuenta(yo, format('select 1 from public.tareas where id = %L', t)) <> '1' then raise exception 'con chat.global no leyó la tarea del canal'; end if;
+
+  delete from public.roles_permisos rp using public.usuarios_roles ur where ur.usuario_id = yo and rp.rol_id = ur.rol_id and rp.permiso_clave = 'chat.global';
+
+  if pg_temp.chgl_cuenta(yo, format('select 1 from public.conversaciones where id = %L', g)) <> '0' then raise exception 'sin chat.global leyó el canal'; end if;
+  if pg_temp.chgl_cuenta(yo, format('select 1 from public.conversaciones_miembros where conversacion_id = %L', g)) <> '0' then raise exception 'sin chat.global leyó los miembros'; end if;
+  if pg_temp.chgl_cuenta(yo, format('select 1 from public.mensajes where id = %L', msj)) <> '0' then raise exception 'sin chat.global leyó el mensaje'; end if;
+  if pg_temp.chgl_cuenta(yo, format('select 1 from public.mensajes_menciones where mensaje_id = %L', msj)) <> '0' then raise exception 'sin chat.global leyó la mención'; end if;
+  if pg_temp.chgl_cuenta(yo, format('select 1 from public.tareas where id = %L', t)) <> '0' then raise exception 'sin chat.global leyó la tarea del canal'; end if;
+  r := pg_temp.chgl_corre(yo, format('select public.tarea_guardar(%L, %L, %L)', t, v, '{"titulo": "otra"}'));
+  if r ->> 'error' is distinct from '42501' then raise exception 'sin chat.global tocó la tarea del canal: %', r; end if;
+  r := pg_temp.chgl_corre(yo, format('insert into public.mensajes (conversacion_id, autor_id, cuerpo) values (%L, %L, %L) returning to_jsonb(id)', g, yo, 'sigo aquí'));
+  if r ->> 'error' is distinct from '42501' then raise exception 'sin chat.global escribió en el canal: %', r; end if;
+  -- La otra persona, que conserva el permiso, sigue leyendo.
+  if pg_temp.chgl_cuenta(otra, format('select 1 from public.mensajes where id = %L', msj)) <> '1' then raise exception 'quien tiene chat.global dejó de leer'; end if;
+end $$;
+rollback;
