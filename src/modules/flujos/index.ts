@@ -1,7 +1,10 @@
-// API pública del módulo `flujos` para el servidor. Con `client.ts`, lo único que `app/` u otro
-// módulo puede importar. Por ahora sólo la lectura de las fases de un origen; la configuración del
-// flujo y mover de fase llegan con sus fases de docs/PLAN.md.
-
-// Las fases del flujo de un origen, para nombrarlas y filtrar por ellas (el inventario)
-export { leerFasesDeOrigen } from './composicion'
-export type { FaseResumen } from './entities/fase'
+// API pública del módulo `flujos` para el servidor. Sólo reexporta el núcleo y cada área (5.02): lo nuevo de un paso va en
+// `areas/<su área>/index.ts`, nunca aquí (lo vigila `scripts/guardas/areas-de-flujos.test.ts`). La ficha CLAUDE.md dice qué entra y qué sale.
+export * from './areas/nucleo/index'
+export * from './areas/fases/index'
+export * from './areas/transiciones/index'
+export * from './areas/requisitos/index'
+export * from './areas/reglas/index'
+export * from './areas/documentos/index'
+export * from './areas/revisar/index'
+export * from './areas/mover/index'
