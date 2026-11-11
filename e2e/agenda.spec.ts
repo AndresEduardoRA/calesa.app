@@ -5,10 +5,14 @@ import { admin } from './soporte/base'
 import { idDePersona } from './soporte/leads-alta'
 import { exigir } from './soporte/leads'
 import { limpiarListado, prepararListado, type TerrenoDelListado } from './soporte/leads-listado'
+import { nuevoLead } from './soporte/leads-ficha'
+import { completoCon, nacional } from './soporte/leads-ficha-telefonos'
+import { meterRecordatorio } from './soporte/leads-seguimientos'
 
 // Agenda (7.07-1, sólo lectura): el calendario en el día. El evento «seleccionados» de la dueña lo ve la asesora invitada y no un tercero; la tarea
 // de la asesora la ve ella en su día y la dueña, sólo con «Ver la de todos». `?de=todos` sin permiso no rompe ni dibuja el interruptor.
 // 7.07-2: la dueña crea, ve, edita y elimina un evento por la interfaz y le da una tarea a la asesora; la asesora los ve.
+// 7.07-3: la asesora completa y reabre su tarea (sin poder cambiar de responsable), ve sus tareas sin fecha y completa un recordatorio; la bandeja lo refleja.
 test.describe.configure({ mode: 'serial' })
 
 let t: TerrenoDelListado
@@ -108,6 +112,14 @@ test.afterAll(async ({}, info) => {
     .from('tareas')
     .delete()
     .like('titulo', `${rotulo(info.project.name)} nueva%`)
+  await admin()
+    .from('tareas')
+    .delete()
+    .like('titulo', `${rotulo(info.project.name)} sin fecha%`)
+  await admin()
+    .from('recordatorios')
+    .delete()
+    .like('titulo', `${rotulo(info.project.name)} recordar%`)
   await limpiarListado(t)
 })
 
@@ -197,6 +209,8 @@ test('E2E la dueña crea, ve, edita y elimina un evento y le da una tarea a la a
   const detalleDeTarea = page.getByRole('dialog', { name: 'Tarea', exact: true })
   await expect(detalleDeTarea.getByRole('heading', { name: tarea })).toBeVisible()
   await expect(detalleDeTarea.getByText(nombre)).toBeVisible()
+  // Quien la creó con `agenda.tareas.asignar` puede cambiarla de responsable.
+  await expect(detalleDeTarea.getByRole('button', { name: 'Cambiar de responsable' })).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(detalleDeTarea).toBeHidden()
 
@@ -225,6 +239,18 @@ test('E2E la dueña crea, ve, edita y elimina un evento y le da una tarea a la a
   await expect(
     dia.getByRole('link', { name: new RegExp(`^Tarea [0-9]+:[0-9]+ ${tarea}`) }),
   ).toBeVisible()
+  // Completa su tarea y la reabre; no puede cambiarla de responsable ni editarla (no la creó).
+  await dia.getByRole('link', { name: new RegExp(`^Tarea [0-9]+:[0-9]+ ${tarea}`) }).click()
+  await expect(detalleDeTarea.getByRole('heading', { name: tarea })).toBeVisible()
+  await expect(detalleDeTarea.getByRole('button', { name: 'Cambiar de responsable' })).toBeHidden()
+  await expect(detalleDeTarea.getByRole('button', { name: 'Editar' })).toBeHidden()
+  await detalleDeTarea.getByRole('button', { name: 'Marcar como hecha' }).click()
+  await expect(detalleDeTarea.getByText(/^Hecha el /)).toBeVisible()
+  await detalleDeTarea.getByRole('button', { name: 'Reabrir' }).click()
+  await expect(detalleDeTarea.getByText('Pendiente', { exact: true })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(detalleDeTarea).toBeHidden()
+
   await dia.getByRole('link', { name: new RegExp(editado) }).click()
   await expect(detalle.getByRole('heading', { name: editado })).toBeVisible()
   await expect(detalle.getByRole('button', { name: 'Editar' })).toBeHidden()
@@ -243,4 +269,60 @@ test('E2E la dueña crea, ve, edita y elimina un evento y le da una tarea a la a
   await page.getByRole('button', { name: 'Eliminar evento' }).click()
   await expect(page).not.toHaveURL(/evento=/)
   await expect(page.getByRole('main').getByText(editado)).toBeHidden()
+})
+
+// @sin-celular: el camino feliz de la sección «Sin fecha» y del recordatorio es el mismo en el celular; los paneles se miden aparte en la Fase 9
+test('E2E la asesora ve sus tareas sin fecha y completa un recordatorio', async ({
+  page,
+}, info) => {
+  const sinFecha = `${rotulo(info.project.name)} sin fecha`
+  const recordar = `${rotulo(info.project.name)} recordar`
+  const berta = await idDePersona(t.personas.berta)
+  exigir(
+    (
+      await admin()
+        .from('tareas')
+        .insert({ titulo: sinFecha, creado_por: berta, responsable_id: berta })
+    ).error,
+    'sembrar la tarea sin fecha',
+  )
+  const lead = await nuevoLead({
+    corto: `Agenda Recordatorio ${info.project.name}`,
+    telefono: completoCon(t, nacional()),
+    deQuien: t.personas.berta,
+  })
+  // Hace un minuto: es de hoy (o vencido, si cruzó la medianoche) sin depender de la hora a la que corra.
+  await meterRecordatorio({
+    leadId: lead.id,
+    usuarioId: berta,
+    titulo: recordar,
+    recordarEn: new Date(Date.now() - 60_000).toISOString(),
+  })
+
+  await entrar(page, t.personas.berta)
+  await page.goto('/agenda?vista=dia')
+  // «Tareas sin fecha» nace cerrada y se lee al abrirla.
+  const seccion = page.getByRole('button', { name: 'Tareas sin fecha', exact: true })
+  await expect(seccion).toHaveAttribute('aria-expanded', 'false')
+  await seccion.click()
+  await expect(seccion).toHaveAttribute('aria-expanded', 'true')
+  await expect(page.getByRole('link', { name: new RegExp(sinFecha) })).toBeVisible()
+
+  // El recordatorio abre su panel y se completa.
+  await page
+    .getByRole('main')
+    .getByRole('link', { name: new RegExp(`^Recordatorio [0-9]+:[0-9]+ ${recordar}`) })
+    .click()
+  const panel = page.getByRole('dialog', { name: 'Recordatorio', exact: true })
+  await expect(panel.getByRole('heading', { name: recordar })).toBeVisible()
+  await expect(page).toHaveURL(/recordatorio=/)
+  await panel.getByRole('button', { name: 'Completar' }).click()
+  await expect(panel.getByText('Completado', { exact: true })).toBeVisible()
+
+  // La bandeja de inicio: «Mis tareas» trae la tarea sin fecha y «Recordatorios de hoy» ya no trae el recordatorio.
+  await page.goto('/')
+  const misTareas = page.getByRole('region', { name: 'Mis tareas' })
+  await expect(misTareas.getByRole('link', { name: new RegExp(sinFecha) })).toBeVisible()
+  await expect(misTareas.getByRole('link', { name: 'Ver todas' })).toBeVisible()
+  await expect(page.getByText(recordar)).toBeHidden()
 })
