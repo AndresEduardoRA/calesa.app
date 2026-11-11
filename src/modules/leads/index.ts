@@ -84,3 +84,15 @@ export { leerClienteElegido } from './composicion'
 // Los nombres de unos leads por clave primaria, con la RLS de quien mira (`/cotizaciones`, 4.16-4a): lo que no llega no se ve, y no se distingue de lo que no existe.
 export { leerNombresDeLeads } from './composicion'
 export type { ClienteElegido } from './entities/panel-para-cotizar'
+
+// Inicio (9.02): los bloques «Recordatorios de hoy» y «Leads sin seguimiento» de la bandeja. Cada lector pide `tope + 1` filas
+// con la RLS de quien mira (sólo lo suyo) y devuelve `{ filas, hayMas }`; los instantes que acotan la lectura salen de `finDeHoy` y `creadoAntesDe`.
+export { leerLeadsSinSeguimiento, leerRecordatoriosDeHoy } from './composicion'
+export {
+  creadoAntesDe,
+  finDeHoy,
+  rutaDeSeguimientos,
+  type LeadSinSeguimiento,
+  type ListaCorta,
+  type RecordatorioDeHoy,
+} from './entities/bandeja'

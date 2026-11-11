@@ -76,6 +76,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Publicado** — `vehiculos.publicado_web` / `vehiculo_vitrina()`: quien tiene `vehiculos.vitrina` decidió que salga en la web. Condición, no garantía.
 - **En vitrina** — `interno.vitrina_vehiculos.visible` / `web.vehiculos`, `vitrina_del_origen()`: se ve hoy en la web: publicado, fuera de papelera, fase que publica, origen activo y visible, integración web activa.
 - **Vitrina** — `web.vehiculos` / `vehiculo_vitrina_previa()`: lo que la web muestra: identidad, precio público, campos públicos y portada.
+- **Revalidar (la web pública)** — `interno.web_revalidar_pendiente` (la cola de revalidación), `web_revalidar_correr()`, job `web-revalidar`: avisarle al sitio, una vez por minuto y por etiqueta (`guias`, `faqs`, `testimonios`, `ajustes`, `asesores`, `vehiculos`), que algo de lo que muestra cambió. Dirección en `integraciones.config.revalidar_url`; secreto en Vault (`integracion:web_publica`).
 - **Precio público** — `vehiculos.precio_web` / `precio_web_hasta`: lo que muestra la web; NULL = «Consultar».
 - **Papelera** — `lotes_papelera`, `eliminado_en` / `vehiculos_papelera_*`, `leads_papelera_*`, `cotizaciones_papelera_*` (y la genérica `papelera_*`, sólo de cotizaciones): borrado reversible hasta la purga.
 - **Lote de papelera** — `lotes_papelera` / `LoteDePapelera`: envío de 1 a 200 a la papelera; se restaura o purga entero o por partes. En la UI, «lote».
@@ -111,6 +112,8 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Lectura por la cartera** — `leads_cartera_vista` / `fuenteDelListado()`, `leads_asesores.lead_creado_en`, `leads_asesores_listado_idx`: «míos» de quien tiene «propios», leído por su cartera.
 - **Reciente (de un lead)** — `leads_asesores.lead_reciente_en`, `reciente_en` de `leads_vista` y `leads_cartera_vista`, `leads_asesores_reciente_idx`: el último seguimiento vivo del lead o, sin ninguno, su alta (`coalesce(ultimo_seguimiento_en, creado_en)`). Ordena «míos» del panel del cliente; la copia está en todas las filas de la cartera del lead, también las revocadas. No: «actividad» (es la auditoría).
 - **Candidatos de la búsqueda** — `leads_candidatos()`, `leads_vista_por_ids()`, `leads_busqueda_idx` / `entities/candidatos.ts`: primeros leads que coinciden con un nombre, sacados de un índice.
+- **Buscador** — `buscador_leads()`, `buscador_vehiculos()`, `buscador_cotizaciones()` / `src/modules/buscador`: la búsqueda por sección (leads, vehículos, cotizaciones) con el mínimo en la base y tope 5 por sección; la paleta `Ctrl/Cmd+K` la dibuja (7.13).
+- **Últimos abiertos** — `visitados` / `visita_registrar()`, `visitados_usuario_visto_idx`: lo último que cada persona abrió (lead, vehículo o cotización), a lo sumo 50; se lee bajo la RLS de cada entidad.
 - **Míos / Todos** — `?alcance=todos` / `alcanceDelListado()`, `<SelectorDeAlcance>`: modos del listado de leads; «míos» (defecto) = `en_cartera`.
 - **Mías** (cotizaciones) — `p_mias` de `cotizaciones_listado()`, `PedidoDelListado.mias`: filtro del listado `/cotizaciones`: las que creó quien mira (`creado_por`). No es «Míos» de leads (`en_cartera`).
 - **Enmascarado** — `enmascarar_telefono()` / `telefono_lead()`: teléfono de un lead fuera de tu cartera: 3 primeros y 2 últimos dígitos («591•••••01»).
@@ -337,6 +340,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Conservar** — `vehiculos_conservados` / `vehiculo_conservar()`, `<BotonConservar>`: marca que saca un vehículo de la limpieza.
 - **Días de gracia** — `ajustes_empresa.limpieza_dias_gracia`: días desde que terminó la subasta hasta que un vehículo sin ancla se limpia: 7 por defecto, de 1 a 90.
 - **Se limpiará pronto** — `FILTRO_LIMPIEZA`, `limpieza_el()`, `VENTANA_DE_AVISO_DIAS`: filtro e insignia «Se limpia el dd/mm» de lo que se limpia en 3 días.
+- **Aviso de limpieza** — `limpieza_avisar()`, `limpieza_avisos`, notificación `limpieza_pronto`: el aviso al creador de un importado cuando entra en «Se limpiará pronto»; una vez por vehículo.
 - **Lote de limpieza** — `lotes_papelera.es_limpieza`: lote nocturno sin autor; lo restauran quienes pueden vaciar la papelera. No es el «lote de subasta».
 - **Corrida de limpieza** — `limpieza_corridas` / `limpieza_ultima()`: lo que dejó una noche: movidos, retenidos por ancla y en espera.
 - **Conteo acotado** — `ConteoAcotado` (`src/shared/lib/conteo.ts`), `conteoAcotado()`: número sin total exacto: «más de N» o «N+».
