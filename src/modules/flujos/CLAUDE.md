@@ -37,6 +37,15 @@ El módulo se parte por área, como `cotizaciones` (`scripts/guardas/areas-de-fl
 - URL: `?panel=nuevo-tipo&de=empresa|flujo`, `?panel=editar-tipo&tipo=<id>`, `?panel=eliminar-tipo&tipo=<id>` (constantes `PANEL_*`, `CLAVE_DEL_TIPO`, `CLAVE_DEL_GRUPO` en `entities/`). Un solo modal y una sola confirmación sirven a los dos grupos; lo que la URL pide y no se puede abrir (grupo ajeno, tope, tipo ausente, tipo en uso al eliminar) se avisa y se limpia. Con uso, «Eliminar» está apagado: se desactiva (D13 del 5.09).
 - Las actions llevan el `flujoId` del grupo y comprueban `puede()` antes de la RPC; `leerTiposDeDocumento` y `leerUsoDeTiposDeDocumento` salen por el `index.ts` del área.
 
+## Requisitos (5.08)
+
+- Bloque «Requisitos para entrar» del inspector (hueco `bloques.requisitos`; `pantallas/requisitos.ts` da `<BloqueDeRequisitos>`, que `src/app/(app)/configuracion/flujos/huecos.ts` registra). Lo llena el área `requisitos` en tres partes: 5.08-1 lista, ordena, quita y agrega un **dato**; 5.08-2 las formas documento y espera y editar; 5.08-3 «Bloqueante» con el aviso de impacto y «fuera de regla».
+- Archivos: `entities/requisitos/{claves,descripcion,formulario-de-dato,opciones,respuestas,repositorios,vista-de-fase}.ts`, `infra/requisitos/{opciones,escribir}.ts` (lectura de tipos con `tope + 1` y las RPC `requisito_crear|mover|eliminar`), `features/requisitos/{actions,schemas,hooks,components}`, `areas/requisitos/`.
+- **`claves.ts` es espejo de `claves_dato_requisito(ámbito)`** y `claves.test.ts` lo compara con el SQL vigente (`definicionSql`): una clave nueva en la base sin etiqueta rompe la prueba. Sólo `pagos.umbral_pct` lleva `config.pct`. Las reglas que apagan una clave son `transporte`, `aduana` y `pagos` (por prefijo).
+- **El hueco es de cliente y sólo recibe `{flujo, fase}`:** lo que necesita para nombrar (tipos de documento) lo pide una Server Action de lectura (`leerOpcionesDeRequisitos`) una vez por flujo, guardada un minuto con `memoriaDeLectura`. La lista sale de `flujo.requisitos`; cada escritura revalida la ruta y manda la versión del flujo (`useVersionDelFlujo()`); un `PT409` se dice con `avisarConflicto()`.
+- Las actions llevan el `ambito` del flujo y comprueban `flujos.configurar` o `repuestos.configurar` antes de la RPC. Nacen informativos; `requisito_crear` pone el `espera_ambito`.
+- URL: `?agregar=dato` y `?eliminar=requisito&quitar=<id>` (constantes en `entities/requisitos/vista-de-fase.ts`); el diálogo de quitar está registrado en `scripts/guardas/areas-c/confirmar-con-url.ts`. Un área no importa otra: los tipos de documento se leen aparte, no de `documentos`.
+
 ## Tablas
 
 `flujos`, `flujos_reglas`, `fases`, `fases_transiciones`, `fases_roles`, `fases_transiciones_roles`, `tipos_documento`, `fases_requisitos`, `historial_fases`, `flujos_transporte_oferta`.

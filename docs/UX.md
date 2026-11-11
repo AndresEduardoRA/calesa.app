@@ -174,6 +174,17 @@ Configuración › Flujos › Documentos (`?seccion=documentos`, 5.09). Hermana 
 - **Conflicto:** «Otra persona cambió este tipo de documento mientras lo editabas.» con «Recargar» (lo escrito queda); un tipo que otra persona eliminó con el modal abierto: «Ese tipo de documento ya no existe. Lo que escribiste no se guardó.»
 - **Estados:** esqueleto de dos bloques (el `Suspense` de la pestaña), error con «Reintentar» (el de `(app)`), sin permiso para cambiar (arriba).
 
+### Flujos: requisitos para entrar (estados propios)
+
+Bloque «Requisitos para entrar» del inspector de una fase (`?fase=<id>`, 5.08-1; lo llenan 5.08-2 y 5.08-3). Debajo del resumen leído («Datos: 1 (bloquea)»), la lista de los requisitos de la fase y «Agregar requisito».
+
+- **Fila:** descripción en una línea («VIN del vehículo», «Pagos confirmados: 50 % del precio», «Título · 1 a 3 archivos · PDF, JPG»; una clave que la app no conoce se dice «Dato: <clave>»), las notas debajo en gris, `<Badge>` «Bloqueante» o «Informativo» (con texto, nunca sólo color), «Subir» y «Bajar» (apagados en los extremos con su motivo) y un «⋯» con «Quitar». Los tipos de documento se nombran cuando llegan (una sola lectura por flujo, `leerOpcionesDeRequisitos`); mientras, dice «Documento».
+- **Agregar requisito** (`?agregar=dato`): formulario en línea dentro del bloque (un modal no abre otro modal). «Dato que se pide» con las claves del ámbito del flujo que la fase aún no pide; con «Pagos confirmados», «Porcentaje del precio» (1 a 100); «Notas (opcional)». Nace informativo: «Requisito agregado. Nace informativo: vuélvelo bloqueante cuando quieras.» Si la regla de la clave está apagada, se ofrece igual con la nota «La regla «Aduana» está apagada: nadie podrá cumplirlo.». El motivo de la base va junto a su campo; lo escrito se conserva si falla. Cerrar el inspector con algo escrito pregunta.
+- **Quitar** (`?eliminar=requisito&quitar=<id>`, `<Confirmar>` que nombra el requisito): irreversible, sin «Deshacer». Un id que ya no está en la fase se avisa («Ese requisito ya no existe.») y la URL se limpia.
+- **Orden:** el foco sigue en el botón de esa fila cuando llega el orden nuevo; en el extremo pasa al otro botón.
+- **Sin datos que ofrecer:** «Agregar requisito» apagado con «Esta fase ya pide todos los datos que este flujo ofrece.»
+- **Estados:** sin requisitos («Sin requisitos.», del resumen), tope («Se muestran los primeros 500 requisitos del flujo.»), error al leer los tipos («No pudimos leer los tipos de documento. Reintentar»), conflicto (el aviso de arriba del flujo, «Recargar»; lo escrito queda), sin permiso (la base dice `42501` y se avisa).
+
 ### Logística: estados propios
 
 El panel de la unidad (`<PanelDeLaUnidad>`, 6.01) se dibuja igual en `/logistica/vehiculo/<id>` y, dentro de un drawer, en `/logistica?vehiculo=<id>`.
