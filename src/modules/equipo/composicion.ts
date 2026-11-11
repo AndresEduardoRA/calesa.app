@@ -7,6 +7,7 @@ import type {
   ConCuentasInvitadas,
   LectorDeEquipo,
   LectorDeMatriz,
+  LectorDeRolesParaElegir,
   LectorDePersona,
   LectorDeSoloYo,
   LectorDeVistaPreviaDeBaja,
@@ -19,7 +20,7 @@ import { equipoSupabase } from './infra/equipo'
 import { conAdminDeAuth } from './infra/invitaciones'
 import { perfilSupabase } from './infra/perfil'
 import { getEquipo, getPersona, getSoloYo, getVistaPreviaDeBaja } from './infra/queries/equipo'
-import { getMatriz } from './infra/queries/roles'
+import { getMatriz, getRolesParaElegir } from './infra/queries/roles'
 import { getSesion } from './infra/queries/sesion'
 import { getVistas } from './infra/queries/vistas'
 import { rolesSupabase } from './infra/rbac'
@@ -37,6 +38,7 @@ export const leerEquipo: LectorDeEquipo = getEquipo
 export const leerPersona: LectorDePersona = getPersona
 export const leerSoloYo: LectorDeSoloYo = getSoloYo
 export const leerMatriz: LectorDeMatriz = getMatriz
+export const leerRolesParaElegir: LectorDeRolesParaElegir = getRolesParaElegir
 export const leerVistaPreviaDeBaja: LectorDeVistaPreviaDeBaja = getVistaPreviaDeBaja
 
 export const repositorioVistas: RepositorioVistas = vistasSupabase
