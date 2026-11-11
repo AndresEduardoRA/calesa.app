@@ -264,3 +264,59 @@ begin
 end $$;
 rollback;
 
+-- @test revalidar: integracion_guardar valida la dirección, guarda sólo esa clave y deja apibara igual (R8)
+begin;
+do $$
+declare
+  v_gestor uuid := pg_temp.wr_persona(array['empresa.ajustes.gestionar']);
+  v_nadie uuid := pg_temp.wr_persona(array[]::text[]);
+  v_mala text;
+  r jsonb;
+begin
+  foreach v_mala in array array['http://ejemplo.com/r', 'https://u:p@x.ejemplo/r', 'ftp://x.ejemplo', 'https://x.ejemplo/a b', 'javascript:alert(1)'] loop
+    r := pg_temp.wr_corre(v_gestor, pg_temp.wr_guardar(jsonb_build_object('revalidar_url', v_mala)));
+    if r ->> 'error' is distinct from '22023' or r ->> 'hint' is distinct from 'revalidar_url'
+       or r ->> 'mensaje' is distinct from 'La dirección de revalidación tiene que empezar con https://.' then
+      raise exception 'aceptó o rechazó mal la dirección %: %', v_mala, r;
+    end if;
+  end loop;
+  r := pg_temp.wr_corre(v_gestor, pg_temp.wr_guardar(jsonb_build_object('revalidar_url', 'https://x.ejemplo/' || repeat('a', 2000))));
+  if r ->> 'error' is distinct from '22023' or r ->> 'hint' is distinct from 'revalidar_url' or r ->> 'mensaje' is distinct from 'La dirección es demasiado larga.' then
+    raise exception 'aceptó una dirección de más de 2.000 caracteres: %', r;
+  end if;
+  r := pg_temp.wr_corre(v_gestor, pg_temp.wr_guardar('{"revalidar_url": "https://sitio.ejemplo/r", "otra": 1}'));
+  if r ? 'error' then raise exception 'rechazó una dirección https: %', r; end if;
+  if (select config from public.integraciones where clave = 'web_publica') is distinct from '{"revalidar_url": "https://sitio.ejemplo/r"}'::jsonb then
+    raise exception 'guardó la config %', (select config from public.integraciones where clave = 'web_publica');
+  end if;
+  r := pg_temp.wr_corre(v_gestor, pg_temp.wr_guardar('{"revalidar_url": "http://127.0.0.1:4567/r"}'));
+  if r ? 'error' then raise exception 'rechazó la dirección de loopback para Probar: %', r; end if;
+  r := pg_temp.wr_corre(v_gestor, pg_temp.wr_guardar('{"revalidar_url": "http://localhost/r"}'));
+  if r ? 'error' then raise exception 'rechazó localhost para Probar: %', r; end if;
+  r := pg_temp.wr_corre(v_gestor, pg_temp.wr_guardar('{"revalidar_url": ""}'));
+  if r ? 'error' or (select config from public.integraciones where clave = 'web_publica') is distinct from '{"revalidar_url": null}'::jsonb then
+    raise exception 'una dirección vacía no guardó null: % / %', r, (select config from public.integraciones where clave = 'web_publica');
+  end if;
+  -- Encender sin dirección ni secreto se puede (la cola espera).
+  r := pg_temp.wr_corre(v_gestor, format('select to_jsonb(public.integracion_guardar(%L, %L::timestamptz, true, null))',
+    'web_publica', (select actualizado_en from public.integraciones where clave = 'web_publica')));
+  if r ? 'error' or not (select activa from public.integraciones where clave = 'web_publica') then
+    raise exception 'no dejó encender la web pública sin dirección: %', r;
+  end if;
+  -- apibara sigue igual.
+  r := pg_temp.wr_corre(v_gestor, format('select to_jsonb(public.integracion_guardar(%L, %L::timestamptz, null, %L::jsonb))',
+    'apibara', (select actualizado_en from public.integraciones where clave = 'apibara'), '{"endpoint": "https://atacante.example", "plataformas": ["copart"]}'));
+  if r ->> 'mensaje' is distinct from 'La dirección de apibara tiene que empezar con https:// y ser de apibara.tech.' then
+    raise exception 'apibara aceptó una dirección ajena: %', r;
+  end if;
+  r := pg_temp.wr_corre(v_nadie, pg_temp.wr_guardar('{"revalidar_url": "https://sitio.ejemplo/r"}'));
+  if r ->> 'error' is distinct from '42501' then raise exception 'guardó sin empresa.ajustes.gestionar: %', r; end if;
+  r := pg_temp.wr_corre(v_gestor, format('select to_jsonb(public.integracion_guardar(%L, %L::timestamptz, null, %L::jsonb))',
+    'web_publica', (select actualizado_en from public.integraciones where clave = 'web_publica') - interval '1 second', '{"revalidar_url": "https://sitio.ejemplo/r"}'));
+  if r ->> 'error' is distinct from 'PT409' then raise exception 'guardó con una versión vieja: %', r; end if;
+  if has_function_privilege('anon', 'public.integracion_guardar(text, timestamptz, boolean, jsonb)', 'execute') then
+    raise exception 'anon puede guardar una integración';
+  end if;
+end $$;
+rollback;
+
