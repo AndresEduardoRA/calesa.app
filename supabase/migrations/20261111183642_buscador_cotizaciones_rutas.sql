@@ -1,8 +1,10 @@
 -- El buscador, las rutas de `buscador_cotizaciones` (paso 7.12-2, contingencia de la medición): `supabase/tests/medir-buscador.sql` midió, con el plan genérico,
 -- que un título raro de la dueña recorría su `cotizaciones_creador_idx` entero (2.235 bloques con 50.000 cotizaciones y 11.147 con 250.000; 46 y 229 ms): la ruta de
 -- las propias corría también donde se ve «todos» (`origenes_con_alcance(…, 'propios')` incluye esos orígenes) y, sin el texto al planear, Postgres prefería el orden
--- del índice a buscar por el GIN. Ahora la ruta de las propias sólo corre en los orígenes donde quien llama tiene «propios» y no «todos» (donde ve todo, la ruta del
--- título ya las encuentra), y acota por esos orígenes. Sin tocar la firma, lo que devuelve ni la policy repetida: menos candidatas nunca muestran algo más.
+-- del índice a buscar por el GIN. Ahora la ruta de las propias sólo corre en los orígenes donde quien llama tiene «propios» y no «todos», y acota por esos
+-- orígenes. Donde ve todo, las suyas llegan por la ruta del título, que con más de 1.000 coincidencias toma 1.000 cualesquiera: ahí las propias pierden la
+-- prioridad (se llega por `#número` o afinando el texto; límite declarado en RENDIMIENTO). Sin tocar la firma, lo que devuelve ni la policy repetida: menos
+-- candidatas nunca muestran algo más.
 -- Las consultas siguen estáticas (plan genérico): planificada con el texto, la del título va por un Seq Scan con `limit 1000` para un título común, que lee la tabla
 -- entera si las coincidencias quedan al final (`docs/pasos/7.12-2/decisiones.md`, D22).
 create or replace function public.buscador_cotizaciones(p_texto text, p_tamano integer)
@@ -45,7 +47,8 @@ begin
        where c.titulo ilike v_patron and c.eliminado_en is null and c.origen_id = any (v_t || v_p)
        limit 1000);
     -- Las propias, por `cotizaciones_creador_idx (creado_por, creado_en desc, id desc) where eliminado_en is null`, sólo donde quien llama tiene «propios» sin
-    -- «todos»: encuentra las suyas aunque el título lo compartan miles de ajenas. Crece con las propias de quien busca, no con N (límite declarado en RENDIMIENTO).
+    -- «todos»: encuentra las suyas aunque el título lo compartan miles de ajenas que no ve. Donde ve «todos» no corre (recorría todas sus propias con un título
+    -- raro): ahí, con más de 1.000 coincidencias, las suyas no tienen prioridad. Crece con las propias de quien busca, no con N (límite declarado en RENDIMIENTO).
     v_solo_propios := array(select unnest(v_p) except select unnest(v_t));
     if cardinality(v_solo_propios) > 0 then
       v_ids := v_ids || array(
