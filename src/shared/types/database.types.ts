@@ -1542,6 +1542,7 @@ export type Database = {
       eventos: {
         Row: {
           actualizado_en: string
+          cotizacion_id: string | null
           creado_en: string
           creado_por: string
           descripcion: string | null
@@ -1559,6 +1560,7 @@ export type Database = {
         ComputedFields: never
         Insert: {
           actualizado_en?: string
+          cotizacion_id?: string | null
           creado_en?: string
           creado_por: string
           descripcion?: string | null
@@ -1575,6 +1577,7 @@ export type Database = {
         }
         Update: {
           actualizado_en?: string
+          cotizacion_id?: string | null
           creado_en?: string
           creado_por?: string
           descripcion?: string | null
@@ -1590,6 +1593,13 @@ export type Database = {
           visibilidad?: Database['public']['Enums']['visibilidad_evento']
         }
         Relationships: [
+          {
+            foreignKeyName: 'eventos_cotizacion_id_fkey'
+            columns: ['cotizacion_id']
+            isOneToOne: false
+            referencedRelation: 'cotizaciones'
+            referencedColumns: ['id']
+          },
           {
             foreignKeyName: 'eventos_creado_por_fkey'
             columns: ['creado_por']
@@ -5402,6 +5412,7 @@ export type Database = {
         Row: {
           actualizado_en: string
           completada_en: string | null
+          conversacion_id: string | null
           cotizacion_id: string | null
           creado_en: string
           creado_por: string
@@ -5419,6 +5430,7 @@ export type Database = {
         Insert: {
           actualizado_en?: string
           completada_en?: string | null
+          conversacion_id?: string | null
           cotizacion_id?: string | null
           creado_en?: string
           creado_por: string
@@ -5435,6 +5447,7 @@ export type Database = {
         Update: {
           actualizado_en?: string
           completada_en?: string | null
+          conversacion_id?: string | null
           cotizacion_id?: string | null
           creado_en?: string
           creado_por?: string
@@ -5449,6 +5462,13 @@ export type Database = {
           vence_en?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: 'tareas_conversacion_id_fkey'
+            columns: ['conversacion_id']
+            isOneToOne: false
+            referencedRelation: 'conversaciones'
+            referencedColumns: ['id']
+          },
           {
             foreignKeyName: 'tareas_cotizacion_id_fkey'
             columns: ['cotizacion_id']
@@ -6917,6 +6937,140 @@ export type Database = {
         Args: { p_defecto: number; p_maximo: number; p_pedido: number }
         Returns: number
       }
+      _agenda_cotizacion: { Args: { p_cot: string; p_hint?: string }; Returns: string }
+      _agenda_destinatarios_aplicar: {
+        Args: { p_dest: string[]; p_evento: string; p_titulo: string }
+        Returns: undefined
+      }
+      _agenda_destinatarios_validar: {
+        Args: {
+          p_creador: string
+          p_dest: string[]
+          p_vis: Database['public']['Enums']['visibilidad_evento']
+          p_ya: string[]
+        }
+        Returns: string[]
+      }
+      _agenda_evento_datos: {
+        Args: {
+          p_actual: Omit<
+            Database['public']['Tables']['eventos']['Row'],
+            Database['public']['Tables']['eventos']['ComputedFields']
+          >
+          p_datos: Json
+        }
+        Returns: {
+          actualizado_en: string
+          cotizacion_id: string | null
+          creado_en: string
+          creado_por: string
+          descripcion: string | null
+          eliminado_en: string | null
+          estado: Database['public']['Enums']['estado_agenda']
+          id: string
+          inicia_en: string
+          lead_id: string | null
+          lugar: string | null
+          termina_en: string | null
+          titulo: string
+          vehiculo_id: string | null
+          visibilidad: Database['public']['Enums']['visibilidad_evento']
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'eventos'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _agenda_evento_mio: {
+        Args: { p_evento: string }
+        Returns: {
+          actualizado_en: string
+          cotizacion_id: string | null
+          creado_en: string
+          creado_por: string
+          descripcion: string | null
+          eliminado_en: string | null
+          estado: Database['public']['Enums']['estado_agenda']
+          id: string
+          inicia_en: string
+          lead_id: string | null
+          lugar: string | null
+          termina_en: string | null
+          titulo: string
+          vehiculo_id: string | null
+          visibilidad: Database['public']['Enums']['visibilidad_evento']
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'eventos'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _agenda_fecha: { Args: { p_hint: string; p_valor: Json }; Returns: string }
+      _agenda_puede_recibir: { Args: { p_usuario: string }; Returns: boolean }
+      _agenda_soy_destinatario: { Args: { p_evento: string }; Returns: boolean }
+      _agenda_tarea_accionar: { Args: { p_tarea: string; p_usuario: string }; Returns: undefined }
+      _agenda_tarea_datos: {
+        Args: {
+          p_actual: Omit<
+            Database['public']['Tables']['tareas']['Row'],
+            Database['public']['Tables']['tareas']['ComputedFields']
+          >
+          p_datos: Json
+        }
+        Returns: {
+          actualizado_en: string
+          completada_en: string | null
+          conversacion_id: string | null
+          cotizacion_id: string | null
+          creado_en: string
+          creado_por: string
+          descripcion: string | null
+          eliminado_en: string | null
+          estado: Database['public']['Enums']['estado_agenda']
+          id: string
+          lead_id: string | null
+          responsable_id: string
+          titulo: string
+          vehiculo_id: string | null
+          vence_en: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'tareas'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _agenda_tarea_tomar: {
+        Args: { p_tarea: string }
+        Returns: {
+          actualizado_en: string
+          completada_en: string | null
+          conversacion_id: string | null
+          cotizacion_id: string | null
+          creado_en: string
+          creado_por: string
+          descripcion: string | null
+          eliminado_en: string | null
+          estado: Database['public']['Enums']['estado_agenda']
+          id: string
+          lead_id: string | null
+          responsable_id: string
+          titulo: string
+          vehiculo_id: string | null
+          vence_en: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'tareas'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       _apibara_catalogo: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -8061,6 +8215,15 @@ export type Database = {
       }
       _version_publicada_por: { Args: { p_formula: string }; Returns: string }
       actividad_purgar: { Args: Record<PropertyKey, never>; Returns: number }
+      agenda_quienes_reciben: { Args: { p_conversacion?: string; p_texto: string }; Returns: Json }
+      agenda_rango: {
+        Args: { p_de_todos?: boolean; p_desde: string; p_hasta: string }
+        Returns: Json
+      }
+      agenda_tareas_sin_fecha: {
+        Args: { p_antes_en?: string; p_antes_id?: string; p_tamano?: number }
+        Returns: Json
+      }
       alcance_de: {
         Args: { p_clave: string; p_origen?: string }
         Returns: Database['public']['Enums']['alcance_permiso']
@@ -8417,6 +8580,23 @@ export type Database = {
           requisito_id: string
           tipo: Database['public']['Enums']['tipo_requisito']
         }[]
+      }
+      evento_crear: {
+        Args: { p_datos: Json; p_destinatarios?: string[]; p_id: string }
+        Returns: Json
+      }
+      evento_eliminar: {
+        Args: { p_actualizado_en_esperado: string; p_evento: string }
+        Returns: Json
+      }
+      evento_guardar: {
+        Args: {
+          p_actualizado_en_esperado: string
+          p_datos: Json
+          p_destinatarios: string[]
+          p_evento: string
+        }
+        Returns: Json
       }
       fase_eliminar: { Args: { p_fase: string }; Returns: Json }
       flujo_de_fase: { Args: { p_fase: string }; Returns: string }
@@ -8934,7 +9114,10 @@ export type Database = {
         }
         Returns: string
       }
-      reasignar_tarea: { Args: { p_responsable: string; p_tarea: string }; Returns: undefined }
+      reasignar_tarea: {
+        Args: { p_actualizado_en_esperado: string; p_responsable: string; p_tarea: string }
+        Returns: Json
+      }
       recordatorio_completar: {
         Args: { p_actualizado_en_esperado: string; p_completado: boolean; p_id: string }
         Returns: Json
@@ -9029,6 +9212,19 @@ export type Database = {
       storage_refcount: { Args: { p_bucket: string; p_ruta: string }; Returns: number }
       tabla_referencia_publicar: {
         Args: { p_filas: Json; p_nota: string; p_tabla: string; p_version_esperada: number }
+        Returns: Json
+      }
+      tarea_completar: {
+        Args: { p_actualizado_en_esperado: string; p_completada: boolean; p_tarea: string }
+        Returns: Json
+      }
+      tarea_crear: { Args: { p_conversacion?: string; p_datos: Json; p_id: string }; Returns: Json }
+      tarea_eliminar: {
+        Args: { p_actualizado_en_esperado: string; p_tarea: string }
+        Returns: Json
+      }
+      tarea_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_datos: Json; p_tarea: string }
         Returns: Json
       }
       telefono_lead: { Args: { p_lead: string }; Returns: string }
