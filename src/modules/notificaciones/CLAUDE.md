@@ -12,7 +12,7 @@ Campana in-app con «requiere acción», realtime, web push (VAPID) y preferenci
 ## Archivos clave
 
 - `entities/tipos.ts` — catálogo tipado de notificaciones (clave, título, ruta destino, requiere acción).
-- `infra/realtime.client.ts`, `infra/push.ts` — `supabase/functions/push` (7.03-2) canjea el pase de `push_disparar` y envía (RFC 8291/8292).
+- `infra/realtime.client.ts`; `supabase/functions/push` (7.03-2) canjea el pase de `push_disparar` y envía (RFC 8291/8292 con Web Crypto).
 - `features/campana/`, `features/preferencias/`.
 
 ## Tablas
@@ -51,4 +51,6 @@ limpieza, sólo `service_role`); purga `visitados`. RPC/trigger: `notificar`, `n
   `url_proyecto`: crea un **pase** (`push_pases`, un uso, 10 min) y llama a `/functions/v1/push` por `pg_net`. Sin secretos en la base y sin cola de
   reintentos (la campana es el registro). **El push nunca rompe la operación que avisa** (bloque de excepción; sólo el `sqlstate` al log). `push_abrir`
   devuelve título, cuerpo, `ruta` y las suscripciones válidas del destinatario, nada más; `push_resultado` anota una vez por pase (404/410 borran).
+  La función `push` (7.03-2) canjea antes de mirar las claves (sin ellas, `sin_claves`), vuelve a validar el host, no sigue redirecciones y sólo
+  da por caducada una suscripción con 404/410 (un 403 o un 5xx es `fallo`). Contrato: `supabase/tests/push-contrato.test.ts` y `push-funcion.test.ts`.
 - `requiere_accion` muestra el botón en la campana (p. ej. «Contacté» de un turno web); al resolverse se marca leída por la acción, no por abrir la campana.
