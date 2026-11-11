@@ -8,7 +8,8 @@
   (`0/8`, `10/8`, `100.64/10`, `169.254/16`, `172.16/12`, `192.168/16`), IPv6 literal, usuario y clave, y mira el host ya normalizado por WHATWG
   (`2130706433` y `0x7f.1` son `127.0.0.1`) y sin el punto final (`localhost.`). Un nombre que resuelve a una IP interna no se ataja: no hay
   dependencia para fijar la IP resuelta y un `dns.lookup` previo no evita el rebinding. Lo limitan el permiso `empresa.ajustes.gestionar`, el cuerpo
-  fijo, no seguir redirecciones y que sólo vuelve el código.
+  fijo, no seguir redirecciones y que sólo vuelve el código. Tampoco se rechazan las redes reservadas que no son del servidor (`192.0.0.0/24`,
+  `198.18.0.0/15`, multicast `224.0.0.0/4`, `240.0.0.0/4`): no apuntan a la red del servidor y «Probar» sólo devuelve el código.
 - **D12 · No se rechaza el loopback al guardar.** La base lo acepta (D3 del 8.06-1), el job no lo usa (sólo manda a `https://`) y «Probar» lo corta
   (D10). El esquema del formulario corre también en el navegador y no lee el entorno.
 - **D13 · La app es más estricta que la base.** La regex de `integracion_guardar` queda como está: lo que la app rechaza (redes internas, IP en decimal)
