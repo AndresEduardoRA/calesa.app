@@ -8247,6 +8247,11 @@ export type Database = {
       _tonos_de_grupos: { Args: { p_def: Json }; Returns: Json }
       _tonos_lista: { Args: Record<PropertyKey, never>; Returns: Json }
       _tonos_tope: { Args: Record<PropertyKey, never>; Returns: number }
+      _transicion_accion: { Args: { p_accion: string }; Returns: string }
+      _transicion_unico: {
+        Args: { p_a: string; p_de: string; p_restriccion: string }
+        Returns: undefined
+      }
       _url_del_proyecto: { Args: Record<PropertyKey, never>; Returns: string }
       _uuid_de: { Args: { p_hint: string; p_valor: Json }; Returns: string }
       _vehiculo_a_lote: {
@@ -9539,6 +9544,18 @@ export type Database = {
       tono_guardar: {
         Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_id: string }
         Returns: Json
+      }
+      transicion_crear: {
+        Args: {
+          p_a: string
+          p_accion: string
+          p_actualizado_en_esperado: string
+          p_de: string
+          p_flujo: string
+          p_id: string
+          p_nota_obligatoria: boolean
+        }
+        Returns: string
       }
       unidad_llego_a_fase: {
         Args: { p_fase: string; p_repuesto: string; p_vehiculo: string }
