@@ -47,7 +47,13 @@ El módulo se parte por área, como `cotizaciones` (`scripts/guardas/areas-de-fl
   formulario. `features/fases/actions/` (`crearFase`, `guardarFase`, `moverFase`, `eliminarFase`, `reactivarFase`, `leerImpactoDeUnaFase`) exigen
   `flujos.configurar` en el origen (o `repuestos.configurar` si `origenId` es nulo) antes de la RPC y revalidan configuración y vehículos. Crear lleva el
   `flujoId`; repetir el id de un intento da «Esa fase ya existe.», no el mismo resultado.
-- Nada de esta área sale por `index.ts` ni `client.ts`: los componentes de la pantalla (5.04-2 y 5.04-3) saldrán por `pantallas/fases.ts`.
+- **La lista (5.04-2):** `pantallas/fases.ts` da `<AccionesDeLaLista>` («Nueva fase», y —una vez por pantalla— el modal y la confirmación, con `diferido()`) y
+  `<AccionesDeFila>` (`<BotonesDeOrden>` y el «⋯»: Editar, Jubilar o eliminar, Reactivar); `src/app/(app)/configuracion/flujos/huecos.ts` los pone en
+  `accionesDeLaLista` y `accionesDeFila`. URL: `?panel=nueva-fase` y `?panel=eliminar-fase&quitar=<id>` (`PANEL_*` y `CLAVE_DE_FASE_A_QUITAR` en
+  `entities/fases/panel-de-fase.ts`; registrada en `scripts/guardas/areas-b/confirmar-con-url.ts`). La confirmación lee `fase_impacto` al abrirse
+  (`leerImpactoDeUnaFase`); una bloqueada se explica y no se confirma. Cada escritura la hace `useListaDeFases` (una a la vez), manda la `version` del flujo y,
+  ante `PT409`, `avisarConflicto()`; la lista se relee, no se siembra. Sin permiso en la interfaz: el selector sólo ofrece flujos configurables (D1).
+- Nada de esta área sale por `index.ts` ni `client.ts`: los componentes salen por `pantallas/fases.ts` (el inspector, 5.04-3, suma `<DatosDeLaFase>`).
 
 ## Tablas
 
