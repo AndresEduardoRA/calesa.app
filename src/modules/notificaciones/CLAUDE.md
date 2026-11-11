@@ -6,14 +6,21 @@ Campana in-app con «requiere acción», realtime, web push (VAPID) y preferenci
 
 - Entra: `notificar()` desde RPC y triggers (tareas, turnos web, alertas de demora, recordatorios, menciones; la cartera con `lead_compartir` y
   `lead_transferir`; la limpieza con `limpieza_avisar`), suscripciones push del navegador.
-- Sale: `<Campana>`, `usePush()`, `preferenciasDe(usuario)`. Lo consume `app/` (topbar) y `tablero`.
+- Sale: `<Campana>` (`shell.client.ts`, el marco), `<ListaDeNotificaciones>` (`pantallas/notificaciones.ts`, `/notificaciones`),
+  `leerPaginaDeNotificaciones()` y `filtroDeLista()` (`index.ts`), `usePush()` y `preferenciasDe(usuario)` (7.03/7.04). Lo consume `app/` (barra y página) y `tablero`.
 - Depende de: `equipo`.
 
 ## Archivos clave
 
-- `entities/tipos.ts` — catálogo tipado de notificaciones (clave, título, ruta destino, requiere acción).
-- `infra/realtime.client.ts`, `infra/push.ts` — `supabase/functions/push` recibe el webhook de la base y envía con `web-push`.
-- `features/campana/`, `features/preferencias/`.
+- `entities/tipos.ts` — catálogo por `tipo` (icono, si abrirlo acciona); `destino.ts` — una `ruta` sólo es enlace si es interna y su pantalla existe;
+  `notificacion.ts` — la fila validada, el cursor `(creado_en, id)` y los topes; `fundir.ts` — fundir la primera página con lo cargado.
+- `infra/consultas.ts` — las lecturas, escritas una vez para el servidor (`queries/`) y el navegador (`notificaciones.client.ts`); `infra/notificaciones.ts`
+  — abrir y marcar (RLS + grants de columna). El canal de Realtime es `shared/lib/supabase/canal.client.ts`.
+- `features/campana/` (botón, contador y popover, el contenido y Realtime diferidos) y `features/lista/` (la página: `CuerpoDeLaLista`,
+  «Ver más», «Marcar todas», **la fila `FilaDeNotificacion` que usan la campana y la página**, `actions/`). `features/preferencias/` llega con 7.04.
+- **La acción propia de un tipo** («Contacté» de un turno web) la dibuja `app/`: el registro `ACCIONES_DE_NOTIFICACIONES` de
+  `src/app/(app)/_shell/huecos/acciones-de-notificaciones.ts` llega por props (una función no cruza de servidor a cliente). La Fase 8 suma su entrada.
+  `infra/push.ts` y `supabase/functions/push` llegan con 7.03.
 
 ## Tablas
 

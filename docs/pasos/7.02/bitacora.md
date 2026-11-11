@@ -20,3 +20,15 @@ Segunda de tres partes. La campana ya está en el marco de toda pantalla:
 - Arreglo en `canal.client.ts`: el canal se une tras `realtime.setAuth()` (ver D8).
 - Pruebas: `e2e/notificaciones-campana.spec.ts` (3 × escritorio y celular: la fila insertada por SQL aparece sin recargar; abrirla lleva a su ruta y la deja leída y accionada; una ruta sin pantalla no es enlace). `canal.client.test.ts` (8) y `destino.test.ts` en verde; `barra-superior-celular`, `presupuesto-js` y `acceso` en verde.
 - e2e completo: no (7.02-2, sólo specs dirigidos: lo prueba el CI del PR)
+
+## 7.02-3 · la pantalla `/notificaciones` (2026-11-11)
+
+Tercera y última parte. El paso queda completo:
+
+- `src/app/(app)/notificaciones/`: `page.tsx` (título, `?ver=por-accionar|todas` leído en el servidor tras `<Suspense>` y `await connection()`, primera página de `TAMANO_DE_VER_MAS`), `loading.tsx` y `esqueleto-de-notificaciones.tsx`, `lista-con-acciones.tsx` (une la lista con el registro de acciones por tipo). `_shell/rutas-con-pantalla.ts`: las rutas con pantalla, en un solo archivo para el layout y la página.
+- `features/lista/`: `<ListaDeNotificaciones>` (pestañas Todas / Por accionar con `nuqs` y `shallow: false`; error de la primera lectura con «Reintentar»), `<CuerpoDeLaLista>` (se reinicia con `key={ver}`), `<VacioDeLaLista>`, `<PieDeLaLista>` («Ver más» por cursor, «Reintentar», «Sin conexión», `<AvisoDeTope>` al llegar a 500), `useListaDeNotificaciones` (Realtime como señal: relee la primera página y la funde por id) y `useMarcarTodas`. `<FilaDeNotificacion>`, `<IconoDeTipo>` y `useAbrirAviso` se movieron de `campana/` a `lista/`: una sola fila para los dos lugares.
+- `entities/fundir.ts` (`fundirPagina`, `sumarPagina`), con su prueba: lo nuevo arriba, el estado fresco manda, lo que dejó de cumplir el filtro sale y lo de «Ver más» se conserva.
+- `pantallas/notificaciones.ts` e `index.ts` (sólo `leerPaginaDeNotificaciones` y `filtroDeLista`: sin componentes). Ficha del módulo al día.
+- Presupuesto del documento de `/perfil`: 91 KB (86.627 B medidos con la entrada de Logística de 6.01 y la campana de 7.02-2; lo medido más un 5 %).
+- Pruebas: `e2e/notificaciones-campana.spec.ts`, 7 × escritorio y celular (25 avisos: «Ver todas» lista 20 y «Ver más» trae los 5 restantes sin repetir; `?ver=por-accionar` filtra y «Todas» vuelve; un aviso nuevo entra arriba sin recargar; «Marcar todas como leídas» las deja leídas sin accionar), `presupuesto-js` en verde. `fundir.test.ts` y `scripts/guardas` en verde; `lint`, `typecheck` y `mapa.sh --check` sin avisos.
+- e2e completo: no (7.02-3, sólo specs dirigidos: lo prueba el CI del PR)
