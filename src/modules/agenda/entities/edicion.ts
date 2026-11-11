@@ -186,10 +186,9 @@ export function validarTarea(
   if (largo(valores.descripcion.trim()) > LARGO_MAXIMO_DE_DESCRIPCION) {
     errores.descripcion = MENSAJE_DE_DESCRIPCION
   }
+  // El vencimiento es opcional (7.07-3): vacío es «sin fecha», y esa tarea vive en «Tareas sin fecha». Con valor, no puede quedar en el pasado.
   const vence = instanteDeLocal(valores.venceEn, { zona })
-  if (vence === null) {
-    errores.vence_en = 'Elige cuándo vence.'
-  } else {
+  if (vence !== null) {
     const cambio =
       vencimientoGuardado === null || Date.parse(vence) !== Date.parse(vencimientoGuardado)
     if (cambio && Date.parse(vence) < Date.parse(ahoraIso)) {

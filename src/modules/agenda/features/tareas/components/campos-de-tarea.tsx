@@ -33,7 +33,7 @@ export function CamposDeTarea({ formulario: f, puedeElegirResponsable, creando }
       />
       <Campo
         nombre="vence_en"
-        etiqueta="Vence"
+        etiqueta="Vence (opcional)"
         type="datetime-local"
         value={f.valores.venceEn}
         error={f.errores.vence_en}

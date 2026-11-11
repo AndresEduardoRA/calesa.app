@@ -109,8 +109,12 @@ describe('validarTarea', () => {
     expect(validarTarea(tarea(), ZONA, AHORA)).toEqual({})
   })
 
-  it('el vencimiento es obligatorio y no puede estar en el pasado', () => {
-    expect(validarTarea(tarea({ venceEn: '' }), ZONA, AHORA).vence_en).toBe('Elige cuándo vence.')
+  it('el vencimiento es opcional y, con valor, no puede estar en el pasado', () => {
+    expect(validarTarea(tarea({ venceEn: '' }), ZONA, AHORA).vence_en).toBeUndefined()
+    // Una tarea que tenía fecha y se deja sin fecha tampoco da error.
+    expect(
+      validarTarea(tarea({ venceEn: '' }), ZONA, AHORA, '2026-11-10T22:00:00.000Z').vence_en,
+    ).toBeUndefined()
     // 09:59 en La Paz ya pasó (son las 10:00).
     expect(validarTarea(tarea({ venceEn: '2026-11-11T09:59' }), ZONA, AHORA).vence_en).toBe(
       'El vencimiento no puede quedar en el pasado.',

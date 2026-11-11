@@ -1,3 +1,4 @@
 // Composición del módulo en el navegador: lo que un componente necesita de `infra/*.client.ts`.
 // Separado de `composicion.ts` porque aquel importa `server-only`.
 export { leerPersonasParaEvento, leerPersonasParaTarea } from './infra/personas.client'
+export { leerTareasSinFecha } from './infra/sin-fecha.client'

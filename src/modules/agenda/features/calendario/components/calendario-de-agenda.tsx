@@ -1,17 +1,15 @@
-import type { Route } from 'next'
-import Link from 'next/link'
-import { AvisoDeTope } from '@/shared/ui/aviso-de-tope'
 import { EstadoVacio } from '@/shared/ui/estados'
 import {
   CLASES_DE_AGENDA,
-  claseDe,
   entradasDeAgenda,
   type AgendaDeRango,
   type ClaveDeClase,
 } from '../../../entities/agenda'
 import { tituloDelRango, type Vista } from '../../../entities/calendario'
 import { enlaceDeDia, extraDeEnlaces } from '../enlace-de-dia'
+import { TareasSinFecha } from '../../tareas/components/tareas-sin-fecha'
 import { enlaceDePanel } from '../enlace-de-panel'
+import { AvisosDeTopeDelCalendario } from './avisos-de-tope-del-calendario'
 import { BarraDelCalendario } from './barra-del-calendario'
 import { VistaDeDia } from './vista-de-dia'
 import { VistaDeMes } from './vista-de-mes'
@@ -29,7 +27,7 @@ type Props = {
   deTodos: boolean
 }
 
-// El calendario de la agenda: barra, la vista elegida y, al pie, los avisos de tope. Un Server Component: la barra y las vistas son las islas de cliente.
+// El calendario de la agenda: barra, la vista elegida, al pie los avisos de tope y, si se ven las tareas, «Tareas sin fecha». Un Server Component: la barra y las vistas son las islas de cliente.
 export function CalendarioDeAgenda({
   agenda,
   vista,
@@ -93,21 +91,12 @@ export function CalendarioDeAgenda({
       ) : (
         <VistaDeDia fecha={fecha} entradas={entradas} zona={zona} hoy={hoy} />
       )}
-      {clases
-        .filter((clave) => agenda.hayMas[clave])
-        .map((clave) => (
-          <AvisoDeTope
-            key={clave}
-            texto={`Hay más ${claseDe(clave).plural} de las que se muestran. Acorta el rango o quita clases del filtro.`}
-            camino={
-              vista === 'dia' ? undefined : (
-                <Link href={enlaceDeDia(extra, fecha) as Route} className="underline">
-                  Ver el día
-                </Link>
-              )
-            }
-          />
-        ))}
+      <AvisosDeTopeDelCalendario
+        hayMas={agenda.hayMas}
+        clases={clases}
+        enlaceDelDia={vista === 'dia' ? null : enlaceDeDia(extra, fecha)}
+      />
+      {clases.includes('tarea') ? <TareasSinFecha base={{ vista, fecha, extra }} /> : null}
     </div>
   )
 }
