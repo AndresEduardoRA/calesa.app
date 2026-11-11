@@ -15,6 +15,10 @@ export const REGISTRO: Record<string, RegistroDeDrawer> = {
     sinFormulario:
       'sólo es el detalle de una tarea, con «Marcar como hecha», «Editar» y «Eliminar» y el despliegue de reasignar (un selector que pide en el acto, sin guardar nada tipeado): no guarda nada tipeado; lo que se escribe está en el formulario de edición, que se registra aparte',
   },
+  'src/modules/agenda/features/recordatorios/components/panel-de-recordatorio.tsx': {
+    sinFormulario:
+      'sólo es el detalle de un recordatorio, con «Completar» o «Reabrir»: no guarda nada tipeado; el recordatorio se edita desde el lead',
+  },
   'src/modules/agenda/features/tareas/components/panel-de-formulario-de-tarea.tsx': {
     formulario: 'src/modules/agenda/features/tareas/components/panel-de-formulario-de-tarea.tsx',
     mecanismo: 'contexto',

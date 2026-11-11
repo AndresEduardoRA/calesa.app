@@ -6,6 +6,7 @@ import {
   leerEvento,
   leerFecha,
   leerIdDeUrl,
+  leerRecordatorio,
   leerTarea,
   leerVista,
   puedeCompletarTarea,
@@ -91,14 +92,17 @@ export default async function PaginaDeAgenda({ searchParams }: PageProps<'/agend
   const yo = sesion.usuarioId
   const eventoId = leerIdDeUrl(unParametro(parametros['evento']))
   const tareaId = leerIdDeUrl(unParametro(parametros['tarea']))
-  const [lectura, lecturaDeEvento, lecturaDeTarea] = await Promise.all([
+  const recordatorioId = leerIdDeUrl(unParametro(parametros['recordatorio']))
+  const [lectura, lecturaDeEvento, lecturaDeTarea, lecturaDeRecordatorio] = await Promise.all([
     leerAgenda({ ...rangoDe(vista, fecha, zona), deTodos }),
     eventoId ? leerEvento(eventoId, yo) : null,
     tareaId ? leerTarea(tareaId) : null,
+    recordatorioId ? leerRecordatorio(recordatorioId) : null,
   ])
   const agenda = datosO(lectura)
   const detalleDeEvento = lecturaDeEvento ? datosO(lecturaDeEvento) : null
   const detalleDeTarea = lecturaDeTarea ? datosO(lecturaDeTarea) : null
+  const detalleDeRecordatorio = lecturaDeRecordatorio ? datosO(lecturaDeRecordatorio) : null
   return (
     <>
       <CalendarioDeAgenda
@@ -114,6 +118,10 @@ export default async function PaginaDeAgenda({ searchParams }: PageProps<'/agend
       <PanelesDeAgenda
         evento={eventoPedido(eventoId, detalleDeEvento, yo, sesion.permisos)}
         tarea={tareaPedida(tareaId, detalleDeTarea, yo, sesion.permisos)}
+        recordatorio={
+          recordatorioId ? { id: recordatorioId, detalle: detalleDeRecordatorio } : null
+        }
+        ahora={new Date().toISOString()}
         puedePublicar={puede(sesion.permisos, 'agenda.eventos.publicar')}
         puedeAsignar={puedeDarTareaAOtro(sesion.permisos)}
         zona={zona}

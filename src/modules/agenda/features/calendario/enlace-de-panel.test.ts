@@ -12,6 +12,12 @@ describe('enlaceDePanel', () => {
     expect(enlaceDePanel(BASE, 'tarea', 'xyz')).toBe('/agenda?vista=dia&fecha=2026-11-12&tarea=xyz')
   })
 
+  it('abre el panel de un recordatorio y conserva vista, fecha y filtros', () => {
+    expect(enlaceDePanel({ ...BASE, extra: 'ver=recordatorio' }, 'recordatorio', 'rec')).toBe(
+      '/agenda?ver=recordatorio&vista=dia&fecha=2026-11-12&recordatorio=rec',
+    )
+  })
+
   it('conserva el filtro de clases y «la de todos»', () => {
     const base = { ...BASE, extra: 'ver=tarea&de=todos' }
     expect(enlaceDePanel(base, 'tarea', 'xyz')).toBe(

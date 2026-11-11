@@ -39,11 +39,9 @@ export function CalendarioDeAgenda({
   deTodos,
 }: Props) {
   const extra = extraDeEnlaces(clases, deTodos)
-  // El evento y la tarea abren su panel en esta misma vista y fecha (el recordatorio sigue sin enlace hasta el 7.07-3).
+  // El evento, la tarea y el recordatorio abren su panel en esta misma vista y fecha (la subasta lleva a su vehículo).
   const entradas = entradasDeAgenda(agenda, clases, (clave, id) =>
-    clave === 'evento' || clave === 'tarea'
-      ? enlaceDePanel({ vista, fecha, extra }, clave, id)
-      : null,
+    clave === 'subasta' ? null : enlaceDePanel({ vista, fecha, extra }, clave, id),
   )
   const hayMas = clases.some((clave) => agenda.hayMas[clave])
   const hayAlgo =

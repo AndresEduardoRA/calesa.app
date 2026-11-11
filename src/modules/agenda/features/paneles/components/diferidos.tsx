@@ -19,3 +19,8 @@ export const PanelDeFormularioDeTareaDiferido = diferido(() =>
     (modulo) => modulo.PanelDeFormularioDeTarea,
   ),
 )
+export const PanelDeRecordatorioDiferido = diferido(() =>
+  import('../../recordatorios/components/panel-de-recordatorio').then(
+    (modulo) => modulo.PanelDeRecordatorio,
+  ),
+)
