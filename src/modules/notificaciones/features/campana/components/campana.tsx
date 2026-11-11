@@ -5,6 +5,7 @@ import { useCallback, useState } from 'react'
 import { conteoCorto, conteoEnFrase, type ConteoAcotado } from '@/shared/lib/conteo'
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover'
 import { ContenidoDeLaCampanaDiferido, SuscripcionDeLaCampanaDiferida } from './diferidos'
+import { useAlDescansar } from '../hooks/use-al-descansar'
 import type { AccionesPorTipo } from '../../lista/components/fila-de-notificacion'
 
 type Props = {
@@ -25,15 +26,18 @@ export function Campana({ usuarioId, disponibles, acciones }: Props) {
     setVersion((n) => n + 1)
   }, [])
   const [abierta, setAbierta] = useState(false)
+  const descansa = useAlDescansar()
   const sinLeer = conteo !== null && conteo.n > 0 ? conteo : null
 
   return (
     <>
-      <SuscripcionDeLaCampanaDiferida
-        usuarioId={usuarioId}
-        alConteo={setConteo}
-        alSenal={alSenal}
-      />
+      {descansa ? (
+        <SuscripcionDeLaCampanaDiferida
+          usuarioId={usuarioId}
+          alConteo={setConteo}
+          alSenal={alSenal}
+        />
+      ) : null}
       <Popover open={abierta} onOpenChange={setAbierta}>
         <PopoverTrigger
           aria-label={

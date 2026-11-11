@@ -52,3 +52,5 @@ Campana in-app con «requiere acción», realtime, web push (VAPID) y preferenci
 - El push (7.03, todavía no está): el plan es que el webhook se autentique con `PUSH_WEBHOOK_SECRET` (header) y la función use el cliente admin **sólo**
   para leer suscripciones.
 - `requiere_accion` muestra el botón en la campana (p. ej. «Contacté» de un turno web); al resolverse se marca leída por la acción, no por abrir la campana.
+- La campana pide su contador y su canal cuando el navegador descansa (`useAlDescansar`), no al hidratar: el cliente de Supabase evaluado durante la hidratación retrasa ≈ 320 ms el primer clic que vale en toda pantalla. Sus pedidos a `notificaciones` no cuentan en un spec que mide pedidos a la base (`esDelMarco` de `e2e/soporte/pedidos-del-marco.ts`), y su parada de Tab sí cuenta en las tareas de oro.
+- `suscribirseACambios` avisa (`alReconectar`) en **cada** unión del canal, la primera incluida: lo anterior a la unión no llegó como señal.
