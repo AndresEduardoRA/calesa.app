@@ -7196,6 +7196,10 @@ export type Database = {
         }
         Returns: Json
       }
+      _dinero_filtros: {
+        Args: { p_claves: string[]; p_filtros: Json }
+        Returns: Record<string, unknown>
+      }
       _dinero_regla_activa: {
         Args: { p_regla: string; p_repuesto: string; p_vehiculo: string }
         Returns: boolean
@@ -8694,6 +8698,26 @@ export type Database = {
           p_vehiculo: string
         }
         Returns: Json
+      }
+      gastos_listar: {
+        Args: { p_cursor_fecha: string; p_cursor_id: string; p_filtros: Json; p_tope: number }
+        Returns: {
+          actualizado_en: string
+          categoria_id: string
+          categoria_nombre: string
+          comprobante_ruta: string
+          fecha: string
+          id: string
+          lote_id: string
+          moneda: string
+          monto: number
+          monto_base: number
+          origen_id: string
+          proveedor: string
+          tipo_cambio_aplicado: number
+          vehiculo_id: string
+          vehiculo_titulo: string
+        }[]
       }
       gastos_prorratear: {
         Args: {
