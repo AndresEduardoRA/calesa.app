@@ -31,7 +31,7 @@ El módulo se parte por área, como `cotizaciones` (`scripts/guardas/areas-de-fl
 ## Tablas
 
 `flujos`, `flujos_reglas`, `fases`, `fases_transiciones`, `fases_roles`, `fases_transiciones_roles`, `tipos_documento`, `fases_requisitos`, `historial_fases`.
-RPC: `cambiar_fase`, `cambiar_fase_lote`, `previsualizar_cambio_fase`, `evaluar_requisitos`, `revisar_flujo`, `fase_crear`, `fase_guardar`, `fase_eliminar`, `fuera_de_regla`, `unidad_llego_a_fase`, `claves_dato_requisito`.
+RPC: `cambiar_fase`, `cambiar_fase_lote`, `previsualizar_cambio_fase`, `evaluar_requisitos`, `revisar_flujo`, `fase_crear`, `fase_guardar`, `fase_mover`, `fase_eliminar`, `fuera_de_regla`, `unidad_llego_a_fase`, `claves_dato_requisito`.
 
 ## No se rompe
 
