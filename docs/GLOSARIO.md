@@ -82,7 +82,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Lote de papelera** — `lotes_papelera` / `LoteDePapelera`: envío de 1 a 200 a la papelera; se restaura o purga entero o por partes. En la UI, «lote».
 - **Purga** — `vehiculos_papelera_purgar()`, `cotizaciones_papelera_purgar()`, `papelera_purgar()`, `papelera_purgar_vencidos()`: borrar para siempre: a mano (`vehiculos.papelera.purgar`, `leads.papelera.purgar` o `cotizaciones.papelera.purgar`, cada papelera la suya) o a los `papelera_dias`; lo que otra tabla necesita (un pago, un comprobante) queda bloqueado, con motivo, y se queda en la papelera.
 - **Limpieza de Storage** — `cola_gc_storage` / función `storage-gc`, `storage_gc_*()`: borrar de Storage lo que nadie referencia; job cada hora.
-- **Pase** — `cola_gc_pases` / `storage_gc_disparar()`, `storage_gc_abrir()`: uuid de un solo uso (10 min) con que el job autentica su llamada a `storage-gc`.
+- **Pase** — `cola_gc_pases` / `storage_gc_disparar()`, `storage_gc_abrir()`; `push_pases` / `push_disparar()`, `push_abrir()`: uuid de un solo uso (10 min) con que la base autentica su llamada a una función edge (`storage-gc`; `push`, atado a una notificación).
 - **Restaurar** — `vehiculos_papelera_restaurar()`: vuelve al inventario sin publicar; lo que choca con un VIN o lote ya tomado queda pendiente, con motivo. `cotizaciones_papelera_restaurar()`: lo que choca con otra viva (una versión nueva, una final del vehículo) o cuelga de un vehículo o cliente en la papelera queda pendiente, con motivo.
 - **Lead** — `leads` / `leads_vista`: prospecto o cliente; el teléfono principal lo identifica.
 - **Origen del lead** — `origenes_lead` / `origen_lead_crear()`, `OrigenDeLeadConUso`: de dónde llegó un lead (Facebook, referido…).
