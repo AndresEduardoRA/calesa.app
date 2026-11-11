@@ -7,6 +7,7 @@
 --   E2. `requisito_mover` deja el tercero primero y renumera 10/20/30; después de sí mismo → 22023; ancla de otra fase → PT409; con una espera
 --       cuya regla se apagó después, mover y volverla bloqueante siguen.
 --   E3. `requisito_eliminar` borra y mueve la versión; otra vez → PT409; con la versión vieja → PT409.
+--   E4. Un UPDATE que cambia `fase_id` (sólo service_role o postgres) revalida todo: la revalidación parcial de D7 es estrecha.
 
 create or replace function pg_temp.re_persona(p_concesiones text[]) returns uuid language plpgsql as $f$
 declare v_id uuid := gen_random_uuid(); v_rol uuid; c text;
@@ -133,6 +134,7 @@ begin
   perform pg_temp.re_falla('E1 max < min', pg_temp.re_guardar(config, d, v, '{"max_archivos": 1}'), '22023', 'max_archivos');
   perform pg_temp.re_falla('E1 pct', pg_temp.re_guardar(config, p, v, '{"config": {"pct": 120}}'), '22023', 'config');
   perform pg_temp.re_falla('E1 vacío', pg_temp.re_guardar(config, d, v, '{}'), '22023', null);
+  perform pg_temp.re_falla('E1 notas largas', pg_temp.re_guardar(config, d, v, jsonb_build_object('notas', repeat('x', 501))), '22023', 'notas');
   perform pg_temp.re_falla('E1 vieja', pg_temp.re_guardar(config, d, v0, '{"notas": "otra"}'), 'PT409', null);
   perform pg_temp.re_falla('E1 inexistente', pg_temp.re_guardar(config, gen_random_uuid(), v, '{"notas": "otra"}'), 'PT409', null);
   if (select notas || max_archivos from public.fases_requisitos where id = d) <> 'dos hojas3' or pg_temp.re_version(a) <> v then
@@ -163,6 +165,7 @@ begin
   if pg_temp.re_orden(f) is distinct from array[uno, dos, tres] then raise exception 'E2: tres debía quedar tras dos'; end if;
   perform pg_temp.re_falla('E2 sí mismo', pg_temp.re_mover(config, uno, v, uno), '22023', 'despues_de');
   perform pg_temp.re_falla('E2 otra fase', pg_temp.re_mover(config, uno, v, otro), 'PT409', null);
+  perform pg_temp.re_falla('E2 vieja', pg_temp.re_mover(config, uno, pg_temp.re_version(a) - interval '1 second'), 'PT409', null);
   -- La regla «esperas» se apaga con la espera ya creada (el trigger de las reglas no las cuenta): mover y volverla bloqueante siguen.
   update public.flujos_reglas set activa = false where flujo_id = a and regla = 'esperas';
   v := pg_temp.re_bien('E2 espera vieja, mover', pg_temp.re_mover(config, tres, v));
@@ -187,5 +190,33 @@ begin
   perform pg_temp.re_falla('E3 otra vez', pg_temp.re_corre(config, format('select to_jsonb(public.requisito_eliminar(%L, %L))', uno, v)), 'PT409', null);
   perform pg_temp.re_falla('E3 vieja', pg_temp.re_corre(config, format('select to_jsonb(public.requisito_eliminar(%L, %L))', dos, v0)), 'PT409', null);
   if not exists (select 1 from public.fases_requisitos where id = dos) then raise exception 'E3: con la versión vieja no debía borrar'; end if;
+end $$;
+rollback;
+
+-- @test requisitos: cambiar fase_id por fuera de las RPC revalida la clave y la espera aunque nada más cambie (E4)
+begin;
+do $$
+declare
+  a uuid := pg_temp.re_flujo(); b uuid := pg_temp.re_flujo(); f uuid := pg_temp.re_fase(a, 'RE fase'); fb uuid := pg_temp.re_fase(b, 'RE b');
+  fr uuid := pg_temp.re_fase(pg_temp.re_repuestos(), 'RE rep'); fr2 uuid := pg_temp.re_fase(pg_temp.re_repuestos(), 'RE rep 2');
+  dato uuid; espera uuid; v_e text; v_h text;
+begin
+  insert into public.fases_requisitos (fase_id, tipo, clave_dato) values (f, 'dato', 'vehiculo.vin') returning id into dato;
+  insert into public.fases_requisitos (fase_id, tipo, espera_fase_id, espera_ambito) values (f, 'espera', fr, 'hijos') returning id into espera;
+  begin
+    update public.fases_requisitos set fase_id = fr2 where id = dato;
+    raise exception 'E4: el dato de vehículos no debía pasar a una fase de repuestos';
+  exception when sqlstate '22023' then
+    get stacked diagnostics v_h = pg_exception_hint;
+    if v_h is distinct from 'clave_dato' then raise exception 'E4: el hint debía ser clave_dato y fue %', v_h; end if;
+  end;
+  update public.flujos_reglas set activa = false where flujo_id = b and regla = 'esperas';
+  begin
+    update public.fases_requisitos set fase_id = fb where id = espera;
+    raise exception 'E4: la espera no debía pasar a un flujo con las esperas apagadas';
+  exception when sqlstate '23514' then
+    get stacked diagnostics v_h = pg_exception_hint;
+    if v_h is distinct from 'espera_fase_id' then raise exception 'E4: el hint debía ser espera_fase_id y fue %', v_h; end if;
+  end;
 end $$;
 rollback;

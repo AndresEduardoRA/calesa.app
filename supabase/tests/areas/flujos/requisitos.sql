@@ -194,6 +194,8 @@ rollback;
 begin;
 do $$
 declare
+  -- Sin cuentas previas (SOLO= sin humo.sql) la primera queda dueña: se crea una antes de las que se prueban.
+  primera uuid := pg_temp.rq_asesor();
   a uuid := pg_temp.rq_flujo(); b uuid := pg_temp.rq_flujo(); rep uuid := pg_temp.rq_repuestos();
   f uuid := pg_temp.rq_fase(a, 'RQ fase'); fr uuid := pg_temp.rq_fase(rep, 'RQ rep');
   config_b uuid := pg_temp.rq_persona(array['flujos.configurar@' || pg_temp.rq_origen_de(b)]);
@@ -250,6 +252,7 @@ begin
   if (select count(*) from public.fases_requisitos where fase_id = f) <> 1 then raise exception 'R10: debía quedar uno solo'; end if;
   if has_function_privilege('authenticated', 'public._requisito_forma(public.tipo_requisito, jsonb, boolean)', 'execute')
      or has_function_privilege('authenticated', 'public._requisito_validar(public.fases_requisitos, text[])', 'execute')
+     or has_function_privilege('authenticated', 'public._requisito_aplicar(public.fases_requisitos, jsonb)', 'execute')
      or has_function_privilege('authenticated', 'public.fase_requisito_validar()', 'execute')
      or has_function_privilege('anon', 'public.requisito_crear(uuid, uuid, timestamptz, public.tipo_requisito, jsonb)', 'execute')
      or has_function_privilege('anon', 'public.requisito_guardar(uuid, timestamptz, jsonb)', 'execute')
