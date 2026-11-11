@@ -9449,6 +9449,7 @@ export type Database = {
         Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_requisito: string }
         Returns: string
       }
+      requisito_impacto: { Args: { p_requisito: string; p_tope?: number }; Returns: Json }
       requisito_mover: {
         Args: { p_actualizado_en_esperado: string; p_despues_de?: string; p_requisito: string }
         Returns: string
