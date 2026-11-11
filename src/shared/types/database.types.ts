@@ -660,7 +660,9 @@ export type Database = {
           es_global: boolean
           id: string
           nombre: string | null
+          par_directo: string[] | null
           tipo: Database['public']['Enums']['tipo_conversacion']
+          ultimo_mensaje_en: string
         }
         ComputedFields: never
         Insert: {
@@ -670,7 +672,9 @@ export type Database = {
           es_global?: boolean
           id?: string
           nombre?: string | null
+          par_directo?: string[] | null
           tipo: Database['public']['Enums']['tipo_conversacion']
+          ultimo_mensaje_en?: string
         }
         Update: {
           actualizado_en?: string
@@ -679,7 +683,9 @@ export type Database = {
           es_global?: boolean
           id?: string
           nombre?: string | null
+          par_directo?: string[] | null
           tipo?: Database['public']['Enums']['tipo_conversacion']
+          ultimo_mensaje_en?: string
         }
         Relationships: [
           {
