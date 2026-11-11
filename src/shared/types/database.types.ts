@@ -8707,6 +8707,7 @@ export type Database = {
       nivel_retirar: { Args: { p_actualizado_en_esperado: string; p_id: string }; Returns: Json }
       niveles_con_uso: { Args: Record<PropertyKey, never>; Returns: Json }
       normalizar_telefono: { Args: { p_cc: string; p_tel: string }; Returns: string }
+      notificaciones_purgar: { Args: Record<PropertyKey, never>; Returns: Json }
       notificar: {
         Args: {
           p_accion?: boolean
