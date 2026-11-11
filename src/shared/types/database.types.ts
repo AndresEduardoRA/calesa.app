@@ -8494,6 +8494,10 @@ export type Database = {
         Returns: string
       }
       fase_eliminar: { Args: { p_fase: string }; Returns: Json }
+      fase_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_fase: string }
+        Returns: string
+      }
       flujo_de_fase: { Args: { p_fase: string }; Returns: string }
       flujo_regla_activa: { Args: { p_flujo: string; p_regla: string }; Returns: boolean }
       formula_cambiar_constante: {

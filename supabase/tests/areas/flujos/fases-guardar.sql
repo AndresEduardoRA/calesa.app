@@ -169,3 +169,72 @@ begin
     '23505', 'Otra fase de este flujo ya cuenta la llegada de repuestos.', 'cuenta_llegada_repuestos');
 end $$;
 rollback;
+
+create or replace function pg_temp.fg_fase(p_flujo uuid, p_nombre text) returns uuid language sql as $f$
+  insert into public.fases (flujo_id, nombre) values (p_flujo, p_nombre) returning id;
+$f$;
+
+-- @test fases: guardar con una clave fuera de la lista, un tipo ajeno o nada que guardar da 22023 con la clave en hint (G1, G2)
+begin;
+do $$
+declare a uuid := pg_temp.fg_flujo('manual'); yo uuid := pg_temp.fg_persona(array['flujos.configurar']); f uuid := pg_temp.fg_fase(a, 'FG'); k text;
+begin
+  foreach k in array array['activa', 'orden', 'flujo_id', 'xyz'] loop
+    perform pg_temp.fg_es('G1 guardar ' || k, pg_temp.fg_guardar(yo, f, jsonb_build_object(k, 1)), '22023', format('El dato «%s» no se cambia desde una fase.', k), k);
+  end loop;
+  perform pg_temp.fg_es('G1 guardar vacío', pg_temp.fg_guardar(yo, f, '{}'), '22023', 'No hay cambios para guardar.', null);
+  perform pg_temp.fg_es('G2 guardar booleano', pg_temp.fg_guardar(yo, f, '{"publica_web": "si"}'), '22023', 'El dato «publica_web» no tiene el formato esperado.', 'publica_web');
+  perform pg_temp.fg_es('G2 guardar entero', pg_temp.fg_guardar(yo, f, '{"alerta_cada_horas": 2.5}'), '22023', 'El dato «alerta_cada_horas» no tiene el formato esperado.', 'alerta_cada_horas');
+  perform pg_temp.fg_es('G2 guardar nombre nulo', pg_temp.fg_guardar(yo, f, '{"nombre": null}'), '22023', 'El dato «nombre» no tiene el formato esperado.', 'nombre');
+end $$;
+rollback;
+
+-- @test fases: guardar valida la fila mezclada; un tope nuevo no impide guardar otro campo de una fase vieja (G3)
+begin;
+do $$
+declare a uuid := pg_temp.fg_flujo('manual'); yo uuid := pg_temp.fg_persona(array['flujos.configurar']); f uuid := pg_temp.fg_fase(a, 'FG');
+begin
+  perform pg_temp.fg_pasa('G3 portal', pg_temp.fg_guardar(yo, f, '{"visible_portal": true, "alias_portal": "En camino"}'));
+  perform pg_temp.fg_es('G3 quitar el alias', pg_temp.fg_guardar(yo, f, '{"alias_portal": null}'),
+    '22023', 'Para mostrarla en el portal escribe su nombre para el cliente.', 'alias_portal');
+  perform pg_temp.fg_pasa('G3 inicial', pg_temp.fg_guardar(yo, f, '{"es_inicial": true}'));
+  perform pg_temp.fg_es('G3 final sobre inicial', pg_temp.fg_guardar(yo, f, '{"es_final": true}'), '22023', 'Una fase no puede ser inicial y final a la vez.', 'es_final');
+  perform pg_temp.fg_es('G3 nombre vacío', pg_temp.fg_guardar(yo, f, '{"nombre": ""}'), '22023', 'La fase necesita un nombre.', 'nombre');
+  update public.fases set nombre = repeat('v', 80), icono = 'Viejo Icono' where id = f;
+  perform pg_temp.fg_pasa('G3 fase vieja', pg_temp.fg_guardar(yo, f, '{"color": "#000000"}'));
+  perform pg_temp.fg_es('G3 nombre largo', pg_temp.fg_guardar(yo, f, jsonb_build_object('nombre', repeat('n', 61))),
+    '22023', 'El nombre de la fase tiene hasta 60 caracteres.', 'nombre');
+  if (select color from public.fases where id = f) <> '#000000' or not (select visible_portal and alias_portal = 'En camino' and es_inicial from public.fases where id = f) then
+    raise exception 'G3: guardar no dejó la fila esperada: %', (select to_jsonb(x) from public.fases x where id = f);
+  end if;
+end $$;
+rollback;
+
+-- @test fases: guardar con aduana sin su regla da 23514 y con la regla pasa (G4)
+begin;
+do $$
+declare
+  manual uuid := pg_temp.fg_flujo('manual'); subasta uuid := pg_temp.fg_flujo('subasta'); yo uuid := pg_temp.fg_persona(array['flujos.configurar']);
+  fm uuid := pg_temp.fg_fase(manual, 'FG'); fs uuid := pg_temp.fg_fase(subasta, 'FG');
+begin
+  perform pg_temp.fg_es('G4 guardar aduana manual', pg_temp.fg_guardar(yo, fm, '{"permite_aduana": true}'), '23514', 'La aduana está apagada en este flujo.', 'permite_aduana');
+  perform pg_temp.fg_pasa('G4 guardar aduana subasta', pg_temp.fg_guardar(yo, fs, '{"permite_aduana": true}'));
+  if not (select permite_aduana from public.fases where id = fs) or (select permite_aduana from public.fases where id = fm) then
+    raise exception 'G4: aduana quedó mal';
+  end if;
+end $$;
+rollback;
+
+-- @test fases: guardar un nombre repetido o una segunda llegada de repuestos da 23505 humano (G5)
+begin;
+do $$
+declare
+  a uuid := pg_temp.fg_flujo('manual'); yo uuid := pg_temp.fg_persona(array['flujos.configurar']);
+  f1 uuid := pg_temp.fg_fase(a, 'FG uno'); f2 uuid := pg_temp.fg_fase(a, 'FG dos');
+begin
+  perform pg_temp.fg_es('G5 guardar nombre', pg_temp.fg_guardar(yo, f2, '{"nombre": "FG uno"}'), '23505', 'Ya hay una fase «FG uno» en este flujo.', 'nombre');
+  perform pg_temp.fg_pasa('G5 guardar llegada', pg_temp.fg_guardar(yo, f1, '{"cuenta_llegada_repuestos": true}'));
+  perform pg_temp.fg_es('G5 guardar segunda llegada', pg_temp.fg_guardar(yo, f2, '{"cuenta_llegada_repuestos": true}'),
+    '23505', 'Otra fase de este flujo ya cuenta la llegada de repuestos.', 'cuenta_llegada_repuestos');
+end $$;
+rollback;

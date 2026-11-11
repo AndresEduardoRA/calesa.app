@@ -227,3 +227,70 @@ begin
   if r ->> 'hint' is distinct from 'id' then raise exception 'V6: el hint debía ser id y dio %', r; end if;
 end $$;
 rollback;
+
+-- Una fase en ese flujo, escrita como `postgres`.
+create or replace function pg_temp.ff_fase(p_flujo uuid, p_nombre text) returns uuid language sql as $f$
+  insert into public.fases (flujo_id, nombre) values (p_flujo, p_nombre) returning id;
+$f$;
+
+-- @test fases: fase_guardar da 42501 al asesor y a quien configura otro origen, y no escribe ni mueve la versión (V3)
+begin;
+do $$
+declare
+  a uuid := pg_temp.ff_flujo('manual'); b uuid := pg_temp.ff_flujo('manual');
+  config_a uuid := pg_temp.ff_persona(array['flujos.configurar@' || pg_temp.ff_origen_de(a)]);
+  asesor uuid := pg_temp.ff_asesor();
+  fb uuid := pg_temp.ff_fase(b, 'FF en B'); vb timestamptz := pg_temp.ff_version(b); r jsonb;
+begin
+  r := pg_temp.ff_guardar(asesor, fb, vb, '{"nombre": "FF asesor"}');
+  perform pg_temp.ff_da_error('V3 guardar asesor', r, '42501', 'No tienes permiso para configurar este flujo.');
+  r := pg_temp.ff_guardar(config_a, fb, vb, '{"nombre": "FF otro origen"}');
+  perform pg_temp.ff_da_error('V3 guardar otro origen', r, '42501', 'No tienes permiso para configurar este flujo.');
+  if (select nombre from public.fases where id = fb) <> 'FF en B' or pg_temp.ff_version(b) is distinct from vb then
+    raise exception 'V3: un 42501 de guardar escribió o movió la versión';
+  end if;
+end $$;
+rollback;
+
+-- @test fases: flujos.configurar de un origen guarda sólo en el suyo y repuestos.configurar sólo en el de repuestos (V4)
+begin;
+do $$
+declare
+  a uuid := pg_temp.ff_flujo('manual'); rep uuid := pg_temp.ff_repuestos();
+  config_a uuid := pg_temp.ff_persona(array['flujos.configurar@' || pg_temp.ff_origen_de(a)]);
+  config_rep uuid := pg_temp.ff_persona(array['repuestos.configurar']);
+  fa uuid := pg_temp.ff_fase(a, 'FF en A'); frep uuid := pg_temp.ff_fase(rep, 'FF en repuestos'); r jsonb;
+begin
+  perform pg_temp.ff_pasa('V4 config_a en A', pg_temp.ff_guardar(config_a, fa, pg_temp.ff_version(a), '{"color": "#112233"}'));
+  r := pg_temp.ff_guardar(config_a, frep, pg_temp.ff_version(rep), '{"color": "#112233"}');
+  perform pg_temp.ff_da_error('V4 guardar config_a en repuestos', r, '42501', 'No tienes permiso para configurar este flujo.');
+  perform pg_temp.ff_pasa('V4 config_rep en repuestos', pg_temp.ff_guardar(config_rep, frep, pg_temp.ff_version(rep), '{"color": "#445566"}'));
+  r := pg_temp.ff_guardar(config_rep, fa, pg_temp.ff_version(a), '{"color": "#445566"}');
+  perform pg_temp.ff_da_error('V4 guardar config_rep en A', r, '42501', 'No tienes permiso para configurar este flujo.');
+  if (select color from public.fases where id = fa) <> '#112233' or (select color from public.fases where id = frep) <> '#445566' then
+    raise exception 'V4: guardar no dejó los colores esperados';
+  end if;
+end $$;
+rollback;
+
+-- @test fases: fase_guardar devuelve la versión nueva; con la vieja da PT409, sin versión falla y una fase inexistente da PT409, sin escribir (V5)
+begin;
+do $$
+declare
+  a uuid := pg_temp.ff_flujo('manual');
+  config_a uuid := pg_temp.ff_persona(array['flujos.configurar@' || pg_temp.ff_origen_de(a)]);
+  fa uuid := pg_temp.ff_fase(a, 'FF uno'); v0 timestamptz := pg_temp.ff_version(a); v1 timestamptz; r jsonb;
+begin
+  v1 := pg_temp.ff_pasa('V5 guardar', pg_temp.ff_guardar(config_a, fa, v0, '{"nombre": "FF uno bis"}'));
+  if not (v1 > v0 and v1 = pg_temp.ff_version(a)) then raise exception 'V5: guardar devolvió % y el flujo tiene % (antes %)', v1, pg_temp.ff_version(a), v0; end if;
+  r := pg_temp.ff_guardar(config_a, fa, v0, '{"nombre": "FF pisado"}');
+  perform pg_temp.ff_da_error('V5 guardar vieja', r, 'PT409', 'Otra persona cambió este flujo mientras lo editabas.');
+  r := pg_temp.ff_guardar(config_a, fa, null, '{"nombre": "FF pisado"}');
+  perform pg_temp.ff_da_error('V5 guardar sin versión', r, 'P0001', 'Falta la versión que tenías en pantalla. Recarga e intenta de nuevo.');
+  r := pg_temp.ff_guardar(config_a, gen_random_uuid(), v1, '{"nombre": "FF pisado"}');
+  perform pg_temp.ff_da_error('V5 guardar inexistente', r, 'PT409', 'Esta fase ya no existe. Recarga e intenta de nuevo.');
+  if (select nombre from public.fases where id = fa) <> 'FF uno bis' or pg_temp.ff_version(a) is distinct from v1 then
+    raise exception 'V5: un conflicto de guardar escribió o movió la versión';
+  end if;
+end $$;
+rollback;
