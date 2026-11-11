@@ -7395,6 +7395,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      _documento_fecha: { Args: { p_cambios: Json; p_clave: string }; Returns: string }
+      _documento_puede_tocar: {
+        Args: {
+          p_estado: Database['public']['Enums']['estado_documento']
+          p_repuesto: string
+          p_subido_por: string
+          p_vehiculo: string
+        }
+        Returns: boolean
+      }
       _documento_tipo_de: {
         Args: { p_repuesto: string; p_tipo: string; p_vehiculos: string[] }
         Returns: {
@@ -8757,6 +8767,14 @@ export type Database = {
         Args: { p_id: string; p_lead: Json; p_recordatorio?: Json; p_seguimiento?: Json }
         Returns: Json
       }
+      documento_editar: {
+        Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_id: string }
+        Returns: Json
+      }
+      documento_eliminar: {
+        Args: { p_actualizado_en_esperado: string; p_id: string }
+        Returns: Json
+      }
       documento_registrar: {
         Args: {
           p_bytes: number
@@ -8770,6 +8788,15 @@ export type Database = {
           p_tipo: string
           p_vehiculos: string[]
           p_vence_el: string
+        }
+        Returns: Json
+      }
+      documento_revisar: {
+        Args: {
+          p_actualizado_en_esperado: string
+          p_estado: Database['public']['Enums']['estado_documento']
+          p_id: string
+          p_motivo: string
         }
         Returns: Json
       }
