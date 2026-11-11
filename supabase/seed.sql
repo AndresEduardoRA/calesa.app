@@ -93,7 +93,7 @@ insert into public.permisos (clave, modulo, nombre, descripcion, por_origen, con
   ('chat.participar', 'chat', 'Usar el chat', 'Conversar y crear grupos', false, false, 'policy mensajes, conversaciones', 570),
   ('chat.global', 'chat', 'Chat global', 'Entrar al canal de toda la empresa', false, false, 'policy conversaciones', 580),
   ('chat.moderar', 'chat', 'Moderar el chat', 'Borrar mensajes ajenos', false, false, 'policy mensajes', 590),
-  ('notificaciones.push', 'notificaciones', 'Recibir push', 'Recibir notificaciones push', false, false, 'edge function push', 600),
+  ('notificaciones.push', 'notificaciones', 'Recibir push', 'Recibir notificaciones push', false, false, 'push_suscribir, push_disparar', 600),
   ('actividad.ver', 'actividad', 'Ver actividad', 'Ver el registro de actividad', false, false, 'policy actividad', 610),
   ('web.contenido.gestionar', 'web', 'Contenido de la web', 'Guías, preguntas, testimonios, categorías', false, false, 'policy web_*', 620),
   ('web.guias.publicar', 'web', 'Publicar guías', 'Publicar o despublicar guías', false, false, 'web_guia_publicar_validar', 630),
