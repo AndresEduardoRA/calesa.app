@@ -13,7 +13,7 @@
   - `scripts/guardas`: 1.058 en verde.
   - `typecheck` sin errores.
   - e2e `origenes` en escritorio: 8 en verde.
-  - `nivel.mjs` con los archivos escritos: `{"nivel":2,"disparadores":[{"id":"rls","archivos":["supabase/migrations/20261111200536_flujo_regla_sin_escritura_directa.sql"]}],"toca_interfaz":false,"database_types":true}`.
+  - `nivel.mjs` con los archivos escritos: `{"nivel":2,"disparadores":[{"id":"rls","archivos":["supabase/migrations/20261111210631_flujo_regla_sin_escritura_directa.sql"]}],"toca_interfaz":false,"database_types":true}`.
   - e2e completo: no (5.10-1, Nivel 2: el completo lo corre el CI del PR por el disparador rls; cuenta 0 de 3)
 - **Abiertos:** hasta el 5.07, apagar «esperas» mientras otra persona crea un requisito de espera directo puede dejar la regla apagada con el requisito vivo (D11). Se cierra cuando el 5.07 pase los requisitos por RPC con `_flujo_para_editar`.
 - **Commits:**

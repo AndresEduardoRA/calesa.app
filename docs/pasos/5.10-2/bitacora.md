@@ -11,7 +11,7 @@
   - `db:reset`, `db:types` y `db:probar` completo: exit 0, 0 ✗. La prueba nueva `supabase/tests/flujos-oferta.sql` (O1-O7, en la lista fija) en verde.
   - `db:lint`: ningún aviso en las funciones nuevas.
   - `scripts/guardas`: 1.058 en verde.
-  - `nivel.mjs` con los archivos escritos: `{"nivel":2,"disparadores":[{"id":"rls","archivos":["supabase/migrations/20261111204049_flujo_oferta_sin_escritura_directa.sql"]},{"id":"estructura","archivos":["supabase/migrations/20261111203800_flujo_oferta_tabla.sql"]}],"toca_interfaz":false,"database_types":true}`.
+  - `nivel.mjs` con los archivos escritos: `{"nivel":2,"disparadores":[{"id":"rls","archivos":["supabase/migrations/20261111210635_flujo_oferta_sin_escritura_directa.sql"]},{"id":"estructura","archivos":["supabase/migrations/20261111210632_flujo_oferta_tabla.sql"]}],"toca_interfaz":false,"database_types":true}`.
   - e2e completo: no (5.10-2, Nivel 2: el completo lo corre el CI del PR por los disparadores rls y estructura; cuenta 0 de 3)
 - **Abiertos:** ninguno nuevo. El catálogo de puertos y navieras sigue para la Fase 6 (D1 del 5.10-1); la pantalla, el 5.11.
 - **Commits:**
