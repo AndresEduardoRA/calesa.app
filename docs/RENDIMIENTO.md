@@ -42,6 +42,17 @@ Sección «Seguimientos» de la ficha y pestaña del drawer.
 - «¿A quién?»: `agenda_quienes_reciben()`, ≥ 3 letras o dígitos, tope 20, sobre `perfiles` (el equipo, no crece).
 - Sin siembra de volumen ni `medir-*.sql`: `eventos` y `tareas` no son tablas que crecen (7.06-2, D29).
 
+## Chat (7.08)
+
+- Lista: `chat_conversaciones()`, 20 por «Ver más» (50 como mucho), cursor `(ultimo_mensaje_en, id)`. Parte de `conversaciones_miembros_usuario_idx`
+  y lee `conversaciones` por su pk: ordena sólo las conversaciones de quien mira (directas ≤ personas del equipo, más sus grupos), no la tabla. No
+  leídos: ≤ 100 entradas de `mensajes_hilo_idx` por fila de la página (≤ 2.000 por página de 20; ≤ 5.000 con el máximo de 50).
+- Total: `chat_no_leidos()`, se detiene a los 100; peor caso, una sonda de índice por conversación de quien mira más 100 entradas.
+- Medido una vez con `EXPLAIN (analyze)` en una transacción revertida (7.08-3): con 200.000 conversaciones, nested loop desde las filas de
+  miembro; con 20.000, el planificador prefiere recorrer `conversaciones` (chica). Medido con valores literales: el plan genérico de plpgsql (`v_yo` como parámetro) no se midió. Sin siembra de volumen ni `medir-*.sql`: `conversaciones` y
+  `mensajes` no son tablas que crecen de `.claude/rules/escala.md`.
+- Límite sin assert: una conversación que recibe un mensaje mientras se pagina sube y no reaparece abajo; la relectura de la cabeza la trae.
+
 ## Inicio: la bandeja (9.02)
 
 - Tres lecturas en el servidor, cada una `limit 6` y cada una tras el `<Suspense>` de su bloque (un bloque lento no frena a los demás): `recordatorios_vista` por `recordatorios_usuario_idx`; `leads_cartera_vista` por `leads_asesores_listado_idx` (cuesta lo que pesa la cartera de quien mira, no la tabla); `perfiles` por `perfiles_vigentes_orden_idx`.
