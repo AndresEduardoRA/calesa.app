@@ -76,6 +76,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Publicado** — `vehiculos.publicado_web` / `vehiculo_vitrina()`: quien tiene `vehiculos.vitrina` decidió que salga en la web. Condición, no garantía.
 - **En vitrina** — `interno.vitrina_vehiculos.visible` / `web.vehiculos`, `vitrina_del_origen()`: se ve hoy en la web: publicado, fuera de papelera, fase que publica, origen activo y visible, integración web activa.
 - **Vitrina** — `web.vehiculos` / `vehiculo_vitrina_previa()`: lo que la web muestra: identidad, precio público, campos públicos y portada.
+- **Revalidar (la web pública)** — `interno.web_revalidar_pendiente` (la cola de revalidación), `web_revalidar_correr()`, job `web-revalidar`: avisarle al sitio, una vez por minuto y por etiqueta (`guias`, `faqs`, `testimonios`, `ajustes`, `asesores`, `vehiculos`), que algo de lo que muestra cambió. Dirección en `integraciones.config.revalidar_url`; secreto en Vault (`integracion:web_publica`).
 - **Precio público** — `vehiculos.precio_web` / `precio_web_hasta`: lo que muestra la web; NULL = «Consultar».
 - **Papelera** — `lotes_papelera`, `eliminado_en` / `vehiculos_papelera_*`, `leads_papelera_*`, `cotizaciones_papelera_*` (y la genérica `papelera_*`, sólo de cotizaciones): borrado reversible hasta la purga.
 - **Lote de papelera** — `lotes_papelera` / `LoteDePapelera`: envío de 1 a 200 a la papelera; se restaura o purga entero o por partes. En la UI, «lote».

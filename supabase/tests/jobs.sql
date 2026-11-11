@@ -12,6 +12,9 @@ begin
   if not exists (select 1 from cron.job where jobname = 'avatares-miniaturas' and command = 'select public.avatares_miniaturas_correr()') then
     raise exception 'falta el job avatares-miniaturas que lee la URL de Vault';
   end if;
+  if not exists (select 1 from cron.job where jobname = 'web-revalidar' and command = 'select public.web_revalidar_correr()') then
+    raise exception 'falta el job web-revalidar que lee la dirección y el secreto al correr';
+  end if;
   if exists (select 1 from cron.job where command ~ 'https?://') then
     raise exception 'un job lleva una URL escrita en su comando';
   end if;
@@ -50,7 +53,8 @@ begin
   if has_function_privilege('authenticated', 'public._url_del_proyecto()', 'execute')
      or has_function_privilege('anon', 'public._url_del_proyecto()', 'execute')
      or has_function_privilege('authenticated', 'public.storage_gc_correr()', 'execute')
-     or has_function_privilege('authenticated', 'public.avatares_miniaturas_correr()', 'execute') then
+     or has_function_privilege('authenticated', 'public.avatares_miniaturas_correr()', 'execute')
+     or has_function_privilege('authenticated', 'public.web_revalidar_correr()', 'execute') then
     raise exception 'un rol de la app puede correr un job o leer la URL del proyecto';
   end if;
 end $$;
