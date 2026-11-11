@@ -9088,6 +9088,7 @@ export type Database = {
         Args: { p_clave: string; p_lead: string; p_otorgado_en_esperado: string }
         Returns: Json
       }
+      pago_confirmar: { Args: { p_actualizado_en_esperado: string; p_id: string }; Returns: Json }
       pago_eliminar: { Args: { p_actualizado_en_esperado: string; p_id: string }; Returns: Json }
       pago_guardar: {
         Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_id: string }

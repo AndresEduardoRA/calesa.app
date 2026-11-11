@@ -4,6 +4,11 @@
 -- Qué asegura:
 --   Q1. `pago_registrar` en XTS a 6,96 guarda 696,00 sin confirmar; monto 0, 22023; sin `logistica.pagos.editar` del origen, 42501; un lead que no se ve,
 --       42501 con hint `lead_id`. Corregir no recibe el monto en base ni el sello; eliminar es suave.
+--   Q2. Sin `logistica.pagos.confirmar`, 42501 y sigue sin confirmar; con ella y viendo el pago, queda quién y cuándo y una sola fila `pago.confirmado` en
+--       `actividad`; con la clave y sin ver el pago, 42501; la segunda confirmación, PT409; versión vieja, PT409.
+--   Q3. Un confirmado no se corrige ni se elimina por las RPC (PT409 aunque la versión esté al día) ni con un UPDATE directo del dueño de la base (23514,
+--       también volver a no confirmado); ponerle `eliminado_en` pasa.
+--   Q4. Un insert del dueño de la base con `confirmado = true` y un sello nace sin confirmar y sin sello; confirmar sin sesión, 42501.
 
 create sequence if not exists pg_temp.din_telefono;
 
@@ -122,6 +127,92 @@ begin
   r := pg_temp.din_pago_eliminar(p, pg.id);
   if r ->> 'error' is not null or (select eliminado_en from public.pagos where id = pg.id) is null then raise exception 'Q1: eliminar debía borrar suave; dio %', r; end if;
   perform pg_temp.din_da('Q1: eliminar dos veces', pg_temp.din_pago_eliminar(p, pg.id), 'PT409');
+end $$;
+reset role;
+rollback;
+
+create or replace function pg_temp.din_confirmar(p_quien uuid, p_id uuid, p_version timestamptz default null) returns jsonb language sql as $f$
+  select pg_temp.din_corre(p_quien, format('select public.pago_confirmar(%L, %L)', p_id,
+                                           coalesce(p_version, (select actualizado_en from public.pagos where id = p_id))));
+$f$;
+
+-- @test dinero: confirmar pide la clave y ver el pago, sella quién y cuándo y deja una sola actividad (Q2)
+begin;
+do $$
+declare t jsonb := pg_temp.din_terreno(); carga uuid; confirma uuid; sin_clave uuid; ciega uuid; pid uuid; r jsonb; pg public.pagos;
+begin
+  carga := pg_temp.din_persona('logistica.pagos.editar', 'logistica.pagos.ver');
+  sin_clave := pg_temp.din_persona('logistica.pagos.editar', 'logistica.pagos.ver');
+  confirma := pg_temp.din_persona('logistica.pagos.ver', 'logistica.pagos.confirmar');
+  ciega := pg_temp.din_persona('logistica.pagos.ver:todos:' || (t ->> 'o2'), 'logistica.pagos.confirmar');
+  pid := (pg_temp.din_pago(carga, gen_random_uuid(), (t ->> 'v')::uuid, 'XTS', 100, (t ->> 'tc')::uuid)) ->> 'id';
+  perform pg_temp.din_da('Q2: sin la clave', pg_temp.din_confirmar(sin_clave, pid), '42501');
+  perform pg_temp.din_da('Q2: con la clave y sin ver el pago', pg_temp.din_confirmar(ciega, pid), '42501');
+  if (select confirmado or confirmado_por is not null from public.pagos where pagos.id = pid) then raise exception 'Q2: un rechazo dejó el pago confirmado'; end if;
+  perform pg_temp.din_da('Q2: versión vieja', pg_temp.din_confirmar(confirma, pid, now() - interval '1 day'), 'PT409');
+  r := pg_temp.din_confirmar(confirma, pid);
+  select * into pg from public.pagos where pagos.id = pid;
+  if r ->> 'error' is not null or not pg.confirmado or pg.confirmado_por is distinct from confirma or pg.confirmado_en is null
+     or (r ->> 'confirmado_por')::uuid is distinct from confirma or (r ->> 'actualizado_en')::timestamptz is distinct from pg.actualizado_en then
+    raise exception 'Q2: con la clave debía quedar confirmado por quien llama; dio % / %', r, to_jsonb(pg);
+  end if;
+  if (select count(*) from public.actividad a where a.accion = 'pago.confirmado' and a.registro_id = pid::text and a.actor_id = confirma
+        and (a.detalle ->> 'monto_base')::numeric = 696.00) <> 1 then
+    raise exception 'Q2: debía quedar exactamente una fila pago.confirmado con su monto en base';
+  end if;
+  perform pg_temp.din_da('Q2: la segunda confirmación', pg_temp.din_confirmar(confirma, pid), 'PT409');
+end $$;
+reset role;
+rollback;
+
+-- @test dinero: un pago confirmado no se edita ni por las RPC ni por un UPDATE directo; sólo se le pone eliminado_en (Q3)
+begin;
+do $$
+declare t jsonb := pg_temp.din_terreno(); p uuid; pid uuid; r jsonb;
+begin
+  p := pg_temp.din_persona('logistica.pagos.editar', 'logistica.pagos.ver', 'logistica.pagos.confirmar');
+  pid := (pg_temp.din_pago(p, gen_random_uuid(), (t ->> 'v')::uuid, 'XTS', 100, (t ->> 'tc')::uuid)) ->> 'id';
+  if (pg_temp.din_confirmar(p, pid)) ->> 'error' is not null then raise exception 'Q3: no confirmó'; end if;
+  perform pg_temp.din_da('Q3: guardar un confirmado', pg_temp.din_pago_guardar(p, pid, '{"monto": 1}'), 'PT409');
+  perform pg_temp.din_da('Q3: eliminar un confirmado', pg_temp.din_pago_eliminar(p, pid), 'PT409');
+  begin
+    update public.pagos set monto = 1 where pagos.id = pid;
+    raise exception 'Q3: el dueño de la base cambió el monto de un confirmado';
+  exception when check_violation then null;
+  end;
+  begin
+    update public.pagos set confirmado = false where pagos.id = pid;
+    raise exception 'Q3: el dueño de la base des-confirmó un pago';
+  exception when check_violation then null;
+  end;
+  begin
+    update public.pagos set confirmado_por = null where pagos.id = pid;
+    raise exception 'Q3: el dueño de la base borró el sello';
+  exception when check_violation then null;
+  end;
+  update public.pagos set eliminado_en = now() where pagos.id = pid;
+  if (select eliminado_en from public.pagos where pagos.id = pid) is null then raise exception 'Q3: eliminado_en debía quedar libre'; end if;
+end $$;
+reset role;
+rollback;
+
+-- @test dinero: el sello lo pone la base: un insert no nace confirmado y confirmar pide una sesión (Q4)
+begin;
+do $$
+declare t jsonb := pg_temp.din_terreno(); x uuid := pg_temp.din_persona(variadic '{}'::text[]); pid uuid;
+begin
+  perform set_config('request.jwt.claim.sub', '', true);
+  insert into public.pagos (vehiculo_id, concepto, moneda, monto, monto_base, confirmado, confirmado_por, confirmado_en)
+  values ((t ->> 'v')::uuid, 'DIN', t ->> 'base', 10, 10, true, x, now() - interval '1 day')
+  returning pagos.id into pid;
+  if (select confirmado or confirmado_por is not null or confirmado_en is not null from public.pagos where pagos.id = pid) then
+    raise exception 'Q4: un insert con sello debía nacer sin confirmar y sin sello';
+  end if;
+  begin
+    update public.pagos set confirmado = true where pagos.id = pid;
+    raise exception 'Q4: confirmó sin sesión';
+  exception when insufficient_privilege then null;
+  end;
 end $$;
 reset role;
 rollback;

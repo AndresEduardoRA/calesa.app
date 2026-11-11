@@ -185,6 +185,7 @@ declare
     ('pago_registrar(uuid,uuid,uuid,text,text,numeric,uuid,text,date,text,text)', 'X'),
     ('pago_guardar(uuid,timestamp with time zone,jsonb)', 'X'),
     ('pago_eliminar(uuid,timestamp with time zone)', 'X'),
+    ('pago_confirmar(uuid,timestamp with time zone)', 'X'),
     ('storage_refcount(text,text)', 'X')
   ) t (f, c));
   r record; v_fallas text := '';

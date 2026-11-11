@@ -1,5 +1,6 @@
 // Las carreras de gastos y pagos (paso 6.10-1), con dos conexiones reales a la base del Supabase LOCAL. A abre su transacción y actúa, B lanza, se espera
 // a que B quede esperando un candado y A confirma. Ninguna termina en 40P01.
+//   K1. Dos confirman el mismo pago con la misma versión: B espera la fila, da PT409 y queda un solo sello (el de A) y una sola fila `pago.confirmado`.
 //   K2. Dos prorratean el mismo lote: B espera el candado del lote y devuelve lo ya repartido; quedan las filas de un solo reparto.
 //   K3. Dos eliminan, a la vez, los dos únicos gastos de tributos de un vehículo cuya fase los pide: uno pasa, el otro da 23514 y queda un tributo.
 // Las corre `scripts/carreras.mjs` (`pnpm db:carreras`) y, solas, `correr-carreras.mjs`. Terreno con el prefijo «Carreras», como las demás.
@@ -163,6 +164,37 @@ export async function carrerasDeDinero({ orquesta, espero, conectar, esperarBloq
       'K3: dos eliminan los dos últimos tributos a la vez: uno pasa, el otro da 23514 y queda uno',
       a.ok && !b.ok && b.codigo === '23514' && n === 1 && sinInterbloqueo(a, b),
       { a, b, n },
+    )
+  }
+
+  // K1 · dos confirman el mismo pago a la vez.
+  {
+    const id = '00000000-0000-4000-8000-0000000d0021'
+    await orquesta.query(
+      `insert into public.pagos (id, vehiculo_id, concepto, moneda, monto, monto_base) values ($1, $2, 'Carreras seña', $3, 10, 10)`,
+      [id, t.vehiculos[1], t.base],
+    )
+    const confirmar = {
+      sql: `public.pago_confirmar($1, (select actualizado_en from public.pagos where id = $1))`,
+      args: [id],
+    }
+    const { a, b } = await carrera({ a: confirmar, b: confirmar })
+    const sello = await fila(
+      orquesta,
+      `select p.confirmado, p.confirmado_por, (select count(*)::int from public.actividad x where x.accion = 'pago.confirmado' and x.registro_id = $1::text) as n
+         from public.pagos p where p.id = $1::uuid`,
+      [id],
+    )
+    espero(
+      'K1: dos confirman el mismo pago a la vez: B da PT409 y queda un solo sello, el de A',
+      a.ok &&
+        !b.ok &&
+        b.codigo === 'PT409' &&
+        sello.confirmado &&
+        sello.confirmado_por === duena &&
+        sello.n === 1 &&
+        sinInterbloqueo(a, b),
+      { a, b, sello },
     )
   }
 }
