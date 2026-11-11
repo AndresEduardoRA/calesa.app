@@ -9480,6 +9480,7 @@ export type Database = {
       vitrina_del_origen: { Args: { p_origen: string }; Returns: Json }
       web_confirmar_contacto: { Args: { p_lead?: string; p_solicitud: string }; Returns: undefined }
       web_expirar_solicitudes: { Args: { p_limite?: number }; Returns: number }
+      web_revalidar_correr: { Args: Record<PropertyKey, never>; Returns: number }
     }
     Enums: {
       alcance_permiso: 'propios' | 'todos'

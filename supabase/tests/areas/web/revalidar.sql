@@ -56,6 +56,41 @@ create or replace function pg_temp.wr_guardar(p_config jsonb) returns text langu
     'web_publica', (select actualizado_en from public.integraciones where clave = 'web_publica'), p_config)
 $f$;
 
+-- @test revalidar: dos cambios de FAQs dejan una fila; las repetidas de otras transacciones se compactan sin enviar (R1)
+begin;
+delete from interno.web_revalidar_pendiente;
+delete from net.pedidos;
+update public.integraciones set activa = false where clave = 'web_publica';
+delete from interno.web_revalidar_pendiente;
+do $$
+declare v_pedido timestamptz;
+begin
+  insert into public.web_faqs (pregunta, respuesta) values ('¿R1?', 'Sí.');
+  select pedido_en into v_pedido from interno.web_revalidar_pendiente where etiqueta = 'faqs';
+  update public.web_faqs set respuesta = 'Sí, de nuevo.' where pregunta = '¿R1?';
+  if (select count(*) from interno.web_revalidar_pendiente where etiqueta = 'faqs') <> 1 then
+    raise exception 'dos cambios de FAQs en una transacción dejaron % filas faqs', (select count(*) from interno.web_revalidar_pendiente where etiqueta = 'faqs');
+  end if;
+  if (select pedido_en from interno.web_revalidar_pendiente where etiqueta = 'faqs') is distinct from v_pedido then
+    raise exception 'el segundo cambio movió pedido_en';
+  end if;
+  -- Dos transacciones más que anotaron faqs (otra transacción por fila, simulada).
+  insert into interno.web_revalidar_pendiente (etiqueta, transaccion) values ('faqs', '1'::xid8), ('faqs', '2'::xid8);
+  if public.web_revalidar_correr() is not null then
+    raise exception 'apagada, el job devolvió un pedido';
+  end if;
+  if (select count(*) from interno.web_revalidar_pendiente where etiqueta = 'faqs') <> 1 then
+    raise exception 'la compactación dejó % filas faqs (debía dejar una)', (select count(*) from interno.web_revalidar_pendiente where etiqueta = 'faqs');
+  end if;
+  if pg_temp.wr_pendientes() <> array['faqs'] then
+    raise exception 'la compactación cambió lo pendiente: %', pg_temp.wr_pendientes();
+  end if;
+  if exists (select 1 from net.pedidos) then
+    raise exception 'apagada, el job mandó un pedido';
+  end if;
+end $$;
+rollback;
+
 -- @test revalidar: cada tabla anota su etiqueta, y la cola de asesores sólo por el orden (R2)
 begin;
 delete from interno.web_revalidar_pendiente;
@@ -106,6 +141,125 @@ begin
   update public.vehiculos set fase_id = v_otra where id = v_vehiculo;
   if pg_temp.wr_pendientes() <> array['vehiculos'] then
     raise exception 'cambiar la fase de un vehículo publicado anotó %', pg_temp.wr_pendientes();
+  end if;
+end $$;
+rollback;
+
+-- @test revalidar: apagada, sin dirección, con http de loopback o sin secreto, no pide nada y no pierde lo pendiente (R4)
+begin;
+delete from vault.secrets where name = 'integracion:web_publica';
+update public.integraciones set activa = false, config = '{"revalidar_url": "https://sitio.ejemplo/api/revalidar"}' where clave = 'web_publica';
+delete from interno.web_revalidar_pendiente;
+delete from net.pedidos;
+insert into public.web_faqs (pregunta, respuesta) values ('¿R4?', 'Sí.');
+update public.web_testimonios set id = id where false;
+do $$
+declare
+  v_caso record;
+begin
+  perform vault.create_secret('secreto-r4-12345', 'integracion:web_publica', 'prueba');
+  for v_caso in select * from (values
+    ('apagada', false, '{"revalidar_url": "https://sitio.ejemplo/api/revalidar"}'::jsonb, true),
+    ('sin dirección', true, '{"revalidar_url": null}'::jsonb, true),
+    ('dirección vacía', true, '{"revalidar_url": "  "}'::jsonb, true),
+    ('http de loopback', true, '{"revalidar_url": "http://127.0.0.1:9/x"}'::jsonb, true),
+    ('sin secreto', true, '{"revalidar_url": "https://sitio.ejemplo/api/revalidar"}'::jsonb, false)
+  ) as c (nombre, activa, config, con_secreto) loop
+    update public.integraciones set activa = v_caso.activa, config = v_caso.config where clave = 'web_publica';
+    if not v_caso.con_secreto then
+      delete from vault.secrets where name = 'integracion:web_publica';
+    end if;
+    if public.web_revalidar_correr() is not null then
+      raise exception '%: el job devolvió un pedido', v_caso.nombre;
+    end if;
+    if exists (select 1 from net.pedidos) then
+      raise exception '%: el job mandó un pedido', v_caso.nombre;
+    end if;
+    if pg_temp.wr_pendientes() <> array['faqs', 'testimonios', 'vehiculos'] then
+      raise exception '%: lo pendiente cambió a %', v_caso.nombre, pg_temp.wr_pendientes();
+    end if;
+  end loop;
+end $$;
+rollback;
+
+-- @test revalidar: con todo, un pedido con el cuerpo exacto y el secreto sólo en la cabecera; vacía la cola (R5)
+begin;
+delete from vault.secrets where name = 'integracion:web_publica';
+select vault.create_secret('secreto-r5-abcdefgh', 'integracion:web_publica', 'prueba');
+update public.integraciones set activa = true, config = '{"revalidar_url": "https://sitio.ejemplo/api/revalidar"}' where clave = 'web_publica';
+delete from interno.web_revalidar_pendiente;
+delete from net.pedidos;
+insert into public.web_faqs (pregunta, respuesta) values ('¿R5?', 'Sí.');
+update public.vehiculos set id = id where false;
+do $$
+declare v_id bigint; p record;
+begin
+  v_id := public.web_revalidar_correr();
+  if v_id is null then raise exception 'con todo, el job no devolvió un pedido'; end if;
+  if (select count(*) from net.pedidos) <> 1 then raise exception 'el job mandó % pedidos (debía uno)', (select count(*) from net.pedidos); end if;
+  select * into p from net.pedidos where id = v_id;
+  if p.url is distinct from 'https://sitio.ejemplo/api/revalidar' then raise exception 'el pedido fue a %', p.url; end if;
+  if p.body is distinct from '{"etiquetas": ["faqs", "vehiculos"]}'::jsonb then raise exception 'el cuerpo fue %', p.body; end if;
+  if p.headers ->> 'Authorization' is distinct from 'Bearer secreto-r5-abcdefgh' then raise exception 'la cabecera no lleva el secreto'; end if;
+  if p.headers ->> 'Content-Type' is distinct from 'application/json' then raise exception 'falta Content-Type: %', p.headers; end if;
+  if p.body::text like '%secreto-r5%' or p.url like '%secreto-r5%' then raise exception 'el secreto viajó fuera de la cabecera'; end if;
+  if exists (select 1 from interno.web_revalidar_pendiente) then raise exception 'la cola no quedó vacía tras enviar'; end if;
+  if public.web_revalidar_correr() is not null or (select count(*) from net.pedidos) <> 1 then
+    raise exception 'la segunda corrida, sin pendientes, pidió otra vez';
+  end if;
+end $$;
+rollback;
+
+-- @test revalidar: el job está programado sin dirección ni secreto en su comando (R6)
+begin;
+delete from vault.secrets where name = 'integracion:web_publica';
+select vault.create_secret('secreto-r6-abcdefgh', 'integracion:web_publica', 'prueba');
+do $$
+begin
+  if not exists (select 1 from cron.job where jobname = 'web-revalidar' and schedule = '* * * * *' and command = 'select public.web_revalidar_correr()') then
+    raise exception 'falta el job web-revalidar cada minuto con su comando exacto';
+  end if;
+  -- Otro archivo (humo.sql) puede reprogramar storage-gc con una dirección a mano: aquí sólo se mira el secreto en todos y la dirección en el propio.
+  if exists (select 1 from cron.job where command like '%secreto-r6%')
+     or exists (select 1 from cron.job where jobname = 'web-revalidar' and command ~* 'revalidar_url|https?://|integracion_secreto') then
+    raise exception 'un job lleva el secreto, o web-revalidar una dirección, en su comando';
+  end if;
+end $$;
+rollback;
+
+-- @test revalidar: ningún rol de la app corre el job ni ve la cola; ningún índice único sobre la etiqueta (R7, R7b)
+begin;
+do $$
+declare v_gestor uuid := pg_temp.wr_persona(array['empresa.ajustes.gestionar']); r jsonb;
+begin
+  if has_function_privilege('authenticated', 'public.web_revalidar_correr()', 'execute')
+     or has_function_privilege('anon', 'public.web_revalidar_correr()', 'execute')
+     or has_function_privilege('authenticated', 'public._web_revalidar_anotar()', 'execute')
+     or has_function_privilege('anon', 'public._web_revalidar_anotar()', 'execute') then
+    raise exception 'un rol de la app puede correr el job o el trigger de revalidar';
+  end if;
+  if not has_function_privilege('service_role', 'public.web_revalidar_correr()', 'execute') then
+    raise exception 'service_role no puede correr el job';
+  end if;
+  if has_schema_privilege('authenticated', 'interno', 'usage') or has_schema_privilege('anon', 'interno', 'usage')
+     or has_table_privilege('authenticated', 'interno.web_revalidar_pendiente', 'select')
+     or has_table_privilege('authenticated', 'interno.web_revalidar_pendiente', 'insert')
+     or has_table_privilege('anon', 'interno.web_revalidar_pendiente', 'select') then
+    raise exception 'un rol de la app ve o escribe la cola de revalidación';
+  end if;
+  if not (select relrowsecurity from pg_class where oid = 'interno.web_revalidar_pendiente'::regclass) then
+    raise exception 'la cola de revalidación no tiene RLS';
+  end if;
+  r := pg_temp.wr_corre(v_gestor, 'select to_jsonb(public.web_revalidar_correr())');
+  if r ->> 'error' is distinct from '42501' then
+    raise exception 'quien gestiona la empresa corrió el job: %', r;
+  end if;
+  -- Un índice único sobre etiqueta haría esperar a cada escritor el commit del anterior (on conflict especulativo).
+  if exists (
+    select 1 from pg_index i join pg_attribute a on a.attrelid = i.indrelid and a.attnum = any (i.indkey)
+    where i.indrelid = 'interno.web_revalidar_pendiente'::regclass and i.indisunique and a.attname = 'etiqueta'
+  ) then
+    raise exception 'la cola tiene un índice único sobre etiqueta';
   end if;
 end $$;
 rollback;
