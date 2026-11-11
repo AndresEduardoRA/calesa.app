@@ -4,6 +4,7 @@ import {
   TOPE_DEL_CONTEO,
   conteoAcotado,
   conteoEnFrase,
+  cortarAlTope,
   type ConteoAcotado,
 } from '@/shared/lib/conteo'
 import { concesionesDe, type Permisos } from '@/shared/lib/permisos'
@@ -18,6 +19,26 @@ export type Rol = {
   esSistema: boolean
   // ISO. La versión del rol: cubre su nombre y sus concesiones. La mandan de vuelta las ediciones.
   actualizadoEn: string
+}
+
+// Un rol para elegirlo (el inspector de una fase deja elegir quién mueve): sin concesiones ni conteos, que cuestan una lectura pesada.
+export type RolParaElegir = Pick<Rol, 'id' | 'nombre' | 'color'>
+
+export const TOPE_DE_ROLES_PARA_ELEGIR = 100
+
+export type RolesParaElegir = { roles: RolParaElegir[]; hayMas: boolean }
+
+const esquemaDeRolesParaElegir = z.array(
+  z.object({ id: z.guid(), nombre: z.string(), color: z.string().nullable() }),
+)
+
+// Las filas de `roles` (`id, nombre, color`, ya con `tope + 1` como máximo) a la lista que se elige, cortada en el tope.
+export function rolesParaElegirDesde(filas: unknown): RolesParaElegir {
+  const { filas: roles, hayMas } = cortarAlTope(
+    esquemaDeRolesParaElegir.parse(filas),
+    TOPE_DE_ROLES_PARA_ELEGIR,
+  )
+  return { roles, hayMas }
 }
 
 export type RolConConcesiones = Rol & {

@@ -11,10 +11,20 @@ Motor único de flujos: fases, transiciones, requisitos (documento | dato | espe
 
 ## Archivos clave
 
-- `entities/fase.ts` — `FaseResumen`, `fasesDesde()`. `infra/queries/fases.ts` — `getFasesDeOrigen()`. `composicion.ts`.
+- `entities/fase.ts` — `FaseResumen`, `fasesDesde()`. `infra/queries/fases.ts` — `getFasesDeOrigen()`. `areas/nucleo/composicion.ts`.
 - Todavía no existen (fases 5 y 6 del plan): `entities/transiciones.ts` — máquina de estados pura (espejo de `_puede_mover`), sólo para UX; la RPC es el candado.
 - `entities/revisar.ts` — tipos de los avisos de `revisar_flujo()` (sin salida, inalcanzable, esperas cruzadas, roles que nadie tiene).
-- `features/configuracion/` (camino / lista / historial, inspector por fase), `features/requisitos/`, `features/reglas/`.
+- `features/configuracion/` (núcleo: el selector de flujo, la lista de fases y el inspector por fase; sólo la lista, sin «camino» ni «historial»: 5.02, D2), y una carpeta por área.
+
+## Áreas (5.02)
+
+El módulo se parte por área, como `cotizaciones` (`scripts/guardas/areas-de-flujos.test.ts` lo vigila): el **núcleo** (`areas/nucleo/`, `entities/flujo.ts`, `entities/fase.ts`,
+`infra/queries/`, `features/configuracion/`) y siete áreas con sus lugares: `fases`, `transiciones`, `requisitos`, `reglas`, `documentos`, `revisar` y `mover`. Un área vive en
+`features|entities|infra/<área>/`, `areas/<área>/{index,client,composicion}.ts` y `pantallas/<área>.ts`; nace vacía y la llena su paso (`docs/plan.yaml`, `dueno_de`).
+
+- `index.ts`, `client.ts` y `composicion.ts` de la raíz sólo hacen `export *` del núcleo y de cada área. Lo nuevo va en `areas/<su área>/`, nunca en la raíz.
+- Un área importa lo suyo y el núcleo, nunca otra área; el núcleo no importa ningún área; adentro nadie importa la raíz. Lo que dos áreas comparten va al núcleo (lo decide el A).
+- Un nombre exportado repetido entre dos áreas es un error de `tsc`.
 
 ## Tablas
 

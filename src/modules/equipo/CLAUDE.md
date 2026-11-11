@@ -23,7 +23,7 @@ Ficha completa: `docs/archivo/modulos/equipo.md`, sólo con grep.
 - `entities/dominancia.ts` — espejo de `concesion_dominada()` y `rol_dominado()`. `entities/{matriz,rol}.ts`; personas por rol = `ConteoAcotado`. `puede()` y el catálogo de claves: `@/shared/lib/permisos`.
 - `entities/lista-equipo.ts` — `MINIMO_DE_BUSQUEDA_DEL_EQUIPO` (3 letras o dígitos), `TOPE_DEL_EQUIPO`. `entities/persona.ts` — `accionesSobre()`, `VistaPreviaDeBaja`. `entities/{invitacion,perspectiva,vista}.ts` (`RUTA_DE_PANTALLA`: un listado nuevo que guarda vistas se suma ahí).
 - `composicion.ts` / `composicion.client.ts` dan a `features/` la implementación de `infra/` (nunca la importa) para las interfaces de `entities/repositorios*.ts`.
-- `infra/{rbac,equipo,acceso,perfil,vistas}.ts`, `infra/queries/{sesion,equipo,roles,vistas}.ts` (el equipo lee ids por `equipo_lista()` y luego filas por `id`), `infra/avatar.client.ts`.
+- `infra/{rbac,equipo,acceso,perfil,vistas}.ts`, `infra/queries/{sesion,equipo,roles,vistas}.ts` (`leerRolesParaElegir()`: id, nombre y color de los roles, hasta 100 y `hayMas`, sin la matriz; lo usa el inspector de fases de `flujos`) (el equipo lee ids por `equipo_lista()` y luego filas por `id`), `infra/avatar.client.ts`.
 - `infra/invitaciones.ts` — **la excepción del cliente admin**: `conAdminDeAuth()` comprueba el permiso y entrega sólo `auth.admin` como `CuentasInvitadas`.
 - `features/`: `auth`, `perfil`, `roles` (matriz de una sola vista por ancho; `?panel=nuevo-rol` sólo con `equipo.roles.gestionar`), `equipo` (`invitar.ts` con puertos; crear rol o invitar no es idempotente), `vistas`, `perspectiva`.
 
