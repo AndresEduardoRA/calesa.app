@@ -6,6 +6,9 @@
 --   A1. A (dueña) comparte con B: B tiene exactamente un `lead_compartido` (ruta, referencia, sin acción); A y C, ninguno; sin datos del lead.
 --   A2. Compartir otra vez con B, o A consigo misma (`sin_cambios`), no suma.
 --   A3. Quitarle el acceso a B y volver a compartir con el aviso sin accionar lo reemplaza; con el primero accionado, B tiene dos.
+--   A4. A transfiere a B: B tiene exactamente un `lead_transferido`; A y C, ninguno; sin datos del lead. La supervisión transfiere de B a C:
+--       C tiene uno; la supervisión y B no suman.
+--   A5. Transferir al dueño actual (`sin_cambios`) no suma; la ida y vuelta A→B→A→B con el primero sin accionar deja uno abierto para B.
 
 create temp sequence ac_telefono start 79800000;
 
@@ -14,7 +17,7 @@ create or replace function pg_temp.ac_persona(p_alcance text default 'propios') 
 declare v_id uuid := gen_random_uuid(); v_rol uuid;
 begin
   insert into auth.users (id, email, raw_app_meta_data) values (v_id, v_id || '@ejemplo.com', '{"invitado": true}');
-  update public.perfiles set nombre = 'Persona ' || substr(v_id::text, 1, 4) where id = v_id;
+  update public.perfiles set nombre = 'Persona ' || translate(substr(v_id::text, 1, 4), '0123456789', 'ghijklmnop') where id = v_id;
   insert into public.roles (clave, nombre) values ('ac_' || substr(v_id::text, 1, 8), 'AC ' || substr(v_id::text, 1, 8)) returning id into v_rol;
   insert into public.usuarios_roles (usuario_id, rol_id, es_principal) values (v_id, v_rol, true);
   insert into public.roles_permisos (rol_id, permiso_clave, alcance)
@@ -125,5 +128,41 @@ begin
   if (select count(*) from public.notificaciones where usuario_id = b and referencia_id = l and accionada_en is null) <> 1 then
     raise exception 'quedó más de un aviso abierto';
   end if;
+end $$;
+rollback;
+
+-- @test avisos de cartera: transferir deja exactamente un lead_transferido al destino; la supervisión que transfiere no se avisa (A4)
+begin;
+do $$
+declare a uuid := pg_temp.ac_persona(); b uuid := pg_temp.ac_persona(); c uuid := pg_temp.ac_persona();
+  s uuid := pg_temp.ac_persona('todos'); l uuid;
+begin
+  l := pg_temp.ac_lead(a);
+  if pg_temp.ac_transferir(a, l, b) <> 'transferido' then raise exception 'no transfirió'; end if;
+  if pg_temp.ac_avisos(b, 'lead_transferido', l) <> 1 then raise exception 'B tiene % avisos', pg_temp.ac_avisos(b, 'lead_transferido', l); end if;
+  if pg_temp.ac_avisos(a, 'lead_transferido', l) + pg_temp.ac_avisos(c, 'lead_transferido', l) <> 0 then raise exception 'le avisó a otro'; end if;
+  if (select count(*) from public.notificaciones where referencia_id = l) <> 1 then raise exception 'sobran avisos del lead'; end if;
+  perform pg_temp.ac_aviso_limpio(b, 'lead_transferido', l);
+  if pg_temp.ac_transferir(s, l, c) <> 'transferido' then raise exception 'la supervisión no transfirió'; end if;
+  if pg_temp.ac_avisos(c, 'lead_transferido', l) <> 1 then raise exception 'C tiene % avisos', pg_temp.ac_avisos(c, 'lead_transferido', l); end if;
+  if pg_temp.ac_avisos(s, 'lead_transferido', l) <> 0 or pg_temp.ac_avisos(b, 'lead_transferido', l) <> 1 then
+    raise exception 'la supervisión o el saliente sumaron';
+  end if;
+end $$;
+rollback;
+
+-- @test avisos de cartera: transferir al dueño actual no suma; la ida y vuelta deja un solo aviso abierto al destino (A5)
+begin;
+do $$
+declare a uuid := pg_temp.ac_persona(); b uuid := pg_temp.ac_persona(); l uuid;
+begin
+  l := pg_temp.ac_lead(a);
+  if pg_temp.ac_transferir(a, l, a) <> 'sin_cambios' then raise exception 'al dueño actual no dio sin_cambios'; end if;
+  if (select count(*) from public.notificaciones where referencia_id = l) <> 0 then raise exception 'sin_cambios avisó'; end if;
+  perform pg_temp.ac_transferir(a, l, b);
+  perform pg_temp.ac_transferir(b, l, a);
+  if pg_temp.ac_transferir(a, l, b) <> 'transferido' then raise exception 'la vuelta no transfirió'; end if;
+  if pg_temp.ac_avisos(b, 'lead_transferido', l) <> 1 then raise exception 'B tiene % avisos', pg_temp.ac_avisos(b, 'lead_transferido', l); end if;
+  if pg_temp.ac_avisos(a, 'lead_transferido', l) <> 1 then raise exception 'A tiene % avisos', pg_temp.ac_avisos(a, 'lead_transferido', l); end if;
 end $$;
 rollback;

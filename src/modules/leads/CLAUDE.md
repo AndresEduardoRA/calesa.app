@@ -46,8 +46,8 @@ Ficha completa (historia, partes, mediciones, trampas viejas): `docs/archivo/mod
 - Ningún componente decide qué número de lead mostrar: dibujan el global si llegó, si no el propio.
 - **Recordatorios:** avisa el job `recordatorios-notificar` (cada minuto, `recordatorios_notificar()`, 7.01-1), una vez por hora fijada. La `ruta` del aviso
   nombra el lead sólo si su dueño todavía lo tiene vivo en la cartera; si no, `/agenda?recordatorio=<id>`. Cambiar la hora reemplaza el aviso abierto.
-- **La cartera avisa** (7.01-2): `lead_compartir` deja un `lead_compartido` a quien recibe; `sin_cambios` no avisa. Volver a compartir reemplaza el
-  aviso abierto. Ningún título ni cuerpo lleva el teléfono, el número ni el nombre del lead: se abre por la `ruta` (`supabase/tests/areas/notificaciones/avisos-de-cartera.sql`).
+- **La cartera avisa** (7.01-2): `lead_compartir` deja un `lead_compartido` a quien recibe y `lead_transferir`, un `lead_transferido` al destino (al
+  saliente no); `sin_cambios` no avisa. Repetir reemplaza el aviso abierto. Ningún título ni cuerpo lleva el teléfono, el número ni el nombre del lead: se abre por la `ruta` (`supabase/tests/areas/notificaciones/avisos-de-cartera.sql`).
 
 ## Ojo
 
