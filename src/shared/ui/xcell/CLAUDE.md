@@ -35,7 +35,7 @@ disabledReason?, secondaryDisabledReason?, tone?, error?, secondaryId?, secondar
 - Cada botón se dibuja con la bandera **y** el callback (`accionesDe()` en `estado.ts`): una bandera sin callback sería un botón muerto. Banderas y callbacks aparte, y **los mismos callbacks para todas las celdas**:
   un ternario por celda que cree una función nueva por render dibuja todas (`xcell-hoja.test.tsx`, el memo).
 - **Deshabilitada:** la ayuda y el ⚙ **siguen** (no escriben en esta cotización: la ayuda informa y el ⚙ cambia el default global); ↺ se va. Si no corresponde (un tipo de cambio sin permiso), la hoja no manda `hasSettings`.
-- **Modo Live:** siguen. Los botones no dicen cifras; lo que abran pasa sus cifras por `<Monto>` (4.13). La cabecera no lee `useLive()`: encender Live no la dibuja de nuevo.
+- **Modo Live:** siguen. Los botones no dicen cifras; lo que abran pasa sus cifras por `<Monto>` (4.13) cuando es una celda de dinero: un factor `raw` de la ayuda de una tabla queda a la vista, sin `<Monto>` (4.13-4c2, P13). La cabecera no lee `useLive()`: encender Live no la dibuja de nuevo.
 - Nombres con el glosario y la etiqueta de la celda: «Ayuda de {label}» y «Cambiar el valor por defecto de {label}» (con ↺: «Volver al valor por defecto de {label}»). Iconos del sprite: `xcell-ayuda`, `xcell-ajustes`.
 - **El atajo se anuncia.** El valor, con acciones, lleva `aria-keyshortcuts="ArrowRight"` (lo leen VoiceOver y algunos) **y** `aria-describedby` a «Más acciones con la flecha derecha.» (lo lee todo lector; NVDA y JAWS
   no leen `aria-keyshortcuts`). El texto vive **una vez por hoja** en `<SimbolosDeXCell/>` (`hidden`, que sigue contando para `aria-describedby`): 0 nodos por celda. Va después de la nota (el motivo del candado o el error).

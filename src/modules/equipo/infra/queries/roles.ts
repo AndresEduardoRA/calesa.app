@@ -3,8 +3,8 @@ import { cache } from 'react'
 import { errorDePostgrest, ok } from '@/shared/lib/errores'
 import { createClient } from '@/shared/lib/supabase/server'
 import { catalogoDesde } from '../../entities/matriz'
-import type { LectorDeMatriz } from '../../entities/repositorios-equipo'
-import { rolesDesde } from '../../entities/rol'
+import type { LectorDeMatriz, LectorDeRolesParaElegir } from '../../entities/repositorios-equipo'
+import { TOPE_DE_ROLES_PARA_ELEGIR, rolesDesde, rolesParaElegirDesde } from '../../entities/rol'
 
 // Lo que dibuja la matriz: los roles con sus concesiones y cuántas personas los tienen, y el
 // catálogo de permisos en su orden. Tres lecturas en paralelo, una vez por request. Las personas de cada
@@ -43,4 +43,20 @@ export const getMatriz: LectorDeMatriz = cache(async () => {
     roles: rolesDesde(roles.data, personas.data),
     catalogo: catalogoDesde(permisos.data),
   })
+})
+
+// Los roles para elegirlos, sin la matriz: id, nombre y color (cualquier cuenta con sesión los lee, `roles: leer`). Decenas de filas
+// (la `roles_pkey` y el orden por `orden`, `nombre`); pide uno más que el tope para saber si había más.
+export const getRolesParaElegir: LectorDeRolesParaElegir = cache(async () => {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('roles')
+    .select('id, nombre, color')
+    .order('orden')
+    .order('nombre')
+    .limit(TOPE_DE_ROLES_PARA_ELEGIR + 1)
+  if (error) {
+    return { ok: false, error: errorDePostgrest(error) }
+  }
+  return ok(rolesParaElegirDesde(data))
 })

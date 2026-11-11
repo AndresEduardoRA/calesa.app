@@ -28,7 +28,11 @@ const esquemaFases = z.array(
   }),
 )
 
-// En el orden del flujo: `orden`, y a igualdad el nombre.
+// El orden del flujo: `orden`, y a igualdad el nombre.
+export const porOrdenYNombre = (a: { orden: number; nombre: string }, b: typeof a) =>
+  a.orden - b.orden || a.nombre.localeCompare(b.nombre)
+
+// En el orden del flujo.
 export function fasesDesde(filas: unknown): FaseResumen[] {
   return esquemaFases
     .parse(filas)
@@ -41,5 +45,5 @@ export function fasesDesde(filas: unknown): FaseResumen[] {
       esFinal: fila.es_final,
       activa: fila.activa,
     }))
-    .sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre))
+    .sort(porOrdenYNombre)
 }

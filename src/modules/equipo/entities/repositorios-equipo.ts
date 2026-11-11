@@ -7,7 +7,7 @@ import type { TipoDeEnlace } from './invitacion'
 import type { PermisoDelCatalogo } from './matriz'
 import type { FiltroDelEquipo, ListaDelEquipo } from './lista-equipo'
 import type { BajaHecha, PersonaDelEquipo, VistaPreviaDeBaja } from './persona'
-import type { RolConConcesiones } from './rol'
+import type { RolConConcesiones, RolesParaElegir } from './rol'
 
 // Toda edición de un rol manda la versión que tenía en pantalla; la base responde `conflicto` si
 // otra persona lo cambió, y devuelve la versión nueva para seguir editando sin recargar.
@@ -75,4 +75,6 @@ export type LectorDePersona = (personaId: string) => Promise<Resultado<PersonaDe
 // ¿El equipo vigente es sólo quien mira? Independiente del filtro: «por ahora el equipo eres tú» no depende de lo que se busca.
 export type LectorDeSoloYo = () => Promise<Resultado<boolean>>
 export type LectorDeMatriz = () => Promise<Resultado<Matriz>>
+// Los roles por orden y nombre, sólo para elegirlos (id, nombre y color): sin permisos ni conteos. Hasta 100, con `hayMas`.
+export type LectorDeRolesParaElegir = () => Promise<Resultado<RolesParaElegir>>
 export type LectorDeVistaPreviaDeBaja = (personaId: string) => Promise<Resultado<VistaPreviaDeBaja>>
