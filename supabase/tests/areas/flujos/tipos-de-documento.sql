@@ -265,3 +265,36 @@ begin
   if (j ->> 'actualizado_en')::timestamptz <> pg_temp.td_version(c) then raise exception 'desactivar no devolvió la versión nueva'; end if;
 end $$;
 rollback;
+
+-- @test tipos de documento: la escritura directa da 42501 a quien sí puede por RPC, y los dos siguen leyendo
+begin;
+select pg_temp.td_preparar();
+do $$
+declare flor uuid := '00000000-0000-4000-8000-000000007d0f'; cata uuid := '00000000-0000-4000-8000-000000007d0c';
+        fa uuid := pg_temp.td_flujo('prueba_td_a'); g uuid := '00000000-0000-4000-8000-000000007d01';
+        a uuid := '00000000-0000-4000-8000-000000007d02'; v_sql text; v_n int; p uuid;
+begin
+  foreach v_sql in array array[
+    format('insert into public.tipos_documento (flujo_id, nombre) values (null, %L)', 'Directo'),
+    format('update public.tipos_documento set nombre = %L where id = %L', 'Directo', g),
+    format('delete from public.tipos_documento where id = %L', g)
+  ] loop
+    if pg_temp.td_codigo(cata, v_sql) <> '42501' then raise exception 'Cata escribió directo: %', v_sql; end if;
+  end loop;
+  foreach v_sql in array array[
+    format('insert into public.tipos_documento (flujo_id, nombre) values (%L, %L)', fa, 'Directo'),
+    format('update public.tipos_documento set nombre = %L where id = %L', 'Directo', a),
+    format('delete from public.tipos_documento where id = %L', a)
+  ] loop
+    if pg_temp.td_codigo(flor, v_sql) <> '42501' then raise exception 'Flor escribió directo: %', v_sql; end if;
+  end loop;
+  foreach p in array array[flor, cata] loop
+    perform pg_temp.td_como(p);
+    set local role authenticated;
+    select count(*) into v_n from (select 1 from public.tipos_documento where id in (g, a) limit 3) q;
+    reset role;
+    if v_n <> 2 then raise exception '% lee % de los dos tipos', p, v_n; end if;
+  end loop;
+  if (select nombre from public.tipos_documento where id = g) <> 'TD global' then raise exception 'la escritura directa cambió algo'; end if;
+end $$;
+rollback;
