@@ -113,6 +113,18 @@ describe('entradasDeAgenda', () => {
     expect(entradas.find((entrada) => entrada.clave === 'evento')?.detalle).toBe('Seleccionados')
   })
 
+  it('con rutaDe, el evento y la tarea llevan a su panel; la subasta conserva su vehículo', () => {
+    const rutas = entradasDeAgenda(agenda(), todas, (clave, id) =>
+      clave === 'evento' || clave === 'tarea' ? `/agenda?${clave}=${id}` : null,
+    ).map((entrada) => entrada.ruta)
+    expect(rutas).toEqual([
+      `/agenda?evento=${ID(1)}`,
+      `/agenda?tarea=${ID(2)}`,
+      null,
+      `/vehiculos/${ID(4)}`,
+    ])
+  })
+
   it('sólo trae las clases pedidas', () => {
     expect(entradasDeAgenda(agenda(), ['tarea']).map((entrada) => entrada.clave)).toEqual(['tarea'])
     expect(entradasDeAgenda(agenda(), [])).toEqual([])

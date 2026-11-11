@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/tabs'
 import type { ClaveDeClase } from '../../../entities/agenda'
 import { moverFecha, VISTAS, type Vista } from '../../../entities/calendario'
 import { useParametrosDeAgenda } from '../hooks/use-parametros-de-agenda'
+import { BotonesDeAlta } from './botones-de-alta'
 import { FiltroDeClases } from './filtro-de-clases'
 
 const NOMBRE_DE_VISTA: Record<Vista, string> = { mes: 'Mes', semana: 'Semana', dia: 'Día' }
@@ -69,6 +70,7 @@ export function BarraDelCalendario({ vista, fecha, titulo, clases, puedeVerTodo,
         </Tabs>
         <FiltroDeClases clases={clases} />
       </div>
+      <BotonesDeAlta />
       {puedeVerTodo ? (
         <Interruptor
           titulo="Ver la de todos"

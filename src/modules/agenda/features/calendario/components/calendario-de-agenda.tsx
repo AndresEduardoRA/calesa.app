@@ -10,7 +10,8 @@ import {
   type ClaveDeClase,
 } from '../../../entities/agenda'
 import { tituloDelRango, type Vista } from '../../../entities/calendario'
-import { enlaceDeDia } from '../enlace-de-dia'
+import { enlaceDeDia, extraDeEnlaces } from '../enlace-de-dia'
+import { enlaceDePanel } from '../enlace-de-panel'
 import { BarraDelCalendario } from './barra-del-calendario'
 import { VistaDeDia } from './vista-de-dia'
 import { VistaDeMes } from './vista-de-mes'
@@ -28,18 +29,6 @@ type Props = {
   deTodos: boolean
 }
 
-// Lo que ya eligió la persona y un enlace a otro día debe conservar (`?ver=`, `?de=`); la vista y la fecha las pone el enlace.
-function extraDeEnlaces(clases: readonly ClaveDeClase[], deTodos: boolean): string {
-  const partes: string[] = []
-  if (clases.length < CLASES_DE_AGENDA.length) {
-    partes.push(`ver=${clases.join(',')}`)
-  }
-  if (deTodos) {
-    partes.push('de=todos')
-  }
-  return partes.join('&')
-}
-
 // El calendario de la agenda: barra, la vista elegida y, al pie, los avisos de tope. Un Server Component: la barra y las vistas son las islas de cliente.
 export function CalendarioDeAgenda({
   agenda,
@@ -51,8 +40,13 @@ export function CalendarioDeAgenda({
   puedeVerTodo,
   deTodos,
 }: Props) {
-  const entradas = entradasDeAgenda(agenda, clases)
   const extra = extraDeEnlaces(clases, deTodos)
+  // El evento y la tarea abren su panel en esta misma vista y fecha (el recordatorio sigue sin enlace hasta el 7.07-3).
+  const entradas = entradasDeAgenda(agenda, clases, (clave, id) =>
+    clave === 'evento' || clave === 'tarea'
+      ? enlaceDePanel({ vista, fecha, extra }, clave, id)
+      : null,
+  )
   const hayMas = clases.some((clave) => agenda.hayMas[clave])
   const hayAlgo =
     entradasDeAgenda(

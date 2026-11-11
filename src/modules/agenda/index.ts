@@ -11,6 +11,7 @@ export {
   type SubastaDeAgenda,
   type TareaDeAgenda,
 } from './entities/agenda'
+export { puedeDarTareaAOtro, puedeEditarEvento, puedeEditarTarea } from './entities/visibilidad'
 export {
   leerClases,
   leerFecha,

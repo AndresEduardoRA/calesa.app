@@ -186,7 +186,7 @@ export const ETIQUETA_DE_VISIBILIDAD: Record<string, string> = {
 }
 
 // Lo que dibuja un chip: las cuatro clases aplanadas a una misma forma. `instante` es el que ubica la cosa en el día (inicio, vencimiento, hora
-// o cierre). `ruta` es a dónde lleva; en el 7.07-1 sólo la subasta (`/vehiculos/<id>`): los paneles de evento, tarea y recordatorio llegan después.
+// o cierre). `ruta` es a dónde lleva: la subasta, a `/vehiculos/<id>`; el evento y la tarea, a su panel (`rutaDe`, 7.07-2); el recordatorio sigue sin ruta (7.07-3).
 export type EntradaDeAgenda = {
   clave: ClaveDeClase
   id: string
@@ -198,9 +198,13 @@ export type EntradaDeAgenda = {
 }
 
 // De la respuesta de `agenda_rango` a las entradas que se agrupan por día, sólo de las clases pedidas (`?ver=`).
+// `rutaDe` pone la ruta de cada entrada por su clase y su id (nulo = sin enlace); sin ella, sólo la subasta lleva ruta.
+export type RutaDeEntrada = (clave: ClaveDeClase, id: string) => string | null
+
 export function entradasDeAgenda(
   agenda: AgendaDeRango,
   clases: readonly ClaveDeClase[],
+  rutaDe: RutaDeEntrada = () => null,
 ): EntradaDeAgenda[] {
   const pide = (clave: ClaveDeClase) => clases.includes(clave)
   return [
@@ -213,7 +217,7 @@ export function entradasDeAgenda(
           hecha: false,
           detalle:
             e.visibilidad === 'privado' ? null : (ETIQUETA_DE_VISIBILIDAD[e.visibilidad] ?? null),
-          ruta: null,
+          ruta: rutaDe('evento', e.id),
         }))
       : []),
     ...(pide('tarea')
@@ -224,7 +228,7 @@ export function entradasDeAgenda(
           instante: t.venceEn,
           hecha: t.estado === ESTADO_DE_TAREA_HECHA,
           detalle: null,
-          ruta: null,
+          ruta: rutaDe('tarea', t.id),
         }))
       : []),
     ...(pide('recordatorio')
@@ -235,7 +239,7 @@ export function entradasDeAgenda(
           instante: r.recordarEn,
           hecha: false,
           detalle: null,
-          ruta: null,
+          ruta: rutaDe('recordatorio', r.id),
         }))
       : []),
     ...(pide('subasta')

@@ -202,8 +202,11 @@ export function validarTarea(
 // Texto opcional: vacío (tras recortar) es «sin valor».
 const opcional = (texto: string): string | null => texto.trim() || null
 
-// Un evento nuevo: sólo las claves con valor. Se llama después de `validarEvento` sin errores.
-export function datosDeEventoNuevo(valores: ValoresDeEvento, zona: string): DatosDeEvento {
+// Un evento nuevo: sólo las claves con valor; el título y el inicio siempre van. Se llama después de `validarEvento` sin errores.
+export function datosDeEventoNuevo(
+  valores: ValoresDeEvento,
+  zona: string,
+): DatosDeEvento & { titulo: string; inicia_en: string } {
   const inicio = instanteDeLocal(valores.iniciaEn, { zona })
   const fin = valores.terminaEn === '' ? null : instanteDeLocal(valores.terminaEn, { zona })
   const descripcion = opcional(valores.descripcion)
@@ -212,13 +215,17 @@ export function datosDeEventoNuevo(valores: ValoresDeEvento, zona: string): Dato
     titulo: valores.titulo.trim(),
     ...(descripcion ? { descripcion } : {}),
     ...(lugar ? { lugar } : {}),
-    ...(inicio ? { inicia_en: inicio } : {}),
+    // Validado antes: si no fuera una fecha, la base lo rechazaría con su motivo.
+    inicia_en: inicio ?? valores.iniciaEn,
     ...(fin ? { termina_en: fin } : {}),
     visibilidad: valores.visibilidad,
   }
 }
 
-export function datosDeTareaNueva(valores: ValoresDeTarea, zona: string): DatosDeTarea {
+export function datosDeTareaNueva(
+  valores: ValoresDeTarea,
+  zona: string,
+): DatosDeTarea & { titulo: string } {
   const vence = instanteDeLocal(valores.venceEn, { zona })
   const descripcion = opcional(valores.descripcion)
   return {
