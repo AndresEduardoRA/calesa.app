@@ -8873,6 +8873,15 @@ export type Database = {
         Returns: string
       }
       flujo_de_fase: { Args: { p_fase: string }; Returns: string }
+      flujo_fuera_de_regla: {
+        Args: { p_flujo: string; p_tope?: number }
+        Returns: {
+          faltan: number
+          fase_id: string
+          repuesto_id: string
+          vehiculo_id: string
+        }[]
+      }
       flujo_regla_activa: { Args: { p_flujo: string; p_regla: string }; Returns: boolean }
       formula_cambiar_constante: {
         Args: { p_nodo: string; p_origen: string; p_publicada_esperada?: string; p_valor: number }
@@ -8909,15 +8918,6 @@ export type Database = {
         Returns: string
       }
       formula_tipo_cambio_del_nodo: { Args: { p_formula: string; p_nodo: string }; Returns: Json }
-      fuera_de_regla: {
-        Args: { p_flujo: string }
-        Returns: {
-          faltan: number
-          fase_id: string
-          repuesto_id: string
-          vehiculo_id: string
-        }[]
-      }
       importaciones_vinculos_purgar: { Args: Record<PropertyKey, never>; Returns: number }
       integracion_guardar: {
         Args: {
