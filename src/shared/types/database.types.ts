@@ -8312,6 +8312,15 @@ export type Database = {
       }
       chat_directa: { Args: { p_usuario: string }; Returns: Json }
       chat_global_entrar: { Args: Record<PropertyKey, never>; Returns: Json }
+      chat_grupo_crear: {
+        Args: { p_id: string; p_miembros: string[]; p_nombre: string }
+        Returns: Json
+      }
+      chat_grupo_miembros: {
+        Args: { p_agregar: string[]; p_conversacion: string; p_quitar: string[] }
+        Returns: Json
+      }
+      chat_salir: { Args: { p_conversacion: string }; Returns: Json }
       claves_dato_requisito: {
         Args: { p_ambito: Database['public']['Enums']['ambito_flujo'] }
         Returns: string[]
