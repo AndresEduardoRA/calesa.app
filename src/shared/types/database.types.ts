@@ -7335,6 +7335,7 @@ export type Database = {
       }
       _fase_forma: { Args: { p_datos: Json; p_vacio_vale: boolean }; Returns: undefined }
       _fase_unico: { Args: { p_nombre: string; p_restriccion: string }; Returns: undefined }
+      _fase_uso: { Args: { p_fase: string }; Returns: Json }
       _fase_validar: {
         Args: {
           p_claves: string[]
@@ -8498,6 +8499,7 @@ export type Database = {
         Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_fase: string }
         Returns: string
       }
+      fase_impacto: { Args: { p_fase: string }; Returns: Json }
       fase_mover: {
         Args: { p_actualizado_en_esperado: string; p_despues_de?: string; p_fase: string }
         Returns: string
