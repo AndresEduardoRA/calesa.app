@@ -31,6 +31,17 @@ Sección «Seguimientos» de la ficha y pestaña del drawer.
 - Aviso de vencidos de la ficha: `lead_ficha()` cuenta hasta 21 por `recordatorios_lead_pendientes_idx` («más de 20»).
 - Mide: `db:medir` (sin filas descartadas en ningún plan); `e2e/leads-rapido-volumen.spec.ts`.
 
+## Agenda
+
+- Calendario: `agenda_rango()`, un pedido por rango de ≤ 45 días; tope 200 por clase (`limit 201`, `hay_mas` y `tope` en la respuesta). Índices:
+  `eventos_inicio_idx`, `tareas_responsable_idx` (mías) o `tareas_vence_idx` (con `agenda.ver_todo`), `recordatorios_usuario_idx` y
+  `vehiculos_cierre_subasta_idx` origen por origen. `eventos: leer` en línea: `tiene_permiso` como InitPlan y el destinatario por PK.
+- Límite sin assert: en un origen con «propios» la RLS descarta adentro los vehículos ajenos, acotado a las subastas vivas del origen en el rango (el
+  mismo índice y límite que 4-23 anotó para el panel, `medir-panel-cierre-subasta.sql`).
+- «Sin fecha»: `agenda_tareas_sin_fecha()`, 20 por «Ver más» (50 como mucho), `tareas_sin_fecha_idx`, cursor `(creado_en, id)`.
+- «¿A quién?»: `agenda_quienes_reciben()`, ≥ 3 letras o dígitos, tope 20, sobre `perfiles` (el equipo, no crece).
+- Sin siembra de volumen ni `medir-*.sql`: `eventos` y `tareas` no son tablas que crecen (7.06-2, D29).
+
 ## Inventario de escala (9e)
 
 Tope = lo que se dibuja o se lee de una vez; un número que se muestra es siempre acotado (`limit tope + 1`, «más de N»). Presupuesto = lo que asserta `pnpm db:medir:volumen` o el e2e. Mide todo `medir-escala.sql` salvo que se diga otro.
