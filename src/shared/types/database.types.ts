@@ -8219,6 +8219,10 @@ export type Database = {
         Args: { p_de_todos?: boolean; p_desde: string; p_hasta: string }
         Returns: Json
       }
+      agenda_tareas_sin_fecha: {
+        Args: { p_antes_en?: string; p_antes_id?: string; p_tamano?: number }
+        Returns: Json
+      }
       alcance_de: {
         Args: { p_clave: string; p_origen?: string }
         Returns: Database['public']['Enums']['alcance_permiso']

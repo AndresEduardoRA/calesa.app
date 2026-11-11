@@ -24,6 +24,9 @@ RPC: `evento_crear` y `tarea_crear` (id del navegador); `evento_guardar`, `event
 `tarea_notificar` (avisa `tarea_asignada`), `tarea_validar`; cron: `recordatorios_notificar`.
 Lecturas (7.06-2): `agenda_rango(p_desde, p_hasta, p_de_todos)` (de invocador; ≤ 45 días; eventos, tareas, recordatorios y subastas, sólo lo de
 un chip, 200 por clase con `hay_mas` y `tope`). Índice `tareas_vence_idx` (la ruta de `agenda.ver_todo`).
+`agenda_tareas_sin_fecha(p_tamano, p_antes_en, p_antes_id)` (de invocador; mis tareas sin fecha y no canceladas, cursor `(creado_en, id)`,
+`_acotar_pagina(p_tamano, 20, 50)`, `tareas_sin_fecha_idx`). Su registro en `scripts/guardas/areas-b/paginas-en-la-base.ts` llega con su primera
+llamada (7.07).
 
 ## No se rompe
 
