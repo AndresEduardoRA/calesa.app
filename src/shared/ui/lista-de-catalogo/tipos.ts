@@ -17,4 +17,6 @@ export type FilaDeCatalogo = {
   acciones: readonly AccionDeMenu[]
   puedeSubir: boolean
   puedeBajar: boolean
+  // Por qué no se puede ordenar esta fila (sólo lectura): lo que dice el botón apagado en lugar de «Ya es el primero/último».
+  motivoSinOrden?: string
 }

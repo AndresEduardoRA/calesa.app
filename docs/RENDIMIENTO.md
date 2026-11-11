@@ -42,6 +42,17 @@ Sección «Seguimientos» de la ficha y pestaña del drawer.
 - «¿A quién?»: `agenda_quienes_reciben()`, ≥ 3 letras o dígitos, tope 20, sobre `perfiles` (el equipo, no crece).
 - Sin siembra de volumen ni `medir-*.sql`: `eventos` y `tareas` no son tablas que crecen (7.06-2, D29).
 
+## Chat (7.08)
+
+- Lista: `chat_conversaciones()`, 20 por «Ver más» (50 como mucho), cursor `(ultimo_mensaje_en, id)`. Parte de `conversaciones_miembros_usuario_idx`
+  y lee `conversaciones` por su pk: ordena sólo las conversaciones de quien mira (directas ≤ personas del equipo, más sus grupos), no la tabla. No
+  leídos: ≤ 100 entradas de `mensajes_hilo_idx` por fila de la página (≤ 2.000 por página de 20; ≤ 5.000 con el máximo de 50).
+- Total: `chat_no_leidos()`, se detiene a los 100; peor caso, una sonda de índice por conversación de quien mira más 100 entradas.
+- Medido una vez con `EXPLAIN (analyze)` en una transacción revertida (7.08-3): con 200.000 conversaciones, nested loop desde las filas de
+  miembro; con 20.000, el planificador prefiere recorrer `conversaciones` (chica). Medido con valores literales: el plan genérico de plpgsql (`v_yo` como parámetro) no se midió. Sin siembra de volumen ni `medir-*.sql`: `conversaciones` y
+  `mensajes` no son tablas que crecen de `.claude/rules/escala.md`.
+- Límite sin assert: una conversación que recibe un mensaje mientras se pagina sube y no reaparece abajo; la relectura de la cabeza la trae.
+
 ## Inicio: la bandeja (9.02)
 
 - Tres lecturas en el servidor, cada una `limit 6` y cada una tras el `<Suspense>` de su bloque (un bloque lento no frena a los demás): `recordatorios_vista` por `recordatorios_usuario_idx`; `leads_cartera_vista` por `leads_asesores_listado_idx` (cuesta lo que pesa la cartera de quien mira, no la tabla); `perfiles` por `perfiles_vigentes_orden_idx`.
@@ -86,6 +97,7 @@ Tope = lo que se dibuja o se lee de una vez; un número que se muestra es siempr
 - Papelera de cotizaciones (4.24-1a): como la de vehículos (5 lotes por cursor, primeros 20, «Mostrar los N» ≤ 200, `en_papelera` exacto ≤ 200), `lotes_papelera_tipo_idx`, 200 ms. «Le queda alguna en la papelera» es una sonda por lote (`cotizaciones_lote_papelera_idx`, `limit 1`): con un `exists`, el plan genérico con pocas en la papelera es un semi join que lee entero ese índice. `medir-escala.sql`: la RPC sobre la siembra 0,9–2,5 ms; con 500 lotes más de la dueña, 1,1–1,5 ms (la dueña, página 1 y por el cursor del lote 400; Ana, sin la clave, su página 1); la consulta de adentro, como la ve plpgsql (sentencia preparada, plan genérico), por el índice sin recorrer `lotes_papelera` ni `cotizaciones`: Ana descarta 506 lotes ajenos (tope 600), la dueña por el cursor 0. Quien no tiene la clave descarta todos los lotes pendientes ajenos de cotizaciones (crece con ellos, no con la página).
 - La pantalla `/cotizaciones/papelera` (4.24-2): una página (`tamano + 1`) y «Mostrar los N» un lote (≤ 200) al pedirlo; sin `count`, sin `offset`. JS en frío 417,9 KB (23 chunks; `/perfil` 417,2), presupuesto 440. Página 1 con 5 lotes × 20 filas: 1.119 nodos y ≈ 342.800 B de documento (vacía, 91.005 B), igual con lotes de 21 que de 200 (`e2e/cotizaciones-papelera.spec.ts`, E8); topes 3.000 nodos y 360.000 B. El enlace del listado es un Server Component: `/cotizaciones` sigue en sus 380 KB. Con purgar (4.24-2b; la dueña ve «Purgar» en cada fila y «Purgar el lote»): JS en frío 424,5 KB (23 chunks), 1.329 nodos y 452.015 B (451.594 con lotes de 21: no crece con el lote); el tope de bytes pasa a 475.000 (lo medido más un 5 %): ≈ 1 KB por botón, casi todo las clases de la base de `Button`. Purgar no lee nada: una llamada por confirmación y el resultado relee una página.
 - Orígenes: resumen y categorías con uso, 100 / 50 ms (exento, administración). Tipos de cambio, historial: 30 («Mostrando los 30 cambios más recientes.»).
+- Requisitos de una fase (5.07, administración): `requisito_impacto()` y `flujo_fuera_de_regla()` recorren a lo sumo 1.000 unidades por fase sin orden (`vehiculos_fase_id_idx` / `repuestos_items_fase_id_idx`; más es una muestra, `revisadas` lo dice) y cortan en `tope + 1` (50, máx. 100). Presupuesto previo 500 ms. Peor caso de `flujo_fuera_de_regla`: fases con bloqueantes × 1.000 evaluaciones de `evaluar_requisitos`. Exento de medición (administración, como «Orígenes: resumen»); si el 5.08 la lee al abrir el panel, la mide allí.
 - Equipo, lista: 100 por nombre (`TOPE_DEL_EQUIPO`; la RPC `equipo_lista()` lee 101) en dos etapas: W recorre las primeras 2.000 del estado, de a una (perezosa, no `count(*)`), e I el trigram. Índices: `perfiles_vigentes_orden_idx`, `perfiles_estado_orden_idx`, `perfiles_busqueda_idx` (GIN trigram; `unaccent` declarada `immutable`, `reindex` si cambia). Presupuesto: buffers ≤ 150 la consulta sin texto (106 medidos con 100.007 personas), < 3.500 nodos (1.673 medidos); la RPC entera sin texto 405 buffers. Mínimo 3 letras o dígitos, 0 pedidos con 1 o 2 (`e2e/equipo-busqueda-minima.spec.ts`); `lista-equipo.tsx` no llama a `setParametros` si `q` no cambia. Miniatura de 96 px, no el avatar de 512. Mide `medir-equipo.sql` (10.000 y 100.000 personas; no crece más de 1,5 veces, piso 60 buffers).
 - Roles, personas de cada rol: `roles_personas()` hasta 1.001 por rol («más de 1.000 personas»), `usuarios_roles_rol_idx`, ≤ 150 buffers y ≤ 1.001 filas con un rol de 100.007 (medidos: 24 buffers). La matriz de Roles no pagina: 72 filas de catálogo más hasta 18 de niveles (`_niveles_tope()` = 10; 9 que generan permisos × 2) = 90 (`e2e/roles-niveles.spec.ts`).
 
@@ -126,7 +138,19 @@ Cada sección por su RPC, de a `_acotar_pagina(p_tamano, 5, 20)` + 1, con el mí
 
 - Leads (`buscador_leads()`): la ventana de `leads_candidatos()` con sólo el texto (la búsqueda del listado, medida en `busqueda-volumen.sql`) + `leads_ids_del_numero()` (≤ 100) + una pasada de `leads_vista_por_ids()` sobre esos ids; corta en 21.
 - Vehículos (`buscador_vehiculos()`): una ruta por origen visible por `vehiculos_origen_listado_idx`, ≤ 21 por origen. **Límite sin assert**, el del panel y el inventario: con un texto que no coincide recorre los vehículos vivos de cada origen visible.
-- Cotizaciones (`buscador_cotizaciones()`, definer): el número por `cotizaciones_numero_key`; el título por `cotizaciones_titulo_trgm`, a lo sumo 1.000 candidatas de los orígenes que se ven, más las propias por `cotizaciones_creador_idx` (≤ 21), y la policy sobre ellas por la PK (`en_cartera` por fila con «propios»). **Límite sin assert hasta el 7.12-2:** no tiene `EXPLAIN` en `db:medir:volumen`; el 7.12-2 suma un `medir-buscador.sql` (número, título común y título raro, como la dueña y como Ana).
+- Cotizaciones (`buscador_cotizaciones()`, definer; `supabase/tests/medir-buscador.sql`, 7.12-2, como authenticated con el plan genérico, 50.000 y 250.000, la dueña y
+  Ana con 100 propias fijas): el número por `cotizaciones_numero_key` (6–8 bloques, 0,9 ms); el título por `cotizaciones_titulo_trgm`, a lo sumo 1.000 candidatas de
+  los orígenes que se ven, más las propias por `cotizaciones_creador_idx` (≤ 21) **sólo donde se tiene «propios» sin «todos»** (desde
+  `20261111200531_buscador_cotizaciones_rutas.sql`: antes, un título raro de la dueña recorría todas sus propias, 46 → 229 ms), y la policy sobre ellas por la PK
+  (`en_cartera` por fila con «propios»). Medido: raro 41–61 bloques y ≈ 1 ms, sin crecer con N; común 5 / 11 ms la dueña y 12 / 18 ms Ana (1.000 `en_cartera`), el
+  heap ≈ 610 bloques sin crecer (el tope de 1.000). Presupuestos: número 10 ms, raro 20, común 150 la dueña y 300 Ana; ningún recorrido entero. **Límites
+  declarados:** con un título común, el GIN (31 → 136 bloques) y la PK de la policy (≈ 510 → 2.010, ≤ 1.000 × su profundidad) crecen con las coincidencias; la
+  ruta de las propias crece con las propias de quien busca, no con N; con «todos» en un origen y más de 1.000 coincidencias, las propias no tienen prioridad (se llega por `#número` o afinando el texto). Con el plan a medida (las 5 primeras llamadas de una sesión), un título muy común va por un
+  Seq Scan con `limit 1000` (≈ 600 bloques si las coincidencias se reparten; la tabla entera si quedan al final): se queda así, D22 del 7.12-2. La guarda: sin
+  `cotizaciones_titulo_trgm`, lo raro de la dueña recorre la tabla (7.723 bloques del heap, 228 ms).
+- Últimos abiertos (`leerUltimosAbiertos()`): un pedido de ≤ 16 visitas propias por `visitados_usuario_visto_idx` y hasta tres en paralelo por PK (`in('id', …)`,
+  ≤ 16 ids cada uno, bajo la RLS de cada tabla); se muestran 8.
+- Una búsqueda: hasta 4 pedidos en paralelo (leads hace dos), cada uno ≤ 6 filas; la espera de 250 ms entre teclas es de la paleta (7.13).
 - `visitados`: ≤ 50 por persona (`visita_registrar()` recorta), por la PK y `visitados_usuario_visto_idx (usuario_id, visto_en desc)`.
 
 ## JS en frío (con gzip, lo que el documento nombra)

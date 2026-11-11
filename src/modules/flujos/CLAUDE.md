@@ -29,10 +29,18 @@ El módulo se parte por área, como `cotizaciones` (`scripts/guardas/areas-de-fl
 - Un área importa lo suyo y el núcleo, nunca otra área; el núcleo no importa ningún área; adentro nadie importa la raíz. Lo que dos áreas comparten va al núcleo (lo decide el A).
 - Un nombre exportado repetido entre dos áreas es un error de `tsc`.
 
+## Documentos (5.03 y 5.09)
+
+- Pestaña `?seccion=documentos` de `/configuracion/flujos` (área `documentos`; `pantallas/documentos.ts` da `<PantallaDeDocumentos>` y `<EsqueletoDeTipos>`): dos grupos de `tipos_documento`, los de toda la empresa (`flujo_id` nulo; los cambia `logistica.catalogos.gestionar`) y los del flujo elegido (`flujos.configurar` o `repuestos.configurar`; el permiso por origen lo decide la base). Los ve cualquier cuenta con la pestaña; quien no puede cambiar un grupo lo ve con «Nuevo tipo», «Editar» y el orden apagados y con el motivo.
+- Archivos: `entities/documentos/{tipo-de-documento,formulario-de-tipo,respuestas,vista-de-grupo,repositorios}.ts` (reglas puras, validación espejo de la base —probada contra PGlite—, qué abre cada grupo), `infra/documentos/{tipos,escribir-tipos}.ts` (lectura con `tope + 1` y las cuatro RPC `tipo_documento_crear|guardar|mover|eliminar`), `features/documentos/{actions,schemas,hooks,components}`, `areas/documentos/`.
+- **La lista se relee, no se siembra:** ninguna RPC devuelve la lista, así que cada action revalida `RUTAS.configuracionDeFlujos` y la página trae los dos grupos de nuevo; la versión (`actualizadoEn`) cruza como texto ISO. El uso de cada tipo (`tipos_documento_con_uso`, conteos acotados a 50) sólo se pide a quien puede cambiar el grupo (a los demás la base les da `42501`).
+- URL: `?panel=nuevo-tipo&de=empresa|flujo`, `?panel=editar-tipo&tipo=<id>`, `?panel=eliminar-tipo&tipo=<id>` (constantes `PANEL_*`, `CLAVE_DEL_TIPO`, `CLAVE_DEL_GRUPO` en `entities/`). Un solo modal y una sola confirmación sirven a los dos grupos; lo que la URL pide y no se puede abrir (grupo ajeno, tope, tipo ausente, tipo en uso al eliminar) se avisa y se limpia. Con uso, «Eliminar» está apagado: se desactiva (D13 del 5.09).
+- Las actions llevan el `flujoId` del grupo y comprueban `puede()` antes de la RPC; `leerTiposDeDocumento` y `leerUsoDeTiposDeDocumento` salen por el `index.ts` del área.
+
 ## Tablas
 
-`flujos`, `flujos_reglas`, `fases`, `fases_transiciones`, `fases_roles`, `fases_transiciones_roles`, `tipos_documento`, `fases_requisitos`, `historial_fases`.
-RPC: `cambiar_fase`, `cambiar_fase_lote`, `previsualizar_cambio_fase`, `evaluar_requisitos`, `revisar_flujo`, `fase_crear`, `fase_guardar`, `fase_mover`, `fase_impacto`, `fase_eliminar`, `fase_reactivar`, `fuera_de_regla`, `unidad_llego_a_fase`, `claves_dato_requisito`.
+`flujos`, `flujos_reglas`, `fases`, `fases_transiciones`, `fases_roles`, `fases_transiciones_roles`, `tipos_documento`, `fases_requisitos`, `historial_fases`, `flujos_transporte_oferta`.
+RPC: `cambiar_fase`, `cambiar_fase_lote`, `previsualizar_cambio_fase`, `evaluar_requisitos`, `revisar_flujo`, `fase_crear`, `fase_guardar`, `fase_mover`, `fase_impacto`, `fase_eliminar`, `fase_reactivar`, `requisito_crear`, `requisito_guardar`, `requisito_mover`, `requisito_eliminar`, `requisito_impacto`, `flujo_fuera_de_regla`, `unidad_llego_a_fase`, `claves_dato_requisito`, `flujo_regla_impacto`, `flujo_regla_cambiar`, `flujo_oferta_guardar`, `flujo_oferta`.
 
 ## No se rompe
 
@@ -42,6 +50,18 @@ RPC: `cambiar_fase`, `cambiar_fase_lote`, `previsualizar_cambio_fase`, `evaluar_
 - Un requisito nace informativo; volverlo bloqueante muestra cuántas unidades quedan «fuera de regla» y pide confirmación.
 - Las esperas se evalúan al entrar a la fase y nunca mueven en cascada.
 - La versión de toda la configuración de un flujo es `flujos.actualizado_en`, y la mueve siempre hacia adelante el trigger `flujo_version()` (también dos veces en una transacción). Toda RPC de configuración (fases, y desde el 5.05, 5.07 y 5.10 transiciones, requisitos y reglas) llama `_flujo_para_editar(p_flujo uuid, p_actualizado_en_esperado timestamptz) returns flujos` antes de leer o escribir, y `_flujo_tocar(p_flujo uuid) returns timestamptz` al final, y devuelve ese valor. Firmas estables. El orden: inexistente → `PT409`; sin `puede_configurar_flujo` → `42501` (antes del candado: quien no puede no espera); `for no key update` (no frena el `key share` de las FK de `cambiar_fase`); versión distinta → `PT409`. `authenticated` no ejecuta los dos ayudantes.
+- Las reglas del flujo (`flujos_reglas`, sin fila = apagada) se escriben sólo por `flujo_regla_cambiar(p_flujo, p_actualizado_en_esperado, p_regla, p_activa)` (5.10-1):
+  forma (`22023`, hint `regla|activa`) → el contrato de versión → encender fuera del catálogo del ámbito → `22023` (`_flujo_regla_admitida`: repuestos sin `vitrina_web`,
+  `portal_cliente` ni `aduana`) → apagar con uso → `23514` (hint `regla`). Una regla ya apagada no mira el uso; la versión se mueve siempre. La regla única del uso es
+  `_flujo_regla_uso()`: las fases (también jubiladas) que la marcan y, en «esperas», los requisitos de espera de sus fases (tope 50 + 1); la leen
+  `flujo_regla_impacto(p_flujo, p_regla)` (sin versión; ya apagada → `bloquea: false`) y el trigger `flujo_regla_apagar_validar`, que también frena a `service_role` y deja
+  pasar el borrado en cascada del flujo. `authenticated` no tiene `insert`, `update` ni `delete` sobre `flujos_reglas`. Hasta el 5.07, un requisito de espera creado a la
+  vez que se apaga «esperas» puede quedar vivo con la regla apagada (D11 del 5.10-1): por eso una regla ya apagada no bloquea.
+- La oferta de transporte (`flujos_transporte_oferta`, 5.10-2) se escribe sólo por `flujo_oferta_guardar(p_flujo, p_actualizado_en_esperado, p_puertos_origen,
+p_puertos_destino, p_navieras)`: reemplazo todo o nada; forma (`22023`: elemento nulo o más de 200 por lista, hint el arreglo) → el contrato de versión → regla
+  «transporte» apagada → `23514` (hint `transporte`) → un id inexistente → `23503` (hint el arreglo). Repetidos se colapsan; un puerto o una naviera inactivos se
+  aceptan. Lista vacía = se ofrece todo; filtra lo ofrecido, nunca invalida lo guardado; apagar «transporte» no la borra. La lee `flujo_oferta(p_flujo)` (`security
+invoker`, cualquiera que lea el flujo). Sin PK: la unicidad la dan dos índices parciales (el aviso INFO `no_primary_key` es esperado). `authenticated` no la escribe.
 - La versión cruza como texto ISO tal cual (microsegundos), nunca por un `Date` de JS: se quedaría en milisegundos y daría `PT409` en cada guardado.
 - La configuración no se escribe directo: `authenticated` no tiene `insert` ni `update` sobre `fases` ni `update` sobre `flujos` (5.01-1). Crear y guardar una fase: `fase_crear(p_id, p_flujo, p_actualizado_en_esperado, p_datos)` y `fase_guardar(p_fase, p_actualizado_en_esperado, p_cambios)`, con lista cerrada de claves (`22023` con la clave en `hint`), validaciones con el campo en `hint`, reglas del flujo (`23514`) y únicos con mensaje humano (`23505`).
 

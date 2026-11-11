@@ -205,6 +205,16 @@ declare
     -- Las listas (6.10-2): miran `vehiculos.lead_id` sólo para el alcance «propios» (`en_cartera`), como `puede_vehiculo`; no devuelven el lead.
     ('gastos_listar(date,uuid,integer,jsonb)', 'L'),
     ('pagos_listar(date,uuid,integer,jsonb)', 'L'),
+    -- El chat (7.08-2): una ficha o mención de lead se pide visible (`puede_lead`, `trg_lead_visible`); no toca la cartera ni devuelve el lead.
+    -- Responden {resultado, id, …} (`areas/chat/mensajes.sql`, `mensajes-editar.sql`, `fichas.sql`).
+    ('mensaje_enviar(uuid,uuid,text,jsonb,uuid,jsonb)', 'X'),
+    ('mensaje_editar(uuid,timestamp with time zone,text,jsonb)', 'X'),
+    ('mensaje_eliminar(uuid)', 'X'),
+    ('mensaje_tarea_crear(uuid,uuid,jsonb)', 'X'),
+    ('mensaje_evento_crear(uuid,uuid,jsonb,uuid[])', 'X'),
+    -- El chat (7.08-3): lecturas de lo propio; no reciben ni devuelven un lead; cuentan mensajes sin leer el cuerpo (`areas/chat/lista.sql`).
+    ('chat_conversaciones(integer,timestamp with time zone,uuid)', 'X'),
+    ('chat_no_leidos()', 'X'),
     ('storage_refcount(text,text)', 'X')
   ) t (f, c));
   r record; v_fallas text := '';

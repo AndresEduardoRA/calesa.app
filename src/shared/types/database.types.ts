@@ -660,7 +660,9 @@ export type Database = {
           es_global: boolean
           id: string
           nombre: string | null
+          par_directo: string[] | null
           tipo: Database['public']['Enums']['tipo_conversacion']
+          ultimo_mensaje_en: string
         }
         ComputedFields: never
         Insert: {
@@ -670,7 +672,9 @@ export type Database = {
           es_global?: boolean
           id?: string
           nombre?: string | null
+          par_directo?: string[] | null
           tipo: Database['public']['Enums']['tipo_conversacion']
+          ultimo_mensaje_en?: string
         }
         Update: {
           actualizado_en?: string
@@ -679,7 +683,9 @@ export type Database = {
           es_global?: boolean
           id?: string
           nombre?: string | null
+          par_directo?: string[] | null
           tipo?: Database['public']['Enums']['tipo_conversacion']
+          ultimo_mensaje_en?: string
         }
         Relationships: [
           {
@@ -2048,21 +2054,21 @@ export type Database = {
       flujos_transporte_oferta: {
         Row: {
           flujo_id: string
-          naviera_id: string
-          puerto_id: string
+          naviera_id: string | null
+          puerto_id: string | null
           tipo: string
         }
         ComputedFields: never
         Insert: {
           flujo_id: string
-          naviera_id: string
-          puerto_id: string
+          naviera_id?: string | null
+          puerto_id?: string | null
           tipo: string
         }
         Update: {
           flujo_id?: string
-          naviera_id?: string
-          puerto_id?: string
+          naviera_id?: string | null
+          puerto_id?: string | null
           tipo?: string
         }
         Relationships: [
@@ -4262,6 +4268,39 @@ export type Database = {
           pais?: string | null
         }
         Relationships: []
+      }
+      push_pases: {
+        Row: {
+          creado_en: string
+          notificacion_id: number
+          pase: string
+          resultado_en: string | null
+          usado_en: string | null
+        }
+        ComputedFields: never
+        Insert: {
+          creado_en?: string
+          notificacion_id: number
+          pase?: string
+          resultado_en?: string | null
+          usado_en?: string | null
+        }
+        Update: {
+          creado_en?: string
+          notificacion_id?: number
+          pase?: string
+          resultado_en?: string | null
+          usado_en?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'push_pases_notificacion_id_fkey'
+            columns: ['notificacion_id']
+            isOneToOne: false
+            referencedRelation: 'notificaciones'
+            referencedColumns: ['id']
+          },
+        ]
       }
       recordatorios: {
         Row: {
@@ -7233,6 +7272,16 @@ export type Database = {
         }[]
       }
       _candado_de_objeto: { Args: { p_bucket: string; p_ruta: string }; Returns: number }
+      _chat_cuerpo: { Args: { p_cuerpo: string; p_obligatorio: boolean }; Returns: string }
+      _chat_menciones_guardar: {
+        Args: { p_conversacion: string; p_cuerpo: string; p_menciones: Json; p_mensaje: string }
+        Returns: undefined
+      }
+      _chat_miembro_vigente: {
+        Args: { p_conversacion: string; p_usuario: string }
+        Returns: boolean
+      }
+      _chat_puede_conversar: { Args: { p_usuario: string }; Returns: boolean }
       _color_contraste: { Args: { p_a: string; p_b: string }; Returns: number }
       _color_luminancia: { Args: { p_hex: string }; Returns: number }
       _comentario_item: {
@@ -7602,6 +7651,11 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      _flujo_regla_admitida: {
+        Args: { p_ambito: Database['public']['Enums']['ambito_flujo']; p_regla: string }
+        Returns: boolean
+      }
+      _flujo_regla_uso: { Args: { p_flujo: string; p_regla: string }; Returns: Json }
       _flujo_tocar: { Args: { p_flujo: string }; Returns: string }
       _formula_cambio_y_grupos: {
         Args: {
@@ -8250,6 +8304,9 @@ export type Database = {
         Returns: string
       }
       _puede_mover: { Args: { p_a: string; p_de: string; p_flujo: string }; Returns: boolean }
+      _push_endpoint_valido: { Args: { p_endpoint: string }; Returns: boolean }
+      _push_host_permitido: { Args: { p_host: string }; Returns: boolean }
+      _push_tope_por_persona: { Args: Record<PropertyKey, never>; Returns: number }
       _recordatorio_conflicto: { Args: { p_cuando: string }; Returns: undefined }
       _recordatorio_cuando: { Args: { p_hint: string; p_valor: string }; Returns: string }
       _recordatorio_json: {
@@ -8284,13 +8341,63 @@ export type Database = {
         }
       }
       _recordatorio_titulo: { Args: { p_hint: string; p_valor: string }; Returns: string }
+      _requisito_aplicar: {
+        Args: {
+          p_datos: Json
+          p_fila: Omit<
+            Database['public']['Tables']['fases_requisitos']['Row'],
+            Database['public']['Tables']['fases_requisitos']['ComputedFields']
+          >
+        }
+        Returns: {
+          bloqueante: boolean
+          clave_dato: string | null
+          config: NonNullable<Json>
+          espera_ambito: Database['public']['Enums']['ambito_espera'] | null
+          espera_fase_id: string | null
+          fase_id: string
+          formatos: string[] | null
+          id: string
+          max_archivos: number | null
+          min_archivos: number | null
+          notas: string | null
+          orden: number
+          tipo: Database['public']['Enums']['tipo_requisito']
+          tipo_documento_id: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'fases_requisitos'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       _requisito_dato_cumplido: {
         Args: { p_clave: string; p_config: Json; p_repuesto: string; p_vehiculo: string }
         Returns: boolean
       }
+      _requisito_forma: {
+        Args: {
+          p_crear: boolean
+          p_datos: Json
+          p_tipo: Database['public']['Enums']['tipo_requisito']
+        }
+        Returns: undefined
+      }
+      _requisito_validar: {
+        Args: {
+          p_claves: string[]
+          p_fila: Omit<
+            Database['public']['Tables']['fases_requisitos']['Row'],
+            Database['public']['Tables']['fases_requisitos']['ComputedFields']
+          >
+        }
+        Returns: undefined
+      }
       _revision_etiquetas: { Args: { p_def: Json; p_filas: Json }; Returns: Json }
       _rol_para_editar: { Args: { p_esperado: string; p_rol: string }; Returns: undefined }
       _rol_tocar: { Args: { p_rol: string }; Returns: string }
+      _roles_de_lista: { Args: { p_roles: string[] }; Returns: string[] }
       _seguimiento_conflicto: { Args: { p_cuando: string }; Returns: undefined }
       _seguimiento_detalle: { Args: { p_doc: Json }; Returns: string }
       _seguimiento_fecha: { Args: { p_valor: Json }; Returns: string }
@@ -8368,12 +8475,87 @@ export type Database = {
         Returns: Json
       }
       _telefono_o_nulo: { Args: { p_cc: string; p_tel: string }; Returns: string }
+      _tipo_documento_de_jsonb: {
+        Args: {
+          p_al_crear: boolean
+          p_base: Omit<
+            Database['public']['Tables']['tipos_documento']['Row'],
+            Database['public']['Tables']['tipos_documento']['ComputedFields']
+          >
+          p_datos: Json
+        }
+        Returns: {
+          activo: boolean
+          actualizado_en: string
+          aviso_dias: number | null
+          creado_en: string
+          descripcion: string | null
+          flujo_id: string | null
+          formatos: string[]
+          id: string
+          modo_vencimiento: Database['public']['Enums']['modo_vencimiento']
+          nombre: string
+          orden: number
+          proposito: string | null
+          vigencia_dias: number | null
+          visible_portal_permitido: boolean
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'tipos_documento'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _tipo_documento_dias: {
+        Args: { p_campo: string; p_mensaje: string; p_valor: Json }
+        Returns: number
+      }
+      _tipo_documento_exigir_permiso: { Args: { p_flujo: string }; Returns: undefined }
+      _tipo_documento_nombre_libre: {
+        Args: { p_activo: boolean; p_flujo: string; p_id: string; p_nombre: string }
+        Returns: undefined
+      }
+      _tipo_documento_uso: { Args: { p_id: string }; Returns: Record<string, unknown> }
+      _tipo_documento_validar: {
+        Args: {
+          p_tipo: Omit<
+            Database['public']['Tables']['tipos_documento']['Row'],
+            Database['public']['Tables']['tipos_documento']['ComputedFields']
+          >
+          p_validos: string[]
+        }
+        Returns: {
+          activo: boolean
+          actualizado_en: string
+          aviso_dias: number | null
+          creado_en: string
+          descripcion: string | null
+          flujo_id: string | null
+          formatos: string[]
+          id: string
+          modo_vencimiento: Database['public']['Enums']['modo_vencimiento']
+          nombre: string
+          orden: number
+          proposito: string | null
+          vigencia_dias: number | null
+          visible_portal_permitido: boolean
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'tipos_documento'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       _tipo_lead_clave: { Args: { p_nombre: string }; Returns: string }
       _tipo_lead_exigir_activo: { Args: { p_id: string }; Returns: undefined }
       _tipo_lead_nombre: { Args: { p_texto: string }; Returns: string }
       _tipo_lead_por_defecto: { Args: Record<PropertyKey, never>; Returns: string }
       _tipo_seguimiento_clave: { Args: { p_nombre: string }; Returns: string }
       _tipo_seguimiento_nombre: { Args: { p_texto: string }; Returns: string }
+      _tipos_documento_formatos: { Args: Record<PropertyKey, never>; Returns: string[] }
+      _tipos_documento_tope: { Args: Record<PropertyKey, never>; Returns: number }
       _tipos_lead_lista: { Args: Record<PropertyKey, never>; Returns: Json }
       _tipos_lead_tope: { Args: Record<PropertyKey, never>; Returns: number }
       _tipos_seguimiento_lista: { Args: Record<PropertyKey, never>; Returns: Json }
@@ -8385,6 +8567,11 @@ export type Database = {
       _tonos_de_grupos: { Args: { p_def: Json }; Returns: Json }
       _tonos_lista: { Args: Record<PropertyKey, never>; Returns: Json }
       _tonos_tope: { Args: Record<PropertyKey, never>; Returns: number }
+      _transicion_accion: { Args: { p_accion: string }; Returns: string }
+      _transicion_unico: {
+        Args: { p_a: string; p_de: string; p_restriccion: string }
+        Returns: undefined
+      }
       _url_del_proyecto: { Args: Record<PropertyKey, never>; Returns: string }
       _uuid_de: { Args: { p_hint: string; p_valor: Json }; Returns: string }
       _vehiculo_a_lote: {
@@ -8648,6 +8835,24 @@ export type Database = {
           vehiculos: number
         }[]
       }
+      chat_conversaciones: {
+        Args: { p_antes_en?: string; p_antes_id?: string; p_tamano?: number }
+        Returns: Json
+      }
+      chat_directa: { Args: { p_usuario: string }; Returns: Json }
+      chat_global_entrar: { Args: Record<PropertyKey, never>; Returns: Json }
+      chat_grupo_crear: {
+        Args: { p_id: string; p_miembros: string[]; p_nombre: string }
+        Returns: Json
+      }
+      chat_grupo_miembros: {
+        Args: { p_agregar: string[]; p_conversacion: string; p_quitar: string[] }
+        Returns: Json
+      }
+      chat_leer: { Args: { p_conversacion: string; p_hasta: string }; Returns: Json }
+      chat_no_leidos: { Args: Record<PropertyKey, never>; Returns: number }
+      chat_salir: { Args: { p_conversacion: string }; Returns: Json }
+      chat_silenciar: { Args: { p_conversacion: string; p_silenciada: boolean }; Returns: Json }
       claves_dato_requisito: {
         Args: { p_ambito: Database['public']['Enums']['ambito_flujo'] }
         Returns: string[]
@@ -8962,8 +9167,42 @@ export type Database = {
         Args: { p_actualizado_en_esperado: string; p_fase: string }
         Returns: string
       }
+      fase_roles_poner: {
+        Args: { p_actualizado_en_esperado: string; p_fase: string; p_roles: string[] }
+        Returns: string
+      }
       flujo_de_fase: { Args: { p_fase: string }; Returns: string }
+      flujo_fuera_de_regla: {
+        Args: { p_flujo: string; p_tope?: number }
+        Returns: {
+          faltan: number
+          fase_id: string
+          repuesto_id: string
+          vehiculo_id: string
+        }[]
+      }
+      flujo_oferta: { Args: { p_flujo: string }; Returns: Json }
+      flujo_oferta_guardar: {
+        Args: {
+          p_actualizado_en_esperado: string
+          p_flujo: string
+          p_navieras: string[]
+          p_puertos_destino: string[]
+          p_puertos_origen: string[]
+        }
+        Returns: string
+      }
       flujo_regla_activa: { Args: { p_flujo: string; p_regla: string }; Returns: boolean }
+      flujo_regla_cambiar: {
+        Args: {
+          p_activa: boolean
+          p_actualizado_en_esperado: string
+          p_flujo: string
+          p_regla: string
+        }
+        Returns: string
+      }
+      flujo_regla_impacto: { Args: { p_flujo: string; p_regla: string }; Returns: Json }
       formula_cambiar_constante: {
         Args: { p_nodo: string; p_origen: string; p_publicada_esperada?: string; p_valor: number }
         Returns: string
@@ -8999,15 +9238,6 @@ export type Database = {
         Returns: string
       }
       formula_tipo_cambio_del_nodo: { Args: { p_formula: string; p_nodo: string }; Returns: Json }
-      fuera_de_regla: {
-        Args: { p_flujo: string }
-        Returns: {
-          faltan: number
-          fase_id: string
-          repuesto_id: string
-          vehiculo_id: string
-        }[]
-      }
       gasto_eliminar: { Args: { p_actualizado_en_esperado: string; p_id: string }; Returns: Json }
       gasto_guardar: {
         Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_id: string }
@@ -9272,6 +9502,35 @@ export type Database = {
       }
       limpieza_ultima: { Args: Record<PropertyKey, never>; Returns: Json }
       margen_vehiculo: { Args: { p_vehiculo: string }; Returns: Json }
+      mensaje_editar: {
+        Args: {
+          p_actualizado_en_esperado: string
+          p_cuerpo: string
+          p_menciones?: Json
+          p_mensaje: string
+        }
+        Returns: Json
+      }
+      mensaje_eliminar: { Args: { p_mensaje: string }; Returns: Json }
+      mensaje_enviar: {
+        Args: {
+          p_conversacion: string
+          p_cuerpo: string
+          p_ficha?: Json
+          p_id: string
+          p_menciones?: Json
+          p_responde_a?: string
+        }
+        Returns: Json
+      }
+      mensaje_evento_crear: {
+        Args: { p_conversacion: string; p_datos: Json; p_destinatarios?: string[]; p_id: string }
+        Returns: Json
+      }
+      mensaje_tarea_crear: {
+        Args: { p_conversacion: string; p_datos: Json; p_id: string }
+        Returns: Json
+      }
       mi_sesion: { Args: { p_perspectiva?: string }; Returns: Json }
       mis_leads: { Args: Record<PropertyKey, never>; Returns: string[] }
       mis_permisos: {
@@ -9550,6 +9809,13 @@ export type Database = {
         Returns: boolean
       }
       puede_vehiculo: { Args: { p_clave: string; p_vehiculo: string }; Returns: boolean }
+      push_abrir: { Args: { p_pase: string }; Returns: Json }
+      push_desuscribir: { Args: { p_endpoint: string }; Returns: boolean }
+      push_resultado: { Args: { p_pase: string; p_resultados: Json }; Returns: Json }
+      push_suscribir: {
+        Args: { p_claves: Json; p_endpoint: string; p_user_agent?: string }
+        Returns: string
+      }
       rbac_asignar_rol: {
         Args: { p_principal?: boolean; p_rol: string; p_usuario: string }
         Returns: undefined
@@ -9623,6 +9889,29 @@ export type Database = {
           p_tabla: string
         }
         Returns: undefined
+      }
+      requisito_crear: {
+        Args: {
+          p_actualizado_en_esperado: string
+          p_datos: Json
+          p_fase: string
+          p_id: string
+          p_tipo: Database['public']['Enums']['tipo_requisito']
+        }
+        Returns: string
+      }
+      requisito_eliminar: {
+        Args: { p_actualizado_en_esperado: string; p_requisito: string }
+        Returns: string
+      }
+      requisito_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_requisito: string }
+        Returns: string
+      }
+      requisito_impacto: { Args: { p_requisito: string; p_tope?: number }; Returns: Json }
+      requisito_mover: {
+        Args: { p_actualizado_en_esperado: string; p_despues_de?: string; p_requisito: string }
+        Returns: string
       }
       revisar_flujo: {
         Args: { p_flujo: string }
@@ -9718,6 +10007,22 @@ export type Database = {
         }
         Returns: string
       }
+      tipo_documento_crear: {
+        Args: { p_datos: Json; p_flujo: string; p_id: string }
+        Returns: Json
+      }
+      tipo_documento_eliminar: {
+        Args: { p_actualizado_en_esperado: string; p_id: string }
+        Returns: Json
+      }
+      tipo_documento_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_id: string }
+        Returns: Json
+      }
+      tipo_documento_mover: {
+        Args: { p_actualizado_en_esperado: string; p_despues_de?: string; p_id: string }
+        Returns: Json
+      }
       tipo_lead_crear: {
         Args: { p_clase: string; p_icono?: string; p_id: string; p_nombre: string }
         Returns: Json
@@ -9750,6 +10055,14 @@ export type Database = {
         Args: { p_actualizado_en_esperado: string; p_despues_de?: string; p_id: string }
         Returns: Json
       }
+      tipos_documento_con_uso: {
+        Args: { p_flujo: string }
+        Returns: {
+          documentos: number
+          requisitos: number
+          tipo_id: string
+        }[]
+      }
       tipos_lead_con_uso: { Args: Record<PropertyKey, never>; Returns: Json }
       tipos_seguimiento_con_uso: { Args: Record<PropertyKey, never>; Returns: Json }
       tono_crear: { Args: { p_colores: Json; p_id: string; p_nombre: string }; Returns: Json }
@@ -9757,6 +10070,30 @@ export type Database = {
       tono_guardar: {
         Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_id: string }
         Returns: Json
+      }
+      transicion_crear: {
+        Args: {
+          p_a: string
+          p_accion: string
+          p_actualizado_en_esperado: string
+          p_de: string
+          p_flujo: string
+          p_id: string
+          p_nota_obligatoria: boolean
+        }
+        Returns: string
+      }
+      transicion_eliminar: {
+        Args: { p_actualizado_en_esperado: string; p_transicion: string }
+        Returns: string
+      }
+      transicion_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_transicion: string }
+        Returns: string
+      }
+      transicion_roles_poner: {
+        Args: { p_actualizado_en_esperado: string; p_roles: string[]; p_transicion: string }
+        Returns: string
       }
       unidad_llego_a_fase: {
         Args: { p_fase: string; p_repuesto: string; p_vehiculo: string }

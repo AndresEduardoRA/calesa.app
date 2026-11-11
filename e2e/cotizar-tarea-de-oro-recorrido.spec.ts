@@ -48,9 +48,9 @@ test.describe.configure({ mode: 'serial' })
 // hasta «Nueva cotización» y su Enter; los Tab hasta la barra del vehículo y su Enter, Enter para traer el enlace, Ctrl+S («Crear y elegir»), Enter en la barra, los
 // Tab hasta el tipo y su Enter; los Tab hasta la barra del cliente y su Enter, los Tab hasta su lead y su Enter; los Tab hasta `remate` y su Enter, hasta `grua` y su
 // Enter, Ctrl+S, los Tab hasta «Descargar PDF» y su Enter. La dueña: lo mismo con el vehículo buscado por nombre (los Tab hasta su tarjeta y su Enter) en vez del
-// enlace y el tipo. KLM: 56,7 s y 41,1 s en escritorio; 54,5 s y 37,5 s en el celular. Deterministas: una parada nueva en el camino las rompe a propósito (6.01-4: con la entrada de Logística en la navegación, +1 en escritorio: 57 la asesora y 53 la dueña).
-const CONTROLES_DE_LA_ASESORA: Record<string, number> = { escritorio: 57, movil: 53 }
-const CONTROLES_DE_LA_DUENA: Record<string, number> = { escritorio: 53, movil: 49 }
+// enlace y el tipo. KLM: 56,7 s y 41,1 s en escritorio; 54,5 s y 37,5 s en el celular. Deterministas: una parada nueva en el camino las rompe a propósito (6.01-4: con la entrada de Logística en la navegación, +1 en escritorio: 57 la asesora y 53 la dueña; 7.07: con la de Agenda, otra más: 58 y 54).
+const CONTROLES_DE_LA_ASESORA: Record<string, number> = { escritorio: 58, movil: 53 }
+const CONTROLES_DE_LA_DUENA: Record<string, number> = { escritorio: 54, movil: 49 }
 
 let duena = ''
 let asesora = ''

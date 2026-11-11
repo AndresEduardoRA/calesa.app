@@ -88,6 +88,7 @@ function Tabla({ filas, prefijo, columnaDeUso, alAbrir, alMover }: Props) {
                 nombre={fila.nombre}
                 puedeSubir={fila.puedeSubir}
                 puedeBajar={fila.puedeBajar}
+                motivoSinOrden={fila.motivoSinOrden}
                 alMover={(direccion) => {
                   alMover(fila.id, direccion)
                 }}
@@ -150,6 +151,7 @@ function Tarjetas({ filas, prefijo, alAbrir, alMover }: Props) {
             nombre={fila.nombre}
             puedeSubir={fila.puedeSubir}
             puedeBajar={fila.puedeBajar}
+            motivoSinOrden={fila.motivoSinOrden}
             alMover={(direccion) => {
               alMover(fila.id, direccion)
             }}
