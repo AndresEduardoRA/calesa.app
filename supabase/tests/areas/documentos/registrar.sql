@@ -6,6 +6,7 @@
 --   C2   Nadie nace aprobado: queda «subido» y de quien llama.
 --   C1.4 Tres vehículos dan tres filas con la misma ruta y refcount 3; reintentar con el mismo p_id devuelve los mismos ids; con otro conjunto, 23505/id.
 --   C1.5–C1.9 El tipo, la ruta, el objeto y el mime se validan (22023 con hint). C3: el vencimiento según el modo. C4: sale de la cola de limpieza.
+--   C12  La escritura directa como authenticated da 42501, también a quien sí puede por RPC.
 
 -- @test documentos registrar: los ayudantes
 reset role;
@@ -189,3 +190,22 @@ begin
 end $$;
 rollback;
 
+-- @test documentos registrar: la escritura directa da 42501 a quien sí puede por RPC, y sigue leyendo
+begin;
+do $$
+declare e jsonb := pg_temp.dc_preparar(); todo uuid; d uuid; r text;
+begin
+  todo := pg_temp.dc_persona(array['logistica.documentos.subir', 'logistica.documentos.aprobar', 'logistica.ver']);
+  d := (pg_temp.dc_json(todo, pg_temp.dc_reg(gen_random_uuid(), array[pg_temp.dc_u(e, 'v1')], null, pg_temp.dc_u(e, 'tg'),
+                                             pg_temp.dc_objeto(pg_temp.dc_u(e, 'v1'), 1))) -> 0 ->> 'id')::uuid;
+  r := pg_temp.dc_codigo(todo, format('insert into public.documentos (vehiculo_id, tipo_documento_id) values (%L, %L)', pg_temp.dc_u(e, 'v1'), pg_temp.dc_u(e, 'tg')));
+  if r <> '42501' then raise exception 'el insert directo dio %', r; end if;
+  r := pg_temp.dc_codigo(todo, format('update public.documentos set estado = %L where id = %L', 'aprobado', d));
+  if r <> '42501' then raise exception 'el update directo dio %', r; end if;
+  r := pg_temp.dc_codigo(todo, format('delete from public.documentos where id = %L', d));
+  if r <> '42501' then raise exception 'el delete directo dio %', r; end if;
+  if pg_temp.dc_json(todo, format('select to_jsonb(count(*)) from public.documentos where id = %L', d)) <> '1'::jsonb then
+    raise exception 'quien puede ya no lee su documento';
+  end if;
+end $$;
+rollback;
