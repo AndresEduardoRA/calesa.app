@@ -58,6 +58,8 @@ declare
     ('puede_lead(uuid,text)', 'L'),
     ('puede_actuar_lead(uuid,text)', 'L'),
     ('puede_vehiculo(uuid,text)', 'L'),
+    -- El buscador (7.12-1): busca por número o título, repite la policy «cotizaciones: leer» (mira el lead sólo por en_cartera) y no devuelve lead_id.
+    ('buscador_cotizaciones(text,integer)', 'L'),
     ('puede_cotizacion(uuid,text)', 'L'),
     ('lead_favorito_poner(uuid,boolean)', 'M'),
     ('lead_tachado_poner(uuid,boolean)', 'M'),
