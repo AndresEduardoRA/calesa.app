@@ -3591,3 +3591,80 @@ contra lo que la base ya tiene; aquí se unieron (`docs/PLAN.md` › «Carriles 
   tablero muestra totales exactos como excepción escrita (9.07); «exportar todo» no lleva teléfonos ni campos privados de carteras ajenas
   (9.05); sin dependencias nuevas (gráficas en SVG, cookie del portal con `node:crypto`).
 - **El despliegue no se ejecuta:** el 9.13 deja la guía, la lista de la persona y todo probado en seco.
+
+<!-- paso:5.02-1 -->
+
+## 2026-11-11 — Paso 5.02-1: la base del módulo `flujos`
+
+- **D1 · La versión del flujo es `flujos.actualizado_en`**, un texto ISO tal como lo trae la base, nunca un `Date`: ya existe, así que no hace falta migración (el 5.01 sólo
+  suma `_flujo_para_editar()`, que la bloquea).
+- **D2 · Sólo la lista de fases**, sin «camino» dibujado ni «historial»: las salidas serán chips por fila (5.06) y el historial de cambios es `actividad` (Fase 9).
+- **D3 · El flujo se elige por la URL:** `?origen=<id>` y `?ambito=repuestos` (como Configuración › Cotización; sirve al enlace de Orígenes).
+- **D4 · 4-48 y 4-102 se cierran aquí,** un commit cada uno: el paso ya toca `src/shared` (Nivel 2).
+- **D5 · El 5.02 se parte en dos sesiones** (5.02-1 la base del módulo, 5.02-2 la pantalla): serían 8 commits de código y el tope es 6. Los dos van en la rama `a/5.02`; el PR
+  del 5.02-1 **no** marca integrado el paso.
+- **D6 · En `src/app/(app)/configuracion/flujos/` sólo habrá carpetas para `fases`, `requisitos`, `documentos` y `reglas`** (las áreas que llenan algo en `app`, según
+  `docs/plan.yaml`); `transiciones`, `revisar` y `mover` entran por los huecos del módulo y no tienen carpeta.
+- **D7 · Cada área suma sus pestañas** con `PESTANAS_DE_<ÁREA>: readonly PestanaDeFlujos[] = []` en su `pestanas.ts`; con una sola pestaña («Fases») la barra no se dibuja y
+  una pestaña no existe hasta que su paso la llena (nunca un botón muerto).
+- **D8 · `conDestino()` de Orígenes recibe el id del origen** para que el paso «Flujo» enlace con `?origen=<id>` (5.02-2; cambia `pasos.test.ts` y `[id]/page.tsx`).
+- **Del módulo:** `features/configuracion/` es del núcleo; la guarda no deja carpetas nuevas sin dueño (o es de un área o la suma el A al núcleo). `leerRolesParaElegir()` expone
+  id, nombre y color (ya los lee cualquier cuenta con sesión) y no trae permisos; `flujos` no importa `equipo`: `src/app` lo pasará al inspector.
+- **Topes** (`entities/flujo.ts`): fases 200, transiciones y requisitos 500, roles de flujo 500, reglas 50, flujos 100, cada uno leído con `tope + 1`; sin `RENDIMIENTO.md` ni
+  volumen sembrado (configuración, decenas de filas).
+
+<!-- paso:5.02-2 -->
+
+## 2026-11-11 — Paso 5.02-2: la pantalla de flujos (D9 a D20; D1 a D8 siguen en `docs/pasos/5.02-1/decisiones.md`)
+
+- **D9 · Cuatro commits de código** con el árbol verde cada uno (entidades puras, pantalla del módulo, ruta de `src/app`, e2e), más un `fix` y un commit de docs de la pantalla.
+- **D10 · `<PantallaDelFlujo>` es un Server Component async** (como `SeccionDeLaFormula`): `src/app` le pasa permisos, la promesa de `getOrigenes(true)`, la de `leerRolesParaElegir()` y los parámetros de la URL; una lectura que falla sube al `error.tsx` de `(app)`.
+- **D11 · Cada pestaña es un flujo que quien mira puede configurar:** el de un origen lleva el nombre de la fila del origen (« (inactivo)» si no está activo); el de repuestos, `flujos.nombre`. `PestanasConDesborde` sólo recibe texto: el color del origen queda en la entrada del selector, sin dibujar.
+- **D12 · `?ambito=repuestos` gana sobre `?origen=`;** una URL inválida o ajena abre la primera pestaña, nunca un error.
+- **D13 · El inspector se registra con `sinFormulario`** (sólo muestra). El paso que le suma un formulario (5.04) lo pasa a `formulario`/`contexto` en `scripts/guardas/drawers-con-salida.ts`.
+- **D14 · Los huecos son componentes de cliente opcionales** (`HuecosDelFlujo`); los junta `src/app/(app)/configuracion/flujos/huecos.ts` (`HUECOS_DE_FLUJOS = {}`), una línea por área. Supuesto sin ejercitar: nada llena un hueco todavía; uno de servidor no cruzaría a la lista.
+- **D15 · Sin `error.tsx` propio:** sirve el de `(app)`, que ofrece «Reintentar».
+- **D16 · El inspector no dice nombres técnicos:** de los requisitos sólo cuántos hay por tipo y si bloquean; de los roles, su nombre («otro rol» si no estaba en los 100 leídos). Roles de la fase = quienes pueden mover **hasta** ella; los de una transición mandan sobre ellos (`_puede_mover`).
+- **D17 · Con sólo `logistica.catalogos.gestionar` se entra** y se lee «Por ahora no hay nada que configurar aquí con tus permisos.»; «Fases» pide `flujos.configurar` o `repuestos.configurar`.
+- **D18 · El enlace del paso «Flujo» de Orígenes mira el permiso en ese origen** (`puede(permisos, 'flujos.configurar', origenId)`) y arma `?origen=<id>`; `conDestino()` recibe el id y `DESTINOS_DE_PASO` marca `porOrigen`.
+- **D19 · `pestanas-de-flujos.tsx` se escribió pero no se dibuja** mientras haya una sola pestaña visible; no tiene prueba propia hasta que un paso sume una segunda.
+- **D20 · `useVersionDelFlujo()` y su proveedor no salen por `client.ts`:** nadie fuera del módulo los necesita.
+- **Del e2e:** la asesora de la semilla hace de «persona sin permiso» (una persona sin rol no entra a Configuración por otras razones); el spec cuenta lo que dice la base, no números de la semilla.
+- **Estructura de `src/app`:** cada área con carpeta (`fases`, `requisitos`, `documentos`, `reglas`) trae `pestanas.ts` y `seccion.tsx` vacíos, y `secciones.ts` ya trae siete secciones: los carriles B y C no vuelven a editar `pestanas.ts` ni `seccion-abierta.tsx`.
+
+<!-- paso:6.01-1 -->
+
+## 2026-11-11 — Paso 6.01-1: la base del módulo `logistica`
+
+- **D1 · Drawer y página con el mismo componente** (`<PanelDeLaUnidad>`): el drawer desde la cadena (`?vehiculo=<id>`) y la página para el enlace de una notificación.
+- **D2 · `flujos/areas/mover/` ya existía** (5.02-1): 6.01 sólo le suma `leerFlujoDeOrigen`; no toca el núcleo ni las otras áreas.
+- **D3 · La unidad se lee con la sesión de quien mira**, sin RPC ni `security definer`. La RLS de `vehiculos` pide `vehiculos.ver`, no `logistica.ver`: el panel exige las dos y no se
+  relaja la RLS (sería una compuerta de datos).
+- **D4 · `Unidad` es una unión por `tipo`** (`vehiculo` | `repuesto`); sólo se construye la de vehículo hasta 8.13.
+- **D5 · Los huecos se ordenan por su `clave`** (`ORDEN_DE_HUECOS`), no por el archivo que los declara; una clave desconocida o repetida no se dibuja.
+- **D6 · Formas de los otros huecos** (vacíos hoy, reversibles): `HuecoDelGrupo`, `EnlaceDeLogistica` (nulo = la página no existe) y `CatalogoDeLogistica`.
+- **D7 · La guarda de áreas es copia de la de `flujos`**, sin prueba de coherencia con `plan.yaml` (la valida `coordinador.mjs validar`). El núcleo es la carpeta `nucleo` de cada capa.
+- **D8 · `RUTAS` se agrega en la 6.01-2,** con su primer uso: así esta parte no toca `src/shared` y cierra en Nivel 1.
+- **D9 · Un componente de hueco recibe sólo datos serializables** y carga lo suyo al abrirse el bloque (`diferido()`).
+- **D10 · El título del panel es `vehiculos.titulo`** y los días en la fase salen de `fase_desde`; 6.13 lo cambia por el campo «principal».
+- **D11 · El menú «Logística» sigue apagado** hasta 6.03.
+- **Partición:** 6.01 son 3 partes (1: módulo; 2: panel y ruta de la unidad, Nivel 2; 3: `/logistica` y Configuración), con el plan en `.piloto/planes/6.01.md`.
+
+<!-- paso:6.01-2 -->
+
+## 2026-11-11 — Paso 6.01-2: el panel de la unidad y su ruta
+
+- **D12 · Los días en la fase son de calendario** (`diasEnLaFase`, zona de la empresa) y el texto va por días aun pasados los 6 (`fechaRelativa` cae a la fecha absoluta): «Desde hace 3 días en esta fase».
+- **D13 · `UnidadAbierta` junta los estados** (no disponible, sin permiso, panel) para la página y el drawer: la fila ilegible por RLS dice «ya no está disponible» antes de mirar `logistica.ver`, para no confirmar que existe.
+- **D14 · Un error al leer el flujo del origen no tumba el panel:** deja apagados los huecos con regla y avisa en una línea; los errores de la unidad, las fases y los orígenes suben al `error.tsx`.
+- **D15 · `<Bloque>` gana `onAbrir`** (aditivo) para montar el hueco al abrirlo; el contenido queda montado al cerrar.
+- **D16 · El título de un origen en el panel sale de `getOrigenes`:** si el origen no figura se omite, sin texto fijo.
+
+<!-- paso:6.01-3 -->
+
+## 2026-11-11 — Paso 6.01-3: `/logistica` con el drawer y Configuración › Logística
+
+- **D17 · La clave de la URL del drawer va en `clave-de-unidad.ts`, no en el archivo `'use client'`:** una constante importada de un módulo de cliente llega a un Server Component como referencia, no como el texto (la página leía `parametros[<referencia>]` y nunca abría el drawer).
+- **D18 · El marco del drawer cierra con `shallow: false`:** quitar `?vehiculo=` vuelve a pedir la página, así el panel no queda montado con una unidad que ya no se muestra; la lectura la hace el servidor (`<UnidadAbierta>`) y llega como hijo. Abrirlo desde una tarjeta, sumando al historial y marcando la vuelta del foco, es del 6.03.
+- **D19 · La sección «Logística» del hub existe sólo con un catálogo lleno** (`SECCIONES_DE_LOGISTICA` es vacía o de una): ninguna tarjeta lleva a una pantalla que dice «nada que configurar». La URL entra antes, con la clave.
+- **D20 · El drawer se titula «Unidad»** (el término del glosario: puede ser un vehículo o, en 8.13, un repuesto); el título del vehículo lo dice el panel.
