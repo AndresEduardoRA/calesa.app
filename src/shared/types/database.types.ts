@@ -9306,6 +9306,7 @@ export type Database = {
         Args: { p_cc: string; p_lead: string; p_tel: string }
         Returns: Json
       }
+      visita_registrar: { Args: { p_id: string; p_tipo: string }; Returns: undefined }
       vitrina_del_origen: { Args: { p_origen: string }; Returns: Json }
       web_confirmar_contacto: { Args: { p_lead?: string; p_solicitud: string }; Returns: undefined }
       web_expirar_solicitudes: { Args: { p_limite?: number }; Returns: number }
