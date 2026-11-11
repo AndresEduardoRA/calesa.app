@@ -24,7 +24,8 @@ export { googleHabilitado } from './features/auth/proveedores'
 export { cerrarSesion } from './features/auth/actions/cerrar-sesion'
 
 // Roles y permisos (la matriz: `pantallas/roles`)
-export { leerMatriz } from './composicion'
+export { leerMatriz, leerRolesParaElegir } from './composicion'
+export type { RolParaElegir, RolesParaElegir } from './entities/rol'
 export { agruparPorModulo } from './entities/matriz'
 
 // Las personas del equipo (la lista: `pantallas/equipo`)

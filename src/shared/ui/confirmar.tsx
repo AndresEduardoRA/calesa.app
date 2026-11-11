@@ -31,6 +31,9 @@ type Props = {
   children?: ReactNode
 }
 
+// Los botones del pie miden 44 px en el celular (`ui.md`) y vuelven a 36 desde `md` (4-102).
+const TACTIL = 'min-h-11 md:min-h-9'
+
 // Confirmación de lo irreversible. Lo reversible no pasa por acá: se hace y se ofrece «Deshacer»
 // (`avisarConDeshacer`). Nunca `window.confirm`. Tiene su URL (`?panel=`, `usePanelPorUrl()`): quien lo usa
 // calcula `abierto` de ella (`scripts/guardas/confirmar-con-url.test.ts` lo exige).
@@ -81,11 +84,12 @@ export function Confirmar({
       focoAlCerrar={focoAlCerrar}
       pie={
         <>
-          <Button variant="outline" onClick={cerrar} disabled={enCurso}>
+          <Button variant="outline" className={TACTIL} onClick={cerrar} disabled={enCurso}>
             Cancelar
           </Button>
           <Button
             variant="destructive"
+            className={TACTIL}
             onClick={confirmar}
             disabled={enCurso || falta || deshabilitado || !enLinea}
           >
