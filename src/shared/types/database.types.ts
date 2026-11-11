@@ -4244,6 +4244,39 @@ export type Database = {
         }
         Relationships: []
       }
+      push_pases: {
+        Row: {
+          creado_en: string
+          notificacion_id: number
+          pase: string
+          resultado_en: string | null
+          usado_en: string | null
+        }
+        ComputedFields: never
+        Insert: {
+          creado_en?: string
+          notificacion_id: number
+          pase?: string
+          resultado_en?: string | null
+          usado_en?: string | null
+        }
+        Update: {
+          creado_en?: string
+          notificacion_id?: number
+          pase?: string
+          resultado_en?: string | null
+          usado_en?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'push_pases_notificacion_id_fkey'
+            columns: ['notificacion_id']
+            isOneToOne: false
+            referencedRelation: 'notificaciones'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       recordatorios: {
         Row: {
           actualizado_en: string
@@ -8058,6 +8091,9 @@ export type Database = {
         Returns: string
       }
       _puede_mover: { Args: { p_a: string; p_de: string; p_flujo: string }; Returns: boolean }
+      _push_endpoint_valido: { Args: { p_endpoint: string }; Returns: boolean }
+      _push_host_permitido: { Args: { p_host: string }; Returns: boolean }
+      _push_tope_por_persona: { Args: Record<PropertyKey, never>; Returns: number }
       _recordatorio_conflicto: { Args: { p_cuando: string }; Returns: undefined }
       _recordatorio_cuando: { Args: { p_hint: string; p_valor: string }; Returns: string }
       _recordatorio_json: {
@@ -9407,6 +9443,13 @@ export type Database = {
         Returns: boolean
       }
       puede_vehiculo: { Args: { p_clave: string; p_vehiculo: string }; Returns: boolean }
+      push_abrir: { Args: { p_pase: string }; Returns: Json }
+      push_desuscribir: { Args: { p_endpoint: string }; Returns: boolean }
+      push_resultado: { Args: { p_pase: string; p_resultados: Json }; Returns: Json }
+      push_suscribir: {
+        Args: { p_claves: Json; p_endpoint: string; p_user_agent?: string }
+        Returns: string
+      }
       rbac_asignar_rol: {
         Args: { p_principal?: boolean; p_rol: string; p_usuario: string }
         Returns: undefined
