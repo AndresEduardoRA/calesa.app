@@ -87,19 +87,17 @@ describe('suscribirseACambios', () => {
     expect(alCambiar).toHaveBeenCalledWith()
   })
 
-  it('la primera conexión no es una reconexión; la que sigue a un corte, sí', async () => {
+  it('al unirse el canal relee, la primera vez y tras cada corte', async () => {
     const { alReconectar } = await suscribir()
     alEstado?.('SUBSCRIBED')
-    expect(alReconectar).not.toHaveBeenCalled()
+    expect(alReconectar).toHaveBeenCalledTimes(1)
     alEstado?.('CHANNEL_ERROR')
-    expect(alReconectar).not.toHaveBeenCalled()
-    alEstado?.('SUBSCRIBED')
     expect(alReconectar).toHaveBeenCalledTimes(1)
-    alEstado?.('SUBSCRIBED')
-    expect(alReconectar).toHaveBeenCalledTimes(1)
-    alEstado?.('TIMED_OUT')
     alEstado?.('SUBSCRIBED')
     expect(alReconectar).toHaveBeenCalledTimes(2)
+    alEstado?.('TIMED_OUT')
+    alEstado?.('SUBSCRIBED')
+    expect(alReconectar).toHaveBeenCalledTimes(3)
   })
 
   it('al volver la pestaña a visible relee; oculta no', async () => {

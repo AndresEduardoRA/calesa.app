@@ -12,11 +12,9 @@ export type OpcionesDeCanal = {
   filtro: string
   eventos: readonly Evento[]
   alCambiar: () => void
-  // El canal volvió tras un corte o la pestaña volvió a verse: lo que pasó mientras tanto no llegó como señal.
+  // El canal se unió (la primera vez o tras un corte) o la pestaña volvió a verse: lo que pasó antes no llegó como señal.
   alReconectar: () => void
 }
-
-const SIN_CONEXION = new Set(['CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'])
 
 let contador = 0
 
@@ -37,7 +35,6 @@ export function suscribirseACambios({
   const nombre = `cambios:${tabla}:${contador}`
   let canal: RealtimeChannel | null = null
   let cerrado = false
-  let huboCorte = false
 
   const armar = () => {
     if (cerrado) {
@@ -56,12 +53,9 @@ export function suscribirseACambios({
         return
       }
       if (estado === 'SUBSCRIBED') {
-        if (huboCorte) {
-          huboCorte = false
-          alReconectar()
-        }
-      } else if (SIN_CONEXION.has(estado)) {
-        huboCorte = true
+        // Lo que cambió entre la lectura de la pantalla y la unión del canal (la primera vez) o durante un corte no
+        // llegó como señal: al unirse, siempre se relee.
+        alReconectar()
       }
     })
     canal = nuevo
