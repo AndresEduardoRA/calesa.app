@@ -190,6 +190,7 @@ declare
     ('comprobante_puede(text,text)', 'L'),
     -- Las listas (6.10-2): miran `vehiculos.lead_id` sólo para el alcance «propios» (`en_cartera`), como `puede_vehiculo`; no devuelven el lead.
     ('gastos_listar(date,uuid,integer,jsonb)', 'L'),
+    ('pagos_listar(date,uuid,integer,jsonb)', 'L'),
     ('storage_refcount(text,text)', 'X')
   ) t (f, c));
   r record; v_fallas text := '';

@@ -186,3 +186,49 @@ begin
   perform pg_temp.din_da('L3: no es un objeto', pg_temp.din_lista(ed, 'gastos_listar', null, null, 10, '[1]'), '22023', 'filtros');
 end $$;
 rollback;
+
+create or replace function pg_temp.din_pago_el(p_quien uuid, t jsonb, p_vehiculo uuid, p_fecha date) returns uuid language plpgsql as $f$
+declare r jsonb;
+begin
+  r := pg_temp.din_corre(p_quien, format('select public.pago_registrar(%L, %L, null, ''Anticipo'', %L, 10, null, null, %L, null, null)',
+                                         gen_random_uuid(), p_vehiculo, t ->> 'base', p_fecha));
+  if r ? 'error' then raise exception 'no se pudo registrar el pago: %', r; end if;
+  return (r ->> 'id')::uuid;
+end $f$;
+
+-- @test dinero: pagos_listar da lo mismo que la RLS de pagos para quien ve sólo lo propio, y sin_confirmar deja fuera los confirmados (L4)
+begin;
+do $$
+declare t jsonb := pg_temp.din_terreno(); ed uuid; ase uuid; jefa uuid; vp uuid; p1 uuid; p2 uuid; ajeno uuid; pr uuid; lista uuid[]; rls uuid[]; x jsonb;
+begin
+  ed := pg_temp.din_persona('logistica.pagos.editar', 'logistica.pagos.ver', 'logistica.pagos.confirmar');
+  ase := pg_temp.din_persona('logistica.pagos.ver:propios');
+  jefa := pg_temp.din_persona('logistica.pagos.ver', 'repuestos.costos.ver');
+  insert into public.vehiculos (origen_id, titulo, marca) values ((t ->> 'o')::uuid, 'DIN vehículo del asesor', 'kia') returning id into vp;
+  update public.vehiculos set creado_por = ase where id = vp;
+  p1 := pg_temp.din_pago_el(ed, t, vp, '2026-04-01');
+  p2 := pg_temp.din_pago_el(ed, t, vp, '2026-04-02');
+  ajeno := pg_temp.din_pago_el(ed, t, (t ->> 'v')::uuid, '2026-04-03');
+  x := pg_temp.din_corre(ed, format('select public.pago_confirmar(%L, %L)', p2, (select actualizado_en from public.pagos where id = p2)));
+  if x ? 'error' then raise exception 'L4: no se pudo confirmar: %', x; end if;
+  insert into public.repuestos_proyectos (vehiculo_id) values (null) returning id into pr;
+  insert into public.pagos (proyecto_repuestos_id, concepto, moneda, monto, monto_base) values (pr, 'DIN proyecto', t ->> 'base', 10, 10);
+
+  lista := pg_temp.din_todas(ase, 'pagos_listar', 1, null);
+  rls := array(select (e ->> 'id')::uuid from jsonb_array_elements(pg_temp.din_corre(ase,
+           'select coalesce(jsonb_agg(jsonb_build_object(''id'', id)), ''[]'') from public.pagos where vehiculo_id is not null')) e);
+  if pg_temp.din_ordenados(lista) is distinct from pg_temp.din_ordenados(rls) or not (lista @> array[p1, p2]) or ajeno = any (lista) then
+    raise exception 'L4: el asesor debía recibir sus dos pagos, lo mismo que la RLS (%), y recibió %', rls, lista;
+  end if;
+  lista := pg_temp.din_todas(ase, 'pagos_listar', 10, '{"sin_confirmar": true}');
+  if lista is distinct from array[p1] then raise exception 'L4: sin_confirmar debía dejar sólo el sin confirmar y dejó %', lista; end if;
+  -- Quien ve también los pagos de proyectos (RLS) no los recibe en la lista: es de vehículos.
+  lista := pg_temp.din_todas(jefa, 'pagos_listar', 100, jsonb_build_object('origen', t ->> 'o'));
+  if pg_temp.din_ordenados(lista) is distinct from pg_temp.din_ordenados(array[p1, p2, ajeno]) then
+    raise exception 'L4: la jefa debía recibir los tres pagos del origen, sin el del proyecto, y recibió %', lista;
+  end if;
+  if (pg_temp.din_lista(jefa, 'pagos_listar', null, null, 1, null) -> 0) ?| array['lead_id', 'notas'] then
+    raise exception 'L4: la lista no devuelve el lead ni las notas';
+  end if;
+end $$;
+rollback;

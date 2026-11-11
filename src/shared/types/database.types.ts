@@ -9136,6 +9136,27 @@ export type Database = {
         }
         Returns: Json
       }
+      pagos_listar: {
+        Args: { p_cursor_fecha: string; p_cursor_id: string; p_filtros: Json; p_tope: number }
+        Returns: {
+          actualizado_en: string
+          comprobante_ruta: string
+          concepto: string
+          confirmado: boolean
+          confirmado_en: string
+          confirmado_por: string
+          fecha: string
+          id: string
+          metodo: string
+          moneda: string
+          monto: number
+          monto_base: number
+          origen_id: string
+          tipo_cambio_aplicado: number
+          vehiculo_id: string
+          vehiculo_titulo: string
+        }[]
+      }
       papelera_enviar: {
         Args: { p_ids: string[]; p_tipo: Database['public']['Enums']['tipo_lote_papelera'] }
         Returns: string
