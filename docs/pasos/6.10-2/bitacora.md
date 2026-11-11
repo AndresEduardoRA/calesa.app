@@ -42,4 +42,7 @@
 - **Para RENDIMIENTO:**
   - `gastos_listar`: tope 100 + 1, `gastos_fecha_idx`, sin medición (tabla fuera de la lista de las que crecen).
   - `pagos_listar`: tope 100 + 1, `pagos_fecha_idx`, sin medición.
+- **CI del PR (retoma):** la corrida 43056797518 cayó en los 4 bloques e2e sin correr un spec: el runner no resolvía el espejo de
+  Ubuntu en `playwright install --with-deps` (el mismo rojo del 5.03). Base, Nivel 1 y carriles en verde. Sin código que arreglar en la
+  rama: el arreglo del workflow entró con #108 (chromium sin apt si el espejo no responde) y la rama trae ese main.
 - e2e completo: no (6.10-2, Nivel 2 por rls y estructura: lo corre el CI del PR; sin interfaz)
