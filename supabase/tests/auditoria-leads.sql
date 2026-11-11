@@ -186,6 +186,8 @@ declare
     ('pago_guardar(uuid,timestamp with time zone,jsonb)', 'X'),
     ('pago_eliminar(uuid,timestamp with time zone)', 'X'),
     ('pago_confirmar(uuid,timestamp with time zone)', 'X'),
+    -- Los comprobantes (6.10-2): nombra `public.pagos` y `public.repuestos_proyectos` para decidir si se lee o sube un objeto; devuelve un booleano.
+    ('comprobante_puede(text,text)', 'L'),
     ('storage_refcount(text,text)', 'X')
   ) t (f, c));
   r record; v_fallas text := '';

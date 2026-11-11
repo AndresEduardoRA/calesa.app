@@ -7061,6 +7061,7 @@ export type Database = {
       }
       _compilar_visibilidad: { Args: { p_def: Json; p_diseno: Json }; Returns: Json }
       _comprobante_ruta_valida: { Args: { p_ruta: string; p_unidad: string }; Returns: boolean }
+      _comprobante_unidad: { Args: { p_nombre: string }; Returns: string }
       _conflicto_de_edicion: {
         Args: { p_cuando: string; p_registro: string; p_sujeto: string; p_tabla: string }
         Returns: undefined
@@ -8367,6 +8368,7 @@ export type Database = {
         Args: { p_cotizacion: string; p_cotizacion_esperada: string }
         Returns: Json
       }
+      comprobante_puede: { Args: { p_accion: string; p_nombre: string }; Returns: boolean }
       comprobantes_serie_cambiar: {
         Args: { p_actualizado_en_esperado: string; p_serie: string }
         Returns: Json
