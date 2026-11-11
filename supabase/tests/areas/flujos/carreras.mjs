@@ -1,7 +1,8 @@
 // Las carreras de la versión del flujo (paso 5.01-1), con conexiones reales a la base del Supabase LOCAL. K1: dos `fase_guardar` con la misma versión;
 // B espera el candado de la fila de `flujos` que tomó A y, cuando A confirma, recibe PT409 sin escribir. K2: mientras A tiene el candado, quien no puede
 // configurar el flujo recibe 42501 sin esperar (el permiso va antes del candado, `_flujo_para_editar`). K3: ese candado (`for no key update`)
-// no frena el key share de las FK de un cambio de fase. Terreno con el prefijo «Carreras»: el origen
+// no frena el key share de las FK de un cambio de fase. K4 (5.01-2): `fase_eliminar` toma la fase `for update` y espera a un cambio de fase que
+// entra en ella; cuenta lo que dejó y jubila (sin el candado contaría cero y caería con el 23503 crudo de la FK). Terreno con el prefijo «Carreras»: el origen
 // (con su flujo y sus fases en cascada) y el rol los borra `limpiar()` de `scripts/carreras/terreno.mjs`. Las corre `scripts/carreras.mjs` (`pnpm db:carreras`).
 import { PERSONAS, PREFIJO, comoPersona } from '../../../../scripts/carreras/terreno.mjs'
 
@@ -148,6 +149,61 @@ export async function carrerasDeFases({ orquesta, carrera, espero, conectar }) {
     } finally {
       await ca.end()
       await cb.end()
+    }
+  }
+
+  console.log('Eliminar una fase mientras un cambio de fase entra en ella')
+  {
+    // A hace lo que escribe `cambiar_fase` (el vehículo a la fase y su historial: key share sobre la fase y el flujo) y no confirma; B elimina
+    // la fase con la versión vigente, espera el key share de A y, cuando A confirma, ve el vehículo y el historial: jubila.
+    const {
+      rows: [f],
+    } = await orquesta.query(
+      `insert into public.fases (flujo_id, nombre) values ($1, $2) returning id`,
+      [flujo, `${PREFIJO} fase k4`],
+    )
+    const {
+      rows: [veh],
+    } = await orquesta.query(
+      `insert into public.vehiculos (origen_id, titulo)
+       select origen_id, $2 from public.flujos where id = $1 returning id`,
+      [flujo, `${PREFIJO} flujos k4`],
+    )
+    try {
+      const v = await versionDelFlujo(orquesta, flujo)
+      const r = await carrera(orquesta, {
+        a: {
+          rol: 'postgres',
+          consulta: `with v as (update public.vehiculos set fase_id = $1 where id = $2 returning id)
+                     insert into public.historial_fases (flujo_id, vehiculo_id, a_fase_id)
+                     select $3, v.id, $1 from v returning 1 as r`,
+          args: [f.id, veh.id, flujo],
+        },
+        b: { persona: duena, sql: 'public.fase_eliminar($1, $2)::text', args: [f.id, v] },
+      })
+      const resultado = r.b.ok ? JSON.parse(r.b.valor) : null
+      const {
+        rows: [fase],
+      } = await orquesta.query(`select activa from public.fases where id = $1`, [f.id])
+      const despues = await versionDelFlujo(orquesta, flujo)
+      espero(
+        'K4: B esperó al cambio de fase de A y jubila (ni 23503 ni 40P01); la fase queda inactiva y la versión es la que devolvió B',
+        r.a.ok &&
+          resultado?.accion === 'jubilada' &&
+          fase?.activa === false &&
+          resultado?.version !== undefined &&
+          (
+            await orquesta.query(`select $1::timestamptz = $2::timestamptz as igual`, [
+              resultado.version,
+              despues,
+            ])
+          ).rows[0].igual,
+        { r, fase, despues },
+      )
+    } finally {
+      // Las FK `restrict` de `historial_fases` y `vehiculos` hacia `fases` frenarían a `limpiar()` al borrar el origen.
+      await orquesta.query(`delete from public.historial_fases where vehiculo_id = $1`, [veh.id])
+      await orquesta.query(`delete from public.vehiculos where id = $1`, [veh.id])
     }
   }
 }
