@@ -224,7 +224,17 @@ export const BORRADOR_DE_TIPO_NUEVO: BorradorDeTipo = {
 
 // ─── El pedido a la base ────────────────────────────────────────────────────────────────────────
 
-export type CambiosDeTipo = Record<string, unknown>
+// Las claves de la base (`p_datos` y `p_cambios`): la lista cerrada de `_tipo_documento_de_jsonb()`. `activo` sólo al guardar.
+export type CambiosDeTipo = {
+  nombre?: string
+  descripcion?: string | null
+  formatos?: FormatoDeDocumento[]
+  modo_vencimiento?: ModoDeVencimiento
+  vigencia_dias?: number | null
+  aviso_dias?: number | null
+  visible_portal_permitido?: boolean
+  activo?: boolean
+}
 
 // Los días que el modo usa: vigencia sólo con «renovar», aviso con «solicitar» o «renovar».
 function diasDelModo(datos: DatosDeTipo) {
@@ -235,7 +245,7 @@ function diasDelModo(datos: DatosDeTipo) {
 }
 
 // `p_datos` de `tipo_documento_crear`: la lista cerrada de claves de la base (sin `activo` ni `proposito`: nace activo y sin propósito).
-export function datosParaCrear(datos: DatosDeTipo): CambiosDeTipo {
+export function datosParaCrear(datos: DatosDeTipo): Omit<CambiosDeTipo, 'activo'> {
   const { vigencia, aviso } = diasDelModo(datos)
   return {
     nombre: datos.nombre,
@@ -272,6 +282,8 @@ export function cambiosParaGuardar(
     ],
     ['activo', datos.activo, datos.activo !== original.activo],
   ]
-  const cambios = Object.fromEntries(pares.filter(([, , cambio]) => cambio).map(([k, v]) => [k, v]))
+  const cambios: CambiosDeTipo = Object.fromEntries(
+    pares.filter(([, , cambio]) => cambio).map(([k, v]) => [k, v]),
+  )
   return Object.keys(cambios).length === 0 ? null : cambios
 }
