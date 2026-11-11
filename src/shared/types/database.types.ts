@@ -8494,7 +8494,7 @@ export type Database = {
         Args: { p_actualizado_en_esperado: string; p_datos: Json; p_flujo: string; p_id: string }
         Returns: string
       }
-      fase_eliminar: { Args: { p_fase: string }; Returns: Json }
+      fase_eliminar: { Args: { p_actualizado_en_esperado: string; p_fase: string }; Returns: Json }
       fase_guardar: {
         Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_fase: string }
         Returns: string
