@@ -170,3 +170,10 @@ export function leerAgendaDeRango(crudo: unknown): Resultado<AgendaDeRango> {
     ? ok(resultado.data)
     : fallo('inesperado', 'La agenda llegó con un formato que no se reconoce.')
 }
+
+// Lo que pide una lectura de la agenda: el rango semiabierto `[desde, hasta)` en ISO y si es la de todos (`agenda.ver_todo`).
+export type LectorDeAgenda = (rango: {
+  desde: string
+  hasta: string
+  deTodos: boolean
+}) => Promise<Resultado<AgendaDeRango>>
