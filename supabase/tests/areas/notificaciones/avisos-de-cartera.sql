@@ -70,7 +70,7 @@ create or replace function pg_temp.ac_avisos(p_usuario uuid, p_tipo text, p_ref 
   select count(*)::int from public.notificaciones where usuario_id = p_usuario and tipo = p_tipo and referencia_id = p_ref;
 $f$;
 
--- Falla si el aviso nombra el teléfono, el número o el nombre del lead, o si no es el que se espera.
+-- Falla si el aviso nombra el teléfono, un número o el nombre del lead, o si no es el que se espera.
 create or replace function pg_temp.ac_aviso_limpio(p_usuario uuid, p_tipo text, p_lead uuid) returns void language plpgsql as $f$
 declare n public.notificaciones; l public.leads; v_texto text;
 begin
@@ -80,8 +80,8 @@ begin
     raise exception 'aviso inesperado: %', to_jsonb(n);
   end if;
   v_texto := n.titulo || ' ' || coalesce(n.cuerpo, '');
-  if position(l.telefono_principal in v_texto) > 0 or position(l.nombre in v_texto) > 0
-     or (l.numero_propio is not null and v_texto ~ ('(^|\D)' || l.numero_propio || '(\D|$)')) then
+  -- Sin dígitos: ni el teléfono, ni `numero_propio`, ni el número global (`leads.numero`); el nombre de la persona de prueba no los tiene.
+  if position(l.nombre in v_texto) > 0 or v_texto ~ '\d' then
     raise exception 'el aviso nombra datos del lead: %', v_texto;
   end if;
 end $f$;
