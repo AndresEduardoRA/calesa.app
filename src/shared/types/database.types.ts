@@ -7567,6 +7567,11 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      _flujo_regla_admitida: {
+        Args: { p_ambito: Database['public']['Enums']['ambito_flujo']; p_regla: string }
+        Returns: boolean
+      }
+      _flujo_regla_uso: { Args: { p_flujo: string; p_regla: string }; Returns: Json }
       _flujo_tocar: { Args: { p_flujo: string }; Returns: string }
       _formula_cambio_y_grupos: {
         Args: {
