@@ -269,6 +269,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Requisito** — `fases_requisitos` (documento | dato | espera): qué pide una fase para entrar; bloqueante o informativo.
 - **Espera** — requisito `espera`: un vehículo espera a sus repuestos / un repuesto a su vehículo.
 - **Regla del flujo** — `flujos_reglas`: capacidad encendida/apagada (vitrina, portal, aduana, esperas…).
+- **Oferta de transporte** — `flujos_transporte_oferta` / `flujo_oferta_guardar`: los puertos de origen, de destino y las navieras que ofrecen los selectores de un flujo con la regla «Transporte»; vacía = se ofrece todo; filtra, nunca invalida lo guardado.
 - **Jubilar** — `fases.activa = false` / `fase_eliminar`: sacar una fase de los destinos sin romper el historial.
 - **Fuera de regla** — `fuera_de_regla()`: unidad en una fase cuyos requisitos bloqueantes ya no cumple.
 - **Revisar** — `revisar_flujo()`: avisos de coherencia del flujo (sin salida, inalcanzable, esperas cruzadas…).
@@ -293,6 +294,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Tarea** — `tareas` / `reasignar_tarea`: pendiente con responsable y vencimiento.
 - **Conversación / Mensaje** — `conversaciones`, `mensajes`: directa, grupo o canal global; mensajes de texto o fichas.
 - **Mención** — `mensajes_menciones`: `#` a vehículo, lead, cotización o persona; no otorga acceso.
+- **No leídos** — `chat_conversaciones().no_leidos`, `chat_no_leidos()`: mensajes de otras personas posteriores a tu última lectura de una conversación (`conversaciones_miembros.ultimo_leido_en`), contados entre las 100 entradas más nuevas (las propias ocupan lugar y no suman); 100 se muestra «99+». El total no suma las silenciadas.
 - **Notificación** — `notificaciones` / `notificar()`: aviso en la campana; `requiere_accion` para lo que pide clic.
 - **Push** — `suscripciones_push`: suscripción web push del navegador.
 - **Actividad** — `actividad` / `registrar_actividad()`: auditoría inmutable, 14 días.
