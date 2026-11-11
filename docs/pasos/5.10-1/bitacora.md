@@ -1,0 +1,24 @@
+## 2026-11-11 — Paso 5.10-1: el uso, el impacto y el cambio de una regla del flujo, sin escritura directa
+
+- **Hecho:** el 5.10 se partió en dos; el 5.10-2 lleva la oferta de transporte.
+  - `_flujo_regla_uso()` es la regla única del uso. Cuenta las fases del flujo que marcan la regla (también las jubiladas) y, nuevo, en «esperas», los requisitos de espera de sus fases, que antes se apagaban en silencio. Tope 50 + 1.
+  - `_flujo_regla_admitida()` es el catálogo por ámbito: repuestos no tiene `vitrina_web`, `portal_cliente` ni `aduana`.
+  - El trigger `flujo_regla_apagar_validar` aplica esa regla (también a `service_role`), no valida una fila ya apagada y deja pasar la cascada del flujo.
+  - `flujo_regla_impacto()`: lectura sin versión; con la regla ya apagada da `bloquea: false`.
+  - `flujo_regla_cambiar()`: pasa por el contrato de versión del 5.01. Encender fuera del catálogo → `22023`; apagar con uso → `23514` con hint `regla`. La versión se mueve siempre.
+  - `authenticated` ya no escribe `flujos_reglas`: se borraron sus tres policies de escritura y sus grants.
+- **Verificación** (`.piloto/salidas/5.10/`):
+  - `db:reset`, `db:types` y `db:probar` completo: exit 0, 0 ✗. La prueba nueva `supabase/tests/flujos-reglas.sql` (R1-R8, en la lista fija) en verde.
+  - `db:lint`: ningún aviso en las funciones nuevas.
+  - `scripts/guardas`: 1.058 en verde.
+  - `typecheck` sin errores.
+  - e2e `origenes` en escritorio: 8 en verde.
+  - `nivel.mjs` con los archivos escritos: `{"nivel":2,"disparadores":[{"id":"rls","archivos":["supabase/migrations/20261111200536_flujo_regla_sin_escritura_directa.sql"]}],"toca_interfaz":false,"database_types":true}`.
+  - e2e completo: no (5.10-1, Nivel 2: el completo lo corre el CI del PR por el disparador rls; cuenta 0 de 3)
+- **Abiertos:** hasta el 5.07, apagar «esperas» mientras otra persona crea un requisito de espera directo puede dejar la regla apagada con el requisito vivo (D11). Se cierra cuando el 5.07 pase los requisitos por RPC con `_flujo_para_editar`.
+- **Commits:**
+  - `4f34dcfe` feat(db): contar el uso de una regla del flujo con fases y esperas
+  - `bd885bf4` feat(db): leer el impacto de apagar una regla del flujo
+  - `778f4a21` feat(db): encender y apagar una regla del flujo por rpc con versión
+  - `79100a3d` feat(db): quitar la escritura directa de las reglas del flujo
+  - y el de docs.

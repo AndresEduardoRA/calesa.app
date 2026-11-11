@@ -32,7 +32,7 @@ El módulo se parte por área, como `cotizaciones` (`scripts/guardas/areas-de-fl
 ## Tablas
 
 `flujos`, `flujos_reglas`, `fases`, `fases_transiciones`, `fases_roles`, `fases_transiciones_roles`, `tipos_documento`, `fases_requisitos`, `historial_fases`.
-RPC: `cambiar_fase`, `cambiar_fase_lote`, `previsualizar_cambio_fase`, `evaluar_requisitos`, `revisar_flujo`, `fase_crear`, `fase_guardar`, `fase_mover`, `fase_impacto`, `fase_eliminar`, `fase_reactivar`, `fuera_de_regla`, `unidad_llego_a_fase`, `claves_dato_requisito`.
+RPC: `cambiar_fase`, `cambiar_fase_lote`, `previsualizar_cambio_fase`, `evaluar_requisitos`, `revisar_flujo`, `fase_crear`, `fase_guardar`, `fase_mover`, `fase_impacto`, `fase_eliminar`, `fase_reactivar`, `fuera_de_regla`, `unidad_llego_a_fase`, `claves_dato_requisito`, `flujo_regla_impacto`, `flujo_regla_cambiar`.
 
 ## No se rompe
 
@@ -42,6 +42,13 @@ RPC: `cambiar_fase`, `cambiar_fase_lote`, `previsualizar_cambio_fase`, `evaluar_
 - Un requisito nace informativo; volverlo bloqueante muestra cuántas unidades quedan «fuera de regla» y pide confirmación.
 - Las esperas se evalúan al entrar a la fase y nunca mueven en cascada.
 - La versión de toda la configuración de un flujo es `flujos.actualizado_en`, y la mueve siempre hacia adelante el trigger `flujo_version()` (también dos veces en una transacción). Toda RPC de configuración (fases, y desde el 5.05, 5.07 y 5.10 transiciones, requisitos y reglas) llama `_flujo_para_editar(p_flujo uuid, p_actualizado_en_esperado timestamptz) returns flujos` antes de leer o escribir, y `_flujo_tocar(p_flujo uuid) returns timestamptz` al final, y devuelve ese valor. Firmas estables. El orden: inexistente → `PT409`; sin `puede_configurar_flujo` → `42501` (antes del candado: quien no puede no espera); `for no key update` (no frena el `key share` de las FK de `cambiar_fase`); versión distinta → `PT409`. `authenticated` no ejecuta los dos ayudantes.
+- Las reglas del flujo (`flujos_reglas`, sin fila = apagada) se escriben sólo por `flujo_regla_cambiar(p_flujo, p_actualizado_en_esperado, p_regla, p_activa)` (5.10-1):
+  forma (`22023`, hint `regla|activa`) → el contrato de versión → encender fuera del catálogo del ámbito → `22023` (`_flujo_regla_admitida`: repuestos sin `vitrina_web`,
+  `portal_cliente` ni `aduana`) → apagar con uso → `23514` (hint `regla`). Una regla ya apagada no mira el uso; la versión se mueve siempre. La regla única del uso es
+  `_flujo_regla_uso()`: las fases (también jubiladas) que la marcan y, en «esperas», los requisitos de espera de sus fases (tope 50 + 1); la leen
+  `flujo_regla_impacto(p_flujo, p_regla)` (sin versión; ya apagada → `bloquea: false`) y el trigger `flujo_regla_apagar_validar`, que también frena a `service_role` y deja
+  pasar el borrado en cascada del flujo. `authenticated` no tiene `insert`, `update` ni `delete` sobre `flujos_reglas`. Hasta el 5.07, un requisito de espera creado a la
+  vez que se apaga «esperas» puede quedar vivo con la regla apagada (D11 del 5.10-1): por eso una regla ya apagada no bloquea.
 - La versión cruza como texto ISO tal cual (microsegundos), nunca por un `Date` de JS: se quedaría en milisegundos y daría `PT409` en cada guardado.
 - La configuración no se escribe directo: `authenticated` no tiene `insert` ni `update` sobre `fases` ni `update` sobre `flujos` (5.01-1). Crear y guardar una fase: `fase_crear(p_id, p_flujo, p_actualizado_en_esperado, p_datos)` y `fase_guardar(p_fase, p_actualizado_en_esperado, p_cambios)`, con lista cerrada de claves (`22023` con la clave en `hint`), validaciones con el campo en `hint`, reglas del flujo (`23514`) y únicos con mensaje humano (`23505`).
 
