@@ -270,7 +270,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Espera** — requisito `espera`: un vehículo espera a sus repuestos / un repuesto a su vehículo.
 - **Regla del flujo** — `flujos_reglas`: capacidad encendida/apagada (vitrina, portal, aduana, esperas…).
 - **Jubilar** — `fases.activa = false` / `fase_eliminar`: sacar una fase de los destinos sin romper el historial.
-- **Fuera de regla** — `fuera_de_regla()`: unidad en una fase cuyos requisitos bloqueantes ya no cumple.
+- **Fuera de regla** — `flujo_fuera_de_regla()`: unidad en una fase cuyos requisitos bloqueantes ya no cumple. Sólo quien configura el flujo la lee, con tope.
 - **Revisar** — `revisar_flujo()`: avisos de coherencia del flujo (sin salida, inalcanzable, esperas cruzadas…).
 - **Cadena** — `/logistica`: kanban de unidades por fase.
 - **Mover** — `cambiar_fase()` / `previsualizar_cambio_fase()`: cambiar de fase, con vista previa de qué falta.
