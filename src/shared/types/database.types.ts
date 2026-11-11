@@ -7293,6 +7293,58 @@ export type Database = {
         Args: { p_actual: string; p_esperado: string; p_mensaje: string }
         Returns: undefined
       }
+      _fase_aplicar: {
+        Args: {
+          p_datos: Json
+          p_fila: Omit<
+            Database['public']['Tables']['fases']['Row'],
+            Database['public']['Tables']['fases']['ComputedFields']
+          >
+        }
+        Returns: {
+          activa: boolean
+          actualizado_en: string
+          alerta_cada_horas: number | null
+          alias_portal: string | null
+          color: string
+          creado_en: string
+          cuenta_llegada_repuestos: boolean
+          demora_dias: number | null
+          descripcion: string | null
+          descripcion_portal: string | null
+          es_final: boolean
+          es_inicial: boolean
+          es_logistica: boolean
+          flujo_id: string
+          icono: string | null
+          id: string
+          nombre: string
+          nota_obligatoria: boolean
+          orden: number
+          permite_aduana: boolean
+          permite_contenedor: boolean
+          publica_web: boolean
+          visible_portal: boolean
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'fases'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _fase_forma: { Args: { p_datos: Json; p_vacio_vale: boolean }; Returns: undefined }
+      _fase_unico: { Args: { p_nombre: string; p_restriccion: string }; Returns: undefined }
+      _fase_validar: {
+        Args: {
+          p_claves: string[]
+          p_fila: Omit<
+            Database['public']['Tables']['fases']['Row'],
+            Database['public']['Tables']['fases']['ComputedFields']
+          >
+        }
+        Returns: undefined
+      }
       _final_aplicar: {
         Args: {
           c: Omit<
@@ -8436,6 +8488,10 @@ export type Database = {
           requisito_id: string
           tipo: Database['public']['Enums']['tipo_requisito']
         }[]
+      }
+      fase_crear: {
+        Args: { p_actualizado_en_esperado: string; p_datos: Json; p_flujo: string; p_id: string }
+        Returns: string
       }
       fase_eliminar: { Args: { p_fase: string }; Returns: Json }
       flujo_de_fase: { Args: { p_fase: string }; Returns: string }

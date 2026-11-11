@@ -149,3 +149,81 @@ begin
   if r ->> 'id' is distinct from f::text then raise exception 'V2 buena: debía devolver la fila y dio %', r; end if;
 end $$;
 rollback;
+
+-- @test fases: fase_crear da 42501 al asesor y a quien configura otro origen, y no escribe ni mueve la versión (V3)
+begin;
+do $$
+declare
+  a uuid := pg_temp.ff_flujo('manual'); b uuid := pg_temp.ff_flujo('manual');
+  config_a uuid := pg_temp.ff_persona(array['flujos.configurar@' || pg_temp.ff_origen_de(a)]);
+  asesor uuid := pg_temp.ff_asesor();
+  vb timestamptz := pg_temp.ff_version(b); v_id uuid := gen_random_uuid(); r jsonb;
+begin
+  r := pg_temp.ff_crear(asesor, v_id, b, vb, '{"nombre": "FF asesor"}');
+  perform pg_temp.ff_da_error('V3 asesor', r, '42501', 'No tienes permiso para configurar este flujo.');
+  r := pg_temp.ff_crear(config_a, v_id, b, vb, '{"nombre": "FF otro origen"}');
+  perform pg_temp.ff_da_error('V3 otro origen', r, '42501', 'No tienes permiso para configurar este flujo.');
+  if exists (select 1 from public.fases where id = v_id) or pg_temp.ff_version(b) is distinct from vb then
+    raise exception 'V3: un 42501 escribió o movió la versión';
+  end if;
+end $$;
+rollback;
+
+-- @test fases: flujos.configurar de un origen crea sólo en el suyo y repuestos.configurar sólo en el de repuestos (V4)
+begin;
+do $$
+declare
+  a uuid := pg_temp.ff_flujo('manual'); rep uuid := pg_temp.ff_repuestos();
+  config_a uuid := pg_temp.ff_persona(array['flujos.configurar@' || pg_temp.ff_origen_de(a)]);
+  config_rep uuid := pg_temp.ff_persona(array['repuestos.configurar']);
+  r jsonb;
+begin
+  perform pg_temp.ff_pasa('V4 config_a en A', pg_temp.ff_crear(config_a, gen_random_uuid(), a, pg_temp.ff_version(a), '{"nombre": "FF en A"}'));
+  r := pg_temp.ff_crear(config_a, gen_random_uuid(), rep, pg_temp.ff_version(rep), '{"nombre": "FF en repuestos"}');
+  perform pg_temp.ff_da_error('V4 config_a en repuestos', r, '42501', 'No tienes permiso para configurar este flujo.');
+  perform pg_temp.ff_pasa('V4 config_rep en repuestos', pg_temp.ff_crear(config_rep, gen_random_uuid(), rep, pg_temp.ff_version(rep), '{"nombre": "FF en repuestos"}'));
+  r := pg_temp.ff_crear(config_rep, gen_random_uuid(), a, pg_temp.ff_version(a), '{"nombre": "FF rep en A"}');
+  perform pg_temp.ff_da_error('V4 config_rep en A', r, '42501', 'No tienes permiso para configurar este flujo.');
+  if (select count(*) from public.fases where nombre like 'FF %') <> 2 then raise exception 'V4: debían quedar dos fases'; end if;
+end $$;
+rollback;
+
+-- @test fases: fase_crear devuelve la versión nueva del flujo; con la vieja da PT409 y sin versión falla, sin escribir (V5)
+begin;
+do $$
+declare
+  a uuid := pg_temp.ff_flujo('manual');
+  config_a uuid := pg_temp.ff_persona(array['flujos.configurar@' || pg_temp.ff_origen_de(a)]);
+  v0 timestamptz := pg_temp.ff_version(a); v1 timestamptz; r jsonb;
+begin
+  v1 := pg_temp.ff_pasa('V5 crear', pg_temp.ff_crear(config_a, gen_random_uuid(), a, v0, '{"nombre": "FF uno"}'));
+  if not (v1 > v0 and v1 = pg_temp.ff_version(a)) then raise exception 'V5: crear devolvió % y el flujo tiene % (antes %)', v1, pg_temp.ff_version(a), v0; end if;
+  r := pg_temp.ff_crear(config_a, gen_random_uuid(), a, v0, '{"nombre": "FF dos"}');
+  perform pg_temp.ff_da_error('V5 vieja', r, 'PT409', 'Otra persona cambió este flujo mientras lo editabas.');
+  r := pg_temp.ff_crear(config_a, gen_random_uuid(), a, null, '{"nombre": "FF dos"}');
+  perform pg_temp.ff_da_error('V5 sin versión', r, 'P0001', 'Falta la versión que tenías en pantalla. Recarga e intenta de nuevo.');
+  if exists (select 1 from public.fases where flujo_id = a and nombre = 'FF dos') or pg_temp.ff_version(a) is distinct from v1 then
+    raise exception 'V5: un conflicto escribió o movió la versión';
+  end if;
+end $$;
+rollback;
+
+-- @test fases: fase_crear deja la fase al final y activa; un id repetido da 23505 con hint id (V6)
+begin;
+do $$
+declare
+  a uuid := pg_temp.ff_flujo('manual');
+  config_a uuid := pg_temp.ff_persona(array['flujos.configurar@' || pg_temp.ff_origen_de(a)]);
+  id1 uuid := gen_random_uuid(); id2 uuid := gen_random_uuid(); v timestamptz; r jsonb;
+begin
+  v := pg_temp.ff_pasa('V6 uno', pg_temp.ff_crear(config_a, id1, a, pg_temp.ff_version(a), '{"nombre": "FF uno"}'));
+  update public.fases set orden = 35 where id = id1;
+  v := pg_temp.ff_pasa('V6 dos', pg_temp.ff_crear(config_a, id2, a, pg_temp.ff_version(a), '{"nombre": "FF dos"}'));
+  if (select orden from public.fases where id = id2) <> 45 or not (select activa from public.fases where id = id2) then
+    raise exception 'V6: la fase nueva no quedó al final y activa: %', (select to_jsonb(f) from public.fases f where id = id2);
+  end if;
+  r := pg_temp.ff_crear(config_a, id1, a, pg_temp.ff_version(a), '{"nombre": "FF tres"}');
+  perform pg_temp.ff_da_error('V6 id repetido', r, '23505', 'Esa fase ya existe.');
+  if r ->> 'hint' is distinct from 'id' then raise exception 'V6: el hint debía ser id y dio %', r; end if;
+end $$;
+rollback;
