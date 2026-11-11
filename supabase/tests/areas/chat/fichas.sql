@@ -124,10 +124,13 @@ declare a uuid := pg_temp.chfi_persona(array['chat.participar', 'leads.ver']); b
   conv uuid; v_lead uuid; r jsonb; q text;
 begin
   conv := pg_temp.chfi_conversacion(array[a, b]);
+  -- B ve los leads de su cartera: si la mención o la ficha lo metieran en ella, lo vería.
+  insert into public.roles_permisos (rol_id, permiso_clave, alcance)
+  select ur.rol_id, 'leads.ver', 'propios' from public.usuarios_roles ur where ur.usuario_id = b and ur.es_principal;
   insert into public.leads (nombre, telefono_principal, creado_por)
   values ('CHFI lead', '59' || lpad((('x' || substr(md5(gen_random_uuid()::text), 1, 7))::bit(28)::int % 100000000)::text, 8, '0'), a) returning id into v_lead;
   q := format('select to_jsonb(count(*)) from public.leads_vista where id = %L', v_lead);
-  if pg_temp.chfi_corre(b, q) <> '0' then raise exception 'la prueba necesita que B no vea el lead'; end if;
+  if pg_temp.chfi_corre(b, q) <> '0' then raise exception 'la prueba necesita que B (con leads.ver propios) no vea el lead'; end if;
   r := pg_temp.chfi_enviar(a, gen_random_uuid(), conv, format('mira #[lead:%s]', v_lead), jsonb_build_array(jsonb_build_object('tipo', 'lead', 'id', v_lead)));
   if r ->> 'resultado' is distinct from 'enviado' then raise exception 'no mencionó el lead: %', r; end if;
   r := pg_temp.chfi_enviar(a, gen_random_uuid(), conv, null, '[]', null, jsonb_build_object('tipo', 'lead', 'id', v_lead));

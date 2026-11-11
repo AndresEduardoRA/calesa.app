@@ -47,6 +47,32 @@ begin
   return v;
 end $f$;
 
+-- Le suma a esa persona una concesión con ese alcance (`propios`: lo creado por ella o de su cartera).
+create or replace function pg_temp.chms_conceder(p_quien uuid, p_clave text, p_alcance text) returns void language sql as $f$
+  insert into public.roles_permisos (rol_id, permiso_clave, alcance)
+  select ur.rol_id, p_clave, p_alcance::public.alcance_permiso from public.usuarios_roles ur where ur.usuario_id = p_quien and ur.es_principal;
+$f$;
+
+-- Una cotización viva de esa persona (origen con una fórmula publicada mínima, su lead y un vehículo), sembrada como dueño de la tabla.
+create or replace function pg_temp.chms_cotizacion(p_quien uuid) returns uuid language plpgsql as $f$
+declare o uuid; f uuid; v_lead uuid; v_veh uuid; v_c uuid;
+begin
+  insert into public.origenes (clave, nombre) values ('chms_' || substr(gen_random_uuid()::text, 1, 8), 'CHMS origen ' || substr(gen_random_uuid()::text, 1, 8)) returning id into o;
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad)
+  values (o, 1, 'publicada', jsonb_build_object('nodos', jsonb_build_array(
+            jsonb_build_object('id', 'visible', 'tipo', 'input', 'etiqueta', 'Visible', 'bucket', 'origen'),
+            jsonb_build_object('id', 'total', 'tipo', 'calculo', 'op', 'suma', 'de', jsonb_build_array('visible'), 'etiqueta', 'Total', 'salida', 'total', 'bucket', 'origen'))),
+          '{}', '{}', jsonb_build_object('visible', jsonb_build_object('ver', 'todos', 'editar', 'todos'), 'total', jsonb_build_object('ver', 'todos', 'editar', null)))
+  returning id into f;
+  insert into public.leads (nombre, telefono_principal, creado_por)
+  values ('CHMS lead cot', '59' || lpad((('x' || substr(md5(gen_random_uuid()::text), 1, 7))::bit(28)::int % 100000000)::text, 8, '0'), p_quien) returning id into v_lead;
+  insert into public.vehiculos (origen_id, titulo, marca) values (o, 'CHMS vehículo cot', 'toyota') returning id into v_veh;
+  insert into public.cotizaciones (origen_id, creado_por, formula_id, lead_id, vehiculo_id, clase, valores, fuentes, tipos_cambio, totales, total_base)
+  values (o, p_quien, f, v_lead, v_veh, 'preventa', '{"visible": 10, "total": 10}', '{"visible": "input"}', '{}', '{"usd": 10}', 10)
+  returning id into v_c;
+  return v_c;
+end $f$;
+
 -- enviar como esa persona: mensaje_enviar(id, conversación, cuerpo, menciones, responde_a, ficha)
 create or replace function pg_temp.chms_enviar(p_quien uuid, p_id uuid, p_conv uuid, p_cuerpo text, p_menciones jsonb default '[]', p_responde uuid default null, p_ficha jsonb default null)
 returns jsonb language sql as $f$
@@ -124,20 +150,27 @@ rollback;
 begin;
 do $$
 declare a uuid := pg_temp.chms_persona(array['chat.participar', 'leads.ver', 'vehiculos.ver']); b uuid := pg_temp.chms_persona(array['chat.participar']);
-  conv uuid; o uuid; v_lead uuid; v_veh uuid; r jsonb; m uuid; f jsonb;
+  conv uuid; o uuid; v_lead uuid; v_veh uuid; v_cot uuid; r jsonb; m uuid; f jsonb;
 begin
   conv := pg_temp.chms_conversacion(array[a, b]);
+  -- B ve lo propio: lo que existe y no es suyo queda fuera de su alcance, no fuera de su permiso.
+  perform pg_temp.chms_conceder(b, 'leads.ver', 'propios');
+  perform pg_temp.chms_conceder(b, 'vehiculos.ver', 'propios');
+  perform pg_temp.chms_conceder(b, 'cotizaciones.ver', 'propios');
+  v_cot := pg_temp.chms_cotizacion(a);
   insert into public.origenes (clave, nombre) values ('chms_' || substr(gen_random_uuid()::text, 1, 8), 'CHMS origen ' || substr(gen_random_uuid()::text, 1, 8)) returning id into o;
   insert into public.vehiculos (origen_id, titulo, marca) values (o, 'CHMS vehículo', 'toyota') returning id into v_veh;
   insert into public.leads (nombre, telefono_principal, creado_por)
   values ('CHMS lead', '59' || lpad((('x' || substr(md5(gen_random_uuid()::text), 1, 7))::bit(28)::int % 100000000)::text, 8, '0'), a) returning id into v_lead;
   foreach f in array array[jsonb_build_object('tipo', 'lead', 'id', v_lead), jsonb_build_object('tipo', 'vehiculo', 'id', v_veh),
-                           jsonb_build_object('tipo', 'cotizacion', 'id', gen_random_uuid())] loop
+                           jsonb_build_object('tipo', 'cotizacion', 'id', v_cot)] loop
     m := gen_random_uuid();
     r := pg_temp.chms_enviar(b, m, conv, null, '[]', null, f);
     if r ->> 'error' is distinct from '42501' or r ->> 'hint' is distinct from 'ficha' then raise exception 'una ficha que no ve no dio 42501: % → %', f, r; end if;
     if exists (select 1 from public.mensajes where id = m) then raise exception 'la ficha rechazada dejó un mensaje'; end if;
   end loop;
+  r := pg_temp.chms_enviar(b, gen_random_uuid(), conv, null, '[]', null, jsonb_build_object('tipo', 'cotizacion', 'id', pg_temp.chms_cotizacion(b)));
+  if r ->> 'resultado' is distinct from 'enviado' then raise exception 'la ficha de una cotización propia no entró: %', r; end if;
   m := gen_random_uuid();
   r := pg_temp.chms_enviar(a, m, conv, null, '[]', null, jsonb_build_object('tipo', 'lead', 'id', v_lead));
   if r ->> 'resultado' is distinct from 'enviado' or (select tipo::text || lead_id::text from public.mensajes where id = m) is distinct from 'lead' || v_lead then
@@ -156,7 +189,7 @@ rollback;
 -- @test chat: purgar lo que una ficha nombra deja la ficha sin su referencia y no frena el borrado (E7, fix del informe)
 begin;
 do $$
-declare a uuid := pg_temp.chms_persona(); b uuid := pg_temp.chms_persona(); conv uuid; o uuid; v_veh uuid; v_lead uuid; m_veh uuid; m_lead uuid;
+declare a uuid := pg_temp.chms_persona(); b uuid := pg_temp.chms_persona(); conv uuid; o uuid; v_veh uuid; v_lead uuid; v_cot uuid; m_veh uuid; m_lead uuid; m_cot uuid;
 begin
   conv := pg_temp.chms_conversacion(array[a, b]);
   insert into public.origenes (clave, nombre) values ('chms_' || substr(gen_random_uuid()::text, 1, 8), 'CHMS origen ' || substr(gen_random_uuid()::text, 1, 8)) returning id into o;
@@ -165,9 +198,13 @@ begin
   values ('CHMS lead', '59' || lpad((('x' || substr(md5(gen_random_uuid()::text), 1, 7))::bit(28)::int % 100000000)::text, 8, '0'), a) returning id into v_lead;
   insert into public.mensajes (conversacion_id, autor_id, tipo, vehiculo_id) values (conv, a, 'vehiculo', v_veh) returning id into m_veh;
   insert into public.mensajes (conversacion_id, autor_id, tipo, lead_id) values (conv, a, 'lead', v_lead) returning id into m_lead;
+  v_cot := pg_temp.chms_cotizacion(a);
+  insert into public.mensajes (conversacion_id, autor_id, tipo, cotizacion_id) values (conv, a, 'cotizacion', v_cot) returning id into m_cot;
   delete from public.vehiculos where id = v_veh;
   delete from public.leads where id = v_lead;
-  if (select vehiculo_id from public.mensajes where id = m_veh) is not null or (select lead_id from public.mensajes where id = m_lead) is not null then
+  delete from public.cotizaciones where id = v_cot;
+  if (select vehiculo_id from public.mensajes where id = m_veh) is not null or (select lead_id from public.mensajes where id = m_lead) is not null
+     or (select cotizacion_id from public.mensajes where id = m_cot) is not null then
     raise exception 'la ficha conservó una referencia purgada';
   end if;
   begin

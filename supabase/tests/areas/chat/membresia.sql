@@ -221,6 +221,9 @@ begin
   r := pg_temp.chm_corre(a, format('select public.mensaje_enviar(%L, %L, %L, %L)', gen_random_uuid(), conv, 'sin la mención', jsonb_build_array(jsonb_build_object('tipo', 'usuario', 'id', b))));
   if r ->> 'error' is distinct from '22023' or r ->> 'hint' is distinct from 'menciones' then raise exception 'una mención fuera del texto no dio 22023: %', r; end if;
 
+  -- A ve los leads de su cartera: el de otra persona existe y queda fuera de su alcance, no de su permiso.
+  insert into public.roles_permisos (rol_id, permiso_clave, alcance)
+  select ur.rol_id, 'leads.ver', 'propios' from public.usuarios_roles ur where ur.usuario_id = a and ur.es_principal;
   insert into public.leads (nombre, telefono_principal, creado_por)
   values ('CHM lead', '59' || lpad((('x' || substr(md5(gen_random_uuid()::text), 1, 7))::bit(28)::int % 100000000)::text, 8, '0'), duenio_lead) returning id into v_lead;
   r := pg_temp.chm_corre(a, format('select public.mensaje_enviar(%L, %L, %L, %L)', gen_random_uuid(), conv, format('mira #[lead:%s]', v_lead), jsonb_build_array(jsonb_build_object('tipo', 'lead', 'id', v_lead))));
