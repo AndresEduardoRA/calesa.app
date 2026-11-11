@@ -6,7 +6,7 @@
 --   R11. `requisito_impacto` cuenta las unidades vivas de la fase que no cumplen el requisito (informativo da igual), corta en el tope y dice
 --        cuántas revisó; una fase vacía da {0, false, 0}.
 --   R12. `flujo_fuera_de_regla` no ve un requisito informativo; al volverlo bloqueante devuelve esas unidades (ids, fase, faltan) y corta en
---        tope + 1.
+--        tope + 1 en total, también con dos fases.
 --   R13. `previsualizar_cambio_fase` deja pasar con el requisito informativo y frena con él bloqueante.
 --   R14. El asesor y quien configura otro origen → 42501 en las dos lecturas; quien configura el origen, no.
 --   R15. `fuera_de_regla()` ya no existe; anon no ejecuta las dos; un requisito o un flujo inexistentes → PT409.
@@ -137,7 +137,7 @@ declare
   primera uuid := pg_temp.rl_asesor();
   e jsonb := pg_temp.rl_escenario(); a uuid := (e ->> 'flujo')::uuid;
   config uuid := pg_temp.rl_persona(array['flujos.configurar@' || pg_temp.rl_origen_de(a)]);
-  r jsonb; esperadas uuid[] := array(select jsonb_array_elements_text(e -> 'sin_vin')::uuid);
+  r jsonb; g uuid; esperadas uuid[] := array(select jsonb_array_elements_text(e -> 'sin_vin')::uuid);
 begin
   r := pg_temp.rl_fuera(config, a);
   if r -> 'filas' is distinct from '[]'::jsonb then raise exception 'R12: con el requisito informativo no debía dar filas y dio %', r; end if;
@@ -150,8 +150,14 @@ begin
                 where x -> 'repuesto_id' <> 'null'::jsonb or x ->> 'fase_id' <> e ->> 'fase' or (x ->> 'faltan')::int <> 1) then
     raise exception 'R12: debía dar los dos sin VIN en la fase con faltan 1 y dio %', r;
   end if;
+  -- Una segunda fase con su bloqueante y dos sin VIN: el tope es del total, no de cada fase (v_resto baja por row_count).
+  g := pg_temp.rl_fase(a, 'RL fase 2');
+  insert into public.fases_requisitos (fase_id, tipo, clave_dato, bloqueante) values (g, 'dato', 'vehiculo.vin', true);
+  perform pg_temp.rl_vehiculo(a, g); perform pg_temp.rl_vehiculo(a, g);
+  r := pg_temp.rl_fuera(config, a);
+  if jsonb_array_length(r -> 'filas') <> 4 then raise exception 'R12: con dos fases debía dar 4 filas y dio %', r; end if;
   r := pg_temp.rl_fuera(config, a, 1);
-  if jsonb_array_length(r -> 'filas') <> 2 then raise exception 'R12: con tope 1 debía dar tope + 1 = 2 filas y dio %', r; end if;
+  if jsonb_array_length(r -> 'filas') <> 2 then raise exception 'R12: con tope 1 debía dar tope + 1 = 2 filas en total y dio %', r; end if;
 end $$;
 rollback;
 
