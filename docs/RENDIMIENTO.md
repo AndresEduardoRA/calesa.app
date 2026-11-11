@@ -104,6 +104,15 @@ Elige 10, 25, 50 o 100 (`listas.por_pagina`, `?por=`); cada lista declara su má
 - Nodos del DOM de una columna en el tope (500 tarjetas): ≤ 10.250; el «⋯» de cada tarjeta cuesta exactamente 3 nodos (`<use>` a un símbolo de `src/shared/ui/lista/simbolos-de-lista.tsx`; `e2e/mas-acciones-icono.spec.ts`). El servidor dibuja una sola distribución (columnas o pestañas) según el ancho de la petición.
 - Oportunidades de la ficha: 10 en el servidor (las abiertas primero) y «Ver más» de a `TAMANO_DE_VER_MAS` desde el navegador, hasta `TOPE_DE_LO_CARGADO` con aviso y el camino «Buscarlas en tu embudo». Documento de la ficha ≤ 66 KB con la sección abierta, con 10 o con 1.000 (62,7 y 61,7 KB). Cada «Ver más», una página de 20 de ≈ 15,5 KB que no crece con la profundidad (≈ 3 ms en la base, `medir-lead-oportunidades.sql`); nodos lineales hasta 500 (238 con 10 y 11.509 con 500). `e2e/leads-oportunidades-ver-todas.spec.ts`.
 
+## Buscador (7.12)
+
+Cada sección por su RPC, de a `_acotar_pagina(p_tamano, 5, 20)` + 1, con el mínimo de `MINIMO_DE_BUSQUEDA` en la base (`_buscador_interpretar()`).
+
+- Leads (`buscador_leads()`): la ventana de `leads_candidatos()` con sólo el texto (la búsqueda del listado, medida en `busqueda-volumen.sql`) + `leads_ids_del_numero()` (≤ 100) + una pasada de `leads_vista_por_ids()` sobre esos ids; corta en 21.
+- Vehículos (`buscador_vehiculos()`): una ruta por origen visible por `vehiculos_origen_listado_idx`, ≤ 21 por origen. **Límite sin assert**, el del panel y el inventario: con un texto que no coincide recorre los vehículos vivos de cada origen visible.
+- Cotizaciones (`buscador_cotizaciones()`, definer): el número por `cotizaciones_numero_key`; el título por `cotizaciones_titulo_trgm`, a lo sumo 1.000 candidatas de los orígenes que se ven, más las propias por `cotizaciones_creador_idx` (≤ 21), y la policy sobre ellas por la PK (`en_cartera` por fila con «propios»). **Límite sin assert hasta el 7.12-2:** no tiene `EXPLAIN` en `db:medir:volumen`; el 7.12-2 suma un `medir-buscador.sql` (número, título común y título raro, como la dueña y como Ana).
+- `visitados`: ≤ 50 por persona (`visita_registrar()` recorta), por la PK y `visitados_usuario_visto_idx (usuario_id, visto_en desc)`.
+
 ## JS en frío (con gzip, lo que el documento nombra)
 
 - `/leads` ≤ 530 KB (medido 503,5), `/perfil` ≤ 440 KB (413,5), `/vehiculos` ≤ 500 KB (468,6). `/cotizaciones/nuevo` con la subasta (`?origen=`) ≤ 460 KB (medido **459,0** en 27 chunks en el 4.18-3b, tras «Vista previa» del 4.18-2, el runtime de react-pdf del 4.18-3a y el enlace del PDF del 3b; 432 en 27 chunks desde el 4.14-2a, con la barra del vehículo en frío y su panel diferido; 429,5 en 25 antes; 428,1 en el 4.13-4b3, 426,8 antes y 423,8 antes del 4.13-4a), desde el 4.13-4d en `e2e/presupuesto-js.spec.ts`.
