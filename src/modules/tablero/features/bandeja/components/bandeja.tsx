@@ -1,36 +1,27 @@
 import { UserRoundXIcon } from 'lucide-react'
+import { Suspense } from 'react'
+import { ZONA_POR_DEFECTO } from '@/shared/lib/fechas'
 import type { Permisos } from '@/shared/lib/permisos'
 import { EstadoVacio } from '@/shared/ui/estados'
-import { bloquesVisibles, type BloqueBandeja } from '../../../entities/bandeja'
+import { bloquesParaMontar } from '../bloques/registro'
+import { EsqueletoDeBloque } from './esqueleto-de-bloque'
+import { MarcoDeBloque } from './marco-de-bloque'
+import { MontajeDeBloque } from './montaje-de-bloque'
 
 type Props = {
   nombre: string
   permisos: Permisos
   // La persona entró pero nadie le asignó un rol todavía.
   sinRol: boolean
-}
-
-function Bloque({ bloque }: { bloque: BloqueBandeja }) {
-  return (
-    <section
-      aria-labelledby={`bandeja-${bloque.clave}`}
-      className="flex flex-col rounded-(--radius-card) border border-(--color-line) bg-(--color-surface)"
-    >
-      <h2
-        id={`bandeja-${bloque.clave}`}
-        className="border-b border-(--color-line) px-4 py-3 text-(length:--text-base) font-medium text-(--color-ink)"
-      >
-        {bloque.titulo}
-      </h2>
-      <EstadoVacio compacto titulo="Nada pendiente" descripcion={bloque.vacio} />
-    </section>
-  )
+  // La zona horaria de la empresa: de ella sale qué es «hoy».
+  zona?: string
 }
 
 // Inicio: la bandeja de trabajo. No es un tablero de métricas (eso es `/tablero`): es lo que hay
-// que hacer ahora, armado con los permisos de quien entra.
-export function Bandeja({ nombre, permisos, sinRol }: Props) {
-  const bloques = bloquesVisibles(permisos)
+// que hacer ahora, armado con los permisos de quien entra. Cada bloque lee por su cuenta tras su
+// `<Suspense>`: uno lento o caído no frena ni tumba a los demás.
+export function Bandeja({ nombre, permisos, sinRol, zona = ZONA_POR_DEFECTO }: Props) {
+  const bloques = bloquesParaMontar(permisos)
 
   return (
     <div className="grid gap-5">
@@ -60,8 +51,12 @@ export function Bandeja({ nombre, permisos, sinRol }: Props) {
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {bloques.map((bloque) => (
-            <Bloque key={bloque.clave} bloque={bloque} />
+          {bloques.map((montaje) => (
+            <MarcoDeBloque key={montaje.bloque.clave} bloque={montaje.bloque}>
+              <Suspense fallback={<EsqueletoDeBloque />}>
+                <MontajeDeBloque montaje={montaje} zona={zona} />
+              </Suspense>
+            </MarcoDeBloque>
           ))}
         </div>
       )}

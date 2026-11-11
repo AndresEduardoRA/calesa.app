@@ -1,6 +1,6 @@
 // La bandeja de inicio: lo que hay que hacer ahora, en bloques. Cada bloque se muestra sólo si la
 // persona tiene alguno de sus permisos: la bandeja se arma por permisos, nunca por nombre de rol.
-// Por ahora los bloques están declarados y vacíos; su contenido llega con el módulo que lo cuenta.
+// Cada bloque tiene su archivo en `features/bandeja/bloques/<clave>.tsx`: el módulo que lo cuenta lo llena.
 import { puede, type ClavePermiso, type Permisos } from '@/shared/lib/permisos'
 
 export type BloqueBandeja = {
@@ -75,6 +75,12 @@ export const BLOQUES_BANDEJA = [
   },
 ] as const satisfies readonly BloqueBandeja[]
 
-export function bloquesVisibles(permisos: Permisos): BloqueBandeja[] {
+export type BloqueDelCatalogo = (typeof BLOQUES_BANDEJA)[number]
+export type ClaveDeBloque = BloqueDelCatalogo['clave']
+
+// Cada bloque pide `TOPE_DE_BLOQUE + 1` filas y muestra hasta `TOPE_DE_BLOQUE`: el número que dice es «5» o «más de 5», nunca un total.
+export const TOPE_DE_BLOQUE = 5
+
+export function bloquesVisibles(permisos: Permisos): BloqueDelCatalogo[] {
   return BLOQUES_BANDEJA.filter((bloque) => bloque.permisos.some((clave) => puede(permisos, clave)))
 }

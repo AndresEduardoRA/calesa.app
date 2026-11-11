@@ -5,7 +5,8 @@ import { z } from 'zod'
 import { diaEnZona, formatearDiaYMes, sumarDias } from '@/shared/lib/fechas'
 
 // Cuántos días antes se avisa: «Se limpiará pronto» son los vehículos que se limpian en los
-// próximos 3 días (hoy incluido). El filtro y el banner usan este mismo número.
+// próximos 3 días (hoy incluido). El filtro y el banner usan este mismo número, y la base lo repite
+// en `_limpieza_ventana_de_aviso()` (el aviso de limpieza): si cambia uno, cambia el otro.
 export const VENTANA_DE_AVISO_DIAS = 3
 
 // Lo que dice `vehiculo_limpieza()` de un vehículo. `aplica: false` = no se limpia nunca (lo

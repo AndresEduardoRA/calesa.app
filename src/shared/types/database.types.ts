@@ -3044,6 +3044,40 @@ export type Database = {
           },
         ]
       }
+      limpieza_avisos: {
+        Row: {
+          avisado_en: string
+          fecha: string
+          vehiculo_id: string
+        }
+        ComputedFields: never
+        Insert: {
+          avisado_en?: string
+          fecha: string
+          vehiculo_id: string
+        }
+        Update: {
+          avisado_en?: string
+          fecha?: string
+          vehiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'limpieza_avisos_vehiculo_id_fkey'
+            columns: ['vehiculo_id']
+            isOneToOne: true
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['vehiculo_id']
+          },
+          {
+            foreignKeyName: 'limpieza_avisos_vehiculo_id_fkey'
+            columns: ['vehiculo_id']
+            isOneToOne: true
+            referencedRelation: 'vehiculos'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       limpieza_corridas: {
         Row: {
           empezo_en: string
@@ -7751,6 +7785,7 @@ export type Database = {
         }
         Returns: string
       }
+      _limpieza_ventana_de_aviso: { Args: Record<PropertyKey, never>; Returns: number }
       _lote_papelera_tocar: { Args: { p_lote: string }; Returns: string }
       _motor_borde_entre: { Args: { a: number; b: number }; Returns: number }
       _motor_borde_mas: { Args: { a: number; b: number }; Returns: number }
@@ -8841,6 +8876,7 @@ export type Database = {
         Args: { p_ahora?: string; p_origenes?: string[] }
         Returns: Json
       }
+      limpieza_avisar: { Args: { p_ahora?: string; p_origenes?: string[] }; Returns: Json }
       limpieza_el: {
         Args: {
           v: Omit<
@@ -8887,6 +8923,7 @@ export type Database = {
       nivel_retirar: { Args: { p_actualizado_en_esperado: string; p_id: string }; Returns: Json }
       niveles_con_uso: { Args: Record<PropertyKey, never>; Returns: Json }
       normalizar_telefono: { Args: { p_cc: string; p_tel: string }; Returns: string }
+      notificaciones_purgar: { Args: Record<PropertyKey, never>; Returns: Json }
       notificar: {
         Args: {
           p_accion?: boolean
