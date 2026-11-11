@@ -152,3 +152,52 @@ begin
   if r ->> 'error' is distinct from '22023' or r ->> 'hint' is distinct from 'ficha' then raise exception 'una ficha de tarea no dio 22023: %', r; end if;
 end $$;
 rollback;
+
+-- @test chat: nadie escribe mensajes ni menciones directo: insert, update (también des-borrar) y delete como authenticated dan 42501 (E5, C13)
+begin;
+do $$
+declare a uuid := pg_temp.chms_persona(array['chat.participar', 'chat.moderar']); b uuid := pg_temp.chms_persona(array['chat.participar']);
+  conv uuid; m uuid; borrado uuid; q text; r jsonb;
+begin
+  conv := pg_temp.chms_conversacion(array[a, b]);
+  insert into public.mensajes (conversacion_id, autor_id, cuerpo) values (conv, a, 'vivo') returning id into m;
+  insert into public.mensajes (conversacion_id, autor_id, cuerpo, eliminado_en) values (conv, a, null, now()) returning id into borrado;
+  foreach q in array array[
+    format('insert into public.mensajes (conversacion_id, autor_id, cuerpo) values (%L, %L, %L) returning to_jsonb(id)', conv, a, 'directo'),
+    format('insert into public.mensajes_menciones (mensaje_id, tipo, referencia_id) values (%L, %L, %L) returning to_jsonb(mensaje_id)', m, 'usuario', b),
+    format('update public.mensajes set cuerpo = %L where id = %L returning to_jsonb(id)', 'otro', m),
+    format('update public.mensajes set editado_en = null where id = %L returning to_jsonb(id)', m),
+    format('update public.mensajes set eliminado_en = null where id = %L returning to_jsonb(id)', borrado),
+    format('delete from public.mensajes where id = %L returning to_jsonb(id)', m),
+    format('delete from public.mensajes_menciones where mensaje_id = %L returning to_jsonb(mensaje_id)', m)
+  ] loop
+    r := pg_temp.chms_corre(a, q);
+    if r ->> 'error' is distinct from '42501' then raise exception 'una escritura directa no dio 42501: % → %', q, r; end if;
+  end loop;
+  if (select eliminado_en from public.mensajes where id = borrado) is null then raise exception 'se des-borró un mensaje'; end if;
+  if pg_temp.chms_corre(b, format('select to_jsonb(count(*)) from public.mensajes where conversacion_id = %L', conv)) <> '2' then raise exception 'un miembro dejó de leer'; end if;
+  if exists (select 1 from pg_policies where schemaname = 'public' and tablename in ('mensajes', 'mensajes_menciones') and cmd <> 'SELECT') then
+    raise exception 'quedó una policy de escritura en mensajes o menciones';
+  end if;
+end $$;
+rollback;
+
+-- @test chat: las RPC de mensajes son definer con search_path vacío, de authenticated y no de anon ni PUBLIC; los ayudantes no son de authenticated (E6)
+begin;
+do $$
+declare f text; p oid;
+begin
+  foreach f in array array['mensaje_enviar(uuid,uuid,text,jsonb,uuid,jsonb)', 'mensaje_editar(uuid,timestamp with time zone,text,jsonb)', 'mensaje_eliminar(uuid)',
+                           'mensaje_tarea_crear(uuid,uuid,jsonb)', 'mensaje_evento_crear(uuid,uuid,jsonb,uuid[])'] loop
+    p := ('public.' || f)::regprocedure;
+    if not (select prosecdef and proconfig @> array['search_path=""'] from pg_proc where oid = p) then raise exception '% no es definer con search_path vacío', f; end if;
+    if not has_function_privilege('authenticated', p, 'execute') then raise exception '% no es de authenticated', f; end if;
+    if has_function_privilege('anon', p, 'execute') then raise exception '% es de anon', f; end if;
+    if exists (select 1 from pg_proc, aclexplode(proacl) a where oid = p and a.grantee = 0) then raise exception '% es de PUBLIC', f; end if;
+  end loop;
+  foreach f in array array['_chat_miembro_vigente(uuid,uuid)', '_chat_cuerpo(text,boolean)', '_chat_menciones_guardar(uuid,uuid,text,jsonb)'] loop
+    p := ('public.' || f)::regprocedure;
+    if has_function_privilege('authenticated', p, 'execute') or has_function_privilege('anon', p, 'execute') then raise exception '% es de authenticated o anon', f; end if;
+  end loop;
+end $$;
+rollback;
