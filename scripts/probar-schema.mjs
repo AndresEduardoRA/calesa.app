@@ -266,6 +266,7 @@ const LISTA_FIJA = [
   'vehiculos-inventario.sql',
   'vehiculos-inventario-filtros.sql',
   'flujos-reglas.sql',
+  'flujos-oferta.sql',
   // Al final: sus `pg_temp` (la copia vieja de `puede_vehiculo`) no llegan a los archivos de antes.
   'vehiculos-visibilidad.sql',
 ]

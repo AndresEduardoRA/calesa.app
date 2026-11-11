@@ -2048,21 +2048,21 @@ export type Database = {
       flujos_transporte_oferta: {
         Row: {
           flujo_id: string
-          naviera_id: string
-          puerto_id: string
+          naviera_id: string | null
+          puerto_id: string | null
           tipo: string
         }
         ComputedFields: never
         Insert: {
           flujo_id: string
-          naviera_id: string
-          puerto_id: string
+          naviera_id?: string | null
+          puerto_id?: string | null
           tipo: string
         }
         Update: {
           flujo_id?: string
-          naviera_id?: string
-          puerto_id?: string
+          naviera_id?: string | null
+          puerto_id?: string | null
           tipo?: string
         }
         Relationships: [
@@ -8829,6 +8829,17 @@ export type Database = {
         Returns: string
       }
       flujo_de_fase: { Args: { p_fase: string }; Returns: string }
+      flujo_oferta: { Args: { p_flujo: string }; Returns: Json }
+      flujo_oferta_guardar: {
+        Args: {
+          p_actualizado_en_esperado: string
+          p_flujo: string
+          p_navieras: string[]
+          p_puertos_destino: string[]
+          p_puertos_origen: string[]
+        }
+        Returns: string
+      }
       flujo_regla_activa: { Args: { p_flujo: string; p_regla: string }; Returns: boolean }
       flujo_regla_cambiar: {
         Args: {
