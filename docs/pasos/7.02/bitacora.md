@@ -32,3 +32,9 @@ Tercera y última parte. El paso queda completo:
 - Presupuesto del documento de `/perfil`: 91 KB (86.627 B medidos con la entrada de Logística de 6.01 y la campana de 7.02-2; lo medido más un 5 %).
 - Pruebas: `e2e/notificaciones-campana.spec.ts`, 7 × escritorio y celular (25 avisos: «Ver todas» lista 20 y «Ver más» trae los 5 restantes sin repetir; `?ver=por-accionar` filtra y «Todas» vuelve; un aviso nuevo entra arriba sin recargar; «Marcar todas como leídas» las deja leídas sin accionar), `presupuesto-js` en verde. `fundir.test.ts` y `scripts/guardas` en verde; `lint`, `typecheck` y `mapa.sh --check` sin avisos.
 - e2e completo: no (7.02-3, sólo specs dirigidos: lo prueba el CI del PR)
+
+## 7.02 · arreglo del CI del PR #116 (2026-11-11)
+
+Cuatro bloques de e2e en rojo (escritorio). Causas, medidas y reproducidas en local: (1) la campana pedía `notificaciones` al montar y los specs que cuentan pedidos a la base lo veían (`vehiculos-resumen`, `cotizaciones-listado-resumen`, `leads-escala`); (2) +1 parada de Tab (`cotizar-tarea-de-oro-recorrido`, `leads-portal-acceso`); (3) el JS del cliente de Supabase evaluado al hidratar retrasaba ≈ 320 ms el primer clic que vale (`leads-oportunidades-ver-todas`, `leads-confirmar-por-url`, `vehiculos-alta` y `cotizaciones-listado` con la tecla N); (4) un aviso insertado antes de que el canal se uniera se perdía (`notificaciones-campana`). Ver D13 a D15 en `decisiones.md`. Los 11 specs afectados, en verde en escritorio y celular (115 + 3 pruebas), `canal.client.test.ts` en verde.
+
+- e2e completo: no (arreglo del 7.02, sólo specs dirigidos: lo prueba el CI del PR)
