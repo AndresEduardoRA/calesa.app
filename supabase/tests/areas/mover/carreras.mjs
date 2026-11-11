@@ -1,7 +1,8 @@
 // Las carreras de mover de fase (paso 6.02-1), con conexiones reales a la base del Supabase LOCAL. K1: dos `cambiar_fase` con la misma fase esperada;
 // B espera el candado de la unidad que tomó A (`for no key update`, antes de leer) y, cuando A confirma, recibe PT409 con quién y cuándo, sin mover ni
-// escribir historial. Antes de 6.02-1 los dos leían sin candado y podían pasar los dos.
-// Terreno con el prefijo «Carreras»: el rol lo borra `limpiar()` de
+// escribir historial. Antes de 6.02-1 los dos leían sin candado y podían pasar los dos. K2: dos lotes con los mismos vehículos en orden inverso: el
+// segundo espera los candados del primero y devuelve conflicto para los dos (el arnés corre A entero antes de lanzar B, así que no prueba el orden
+// de los candados por id, que se lee en `cambiar_fase_lote`). Terreno con el prefijo «Carreras»: el rol lo borra `limpiar()` de
 // `scripts/carreras/terreno.mjs`; el vehículo, su historial y su actividad los borra esta misma prueba (las FK `restrict` de `historial_fases` hacia
 // `fases` frenarían el borrado del origen), y el origen (con su flujo y sus fases en cascada), `limpiar()`. Las corre `scripts/carreras.mjs` (`pnpm db:carreras`).
 import { PERSONAS, PREFIJO } from '../../../../scripts/carreras/terreno.mjs'
@@ -98,6 +99,34 @@ export async function carrerasDeMover({ orquesta, carrera, espero }) {
           fila?.fase_id === dos &&
           (await historialDe(orquesta, [v])) === 1,
         { r, fila },
+      )
+    }
+
+    console.log('Dos lotes con los mismos dos vehículos en orden inverso')
+    {
+      const v1 = await vehiculoEn(orquesta, origen, uno, 'mover k2 a')
+      const v2 = await vehiculoEn(orquesta, origen, uno, 'mover k2 b')
+      vehiculos.push(v1, v2)
+      const lote = (persona, ids) => ({
+        persona,
+        sql: 'public.cambiar_fase_lote($1::jsonb, $2, null)::text',
+        args: [JSON.stringify(ids.map((vehiculo) => ({ vehiculo, fase_esperada: uno }))), dos],
+      })
+      const r = await carrera(orquesta, {
+        a: lote(duena, [v2, v1]),
+        b: lote(supervision, [v1, v2]),
+      })
+      const deA = r.a.ok ? JSON.parse(r.a.valor) : []
+      const deB = r.b.ok ? JSON.parse(r.b.valor) : []
+      espero(
+        'K2: A mueve los dos; B esperó sus candados y devuelve conflicto para los dos, en su orden de entrada; dos historiales',
+        deA.length === 2 &&
+          deA.every((u) => u.ok === true) &&
+          deB.length === 2 &&
+          deB.every((u) => u.ok === false && u.codigo === 'conflicto') &&
+          deB[0].vehiculo_id === v1 &&
+          (await historialDe(orquesta, [v1, v2])) === 2,
+        { r },
       )
     }
   } finally {

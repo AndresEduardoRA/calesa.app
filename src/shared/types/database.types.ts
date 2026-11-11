@@ -7571,6 +7571,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      _fase_conflicto: {
+        Args: { p_actual: string; p_repuesto: string; p_vehiculo: string }
+        Returns: undefined
+      }
       _fase_forma: { Args: { p_datos: Json; p_vacio_vale: boolean }; Returns: undefined }
       _fase_unico: { Args: { p_nombre: string; p_restriccion: string }; Returns: undefined }
       _fase_uso: { Args: { p_fase: string }; Returns: Json }
@@ -8359,6 +8363,7 @@ export type Database = {
         Args: { p_a: string; p_de: string; p_restriccion: string }
         Returns: undefined
       }
+      _unidad_sin_acceso: { Args: { p_vehiculo: string }; Returns: string }
       _url_del_proyecto: { Args: Record<PropertyKey, never>; Returns: string }
       _uuid_de: { Args: { p_hint: string; p_valor: Json }; Returns: string }
       _vehiculo_a_lote: {
@@ -8587,7 +8592,7 @@ export type Database = {
         Returns: number
       }
       cambiar_fase_lote: {
-        Args: { p_fase_destino: string; p_nota?: string; p_vehiculos: string[] }
+        Args: { p_fase_destino: string; p_nota?: string; p_unidades: Json }
         Returns: Json
       }
       cambiar_telefono_lead: {
@@ -9477,6 +9482,10 @@ export type Database = {
       portal_estado: { Args: { p_lead: string }; Returns: Json }
       previsualizar_cambio_fase: {
         Args: { p_fase_destino: string; p_repuesto: string; p_vehiculo: string }
+        Returns: Json
+      }
+      previsualizar_cambio_fase_lote: {
+        Args: { p_fase: string; p_vehiculos: string[] }
         Returns: Json
       }
       puede_actuar_lead: { Args: { p_clave: string; p_lead: string }; Returns: boolean }
