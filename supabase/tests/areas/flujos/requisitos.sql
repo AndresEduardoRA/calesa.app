@@ -14,6 +14,7 @@
 --   R8. El asesor y quien configura otro origen → 42501 en crear, guardar, mover y eliminar; `repuestos.configurar` sólo en repuestos.
 --   R9. Escritura directa como authenticated que configura → 42501; el select sigue.
 --   R10. Con la versión vieja → PT409 sin escribir; authenticated no ejecuta los ayudantes.
+--   R16. La validación lee los formatos del tipo `for share` (el candado del 5.03, 5.07-2:D11).
 
 create or replace function pg_temp.rq_persona(p_concesiones text[]) returns uuid language plpgsql as $f$
 declare v_id uuid := gen_random_uuid(); v_rol uuid; c text;
@@ -259,6 +260,17 @@ begin
      or has_function_privilege('anon', 'public.requisito_mover(uuid, timestamptz, uuid)', 'execute')
      or has_function_privilege('anon', 'public.requisito_eliminar(uuid, timestamptz)', 'execute') then
     raise exception 'R10: authenticated ejecuta un ayudante o anon una RPC';
+  end if;
+end $$;
+rollback;
+
+-- @test requisitos: la validación lee los formatos del tipo for share, como la dejó el 5.03 (R16, 5.07-2:D11)
+begin;
+do $$
+begin
+  if pg_get_functiondef('public.fase_requisito_validar()'::regprocedure)
+     !~ 'tipos_documento\s+where\s+id\s*=\s*new\.tipo_documento_id\s+for\s+share' then
+    raise exception 'R16: fase_requisito_validar() debía leer tipos_documento for share';
   end if;
 end $$;
 rollback;
