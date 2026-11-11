@@ -38,7 +38,7 @@ import {
 } from 'node:fs'
 import { join } from 'node:path'
 import { limpiarRamas, ramasProtegidas } from './limpiar-ramas.mjs'
-import { atenderColgado, gh, integrar, mirarPr, reintentarUnaVez } from './pr.mjs'
+import { atenderColgado, gh, integrar, integrarSueltos, mirarPr, reintentarUnaVez } from './pr.mjs'
 import {
   aparcar,
   estadoInicial,
@@ -250,9 +250,7 @@ function sincronizarParciales(plan, estado, informe) {
       const r = reintentarUnaVez(e.pr_parcial, pr, estado)
       estado = r.estado
       if (r.reintentado) {
-        informe.push(
-          `${paso.id}: la parte #${e.pr_parcial} quedó en rojo: vuelvo a correr lo que cayó, una vez`,
-        )
+        if (r.aviso) informe.push(`${paso.id}: la parte #${e.pr_parcial} quedó en rojo: ${r.aviso}`)
         continue
       }
     }
@@ -380,7 +378,7 @@ function sincronizar(plan, estado) {
       const r = reintentarUnaVez(e.pr, pr, estado)
       estado = r.estado
       if (r.reintentado) {
-        informe.push(`${paso.id}: CI en rojo (#${e.pr}): vuelvo a correr lo que cayó, una vez`)
+        if (r.aviso) informe.push(`${paso.id}: CI en rojo (#${e.pr}): ${r.aviso}`)
         continue
       }
     }
@@ -612,6 +610,7 @@ try {
       let protegidas
       const informe = conCandado(() => {
         const r = sincronizar(plan, leerEstado(plan))
+        r.estado = integrarSueltos(r.estado, r.informe)
         guardarEstado(r.estado)
         protegidas = ramasProtegidas(plan, r.estado)
         return r.informe

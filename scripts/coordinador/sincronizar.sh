@@ -7,8 +7,22 @@ RAIZ=$(git rev-parse --show-toplevel)
 cd "$RAIZ" || exit 1
 # Exportado (set -a): lo lee coordinador.mjs, que es otro proceso. Sin exportar, COORD_MERGE_AUTO de piloto.config no le llegaba nunca y el
 # coordinador seguía con verde,ambar aunque la persona decidiera integrar también lo rojo (#54, 2026-11-07).
-if [ -f piloto.config ]; then set -a; source piloto.config; set +a; fi
-INTERVALO="${COORD_INTERVALO:-180}"
+# Se carga en cada vuelta y de origin/main (como scripts/piloto/comun.sh), dentro de un subshell: este proceso vive días en el árbol de un
+# carril, y con la de su rama, leída una vez al arrancar, un cambio de piloto.config integrado en main no le llegaba hasta que alguien lo
+# relanzaba (2026-11-11).
+con_config() {
+  local c
+  c=$(git show origin/main:piloto.config 2>/dev/null) || c=""
+  [ -n "$c" ] || { [ -f piloto.config ] && c=$(cat piloto.config); }
+  set -a
+  eval "$c"
+  set +a
+  "$@"
+}
+decir() { printf '%s' "${!1:-}"; }
+INTERVALO=$(con_config decir COORD_INTERVALO)
+INTERVALO="${INTERVALO:-180}"
+PILOTO_GH_USUARIO=$(con_config decir PILOTO_GH_USUARIO)
 COMUN=$(git rev-parse --path-format=absolute --git-common-dir)/coordinador
 mkdir -p "$COMUN"
 # Uno solo, y que se note si se cayó: toma `sincronizar.lock` mientras corre. El vigía de cada carril (arrancar.sh › asegurar_coordinador) lo
@@ -26,8 +40,8 @@ while :; do
   [ -f "$COMUN/PARAR" ] && { echo "coordinador: PARAR."; exit 0; }
   # El plan se lee de origin/main (coordinador.mjs): se trae antes de mirar.
   timeout 60 git fetch -q origin main 2>/dev/null 7>&-
-  node scripts/coordinador/coordinador.mjs sincronizar 2>&1 7>&- | sed "s/^/$(TZ=America/La_Paz date +%FT%T) /"
-  tablero=$(node scripts/coordinador/coordinador.mjs tablero 2>/dev/null)
+  (con_config node scripts/coordinador/coordinador.mjs sincronizar) 2>&1 7>&- | sed "s/^/$(TZ=America/La_Paz date +%FT%T) /"
+  tablero=$(con_config node scripts/coordinador/coordinador.mjs tablero 2>/dev/null)
   if grep -qE '^([0-9]+) de \1 pasos integrados' <<<"$(sed -n 3p <<<"$tablero")"; then
     echo "coordinador: todos los pasos están integrados. Fin."
     exit 0

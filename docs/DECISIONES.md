@@ -3668,3 +3668,16 @@ contra lo que la base ya tiene; aquí se unieron (`docs/PLAN.md` › «Carriles 
 - **D18 · El marco del drawer cierra con `shallow: false`:** quitar `?vehiculo=` vuelve a pedir la página, así el panel no queda montado con una unidad que ya no se muestra; la lectura la hace el servidor (`<UnidadAbierta>`) y llega como hijo. Abrirlo desde una tarjeta, sumando al historial y marcando la vuelta del foco, es del 6.03.
 - **D19 · La sección «Logística» del hub existe sólo con un catálogo lleno** (`SECCIONES_DE_LOGISTICA` es vacía o de una): ninguna tarjeta lleva a una pantalla que dice «nada que configurar». La URL entra antes, con la clave.
 - **D20 · El drawer se titula «Unidad»** (el término del glosario: puede ser un vehículo o, en 8.13, un repuesto); el título del vehículo lo dice el panel.
+
+## 2026-11-11 — FLUJO-3: los rojos del entorno no vuelven al carril y el commit no repite la base
+
+- **Por qué:** a 4 h de lanzar, 1 de 69 pasos integrado. `apt` caído en los runners tiró el e2e de los 7 PR; cada carril gastó una sesión en
+  descubrirlo y los tres quedaron esperando un arreglo de `ci.yml` que sólo integra la persona. En cada parte, un tercio del reloj era el hook
+  del commit repitiendo `probar-schema`.
+- **Qué:** el coordinador reconoce un rojo del entorno (cayó un paso que no es prueba y el log trae la señal de red) y lo vuelve a correr hasta 8
+  veces con espera creciente, sin devolver el paso; `lefthook.yml` salta `schema` con `PILOTO=1`; una parte que sigue se planifica desde el plan
+  de la anterior. Detalle y medidas: `docs/PILOTO.md` › «Rojos del entorno y commits sin espera».
+- **Integrar es del coordinador, no de una sesión** (la persona, el mismo día: «que los PR los integres tú, agnóstico a la sesión, automático»):
+  con el CI en verde entra también lo que toca las guardas (`COORD_GUARDAS_SOLAS=1`) y los PR sueltos de una rama `fix/` de este repo. La barrera
+  que queda es el CI (Nivel 1, Carriles, Base y e2e) y la auditoría del plan. Se vuelve atrás con `COORD_GUARDAS_SOLAS=0` y `COORD_SUELTOS=`.
+- **Lo que no cambió:** la auditoría del informe (RLS, permisos, `security definer`, dinero); producción sigue siendo de la persona.
