@@ -126,7 +126,19 @@ Cada sección por su RPC, de a `_acotar_pagina(p_tamano, 5, 20)` + 1, con el mí
 
 - Leads (`buscador_leads()`): la ventana de `leads_candidatos()` con sólo el texto (la búsqueda del listado, medida en `busqueda-volumen.sql`) + `leads_ids_del_numero()` (≤ 100) + una pasada de `leads_vista_por_ids()` sobre esos ids; corta en 21.
 - Vehículos (`buscador_vehiculos()`): una ruta por origen visible por `vehiculos_origen_listado_idx`, ≤ 21 por origen. **Límite sin assert**, el del panel y el inventario: con un texto que no coincide recorre los vehículos vivos de cada origen visible.
-- Cotizaciones (`buscador_cotizaciones()`, definer): el número por `cotizaciones_numero_key`; el título por `cotizaciones_titulo_trgm`, a lo sumo 1.000 candidatas de los orígenes que se ven, más las propias por `cotizaciones_creador_idx` (≤ 21), y la policy sobre ellas por la PK (`en_cartera` por fila con «propios»). **Límite sin assert hasta el 7.12-2:** no tiene `EXPLAIN` en `db:medir:volumen`; el 7.12-2 suma un `medir-buscador.sql` (número, título común y título raro, como la dueña y como Ana).
+- Cotizaciones (`buscador_cotizaciones()`, definer; `supabase/tests/medir-buscador.sql`, 7.12-2, como authenticated con el plan genérico, 50.000 y 250.000, la dueña y
+  Ana con 100 propias fijas): el número por `cotizaciones_numero_key` (6–8 bloques, 0,9 ms); el título por `cotizaciones_titulo_trgm`, a lo sumo 1.000 candidatas de
+  los orígenes que se ven, más las propias por `cotizaciones_creador_idx` (≤ 21) **sólo donde se tiene «propios» sin «todos»** (desde
+  `20261111200531_buscador_cotizaciones_rutas.sql`: antes, un título raro de la dueña recorría todas sus propias, 46 → 229 ms), y la policy sobre ellas por la PK
+  (`en_cartera` por fila con «propios»). Medido: raro 41–61 bloques y ≈ 1 ms, sin crecer con N; común 5 / 11 ms la dueña y 12 / 18 ms Ana (1.000 `en_cartera`), el
+  heap ≈ 610 bloques sin crecer (el tope de 1.000). Presupuestos: número 10 ms, raro 20, común 150 la dueña y 300 Ana; ningún recorrido entero. **Límites
+  declarados:** con un título común, el GIN (31 → 136 bloques) y la PK de la policy (≈ 510 → 2.010, ≤ 1.000 × su profundidad) crecen con las coincidencias; la
+  ruta de las propias crece con las propias de quien busca, no con N; con «todos» en un origen y más de 1.000 coincidencias, las propias no tienen prioridad (se llega por `#número` o afinando el texto). Con el plan a medida (las 5 primeras llamadas de una sesión), un título muy común va por un
+  Seq Scan con `limit 1000` (≈ 600 bloques si las coincidencias se reparten; la tabla entera si quedan al final): se queda así, D22 del 7.12-2. La guarda: sin
+  `cotizaciones_titulo_trgm`, lo raro de la dueña recorre la tabla (7.723 bloques del heap, 228 ms).
+- Últimos abiertos (`leerUltimosAbiertos()`): un pedido de ≤ 16 visitas propias por `visitados_usuario_visto_idx` y hasta tres en paralelo por PK (`in('id', …)`,
+  ≤ 16 ids cada uno, bajo la RLS de cada tabla); se muestran 8.
+- Una búsqueda: hasta 4 pedidos en paralelo (leads hace dos), cada uno ≤ 6 filas; la espera de 250 ms entre teclas es de la paleta (7.13).
 - `visitados`: ≤ 50 por persona (`visita_registrar()` recorta), por la PK y `visitados_usuario_visto_idx (usuario_id, visto_en desc)`.
 
 ## JS en frío (con gzip, lo que el documento nombra)
