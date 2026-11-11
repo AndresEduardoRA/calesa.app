@@ -267,6 +267,23 @@ begin
 end $$;
 rollback;
 
+-- @test reglas: la escritura directa como authenticated da 42501; leer sigue (R7)
+begin;
+do $$
+declare
+  a uuid := pg_temp.flr_flujo(); config uuid := pg_temp.flr_persona(array['flujos.configurar@' || pg_temp.flr_origen_de(a)]); r jsonb;
+begin
+  perform pg_temp.flr_da_error('R7 insert', pg_temp.flr_corre(config,
+    format('insert into public.flujos_reglas (flujo_id, regla, activa) values (%L, ''aduana'', true) returning jsonb_build_object(''ok'', true)', a)), '42501');
+  perform pg_temp.flr_da_error('R7 update', pg_temp.flr_corre(config,
+    format('update public.flujos_reglas set activa = false where flujo_id = %L and regla = ''gastos'' returning jsonb_build_object(''ok'', true)', a)), '42501');
+  perform pg_temp.flr_da_error('R7 delete', pg_temp.flr_corre(config,
+    format('delete from public.flujos_reglas where flujo_id = %L and regla = ''gastos'' returning jsonb_build_object(''ok'', true)', a)), '42501');
+  r := pg_temp.flr_corre(config, format('select jsonb_build_object(''n'', count(*)) from public.flujos_reglas where flujo_id = %L', a));
+  perform pg_temp.flr_es('R7 leer', r, '{"n": 9}');
+end $$;
+rollback;
+
 -- @test reglas: borrar un flujo con fases marcadas y una espera pasa, la cascada no frena (R8)
 begin;
 do $$
