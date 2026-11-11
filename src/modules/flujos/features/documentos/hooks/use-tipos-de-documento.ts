@@ -11,7 +11,11 @@ import {
   type DireccionDeTipo,
   type TipoDeDocumento,
 } from '../../../entities/documentos/tipo-de-documento'
-import { buscarTipo, type VistasDeGrupos } from '../../../entities/documentos/vista-de-grupo'
+import {
+  buscarTipo,
+  firmaDelOrden,
+  type VistasDeGrupos,
+} from '../../../entities/documentos/vista-de-grupo'
 import type { DatosParaCrear } from '../../../entities/documentos/formulario-de-tipo'
 import { useEscrituraDeTipos } from './use-escritura-de-tipos'
 import { usePedidosDeTipos } from './use-pedidos-de-tipos'
@@ -24,7 +28,9 @@ export function useTiposDeDocumento(vistas: VistasDeGrupos) {
   const pedir = usePedidosDeTipos()
   // Lo que anuncia el lector de pantalla tras mover, y qué se movió (la pantalla devuelve el foco).
   const [anuncio, setAnuncio] = useState('')
-  const [movimiento, setMovimiento] = useState<(Movimiento & { grupo: ClaveDeGrupo }) | null>(null)
+  const [movimiento, setMovimiento] = useState<
+    (Movimiento & { grupo: ClaveDeGrupo; firmaAntes: string }) | null
+  >(null)
 
   // Activar o desactivar guarda solo, y es reversible: se ofrece «Deshacer» con la versión nueva (la respuesta la trae).
   async function activar(tipo: TipoDeDocumento, activo: boolean) {
@@ -58,6 +64,7 @@ export function useTiposDeDocumento(vistas: VistasDeGrupos) {
       id: tipo.id,
       direccion,
       grupo: tipo.flujoId === null ? 'empresa' : 'flujo',
+      firmaAntes: firmaDelOrden(grupo.vista.grupo.tipos),
       veces: (antes?.veces ?? 0) + 1,
     }))
   }

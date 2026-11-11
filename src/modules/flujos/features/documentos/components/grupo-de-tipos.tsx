@@ -11,6 +11,7 @@ import {
 } from '../../../entities/documentos/tipo-de-documento'
 import {
   alTopeDelGrupo,
+  firmaDelOrden,
   motivoDeSoloLectura,
   textoDelTope,
   type VistaDeGrupo,
@@ -32,6 +33,39 @@ type Props = {
 }
 
 const BOTON = 'h-11 md:h-8'
+
+type PropsDelEncabezado = {
+  idDeTitulo: string
+  titulo: string
+  detalle: string
+  // Por qué «Nuevo tipo» está apagado (sin permiso, o al tope); nulo si se puede.
+  motivoNuevo: string | null
+  idDelMotivo: string
+  alNuevo: () => void
+}
+
+function EncabezadoDeGrupo(props: PropsDelEncabezado) {
+  const { idDeTitulo, titulo, detalle, motivoNuevo, idDelMotivo, alNuevo } = props
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+      <div className="grid gap-0.5">
+        <h2 id={idDeTitulo} className="text-(length:--text-lg) font-semibold text-(--color-ink)">
+          {titulo}
+        </h2>
+        <p className="text-(length:--text-sm) text-(--color-ink-soft)">{detalle}</p>
+      </div>
+      <Button
+        className={BOTON}
+        disabled={motivoNuevo !== null}
+        aria-describedby={motivoNuevo === null ? undefined : idDelMotivo}
+        onClick={alNuevo}
+      >
+        <PlusIcon aria-hidden />
+        Nuevo tipo
+      </Button>
+    </div>
+  )
+}
 
 // Un grupo de tipos de documento (los de toda la empresa o los de un flujo): su encabezado con «Nuevo tipo», el aviso de sólo lectura si quien
 // mira no lo cambia, la lista con su orden por botones y el pie «N de 100 tipos posibles». Sin permiso, «Nuevo tipo» y «Editar» se ven apagados
@@ -56,8 +90,12 @@ export function GrupoDeTipos({
       ? textoDelTope(grupo.tope)
       : null
     : motivoDeSoloLectura(clave)
-  const grupoMovido = tipos.movimiento?.grupo === clave ? tipos.movimiento : null
-  useFocoTrasMover(prefijo, grupoMovido)
+  // El foco vuelve al botón cuando la lista ya está reordenada: la página trae el orden nuevo después de la respuesta, y mover la fila lo quitaría antes.
+  const movido = tipos.movimiento?.grupo === clave ? tipos.movimiento : null
+  useFocoTrasMover(
+    prefijo,
+    movido && firmaDelOrden(grupo.tipos) !== movido.firmaAntes ? movido : null,
+  )
 
   const filas = filasDeTipos(vista, clave, {
     alEditar,
@@ -67,25 +105,16 @@ export function GrupoDeTipos({
 
   return (
     <section className="grid gap-3" aria-labelledby={idDeTitulo}>
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-        <div className="grid gap-0.5">
-          <h2 id={idDeTitulo} className="text-(length:--text-lg) font-semibold text-(--color-ink)">
-            {titulo}
-          </h2>
-          <p className="text-(length:--text-sm) text-(--color-ink-soft)">{detalle}</p>
-        </div>
-        <Button
-          className={BOTON}
-          disabled={motivoNuevo !== null}
-          aria-describedby={motivoNuevo === null ? undefined : `${prefijo}-motivo`}
-          onClick={() => {
-            alNuevo(clave)
-          }}
-        >
-          <PlusIcon aria-hidden />
-          Nuevo tipo
-        </Button>
-      </div>
+      <EncabezadoDeGrupo
+        idDeTitulo={idDeTitulo}
+        titulo={titulo}
+        detalle={detalle}
+        motivoNuevo={motivoNuevo}
+        idDelMotivo={`${prefijo}-motivo`}
+        alNuevo={() => {
+          alNuevo(clave)
+        }}
+      />
       {motivoNuevo === null ? null : (
         <Aviso tono={puedeCambiar ? 'aviso' : 'info'}>
           <span id={`${prefijo}-motivo`}>{motivoNuevo}</span>

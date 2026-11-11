@@ -122,3 +122,8 @@ export function motivoParaNoEliminarPorUrl(
 export function claveDelBorrador(clave: ClaveDeGrupo, id: string | null): string {
   return `tipo-de-documento:${clave}:${id ?? 'nuevo'}`
 }
+
+// El orden de un grupo, en una línea: si cambia, la página trajo la lista reordenada (las escrituras no la devuelven).
+export function firmaDelOrden(tipos: readonly TipoDeDocumento[]): string {
+  return tipos.map((tipo) => tipo.id).join('|')
+}
