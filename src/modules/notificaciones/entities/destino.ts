@@ -38,8 +38,9 @@ export function destinoDe(
     return { tipo: 'ninguno' }
   }
   const camino = caminoDe(ruta)
-  const hay = disponibles.some(
-    (base) => camino === base || camino.startsWith(base.endsWith('/') ? base : `${base}/`),
+  // `/` (Inicio) sólo es ella misma: como prefijo, todo cuelga de ella.
+  const hay = disponibles.some((base) =>
+    base === '/' ? camino === '/' : camino === base || camino.startsWith(`${base}/`),
   )
   return hay ? { tipo: 'enlace', href: ruta } : { tipo: 'sin-pantalla' }
 }

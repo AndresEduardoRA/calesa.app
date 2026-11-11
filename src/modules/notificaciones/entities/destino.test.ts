@@ -38,6 +38,12 @@ describe('destinoDe', () => {
     expect(destinoDe('/leads', DISPONIBLES)).toEqual({ tipo: 'enlace', href: '/leads' })
   })
 
+  it('Inicio (`/`) sólo es ella misma: no vuelve disponible todo lo que cuelga de la raíz', () => {
+    const conInicio = ['/', '/leads']
+    expect(destinoDe('/', conInicio)).toEqual({ tipo: 'enlace', href: '/' })
+    expect(destinoDe('/agenda', conInicio)).toEqual({ tipo: 'sin-pantalla' })
+  })
+
   it.each([
     '//otro.com',
     '//otro.com/leads',

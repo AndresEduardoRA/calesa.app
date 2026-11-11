@@ -10,6 +10,7 @@ export const RUTAS = {
   nuevaContrasena: '/auth/nueva-contrasena',
   cierre: '/auth/cerrar',
   perfil: '/perfil',
+  notificaciones: '/notificaciones',
   configuracion: '/configuracion',
   equipo: '/configuracion/equipo',
   roles: '/configuracion/roles',
