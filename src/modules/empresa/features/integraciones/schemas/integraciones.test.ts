@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { esquemaGuardarApibara, esquemaGuardarSecreto } from './integraciones'
+import {
+  esquemaGuardarApibara,
+  esquemaGuardarSecreto,
+  esquemaGuardarWebPublica,
+} from './integraciones'
 
 const version = '2026-10-12T14:00:00+00:00'
 
@@ -56,6 +60,46 @@ describe('esquemaGuardarSecreto', () => {
 
   it('rechaza una clave corta y una integración que no lleva secreto', () => {
     expect(esquemaGuardarSecreto.safeParse({ ...pedido, secreto: 'corta' }).success).toBe(false)
-    expect(esquemaGuardarSecreto.safeParse({ ...pedido, clave: 'web_publica' }).success).toBe(false)
+    expect(esquemaGuardarSecreto.safeParse({ ...pedido, clave: 'push_web' }).success).toBe(false)
+  })
+
+  it('la web pública también lleva secreto', () => {
+    expect(esquemaGuardarSecreto.safeParse({ ...pedido, clave: 'web_publica' }).success).toBe(true)
+  })
+})
+
+describe('esquemaGuardarWebPublica', () => {
+  it('prender o apagar no manda la dirección', () => {
+    expect(
+      esquemaGuardarWebPublica.parse({ actualizadoEnEsperado: version, activa: true }),
+    ).toEqual({
+      actualizadoEnEsperado: version,
+      activa: true,
+    })
+  })
+
+  it('una dirección vacía la borra', () => {
+    expect(
+      esquemaGuardarWebPublica.parse({ actualizadoEnEsperado: version, revalidarUrl: '  ' })
+        .revalidarUrl,
+    ).toBeNull()
+  })
+
+  it('una dirección sin https queda con su error en el primer nivel', () => {
+    const leida = esquemaGuardarWebPublica.safeParse({
+      actualizadoEnEsperado: version,
+      revalidarUrl: 'http://ejemplo.com',
+    })
+    expect(leida.success ? [] : leida.error.issues.map((problema) => problema.path)).toEqual([
+      ['revalidarUrl'],
+    ])
+  })
+
+  it('acepta una https y el loopback del entorno local', () => {
+    const con = (revalidarUrl: string) =>
+      esquemaGuardarWebPublica.safeParse({ actualizadoEnEsperado: version, revalidarUrl }).success
+    expect(con('https://sitio.com/api/revalidar')).toBe(true)
+    expect(con('http://127.0.0.1:4000/api/revalidar')).toBe(true)
+    expect(con('https://10.0.0.1/x')).toBe(false)
   })
 })

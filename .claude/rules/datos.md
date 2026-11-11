@@ -9,10 +9,13 @@ paths:
 - Lecturas en `infra/queries/*.ts` con `import 'server-only'`; realtime y fetch del browser en
   `infra/*.client.ts` (`@/shared/lib/supabase/browser`). Nunca desde componentes.
 - El cliente de servidor se crea por request (`createClient()` de `@/shared/lib/supabase/server`).
-- El cliente admin (secret key) salta la RLS: sólo en route handlers del portal, webhooks y crons. Única
-  excepción, invitar personas: `conAdminDeAuth()` de `src/modules/equipo/infra/invitaciones.ts`, que
+- El cliente admin (secret key) salta la RLS: sólo en route handlers del portal, webhooks y crons. Dos
+  excepciones. Invitar personas: `conAdminDeAuth()` de `src/modules/equipo/infra/invitaciones.ts`, que
   comprueba `equipo.usuarios.gestionar` con el cliente de quien invita antes de crear el admin, entrega
-  sólo `auth.admin` (`CuentasInvitadas`) y no asigna el rol. El lint prohíbe importar
+  sólo `auth.admin` (`CuentasInvitadas`) y no asigna el rol. Probar la revalidación de la web pública:
+  `probarRevalidacion()` de `src/modules/empresa/infra/revalidacion-prueba.ts`, que comprueba
+  `empresa.ajustes.gestionar` con el cliente de quien prueba y valida la dirección guardada antes de crear
+  el admin, y con él sólo llama `integracion_secreto('web_publica')`. El lint prohíbe importar
   `@/shared/lib/supabase/admin` desde otro archivo. Nunca lee `leads`, `vehiculos` ni `cotizaciones`.
 - Los tipos salen de `@/shared/types/database.types`.
 - Leads: se leen de `leads_vista`, nunca `from('leads')` para el teléfono. «Míos» de quien tiene
@@ -25,7 +28,7 @@ paths:
   `categoria_*`); vehículos (`vehiculo_crear` con el `id` del navegador, `vehiculo_guardar`,
   `vehiculo_subasta_refrescar`); fotos (`vehiculo_foto*`; versión de `vehiculos_imagenes_version`).
 - El bruto de apibara no llega del navegador (lo guarda la edge function en `apibara_consultas`); su clave
-  la lee sólo `integracion_secreto()`, nunca el cliente admin.
+  la lee sólo `integracion_secreto()`, nunca el cliente admin leyendo Vault.
 - Lo que otorga permisos se escribe por RPC: `crear_lead`, `cambiar_fase`, `vehiculo_vitrina`,
   `vehiculo_vincular`, `vehiculos_papelera_*`, `leads_papelera_*`, `formula_*`, `rbac_*`, `otorgar_portal`, `lead_transferir`, `lead_compartir`,
   `lead_revocar_acceso`, `lead_salir`, `cotizacion_marcar_final`, `comprobante_emitir`,
