@@ -7395,6 +7395,58 @@ export type Database = {
         }
         Returns: undefined
       }
+      _documento_tipo_de: {
+        Args: { p_repuesto: string; p_tipo: string; p_vehiculos: string[] }
+        Returns: {
+          activo: boolean
+          actualizado_en: string
+          aviso_dias: number | null
+          creado_en: string
+          descripcion: string | null
+          flujo_id: string | null
+          formatos: string[]
+          id: string
+          modo_vencimiento: Database['public']['Enums']['modo_vencimiento']
+          nombre: string
+          orden: number
+          proposito: string | null
+          vigencia_dias: number | null
+          visible_portal_permitido: boolean
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'tipos_documento'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _documento_validar_archivo: {
+        Args: {
+          p_bytes: number
+          p_formatos: string[]
+          p_mime: string
+          p_nombre: string
+          p_ruta: string
+          p_unidades: string[]
+        }
+        Returns: Record<string, unknown>
+      }
+      _documento_validar_unidades: {
+        Args: { p_repuesto: string; p_vehiculos: string[] }
+        Returns: string[]
+      }
+      _documento_vence: {
+        Args: {
+          p_emitido: string
+          p_modo: Database['public']['Enums']['modo_vencimiento']
+          p_subido: string
+          p_vence: string
+          p_vigencia: number
+        }
+        Returns: string
+      }
+      _documento_ya_registrado: { Args: { p_ids: string[]; p_ruta: string }; Returns: Json }
+      _documentos_de: { Args: { p_ids: string[] }; Returns: Json }
       _embudo_conflicto: { Args: { p_cuando: string }; Returns: undefined }
       _embudo_defecto_de: { Args: { p_usuario: string }; Returns: string }
       _embudo_insertar: {
@@ -8703,6 +8755,22 @@ export type Database = {
       }
       crear_lead: {
         Args: { p_id: string; p_lead: Json; p_recordatorio?: Json; p_seguimiento?: Json }
+        Returns: Json
+      }
+      documento_registrar: {
+        Args: {
+          p_bytes: number
+          p_emitido_el: string
+          p_id: string
+          p_mime: string
+          p_nombre: string
+          p_nota: string
+          p_repuesto: string
+          p_ruta: string
+          p_tipo: string
+          p_vehiculos: string[]
+          p_vence_el: string
+        }
         Returns: Json
       }
       embudo_crear: { Args: { p_id: string; p_nombre: string }; Returns: Json }
