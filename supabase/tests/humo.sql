@@ -6633,7 +6633,7 @@ begin
   delete from public.roles_permisos where rol_id = v_rol and permiso_clave = 'empresa.ajustes.gestionar';
 end $$;
 
--- @test documentos: la dueña registra por documento_registrar() y su escritura directa da 42501 (policies de documentos, 6.05)
+-- @test documentos: la dueña registra por documento_registrar(), lee el objeto y su escritura directa da 42501 (policies de documentos y de storage, 6.05)
 do $$
 declare v_veh uuid := (select id from public.vehiculos where eliminado_en is null order by id limit 1); v_tipo uuid; v_ruta text; v_j jsonb; v_codigo text;
 begin
@@ -6657,6 +6657,9 @@ begin
   exception when others then v_codigo := sqlstate;
   end;
   if v_codigo <> '42501' then raise exception 'la dueña editó un documento por PostgREST (%)', v_codigo; end if;
+  if (select count(*) from storage.objects where bucket_id = 'documentos' and name = v_ruta) <> 1 then
+    raise exception 'la dueña no lee el objeto que registró (policy «documentos: leer» de storage)';
+  end if;
   reset role;
   delete from public.documentos where tipo_documento_id = v_tipo;
   delete from public.tipos_documento where id = v_tipo;
