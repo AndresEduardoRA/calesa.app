@@ -4,6 +4,8 @@ import {
   VALORES_DE_FASE_NUEVA,
   cambiosParaGuardar,
   datosParaCrear,
+  errorDeEnvio,
+  erroresDeFaseNueva,
   valoresDeFase,
 } from './formulario-de-fase'
 import {
@@ -124,5 +126,31 @@ describe('datosParaCrear', () => {
     expect(datosParaCrear({ nombre: 'B', color: '#465fff', tipo: 'final' })).toMatchObject({
       es_final: true,
     })
+  })
+})
+
+describe('erroresDeFaseNueva y errorDeEnvio', () => {
+  it('pide el nombre (recortado) y un color válido', () => {
+    expect(
+      erroresDeFaseNueva({ nombre: '  ', color: '#717c93', tipo: 'intermedia' }),
+    ).toHaveProperty('nombre')
+    expect(erroresDeFaseNueva({ nombre: 'Aduana', color: 'rojo', tipo: 'final' })).toHaveProperty(
+      'color',
+    )
+    expect(erroresDeFaseNueva({ nombre: 'Aduana', color: '#717c93', tipo: 'final' })).toEqual({})
+  })
+
+  it('el campo del modal va junto a su campo; otro motivo, arriba', () => {
+    expect(errorDeEnvio({ nombre: 'Ya hay una fase.' }, 'Ya hay una fase.')).toEqual({
+      errores: { nombre: 'Ya hay una fase.' },
+      aviso: null,
+    })
+    expect(
+      errorDeEnvio({ publica_web: 'La vitrina web está apagada.' }, 'Vitrina apagada.'),
+    ).toEqual({
+      errores: {},
+      aviso: 'Vitrina apagada.',
+    })
+    expect(errorDeEnvio(undefined, 'Algo.')).toEqual({ errores: {}, aviso: 'Algo.' })
   })
 })

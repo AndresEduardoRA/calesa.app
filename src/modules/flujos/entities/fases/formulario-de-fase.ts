@@ -1,7 +1,13 @@
 // El formulario de una fase: lo escrito (`ValoresDeFase`, de `reglas-de-fase.ts`) y el pedido a la base. Sólo viaja lo que cambió (D12): la lista
 // cerrada de claves de `_fase_forma()`, nunca `activa`, `orden` ni `flujo_id`.
 import type { FaseParaConfigurar } from '../flujo'
-import { COLOR_NEUTRO_DE_FASE, type DatosDeFase, type ValoresDeFase } from './reglas-de-fase'
+import {
+  COLOR_NEUTRO_DE_FASE,
+  errorDeColorDeFase,
+  errorDeNombreDeFase,
+  type DatosDeFase,
+  type ValoresDeFase,
+} from './reglas-de-fase'
 
 export const MENSAJE_NADA_QUE_GUARDAR_DE_FASE = 'No hay nada que guardar.'
 
@@ -109,4 +115,22 @@ export function datosParaCrear(datos: ValoresDeFaseNueva): CambiosDeFase {
     ...(datos.tipo === 'inicial' ? { es_inicial: true } : {}),
     ...(datos.tipo === 'final' ? { es_final: true } : {}),
   }
+}
+
+// Lo que se corrige antes de ir a la base: el nombre (recortado) y el color. Vacío = nada que corregir.
+export function erroresDeFaseNueva(valores: ValoresDeFaseNueva): Record<string, string> {
+  const nombre = errorDeNombreDeFase(valores.nombre.trim())
+  const color = errorDeColorDeFase(valores.color)
+  return { ...(nombre ? { nombre } : {}), ...(color ? { color } : {}) }
+}
+
+// Lo que dice la base de un intento de crear: sólo el nombre y el color son campos del modal; otro motivo (una regla del flujo) se dice arriba.
+export function errorDeEnvio(
+  porCampo: Record<string, string> | undefined,
+  mensaje: string,
+): { errores: Record<string, string>; aviso: string | null } {
+  const errores = Object.fromEntries(
+    Object.entries(porCampo ?? {}).filter(([campo]) => campo === 'nombre' || campo === 'color'),
+  )
+  return { errores, aviso: Object.keys(errores).length > 0 ? null : mensaje }
 }
