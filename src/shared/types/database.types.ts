@@ -1542,6 +1542,7 @@ export type Database = {
       eventos: {
         Row: {
           actualizado_en: string
+          cotizacion_id: string | null
           creado_en: string
           creado_por: string
           descripcion: string | null
@@ -1559,6 +1560,7 @@ export type Database = {
         ComputedFields: never
         Insert: {
           actualizado_en?: string
+          cotizacion_id?: string | null
           creado_en?: string
           creado_por: string
           descripcion?: string | null
@@ -1575,6 +1577,7 @@ export type Database = {
         }
         Update: {
           actualizado_en?: string
+          cotizacion_id?: string | null
           creado_en?: string
           creado_por?: string
           descripcion?: string | null
@@ -1590,6 +1593,13 @@ export type Database = {
           visibilidad?: Database['public']['Enums']['visibilidad_evento']
         }
         Relationships: [
+          {
+            foreignKeyName: 'eventos_cotizacion_id_fkey'
+            columns: ['cotizacion_id']
+            isOneToOne: false
+            referencedRelation: 'cotizaciones'
+            referencedColumns: ['id']
+          },
           {
             foreignKeyName: 'eventos_creado_por_fkey'
             columns: ['creado_por']
@@ -6917,6 +6927,79 @@ export type Database = {
         Args: { p_defecto: number; p_maximo: number; p_pedido: number }
         Returns: number
       }
+      _agenda_cotizacion: { Args: { p_cot: string; p_hint?: string }; Returns: string }
+      _agenda_destinatarios_aplicar: {
+        Args: { p_dest: string[]; p_evento: string; p_titulo: string }
+        Returns: undefined
+      }
+      _agenda_destinatarios_validar: {
+        Args: {
+          p_creador: string
+          p_dest: string[]
+          p_vis: Database['public']['Enums']['visibilidad_evento']
+          p_ya: string[]
+        }
+        Returns: string[]
+      }
+      _agenda_evento_datos: {
+        Args: {
+          p_actual: Omit<
+            Database['public']['Tables']['eventos']['Row'],
+            Database['public']['Tables']['eventos']['ComputedFields']
+          >
+          p_datos: Json
+        }
+        Returns: {
+          actualizado_en: string
+          cotizacion_id: string | null
+          creado_en: string
+          creado_por: string
+          descripcion: string | null
+          eliminado_en: string | null
+          estado: Database['public']['Enums']['estado_agenda']
+          id: string
+          inicia_en: string
+          lead_id: string | null
+          lugar: string | null
+          termina_en: string | null
+          titulo: string
+          vehiculo_id: string | null
+          visibilidad: Database['public']['Enums']['visibilidad_evento']
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'eventos'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _agenda_evento_mio: {
+        Args: { p_evento: string }
+        Returns: {
+          actualizado_en: string
+          cotizacion_id: string | null
+          creado_en: string
+          creado_por: string
+          descripcion: string | null
+          eliminado_en: string | null
+          estado: Database['public']['Enums']['estado_agenda']
+          id: string
+          inicia_en: string
+          lead_id: string | null
+          lugar: string | null
+          termina_en: string | null
+          titulo: string
+          vehiculo_id: string | null
+          visibilidad: Database['public']['Enums']['visibilidad_evento']
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'eventos'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _agenda_fecha: { Args: { p_hint: string; p_valor: Json }; Returns: string }
       _apibara_catalogo: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -8417,6 +8500,23 @@ export type Database = {
           requisito_id: string
           tipo: Database['public']['Enums']['tipo_requisito']
         }[]
+      }
+      evento_crear: {
+        Args: { p_datos: Json; p_destinatarios?: string[]; p_id: string }
+        Returns: Json
+      }
+      evento_eliminar: {
+        Args: { p_actualizado_en_esperado: string; p_evento: string }
+        Returns: Json
+      }
+      evento_guardar: {
+        Args: {
+          p_actualizado_en_esperado: string
+          p_datos: Json
+          p_destinatarios: string[]
+          p_evento: string
+        }
+        Returns: Json
       }
       fase_eliminar: { Args: { p_fase: string }; Returns: Json }
       flujo_de_fase: { Args: { p_fase: string }; Returns: string }

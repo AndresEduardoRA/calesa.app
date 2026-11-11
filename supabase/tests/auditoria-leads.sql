@@ -180,6 +180,11 @@ declare
     -- (`puede_cotizacion`) y no toma el lead: lo prueban `cotizacion-guardar.sql` y `cotizaciones-visibilidad.sql`.
     ('cotizacion_guardar(uuid,uuid,timestamp with time zone,jsonb,text,text,text,uuid,boolean)', 'X'),
     ('reasignar_tarea(uuid,uuid)', 'X'),
+    -- Los eventos de la agenda (7.06-1): el lead vinculado se pide visible (`lead_visible_al_escribir`, leads.ver), como en una nota; la agenda no toca la
+    -- cartera. Crear, guardar y eliminar responden sólo {resultado, id, actualizado_en} (`areas/agenda/eventos.sql`).
+    ('evento_crear(uuid,jsonb,uuid[])', 'X'),
+    ('evento_guardar(uuid,timestamp with time zone,jsonb,uuid[])', 'X'),
+    ('evento_eliminar(uuid,timestamp with time zone)', 'X'),
     ('storage_refcount(text,text)', 'X')
   ) t (f, c));
   r record; v_fallas text := '';
