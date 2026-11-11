@@ -37,6 +37,18 @@ El módulo se parte por área, como `cotizaciones` (`scripts/guardas/areas-de-fl
 - URL: `?panel=nuevo-tipo&de=empresa|flujo`, `?panel=editar-tipo&tipo=<id>`, `?panel=eliminar-tipo&tipo=<id>` (constantes `PANEL_*`, `CLAVE_DEL_TIPO`, `CLAVE_DEL_GRUPO` en `entities/`). Un solo modal y una sola confirmación sirven a los dos grupos; lo que la URL pide y no se puede abrir (grupo ajeno, tope, tipo ausente, tipo en uso al eliminar) se avisa y se limpia. Con uso, «Eliminar» está apagado: se desactiva (D13 del 5.09).
 - Las actions llevan el `flujoId` del grupo y comprueban `puede()` antes de la RPC; `leerTiposDeDocumento` y `leerUsoDeTiposDeDocumento` salen por el `index.ts` del área.
 
+## Fases (5.04)
+
+- Área `fases` (`entities|features|infra/fases/`, `areas/fases/`): se escriben por RPC, nunca con `.update()`. `entities/fases/reglas-de-fase.ts` es el espejo puro de
+  `_fase_validar()` (`validarFase(valores, contexto)`, `motivoDelInterruptor()`; lo prueba `reglas-de-fase-contra-la-base.test.ts` contra la función real en
+  PGlite); `formulario-de-fase.ts` (`cambiosParaGuardar` manda sólo lo que cambió, `datosParaCrear` sólo nombre, color y tipo), `colores-de-fase.ts` (paleta
+  cerrada), `orden-de-fases.ts` (`despuesDeAlMover`), `vista-de-impacto.ts` (los textos de jubilar o eliminar) y `respuestas.ts` (lee las seis RPC).
+- `infra/fases/{escribir-fases,leer-impacto}.ts` llama `fase_crear|guardar|mover|eliminar|reactivar` y `fase_impacto`; el `hint` de la base vuelve como el campo del
+  formulario. `features/fases/actions/` (`crearFase`, `guardarFase`, `moverFase`, `eliminarFase`, `reactivarFase`, `leerImpactoDeUnaFase`) exigen
+  `flujos.configurar` en el origen (o `repuestos.configurar` si `origenId` es nulo) antes de la RPC y revalidan configuración y vehículos. Crear lleva el
+  `flujoId`; repetir el id de un intento da «Esa fase ya existe.», no el mismo resultado.
+- Nada de esta área sale por `index.ts` ni `client.ts`: los componentes de la pantalla (5.04-2 y 5.04-3) saldrán por `pantallas/fases.ts`.
+
 ## Tablas
 
 `flujos`, `flujos_reglas`, `fases`, `fases_transiciones`, `fases_roles`, `fases_transiciones_roles`, `tipos_documento`, `fases_requisitos`, `historial_fases`, `flujos_transporte_oferta`.
