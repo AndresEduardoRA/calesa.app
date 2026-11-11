@@ -1,9 +1,6 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-import type { Route } from 'next'
 import type { DetalleDeTarea } from '../../../entities/detalle'
-import { enlaceDePanel, type BaseDeEnlace } from '../../calendario/enlace-de-panel'
 import { usePanelDeDetalle } from '../hooks/use-panel-de-detalle'
 import { usePanelesDeAlta } from '../hooks/use-paneles-de-alta'
 import { PanelDeFormularioDeTareaDiferido, PanelDeTareaDiferido } from './diferidos'
@@ -21,12 +18,10 @@ type Props = {
   zona: string
   hoy: string
   fecha: string
-  base: BaseDeEnlace
 }
 
 // Lo que la URL pide de una tarea: «Nueva tarea» (`?panel=nueva-tarea`), su detalle (`?tarea=<id>`) o su formulario de edición (`&editar=1`).
-export function TareaDeLaUrl({ tarea, puedeAsignar, zona, hoy, fecha, base }: Props) {
-  const router = useRouter()
+export function TareaDeLaUrl({ tarea, puedeAsignar, zona, hoy, fecha }: Props) {
   const alta = usePanelesDeAlta().tarea
   const detalle = usePanelDeDetalle()
   if (alta.abierto) {
@@ -37,9 +32,7 @@ export function TareaDeLaUrl({ tarea, puedeAsignar, zona, hoy, fecha, base }: Pr
         hoy={hoy}
         zona={zona}
         puedeElegirResponsable={puedeAsignar}
-        alCrear={(id) => {
-          router.replace(enlaceDePanel(base, 'tarea', id) as Route)
-        }}
+        alCrear={detalle.abrirTarea}
         alGuardar={detalle.dejarDeEditar}
         alCancelar={alta.cerrar}
         alCerrar={alta.cerrar}

@@ -1,8 +1,5 @@
 'use client'
 
-import type { ClaveDeClase } from '../../../entities/agenda'
-import { extraDeEnlaces } from '../../calendario/enlace-de-dia'
-import type { BaseDeEnlace } from '../../calendario/enlace-de-panel'
 import { EventoDeLaUrl, type EventoPedido } from './evento-de-la-url'
 import { TareaDeLaUrl, type TareaPedida } from './tarea-de-la-url'
 
@@ -15,11 +12,7 @@ type Props = {
   puedeAsignar: boolean
   zona: string
   hoy: string
-  vista: string
   fecha: string
-  // Lo que ya eligió la persona y un enlace de la página conserva (`?ver=`, `?de=`).
-  clases: readonly ClaveDeClase[]
-  deTodos: boolean
 }
 
 // Los paneles de la agenda: «Nuevo evento», «Nueva tarea» y el detalle o la edición de un evento o de una tarea, todos por URL. Se montan sólo cuando la URL
@@ -31,12 +24,8 @@ export function PanelesDeAgenda({
   puedeAsignar,
   zona,
   hoy,
-  vista,
   fecha,
-  clases,
-  deTodos,
 }: Props) {
-  const base: BaseDeEnlace = { vista, fecha, extra: extraDeEnlaces(clases, deTodos) }
   return (
     <>
       <EventoDeLaUrl
@@ -45,16 +34,8 @@ export function PanelesDeAgenda({
         zona={zona}
         hoy={hoy}
         fecha={fecha}
-        base={base}
       />
-      <TareaDeLaUrl
-        tarea={tarea}
-        puedeAsignar={puedeAsignar}
-        zona={zona}
-        hoy={hoy}
-        fecha={fecha}
-        base={base}
-      />
+      <TareaDeLaUrl tarea={tarea} puedeAsignar={puedeAsignar} zona={zona} hoy={hoy} fecha={fecha} />
     </>
   )
 }

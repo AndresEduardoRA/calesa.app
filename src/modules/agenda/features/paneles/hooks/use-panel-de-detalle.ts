@@ -3,6 +3,7 @@
 import { parseAsString, useQueryStates } from 'nuqs'
 
 const PARSERS = {
+  panel: parseAsString,
   evento: parseAsString,
   tarea: parseAsString,
   editar: parseAsString,
@@ -20,6 +21,13 @@ export function usePanelDeDetalle() {
     },
     dejarDeEditar: () => {
       void escribir({ editar: null }, { shallow: true })
+    },
+    // Tras crear: cierra el panel de alta y abre el detalle de lo creado, pidiendo la página al servidor (que lee el detalle por id).
+    abrirEvento: (id: string) => {
+      void escribir({ panel: null, evento: id, tarea: null, editar: null })
+    },
+    abrirTarea: (id: string) => {
+      void escribir({ panel: null, evento: null, tarea: id, editar: null })
     },
     cerrar: () => {
       void escribir({ evento: null, tarea: null, editar: null })

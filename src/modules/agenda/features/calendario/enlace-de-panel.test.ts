@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { extraDeEnlaces } from './enlace-de-dia'
-import { enlaceDePanel, enlaceSinPanel } from './enlace-de-panel'
+import { enlaceDePanel } from './enlace-de-panel'
 
 const BASE = { vista: 'dia', fecha: '2026-11-12', extra: '' }
 
@@ -17,10 +17,6 @@ describe('enlaceDePanel', () => {
     expect(enlaceDePanel(base, 'tarea', 'xyz')).toBe(
       '/agenda?ver=tarea&de=todos&vista=dia&fecha=2026-11-12&tarea=xyz',
     )
-  })
-
-  it('sin panel es la vista a secas', () => {
-    expect(enlaceSinPanel(BASE)).toBe('/agenda?vista=dia&fecha=2026-11-12')
   })
 })
 
