@@ -43,3 +43,12 @@ export function clavesQueFaltan(
   const tiene = new Set(deLaFase.map((r) => r.claveDato))
   return CLAVES_POR_AMBITO[ambito].filter((clave) => !tiene.has(clave))
 }
+
+// Las partes de la URL del bloque (nuqs): «Agregar requisito» (`?agregar=dato`) y la confirmación de quitar (`?eliminar=requisito&quitar=<id>`). Una clave
+// propia para cada uno: el panel del inspector ya ocupa `?fase=` y el diálogo no puede ocupar `?panel=`.
+export const CLAVE_AGREGAR = 'agregar'
+export const FORMA_DE_DATO = 'dato'
+export const CLAVE_ELIMINAR = 'eliminar'
+export const PANEL_ELIMINAR_REQUISITO = 'requisito'
+export const CLAVE_DEL_REQUISITO_A_QUITAR = 'quitar'
+export const MOTIVO_DE_REQUISITO_NO_DISPONIBLE = 'Ese requisito ya no existe.'
