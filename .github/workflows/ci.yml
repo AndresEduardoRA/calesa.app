@@ -226,8 +226,13 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      # `--with-deps` llama a apt, y si el espejo de Ubuntu no resuelve (exit 100) o se cuelga, caían los 4 bloques de todos los PR
+      # (2026-11-11). La imagen ubuntu-24.04 ya trae las bibliotecas; sin apt sólo faltan fuentes extra. Por eso: tope corto y, si
+      # falla, el navegador solo.
       - name: chromium y lo que pide del sistema
-        run: pnpm exec playwright install --with-deps chromium
+        run: |
+          timeout --kill-after=10 240 pnpm exec playwright install --with-deps chromium \
+            || { echo "::warning::apt no respondió: chromium sin --with-deps"; pnpm exec playwright install chromium; }
       - uses: ./.github/acciones/pila
         with:
           sin: studio,imgproxy,logflare,vector
