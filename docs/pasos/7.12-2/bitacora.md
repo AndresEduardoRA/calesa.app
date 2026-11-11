@@ -9,7 +9,7 @@
   - `leads/client.ts` expone `interpretarBusqueda` y `MINIMO_DE_BUSQUEDA`. Las llama la feature que compone (7.13, 7.10).
   - El registro de la guarda de páginas del carril b.
   - `supabase/tests/medir-buscador.sql` en `db:medir:volumen`, con `MEDIR_SOLO` para correrla sola. Su contingencia entró:
-    `20261111183642_buscador_cotizaciones_rutas.sql`, donde la ruta de las propias corre sólo donde se tiene «propios» sin «todos» (D22).
+    `20261111200531_buscador_cotizaciones_rutas.sql`, donde la ruta de las propias corre sólo donde se tiene «propios» sin «todos» (D22).
 - **Commits:**
   - `6387cd75` (leads/client), `6c1bae8e` (ranking), `912a9a35` (buscar por sección), `117e38fe` (últimos abiertos).
   - `442d333c` (la migración), `e992fdfd` (la medición).
@@ -25,7 +25,7 @@
 - **Para el carril A:**
   - En `docs/PLAN.md`, fila 7.12: «**7.12 hecho** (7.12-1, la base: `buscador_leads`, `buscador_vehiculos`, `buscador_cotizaciones`, `visita_registrar` y
     el índice de `visitados`; 7.12-2: `ranking.ts` con su test, las lecturas del navegador por sección (`buscador/client.ts`), los últimos abiertos
-    hidratados, el registro de la guarda y `medir-buscador.sql`, con la ruta de las propias acotada (`20261111183642_buscador_cotizaciones_rutas.sql`);
+    hidratados, el registro de la guarda y `medir-buscador.sql`, con la ruta de las propias acotada (`20261111200531_buscador_cotizaciones_rutas.sql`);
     `docs/pasos/7.12-1/`, `docs/pasos/7.12-2/`)».
   - El arrastrado «el buscador de leads, sin los privados» (`docs/PLAN.md:1512`) queda cerrado.
   - 7.10 importa `@/modules/buscador/client` y suma `chat --> buscador` a `docs/ARQUITECTURA.md` (sin ciclo).

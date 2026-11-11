@@ -129,7 +129,7 @@ Cada sección por su RPC, de a `_acotar_pagina(p_tamano, 5, 20)` + 1, con el mí
 - Cotizaciones (`buscador_cotizaciones()`, definer; `supabase/tests/medir-buscador.sql`, 7.12-2, como authenticated con el plan genérico, 50.000 y 250.000, la dueña y
   Ana con 100 propias fijas): el número por `cotizaciones_numero_key` (6–8 bloques, 0,9 ms); el título por `cotizaciones_titulo_trgm`, a lo sumo 1.000 candidatas de
   los orígenes que se ven, más las propias por `cotizaciones_creador_idx` (≤ 21) **sólo donde se tiene «propios» sin «todos»** (desde
-  `20261111183642_buscador_cotizaciones_rutas.sql`: antes, un título raro de la dueña recorría todas sus propias, 46 → 229 ms), y la policy sobre ellas por la PK
+  `20261111200531_buscador_cotizaciones_rutas.sql`: antes, un título raro de la dueña recorría todas sus propias, 46 → 229 ms), y la policy sobre ellas por la PK
   (`en_cartera` por fila con «propios»). Medido: raro 41–61 bloques y ≈ 1 ms, sin crecer con N; común 5 / 11 ms la dueña y 12 / 18 ms Ana (1.000 `en_cartera`), el
   heap ≈ 610 bloques sin crecer (el tope de 1.000). Presupuestos: número 10 ms, raro 20, común 150 la dueña y 300 Ana; ningún recorrido entero. **Límites
   declarados:** con un título común, el GIN (31 → 136 bloques) y la PK de la policy (≈ 510 → 2.010, ≤ 1.000 × su profundidad) crecen con las coincidencias; la

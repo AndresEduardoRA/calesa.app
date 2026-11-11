@@ -39,7 +39,7 @@ RPC (todas de `authenticated`, ninguna de `anon`; tamaño por `_acotar_pagina(p_
   pasados por `leads_vista_por_ids`.
 - `buscador_vehiculos(p_texto, p_tamano)`, invocadora: título, VIN o lote, una ruta por origen visible por `vehiculos_origen_listado_idx`.
 - `buscador_cotizaciones(p_texto, p_tamano)`, **`security definer`**: número exacto o título por `cotizaciones_titulo_trgm` (hasta 1.000 de sus orígenes) más las
-  propias por `cotizaciones_creador_idx` sólo en los orígenes con «propios» sin «todos» (`20261111183642_buscador_cotizaciones_rutas.sql`, 7.12-2); repite la policy «cotizaciones: leer» fila por fila; sin montos, papelera, `lead_id`, `vehiculo_id` ni `creado_por`.
+  propias por `cotizaciones_creador_idx` sólo en los orígenes con «propios» sin «todos» (`20261111200531_buscador_cotizaciones_rutas.sql`, 7.12-2); repite la policy «cotizaciones: leer» fila por fila; sin montos, papelera, `lead_id`, `vehiculo_id` ni `creado_por`.
 - `_buscador_interpretar(p_texto)`: el mínimo en la base, espejo de `interpretarBusqueda()`.
 
 ## No se rompe

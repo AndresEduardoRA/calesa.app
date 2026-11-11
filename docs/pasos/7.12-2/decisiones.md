@@ -20,7 +20,7 @@ Siguen la numeración del 7.12-1 (`docs/pasos/7.12-1/decisiones.md`, D1–D11).
 - **D20 · Sin test de `resultados.ts` aparte ni de `infra/`:** pruebas sólo en lo clave; `filasDesde` lo cubre `ranking.test.ts` y el camino feliz, el e2e del 7.13.
 - **D21 · `POR_SECCION` vive en `buscador/entities/ranking.ts`**, no en `src/shared/lib/paginacion.ts`: es el tope de una sección del buscador, no una página de
   lista (precedente: `MAXIMO_DE_PAGINA_DE_VEHICULOS`), y `shared` es del A y dispara el Nivel 2.
-- **D22 · La contingencia de la medición entró: la ruta de las propias sólo corre donde se tiene «propios» sin «todos»** (`20261111183642_buscador_cotizaciones_rutas.sql`).
+- **D22 · La contingencia de la medición entró: la ruta de las propias sólo corre donde se tiene «propios» sin «todos»** (`20261111200531_buscador_cotizaciones_rutas.sql`).
   Con el plan genérico, un título raro de la dueña recorría todas sus propias por `cotizaciones_creador_idx` (2.235 → 11.147 bloques, 46 → 229 ms): la ruta corría
   también en los orígenes con «todos». Se probó además pasar las dos consultas de candidatas a `execute … using` (`medir-buscador-2.txt`): planificada con el
   texto, la del título va por un Seq Scan con `limit 1000` para un título común (≈ 600 bloques si las coincidencias se reparten; la tabla entera si quedan al
