@@ -10,7 +10,9 @@ Calendario de eventos, tareas con responsable, recordatorios de leads y subastas
 
 ## Archivos clave
 
-- `entities/visibilidad.ts` — privado / público / seleccionados y quién puede reasignar una tarea (de chat vs suelta).
+- `entities/visibilidad.ts` — espejo de la base para habilitar o deshabilitar (7.06-2): quién ve un evento, cuándo guardar pide
+  `agenda.eventos.publicar`, quién edita, completa y reasigna una tarea; `TOPE_DE_DESTINATARIOS`, `DIAS_MAXIMOS_DEL_RANGO`. Que una tarea del chat
+  vaya sólo a sus miembros (D3) y quién puede recibir lo dicen la base y `agenda_quienes_reciben`, no este archivo.
 - `infra/queries/agenda.ts` — una consulta por rango que une eventos, tareas, recordatorios y subastas (sin N+1).
 - `features/calendario/` (mes/semana/día), `features/eventos/`, `features/tareas/`.
 
