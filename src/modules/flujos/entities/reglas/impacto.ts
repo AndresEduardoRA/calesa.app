@@ -81,3 +81,7 @@ export function hrefDeFase(claveDelFlujo: string, faseId: string): string {
       : `origen=${encodeURIComponent(claveDelFlujo)}`
   return `${RUTAS.configuracionDeFlujos}?seccion=fases&${flujo}&fase=${encodeURIComponent(faseId)}`
 }
+
+// Lo que responde la action de cambiar una regla: cambiada (con la versión nueva) o «en uso» (no se escribió nada).
+export type RespuestaDeCambio =
+  { estado: 'cambiada'; version: string } | { estado: 'en_uso'; impacto: ImpactoDeRegla }
