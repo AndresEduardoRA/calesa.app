@@ -7934,6 +7934,7 @@ export type Database = {
         Args: { p_activo: boolean; p_flujo: string; p_id: string; p_nombre: string }
         Returns: undefined
       }
+      _tipo_documento_uso: { Args: { p_id: string }; Returns: Record<string, unknown> }
       _tipo_documento_validar: {
         Args: {
           p_tipo: Omit<
@@ -9132,6 +9133,10 @@ export type Database = {
         Args: { p_datos: Json; p_flujo: string; p_id: string }
         Returns: Json
       }
+      tipo_documento_eliminar: {
+        Args: { p_actualizado_en_esperado: string; p_id: string }
+        Returns: Json
+      }
       tipo_documento_guardar: {
         Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_id: string }
         Returns: Json
@@ -9171,6 +9176,14 @@ export type Database = {
       tipo_seguimiento_mover: {
         Args: { p_actualizado_en_esperado: string; p_despues_de?: string; p_id: string }
         Returns: Json
+      }
+      tipos_documento_con_uso: {
+        Args: { p_flujo: string }
+        Returns: {
+          documentos: number
+          requisitos: number
+          tipo_id: string
+        }[]
       }
       tipos_lead_con_uso: { Args: Record<PropertyKey, never>; Returns: Json }
       tipos_seguimiento_con_uso: { Args: Record<PropertyKey, never>; Returns: Json }

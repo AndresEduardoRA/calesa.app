@@ -1,6 +1,6 @@
 -- Los tipos de documento se escriben sólo por RPC (5.03): el grupo global pide `logistica.catalogos.gestionar` y el de un flujo
 -- `puede_configurar_flujo()`; la versión da PT409; en uso se desactiva y sin uso se borra; achicar los formatos que pide un requisito falla; la
--- escritura directa da 42501. Corre en PGlite (`pnpm db:probar`, después de la lista fija); cada bloque arma su terreno y lo revierte.
+-- escritura directa da 42501. Lo que valen los datos, en tipos-de-documento-datos.sql. Corre en PGlite (`pnpm db:probar`, después de la lista fija); cada bloque arma su terreno y lo revierte.
 
 -- @test tipos de documento: los ayudantes
 reset role;
@@ -98,51 +98,6 @@ begin
 end $$;
 rollback;
 
--- @test tipos de documento: crear es idempotente, ordena al final y valida nombre y vencimiento
-begin;
-select pg_temp.td_preparar();
-do $$
-declare flor uuid := '00000000-0000-4000-8000-000000007d0f'; fa uuid := pg_temp.td_flujo('prueba_td_a');
-        v_id uuid := '00000000-0000-4000-8000-000000007d10'; j jsonb; t public.tipos_documento;
-begin
-  j := pg_temp.td_json(flor, format('select public.tipo_documento_crear(%L, %L, %L)', v_id, fa,
-    '{"nombre":"  Póliza  ","formatos":["image/png","application/pdf","image/png"],"modo_vencimiento":"renovar","vigencia_dias":365,"aviso_dias":30}'));
-  if (j ->> 'repetido')::boolean then raise exception 'la primera vez salió repetido'; end if;
-  select * into t from public.tipos_documento where id = v_id;
-  if t.nombre <> 'Póliza' or t.formatos <> array['application/pdf', 'image/png'] or t.orden <= 0 or not t.activo then
-    raise exception 'el tipo creado quedó mal: % % % %', t.nombre, t.formatos, t.orden, t.activo;
-  end if;
-  j := pg_temp.td_json(flor, format('select public.tipo_documento_crear(%L, %L, %L)', v_id, fa, '{"nombre":"Otra"}'));
-  if not (j ->> 'repetido')::boolean then raise exception 'repetir el intento no salió repetido'; end if;
-  if pg_temp.td_codigo(flor, format('select public.tipo_documento_crear(gen_random_uuid(), %L, %L)', fa, '{"nombre":"td GLOBAL"}')) <> '23505/nombre' then
-    raise exception 'uno de A repitió el nombre de un global activo';
-  end if;
-  update public.tipos_documento set activo = false where id = '00000000-0000-4000-8000-000000007d01';
-  if pg_temp.td_codigo(flor, format('select public.tipo_documento_crear(gen_random_uuid(), %L, %L)', fa, '{"nombre":"td GLOBAL"}')) <> 'sin error' then
-    raise exception 'con el global inactivo, su nombre no quedó libre';
-  end if;
-  if pg_temp.td_codigo(flor, format('select public.tipo_documento_crear(gen_random_uuid(), %L, %L)', fa, '{"nombre":"póliza"}')) <> '23505/nombre' then
-    raise exception 'se repitió un nombre del grupo en otras mayúsculas';
-  end if;
-  if pg_temp.td_codigo(flor, format('select public.tipo_documento_crear(gen_random_uuid(), %L, %L)', fa,
-       '{"nombre":"R","modo_vencimiento":"renovar"}')) <> '22023/vigencia_dias' then
-    raise exception 'renovar sin vigencia pasó';
-  end if;
-  if pg_temp.td_codigo(flor, format('select public.tipo_documento_crear(gen_random_uuid(), %L, %L)', fa,
-       '{"nombre":"R","modo_vencimiento":"renovar","vigencia_dias":10,"aviso_dias":20}')) <> '22023/aviso_dias' then
-    raise exception 'un aviso más largo que la vigencia pasó';
-  end if;
-  if pg_temp.td_codigo(flor, format('select public.tipo_documento_crear(gen_random_uuid(), %L, %L)', fa,
-       '{"nombre":"R","formatos":["text/plain"]}')) <> '22023/formatos' then
-    raise exception 'un formato fuera de la lista pasó';
-  end if;
-  if pg_temp.td_codigo(flor, format('select public.tipo_documento_crear(gen_random_uuid(), %L, %L)', fa,
-       '{"nombre":"R","proposito":"titulo"}')) <> '22023/proposito' then
-    raise exception 'crear eligió el propósito';
-  end if;
-end $$;
-rollback;
-
 -- @test tipos de documento: guardar pide el permiso del grupo de la fila, antes que la versión
 begin;
 select pg_temp.td_preparar();
@@ -171,6 +126,33 @@ begin
 end $$;
 rollback;
 
+-- @test tipos de documento: mover pide el permiso del grupo de la fila y no cambia versiones
+begin;
+select pg_temp.td_preparar();
+do $$
+declare flor uuid := '00000000-0000-4000-8000-000000007d0f'; cata uuid := '00000000-0000-4000-8000-000000007d0c';
+        ana uuid := '00000000-0000-4000-8000-000000007d0a';
+        g uuid := '00000000-0000-4000-8000-000000007d01'; a uuid := '00000000-0000-4000-8000-000000007d02'; r text; v timestamptz;
+begin
+  r := pg_temp.td_codigo(flor, format('select public.tipo_documento_mover(%L, %L)', g, pg_temp.td_version(g)));
+  if r <> '42501' then raise exception 'Flor movió el global: %', r; end if;
+  r := pg_temp.td_codigo(cata, format('select public.tipo_documento_mover(%L, %L)', a, pg_temp.td_version(a)));
+  if r <> '42501' then raise exception 'Cata movió el de A: %', r; end if;
+  r := pg_temp.td_codigo(ana, format('select public.tipo_documento_mover(%L, %L)', a, pg_temp.td_version(a)));
+  if r <> '42501' then raise exception 'Ana movió el de A: %', r; end if;
+  v := pg_temp.td_version(g);
+  r := pg_temp.td_codigo(cata, format('select public.tipo_documento_mover(%L, %L)', g, v));
+  if r <> 'sin error' then raise exception 'Cata no movió el global: %', r; end if;
+  if (select min(orden) from public.tipos_documento where flujo_id is null) <> (select orden from public.tipos_documento where id = g)
+     or pg_temp.td_version(g) <> v then
+    raise exception 'el global no quedó primero o cambió su versión';
+  end if;
+  r := pg_temp.td_codigo(flor, format('select public.tipo_documento_mover(%L, %L, %L)', a, pg_temp.td_version(a), g));
+  if r <> 'PT409' then raise exception 'mover el de A después de un global dio %', r; end if;
+  r := pg_temp.td_codigo(flor, format('select public.tipo_documento_mover(%L, %L)', a, pg_temp.td_version(a)));
+  if r <> 'sin error' then raise exception 'Flor no movió el de A: %', r; end if;
+end $$;
+rollback;
 -- @test tipos de documento: con otra versión guardar da PT409 y no cambia nada; sin diferencia no escribe
 begin;
 select pg_temp.td_preparar();
@@ -216,54 +198,70 @@ begin
 end $$;
 rollback;
 
--- @test tipos de documento: guardar valida el nombre (también al reactivar) y el vencimiento
+-- @test tipos de documento: eliminar y contar el uso piden el permiso del grupo
 begin;
 select pg_temp.td_preparar();
 do $$
 declare flor uuid := '00000000-0000-4000-8000-000000007d0f'; cata uuid := '00000000-0000-4000-8000-000000007d0c';
+        ana uuid := '00000000-0000-4000-8000-000000007d0a'; fa uuid := pg_temp.td_flujo('prueba_td_a');
         g uuid := '00000000-0000-4000-8000-000000007d01'; a uuid := '00000000-0000-4000-8000-000000007d02'; r text;
 begin
-  r := pg_temp.td_codigo(flor, format('select public.tipo_documento_guardar(%L, %L, %L)', a, pg_temp.td_version(a), '{"nombre":"TD Global"}'));
-  if r <> '23505/nombre' then raise exception 'el de A tomó el nombre de un global activo: %', r; end if;
-  perform pg_temp.td_json(cata, format('select public.tipo_documento_guardar(%L, %L, %L)', g, pg_temp.td_version(g), '{"activo":false}'));
-  r := pg_temp.td_codigo(flor, format('select public.tipo_documento_guardar(%L, %L, %L)', a, pg_temp.td_version(a), '{"nombre":"TD Global"}'));
-  if r <> 'sin error' then raise exception 'con el global inactivo, su nombre no quedó libre: %', r; end if;
-  r := pg_temp.td_codigo(cata, format('select public.tipo_documento_guardar(%L, %L, %L)', g, pg_temp.td_version(g), '{"activo":true}'));
-  if r <> 'sin error' then raise exception 'reactivar el global falló: %', r; end if;
-  r := pg_temp.td_codigo(flor, format('select public.tipo_documento_guardar(%L, %L, %L)', a, pg_temp.td_version(a), '{"modo_vencimiento":"renovar"}'));
-  if r <> '22023/vigencia_dias' then raise exception 'renovar sin vigencia dio %', r; end if;
-  r := pg_temp.td_codigo(flor, format('select public.tipo_documento_guardar(%L, %L, %L)', a, pg_temp.td_version(a),
-    '{"modo_vencimiento":"solicitar","vigencia_dias":30}'));
-  if r <> '22023/vigencia_dias' then raise exception 'solicitar con vigencia dio %', r; end if;
-  r := pg_temp.td_codigo(flor, format('select public.tipo_documento_guardar(%L, %L, %L)', a, pg_temp.td_version(a), '{"aviso_dias":5}'));
-  if r <> '22023/aviso_dias' then raise exception 'un aviso sin vencimiento dio %', r; end if;
+  r := pg_temp.td_codigo(flor, format('select public.tipo_documento_eliminar(%L, %L)', g, pg_temp.td_version(g)));
+  if r <> '42501' then raise exception 'Flor eliminó el global: %', r; end if;
+  r := pg_temp.td_codigo(flor, 'select * from public.tipos_documento_con_uso(null)');
+  if r <> '42501' then raise exception 'Flor contó el uso de los globales: %', r; end if;
+  r := pg_temp.td_codigo(cata, format('select public.tipo_documento_eliminar(%L, %L)', a, pg_temp.td_version(a)));
+  if r <> '42501' then raise exception 'Cata eliminó el de A: %', r; end if;
+  r := pg_temp.td_codigo(cata, format('select * from public.tipos_documento_con_uso(%L)', fa));
+  if r <> '42501' then raise exception 'Cata contó el uso de los de A: %', r; end if;
+  r := pg_temp.td_codigo(ana, format('select public.tipo_documento_eliminar(%L, %L)', a, pg_temp.td_version(a)));
+  if r <> '42501' then raise exception 'Ana eliminó el de A: %', r; end if;
+  r := pg_temp.td_codigo(cata, 'select * from public.tipos_documento_con_uso(null)');
+  if r <> 'sin error' then raise exception 'Cata no contó el uso de los globales: %', r; end if;
+  r := pg_temp.td_codigo(flor, format('select * from public.tipos_documento_con_uso(%L)', fa));
+  if r <> 'sin error' then raise exception 'Flor no contó el uso de los de A: %', r; end if;
+  r := pg_temp.td_codigo(cata, format('select public.tipo_documento_eliminar(%L, %L)', g, pg_temp.td_version(g)));
+  if r <> 'sin error' then raise exception 'Cata no eliminó el global: %', r; end if;
+  r := pg_temp.td_codigo(flor, format('select public.tipo_documento_eliminar(%L, %L)', a, pg_temp.td_version(a)));
+  if r <> 'sin error' then raise exception 'Flor no eliminó el de A: %', r; end if;
 end $$;
 rollback;
 
--- @test tipos de documento: mover pide el permiso del grupo de la fila y no cambia versiones
+-- @test tipos de documento: sin uso se borra; con un requisito o un documento (aunque esté en la papelera) se desactiva; con otra versión, PT409
 begin;
 select pg_temp.td_preparar();
 do $$
-declare flor uuid := '00000000-0000-4000-8000-000000007d0f'; cata uuid := '00000000-0000-4000-8000-000000007d0c';
-        ana uuid := '00000000-0000-4000-8000-000000007d0a';
-        g uuid := '00000000-0000-4000-8000-000000007d01'; a uuid := '00000000-0000-4000-8000-000000007d02'; r text; v timestamptz;
+declare flor uuid := '00000000-0000-4000-8000-000000007d0f'; fa uuid := pg_temp.td_flujo('prueba_td_a');
+        a uuid := '00000000-0000-4000-8000-000000007d02'; v_fase uuid := (select id from public.fases where nombre = 'TD fase');
+        b uuid; c uuid; v uuid; j jsonb; u record;
 begin
-  r := pg_temp.td_codigo(flor, format('select public.tipo_documento_mover(%L, %L)', g, pg_temp.td_version(g)));
-  if r <> '42501' then raise exception 'Flor movió el global: %', r; end if;
-  r := pg_temp.td_codigo(cata, format('select public.tipo_documento_mover(%L, %L)', a, pg_temp.td_version(a)));
-  if r <> '42501' then raise exception 'Cata movió el de A: %', r; end if;
-  r := pg_temp.td_codigo(ana, format('select public.tipo_documento_mover(%L, %L)', a, pg_temp.td_version(a)));
-  if r <> '42501' then raise exception 'Ana movió el de A: %', r; end if;
-  v := pg_temp.td_version(g);
-  r := pg_temp.td_codigo(cata, format('select public.tipo_documento_mover(%L, %L)', g, v));
-  if r <> 'sin error' then raise exception 'Cata no movió el global: %', r; end if;
-  if (select min(orden) from public.tipos_documento where flujo_id is null) <> (select orden from public.tipos_documento where id = g)
-     or pg_temp.td_version(g) <> v then
-    raise exception 'el global no quedó primero o cambió su versión';
+  insert into public.tipos_documento (flujo_id, nombre) values (fa, 'TD con requisito') returning id into b;
+  insert into public.tipos_documento (flujo_id, nombre) values (fa, 'TD con documento') returning id into c;
+  insert into public.fases_requisitos (fase_id, tipo, tipo_documento_id) values (v_fase, 'documento', b);
+  insert into public.vehiculos (origen_id, titulo, marca) select origen_id, 'TD vehículo', 'toyota' from public.flujos where id = fa returning id into v;
+  insert into public.documentos (vehiculo_id, tipo_documento_id, eliminado_en) values (v, c, now());
+  if pg_temp.td_codigo(flor, format('select public.tipo_documento_eliminar(%L, %L)', a, '2000-01-01')) <> 'PT409'
+     or not exists (select 1 from public.tipos_documento where id = a) then
+    raise exception 'eliminar con otra versión no dio PT409 o borró';
   end if;
-  r := pg_temp.td_codigo(flor, format('select public.tipo_documento_mover(%L, %L, %L)', a, pg_temp.td_version(a), g));
-  if r <> 'PT409' then raise exception 'mover el de A después de un global dio %', r; end if;
-  r := pg_temp.td_codigo(flor, format('select public.tipo_documento_mover(%L, %L)', a, pg_temp.td_version(a)));
-  if r <> 'sin error' then raise exception 'Flor no movió el de A: %', r; end if;
+  perform pg_temp.td_como(flor);
+  select * into u from public.tipos_documento_con_uso(fa) x where x.tipo_id = b;
+  if u.requisitos <> 1 or u.documentos <> 0 then raise exception 'con_uso del de requisito dio % %', u.requisitos, u.documentos; end if;
+  select * into u from public.tipos_documento_con_uso(fa) x where x.tipo_id = c;
+  if u.requisitos <> 0 or u.documentos <> 1 then raise exception 'con_uso del de documento dio % %', u.requisitos, u.documentos; end if;
+  j := pg_temp.td_json(flor, format('select public.tipo_documento_eliminar(%L, %L)', a, pg_temp.td_version(a)));
+  if j ->> 'accion' <> 'eliminado' or exists (select 1 from public.tipos_documento where id = a) then
+    raise exception 'sin uso no se borró: %', j ->> 'accion';
+  end if;
+  j := pg_temp.td_json(flor, format('select public.tipo_documento_eliminar(%L, %L)', b, pg_temp.td_version(b)));
+  if j ->> 'accion' <> 'desactivado' or (j ->> 'requisitos')::int <> 1 or (select activo from public.tipos_documento where id = b)
+     or not exists (select 1 from public.fases_requisitos where tipo_documento_id = b) then
+    raise exception 'con un requisito no se desactivó: %', j;
+  end if;
+  j := pg_temp.td_json(flor, format('select public.tipo_documento_eliminar(%L, %L)', c, pg_temp.td_version(c)));
+  if j ->> 'accion' <> 'desactivado' or (j ->> 'documentos')::int <> 1 or (select activo from public.tipos_documento where id = c) then
+    raise exception 'con un documento en la papelera no se desactivó: %', j;
+  end if;
+  if (j ->> 'actualizado_en')::timestamptz <> pg_temp.td_version(c) then raise exception 'desactivar no devolvió la versión nueva'; end if;
 end $$;
 rollback;
