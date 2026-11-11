@@ -5,9 +5,10 @@ import { entornoDelServidor } from '@/shared/config/servidor'
 import type { Database } from '@/shared/types/database.types'
 
 // Cliente con la secret key: SALTA la RLS. Quién puede crearlo está escrito en
-// `.claude/rules/datos.md` y lo cuida el lint (`no-restricted-imports`): hoy, sólo
-// `equipo/infra/invitaciones.ts`, para la API de admin de Auth y después de comprobar el permiso
-// con el cliente de quien invita. Nunca se guarda en una variable global, nunca se pasa a un
+// `.claude/rules/datos.md` y lo cuida el lint (`no-restricted-imports`): hoy,
+// `equipo/infra/invitaciones.ts` (la API de admin de Auth) y `empresa/infra/revalidacion-prueba.ts`
+// (sólo `integracion_secreto('web_publica')`), los dos después de comprobar el permiso con el
+// cliente de quien pide. Nunca se guarda en una variable global, nunca se pasa a un
 // Client Component y nunca lee `leads`, `vehiculos` ni `cotizaciones`.
 export function createAdminClient() {
   const { SUPABASE_SECRET_KEY: secreta } = entornoDelServidor()

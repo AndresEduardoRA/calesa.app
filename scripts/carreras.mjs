@@ -37,6 +37,7 @@ import {
   carrerasDeComprobantes,
   limpiarComprobantes,
 } from '../supabase/tests/areas/comprobantes/carreras.mjs'
+import { carrerasDeFases } from '../supabase/tests/areas/flujos/carreras.mjs'
 
 // La base de ESTE worktree (la principal o un carril: scripts/lib/stack-local.mjs).
 const url = process.env.CARRERAS_DB_URL ?? stackLocal().urlDb
@@ -354,6 +355,7 @@ try {
   await carrerasDeLoReciente({ orquesta, carrera, espero })
   await carrerasDeLaRueda({ orquesta, espero, conectar, esperarBloqueo })
   await carrerasDeComprobantes({ orquesta, espero, conectar, esperarBloqueo })
+  await carrerasDeFases({ orquesta, carrera, espero, conectar })
 } finally {
   await limpiarComprobantes(orquesta).catch((e) =>
     fallas.push(`limpiar los comprobantes: ${e.message}`),

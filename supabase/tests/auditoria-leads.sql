@@ -58,6 +58,8 @@ declare
     ('puede_lead(uuid,text)', 'L'),
     ('puede_actuar_lead(uuid,text)', 'L'),
     ('puede_vehiculo(uuid,text)', 'L'),
+    -- El buscador (7.12-1): busca por número o título, repite la policy «cotizaciones: leer» (mira el lead sólo por en_cartera) y no devuelve lead_id.
+    ('buscador_cotizaciones(text,integer)', 'L'),
     ('puede_cotizacion(uuid,text)', 'L'),
     ('lead_favorito_poner(uuid,boolean)', 'M'),
     ('lead_tachado_poner(uuid,boolean)', 'M'),
@@ -179,7 +181,18 @@ declare
     -- Guardar una cotización (4.10-3): no recibe un lead; la cotización que edita ya cuelga de uno que su dueña vio, y editarla no cambia quién la ve. El permiso es el de la cotización
     -- (`puede_cotizacion`) y no toma el lead: lo prueban `cotizacion-guardar.sql` y `cotizaciones-visibilidad.sql`.
     ('cotizacion_guardar(uuid,uuid,timestamp with time zone,jsonb,text,text,text,uuid,boolean)', 'X'),
-    ('reasignar_tarea(uuid,uuid)', 'X'),
+    -- Las tareas de la agenda (7.06-1), como los eventos: el lead vinculado se pide visible (`lead_visible_al_escribir`); reasignar cambió de firma
+    -- (con versión). Responden sólo {resultado, id, actualizado_en} (`areas/agenda/tareas.sql`).
+    ('tarea_crear(uuid,jsonb,uuid)', 'X'),
+    ('tarea_guardar(uuid,timestamp with time zone,jsonb)', 'X'),
+    ('tarea_completar(uuid,timestamp with time zone,boolean)', 'X'),
+    ('tarea_eliminar(uuid,timestamp with time zone)', 'X'),
+    ('reasignar_tarea(uuid,timestamp with time zone,uuid)', 'X'),
+    -- Los eventos de la agenda (7.06-1): el lead vinculado se pide visible (`lead_visible_al_escribir`, leads.ver), como en una nota; la agenda no toca la
+    -- cartera. Crear, guardar y eliminar responden sólo {resultado, id, actualizado_en} (`areas/agenda/eventos.sql`).
+    ('evento_crear(uuid,jsonb,uuid[])', 'X'),
+    ('evento_guardar(uuid,timestamp with time zone,jsonb,uuid[])', 'X'),
+    ('evento_eliminar(uuid,timestamp with time zone)', 'X'),
     ('storage_refcount(text,text)', 'X')
   ) t (f, c));
   r record; v_fallas text := '';

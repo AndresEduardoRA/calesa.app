@@ -20,6 +20,11 @@ pre-commit:
       run: bash scripts/mapa.sh --check # docs/MAPA.md no se versiona y va en .prettierignore
     - name: schema
       glob: 'supabase/**/*.sql'
+      # En un paso del piloto (PILOTO=1) no se repite en cada commit: con tres carriles tardaba ≈ 4 min 20 s por commit de SQL (5 commits,
+      # ≈ 22 de los 62 min de una parte, 7.06-2 del 2026-11-11). La sesión corre `pnpm db:probar` antes de su primer commit de SQL y al
+      # final (skill piloto, 5), y el job «Base» del CI lo vuelve a correr.
+      skip:
+        - run: test "$PILOTO" = 1
       run: node scripts/probar-schema.mjs supabase
 
 # docs/MAPA.md no se versiona: se regenera al cambiar de rama y al integrar (scripts/mapa.sh).

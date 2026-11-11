@@ -138,6 +138,11 @@ export const DRAWERS_DEL_NUCLEO: Record<string, RegistroDeDrawer> = {
     sinFormulario:
       'de sólo lectura: las revisiones de una cotización guardada; «Ir a una fecha» es una posición, no algo que se guarde',
   },
+  // --- logistica
+  'src/app/(app)/logistica/drawer-de-la-unidad.tsx': {
+    sinFormulario:
+      'sólo es el marco del panel de la unidad (6.01): no guarda nada tipeado; lo que cada área escriba en sus huecos va en modales que preguntan por sí solos',
+  },
 }
 
 export const DRAWERS: Record<string, RegistroDeDrawer> = {
