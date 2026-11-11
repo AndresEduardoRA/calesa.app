@@ -53,7 +53,7 @@ create or replace function pg_temp.chgl_cuenta(p_quien uuid, p_sql text) returns
   select pg_temp.chgl_corre(p_quien, format('select to_jsonb(count(*)) from (%s) x', p_sql));
 $f$;
 
--- @test chat: hay exactamente un canal global después de las migraciones y el seed (G1, C4)
+-- @test chat: regresión: hay exactamente un canal global después de las migraciones y el seed (G1, C4)
 begin;
 do $$
 declare n int;
@@ -114,6 +114,6 @@ begin
   if r ->> 'resultado' is distinct from 'entro' or r ->> 'id' is distinct from g::text then raise exception 'con chat.global no entró: %', r; end if;
   r := pg_temp.chgl_corre(lee, 'select public.chat_global_entrar()');
   if r ->> 'resultado' is distinct from 'ya_estaba' then raise exception 'entrar dos veces no dio ya_estaba: %', r; end if;
-  if pg_temp.chgl_cuenta(lee, format('select 1 from public.mensajes where conversacion_id = %L', g)) is null then raise exception 'no pudo leer el canal'; end if;
+  if pg_temp.chgl_cuenta(lee, format('select 1 from public.conversaciones where id = %L', g)) <> '1' then raise exception 'después de entrar no lee el canal'; end if;
 end $$;
 rollback;

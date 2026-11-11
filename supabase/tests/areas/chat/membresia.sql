@@ -53,23 +53,25 @@ create or replace function pg_temp.chm_cuenta(p_quien uuid, p_sql text) returns 
   select pg_temp.chm_corre(p_quien, format('select to_jsonb(count(*)) from (%s) x', p_sql));
 $f$;
 
--- @test chat: un mensaje insertado mueve la hora del último mensaje de su conversación y uno anterior no la retrocede (M4, C3)
+-- @test chat: un mensaje insertado mueve la hora del último mensaje de su conversación, sin pasar de la hora actual; uno anterior no la retrocede (M4, C3)
 begin;
 do $$
-declare a uuid := pg_temp.chm_persona(); b uuid := pg_temp.chm_persona(); conv uuid; otra uuid; t0 timestamptz; t1 timestamptz := now() + interval '1 minute';
+declare a uuid := pg_temp.chm_persona(); b uuid := pg_temp.chm_persona(); conv uuid; otra uuid; t0 timestamptz; t1 timestamptz;
 begin
   conv := pg_temp.chm_conversacion(array[a, b]);
   otra := pg_temp.chm_conversacion(array[a, b]);
   select ultimo_mensaje_en into t0 from public.conversaciones where id = otra;
-  insert into public.mensajes (conversacion_id, autor_id, cuerpo, creado_en) values (conv, a, 'hola', t1);
-  if (select ultimo_mensaje_en from public.conversaciones where id = conv) is distinct from t1 then raise exception 'el mensaje no movió la hora de su conversación'; end if;
+  insert into public.mensajes (conversacion_id, autor_id, cuerpo, creado_en) values (conv, a, 'desde el futuro', now() + interval '1 day');
+  select ultimo_mensaje_en into t1 from public.conversaciones where id = conv;
+  if t1 <= t0 then raise exception 'el mensaje no movió la hora de su conversación'; end if;
+  if t1 > clock_timestamp() then raise exception 'un mensaje con fecha futura dejó la conversación en el futuro: %', t1; end if;
   if (select ultimo_mensaje_en from public.conversaciones where id = otra) is distinct from t0 then raise exception 'el mensaje movió la hora de otra conversación'; end if;
   insert into public.mensajes (conversacion_id, autor_id, cuerpo, creado_en) values (conv, b, 'viejo', now() - interval '1 hour');
   if (select ultimo_mensaje_en from public.conversaciones where id = conv) is distinct from t1 then raise exception 'un mensaje anterior retrocedió la hora'; end if;
 end $$;
 rollback;
 
--- @test chat: quien no es miembro (también la dueña, con todos los permisos del chat) no lee la conversación, sus miembros, sus mensajes ni sus menciones; un miembro sí (M1, C5)
+-- @test chat: regresión: quien no es miembro (también la dueña, con todos los permisos del chat) no lee la conversación, sus miembros, sus mensajes ni sus menciones; un miembro sí (M1, C5)
 begin;
 do $$
 declare a uuid := pg_temp.chm_persona(array['chat.participar']); b uuid := pg_temp.chm_persona(array['chat.participar']); afuera uuid := pg_temp.chm_persona(array['chat.participar', 'chat.global']);
