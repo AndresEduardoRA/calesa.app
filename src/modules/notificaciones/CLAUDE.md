@@ -1,6 +1,6 @@
 # notificaciones
 
-Campana in-app con «requiere acción», realtime, web push (VAPID) y preferencias por usuario; todo lo que avisa pasa por `notificar()`.
+Campana in-app con «requiere acción», realtime, web push (VAPID) y preferencias por usuario; todo lo que avisa pasa por la puerta de la tabla.
 
 ## Entra y sale
 
@@ -16,11 +16,14 @@ Campana in-app con «requiere acción», realtime, web push (VAPID) y preferenci
 
 ## Tablas
 
-`notificaciones`, `suscripciones_push`. RPC/trigger: `notificar`, `tarea_notificar`, `recordatorios_notificar`, `alertas_demora`.
+`notificaciones`, `suscripciones_push`. RPC/trigger: `notificar`, `notificaciones_puerta`, `tarea_notificar`, `recordatorios_notificar`, `alertas_demora`.
 
 ## No se rompe
 
-- Sólo `notificar()` inserta: decide destinatarios por permiso (`usuario_tiene_permiso`) y respeta preferencias; nunca por nombre de rol.
+- **Toda fila pasa por la puerta** (`trg_notificaciones_puerta`, `before insert`, 7.01): a quien está de baja, bloqueado o sin perfil no le llega nada, sin
+  error para quien avisa. Cubre a `notificar()` y a los inserts directos de otras fases (`alertas_demora`, turnos web). La app no inserta (`authenticated` sin
+  `insert` ni `execute` de `notificar()`): avisa la base. Quien avisa elige a quién (por permiso o por relación, nunca por nombre de rol).
+- Las preferencias no apagan la campana: la campana es el registro; las preferencias gobiernan sólo el push (7.03).
 - Anti-spam: una alerta de demora por unidad cada 72 h; recordatorios una sola vez.
 - Realtime es señal: el cliente rehidrata con fetch; nunca confía en el payload para pintar.
 
