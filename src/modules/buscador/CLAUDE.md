@@ -12,7 +12,12 @@ Paleta global (Ctrl/Cmd+K) que busca leads, vehículos, cotizaciones y acciones 
 
 - La base (7.12-1): `supabase/migrations/20261111173200_buscador_secciones.sql` y `20261111173300_buscador_visitas.sql`; pruebas en
   `supabase/tests/areas/buscador/` (`buscador.sql`, `visitados.sql`).
-- Pendiente (7.12-2): `entities/ranking.ts` (orden y agrupación por tipo, puro, con test); `infra/buscar.client.ts` (una llamada por sección desde
+- `entities/ranking.ts` (7.12-2, puro, con test): `seccionesQueBuscan(interpretacion)` (espejo de `_buscador_interpretar` y D10), `agruparResultados()`
+  (orden de las secciones, número exacto, después lo que empieza con el texto, el resto como lo dio la base; cada una cortada en `POR_SECCION` = 5),
+  `ordenarComoLosIds()` y `ultimosAbiertos()` (16 leídas, 8 mostradas, mezcladas por recencia). Recibe la interpretación ya hecha: la llama la feature con
+  `interpretarBusqueda()` de `@/modules/leads/client` (`entities` no importa otro módulo). `entities/resultados.ts`: los Zod de lo que llega y las columnas
+  que se piden (nunca teléfono, campos ni montos).
+- Pendiente (7.12-2): `infra/buscar.client.ts` (una llamada por sección desde
   el navegador, cancelable con `AbortSignal`) e `infra/visitados.client.ts` (los últimos abiertos, hidratados bajo la RLS de cada entidad); `client.ts`;
   el registro en `scripts/guardas/areas-b/paginas-en-la-base.ts` (defecto 5, máximo 20).
 - `features/paleta/` (7.13).
