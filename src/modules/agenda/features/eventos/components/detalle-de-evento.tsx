@@ -49,7 +49,7 @@ export function VistaDeEvento({ evento, zona }: { evento: DetalleDeEvento; zona:
         ) : null}
         {evento.creadoPorNombre ? <Dato titulo="Lo creó">{evento.creadoPorNombre}</Dato> : null}
         {evento.destinatarios ? (
-          <Dato titulo="Invitados">
+          <Dato titulo="Destinatarios">
             <ul className="grid gap-0.5">
               {evento.destinatarios.map((persona) => (
                 <li key={persona.id}>{persona.nombre}</li>

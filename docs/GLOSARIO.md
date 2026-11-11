@@ -289,6 +289,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Compra** — `repuestos_compras`: costo de un repuesto (permiso aparte).
 - **Cotizador de repuestos** — `repuestos_cotizador_config`, `_tramos_logistica`, `_cajas`, `repuestos_cotizaciones`: fórmula propia importado/local con tramos y cajas.
 - **Evento** — `eventos`, `eventos_destinatarios`: cita con visibilidad privada/pública/seleccionados.
+- **Destinatario** — `eventos_destinatarios`: persona que ve un evento «seleccionados» (de 1 a 50); en la pantalla, «Destinatarios» y «¿Con quién?». Sólo lo ve quien creó el evento.
 - **Tarea** — `tareas` / `reasignar_tarea`: pendiente con responsable y vencimiento.
 - **Conversación / Mensaje** — `conversaciones`, `mensajes`: directa, grupo o canal global; mensajes de texto o fichas.
 - **Mención** — `mensajes_menciones`: `#` a vehículo, lead, cotización o persona; no otorga acceso.
