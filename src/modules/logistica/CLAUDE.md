@@ -5,7 +5,7 @@ Operación diaria sobre el flujo: cadena por fase, mover con vista previa, docum
 ## Entra y sale
 
 - Entra: acciones de logística en `/logistica/*`, subida de documentos (también desde cámara), confirmación de pagos, cron de alertas.
-- Sale: hoy nada (las entradas de la raíz están vacías; 6.01-1 sólo deja el árbol y los tipos de la unidad y de los huecos). Saldrá `bandejaLogistica()` (para `tablero`), `margenDe(vehiculoId)`, `<LineaTiempoUnidad>`, `dondeEsta(busqueda)`. Lo consumirán `tablero`, `vehiculos` (ficha), `web` (portal: fases y documentos visibles).
+- Sale: `leerUnidad(id)` (la unidad de vehículo bajo la RLS de quien mira; nula si no existe, está en la papelera o no la ve), `huecosVisibles`, `ORDEN_DE_HUECOS`, `refDeUnidad` y los tipos de la unidad y de los huecos; por `pantallas/unidad.ts`, `<PanelDeLaUnidad>` (6.01). Saldrá `bandejaLogistica()` (para `tablero`), `margenDe(vehiculoId)`, `<LineaTiempoUnidad>`, `dondeEsta(busqueda)`. Lo consumirán `tablero`, `vehiculos` (ficha), `web` (portal: fases y documentos visibles).
 - Depende de: `vehiculos`, `flujos`, `cotizaciones`.
 
 ## Áreas
@@ -28,6 +28,7 @@ sus huecos) es la carpeta `nucleo` de cada capa. `index.ts`, `client.ts` y `comp
 **Los huecos.** El panel de la unidad no sabe qué lleva: cada área declara sus huecos en un archivo suyo de `pantallas/` que hoy está vacío (`<área>-unidad.ts` →
 `HUECOS_DE_<ÁREA>_EN_LA_UNIDAD`; `<área>-grupo.ts`; `<área>-enlace.ts`, nulo hasta que su página existe; `<área>-catalogos.ts`) y sólo `src/app` los junta. Un hueco se dibuja
 si la persona tiene alguna de sus claves de permiso **en el origen de la unidad** y su regla de `flujos_reglas` está activa; el orden es fijo (`ORDEN_DE_HUECOS`), no el del archivo.
+El panel exige `logistica.ver` en el origen de la unidad **y** que la RLS de `vehiculos` deje leer la fila (`vehiculos.ver`): quien tiene sólo una ve «No tienes permiso» o «ya no está disponible». Un hueco se monta al abrir su bloque (`BloqueDelHueco`).
 **Un área no importa otra** (lo vigila `scripts/guardas/areas-de-logistica.test.ts`): lo compartido va al núcleo.
 
 ## Archivos clave
