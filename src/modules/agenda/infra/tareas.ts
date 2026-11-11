@@ -27,4 +27,22 @@ export const repositorioDeTareas: RepositorioDeTareas = {
     })
     return error ? falloDeRpc(error) : leerResultadoDeEscritura(data)
   },
+  async completar({ id, actualizadoEnEsperado, completada }) {
+    const supabase = await createClient()
+    const { data, error } = await supabase.rpc('tarea_completar', {
+      p_tarea: id,
+      p_actualizado_en_esperado: actualizadoEnEsperado,
+      p_completada: completada,
+    })
+    return error ? falloDeRpc(error) : leerResultadoDeEscritura(data)
+  },
+  async reasignar({ id, actualizadoEnEsperado, responsableId }) {
+    const supabase = await createClient()
+    const { data, error } = await supabase.rpc('reasignar_tarea', {
+      p_tarea: id,
+      p_actualizado_en_esperado: actualizadoEnEsperado,
+      p_responsable: responsableId,
+    })
+    return error ? falloDeRpc(error) : leerResultadoDeEscritura(data)
+  },
 }

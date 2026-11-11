@@ -10,6 +10,8 @@ export type TareaPedida = {
   id: string
   detalle: DetalleDeTarea | null
   puedeEditar: boolean
+  puedeCompletar: boolean
+  puedeReasignar: boolean
 }
 
 type Props = {
@@ -63,6 +65,8 @@ export function TareaDeLaUrl({ tarea, puedeAsignar, zona, hoy, fecha }: Props) {
       tarea={tarea.detalle}
       zona={zona}
       puedeEditar={tarea.puedeEditar}
+      puedeCompletar={tarea.puedeCompletar}
+      puedeReasignar={tarea.puedeReasignar}
       alEditar={detalle.editar}
       alEliminar={detalle.cerrar}
       alCerrar={detalle.cerrar}

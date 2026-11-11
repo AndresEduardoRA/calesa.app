@@ -66,4 +66,16 @@ export type RepositorioDeTareas = {
     datos: DatosDeTarea
   }) => RespuestaDeEscritura
   eliminar: (pedido: { id: string; actualizadoEnEsperado: string }) => RespuestaDeEscritura
+  // Poner, no alternar: repetirlo no cambia nada (`sin_cambios`). Sólo su creador o su responsable.
+  completar: (pedido: {
+    id: string
+    actualizadoEnEsperado: string
+    completada: boolean
+  }) => RespuestaDeEscritura
+  // Sólo su creador, con `agenda.tareas.asignar`; quién puede recibir lo dice la base.
+  reasignar: (pedido: {
+    id: string
+    actualizadoEnEsperado: string
+    responsableId: string
+  }) => RespuestaDeEscritura
 }

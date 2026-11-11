@@ -8,10 +8,14 @@ import {
   leerIdDeUrl,
   leerTarea,
   leerVista,
+  puedeCompletarTarea,
   puedeDarTareaAOtro,
   puedeEditarEvento,
   puedeEditarTarea,
+  puedeReasignarTarea,
   rangoDe,
+  type DetalleDeEvento,
+  type DetalleDeTarea,
 } from '@/modules/agenda'
 import { CalendarioDeAgenda, PanelesDeAgenda } from '@/modules/agenda/pantallas/agenda'
 import { leerAjustes } from '@/modules/empresa'
@@ -20,10 +24,46 @@ import { CORTE_DE_LA_TABLA } from '@/shared/lib/ancho'
 import { anchoDeEstaPeticion } from '@/shared/lib/ancho.server'
 import { datosO } from '@/shared/lib/errores'
 import { diaEnZona, ZONA_POR_DEFECTO } from '@/shared/lib/fechas'
-import { puede } from '@/shared/lib/permisos'
+import { puede, type Permisos } from '@/shared/lib/permisos'
 import { unParametro } from '@/shared/lib/rutas'
 
 export const metadata: Metadata = { title: 'Agenda' }
+
+type Detalles = { evento: DetalleDeEvento | null; tarea: DetalleDeTarea | null }
+
+// Lo que cada panel necesita saber de quien mira: qué botones se dibujan (la base lo vuelve a exigir).
+function eventoPedido(
+  id: string | null,
+  detalle: Detalles['evento'],
+  yo: string,
+  permisos: Permisos,
+) {
+  return id
+    ? {
+        id,
+        detalle,
+        puedeEditar:
+          detalle !== null && puedeEditarEvento({ ...detalle, eliminado: false }, yo, permisos),
+      }
+    : null
+}
+
+function tareaPedida(
+  id: string | null,
+  detalle: Detalles['tarea'],
+  yo: string,
+  permisos: Permisos,
+) {
+  return id
+    ? {
+        id,
+        detalle,
+        puedeEditar: detalle !== null && puedeEditarTarea(detalle, yo),
+        puedeCompletar: detalle !== null && puedeCompletarTarea(detalle, yo),
+        puedeReasignar: detalle !== null && puedeReasignarTarea(detalle, yo, permisos),
+      }
+    : null
+}
 
 // La agenda: mes, semana o día, en la zona de la empresa. Lo que se ve lo decide la base con la sesión de quien mira (`agenda_rango`, de invocador);
 // la vista, la fecha, las clases y «la de todos» viven en la URL. El celular abre en «día» y el escritorio en «mes».
@@ -72,26 +112,8 @@ export default async function PaginaDeAgenda({ searchParams }: PageProps<'/agend
         deTodos={deTodos}
       />
       <PanelesDeAgenda
-        evento={
-          eventoId
-            ? {
-                id: eventoId,
-                detalle: detalleDeEvento,
-                puedeEditar:
-                  detalleDeEvento !== null &&
-                  puedeEditarEvento({ ...detalleDeEvento, eliminado: false }, yo, sesion.permisos),
-              }
-            : null
-        }
-        tarea={
-          tareaId
-            ? {
-                id: tareaId,
-                detalle: detalleDeTarea,
-                puedeEditar: detalleDeTarea !== null && puedeEditarTarea(detalleDeTarea, yo),
-              }
-            : null
-        }
+        evento={eventoPedido(eventoId, detalleDeEvento, yo, sesion.permisos)}
+        tarea={tareaPedida(tareaId, detalleDeTarea, yo, sesion.permisos)}
         puedePublicar={puede(sesion.permisos, 'agenda.eventos.publicar')}
         puedeAsignar={puedeDarTareaAOtro(sesion.permisos)}
         zona={zona}

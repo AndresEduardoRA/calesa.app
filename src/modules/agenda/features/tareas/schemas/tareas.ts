@@ -18,7 +18,7 @@ export const esquemaCrearTarea = z.object({
   }),
 })
 
-// Al guardar no existe `responsable_id`: cambia por `reasignar_tarea` (7.07-3) y la base lo rechaza aquí.
+// Al guardar no existe `responsable_id`: cambia por `reasignar_tarea` y la base lo rechaza aquí.
 export const esquemaGuardarTarea = z.object({
   id: z.guid(),
   actualizadoEnEsperado: iso,
@@ -32,4 +32,17 @@ export const esquemaGuardarTarea = z.object({
 export const esquemaEliminarTarea = z.object({
   id: z.guid(),
   actualizadoEnEsperado: iso,
+})
+
+// Poner, no alternar: `completada` dice cómo debe quedar.
+export const esquemaCompletarTarea = z.object({
+  id: z.guid(),
+  actualizadoEnEsperado: iso,
+  completada: z.boolean(),
+})
+
+export const esquemaReasignarTarea = z.object({
+  id: z.guid(),
+  actualizadoEnEsperado: iso,
+  responsableId: z.guid(),
 })
