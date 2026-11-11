@@ -12,13 +12,15 @@ Campana in-app con «requiere acción», realtime, web push (VAPID) y preferenci
 ## Archivos clave
 
 - `entities/tipos.ts` — catálogo tipado de notificaciones (clave, título, ruta destino, requiere acción).
-- `infra/realtime.client.ts`, `infra/push.ts` — `supabase/functions/push` recibe el webhook de la base y envía con `web-push`.
+- `infra/realtime.client.ts`, `infra/push.ts` — `supabase/functions/push` (7.03-2) canjea el pase de `push_disparar` y envía (RFC 8291/8292).
 - `features/campana/`, `features/preferencias/`.
 
 ## Tablas
 
-`notificaciones`, `suscripciones_push`, `limpieza_avisos` (la marca de «ya avisado» de la limpieza, sólo `service_role`); purga `visitados`. RPC/trigger:
-`notificar`, `notificaciones_puerta`, `tarea_notificar`, `recordatorios_notificar`, `notificaciones_purgar`, `limpieza_avisar`, `alertas_demora`.
+`notificaciones`, `suscripciones_push`, `push_pases` (el pase de un uso del push, sólo `service_role`), `limpieza_avisos` (la marca de «ya avisado» de la
+limpieza, sólo `service_role`); purga `visitados`. RPC/trigger: `notificar`, `notificaciones_puerta`, `tarea_notificar`, `recordatorios_notificar`,
+`notificaciones_purgar`, `limpieza_avisar`, `alertas_demora`; push (7.03): `push_suscribir`, `push_desuscribir`, `push_abrir` y `push_resultado` (sólo
+`service_role`) y `trg_notificaciones_push` → `push_disparar`.
 
 ## No se rompe
 
@@ -42,6 +44,11 @@ Campana in-app con «requiere acción», realtime, web push (VAPID) y preferenci
 
 ## Ojo
 
-- El push (7.03, todavía no está): el plan es que el webhook se autentique con `PUSH_WEBHOOK_SECRET` (header) y la función use el cliente admin **sólo**
-  para leer suscripciones.
+- **Push web** (7.03-1, la base): `suscripciones_push` se escribe sólo por `push_suscribir` (exige `notificaciones.push`; endpoint `https` de un servicio
+  de push, `_push_endpoint_valido()`, para que la función no sea un proxy abierto; un endpoint que existe pasa a quien suscribe; tope de 10, se va la menos
+  reciente) y `push_desuscribir` (sin el permiso). Cada notificación que entra dispara (`after insert`) si `push_web` está activa, el destinatario tiene
+  el permiso, no apagó el tipo en la preferencia `notificaciones.push` (`{ "<tipo>": false }`; sin fila, todo encendido), tiene suscripción y hay
+  `url_proyecto`: crea un **pase** (`push_pases`, un uso, 10 min) y llama a `/functions/v1/push` por `pg_net`. Sin secretos en la base y sin cola de
+  reintentos (la campana es el registro). **El push nunca rompe la operación que avisa** (bloque de excepción; sólo el `sqlstate` al log). `push_abrir`
+  devuelve título, cuerpo, `ruta` y las suscripciones válidas del destinatario, nada más; `push_resultado` anota una vez por pase (404/410 borran).
 - `requiere_accion` muestra el botón en la campana (p. ej. «Contacté» de un turno web); al resolverse se marca leída por la acción, no por abrir la campana.
