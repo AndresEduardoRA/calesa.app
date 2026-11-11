@@ -40,6 +40,11 @@ while :; do
   [ -f "$COMUN/PARAR" ] && { echo "coordinador: PARAR."; exit 0; }
   # El plan se lee de origin/main (coordinador.mjs): se trae antes de mirar.
   timeout 60 git fetch -q origin main 2>/dev/null 7>&-
+  # Corriendo desde un checkout en main y limpio, el coordinador corre el código que integró: avanza sólo hacia adelante. En la rama
+  # de un carril o con cambios sin commitear no toca nada (2026-11-11: el #109 entró y el coordinador seguía con el código de antes).
+  if [ "$(git branch --show-current)" = main ] && [ -z "$(git status --porcelain --untracked-files=no)" ]; then
+    git merge --ff-only -q origin/main >/dev/null 2>&1 7>&- || true
+  fi
   (con_config node scripts/coordinador/coordinador.mjs sincronizar) 2>&1 7>&- | sed "s/^/$(TZ=America/La_Paz date +%FT%T) /"
   tablero=$(con_config node scripts/coordinador/coordinador.mjs tablero 2>/dev/null)
   if grep -qE '^([0-9]+) de \1 pasos integrados' <<<"$(sed -n 3p <<<"$tablero")"; then
