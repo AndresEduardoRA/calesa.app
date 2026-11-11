@@ -74,6 +74,10 @@ export type RepositorioIntegraciones = {
   }) => Promise<Resultado<Editado>>
 }
 
+// «Probar» de la web pública: un POST con la dirección y el secreto guardados. Vuelve sólo el
+// código de respuesta; el secreto no sale del servidor.
+export type ProbadorDeRevalidacion = () => Promise<Resultado<{ codigo: number; conHttps: boolean }>>
+
 export type AjustesParaEditar = {
   ajustes: AjustesEmpresa
   // Con vehículos, cotizaciones o gastos cargados la moneda base ya no se cambia.

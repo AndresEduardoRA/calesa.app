@@ -8,6 +8,7 @@ import type {
   LectorDeHistorial,
   LectorDeIntegraciones,
   LectorDeMonedasYTiposCambio,
+  ProbadorDeRevalidacion,
   RepositorioAjustesDeCotizacion,
   RepositorioEmpresa,
   RepositorioIntegraciones,
@@ -20,6 +21,7 @@ import { getAjustes, getAjustesParaEditar, getPoliticaDeLimpieza } from './infra
 import { getAjustesDeCotizacion } from './infra/queries/ajustes-de-cotizacion'
 import { getIntegraciones, integracionActiva } from './infra/queries/integraciones'
 import { getHistorial, getMonedasYTiposCambio, getTiposCambio } from './infra/queries/tipos-cambio'
+import { probarRevalidacion } from './infra/revalidacion-prueba'
 import { tiposCambioSupabase } from './infra/tipos-cambio'
 
 export const repositorioEmpresa: RepositorioEmpresa = empresaSupabase
@@ -27,6 +29,7 @@ export const repositorioTiposCambio: RepositorioTiposCambio = tiposCambioSupabas
 export const repositorioIntegraciones: RepositorioIntegraciones = integracionesSupabase
 export const repositorioAjustesDeCotizacion: RepositorioAjustesDeCotizacion =
   ajustesDeCotizacionSupabase
+export const probadorDeRevalidacion: ProbadorDeRevalidacion = probarRevalidacion
 
 export const leerAjustes: LectorDeAjustes = getAjustesParaEditar
 export const leerMonedasYTiposCambio: LectorDeMonedasYTiposCambio = getMonedasYTiposCambio
