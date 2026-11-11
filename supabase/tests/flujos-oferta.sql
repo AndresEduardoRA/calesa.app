@@ -9,6 +9,7 @@
 --   O4. Con «transporte» apagada → 23514; apagarla después de guardar no borra la oferta.
 --   O5. Dos guardados con la misma versión: el segundo PT409 y no escribe.
 --   O6. 42501 al asesor y a otro origen; inexistente PT409; forma 22023; anon no ejecuta.
+--   O7. Escritura directa como authenticated → 42501; leer sigue.
 
 create or replace function pg_temp.flo_persona(p_concesiones text[]) returns uuid language plpgsql as $f$
 declare v_id uuid := gen_random_uuid(); v_rol uuid; c text;
@@ -219,5 +220,25 @@ begin
      or has_function_privilege('anon', 'public.flujo_oferta(uuid)', 'execute') then
     raise exception 'O6: anon ejecuta una RPC de la oferta';
   end if;
+end $$;
+rollback;
+
+-- @test oferta: la escritura directa como authenticated da 42501; leer sigue (O7)
+begin;
+do $$
+declare
+  a uuid := pg_temp.flo_flujo(); config uuid := pg_temp.flo_config(a); p1 uuid := pg_temp.flo_puerto('FLO P1', 0, true);
+begin
+  perform pg_temp.flo_nueva('O7 guardar', pg_temp.flo_guardar(config, a, pg_temp.flo_version(a), array[p1], '{}', '{}'), '-infinity');
+  perform pg_temp.flo_da_error('O7 insert', pg_temp.flo_corre(config, format(
+    'insert into public.flujos_transporte_oferta (flujo_id, tipo, puerto_id) values (%L, ''puerto_destino'', %L) returning jsonb_build_object(''ok'', true)',
+    a, p1)), '42501');
+  -- update nunca tuvo grant para authenticated (base): este caso cuida que no vuelva; insert y delete prueban la migración.
+  perform pg_temp.flo_da_error('O7 update', pg_temp.flo_corre(config, format(
+    'update public.flujos_transporte_oferta set tipo = ''puerto_destino'' where flujo_id = %L returning jsonb_build_object(''ok'', true)', a)), '42501');
+  perform pg_temp.flo_da_error('O7 delete', pg_temp.flo_corre(config, format(
+    'delete from public.flujos_transporte_oferta where flujo_id = %L returning jsonb_build_object(''ok'', true)', a)), '42501');
+  perform pg_temp.flo_es('O7 leer', pg_temp.flo_corre(config, format(
+    'select jsonb_agg(puerto_id) from public.flujos_transporte_oferta where flujo_id = %L', a)), jsonb_build_array(p1));
 end $$;
 rollback;
