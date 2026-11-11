@@ -27,7 +27,7 @@ RPC (todas de `authenticated`, ninguna de `anon`; tamaño por `_acotar_pagina(p_
 - `buscador_leads(p_texto, p_tamano)` → `uuid[]`, invocadora: `#n` por `leads_ids_del_numero` y nombre por `leads_candidatos` (sólo `texto`),
   pasados por `leads_vista_por_ids`.
 - `buscador_vehiculos(p_texto, p_tamano)`, invocadora: título, VIN o lote, una ruta por origen visible por `vehiculos_origen_listado_idx`.
-- `buscador_cotizaciones(p_texto, p_tamano)`, **`security definer`**: número exacto o título por `cotizaciones_titulo_trgm` (hasta 1.000) más las
+- `buscador_cotizaciones(p_texto, p_tamano)`, **`security definer`**: número exacto o título por `cotizaciones_titulo_trgm` (hasta 1.000 de sus orígenes) más las
   propias por `cotizaciones_creador_idx`; repite la policy «cotizaciones: leer» fila por fila; sin montos, papelera, `lead_id`, `vehiculo_id` ni `creado_por`.
 - `_buscador_interpretar(p_texto)`: el mínimo en la base, espejo de `interpretarBusqueda()`.
 

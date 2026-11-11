@@ -155,8 +155,12 @@ begin
   end if;
   if b.texto is not null then
     v_patron := '%' || replace(replace(replace(b.texto, '\', '\\'), '%', '\%'), '_', '\_') || '%';
-    -- El título, por `cotizaciones_titulo_trgm`: a lo sumo 1.000 candidatas, antes de la visibilidad.
-    v_ids := v_ids || array(select c.id from public.cotizaciones c where c.titulo ilike v_patron and c.eliminado_en is null limit 1000);
+    -- El título, por `cotizaciones_titulo_trgm`: a lo sumo 1.000 candidatas de los orígenes que quien llama ve, antes del resto de la visibilidad
+    -- (sin el filtro de origen, 1.000 de otros orígenes con el mismo título dejaban fuera las que sí le corresponden).
+    v_ids := v_ids || array(
+      select c.id from public.cotizaciones c
+       where c.titulo ilike v_patron and c.eliminado_en is null and c.origen_id = any (v_t || v_p)
+       limit 1000);
     -- Las propias, por `cotizaciones_creador_idx (creado_por, creado_en desc, id desc) where eliminado_en is null`: quien tiene «propios» encuentra las
     -- suyas aunque el título lo compartan miles de ajenas.
     if cardinality(v_p) > 0 then

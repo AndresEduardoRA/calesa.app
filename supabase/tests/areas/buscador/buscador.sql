@@ -240,7 +240,7 @@ begin
 end $$;
 rollback;
 
--- @test buscador: B4 con un título que comparten más de 1.000 cotizaciones ajenas, Ana («propios») encuentra la suya
+-- @test buscador: B4 con un título que comparten más de 1.000 cotizaciones ajenas o de otro origen, encuentra la que le corresponde
 begin;
 do $$
 declare t jsonb := pg_temp.bu_terreno(); c uuid;
@@ -248,6 +248,12 @@ begin
   perform pg_temp.bu_cot((t ->> 'o1')::uuid, 'Comunqz ' || g, (t ->> 'dora')::uuid) from generate_series(1, 1100) g;
   c := pg_temp.bu_cot((t ->> 'o1')::uuid, 'Comunqz de Ana', (t ->> 'ana')::uuid);
   if not c = any (pg_temp.bu_cotizaciones((t ->> 'ana')::uuid, 'Comunqz', 5)) then raise exception 'B4: Ana no encuentra la suya entre más de 1.000 ajenas'; end if;
+  -- Quien ve «todos» en un solo origen encuentra la de ese origen aunque más de 1.000 de otro compartan el título.
+  perform pg_temp.bu_cot((t ->> 'o2')::uuid, 'Origqz ' || g, (t ->> 'dora')::uuid) from generate_series(1, 1100) g;
+  c := pg_temp.bu_cot((t ->> 'o1')::uuid, 'Origqz de o1', (t ->> 'dora')::uuid);
+  if pg_temp.bu_cotizaciones(pg_temp.bu_persona(jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver', 'origen', t ->> 'o1'))), 'Origqz', 5) is distinct from array[c] then
+    raise exception 'B4: con «todos» sólo en o1 no encuentra la de o1 entre más de 1.000 de o2';
+  end if;
 end $$;
 rollback;
 
