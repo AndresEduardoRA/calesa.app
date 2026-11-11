@@ -3,7 +3,7 @@
 - **Hecho:** `fase_requisito_validar()` recreada (cada error con su campo en `hint`, no se espera a una fase jubilada, en UPDATE sólo revalida el grupo cuyo campo
   cambió); `requisito_crear` (nace informativo; el default de `fases_requisitos.bloqueante` pasa a `false`), `requisito_guardar`, `requisito_mover` y
   `requisito_eliminar`, todas por `_flujo_para_editar` y `_flujo_tocar`; sin policies ni grants de escritura en `fases_requisitos` (queda leer). Migraciones
-  `20261111214845`–`202354_requisitos_*`; pruebas `supabase/tests/areas/flujos/requisitos.sql` (R1–R10) y `requisitos-editar.sql` (E1–E4).
+  `20261111222240`–`202354_requisitos_*`; pruebas `supabase/tests/areas/flujos/requisitos.sql` (R1–R10) y `requisitos-editar.sql` (E1–E4).
 - **Verificación** (`.piloto/salidas/5.07/`): `db:probar` 813 pruebas ✓, 0 ✗ (`db-probar-2.txt`); `db:lint` sin avisos en lo nuevo (`db-lint-2.txt`); guardas
   1.058 ✓ (`guardas.txt`); `nivel.mjs` → Nivel 2 (rls, estructura).
 - **Sigue en el 5.07-2:** `requisito_impacto`, `flujo_fuera_de_regla`, borrar `fuera_de_regla()` y su línea de `supabase/tests/escala.sql`, glosario y RENDIMIENTO
