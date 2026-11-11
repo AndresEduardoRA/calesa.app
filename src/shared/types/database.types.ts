@@ -8215,6 +8215,10 @@ export type Database = {
       }
       _version_publicada_por: { Args: { p_formula: string }; Returns: string }
       actividad_purgar: { Args: Record<PropertyKey, never>; Returns: number }
+      agenda_rango: {
+        Args: { p_de_todos?: boolean; p_desde: string; p_hasta: string }
+        Returns: Json
+      }
       alcance_de: {
         Args: { p_clave: string; p_origen?: string }
         Returns: Database['public']['Enums']['alcance_permiso']

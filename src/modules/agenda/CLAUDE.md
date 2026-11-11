@@ -22,6 +22,8 @@ grants de escritura; la versión (`actualizado_en`) la mueve `agenda_version()`,
 RPC: `evento_crear` y `tarea_crear` (id del navegador); `evento_guardar`, `evento_eliminar`, `tarea_guardar`, `tarea_completar`,
 `tarea_eliminar` y `reasignar_tarea` (con `p_actualizado_en_esperado`, PT409). Responden `{resultado, id, actualizado_en}`. Triggers:
 `tarea_notificar` (avisa `tarea_asignada`), `tarea_validar`; cron: `recordatorios_notificar`.
+Lecturas (7.06-2): `agenda_rango(p_desde, p_hasta, p_de_todos)` (de invocador; ≤ 45 días; eventos, tareas, recordatorios y subastas, sólo lo de
+un chip, 200 por clase con `hay_mas` y `tope`). Índice `tareas_vence_idx` (la ruta de `agenda.ver_todo`).
 
 ## No se rompe
 
@@ -37,6 +39,9 @@ RPC: `evento_crear` y `tarea_crear` (id del navegador); `evento_guardar`, `event
 - Un evento lo edita y lo elimina sólo quien lo creó; uno público o «seleccionados» exige `agenda.eventos.publicar` al crear, en todo guardar
   y al eliminar. Destinatarios sólo en «seleccionados»: de 1 a 50, activos; cada nuevo recibe `evento_invitacion`.
 - Las subastas no se duplican como eventos: se proyectan desde el vehículo en la consulta.
+- «Mi agenda» (`agenda_rango` sin `p_de_todos`): eventos que creé, públicos o donde soy destinatario; tareas de las que soy responsable (no las
+  que di); mis recordatorios pendientes; las subastas que la RLS de vehículos me deja ver. Con `p_de_todos` (`agenda.ver_todo`): todos los eventos y
+  las tareas con fecha. Los recordatorios ajenos no se leen nunca. Cada cosa entra por su fecha de inicio, vencimiento, hora o cierre.
 - Fechas en UTC en la base; se muestran en la zona de la empresa con `formato.ts`.
 
 ## Ojo
