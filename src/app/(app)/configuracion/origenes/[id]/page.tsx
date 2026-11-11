@@ -37,7 +37,7 @@ export default async function PaginaOrigen({
   const puedeGestionar = puede(sesion.permisos, 'origenes.gestionar')
   const pestana = pestanaDe(unParametro(parametros['seccion']))
   const apibaraActiva = origen.tipo === 'subasta' ? await integracionActiva('apibara') : false
-  const pasos = conDestino(pasosDe(origen, { apibaraActiva }), sesion.permisos)
+  const pasos = conDestino(pasosDe(origen, { apibaraActiva }), sesion.permisos, origen.id)
 
   return (
     <div className="grid max-w-3xl gap-4">
