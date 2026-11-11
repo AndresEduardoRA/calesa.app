@@ -70,24 +70,42 @@ begin
   if cardinality(v_algun) = 0 then
     return;
   end if;
-  -- gastos_fecha_idx: (fecha desc, id desc) where eliminado_en is null. Sin cursor, el tope es (infinity, el uuid más alto): una sola consulta y el
-  -- mismo recorrido del índice, sin un `p_cursor is null or …` que lo esconda.
-  return query
-    select g.id, g.vehiculo_id, v.titulo, v.origen_id, g.categoria_id, c.nombre, g.moneda::text, g.monto, g.tipo_cambio_aplicado, g.monto_base, g.fecha,
-           g.proveedor, g.comprobante_ruta, g.lote_id, g.actualizado_en
-      from public.gastos g
-      join public.vehiculos v on v.id = g.vehiculo_id and v.eliminado_en is null
-      join public.categorias_gasto c on c.id = g.categoria_id
-     where g.eliminado_en is null
-       and (g.fecha, g.id) < (coalesce(p_cursor_fecha, 'infinity'::date), coalesce(p_cursor_id, 'ffffffff-ffff-ffff-ffff-ffffffffffff'::uuid))
-       and v.origen_id = any (v_algun)
-       and (v.origen_id = any (v_todos) or v.creado_por = v_yo or (v.lead_id is not null and public.en_cartera(v.lead_id)))
-       and (f.origen is null or v.origen_id = f.origen)
-       and (f.categoria is null or g.categoria_id = f.categoria)
-       and (f.desde is null or g.fecha >= f.desde)
-       and (f.hasta is null or g.fecha <= f.hasta)
-     order by g.fecha desc, g.id desc
-     limit v_n;
+  -- gastos_fecha_idx: (fecha desc, id desc) where eliminado_en is null. Con cursor y sin cursor son dos consultas (escala.md): la
+  -- condición del cursor queda como condición de índice.
+  if p_cursor_fecha is null then
+    return query
+      select g.id, g.vehiculo_id, v.titulo, v.origen_id, g.categoria_id, c.nombre, g.moneda::text, g.monto, g.tipo_cambio_aplicado, g.monto_base, g.fecha,
+             g.proveedor, g.comprobante_ruta, g.lote_id, g.actualizado_en
+        from public.gastos g
+        join public.vehiculos v on v.id = g.vehiculo_id and v.eliminado_en is null
+        join public.categorias_gasto c on c.id = g.categoria_id
+       where g.eliminado_en is null
+         and v.origen_id = any (v_algun)
+         and (v.origen_id = any (v_todos) or v.creado_por = v_yo or (v.lead_id is not null and public.en_cartera(v.lead_id)))
+         and (f.origen is null or v.origen_id = f.origen)
+         and (f.categoria is null or g.categoria_id = f.categoria)
+         and (f.desde is null or g.fecha >= f.desde)
+         and (f.hasta is null or g.fecha <= f.hasta)
+       order by g.fecha desc, g.id desc
+       limit v_n;
+  else
+    return query
+      select g.id, g.vehiculo_id, v.titulo, v.origen_id, g.categoria_id, c.nombre, g.moneda::text, g.monto, g.tipo_cambio_aplicado, g.monto_base, g.fecha,
+             g.proveedor, g.comprobante_ruta, g.lote_id, g.actualizado_en
+        from public.gastos g
+        join public.vehiculos v on v.id = g.vehiculo_id and v.eliminado_en is null
+        join public.categorias_gasto c on c.id = g.categoria_id
+       where g.eliminado_en is null
+         and (g.fecha, g.id) < (p_cursor_fecha, p_cursor_id)
+         and v.origen_id = any (v_algun)
+         and (v.origen_id = any (v_todos) or v.creado_por = v_yo or (v.lead_id is not null and public.en_cartera(v.lead_id)))
+         and (f.origen is null or v.origen_id = f.origen)
+         and (f.categoria is null or g.categoria_id = f.categoria)
+         and (f.desde is null or g.fecha >= f.desde)
+         and (f.hasta is null or g.fecha <= f.hasta)
+       order by g.fecha desc, g.id desc
+       limit v_n;
+  end if;
 end;
 $$;
 

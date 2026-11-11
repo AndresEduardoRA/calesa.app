@@ -30,22 +30,40 @@ begin
   if cardinality(v_algun) = 0 then
     return;
   end if;
-  -- pagos_fecha_idx: (fecha desc, id desc) where eliminado_en is null. Sin cursor, el tope es (infinity, el uuid más alto), como en gastos_listar.
-  return query
-    select p.id, p.vehiculo_id, v.titulo, v.origen_id, p.concepto, p.moneda::text, p.monto, p.tipo_cambio_aplicado, p.monto_base, p.metodo, p.fecha,
-           p.confirmado, p.confirmado_por, p.confirmado_en, p.comprobante_ruta, p.actualizado_en
-      from public.pagos p
-      join public.vehiculos v on v.id = p.vehiculo_id and v.eliminado_en is null
-     where p.eliminado_en is null
-       and (p.fecha, p.id) < (coalesce(p_cursor_fecha, 'infinity'::date), coalesce(p_cursor_id, 'ffffffff-ffff-ffff-ffff-ffffffffffff'::uuid))
-       and v.origen_id = any (v_algun)
-       and (v.origen_id = any (v_todos) or v.creado_por = v_yo or (v.lead_id is not null and public.en_cartera(v.lead_id)))
-       and (f.origen is null or v.origen_id = f.origen)
-       and (f.desde is null or p.fecha >= f.desde)
-       and (f.hasta is null or p.fecha <= f.hasta)
-       and (f.sin_confirmar is not true or not p.confirmado)
-     order by p.fecha desc, p.id desc
-     limit v_n;
+  -- pagos_fecha_idx: (fecha desc, id desc) where eliminado_en is null. Con cursor y sin cursor son dos consultas (escala.md): la
+  -- condición del cursor queda como condición de índice.
+  if p_cursor_fecha is null then
+    return query
+      select p.id, p.vehiculo_id, v.titulo, v.origen_id, p.concepto, p.moneda::text, p.monto, p.tipo_cambio_aplicado, p.monto_base, p.metodo, p.fecha,
+             p.confirmado, p.confirmado_por, p.confirmado_en, p.comprobante_ruta, p.actualizado_en
+        from public.pagos p
+        join public.vehiculos v on v.id = p.vehiculo_id and v.eliminado_en is null
+       where p.eliminado_en is null
+         and v.origen_id = any (v_algun)
+         and (v.origen_id = any (v_todos) or v.creado_por = v_yo or (v.lead_id is not null and public.en_cartera(v.lead_id)))
+         and (f.origen is null or v.origen_id = f.origen)
+         and (f.desde is null or p.fecha >= f.desde)
+         and (f.hasta is null or p.fecha <= f.hasta)
+         and (f.sin_confirmar is not true or not p.confirmado)
+       order by p.fecha desc, p.id desc
+       limit v_n;
+  else
+    return query
+      select p.id, p.vehiculo_id, v.titulo, v.origen_id, p.concepto, p.moneda::text, p.monto, p.tipo_cambio_aplicado, p.monto_base, p.metodo, p.fecha,
+             p.confirmado, p.confirmado_por, p.confirmado_en, p.comprobante_ruta, p.actualizado_en
+        from public.pagos p
+        join public.vehiculos v on v.id = p.vehiculo_id and v.eliminado_en is null
+       where p.eliminado_en is null
+         and (p.fecha, p.id) < (p_cursor_fecha, p_cursor_id)
+         and v.origen_id = any (v_algun)
+         and (v.origen_id = any (v_todos) or v.creado_por = v_yo or (v.lead_id is not null and public.en_cartera(v.lead_id)))
+         and (f.origen is null or v.origen_id = f.origen)
+         and (f.desde is null or p.fecha >= f.desde)
+         and (f.hasta is null or p.fecha <= f.hasta)
+         and (f.sin_confirmar is not true or not p.confirmado)
+       order by p.fecha desc, p.id desc
+       limit v_n;
+  end if;
 end;
 $$;
 
