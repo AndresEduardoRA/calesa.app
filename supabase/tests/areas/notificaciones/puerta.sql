@@ -121,3 +121,15 @@ begin
   end if;
 end $$;
 rollback;
+
+-- @test notificaciones: los dos índices de la lista, con sus columnas y el predicado del parcial (P5)
+do $$
+declare v text;
+begin
+  select indexdef into v from pg_indexes where schemaname = 'public' and indexname = 'notificaciones_usuario_fecha_idx';
+  if v is null or v not like '%(usuario_id, creado_en DESC, id DESC)' then raise exception 'falta o cambió notificaciones_usuario_fecha_idx: %', v; end if;
+  select indexdef into v from pg_indexes where schemaname = 'public' and indexname = 'notificaciones_por_accionar_idx';
+  if v is null or v not like '%(usuario_id, creado_en DESC, id DESC) WHERE (requiere_accion AND (accionada_en IS NULL))' then
+    raise exception 'falta o cambió notificaciones_por_accionar_idx: %', v;
+  end if;
+end $$;
