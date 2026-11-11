@@ -7,7 +7,8 @@ import { sql } from './soporte/sql'
 
 // La campana (7.02-2): una fila que la base inserta para la sesión abierta la muestra sin recargar (Realtime es señal y
 // el contador se relee), abrirla lleva a su `ruta` y la marca leída (y accionada, si su tipo lo dice), y una `ruta` sin
-// pantalla no es un enlace. «Ver todas» y la lista por cursor se suman en la parte 3.
+// pantalla no es un enlace. «Ver todas» lleva a `/notificaciones` (7.02-3): 20 filas, «Ver más» por cursor sin repetir ni
+// saltar, `?ver=por-accionar` filtra, una fila nueva entra arriba sin recargar y «Marcar todas como leídas» las deja leídas.
 test.describe.configure({ mode: 'serial' })
 
 let r: TerrenoDelRecorrido
@@ -87,4 +88,85 @@ test('una ruta sin pantalla no es un enlace: se marca leída y lo dice', async (
            from public.notificaciones where usuario_id = '${anaId}' and titulo = '${TITULO_SIN_PANTALLA}'`),
     )
     .toBe('true,false')
+})
+
+// La lista (7.02-3): 25 avisos, de más nuevo a más viejo; los dos más viejos piden acción.
+const FILAS = 25
+const aviso = (page: Page) => page.locator('li[data-notificacion]')
+const idsDeLaLista = (page: Page) =>
+  aviso(page).evaluateAll((filas) => filas.map((fila) => fila.getAttribute('data-notificacion')))
+
+test('«Ver todas» lista 20 y «Ver más» trae el resto por cursor sin repetir', async ({ page }) => {
+  borrarAvisos()
+  sql(`insert into public.notificaciones (usuario_id, tipo, titulo, requiere_accion, creado_en)
+       select '${anaId}', 'tarea_asignada', 'e2e-lista ' || lpad(n::text, 2, '0'), n >= ${FILAS - 1},
+              now() - (n || ' minutes')::interval
+       from generate_series(1, ${FILAS}) n`)
+  await entrar(page, r.ana.email)
+  await irALeads(page)
+  await expect(campana(page)).toHaveAccessibleName(/\d+\+? sin leer/, { timeout: 20_000 })
+  await campana(page).click()
+  await page
+    .getByRole('dialog', { name: 'Notificaciones' })
+    .getByRole('link', { name: 'Ver todas' })
+    .click()
+
+  await expect(page).toHaveURL(/\/notificaciones$/)
+  await expect(page.getByRole('heading', { level: 1, name: 'Notificaciones' })).toBeVisible()
+  await expect(aviso(page)).toHaveCount(20)
+  await expect(aviso(page).first()).toContainText('e2e-lista 01')
+  await expect(aviso(page).last()).toContainText('e2e-lista 20')
+
+  await page.getByRole('button', { name: 'Ver más' }).click()
+  await expect(aviso(page)).toHaveCount(FILAS)
+  const ids = await idsDeLaLista(page)
+  expect(new Set(ids).size).toBe(FILAS)
+  await expect(aviso(page).last()).toContainText('e2e-lista 25')
+  await expect(page.getByRole('button', { name: 'Ver más' })).toHaveCount(0)
+})
+
+test('?ver=por-accionar sólo lista las que piden acción y «Todas» vuelve a todas', async ({
+  page,
+}) => {
+  await entrar(page, r.ana.email)
+  await page.goto('/notificaciones?ver=por-accionar')
+  await expect(aviso(page)).toHaveCount(2)
+  await expect(page.getByRole('tab', { name: 'Por accionar' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
+  await page.getByRole('tab', { name: 'Todas' }).click()
+  await expect(page).not.toHaveURL(/ver=/)
+  await expect(aviso(page)).toHaveCount(20)
+})
+
+test('un aviso nuevo entra arriba de la lista abierta sin recargar', async ({ page }) => {
+  await entrar(page, r.ana.email)
+  await page.goto('/notificaciones')
+  await expect(aviso(page)).toHaveCount(20)
+  sql(`insert into public.notificaciones (usuario_id, tipo, titulo, requiere_accion)
+       values ('${anaId}', 'tarea_asignada', 'e2e-lista nueva', false)`)
+  await expect(aviso(page).first()).toContainText('e2e-lista nueva', { timeout: 20_000 })
+  await expect(aviso(page)).toHaveCount(21)
+})
+
+test('«Marcar todas como leídas» las deja leídas y el botón desaparece', async ({ page }) => {
+  await entrar(page, r.ana.email)
+  await page.goto('/notificaciones')
+  await page.getByRole('button', { name: 'Marcar todas como leídas' }).click()
+  await expect
+    .poll(() =>
+      sql(
+        `select count(*)::text from public.notificaciones where usuario_id = '${anaId}' and leida_en is null`,
+      ),
+    )
+    .toBe('0')
+  await expect(page.getByRole('button', { name: 'Marcar todas como leídas' })).toHaveCount(0)
+  await expect(campana(page)).toHaveAccessibleName('Notificaciones', { timeout: 20_000 })
+  // Marcar leídas no acciona: las dos que piden acción siguen pendientes.
+  expect(
+    sql(
+      `select count(*)::text from public.notificaciones where usuario_id = '${anaId}' and accionada_en is not null`,
+    ),
+  ).toBe('0')
 })

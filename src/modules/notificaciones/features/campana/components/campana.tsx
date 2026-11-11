@@ -5,7 +5,7 @@ import { useCallback, useState } from 'react'
 import { conteoCorto, conteoEnFrase, type ConteoAcotado } from '@/shared/lib/conteo'
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover'
 import { ContenidoDeLaCampanaDiferido, SuscripcionDeLaCampanaDiferida } from './diferidos'
-import type { AccionesPorTipo } from './fila-de-notificacion'
+import type { AccionesPorTipo } from '../../lista/components/fila-de-notificacion'
 
 type Props = {
   // Quién mira: el filtro de Realtime (`usuario_id=eq.<yo>`); la RLS decide igual qué llega.

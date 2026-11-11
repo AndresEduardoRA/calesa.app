@@ -8,9 +8,12 @@ import { EstadoError, EstadoVacio } from '@/shared/ui/estados'
 import { Skeleton } from '@/shared/ui/skeleton'
 import { buttonVariants } from '@/shared/ui/button'
 import { BellIcon } from 'lucide-react'
-import { useAbrirAviso } from '../hooks/use-abrir-aviso'
+import { useAbrirAviso } from '../../lista/hooks/use-abrir-aviso'
 import { useAvisosDeLaCampana } from '../hooks/use-avisos-de-la-campana'
-import { FilaDeNotificacion, type AccionesPorTipo } from './fila-de-notificacion'
+import {
+  FilaDeNotificacion,
+  type AccionesPorTipo,
+} from '../../lista/components/fila-de-notificacion'
 
 type Props = {
   // Sube con cada señal de Realtime: el popover abierto relee.

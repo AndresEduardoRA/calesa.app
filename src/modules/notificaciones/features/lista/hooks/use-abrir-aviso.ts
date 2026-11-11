@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { enviarAccion } from '@/shared/lib/enviar-accion'
 import { avisarError } from '@/shared/ui/toasts'
 import type { Notificacion } from '../../../entities/notificacion'
-import { abrirNotificacion } from '../../lista/actions/abrir-notificacion'
+import { abrirNotificacion } from '../actions/abrir-notificacion'
 
 // Abrir un aviso: se ve leído de inmediato y la action lo marca en la base (leído, y accionado sólo si su tipo lo
 // dice). No bloquea la navegación. Si no llegó, avisa: la fila vuelve a verse como estaba en la próxima lectura.

@@ -23,14 +23,8 @@ import { Marco } from './_shell/marco'
 import { MenuUsuario } from './_shell/menu-usuario'
 import { HuecoCampana } from './_shell/huecos/campana'
 import { HuecoChat } from './_shell/huecos/chat'
-import { NAVEGACION, entradasVisibles } from './_shell/navegacion'
-
-// Los caminos con pantalla (la navegación disponible y `/notificaciones`, que no está en la barra): un aviso cuya ruta
-// cae fuera de ellos no se enlaza, para no llevar a un 404.
-const RUTAS_CON_PANTALLA = [
-  ...NAVEGACION.filter((entrada) => entrada.disponible).map((entrada) => entrada.ruta),
-  '/notificaciones',
-]
+import { entradasVisibles } from './_shell/navegacion'
+import { RUTAS_CON_PANTALLA } from './_shell/rutas-con-pantalla'
 
 // Todo lo que depende de quién entró: la sesión, sus permisos y los ajustes de la empresa. Acá se
 // leen una vez y se reparten por props a un marco que no sabe de dónde salen.

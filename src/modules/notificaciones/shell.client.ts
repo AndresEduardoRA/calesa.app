@@ -2,4 +2,4 @@
 // marco dibuja en toda pantalla (la campana de la barra). Existe aparte de `client.ts` porque lo que importa el
 // shell viaja en el JS de **todas** las pantallas (`docs/RENDIMIENTO.md`). El contenido del popover va diferido.
 export { Campana } from './features/campana/components/campana'
-export type { AccionesPorTipo } from './features/campana/components/fila-de-notificacion'
+export type { AccionesPorTipo } from './features/lista/components/fila-de-notificacion'
