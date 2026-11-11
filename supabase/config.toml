@@ -124,6 +124,11 @@ verify_jwt = false
 [functions.avatares-miniaturas]
 verify_jwt = false
 
+# Igual que storage-gc: la llama la base (pg_net) desde `push_disparar` con un pase de un solo uso (`push_pases`) que la
+# función canjea con `push_abrir` (supabase/functions/README.md).
+[functions.push]
+verify_jwt = false
+
 # La llama el navegador con la sesión de quien da de alta o refresca: el gateway verifica el JWT y
 # la propia función le pregunta a la base qué puede hacer esa persona en ese origen antes de leer
 # la clave de apibara de Vault (supabase/functions/README.md).

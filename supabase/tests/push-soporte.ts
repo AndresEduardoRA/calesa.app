@@ -6,6 +6,7 @@
 import { createECDH, randomBytes, type ECDH } from 'node:crypto'
 import { createRequire } from 'node:module'
 import { join } from 'node:path'
+import { vi } from 'vitest'
 
 const CARPETA = join(process.cwd(), 'supabase/functions/push')
 
@@ -126,4 +127,65 @@ export function fetchSimulado(responder: (url: string) => Response | Error): {
     return respuesta instanceof Error ? Promise.reject(respuesta) : Promise.resolve(respuesta)
   }
   return { fetch: simulado, pedidos }
+}
+
+// La función entera: un `Deno` mínimo (con las variables que arma cada prueba, porque las claves se leen por pedido)
+// y un `fetch` simulado que hace de base (las dos RPC) y de servicios de push.
+type Manejador = (pedido: Request) => Promise<Response>
+export const VARIABLES_VAPID = [
+  'NEXT_PUBLIC_VAPID_PUBLIC_KEY',
+  'VAPID_PRIVATE_KEY',
+  'VAPID_SUBJECT',
+] as const
+export type VariableVapid = (typeof VARIABLES_VAPID)[number]
+export const entorno: Record<VariableVapid, string | undefined> = {
+  NEXT_PUBLIC_VAPID_PUBLIC_KEY: undefined,
+  VAPID_PRIVATE_KEY: undefined,
+  VAPID_SUBJECT: undefined,
+}
+export const BASE_DE_PRUEBA = 'http://base.test'
+export const SERVICIO = 'clave-de-servicio-de-prueba'
+let manejador: Manejador | undefined
+
+export async function cargarFuncion(): Promise<void> {
+  vi.stubGlobal('Deno', {
+    env: {
+      get: (nombre: string) =>
+        ({ SUPABASE_URL: BASE_DE_PRUEBA, SUPABASE_SERVICE_ROLE_KEY: SERVICIO, ...entorno })[nombre],
+    },
+    serve: (atender: Manejador) => {
+      manejador = atender
+    },
+  })
+  await cargar('index.ts')
+}
+
+export type Llamada = { url: string; cuerpo: unknown; autorizacion: string | null }
+
+// `abierto` es lo que devuelve `push_abrir` (null = el pase no vale); `servicios`, el estado de cada endpoint.
+export function simularBase(abierto: unknown, servicios: Record<string, number> = {}): Llamada[] {
+  const llamadas: Llamada[] = []
+  vi.stubGlobal('fetch', (entrada: string | URL, init?: RequestInit) => {
+    const url = String(entrada)
+    const cuerpo: unknown = typeof init?.body === 'string' ? JSON.parse(init.body) : null
+    llamadas.push({ url, cuerpo, autorizacion: new Headers(init?.headers).get('Authorization') })
+    if (url === `${BASE_DE_PRUEBA}/rest/v1/rpc/push_abrir`) {
+      return Promise.resolve(Response.json(abierto))
+    }
+    if (url === `${BASE_DE_PRUEBA}/rest/v1/rpc/push_resultado`) {
+      return Promise.resolve(Response.json({ enviadas: 0, caducadas: 0, fallos: 0 }))
+    }
+    return Promise.resolve(new Response(null, { status: servicios[url] ?? 500 }))
+  })
+  return llamadas
+}
+
+export async function llamarFuncion(cuerpo: unknown): Promise<{ estado: number; json: unknown }> {
+  if (!manejador) {
+    throw new Error('la función no se cargó')
+  }
+  const respuesta = await manejador(
+    new Request('http://funcion.test/', { method: 'POST', body: JSON.stringify(cuerpo) }),
+  )
+  return { estado: respuesta.status, json: await respuesta.json() }
 }
