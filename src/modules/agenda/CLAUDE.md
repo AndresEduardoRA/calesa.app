@@ -5,7 +5,8 @@ Calendario de eventos, tareas con responsable, recordatorios de leads y subastas
 ## Entra y sale
 
 - Entra: alta desde la agenda, desde el chat (`/tarea`, `/evento`) y desde la ficha del lead (recordatorios); fechas de subasta de `vehiculos`.
-- Sale: `agendaDe(usuario, rango)` unificada, `crearTarea()`, `reasignarTarea()`, `<ChipEvento>`. Lo consumen `chat`, `tablero`, `notificaciones` (cron de recordatorios).
+- Sale: `leerAgenda({ desde, hasta, deTodos })` (7.07-1; `index.ts`, con las reglas puras del calendario), `<ChipEvento>` (`client.ts`), `crearTarea()` y `reasignarTarea()` (7.07-2 y 7.07-3). Lo consumen `chat`, `tablero`, `notificaciones` (cron de recordatorios).
+- Pantalla: `pantallas/agenda.ts` (`CalendarioDeAgenda`, `EsqueletoDeCalendario`), sólo `src/app/(app)/agenda`.
 - Depende de: `leads`, `vehiculos`, `cotizaciones`, `chat` (la conversación donde nace una tarea).
 
 ## Archivos clave
@@ -13,8 +14,16 @@ Calendario de eventos, tareas con responsable, recordatorios de leads y subastas
 - `entities/visibilidad.ts` — espejo de la base para habilitar o deshabilitar (7.06-2): quién ve un evento, cuándo guardar pide
   `agenda.eventos.publicar`, quién edita, completa y reasigna una tarea; `TOPE_DE_DESTINATARIOS`, `DIAS_MAXIMOS_DEL_RANGO`. Que una tarea del chat
   vaya sólo a sus miembros (D3) y quién puede recibir lo dicen la base y `agenda_quienes_reciben`, no este archivo.
-- `infra/queries/agenda.ts` — una consulta por rango que une eventos, tareas, recordatorios y subastas (sin N+1).
-- `features/calendario/` (mes/semana/día), `features/eventos/`, `features/tareas/`.
+- `entities/agenda.ts` — las cuatro clases (`CLASES_DE_AGENDA`, nombre y plural), el esquema Zod que **parsea** lo que devuelve `agenda_rango` y lo pasa a
+  camelCase (`leerAgendaDeRango`, un valor de error si no encaja) y `entradasDeAgenda` (las cuatro aplanadas a lo que dibuja un chip; sólo la subasta lleva ruta).
+- `entities/calendario.ts` — puro: `VISTAS`, semanas que empiezan el lunes (`PRIMER_DIA_DE_LA_SEMANA`), `rangoDe(vista, fecha, zona)` semiabierto con los
+  cortes de día de la zona de la empresa (nunca «+24 h»), `agruparPorDia`, `moverFecha`, títulos en español con `Intl` y `leerVista`/`leerFecha`/`leerClases`
+  de la URL. Los días cruzan como `YYYY-MM-DD` y los instantes como ISO.
+- `infra/queries/agenda.ts` — una llamada por pantalla a `agenda_rango` (sin N+1); `composicion.ts` la entrega como `leerAgenda`.
+- `features/calendario/` — `CalendarioDeAgenda` (Server Component) con la barra (`useParametrosDeAgenda`: `?vista=`, `?fecha=`, `?ver=`, `?de=`), el filtro de
+  clases, `VistaDeMes`/`VistaDeSemana` (grilla desde 768 px, lista por día en el celular con `UnaSolaVista`) y `VistaDeDia`. `?de=todos` sólo vale con
+  `agenda.ver_todo`: sin él se ignora y el interruptor no se dibuja. Los chips llevan la clase con texto, no sólo color.
+- `features/eventos/`, `features/tareas/` — llegan en 7.07-2 y 7.07-3.
 
 ## Tablas
 
