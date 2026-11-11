@@ -5,7 +5,7 @@
 --   E1. `requisito_guardar` aplica notas, archivos, formatos y bloqueante y mueve la versión; una clave de otro tipo, max < min, un pct fuera de
 --       rango, `{}` o la versión vieja fallan sin escribir.
 --   E2. `requisito_mover` deja el tercero primero y renumera 10/20/30; después de sí mismo → 22023; ancla de otra fase → PT409; con una espera
---       cuya regla se apagó después, mover y volverla bloqueante siguen.
+--       cuya regla quedó apagada (datos de antes del 5.10: se apaga sin el trigger), mover y volverla bloqueante siguen.
 --   E3. `requisito_eliminar` borra y mueve la versión; otra vez → PT409; con la versión vieja → PT409.
 --   E4. Un UPDATE que cambia `fase_id` (sólo service_role o postgres) revalida todo: la revalidación parcial de D7 es estrecha.
 
@@ -166,8 +166,11 @@ begin
   perform pg_temp.re_falla('E2 sí mismo', pg_temp.re_mover(config, uno, v, uno), '22023', 'despues_de');
   perform pg_temp.re_falla('E2 otra fase', pg_temp.re_mover(config, uno, v, otro), 'PT409', null);
   perform pg_temp.re_falla('E2 vieja', pg_temp.re_mover(config, uno, pg_temp.re_version(a) - interval '1 second'), 'PT409', null);
-  -- La regla «esperas» se apaga con la espera ya creada (el trigger de las reglas no las cuenta): mover y volverla bloqueante siguen.
+  -- Una espera de antes del 5.10, cuya regla quedó apagada: el trigger de las reglas ya cuenta las esperas (23514), así que se apaga sin él,
+  -- como flujos-reglas.sql. Mover y volverla bloqueante siguen.
+  alter table public.flujos_reglas disable trigger trg_flujo_regla_apagar_validar;
   update public.flujos_reglas set activa = false where flujo_id = a and regla = 'esperas';
+  alter table public.flujos_reglas enable trigger trg_flujo_regla_apagar_validar;
   v := pg_temp.re_bien('E2 espera vieja, mover', pg_temp.re_mover(config, tres, v));
   v := pg_temp.re_bien('E2 espera vieja, bloqueante', pg_temp.re_guardar(config, tres, v, '{"bloqueante": true}'));
   if pg_temp.re_orden(f) is distinct from array[tres, uno, dos] then raise exception 'E2: la espera vieja debía moverse'; end if;
