@@ -8379,6 +8379,10 @@ export type Database = {
           vehiculos: number
         }[]
       }
+      chat_conversaciones: {
+        Args: { p_antes_en?: string; p_antes_id?: string; p_tamano?: number }
+        Returns: Json
+      }
       chat_directa: { Args: { p_usuario: string }; Returns: Json }
       chat_global_entrar: { Args: Record<PropertyKey, never>; Returns: Json }
       chat_grupo_crear: {

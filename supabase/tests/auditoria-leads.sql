@@ -200,6 +200,8 @@ declare
     ('mensaje_eliminar(uuid)', 'X'),
     ('mensaje_tarea_crear(uuid,uuid,jsonb)', 'X'),
     ('mensaje_evento_crear(uuid,uuid,jsonb,uuid[])', 'X'),
+    -- El chat (7.08-3): lecturas de lo propio; no reciben ni devuelven un lead; cuentan mensajes sin leer el cuerpo (`areas/chat/lista.sql`).
+    ('chat_conversaciones(integer,timestamp with time zone,uuid)', 'X'),
     ('storage_refcount(text,text)', 'X')
   ) t (f, c));
   r record; v_fallas text := '';
