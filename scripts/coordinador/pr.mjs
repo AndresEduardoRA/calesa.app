@@ -3,7 +3,7 @@
 // `sincronizar`; se prueba, de punta a punta con un `gh` falso, en `coordinador.test.mjs`.
 //
 // Variables: COORD_GH (gh), COORD_GUARDAS_SOLAS, COORD_IGNORAR_CHECKS (^Vercel), COORD_ROJO_FIRME (^(Nivel 1|Carriles)),
-// COORD_COLGADO_ESPERA (600 s).
+// COORD_COLGADO_ESPERA (600 s), COORD_SUELTOS (^fix/), COORD_ENTORNO_MAX (8), COORD_ENTORNO_ESPERA (600 s), COORD_PASO_DE_PRUEBA y COORD_SENAL_DE_ENTORNO.
 import { execFileSync } from 'node:child_process'
 import { guardasEn } from './plan.mjs'
 
@@ -171,24 +171,148 @@ export function integrar(numero, pr, ...modo) {
     }
   }
 }
-// Un CI rojo se vuelve a correr una vez por commit (sólo los jobs que cayeron) antes de devolver el paso a su carril: un contenedor de
-// Supabase que no arrancó en el runner o un e2e inestable no es un arreglo del carril (el PR 69 del 2026-11-08 volvía al A por eso).
-// Devuelve el estado con el commit anotado en `reintentos` y si se pidió el reintento.
-export function reintentarUnaVez(numero, pr, estado) {
-  if (pr.firme) return { estado, reintentado: false }
-  if (!pr.oid || estado.reintentos?.[numero] === pr.oid) return { estado, reintentado: false }
+// Un rojo del entorno: cayó un paso que no es una prueba (instalar chromium, levantar la pila, bajar un artefacto) y su log trae la
+// señal de una red o un runner que no respondió. No es del código: el carril no puede arreglarlo, y devolvérselo le costaba una sesión
+// para descubrirlo (el 11-11-2026 apt no resolvía el espejo de Ubuntu: 7 PR en rojo, tres sesiones de opus diagnosticando lo mismo y los
+// tres carriles parados esperando un arreglo). Se vuelve a correr lo que cayó hasta COORD_ENTORNO_MAX veces (8) por commit, con una
+// espera que crece (COORD_ENTORNO_ESPERA s, 600, por cada vez; tope 1800), y mientras tanto el PR queda pendiente y el carril sigue con
+// otro paso. Agotadas, es un rojo como cualquiera. Si no se puede mirar (gh falla), no es del entorno: lo de siempre.
+const PASO_DE_PRUEBA = new RegExp(
+  process.env.COORD_PASO_DE_PRUEBA ||
+    '^(e2e \\(|Run (pnpm|node|npx|bash) |db:types|privilegios|splinter|next build)',
+  'i',
+)
+const SENAL_DE_ENTORNO = new RegExp(
+  process.env.COORD_SENAL_DE_ENTORNO ||
+    'Temporary failure resolving|Could not resolve host|Unable to fetch some archives|EAI_AGAIN|ENOTFOUND|ETIMEDOUT|ECONNRESET|' +
+      'TLS handshake timeout|i/o timeout|context deadline exceeded|toomanyrequests|rate limit exceeded|' +
+      '50[234] (Bad Gateway|Service Unavailable|Gateway Time-?out)|No space left on device|' +
+      'runner has received a shutdown signal|lost communication with the server|Failed to download (action|artifact)',
+  'i',
+)
+const ENTORNO_MAX = Number(process.env.COORD_ENTORNO_MAX ?? 8)
+const ENTORNO_ESPERA = Number(process.env.COORD_ENTORNO_ESPERA ?? 600) * 1000
+
+/** El nombre del paso que cayó si TODAS las corridas caídas son del entorno; si no (o si no se pudo mirar), null. */
+export function rojoDelEntorno(corridas) {
+  let paso = null
+  try {
+    for (const id of corridas) {
+      const jobs = (JSON.parse(gh('run', 'view', id, '--json', 'jobs')).jobs ?? []).filter(
+        (j) => j.conclusion === 'failure',
+      )
+      if (jobs.length === 0) return null
+      for (const j of jobs) {
+        const caidos = (j.steps ?? []).filter((s) => s.conclusion === 'failure')
+        if (caidos.length === 0 || caidos.some((s) => PASO_DE_PRUEBA.test(String(s.name))))
+          return null
+        paso ??= String(caidos[0].name)
+      }
+      const log = execFileSync(GH, ['run', 'view', id, '--log-failed'], {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+        timeout: 90_000,
+        maxBuffer: 256 * 1024 * 1024,
+      })
+      if (!SENAL_DE_ENTORNO.test(log)) return null
+    }
+  } catch {
+    return null
+  }
+  return paso
+}
+
+// Un CI rojo se vuelve a correr antes de devolver el paso a su carril (sólo los jobs que cayeron): si es del entorno, varias veces y
+// espaciado (arriba); si no se sabe, una vez por commit: un contenedor de Supabase que no arrancó en el runner o un e2e inestable no es un
+// arreglo del carril (el PR 69 del 2026-11-08 volvía al A por eso). Devuelve el estado (el commit en `reintentos`, la cuenta del entorno
+// en `entorno`), si el PR sigue en manos del coordinador (`reintentado`) y, cuando acaba de pedir una corrida, su `aviso`.
+export function reintentarUnaVez(numero, pr, estado, ahora = Date.now()) {
+  if (pr.firme || !pr.oid) return { estado, reintentado: false }
+  const previo = estado.entorno?.[numero]?.oid === pr.oid ? estado.entorno[numero] : null
+  const yaUnaVez = estado.reintentos?.[numero] === pr.oid
+  if (yaUnaVez && !previo) return { estado, reintentado: false }
+  if (previo && previo.veces >= ENTORNO_MAX) return { estado, reintentado: false }
+  // Entre una corrida y la siguiente se espera sin preguntarle nada a GitHub: el PR no vuelve a su carril.
+  if (previo && ahora - previo.ultimo < Math.min(previo.veces * ENTORNO_ESPERA, 1_800_000))
+    return { estado, reintentado: true }
   let caidos
   try {
     caidos = JSON.parse(gh('run', 'list', '--commit', pr.oid, '--json', 'databaseId,conclusion'))
       .filter((r) => r.conclusion === 'failure')
       .map((r) => String(r.databaseId))
-    for (const id of caidos) gh('run', 'rerun', id, '--failed')
   } catch {
     return { estado, reintentado: false }
   }
   if (caidos.length === 0) return { estado, reintentado: false }
-  return {
-    estado: { ...estado, reintentos: { ...(estado.reintentos ?? {}), [numero]: pr.oid } },
-    reintentado: true,
+  const paso = rojoDelEntorno(caidos)
+  if (!paso && yaUnaVez) return { estado, reintentado: false }
+  try {
+    for (const id of caidos) gh('run', 'rerun', id, '--failed')
+  } catch {
+    return { estado, reintentado: false }
   }
+  const veces = (previo?.veces ?? 0) + 1
+  return {
+    estado: {
+      ...estado,
+      reintentos: { ...(estado.reintentos ?? {}), [numero]: pr.oid },
+      ...(paso
+        ? {
+            entorno: { ...(estado.entorno ?? {}), [numero]: { oid: pr.oid, veces, ultimo: ahora } },
+          }
+        : {}),
+    },
+    reintentado: true,
+    aviso: paso
+      ? `rojo del entorno («${paso.slice(0, 60)}»), no del código: vuelvo a correr lo que cayó (${veces} de ${ENTORNO_MAX})`
+      : 'vuelvo a correr lo que cayó, una vez',
+  }
+}
+
+// Los PR que no son de ningún paso: una rama `fix/…` de este mismo repo (un arreglo del flujo o del CI que abrió una sesión de
+// supervisión). Antes esperaban a que esa sesión, o la persona, volviera a integrarlos: el 11-11-2026 el arreglo del CI estuvo listo y sin
+// entrar mientras los tres carriles lo esperaban. Con el CI en verde los integra el coordinador, como un paso (squash y sin rama); un
+// rojo se vuelve a correr como cualquiera y, si sigue, queda a la vista en GitHub. Nunca un PR de un fork ni un borrador.
+// COORD_SUELTOS es la expresión de la rama (`^fix/`); vacía, lo apaga.
+const SUELTOS = process.env.COORD_SUELTOS ?? '^fix/'
+export function integrarSueltos(estado, informe) {
+  if (!SUELTOS) return estado
+  const rama = new RegExp(SUELTOS)
+  let abiertos
+  try {
+    abiertos = JSON.parse(
+      gh('pr', 'list', '--state', 'open', '--json', 'number,headRefName,isCrossRepository,isDraft'),
+    )
+  } catch {
+    return estado
+  }
+  for (const a of abiertos) {
+    if (a.isCrossRepository !== false || a.isDraft || !rama.test(a.headRefName ?? '')) continue
+    const etiqueta = `#${a.number} (${a.headRefName})`
+    let pr
+    try {
+      pr = mirarPr(a.number)
+    } catch {
+      continue
+    }
+    ;({ estado, pr } = atenderColgado(a.number, pr, estado, informe, etiqueta))
+    if (pr.arreglar === 'CI en rojo') {
+      const r = reintentarUnaVez(a.number, pr, estado)
+      estado = r.estado
+      if (r.aviso) informe.push(`${etiqueta}: CI en rojo: ${r.aviso}`)
+      continue
+    }
+    if (!pr.listo) continue
+    if (pr.guardas.length) {
+      informe.push(`${etiqueta}: toca las guardas del piloto: lo integra la persona`)
+      continue
+    }
+    try {
+      integrar(a.number, pr, '--squash', '--delete-branch')
+      informe.push(`${etiqueta}: integrado por el coordinador`)
+    } catch (err) {
+      informe.push(`${etiqueta}: no se pudo integrar (${String(err.message).split('\n')[0]})`)
+    }
+  }
+  return estado
 }

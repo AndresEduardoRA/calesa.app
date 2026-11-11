@@ -44,8 +44,10 @@ case "$1 $2" in
   "pr view") cat "${respuestas}/$3.json" ;;
   "pr merge") echo "$3" >> "${respuestas}/merges"; echo "$*" >> "${respuestas}/merges-args"; echo '{"state":"MERGED"}' > "${respuestas}/$3.json" ;;
   "api -X") echo "$*" >> "${respuestas}/api" ;;
+  "pr list") cat "${respuestas}/prs.json" 2>/dev/null || echo '[]' ;;
   "run list") cat "${respuestas}/runs.json" 2>/dev/null || echo '[]' ;;
   "run rerun") echo "$*" >> "${respuestas}/reruns" ;;
+  "run view") if [[ "$*" == *--log-failed* ]]; then cat "${respuestas}/run-$3.log" || exit 2; else cat "${respuestas}/run-$3.json" || exit 2; fi ;;
   *) exit 2 ;;
 esac
 `,
@@ -277,6 +279,101 @@ test('un CI rojo se vuelve a correr una vez por commit antes de devolver el paso
   pr(12, rojo) // el mismo commit sigue rojo tras el reintento
   assert.match(correr('sincronizar'), /P02: CI en rojo \(#12\): vuelve a su carril/)
   assert.equal(readFileSync(join(respuestas, 'reruns'), 'utf8').trim(), 'run rerun 77 --failed')
+})
+
+test('un rojo del entorno (cayó un paso que no es una prueba, con la red en el log) se vuelve a correr varias veces y no vuelve a su carril', () => {
+  const { correr, pr, respuestas } = repo()
+  correr('siguiente', 'ui')
+  correr('publicado', 'P02', '12')
+  const rojo = {
+    state: 'OPEN',
+    mergeable: 'MERGEABLE',
+    headRefOid: 'def456',
+    statusCheckRollup: [...verde, { status: 'COMPLETED', conclusion: 'FAILURE' }],
+  }
+  pr(12, rojo)
+  writeFileSync(
+    join(respuestas, 'runs.json'),
+    JSON.stringify([{ databaseId: 77, conclusion: 'failure' }]),
+  )
+  const jobs = (paso) =>
+    JSON.stringify({
+      jobs: [{ conclusion: 'failure', steps: [{ name: paso, conclusion: 'failure' }] }],
+    })
+  writeFileSync(join(respuestas, 'run-77.json'), jobs('chromium y lo que pide del sistema'))
+  writeFileSync(
+    join(respuestas, 'run-77.log'),
+    "Temporary failure resolving 'azure.archive.ubuntu.com'\n",
+  )
+  const sinEspera = { COORD_ENTORNO_ESPERA: '0', COORD_ENTORNO_MAX: '3' }
+  assert.match(
+    correr.con(sinEspera, 'sincronizar'),
+    /P02: CI en rojo \(#12\): rojo del entorno \(«chromium y lo que pide del sistema»\), no del código: vuelvo a correr lo que cayó \(1 de 3\)/,
+  )
+  assert.match(correr.con(sinEspera, 'sincronizar'), /2 de 3/)
+  // Entre una corrida y la otra espera callado, sin devolver el paso.
+  assert.doesNotMatch(correr.con({ COORD_ENTORNO_MAX: '3' }, 'sincronizar'), /P02/)
+  assert.equal(JSON.parse(correr('siguiente', 'ui')).accion, 'esperar')
+  assert.match(correr.con(sinEspera, 'sincronizar'), /3 de 3/)
+  assert.equal(readFileSync(join(respuestas, 'reruns'), 'utf8').trim().split('\n').length, 3)
+  // Agotadas las veces, es un rojo como cualquiera.
+  assert.match(correr.con(sinEspera, 'sincronizar'), /P02: CI en rojo \(#12\): vuelve a su carril/)
+})
+
+test('una prueba que cae con la red en el log no es un rojo del entorno: una vez y vuelve a su carril', () => {
+  const { correr, pr, respuestas } = repo()
+  correr('siguiente', 'ui')
+  correr('publicado', 'P02', '12')
+  pr(12, {
+    state: 'OPEN',
+    mergeable: 'MERGEABLE',
+    headRefOid: 'def456',
+    statusCheckRollup: [...verde, { status: 'COMPLETED', conclusion: 'FAILURE' }],
+  })
+  writeFileSync(
+    join(respuestas, 'runs.json'),
+    JSON.stringify([{ databaseId: 77, conclusion: 'failure' }]),
+  )
+  writeFileSync(
+    join(respuestas, 'run-77.json'),
+    JSON.stringify({
+      jobs: [
+        {
+          conclusion: 'failure',
+          steps: [{ name: 'e2e (dirigidos), bloque 1 de 4', conclusion: 'failure' }],
+        },
+      ],
+    }),
+  )
+  writeFileSync(join(respuestas, 'run-77.log'), 'Error: read ECONNRESET\n')
+  assert.match(correr('sincronizar'), /vuelvo a correr lo que cayó, una vez/)
+  assert.match(correr('sincronizar'), /P02: CI en rojo \(#12\): vuelve a su carril/)
+})
+
+test('un PR suelto de una rama fix/ de este repo se integra con el CI en verde; el de un fork, un borrador u otra rama, no', () => {
+  const { correr, pr, respuestas } = repo()
+  const listo = {
+    state: 'OPEN',
+    mergeable: 'MERGEABLE',
+    headRefOid: 'aaa111',
+    statusCheckRollup: verde,
+  }
+  for (const n of [31, 32, 33, 34]) pr(n, listo)
+  writeFileSync(
+    join(respuestas, 'prs.json'),
+    JSON.stringify([
+      { number: 31, headRefName: 'fix/ci', isCrossRepository: false, isDraft: false },
+      { number: 32, headRefName: 'fix/de-afuera', isCrossRepository: true, isDraft: false },
+      { number: 33, headRefName: 'fix/a-medias', isCrossRepository: false, isDraft: true },
+      { number: 34, headRefName: 'otra/cosa', isCrossRepository: false, isDraft: false },
+    ]),
+  )
+  assert.match(correr('sincronizar'), /#31 \(fix\/ci\): integrado por el coordinador/)
+  assert.equal(readFileSync(join(respuestas, 'merges'), 'utf8').trim(), '31')
+  assert.match(
+    readFileSync(join(respuestas, 'merges-args'), 'utf8'),
+    /--squash --match-head-commit aaa111/,
+  )
 })
 
 test('con un job todavía corriendo, un rojo no devuelve el paso: espera a que termine', () => {

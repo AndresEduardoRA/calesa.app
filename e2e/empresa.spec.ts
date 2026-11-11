@@ -198,8 +198,10 @@ test('guarda la clave de apibara sin volver a mostrarla, y recién entonces la a
   await entrar(page, duena)
   await page.goto('/configuracion/empresa?seccion=integraciones')
 
-  // Sin clave guardada no se puede activar, y se dice por qué.
-  const activa = page.getByRole('switch', { name: 'Activa' })
+  // Sin clave guardada no se puede activar, y se dice por qué. La web pública tiene su propio
+  // «Activa»: el de apibara es el de su tarjeta.
+  const tarjeta = page.locator('details', { has: page.getByText('apibara', { exact: true }) })
+  const activa = tarjeta.getByRole('switch', { name: 'Activa' })
   await expect(activa).toHaveAttribute('data-disabled', '')
   await expect(page.getByText('Guarda la clave antes de activarla.')).toBeVisible()
 
@@ -236,7 +238,7 @@ test('guarda la clave de apibara sin volver a mostrarla, y recién entonces la a
   expect(await pedirSecreto()).toEqual(rechazo)
 
   await page.reload()
-  await expect(page.getByRole('switch', { name: 'Activa' })).toBeChecked()
+  await expect(activa).toBeChecked()
   expect(await page.content()).not.toContain(secreto)
 })
 

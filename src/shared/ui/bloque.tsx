@@ -11,6 +11,8 @@ type Props = {
   plegado?: boolean
   // Lo abre aunque esté plegado: un bloque con un error adentro no puede quedar cerrado.
   forzarAbierto?: boolean
+  // Avisa cada vez que se abre (no cuando lo abre `forzarAbierto`): para montar su contenido recién entonces.
+  onAbrir?: () => void
   className?: string
   children: ReactNode
 }
@@ -23,6 +25,7 @@ export function Bloque({
   descripcion,
   plegado = false,
   forzarAbierto = false,
+  onAbrir,
   className,
   children,
 }: Props) {
@@ -34,6 +37,7 @@ export function Bloque({
       open={abierto || forzarAbierto}
       onToggle={(evento) => {
         setAbierto(evento.currentTarget.open)
+        if (evento.currentTarget.open) onAbrir?.()
       }}
       className={cn(
         'group rounded-(--radius-card) border border-(--color-line) bg-(--color-surface)',

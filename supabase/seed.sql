@@ -202,9 +202,14 @@ end $$;
 do $$
 declare v_flujo uuid; f1 uuid; f2 uuid; f3 uuid; f4 uuid; f5 uuid;
 begin
-  if exists (select 1 from public.flujos where ambito = 'repuestos') then return; end if;
-  insert into public.flujos (ambito, nombre) values ('repuestos', 'Repuestos') returning id into v_flujo;
-  insert into public.flujos_reglas (flujo_id, regla, activa) select v_flujo, r, true from unnest(array['logistica', 'alerta_demora', 'transporte', 'contenedor', 'gastos', 'pagos', 'esperas']) r;
+  -- El flujo lo garantiza la migración `fases_flujo_de_repuestos` (5.01-2): se toma el que haya y se siembran sus fases sólo si no tiene ninguna.
+  select id into v_flujo from public.flujos where ambito = 'repuestos';
+  if v_flujo is null then
+    insert into public.flujos (ambito, nombre) values ('repuestos', 'Repuestos') returning id into v_flujo;
+    insert into public.flujos_reglas (flujo_id, regla, activa) select v_flujo, r, true from unnest(array['logistica', 'alerta_demora', 'transporte', 'contenedor', 'gastos', 'pagos', 'esperas']) r;
+  elsif exists (select 1 from public.fases where flujo_id = v_flujo) then
+    return;
+  end if;
   insert into public.fases (flujo_id, nombre, color, orden, es_inicial, demora_dias) values (v_flujo, 'Por cotizar', '#717c93', 10, true, 3) returning id into f1;
   insert into public.fases (flujo_id, nombre, color, orden, demora_dias) values (v_flujo, 'Comprado', '#7a5af8', 20, 7) returning id into f2;
   insert into public.fases (flujo_id, nombre, color, orden, permite_contenedor, demora_dias) values (v_flujo, 'En tránsito', '#c7680a', 30, true, 30) returning id into f3;

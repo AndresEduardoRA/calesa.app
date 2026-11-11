@@ -881,7 +881,10 @@ do $$ declare r record; v_faltan text[] := '{}'; v_listadas constant text[] := a
   -- bajo las policies de `leads` y de `leads_asesores` (invoker), que filtran a quien está en una baja en curso (5a-fix-1a)
   'leads_cartera_vista',
   -- arma la consulta de los candidatos con `p_fuera` (= `_bajas_en_curso()`, lo calcula `leads_candidatos`) dentro de `_lead_visible_para()` y recorre la cartera de quien llama (5a-fix-1b)
-  '_leads_candidatos_sql'];
+  '_leads_candidatos_sql',
+  -- la fila de la cartera del dueño del recordatorio, sólo para elegir la `ruta` de su propio aviso; a quien está de baja no le llega
+  -- nada (la puerta de `notificaciones`, 7.01-1)
+  'recordatorios_notificar'];
 begin
   for r in select n.nspname, p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
             where n.nspname in ('public', 'web') and p.prokind = 'f'

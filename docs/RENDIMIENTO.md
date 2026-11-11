@@ -31,6 +31,22 @@ Sección «Seguimientos» de la ficha y pestaña del drawer.
 - Aviso de vencidos de la ficha: `lead_ficha()` cuenta hasta 21 por `recordatorios_lead_pendientes_idx` («más de 20»).
 - Mide: `db:medir` (sin filas descartadas en ningún plan); `e2e/leads-rapido-volumen.spec.ts`.
 
+## Agenda
+
+- Calendario: `agenda_rango()`, un pedido por rango de ≤ 45 días; tope 200 por clase (`limit 201`, `hay_mas` y `tope` en la respuesta). Índices:
+  `eventos_inicio_idx`, `tareas_responsable_idx` (mías) o `tareas_vence_idx` (con `agenda.ver_todo`), `recordatorios_usuario_idx` y
+  `vehiculos_cierre_subasta_idx` origen por origen. `eventos: leer` en línea: `tiene_permiso` como InitPlan y el destinatario por PK.
+- Límite sin assert: en un origen con «propios» la RLS descarta adentro los vehículos ajenos, acotado a las subastas vivas del origen en el rango (el
+  mismo índice y límite que 4-23 anotó para el panel, `medir-panel-cierre-subasta.sql`).
+- «Sin fecha»: `agenda_tareas_sin_fecha()`, 20 por «Ver más» (50 como mucho), `tareas_sin_fecha_idx`, cursor `(creado_en, id)`.
+- «¿A quién?»: `agenda_quienes_reciben()`, ≥ 3 letras o dígitos, tope 20, sobre `perfiles` (el equipo, no crece).
+- Sin siembra de volumen ni `medir-*.sql`: `eventos` y `tareas` no son tablas que crecen (7.06-2, D29).
+
+## Inicio: la bandeja (9.02)
+
+- Tres lecturas en el servidor, cada una `limit 6` y cada una tras el `<Suspense>` de su bloque (un bloque lento no frena a los demás): `recordatorios_vista` por `recordatorios_usuario_idx`; `leads_cartera_vista` por `leads_asesores_listado_idx` (cuesta lo que pesa la cartera de quien mira, no la tabla); `perfiles` por `perfiles_vigentes_orden_idx`.
+- Sin `count`, sin `offset`, sin N+1. No se sembró volumen: ninguna recorre `leads` entera.
+
 ## Inventario de escala (9e)
 
 Tope = lo que se dibuja o se lee de una vez; un número que se muestra es siempre acotado (`limit tope + 1`, «más de N»). Presupuesto = lo que asserta `pnpm db:medir:volumen` o el e2e. Mide todo `medir-escala.sql` salvo que se diga otro.
@@ -104,13 +120,22 @@ Elige 10, 25, 50 o 100 (`listas.por_pagina`, `?por=`); cada lista declara su má
 - Nodos del DOM de una columna en el tope (500 tarjetas): ≤ 10.250; el «⋯» de cada tarjeta cuesta exactamente 3 nodos (`<use>` a un símbolo de `src/shared/ui/lista/simbolos-de-lista.tsx`; `e2e/mas-acciones-icono.spec.ts`). El servidor dibuja una sola distribución (columnas o pestañas) según el ancho de la petición.
 - Oportunidades de la ficha: 10 en el servidor (las abiertas primero) y «Ver más» de a `TAMANO_DE_VER_MAS` desde el navegador, hasta `TOPE_DE_LO_CARGADO` con aviso y el camino «Buscarlas en tu embudo». Documento de la ficha ≤ 66 KB con la sección abierta, con 10 o con 1.000 (62,7 y 61,7 KB). Cada «Ver más», una página de 20 de ≈ 15,5 KB que no crece con la profundidad (≈ 3 ms en la base, `medir-lead-oportunidades.sql`); nodos lineales hasta 500 (238 con 10 y 11.509 con 500). `e2e/leads-oportunidades-ver-todas.spec.ts`.
 
+## Buscador (7.12)
+
+Cada sección por su RPC, de a `_acotar_pagina(p_tamano, 5, 20)` + 1, con el mínimo de `MINIMO_DE_BUSQUEDA` en la base (`_buscador_interpretar()`).
+
+- Leads (`buscador_leads()`): la ventana de `leads_candidatos()` con sólo el texto (la búsqueda del listado, medida en `busqueda-volumen.sql`) + `leads_ids_del_numero()` (≤ 100) + una pasada de `leads_vista_por_ids()` sobre esos ids; corta en 21.
+- Vehículos (`buscador_vehiculos()`): una ruta por origen visible por `vehiculos_origen_listado_idx`, ≤ 21 por origen. **Límite sin assert**, el del panel y el inventario: con un texto que no coincide recorre los vehículos vivos de cada origen visible.
+- Cotizaciones (`buscador_cotizaciones()`, definer): el número por `cotizaciones_numero_key`; el título por `cotizaciones_titulo_trgm`, a lo sumo 1.000 candidatas de los orígenes que se ven, más las propias por `cotizaciones_creador_idx` (≤ 21), y la policy sobre ellas por la PK (`en_cartera` por fila con «propios»). **Límite sin assert hasta el 7.12-2:** no tiene `EXPLAIN` en `db:medir:volumen`; el 7.12-2 suma un `medir-buscador.sql` (número, título común y título raro, como la dueña y como Ana).
+- `visitados`: ≤ 50 por persona (`visita_registrar()` recorta), por la PK y `visitados_usuario_visto_idx (usuario_id, visto_en desc)`.
+
 ## JS en frío (con gzip, lo que el documento nombra)
 
 - `/leads` ≤ 530 KB (medido 503,5), `/perfil` ≤ 440 KB (413,5), `/vehiculos` ≤ 500 KB (468,6). `/cotizaciones/nuevo` con la subasta (`?origen=`) ≤ 460 KB (medido **459,0** en 27 chunks en el 4.18-3b, tras «Vista previa» del 4.18-2, el runtime de react-pdf del 4.18-3a y el enlace del PDF del 3b; 432 en 27 chunks desde el 4.14-2a, con la barra del vehículo en frío y su panel diferido; 429,5 en 25 antes; 428,1 en el 4.13-4b3, 426,8 antes y 423,8 antes del 4.13-4a), desde el 4.13-4d en `e2e/presupuesto-js.spec.ts`.
 - `/cotizaciones/[id]` (4.15-3a, `e2e/presupuesto-js.spec.ts`): ≤ 448 KB (medido **441,9** en 26 chunks en el 4.27-4, con favorita, reportar y moderar en la cabecera; 440,1 en el 4.27-3; 438,0 en el 4.18-3b; 438,6 con el commit 2 del 4.15-3a y 440,3 con el 3). `/cotizaciones/nuevo` midió 456,9 KB tras el commit 2 y 456,2 tras el 3 (453,1 antes del 4.15-3a; tope 460, margen 3,8 KB): viene de lo compartido que tocaron los commits 1 y 2, sin atribuir a uno (abierto 4-73). La guardada también viaja con la hoja nueva (`hoja-de-cotizar.tsx` importa su guardado).
 - La página de una guardada lee en serie: `cotizacion_hoja_guardada` (≤ 20 ms; la dueña ≤ 14.230 B), `cotizacion_evaluar(p_cotizacion)` (p95 ≤ 20 ms) y, con la hoja leída, el cliente y el vehículo por su nombre (sus ids salen de la hoja; no en paralelo). Guardar: una llamada a `cotizacion_guardar` (≤ 20 ms). Desde el 4.27-4, tras `<Suspense>` (no retrasan la hoja) y una vez por request (`cache()`), tres lecturas por clave primaria en paralelo: la fila (`estado`, `reportes_count`), la favorita propia y el reporte propio (`(cotizacion_id, usuario_id)`). Al abrir el Confirmar de moderar, los reportes de esa cotización por la misma PK, hasta 21 (uno por persona: lo acota el equipo; sin «Ver más»).
 - El `index.ts` de un módulo no exporta componentes: cada pantalla trae los suyos por `pantallas/<pantalla>.ts` (sólo `src/app`). La guarda `scripts/guardas/barriles.test.ts` falla, con el camino, si un `index.ts` llega a un `'use client'`.
-- Documento de `/perfil` (HTML con el payload RSC, sin comprimir) ≤ 82 KB (`PRESUPUESTO_DEL_DOCUMENTO_DE_PERFIL_EN_KB`), igual con la semilla y con 100 + 100 + 100 catálogos (±1 KB); medido 80.338 B. El layout `(app)` no manda catálogos al alta: `<AltaDeLead>` no recibe nada y los lee del navegador (`infra/contexto-de-alta.client.ts`, memoria de 60 s en `shared/lib/memoria-de-lectura.ts`).
+- Documento de `/perfil` (HTML con el payload RSC, sin comprimir) ≤ 87 KB (`PRESUPUESTO_DEL_DOCUMENTO_DE_PERFIL_EN_KB`; 82 hasta el 6.01-4, que encendió la entrada de Logística: 84.810 B medidos, el tope sube con la regla del 5 %), igual con la semilla y con 100 + 100 + 100 catálogos (±1 KB); medido 80.338 B. El layout `(app)` no manda catálogos al alta: `<AltaDeLead>` no recibe nada y los lee del navegador (`infra/contexto-de-alta.client.ts`, memoria de 60 s en `shared/lib/memoria-de-lectura.ts`).
 - Ficha, «Datos»: ≤ 43 KB sobre `/perfil`, igual con la semilla y con 100 orígenes + 100 tipos (manda los campos activos y el origen y el tipo de ese lead; el panel de edición los lee al abrirse, `leerCatalogosDeEdicion()`); `e2e/leads-ficha.spec.ts`. «Cotizar» de la cabecera (4.14-3c) suma, sólo para quien tiene `cotizaciones.crear`, la lectura de los orígenes activos (`getOrigenes()`, una por request) a la vez que la de la ficha y ~90 B en el documento; `/perfil` sigue en 418,4 KB de 440.
 - «Nuevo lead» es un solo drawer: 1 montaje y 1 entrada animada por apertura, 1 lectura de cada pedido (`e2e/leads-alta-un-drawer.spec.ts`).
 

@@ -2,6 +2,7 @@
 // de `entities/repositorios`. Los casos de uso de `features/` importan de este archivo, nunca de
 // `infra/` (lo verifica eslint-plugin-boundaries).
 import 'server-only'
+import type { LectorDeLeadsSinSeguimiento, LectorDeRecordatoriosDeHoy } from './entities/bandeja'
 import type { LectorDeClienteElegido } from './entities/panel-para-cotizar'
 import type { BuscadorDeLeads, ContadorDeLeads } from './entities/repositorios-del-listado'
 import type {
@@ -78,6 +79,7 @@ import {
 } from './infra/queries/listado'
 import type { LectorDeCarteraCorta } from './entities/fuente-del-listado'
 import type { LectorDeIdsDelNumero } from './entities/numero'
+import { getLeadsSinSeguimiento, getRecordatoriosDeHoy } from './infra/queries/bandeja'
 import { getIdsDelNumero } from './infra/queries/numeros'
 import { getCatalogosDeLead } from './infra/queries/catalogos'
 import { getOrigenesDeLeadConUso } from './infra/queries/origenes'
@@ -179,3 +181,8 @@ export const repositorioDeExportacion: RepositorioDeExportacion = exportacionSup
 
 // Importar leads desde un CSV (parte 8): lotes por RPC, cada fila por su cuenta.
 export const repositorioDeImportacion: RepositorioDeImportacion = importacionSupabase
+
+// Inicio (9.02): lo mío que espera: los recordatorios de hoy y los leads de mi cartera sin ningún seguimiento.
+export const leerRecordatoriosDeHoy: LectorDeRecordatoriosDeHoy = getRecordatoriosDeHoy
+
+export const leerLeadsSinSeguimiento: LectorDeLeadsSinSeguimiento = getLeadsSinSeguimiento
