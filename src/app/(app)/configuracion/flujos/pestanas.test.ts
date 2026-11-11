@@ -7,18 +7,26 @@ const con = (clave: ClavePermiso, origenId: string | null = null): Permisos => [
 ]
 
 describe('pestañas de Flujos', () => {
-  it('«Fases» la ve quien configura el flujo de algún origen o el de repuestos', () => {
-    expect(pestanasVisibles(con('flujos.configurar')).map((p) => p.clave)).toEqual(['fases'])
+  it('«Fases» y «Documentos» las ve quien configura el flujo de algún origen o el de repuestos', () => {
+    expect(pestanasVisibles(con('flujos.configurar')).map((p) => p.clave)).toEqual([
+      'fases',
+      'documentos',
+    ])
     expect(
       pestanasVisibles(con('flujos.configurar', '00000000-0000-4000-8000-000000000001')).map(
         (p) => p.clave,
       ),
-    ).toEqual(['fases'])
-    expect(pestanasVisibles(con('repuestos.configurar')).map((p) => p.clave)).toEqual(['fases'])
+    ).toEqual(['fases', 'documentos'])
+    expect(pestanasVisibles(con('repuestos.configurar')).map((p) => p.clave)).toEqual([
+      'fases',
+      'documentos',
+    ])
   })
 
-  it('con sólo los catálogos de logística, o sin claves, no hay pestañas', () => {
-    expect(pestanasVisibles(con('logistica.catalogos.gestionar'))).toEqual([])
+  it('con sólo los catálogos de logística ve «Documentos»; sin claves, ninguna', () => {
+    expect(pestanasVisibles(con('logistica.catalogos.gestionar')).map((p) => p.clave)).toEqual([
+      'documentos',
+    ])
     expect(pestanasVisibles([])).toEqual([])
   })
 
