@@ -176,6 +176,11 @@ export const MEDICIONES_CON_VOLUMEN = [
     'La baja de una persona con 200.000 leads (con transacciones de verdad: confirma y borra lo que crea)',
     UNA,
   ],
+  [
+    'supabase/tests/medir-buscador.sql',
+    'buscador_cotizaciones() con 50.000 y con 250.000 cotizaciones, como authenticated con el plan genérico: #número, un título común y uno raro, de la dueña y de Ana («propios», 100 propias fijas) (ms y bloques por relación de la llamada entera; ningún recorrido, el número y lo raro sin crecer con N, el heap de lo común tampoco; la guarda sin el GIN del título)',
+    'mediana de 5 de 7 corridas',
+  ],
 ]
 
 // Lo que una medición lee del repo: la base no lee archivos, así que se le antepone a la entrada de psql una tabla temporal

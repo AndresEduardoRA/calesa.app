@@ -39,8 +39,8 @@ El panel exige `logistica.ver` en el origen de la unidad **y** que la RLS de `ve
 
 ## Tablas
 
-`documentos`, `puertos`, `navieras`, `transportes` (1:1 con la unidad), `flujos_transporte_oferta`, `declaraciones_aduana`, `declaraciones_vehiculos`, `categorias_gasto`, `gastos`, `pagos`, `notas`.
-RPC: `margen_vehiculo`, `alertas_demora` (cron), `storage_refcount`; mover vía `flujos`.
+`documentos`, `puertos`, `navieras`, `transportes` (1:1 con la unidad), `declaraciones_aduana`, `declaraciones_vehiculos`, `categorias_gasto`, `gastos`, `pagos`, `notas`.
+RPC: `margen_vehiculo`, `alertas_demora` (cron), `storage_refcount`; mover vía `flujos`. La oferta de transporte es de `flujos`: la leerá en la Fase 6 por `flujo_oferta()`.
 
 ## No se rompe
 

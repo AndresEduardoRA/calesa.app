@@ -8,9 +8,8 @@
 --   B3. Vehículos: el suyo por título, VIN parcial y lote; no el de Beto sin cartera, ni el de un origen sin permiso, ni el de la papelera.
 --   B4. Cotizaciones: la suya por título y por número; no la de Beto sin cartera (ni por número), sí la de un lead de su cartera; no la de un origen sin
 --       permiso ni la de la papelera. La visibilidad de la RPC es igual a la de la tabla para las tres personas, y con un título que comparten más de
---       1.000 cotizaciones ajenas Ana encuentra la suya.
---   B6. Con 2 letras, «a b», espacios o «#», nada en las tres; sin sesión, nada.
---   B7. El tope: con 25 coincidencias, p_tamano 5 da 6 y 1000 da 21.
+--       1.000 cotizaciones ajenas Ana encuentra la suya (también quien tiene «todos» en un origen y «propios» en otro).
+--   B6. Con 2 letras, «a b», espacios o «#», nada en las tres; sin sesión, nada. B7. El tope: con 25 coincidencias, p_tamano 5 da 6 y 1000 da 21.
 
 create temp sequence bu_telefono;
 
@@ -243,7 +242,7 @@ rollback;
 -- @test buscador: B4 con un título que comparten más de 1.000 cotizaciones ajenas o de otro origen, encuentra la que le corresponde
 begin;
 do $$
-declare t jsonb := pg_temp.bu_terreno(); c uuid;
+declare t jsonb := pg_temp.bu_terreno(); c uuid; eva uuid;
 begin
   perform pg_temp.bu_cot((t ->> 'o1')::uuid, 'Comunqz ' || g, (t ->> 'dora')::uuid) from generate_series(1, 1100) g;
   c := pg_temp.bu_cot((t ->> 'o1')::uuid, 'Comunqz de Ana', (t ->> 'ana')::uuid);
@@ -251,9 +250,11 @@ begin
   -- Quien ve «todos» en un solo origen encuentra la de ese origen aunque más de 1.000 de otro compartan el título.
   perform pg_temp.bu_cot((t ->> 'o2')::uuid, 'Origqz ' || g, (t ->> 'dora')::uuid) from generate_series(1, 1100) g;
   c := pg_temp.bu_cot((t ->> 'o1')::uuid, 'Origqz de o1', (t ->> 'dora')::uuid);
-  if pg_temp.bu_cotizaciones(pg_temp.bu_persona(jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver', 'origen', t ->> 'o1'))), 'Origqz', 5) is distinct from array[c] then
-    raise exception 'B4: con «todos» sólo en o1 no encuentra la de o1 entre más de 1.000 de o2';
-  end if;
+  if pg_temp.bu_cotizaciones(pg_temp.bu_persona(jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver', 'origen', t ->> 'o1'))), 'Origqz', 5) is distinct from array[c] then raise exception 'B4: con «todos» sólo en o1 no encuentra la de o1 entre más de 1.000 de o2'; end if;
+  -- Con «todos» en o1 y «propios» en o2, la propia de o2 llega por la ruta de las propias (sólo donde hay «propios» sin «todos») entre más de 1.000 ajenas.
+  eva := pg_temp.bu_persona(jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver', 'origen', t ->> 'o1'), jsonb_build_object('clave', 'cotizaciones.ver', 'alcance', 'propios', 'origen', t ->> 'o2')));
+  c := pg_temp.bu_cot((t ->> 'o2')::uuid, 'Origqz de Eva', eva);
+  if not c = any (pg_temp.bu_cotizaciones(eva, 'Origqz', 5)) then raise exception 'B4: con «todos» en o1 y «propios» en o2 no encuentra la suya de o2'; end if;
 end $$;
 rollback;
 
