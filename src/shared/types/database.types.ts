@@ -5412,6 +5412,7 @@ export type Database = {
         Row: {
           actualizado_en: string
           completada_en: string | null
+          conversacion_id: string | null
           cotizacion_id: string | null
           creado_en: string
           creado_por: string
@@ -5429,6 +5430,7 @@ export type Database = {
         Insert: {
           actualizado_en?: string
           completada_en?: string | null
+          conversacion_id?: string | null
           cotizacion_id?: string | null
           creado_en?: string
           creado_por: string
@@ -5445,6 +5447,7 @@ export type Database = {
         Update: {
           actualizado_en?: string
           completada_en?: string | null
+          conversacion_id?: string | null
           cotizacion_id?: string | null
           creado_en?: string
           creado_por?: string
@@ -5459,6 +5462,13 @@ export type Database = {
           vence_en?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: 'tareas_conversacion_id_fkey'
+            columns: ['conversacion_id']
+            isOneToOne: false
+            referencedRelation: 'conversaciones'
+            referencedColumns: ['id']
+          },
           {
             foreignKeyName: 'tareas_cotizacion_id_fkey'
             columns: ['cotizacion_id']
@@ -7000,6 +7010,66 @@ export type Database = {
         }
       }
       _agenda_fecha: { Args: { p_hint: string; p_valor: Json }; Returns: string }
+      _agenda_puede_recibir: { Args: { p_usuario: string }; Returns: boolean }
+      _agenda_tarea_accionar: { Args: { p_tarea: string; p_usuario: string }; Returns: undefined }
+      _agenda_tarea_datos: {
+        Args: {
+          p_actual: Omit<
+            Database['public']['Tables']['tareas']['Row'],
+            Database['public']['Tables']['tareas']['ComputedFields']
+          >
+          p_datos: Json
+        }
+        Returns: {
+          actualizado_en: string
+          completada_en: string | null
+          conversacion_id: string | null
+          cotizacion_id: string | null
+          creado_en: string
+          creado_por: string
+          descripcion: string | null
+          eliminado_en: string | null
+          estado: Database['public']['Enums']['estado_agenda']
+          id: string
+          lead_id: string | null
+          responsable_id: string
+          titulo: string
+          vehiculo_id: string | null
+          vence_en: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'tareas'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _agenda_tarea_tomar: {
+        Args: { p_tarea: string }
+        Returns: {
+          actualizado_en: string
+          completada_en: string | null
+          conversacion_id: string | null
+          cotizacion_id: string | null
+          creado_en: string
+          creado_por: string
+          descripcion: string | null
+          eliminado_en: string | null
+          estado: Database['public']['Enums']['estado_agenda']
+          id: string
+          lead_id: string | null
+          responsable_id: string
+          titulo: string
+          vehiculo_id: string | null
+          vence_en: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'tareas'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       _apibara_catalogo: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -9034,7 +9104,10 @@ export type Database = {
         }
         Returns: string
       }
-      reasignar_tarea: { Args: { p_responsable: string; p_tarea: string }; Returns: undefined }
+      reasignar_tarea: {
+        Args: { p_actualizado_en_esperado: string; p_responsable: string; p_tarea: string }
+        Returns: Json
+      }
       recordatorio_completar: {
         Args: { p_actualizado_en_esperado: string; p_completado: boolean; p_id: string }
         Returns: Json
@@ -9129,6 +9202,19 @@ export type Database = {
       storage_refcount: { Args: { p_bucket: string; p_ruta: string }; Returns: number }
       tabla_referencia_publicar: {
         Args: { p_filas: Json; p_nota: string; p_tabla: string; p_version_esperada: number }
+        Returns: Json
+      }
+      tarea_completar: {
+        Args: { p_actualizado_en_esperado: string; p_completada: boolean; p_tarea: string }
+        Returns: Json
+      }
+      tarea_crear: { Args: { p_conversacion?: string; p_datos: Json; p_id: string }; Returns: Json }
+      tarea_eliminar: {
+        Args: { p_actualizado_en_esperado: string; p_tarea: string }
+        Returns: Json
+      }
+      tarea_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_datos: Json; p_tarea: string }
         Returns: Json
       }
       telefono_lead: { Args: { p_lead: string }; Returns: string }
