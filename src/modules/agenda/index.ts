@@ -1,3 +1,39 @@
-// API pública del módulo `agenda`. Lo único que `app/` u otro módulo puede importar.
-// Se llena en su fase de docs/PLAN.md; la ficha CLAUDE.md de esta carpeta dice qué entra y qué sale.
-export {}
+// API pública del módulo `agenda` para el servidor: lecturas, reglas y tipos. No exporta componentes: los de una pantalla salen por
+// `pantallas/agenda.ts` (sólo `src/app`) y los del navegador por `client.ts`. La ficha CLAUDE.md de esta carpeta dice qué entra y qué sale.
+export { leerAgenda, leerEvento, leerMisTareas, leerRecordatorio, leerTarea } from './composicion'
+export { estaVencida, type TareaPendiente } from './entities/mis-tareas'
+export {
+  CLASES_DE_AGENDA,
+  claseDe,
+  type AgendaDeRango,
+  type ClaveDeClase,
+  type EventoDeAgenda,
+  type RecordatorioDeAgenda,
+  type SubastaDeAgenda,
+  type TareaDeAgenda,
+} from './entities/agenda'
+export {
+  puedeCompletarTarea,
+  puedeDarTareaAOtro,
+  puedeEditarEvento,
+  puedeEditarTarea,
+  puedeReasignarTarea,
+} from './entities/visibilidad'
+export {
+  leerClases,
+  leerFecha,
+  leerVista,
+  rangoDe,
+  VISTAS,
+  type RangoDeAgenda,
+  type Vista,
+} from './entities/calendario'
+export { type DetalleDeRecordatorio } from './entities/recordatorio'
+export {
+  leerIdDeUrl,
+  rutaDeVinculo,
+  type ClaveDeVinculo,
+  type DetalleDeEvento,
+  type DetalleDeTarea,
+  type VinculosDeAgenda,
+} from './entities/detalle'
