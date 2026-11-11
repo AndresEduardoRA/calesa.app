@@ -3681,3 +3681,11 @@ contra lo que la base ya tiene; aquí se unieron (`docs/PLAN.md` › «Carriles 
   con el CI en verde entra también lo que toca las guardas (`COORD_GUARDAS_SOLAS=1`) y los PR sueltos de una rama `fix/` de este repo. La barrera
   que queda es el CI (Nivel 1, Carriles, Base y e2e) y la auditoría del plan. Se vuelve atrás con `COORD_GUARDAS_SOLAS=0` y `COORD_SUELTOS=`.
 - **Lo que no cambió:** la auditoría del informe (RLS, permisos, `security definer`, dinero); producción sigue siendo de la persona.
+
+## 2026-11-11 — El coordinador renumera las migraciones atrasadas
+
+- **Por qué:** el #103, el #113 y el #114 llevaban más de 1 h con el CI en verde, frenados sólo por una migración con versión anterior a la
+  última de main. El carril la renumera sin sesión, pero recién al terminar el paso en curso, y mientras tanto no arrancaban los que dependen.
+- **Qué:** el coordinador arma el commit de la renumeración con un índice aparte sobre la punta del PR y lo empuja a su rama
+  (`scripts/coordinador/renumerar.mjs`). No pasa por los hooks (no hay árbol), pero sólo renombra y cambia la versión en los archivos del PR, y
+  se integra con el CI de ese commit en verde. Si el carril empujó entre medio, no hace nada y vuelve a intentar. `COORD_RENUMERAR=0` lo apaga.
