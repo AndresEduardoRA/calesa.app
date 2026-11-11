@@ -9,6 +9,8 @@
 --   P4. `logistica.ver` con alcance `propios`: la propia sí; la de otra persona, acceso.
 --   P5. Un ítem de repuesto sin `repuestos.ver`: acceso (antes la vista previa del repuesto no miraba permiso); con `repuestos.ver` y
 --       `repuestos.mover`, entra a la inicial.
+--   P6. `authenticated` y `anon` no ejecutan `evaluar_requisitos` ni `unidad_llego_a_fase` (42501); la vista previa trae `detalle.tipo_documento_id`
+--       y `detalle.clave_dato`.
 
 -- La primera cuenta de una base vacía queda dueña (con `SOLO=` sin `humo.sql`): una de relleno antes, para que ninguna de la prueba lo sea.
 create or replace function pg_temp.mp_sin_duena() returns void language plpgsql as $f$
@@ -224,5 +226,34 @@ begin
   r := pg_temp.mp_corre(con_ver, format('select jsonb_build_object(''historial'', public.cambiar_fase(null, %L, %L, null, null))', item, f));
   perform pg_temp.mp_pasa('P5 mover con repuestos.ver', r);
   if (select fase_id from public.repuestos_items where id = item) is distinct from f then raise exception 'P5: el ítem debía quedar en la inicial'; end if;
+end $$;
+rollback;
+
+-- @test mover: authenticated ya no ejecuta evaluar_requisitos ni unidad_llego_a_fase; la vista previa trae clave_dato y tipo_documento_id (P6)
+begin;
+do $$
+declare
+  a uuid := pg_temp.mp_flujo(); o uuid := pg_temp.mp_origen_de(a);
+  f uuid := pg_temp.mp_fase(a, 'mp uno', 10, true); g uuid := pg_temp.mp_fase(a, 'mp dos', 20);
+  t uuid := pg_temp.mp_transicion(a, f, g); v uuid := pg_temp.mp_vehiculo(a, f);
+  ve uuid := pg_temp.mp_persona(array['logistica.ver', 'flujos.mover@' || o]); td uuid; r jsonb; fn text;
+begin
+  foreach fn in array array['public.evaluar_requisitos(uuid,uuid,uuid)', 'public.unidad_llego_a_fase(uuid,uuid,uuid)'] loop
+    if has_function_privilege('authenticated', fn, 'execute') or has_function_privilege('anon', fn, 'execute') then
+      raise exception 'P6: authenticated o anon todavía ejecutan %', fn;
+    end if;
+  end loop;
+  perform pg_temp.mp_es('P6 evaluar_requisitos como authenticated',
+    pg_temp.mp_corre(ve, format('select jsonb_agg(e) from public.evaluar_requisitos(%L, null, %L) e', v, g)), '42501', null);
+  perform pg_temp.mp_es('P6 unidad_llego_a_fase como authenticated',
+    pg_temp.mp_corre(ve, format('select to_jsonb(public.unidad_llego_a_fase(%L, null, %L))', v, g)), '42501', null);
+  insert into public.tipos_documento (nombre) values ('mp factura ' || substr(gen_random_uuid()::text, 1, 6)) returning id into td;
+  insert into public.fases_requisitos (fase_id, tipo, tipo_documento_id, bloqueante, orden) values (g, 'documento', td, true, 1);
+  insert into public.fases_requisitos (fase_id, tipo, clave_dato, bloqueante, orden) values (g, 'dato', 'transporte.contenedor', false, 2);
+  r := pg_temp.mp_ver(ve, v, g);
+  if r -> 'requisitos' -> 0 -> 'detalle' ->> 'tipo_documento_id' is distinct from td::text
+     or r -> 'requisitos' -> 1 -> 'detalle' ->> 'clave_dato' is distinct from 'transporte.contenedor' then
+    raise exception 'P6: el detalle debía traer tipo_documento_id y clave_dato y dio %', r -> 'requisitos';
+  end if;
 end $$;
 rollback;

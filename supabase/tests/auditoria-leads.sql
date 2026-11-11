@@ -159,7 +159,6 @@ declare
     ('cotizacion_reportar(uuid,text)', 'M'),
     ('cotizacion_reporte_retirar(uuid)', 'M'),
     ('cotizacion_favorito_poner(uuid,boolean)', 'M'),
-    ('evaluar_requisitos(uuid,uuid,uuid)', 'X'),
     ('margen_vehiculo(uuid)', 'X'),
     -- Lee una cotización recortada por nivel (4.10): el recorte lo prueba cotizaciones-visibilidad.sql.
     ('cotizacion_leer(uuid)', 'L'),
