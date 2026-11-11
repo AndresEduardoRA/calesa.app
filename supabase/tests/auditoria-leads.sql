@@ -193,6 +193,9 @@ declare
     ('evento_crear(uuid,jsonb,uuid[])', 'X'),
     ('evento_guardar(uuid,timestamp with time zone,jsonb,uuid[])', 'X'),
     ('evento_eliminar(uuid,timestamp with time zone)', 'X'),
+    -- El chat (7.08-2): una ficha o mención de lead se pide visible (`puede_lead`, `trg_lead_visible`); no toca la cartera ni devuelve el lead.
+    -- Responden {resultado, id, …} (`areas/chat/mensajes.sql`, `mensajes-editar.sql`, `fichas.sql`).
+    ('mensaje_enviar(uuid,uuid,text,jsonb,uuid,jsonb)', 'X'),
     ('storage_refcount(text,text)', 'X')
   ) t (f, c));
   r record; v_fallas text := '';

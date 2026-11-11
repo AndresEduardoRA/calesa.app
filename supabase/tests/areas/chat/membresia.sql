@@ -189,3 +189,43 @@ begin
   end if;
 end $$;
 rollback;
+
+-- @test chat: una mención avisa a la persona mencionada si es miembro vigente (aunque silenciara la conversación), a nadie más; va en el texto, hasta 20, y lo nombrado se ve (M6, C4, C6)
+begin;
+do $$
+declare a uuid := pg_temp.chm_persona(array['chat.participar', 'chat.global']); b uuid := pg_temp.chm_persona(array['chat.participar']);
+  afuera uuid := pg_temp.chm_persona(array['chat.participar']); sin_global uuid := pg_temp.chm_persona(array['chat.participar']); duenio_lead uuid := pg_temp.chm_persona();
+  conv uuid; g uuid; m uuid := gen_random_uuid(); r jsonb; v_lead uuid; lista jsonb; texto text;
+begin
+  conv := pg_temp.chm_conversacion(array[a, b]);
+  update public.conversaciones_miembros set silenciada = true where conversacion_id = conv and usuario_id = b;
+  r := pg_temp.chm_corre(a, format('select public.mensaje_enviar(%L, %L, %L, %L)', m, conv, format('hola #[usuario:%s], #[usuario:%s] y #[usuario:%s]', b, afuera, a),
+                                   jsonb_build_array(jsonb_build_object('tipo', 'usuario', 'id', b), jsonb_build_object('tipo', 'usuario', 'id', afuera), jsonb_build_object('tipo', 'usuario', 'id', a))));
+  if r ->> 'resultado' is distinct from 'enviado' then raise exception 'no envió con menciones: %', r; end if;
+  if not exists (select 1 from public.notificaciones where usuario_id = b and tipo = 'mencion' and referencia_id = m and cuerpo is null) then raise exception 'la mencionada (silenciada) no tiene su aviso sin cuerpo'; end if;
+  if exists (select 1 from public.notificaciones where usuario_id in (a, afuera) and tipo = 'mencion') then raise exception 'avisó a quien envía o a quien no es miembro'; end if;
+  if (select count(*) from public.mensajes_menciones where mensaje_id = m) <> 3 then raise exception 'no quedaron las tres menciones'; end if;
+  if pg_temp.chm_cuenta(afuera, format('select 1 from public.mensajes_menciones where mensaje_id = %L', m)) <> '0' then raise exception 'quien no es miembro lee la mención'; end if;
+
+  select id into g from public.conversaciones where es_global;
+  insert into public.conversaciones_miembros (conversacion_id, usuario_id) values (g, a), (g, sin_global);
+  m := gen_random_uuid();
+  r := pg_temp.chm_corre(a, format('select public.mensaje_enviar(%L, %L, %L, %L)', m, g, format('#[usuario:%s]', sin_global), jsonb_build_array(jsonb_build_object('tipo', 'usuario', 'id', sin_global))));
+  if r ->> 'resultado' is distinct from 'enviado' then raise exception 'no envió al canal: %', r; end if;
+  if exists (select 1 from public.notificaciones where usuario_id = sin_global and tipo = 'mencion') then raise exception 'avisó en el canal a quien no tiene chat.global'; end if;
+
+  select jsonb_agg(jsonb_build_object('tipo', 'usuario', 'id', u)), string_agg(format('#[usuario:%s]', u), ' ') into lista, texto
+    from (select gen_random_uuid() u from generate_series(1, 21)) x;
+  r := pg_temp.chm_corre(a, format('select public.mensaje_enviar(%L, %L, %L, %L)', gen_random_uuid(), conv, texto, lista));
+  if r ->> 'error' is distinct from '22023' or r ->> 'hint' is distinct from 'menciones' then raise exception '21 menciones no dieron 22023: %', r; end if;
+  r := pg_temp.chm_corre(a, format('select public.mensaje_enviar(%L, %L, %L, %L)', gen_random_uuid(), conv, 'sin la mención', jsonb_build_array(jsonb_build_object('tipo', 'usuario', 'id', b))));
+  if r ->> 'error' is distinct from '22023' or r ->> 'hint' is distinct from 'menciones' then raise exception 'una mención fuera del texto no dio 22023: %', r; end if;
+
+  insert into public.leads (nombre, telefono_principal, creado_por)
+  values ('CHM lead', '59' || lpad((('x' || substr(md5(gen_random_uuid()::text), 1, 7))::bit(28)::int % 100000000)::text, 8, '0'), duenio_lead) returning id into v_lead;
+  r := pg_temp.chm_corre(a, format('select public.mensaje_enviar(%L, %L, %L, %L)', gen_random_uuid(), conv, format('mira #[lead:%s]', v_lead), jsonb_build_array(jsonb_build_object('tipo', 'lead', 'id', v_lead))));
+  if r ->> 'error' is distinct from '42501' or r ->> 'hint' is distinct from 'menciones' then raise exception 'mencionar un lead que no ve no dio 42501: %', r; end if;
+  r := pg_temp.chm_corre(a, format('select public.mensaje_enviar(%L, %L, %L, %L)', gen_random_uuid(), conv, format('mira #[lead:%s]', v_lead), '[]'));
+  if r ->> 'error' is distinct from '22023' or r ->> 'hint' is distinct from 'menciones' then raise exception 'un token de lead fuera de p_menciones no dio 22023: %', r; end if;
+end $$;
+rollback;

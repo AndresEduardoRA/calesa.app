@@ -77,3 +77,78 @@ begin
   end if;
 end $$;
 rollback;
+
+-- @test chat: mensaje_enviar pide chat.participar y ser miembro vigente, es idempotente por id y valida el cuerpo y la respuesta (E1, C5, C7)
+begin;
+do $$
+declare a uuid := pg_temp.chms_persona(array['chat.participar']); b uuid := pg_temp.chms_persona(array['chat.participar']);
+  mudo uuid := pg_temp.chms_persona(); afuera uuid := pg_temp.chms_persona(array['chat.participar', 'chat.global']);
+  conv uuid; otra uuid; g uuid; m1 uuid := gen_random_uuid(); m2 uuid := gen_random_uuid(); r jsonb;
+begin
+  conv := pg_temp.chms_conversacion(array[a, b, mudo]);
+  otra := pg_temp.chms_conversacion(array[a, b]);
+  r := pg_temp.chms_enviar(a, m1, conv, '  hola  ');
+  if r ->> 'resultado' is distinct from 'enviado' or (r ->> 'id')::uuid is distinct from m1 then raise exception 'no envió: %', r; end if;
+  if (select autor_id from public.mensajes where id = m1) is distinct from a or (select cuerpo from public.mensajes where id = m1) is distinct from 'hola' then
+    raise exception 'el mensaje no quedó con su autor y el cuerpo sin blancos';
+  end if;
+  r := pg_temp.chms_enviar(a, m1, conv, 'hola');
+  if r ->> 'resultado' is distinct from 'repetido' then raise exception 'repetir no dio repetido: %', r; end if;
+  if (select count(*) from public.mensajes where id = m1) <> 1 then raise exception 'repetir duplicó el mensaje'; end if;
+  r := pg_temp.chms_enviar(b, m1, conv, 'hola');
+  if r ->> 'error' is distinct from '22023' then raise exception 'el id de otra persona no dio 22023: %', r; end if;
+  r := pg_temp.chms_enviar(mudo, gen_random_uuid(), conv, 'hola');
+  if r ->> 'error' is distinct from '42501' then raise exception 'sin chat.participar envió: %', r; end if;
+  r := pg_temp.chms_enviar(afuera, gen_random_uuid(), conv, 'hola');
+  if r ->> 'error' is distinct from '42501' then raise exception 'quien no es miembro envió: %', r; end if;
+  r := pg_temp.chms_enviar(a, null, conv, 'hola');
+  if r ->> 'error' is distinct from '22023' or r ->> 'hint' is distinct from 'id' then raise exception 'sin id no dio 22023: %', r; end if;
+  foreach r in array array[pg_temp.chms_enviar(a, gen_random_uuid(), conv, '   '), pg_temp.chms_enviar(a, gen_random_uuid(), conv, repeat('x', 4001))] loop
+    if r ->> 'error' is distinct from '22023' or r ->> 'hint' is distinct from 'cuerpo' then raise exception 'un cuerpo vacío o largo no dio 22023: %', r; end if;
+  end loop;
+  r := pg_temp.chms_enviar(a, gen_random_uuid(), conv, repeat('x', 4000));
+  if r ->> 'resultado' is distinct from 'enviado' then raise exception '4.000 caracteres no entraron: %', r; end if;
+  r := pg_temp.chms_enviar(b, m2, otra, 'respondo', '[]', m1);
+  if r ->> 'error' is distinct from '22023' or r ->> 'hint' is distinct from 'responde_a' then raise exception 'responder a otra conversación no dio 22023: %', r; end if;
+  r := pg_temp.chms_enviar(b, m2, conv, 'respondo', '[]', m1);
+  if r ->> 'resultado' is distinct from 'enviado' or (select responde_a_id from public.mensajes where id = m2) is distinct from m1 then raise exception 'no respondió: %', r; end if;
+
+  select id into g from public.conversaciones where es_global;
+  insert into public.conversaciones_miembros (conversacion_id, usuario_id) values (g, a);
+  r := pg_temp.chms_enviar(a, gen_random_uuid(), g, 'al canal');
+  if r ->> 'error' is distinct from '42501' then raise exception 'sin chat.global escribió en el canal: %', r; end if;
+end $$;
+rollback;
+
+-- @test chat: una ficha de lead, vehículo o cotización exige que quien envía la vea; la que ve queda con su tipo y su FK; una tarea no va por aquí (E2, C7)
+begin;
+do $$
+declare a uuid := pg_temp.chms_persona(array['chat.participar', 'leads.ver', 'vehiculos.ver']); b uuid := pg_temp.chms_persona(array['chat.participar']);
+  conv uuid; o uuid; v_lead uuid; v_veh uuid; r jsonb; m uuid; f jsonb;
+begin
+  conv := pg_temp.chms_conversacion(array[a, b]);
+  insert into public.origenes (clave, nombre) values ('chms_' || substr(gen_random_uuid()::text, 1, 8), 'CHMS origen ' || substr(gen_random_uuid()::text, 1, 8)) returning id into o;
+  insert into public.vehiculos (origen_id, titulo, marca) values (o, 'CHMS vehículo', 'toyota') returning id into v_veh;
+  insert into public.leads (nombre, telefono_principal, creado_por)
+  values ('CHMS lead', '59' || lpad((('x' || substr(md5(gen_random_uuid()::text), 1, 7))::bit(28)::int % 100000000)::text, 8, '0'), a) returning id into v_lead;
+  foreach f in array array[jsonb_build_object('tipo', 'lead', 'id', v_lead), jsonb_build_object('tipo', 'vehiculo', 'id', v_veh),
+                           jsonb_build_object('tipo', 'cotizacion', 'id', gen_random_uuid())] loop
+    m := gen_random_uuid();
+    r := pg_temp.chms_enviar(b, m, conv, null, '[]', null, f);
+    if r ->> 'error' is distinct from '42501' or r ->> 'hint' is distinct from 'ficha' then raise exception 'una ficha que no ve no dio 42501: % → %', f, r; end if;
+    if exists (select 1 from public.mensajes where id = m) then raise exception 'la ficha rechazada dejó un mensaje'; end if;
+  end loop;
+  m := gen_random_uuid();
+  r := pg_temp.chms_enviar(a, m, conv, null, '[]', null, jsonb_build_object('tipo', 'lead', 'id', v_lead));
+  if r ->> 'resultado' is distinct from 'enviado' or (select tipo::text || lead_id::text from public.mensajes where id = m) is distinct from 'lead' || v_lead then
+    raise exception 'la ficha de lead no quedó: %', r;
+  end if;
+  m := gen_random_uuid();
+  r := pg_temp.chms_enviar(a, m, conv, 'mira este', '[]', null, jsonb_build_object('tipo', 'vehiculo', 'id', v_veh));
+  if r ->> 'resultado' is distinct from 'enviado' or (select tipo::text || vehiculo_id::text || cuerpo from public.mensajes where id = m) is distinct from 'vehiculo' || v_veh || 'mira este' then
+    raise exception 'la ficha de vehículo con comentario no quedó: %', r;
+  end if;
+  r := pg_temp.chms_enviar(a, gen_random_uuid(), conv, null, '[]', null, jsonb_build_object('tipo', 'tarea', 'id', gen_random_uuid()));
+  if r ->> 'error' is distinct from '22023' or r ->> 'hint' is distinct from 'ficha' then raise exception 'una ficha de tarea no dio 22023: %', r; end if;
+end $$;
+rollback;
