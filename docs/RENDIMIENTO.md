@@ -42,6 +42,11 @@ Sección «Seguimientos» de la ficha y pestaña del drawer.
 - «¿A quién?»: `agenda_quienes_reciben()`, ≥ 3 letras o dígitos, tope 20, sobre `perfiles` (el equipo, no crece).
 - Sin siembra de volumen ni `medir-*.sql`: `eventos` y `tareas` no son tablas que crecen (7.06-2, D29).
 
+## Inicio: la bandeja (9.02)
+
+- Tres lecturas en el servidor, cada una `limit 6` y cada una tras el `<Suspense>` de su bloque (un bloque lento no frena a los demás): `recordatorios_vista` por `recordatorios_usuario_idx`; `leads_cartera_vista` por `leads_asesores_listado_idx` (cuesta lo que pesa la cartera de quien mira, no la tabla); `perfiles` por `perfiles_vigentes_orden_idx`.
+- Sin `count`, sin `offset`, sin N+1. No se sembró volumen: ninguna recorre `leads` entera.
+
 ## Inventario de escala (9e)
 
 Tope = lo que se dibuja o se lee de una vez; un número que se muestra es siempre acotado (`limit tope + 1`, «más de N»). Presupuesto = lo que asserta `pnpm db:medir:volumen` o el e2e. Mide todo `medir-escala.sql` salvo que se diga otro.

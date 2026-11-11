@@ -3,8 +3,10 @@ import { cache } from 'react'
 import { errorDePostgrest, ok } from '@/shared/lib/errores'
 import { createClient } from '@/shared/lib/supabase/server'
 import { TOPE_DEL_EQUIPO } from '@/shared/lib/paginacion'
+import { personasSinRolDesde } from '../../entities/sin-rol'
 import { idsDelEquipoDesde, listaDelEquipoDesde } from '../../entities/lista-equipo'
 import { personasDesde, vistaPreviaDesde, type FiltroDeEstado } from '../../entities/persona'
+import type { LectorDePersonasSinRol } from '../../entities/sin-rol'
 import type {
   LectorDeEquipo,
   LectorDePersona,
@@ -81,4 +83,26 @@ export const getVistaPreviaDeBaja: LectorDeVistaPreviaDeBaja = async (personaId)
     return { ok: false, error: errorDePostgrest(error) }
   }
   return ok(vistaPreviaDesde(data))
+}
+
+// Las primeras personas activas, no bloqueadas y sin ningún rol (Inicio, 9.02): `perfiles` con una anti-unión sobre `usuarios_roles`
+// (la fila falta). Sigue `perfiles_vigentes_orden_idx` (nombre, correo, id) y corta en `tope + 1`; el equipo es una tabla de decenas o cientos de filas.
+// `perfiles: leer` deja ver nombre y correo a toda persona activa: el permiso lo comprueba quien monta el bloque.
+export const getPersonasSinRol: LectorDePersonasSinRol = async ({ tope }) => {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('perfiles')
+    .select('id, nombre, email, usuarios_roles!usuarios_roles_usuario_id_fkey(usuario_id)')
+    .eq('activo', true)
+    .eq('bloqueado', false)
+    .is('usuarios_roles', null)
+    .order('nombre')
+    .order('email')
+    .order('id')
+    .limit(tope + 1)
+  if (error) {
+    return { ok: false, error: errorDePostgrest(error) }
+  }
+  const personas = personasSinRolDesde(data)
+  return ok({ personas: personas.slice(0, tope), hayMas: personas.length > tope })
 }
