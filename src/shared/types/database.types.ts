@@ -7307,6 +7307,25 @@ export type Database = {
         Args: { p_ids: string[]; p_lead: string; p_vehiculo: string }
         Returns: undefined
       }
+      _flujo_para_editar: {
+        Args: { p_actualizado_en_esperado: string; p_flujo: string }
+        Returns: {
+          activo: boolean
+          actualizado_en: string
+          ambito: Database['public']['Enums']['ambito_flujo']
+          creado_en: string
+          id: string
+          nombre: string
+          origen_id: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'flujos'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _flujo_tocar: { Args: { p_flujo: string }; Returns: string }
       _formula_cambio_y_grupos: {
         Args: {
           p_buckets: Json
