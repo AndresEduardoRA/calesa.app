@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CLASES_DE_AGENDA, claseDe, leerAgendaDeRango } from './agenda'
+import { CLASES_DE_AGENDA, claseDe, entradasDeAgenda, leerAgendaDeRango } from './agenda'
 
 const ID = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
 
@@ -87,5 +87,34 @@ describe('CLASES_DE_AGENDA', () => {
       'Subasta',
     ])
     expect(claseDe('tarea').plural).toBe('tareas')
+  })
+})
+
+describe('entradasDeAgenda', () => {
+  const agenda = () => {
+    const resultado = leerAgendaDeRango(respuesta)
+    if (!resultado.ok) {
+      throw new Error('la respuesta de ejemplo debe parsear')
+    }
+    return resultado.data
+  }
+  const todas = ['evento', 'tarea', 'recordatorio', 'subasta'] as const
+
+  it('aplana las cuatro clases; sólo la subasta lleva a un lugar y la tarea completada va hecha', () => {
+    const entradas = entradasDeAgenda(agenda(), todas)
+    expect(entradas.map((entrada) => entrada.clave)).toEqual(todas)
+    expect(entradas.map((entrada) => entrada.ruta)).toEqual([
+      null,
+      null,
+      null,
+      `/vehiculos/${ID(4)}`,
+    ])
+    expect(entradas.find((entrada) => entrada.clave === 'tarea')?.hecha).toBe(true)
+    expect(entradas.find((entrada) => entrada.clave === 'evento')?.detalle).toBe('Seleccionados')
+  })
+
+  it('sólo trae las clases pedidas', () => {
+    expect(entradasDeAgenda(agenda(), ['tarea']).map((entrada) => entrada.clave)).toEqual(['tarea'])
+    expect(entradasDeAgenda(agenda(), [])).toEqual([])
   })
 })

@@ -177,3 +177,77 @@ export type LectorDeAgenda = (rango: {
   hasta: string
   deTodos: boolean
 }) => Promise<Resultado<AgendaDeRango>>
+
+// Cómo se llama cada visibilidad de un evento en pantalla (Glosario: «Evento»: privada, pública o «seleccionados»).
+export const ETIQUETA_DE_VISIBILIDAD: Record<string, string> = {
+  privado: 'Privado',
+  publico: 'Público',
+  seleccionados: 'Seleccionados',
+}
+
+// Lo que dibuja un chip: las cuatro clases aplanadas a una misma forma. `instante` es el que ubica la cosa en el día (inicio, vencimiento, hora
+// o cierre). `ruta` es a dónde lleva; en el 7.07-1 sólo la subasta (`/vehiculos/<id>`): los paneles de evento, tarea y recordatorio llegan después.
+export type EntradaDeAgenda = {
+  clave: ClaveDeClase
+  id: string
+  titulo: string
+  instante: string
+  hecha: boolean
+  detalle: string | null
+  ruta: string | null
+}
+
+// De la respuesta de `agenda_rango` a las entradas que se agrupan por día, sólo de las clases pedidas (`?ver=`).
+export function entradasDeAgenda(
+  agenda: AgendaDeRango,
+  clases: readonly ClaveDeClase[],
+): EntradaDeAgenda[] {
+  const pide = (clave: ClaveDeClase) => clases.includes(clave)
+  return [
+    ...(pide('evento')
+      ? agenda.eventos.map((e): EntradaDeAgenda => ({
+          clave: 'evento',
+          id: e.id,
+          titulo: e.titulo,
+          instante: e.iniciaEn,
+          hecha: false,
+          detalle:
+            e.visibilidad === 'privado' ? null : (ETIQUETA_DE_VISIBILIDAD[e.visibilidad] ?? null),
+          ruta: null,
+        }))
+      : []),
+    ...(pide('tarea')
+      ? agenda.tareas.map((t): EntradaDeAgenda => ({
+          clave: 'tarea',
+          id: t.id,
+          titulo: t.titulo,
+          instante: t.venceEn,
+          hecha: t.estado === ESTADO_DE_TAREA_HECHA,
+          detalle: null,
+          ruta: null,
+        }))
+      : []),
+    ...(pide('recordatorio')
+      ? agenda.recordatorios.map((r): EntradaDeAgenda => ({
+          clave: 'recordatorio',
+          id: r.id,
+          titulo: r.titulo,
+          instante: r.recordarEn,
+          hecha: false,
+          detalle: null,
+          ruta: null,
+        }))
+      : []),
+    ...(pide('subasta')
+      ? agenda.subastas.map((s): EntradaDeAgenda => ({
+          clave: 'subasta',
+          id: s.id,
+          titulo: s.titulo,
+          instante: s.cierreSubastaEn,
+          hecha: false,
+          detalle: null,
+          ruta: `/vehiculos/${s.vehiculoId}`,
+        }))
+      : []),
+  ]
+}
