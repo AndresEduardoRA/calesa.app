@@ -24,6 +24,8 @@ Paleta global (Ctrl/Cmd+K) que busca leads, vehículos, cotizaciones y acciones 
   `scripts/guardas/areas-b/paginas-en-la-base.ts` (defecto `POR_SECCION` = 5, máximo 20).
 - `infra/visitados.client.ts` (7.12-2): `leerUltimosAbiertos({ signal })`, 16 visitas propias por `visitados_usuario_visto_idx` y cada entidad hidratada
   bajo su RLS (leads por `leads_vista_por_ids`, vehículos y cotizaciones por PK con columnas con grant), en paralelo; lo que no llega sale sin marcador.
+- `supabase/tests/medir-buscador.sql` (7.12-2): `buscador_cotizaciones` con 50.000 y 250.000 (número, título común y raro, la dueña y Ana), con su guarda sin el GIN;
+  `MEDIR_SOLO=medir-buscador pnpm db:medir:volumen` tras `pnpm db:sembrar-volumen` (después, `pnpm db:reset`).
 - `features/paleta/` (7.13).
 
 ## Tablas
