@@ -5,7 +5,7 @@ Paleta global (Ctrl/Cmd+K) que busca leads, vehículos, cotizaciones y acciones 
 ## Entra y sale
 
 - Entra: texto (el mínimo de `MINIMO_DE_BUSQUEDA`: 3 letras o dígitos seguidos, o un número de lead o cotización), atajos de teclado.
-- Sale: `client.ts` (las lecturas por sección, `agruparResultados()`, `seccionesQueBuscan()` y los tipos); `<Buscador>` montado en `app/` (7.13).
+- Sale: `client.ts` (las lecturas por sección, `leerUltimosAbiertos()`, `agruparResultados()`, `seccionesQueBuscan()` y los tipos); `<Buscador>` montado en `app/` (7.13).
   7.10 (`chat`) importa `@/modules/buscador/client` para las menciones `#` y suma `chat --> buscador` (sin ciclo: buscador no importa chat).
 - Depende de: `leads`, `vehiculos`, `cotizaciones` sólo por la base (las RPC de abajo y `leads_vista_por_ids` para hidratar); no importa sus módulos.
   `interpretarBusqueda()` de `@/modules/leads/client` la llama la feature (7.13), no `entities` ni `infra`.
@@ -22,7 +22,8 @@ Paleta global (Ctrl/Cmd+K) que busca leads, vehículos, cotizaciones y acciones 
 - `infra/buscar.client.ts` (7.12-2): `buscarLeads` (dos pedidos: `buscador_leads` y `leads_vista_por_ids`, ordenado como los ids), `buscarVehiculos`,
   `buscarCotizaciones` y `BUSCAR_POR_SECCION`; cada una con `.abortSignal(signal)`, nunca lanza, y con la señal cancelada no pide nada. Registradas en
   `scripts/guardas/areas-b/paginas-en-la-base.ts` (defecto `POR_SECCION` = 5, máximo 20).
-- Pendiente (7.12-2): `infra/visitados.client.ts` (los últimos abiertos, hidratados bajo la RLS de cada entidad).
+- `infra/visitados.client.ts` (7.12-2): `leerUltimosAbiertos({ signal })`, 16 visitas propias por `visitados_usuario_visto_idx` y cada entidad hidratada
+  bajo su RLS (leads por `leads_vista_por_ids`, vehículos y cotizaciones por PK con columnas con grant), en paralelo; lo que no llega sale sin marcador.
 - `features/paleta/` (7.13).
 
 ## Tablas
