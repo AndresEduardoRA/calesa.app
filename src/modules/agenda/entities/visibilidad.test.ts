@@ -11,6 +11,7 @@ import {
   puedeReasignarTarea,
   puedeVerEvento,
   TOPE_DE_DESTINATARIOS,
+  visibilidadElegible,
   type Visibilidad,
 } from './visibilidad'
 
@@ -139,5 +140,14 @@ describe('tareas', () => {
   it('dar una tarea a otro pide asignar', () => {
     expect(puedeDarTareaAOtro(con())).toBe(false)
     expect(puedeDarTareaAOtro(con('agenda.tareas.asignar'))).toBe(true)
+  })
+})
+
+describe('visibilidadElegible', () => {
+  it('privado siempre; público y «seleccionados» sólo con el permiso de publicar', () => {
+    expect(visibilidadElegible('privado', false)).toBe(true)
+    expect(visibilidadElegible('publico', false)).toBe(false)
+    expect(visibilidadElegible('seleccionados', false)).toBe(false)
+    expect(visibilidadElegible('seleccionados', true)).toBe(true)
   })
 })
