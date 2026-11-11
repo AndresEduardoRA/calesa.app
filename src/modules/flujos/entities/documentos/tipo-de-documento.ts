@@ -117,14 +117,14 @@ export type RespuestaDeEliminar = { accion: 'eliminado' | 'desactivado'; uso: Us
 
 // ─── Orden ──────────────────────────────────────────────────────────────────────────────────────
 
-export type Direccion = 'subir' | 'bajar'
+export type DireccionDeTipo = 'subir' | 'bajar'
 
 // A dónde va un tipo al subirlo o bajarlo un lugar, dicho como la base lo recibe: «después de X» (nulo = primero). Nulo si ya está en el
 // extremo o no está. La lista es el grupo, en el orden en que se ve.
 export function destinoDeTipo(
   tipos: readonly TipoDeDocumento[],
   id: string,
-  direccion: Direccion,
+  direccion: DireccionDeTipo,
 ): { despuesDe: string | null } | null {
   const lugar = tipos.findIndex((tipo) => tipo.id === id)
   if (lugar < 0) {
