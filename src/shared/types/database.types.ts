@@ -7915,6 +7915,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      _pagos_requisitos_de_fase: { Args: { p_vehiculo: string }; Returns: Json }
       _papelera_purgar_cotizaciones: { Args: { p_ids: string[]; p_lote: string }; Returns: Json }
       _papelera_purgar_leads: { Args: { p_leads: string[]; p_lote: string }; Returns: Json }
       _papelera_purgar_vehiculos: { Args: { p_lote: string; p_vehiculos: string[] }; Returns: Json }
@@ -9112,6 +9113,10 @@ export type Database = {
       }
       otorgar_portal: {
         Args: { p_clave: string; p_lead: string; p_otorgado_en_esperado: string }
+        Returns: Json
+      }
+      pago_anular: {
+        Args: { p_actualizado_en_esperado: string; p_id: string; p_motivo: string }
         Returns: Json
       }
       pago_confirmar: { Args: { p_actualizado_en_esperado: string; p_id: string }; Returns: Json }

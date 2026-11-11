@@ -186,6 +186,7 @@ declare
     ('pago_guardar(uuid,timestamp with time zone,jsonb)', 'X'),
     ('pago_eliminar(uuid,timestamp with time zone)', 'X'),
     ('pago_confirmar(uuid,timestamp with time zone)', 'X'),
+    ('pago_anular(uuid,timestamp with time zone,text)', 'X'),
     -- Los comprobantes (6.10-2): nombra `public.pagos` y `public.repuestos_proyectos` para decidir si se lee o sube un objeto; devuelve un booleano.
     ('comprobante_puede(text,text)', 'L'),
     -- Las listas (6.10-2): miran `vehiculos.lead_id` sólo para el alcance «propios» (`en_cartera`), como `puede_vehiculo`; no devuelven el lead.

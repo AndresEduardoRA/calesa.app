@@ -3,6 +3,7 @@
 //   K1. Dos confirman el mismo pago con la misma versión: B espera la fila, da PT409 y queda un solo sello (el de A) y una sola fila `pago.confirmado`.
 //   K2. Dos prorratean el mismo lote: B espera el candado del lote y devuelve lo ya repartido; quedan las filas de un solo reparto.
 //   K3. Dos eliminan, a la vez, los dos únicos gastos de tributos de un vehículo cuya fase los pide: uno pasa, el otro da 23514 y queda un tributo.
+//   K4. Dos anulan, a la vez, los dos únicos pagos confirmados de un vehículo cuya fase los pide (6.10-2): uno pasa, el otro da 23514 y queda uno.
 // Las corre `scripts/carreras.mjs` (`pnpm db:carreras`) y, solas, `correr-carreras.mjs`. Terreno con el prefijo «Carreras», como las demás.
 import { PERSONAS, PREFIJO, comoPersona } from '../../../../scripts/carreras/terreno.mjs'
 
@@ -65,7 +66,8 @@ async function terrenoDinero(db) {
     [origen],
   )
   await db.query(
-    `insert into public.fases_requisitos (fase_id, tipo, clave_dato, bloqueante) values ($1, 'dato', 'aduana.tributos_pagados', false)`,
+    `insert into public.fases_requisitos (fase_id, tipo, clave_dato, bloqueante)
+     values ($1, 'dato', 'aduana.tributos_pagados', false), ($1, 'dato', 'pagos.confirmado', false)`,
     [fase],
   )
   const vehiculos = []
@@ -164,6 +166,38 @@ export async function carrerasDeDinero({ orquesta, espero, conectar, esperarBloq
       'K3: dos eliminan los dos últimos tributos a la vez: uno pasa, el otro da 23514 y queda uno',
       a.ok && !b.ok && b.codigo === '23514' && n === 1 && sinInterbloqueo(a, b),
       { a, b, n },
+    )
+  }
+
+  // K4 · dos anulan los dos únicos pagos confirmados de un vehículo cuya fase los pide.
+  {
+    const ids = ['00000000-0000-4000-8000-0000000d0031', '00000000-0000-4000-8000-0000000d0032']
+    await orquesta.query('begin')
+    await orquesta.query(`select set_config('request.jwt.claim.sub', $1, true)`, [duena])
+    for (const id of ids) {
+      await orquesta.query(
+        `insert into public.pagos (id, vehiculo_id, concepto, moneda, monto, monto_base) values ($1, $2, 'Carreras cuota', $3, 10, 10)`,
+        [id, t.vehiculos[2], t.base],
+      )
+      await orquesta.query(`update public.pagos set confirmado = true where id = $1`, [id])
+    }
+    await orquesta.query('commit')
+    const anular = (id) => ({
+      sql: `public.pago_anular($1, (select actualizado_en from public.pagos where id = $1), 'Carreras')`,
+      args: [id],
+    })
+    // B anula el de id menor: con los confirmados tomados en orden de id, B espera a A en el primero.
+    const { a, b } = await carrera({ a: anular(ids[1]), b: anular(ids[0]) })
+    const { n, m } = await fila(
+      orquesta,
+      `select (select count(*)::int from public.pagos where id = any ($1::uuid[]) and eliminado_en is null) as n,
+              (select count(*)::int from public.actividad where accion = 'pago.anulado' and registro_id = any ($2::text[])) as m`,
+      [ids, ids],
+    )
+    espero(
+      'K4: dos anulan los dos últimos confirmados a la vez: uno pasa, el otro da 23514 y queda uno',
+      a.ok && !b.ok && b.codigo === '23514' && n === 1 && m === 1 && sinInterbloqueo(a, b),
+      { a, b, n, m },
     )
   }
 

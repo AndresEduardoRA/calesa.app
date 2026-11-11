@@ -74,7 +74,7 @@ insert into public.permisos (clave, modulo, nombre, descripcion, por_origen, con
   ('logistica.gastos.editar', 'logistica', 'Registrar gastos', 'Cargar y editar gastos (por origen)', true, true, 'gasto_registrar, gasto_guardar, gasto_eliminar, gastos_prorratear', 380),
   ('logistica.pagos.ver', 'logistica', 'Ver pagos', 'Ver pagos del cliente (por origen)', true, true, 'policy pagos, comprobante_puede, pagos_listar', 390),
   ('logistica.pagos.editar', 'logistica', 'Registrar pagos', 'Cargar y editar pagos no confirmados (por origen)', true, true, 'pago_registrar, pago_guardar, pago_eliminar', 400),
-  ('logistica.pagos.confirmar', 'logistica', 'Confirmar pagos', 'Confirmar pagos (queda sellado)', false, false, 'pago_confirmar', 410),
+  ('logistica.pagos.confirmar', 'logistica', 'Confirmar pagos', 'Confirmar pagos (queda sellado)', false, false, 'pago_confirmar, pago_anular', 410),
   ('logistica.margen.ver', 'logistica', 'Ver margen', 'Ver desviación y margen por vehículo (por origen)', true, false, 'margen_vehiculo', 420),
   ('logistica.catalogos.gestionar', 'logistica', 'Catálogos de logística', 'Puertos, navieras, categorías de gasto, tipos de documento globales', false, false, 'policy puertos, navieras, categorias_gasto, tipos_documento', 430),
   ('repuestos.ver', 'repuestos', 'Ver repuestos', 'Proyectos, ítems, documentos y stock', false, false, 'policy repuestos_*', 440),
