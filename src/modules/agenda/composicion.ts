@@ -4,8 +4,13 @@ import 'server-only'
 import type { LectorDeAgenda } from './entities/agenda'
 import type { LectorDeEvento, LectorDeTarea } from './entities/detalle'
 import { getAgenda } from './infra/queries/agenda'
+import { repositorioDeEventos } from './infra/eventos'
 import { getEvento, getTarea } from './infra/queries/detalle'
+import { repositorioDeTareas } from './infra/tareas'
 
 export const leerAgenda: LectorDeAgenda = getAgenda
 export const leerEvento: LectorDeEvento = getEvento
 export const leerTarea: LectorDeTarea = getTarea
+
+// Escribir (`evento_*` y `tarea_*`): lo usan las actions de `features/eventos` y `features/tareas`.
+export { repositorioDeEventos, repositorioDeTareas }
