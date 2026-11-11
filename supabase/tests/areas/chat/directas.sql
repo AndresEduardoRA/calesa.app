@@ -78,3 +78,46 @@ begin
   if e is not null then raise exception '%', e; end if;
 end $$;
 rollback;
+
+-- @test chat: abrir A→B y luego B→A devuelve la misma directa, con sus dos miembros (D1, C7)
+begin;
+do $$
+declare a uuid := pg_temp.chd_persona(array['chat.participar']); b uuid := pg_temp.chd_persona(array['chat.participar']); r1 jsonb; r2 jsonb; r3 jsonb;
+begin
+  r1 := pg_temp.chd_corre(a, format('select public.chat_directa(%L)', b));
+  if r1 ->> 'resultado' is distinct from 'creada' then raise exception 'A→B no creó la directa: %', r1; end if;
+  r2 := pg_temp.chd_corre(b, format('select public.chat_directa(%L)', a));
+  if r2 ->> 'resultado' is distinct from 'existente' or r2 ->> 'id' is distinct from r1 ->> 'id' then raise exception 'B→A no devolvió la misma: % %', r1, r2; end if;
+  r3 := pg_temp.chd_corre(a, format('select public.chat_directa(%L)', b));
+  if r3 ->> 'id' is distinct from r1 ->> 'id' then raise exception 'repetir A→B dio otra: %', r3; end if;
+  if (select count(*) from public.conversaciones where par_directo = array[least(a, b), greatest(a, b)]) <> 1 then raise exception 'hay más de una directa del par'; end if;
+  if (select array_agg(usuario_id order by usuario_id) from public.conversaciones_miembros where conversacion_id = (r1 ->> 'id')::uuid) is distinct from array[least(a, b), greatest(a, b)] then
+    raise exception 'la directa no tiene exactamente a sus dos miembros';
+  end if;
+  if pg_temp.chd_cuenta(b, format('select 1 from public.conversaciones where id = %L', r1 ->> 'id')) <> '1' then raise exception 'B no lee la directa'; end if;
+end $$;
+rollback;
+
+-- @test chat: a sí misma 22023; sin chat.participar 42501; a alguien bloqueado, de baja o sin chat.participar 23514 y nada se crea (D2, C6, C7)
+begin;
+do $$
+declare a uuid := pg_temp.chd_persona(array['chat.participar']); sin uuid := pg_temp.chd_persona(array['chat.global']);
+  bloq uuid := pg_temp.chd_persona(array['chat.participar']); baja uuid := pg_temp.chd_persona(array['chat.participar']); b uuid := pg_temp.chd_persona(array['chat.participar']);
+  r jsonb; n0 bigint; otro uuid;
+begin
+  update public.perfiles set bloqueado = true where id = bloq;
+  update public.perfiles set activo = false where id = baja;
+  select count(*) into n0 from public.conversaciones;
+  r := pg_temp.chd_corre(a, format('select public.chat_directa(%L)', a));
+  if r ->> 'error' is distinct from '22023' or r ->> 'hint' is distinct from 'usuario' then raise exception 'a sí misma no dio 22023: %', r; end if;
+  r := pg_temp.chd_corre(a, 'select public.chat_directa(null)');
+  if r ->> 'error' is distinct from '22023' then raise exception 'a nadie no dio 22023: %', r; end if;
+  r := pg_temp.chd_corre(sin, format('select public.chat_directa(%L)', b));
+  if r ->> 'error' is distinct from '42501' then raise exception 'sin chat.participar no dio 42501: %', r; end if;
+  foreach otro in array array[bloq, baja, sin, gen_random_uuid()] loop
+    r := pg_temp.chd_corre(a, format('select public.chat_directa(%L)', otro));
+    if r ->> 'error' is distinct from '23514' or r ->> 'hint' is distinct from 'usuario' then raise exception 'con quien no puede usar el chat no dio 23514: %', r; end if;
+  end loop;
+  if (select count(*) from public.conversaciones) <> n0 then raise exception 'un intento rechazado creó una conversación'; end if;
+end $$;
+rollback;

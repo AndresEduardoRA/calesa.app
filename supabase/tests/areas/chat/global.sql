@@ -100,3 +100,20 @@ begin
   if pg_temp.chgl_cuenta(otra, format('select 1 from public.mensajes where id = %L', msj)) <> '1' then raise exception 'quien tiene chat.global dejó de leer'; end if;
 end $$;
 rollback;
+
+-- @test chat: entrar al canal pide chat.global (no chat.participar): entro y luego ya_estaba (G2, C11)
+begin;
+do $$
+declare sin uuid := pg_temp.chgl_persona(array['chat.participar']); lee uuid := pg_temp.chgl_persona(array['chat.global']); g uuid; r jsonb;
+begin
+  select id into g from public.conversaciones where es_global;
+  r := pg_temp.chgl_corre(sin, 'select public.chat_global_entrar()');
+  if r ->> 'error' is distinct from '42501' then raise exception 'sin chat.global entró: %', r; end if;
+  if exists (select 1 from public.conversaciones_miembros where conversacion_id = g and usuario_id = sin) then raise exception 'sin chat.global quedó de miembro'; end if;
+  r := pg_temp.chgl_corre(lee, 'select public.chat_global_entrar()');
+  if r ->> 'resultado' is distinct from 'entro' or r ->> 'id' is distinct from g::text then raise exception 'con chat.global no entró: %', r; end if;
+  r := pg_temp.chgl_corre(lee, 'select public.chat_global_entrar()');
+  if r ->> 'resultado' is distinct from 'ya_estaba' then raise exception 'entrar dos veces no dio ya_estaba: %', r; end if;
+  if pg_temp.chgl_cuenta(lee, format('select 1 from public.mensajes where conversacion_id = %L', g)) is null then raise exception 'no pudo leer el canal'; end if;
+end $$;
+rollback;

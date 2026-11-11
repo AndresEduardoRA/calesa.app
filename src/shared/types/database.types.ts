@@ -7179,6 +7179,7 @@ export type Database = {
         }[]
       }
       _candado_de_objeto: { Args: { p_bucket: string; p_ruta: string }; Returns: number }
+      _chat_puede_conversar: { Args: { p_usuario: string }; Returns: boolean }
       _color_contraste: { Args: { p_a: string; p_b: string }; Returns: number }
       _color_luminancia: { Args: { p_hex: string }; Returns: number }
       _comentario_item: {
@@ -8309,6 +8310,8 @@ export type Database = {
           vehiculos: number
         }[]
       }
+      chat_directa: { Args: { p_usuario: string }; Returns: Json }
+      chat_global_entrar: { Args: Record<PropertyKey, never>; Returns: Json }
       claves_dato_requisito: {
         Args: { p_ambito: Database['public']['Enums']['ambito_flujo'] }
         Returns: string[]
