@@ -8755,6 +8755,15 @@ export type Database = {
       }
       flujo_de_fase: { Args: { p_fase: string }; Returns: string }
       flujo_regla_activa: { Args: { p_flujo: string; p_regla: string }; Returns: boolean }
+      flujo_regla_cambiar: {
+        Args: {
+          p_activa: boolean
+          p_actualizado_en_esperado: string
+          p_flujo: string
+          p_regla: string
+        }
+        Returns: string
+      }
       flujo_regla_impacto: { Args: { p_flujo: string; p_regla: string }; Returns: Json }
       formula_cambiar_constante: {
         Args: { p_nodo: string; p_origen: string; p_publicada_esperada?: string; p_valor: number }
