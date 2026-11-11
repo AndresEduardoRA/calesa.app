@@ -2173,6 +2173,7 @@ export type Database = {
           eliminado_en: string | null
           fecha: string
           id: string
+          lote_id: string | null
           moneda: string
           monto: number
           monto_base: number
@@ -2194,6 +2195,7 @@ export type Database = {
           eliminado_en?: string | null
           fecha?: string
           id?: string
+          lote_id?: string | null
           moneda: string
           monto: number
           monto_base: number
@@ -2213,6 +2215,7 @@ export type Database = {
           eliminado_en?: string | null
           fecha?: string
           id?: string
+          lote_id?: string | null
           moneda?: string
           monto?: number
           monto_base?: number
@@ -7383,6 +7386,7 @@ export type Database = {
           eliminado_en: string | null
           fecha: string
           id: string
+          lote_id: string | null
           moneda: string
           monto: number
           monto_base: number
@@ -8576,6 +8580,21 @@ export type Database = {
           p_repuesto: string
           p_tipo_cambio: string
           p_vehiculo: string
+        }
+        Returns: Json
+      }
+      gastos_prorratear: {
+        Args: {
+          p_categoria: string
+          p_comprobante_ruta: string
+          p_fecha: string
+          p_lote: string
+          p_moneda: string
+          p_monto: number
+          p_notas: string
+          p_proveedor: string
+          p_tipo_cambio: string
+          p_vehiculos: string[]
         }
         Returns: Json
       }
