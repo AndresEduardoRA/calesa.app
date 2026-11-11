@@ -278,7 +278,9 @@ declare
     'leads_ids_del_numero', 'devuelve ids de leads (los que quien llama ve con ese número, según la policy de las copias), nunca un número; numero-busqueda.sql prueba qué ve cada quien',
     'cotizaciones_papelera_restaurar', 'devuelve de cada cotización su id, número de cotización, título y motivo (4.24-1b): del lead sólo mira si está en la papelera, nunca su número',
     'papelera_restaurar', 'devuelve cuántas cotizaciones restauró, o el motivo de la primera pendiente (4.24-1b): del lead sólo mira si está en la papelera',
-    'comprobante_emitir', 'devuelve id, serie, número del comprobante y emitido_en (4.26-1); en datos congela el número de cotización y del lead sólo lead_id, nunca su número');
+    'comprobante_emitir', 'devuelve id, serie, número del comprobante y emitido_en (4.26-1); en datos congela el número de cotización y del lead sólo lead_id, nunca su número',
+    'buscador_leads', 'devuelve ids de leads (7.12-1): los de leads_ids_del_numero y leads_candidatos que quien llama ve en leads_vista_por_ids, nunca un número',
+    'buscador_cotizaciones', 'devuelve cotizaciones del buscador (7.12-1): su número de cotización, título, clase y estado; del lead sólo mira en_cartera, nunca su número');
   r record; v_fallas text := '';
 begin
   if to_regclass('pg_temp.matriz_cubiertas') is null then

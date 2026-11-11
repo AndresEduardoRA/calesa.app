@@ -84,6 +84,11 @@ create schema if not exists net;
 create table if not exists net.pedidos (id bigint generated always as identity primary key, url text, body jsonb, headers jsonb, timeout_milliseconds int);
 create or replace function net.http_post(url text, body jsonb default '{}'::jsonb, params jsonb default '{}'::jsonb, headers jsonb default '{}'::jsonb, timeout_milliseconds int default 5000)
   returns bigint language sql as $$ insert into net.pedidos (url, body, headers, timeout_milliseconds) values (url, body, headers, timeout_milliseconds) returning id $$;
+-- La publicación de Realtime: en el stack ya existe (la base sólo cambia su dueño, línea que se quita abajo). Vacía, para que
+-- una migración que le agrega una tabla corra igual y la prueba mire el catálogo de verdad.
+do $$ begin
+  if not exists (select 1 from pg_publication where pubname = 'supabase_realtime') then create publication supabase_realtime; end if;
+end $$;
 grant usage on schema public to anon, authenticated, service_role;
 `
 
@@ -115,7 +120,7 @@ for (const r of rutasDelSeed) if (fs.existsSync(path.join(base, r))) lista.push(
 
 await db.exec(preambulo)
 let ok = 0
-// Lo que PGlite no tiene: las extensiones de Supabase (el preámbulo pone sus dobles) y la publicación de Realtime.
+// Lo que PGlite no tiene: las extensiones de Supabase (el preámbulo pone sus dobles) y el dueño de la publicación de Realtime.
 const sinLoDeSupabase = (sql) =>
   sql
     .replace(/^CREATE EXTENSION IF NOT EXISTS [^;]+;$/gim, '')

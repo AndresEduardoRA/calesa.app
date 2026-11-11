@@ -1,0 +1,12 @@
+# 9.02 · Inicio: la bandeja con huecos y los bloques de lo que ya existe (2026-11-11)
+
+- **D1 · «Sin seguimiento».** Mío (mi cartera: `leads_cartera_vista`), sin ningún seguimiento (`ultimo_seguimiento_en` nulo) y creado hace más de 24 h. `ajustes_empresa.lead_dormido_meses` es otra cosa y sigue sin lector.
+- **D2 · Dónde se lee.** En el servidor: cada bloque tras su `<Suspense>` con `await connection()`. Inicio no suma JS (salvo el botón «Reintentar») y un bloque lento no frena a los demás. La página también llama `connection()` antes de leer la sesión y los ajustes: sin eso, `leerAjustes()` corría mientras Next preparaba la ruta y avisaba de `Date.now()`.
+- **D3 · Tope.** 5 por bloque, pidiendo 6; el número que se dice sale de `cantidadAcotada` («3 recordatorios», «más de 5 recordatorios»), nunca de un total.
+- **D4 · «Recordatorios de hoy».** Los míos pendientes con hora antes del fin del día en la zona de la empresa, **vencidos incluidos** y marcados «Vencido»: uno olvidado no desaparece a medianoche. Amplía la fila (que dice «los que vencen hoy»); se revierte cambiando una condición de `leads/infra/queries/bandeja.ts`.
+- **D5 · La zona.** Sale de `ajustes_empresa.zona_horaria` (la lee la página con `leerAjustes()`; si no se puede, `ZONA_POR_DEFECTO`). `leads` recibe instantes (`finDeHoy`, `creadoAntesDe`), no sabe de zonas al leer.
+- **D6 · Quién dibuja el título.** `<Bandeja>` pone la `<section>` y el `<h2>`; el archivo de cada bloque sólo el cuerpo. El título se ve mientras carga o falla, y la fase que llena su hueco no toca el marco.
+- **D7 · Sin filtro inventado.** Ni el listado de leads ni Equipo tienen el filtro que el bloque necesitaría («sin seguimiento», «sin rol»): el encabezado no enlaza y cada fila lleva a su ficha (`/leads/<id>?seccion=seguimientos`, `/configuracion/equipo?persona=<id>`).
+- **D8 · «Sin rol».** Perfil activo, no bloqueado y sin fila en `usuarios_roles`, con la anti-unión de PostgREST (`.is('usuarios_roles', null)` sobre la relación embebida): sin RPC ni migración. Comprobado en el e2e contra la base local.
+- **D9 · Error de un bloque.** `EstadoError` con «Reintentar» (`router.refresh()` en una transición); el resto de la bandeja queda pintado.
+- **D10 · Sin migración ni índice.** Las tres lecturas usan lo que hay: `recordatorios_usuario_idx`, `leads_asesores_listado_idx` (por `leads_cartera_vista`) y `perfiles_vigentes_orden_idx`. Sin `count`, sin `offset`, `limit 6`.

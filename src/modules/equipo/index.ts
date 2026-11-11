@@ -32,6 +32,9 @@ export { agruparPorModulo } from './entities/matriz'
 export { leerEquipo, leerPersona, leerSoloYo, leerVistaPreviaDeBaja } from './composicion'
 export { filtroDelEquipoDesde } from './entities/lista-equipo'
 export { idDePersona } from './entities/persona'
+// Inicio (9.02), el bloque «Personas sin rol»: las primeras activas sin ningún rol (pide `tope + 1`) y la ruta a su ficha en Equipo.
+export { leerPersonasSinRol } from './composicion'
+export { rutaDeLaPersona, type PersonaSinRol, type PersonasSinRol } from './entities/sin-rol'
 
 // Vistas guardadas de un listado (`<MenuDeVistas>` sale por `client.ts`)
 export { leerVistas } from './composicion'
