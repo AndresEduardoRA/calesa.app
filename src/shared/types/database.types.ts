@@ -8320,7 +8320,9 @@ export type Database = {
         Args: { p_agregar: string[]; p_conversacion: string; p_quitar: string[] }
         Returns: Json
       }
+      chat_leer: { Args: { p_conversacion: string; p_hasta: string }; Returns: Json }
       chat_salir: { Args: { p_conversacion: string }; Returns: Json }
+      chat_silenciar: { Args: { p_conversacion: string; p_silenciada: boolean }; Returns: Json }
       claves_dato_requisito: {
         Args: { p_ambito: Database['public']['Enums']['ambito_flujo'] }
         Returns: string[]

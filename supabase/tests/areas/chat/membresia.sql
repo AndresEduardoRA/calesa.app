@@ -95,3 +95,45 @@ begin
   end loop;
 end $$;
 rollback;
+
+-- @test chat: chat_leer avanza, no retrocede y se acota a la hora; chat_silenciar cambia sólo la fila propia; quien no es miembro (o perdió chat.global) 42501 (M3, C12)
+begin;
+do $$
+declare a uuid := pg_temp.chm_persona(array['chat.participar', 'chat.global']); b uuid := pg_temp.chm_persona(array['chat.participar']); afuera uuid := pg_temp.chm_persona(array['chat.participar']);
+  conv uuid; g uuid; r jsonb; t1 timestamptz := now() - interval '10 minutes';
+begin
+  conv := pg_temp.chm_conversacion(array[a, b]);
+  r := pg_temp.chm_corre(a, format('select public.chat_leer(%L, %L)', conv, t1));
+  if r ->> 'resultado' is distinct from 'leido' or (r ->> 'ultimo_leido_en')::timestamptz is distinct from t1 then raise exception 'leer no avanzó: %', r; end if;
+  r := pg_temp.chm_corre(a, format('select public.chat_leer(%L, %L)', conv, t1 - interval '5 minutes'));
+  if r ->> 'resultado' is distinct from 'sin_cambios' or (select ultimo_leido_en from public.conversaciones_miembros where conversacion_id = conv and usuario_id = a) is distinct from t1 then
+    raise exception 'leer retrocedió: %', r;
+  end if;
+  r := pg_temp.chm_corre(a, format('select public.chat_leer(%L, %L)', conv, now() + interval '1 day'));
+  if r ->> 'resultado' is distinct from 'leido' or (r ->> 'ultimo_leido_en')::timestamptz > clock_timestamp() then raise exception 'leer no se acotó a la hora: %', r; end if;
+  if (select ultimo_leido_en from public.conversaciones_miembros where conversacion_id = conv and usuario_id = b) is not null then raise exception 'leer movió la fila de otra persona'; end if;
+  r := pg_temp.chm_corre(a, format('select public.chat_leer(%L, null)', conv));
+  if r ->> 'error' is distinct from '22023' or r ->> 'hint' is distinct from 'hasta' then raise exception 'sin hasta no dio 22023: %', r; end if;
+
+  r := pg_temp.chm_corre(a, format('select public.chat_silenciar(%L, true)', conv));
+  if r ->> 'resultado' is distinct from 'guardado' then raise exception 'silenciar no guardó: %', r; end if;
+  r := pg_temp.chm_corre(a, format('select public.chat_silenciar(%L, true)', conv));
+  if r ->> 'resultado' is distinct from 'sin_cambios' then raise exception 'silenciar dos veces no dio sin_cambios: %', r; end if;
+  if (select silenciada from public.conversaciones_miembros where conversacion_id = conv and usuario_id = b) then raise exception 'silenciar tocó la fila de otra persona'; end if;
+  r := pg_temp.chm_corre(a, format('select public.chat_silenciar(%L, null)', conv));
+  if r ->> 'error' is distinct from '22023' then raise exception 'silenciar con nulo no dio 22023: %', r; end if;
+
+  r := pg_temp.chm_corre(afuera, format('select public.chat_leer(%L, now())', conv));
+  if r ->> 'error' is distinct from '42501' then raise exception 'quien no es miembro marcó leída: %', r; end if;
+  r := pg_temp.chm_corre(afuera, format('select public.chat_silenciar(%L, true)', conv));
+  if r ->> 'error' is distinct from '42501' then raise exception 'quien no es miembro silenció: %', r; end if;
+
+  select id into g from public.conversaciones where es_global;
+  insert into public.conversaciones_miembros (conversacion_id, usuario_id) values (g, a);
+  r := pg_temp.chm_corre(a, format('select public.chat_leer(%L, now())', g));
+  if r ->> 'resultado' is distinct from 'leido' then raise exception 'con chat.global no marcó leído el canal: %', r; end if;
+  delete from public.roles_permisos rp using public.usuarios_roles ur where ur.usuario_id = a and rp.rol_id = ur.rol_id and rp.permiso_clave = 'chat.global';
+  r := pg_temp.chm_corre(a, format('select public.chat_leer(%L, now())', g));
+  if r ->> 'error' is distinct from '42501' then raise exception 'sin chat.global marcó leído el canal: %', r; end if;
+end $$;
+rollback;
