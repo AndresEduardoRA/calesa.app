@@ -4,7 +4,7 @@
 -- pedidos vacíos, y la revierte. pg_net es el doble de `net.pedidos` (`scripts/probar-schema.mjs`): nunca sale un POST real.
 --
 -- Qué asegura:
---   R1. Dos cambios de FAQs en una transacción dejan una fila `faqs`; filas repetidas de otras transacciones se compactan en una sin enviar.
+--   R1. Dos cambios de FAQs en una transacción dejan una fila `faqs` propia, aunque otra transacción ya anotó `faqs`; las repetidas se compactan sin enviar.
 --   R2. Cada tabla anota su etiqueta; `cola_web_asesores` sólo por `orden`, no por `disponible`.
 --   R3. Publicar un vehículo y cambiarle la fase anota `vehiculos`.
 --   R4. Apagada, sin dirección, con `http://` de loopback o sin secreto: no hay pedido y lo pendiente sigue.
@@ -65,17 +65,23 @@ delete from interno.web_revalidar_pendiente;
 do $$
 declare v_pedido timestamptz;
 begin
+  -- Una fila de faqs que dejó otra transacción, ya confirmada: la propia no se apoya en ella (el job podría consumirla antes de su commit).
+  insert into interno.web_revalidar_pendiente (etiqueta, transaccion) values ('faqs', '1'::xid8);
   insert into public.web_faqs (pregunta, respuesta) values ('¿R1?', 'Sí.');
-  select pedido_en into v_pedido from interno.web_revalidar_pendiente where etiqueta = 'faqs';
+  select pedido_en into v_pedido from interno.web_revalidar_pendiente where etiqueta = 'faqs' and transaccion = pg_current_xact_id();
   update public.web_faqs set respuesta = 'Sí, de nuevo.' where pregunta = '¿R1?';
-  if (select count(*) from interno.web_revalidar_pendiente where etiqueta = 'faqs') <> 1 then
-    raise exception 'dos cambios de FAQs en una transacción dejaron % filas faqs', (select count(*) from interno.web_revalidar_pendiente where etiqueta = 'faqs');
+  if (select count(*) from interno.web_revalidar_pendiente where etiqueta = 'faqs' and transaccion = pg_current_xact_id()) <> 1 then
+    raise exception 'dos cambios de FAQs en una transacción dejaron % filas propias (debía una, aunque otra transacción ya anotó faqs)',
+      (select count(*) from interno.web_revalidar_pendiente where etiqueta = 'faqs' and transaccion = pg_current_xact_id());
   end if;
-  if (select pedido_en from interno.web_revalidar_pendiente where etiqueta = 'faqs') is distinct from v_pedido then
+  if (select count(*) from interno.web_revalidar_pendiente where etiqueta = 'faqs') <> 2 then
+    raise exception 'debían quedar la fila ajena y la propia de faqs, y quedaron %', (select count(*) from interno.web_revalidar_pendiente where etiqueta = 'faqs');
+  end if;
+  if (select pedido_en from interno.web_revalidar_pendiente where etiqueta = 'faqs' and transaccion = pg_current_xact_id()) is distinct from v_pedido then
     raise exception 'el segundo cambio movió pedido_en';
   end if;
-  -- Dos transacciones más que anotaron faqs (otra transacción por fila, simulada).
-  insert into interno.web_revalidar_pendiente (etiqueta, transaccion) values ('faqs', '1'::xid8), ('faqs', '2'::xid8);
+  -- Otra transacción más que anotó faqs (simulada).
+  insert into interno.web_revalidar_pendiente (etiqueta, transaccion) values ('faqs', '2'::xid8);
   if public.web_revalidar_correr() is not null then
     raise exception 'apagada, el job devolvió un pedido';
   end if;
