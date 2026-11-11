@@ -133,3 +133,14 @@ begin
     raise exception 'falta o cambió notificaciones_por_accionar_idx: %', v;
   end if;
 end $$;
+
+-- @test notificaciones: la tabla está en la publicación supabase_realtime; leads y cotizaciones siguen fuera (P5)
+do $$
+begin
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'notificaciones') then
+    raise exception 'notificaciones no está en supabase_realtime';
+  end if;
+  if exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename in ('leads', 'cotizaciones')) then
+    raise exception 'leads o cotizaciones quedaron publicadas';
+  end if;
+end $$;

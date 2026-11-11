@@ -25,7 +25,9 @@ Campana in-app con «requiere acción», realtime, web push (VAPID) y preferenci
   `insert` ni `execute` de `notificar()`): avisa la base. Quien avisa elige a quién (por permiso o por relación, nunca por nombre de rol).
 - Las preferencias no apagan la campana: la campana es el registro; las preferencias gobiernan sólo el push (7.03).
 - Anti-spam: una alerta de demora por unidad cada 72 h; recordatorios una sola vez.
-- Realtime es señal: el cliente rehidrata con fetch; nunca confía en el payload para pintar.
+- Realtime es señal: el cliente rehidrata con fetch; nunca confía en el payload para pintar. `notificaciones` está en `supabase_realtime` (7.01):
+  `postgres_changes` la reparte bajo la policy de lectura. **Los `DELETE` no pasan por RLS en Realtime** (llegan a todo suscriptor con la PK): el
+  cliente se suscribe sólo a `INSERT` y `UPDATE` con `usuario_id=eq.<yo>` y nunca reacciona a `DELETE` (la purga diaria y los recordatorios borran).
 
 ## Ojo
 
