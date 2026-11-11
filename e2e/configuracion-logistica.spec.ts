@@ -43,8 +43,10 @@ test('quien gestiona los catálogos entra y lee que no hay nada que configurar; 
   await expect(page.getByText('Por ahora no hay nada que configurar aquí.')).toBeVisible()
 
   await page.goto('/configuracion')
-  await expect(page.getByRole('link', { name: /Flujos/ })).toBeVisible()
-  await expect(page.getByRole('link', { name: /^Logística/ })).toHaveCount(0)
+  // El hub es el `main`: la navegación del marco sí tiene su entrada «Logística».
+  const hub = page.getByRole('main')
+  await expect(hub.getByRole('link', { name: /Flujos/ })).toBeVisible()
+  await expect(hub.getByRole('link', { name: /^Logística/ })).toHaveCount(0)
 })
 
 test('la asesora de la semilla no entra a Configuración › Logística', async ({ page }) => {
