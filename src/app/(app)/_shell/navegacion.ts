@@ -100,7 +100,7 @@ export const NAVEGACION = [
     Icono: CalendarDaysIcon,
     zona: 'principal',
     permisos: null,
-    disponible: false,
+    disponible: true,
   },
   {
     clave: 'chat',
