@@ -104,9 +104,13 @@ for (const zoom of ['100', '200'] as const) {
     await capturar(page, info, `listado-con-busqueda-larga-${zoom}`)
 
     // El interruptor «Activa» de Integraciones, pegado a la derecha de su tarjeta en el celular al 200 %.
+    // El de apibara: la web pública tiene el suyo.
     await page.goto('/configuracion/empresa?seccion=integraciones')
-    await expect(page.getByRole('switch', { name: 'Activa' })).toBeVisible()
-    await page.getByRole('switch', { name: 'Activa' }).scrollIntoViewIfNeeded()
+    const activaDeApibara = page
+      .locator('details', { has: page.getByText('apibara', { exact: true }) })
+      .getByRole('switch', { name: 'Activa' })
+    await expect(activaDeApibara).toBeVisible()
+    await activaDeApibara.scrollIntoViewIfNeeded()
     await capturar(page, info, `integraciones-activa-${zoom}`)
 
     // Las pestañas del origen, una por una, con su barra a la vista (queda bajo el título largo).

@@ -1,5 +1,6 @@
 'use client'
 
+import type { ConteoAcotado } from '@/shared/lib/conteo'
 import { Aviso } from '@/shared/ui/aviso'
 import { Bloque } from '@/shared/ui/bloque'
 import { Interruptor } from '@/shared/ui/interruptor'
@@ -9,17 +10,22 @@ import { useApibara } from '../hooks/use-apibara'
 import { CampoSecreto } from './campo-secreto'
 import { ConfigApibara } from './config-apibara'
 import { UsoDeApibara } from './uso-de-apibara'
+import { WebPublica } from './web-publica'
 
 type Props = {
   // La fila de apibara. Sus tres ediciones tocan la misma fila: la versión llega por props, y
   // cada parte lleva de `key` lo suyo, para que guardar una no borre lo tipeado en otra.
   apibara: Integracion
+  // La fila de la web pública, si la instalación la tiene, y cuántos vehículos cambian al
+  // encenderla o apagarla (sólo para quien puede editar).
+  webPublica?: Integracion | undefined
+  vehiculosQueCambian: ConteoAcotado | null
   puedeEditar: boolean
 }
 
-// La pestaña «Integraciones». Hoy, apibara: su interruptor, su configuración no secreta y su
-// clave, que va a Vault y no se vuelve a mostrar.
-export function Integraciones({ apibara, puedeEditar }: Props) {
+// La pestaña «Integraciones»: apibara (su interruptor, su configuración no secreta y su clave) y
+// la web pública. Los secretos van a Vault y no se vuelven a mostrar.
+export function Integraciones({ apibara, webPublica, vehiculosQueCambian, puedeEditar }: Props) {
   const ediciones = useApibara(apibara.actualizadoEn)
   const sinClave = !puedeActivarse(apibara)
   const config = configDeApibara(apibara.config)
@@ -45,9 +51,12 @@ export function Integraciones({ apibara, puedeEditar }: Props) {
         <CampoSecreto
           // Al guardarse la clave, el campo vuelve a nacer vacío y cerrado.
           key={apibara.secretoGuardadoEn ?? 'sin-clave'}
+          clave="apibara"
           guardadoEn={apibara.secretoGuardadoEn}
           puedeEditar={puedeEditar}
-          ediciones={ediciones}
+          guardar={ediciones.guardarClave}
+          enCurso={ediciones.enCurso}
+          errores={ediciones.errores.secreto}
         />
         <ConfigApibara
           key={JSON.stringify(config)}
@@ -57,6 +66,13 @@ export function Integraciones({ apibara, puedeEditar }: Props) {
         />
         {puedeEditar && !sinClave ? <UsoDeApibara /> : null}
       </Bloque>
+      {webPublica ? (
+        <WebPublica
+          webPublica={webPublica}
+          vehiculosQueCambian={vehiculosQueCambian}
+          puedeEditar={puedeEditar}
+        />
+      ) : null}
     </div>
   )
 }
