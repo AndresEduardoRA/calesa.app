@@ -94,7 +94,8 @@ for (const quien of ['supervision', 'duena'] as const) {
 // Tarea de oro 4 (`docs/UX.md`): otorgar el portal desde la ficha del lead en ≤ 30 s. Sólo con el teclado y sin un clic: de la ficha del lead
 // a la sección «Portal», «Dar acceso», «Generar clave y dar acceso» y el texto para WhatsApp copiado. Lo que no cambia de una máquina a
 // otra es lo pulsado; el reloj del robot es un tope generoso; la hora de una persona se estima con KLM (`Teclado.klm`).
-const CONTROLES_MAXIMOS = 32
+// 33: con la campana de 7.02, una parada más de Tab en la barra superior.
+const CONTROLES_MAXIMOS = 33
 
 test('tarea de oro 4: de la ficha al texto para WhatsApp copiado, sólo con el teclado', async ({
   page,
