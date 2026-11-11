@@ -8,6 +8,7 @@ import type {
   LectorDeHistorial,
   LectorDeIntegraciones,
   LectorDeMonedasYTiposCambio,
+  LectorDeVehiculosQueCambian,
   ProbadorDeRevalidacion,
   RepositorioAjustesDeCotizacion,
   RepositorioEmpresa,
@@ -19,7 +20,11 @@ import { empresaSupabase } from './infra/empresa'
 import { integracionesSupabase } from './infra/integraciones'
 import { getAjustes, getAjustesParaEditar, getPoliticaDeLimpieza } from './infra/queries/ajustes'
 import { getAjustesDeCotizacion } from './infra/queries/ajustes-de-cotizacion'
-import { getIntegraciones, integracionActiva } from './infra/queries/integraciones'
+import {
+  getIntegraciones,
+  getVehiculosQueCambian,
+  integracionActiva,
+} from './infra/queries/integraciones'
 import { getHistorial, getMonedasYTiposCambio, getTiposCambio } from './infra/queries/tipos-cambio'
 import { probarRevalidacion } from './infra/revalidacion-prueba'
 import { tiposCambioSupabase } from './infra/tipos-cambio'
@@ -35,6 +40,7 @@ export const leerAjustes: LectorDeAjustes = getAjustesParaEditar
 export const leerMonedasYTiposCambio: LectorDeMonedasYTiposCambio = getMonedasYTiposCambio
 export const leerHistorial: LectorDeHistorial = getHistorial
 export const leerIntegraciones: LectorDeIntegraciones = getIntegraciones
+export const leerVehiculosQueCambian: LectorDeVehiculosQueCambian = getVehiculosQueCambian
 export const leerAjustesDeCotizacion: LectorDeAjustesDeCotizacion = getAjustesDeCotizacion
 
 // Lo que consumen el shell y otros módulos: nunca tumban una pantalla.

@@ -1,5 +1,6 @@
 // Lo que los casos de uso de `features/` necesitan de afuera, dicho como interfaces. La
 // implementación (Supabase) vive en `infra/` y se la entrega `composicion.ts`.
+import type { ConteoAcotado } from '@/shared/lib/conteo'
 import type { Resultado } from '@/shared/lib/errores'
 import type { AjustesDeCotizacion } from './ajustes-de-cotizacion'
 import type { AjustesEmpresa, CambiosDeAjustes } from './ajustes-empresa'
@@ -91,5 +92,7 @@ export type LectorDeAjustes = () => Promise<Resultado<AjustesParaEditar>>
 export type LectorDeMonedasYTiposCambio = () => Promise<Resultado<MonedasYTiposCambio>>
 export type LectorDeHistorial = (tipoCambioId: string) => Promise<Resultado<CambioDeValor[]>>
 export type LectorDeIntegraciones = () => Promise<Resultado<Integracion[]>>
+// Cuántos vehículos publicados empiezan o dejan de verse al encender o apagar la web pública.
+export type LectorDeVehiculosQueCambian = () => Promise<Resultado<ConteoAcotado>>
 // La vigencia y el vehículo obligatorio con la versión de la fila; falla en vez de dar los de fábrica.
 export type LectorDeAjustesDeCotizacion = () => Promise<Resultado<AjustesDeCotizacion>>
