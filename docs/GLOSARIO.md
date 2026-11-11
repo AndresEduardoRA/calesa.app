@@ -276,6 +276,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Mover** — `cambiar_fase()` / `previsualizar_cambio_fase()`: cambiar de fase, con vista previa de qué falta.
 - **Alerta por demora** — `fases.demora_dias` / `alertas_demora()`: aviso cuando una unidad lleva más días de lo esperado en una fase.
 - **Documento** — `documentos`, `tipos_documento`: archivo del ciclo con estado pendiente/subido/aprobado/rechazado y vencimiento.
+- **Tipo de documento** — `tipos_documento` / `tipo_documento_crear()`: qué documento pide el ciclo (Título, BL…); de toda la empresa (`flujo_id` nulo) o de un flujo; formatos aceptados y vencimiento (`ninguno`, `solicitar`, `renovar`, con `aviso_dias`). En uso no se borra: se desactiva. No: «clase de documento».
 - **Transporte** — `transportes`: naviera, puertos, contenedor, booking y fechas de UNA unidad.
 - **Embarque / Contenedor** — grupo por `transportes.booking` / `contenedor`: agrupación, no entidad.
 - **Declaración aduanera** — `declaraciones_aduana`, `declaraciones_vehiculos`: DUI: número, canal de aforo, vencimiento de tributos; N:M.
