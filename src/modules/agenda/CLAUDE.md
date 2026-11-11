@@ -27,6 +27,8 @@ un chip, 200 por clase con `hay_mas` y `tope`). Índice `tareas_vence_idx` (la r
 `agenda_tareas_sin_fecha(p_tamano, p_antes_en, p_antes_id)` (de invocador; mis tareas sin fecha y no canceladas, cursor `(creado_en, id)`,
 `_acotar_pagina(p_tamano, 20, 50)`, `tareas_sin_fecha_idx`). Su registro en `scripts/guardas/areas-b/paginas-en-la-base.ts` llega con su primera
 llamada (7.07).
+`agenda_quienes_reciben(p_texto, p_conversacion)` (definer; pide `agenda.tareas.asignar`; busca como Equipo, ≥ 3 letras o dígitos; sólo quien
+puede recibir y, con conversación, sus miembros; `{personas: [{id, nombre}], hay_mas}`, tope 20).
 
 ## No se rompe
 

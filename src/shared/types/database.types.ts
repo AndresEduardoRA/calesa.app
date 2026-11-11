@@ -8215,6 +8215,7 @@ export type Database = {
       }
       _version_publicada_por: { Args: { p_formula: string }; Returns: string }
       actividad_purgar: { Args: Record<PropertyKey, never>; Returns: number }
+      agenda_quienes_reciben: { Args: { p_conversacion?: string; p_texto: string }; Returns: Json }
       agenda_rango: {
         Args: { p_de_todos?: boolean; p_desde: string; p_hasta: string }
         Returns: Json
