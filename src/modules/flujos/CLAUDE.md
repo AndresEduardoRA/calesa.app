@@ -31,8 +31,8 @@ El módulo se parte por área, como `cotizaciones` (`scripts/guardas/areas-de-fl
 
 ## Tablas
 
-`flujos`, `flujos_reglas`, `fases`, `fases_transiciones`, `fases_roles`, `fases_transiciones_roles`, `tipos_documento`, `fases_requisitos`, `historial_fases`.
-RPC: `cambiar_fase`, `cambiar_fase_lote`, `previsualizar_cambio_fase`, `evaluar_requisitos`, `revisar_flujo`, `fase_crear`, `fase_guardar`, `fase_mover`, `fase_impacto`, `fase_eliminar`, `fase_reactivar`, `fuera_de_regla`, `unidad_llego_a_fase`, `claves_dato_requisito`, `flujo_regla_impacto`, `flujo_regla_cambiar`.
+`flujos`, `flujos_reglas`, `fases`, `fases_transiciones`, `fases_roles`, `fases_transiciones_roles`, `tipos_documento`, `fases_requisitos`, `historial_fases`, `flujos_transporte_oferta`.
+RPC: `cambiar_fase`, `cambiar_fase_lote`, `previsualizar_cambio_fase`, `evaluar_requisitos`, `revisar_flujo`, `fase_crear`, `fase_guardar`, `fase_mover`, `fase_impacto`, `fase_eliminar`, `fase_reactivar`, `fuera_de_regla`, `unidad_llego_a_fase`, `claves_dato_requisito`, `flujo_regla_impacto`, `flujo_regla_cambiar`, `flujo_oferta_guardar`, `flujo_oferta`.
 
 ## No se rompe
 
@@ -49,6 +49,11 @@ RPC: `cambiar_fase`, `cambiar_fase_lote`, `previsualizar_cambio_fase`, `evaluar_
   `flujo_regla_impacto(p_flujo, p_regla)` (sin versión; ya apagada → `bloquea: false`) y el trigger `flujo_regla_apagar_validar`, que también frena a `service_role` y deja
   pasar el borrado en cascada del flujo. `authenticated` no tiene `insert`, `update` ni `delete` sobre `flujos_reglas`. Hasta el 5.07, un requisito de espera creado a la
   vez que se apaga «esperas» puede quedar vivo con la regla apagada (D11 del 5.10-1): por eso una regla ya apagada no bloquea.
+- La oferta de transporte (`flujos_transporte_oferta`, 5.10-2) se escribe sólo por `flujo_oferta_guardar(p_flujo, p_actualizado_en_esperado, p_puertos_origen,
+p_puertos_destino, p_navieras)`: reemplazo todo o nada; forma (`22023`: elemento nulo o más de 200 por lista, hint el arreglo) → el contrato de versión → regla
+  «transporte» apagada → `23514` (hint `transporte`) → un id inexistente → `23503` (hint el arreglo). Repetidos se colapsan; un puerto o una naviera inactivos se
+  aceptan. Lista vacía = se ofrece todo; filtra lo ofrecido, nunca invalida lo guardado; apagar «transporte» no la borra. La lee `flujo_oferta(p_flujo)` (`security
+invoker`, cualquiera que lea el flujo). Sin PK: la unicidad la dan dos índices parciales (el aviso INFO `no_primary_key` es esperado). `authenticated` no la escribe.
 - La versión cruza como texto ISO tal cual (microsegundos), nunca por un `Date` de JS: se quedaría en milisegundos y daría `PT409` en cada guardado.
 - La configuración no se escribe directo: `authenticated` no tiene `insert` ni `update` sobre `fases` ni `update` sobre `flujos` (5.01-1). Crear y guardar una fase: `fase_crear(p_id, p_flujo, p_actualizado_en_esperado, p_datos)` y `fase_guardar(p_fase, p_actualizado_en_esperado, p_cambios)`, con lista cerrada de claves (`22023` con la clave en `hint`), validaciones con el campo en `hint`, reglas del flujo (`23514`) y únicos con mensaje humano (`23505`).
 
