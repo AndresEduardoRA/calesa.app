@@ -10,10 +10,12 @@ import {
 import { Monto } from '@/shared/ui/monto'
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table'
 import { camposDeTarjeta, type CampoDeVehiculo } from '../../../entities/campo'
+import type { IdentidadDeVehiculo } from '../../../entities/identidad'
 import { CasillaDeSeleccion } from '../../papelera/components/casilla-de-seleccion'
 import type { SeleccionDelListado } from '../../papelera/hooks/use-papelera-del-listado'
 import { InsigniaDeLimpieza } from '../../limpieza/components/insignia-de-limpieza'
 import { InsigniaDeVitrina } from '../../vitrina/components/insignia-de-vitrina'
+import { useIdentidad } from '../hooks/use-identidad'
 import { BadgeDeFase } from './badge-de-fase'
 import { Miniatura } from './miniatura'
 import { MenuDeFila } from './menu-de-fila'
@@ -50,6 +52,8 @@ type PropsDeFila = Pick<
   'origen' | 'fases' | 'vitrina' | 'limpiezaHoy' | 'menu' | 'seleccion' | 'alAbrir' | 'abierto'
 > & {
   vehiculo: FilaDeVehiculo
+  // Lo que lo nombra: su campo principal (con el título debajo) o su título.
+  identidad: IdentidadDeVehiculo
   columnas: readonly CampoDeVehiculo[]
   // Alguna fila de la página tiene algo en su «⋯»: la columna existe.
   conMenu: boolean
@@ -59,6 +63,7 @@ type PropsDeFila = Pick<
 // la página la usa.
 function FilaDeTabla({
   vehiculo,
+  identidad,
   columnas,
   origen,
   fases,
@@ -83,7 +88,7 @@ function FilaDeTabla({
           {seleccion.seleccionables.size > 0 ? (
             seleccion.seleccionables.has(vehiculo.id) ? (
               <CasillaDeSeleccion
-                etiqueta={`Seleccionar ${vehiculo.titulo}`}
+                etiqueta={`Seleccionar ${identidad.nombre}`}
                 elegida={seleccion.elegidas.has(vehiculo.id)}
                 alCambiar={() => {
                   seleccion.alternar(vehiculo.id)
@@ -96,13 +101,13 @@ function FilaDeTabla({
           <Miniatura ruta={vehiculo.portadaRuta} />
           <div className="grid min-w-0">
             <AbrirResumen
-              nombre={vehiculo.titulo}
+              nombre={identidad.nombre}
               className="max-w-72 truncate font-medium text-(--color-ink)"
             >
-              {vehiculo.titulo}
+              {identidad.nombre}
             </AbrirResumen>
             <span className="text-(length:--text-xs) text-(--color-ink-soft) tabular-nums">
-              #{vehiculo.numero}
+              {identidad.titulo === null ? '' : `${identidad.titulo} · `}#{vehiculo.numero}
               {vehiculo.vin ? ` · ${vehiculo.vin}` : ''}
             </span>
           </div>
@@ -140,6 +145,7 @@ export function TablaDeVehiculos({ vehiculos, campos, encabezado, ...resto }: Pr
   const { menu, seleccion, vehiculos: filas } = { ...resto, vehiculos }
   const conMenu = hayMenuEnLaPagina(filas, menu)
   const columnas = camposDeTarjeta(campos)
+  const identidadDe = useIdentidad(campos)
   return (
     <TablaDeLista>
       <TableHeader>
@@ -174,6 +180,7 @@ export function TablaDeVehiculos({ vehiculos, campos, encabezado, ...resto }: Pr
           <FilaDeTabla
             key={vehiculo.id}
             vehiculo={vehiculo}
+            identidad={identidadDe(vehiculo)}
             columnas={columnas}
             conMenu={conMenu}
             {...resto}

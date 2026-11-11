@@ -4,6 +4,7 @@ import { CasillaDeSeleccion } from '../../papelera/components/casilla-de-selecci
 import type { SeleccionDelListado } from '../../papelera/hooks/use-papelera-del-listado'
 import { InsigniaDeLimpieza } from '../../limpieza/components/insignia-de-limpieza'
 import { InsigniaDeVitrina } from '../../vitrina/components/insignia-de-vitrina'
+import { useIdentidad } from '../hooks/use-identidad'
 import { MenuDeFila } from './menu-de-fila'
 import { TarjetaVehiculo } from './tarjeta-vehiculo'
 import {
@@ -38,6 +39,7 @@ export function TarjetasDeVehiculos(props: Props) {
     alAbrir,
     abierto,
   } = props
+  const identidadDe = useIdentidad(campos)
   return (
     <ul className="grid grid-cols-[minmax(0,1fr)] gap-2">
       {vehiculos.map((vehiculo) => {
@@ -55,7 +57,7 @@ export function TarjetasDeVehiculos(props: Props) {
             seleccion={
               seleccion.seleccionables.has(vehiculo.id) ? (
                 <CasillaDeSeleccion
-                  etiqueta={`Seleccionar ${vehiculo.titulo}`}
+                  etiqueta={`Seleccionar ${identidadDe(vehiculo).nombre}`}
                   elegida={seleccion.elegidas.has(vehiculo.id)}
                   alCambiar={() => {
                     seleccion.alternar(vehiculo.id)
