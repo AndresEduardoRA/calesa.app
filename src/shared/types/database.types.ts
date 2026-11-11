@@ -2182,8 +2182,9 @@ export type Database = {
           tipo_cambio_aplicado: number | null
           tipo_cambio_id: string | null
           vehiculo_id: string | null
+          _gasto_bloquear: undefined | null
         }
-        ComputedFields: never
+        ComputedFields: '_gasto_bloquear'
         Insert: {
           actualizado_en?: string
           categoria_id: string
@@ -7356,6 +7357,49 @@ export type Database = {
         Args: { p_actual: string; p_esperado: string; p_vehiculo: string }
         Returns: undefined
       }
+      _gasto_bloquear: {
+        Args: {
+          o: Omit<
+            Database['public']['Tables']['gastos']['Row'],
+            Database['public']['Tables']['gastos']['ComputedFields']
+          >
+        }
+        Returns: undefined
+      }
+      _gasto_de_cambios: {
+        Args: {
+          o: Omit<
+            Database['public']['Tables']['gastos']['Row'],
+            Database['public']['Tables']['gastos']['ComputedFields']
+          >
+          p_cambios: Json
+        }
+        Returns: {
+          actualizado_en: string
+          categoria_id: string
+          comprobante_ruta: string | null
+          creado_en: string
+          creado_por: string | null
+          eliminado_en: string | null
+          fecha: string
+          id: string
+          moneda: string
+          monto: number
+          monto_base: number
+          notas: string | null
+          proveedor: string | null
+          repuesto_id: string | null
+          tipo_cambio_aplicado: number | null
+          tipo_cambio_id: string | null
+          vehiculo_id: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'gastos'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       _gasto_respuesta: {
         Args: {
           g: Omit<
@@ -7365,6 +7409,16 @@ export type Database = {
           p_extra: Json
         }
         Returns: Json
+      }
+      _gasto_tributo_protegido: {
+        Args: {
+          o: Omit<
+            Database['public']['Tables']['gastos']['Row'],
+            Database['public']['Tables']['gastos']['ComputedFields']
+          >
+          p_categoria_nueva: string
+        }
+        Returns: undefined
       }
       _gasto_validar: {
         Args: {
@@ -8503,6 +8557,11 @@ export type Database = {
           repuesto_id: string
           vehiculo_id: string
         }[]
+      }
+      gasto_eliminar: { Args: { p_actualizado_en_esperado: string; p_id: string }; Returns: Json }
+      gasto_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_id: string }
+        Returns: Json
       }
       gasto_registrar: {
         Args: {

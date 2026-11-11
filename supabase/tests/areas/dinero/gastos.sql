@@ -170,3 +170,97 @@ begin
 end $$;
 reset role;
 rollback;
+
+-- Corregir y eliminar como esa persona, con la versión de la fila (o la que se pase).
+create or replace function pg_temp.din_guardar(p_quien uuid, p_id uuid, p_cambios jsonb, p_version timestamptz default null) returns jsonb language sql as $f$
+  select pg_temp.din_corre(p_quien, format('select public.gasto_guardar(%L, %L, %L)', p_id,
+                                           coalesce(p_version, (select actualizado_en from public.gastos where id = p_id)), p_cambios));
+$f$;
+
+create or replace function pg_temp.din_eliminar(p_quien uuid, p_id uuid) returns jsonb language sql as $f$
+  select pg_temp.din_corre(p_quien, format('select public.gasto_eliminar(%L, %L)', p_id, (select actualizado_en from public.gastos where id = p_id)));
+$f$;
+
+-- Una fase del flujo del origen que pide los tributos pagados, con el vehículo en ella.
+create or replace function pg_temp.din_fase_con_tributos(t jsonb, p_vehiculo uuid) returns void language plpgsql as $f$
+declare f uuid;
+begin
+  insert into public.fases (flujo_id, nombre, orden) values ((select id from public.flujos where origen_id = (t ->> 'o')::uuid), 'DIN aduana', 90) returning id into f;
+  insert into public.fases_requisitos (fase_id, tipo, clave_dato, bloqueante) values (f, 'dato', 'aduana.tributos_pagados', false);
+  update public.vehiculos set fase_id = f where id = p_vehiculo;
+end $f$;
+
+-- @test dinero: corregir un gasto no recibe el monto en base, usa la tasa guardada si sólo cambia el monto y respeta la versión (G5)
+begin;
+do $$
+declare t jsonb := pg_temp.din_terreno(); p uuid; gid uuid; r jsonb; r2 jsonb; v0 timestamptz; tc2 uuid;
+begin
+  p := pg_temp.din_persona('logistica.gastos.editar', 'logistica.gastos.ver');
+  gid := (pg_temp.din_gasto(p, gen_random_uuid(), (t ->> 'v')::uuid, (t ->> 'cat')::uuid, 'XTS', 100, (t ->> 'tc')::uuid)) ->> 'id';
+  perform pg_temp.din_da('G5: monto_base', pg_temp.din_guardar(p, gid, '{"monto_base": 1}'), '22023', 'monto_base');
+  perform pg_temp.din_da('G5: tipo_cambio_aplicado', pg_temp.din_guardar(p, gid, '{"tipo_cambio_aplicado": 1}'), '22023', 'tipo_cambio_aplicado');
+  perform pg_temp.din_da('G5: vehiculo_id', pg_temp.din_guardar(p, gid, jsonb_build_object('vehiculo_id', t ->> 'v3')), '22023', 'vehiculo_id');
+  -- La tasa del tipo se mueve a 7: corregir sólo el monto sigue con 6,96.
+  update public.tipos_cambio set valor = 7 where id = (t ->> 'tc')::uuid;
+  r := pg_temp.din_guardar(p, gid, '{"monto": 200}');
+  if (r ->> 'monto_base')::numeric is distinct from 1392.00 or (r ->> 'tipo_cambio_aplicado')::numeric <> 6.96 or (r ->> 'sin_cambios')::boolean then
+    raise exception 'G5: con sólo otro monto debía usar la tasa guardada (1392,00); dio %', r;
+  end if;
+  -- Con otro tipo, la tasa vigente.
+  insert into public.tipos_cambio (clave, nombre, moneda_de, moneda_a, valor) values ('din_b_' || substr(gen_random_uuid()::text, 1, 8), 'DIN B', 'XTS', t ->> 'base', 5)
+  returning tipos_cambio.id into tc2;
+  r := pg_temp.din_guardar(p, gid, jsonb_build_object('tipo_cambio_id', tc2));
+  if (r ->> 'monto_base')::numeric is distinct from 1000.00 or (r ->> 'tipo_cambio_aplicado')::numeric <> 5 then
+    raise exception 'G5: con otro tipo debía leer su tasa vigente (1000,00); dio %', r;
+  end if;
+  -- Pasar a la moneda base sin quitar el tipo es un error; quitándolo, monto_base = monto.
+  perform pg_temp.din_da('G5: base con tipo', pg_temp.din_guardar(p, gid, jsonb_build_object('moneda', t ->> 'base')), '22023', 'tipo_cambio');
+  r := pg_temp.din_guardar(p, gid, jsonb_build_object('moneda', t ->> 'base', 'tipo_cambio_id', null));
+  if (r ->> 'monto_base')::numeric is distinct from 200.00 or r ->> 'tipo_cambio_aplicado' is not null then raise exception 'G5: en la base, monto_base = monto; dio %', r; end if;
+  perform pg_temp.din_da('G5: tres decimales', pg_temp.din_guardar(p, gid, '{"monto": 1.005}'), '22023', 'monto');
+  -- La versión: vieja, PT409; sin diferencia no se mueve.
+  v0 := (select actualizado_en from public.gastos g where g.id = gid);
+  perform pg_temp.din_da('G5: versión vieja', pg_temp.din_guardar(p, gid, '{"monto": 300}', v0 - interval '1 second'), 'PT409');
+  r := pg_temp.din_guardar(p, gid, '{"monto": 200}', v0 - interval '1 second');
+  if not (r ->> 'sin_cambios')::boolean or (select actualizado_en from public.gastos g where g.id = gid) <> v0 then
+    raise exception 'G5: sin diferencia no debía escribir; dio %', r;
+  end if;
+  -- Dos correcciones en la misma transacción mueven la versión dos veces.
+  r := pg_temp.din_guardar(p, gid, '{"notas": "una"}');
+  r2 := pg_temp.din_guardar(p, gid, '{"notas": "dos"}', (r ->> 'actualizado_en')::timestamptz);
+  if r2 ->> 'error' is not null or (r2 ->> 'actualizado_en')::timestamptz <= (r ->> 'actualizado_en')::timestamptz then
+    raise exception 'G5: la segunda corrección de la transacción debía mover la versión otra vez; dio % tras %', r2, r;
+  end if;
+  if (select actualizado_en from public.gastos g where g.id = gid) is distinct from (r2 ->> 'actualizado_en')::timestamptz then
+    raise exception 'G5: la versión devuelta no es la guardada: % contra %', r2, (select actualizado_en from public.gastos g where g.id = gid);
+  end if;
+end $$;
+reset role;
+rollback;
+
+-- @test dinero: eliminar es suave y no quita el último tributo que la fase pide (G6)
+begin;
+do $$
+declare t jsonb := pg_temp.din_terreno(); p uuid; v uuid := (t ->> 'v')::uuid; g1 uuid; g2 uuid; r jsonb;
+begin
+  p := pg_temp.din_persona('logistica.gastos.editar', 'logistica.gastos.ver');
+  g1 := (pg_temp.din_gasto(p, gen_random_uuid(), v, (t ->> 'cat')::uuid, 'XTS', 10, (t ->> 'tc')::uuid)) ->> 'id';
+  r := pg_temp.din_eliminar(p, g1);
+  if r ->> 'error' is not null or (pg_temp.din_corre(p, format('select to_jsonb(count(*)) from public.gastos where id = %L', g1)))::int <> 0
+     or (select eliminado_en from public.gastos where id = g1) is null then
+    raise exception 'G6: eliminar debía dejar la fila borrada y fuera de la lectura; dio %', r;
+  end if;
+  perform pg_temp.din_da('G6: eliminar dos veces', pg_temp.din_eliminar(p, g1), 'PT409');
+  -- El único tributo, con la fase que lo pide.
+  perform pg_temp.din_fase_con_tributos(t, v);
+  g1 := (pg_temp.din_gasto(p, gen_random_uuid(), v, (t ->> 'trib')::uuid, t ->> 'base', 50, null)) ->> 'id';
+  perform pg_temp.din_da('G6: eliminar el último tributo', pg_temp.din_eliminar(p, g1), '23514', 'categoria_id');
+  perform pg_temp.din_da('G6: cambiarle la categoría', pg_temp.din_guardar(p, g1, jsonb_build_object('categoria_id', t ->> 'cat')), '23514', 'categoria_id');
+  g2 := (pg_temp.din_gasto(p, gen_random_uuid(), v, (t ->> 'trib')::uuid, t ->> 'base', 60, null)) ->> 'id';
+  if (pg_temp.din_eliminar(p, g1)) ->> 'error' is not null then raise exception 'G6: con dos tributos, uno se elimina'; end if;
+  perform pg_temp.din_da('G6: ahora g2 es el último', pg_temp.din_eliminar(p, g2), '23514', 'categoria_id');
+  -- Sin la clave del origen, 42501.
+  perform pg_temp.din_da('G6: sin la clave', pg_temp.din_eliminar(pg_temp.din_persona('logistica.gastos.ver'), g2), '42501');
+end $$;
+reset role;
+rollback;
