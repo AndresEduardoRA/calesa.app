@@ -6,7 +6,7 @@ Bandeja de inicio por rol y tablero de métricas con widgets personalizables por
 
 - Entra: permisos del usuario, `preferencias_usuario.widgets`.
 - Sale: `<Bandeja nombre permisos sinRol zona>` para `/` por `pantallas/inicio.ts` (sólo `src/app`; el `index.ts` no exporta componentes, hoy nada) y el tablero de `/tablero` (fase 9). No lo consume ningún módulo.
-- Depende de: `leads` (recordatorios de hoy, leads sin seguimiento) y `equipo` (personas sin rol), por su `index.ts`. Cuando los demás bloques tengan contenido: `logistica`, `web` (y por su API, `cotizaciones`, `agenda`, `repuestos`).
+- Depende de: `leads` (recordatorios de hoy, leads sin seguimiento), `agenda` (mis tareas: `leerMisTareas`, 7.07-3) y `equipo` (personas sin rol), por su `index.ts`. Cuando los demás bloques tengan contenido: `logistica`, `web` (y por su API, `cotizaciones`, `repuestos`). «Ver todas» (`components/ver-todas-del-bloque.tsx`) lo dibuja cada bloque que lo necesita, bajo su lista.
 
 ## Archivos clave
 
