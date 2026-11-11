@@ -250,9 +250,7 @@ function sincronizarParciales(plan, estado, informe) {
       const r = reintentarUnaVez(e.pr_parcial, pr, estado)
       estado = r.estado
       if (r.reintentado) {
-        informe.push(
-          `${paso.id}: la parte #${e.pr_parcial} quedó en rojo: vuelvo a correr lo que cayó, una vez`,
-        )
+        if (r.aviso) informe.push(`${paso.id}: la parte #${e.pr_parcial} quedó en rojo: ${r.aviso}`)
         continue
       }
     }
@@ -380,7 +378,7 @@ function sincronizar(plan, estado) {
       const r = reintentarUnaVez(e.pr, pr, estado)
       estado = r.estado
       if (r.reintentado) {
-        informe.push(`${paso.id}: CI en rojo (#${e.pr}): vuelvo a correr lo que cayó, una vez`)
+        if (r.aviso) informe.push(`${paso.id}: CI en rojo (#${e.pr}): ${r.aviso}`)
         continue
       }
     }
