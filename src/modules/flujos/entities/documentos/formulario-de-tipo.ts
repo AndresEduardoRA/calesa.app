@@ -245,7 +245,9 @@ function diasDelModo(datos: DatosDeTipo) {
 }
 
 // `p_datos` de `tipo_documento_crear`: la lista cerrada de claves de la base (sin `activo` ni `proposito`: nace activo y sin propósito).
-export function datosParaCrear(datos: DatosDeTipo): Omit<CambiosDeTipo, 'activo'> {
+export type DatosParaCrear = Required<Omit<CambiosDeTipo, 'activo'>>
+
+export function datosParaCrear(datos: DatosDeTipo): DatosParaCrear {
   const { vigencia, aviso } = diasDelModo(datos)
   return {
     nombre: datos.nombre,
