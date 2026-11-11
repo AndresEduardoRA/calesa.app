@@ -9557,6 +9557,10 @@ export type Database = {
         }
         Returns: string
       }
+      transicion_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_transicion: string }
+        Returns: string
+      }
       unidad_llego_a_fase: {
         Args: { p_fase: string; p_repuesto: string; p_vehiculo: string }
         Returns: boolean
