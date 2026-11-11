@@ -271,7 +271,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Regla del flujo** — `flujos_reglas`: capacidad encendida/apagada (vitrina, portal, aduana, esperas…).
 - **Oferta de transporte** — `flujos_transporte_oferta` / `flujo_oferta_guardar`: los puertos de origen, de destino y las navieras que ofrecen los selectores de un flujo con la regla «Transporte»; vacía = se ofrece todo; filtra, nunca invalida lo guardado.
 - **Jubilar** — `fases.activa = false` / `fase_eliminar`: sacar una fase de los destinos sin romper el historial.
-- **Fuera de regla** — `fuera_de_regla()`: unidad en una fase cuyos requisitos bloqueantes ya no cumple.
+- **Fuera de regla** — `flujo_fuera_de_regla()`: unidad en una fase cuyos requisitos bloqueantes ya no cumple. Sólo quien configura el flujo la lee, con tope.
 - **Revisar** — `revisar_flujo()`: avisos de coherencia del flujo (sin salida, inalcanzable, esperas cruzadas…).
 - **Cadena** — `/logistica`: kanban de unidades por fase.
 - **Mover** — `cambiar_fase()` / `previsualizar_cambio_fase()`: cambiar de fase, con vista previa de qué falta.
@@ -291,7 +291,9 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Compra** — `repuestos_compras`: costo de un repuesto (permiso aparte).
 - **Cotizador de repuestos** — `repuestos_cotizador_config`, `_tramos_logistica`, `_cajas`, `repuestos_cotizaciones`: fórmula propia importado/local con tramos y cajas.
 - **Evento** — `eventos`, `eventos_destinatarios`: cita con visibilidad privada/pública/seleccionados.
+- **Destinatario** — `eventos_destinatarios`: persona que ve un evento «seleccionados» (de 1 a 50); en la pantalla, «Destinatarios» y «¿Con quién?». Sólo lo ve quien creó el evento.
 - **Tarea** — `tareas` / `reasignar_tarea`: pendiente con responsable y vencimiento.
+- **Tareas sin fecha** — `agenda_tareas_sin_fecha()`: mis tareas sin vencimiento, en una sección plegable bajo el calendario de `/agenda`; el calendario no las dibuja.
 - **Conversación / Mensaje** — `conversaciones`, `mensajes`: directa, grupo o canal global; mensajes de texto o fichas.
 - **Mención** — `mensajes_menciones`: `#` a vehículo, lead, cotización o persona; no otorga acceso.
 - **No leídos** — `chat_conversaciones().no_leidos`, `chat_no_leidos()`: mensajes de otras personas posteriores a tu última lectura de una conversación (`conversaciones_miembros.ultimo_leido_en`), contados entre las 100 entradas más nuevas (las propias ocupan lugar y no suman); 100 se muestra «99+». El total no suma las silenciadas.
