@@ -339,6 +339,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Conservar** — `vehiculos_conservados` / `vehiculo_conservar()`, `<BotonConservar>`: marca que saca un vehículo de la limpieza.
 - **Días de gracia** — `ajustes_empresa.limpieza_dias_gracia`: días desde que terminó la subasta hasta que un vehículo sin ancla se limpia: 7 por defecto, de 1 a 90.
 - **Se limpiará pronto** — `FILTRO_LIMPIEZA`, `limpieza_el()`, `VENTANA_DE_AVISO_DIAS`: filtro e insignia «Se limpia el dd/mm» de lo que se limpia en 3 días.
+- **Aviso de limpieza** — `limpieza_avisar()`, `limpieza_avisos`, notificación `limpieza_pronto`: el aviso al creador de un importado cuando entra en «Se limpiará pronto»; una vez por vehículo.
 - **Lote de limpieza** — `lotes_papelera.es_limpieza`: lote nocturno sin autor; lo restauran quienes pueden vaciar la papelera. No es el «lote de subasta».
 - **Corrida de limpieza** — `limpieza_corridas` / `limpieza_ultima()`: lo que dejó una noche: movidos, retenidos por ancla y en espera.
 - **Conteo acotado** — `ConteoAcotado` (`src/shared/lib/conteo.ts`), `conteoAcotado()`: número sin total exacto: «más de N» o «N+».

@@ -11,6 +11,7 @@ Ficha completa: `docs/archivo/modulos/equipo.md`, sólo con grep.
   - Sesión: `requerirSesion()`, `getPermisos()`, `puede()`, `sinRol()`, `nombreVisible()`.
   - Acceso: `canjearAcceso()`, `cerrarSiInactiva()`, `requerirSesionDeEnlace()`, `googleHabilitado()`, `avisoDe()`, `cerrarSesion`.
   - Equipo: `leerEquipo(filtro)` (100 primeras por nombre según `?q=&estado=`), `leerPersona(id)`, `leerSoloYo()`, `leerVistaPreviaDeBaja()`, `idDePersona()`, `filtroDelEquipoDesde()`.
+  - Inicio (9.02): `leerPersonasSinRol({ tope })` (activas, no bloqueadas y sin fila en `usuarios_roles`, por nombre, `tope + 1`; `entities/sin-rol.ts`) y `rutaDeLaPersona(id)` para el bloque «Personas sin rol» de `tablero`.
   - `leerMatriz()`, `leerVistas(pantalla)`.
 - Componentes por `pantallas/<pantalla>.ts` (sólo `src/app`): `ingreso`, `registro`, `recuperar`, `nueva-contrasena`, `perfil`, `roles`, `equipo`. Pantalla nueva = su archivo.
 - `client.ts`: `usePerspectiva()`, `<RoleBadge>`, `Perspectiva`, `RolParaVerComo`; `<MenuDeVistas>` con `VistaGuardada` y `ParamsDeVista` (hueco `vistas` de `<FilterShell>`).

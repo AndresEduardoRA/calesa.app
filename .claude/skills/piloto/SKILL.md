@@ -37,7 +37,8 @@ el número del paso y, opcionales, `continuar` (retomas esta sesión tras una co
    el PR no se integra hasta resolverlo. `git merge origin/main`, resuelve lo que lista, commit de merge con el mensaje por omisión (no va en `commits` de
    `ultimo.json`), y sigue con el paso. Si la nota dice que falta **regenerar los tipos de la base**, main ya está unido: haz lo que dice
    (`pnpm db:reset`, `pnpm db:types` y su commit) y bórrala.
-2. **Planificar.** Invoca al subagente `planificador`: orienta, parte si hace falta y escribe `.piloto/planes/<paso>.md` con
+2. **Planificar.** Si es una parte que sigue (`<paso>-2`, `-3`…), dale al planificador la ruta del plan y del informe de la parte anterior: parte de ahí y no se orienta
+   de cero. Invoca al subagente `planificador`: orienta, parte si hace falta y escribe `.piloto/planes/<paso>.md` con
    [plantilla-plan.md](plantilla-plan.md). No escribes tú el plan: el planificador es el único que lo hace, y su Bash es de sólo lectura. Corre en opus,
    salvo en un paso que el ruteo mandó con `modelo: sonnet` (el de pantalla; lo dice `.piloto/ruteo.json`): ahí pásale `model: "sonnet"`. Del 5 al 7 de
    noviembre, en esos pasos opus se llevaba 184 de 266 USD planificando y auditando, más que ejecutar. El auditor sigue siempre en opus.
@@ -63,7 +64,9 @@ el número del paso y, opcionales, `continuar` (retomas esta sesión tras una co
    `nohup … ; echo $? > <algo>.fin` y una espera de primer plano. **Antes de una corrida pesada** (e2e, mediciones, carreras) espera, en un bucle de primer plano
    de ≤ 9 minutos, a que no haya procesos pesados **en este mismo árbol** (`playwright`, `next build`, `vitest`, `carreras`, `medir`, `supabase db|start`) y a que `loadavg` sea menor que
    los núcleos (`nproc`). Los otros carriles tienen su árbol y su base: esperar a que la máquina quede ociosa con tres carriles no termina nunca (con `loadavg` < 1,5 cada parte perdía
-   sus 9 minutos, 2026-11-06). **Qué no se corre en local** (`.claude/rules/e2e.md`, Nivel 1): `lint` y `typecheck` los corre el hook del commit; la suite entera de vitest, el hook de
+   sus 9 minutos, 2026-11-06). **La base, dos veces por parte y no una por commit:** `pnpm db:reset`, `pnpm db:types` y `pnpm db:probar` antes del primer commit de SQL y, si después cambió algo de
+   `supabase/`, `pnpm db:probar` otra vez antes del informe. Con `PILOTO=1` el hook del commit ya no corre `probar-schema` (eran ≈ 4 min por commit): que `db:probar` esté
+   en verde antes de commitear es tuyo, no del hook. **Qué no se corre en local** (`.claude/rules/e2e.md`, Nivel 1): `lint` y `typecheck` los corre el hook del commit; la suite entera de vitest, el hook de
    Stop al cerrar el paso (en el paso, sólo `pnpm exec vitest related --run <archivos>` y `scripts/guardas`); el e2e completo, el CI del PR, salvo en un cierre de fase (`cierre: true` en `.piloto/asignado.json`).
 6. **Informe** en `.piloto/informes/<paso>.md` ([plantilla-informe.md](plantilla-informe.md)): qué se hizo, la salida real de cada prueba (con su ruta), lo que no se hizo.
 7. **Auditar el informe**, sólo si el paso toca RLS, permisos, `security definer` o dinero (si no, se salta: verifica el bucle y el CI). Mismo `auditor`: si bloquea, corriges con un `fix` y sigues; un segundo bloqueo es una compuerta `atasco`.
