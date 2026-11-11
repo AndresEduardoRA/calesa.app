@@ -53,7 +53,7 @@ async function leerLasTablas(flujoId: string) {
         .limit(TOPE_DE_TRANSICIONES + 1),
       supabase
         .from('fases_requisitos')
-        .select(`${COLUMNAS_DE_REQUISITO}, fases!inner(flujo_id)`)
+        .select(`${COLUMNAS_DE_REQUISITO}, fases!fases_requisitos_fase_id_fkey!inner(flujo_id)`)
         .eq('fases.flujo_id', flujoId)
         .order('fase_id')
         .order('orden')
@@ -78,7 +78,7 @@ async function leerLasTablas(flujoId: string) {
 
 // Cualquier cuenta con sesión lee la configuración (policies `using (true)`): la pantalla filtra qué flujos se ofrecen y la base manda en cada escritura.
 // Siete lecturas en paralelo, una vez por request. Cada una pide `tope + 1`: si llega, la bandera de `truncado` lo dice. Las tablas de roles y
-// requisitos no traen `flujo_id`: se filtran por el embebido `!inner` (la fase o la transición, que sí lo traen). Índices: `fases_transiciones_flujo_id_idx`,
+// requisitos no traen `flujo_id`: se filtran por el embebido `!inner` (la fase o la transición, que sí lo traen); `fases_requisitos` apunta dos veces a `fases` (`fase_id` y `espera_fase_id`), así que su embebido nombra la FK. Índices: `fases_transiciones_flujo_id_idx`,
 // `fases_requisitos_fase_id_idx`, `fases_roles_pkey` y las PK de `fases` y `flujos_reglas`; todas son decenas de filas (configuración).
 export const getFlujoParaConfigurar: LectorDeFlujo = cache(async (flujoId) => {
   const { encabezado, reglas, fases, transiciones, requisitos, rolesPorFase, rolesPorTransicion } =
