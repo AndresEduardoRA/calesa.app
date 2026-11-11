@@ -14,3 +14,6 @@ export {
 export { AltaDeLead } from './features/alta/components/alta-de-lead'
 export type { ContextoDeAlta } from './entities/alta'
 export { normalizarTelefono, telefonoParaMostrar } from './entities/telefono'
+// Qué busca un texto («Nombre o número»): la feature del buscador (la paleta del 7.13, el selector `#` del 7.10) lo pregunta antes de pedir nada; la base
+// lo repite y manda (`_buscador_interpretar`).
+export { interpretarBusqueda, MINIMO_DE_BUSQUEDA } from './entities/busqueda-de-leads'

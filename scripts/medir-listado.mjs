@@ -65,12 +65,23 @@ const VARIABLES_DE_PAGINA = {
   ),
   // El lote de la importación de leads (`medir-importacion.sql`): su tope vive en un solo punto del código.
   lote: constante('src/modules/leads/entities/importacion/limites.ts', 'FILAS_POR_LOTE'),
+  // Lo que el buscador pide a cada sección (7.12-2): `medir-buscador.sql` llama a `buscador_cotizaciones` con él.
+  por_seccion: constante('src/modules/buscador/entities/ranking.ts', 'POR_SECCION'),
 }
 const ARGUMENTOS_DE_PSQL = Object.entries(VARIABLES_DE_PAGINA).flatMap(([nombre, valor]) => [
   '-v',
   `${nombre}=${String(valor)}`,
 ])
-const MEDICIONES = CON_VOLUMEN ? MEDICIONES_CON_VOLUMEN : MEDICIONES_BASE
+// `MEDIR_SOLO=<texto>` corre sólo las mediciones cuyo archivo lo contiene (una, sin las otras veinte); si ninguna coincide, falla y lo dice.
+const SOLO = process.env.MEDIR_SOLO
+const TODAS = CON_VOLUMEN ? MEDICIONES_CON_VOLUMEN : MEDICIONES_BASE
+const MEDICIONES = SOLO ? TODAS.filter(([archivo]) => archivo.includes(SOLO)) : TODAS
+if (MEDICIONES.length === 0) {
+  console.error(
+    `MEDIR_SOLO=${SOLO}: ninguna medición${CON_VOLUMEN ? ' con volumen' : ''} tiene ese texto en su archivo.`,
+  )
+  process.exit(1)
+}
 
 function datosDe(archivo) {
   return Object.entries(DATOS_DE_MEDICION[archivo] ?? {})
