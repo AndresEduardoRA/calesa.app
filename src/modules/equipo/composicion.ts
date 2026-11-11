@@ -14,12 +14,19 @@ import type {
   RepositorioEquipo,
   RepositorioRoles,
 } from './entities/repositorios-equipo'
+import type { LectorDePersonasSinRol } from './entities/sin-rol'
 import type { LectorDeVistas, RepositorioVistas } from './entities/repositorios-vistas'
 import { accesoSupabase } from './infra/acceso'
 import { equipoSupabase } from './infra/equipo'
 import { conAdminDeAuth } from './infra/invitaciones'
 import { perfilSupabase } from './infra/perfil'
-import { getEquipo, getPersona, getSoloYo, getVistaPreviaDeBaja } from './infra/queries/equipo'
+import {
+  getEquipo,
+  getPersona,
+  getPersonasSinRol,
+  getSoloYo,
+  getVistaPreviaDeBaja,
+} from './infra/queries/equipo'
 import { getMatriz, getRolesParaElegir } from './infra/queries/roles'
 import { getSesion } from './infra/queries/sesion'
 import { getVistas } from './infra/queries/vistas'
@@ -36,6 +43,7 @@ export const repositorioEquipo: RepositorioEquipo = equipoSupabase
 export const conCuentasInvitadas: ConCuentasInvitadas = conAdminDeAuth
 export const leerEquipo: LectorDeEquipo = getEquipo
 export const leerPersona: LectorDePersona = getPersona
+export const leerPersonasSinRol: LectorDePersonasSinRol = getPersonasSinRol
 export const leerSoloYo: LectorDeSoloYo = getSoloYo
 export const leerMatriz: LectorDeMatriz = getMatriz
 export const leerRolesParaElegir: LectorDeRolesParaElegir = getRolesParaElegir

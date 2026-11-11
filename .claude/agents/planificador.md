@@ -29,7 +29,16 @@ escribir bajo `.piloto/planes/` (un hook lo hace cumplir) y tu Bash es de sólo 
 4. `.claude/rules/` de lo que toca (`e2e.md` siempre; `escala.md`, `ui.md`, `datos.md`, `migraciones.md`, `acciones.md`, `modulos.md` según el caso).
 5. Las entradas de `docs/DECISIONES.md` del paso y `.piloto/hechos.json` (hora, rama, disco, CI, la decisión vigente: el paso la lee de ahí).
 
+**Una parte que sigue** (`<paso>-2`, `-3`…; quien te invoca te da la ruta del plan y del informe de la parte anterior, o están en
+`.piloto/planes/` y `.piloto/informes/`): esa orientación ya está hecha y citada ahí. Lee ese plan (su «Partición» y sus `Vn`) y el informe, mira
+qué entró desde entonces (`git log --oneline` del rango) y **no repitas los puntos 1 a 5**: abre sólo lo que esta parte toca y aquello no cubre.
+Apunta a ≤ 20 vueltas.
+
 ## Decidir y partir
+
+- **Si partes, deja servida la parte siguiente:** en «Partición», por cada parte que queda, su alcance, sus archivos y las precondiciones que ya
+  verificaste (`Vn · afirmación · archivo:línea`). Su plan sale de ahí, sin volver a orientarse (2026-11-11: cada parte volvía a planificar de
+  cero, ≈ 8 min y ≈ 2 M tokens).
 
 - Si el paso junta capas con verificación distinta (la base, `src/shared`, la pantalla), lo **partes** en pasos que se cierran solos y dices cómo se
   anota en PLAN. Un paso que no cabe en una sesión no se planifica entero.

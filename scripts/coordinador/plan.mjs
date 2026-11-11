@@ -225,6 +225,8 @@ export function estadoInicial(plan, previo = { pasos: {} }) {
     ...(previo.reintentos && Object.keys(previo.reintentos).length
       ? { reintentos: previo.reintentos }
       : {}),
+    // Los PR con un rojo del entorno: el commit, cuántas veces se volvió a correr y cuándo la última (pr.mjs › reintentarUnaVez).
+    ...(previo.entorno && Object.keys(previo.entorno).length ? { entorno: previo.entorno } : {}),
     // Los PR con el CI cancelado y sin otra corrida detrás, desde cuándo (coordinador.mjs › atenderColgado).
     ...(previo.colgados && Object.keys(previo.colgados).length
       ? { colgados: previo.colgados }

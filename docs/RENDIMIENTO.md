@@ -42,6 +42,11 @@ Sección «Seguimientos» de la ficha y pestaña del drawer.
 - «¿A quién?»: `agenda_quienes_reciben()`, ≥ 3 letras o dígitos, tope 20, sobre `perfiles` (el equipo, no crece).
 - Sin siembra de volumen ni `medir-*.sql`: `eventos` y `tareas` no son tablas que crecen (7.06-2, D29).
 
+## Inicio: la bandeja (9.02)
+
+- Tres lecturas en el servidor, cada una `limit 6` y cada una tras el `<Suspense>` de su bloque (un bloque lento no frena a los demás): `recordatorios_vista` por `recordatorios_usuario_idx`; `leads_cartera_vista` por `leads_asesores_listado_idx` (cuesta lo que pesa la cartera de quien mira, no la tabla); `perfiles` por `perfiles_vigentes_orden_idx`.
+- Sin `count`, sin `offset`, sin N+1. No se sembró volumen: ninguna recorre `leads` entera.
+
 ## Inventario de escala (9e)
 
 Tope = lo que se dibuja o se lee de una vez; un número que se muestra es siempre acotado (`limit tope + 1`, «más de N»). Presupuesto = lo que asserta `pnpm db:medir:volumen` o el e2e. Mide todo `medir-escala.sql` salvo que se diga otro.
@@ -114,6 +119,15 @@ Elige 10, 25, 50 o 100 (`listas.por_pagina`, `?por=`); cada lista declara su má
 - Tablero: 6 columnas × 50, «500+» por columna, `oportunidades_tablero_idx`; la policy de `oportunidades` pregunta por fila `_lead_vivo_en_mi_cartera(lead_id)` (no arma el arreglo de la cartera). Presupuestos: tablero 800 ms, «Ver más» 500 ms, buscar 700 / 200 ms; primera página de una columna, «Ver más» y total acotado ≤ 25 ms (la guarda asserta `oportunidades_tablero_idx`, sin recorrer `oportunidades`, ≤ 200 descartes). «Ver más» hasta 500 por columna con aviso.
 - Nodos del DOM de una columna en el tope (500 tarjetas): ≤ 10.250; el «⋯» de cada tarjeta cuesta exactamente 3 nodos (`<use>` a un símbolo de `src/shared/ui/lista/simbolos-de-lista.tsx`; `e2e/mas-acciones-icono.spec.ts`). El servidor dibuja una sola distribución (columnas o pestañas) según el ancho de la petición.
 - Oportunidades de la ficha: 10 en el servidor (las abiertas primero) y «Ver más» de a `TAMANO_DE_VER_MAS` desde el navegador, hasta `TOPE_DE_LO_CARGADO` con aviso y el camino «Buscarlas en tu embudo». Documento de la ficha ≤ 66 KB con la sección abierta, con 10 o con 1.000 (62,7 y 61,7 KB). Cada «Ver más», una página de 20 de ≈ 15,5 KB que no crece con la profundidad (≈ 3 ms en la base, `medir-lead-oportunidades.sql`); nodos lineales hasta 500 (238 con 10 y 11.509 con 500). `e2e/leads-oportunidades-ver-todas.spec.ts`.
+
+## Buscador (7.12)
+
+Cada sección por su RPC, de a `_acotar_pagina(p_tamano, 5, 20)` + 1, con el mínimo de `MINIMO_DE_BUSQUEDA` en la base (`_buscador_interpretar()`).
+
+- Leads (`buscador_leads()`): la ventana de `leads_candidatos()` con sólo el texto (la búsqueda del listado, medida en `busqueda-volumen.sql`) + `leads_ids_del_numero()` (≤ 100) + una pasada de `leads_vista_por_ids()` sobre esos ids; corta en 21.
+- Vehículos (`buscador_vehiculos()`): una ruta por origen visible por `vehiculos_origen_listado_idx`, ≤ 21 por origen. **Límite sin assert**, el del panel y el inventario: con un texto que no coincide recorre los vehículos vivos de cada origen visible.
+- Cotizaciones (`buscador_cotizaciones()`, definer): el número por `cotizaciones_numero_key`; el título por `cotizaciones_titulo_trgm`, a lo sumo 1.000 candidatas de los orígenes que se ven, más las propias por `cotizaciones_creador_idx` (≤ 21), y la policy sobre ellas por la PK (`en_cartera` por fila con «propios»). **Límite sin assert hasta el 7.12-2:** no tiene `EXPLAIN` en `db:medir:volumen`; el 7.12-2 suma un `medir-buscador.sql` (número, título común y título raro, como la dueña y como Ana).
+- `visitados`: ≤ 50 por persona (`visita_registrar()` recorta), por la PK y `visitados_usuario_visto_idx (usuario_id, visto_en desc)`.
 
 ## JS en frío (con gzip, lo que el documento nombra)
 
