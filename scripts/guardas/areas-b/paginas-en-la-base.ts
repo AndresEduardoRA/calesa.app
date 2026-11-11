@@ -1,5 +1,6 @@
-// Las RPC con tamaño de página del carril B (7.07-3): «Tareas sin fecha» de la agenda. Es un pedazo de `RPC_PAGINADAS` (`paginas-en-la-base.ts`, del A) que la guarda
-// suma con `import.meta.glob('./areas-*/paginas-en-la-base.ts')` (`registros-de-carriles.ts`).
+// Las RPC con tamaño de página del carril B: «Tareas sin fecha» de la agenda (7.07-3) y las secciones del buscador (7.12-2). Es un pedazo de `RPC_PAGINADAS`
+// (`paginas-en-la-base.ts`, del A) que la guarda suma con `import.meta.glob('./areas-*/paginas-en-la-base.ts')` (`registros-de-carriles.ts`).
+import { POR_SECCION } from '../../../src/modules/buscador/entities/ranking'
 import { TAMANO_DE_VER_MAS } from '../../../src/shared/lib/paginacion'
 import type { RpcPaginada } from '../paginas-en-la-base'
 
@@ -10,5 +11,24 @@ export const REGISTRO: readonly RpcPaginada[] = [
     parametro: 'p_tamano',
     pideElCodigo: TAMANO_DE_VER_MAS,
     lista: 'tareas sin fecha de la agenda, «Ver más»',
+  },
+  // `_acotar_pagina(p_tamano, 5, 20)` en las tres: el defecto es `POR_SECCION` y el máximo deja a 7.10 pedir más sin migración.
+  {
+    rpc: 'buscador_leads',
+    parametro: 'p_tamano',
+    pideElCodigo: POR_SECCION,
+    lista: 'buscador, sección leads',
+  },
+  {
+    rpc: 'buscador_vehiculos',
+    parametro: 'p_tamano',
+    pideElCodigo: POR_SECCION,
+    lista: 'buscador, sección vehículos',
+  },
+  {
+    rpc: 'buscador_cotizaciones',
+    parametro: 'p_tamano',
+    pideElCodigo: POR_SECCION,
+    lista: 'buscador, sección cotizaciones',
   },
 ]

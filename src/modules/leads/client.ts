@@ -17,3 +17,6 @@ export { normalizarTelefono, telefonoParaMostrar } from './entities/telefono'
 // Completar o reabrir un recordatorio propio, para el panel de la agenda (`?recordatorio=`): la RPC `recordatorio_completar` exige que sea de quien actúa y la
 // action no decide permisos sobre `leads`.
 export { completarRecordatorio } from './features/recordatorios/actions/completar-recordatorio'
+// Qué busca un texto («Nombre o número»): la feature del buscador (la paleta del 7.13, el selector `#` del 7.10) lo pregunta antes de pedir nada; la base
+// lo repite y manda (`_buscador_interpretar`).
+export { interpretarBusqueda, MINIMO_DE_BUSQUEDA } from './entities/busqueda-de-leads'
