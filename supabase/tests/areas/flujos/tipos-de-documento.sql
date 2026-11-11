@@ -142,3 +142,100 @@ begin
   end if;
 end $$;
 rollback;
+
+-- @test tipos de documento: guardar pide el permiso del grupo de la fila, antes que la versión
+begin;
+select pg_temp.td_preparar();
+do $$
+declare flor uuid := '00000000-0000-4000-8000-000000007d0f'; cata uuid := '00000000-0000-4000-8000-000000007d0c';
+        ana uuid := '00000000-0000-4000-8000-000000007d0a';
+        g uuid := '00000000-0000-4000-8000-000000007d01'; a uuid := '00000000-0000-4000-8000-000000007d02'; r text;
+begin
+  r := pg_temp.td_codigo(flor, format('select public.tipo_documento_guardar(%L, %L, %L)', g, pg_temp.td_version(g), '{"nombre":"Por Flor"}'));
+  if r <> '42501' then raise exception 'Flor guardó el global: %', r; end if;
+  r := pg_temp.td_codigo(flor, format('select public.tipo_documento_guardar(%L, %L, %L)', g, '2000-01-01', '{"nombre":"Por Flor"}'));
+  if r <> '42501' then raise exception 'Flor con versión vieja no recibió 42501 en el global: %', r; end if;
+  r := pg_temp.td_codigo(cata, format('select public.tipo_documento_guardar(%L, %L, %L)', a, pg_temp.td_version(a), '{"nombre":"Por Cata"}'));
+  if r <> '42501' then raise exception 'Cata guardó el de A: %', r; end if;
+  r := pg_temp.td_codigo(ana, format('select public.tipo_documento_guardar(%L, %L, %L)', a, pg_temp.td_version(a), '{"nombre":"Por Ana"}'));
+  if r <> '42501' then raise exception 'Ana guardó el de A: %', r; end if;
+  r := pg_temp.td_codigo(cata, format('select public.tipo_documento_guardar(%L, %L, %L)', g, pg_temp.td_version(g), '{"nombre":"Por Cata"}'));
+  if r <> 'sin error' then raise exception 'Cata no guardó el global: %', r; end if;
+  r := pg_temp.td_codigo(flor, format('select public.tipo_documento_guardar(%L, %L, %L)', a, pg_temp.td_version(a), '{"nombre":"Por Flor"}'));
+  if r <> 'sin error' then raise exception 'Flor no guardó el de A: %', r; end if;
+  if (select nombre from public.tipos_documento where id = g) <> 'Por Cata' or (select nombre from public.tipos_documento where id = a) <> 'Por Flor' then
+    raise exception 'guardar no dejó los nombres';
+  end if;
+  r := pg_temp.td_codigo(cata, format('select public.tipo_documento_guardar(%L, %L, %L)', g, pg_temp.td_version(g), '{"proposito":"titulo"}'));
+  if r <> '22023/proposito' then raise exception 'guardar cambió el propósito: %', r; end if;
+end $$;
+rollback;
+
+-- @test tipos de documento: con otra versión guardar da PT409 y no cambia nada; sin diferencia no escribe
+begin;
+select pg_temp.td_preparar();
+do $$
+declare cata uuid := '00000000-0000-4000-8000-000000007d0c'; g uuid := '00000000-0000-4000-8000-000000007d01';
+        v1 timestamptz := pg_temp.td_version(g); v2 timestamptz; j jsonb;
+begin
+  j := pg_temp.td_json(cata, format('select public.tipo_documento_guardar(%L, %L, %L)', g, v1, '{"nombre":"Segunda"}'));
+  v2 := (j ->> 'actualizado_en')::timestamptz;
+  if v2 <= v1 or v2 <> pg_temp.td_version(g) then raise exception 'la versión no se movió: % → %', v1, v2; end if;
+  if pg_temp.td_codigo(cata, format('select public.tipo_documento_guardar(%L, %L, %L)', g, v1, '{"nombre":"Tercera"}')) <> 'PT409' then
+    raise exception 'guardar con la versión vieja no dio PT409';
+  end if;
+  if (select nombre from public.tipos_documento where id = g) <> 'Segunda' then raise exception 'el PT409 cambió el nombre'; end if;
+  j := pg_temp.td_json(cata, format('select public.tipo_documento_guardar(%L, %L, %L)', g, v1, '{"nombre":"Segunda"}'));
+  if not (j ->> 'sin_cambios')::boolean or pg_temp.td_version(g) <> v2 then raise exception 'sin diferencia escribió'; end if;
+  if pg_temp.td_codigo(cata, format('select public.tipo_documento_guardar(%L, null, %L)', g, '{"nombre":"Segunda"}')) = 'sin error' then
+    raise exception 'guardar sin versión pasó';
+  end if;
+end $$;
+rollback;
+
+-- @test tipos de documento: achicar los formatos que pide un requisito falla; los que no pide, o un requisito sin formatos, no
+begin;
+select pg_temp.td_preparar();
+do $$
+declare flor uuid := '00000000-0000-4000-8000-000000007d0f'; a uuid := '00000000-0000-4000-8000-000000007d02';
+        v_fase uuid := (select id from public.fases where nombre = 'TD fase'); r text;
+begin
+  insert into public.fases_requisitos (fase_id, tipo, tipo_documento_id, formatos) values (v_fase, 'documento', a, array['application/pdf']);
+  insert into public.fases_requisitos (fase_id, tipo, tipo_documento_id) values (v_fase, 'documento', a);
+  r := pg_temp.td_codigo(flor, format('select public.tipo_documento_guardar(%L, %L, %L)', a, pg_temp.td_version(a), '{"formatos":["image/jpeg"]}'));
+  if r <> '22023/formatos' then raise exception 'quitar un formato que pide un requisito dio %', r; end if;
+  if (select formatos from public.tipos_documento where id = a) <> public._tipos_documento_formatos() then
+    raise exception 'el rechazo cambió los formatos';
+  end if;
+  r := pg_temp.td_codigo(flor, format('select public.tipo_documento_guardar(%L, %L, %L)', a, pg_temp.td_version(a),
+    '{"formatos":["application/pdf","image/png"]}'));
+  if r <> 'sin error' then raise exception 'quitar formatos que nadie pide dio %', r; end if;
+  if (select formatos from public.tipos_documento where id = a) <> array['application/pdf', 'image/png'] then
+    raise exception 'no quedaron los formatos nuevos';
+  end if;
+end $$;
+rollback;
+
+-- @test tipos de documento: guardar valida el nombre (también al reactivar) y el vencimiento
+begin;
+select pg_temp.td_preparar();
+do $$
+declare flor uuid := '00000000-0000-4000-8000-000000007d0f'; cata uuid := '00000000-0000-4000-8000-000000007d0c';
+        g uuid := '00000000-0000-4000-8000-000000007d01'; a uuid := '00000000-0000-4000-8000-000000007d02'; r text;
+begin
+  r := pg_temp.td_codigo(flor, format('select public.tipo_documento_guardar(%L, %L, %L)', a, pg_temp.td_version(a), '{"nombre":"TD Global"}'));
+  if r <> '23505/nombre' then raise exception 'el de A tomó el nombre de un global activo: %', r; end if;
+  perform pg_temp.td_json(cata, format('select public.tipo_documento_guardar(%L, %L, %L)', g, pg_temp.td_version(g), '{"activo":false}'));
+  r := pg_temp.td_codigo(flor, format('select public.tipo_documento_guardar(%L, %L, %L)', a, pg_temp.td_version(a), '{"nombre":"TD Global"}'));
+  if r <> 'sin error' then raise exception 'con el global inactivo, su nombre no quedó libre: %', r; end if;
+  r := pg_temp.td_codigo(cata, format('select public.tipo_documento_guardar(%L, %L, %L)', g, pg_temp.td_version(g), '{"activo":true}'));
+  if r <> 'sin error' then raise exception 'reactivar el global falló: %', r; end if;
+  r := pg_temp.td_codigo(flor, format('select public.tipo_documento_guardar(%L, %L, %L)', a, pg_temp.td_version(a), '{"modo_vencimiento":"renovar"}'));
+  if r <> '22023/vigencia_dias' then raise exception 'renovar sin vigencia dio %', r; end if;
+  r := pg_temp.td_codigo(flor, format('select public.tipo_documento_guardar(%L, %L, %L)', a, pg_temp.td_version(a),
+    '{"modo_vencimiento":"solicitar","vigencia_dias":30}'));
+  if r <> '22023/vigencia_dias' then raise exception 'solicitar con vigencia dio %', r; end if;
+  r := pg_temp.td_codigo(flor, format('select public.tipo_documento_guardar(%L, %L, %L)', a, pg_temp.td_version(a), '{"aviso_dias":5}'));
+  if r <> '22023/aviso_dias' then raise exception 'un aviso sin vencimiento dio %', r; end if;
+end $$;
+rollback;
