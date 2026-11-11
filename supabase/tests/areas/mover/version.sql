@@ -4,6 +4,7 @@
 -- Qué asegura:
 --   Vs1. `cambiar_fase` no mueve `vehiculos.actualizado_en` ni escribe `vehiculos.update` en `actividad`; el cambio consta una vez como
 --        `unidad.fase_cambiada`; editar otra columna sigue moviendo la versión y auditando.
+--   Vs2. `_vehiculo_motivo_de_bloqueo(v, true)` (enviar y la limpieza) frena con un documento vivo; la purga (`false`) no; uno borrado no frena.
 
 -- La primera cuenta de una base vacía queda dueña (con `SOLO=` sin `humo.sql`): una de relleno antes, para que ninguna de la prueba lo sea.
 create or replace function pg_temp.mvs_sin_duena() returns void language plpgsql as $f$
@@ -130,6 +131,31 @@ begin
   if (select actualizado_en from public.vehiculos where id = v) = vieja
      or not exists (select 1 from public.actividad where tabla = 'vehiculos' and registro_id = v::text and accion = 'vehiculos.update') then
     raise exception 'Vs1: editar el título debía mover la versión y auditar (los triggers siguen vivos)';
+  end if;
+end $$;
+rollback;
+
+-- @test mover: un vehículo con documentos vivos no va a la papelera; la purga no frena por ellos (Vs2)
+begin;
+do $$
+declare
+  a uuid := pg_temp.mvs_flujo(); f uuid := pg_temp.mvs_fase(a, 'mvs uno', 10, true); v uuid := pg_temp.mvs_vehiculo(a, f); td uuid;
+  motivo constant text := 'Tiene documentos cargados.';
+begin
+  if (select public._vehiculo_motivo_de_bloqueo(x, true) from public.vehiculos x where x.id = v) is not null then
+    raise exception 'Vs2: sin documentos no debía frenar';
+  end if;
+  insert into public.tipos_documento (nombre) values ('mvs factura ' || substr(gen_random_uuid()::text, 1, 6)) returning id into td;
+  insert into public.documentos (vehiculo_id, tipo_documento_id) values (v, td);
+  if (select public._vehiculo_motivo_de_bloqueo(x, true) from public.vehiculos x where x.id = v) is distinct from motivo then
+    raise exception 'Vs2: con un documento vivo, enviar debía frenar con «%»', motivo;
+  end if;
+  if (select public._vehiculo_motivo_de_bloqueo(x, false) from public.vehiculos x where x.id = v) is not null then
+    raise exception 'Vs2: la purga no debía frenar por los documentos';
+  end if;
+  update public.documentos set eliminado_en = now() where vehiculo_id = v;
+  if (select public._vehiculo_motivo_de_bloqueo(x, true) from public.vehiculos x where x.id = v) is not null then
+    raise exception 'Vs2: un documento borrado no debía frenar';
   end if;
 end $$;
 rollback;
