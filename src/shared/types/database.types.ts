@@ -7178,6 +7178,7 @@ export type Database = {
       _baja_terminar: { Args: { p_usuario: string }; Returns: boolean }
       _bajas_en_curso: { Args: Record<PropertyKey, never>; Returns: string[] }
       _borrador_formula_empezado_por: { Args: { p_creado_por: string }; Returns: string }
+      _buscador_interpretar: { Args: { p_texto: string }; Returns: Record<string, unknown> }
       _campo_impacto: {
         Args: { p_tipo: Database['public']['Enums']['tipo_campo']; p_valores: Json[] }
         Returns: Json
@@ -8292,6 +8293,30 @@ export type Database = {
         }[]
       }
       avatares_miniaturas_programar: { Args: { p_url: string }; Returns: undefined }
+      buscador_cotizaciones: {
+        Args: { p_tamano: number; p_texto: string }
+        Returns: {
+          clase: Database['public']['Enums']['clase_cotizacion']
+          creado_en: string
+          estado: Database['public']['Enums']['estado_cotizacion']
+          id: string
+          numero: number
+          origen_id: string
+          titulo: string
+        }[]
+      }
+      buscador_leads: { Args: { p_tamano: number; p_texto: string }; Returns: string[] }
+      buscador_vehiculos: {
+        Args: { p_tamano: number; p_texto: string }
+        Returns: {
+          creado_en: string
+          id: string
+          lote: string
+          origen_id: string
+          titulo: string
+          vin: string
+        }[]
+      }
       cambiar_fase: {
         Args: {
           p_fase_destino: string
@@ -9514,6 +9539,7 @@ export type Database = {
         Args: { p_cc: string; p_lead: string; p_tel: string }
         Returns: Json
       }
+      visita_registrar: { Args: { p_id: string; p_tipo: string }; Returns: undefined }
       vitrina_del_origen: { Args: { p_origen: string }; Returns: Json }
       web_confirmar_contacto: { Args: { p_lead?: string; p_solicitud: string }; Returns: undefined }
       web_expirar_solicitudes: { Args: { p_limite?: number }; Returns: number }
