@@ -2,6 +2,10 @@
 // nace con la suya (la saca el navegador al subir); esto rellena lo que existía, por lotes, cuando la llama el job con un
 // pase de un uso (como storage-gc: supabase/functions/README.md). No decide nada: la base dice qué falta y guarda sólo si el
 // avatar sigue siendo el mismo. Una imagen que no se puede leer queda marcada y no se reintenta cada hora.
+// Antes que @jsquash: @jsquash/webp pide `wasm-feature-detect@^1.2.11` y la 1.10.0 (2026-11-09) usa `import source`, que el runtime de las
+// funciones (Deno 2.1.4, edge-runtime 1.77) no entiende: la función no arrancaba y el e2e de CI caía entero. Importada aquí con la versión
+// fijada en deno.json, Deno resuelve también la de @jsquash a esa. Se quita cuando el runtime la entienda.
+import 'wasm-feature-detect'
 import { decode as decodificarJpeg } from '@jsquash/jpeg'
 import { decode as decodificarPng } from '@jsquash/png'
 import resize from '@jsquash/resize'
