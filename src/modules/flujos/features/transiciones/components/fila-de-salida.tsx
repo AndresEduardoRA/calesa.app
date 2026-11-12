@@ -17,11 +17,23 @@ type Props = {
   // Para que el foco vuelva a este botón al cerrar el diálogo de quitar.
   marca: string
   escribiendo: boolean
+  // Apagado mientras otra forma (agregar o editar otra salida) está abierta.
+  editarDeshabilitado: boolean
+  alPedirEditar: () => void
   alPedirQuitar: () => void
 }
 
-// Una salida de la fase: «Embarcar → Embarcado» como texto, «Pide nota» y «Jubilada» si aplican, quién puede mover por ella y «Quitar».
-export function FilaDeSalida({ flujo, salida, roles, marca, escribiendo, alPedirQuitar }: Props) {
+// Una salida de la fase: «Embarcar → Embarcado» como texto, «Pide nota» y «Jubilada» si aplican, quién puede mover por ella, «Editar» y «Quitar».
+export function FilaDeSalida({
+  flujo,
+  salida,
+  roles,
+  marca,
+  escribiendo,
+  editarDeshabilitado,
+  alPedirEditar,
+  alPedirQuitar,
+}: Props) {
   const destino = nombreDelDestino(flujo, salida)
   const jubilada = flujo.fases.find((f) => f.id === salida.aFaseId)?.activa === false
   return (
@@ -36,6 +48,17 @@ export function FilaDeSalida({ flujo, salida, roles, marca, escribiendo, alPedir
       </div>
       {salida.notaObligatoria ? <Badge variant="secondary">Pide nota</Badge> : null}
       {jubilada ? <Badge variant="secondary">Jubilada</Badge> : null}
+      <Button
+        type="button"
+        variant="outline"
+        className="h-11 md:h-8"
+        data-editar-salida={marca}
+        disabled={escribiendo || editarDeshabilitado}
+        aria-label={`Editar la salida a ${destino}`}
+        onClick={alPedirEditar}
+      >
+        Editar
+      </Button>
       <Button
         type="button"
         variant="outline"

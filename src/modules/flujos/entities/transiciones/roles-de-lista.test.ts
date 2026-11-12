@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { alternarRol, firmaDeRoles, mismosRoles } from './roles-de-lista'
+import type { FlujoParaConfigurar } from '../flujo'
+import {
+  alternarRol,
+  firmaDeRoles,
+  mismosRoles,
+  rolesGuardadosDeFase,
+  rolesGuardadosDeSalida,
+} from './roles-de-lista'
 
 describe('alternarRol', () => {
   it('agrega el rol marcado y quita el desmarcado', () => {
@@ -27,5 +34,22 @@ describe('mismosRoles y firmaDeRoles', () => {
     expect(mismosRoles(['a'], ['a', 'b'])).toBe(false)
     expect(mismosRoles([], [])).toBe(true)
     expect(mismosRoles([], ['a'])).toBe(false)
+  })
+})
+
+describe('roles guardados', () => {
+  const flujo = {
+    rolesPorFase: [
+      { faseId: 'f1', rolId: 'a' },
+      { faseId: 'f2', rolId: 'b' },
+    ],
+    rolesPorTransicion: [{ transicionId: 't1', rolId: 'c' }],
+  } as unknown as FlujoParaConfigurar
+
+  it('lee los de la fase o los de la salida pedida y nada más', () => {
+    expect(rolesGuardadosDeFase(flujo, 'f1')).toEqual(['a'])
+    expect(rolesGuardadosDeFase(flujo, 'f3')).toEqual([])
+    expect(rolesGuardadosDeSalida(flujo, 't1')).toEqual(['c'])
+    expect(rolesGuardadosDeSalida(flujo, 't2')).toEqual([])
   })
 })

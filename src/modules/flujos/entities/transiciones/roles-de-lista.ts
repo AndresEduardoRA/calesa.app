@@ -1,3 +1,5 @@
+import type { FlujoParaConfigurar } from '../flujo'
+
 // La lista de roles que acota quién mueve (a una fase o por una salida), editada de a un rol (5.06-2). Sin I/O.
 
 // Marca o desmarca un solo rol y conserva todo lo demás: los ids que el selector no muestra (más de 100 roles) no se borran al guardar.
@@ -18,4 +20,13 @@ export function firmaDeRoles(roles: readonly string[]): string {
 // Dos listas son la misma si tienen los mismos roles, sin importar el orden ni los repetidos.
 export function mismosRoles(a: readonly string[], b: readonly string[]): boolean {
   return firmaDeRoles(a) === firmaDeRoles(b)
+}
+
+// Los roles guardados hoy para una fase o para una salida: de ahí nace el borrador de cada selector.
+export function rolesGuardadosDeFase(flujo: FlujoParaConfigurar, faseId: string): string[] {
+  return flujo.rolesPorFase.filter((r) => r.faseId === faseId).map((r) => r.rolId)
+}
+
+export function rolesGuardadosDeSalida(flujo: FlujoParaConfigurar, salidaId: string): string[] {
+  return flujo.rolesPorTransicion.filter((r) => r.transicionId === salidaId).map((r) => r.rolId)
 }

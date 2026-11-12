@@ -65,12 +65,11 @@ export const transicionesSupabase: RepositorioDeTransiciones = {
   guardar: async ({ id, actualizadoEnEsperado, cambios }) => {
     const supabase = await createClient()
     // Sólo las claves presentes; `accion: null` viaja como nulo («Mover»), nunca ausente.
-    const p_cambios: Record<string, string | boolean | null> = {}
-    if (cambios.accion !== undefined) {
-      p_cambios.accion = cambios.accion
-    }
-    if (cambios.notaObligatoria !== undefined) {
-      p_cambios.nota_obligatoria = cambios.notaObligatoria
+    const p_cambios = {
+      ...(cambios.accion === undefined ? {} : { accion: cambios.accion }),
+      ...(cambios.notaObligatoria === undefined
+        ? {}
+        : { nota_obligatoria: cambios.notaObligatoria }),
     }
     return comoResultado(
       await supabase.rpc('transicion_guardar', {

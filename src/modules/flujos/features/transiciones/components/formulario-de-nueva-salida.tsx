@@ -3,13 +3,11 @@
 import { useRef } from 'react'
 import { Aviso } from '@/shared/ui/aviso'
 import { Button } from '@/shared/ui/button'
-import { Campo } from '@/shared/ui/campo'
 import { CampoSeleccion } from '@/shared/ui/campo-seleccion'
 import { useCambiosSinGuardar } from '@/shared/ui/cambios-del-panel'
-import { Interruptor } from '@/shared/ui/interruptor'
-import { LARGO_MAXIMO_DE_ACCION } from '../../../entities/transiciones/formulario-de-salida'
 import { useFormularioDeSalida } from '../hooks/use-formulario-de-salida'
 import type { SalidasDeLaFase } from '../hooks/use-salidas-de-la-fase'
+import { CamposDeSalida } from './campos-de-salida'
 
 type Props = { salidas: SalidasDeLaFase; alCerrar: () => void }
 
@@ -48,26 +46,17 @@ export function FormularioDeNuevaSalida({ salidas, alCerrar }: Props) {
         }}
         error={errores.a_fase_id}
       />
-      <Campo
-        nombre="accion"
-        etiqueta="Acción"
-        autoComplete="off"
-        maxLength={LARGO_MAXIMO_DE_ACCION * 2}
-        value={valores.accion}
-        onChange={(evento) => {
-          f.escribir({ accion: evento.target.value }, 'accion')
-        }}
+      <CamposDeSalida
+        accion={valores.accion}
+        notaObligatoria={valores.notaObligatoria}
         error={errores.accion}
-        ayuda="Lo que dirá el botón al mover, por ejemplo «Embarcar». Vacío dice «Mover»."
-      />
-      <Interruptor
-        titulo="Pide nota al mover"
-        ayuda="Quien mueva por esta salida tendrá que escribir una nota."
-        valor={valores.notaObligatoria}
-        alCambiar={(valor) => {
-          f.escribir({ notaObligatoria: valor }, 'de_fase_id')
-        }}
         deshabilitado={f.enCurso}
+        alCambiarAccion={(accion) => {
+          f.escribir({ accion }, 'accion')
+        }}
+        alCambiarNota={(notaObligatoria) => {
+          f.escribir({ notaObligatoria }, 'de_fase_id')
+        }}
       />
       {f.aviso === null ? null : <Aviso tono="peligro">{f.aviso}</Aviso>}
       <div className="flex flex-wrap gap-2">
