@@ -48,6 +48,7 @@ import {
   limpiarTransporte,
 } from '../supabase/tests/areas/transporte/carreras.mjs'
 import { carrerasDeAduana, limpiarAduana } from '../supabase/tests/areas/aduana/carreras.mjs'
+import { carrerasDeStock, limpiarStock } from './carreras/repuestos-stock.mjs'
 
 // La base de ESTE worktree (la principal o un carril: scripts/lib/stack-local.mjs).
 const url = process.env.CARRERAS_DB_URL ?? stackLocal().urlDb
@@ -374,7 +375,9 @@ try {
   await carrerasDelPrincipal({ orquesta, carrera, espero })
   await carrerasDeTransporte({ orquesta, espero, conectar, esperarBloqueo })
   await carrerasDeAduana({ orquesta, espero, conectar, esperarBloqueo })
+  await carrerasDeStock({ orquesta, carrera, espero })
 } finally {
+  await limpiarStock(orquesta).catch((e) => fallas.push(`limpiar el stock: ${e.message}`))
   await limpiarAduana(orquesta).catch((e) => fallas.push(`limpiar la aduana: ${e.message}`))
   await limpiarTransporte(orquesta).catch((e) => fallas.push(`limpiar el transporte: ${e.message}`))
   await limpiarDinero(orquesta).catch((e) => fallas.push(`limpiar los gastos: ${e.message}`))

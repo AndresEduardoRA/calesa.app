@@ -6,6 +6,7 @@
 --       conserva su valor; uno que usa una línea de cotización, 23514. Sin `repuestos.configurar`, el borrado no toca filas (policy).
 --   K2. Sin `repuestos.configurar`, crear un valor da 42501 (policy de INSERT); con él, pasa (8.08-2: las actions escriben directo bajo RLS).
 --   K3. Sin `repuestos.configurar`, renombrar un valor no toca filas; con él, toca una (policy de UPDATE).
+--   K4. (8.10-1, H1 de 8.08-2) Con `repuestos.configurar`, cambiar `catalogo`, `id` o `datos` de un valor da 42501 (UPDATE sólo de nombre, activo y orden).
 
 create or replace function pg_temp.rp_sin_duena() returns void language plpgsql as $f$
 begin
@@ -151,5 +152,31 @@ begin
      <> '1'::jsonb then
     raise exception 'K3: con repuestos.configurar no se renombró el valor';
   end if;
+end $$;
+rollback;
+
+-- @test repuestos: un valor no cambia de catálogo, de id ni de datos; nombre, activo y orden sí (K4)
+begin;
+do $$
+declare
+  conf uuid := pg_temp.rp_persona(array['repuestos.configurar']);
+  v uuid;
+begin
+  insert into public.repuestos_catalogos (catalogo, nombre) values ('condicion', 'rpk columnas') returning id into v;
+  perform pg_temp.rp_es('K4 catalogo', pg_temp.rp_corre(conf, format(
+    'with x as (update public.repuestos_catalogos set catalogo = %L where id = %L returning 1) select to_jsonb(count(*)) from x', 'pais_origen', v)),
+    '42501', null);
+  perform pg_temp.rp_es('K4 id', pg_temp.rp_corre(conf, format(
+    'with x as (update public.repuestos_catalogos set id = %L where id = %L returning 1) select to_jsonb(count(*)) from x', gen_random_uuid(), v)),
+    '42501', null);
+  perform pg_temp.rp_es('K4 datos', pg_temp.rp_corre(conf, format(
+    'with x as (update public.repuestos_catalogos set datos = %L where id = %L returning 1) select to_jsonb(count(*)) from x', '{"a": 1}', v)),
+    '42501', null);
+  if pg_temp.rp_ok('K4 nombre, activo y orden', pg_temp.rp_corre(conf, format(
+    'with x as (update public.repuestos_catalogos set nombre = %L, activo = false, orden = 7 where id = %L returning 1) select to_jsonb(count(*)) from x',
+    'rpk otro', v))) <> '1'::jsonb then
+    raise exception 'K4: con repuestos.configurar no se guardó el valor';
+  end if;
+  if (select catalogo from public.repuestos_catalogos where id = v) <> 'condicion' then raise exception 'K4: el valor cambió de catálogo'; end if;
 end $$;
 rollback;

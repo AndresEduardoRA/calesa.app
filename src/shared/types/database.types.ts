@@ -4987,6 +4987,7 @@ export type Database = {
           id: number
           item_id: string
           motivo: string
+          nota: string | null
           usuario_id: string | null
         }
         ComputedFields: never
@@ -4996,6 +4997,7 @@ export type Database = {
           id?: never
           item_id: string
           motivo: string
+          nota?: string | null
           usuario_id?: string | null
         }
         Update: {
@@ -5004,6 +5006,7 @@ export type Database = {
           id?: never
           item_id?: string
           motivo?: string
+          nota?: string | null
           usuario_id?: string | null
         }
         Relationships: [
@@ -8579,6 +8582,49 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      _repuesto_stock_aplicar: {
+        Args: {
+          p_con_signo: number
+          p_item: Omit<
+            Database['public']['Tables']['repuestos_items']['Row'],
+            Database['public']['Tables']['repuestos_items']['ComputedFields']
+          >
+          p_motivo: string
+          p_nota: string
+        }
+        Returns: Json
+      }
+      _repuesto_stock_item: {
+        Args: { p_item: string }
+        Returns: {
+          actualizado_en: string
+          cantidad: number
+          condicion_id: string | null
+          creado_en: string
+          creado_por: string | null
+          descripcion: string
+          eliminado_en: string | null
+          en_stock_desde: string | null
+          fase_desde: string | null
+          fase_id: string | null
+          id: string
+          modo_transporte_id: string | null
+          moneda: string | null
+          notas: string | null
+          pais_origen_id: string | null
+          precio_cliente: number | null
+          proyecto_id: string
+          stock_cantidad: number
+          tipo_pieza_id: string | null
+          tracking: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'repuestos_items'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       _requisito_aplicar: {
         Args: {
           p_datos: Json
@@ -10335,6 +10381,20 @@ export type Database = {
         Args: { p_eliminado_en_esperado: string; p_proyecto: string }
         Returns: Json
       }
+      repuesto_stock_mover: {
+        Args: {
+          p_item: string
+          p_motivo: string
+          p_nota?: string
+          p_stock_esperado: number
+          p_unidades: number
+        }
+        Returns: Json
+      }
+      repuesto_stock_reasignar: {
+        Args: { p_id: string; p_item: string; p_proyecto_destino: string; p_unidades: number }
+        Returns: Json
+      }
       repuestos_pendientes_de_vehiculo: {
         Args: { p_tope?: number; p_vehiculo: string }
         Returns: {
@@ -10368,6 +10428,21 @@ export type Database = {
           vehiculo_id: string
           vehiculo_titulo: string
           vin: string
+        }[]
+      }
+      repuestos_stock_listar: {
+        Args: { p_cursor_en: string; p_cursor_id: string; p_tamano: number }
+        Returns: {
+          descripcion: string
+          en_stock_desde: string
+          id: string
+          proyecto_cerrado_en: string
+          proyecto_id: string
+          proyecto_numero: number
+          stock_cantidad: number
+          vehiculo_etiqueta: string
+          vehiculo_id: string
+          vehiculo_titulo: string
         }[]
       }
       requisito_crear: {

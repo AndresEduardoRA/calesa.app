@@ -5,9 +5,9 @@ Calendario de eventos, tareas con responsable, recordatorios de leads y subastas
 ## Entra y sale
 
 - Entra: alta desde la agenda, desde el chat (`/tarea`, `/evento`) y desde la ficha del lead (recordatorios); fechas de subasta de `vehiculos`.
-- Sale: `leerAgenda({ desde, hasta, deTodos })`, `leerEvento(id, yo)` y `leerTarea(id)` (el detalle por id; `index.ts`, con las reglas puras del calendario), `<ChipEvento>` (`client.ts`), `leerRecordatorio(id)` y `leerMisTareas({ tope })` (la bandeja de `tablero`; `estaVencida()`), `crearTarea()` para el chat; las actions de crear, guardar, eliminar, completar y reasignar una tarea las usa la propia pantalla. Lo consumen `chat`, `tablero`, `notificaciones` (cron de recordatorios).
+- Sale: `leerAgenda({ desde, hasta, deTodos })`, `leerEvento(id, yo)` y `leerTarea(id)` (el detalle por id; `index.ts`, con las reglas puras del calendario), `<ChipEvento>` (`client.ts`), `leerRecordatorio(id)` y `leerMisTareas({ tope })` (la bandeja de `tablero`; `estaVencida()`), `crearTarea()`; el chat usa por `client.ts` el `SelectorDePersonas`, `leerPersonasParaTarea(texto, conversacion?)`, las reglas puras del formulario (`validarTarea`, `datosDeTareaNueva`, `validarEvento`, `datosDeEventoNuevo`, `destinatariosDeEvento`) y la action `completarTarea` (la RPC decide quién completa; 7.10-3); las actions de crear, guardar, eliminar, completar y reasignar una tarea las usa la propia pantalla. Lo consumen `chat`, `tablero`, `notificaciones` (cron de recordatorios).
 - Pantalla: `pantallas/agenda.ts` (`CalendarioDeAgenda`, `EsqueletoDeCalendario`, `PanelesDeAgenda`), sólo `src/app/(app)/agenda`.
-- Depende de: `leads` (la action `completarRecordatorio`, por su `client.ts`), `vehiculos`, `cotizaciones`, `chat` (la conversación donde nace una tarea).
+- Depende de: `leads` (la action `completarRecordatorio`, por su `client.ts`), `vehiculos`, `cotizaciones`. `chat` depende de `agenda`, no al revés: la conversación de una tarea llega por la RPC `mensaje_tarea_crear`.
 
 ## Archivos clave
 
