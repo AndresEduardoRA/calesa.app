@@ -2,7 +2,7 @@
 
 Motor único de flujos: fases, transiciones, requisitos (documento | dato | espera), roles por fase y transición, reglas por flujo, jubilar/eliminar, revisión de coherencia y la RPC `cambiar_fase` que mueve vehículos y repuestos.
 
-**Fase 5 cerrada el 2026-11-12** (5.13): toda la configuración por RPC con la versión del flujo. Deja a la Fase 6 mover (6.04), los catálogos de puertos y navieras (6.08) y el requisito de dato con su regla apagada (**6-4**); y a la 8, la rama de repuestos de mover (8.13).
+**Fase 5 cerrada el 2026-11-12** (5.13): toda la configuración por RPC con la versión del flujo. Deja a la Fase 6 mover (6.04), los catálogos de puertos y navieras (6.08) y el requisito de dato con su regla apagada (**6-4**); y a la 8, la rama de repuestos de mover (8.13). La **Fase 6** cerró el 2026-11-12 (6.14): logística mueve por el área `mover`; 6-4 sigue abierto y lo decide la persona.
 
 ## Entra y sale
 
