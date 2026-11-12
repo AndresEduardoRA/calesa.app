@@ -12,10 +12,11 @@ export type LectorDeGuias = (pedido: {
 // La guía entera, o `null` si ya no existe.
 export type LectorDeGuia = (id: string) => Promise<Resultado<GuiaCompleta | null>>
 
-// Categorías y autores para los selectores de la guía; `categoriaActual` entra aunque esté desactivada.
-export type LectorDeOpcionesDeGuia = (
-  categoriaActual: string | null,
-) => Promise<Resultado<OpcionesDeGuia>>
+// Categorías y autores para los selectores de la guía; la categoría y el autor actuales entran aunque ya no estén activos.
+export type LectorDeOpcionesDeGuia = (actuales: {
+  categoriaId: string | null
+  autorId: string | null
+}) => Promise<Resultado<OpcionesDeGuia>>
 
 // Lo que cambia al guardar una guía; vacío es nulo en los campos opcionales.
 export type CamposDeGuia = {
