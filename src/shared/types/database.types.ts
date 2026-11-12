@@ -11345,6 +11345,7 @@ export type Database = {
           color_acento: string
           iconos: Json
           locale: string
+          logo_oscuro_ruta: string
           logo_ruta: string
           moneda_base: string
           nombre: string
