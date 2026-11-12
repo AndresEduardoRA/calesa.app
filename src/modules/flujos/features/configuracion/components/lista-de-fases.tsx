@@ -138,9 +138,7 @@ export function ListaDeFases({ flujo, nombreDelFlujo, huecos, alAbrir }: Props) 
           >
             Fases
           </h2>
-          <p className="text-(length:--text-sm) text-(--color-ink-soft)">
-            En el orden del flujo. Por ahora sólo se pueden mirar.
-          </p>
+          <p className="text-(length:--text-sm) text-(--color-ink-soft)">En el orden del flujo.</p>
         </div>
         {AccionesDeLaLista ? <AccionesDeLaLista flujo={flujo} /> : null}
       </div>

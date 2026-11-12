@@ -58,4 +58,9 @@ export const REGISTRO: Record<string, ConfirmarConUrl> = {
     abre: 'src/modules/logistica/features/dinero/hooks/use-eliminar-categoria-por-url.ts',
     senal: 'PANEL_ELIMINAR_CATEGORIA',
   },
+  // `?panel=eliminar-valor&valor=<id>` (8.08-3).
+  'src/modules/repuestos/features/catalogos/components/eliminar-valor.tsx': {
+    abre: 'src/modules/repuestos/features/catalogos/hooks/use-eliminar-valor-por-url.ts',
+    senal: 'PANEL_ELIMINAR_VALOR',
+  },
 }

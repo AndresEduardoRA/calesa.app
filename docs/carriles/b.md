@@ -15,4 +15,10 @@ Cada entrada: `## AAAA-MM-DD — <tema>` (fecha de `TZ=America/La_Paz date +%F`)
 
 ## Entradas
 
-(Todavía ninguna.)
+## 2026-11-11 — 5.04-3: el inspector › Datos de una fase
+
+- **Hecho:** `<DatosDeLaFase>` llena el hueco `bloques.datos`; el registro del drawer pasó a `formulario`. Detalle en `docs/pasos/5.04-3/`.
+- **Microdecisiones de texto:** bloques «Identidad», «En el flujo», «Alerta por demora», «Transporte y aduana» y «Web y portal»; interruptores «Es inicial», «Es final»,
+  «Pide nota al entrar», «Es logística», «Permite contenedor», «Permite aduana», «Llegada de repuestos», «Se publica en la web» y «Visible en el portal»; campos «Demora (días)»,
+  «Repetir la alerta cada (horas)», «Nombre para el cliente» y «Descripción para el cliente». El aviso de otra inicial es el de la entidad (`avisoDeOtraInicial`).
+- **Para ESTADO / PLAN:** el 5.04 está completo (`docs/pasos/5.04-1` a `5.04-3`).
