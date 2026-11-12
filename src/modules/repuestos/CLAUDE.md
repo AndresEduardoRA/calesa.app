@@ -58,7 +58,11 @@ El módulo se parte por **área** (8.08-2, igual que `logistica`) para que los p
 
 ## Archivos clave
 
-- `entities/cotizador.ts` — fórmula importado (costo × factor + logística + caja) / local ((costo + logística + caja) × (1 + recargo)) con redondeo del snapshot; tests.
+- `entities/cotizador/` (8.12-1) — `formula.ts` (`calcularLinea`, `sugerirLogistica`, `totalDeLaCotizacion`, `TOPE_DE_LINEAS`): importado = costo × factor + logística +
+  caja; local = (costo + logística + caja) × (1 + recargo); por unidad, el unitario al múltiplo de `redondeo` (mitad hacia arriba) y × cantidad. Exacta: `decimal.ts`
+  (enteros a escala fija, nunca `float`). `snapshot.ts` (`leerSnapshot`: el `config_snapshot` v1, números como texto). `casos-del-cotizador.json` son los casos que
+  corren los dos lados: `formula.test.ts` y `supabase/tests/areas/repuestos/cotizador.sql` (copia literal; `casos.test.ts` cae si difieren). La fórmula de la base es
+  `_repuesto_cotizacion_linea`: cambiar una exige cambiar la otra y el JSON.
 - `entities/stock/` (8.10-1) — `motivos.ts` (los cinco motivos, su sentido y su texto; `MOTIVOS_POR_MOVER`, `MOTIVOS_CON_BOTON`), `reglas.ts` (espejo de las RPC del stock:
   `disponibleParaStock`, `validarMovimiento`, `validarReasignacion`, `enStockTras`; los textos son los de la base y un test lo compara con la migración) y `listado.ts`
   (la fila de `repuestos_stock_listar` y su cursor `(en_stock_desde, id)` con `codificarCursor` de `shared`, sin «Anterior»).
@@ -88,6 +92,12 @@ El módulo se parte por **área** (8.08-2, igual que `logistica`) para que los p
 - Es el **ítem**, no el proyecto, el que recorre el flujo; el estado del proyecto se deriva. Mover pasa por `cambiar_fase(repuesto_id)`.
 - Ningún costo vive en `repuestos_items` (RLS no esconde columnas): compras y pagos tienen su tabla y su permiso (`repuestos.costos.*`).
 - `repuestos_cotizador_config` es append-only: la vigente es la de id más alto; una cotización congela su `config_snapshot`.
+- **Las cotizaciones se escriben sólo por RPC** (8.12-1): `repuestos_cotizacion_crear` (congela la config de id más alto, los tramos y las cajas activos de la
+  moneda; idempotente por id), `_guardar` (reemplaza las líneas y recalcula cada total con **su** snapshot; mandar `total` o una sugerencia da 22023; el error de
+  una línea dice «Línea N», con `hint` = campo y `detail` = id), `_aceptar` (pide además `repuestos.editar`: copia el unitario y la moneda a cada ítem vivo y anula
+  la aceptada anterior; **una sola aceptada por proyecto**, índice parcial) y `_anular` (no revierte precios). Todas piden `repuestos.cotizar` y `repuestos.ver` y el
+  proyecto vivo y abierto. Aceptada o anulada no se edita. Sin INSERT, UPDATE ni DELETE directos en cotizaciones y líneas.
+- Dos tramos activos de logística de una misma moneda no se cruzan (`trg_tramo_sin_solape`, 23P01 hint `costo_min`); contiguos sí.
 - Un ítem con historial, documentos, compras, gastos o stock no se borra: pasa a stock o se marca perdido (fase final sin llegar).
 - Proyectos e ítems se crean, cierran, eliminan y restauran **sólo por RPC** (sin INSERT directo; `eliminado_en`, `cerrado_en`, `vehiculo_id`, `fase_id` y
   `stock_cantidad` no tienen grant de UPDATE). Toda RPC que escribe pide `repuestos.editar`. Un proyecto sólo se elimina vacío.
