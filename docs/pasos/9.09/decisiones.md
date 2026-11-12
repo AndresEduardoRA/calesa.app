@@ -17,3 +17,21 @@
   dedicado ni cuenta de cinco corridas. **9-6 sigue abierto con la persona** (cuenta 3 de 5; faltan dos corridas manuales).
 - **La guarda nueva va aparte** (`workflows-fallo.ts`): `workflows.ts` (298 líneas) y su test (338) no crecen.
 - Sin dependencias nuevas en ninguna parte.
+
+## 9.09-2 · esperas del e2e (9-9 y 9-10)
+
+- **El ayudante envuelve la acción.** `conRespuesta(page, coincide, accion, espera)` recibe la acción y no una promesa ya armada: así la espera
+  queda siempre armada antes del clic. `espera` es la etiqueta (tope de 30 s) o `{ etiqueta, tope }`: el lint limita a 4 los parámetros.
+- **9-9: 5 de 5, no 15 de 15** (decidido el 2026-11-08: no se gasta en estabilizar). Sin variable permanente `E2E_CPU` en el fixture: el parche
+  fue temporal. Con la CPU a 20× una prueba entera supera los 30 s del tiempo de la prueba: se corrió con `--timeout` alto y sólo los casos
+  tocados. `esperarHidratado(page, tope = 5_000)` gana un tope opcional; el resumen del lead lo pide de 30 s.
+- **9-10: un caso por archivo** con el pedido demorado 6 s. El de `leads-escala` va a `leads-escala-demorado.spec.ts` (el archivo pasaba del tope
+  de líneas) y no lleva `@sin-celular` porque la guarda no lo deja: sus ayudantes tienen rama de celular; sale del celular con `test.skip`.
+- **`escala-recorrido` sin correr.** No hay volumen sembrado en la base del carril y sembrarlo es un paso largo fuera del alcance: queda escrito,
+  tipado por el build del e2e, y el informe lo dice.
+- **Las líneas de PLAN de 9-9 y 9-10 eran de antes del 7.x**: la lista de sitios del plan (`.piloto/planes/9.09-2.md`) las reubicó. 9-9 y 9-10
+  se cierran con este paso; la fila 9.09 queda «hechas las partes 1, 2 y 3; falta la 4 (4-41) = 9.09-3».
+- **Pedido al integrador** (`.claude/rules/e2e.md` está fuera de los módulos del paso): sumar una línea en «Escribir specs»: «un pedido se espera
+  con `conRespuesta()` y tope propio: `soporte/esperas.ts`».
+- **Trampa del build:** si `next build` cae con «Type '/tablero' is not assignable to RouteImpl», `pnpm typecheck` (que corre `next typegen`)
+  lo arregla; no era del código.
