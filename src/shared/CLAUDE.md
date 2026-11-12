@@ -25,7 +25,8 @@ Ficha completa (cada componente con su historia y sus trampas): `docs/archivo/mo
 - `lib/filtros/` — filtros declarativos de un listado, sin nuqs ni módulos (`EsquemaDeFiltros`, `leerFiltros()`, `chipsDe()`, `cumpleElMinimo()`); `campos.ts` traduce campos del layout a filtros.
 - `lib/campos/` — motor de campos configurables, sin I/O (`TIPOS_DE_CAMPO`, `esquemaDeValor()`, `valorMostrado()`, `campoDeFormulario()`); `ui/campos/` trae `<EditorDeCampos>`, `<DatosPorGrupo>`, `<CampoDeFormulario>`.
 - `lib/ancho.ts` — `anchoDeLaPeticion()` y los cortes `CORTE_DEL_TABLERO`/`CORTE_DE_LA_TABLA`/`CORTE_DEL_PANEL`; `ui/ancho-de-pantalla.tsx` (`useAlMenos()`).
-- `lib/atajos.ts` + `ui/atajos/` — `ATAJOS`, `<ProveedorAtajos>`, `useAtajo()`: responde el último registrado.
+- `lib/atajos.ts` + `ui/atajos/` — `ATAJOS`, `teclasDelAtajo()`, `<ProveedorAtajos>`, `useAtajo()`: responde el último registrado. `<AyudaDeAtajos>` registra `?` y abre
+  `<ListaDeAtajos>` («Atajos de teclado», un `Dialog` sin URL con una fila por clave de `ATAJOS`; su código viaja por `diferido()` hasta pulsar `?`).
 - `lib/color.ts` (`tokensDeMarca()`, `cssDeMarca()`), `lib/imagenes.ts` (`comprimirImagen()`, `extensionDe()`, `hashDe()`), `lib/almacen.ts`, `lib/iconos.ts` (catálogo cerrado de 24 iconos), `lib/apibara.ts`.
 - `config/esquemas.ts` — el entorno en Zod (puro): `entornoPublico()`, `entornoDelServidor()`, el arranque, el build y `pnpm env:check`. `config/app.ts`: nombre y colores.
 - `lib/email/` — `enviarEmail()`: la única puerta del correo; un adaptador REST por proveedor (`EMAIL_PROVEEDOR`: `mailpit`, `resend` y `cloudflare`); `proveedor.ts` elige el adaptador y `pnpm email:probar <destino>` manda uno de prueba. Un archivo no se llama `resend.ts`: el lint prohíbe importar algo llamado `resend`.

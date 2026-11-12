@@ -5,7 +5,7 @@ Paleta global (Ctrl/Cmd+K) que busca leads, vehículos, cotizaciones y acciones 
 ## Entra y sale
 
 - Entra: texto (el mínimo de `MINIMO_DE_BUSQUEDA`: 3 letras o dígitos seguidos, o un número de lead o cotización), atajos de teclado.
-- Sale: `client.ts` (las lecturas por sección, `leerUltimosAbiertos()`, `agruparResultados()`, `seccionesQueBuscan()` y los tipos); `<Buscador>` montado en `app/` (7.13).
+- Sale: `client.ts` (las lecturas por sección, `leerUltimosAbiertos()`, `agruparResultados()`, `seccionesQueBuscan()` y los tipos); `shell.client.ts` (`<Buscador>`), que monta `HuecoBuscador` en `src/app/(app)/_shell/huecos/buscador.tsx` (7.13).
   7.10 (`chat`) importa `@/modules/buscador/client` para las menciones `#` y suma `chat --> buscador` (sin ciclo: buscador no importa chat).
 - Depende de: `leads`, `vehiculos`, `cotizaciones` sólo por la base (las RPC de abajo y `leads_vista_por_ids` para hidratar); no importa sus módulos.
   `interpretarBusqueda()` de `@/modules/leads/client` la llama la feature (7.13), no `entities` ni `infra`.
@@ -26,7 +26,17 @@ Paleta global (Ctrl/Cmd+K) que busca leads, vehículos, cotizaciones y acciones 
   bajo su RLS (leads por `leads_vista_por_ids`, vehículos y cotizaciones por PK con columnas con grant), en paralelo; lo que no llega sale sin marcador.
 - `supabase/tests/medir-buscador.sql` (7.12-2): `buscador_cotizaciones` con 50.000 y 250.000 (número, título común y raro, la dueña y Ana), con su guarda sin el GIN;
   `MEDIR_SOLO=medir-buscador pnpm db:medir:volumen` tras `pnpm db:sembrar-volumen` (después, `pnpm db:reset`).
-- `features/paleta/` (7.13).
+- `features/paleta/` (7.13-1): `actions/registrar-visita.ts` (Server Action sobre `visita_registrar`; esquema en `schemas/visita.ts`, repositorio `RepositorioDeVisitas` →
+  `infra/visitas.ts` → `composicion.ts`) y `components/registrar-visita.tsx`, `<RegistrarVisita tipo id />`, sin DOM, una vez por (tipo, id) y sin avisar si falla;
+  sale por `pantallas/visita.ts` y lo montan las tres fichas (`/leads/[id]`, `/vehiculos/[id]`, `/cotizaciones/[id]`) **después** de sus salidas «no disponible».
+  La lógica de la paleta (7.13-2, sin UI): `entities/acciones-de-la-paleta.ts` (`filtrarAcciones`, datos simples sin permisos), `entities/telefono-en-la-busqueda.ts`
+  (`pareceTelefono`), `entities/estado-de-la-paleta.ts` (los estados y `estadoDeError`), `composicion.client.ts` y `features/paleta/hooks/` (`useBusquedaDeLaPaleta`,
+  `useUltimosAbiertos`; reciben `abierta` y no consultan hasta que sea verdadero).
+  La paleta (7.13-3): `entities/ruta-de-resultado.ts` (`rutaDeLaFicha`, `rutaDeVerTodos`, puro), `components/` con `buscador.tsx` (el botón de la barra con la regla de ancho de 44 px
+  bajo 24 rem y `useAtajo('buscar')`, idempotente), `paleta.tsx` (`CommandDialog` sin URL, `shouldFilter={false}`, texto propio; lo que elige navega con `router.push`), `cuerpo-de-la-paleta.tsx`
+  con `ultimos-abiertos.tsx`, `lista-de-resultados.tsx` y `fila-de-resultado.tsx` (los estados: buscando, sin resultados, error y sin conexión con «Reintentar», «No se busca por teléfono») y
+  `diferidos.tsx` (la paleta viaja con `diferido()` y se adelanta al llegar el puntero). Sale por `shell.client.ts` (`Buscador`, `AccionDeLaPaleta`); el layout le pasa las acciones ya filtradas
+  por `puede()` (`src/app/(app)/_shell/acciones-de-la-paleta.ts`) y `HuecoBuscador` une `leads` («Nuevo lead») con la lista de atajos de `?`.
 
 ## Tablas
 
@@ -52,7 +62,8 @@ RPC (todas de `authenticated`, ninguna de `anon`; tamaño por `_acotar_pagina(p_
 ## Ojo
 
 - Quien cancela una búsqueda descarta su respuesta mirando su `signal`: la lectura no lanza ni tiene un valor «cancelada» (D14).
-- Registrar la visita es una escritura: va por Server Action en el 7.13 (`<RegistrarVisita>`), no desde `infra/*.client.ts` (D16).
+- Registrar la visita es una escritura: va por Server Action (`<RegistrarVisita>`, hecho en 7.13-1), no desde `infra/*.client.ts` (D16).
 
 - Debounce de 250 ms y mínimo 3 caracteres: el buscador fue una fuente de peticiones innecesarias en `ip`.
+- `pareceTelefono` omite la sección de leads (≥ 7 dígitos sin `#`); «sin conexión» = `navigator.onLine` falso o `MENSAJE_SIN_CONEXION` (no hay un código propio).
 - Con `SOLO=` la primera cuenta creada es la dueña: `buscador.sql` crea una de relleno antes de sus personas.
