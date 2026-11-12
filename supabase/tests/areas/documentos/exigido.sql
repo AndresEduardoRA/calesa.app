@@ -129,8 +129,8 @@ declare f uuid; g uuid; fl uuid := (select id from public.flujos where origen_id
 begin
   insert into public.fases (flujo_id, nombre) values (fl, 'DC exige') returning id into f;
   insert into public.fases (flujo_id, nombre) values (fl, 'DC otra') returning id into g;
-  insert into public.fases_requisitos (fase_id, tipo, tipo_documento_id, min_archivos) values (f, 'documento', p_tipo, p_min);
-  insert into public.fases_requisitos (fase_id, tipo, tipo_documento_id) values (g, 'documento', p_otro);
+  insert into public.fases_requisitos (fase_id, tipo, tipo_documento_id, min_archivos, bloqueante) values (f, 'documento', p_tipo, p_min, true);
+  insert into public.fases_requisitos (fase_id, tipo, tipo_documento_id, bloqueante) values (g, 'documento', p_otro, true);
   update public.vehiculos set fase_id = f where id = (e ->> 'v1')::uuid;
 end $f$;
 

@@ -81,7 +81,7 @@ async function terrenoDeDocumentos(db) {
     [flujo.id, `${PREFIJO} exigido`],
   )
   await db.query(
-    `insert into public.fases_requisitos (fase_id, tipo, tipo_documento_id, min_archivos) values ($1, 'documento', $2, 1)`,
+    `insert into public.fases_requisitos (fase_id, tipo, tipo_documento_id, min_archivos, bloqueante) values ($1, 'documento', $2, 1, true)`,
     [fase.id, tipo.id],
   )
   const {
