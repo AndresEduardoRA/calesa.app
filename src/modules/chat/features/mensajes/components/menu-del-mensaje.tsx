@@ -1,6 +1,6 @@
 'use client'
 
-import { MoreHorizontalIcon, PencilIcon, ReplyIcon } from 'lucide-react'
+import { MoreHorizontalIcon, PencilIcon, ReplyIcon, Trash2Icon } from 'lucide-react'
 import { useRef, useState } from 'react'
 import {
   DropdownMenu,
@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu'
 import type { Mensaje } from '../../../entities/mensajes'
-import { puedeEditar, puedeResponder } from '../../../entities/reglas-del-mensaje'
+import { puedeBorrar, puedeEditar, puedeResponder } from '../../../entities/reglas-del-mensaje'
 import type { AccionesDelMensaje } from '../acciones-del-hilo'
 
 const RENGLON = 'min-h-11 md:min-h-8'
@@ -28,6 +28,7 @@ export function MenuDelMensaje({
   const [ahora, setAhora] = useState(0)
   const responder = puedeResponder(mensaje)
   const editar = puedeEditar(mensaje, acciones.usuarioId, ahora)
+  const borrar = puedeBorrar(mensaje, acciones.usuarioId, acciones.puedeModerar)
   if (!responder) {
     return null
   }
@@ -74,6 +75,19 @@ export function MenuDelMensaje({
           >
             <PencilIcon aria-hidden />
             Editar
+          </DropdownMenuItem>
+        ) : null}
+        {borrar ? (
+          <DropdownMenuItem
+            variant="destructive"
+            className={RENGLON}
+            onClick={() => {
+              eligio.current = true
+              acciones.pedirBorrado(mensaje.id)
+            }}
+          >
+            <Trash2Icon aria-hidden />
+            Borrar
           </DropdownMenuItem>
         ) : null}
       </DropdownMenuContent>

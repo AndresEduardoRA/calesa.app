@@ -5,11 +5,13 @@ import type { Conversacion } from '../../../entities/conversaciones'
 import type { Mensaje } from '../../../entities/mensajes'
 import { citaDe } from '../../../entities/reglas-del-mensaje'
 import type { AccionesDelMensaje } from '../acciones-del-hilo'
+import { useBorradoPorUrl } from '../hooks/use-borrado-por-url'
 import { useEdicion } from '../hooks/use-edicion'
 import { useEnvio } from '../hooks/use-envio'
 import { useHilo } from '../hooks/use-hilo'
 import { useMarcarLeido } from '../hooks/use-marcar-leido'
 import { useScrollDelHilo } from '../hooks/use-scroll-del-hilo'
+import { ConfirmarBorrado } from './confirmar-borrado'
 import { CuerpoDelHilo } from './cuerpo-del-hilo'
 import { Redactor } from './redactor'
 
@@ -17,10 +19,11 @@ type Props = {
   conversacion: Conversacion
   usuarioId: string
   zona: string
+  puedeModerar: boolean
 }
 
 // El hilo de la conversación abierta: los mensajes y, abajo, donde se escribe. Enviar estando mirando desde una fecha vuelve a lo más reciente.
-export function Hilo({ conversacion, usuarioId, zona }: Props) {
+export function Hilo({ conversacion, usuarioId, zona, puedeModerar }: Props) {
   const hilo = useHilo({ conversacion: conversacion.id, zona })
   const contenedor = useScrollDelHilo(hilo.mensajes, usuarioId)
   // El mensaje al que se está respondiendo: su cita va sobre el redactor y el foco pasa al campo.
@@ -32,12 +35,20 @@ export function Hilo({ conversacion, usuarioId, zona }: Props) {
     }
   }, [respondiendoA])
   const edicion = useEdicion({ reemplazar: hilo.reemplazar })
+  const borrado = useBorradoPorUrl({
+    mensajes: hilo.mensajes,
+    usuarioId,
+    puedeModerar,
+    cargada: hilo.lectura === 'listo',
+  })
   const acciones: AccionesDelMensaje = {
     usuarioId,
+    puedeModerar,
     responder: setRespondiendoA,
     editandoId: edicion.editandoId,
     empezarAEditar: edicion.empezar,
     cancelarEdicion: edicion.cancelar,
+    pedirBorrado: borrado.abrir,
     guardarEdicion: edicion.guardar,
   }
   const envio = useEnvio({
@@ -83,6 +94,12 @@ export function Hilo({ conversacion, usuarioId, zona }: Props) {
           }}
         />
       )}
+      <ConfirmarBorrado
+        objetivo={borrado.mensaje}
+        usuarioId={usuarioId}
+        alBorrar={hilo.reemplazar}
+        alCerrar={borrado.cerrar}
+      />
     </div>
   )
 }
