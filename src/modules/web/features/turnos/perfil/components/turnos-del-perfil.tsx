@@ -23,7 +23,7 @@ export async function TurnosDelPerfil({
         disponible={mia?.disponible ?? false}
         miraOtroRol={miraOtroRol}
       />
-      {mia ? <FichaEnLaWeb key={mia.actualizadoEn} ficha={mia} miraOtroRol={miraOtroRol} /> : null}
+      {mia ? <FichaEnLaWeb ficha={mia} miraOtroRol={miraOtroRol} /> : null}
     </>
   )
 }
