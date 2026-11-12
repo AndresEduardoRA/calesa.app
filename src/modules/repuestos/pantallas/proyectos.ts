@@ -6,3 +6,7 @@ export { DrawerDeNuevoProyectoDiferido } from '../features/proyectos/components/
 export { ListadoDeProyectos } from '../features/proyectos/components/listado-de-proyectos'
 export { useNuevoProyectoPorUrl } from '../features/proyectos/hooks/use-nuevo-proyecto-por-url'
 export { CabeceraDeProyecto } from '../features/proyectos/components/cabecera-de-proyecto'
+export {
+  buscarProyectoAbierto,
+  interpretarBusquedaDeProyecto,
+} from '../features/proyectos/hooks/buscar-proyecto-abierto'
