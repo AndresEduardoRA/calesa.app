@@ -2152,3 +2152,1526 @@ share` los vehículos y después los leads del lote, por id, antes de cualquier 
   porque la clave de la URL se importaba desde un archivo `'use client'` (llegaba al servidor como referencia): ver decisión D17.
 - **6.01 queda completo:** las tres partes (C1 a C17) están hechas; el kanban y los huecos llenos son de 6.03 y de cada área.
 - e2e completo: no (6.01-3, Nivel 1: lo corre el CI del PR; los dirigidos `e2e/logistica-unidad.spec.ts` y `e2e/configuracion-logistica.spec.ts` en verde)
+
+<!-- paso:5.03 -->
+
+## 2026-11-11 — Paso 5.03: la base de «Tipos de documento»
+
+- **Hecho:** los tipos de documento se escriben sólo por RPC `security definer`: `tipo_documento_crear`, `_guardar`, `_mover`, `_eliminar` y
+  `tipos_documento_con_uso`. El grupo global pide `logistica.catalogos.gestionar`; el de un flujo, `puede_configurar_flujo()`. Tienen versión por fila
+  (trigger propio, ordenar no la mueve), `PT409` y validación de nombre, formatos y vencimiento con su `hint`. Achicar los formatos que pide un requisito
+  falla, y `fase_requisito_validar()` lee los formatos `for share`. En uso, el tipo se desactiva; sin uso, se borra. Sin las policies «crear» y «editar» y
+  sin `insert`, `update` ni `delete` para `authenticated`. El vencimiento queda explicado con `comment on column`. «Tipo de documento» entra en GLOSARIO.
+- **Para PLAN (coordinador):** el 5.03 se hizo en una parte (la fila estimaba 2). Hay que sumar a la fila 6.05 este pendiente: apagar
+  `visible_portal_permitido` no oculta los documentos que ya se muestran en el portal, porque el portal lee `documentos.visible_portal` (D8 del paso).
+- **Verificación** (`.piloto/salidas/5.03/`):
+  - `pnpm db:probar` entero en HEAD: 774 ✓, 0 ✗ (`probar-final.log`).
+  - El área: `supabase/tests/areas/flujos/tipos-de-documento.sql`, con 9 bloques (permisos, versión, uso, formatos y escritura directa), y
+    `tipos-de-documento-datos.sql`, con 3.
+  - `db:lint`: sin avisos en lo nuevo.
+  - Guardas de migraciones y carriles: 44 ✓.
+  - `nivel.mjs` sobre el diff da `{"nivel":2,"disparadores":[{"id":"rls",…}],"toca_interfaz":false}` (`nivel.log`).
+    e2e completo: no (5.03, Nivel 2: lo corre el CI del PR)
+- **Commits:** `3821303c` crear · `f7c26d12` guardar · `b471de06` ordenar · `a79a1183` eliminar o desactivar · `f0f4c173` sin escritura directa · docs.
+- **CI del PR (retoma):** la corrida 43033261995 cayó dos veces sin correr un spec: el runner no resolvía el espejo de Ubuntu en
+  `playwright install --with-deps` (igual en main y en todos los PR desde las 13:53 UTC). Sin código que arreglar en la rama: se pidió al
+  carril A (pedido-4), entró con #108 (chromium sin apt si el espejo no responde) y la rama trae ese main.
+
+<!-- paso:5.05 -->
+
+## 2026-11-11 — Paso 5.05: la base de «Transiciones» y de quién mueve
+
+- **Hecho:** las transiciones y quién mueve se escriben sólo por RPC con la versión del flujo (`_flujo_para_editar`/`_flujo_tocar` del 5.01):
+  `transicion_crear` (las dos fases del flujo, destino activo, `23505` humano por `(de, a)` y por id), `transicion_guardar` (sólo `accion` y
+  `nota_obligatoria`), `transicion_eliminar`, `fase_roles_poner` y `transicion_roles_poner` (reemplazo todo o nada, `_roles_de_lista` con `for key share`,
+  actividad `fase.roles_cambiados`/`transicion.roles_cambiados` sólo si cambia). Fuera las 7 policies de escritura y el insert/update/delete de `authenticated`
+  en `fases_transiciones`, `fases_roles` y `fases_transiciones_roles`. No toca `_puede_mover`, `previsualizar_cambio_fase` ni `cambiar_fase` (los recrea el 6.02).
+- **Verificación** (`.piloto/salidas/5.05/`): `db:reset`, `db:types` y `db:probar` completo con el árbol final (924 ✓, 0 ✗; las 11 pruebas nuevas:
+  `supabase/tests/areas/flujos/transiciones.sql` T1–T5 y T7, `transiciones-datos.sql` D-1–D-5); también con `SOLO=` sin `humo.sql`; `db:lint` sin avisos en las
+  funciones nuevas; `scripts/guardas` 1.058 ✓; e2e `configuracion-flujos` en escritorio 3 ✓. `nivel.mjs` con los archivos reales: Nivel 2 (disparador `rls`).
+  Los tipos van repartidos en cada commit de migración; las pruebas, en el commit de la última, el primero donde pasan enteras (T1 y T2 recorren las cinco RPC).
+  e2e completo: no (5.05, Nivel 2 por rls: lo corre el CI del PR; cuenta 0 de 3)
+- **Abiertos:** `rbac_eliminar_rol` sobre un rol que figura en una lista de quién mueve da el `23503` crudo de la FK `restrict` de `fases_roles.rol_id` y
+  `fases_transiciones_roles.rol_id` (deuda de antes; con el 5.06 poner roles pasa a ser lo normal): **para el coordinador, a una fila de equipo**: mensaje humano o
+  quitar el rol de las listas. El `23503` de un cambio de fase hacia una fase que se borra va al 6.02 y, para `vehiculo_crear`, a la fila que lo recree (D8). La
+  ficha `src/modules/flujos/CLAUDE.md` la actualiza el 5.06 (D13).
+- **Commits:** `0d0d51f5` feat(db): crear una transición con la versión del flujo · `7c14a328` feat(db): guardar una transición con la versión del flujo ·
+  `e95ed411` feat(db): eliminar una transición con la versión del flujo · `61001b53` feat(db): poner los roles que mueven a una fase o por una transición ·
+  `f55a5acf` feat(db): quitar la escritura directa de transiciones y sus roles · y el de docs.
+
+<!-- paso:5.09 -->
+
+## 2026-11-11 — Paso 5.09-1: «Documentos», lo que no se ve (parte 1 de 2)
+
+- **Hecho:** la capa sin pantalla de los tipos de documento, en el área `documentos` de `flujos`.
+  - `entities/documentos/`: el tipo, las constantes (tope 100 por grupo, formatos, modos de vencimiento, `PANEL_*`), el uso acotado (`textoDelUso`),
+    el orden (`destinoDeTipo`), el formulario con su validación espejo de la base y el armado de `p_datos` y `p_cambios`; y las lecturas de la
+    respuesta de la base con Zod.
+  - `infra/documentos/`: la lectura por grupo (`tope + 1`), el uso por `tipos_documento_con_uso` y las cuatro RPC, con el campo del `hint`.
+  - `features/documentos/`: los esquemas (lista cerrada de claves) y las cuatro actions, con el permiso del grupo antes de escribir.
+  - `areas/documentos/`: `leerTiposDeDocumento(flujoId | null)` y `leerUsoDeTiposDeDocumento(flujoId | null)` por `index.ts`; tipos, constantes, reglas
+    puras y las cuatro actions por `client.ts`.
+- **Cambió respecto del plan:** las dos lecturas se llaman `leerTiposDeDocumento` y `leerUsoDeTiposDeDocumento` (no `leerTiposDelGrupo`), para que el
+  nombre no choque con otra área; `Direccion` pasó a `DireccionDeTipo`. La validación vive en `entities/documentos/formulario-de-tipo.ts`
+  (el archivo único pasaba de 300 líneas y de la complejidad permitida). Cada action recibe también el `flujoId` del grupo: sin él no sabe qué
+  permiso exigir antes de la RPC.
+- **Para la parte 2 (5.09-2):** `FilaDeCatalogo.motivoSinOrden` (D6), hooks, lista, modal, eliminar, la pestaña y el e2e, como dice `.piloto/planes/5.09.md`
+  › «Parte 2 servida». El `client.ts` del área ya trae las constantes `PANEL_*`, `CLAVE_DEL_TIPO` y `CLAVE_DEL_GRUPO`, `validarTipo`, `borradorConModo`,
+  `cambiosParaGuardar`, `textoDelUso`, `destinoDeTipo` y las actions.
+- **Verificación** (`.piloto/salidas/5.09/`):
+  - `entities/documentos`: 42 pruebas. Dos corren contra la base real en PGlite: `FORMATOS_DE_DOCUMENTO` y el tope contra `_tipos_documento_formatos()` y
+    `_tipos_documento_tope()`; y 20 casos de `validarTipo` contra `_tipo_documento_validar()` (mismo campo en el `hint`, mismo texto).
+  - Esquemas y permisos del grupo: `features/documentos`, 8 pruebas.
+  - `pnpm exec vitest run src/modules/flujos scripts/guardas`: 45 archivos, 1.152 ✓, 0 ✗. `pnpm typecheck` y `eslint src/modules/flujos`: 0 avisos.
+    e2e completo: no (5.09-1, Nivel 1, sin interfaz: lo corre el CI del PR)
+
+## 2026-11-11 — Paso 5.09-2: «Documentos», la pantalla (parte 2 de 2)
+
+- **Hecho:** la pestaña «Documentos» de Configuración › Flujos (`?seccion=documentos`), con los dos grupos («De toda la empresa» y «Sólo de este flujo»), la
+  lista con orden por botones, el modal de alta y edición, la confirmación de eliminar y los estados de sólo lectura.
+  - `shared/ui/lista-de-catalogo`: `FilaDeCatalogo.motivoSinOrden` (el botón apagado dice el motivo del permiso) con su prueba.
+  - `flujos/entities/documentos/vista-de-grupo.ts`: lo que cada grupo muestra y por qué algo no abre o no se elimina (probado).
+  - `flujos/features/documentos/`: 9 hooks (panel por URL, escritura de a una, activar con «Deshacer», ordenar, eliminar, formulario con borrador),
+    la lista (`grupo-de-tipos`, filas, «⋯»), el modal (texto, formatos, vencimiento), `eliminar-tipo`, `diferidos` y la pantalla de servidor
+    `pantalla-de-documentos`. Registro de `eliminar-tipo.tsx` en `scripts/guardas/areas-c/confirmar-con-url.ts`.
+  - `src/app/(app)/configuracion/flujos/documentos/{pestanas,seccion}`; `docs/UX.md` gana «Flujos: tipos de documento (estados propios)».
+- **Cambió respecto del plan:** ver D12 a D16 de `decisiones.md` (un solo cliente y un solo modal para los dos grupos, «Eliminar» apagado con motivo en un tipo
+  en uso, el foco tras mover espera al orden nuevo). La barra de pestañas de Flujos aparece por primera vez: se ajustó `pestanas.test.ts` y
+  `e2e/configuracion-flujos.spec.ts`.
+- **Verificación** (`.piloto/salidas/5.09/`): e2e dirigido en escritorio, 6 ✓ (`e2e-dirigido.txt`): `configuracion-flujos-documentos.spec.ts` (3: crear con
+  «renovar» 365/30, editar, subir con el foco; desactivar uno en uso y eliminar uno sin uso; quien sólo tiene `flujos.configurar`) y `configuracion-flujos.spec.ts`
+  (3); los vecinos `origenes.spec.ts` y `configuracion-logistica.spec.ts`, 10 ✓ (`e2e-vecinos.txt`). `vitest scripts/guardas src/modules/flujos src/shared/ui/lista-de-catalogo`
+  y la pestaña de `src/app`: 48 archivos, 1.162 ✓. `tsc` y `eslint` sin avisos; `mapa.sh --check` ok.
+  e2e completo: no (5.09-2, Nivel 1, sin disparadores: lo corre el CI del PR; dirigidos en escritorio, sin celular por ser Configuración)
+
+<!-- paso:5.11 -->
+
+## 2026-11-11 — Paso 5.11: «Reglas» y la oferta de transporte
+
+- **Hecho:** la pestaña `?seccion=reglas` de Configuración › Flujos, en el área `reglas` de `flujos`, sobre las RPC del 5.10 (sin migración).
+  - `entities/reglas/`: `catalogo.ts` (las 10 claves con nombre, qué permite y qué enciende; el test las compara con el check de `flujos_reglas` y con
+    `_flujo_regla_admitida`, incluidas las tres exclusiones de repuestos), `impacto.ts` (la frase de «no se puede apagar» y el enlace a la fase),
+    `oferta.ts` (vacío = se ofrecen todos, la firma del borrador), `permiso.ts` y `repositorios.ts`.
+  - `infra/reglas/`: la oferta por `flujo_oferta()`, el catálogo de puertos y navieras activos (`limit 201`) y las tres RPC (`flujo_regla_impacto`,
+    `flujo_regla_cambiar`, `flujo_oferta_guardar`).
+  - `features/reglas/`: las actions `cambiarRegla` (pregunta el impacto antes de escribir) y `guardarOferta`, los hooks y los componentes; la pestaña.
+- **e2e completo: no (5.11, pantalla Nivel 1; lo corre el CI del PR)**
+- **Verificación** (`.piloto/salidas/5.11/`): vitest de `entities/reglas`, `features/reglas`, `scripts/guardas`, `src/modules/flujos` y la carpeta de
+  Configuración › Flujos: 52 archivos, 1.180 pruebas en verde. `e2e/configuracion-flujos-reglas.spec.ts` (escritorio): 1 en verde, 7,0 s
+  (`e2e-reglas.txt`); los vecinos `configuracion-flujos` y `configuracion-flujos-documentos`: 6 en verde (`e2e-vecinos.txt`). La base local se reseteó
+  antes (traía menos migraciones que `main`): `db-reset.txt`.
+- **Para la persona / Fase 6:** puertos y navieras no tienen pantalla ni RPC de escritura; `navieras` nace vacía. La pantalla lo dice («Se cargan en
+  Logística.»). Cargarlas es del paso de `logistica` con `logistica.catalogos.gestionar`.
+
+<!-- paso:6.03 -->
+
+## 6.03-1 · la cadena de logística: la lectura (2026-11-12)
+
+Parte 1 de 2 (`parcial: true`). Entró, sin pantalla: `entities/cadena/` (`filtros.ts`: esquema de filtros y `pedidoDeLaCadena`, sólo lo que la RPC acepta;
+`leer.ts`: las tres RPC validadas con Zod; `columna.ts`: número acotado, `puedeVerMas`, `agregarTarjetas`, cursor; `dias.ts`; `origenes.ts`;
+`repositorios.ts`), `infra/cadena/` (`logistica_cadena`, `logistica_cadena_columna`, `logistica_donde_esta`, atributos por tandas, navieras),
+`features/cadena/` (identidad de la tarjeta, pestañas de origen, «dónde está» sin llamar con texto corto, la action `verMasDeLaColumna`) y
+`areas/cadena/{index,client,composicion}.ts`. Las tres RPC entran al registro de `paginas-en-la-base.ts`. Sin migración, sin policy ni permiso nuevo.
+
+Pruebas: Vitest de `entities/cadena/` (5 archivos, 33 pruebas) y de `features/cadena/donde-esta`; `scripts/guardas` y `src/modules/logistica`: 57 archivos, 1.256 pruebas en verde.
+
+Sigue **6.03-2** (servida en `.piloto/planes/6.03.md` › «Partición»): componentes, `page.tsx`, `loading.tsx`, estados, `e2e/logistica-cadena.spec.ts`, el
+presupuesto de JS de `/logistica`, UX y fichas. La fila 6.03 de `docs/PLAN.md` pasa a «Partes estimadas: 2» (la edita el carril `a` al consolidar).
+
+- e2e completo: no (6.03-1, Nivel 1: lo corre el CI del PR; sin interfaz, sin dirigidos)
+
+## 6.03-2 · la cadena de logística: la pantalla (2026-11-12)
+
+Parte 2 de 2: **cierra el paso**. `features/cadena/`: `useCadena` (siembra por firma, un pedido a la vez por columna, descarta una página de otra lectura), `useAbrirLaUnidad`, el tablero con `<PistaDeDesborde>`,
+la columna (número acotado, «Ver más», aviso de tope), la tarjeta («Demorado» en texto, contenedor y ETA), `PestanasDeFases` (celular, `?fase=`), `PestanasDeOrigen`, `FranjaDeDondeEsta`, el esqueleto y los estados; `pantallas/cadena.ts`;
+`src/app/(app)/logistica/{page,loading}.tsx` con `Suspense` y `connection()`. Sin migración, policy ni permiso nuevo.
+
+Pruebas: `use-cadena.test.tsx` (6) y `vitest run src/modules/logistica scripts/guardas`: 58 archivos, 1.263 pruebas en verde; `e2e/logistica-cadena.spec.ts` (5, escritorio), `logistica-unidad.spec.ts` y `logistica-gastos-y-pagos.spec.ts`
+en verde (salidas en `.piloto/salidas/6.03/`); `presupuesto-js.spec.ts`: `/logistica` 388,9 KB, presupuesto 410.
+
+- e2e completo: no (6.03-2, Nivel 1: lo corre el CI del PR; dirigidos en verde)
+
+<!-- paso:6.04 -->
+
+## 6.04-1 · «Qué falta» y mover con nota y conflicto legible (2026-11-12)
+
+Parte 1 de 3 (`parcial: true`). Entró: `flujos/entities/mover/` (`vista-previa.ts`, `requisitos.ts` con una etiqueta por cada clave de dato de la base y su test contra el SQL vigente, `motivos.ts`, `para-mover.ts`, `boton-de-mover.ts`),
+`flujos/infra/mover/` (las RPC `logistica_unidad`, `previsualizar_cambio_fase[_lote]`, `cambiar_fase[_lote]` y la lectura de destinos con `tope + 1`), `flujos/features/mover/` (cinco actions: `leerParaMover`,
+`previsualizarCambio`, `previsualizarCambioLote`, `cambiarFase`, `cambiarFaseLote`; las del lote ya están, las usa la parte 3) y `areas/mover/`. En `logistica`: `abiertoAlInicio` en el hueco, los avisos del panel
+(`unidad-cambio`, `abrir-hueco`), `features/mover/` (el hueco «Qué falta» con destinos, requisitos con texto, atajos, «Fuera de regla», relectura al volver el foco; el formulario de mover con nota, motivo escrito del botón,
+`Ctrl+Enter` y aviso de conflicto) y `pantallas/mover-unidad.ts`. Sin migración, policy ni permiso nuevo.
+
+Pruebas: Vitest de `flujos/entities/mover/` (5 archivos nuevos); `vitest run src/modules/flujos src/modules/logistica "src/app/(app)/logistica" scripts/guardas` en verde; `e2e/logistica-mover.spec.ts` (3 pruebas, escritorio y celular) y
+`logistica-unidad`, `logistica-cadena`, `logistica-gastos-y-pagos` en verde: 32 pasaron, 5 saltadas por diseño (salidas en `.piloto/salidas/6.04/`).
+
+Sigue **6.04-2** (notas, historial y «Ver en logística») y **6.04-3** (el lote), servidas en `.piloto/planes/6.04.md`. La fila 6.04 de `docs/PLAN.md` pasa a «Partes estimadas: 3» (la edita el carril `a` al consolidar).
+
+- e2e completo: no (6.04-1, Nivel 1: lo corre el CI del PR; dirigidos en verde)
+
+## 6.04-2 · Notas, historial y «Ver en logística» (2026-11-12)
+
+Parte 2 de 3 (`parcial: true`). Entró: `logistica/entities/mover/{notas,historial,hasta-de-un-dia,pagina-de-la-unidad,repositorio-de-notas}.ts` (con test los tres puros), `infra/mover/{notas,historial}.client.ts` y `notas.ts`
+(servidor), `areas/mover/{composicion.client,composicion,client}.ts`, `features/mover/` (`useListaDeLaUnidad`, `useEscribirNotas`, `crearNota`, `editarNota`, `CampoDeNota`, `NotaDeLaUnidad`, `CuerpoDeLaLista`, `PieDeLaLista`, `HuecoDeNotas`,
+`HuecoDeHistorial`), los dos huecos en `pantallas/mover-unidad.ts` y el enlace «Ver en logística» de la ficha (`src/app/(app)/vehiculos/[id]`). Sin migración, policy ni permiso nuevo.
+
+**Abierto 6-3 (nuevo):** borrar una nota propia exige una RPC `security definer`: el borrado suave por `update` lo rechaza `notas: leer` (42501, probado en `supabase/tests/areas/mover/notas.sql`, N3), así que no hay «Borrar». Sería un paso de datos
+(riesgo rojo); además la base deja a la autora cambiar el cuerpo de una nota de cambio de fase (D22, «Deuda de la base»).
+
+Pruebas: Vitest de `entities/mover/` (notas, historial, hasta-de-un-dia); `db:probar` con `notas.sql` (N1 a N5); `e2e/logistica-mover.spec.ts` (prueba 4: historial con quién y nota, notas con escribir y corregir, enlace de la ficha).
+
+Sigue **6.04-3** (el lote), servida en `.piloto/planes/6.04.md` › «Lo que sigue».
+
+- e2e completo: no (6.04-2, Nivel 1: lo corre el CI del PR; dirigidos en verde)
+
+<!-- paso:6.05 -->
+
+## 2026-11-11 — Paso 6.05: documentos en la base
+
+- **Hecho:** los documentos se escriben sólo por RPC `security definer`:
+  - `documento_registrar` registra, después de subir, para 1 a 100 vehículos (N filas, la misma ruta) o para un repuesto. Pide la clave de subir en
+    cada unidad y es idempotente por `p_id`.
+  - `documento_revisar` aprueba o rechaza (con motivo).
+  - `documento_editar` cambia fechas, nota y `visible_portal`; este último, sólo quien aprueba.
+  - `documento_eliminar` hace un borrado suave y encola el objeto si ya ninguna fila viva lo usa.
+
+  Las tres de edición piden la versión (`PT409`), y el permiso va antes que la versión. Además:
+  - Nadie nace aprobado.
+  - La tabla perdió las policies «crear» y «editar» y el `insert`/`update`/`delete` de `authenticated`.
+  - El trigger `documento_exigido` impide quitar (eliminar, rechazar o vencer a mano) el documento que hace cumplir un requisito bloqueante de la fase
+    actual (`23514`), con un candado por unidad y tipo.
+  - `storage_refcount` cuenta sólo las filas vivas.
+  - El objeto compartido lo lee quien ve alguna fila viva con esa ruta.
+  - El portal oculta los tipos que ya no lo permiten.
+  - Hay dos índices nuevos: `documentos (ruta)` y el parcial de la bandeja por revisar.
+
+- **Para PLAN (coordinador):**
+  - Se cierra `DECISIONES.md:2348`, punto 4 (falta el índice de `documentos.ruta`).
+  - La fila 6.02 (1) suma la carrera de D12: con `cambiar_fase` tomando la unidad antes de evaluar, el trigger de 6.05 ya serializa.
+  - El 6.05 se hizo en una parte (la fila estimaba 3).
+- **Verificación** (`.piloto/salidas/6.05/`):
+  - `pnpm db:probar` entero tras unir main y el fix: 1001 ✓, 0 ✗ (`probar-final2.log`). Antes de unir, 932 ✓, 0 ✗ (`probar-todo-final.log`).
+  - El área `supabase/tests/areas/documentos/` tiene 6 archivos:
+    - `registrar.sql`: 4 bloques más los ayudantes;
+    - `revisar.sql`: 3;
+    - `exigido.sql`: 2;
+    - `objeto-compartido.sql`: 1;
+    - `portal.sql`: 1;
+    - `carreras.mjs`: K1.
+  - `humo.sql` suma un caso: la dueña registra, lee el objeto y su escritura directa da `42501`.
+  - `pnpm db:carreras`: todas en verde; K1 de documentos ✓ (`db-carreras-final.log`).
+  - `pnpm db:lint`: sin avisos en lo nuevo (`db-lint-final.log`).
+  - `pnpm db:types`: sin diferencias tras unir main.
+  - `typecheck` ok. Las guardas (`vitest run scripts/guardas`) dan 1061 ✓, y `carriles.mjs` da 16 archivos ✓.
+  - `nivel.mjs` sobre el diff da `{"nivel":2,"disparadores":[{"id":"rls",…},{"id":"estructura",…}],"toca_interfaz":false}` (`nivel.json`).
+    e2e completo: no (6.05, Nivel 2: lo corre el CI del PR; sin interfaz, sin dirigidos)
+- **Commits:**
+  - `b8e1379c` registrar;
+  - `652b8020` revisar, editar y eliminar;
+  - `6ba53197` sin escritura directa;
+  - `44800d88` el que exige la fase;
+  - `28ccc5fa` el objeto compartido;
+  - `08efae5c` el portal;
+  - `d3f9682d` el fix de la auditoría del informe (reintentar tras eliminar da `23505/id`);
+  - y el de docs.
+- **Tras unir main otra vez (a9f1cbd7):** choque en `scripts/carreras.mjs` (se juntan las carreras de documentos y las del principal del
+  origen). Las seis migraciones pasan a `20261112032906`–`…260` (`5bc5ceed`). Main dejó `fases_requisitos.bloqueante` en `false` por omisión
+  (5.07) y dos pruebas de `exigido.sql` cayeron porque su requisito nacía no bloqueante: ahora lo crean bloqueante (`8edca51b`). El rojo del CI
+  anterior era la S5 del tope de push, arreglada en main (#130). `db:reset`, `db:types` sin diff, `db:probar` 1084 ✓ (`probar-final.log`),
+  `db:carreras` en verde con la K1 de documentos (`carreras-tras-main.log`).
+
+<!-- paso:6.13 -->
+
+## 6.13-1 · el campo «principal» de un origen: la base y la capa de datos (2026-11-11)
+
+Parte 1 de 2 (`parcial: true`). Entró: `origenes_campos.principal` con el índice único parcial `origenes_campos_principal_unico` y dos
+`check` (activo, no `moneda`); `origen_campo_crear` (drop + create con `p_principal`, devuelve `desmarcado`) y `origen_campo_guardar`
+(misma firma; toma el origen `for no key update` antes que el campo) marcan uno y desmarcan el anterior; desactivar el principal lo
+desmarca; un `23505` del índice sale `PT409`. Pruebas: `supabase/tests/areas/origenes/principal.sql` (8 bloques) y las carreras K1 y K2
+(`supabase/tests/areas/origenes/carreras.mjs`). En `origenes`: `CampoDeLayout.principal`, `principal` en `CambiosDeCampo` y en los
+esquemas, `leerCampoPrincipal()` por `composicion.ts` e `index.ts`. GLOSARIO: «Campo principal». Abierto **6-1**: en curso, base hecha.
+
+Sigue **6.13-2** (servida en `.piloto/planes/6.13.md` › «6.13-2 servida»): el interruptor «Principal» del panel del campo con su ayuda,
+el aviso y la insignia; `identidadDeVehiculo` e `identidadEnUnaLinea` con su Vitest; la fila, la tarjeta y el resumen de `/vehiculos`;
+el panel de logística por la composición del núcleo; `e2e/origenes-campo-principal.spec.ts`; fichas de `vehiculos` y `logistica`.
+
+- e2e completo: no (6.13-1, Nivel 2: lo corre el CI del PR)
+
+## 6.13-2 · el campo «principal»: el interruptor, la identidad y las pantallas (2026-11-11)
+
+Parte 2 de 2: termina el paso. Entró: la bandera «Principal» en el panel del campo de un origen, con su ayuda, una línea de aviso (monto,
+desactivado o «<otro> deja de ser el principal») y la insignia «Principal» en la fila del layout; `identidadDeVehiculo`,
+`identidadEnUnaLinea` y `campoPrincipalDe` en `vehiculos/entities/identidad.ts` con su Vitest; la fila, la tarjeta y el resumen de
+`/vehiculos` se nombran por el valor del principal (el título va debajo); el panel de la unidad de logística dice «<principal> · <título>»
+(`features/nucleo/unidad-con-identidad.ts`, con el formato de la empresa); `e2e/origenes-campo-principal.spec.ts` (escritorio).
+Sin cambios de base. Abierto **6-1**: cerrado.
+
+- e2e completo: no (6.13-2, Nivel 2: lo corre el CI del PR)
+
+## 6.13 · retoma por el CI en rojo (2026-11-11)
+
+El bloque 3 del e2e caía en `leads-portal-acceso` › tarea de oro 4 (33 teclas, tope 32): el mismo rojo que arregló el 6.10 en el PR #105,
+todavía sin integrar. Traído con `cherry-pick -x` (el spec espera la sección «Portal» y el foco en la pestaña antes de tabular); en local,
+24/24 con `--repeat-each=3` y 16 teclas en escritorio y celular. Sin cambios de producto ni de base; al integrarse los dos PR el cambio es
+el mismo.
+
+- e2e completo: no (6.13, retoma del CI: sólo `leads-portal-acceso`; lo prueba el CI del PR)
+
+<!-- paso:7.02 -->
+
+## 7.02-1 · la base de la campana: tipos, destino, canal y lectura (2026-11-11)
+
+Primera de tres partes del 7.02 («La campana y `/notificaciones`»; plan en `.piloto/planes/7.02.md`). Sin interfaz todavía:
+
+- `entities/`: catálogo de tipos (`tipos.ts`, con `tipoDe` y `accionaAlAbrir`), `destino.ts` (`destinoDe`: enlace, sin pantalla o ninguno; nunca una ruta externa, con esquema, `//`, `\` ni controles), `notificacion.ts` (la fila validada con Zod, cursor `(creado_en, id)`, `?ver=`) y las interfaces de `repositorios.ts`.
+- `src/shared/lib/supabase/canal.client.ts`: Realtime como señal (sólo los eventos pedidos, aviso al reconectar o al volver la pestaña, `desuscribir`).
+- `infra/`: `consultas.ts` (página por cursor, contador acotado a «9+», lo de la campana), envueltas para el servidor (`queries/notificaciones.ts`) y el navegador (`notificaciones.client.ts`); `notificaciones.ts` escribe `leida_en`/`accionada_en` bajo la RLS.
+- `features/lista/actions/`: `abrirNotificacion` (idempotente) y `marcarTodasLeidas` (lotes de 200, hasta 5 por clic); `composicion.ts` las une.
+- Pruebas: `destino.test.ts`, `tipos.test.ts` y `canal.client.test.ts` en verde; `scripts/guardas` en verde (escala, barriles, capas).
+- Quedan para 7.02-2 (campana y huecos del marco) y 7.02-3 (`/notificaciones`, ficha del módulo).
+- e2e completo: no (7.02-1, sin interfaz: Vitest, lint y typecheck; lo prueba el CI del PR)
+
+## 7.02-2 · la campana en la barra (2026-11-11)
+
+Segunda de tres partes. La campana ya está en el marco de toda pantalla:
+
+- `features/campana/`: `<Campana>` (botón de 44 px en el celular, insignia «9+», nombre «Notificaciones, 3 sin leer»), el popover con su contenido diferido (las que piden acción primero, tope 10, «Ver todas»), `<FilaDeNotificacion>` (una sola fila para la campana y, en la parte 3, para la lista), `<SuscripcionDeLaCampana>` (diferida: el contador y Realtime) y los hooks. `shell.client.ts` y `composicion.client.ts`.
+- `src/app/(app)/_shell/`: `Marco` suma `campana`, `buscador` y `flotante`; `huecos/{campana,buscador,chat}.tsx` y `acciones-de-notificaciones.ts` (el registro por tipo, hoy vacío); `layout.tsx` los llena con las rutas con pantalla (`NAVEGACION` disponible + `/notificaciones`).
+- `destinoDe`: `/` (Inicio) sólo es ella misma (como prefijo volvía disponible toda ruta); `RUTAS.notificaciones`; `<EstadoError compacto>`.
+- Arreglo en `canal.client.ts`: el canal se une tras `realtime.setAuth()` (ver D8).
+- Pruebas: `e2e/notificaciones-campana.spec.ts` (3 × escritorio y celular: la fila insertada por SQL aparece sin recargar; abrirla lleva a su ruta y la deja leída y accionada; una ruta sin pantalla no es enlace). `canal.client.test.ts` (8) y `destino.test.ts` en verde; `barra-superior-celular`, `presupuesto-js` y `acceso` en verde.
+- e2e completo: no (7.02-2, sólo specs dirigidos: lo prueba el CI del PR)
+
+## 7.02-3 · la pantalla `/notificaciones` (2026-11-11)
+
+Tercera y última parte. El paso queda completo:
+
+- `src/app/(app)/notificaciones/`: `page.tsx` (título, `?ver=por-accionar|todas` leído en el servidor tras `<Suspense>` y `await connection()`, primera página de `TAMANO_DE_VER_MAS`), `loading.tsx` y `esqueleto-de-notificaciones.tsx`, `lista-con-acciones.tsx` (une la lista con el registro de acciones por tipo). `_shell/rutas-con-pantalla.ts`: las rutas con pantalla, en un solo archivo para el layout y la página.
+- `features/lista/`: `<ListaDeNotificaciones>` (pestañas Todas / Por accionar con `nuqs` y `shallow: false`; error de la primera lectura con «Reintentar»), `<CuerpoDeLaLista>` (se reinicia con `key={ver}`), `<VacioDeLaLista>`, `<PieDeLaLista>` («Ver más» por cursor, «Reintentar», «Sin conexión», `<AvisoDeTope>` al llegar a 500), `useListaDeNotificaciones` (Realtime como señal: relee la primera página y la funde por id) y `useMarcarTodas`. `<FilaDeNotificacion>`, `<IconoDeTipo>` y `useAbrirAviso` se movieron de `campana/` a `lista/`: una sola fila para los dos lugares.
+- `entities/fundir.ts` (`fundirPagina`, `sumarPagina`), con su prueba: lo nuevo arriba, el estado fresco manda, lo que dejó de cumplir el filtro sale y lo de «Ver más» se conserva.
+- `pantallas/notificaciones.ts` e `index.ts` (sólo `leerPaginaDeNotificaciones` y `filtroDeLista`: sin componentes). Ficha del módulo al día.
+- Presupuesto del documento de `/perfil`: 91 KB (86.627 B medidos con la entrada de Logística de 6.01 y la campana de 7.02-2; lo medido más un 5 %).
+- Pruebas: `e2e/notificaciones-campana.spec.ts`, 7 × escritorio y celular (25 avisos: «Ver todas» lista 20 y «Ver más» trae los 5 restantes sin repetir; `?ver=por-accionar` filtra y «Todas» vuelve; un aviso nuevo entra arriba sin recargar; «Marcar todas como leídas» las deja leídas sin accionar), `presupuesto-js` en verde. `fundir.test.ts` y `scripts/guardas` en verde; `lint`, `typecheck` y `mapa.sh --check` sin avisos.
+- e2e completo: no (7.02-3, sólo specs dirigidos: lo prueba el CI del PR)
+
+## 7.02 · arreglo del CI del PR #116 (2026-11-11)
+
+Cuatro bloques de e2e en rojo (escritorio). Causas, medidas y reproducidas en local: (1) la campana pedía `notificaciones` al montar y los specs que cuentan pedidos a la base lo veían (`vehiculos-resumen`, `cotizaciones-listado-resumen`, `leads-escala`); (2) +1 parada de Tab (`cotizar-tarea-de-oro-recorrido`, `leads-portal-acceso`); (3) el JS del cliente de Supabase evaluado al hidratar retrasaba ≈ 320 ms el primer clic que vale (`leads-oportunidades-ver-todas`, `leads-confirmar-por-url`, `vehiculos-alta` y `cotizaciones-listado` con la tecla N); (4) un aviso insertado antes de que el canal se uniera se perdía (`notificaciones-campana`). Ver D13 a D15 en `decisiones.md`. Los 11 specs afectados, en verde en escritorio y celular (115 + 3 pruebas), `canal.client.test.ts` en verde.
+
+- e2e completo: no (arreglo del 7.02, sólo specs dirigidos: lo prueba el CI del PR)
+
+## 7.02 · unión con main (2026-11-11)
+
+Choques en dos tareas de oro y la ficha del módulo. `cotizar-tarea-de-oro-recorrido`: la entrada de Agenda (7.07) y la campana suman una parada cada una en escritorio (59 y 55) y sólo la campana en el celular (54 y 50). `leads-portal-acceso`: manda el 16 de main (6.10 espera la sección antes de tabular y ya no recorre la barra). `notificaciones-campana` usaba `/agenda` como ruta sin pantalla y 7.07 la volvió pantalla: ahora usa `/e2e-sin-pantalla`. Los tres specs en verde en escritorio y celular (`.piloto/salidas/7.02/merge-e2e*.txt`); `typecheck` y `scripts/guardas` en verde.
+
+- e2e completo: no (unión del 7.02 con main, sólo specs dirigidos: lo prueba el CI del PR)
+
+<!-- paso:7.05 -->
+
+## 2026-11-11 — Paso 7.05: correo de la app, adaptadores `resend` y `cloudflare` (7-1)
+
+- **Hecho:** `enviarEmail()` manda por `resend` o `cloudflare` con sólo cambiar `EMAIL_PROVEEDOR` y sus claves; ningún código cambia.
+  - `src/shared/lib/email/proveedor.ts` elige el adaptador (`adaptadorDe`, `remitenteDe`), sin `server-only`, para que `pnpm email:probar` lo use igual que la app.
+  - `adaptadores/comun.ts` (pedido con tope de 10 s; errores como valores sin claves ni texto libre del proveedor), `resend-rest.ts` y `cloudflare.ts`.
+  - `esquemas.ts`: `RESEND_API_KEY`, `CLOUDFLARE_ACCOUNT_ID` (32 hexadecimales) y `CLOUDFLARE_API_TOKEN`, cada una obligatoria sólo con su proveedor; se fue el rechazo «todavía no tiene adaptador».
+  - `scripts/email-probar.ts` y `pnpm email:probar <destino>`; `docs/ENTORNOS.md`, `.env.example` y la ficha de `shared`.
+- **Cierra 7-1.** La parte «mismo contrato en `supabase/functions/`» no aplica: ninguna función edge manda correo. Fuera del repo (`docs/PLAN.md` › Fase 7): el
+  proveedor, el dominio y las claves reales; el paso deja adaptador, variables y `email:probar`.
+- **API de Cloudflare verificada hoy** en su documentación pública (`developers.cloudflare.com/email-service/api/send-emails/rest-api/` y `…/examples/email-sending/recipients/`):
+  `POST /accounts/{cuenta}/email/sending/send`, `from {address, name}`, `to` como arreglo, respuesta `result {delivered, permanent_bounces, queued}`
+  **sin id de mensaje** (el plan suponía un `message_id`; ver D3). Nunca se llamó a Cloudflare ni a Resend con una clave real.
+- **Commits:** `2d11aac9` (proveedor.ts), `2b12df12` (resend), `3ab1dd90` (cloudflare), `f67cdc71` (tipos de las pruebas), `fadd7ecd` (claves por proveedor y equivalencia), `d1fa525e` (`email:probar`) y el de docs.
+- **Verificación** (`.piloto/salidas/7.05/`): `vitest-correo.txt`: 7 archivos, 52 ✓ (adaptadores, `email.test.ts`, `esquemas.test.ts`, `email-probar.test.ts`, `env-check`); `guardas.txt`:
+  34 archivos, 1.065 ✓. `tsc --noEmit` y `eslint` sin errores. `pnpm email:probar no-es-correo` sale con 1 sin tocar la red. `nivel.mjs`: nivel 2 (`shared`).
+- e2e completo: no (7.05, sólo src/shared/lib/email, config y scripts: lo prueba el CI del PR)
+
+<!-- paso:9.02 -->
+
+## Paso 9.02 · Inicio: la bandeja con huecos y los bloques de lo que ya existe (2026-11-11)
+
+- **Parte 1.** `BLOQUES_BANDEJA` tiene ahora su registro: `features/bandeja/bloques/<clave>.tsx` (uno por clave, los diez) y `registro.ts` (`Record<ClaveDeBloque, …>`). `<Bandeja>` dibuja el marco y monta cada cuerpo tras su `<Suspense>` con `await connection()`, con esqueleto y error («Reintentar») por bloque. Los siete bloques de otras fases nacen como hueco (el vacío de siempre).
+- **Parte 2.** Tres bloques llenos: «Recordatorios de hoy» (`leerRecordatoriosDeHoy`, `leads`), «Leads sin seguimiento» (`leerLeadsSinSeguimiento`, `leads`) y «Personas sin rol» (`leerPersonasSinRol`, `equipo`), cada uno con `tope + 1` y «más de N». La página lee la zona de la empresa y la pasa a `<Bandeja>`.
+- **Para 6.12, 7.07, 8.05 y 8.13:** llenar un hueco = editar sólo `features/bandeja/bloques/<clave>.tsx` (su cuerpo recibe `{ bloque, zona }`; devuelve `<VacioDeBloque bloque={bloque}/>` si no hay nada y `<ErrorDeBloque/>` si la lectura falla; `<ListaDeBloque filas conteo/>` dibuja una lista con su conteo). El título y la `<section>` son de `<Bandeja>`: el `<h2>` no se toca. No se edita `registro.ts`. La lectura va por la entrada pública del módulo dueño.
+- **Pruebas:** vitest de `registro.test.ts` (catálogo y registro coinciden; un bloque sin su permiso no se monta), `leads/entities/bandeja.test.ts` (fin de «hoy» en La Paz) y `equipo/entities/sin-rol.test.ts`; `e2e/inicio-bandeja.spec.ts` (3 casos, escritorio y celular: 6 en verde, `.piloto/salidas/9.02/e2e-inicio-bandeja.txt`).
+- **Abierto:** `ajustes_empresa.lead_dormido_meses` sigue sin lector. «Leads sin seguimiento» cuesta lo que pesa la cartera de quien mira (la vista recorre `leads_asesores_listado_idx`); no se sembró volumen para medirlo.
+- e2e completo: no (9.02, Nivel 1; lo corre el CI del PR)
+
+<!-- paso:9.03 -->
+
+## Paso 9.03 · Dominancia sobre la persona (2026-11-11)
+
+**Parte 1 (9.03-1), la base.** La migración `equipo_dominancia_persona` suma `persona_dominada()` (con su núcleo por conjunto `_personas_dominadas()` y el ayudante `_exigir_persona_dominada()`, privadas, sólo `service_role`) y `personas_dominadas(ids)` para la interfaz. Las cuatro RPC (`equipo_bloquear`, `equipo_dar_de_baja`, `rbac_asignar_rol`, `rbac_quitar_rol`) exigen dominar a la persona con el perfil `for update` y sus roles `for share`, y dan 42501 con un mensaje legible. Pruebas: `supabase/tests/dominancia-persona.sql` (en `db:probar`: A con todo `equipo.*` y sin `leads.numero_global.ver` cae en las cuatro sobre B; el dueño puede aunque a su rol le falte ese permiso; C, que cubre todo lo de B, puede; origen y alcance como `rol_dominado`; nadie se bloquea a sí mismo; las privadas no son de `authenticated`) y `scripts/carreras/dominancia.mjs` (en `db:carreras`: asignar contra bloquear en los dos órdenes, y otorgar por la matriz de Roles contra bloquear).
+
+- Cómo se anota en `docs/PLAN.md` (sección «Partición», fila 9.03): «9.03-1 hecho (base: `persona_dominada`, las cuatro RPC, `personas_dominadas`, prueba y carrera); falta 9.03-2 (interfaz)». **9-1** sigue abierto hasta 9.03-2. En la tabla «Dominancia (9-1)», «y por `equipo_lista()`» pasa a `personas_dominadas()`.
+- Abierto, fuera de alcance: la carrera en que a quien llama le quitan un rol mientras actúa (su propia dominancia baja a la vez); la comprobación usa sus permisos de esa sentencia.
+- Abierto, teórico (auditoría del informe): `_nivel_permisos_crear(…, true)`, que llama `nivel_crear`, suma concesiones al rol `dueno` sin tomar `roles … for update`, así que el `for share` no lo ordena. Quien cubre todo lo del dueño salvo el nivel nuevo podría bloquear a un dueño mientras se crea ese nivel.
+- Hasta 9.03-2 la interfaz todavía ofrece bloquear, dar de baja y los roles de quien no se domina: el 42501 llega como aviso con su mensaje.
+- e2e completo: no (9.03-1, Nivel 1; lo corre el CI del PR)
+
+**Parte 2 (9.03-2), la interfaz.** `PersonaDelEquipo` suma `dominada` (`boolean | null`). La lista del equipo y `getPersona` piden `personas_dominadas()` una vez por lectura, en paralelo con las filas (`Promise.all`; ningún pedido por fila), y `dominadasDesde()` lo lee: si la RPC falla o la forma no es la esperada, `null`. `accionesSobre()` devuelve `motivoApagado` y `motivoSobrePersona()` (que no mira el estado) lo calcula. En el «⋯», «Cambiar sus roles», «Bloquear»/«Desbloquear» y «Dar de baja» salen apagados con una nota; el panel de roles apaga cada interruptor y muestra el motivo arriba. La cuenta propia gana. Pruebas: `entities/dominancia.test.ts` (`dominadasDesde`, también con error), `entities/persona-acciones.test.ts` (nuevo: `accionesSobre` salió de `persona.test.ts`, que llegaba a 300 líneas, y `motivoSobrePersona`), `entities/persona.test.ts` (`dominada`), `menu-persona.test.ts` (las líneas sobre quien no se domina). e2e dirigido `equipo.spec.ts` y `equipo-tope.spec.ts` en escritorio: 18 ✓.
+
+- Cómo se anota en `docs/PLAN.md`: la fila **9.03** pasa a hecha («9.03-1 base; 9.03-2 interfaz: `accionesSobre()` apaga con su motivo, `personas_dominadas()` en la lista y la persona»); **9-1 se cierra**; en la tabla, «Dominancia (9-1)» queda hecha, con «el motivo en la interfaz».
+- `docs/RENDIMIENTO.md` › «Vehículos, orígenes, equipo y empresa», línea «Equipo, lista»: la lectura es ahora ids → filas ∥ `personas_dominadas` (un pedido en paralelo, sobre tablas de configuración); el presupuesto no cambia, sólo la descripción.
+- Siguen abiertos (de la parte 1): la propia dominancia de quien llama cambiando a la vez, y `nivel_crear` sobre el rol `dueno`.
+- Hallado al verificar: una base local sin la migración de la parte 1 apagaba todo para la dueña (la RPC no existía, `dominada: null`); con `db:reset` pasó. Es la conducta pedida: un error nunca habilita.
+- e2e completo: no (9.03-2, Nivel 1; lo corre el CI del PR)
+
+<!-- paso:5.01-1 -->
+
+## 2026-11-11 — Paso 5.01-1: la versión del flujo, crear y guardar una fase, sin escritura directa
+
+- **Hecho:** el 5.01 se partió en dos (5.01-2: mover, eliminar con versión, reactivar, impacto, el flujo de repuestos por migración). La versión de toda la configuración de
+  un flujo es `flujos.actualizado_en`, que mueve siempre hacia adelante `flujo_version()` (reemplaza al trigger genérico, que daba la misma hora dos veces en una transacción).
+  `_flujo_para_editar()` (inexistente → PT409; sin permiso → 42501 antes del candado; `for update`; versión → PT409) y `_flujo_tocar()` son el contrato, con firma estable.
+  `fase_crear()` y `fase_guardar()` (`security definer`): lista cerrada (22023 con la clave en `hint`), tipos, validaciones con el campo en `hint` sobre la fila mezclada (los
+  topes nuevos sólo sobre las claves que llegan), reglas del flujo (23514) y únicos humanos (23505). `authenticated` ya no escribe directo `fases` ni `flujos`: se borran
+  «fases: crear», «fases: editar» y «flujos: editar» y sus grants. El candado es `for no key update` (el `fix` de la auditoría del informe: `for update` frenaba los
+  cambios de fase por el `key share` de sus FK).
+- **Verificación** (`.piloto/salidas/5.01/`): `db:reset`, `db:types` y `db:probar` en cada commit; las pruebas nuevas (`supabase/tests/areas/flujos/fases.sql` y
+  `fases-guardar.sql`, 19 bloques) en verde; `db:carreras` en verde con K1 (dos guardados con la misma versión: B espera y recibe PT409) y K2 (quien no puede no espera el
+  candado: 42501, no 55P03) y, tras el `fix`, K3 (el `key share` de las FK pasa con la fase y el flujo tomados; sin el `fix` caía con 55P03); `db:lint` sin avisos en las funciones nuevas; `scripts/guardas` (1.031) en verde; los e2e `origenes` y `vehiculos-vitrina` en escritorio (14 en
+  verde). `nivel.mjs` con los archivos escritos: Nivel 2 por el disparador `rls`.
+  e2e completo: no (5.01-1, Nivel 2: el completo lo corre el CI del PR por el disparador rls; cuenta 0 de 3)
+- **Abiertos:** ninguno nuevo. 4-64: `scripts/carreras.mjs` 371 → 373. Seis commits de código y no cinco: `f2ffb5aa` dejó `fases.sql` en 317 líneas y `674bab7c` lo partió.
+- **Commits:** `92a0d73c` feat(db): fijar la versión del flujo y el contrato para editarlo · `8fc121e1` feat(db): crear una fase por rpc con la versión del flujo ·
+  `fa7db2d6` feat(db): guardar una fase por rpc con una lista cerrada de cambios · `f2ffb5aa` feat(db): quitar la escritura directa de fases y flujos · `fb163f03` test(db):
+  carrera de dos guardados de fase con la misma versión · `674bab7c` test(db): llevar la prueba sin escritura directa a fases-guardar · `c65b38ef` fix(db): tomar el flujo sin frenar el key share de los cambios de fase (auditoría del informe) · y el de docs.
+
+<!-- paso:5.01-2 -->
+
+## 2026-11-11 — Paso 5.01-2: mover, eliminar con versión, reactivar, impacto y el flujo de repuestos
+
+- **Hecho:** cierra el 5.01. `fase_mover()` renumera todo el flujo de 10 en 10 sin `orden` repetido; `_fase_uso()` es la única regla de lo que usa una fase (conteos con
+  tope 50, lee 51) y la leen `fase_impacto()` (lectura con permiso, sin candado) y `fase_eliminar(p_fase, p_actualizado_en_esperado)`, que reemplaza a la vieja (se borra
+  su firma), toma la fase `for update` antes de contar y devuelve `{accion, version}`; `fase_reactivar()` valida las reglas del flujo. Las cuatro son `security definer`
+  con el contrato `_flujo_para_editar`/`_flujo_tocar`. El flujo de repuestos lo garantiza una migración (7 reglas, sin fases) y la semilla siembra sus fases si no tiene.
+  `escala.sql` pierde la excepción de `fase_eliminar`.
+- **Verificación** (`.piloto/salidas/5.01-2/`): `db:reset`, `db:types` y `db:probar` completo en cada commit de migración (0 ✗); las pruebas nuevas
+  (`supabase/tests/areas/flujos/fases-mover.sql`, `fases-impacto.sql`, `fases-eliminar.sql`, `fases-reactivar.sql`, 12 bloques) en verde, con 42501 para el asesor y
+  para `flujos.configurar` de otro origen en las cuatro RPC nuevas (crear y guardar ya lo probaba el 5.01-1: «las seis»); `db:carreras` en verde con K4 (eliminar espera
+  al cambio de fase que entra y jubila; sin el `for update` cae con el `23503` crudo, medido); `db:lint` sin errores (avisos «never read variable» en `fase_mover` y
+  `fase_eliminar`); `scripts/guardas` (1.044) en verde; el e2e `configuracion-flujos` en escritorio (3 en verde). `nivel.mjs` con los archivos de esta parte: Nivel 1;
+  el PR lleva el `rls` del 5.01-1.
+  e2e completo: no (5.01-2, Nivel 2 por el rls del 5.01-1 en el mismo PR: el completo lo corre el CI; cuenta 0 de 3)
+- **Abiertos:** ninguno nuevo. `supabase/tests/areas/flujos/carreras.mjs` 153 → 209 líneas.
+- **Commits:** `c0c2b69d` feat(db): mover una fase con la versión del flujo · `03720119` feat(db): leer el impacto de jubilar o eliminar una fase · `d9e0f70f` feat(db):
+  eliminar una fase con la versión del flujo · `d4bf3e5a` feat(db): reactivar una fase jubilada con la versión del flujo · `09e31da9` feat(db): garantizar el flujo de
+  repuestos por migración · `7cba0c86` test(db): carrera de eliminar una fase mientras entra un cambio · y el de docs.
+
+<!-- paso:5.04-1 -->
+
+## 2026-11-11 — Paso 5.04-1: las fases, lo puro y las actions (parte 1 de 3 del 5.04)
+
+- **Hecho:** sin interfaz. `entities/fases/` (reglas puras espejo de `_fase_validar()` con `validarFase` y `motivoDelInterruptor`, el formulario con
+  `cambiosParaGuardar` y `datosParaCrear`, la paleta de colores, `despuesDeAlMover` para subir y bajar, los textos del impacto al jubilar o eliminar,
+  la lectura Zod de las respuestas y las interfaces del repositorio); `infra/fases/` (las cinco RPC de escritura y `fase_impacto`, con el campo del
+  `hint` junto al error); `features/fases/{schemas,actions}` (crear, guardar, mover, eliminar, reactivar y leer el impacto; cada una exige el permiso
+  del flujo antes de escribir y revalida configuración y vehículos); `areas/fases/composicion.ts`.
+- **Commits:** `407af12e` (reglas puras), `c6bd1ed9` (leer y escribir).
+- **Verificación** (`.piloto/salidas/5.04-1/`): `vitest run src/modules/flujos scripts/guardas`: 55 archivos, 1.247 pruebas en verde
+  (`vitest.txt`); `validarFase` coincide con `_fase_validar()` de la base real en PGlite, 26 casos; `lint` y `typecheck` en verde (los corre el hook de cada
+  commit). Sin SQL, sin migración: la base no cambió.
+- **Para el carril A:** en `docs/PLAN.md`, fila 5.04: «**5.04-1 hecho** (lo puro y las actions; `docs/pasos/5.04-1/`). Faltan el **5.04-2** (la
+  lista: «Nueva fase», ordenar, «⋯», confirmación) y el **5.04-3** (el inspector y el recorrido e2e)».
+- **5.04 sigue:** este PR no marca integrado el paso (`parcial: true`).
+- e2e completo: no (5.04-1, Nivel 1, sin pantalla: lo corre el CI del PR)
+
+<!-- paso:5.04-2 -->
+
+## 2026-11-11 — Paso 5.04-2: la lista de fases (parte 2 de 3 del 5.04)
+
+- **Hecho:** «Nueva fase» (modal por `?panel=nueva-fase`: nombre, color de la paleta y tipo), subir y bajar con `<BotonesDeOrden>`, y el «⋯» de cada fila
+  (Editar, Jubilar o eliminar con confirmación que lee `fase_impacto`, Reactivar). `pantallas/fases.ts` da los dos huecos `accionesDeLaLista` y
+  `accionesDeFila`; `src/app/(app)/configuracion/flujos/huecos.ts` los llena; el subtítulo de la lista ya no dice «sólo se pueden mirar». Registro de la
+  confirmación en `scripts/guardas/areas-b/confirmar-con-url.ts`.
+- **Commits:** reglas de la lista (`entities/fases/panel-de-fase.ts`, `erroresDeFaseNueva`, `accionesDeFase`) y las acciones de la lista (hooks, componentes, hueco, e2e).
+- **Verificación** (`.piloto/salidas/5.04-2/`): `vitest run src/modules/flujos scripts/guardas`: 57 archivos, 1.256 pruebas en verde (`vitest.txt`);
+  `e2e/configuracion-flujos-fases.spec.ts` (escritorio, nuevo: crea tres fases —repetir un nombre dice su motivo junto al campo—, sube una con el teclado y elimina
+  otra): 1 en verde (`e2e-fases.txt`); los vecinos `configuracion-flujos` y `-documentos`: 6 en verde (`e2e-vecinos.txt`).
+- **Para el carril A:** en `docs/PLAN.md`, fila 5.04: «**5.04-2 hecho** (la lista; `docs/pasos/5.04-2/`). Falta el **5.04-3** (el inspector › Datos y el
+  recorrido e2e completo)».
+- **5.04 sigue:** este PR no marca integrado el paso (`parcial: true`).
+- e2e completo: no (5.04-2, Nivel 1, pantalla: lo corre el CI del PR; dirigidos en escritorio, sin celular por ser Configuración)
+
+<!-- paso:5.04-3 -->
+
+## 2026-11-11 — Paso 5.04-3: el inspector › Datos y el recorrido (parte 3 de 3 del 5.04)
+
+- **Hecho:** «Datos» del inspector es un formulario en cinco bloques (Identidad, En el flujo, Alerta por demora, Transporte y aduana, Web y portal) que guarda con
+  `fase_guardar` sólo lo que cambió: validación con el espejo de la base, el motivo junto a cada campo con el foco en el primero, interruptores apagados con su
+  motivo cuando la regla del flujo está apagada, aviso de otra inicial, alias del portal obligatorio, borrador por fase y conflicto con «Recargar». El registro del
+  drawer pasó de `sinFormulario` a `formulario`. Dos pruebas nuevas en el e2e de fases: editar los datos y jubilar con historial y reactivar.
+- **Commits:** `feat(flujos): editar los datos de una fase en el inspector` y `test(flujos): recorrido de fases en configuración de flujos`, más este de docs. Antes, el
+  merge con `origin/main` (el choque era `scripts/guardas/areas-b/confirmar-con-url.ts`: se juntaron las confirmaciones de fases y de agenda).
+- **Verificación** (`.piloto/salidas/5.04-3/`): `vitest run src/modules/flujos scripts/guardas`: 58 archivos, 1.264 pruebas en verde (`vitest.txt`);
+  `e2e/configuracion-flujos-fases.spec.ts` (escritorio): 3 en verde, 16,8 s (`e2e-fases.txt`); vecinos `configuracion-flujos` y `-documentos`: 6 en verde (`e2e-vecinos.txt`).
+  `eslint` y `typecheck` sin avisos. Sin SQL.
+- **Para el carril A:** en `docs/PLAN.md`, fila 5.04: «**5.04 completo** (5.04-1 a 5.04-3: `docs/pasos/5.04-n/`)»; en `docs/ESTADO.md`: «Configuración › Flujos › Fases se
+  edita: crear, ordenar, jubilar o eliminar, reactivar y los datos en el inspector (5.04)»; `integrado 5.04` con `parcial: false`.
+- **Pulido para la Fase 9:** no se miró el inspector al 200 % (los bloques anidados miden con `minmax(0, 1fr)`, sin captura).
+- e2e completo: no (5.04-3, Nivel 1, pantalla: lo corre el CI del PR; dirigidos en escritorio, sin celular por ser Configuración)
+
+<!-- paso:5.06-1 -->
+
+## 2026-11-11 — Paso 5.06-1: «Salidas y quién mueve», ver, agregar y quitar (parte 1 de 2)
+
+- **Hecho:** el bloque «Salidas y quién mueve» del inspector de una fase y los chips de la fila, en el área `transiciones` de `flujos`.
+  - `entities/transiciones/`: `quienMueve()` (espejo de `_puede_mover` sin permisos; los mismos casos que `transiciones.sql` T4–T5), el formulario de salida con sus destinos posibles (activas, sin la propia, sin las que ya son salida) y su validación (acción ≤ 40, vacía = nula), los chips de la fila (hasta 3 y «+N más»), respuestas y repositorio.
+  - `infra/transiciones/escribir.ts` y `features/transiciones/{actions,schemas}`: `transicion_crear` y `transicion_eliminar` con el campo del `hint`; las dos actions comprueban `flujos.configurar` o `repuestos.configurar` antes de la RPC.
+  - `features/transiciones/{hooks,components}`: el bloque (quién puede mover a la fase, «Entradas», la lista de salidas con quién mueve por cada una, «Agregar salida» en línea con estado local, «Quitar» con `<Confirmar>` en `?eliminar=salida&salida=<id>`) y `<SalidasDeLaFila>`. El hueco `bloques.salidas` pasó a recibir `roles` (D3). `huecos.ts` de `src/app` y `confirmar-con-url.ts` del carril B los conectan.
+  - `docs/UX.md` gana «Flujos: salidas y quién mueve (estados propios)»; `GLOSARIO` «Salida de una fase»; la ficha de `flujos`, «Transiciones y quién mueve (5.06)».
+- **Sin migración:** las cinco RPC y la revocación de escritura directa llegaron con el 5.05.
+- **Para la parte 2 (5.06-2):** editar acción y nota y limitar a roles (la fase y cada salida), según `.piloto/planes/5.06.md` › «Partición». La forma de alta es `formulario-de-nueva-salida.tsx` (campos «Acción» y «Pide nota al mover»).
+- **Verificación** (`.piloto/salidas/5.06-1/`): e2e dirigido en escritorio, 1 ✓ (`e2e-transiciones.txt`: dos salidas con acción y nota, chips en la fila, recargar y siguen, quitar pide confirmar y cancelar no quita) y los vecinos `configuracion-flujos`, `-requisitos` y `-documentos`, 11 ✓ (`e2e-vecinos.txt`). `scripts/guardas`: 34 archivos, 1.069 ✓. Pruebas de `entities/transiciones` y `features/transiciones`: 28 ✓. `tsc` y `eslint` sin avisos.
+- **Para el carril A:** `docs/PLAN.md`, fila 5.06 → «5.06-1 hecho; falta 5.06-2»; `ESTADO`: «Inspector › Salidas: se ven, se agregan y se quitan; las filas muestran sus chips (5.06-1)»; registrar `integrado 5.06-1` con `parcial: true`. Con 5.04 en `main`, `huecos.ts` de `src/app` y `inspector-de-fase.tsx` pueden chocar en una línea.
+  e2e completo: no (5.06-1, Nivel 1, sin disparadores: lo corre el CI del PR; dirigidos en escritorio, sin celular por ser Configuración)
+
+<!-- paso:5.06-2 -->
+
+## 2026-11-11 — Paso 5.06-2: «Salidas y quién mueve», editar y limitar a roles (parte 2 de 2)
+
+- **Hecho:** editar una salida y limitar a roles la fase y cada salida; con esto el 5.06 queda completo.
+  - `entities/transiciones/roles-de-lista.ts` (`alternarRol`, `mismosRoles`, `firmaDeRoles`, roles guardados de fase y de salida) y `cambiosDeSalida` en `formulario-de-salida.ts`, con tests.
+  - `infra/transiciones/escribir.ts`, schemas y las actions `guardarTransicion`, `ponerRolesDeFase` y `ponerRolesDeTransicion` (permiso por ámbito, revalida la ruta).
+  - Interfaz: `selector-de-roles`, `campos-de-salida` (factoriza el alta), `formulario-de-edicion-de-salida` (diferido), «Editar» en la fila, `quien-mueve-a-la-fase` con selector y «Guardar quién mueve». Una forma a la vez en el bloque.
+  - `docs/UX.md`, ficha de `flujos`. Sin migración ni SQL.
+- **Verificación** (`.piloto/salidas/5.06-2/`): e2e dirigido en escritorio, 2 ✓ (`e2e-transiciones.txt`: el segundo limita la fase a un rol, edita la salida —acción, sin nota, su rol—, recarga y siguen; la base tiene 1 fila en `fases_roles` y 1 en `fases_transiciones_roles`); vecinos (`configuracion-flujos`, `-requisitos`, `-documentos`, `-fases`), 11 ✓ (`e2e-vecinos.txt`). `src/modules/flujos` y `scripts/guardas`: 71 archivos, 1.300 ✓ (`vitest.txt`). `tsc` y `eslint` sin avisos.
+- **Arreglo en el e2e de la parte 1:** `getByText('Cualquiera con el permiso de mover')` pasó a `exact: true`: la ayuda del selector contiene el mismo texto.
+- **Para el carril A:** `docs/PLAN.md`, fila 5.06 → «**5.06 completo**»; `ESTADO`: «Inspector › Salidas: se ven, se agregan, se editan y se quitan; la fase y cada salida se limitan a roles (5.06-2)»; registrar `integrado 5.06-2` con `parcial: false`.
+  e2e completo: no (5.06-2, pantalla de Configuración, Nivel 1: lo prueba el CI del PR; dirigidos en escritorio, sin celular)
+
+<!-- paso:5.07-1 -->
+
+## 2026-11-11 — Paso 5.07-1: la base de «Requisitos», la escritura (parte 1 de 2)
+
+- **Hecho:** `fase_requisito_validar()` recreada (cada error con su campo en `hint`, no se espera a una fase jubilada, en UPDATE sólo revalida el grupo cuyo campo
+  cambió); `requisito_crear` (nace informativo; el default de `fases_requisitos.bloqueante` pasa a `false`), `requisito_guardar`, `requisito_mover` y
+  `requisito_eliminar`, todas por `_flujo_para_editar` y `_flujo_tocar`; sin policies ni grants de escritura en `fases_requisitos` (queda leer). Migraciones
+  `20261111222240`–`202354_requisitos_*`; pruebas `supabase/tests/areas/flujos/requisitos.sql` (R1–R10) y `requisitos-editar.sql` (E1–E4).
+- **Verificación** (`.piloto/salidas/5.07/`): `db:probar` 813 pruebas ✓, 0 ✗ (`db-probar-2.txt`); `db:lint` sin avisos en lo nuevo (`db-lint-2.txt`); guardas
+  1.058 ✓ (`guardas.txt`); `nivel.mjs` → Nivel 2 (rls, estructura).
+- **Sigue en el 5.07-2:** `requisito_impacto`, `flujo_fuera_de_regla`, borrar `fuera_de_regla()` y su línea de `supabase/tests/escala.sql`, glosario y RENDIMIENTO
+  (plan servido en `.piloto/planes/5.07.md` › «Partición»).
+- **Para el 5.08:** el alta de `requisito_impacto` y `flujo_fuera_de_regla` en `scripts/guardas/areas-c/paginas-en-la-base.ts` (con `pideElCodigo` 50) va con su
+  primera llamada desde `src/` (D3): conviene sumarlo al `terminado` del 5.08.
+- **Para el 6.02:** `evaluar_requisitos()` tiene EXECUTE para `authenticated` sin pedir permiso sobre la unidad; el 6.02 la recrea.
+- e2e completo: no (5.07-1, Nivel 2: lo corre el CI del PR)
+
+<!-- paso:5.07-2 -->
+
+## 2026-11-11 — Paso 5.07-2: la base de «Requisitos», la lectura (parte 2 de 2, cierra el paso)
+
+- **Hecho:** `requisito_impacto(p_requisito, p_tope)` → `{fuera, hay_mas, revisadas}`; `flujo_fuera_de_regla(p_flujo, p_tope)` → ids, fase y `faltan`, a lo sumo
+  `tope + 1` filas; las dos exigen `puede_configurar_flujo()`, acotan con `_acotar_pagina(p_tope, 50, 100)` y revisan ≤ 1.000 unidades por fase por su índice.
+  `fuera_de_regla()` borrada (y su excepción de `supabase/tests/escala.sql`). `fase_requisito_validar()` recupera el `for share` del 5.03 (D11). Migraciones
+  `20261111222246_requisitos_validar_con_candado`, `210116_requisitos_impacto`, `210119_requisitos_fuera_de_regla`; pruebas
+  `supabase/tests/areas/flujos/requisitos-lectura.sql` (R11–R15) y R16 en `requisitos.sql`.
+- **Auditoría del informe:** observaciones; R12 suma una segunda fase para probar que el tope es del total (`fix(db)` aparte).
+- **Verificación** (`.piloto/salidas/5.07-2/`): `db:probar` 831 pruebas ✓, 0 ✗ (`db-probar-final.txt`); `db:lint` sin avisos en lo nuevo (`db-lint.txt`);
+  guardas 1.058 ✓ (`guardas.txt`); `nivel.mjs` de esta parte → Nivel 1 (el PR, con la parte 1, es Nivel 2).
+- **Para el 5.08:** el alta de `requisito_impacto` y `flujo_fuera_de_regla` en `scripts/guardas/areas-c/paginas-en-la-base.ts` (`pideElCodigo` 50) va con su
+  primera llamada desde `src/` (5.07-1:D3). Firmas: `requisito_impacto(uuid, int default null) returns jsonb`, `flujo_fuera_de_regla(uuid, int default null)
+returns table (vehiculo_id, repuesto_id, fase_id, faltan)`. Si el panel la lee al abrirse, se mide ahí (`docs/RENDIMIENTO.md`).
+- **Para el coordinador:** `docs/PLAN.md:751,757,1063` todavía nombran `fuera_de_regla` (D16). El assert de la fila nombra `requisitos.sql`; R11–R15 viven en
+  `requisitos-lectura.sql` (D12). Si el panel del 5.08 lee `flujo_fuera_de_regla` al abrirse, su
+  medición va en el `terminado` del 5.08 (`docs/RENDIMIENTO.md`).
+- e2e completo: no (5.07-2, Nivel 2: lo corre el CI del PR)
+
+<!-- paso:5.08-1 -->
+
+## 2026-11-11 — Paso 5.08-1: «Requisitos para entrar», lista, orden, quitar y agregar un dato (parte 1 de 3)
+
+- **Hecho:** el bloque «Requisitos para entrar» del inspector de una fase, en el área `requisitos` de `flujos`.
+  - `entities/requisitos/`: las claves de dato por ámbito con su etiqueta (`claves.ts`, comparada con el SQL), la descripción humana, el formulario de «Dato»
+    con su validación (porcentaje 1 a 100, notas ≤ 500), el orden («después de X») y las respuestas de las RPC.
+  - `infra/requisitos/` y `features/requisitos/`: la lectura de los tipos de documento (`tope + 1` por grupo), las tres RPC (`requisito_crear|mover|eliminar`) con el
+    campo del `hint`, los esquemas y las cuatro actions (tres de escritura y una de lectura), con el permiso del flujo antes de escribir.
+  - El bloque: lista en orden con «Bloqueante»/«Informativo», orden por botones con foco, «Quitar» con `<Confirmar>` en `?eliminar=requisito&quitar=<id>`,
+    «Agregar requisito» en línea (`?agregar=dato`). `pantallas/requisitos.ts` y `huecos.ts` lo conectan; `confirmar-con-url.ts` lo registra.
+  - `docs/UX.md` gana «Flujos: requisitos para entrar (estados propios)»; la ficha de `flujos`, «Requisitos (5.08)».
+- **Cambió respecto del plan:** ver `decisiones.md`. Sin migración (no faltó nada en la base). Los botones de orden no se apagan mientras una escritura va en curso
+  (como en 5.09: `mandar` ignora el segundo pedido). La action de crear se llama `crearRequisitoDeDato`; la 5.08-2 sumará las otras.
+- **Para la parte 2 (5.08-2):** formas Documento y Espera y editar con `requisito_guardar`, según `.piloto/planes/5.08.md` › «Lo que deja servido la parte 2». El
+  `client.ts` del área ya trae etiquetas, descripción y las actions de esta parte; `descripcionDeRequisito` dice «una fase del otro flujo» hasta que la 2 lea las fases.
+- **Verificación** (`.piloto/salidas/5.08/`): e2e dirigido en escritorio, 2 ✓ (`e2e-requisitos.txt`: agregar VIN y pagos con 50 %, subir con el teclado, quitar por la
+  URL; quien sólo tiene `flujos.configurar`) y los vecinos `configuracion-flujos.spec.ts` y `configuracion-flujos-documentos.spec.ts`, 6 ✓ (`e2e-dirigidos.txt`).
+  `scripts/guardas`: 34 archivos, 1.065 ✓. Pruebas de `src/modules/flujos/{entities,features}/requisitos`: 29 ✓. `tsc` y `eslint` sin avisos.
+  e2e completo: no (5.08-1, Nivel 1, sin disparadores: lo corre el CI del PR; dirigidos en escritorio, sin celular por ser Configuración)
+
+<!-- paso:5.08-2 -->
+
+## 2026-11-11 — Paso 5.08-2: «Requisitos para entrar», documento, espera y editar (parte 2 de 3)
+
+- **Hecho:** «Agregar requisito» pasa por un selector (Dato, Documento, Espera) y suma las formas **Documento** y **Espera**; «Editar» abre en el lugar del botón.
+  - `entities/requisitos/`: `formulario-de-documento` (mínimo, máximo, formatos dentro de los del tipo), `formulario-de-espera`, `formulario-de-edicion` (sólo lo que
+    cambió; `null` al vaciar; «No hay nada que guardar.»), `notas` (la regla de las notas, una sola), la descripción de una espera nombra la fase, y
+    `opciones` suma las fases activas del otro flujo y `delFlujo` en cada tipo.
+  - `infra/` y `features/`: `requisito_crear` con cualquier tipo y `requisito_guardar`; una action `crearRequisito` con unión por tipo y `guardarRequisito`;
+    `leerOpcionesDeRequisitos` recibe el ámbito. `useFormularioDeRequisito` es el estado común de los cuatro formularios.
+  - URL: `?agregar=nuevo&forma=elegir|dato|documento|espera` y `?editar=requisito&requisito=<id>`. Sin migración.
+  - `docs/UX.md` y la ficha de `flujos` al día. Queda para 5.08-3: «Bloqueante» con el aviso de impacto, «fuera de regla» y `sobreLaLista`.
+- **Cambió respecto del plan:** ver `decisiones.md` (D9 la URL del selector; D10 `delFlujo`).
+- **Verificación** (`.piloto/salidas/5.08-2/`): e2e dirigido en escritorio, `configuracion-flujos-requisitos` 4 ✓ (dato, quien sólo configura, documento y espera, editar) y
+  los vecinos `configuracion-flujos` y `configuracion-flujos-documentos` ✓ (`e2e-3.txt`, `e2e-4.txt`). Vitest de `src/modules/flujos` y `scripts/guardas` ✓; `tsc` y `eslint` sin avisos.
+  e2e completo: no (5.08-2, Nivel 1, sin disparadores: lo corre el CI del PR; dirigidos en escritorio, sin celular por ser Configuración)
+
+<!-- paso:5.08-3 -->
+
+## 2026-11-11 — Paso 5.08-3: «Bloqueante», el aviso de impacto y «fuera de regla» (parte 3 de 3)
+
+- **Hecho:** «Bloqueante» pasa a un interruptor en cada fila; el aviso «N unidades fuera de regla» y su panel. **5.08 queda completo.**
+  - `entities/requisitos/{impacto,fuera-de-regla}.ts` con sus pruebas: el texto del impacto, la lectura de `flujo_fuera_de_regla`, la agrupación por fase y los textos del aviso.
+  - `infra/` y `features/`: lecturas de `requisito_impacto` y `flujo_fuera_de_regla`, la action `leerImpactoDeRequisito`, `bloqueante` en `guardarRequisito`, el hook `useBloqueanteDeRequisito`, el interruptor y la confirmación en línea.
+  - `PantallaDelFlujo` suma la prop de servidor `sobreLaLista`; `src/app/.../requisitos/fuera-de-regla.tsx` lee, resuelve los títulos con `vehiculos` y arma el camino al inventario. `FILTRO_FASE` sale por `vehiculos/index.ts` (una línea).
+  - Guardas del C: las dos RPC en `paginas-en-la-base.ts` y el panel `sinFormulario` en `drawers-con-salida.ts` (archivo nuevo). Sin migración.
+- **Verificación** (`.piloto/salidas/5.08-3/`): e2e escritorio `configuracion-flujos-requisitos` 5 ✓ (`e2e-1.txt`), vecinos `configuracion-flujos` y `-documentos` 6 ✓ (`e2e-2.txt`); vitest de `scripts/guardas` (1.068 ✓) y de lo tocado; `tsc` y `eslint` limpios.
+  e2e completo: no (5.08-3, Nivel 1, sin disparadores: lo corre el CI del PR; dirigidos en escritorio, sin celular por ser Configuración)
+
+<!-- paso:5.10-1 -->
+
+## 2026-11-11 — Paso 5.10-1: el uso, el impacto y el cambio de una regla del flujo, sin escritura directa
+
+- **Hecho:** el 5.10 se partió en dos; el 5.10-2 lleva la oferta de transporte.
+  - `_flujo_regla_uso()` es la regla única del uso. Cuenta las fases del flujo que marcan la regla (también las jubiladas) y, nuevo, en «esperas», los requisitos de espera de sus fases, que antes se apagaban en silencio. Tope 50 + 1.
+  - `_flujo_regla_admitida()` es el catálogo por ámbito: repuestos no tiene `vitrina_web`, `portal_cliente` ni `aduana`.
+  - El trigger `flujo_regla_apagar_validar` aplica esa regla (también a `service_role`), no valida una fila ya apagada y deja pasar la cascada del flujo.
+  - `flujo_regla_impacto()`: lectura sin versión; con la regla ya apagada da `bloquea: false`.
+  - `flujo_regla_cambiar()`: pasa por el contrato de versión del 5.01. Encender fuera del catálogo → `22023`; apagar con uso → `23514` con hint `regla`. La versión se mueve siempre.
+  - `authenticated` ya no escribe `flujos_reglas`: se borraron sus tres policies de escritura y sus grants.
+- **Verificación** (`.piloto/salidas/5.10/`):
+  - `db:reset`, `db:types` y `db:probar` completo: exit 0, 0 ✗. La prueba nueva `supabase/tests/flujos-reglas.sql` (R1-R8, en la lista fija) en verde.
+  - `db:lint`: ningún aviso en las funciones nuevas.
+  - `scripts/guardas`: 1.058 en verde.
+  - `typecheck` sin errores.
+  - e2e `origenes` en escritorio: 8 en verde.
+  - `nivel.mjs` con los archivos escritos: `{"nivel":2,"disparadores":[{"id":"rls","archivos":["supabase/migrations/20261111210631_flujo_regla_sin_escritura_directa.sql"]}],"toca_interfaz":false,"database_types":true}`.
+  - e2e completo: no (5.10-1, Nivel 2: el completo lo corre el CI del PR por el disparador rls; cuenta 0 de 3)
+- **Abiertos:** hasta el 5.07, apagar «esperas» mientras otra persona crea un requisito de espera directo puede dejar la regla apagada con el requisito vivo (D11). Se cierra cuando el 5.07 pase los requisitos por RPC con `_flujo_para_editar`.
+- **Commits:**
+  - `4f34dcfe` feat(db): contar el uso de una regla del flujo con fases y esperas
+  - `bd885bf4` feat(db): leer el impacto de apagar una regla del flujo
+  - `778f4a21` feat(db): encender y apagar una regla del flujo por rpc con versión
+  - `79100a3d` feat(db): quitar la escritura directa de las reglas del flujo
+  - y el de docs.
+
+<!-- paso:5.10-2 -->
+
+## 2026-11-11 — Paso 5.10-2: la oferta de transporte
+
+- **Hecho:** cierra el 5.10 (el 5.10-1 hizo las reglas).
+  - `flujos_transporte_oferta` admite filas: sin la PK de las cuatro columnas (ninguna fila cumplía los checks), `puerto_id` y `naviera_id` nulables, dos únicos
+    parciales y un btree `(flujo_id)`.
+  - `flujo_oferta_guardar()` (`security definer`): reemplazo todo o nada con la versión del flujo. Forma `22023` (nulo o más de 200, hint el arreglo) → contrato de
+    versión → regla «transporte» apagada `23514` → id inexistente `23503` (hint el arreglo). Repetidos se colapsan, inactivos se aceptan; vacío = se ofrece todo.
+  - `flujo_oferta()` (`security invoker`): `{transporte, puertos_origen, puertos_destino, navieras}` con `{id, nombre, activo}`; inexistente `PT409`.
+  - `authenticated` ya no escribe la oferta (fuera las policies de crear y borrar y sus grants).
+- **Verificación** (`.piloto/salidas/5.10-2/`):
+  - `db:reset`, `db:types` y `db:probar` completo: exit 0, 0 ✗. La prueba nueva `supabase/tests/flujos-oferta.sql` (O1-O7, en la lista fija) en verde.
+  - `db:lint`: ningún aviso en las funciones nuevas.
+  - `scripts/guardas`: 1.058 en verde.
+  - `nivel.mjs` con los archivos escritos: `{"nivel":2,"disparadores":[{"id":"rls","archivos":["supabase/migrations/20261111210635_flujo_oferta_sin_escritura_directa.sql"]},{"id":"estructura","archivos":["supabase/migrations/20261111210632_flujo_oferta_tabla.sql"]}],"toca_interfaz":false,"database_types":true}`.
+  - e2e completo: no (5.10-2, Nivel 2: el completo lo corre el CI del PR por los disparadores rls y estructura; cuenta 0 de 3)
+- **Abiertos:** ninguno nuevo. El catálogo de puertos y navieras sigue para la Fase 6 (D1 del 5.10-1); la pantalla, el 5.11.
+- **Commits:**
+  - `bc7589d4` feat(db): guardar y leer la oferta de transporte de un flujo por rpc
+  - `92401691` feat(db): quitar la escritura directa de la oferta de transporte
+  - y el de docs.
+
+<!-- paso:5.12-1 -->
+
+## 5.12-1 · «Revisar»: la base de `revisar_flujo()` (2026-11-12)
+
+Parte 1 de 2 (`parcial: true`). Migración `20261112044537_revisar_flujo_avisos.sql`: `create or replace revisar_flujo()` desde la base, misma firma, ahora
+plpgsql. Sólo responde a quien configura el flujo (antes cualquier `authenticated` leía los nombres de fases de cualquier flujo) y suma `rol_sin_personas`
+(fase y salida), `entrada_no_automatica` (info, vehículos), `tipo_documento_inactivo` y `salida_a_jubilada`; los ocho códigos de antes, iguales. Grants
+reescritos (`revoke … from public, anon`, `execute` a `authenticated` y `service_role`). Sin tabla, policy ni permiso nuevo; `database.types.ts` sin cambio.
+
+Pruebas: `supabase/tests/flujos-revisar.sql` (R1–R7, por `codigo` y `fase_id`), en la lista fija de `probar-schema.mjs`. Contra la función vieja caen R1, R3,
+R4, R5 y R6. `db:probar` completo y `db:lint` en verde. Compuerta de datos (toca `security definer` y un permiso): la cubre la decisión vigente «aprobar»
+(`PILOTO_AUTO=todo`); el informe pasó por el auditor.
+
+Sigue **5.12-2** (servida en `.piloto/planes/5.12-1.md` › «5.12-2 servida»): `entities/revisar/avisos.ts` con test, la lectura, la franja en el hueco
+`franjaDeRevisar` y `e2e/configuracion-flujos-revisar.spec.ts`.
+
+- e2e completo: no (5.12-1, Nivel 1, sólo base: sin e2e dirigido; lo prueba el CI del PR)
+
+<!-- paso:5.12-2 -->
+
+## 5.12-2 · «Revisar»: la franja sobre el flujo (2026-11-12)
+
+Parte 2 de 2: cierra el 5.12 (`parcial: false`). La franja llena el hueco `franjaDeRevisar` de la pestaña «Fases»: cerrada, el resumen («Todo en orden»,
+«1 error y 3 avisos»); abierta, los avisos de `revisar_flujo()` por nivel con icono, palabra y el texto de la base, y «Abrir la fase» hacia el inspector.
+Nace cerrada, se relee tras cada guardado (por la versión del flujo) sin volver al esqueleto y nunca impide guardar. `entities/revisar/avisos.ts` (lectura
+con Zod, orden error › aviso › info, resumen con tope de 200) con test; `infra/revisar/leer-avisos.ts` (`limit 201`); la action `leerAvisosDeRevisar` mira
+`flujos.configurar` o `repuestos.configurar` antes de la RPC. Sin cambios en `supabase/`. Ficha de `flujos`, `docs/UX.md` › «Flujos: revisar (estados
+propios)» y la entrada «Revisar» del glosario.
+
+Verificación (Nivel 1, sólo escritorio: Configuración): `avisos.test.ts` 11 de 11; guardas y mapa, 35 archivos y 1.079 pruebas en verde; e2e
+`configuracion-flujos-revisar.spec.ts` (nuevo) y los vecinos `configuracion-flujos`, `-transiciones` y `-requisitos`, 11 en verde; `nivel.mjs` con los
+archivos reales → nivel 1 sin disparadores; `mapa.sh --check` y `saltadas.mjs b0023bf6..HEAD` (`n: 0`) en verde.
+
+- e2e completo: no (5.12-2, pantalla Nivel 1, sólo escritorio: lo corre el CI del PR)
+
+<!-- paso:6.01-4 -->
+
+## 2026-11-11 — Paso 6.01-4: arreglar el CI en rojo de la navegación (fix tras el 6.01)
+
+- **Causa:** el CI del PR del 6.01 cayó en `Nivel 1` por `src/app/(app)/_shell/navegacion.test.ts` («/logistica: «disponible» dice la verdad sobre si la pantalla existe»): el 6.01-3 creó
+  `src/app/(app)/logistica/page.tsx` y la entrada de Logística en `navegacion.ts` seguía con `disponible: false`. Los cuatro bloques e2e cayeron aparte, por el paso de chromium (arreglado en main, #108).
+- **Hecho:** la entrada `logistica` de `NAVEGACION` pasa a `disponible: true`.
+- **Verificación** (`.piloto/salidas/6.01/vitest-4.txt`): `vitest run "src/app/(app)/_shell"`, 21 pruebas en verde.
+- e2e completo: no (6.01-4, Nivel 2 por tocar `_shell`: lo corre el CI del PR en sus cuatro bloques)
+
+<!-- paso:6.01-5 -->
+
+## 2026-11-11 — Paso 6.01-5: arreglar los tres e2e que la entrada de Logística rompió (ci-fix del 6.01)
+
+- **Causa:** el 6.01-4 encendió la entrada de Logística en la navegación y, con el CI de chromium ya arreglado, el e2e completo mostró tres caídas, todas en escritorio y reproducidas en local:
+  `presupuesto-js.spec.ts` (el documento de `/perfil` pesa 84.810 B = 82,8 KB, tope 82), `configuracion-logistica.spec.ts` (el hub «no lista» Logística, pero buscaba el enlace en toda la página y ahora
+  lo tiene la navegación) y `cotizar-tarea-de-oro-recorrido.spec.ts` (una parada más en el camino: la asesora 57 teclas y la dueña 53; en el celular no cambia, 53 y 49).
+- **Hecho:** `PRESUPUESTO_DEL_DOCUMENTO_DE_PERFIL_EN_KB` 82 → 87 (lo medido más un 5 %, con la línea en `docs/RENDIMIENTO.md`); el hub se busca dentro de `main`; `CONTROLES_DE_LA_ASESORA` y `CONTROLES_DE_LA_DUENA` de escritorio +1.
+- **Verificación** (`.piloto/salidas/6.01/`): `E2E_SIN_FUNCIONES=1 pnpm test:e2e` de los tres specs, en verde en los dos proyectos (`e2e-ci-fix-2.txt`, `e2e-tarea-de-oro-2.txt`).
+- e2e completo: no (6.01-5, sólo specs: lo corre el CI del PR)
+
+<!-- paso:6.02-1 -->
+
+## 2026-11-11 — Paso 6.02-1: mover en la base, el candado, el conflicto con nombre y el lote por unidad (parte 1 de 3)
+
+- **Hecho:** `cambiar_fase` mira el acceso, toma la unidad `for no key update` y recién entonces lee la vista previa; la fase esperada vieja da PT409 con quién y
+  cuándo (`_fase_conflicto`), y cada rechazo lleva su código en `hint` (`acceso`, `unidad`, `conflicto`, `transicion`, `rol`, `requisitos`, `nota`).
+  `previsualizar_cambio_fase` suma `codigos`, exige `repuestos.ver` para un ítem y cuenta la nota obligatoria de la transición. `cambiar_fase_lote(p_unidades
+jsonb, …)` reemplaza la de `uuid[]`, con la esperada por unidad y un resultado por unidad; nace `previsualizar_cambio_fase_lote`. `evaluar_requisitos` y
+  `unidad_llego_a_fase` dejan de ser de `authenticated` y el `detalle` trae `tipo_documento_id` y `clave_dato`. Mover no mueve la versión de la ficha ni
+  audita `vehiculos.update`. Un vehículo con documentos vivos no va a la papelera. Migraciones `20261112023125_fases_mover_candado`,
+  `231804_fases_mover_lote`, `232006_fases_requisitos_sin_execute`, `232044_fases_mover_sin_version`, `232107_fases_papelera_con_documentos`; pruebas
+  `supabase/tests/areas/mover/{mover,permisos,lote,version}.sql` y la carrera `supabase/tests/areas/mover/carreras.mjs` (K1, K2).
+- **Auditoría:** plan con observaciones (atendidas); informe bloqueado por una edición posterior a las corridas: se volvieron a correr `db:reset`,
+  `db:probar` y `db:carreras`, y P3 y P5 suman la esperada vieja sin acceso y el caso positivo del repuesto.
+- **Verificación** (`.piloto/salidas/6.02-1/`): `db:probar` entero, `db:carreras` y las guardas en verde (los números, en el informe del paso).
+- **Para 6.02-2:** la cadena va sobre las firmas de hoy; `logistica_unidad` (6.02-3) no puede ser invocadora porque `authenticated` ya no ejecuta
+  `evaluar_requisitos`: será `security definer` con un `puede_vehiculo(…, 'logistica.ver')`.
+- **Para el coordinador:** en `docs/PLAN.md`, la fila 6.02 queda «Partido en 3: 6.02-1 (escritura, hecha), 6.02-2 (la cadena), 6.02-3 (unidad y dónde está)»;
+  nace el abierto **6-2** «publicar sin mover la versión de la ficha (`vitrina_actualizado_en`)» en «Abiertos que caen aquí»; los puntos 1, 2, 11 y 12 de
+  «lo que la base no hace» (`docs/PLAN.md:1070-1089`) quedan cerrados; el punto (4) de la fila 6.02 se corrige: `flujo_fuera_de_regla` sigue sólo para quien
+  configura (D6); el «Lugar» de su carrera pasa a `supabase/tests/areas/mover/carreras.mjs` (D11). En `docs/ESTADO.md` salen el arrastre «la papelera manual no
+  mira `documentos`», la mitad «mover» del de la versión (queda «publicar» como 6-2) y la deuda «`cambiar_fase` acepta `p_fase_esperada` nulo».
+- e2e completo: no (6.02-1, Nivel 1 sin e2e dirigidos: lo prueba el CI del PR)
+
+<!-- paso:6.02-2 -->
+
+## 2026-11-11 — Paso 6.02-2: mover en la base, las lecturas de la cadena (parte 2 de 3)
+
+- **Hecho:** `logistica_cadena(p_origen, p_tope, p_filtros)` (una columna por fase activa de logística, «Sin fase» primera y jubiladas al final sólo con
+  tarjetas; por columna `p_tope` tarjetas y `hay_mas`) y `logistica_cadena_columna(p_origen, p_fase, p_desde, p_id, p_tope, p_filtros)` por cursor
+  `(fase_desde, id)`, las dos `security definer` con el alcance resuelto una vez por origen (el menor de `logistica.ver` y `vehiculos.ver`; sin él, 42501 hint
+  `acceso`). Filtros `q`, `demoradas`, `por_aprobar`, `contenedor`, `booking`, `naviera`; `demorada` con el criterio de `alertas_demora`. Índice
+  `vehiculos_cadena_idx (origen_id, fase_id, fase_desde, id)` en lugar de `vehiculos_origen_fase_idx`; check y trigger `vehiculos_fase_desde_coherente`
+  (`fase_desde` existe si y sólo si hay fase). Migraciones `20261112023130_fases_cadena_indice`, `002914_fases_desde_coherente`, `002928_fases_cadena_columna`,
+  `002931_fases_cadena`; pruebas `supabase/tests/areas/mover/cadena.sql` (CA1–CA5) y `fase-desde.sql` (CA6); medición en `supabase/tests/medir-escala.sql` › «La cadena».
+- **Auditoría:** el plan bloqueó una vez («Sin fase» sin origen ni papelera en una definer); corregido en el plan antes de escribir (las cuatro consultas
+  empiezan por el origen y fuera de la papelera; CA2 lo prueba con otro origen y la papelera, en fase y sin fase).
+- **Verificación** (`.piloto/salidas/6.02-2/`): `db:probar` entero, la medición con volumen y las guardas (los números, en el informe del paso).
+- **Ojo en la nube:** la migración de coherencia le pone `fase_desde` (su última edición) a las unidades con fase y sin `fase_desde`; hasta hoy no entraban
+  en `alertas_demora()` y desde ahora sí: puede salir una tanda de alertas de demora la primera vez.
+- **Para 6.02-3:** `_logistica_alcance(p_origen)`, `_logistica_dias(p_fase)` y `_logistica_filtros(jsonb)` existen (sólo `service_role`):
+  `logistica_donde_esta` (definer) puede usar el alcance por cada origen de `origenes_con_alcance('logistica.ver', 'propios')` en vez de un `puede_vehiculo` por
+  fila. Tampoco entra al registro de páginas hasta que `src/` la llame (6.03); su `p_tope` va por `_acotar_pagina`. Los trigramas de `titulo`, `vin` y `lote`
+  son para ella, no para la cadena.
+- **Para el coordinador:** en `docs/PLAN.md`, la fila 6.02 pasa a «Partido en 3: 6.02-1 (escritura, hecha), 6.02-2 (la cadena, hecha), 6.02-3 (unidad y
+  dónde está)»; su punto (7) se corrige a `security definer` (D1), con `p_origen` primero en `logistica_cadena_columna` (D11), y «registradas en
+  `scripts/guardas/paginas-en-la-base.ts`» pasa a la fila 6.03 (D10: 6.03 suma `logistica_cadena(p_tope)` y `logistica_cadena_columna(p_tope)` con
+  `pideElCodigo: TAMANO_DE_COLUMNA`). `docs/PLAN.md:1057` nombra `vehiculos_origen_fase_idx`, que ya no existe: es `vehiculos_cadena_idx`. «Cadena» (de
+  logística) y «demorada» no tienen entrada en `docs/GLOSARIO.md`. Fila nueva para `docs/RENDIMIENTO.md`: «Cadena de logística (`logistica_cadena`,
+  `logistica_cadena_columna`): 50 por columna (`TAMANO_DE_COLUMNA`, máximo 100), `vehiculos_cadena_idx`; la consulta < 0,1 ms (25), el tablero 3,3 ms (30),
+  «Ver más» 1,6 (15), buscar sin resultados 10,7 (50), Ana 3,2 (30), con 3.333 vehículos en la columna (`medir-escala.sql`). «Propios» y buscar sin resultados
+  recorren la columna entera (crecen con ella).»
+- e2e completo: no (6.02-2, Nivel 2 por el índice: lo corre el CI del PR; sin e2e dirigidos)
+
+<!-- paso:6.02-3 -->
+
+## 2026-11-11 — Paso 6.02-3: mover en la base, la unidad y «dónde está» (parte 3 de 3, cierra el 6.02)
+
+- **Hecho:** `logistica_unidad(p_vehiculo)` (demorada, fuera de regla con lo que le falta a su fase actual, quién la movió) y `logistica_donde_esta(p_buscar,
+p_tope)` (hasta 10 unidades de los orígenes cuya logística veo, con la regla `logistica` activa, por título, VIN o lote), las dos `security definer` con el
+  acceso de la cadena. Índice `notas_vehiculo_vivas_idx (vehiculo_id, creado_en desc, id desc) where eliminado_en is null`. Migraciones
+  `20261112023134_fases_notas_indice`, `020500_fases_unidad`, `020600_fases_donde_esta`; pruebas `supabase/tests/areas/mover/unidad.sql` (U1, U2) y
+  `donde-esta.sql` (DE1, DE2); dos entradas `L` en `supabase/tests/auditoria-leads.sql`; medición en `supabase/tests/medir-escala.sql` › «Dónde está».
+- **Antes:** se unió `origin/main` (choque en `scripts/carreras.mjs`, quedan las dos carreras). Los rojos del CI de la parte 1 los arregló main.
+- **Auditoría:** plan e informe con observaciones, atendidas (sin bloqueo).
+- **Verificación** (`.piloto/salidas/6.02-3/`): `db:probar` entero, `db:lint`, la medición con volumen (dónde está: VIN 6,6 ms, título común 10,4, sin
+  resultados 6,4, Ana 10,8), las guardas y dos mutaciones del acceso que caen.
+- **Para 6.03:** registrar `logistica_donde_esta(p_tope)` en `scripts/guardas/paginas-en-la-base.ts` con un tope de 10 nuevo en `src/shared/lib/paginacion.ts`,
+  junto con `logistica_cadena(p_tope)` y `logistica_cadena_columna(p_tope)`. La regla `logistica` ya viene activa en todo origen (`origen_crear_flujo`). `titulo`
+  llega sin el campo principal (D9).
+- **Para 6.04:** la lista de notas del panel va por `notas_vehiculo_vivas_idx` (su consulta lo nombra y se mide); `logistica_unidad` da «Fuera de regla» y `faltan`.
+- **Para el coordinador:** en `docs/PLAN.md`, la fila 6.02 pasa a «Partido en 3: 6.02-1 (escritura), 6.02-2 (la cadena), 6.02-3 (unidad y dónde está),
+  hecho»; su punto (7): `logistica_donde_esta` es `security definer` y sólo de orígenes con la regla `logistica` activa (D3), y su registro de páginas va a la
+  fila 6.03. Lo de la fila que no se hizo en el 6.02, ya decidido: publicar sin mover la versión (abierto 6-2), el ensanche de `fuera_de_regla(p_flujo)`,
+  `scripts/carreras/mover.mjs` vive en `supabase/tests/areas/mover/carreras.mjs`. La entrada «Fuera de regla» de `docs/GLOSARIO.md` se ensancha: «y, de una
+  unidad, quien la ve en logística, por `logistica_unidad`». Fila nueva para `docs/RENDIMIENTO.md`: «Dónde está (`logistica_donde_esta`): 10 (máximo 10),
+  trigramas de `titulo`, `vin`, `lote` y hasta 1.000 candidatas (más las propias por `vehiculos_creador_idx` donde se tiene “propios”); la consulta 0,2 ms
+  (25), un VIN 6,6 (30), un título común 10,4 (50), sin resultados 6,4 (30), Ana 10,8 (50) (`medir-escala.sql`). Con más de 1.000 coincidencias de título,
+  1.000 cualesquiera; con “propios”, el rescate trae sólo lo creado por quien busca.»
+- e2e completo: no (6.02-3, Nivel 2 por el índice: lo corre el CI del PR; sin e2e dirigidos)
+
+<!-- paso:6.10-1 -->
+
+## 2026-11-11 — Paso 6.10-1: gastos y pagos en la base (parte 1 de 2 del 6.10)
+
+- **Hecho:** gastos y pagos se escriben sólo por RPC `security definer`, y el monto en moneda base lo calcula la base.
+  - `gasto_registrar`, `gasto_guardar`, `gasto_eliminar` y `gastos_prorratear` (por lote, `gastos.lote_id`).
+  - `pago_registrar`, `pago_guardar`, `pago_eliminar` y `pago_confirmar`.
+  - El tipo de cambio elegido vale en los dos sentidos: moneda → base multiplica y base → moneda divide. Se guardan su valor y su id (`tipo_cambio_id`,
+    `restrict`).
+  - Los montos llevan dos decimales y cada fila tiene su versión propia.
+  - No se quita el último gasto de tributos que pide la fase actual: los tributos del vehículo se toman `for update` en orden de id.
+  - El sello de un pago confirmado (quién y cuándo) lo ponen triggers. Un pago confirmado no cambia, salvo `eliminado_en` y `lead_id` → nulo.
+  - Sin policies de crear ni editar, y sin insert, update ni delete (de tabla ni de columna) para `authenticated`.
+  - `logistica.pagos.confirmar` sale de las excepciones de `supabase/tests/permisos-enforcement.sql`.
+  - `matriz-leads.sql` prueba `trg_lead_visible` como dueño de la base.
+- **Commits:**
+  - `c9f8b421`: registrar gastos.
+  - `967b1d5f`: guardar y eliminar gastos, con el tributo.
+  - `c43b18dd`: prorratear, con las carreras K2 y K3.
+  - `a50a672c`: pagos sin confirmar.
+  - `ee735c99`: confirmar sellado, con K1.
+  - `12c128a9`: sin escritura directa.
+  - `e3a53c1e`: la prueba de `lead_id` que pidió la auditoría del informe.
+- **Verificación** (`.piloto/salidas/6.10/`):
+  - `db:probar` entero en el hook: 778 ✓ y 0 ✗.
+  - `areas/dinero/*.sql` en PGlite y contra el Postgres 17 local.
+  - `pnpm db:carreras`: todas en verde, con K1, K2 y K3.
+  - `db:lint`: sin avisos en las funciones nuevas.
+  - `scripts/guardas`: 1.044 ✓. `typecheck` en verde.
+  - Mutaciones M1–M8 de dinero, sello y candados: cada una cae con su prueba.
+  - Plan auditado (bloquea, corregido sin 2.ª ronda) e informe auditado (observaciones, atendidas).
+- **Para PLAN (coordinador):**
+  - Fila 6.10: «Partes: 2 (era 4). **6.10-1** hecho: registrar, guardar, eliminar y prorratear gastos; registrar, guardar, eliminar y confirmar pagos;
+    sin escritura directa. **6.10-2**: storage de `comprobantes` por carpeta de unidad, `gastos_listar` y `pagos_listar` por cursor,
+    `margen_vehiculo.por_categoria` con sus tres asserts y el del comprobante de otro origen, y `pago_anular` (si no cabe, el abierto 6-3)».
+  - En el Assert, `scripts/carreras/pagos-confirmar.mjs` pasa a `supabase/tests/areas/dinero/carreras.mjs`. La carrera vive en el área y
+    `scripts/carreras.mjs` la engancha (D15).
+  - 4-64: `scripts/carreras.mjs` pasa de 371 a 374 líneas.
+- **Para ESTADO:**
+  - `logistica.pagos.confirmar` sale de «Deuda aceptada» (permisos sin enforcement): ya lo exige `pago_confirmar()`.
+  - Los pagos de un proyecto de repuestos no se registran hasta el paso de repuestos (D9).
+- **Para 6.10-2:** `pago_anular` decide si `eliminado_en` de un pago confirmado sólo va de nulo a no nulo. Hoy el trigger lo deja volver a nulo, aunque sólo
+  pueden hacerlo el dueño de la base o `service_role`.
+- **6.10 sigue:** falta el **6.10-2**. Este PR no marca integrado el paso (`parcial: true`).
+- e2e completo: no (6.10-1, Nivel 2 por rls y estructura: lo corre el CI del PR; sin interfaz)
+
+<!-- paso:6.10-2 -->
+
+## 2026-11-11 — Paso 6.10-2: comprobantes, listas, margen por categoría y anular un pago (parte 2 de 2 del 6.10)
+
+- **Hecho:**
+  - El bucket `comprobantes` se lee por la fila que nombra el objeto (`comprobante_puede`): un gasto pide `logistica.gastos.ver` de su unidad, un pago lo
+    que pide «pagos: leer» y una compra `repuestos.costos.ver`. Un objeto que ninguna fila nombra lo lee quien puede subir a esa carpeta. Subir pide editar
+    gastos o pagos de la unidad viva, con la forma `<unidad>/<sha-256>.<ext>` (nunca 22P02). Índices parciales sobre `comprobante_ruta`.
+  - `gastos_listar` y `pagos_listar`: por cursor `(fecha desc, id desc)` sobre `gastos_fecha_idx` y `pagos_fecha_idx`, tope
+    `_acotar_pagina(p_tope, 50, 100) + 1`, alcance resuelto una vez, sin total. Filtros cerrados en `_dinero_filtros` (22023 con la clave en el hint).
+  - `margen_vehiculo` suma `por_categoria`. Un vehículo inexistente o en la papelera da 42501 en vez de ceros.
+  - `pago_anular`: confirmado, de vehículo, con motivo. Toma en orden de id los confirmados del vehículo y no deja sin cumplir `pagos.confirmado` ni
+    `pagos.umbral_pct` de la fase actual. Deja `pago.anulado` en `actividad`. Un anulado no vuelve (`pago_sellado`).
+  - `aplicado_en` de `logistica.gastos.ver`, `logistica.pagos.ver` y `logistica.pagos.confirmar`, en las migraciones y en `seed.sql`.
+- **Commits:**
+  - `c0263b69`: comprobantes por la fila que los nombra.
+  - `58c3c911`: `gastos_listar`.
+  - `8eb8bab7`: `pagos_listar`.
+  - `f3fa5603`: margen por categoría.
+  - `86ab1d2e`: `pago_anular`, con K4.
+  - `fix(db)`: las listas, con cursor y sin cursor en dos consultas (lo pidió la auditoría del informe).
+- **Verificación** (`.piloto/salidas/6.10-2/`):
+  - `db:probar` entero en el hook de cada commit, el último con 802 ✓ y 0 ✗.
+  - Contra el Postgres 17 local (psql, `ON_ERROR_STOP`): `comprobantes.sql` (el storage real admite el insert como `authenticated`), `listar.sql`,
+    `margen.sql` y `anular.sql`, todos con exit 0.
+  - `pnpm db:carreras`: todas en verde, con K1–K4.
+  - `db:lint`: sin avisos en las funciones nuevas (`_dinero_filtros` pasó a `stable` por el cast a fecha).
+  - `scripts/guardas`: 1.044 ✓. `typecheck` en verde.
+  - Mutaciones M1–M5 (margen, anular, candado y sello): cada una cae con su prueba.
+  - `nivel.mjs` sobre el diff: Nivel 2 (rls y estructura), sin interfaz.
+- **Para PLAN (coordinador):**
+  - Fila 6.10: «Partes: 2. **6.10-1** hecho (…). **6.10-2** hecho: comprobantes leídos por la fila que los nombra y subidos a la carpeta de su unidad;
+    `gastos_listar` y `pagos_listar` por cursor; `margen_vehiculo.por_categoria`; `pago_anular`.» El Assert «ni su comprobante» lo cubre
+    `supabase/tests/areas/dinero/comprobantes.sql`.
+  - El abierto **6-3** (`pago_anular`) se cierra.
+  - Abierto nuevo: anular un pago a la vez que el vehículo entra a una fase que pide `pagos.confirmado` no toma candado del vehículo (el mismo hueco que los
+    tributos de 6.10-1, C7).
+  - A **6.11** (fila y `terminado` en `docs/plan.yaml`): registra `gastos_listar` y `pagos_listar` en `scripts/guardas/areas-c/paginas-en-la-base.ts` con
+    `pideElCodigo: TAMANO_DE_PAGINA_POR_DEFECTO`, al llamarlas desde `infra/` (hoy `paginas.test.ts` rompe con una entrada que nadie llama). Subir un
+    comprobante no usa `upsert` (no hay policy de update), y «ya existe» al resubir el mismo hash cuenta como éxito.
+- **Para ESTADO:**
+  - 6.10 completo.
+  - Los gastos y pagos viejos sin `tipo_cambio_id` no se migran: al corregirlos, la base pide el tipo (23502, hint `tipo_cambio`). En local no hay ninguno.
+- **Para RENDIMIENTO:**
+  - `gastos_listar`: tope 100 + 1, `gastos_fecha_idx`, sin medición (tabla fuera de la lista de las que crecen).
+  - `pagos_listar`: tope 100 + 1, `pagos_fecha_idx`, sin medición.
+- **CI del PR (retoma):** la corrida 43056797518 cayó en los 4 bloques e2e sin correr un spec: el runner no resolvía el espejo de
+  Ubuntu en `playwright install --with-deps` (el mismo rojo del 5.03). Base, Nivel 1 y carriles en verde. Sin código que arreglar en la
+  rama: el arreglo del workflow entró con #108 (chromium sin apt si el espejo no responde) y la rama trae ese main.
+- **Conflicto con main (retoma):** main 0c25467d chocaba en `scripts/carreras.mjs` (carreras de dinero y de fases: corren las dos) y en
+  `supabase/tests/auditoria-leads.sql` (las RPC de pagos junto a las de la agenda; sale `reasignar_tarea(uuid,uuid)`, que main cambió de
+  firma). Las 11 migraciones de gastos y pagos se renumeraron tras `20261111190411` (las fases de main), sin tocar su contenido.
+  `db:reset`, `db:types` (sin cambios), `db:probar` 939 ✓ 0 ✗, guardas 1.058 ✓ y `db:carreras` en verde.
+- **CI del PR (2.ª retoma):** la corrida 43120704680 cayó en el bloque 3 de e2e por `leads-portal-acceso` › tarea de oro 4: 33 teclas
+  de tope 32, también en `a/6.02` y `c/6.13` (main se salta el e2e). Causa medida con el foco de cada Tab: el Tab salía mientras llegaba la
+  sección «Portal», el foco caía al `body` y el recorrido volvía a pasar por la navegación, que desde el 7.07 tiene «Agenda» (+1). El spec
+  espera la sección y el foco en la pestaña antes de tabular (16 teclas en escritorio y celular, tope 16); 10 de 10 con `--repeat-each=5`.
+- e2e completo: no (6.10-2, Nivel 2 por rls y estructura: lo corre el CI del PR; sin interfaz)
+
+<!-- paso:6.11-1 -->
+
+## 2026-11-11 — Paso 6.11-1: los huecos «Gastos» y «Margen» (parte 1 de 4 del 6.11)
+
+- **Hecho:**
+  - `entities/dinero/`: el margen (el texto de cada nulo), el gasto y su formulario (con las reglas de la base), los tipos de cambio que se ofrecen, las categorías y los paneles de la URL.
+  - `infra/dinero/`: lecturas del navegador (los gastos de la unidad, `margen_vehiculo`, `mis_permisos`, catálogos, comprobante) y escrituras por las RPC de 6.10 con el campo de cada validación.
+  - Hueco «Gastos»: lista, «Registrar gasto» y «Editar» en un `<Drawer>` con tipo de cambio y comprobante, borrador, conflicto y sin conexión, y eliminar con `<Confirmar>`.
+  - Hueco «Margen»: cotizado, real, desviación, venta y margen, y el real por categoría; se vuelve a leer al guardar o eliminar un gasto.
+- **Commits:**
+  - `180d1a88`: entities de dinero.
+  - `f7a28200`: lecturas y escrituras de los gastos.
+  - `ae8bcdcc`: hueco de gastos.
+  - `0daaa713`: hueco de margen.
+  - `a1430dee`: e2e del camino feliz.
+  - docs de la parte.
+- **Verificación** (`.piloto/salidas/6.11/`):
+  - `e2e/logistica-gastos-y-pagos.spec.ts` (escritorio): 2 ✓ (`e2e-gastos.txt`).
+  - Dirigidos `e2e/logistica-unidad.spec.ts` (escritorio y celular) y `e2e/configuracion-logistica.spec.ts`: 18 ✓ (`e2e-dirigidos.txt`).
+  - `vitest` de `entities/dinero` y `features/dinero`, y las guardas.
+- **Para PLAN (coordinador):**
+  - Fila 6.11: «Partes: 4. **6.11-1** hecho: entities de dinero, hueco «Gastos» y hueco «Margen» del panel de la unidad, e2e tramo 1. Quedan 6.11-2 (pagos, confirmar, anular), 6.11-3 (`/logistica/gastos`) y
+    6.11-4 (prorratear y categorías).» La fila sólo se marca integrada con la parte 4.
+- e2e completo: no (6.11-1, Nivel 1: lo corre el CI del PR; el dirigido e2e/logistica-gastos-y-pagos.spec.ts en verde)
+
+<!-- paso:6.11-2 -->
+
+## 2026-11-11 — Paso 6.11-2: el hueco «Pagos» (parte 2 de 4 del 6.11)
+
+- **Hecho:**
+  - `entities/dinero/`: el pago (estado, botones por permiso con `accionesDelPago`, sello, formulario con las reglas de la base, cambios), los paneles de la URL, el repositorio y el monto tipeado compartido con el gasto.
+  - `infra/dinero/`: lectura de los pagos de la unidad con el nombre de quien confirmó (una consulta por todos) y escrituras por `pago_registrar`, `pago_guardar`, `pago_eliminar`, `pago_confirmar` y `pago_anular`.
+  - Hueco «Pagos»: lista con «Sin confirmar» o el sello «Confirmado por <nombre> el <fecha>», registrar, corregir y eliminar sin confirmar, «Confirmar pago» y anular un confirmado con su motivo. Confirmar y anular
+    avisan al hueco «Margen», que se vuelve a leer.
+- **Commits:**
+  - `9bc44cc5`: entidad del pago.
+  - `32b310ea`: lectura y escritura de pagos por action.
+  - `b5e8d400`: formulario de pago y drawer de anulación.
+  - `14bce4e2`: el hueco de pagos con su sello.
+  - `35ac686a`: e2e del tramo 2.
+  - docs de la parte.
+- **Verificación** (`.piloto/salidas/6.11-2/`):
+  - `e2e/logistica-gastos-y-pagos.spec.ts` (escritorio): 3 ✓ (`e2e-gastos.txt`).
+  - Dirigidos `e2e/logistica-unidad.spec.ts` (escritorio y celular) y `e2e/configuracion-logistica.spec.ts` (`e2e-dirigidos.txt`).
+  - `vitest` de `src/modules/logistica` y `scripts/guardas`: 47 archivos, 1.164 ✓.
+- **Para PLAN (coordinador):**
+  - Fila 6.11: «**6.11-2** hecho: hueco «Pagos» (registrar, corregir, eliminar, confirmar con sello, anular), e2e tramo 2. Quedan 6.11-3 y 6.11-4.»
+  - Abierto 6-3 (`pago_anular`): su interfaz está en el hueco «Pagos» (drawer con motivo).
+  - Nuevo abierto: «vincular el pago a un lead» (D3 de `docs/pasos/6.11-2/decisiones.md`).
+- e2e completo: no (6.11-2, Nivel 1: lo corre el CI del PR; el dirigido e2e/logistica-gastos-y-pagos.spec.ts en verde)
+
+<!-- paso:6.11-3 -->
+
+## 2026-11-11 — Paso 6.11-3: `/logistica/gastos` (parte 3 de 4 del 6.11)
+
+- **Hecho:**
+  - `entities/dinero/listas.ts`: las filas de `gastos_listar` y `pagos_listar`, la vista de `?ver=`, el esquema de filtros (origen, categoría, confirmación, fecha), el pedido que sólo manda las claves de cada RPC y el cursor de fecha.
+  - `infra/dinero/listas.ts`: las dos lecturas por cursor con la sesión de quien mira y las categorías; las dos RPC entran al registro de `scripts/guardas/areas-c/paginas-en-la-base.ts`.
+  - Lista de gastos y de pagos (tabla y tarjetas, vistas, estados, la fila que abre el panel de su unidad) y la página `/logistica/gastos` con su `loading.tsx`.
+  - El enlace «Gastos» de la sub-navegación y «Ver todos en Gastos» en el tope de los huecos de la unidad.
+- **Commits:**
+  - `312f1980`: entidad de las listas.
+  - `eb8783f7`: lectura por cursor y registro de la guarda.
+  - `88f4c8c1`: la lista con filtros y vistas.
+  - `46887d50`: la página, el enlace y «Ver todos en Gastos» (y la prueba de huecos que estaba en rojo).
+  - `41426d74`: e2e del tramo 3.
+  - docs de la parte.
+- **Verificación** (`.piloto/salidas/6.11-3/`):
+  - `e2e/logistica-gastos-y-pagos.spec.ts` (escritorio): 5 ✓ (`e2e-gastos.txt`).
+  - Dirigidos `e2e/logistica-unidad.spec.ts` y `e2e/configuracion-logistica.spec.ts` (escritorio y celular): 18 ✓ (`e2e-dirigidos.txt`).
+  - `vitest` de `src/modules/logistica`, `src/app/(app)/logistica` y `scripts/guardas`: 50 archivos, 1.193 ✓.
+- **No se hizo:** la medición con volumen de `gastos_listar` y `pagos_listar` (**abierto 6-5**, abajo).
+- **Para PLAN (coordinador):**
+  - Fila 6.11: «**6.11-3** hecho: `/logistica/gastos` (`?ver=gastos|pagos`), «Ver todos en Gastos», enlace «Gastos». Queda 6.11-4 (prorratear y categorías de gasto).»
+  - **Abierto 6-5:** medir `gastos_listar` y `pagos_listar` con volumen (`supabase/tests/medir-gastos-pagos-listar.sql`: ≈ 50.000 filas en dos orígenes, como la dueña con «todos» y como una persona con «propios»; `Index Scan` por `gastos_fecha_idx` y `pagos_fecha_idx`, sin `Sort`, sin filas descartadas que crezcan con la profundidad, página profunda ≤ 1,2 × la primera + 20 buffers por relación). Con «propios» el filtro `en_cartera` por fila puede descartar filas al profundizar: es lo que la medición debe decir.
+  - Abierto nuevo: filtro por vehículo o por proveedor en la lista (D13).
+- e2e completo: no (6.11-3, pantalla de Nivel 1: lo prueba el CI del PR; los dirigidos en verde)
+
+<!-- paso:6.11-4 -->
+
+## 2026-11-11 — Paso 6.11-4: prorratear y categorías de gasto (parte 4 de 4, cierra el 6.11)
+
+- **Hecho:**
+  - `entities/dinero/reparto.ts`: el reparto en partes iguales (la aritmética de centavos de `gastos_prorratear`) y la vista previa.
+  - Prorratear: esquema, `RepositorioDeGastos.prorratear`, Server Action `prorratearGasto` y lectura de las unidades de un grupo (`infra/dinero/grupo.client.ts`).
+  - El hueco «Prorratear un gasto entre las unidades» (`pantallas/dinero-grupo.ts`) con la vista de cuánto le toca a cada una, `<Confirmar>` con `?panel=prorratear` y envío con `lote`.
+  - Categorías de gasto: entidad (propósitos, validación, cambios, textos de error), repositorio por escritura directa bajo la RLS, tres Server Actions y el catálogo de `/configuracion/logistica`.
+- **Verificación** (`.piloto/salidas/6.11-4/`):
+  - Vitest: `reparto.test.ts` (11), `hueco-de-prorrateo.test.tsx` (4), `categoria.test.ts` (15); `src/modules/logistica`, `scripts/guardas` y `src/app/(app)/configuracion`: 63 archivos, 1.273 ✓.
+  - Mutaciones sobre `reparto.ts`: los centavos a los últimos (5 pruebas caen, `m1.txt`) y `floor` en vez de `round` (1 cae, `m2.txt`); revertidas con `cmp`.
+  - e2e (escritorio): `configuracion-logistica.spec.ts` 3 ✓ (`e2e-config.txt`) y `logistica-gastos-y-pagos.spec.ts` 5 ✓ (`e2e-dirigidos.txt`, misma corrida).
+- **No se hizo:** e2e del prorrateo (no hay página de grupo); la medición con volumen de `gastos_listar` y `pagos_listar` (**abierto 6-5**, de 6.11-3).
+- **Para PLAN (coordinador):**
+  - Fila 6.11: «**6.11 hecho** (partes 1 a 4): huecos Gastos, Pagos y Margen, `/logistica/gastos`, prorratear a un grupo y Categorías de gasto. Quedan abiertos **6-5** (medir `gastos_listar` y `pagos_listar` con volumen) y **6-6** (prorratear por valor del vehículo).»
+  - Cuando 6.08 o 6.09 monten la página de un grupo con `HUECOS_DE_DINERO_EN_EL_GRUPO`, añadir el recorrido de prorratear a su e2e.
+- e2e completo: no (6.11-4, pantalla de Nivel 1: lo prueba el CI del PR; los dirigidos en verde)
+
+<!-- paso:7.01-1 -->
+
+## 2026-11-11 — Paso 7.01-1: notificaciones, la base (parte 1 de 2 del 7.01)
+
+- **Hecho:** toda fila de `notificaciones` pasa por una puerta `before insert` (`notificaciones_puerta()`, `security definer`): a quien está de baja, bloqueado o
+  sin perfil no le llega nada, sin error para quien avisa. Cubre a `notificar()` (sin tocarla) y a los inserts directos de `alertas_demora` y los turnos web.
+  Índices `notificaciones_usuario_fecha_idx` y `notificaciones_por_accionar_idx`. La tabla entra en `supabase_realtime` (con su doble en PGlite).
+  `recordatorios_notificar()` (misma firma) corre cada minuto por pg_cron (`recordatorios-notificar`): 200 en orden con `skip locked`, sella sin avisar el
+  eliminado, la `ruta` nombra el lead sólo si su dueño todavía lo tiene vivo en la cartera (si no, `/agenda?recordatorio=<id>`) y cambiar la hora reemplaza
+  el aviso abierto. `notificaciones_purgar()` con su job diario (`notificaciones-purgar`, 03:45 UTC): leídas o accionadas de más de 90 días y `visitados` de
+  más de 30, por lotes. `actividad_purgar()` sigue sin programar (Fase 9). Cierra lo arrastrado «`recordatorios_notificar()` sin cron» (ESTADO); «notificar al
+  compartir, transferir y limpiar» queda para la 7.01-2. Fichas de `notificaciones` y `leads` al día.
+- **Commits:** `9342961b` (la publicación en el doble de PGlite), `4bdce92c` (la puerta), `e13a7f99` (índices), `4e09b140` (realtime), `1ce00742` (el job de
+  recordatorios), `07d68a00` (la purga).
+- **Verificación** (`.piloto/salidas/7.01/`): `db:probar` entero en verde (`db-probar.txt`, 778 ✓), con `supabase/tests/areas/notificaciones/puerta.sql` (P1–P5),
+  `recordatorios-job.sql` (R1–R6) y `purgar.sql` (G1–G2); `scripts/guardas` entero, 33 archivos y 1.043 pruebas (`guardas.txt`); en el stack local, tras
+  `db:reset`, la publicación, los dos jobs, el trigger y una corrida `succeeded` de `recordatorios-notificar` (`stack-local.txt`); `db:lint` sin avisos en las
+  funciones nuevas (`db-lint.txt`); `nivel.mjs`: Nivel 2 por estructura (`nivel.txt`); e2e dirigido `e2e/leads-recordatorios.spec.ts` en escritorio
+  (`e2e-dirigidos.txt`).
+- **7.01 sigue:** falta la **7.01-2** (los avisos `lead_compartido`, `lead_transferido` y `limpieza_pronto`, con `avisos-de-cartera.sql`). Este PR no marca
+  integrado el paso (`parcial: true`).
+- e2e completo: no (7.01-1, Nivel 2 por estructura: lo corre el CI del PR; sin interfaz)
+
+<!-- paso:7.01-2 -->
+
+## 2026-11-11 — Paso 7.01-2: notificaciones, los avisos de cartera y de limpieza (parte 2 de 2 del 7.01)
+
+- **Hecho:** compartir un lead avisa a quien lo recibe (`lead_compartido`) y transferirlo, al destino (`lead_transferido`), sólo si algo cambió; repetir
+  reemplaza el aviso abierto. `lead_compartir` y `lead_transferir` son las de la base con 6 líneas más (misma firma y grants). Ningún título ni cuerpo lleva
+  el teléfono, el número ni el nombre del lead. La limpieza avisa antes: `limpieza_avisar()` (job `limpieza-avisar`, 13:15 UTC) deja un `limpieza_pronto`,
+  con acción, al creador del importado que entra en «Se limpiará pronto» (3 días, `_limpieza_ventana_de_aviso()` = `VENTANA_DE_AVISO_DIAS`), una vez por
+  vehículo (marca en `limpieza_avisos`, RLS y sólo `service_role`), por `vehiculos_limpieza_orden_idx` con cota, 200 por corrida, nada con el interruptor
+  apagado. Fichas de `leads` y `notificaciones`, GLOSARIO («Aviso de limpieza»).
+- **Commits:** `a953c007` (compartir avisa), `b4ece80d` (transferir avisa), `56e24d54` (el aviso de limpieza), `114e17b6` (la prueba exige avisos sin dígitos, de la auditoría).
+- **Verificación** (`.piloto/salidas/7.01/`): `db:probar` entero en verde (`db-probar-2.txt`, 787 ✓), con
+  `supabase/tests/areas/notificaciones/avisos-de-cartera.sql` (A1–A5, L1–L4); `scripts/guardas` 1.044 ✓ (`guardas-2.txt`); stack local tras `db:reset`: el
+  job, una corrida, RLS y ACL (`stack-local-2.txt`); `EXPLAIN` del recorrido por su índice (`explain-limpieza-avisar-2.txt`); `db:lint` sin avisos en lo
+  tocado (`db-lint-2-resumen.txt`); `nivel.mjs`: Nivel 2 (`nivel-2.txt`); e2e dirigidos `leads-cartera`, `leads-oportunidades`, `leads-portal` en escritorio,
+  19 ✓ (`e2e-dirigidos-2.txt`).
+- **7.01 terminado:** cierra lo arrastrado de ESTADO «notificar al compartir, transferir y limpiar» (y, con la 7.01-1, «`recordatorios_notificar()` sin
+  cron»).
+- e2e completo: no (7.01-2, Nivel 2 por estructura: lo corre el CI del PR; sin interfaz)
+
+<!-- paso:7.03-1 -->
+
+## 2026-11-11 — Paso 7.03-1: push web, la base (parte 1 de 2 del 7.03)
+
+- **Hecho:** `suscripciones_push` se escribe sólo por `push_suscribir` (exige `notificaciones.push`, endpoint de un servicio de push, claves en base64url,
+  un endpoint que existe pasa a quien suscribe, tope de 10) y `push_desuscribir`; sin `insert`/`update` directo. `notificaciones.push` gana enforcement
+  (`aplicado_en` en la migración y en el seed; sale de las excepciones de `permisos-enforcement.sql`). El disparo: `trg_notificaciones_push` (`after
+insert`) → `push_disparar()` con un pase de un uso (`push_pases`) por `pg_net` a `/functions/v1/push`, sólo con `push_web` activa, el permiso, el tipo
+  encendido en la preferencia `notificaciones.push`, una suscripción y `url_proyecto`; nunca rompe el aviso. `push_abrir` y `push_resultado` (sólo
+  `service_role`) para la función. Ficha de `notificaciones` y GLOSARIO («Pase»).
+- **Verificación** (`.piloto/salidas/7.03/`): `supabase/tests/areas/push/push.sql` (S1–S5) y `disparo.sql` (D1–D6), 11 ✓ (`probar-push-4.txt`);
+  `db:probar` entero en verde (`db-probar-2.txt`); `db:lint` sin avisos en `push_*`; stack local: el `POST` real en `net.http_request_queue`
+  (`recorrido-stack-2.txt`); `scripts/guardas` 1.058 ✓; `nivel.mjs`: Nivel 2 (rls, estructura).
+- **Sigue en la 7.03-2:** la función edge `supabase/functions/push/` (adaptador RFC 8291/8292 con `fetch` inyectado, `sin_claves`), `config.toml`, el README
+  de funciones, `docs/ENTORNOS.md` y `supabase/tests/push-contrato.test.ts` (ver `.piloto/planes/7.03.md` › Partición).
+- **Para el coordinador:** `docs/ESTADO.md` (líneas 59-60) y la fila de inventario de `docs/PLAN.md` (línea 1494) todavía cuentan `notificaciones.push`
+  sin enforcement y con escritura directa: ya no.
+- e2e completo: no (7.03-1, Nivel 2 por rls y estructura: lo corre el CI del PR; sin interfaz)
+
+<!-- paso:7.03-2 -->
+
+## 2026-11-11 — Paso 7.03-2: push web, la función (parte 2 de 2 del 7.03: cierra el paso)
+
+- **Hecho:** `supabase/functions/push/` (`index.ts`, `vapid.ts`, `cifrar.ts`, `enviar.ts`, `deno.json`) y `[functions.push] verify_jwt = false` en
+  `config.toml`. La función canjea el pase con `push_abrir` antes de mirar las claves (un pase inválido da 401 y no dice si el push está configurado);
+  sin claves VAPID responde `sin_claves` (con un formato malo, `claves_invalidas`) y no manda nada; con claves firma VAPID (RFC 8292) y cifra aes128gcm
+  (RFC 8291) con Web Crypto propio, envía en paralelo (10 s por suscripción) sin seguir redirecciones, vuelve a validar el host (la lista de
+  `_push_host_permitido()`), clasifica 2xx/404-410/lo demás y anota con `push_resultado`. README de funciones (la fila de `push` decía webhook,
+  `x-push-secret` y `web-push`: corregida, y sección `push`), `docs/ENTORNOS.md` (la privada y el sujeto viven sólo en la función) y la ficha.
+- **Verificación** (`.piloto/salidas/7.03-2/`): `supabase/tests/push-contrato.test.ts` (firma verificada con `node:crypto` y la pública de `k=`; cifrado
+  descifrado por `http_ece` e igual byte a byte a `http_ece.encrypt` con la misma sal y remitente; clasificación; proxy abierto sin `fetch`) y
+  `push-funcion.test.ts` (pase sin forma, pase rechazado sin claves → 401, las tres variables y la privada corta, camino feliz 201/410/503 con uuid):
+  31 ✓ (`contrato-5.txt`). Recorrido en el stack del carril: una notificación con `push_web` activa dispara, la función local responde 200
+  `sin_claves`, el pase queda usado sin resultado y reusarlo da 401 (`recorrido-funcion.txt`). `scripts/guardas` 1.061 ✓; typecheck exit 0;
+  `nivel.mjs`: Nivel 1 en esta parte (el PR del 7.03 es Nivel 2 por las migraciones de la 7.03-1).
+- **Para la 7.04:** quitar `VAPID_PRIVATE_KEY` y `VAPID_SUBJECT` de `esquemaDelServidor` (`src/shared/config/esquemas.ts:18,26`, que dice «opcional
+  hasta que exista la función `push`») y de `.env.example:9-10`: con Web Crypto en la función, Next no firma nada y la privada no va a Vercel.
+- **Para el coordinador:** `docs/ESTADO.md` (líneas 59-60) y la fila de inventario de `docs/PLAN.md` (línea 1494) todavía cuentan `notificaciones.push`
+  sin enforcement (lo dijo la 7.03-1). La fila 7.03 queda terminada con esta parte.
+- e2e completo: no (7.03-2, Nivel 1 en esta parte; el completo lo corre el CI del PR)
+
+<!-- paso:7.06-1 -->
+
+## 2026-11-11 — Paso 7.06-1: escribir eventos y tareas por RPC (parte 1 de 3 del 7.06)
+
+- **Hecho:** `eventos`, `eventos_destinatarios` y `tareas` se escriben sólo por RPC `security definer` (sin policies ni grants de escritura).
+  - Eventos: `evento_crear`, `evento_guardar` y `evento_eliminar`. Publicar exige `agenda.eventos.publicar` al crear, en todo guardar y al eliminar.
+    Los destinatarios van de 1 a 50 y tienen que estar activos; cada uno nuevo recibe `evento_invitacion`.
+  - Tareas: `tarea_crear`, `tarea_guardar`, `tarea_completar`, `tarea_eliminar` y `reasignar_tarea`, que cambió de firma y ahora lleva versión.
+    Dar una tarea exige `asignar`, y quien la recibe tiene que estar activo, sin bloqueo y con `recibir`. No se vence en el pasado.
+  - Columnas nuevas: `eventos.cotizacion_id` y `tareas.conversacion_id`. Los miembros de la conversación leen la tarea.
+  - `agenda_version()` mueve la versión aunque haya dos cambios en una transacción.
+  - Toda RPC empieza por `assert_activo()` y responde `{resultado, id, actualizado_en}`.
+  - Cierra lo de agenda de `docs/PLAN.md:1508`, ítem 4: la ficha con `subasta_en`, `tarea_validar` sin pasado ni bloqueados y `eventos: editar` sin publicar.
+- **Commits:** `60dec20a` (eventos), `56ba4031` (tareas). Son dos en vez de los tres del plan: con el primero solo, `db:probar` caía porque
+  `agenda.eventos.publicar` quedaba sin punto de enforcement. Se partió por tabla y cada commit deja el árbol en verde.
+- **Verificación** (`.piloto/salidas/7.06/`):
+  - `db:probar` completo: 787 ✓, ningún ✗.
+  - `areas/agenda/` (6 archivos, 20 bloques) en verde.
+  - `scripts/guardas`: 1.044 ✓.
+  - `typecheck` sin errores.
+  - Una mutación de control (sin mirar el bloqueo en `_agenda_puede_recibir`) cae en T2 y T5.
+  - `nivel.mjs`: nivel 2 (`rls`, `estructura`).
+- **7.06 sigue:**
+  - **7.06-2:** `agenda_rango`, `agenda_tareas_sin_fecha` (con `_acotar_pagina`), `agenda_quienes_reciben`, el índice por `vence_en` y `rango.sql`.
+  - **7.06-3:** `entities/visibilidad.ts` con su test. Esta parte cierra con `parcial: true`.
+- **Para el carril a (D6):** `permisos.aplicado_en` de las cuatro claves de agenda vive en `seed.sql`. Ahora tiene que nombrar las RPC de 7.06-1.
+- **Para 7.10:** `mensaje_tarea_crear` tiene que pasar `p_conversacion` a `tarea_crear`. Si no, la tarea nace sin conversación y sus miembros no la leen.
+- **Para 7.07:** el registro de `agenda_tareas_sin_fecha` en `scripts/guardas/areas-b/paginas-en-la-base.ts` llega con su primera llamada (D7).
+- **Aviso:** `evento_invitacion` no pide acción y no se acciona. Por el índice antispam, a quien se quita y se vuelve a sumar no le llega un segundo aviso.
+- e2e completo: no (7.06-1, Nivel 2 por RLS y estructura: lo corre el CI del PR; sin pantalla)
+
+<!-- paso:7.06-2 -->
+
+## 2026-11-11 — Paso 7.06-2: lecturas de la agenda y visibilidad (parte 2 de 2 del 7.06)
+
+- **Hecho:** 7.06 terminado (7.06-1 y 7.06-2, que absorbió 7.06-3). `parcial: false`.
+  - `eventos: leer` en línea sobre columnas, con `_agenda_soy_destinatario(id)` (definer, de authenticated): mismo conjunto de lectores que
+    `puede_evento`, sin releer la fila por cada evento.
+  - `agenda_rango(p_desde, p_hasta, p_de_todos)`, de invocador: hasta 45 días; eventos, tareas, recordatorios y subastas, sólo lo de un chip, 200
+    por clase con `hay_mas` y `tope`. Índice nuevo `tareas_vence_idx` para `agenda.ver_todo`.
+  - `agenda_tareas_sin_fecha(p_tamano, p_antes_en, p_antes_id)`, de invocador, por cursor, `_acotar_pagina(p_tamano, 20, 50)`, índice
+    `tareas_sin_fecha_idx`.
+  - `agenda_quienes_reciben(p_texto, p_conversacion)`, definer: pide `asignar`, busca como Equipo y devuelve `{id, nombre}`, tope 20.
+  - `src/modules/agenda/entities/visibilidad.ts` con su test: espejo de la base para habilitar o deshabilitar.
+- **Commits:** `82aecb8e` (policy en línea), `6383ad65` (rango), `362ec6a8` (sin fecha), `5bbac4fe` (quién recibe), `c6a4419a` (entities) y el
+  `fix` de la auditoría del informe `2b182a69` (E10 y T8 exceptúan el ayudante por firma).
+- **Verificación** (`.piloto/salidas/7.06-2/`):
+  - `db:probar` completo (job `schema` del hook) en verde en cada commit con SQL: 788, 798, 802 y 806 ✓.
+  - `areas/agenda/` con `SOLO=`: E11, R1–R7, S1–S3 y Q1–Q3 en verde.
+  - Vitest de `visibilidad`: 21 ✓. `scripts/guardas`: 1.044 ✓. `typecheck` sin errores.
+  - Mutaciones de control: sin el destinatario en la policy caen E4 y E11; sin el `limit` de afuera de las subastas cae R5 (239 filas); sin el filtro
+    de responsable cae R4.
+  - `nivel.mjs`: nivel 2 (`rls`, `estructura`).
+- **Trampa:** en `db:probar` completo los `pg_temp` se comparten entre archivos; un ayudante con el mismo nombre y otra firma da «is not unique».
+  Cada archivo nuevo lleva su prefijo (`ar_`, `sf_`, `qr_`).
+- **Para 7.07:**
+  - Registrar `agenda_tareas_sin_fecha` en `scripts/guardas/areas-b/paginas-en-la-base.ts` con su primera llamada (D7).
+  - Leer `tope` y `hay_mas` de `agenda_rango` para `<AvisoDeTope>`; el panel lee por id lo que no trae el chip (descripción, vínculos, destinatarios).
+  - El selector de reasignar una tarea del chat pasa `p_conversacion` a `agenda_quienes_reciben`.
+- e2e completo: no (7.06-2, Nivel 2 por RLS y estructura: lo corre el CI del PR; sin pantalla)
+
+<!-- paso:7.07-1 -->
+
+## 2026-11-11 — Paso 7.07-1: el calendario de lectura de `/agenda` (parte 1 de 3 del 7.07)
+
+- **Hecho:** `/agenda` existe y la navegación la prende. Sólo lectura: calendario de mes, semana y día con la barra (`?vista=`, `?fecha=`, `?ver=`, `?de=`),
+  chips con la clase en texto, estados (esqueleto, vacío, tope, error por `error.tsx`) y «Ver la de todos» sólo con `agenda.ver_todo`. `parcial: true`.
+  - `entities/agenda.ts` (clases, esquema Zod de `agenda_rango`, `entradasDeAgenda`) y `entities/calendario.ts` (semanas, rangos con cortes de día en la zona,
+    agrupación, títulos), con sus tests: 45 en `src/modules/agenda`.
+  - `leerAgenda` por `index.ts` (una llamada a `agenda_rango`), `<ChipEvento>` por `client.ts`, `pantallas/agenda.ts`.
+  - `e2e/agenda.spec.ts`: la asesora invitada ve el evento «seleccionados» y su tarea en el día; un tercero no ve el evento; `?de=todos` sin permiso no rompe;
+    la dueña ve la tarea de la asesora con «Ver la de todos» y lo elegido queda en la URL.
+- **Queda para 7.07-2 y 7.07-3** (plan en `.piloto/planes/7.07-1.md` › «Partición»): paneles de evento y tarea con crear, editar y eliminar; completar, reasignar,
+  «Sin fecha», recordatorios, bloque «Mis tareas» de la bandeja y el registro de `agenda_tareas_sin_fecha` en `scripts/guardas/areas-b/paginas-en-la-base.ts`.
+- **Verificación** (`.piloto/salidas/7.07-1/`): `vitest` de agenda, `src/app/(app)` y `scripts/guardas` 1.184 ✓; `lint` y `typecheck` sin avisos; `mapa.sh --check`
+  limpio; e2e `agenda` 4 ✓ (escritorio y móvil) y `acceso`, `barra-superior-celular`, `inicio-bandeja` 26 ✓, 5 saltadas (ya lo estaban).
+  Mutación de control: con «+24 h» en vez del día siguiente cae la prueba del día de 25 h en Madrid.
+- e2e completo: no (7.07-1, Nivel 2 por _shell; lo corre el CI del PR; cuenta 0 de 3)
+
+<!-- paso:7.07-2 -->
+
+## 2026-11-11 — Paso 7.07-2: los paneles de evento y de tarea de `/agenda` (parte 2 de 3 del 7.07)
+
+- **Hecho:** desde `/agenda` se crea, se ve, se edita y se elimina un evento y una tarea, todo por URL. `parcial: true`.
+  - Paneles: `?evento=<id>` y `?tarea=<id>` (detalle, leído por id en el servidor bajo la RLS), `&editar=1` (el formulario en el mismo panel),
+    `?eliminar=evento|tarea` (confirmar), `?panel=nuevo-evento|nueva-tarea` (alta); la tecla `N` abre «Nuevo evento»; los chips de evento y tarea son enlaces
+    que conservan la vista, la fecha y los filtros.
+  - Formularios: evento con visibilidad (público y «seleccionados» deshabilitados con motivo sin `agenda.eventos.publicar`) y destinatarios (hasta 50, buscados
+    por nombre desde 3 letras); tarea con vencimiento y, con `agenda.tareas.asignar`, «Para otra persona». Valores de partida, validación y claves que cambian
+    en `entities/edicion.ts`. Conflicto `PT409` con «Recargar»; borrador en `sessionStorage`.
+  - Seis actions sobre las RPC `evento_*` y `tarea_*`; ninguna decide permisos. Sin migración ni dependencia.
+  - Guardas: `scripts/guardas/areas-b/{confirmar-con-url,drawers-con-salida}.ts` (la carpeta nace aquí) y `drawers-con-salida-areas.test.ts` suma los de las áreas.
+  - `e2e/agenda.spec.ts`: la dueña crea por la interfaz el evento «seleccionados» (con la tecla N) y la tarea para la asesora, edita el título, la asesora los ve
+    (sin «Editar» ni «Eliminar») y la dueña elimina el evento confirmando por URL.
+- **Queda para 7.07-3:** completar y reabrir tareas, reasignar, «Sin fecha», `?recordatorio=` y su «Completar», bloque «Mis tareas» de la bandeja y
+  `scripts/guardas/areas-b/paginas-en-la-base.ts`.
+- **Verificación** (`.piloto/salidas/7.07-2/`): `vitest` de agenda y `scripts/guardas` 1.147 ✓; `lint` y `typecheck` sin avisos; e2e `agenda` 5 ✓ (4 de 7.07-1 en
+  escritorio y móvil, 1 nueva en escritorio).
+- e2e completo: no (7.07-2, Nivel 1; lo corre el CI del PR; cuenta 0 de 3)
+
+<!-- paso:7.07-3 -->
+
+## 2026-11-11 — Paso 7.07-3: completar, reasignar, «Sin fecha», recordatorios y la bandeja (parte 3 de 3 del 7.07)
+
+- **Hecho:** cierra el 7.07 (`parcial: false`). Sin SQL ni dependencias.
+  - Tarea: el pie de su panel trae `Marcar como hecha` / `Reabrir` (creador y responsable) y «Cambiar de responsable» (creador con `agenda.tareas.asignar`; un despliegue dentro del
+    mismo panel con el selector de una persona). Dos actions (`completarTarea`, `reasignarTarea`) sobre `tarea_completar` y `reasignar_tarea`; `PT409` con «Recargar».
+  - «Tareas sin fecha»: sección plegable bajo el calendario (si se ven las tareas), cerrada al entrar; se lee al abrirla (`agenda_tareas_sin_fecha`, de a `TAMANO_DE_VER_MAS`, cursor
+    `(creado_en, id)`), código diferido, «Ver más» y tope de 500 con `<AvisoDeTope>`. El vencimiento de una tarea pasó a ser opcional. La RPC entra a `areas-b/paginas-en-la-base.ts`.
+  - Recordatorio: el chip es un enlace a `?recordatorio=<id>`; su panel lee `recordatorios_vista` por id (`leerRecordatorio`), dice su estado con texto y completa o reabre con la
+    action de `leads` (una línea en `leads/client.ts`).
+  - Bandeja: «Mis tareas» lee `leerMisTareas` (pendientes, las que vencen primero, las sin fecha al final; cada fila abre su panel) y «Ver todas» baja de ese bloque y de «Recordatorios de hoy».
+- **Verificación** (`.piloto/salidas/7.07-3/`): `vitest` de agenda, tablero y `scripts/guardas` 1.170 ✓; `lint` y `typecheck` sin avisos; e2e `agenda` + `inicio-bandeja` 12 ✓ (escritorio y móvil;
+  `agenda.spec.ts` suma la prueba «la asesora ve sus tareas sin fecha y completa un recordatorio» y amplía el recorrido de la dueña con completar, reabrir y la ausencia de «Cambiar de responsable» para la asesora).
+- **No se hizo:** la reasignación por la interfaz no entra al e2e (la cubren las pruebas SQL de `reasignar_tarea` del 7.06-1); ni volumen (las tablas de la agenda no crecen por persona).
+- e2e completo: no (7.07-3, Nivel 1; lo corre el CI del PR; cuenta 0 de 3)
+
+<!-- paso:7.07-4 -->
+
+## 2026-11-11 — Paso 7.07-4: arreglar el e2e que la entrada de Agenda rompió (CI rojo del 7.07)
+
+- **Causa:** el 7.07-1 (`41afa436`) encendió la entrada «Agenda» en la navegación y, en el e2e completo del PR, cayó `cotizar-tarea-de-oro-recorrido.spec.ts` R1 en escritorio (esperaba 57 teclas de control, midió 58): una parada más en el camino, como con Logística en el 6.01-4. El celular no cambia (53 y 49).
+- **Hecho:** `CONTROLES_DE_LA_ASESORA` y `CONTROLES_DE_LA_DUENA` de escritorio +1 (58 y 54).
+- **Verificación** (`.piloto/salidas/7.07-4/e2e-recorrido.txt`): `E2E_SIN_FUNCIONES=1 pnpm test:e2e e2e/cotizar-tarea-de-oro-recorrido.spec.ts`, 6 en verde (escritorio 58 y 54, móvil 53 y 49). Los demás bloques del e2e completo del CI habían pasado.
+- e2e completo: no (7.07-4, sólo un spec: lo corre el CI del PR)
+
+<!-- paso:7.08-1 -->
+
+## 2026-11-11 — Paso 7.08-1: conversaciones y membresía del chat (parte 1 de 3 del 7.08)
+
+- **Hecho:** `conversaciones` y `conversaciones_miembros` se escriben sólo por RPC `security definer`, y el canal global pide `chat.global` vigente.
+  - Estructura: `conversaciones.par_directo` (par ordenado, único parcial: A→B y B→A son la misma directa), `conversaciones.ultimo_mensaje_en`
+    con su índice y el trigger que la mueve en cada mensaje, el canal global «Equipo» sembrado en la migración y `conversaciones_miembros` en
+    `supabase_realtime`.
+  - `es_miembro()` exige `chat.global` en el canal global: quien lo pierde deja de leer el canal, sus miembros, mensajes, menciones y tareas,
+    y no escribe, aunque quede su fila de miembro.
+  - RPC: `chat_directa`, `chat_global_entrar`, `chat_grupo_crear`, `chat_grupo_miembros`, `chat_salir`, `chat_leer` y `chat_silenciar`. Toda
+    empieza por `assert_activo()`.
+  - Se van las policies y los grants de escritura de las dos tablas.
+  - Cierra de `docs/PLAN.md:1510` ítem 5: el índice de una directa por par, nadie crea el canal global y quien pierde `chat.global` sigue leyendo.
+    De PLAN:1753, «leer el canal global sin el permiso». Siguen abiertos la ventana de edición y el des-borrar (7.08-2).
+- **Commits:** `0d223b26` (estructura), `29b79b6f` (`es_miembro` con `chat.global`), `05a98c2c` (directas y global), `fdbd2138` (grupos),
+  `cea0f6f5` (leer y silenciar), `e452f029` (sin escritura directa) y, por la auditoría del informe, `9a738608` (el trigger acota
+  `ultimo_mensaje_en` a la hora actual: mientras siga la escritura directa de `mensajes`, una fecha futura fijaba la conversación arriba).
+- **Verificación** (`.piloto/salidas/7.08-1/`):
+  - `db:probar` completo en el hook de `e452f029` y de `9a738608`: 824 ✓, ningún ✗.
+  - `areas/chat/` (4 archivos, 14 bloques) y las de agenda que usan `es_miembro` en verde.
+  - Publicación en la base local tras `db:reset`: `conversaciones_miembros` en `supabase_realtime`.
+  - `scripts/guardas`: 1.044 ✓. `typecheck` sin errores. `nivel.mjs`: nivel 2 (`rls`, `estructura`).
+  - El relleno de `par_directo` y `ultimo_mensaje_en` no tiene prueba con datos previos (PGlite arranca vacío); desempata por `creado_en, id`.
+- **Trampa:** `cm_` ya era prefijo de otra área; en `db:probar` completo los `pg_temp` se comparten. El chat usa `chd_`, `chgl_`, `chm_`, `chgr_`.
+- **7.08 sigue:**
+  - **7.08-2 (mensajes):** índice `mensajes (conversacion_id, creado_en desc, id desc)`, `mensajes` a la publicación, `mensaje_enviar`,
+    `mensaje_editar` (15 min), `mensaje_eliminar` (`chat.moderar`, vacía el cuerpo), `mensaje_tarea_crear`, `mensaje_evento_crear`, sin escritura
+    directa en `mensajes` y `mensajes_menciones`; `mensajes.sql` y `fichas.sql`.
+  - **7.08-3 (lecturas):** `chat_conversaciones` (cursor, `_acotar_pagina`, no leídos hasta 100) y `chat_no_leidos`, su fila en
+    `docs/RENDIMIENTO.md`. Medir si su ruta por persona usa `conversaciones_ultimo_mensaje_idx`; si no, reemplazarlo. Esta parte cierra con `parcial: true`.
+- **Para 7.08-2 y 7.08-3:** toda definer decide la membresía de quien llama con `es_miembro()`, nunca con la fila suelta de
+  `conversaciones_miembros` (si no, el global se reabre en `mensaje_enviar`, `mensaje_tarea_crear`, `chat_conversaciones` y `chat_no_leidos`).
+  Hoy `tarea_crear` y `agenda_quienes_reciben` miran la fila del responsable, y el responsable de una tarea del global puede no tener
+  `chat.global`. `mensaje_enviar` no mueve `ultimo_mensaje_en` (lo hace el trigger) y fija `creado_en` en el servidor; el INSERT directo en
+  `mensajes` se revoca en ese mismo paso. La ficha de tarea pasa `p_conversacion` a `tarea_crear`.
+- **Aviso:** `chat_salir` pide `es_miembro()`: quien perdió `chat.global` recibe 42501 al querer salir del canal y su fila queda (no lee nada).
+  Las pruebas G1 y M1 son de regresión (pasaban antes de esta parte); C5 lo prueba G3.
+- **Para 7.09:** suscribirse a `conversaciones_miembros` sólo por INSERT y UPDATE con `usuario_id=eq.<yo>` (D19).
+- **Para el carril a (D13):** `aplicado_en` en `seed.sql`: `chat.participar` «chat_directa, chat_grupo_crear, chat_grupo_miembros; policy
+  mensajes»; `chat.global` «es_miembro, chat_global_entrar; policy conversaciones».
+- **Para el coordinador (D7):** sumar `chat_grupo_miembros`, `chat_leer` y `chat_silenciar` a las excepciones sin versión de
+  `.claude/rules/migraciones.md`.
+- e2e completo: no (7.08-1, Nivel 2 por RLS y estructura: lo corre el CI del PR; sin pantalla)
+
+<!-- paso:7.08-2 -->
+
+## 2026-11-11 — Paso 7.08-2: mensajes del chat (parte 2 de 3 del 7.08)
+
+- **Hecho:** `mensajes` y `mensajes_menciones` se escriben sólo por RPC `security definer`.
+  - Estructura: `mensajes_hilo_idx (conversacion_id, creado_en desc, id desc)` reemplaza a `mensajes_conversacion_fecha_idx`; `mensajes` en
+    `supabase_realtime`; un mensaje eliminado no guarda cuerpo (check `mensajes_eliminado_sin_cuerpo`); `mensaje_editar_validar` deja pasar el
+    borrado. Una ficha de vehículo, lead o cotización puede quedar sin su referencia cuando se purga lo nombrado.
+  - RPC: `mensaje_enviar` (idempotente por id, menciones `#[tipo:uuid]` iguales a `p_menciones`, hasta 20, ficha de vehículo, lead o cotización
+    que quien envía ve, aviso `mencion`), `mensaje_editar` (autor, 15 minutos, versión `coalesce(editado_en, creado_en)`), `mensaje_eliminar`
+    (autor o `chat.moderar`, siempre miembro; vacía el cuerpo), `mensaje_tarea_crear` y `mensaje_evento_crear` (la regla de agenda y después la
+    del chat, en una transacción). Ayudantes sin definer: `_chat_miembro_vigente`, `_chat_cuerpo`, `_chat_menciones_guardar`.
+  - Se van las policies y los grants de escritura de las dos tablas.
+  - Cierra de `docs/PLAN.md:1510` ítem 5 lo que quedaba (ventana de edición y des-borrar): con 7.08-1, el ítem queda cerrado. De PLAN:1753,
+    «des-borrar un mensaje».
+- **Commits:** `063a8b48` (estructura), `4392bc32` (enviar), `82710a59` (editar y eliminar), `4848f076` (tarea y evento, y los tipos),
+  `68f411e2` (sin escritura directa), `965af1b4` (las papeleras borran de verdad y `mensajes_check` exigía la FK de la ficha, que es
+  `on delete set null`: la purga daba `check_violation`) y, por la auditoría del informe, `8786965e` (las pruebas de fichas y menciones miran el
+  alcance `propios`, no la falta de permiso; E2 y E7 con una cotización real).
+- **Verificación** (`.piloto/salidas/7.08-2/`):
+  - `db:probar` completo sobre el árbol final: 883 ✓, ningún ✗ (`probar-completo-fix2.txt`). `areas/chat/`: 7 archivos, 27 bloques.
+  - Publicación en la base local tras `db:reset`: `conversaciones_miembros`, `mensajes` y `notificaciones` (`publicacion.txt`, con el comando).
+  - `scripts/guardas`: 1.044 ✓. `typecheck` sin errores. `nivel.mjs`: nivel 2 (`rls`, `estructura`).
+  - El hook del commit corrió commitlint y mapa (y lint en el que trae TS); con `PILOTO=1` salta `typecheck` y `schema`: los dos se corrieron
+    aparte sobre el árbol final. `database.types.ts` va entero en `4848f076`: los commits de enviar y editar quedan, en su historia, sin sus tipos.
+  - Vaciar los borrados de antes con cuerpo no tiene prueba con datos previos (PGlite arranca vacío): el orden de la migración lo cuida.
+- **7.08 sigue:**
+  - **7.08-3 (lecturas):** `chat_conversaciones(p_tamano, cursor)` (con `_acotar_pagina`, no leídos acotados a 100) y `chat_no_leidos()`, su fila
+    en `docs/RENDIMIENTO.md`, el registro en `scripts/guardas/areas-c/paginas-en-la-base.ts`. Servido: `conversaciones_ultimo_mensaje_idx`
+    (7.08-1, medir si la ruta por persona lo usa), `es_miembro()` con `chat.global`, el trigger de `ultimo_mensaje_en`; no leídos = mensajes de
+    otros con `creado_en > ultimo_leido_en`, sobre `mensajes_hilo_idx`. Esta parte cierra con `parcial: true`.
+- **Para 7.09 y 7.10:** la mención va en el texto como `#[<tipo>:<uuid>]` y `p_menciones` lleva exactamente esos tokens; editar dentro de 15
+  minutos con la versión `coalesce(editado_en, creado_en)`; suscribirse a `mensajes` filtrando por `conversacion_id` (realtime aplica la RLS de
+  `select` a INSERT y UPDATE); una ficha sin referencia es «ya no existe». El aviso `mencion` apunta a `/chat?c=<conversación>`, que no existe
+  hasta 7.09.
+- **Para el carril a:** `aplicado_en` en `seed.sql`: `chat.participar` «… mensaje_enviar, mensaje_editar, mensaje_tarea_crear,
+  mensaje_evento_crear»; `chat.moderar` «mensaje_eliminar». Tipo de aviso nuevo `mencion` (referencia `mensaje`, sin cuerpo).
+- **Para el carril b (D14):** `tarea_crear` y `agenda_quienes_reciben` miran la fila suelta del responsable: con `p_conversacion` del canal global,
+  un responsable sin `chat.global` pasa. `mensaje_tarea_crear` lo vuelve a mirar con `_chat_miembro_vigente`.
+- **Para el coordinador:** sumar `mensaje_eliminar` a las excepciones sin versión de `.claude/rules/migraciones.md` (D8); cerrar PLAN:1510 ítem 5
+  y el «des-borrar un mensaje» de PLAN:1753.
+- e2e completo: no (7.08-2, Nivel 2 por RLS y estructura: lo corre el CI del PR; sin pantalla)
+
+<!-- paso:7.08-3 -->
+
+## 2026-11-11 — Paso 7.08-3: lecturas del chat (parte 3 de 3 del 7.08)
+
+- **Hecho:** las dos lecturas del chat, `security definer`, que repiten la regla de `es_miembro` calculada una vez (fila propia y, en el canal
+  global, `chat.global` vigente).
+  - `chat_conversaciones(p_tamano, p_antes_en, p_antes_id)`: mis conversaciones, la del mensaje más reciente primero, por cursor
+    `(ultimo_mensaje_en, id)`, 20 por defecto y 50 como mucho (`_acotar_pagina`). Cada fila trae `ultimo_leido_en`, `silenciada`, `no_leidos`
+    (0 a 100: de otros entre las 100 entradas más nuevas posteriores a mi lectura) y `otro` (`{id, nombre}` en una directa). Sin cuerpos.
+  - `chat_no_leidos()`: el total, de 0 a 100; no suma silenciadas, propios ni el global sin `chat.global`.
+  - Se borra `conversaciones_ultimo_mensaje_idx`: ninguna ruta por persona lo usa y volvía no-HOT el update de cada mensaje (D2).
+- **Commits:** `c50886f5` (la lista y el índice) y `4d226d45` (el total).
+- **Verificación** (`.piloto/salidas/7.08-3/`):
+  - `areas/chat/lista.sql` L1–L4: 4 ✓ (`solo-lista.txt`). `db:probar` completo: 898 ✓, ningún ✗ (`probar-completo.txt`).
+  - `EXPLAIN (analyze)` como dueño de la tabla (así corre la definer): con 200.000 conversaciones la lista va por
+    `conversaciones_miembros_usuario_idx` → `conversaciones_pkey` y ordena sólo las de quien mira; con 20.000, el planificador prefiere recorrer
+    `conversaciones` (chica). No leídos: `mensajes_hilo_idx`, 100 filas (`explain.txt`, `explain-200k.txt`).
+  - `scripts/guardas`: 1.045 ✓. `typecheck` sin errores. `nivel.mjs`: nivel 2 (`estructura`, por el `drop index`).
+- **7.08 terminado** (`parcial: false`): estructura (`par_directo`, `ultimo_mensaje_en`, canal global), RPC de membresía (7.08-1), mensajes y
+  menciones sólo por RPC (7.08-2), lecturas (7.08-3); pruebas en `supabase/tests/areas/chat/` (`membresia`, `directas`, `global`, `grupos`,
+  `mensajes`, `mensajes-editar`, `fichas`, `lista`).
+- **Para 7.09:** registrar `chat_conversaciones` en `scripts/guardas/areas-c/paginas-en-la-base.ts` (`parametro: 'p_tamano'`,
+  `pideElCodigo: TAMANO_DE_VER_MAS`) en el commit de su primer `.rpc(` (`paginas.test.ts` rechaza una entrada sin llamador). Llamar `chat_leer`
+  con `p_hasta` = el `creado_en` del último mensaje visto, también tras enviar (enviar no mueve la lectura, D5). `no_leidos` 100 se escribe «99+»
+  con `conteoAcotado(n, 99)` y `conteoCorto()`. La lista trae los no leídos también de las silenciadas: la pantalla decide (D9).
+- **Para 7.11:** `chat_no_leidos()` ya descuenta las silenciadas y se detiene en 100.
+- **Para el coordinador:**
+  - La fila 7.08 de PLAN deja de decir «con su índice» para `conversaciones.ultimo_mensaje_en` (D2). Sumar a la fila 7.09 el registro de
+    `chat_conversaciones` en `paginas-en-la-base.ts` (`p_tamano`, `TAMANO_DE_VER_MAS`).
+  - PLAN:1500 (huecos, «Chat»: «…no leídos; realtime»): no leídos queda en la base (`chat_conversaciones`, `chat_no_leidos`); realtime entró en
+    7.08-1 y 7.08-2.
+  - Siguen abiertos de 7.08-1 y 7.08-2: `aplicado_en` en `seed.sql` de `chat.participar` («… mensaje_enviar, mensaje_editar, mensaje_tarea_crear,
+    mensaje_evento_crear») y `chat.moderar` («mensaje_eliminar») (carril a); `mensaje_eliminar` en las excepciones sin versión de
+    `.claude/rules/migraciones.md`; para el carril b, D14 de 7.08-2 (`tarea_crear` y `agenda_quienes_reciben` miran la fila suelta del responsable).
+- e2e completo: no (7.08-3, Nivel 2 por el paso: lo corre el CI del PR; sin pantalla)
+
+<!-- paso:7.12-1 -->
+
+## 2026-11-11 — Paso 7.12-1: el buscador, la base (parte 1 de 2 del 7.12)
+
+- **Hecho:** las tres búsquedas por sección en la base, con el mínimo en el servidor (`_buscador_interpretar()`, espejo de `interpretarBusqueda()`)
+  y `_acotar_pagina(p_tamano, 5, 20)` + 1: `buscador_leads()` (invocadora: `#n` por `leads_ids_del_numero` y nombre por `leads_candidatos` con sólo el
+  texto, pasados por un único `leads_vista_por_ids`; nunca teléfono ni campos), `buscador_vehiculos()` (invocadora: título, VIN o lote, una ruta por
+  origen) y `buscador_cotizaciones()` (`security definer`: número exacto o título por trigramas de los orígenes que se ven más las propias, y la policy
+  «cotizaciones: leer» repetida fila por fila; sin montos ni papelera). Los últimos abiertos: `visita_registrar()` (upsert propio, tope 50) y el índice
+  `visitados_usuario_visto_idx`. Inventarios: `auditoria-leads.sql` (clase L) y `numero-global.sql`.
+- **Commits:** `f51a7f90` (las tres secciones), `3433ec3d` (las visitas), `bca35dda` (fix de la auditoría: las candidatas por título, de los orígenes
+  que se ven).
+- **Verificación** (`.piloto/salidas/7.12-1/`): `db:probar` entero en verde sobre el árbol final (`probar-entero-final.txt`, 777 ✓, 0 ✗); las del área,
+  `supabase/tests/areas/buscador/` (`buscador.sql`, `forma.sql`, `visitados.sql`), 14 pruebas en verde; cuatro mutaciones del definer, todas atrapadas;
+  `scripts/guardas` 33 archivos y 1.044 pruebas; `db:lint` sin avisos en lo nuevo.
+- **Para el carril A:** en `docs/PLAN.md`, fila 7.12: «**7.12-1 hecho** (la base: `buscador_leads`, `buscador_vehiculos`, `buscador_cotizaciones`,
+  `visita_registrar` y el índice de `visitados`; `docs/pasos/7.12-1/`). Falta el **7.12-2**: `ranking.ts` con su test, las lecturas del navegador, el
+  registro de la guarda y `medir-buscador.sql`». El arrastrado «el buscador de leads, sin los privados» (`docs/PLAN.md:1512`) queda hecho en la base y
+  se cierra con el 7.12-2. Pendiente nombrado: el `EXPLAIN` de `buscador_cotizaciones` en `db:medir:volumen` (límite sin assert en RENDIMIENTO).
+- **7.12 sigue:** este PR no marca integrado el paso (`parcial: true`).
+- e2e completo: no (7.12-1, Nivel 2 por el índice de visitados: lo corre el CI del PR; sin pantalla)
+
+<!-- paso:7.12-2 -->
+
+## 2026-11-11 — Paso 7.12-2: el buscador, lo del navegador y la medición (parte 2 de 2, y última, del 7.12)
+
+- **Hecho:**
+  - `entities/ranking.ts` con su test: `seccionesQueBuscan(interpretacion)` y `agruparResultados()`. Ordena primero el número exacto, después lo que
+    empieza con el texto y al final el resto, y corta cada sección en `POR_SECCION` = 5. También `ordenarComoLosIds()` y `ultimosAbiertos()`.
+  - `entities/resultados.ts`: los Zod y las columnas, nunca teléfono, campos ni montos.
+  - Las lecturas del navegador, cancelables (`infra/buscar.client.ts`) y los últimos abiertos, hidratados bajo la RLS de cada entidad
+    (`infra/visitados.client.ts`). Salen por `buscador/client.ts`.
+  - `leads/client.ts` expone `interpretarBusqueda` y `MINIMO_DE_BUSQUEDA`. Las llama la feature que compone (7.13, 7.10).
+  - El registro de la guarda de páginas del carril b.
+  - `supabase/tests/medir-buscador.sql` en `db:medir:volumen`, con `MEDIR_SOLO` para correrla sola. Su contingencia entró:
+    `20261111200531_buscador_cotizaciones_rutas.sql`, donde la ruta de las propias corre sólo donde se tiene «propios» sin «todos» (D22).
+- **Commits:**
+  - `6387cd75` (leads/client), `6c1bae8e` (ranking), `912a9a35` (buscar por sección), `117e38fe` (últimos abiertos).
+  - `442d333c` (la migración), `e992fdfd` (la medición).
+  - Más el `fix` de la auditoría del informe: el caso mixto en `buscador.sql` y el comentario de la migración.
+- **Verificación** (`.piloto/salidas/7.12-2/`):
+  - `ranking.test.ts`: 8 pruebas en verde (`ranking.txt`).
+  - `scripts/guardas` y el módulo: 34 archivos y 1.055 pruebas (`guardas-final.txt`).
+  - `db:probar` entero en verde (`probar-entero.txt`, y `probar-entero-2.txt` tras el fix).
+  - La medición en verde sobre el árbol final (`medir-buscador-3.txt`): el número 6–8 bloques; lo raro 41–61 bloques y ≈ 1 ms; lo común 5–18 ms, con el heap
+    sin crecer. La guarda sin el GIN da 3 recorridos y 7.723 bloques.
+  - `db:lint` sin avisos en lo nuevo.
+  - La mutación `v_solo_propios := v_t` cae en B4 (`mutacion-solo-propios-v-t.txt`).
+- **Para el carril A:**
+  - En `docs/PLAN.md`, fila 7.12: «**7.12 hecho** (7.12-1, la base: `buscador_leads`, `buscador_vehiculos`, `buscador_cotizaciones`, `visita_registrar` y
+    el índice de `visitados`; 7.12-2: `ranking.ts` con su test, las lecturas del navegador por sección (`buscador/client.ts`), los últimos abiertos
+    hidratados, el registro de la guarda y `medir-buscador.sql`, con la ruta de las propias acotada (`20261111200531_buscador_cotizaciones_rutas.sql`);
+    `docs/pasos/7.12-1/`, `docs/pasos/7.12-2/`)».
+  - El arrastrado «el buscador de leads, sin los privados» (`docs/PLAN.md:1512`) queda cerrado.
+  - 7.10 importa `@/modules/buscador/client` y suma `chat --> buscador` a `docs/ARQUITECTURA.md` (sin ciclo).
+  - 7.13 llama a `interpretarBusqueda()` de `@/modules/leads/client` antes de pedir, y registra la visita por Server Action.
+- **7.12 terminado:** este PR cierra el paso (`parcial: false`).
+- e2e completo: no (7.12-2, Nivel 1 por lo tocado; el PR es Nivel 2 por el índice de visitados del 7.12-1: lo corre el CI del PR; sin pantalla)
+
+<!-- paso:8.06-1 -->
+
+## 2026-11-11 · Paso 8.06-1: la base revalida la web pública (parte 1 de 2 del 8.06)
+
+- **Hecho:**
+  - **Cola.** `interno.web_revalidar_pendiente` tiene RLS, no tiene grants y no tiene índice único sobre la etiqueta.
+  - **Triggers.** Hay 15 triggers por sentencia `web_revalidar`, que anotan `guias`, `faqs`, `testimonios`, `ajustes`, `asesores` y `vehiculos`.
+    `categorias` anota `vehiculos`. `cola_web_asesores` anota sólo cuando cambia el orden.
+  - **Job.** `web_revalidar_correr()` (`security definer`, sólo `service_role`) corre en el job `web-revalidar` cada minuto. Manda un solo pedido con las
+    etiquetas y lleva el secreto de Vault sólo en la cabecera. Si la web está apagada, no tiene dirección `https://` o falta el secreto, no envía y no
+    pierde lo pendiente.
+  - **`integracion_guardar`.** Valida `revalidar_url` y guarda sólo esa clave.
+  - **Conteo.** `web_publica_vehiculos_que_cambian()` cuenta acotado a 51 los vehículos que cambian.
+  - **Catálogo.** La fila `web_publica` entra por migración.
+  - Decisiones en `decisiones.md`. La auditoría del plan bloqueó dos veces: el `on conflict` serializaba las escrituras, y el nivel era 2, no 1.
+    Las dos se resolvieron en el plan.
+- **Commits:** `5c65e085` (la cola), `0d19e222` (el job), `02f7fdf0` (la dirección), `7582c2a6` (el conteo) y `61fe6130`.
+  `61fe6130` es el `fix` que pidió la auditoría del informe: R1 siembra una fila de otra transacción y exige que la propia anote igual. Con la variante
+  descartada, R1 cae (`.piloto/salidas/8.06/control-d4.txt`).
+- **Falta (8.06-2):**
+  - Quitar las variables de entorno.
+  - Las reglas en `entities`.
+  - «Probar» desde el servidor.
+  - La tarjeta «Web pública».
+  - El e2e.
+  - La ficha de `web` con el contrato con el sitio.
+- **Verificación** (`.piloto/salidas/8.06/`):
+  - `SOLO=areas/web/revalidar.sql pnpm db:probar`: R1–R9 en verde.
+  - `db:probar` completo: 816 ✓, ningún ✗.
+  - `db:lint`: sin errores; los avisos son los de siempre, ninguno de las funciones nuevas.
+  - `db:carreras`: todas en verde (14,1 s).
+  - `scripts/guardas`: 1.044 ✓.
+  - `nivel.mjs`: nivel 2 (`rls`, `estructura`).
+- e2e completo: no (8.06-1, Nivel 2 por rls y estructura: lo corre el CI del PR)
+
+<!-- paso:8.06-2 -->
+
+## 2026-11-11 · Paso 8.06-2: la tarjeta «Web pública», «Probar» y el entorno sin variables (parte 2 de 2; 8.06 completo)
+
+- **Hecho:**
+  - **Entorno.** Sin `WEB_PUBLICA_REVALIDAR_URL` ni `…_SECRETO` (`esquemas.ts`, `.env.example`, `docs/ENTORNOS.md`): dirección en
+    `integraciones.config` y secreto en Vault. Cierra la contradicción 1 de `docs/PLAN.md` (la URL con dos casas).
+  - **Regla de la dirección.** `esDireccionDeRevalidacion()` acepta una https pública y, sólo si se permite, el loopback; rechaza redes internas
+    literales, IPv6 literal y usuario y clave; mira el host normalizado por WHATWG y sin el punto final.
+  - **«Probar».** `probarRevalidacion()` (`empresa/infra/revalidacion-prueba.ts`, segunda excepción del cliente admin): permiso con el cliente de
+    quien prueba, dirección guardada y su regla, y recién entonces el admin para `integracion_secreto('web_publica')`. POST con cuerpo fijo, sin
+    redirecciones, 5 s, devuelve sólo el código. Lint, `.claude/rules/datos.md` y `admin.ts` la nombran.
+  - **Conteo.** `leerVehiculosQueCambian()` (acotado a 50), sólo para quien puede editar.
+  - **Tarjeta.** «Web pública» en Integraciones: interruptor con el conteo, dirección, secreto (`<CampoSecreto>` por clave) y «Probar».
+  - **Contrato con el sitio** en la ficha de `web` y en `decisiones.md` (D10–D17).
+- **Commits:** `aeb147cd` (el entorno), `adbf5f72` (la regla), `57fee961` («Probar»), `68efa964` (el conteo), `63d64326` (la tarjeta),
+  `c13d4f27` (el e2e) y el de docs.
+- **Verificación** (`.piloto/salidas/8.06-2/`): vitest de lo tocado, `scripts/guardas` y los e2e dirigidos (ver el informe del paso).
+- e2e completo: no (8.06-2, Nivel 2 por shared: lo corre el CI del PR)
+
+<!-- paso:8.08-1 -->
+
+## 2026-11-12 · Paso 8.08-1: la base de repuestos (parte 1 de 3 del 8.08)
+
+- **Hecho:**
+  - **Proyectos por RPC.** `repuesto_proyecto_crear` (de un vehículo que se ve o externo; uno por vehículo), `_cerrar`, `_reabrir`, `_eliminar` (sólo vacío)
+    y `_restaurar` (el «Deshacer»). Toda RPC que escribe pide `repuestos.editar`. Sin INSERT directo ni UPDATE de `cerrado_en`, `eliminado_en` o
+    `vehiculo_id`; un `check` impide etiqueta o VIN propios en un proyecto con vehículo.
+  - **Ítems por RPC.** `repuesto_item_crear` nace el ítem en la única inicial activa del flujo de repuestos con su fila de historial (sin fase si hay que
+    decidir); `repuesto_item_eliminar` sólo borra uno sin otra fase, documentos, compras, gastos ni stock. Sin INSERT directo de `repuestos_items`.
+  - **Lista.** `repuestos_proyectos_listar` por cursor sobre `numero desc`, sólo vivos, con cuentas de hasta 201 ítems por proyecto.
+  - **Esperas.** `evaluar_requisitos` (rama `hijos`): un ítem que terminó sin llegar («Perdido») ya no frena al vehículo; el `detalle` suma `sin_llegar`.
+    `repuestos_pendientes_de_vehiculo` dice qué ítems esperan las fases siguientes de un vehículo.
+  - **Catálogos.** Un valor en uso (ítem, aun eliminado, o línea de cotización) no se borra: 23514 hint `en_uso`.
+  - Decisiones en `decisiones.md` (D1–D18). La auditoría del plan bloqueó (eliminar y restaurar sin permiso explícito) y se resolvió en el plan; la del
+    informe dejó observaciones (esta bitácora, D17 y D18).
+- **Commits:** `0a203175` (proyectos), `97e3d3d5` (ítems), `1ce1baa4` (lista), `b54ac02a` (esperas), `4c9d411a` (pendientes), `6f561aca` (catálogos) y
+  el de docs.
+- **Falta (8.08-2 y 8.08-3):**
+  - 8.08-2: el esqueleto por áreas del módulo, `RUTAS.repuestos` y `RUTAS.configuracionDeRepuestos`, la lectura y las acciones de catálogos sin pantalla.
+  - 8.08-3: `/configuracion/repuestos` con la pestaña «Catálogos» y el hueco «Cotizador», y `e2e/configuracion-repuestos-catalogos.spec.ts`.
+- **Abiertos de `docs/PLAN.md` que cierra:** la contradicción 3 («Esperas», `:1813`); «el flujo de repuestos sólo nace en `seed.sql`» (sin una sola
+  inicial el ítem nace sin fase); «quitar escrituras directas» de proyectos e ítems (queda `UPDATE(en_stock_desde)`, que quita 8.10).
+- **Pedidos al coordinador:**
+  - Una línea en `src/modules/flujos/CLAUDE.md`: «`evaluar_requisitos` (rama `hijos`) cuenta `sin_llegar` con `_repuesto_ante_espera` de repuestos (8.08-1);
+    si se recrea, conservarla».
+  - Sumar la carrera «eliminar un proyecto mientras se crea un ítem» a `scripts/carreras/repuestos-stock.mjs` en el 8.10 (D10).
+- **Verificación** (`.piloto/salidas/8.08/`):
+  - `db:probar` completo tras el último commit de SQL: 1.123 ✓, ningún ✗ (`probar-2.txt`).
+  - `esperas.sql` contra HEAD: E3 y E5 caían por la regla (`probar-esperas-contra-head.txt`).
+  - `db:lint`: sin errores; ningún aviso de las funciones nuevas. `scripts/guardas`: 1.073 ✓. `typecheck` ✓. `mapa.sh --check` ✓.
+- e2e completo: no (8.08-1, Nivel 2 por rls: lo corre el CI del PR)
+
+<!-- paso:8.08-2 -->
+
+## 2026-11-12 · Paso 8.08-2: esqueleto, rutas y catálogos de repuestos (parte 2 de 3 del 8.08)
+
+- **Hecho:**
+  - **Áreas.** `src/modules/repuestos/` se parte como `logistica`: el núcleo y siete áreas (`proyectos`, `items`, `stock`, `compras`, `cotizador`,
+    `catalogos`, `flujo`), con sus huecos para 8.09–8.13. La guarda `scripts/guardas/areas-c/areas-de-repuestos.test.ts` vigila que un área no importe otra.
+  - **Rutas.** `RUTAS.repuestos` y `RUTAS.configuracionDeRepuestos` (sólo se agregan).
+  - **Catálogos sin pantalla.** `CATALOGOS_DE_REPUESTOS` (atado al `check` de la base por un test), `ValorDeCatalogo` con su validación,
+    `leerCatalogosDeRepuestos()` (cuatro consultas con tope 200) y las actions `crearValor`, `guardarValor` y `eliminarValor`, que escriben directo bajo la
+    RLS de `repuestos.configurar` (23505 → «Ya hay uno con ese nombre.» junto al campo; 23514 `en_uso` con el texto de la base; cero filas → sin permiso o
+    «ya no existe»).
+  - **RLS de escritura probada.** K2 y K3 en `supabase/tests/areas/repuestos/catalogos.sql`.
+  - Decisiones en `decisiones.md` (D19–D27). La auditoría del plan dejó observaciones, atendidas en el plan.
+- **Commits:** `9c832b1a` (áreas), `6e2f566c` (rutas), `089821b9` (entities), `f34f42c9` (leer), `cc32661b` (escribir y actions), `4e31be6f` (K2, K3) y el
+  de docs.
+- **Falta (8.08-3):** `/configuracion/repuestos` con `seccion.ts`, `pestanas.ts` («Catálogos» y el hueco «Cotizador»), la pestaña «Catálogos» con cuatro
+  `<ListaDeCatalogo>` y `e2e/configuracion-repuestos-catalogos.spec.ts`. Ajustes que deja esta parte: la pantalla es `pantallas/catalogos.ts` (no
+  `pantallas/configuracion.ts`), las flechas de orden van apagadas con «El orden se cambia al editar» (D21) y la columna «Uso» muestra «—» (D25).
+- **H1 · hallazgo para la 8.10 (con migración):** `repuestos_catalogos` tiene `UPDATE` de toda la tabla para `authenticated` (B:31835), así que quien tiene
+  `repuestos.configurar` puede pasar un valor de un catálogo a otro (`catalogo`) por PostgREST y dejar ítems apuntando a un valor del catálogo equivocado.
+  La app nunca lo manda (`guardar` no lleva `catalogo`; `strictObject` en el esquema). Arreglo: `revoke update on public.repuestos_catalogos from
+authenticated; grant update (nombre, activo, orden, datos) on public.repuestos_catalogos to authenticated;` (o un `before update` que rechace el cambio
+  de `catalogo`), con su prueba en `catalogos.sql`.
+- **Para la 8.08-3:** el `.refine` de `cambios` en `features/catalogos/schemas/valor.ts` lleva `{ error }` (auditoría del informe, menor).
+- **Pedido al coordinador:** la línea bajo la fila 8.08 de `docs/PLAN.md`: «8.08-1 y 8.08-2 hechas (base, esqueleto, rutas y catálogos sin pantalla);
+  falta 8.08-3 (configuración y e2e)», y H1 en el 8.10.
+- **Verificación** (`.piloto/salidas/8.08-2/`):
+  - `db:probar` completo: exit 0, ningún ✗, K2 y K3 ✓ (`probar-completo.txt`); `SOLO=areas/repuestos/catalogos.sql` ✓ (`probar-catalogos.txt`).
+  - `scripts/guardas` + `src/modules/repuestos`: 1.096 ✓ (`guardas-5.txt`); `vitest related`: 855 ✓ (`vitest-related.txt`). `typecheck` ✓. `mapa.sh --check` ✓.
+- e2e completo: no (8.08-2, Nivel 2 por shared: lo corre el CI del PR)
+
+<!-- paso:8.08-3 -->
+
+## 2026-11-12 · Paso 8.08-3: /configuracion/repuestos y los catálogos en pantalla (parte 3 de 3 del 8.08)
+
+### Hecho
+
+- `/configuracion/repuestos` (`repuestos.configurar` con `puede()`; sin la clave, «No tienes permiso»), con `loading.tsx`, `pestanas.ts` (sólo «Catálogos»:
+  sin barra) y su tarjeta «Repuestos» en el hub, tras Logística.
+- La pestaña «Catálogos» (`pantallas/catalogos.ts`): los cuatro catálogos con `<ListaDeCatalogo>`, la columna «Orden», vacío por catálogo y `<AvisoDeTope>`
+  con más de 200. Un solo modal por URL para agregar o editar (nombre, orden, activo; lo nuevo nace al final) y un solo diálogo para eliminar, que muestra
+  el motivo de la base si el valor está en uso. Activar o desactivar desde el «⋯», una escritura a la vez.
+- La lectura va en el servidor (`seccion-catalogos.tsx`) y cada action renueva la ruta con `revalidatePath`: el e2e prueba que alcanza (no hizo falta
+  `router.refresh()`).
+- El `.refine` de `cambios` dice «No hay cambios que guardar.» (observación de la auditoría del 8.08-2).
+- `scripts/guardas/areas-c/confirmar-con-url.ts` registra el diálogo nuevo.
+
+### Commits
+
+- `fix(repuestos): decir por qué se rechaza guardar sin cambios`
+- `feat(repuestos): dibujar los catálogos con su formulario de valor`
+- `feat(repuestos): eliminar un valor de catálogo con confirmación`
+- `feat(app): abrir configuración de repuestos desde el hub`
+- `test(repuestos): recorrer los catálogos de repuestos en configuración`
+
+### Verificación
+
+- `e2e/configuracion-repuestos-catalogos.spec.ts` (escritorio): 3 de 3 (`.piloto/salidas/8.08-3/e2e-nuevo.txt`).
+- Los specs que miran el hub (logística, flujos, cotización ajustes y niveles, empresa, equipo): 25 en verde y 1 rojo ajeno, `equipo.spec.ts:174` («la dueña
+  bloquea a alguien»). Cae también solo (`e2e-equipo.txt`): la pestaña de la dueña queda con la sesión de la invitada que abre `otraPersona`. Esta parte no
+  toca `equipo`, permisos ni la base. Lo vuelve a correr el CI del PR.
+- `vitest related` (secciones: 5 de 5) y `scripts/guardas` (1.090 de 1.090) en `.piloto/salidas/8.08-3/`.
+- e2e completo: no (8.08-3, Nivel 2 del paso: lo corre el CI del PR)
+
+### Queda
+
+- H1 (el `UPDATE` de toda la tabla deja cambiar `catalogo`) → 8.10.
+- La pestaña «Cotizador» → 8.12.
+- Para el coordinador, bajo la fila 8.08 de `docs/PLAN.md`: «8.08-1, 8.08-2 y 8.08-3 hechas (base, esqueleto, catálogos y `/configuracion/repuestos`, que
+  sale por `pantallas/catalogos.ts`); H1 pasa a la 8.10».
+
+<!-- paso:pedido-4 -->
+
+## pedido-4 · el CI no cae si apt no responde (2026-11-11)
+
+Pedido del carril c (5.03): el paso de chromium del job `e2e` usa un tope de 240 s con `--with-deps` y, si falla, instala chromium sin apt.
+
+- e2e completo: no (pedido-4, sólo `.github/workflows/ci.yml`: lo prueba el CI del PR)

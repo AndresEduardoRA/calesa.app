@@ -3744,3 +3744,1518 @@ frena ya no es un carril parado sino el camino del PR hasta `main` (el 7.02, 8 h
 - **No se hizo:** detectar un rojo heredado de main (el e2e no corre en los push a `main`; el 11-11 tres sesiones diagnosticaron la
   misma tarea de oro rota). Pide leer los nombres de las pruebas caídas de cada corrida y decidir quién arregla; se anota aquí por si
   vuelve a costar. La primera sesión que lo ve lo arregla en su PR y las demás lo reciben al traer main.
+
+<!-- paso:5.03 -->
+
+## 2026-11-11 — Paso 5.03: la base de «Tipos de documento»
+
+- **D1 · Qué significa cada modo de vencimiento** (duda (a) de la fila, la recomendada):
+  - `ninguno`: no vence;
+  - `solicitar`: quien sube el documento escribe su fecha;
+  - `renovar`: vence a los `vigencia_dias` de subido;
+  - `aviso_dias`: cuántos días antes se avisa.
+    Queda en `comment on column`. Lo hace cumplir la Fase 6 en `documentos.vence_el`.
+- **D2 · `proposito` no se edita** (duda (b), la recomendada): ni crear ni guardar lo aceptan (`22023` con `hint = 'proposito'`).
+- **D3 · Una combinación inválida se rechaza**, no se limpia en silencio. Son, por ejemplo, `renovar` sin vigencia, días de vigencia en otro modo o un aviso
+  sin vencimiento. La pantalla manda el estado entero, y rechazar no borra un dato que la persona escribió. No hay `check` nuevo en la tabla: la única
+  escritura es la RPC.
+- **D4 · La versión es por fila, con un trigger propio** (`tipo_documento_version()`). El genérico pone `now()` y no se mueve dos veces en una transacción.
+  Ordenar no cambia versiones.
+- **D5 · El permiso del grupo se exige antes que la versión.** Que la fila exista no se oculta, porque todo `authenticated` lee la tabla.
+- **D6 · Un global nuevo puede llevar el nombre de un tipo de un flujo.** Sólo se prohíbe la otra dirección: un tipo de flujo activo no repite un global
+  activo. Quien gestiona los catálogos no puede arreglar los tipos de un flujo que no configura.
+- **D7 · Un tipo que pide un requisito se puede desactivar, y el requisito queda.** Qué hacer con un requisito de un tipo inactivo lo deciden «Revisar» o la
+  Fase 6.
+- **D8 · Apagar `visible_portal_permitido` no oculta los documentos ya marcados visibles.** Eso es de `documentos` (6.05).
+- **D9 · Tope de 100 tipos por grupo, y conteos de uso con tope de 50 + 1.** Es un catálogo de configuración: sin `medir-*.sql` ni fila en RENDIMIENTO.
+- **D10 · Sin `trg_auditar` nuevo.** La actividad es de la Fase 9.
+- **D11 · El candado de `fase_requisito_validar()` (`for share`) va sin prueba de carrera.** `scripts/carreras/` se limita a marcar final y comprobantes.
+  El 5.07 parte de esta definición.
+- **D12 · El paso cabe en una parte**, con cinco commits de código, uno por intención.
+- **Ningún ayudante recibe sólo la fila** (`_tipo_documento_validar(fila, válidos)`, `_tipo_documento_nombre_libre(id, flujo, nombre, activo)`).
+  PostgREST toma una función de un solo argumento de tipo fila como columna calculada de la tabla, y `db:types` la mostraba en `ComputedFields`.
+
+<!-- paso:5.05 -->
+
+## 2026-11-11 — Paso 5.05
+
+- **Las transiciones y quién mueve se escriben sólo por RPC con la versión del flujo:** `transicion_crear`, `transicion_guardar`, `transicion_eliminar`,
+  `fase_roles_poner` y `transicion_roles_poner`, todas por `_flujo_para_editar()`/`_flujo_tocar()` del 5.01, y sin escritura directa en `fases_transiciones`,
+  `fases_roles` ni `fases_transiciones_roles`. Plan: `.piloto/planes/5.05.md`. La auditoría del plan dio observaciones; aplicadas abajo (D8, D14, D15 y la nota de
+  `rbac_eliminar_rol` en la bitácora).
+
+- D1 · Poner roles no exige `rol_dominado`: no otorga nada, sólo acota quién mueve (sigue haciendo falta `flujos.mover`, y `flujos.mover.cualquiera` salta las
+  listas). Es la recomendada de la fila.
+- D2 · Sólo el **destino** de una transición nueva tiene que estar activo: un origen jubilado puede tener salida (las unidades que siguen ahí necesitan salir).
+  Guardar no revalida el destino y una fase jubilada acepta roles: ninguna de las dos abre un camino nuevo (`previsualizar_cambio_fase` ya rechaza el destino jubilado).
+- D3 · Una fase que no existe es una pantalla vieja → `PT409`; una fase de otro flujo es un dato errado → `22023` con `hint` (`de_fase_id` o `a_fase_id`).
+- D4 · La acción es el texto del botón: hasta 40 caracteres, recortada, vacía = sin acción (`null`).
+- D5 · Poner la misma lista de roles mueve la versión igual (toda RPC de configuración devuelve la nueva) pero no escribe actividad. Tope de 100 roles por lista
+  (el de `leerRolesParaElegir()` del 5.02); los repetidos se colapsan; un rol inexistente → `22023` con `hint roles`.
+- D6 · Las transiciones ya se auditan por su `trg_auditar` (`fases_transiciones.<op>`): las RPC no duplican. Los roles, por `registrar_actividad()` con
+  `fase.roles_cambiados` y `transicion.roles_cambiados`, `{roles: [uuid ordenados]}` antes y después (vacío = `[]`). Los roles que caen en cascada al borrar una
+  transición no se registran aparte.
+- D7 · Sin carrera nueva: el candado es el de `_flujo_para_editar()` (K1 del 5.01). `_roles_de_lista()` toma los roles con `for key share`, así un rol que se borra
+  a la vez espera y no deja un `23503` crudo.
+- D8 · El `23503` de un cambio de fase hacia una fase que se está borrando (D21 del 5.01-2, «lo traduce 5.05») no entra aquí: la fila del 5.05 excluye tocar
+  `cambiar_fase`. **Para el coordinador, a PLAN:** en la fila del **6.02** (que recrea `cambiar_fase` y `cambiar_fase_lote`): «traducir el `23503` de
+  `vehiculos_fase_id_fkey`/`historial_fases` de un cambio de fase hacia una fase que se borra a la vez, a `PT409` «Esa fase ya no existe. Recarga e intenta de
+  nuevo.» (D21 del 5.01-2, D8 del 5.05)». El mismo caso en un vehículo que **nace** en esa fase (`vehiculo_crear`) va a la fila que recree `vehiculo_crear`
+  (módulo vehículos; ninguna de la Fase 5 lo hace): hasta entonces queda como abierto.
+- D9 · `transicion_guardar` no cambia origen ni destino: cambiar el destino es eliminar y crear (los roles propios de la transición no se arrastran a otro destino).
+- D10 · Los errores de la lista de roles van después del permiso: un solo ayudante (`_roles_de_lista`) que también mira que los roles existan; quien no puede
+  recibe `42501` primero.
+- D11 · `transicion_eliminar` devuelve sólo la versión (`timestamptz`): a diferencia de `fase_eliminar`, tiene un único resultado.
+- D12 · Los mensajes dicen «transición» (GLOSARIO); «salidas» es sólo el título del bloque del inspector (5.06).
+- D13 · La ficha `src/modules/flujos/CLAUDE.md` no cambia aquí (este paso no tiene `src/modules/` entre sus módulos). **Para el coordinador, a la fila del 5.06:**
+  sumar a la ficha la línea «RPC:» con las cinco nuevas y que «la configuración no se escribe directo» nombre también transiciones y roles.
+- D14 · La fila dice «lista vacía = cualquiera con `flujos.mover`» para las dos RPC; en la de la transición, vacía significa que **manda la lista de la fase
+  destino** (es lo que hace `_puede_mover`, que este paso no toca, y lo que dice la fila del 5.06: «vacío hereda los de la fase destino»). T5 lo prueba.
+- D15 · `transicion_guardar` rechaza `{"nota_obligatoria": null}` con `22023` «no tiene el formato esperado» (`hint nota_obligatoria`), no con el `23502` crudo
+  de la columna `not null`.
+
+<!-- paso:5.09 -->
+
+## 2026-11-11 — Paso 5.09: «Documentos» (tipos de documento de la empresa y del flujo)
+
+- **D1 · La lectura va directa a la tabla**, con columnas nombradas, orden por `orden` y `nombre` y `limit(100 + 1)` por grupo (índice
+  `tipos_documento_flujo_id_nombre_key`, `flujo_id` primero). El uso (`tipos_documento_con_uso`) se pide sólo si quien mira puede cambiar ese grupo: si no,
+  la base da `42501`. Es un catálogo de configuración: sin medición de volumen.
+- **D2 · La lista viene de props y cada escritura relee.** Ninguna RPC devuelve la lista, así que la action revalida la pantalla y el cliente espera el
+  `router.refresh()`. Difiere de `tipos-de-seguimiento` de leads, donde cada RPC devuelve la lista entera.
+- **D3 · Los conteos del uso se muestran acotados** (`conteoAcotado(n, 50)`, llegan como 51): «Lo usan 3 documentos y 2 requisitos», «más de 50».
+- **D4 · Dos grupos con un solo componente de grupo**: «De toda la empresa» y «Sólo de este flujo».
+- **D5 · La pestaña «Documentos» la ven** quienes tengan `flujos.configurar`, `repuestos.configurar` o `logistica.catalogos.gestionar`. Quien sólo tiene
+  `flujos.configurar` ve los globales de sólo lectura, con el motivo.
+- **D6 · Sólo lectura = «Editar» apagada con motivo y botones de orden apagados.** Se suma `motivoSinOrden` a `FilaDeCatalogo` para que el texto del botón
+  apagado no diga «Ya es el primero…» cuando el motivo es el permiso (parte 2).
+- **D7 · Los formatos llevan etiqueta humana** (PDF, JPG, PNG, WebP) y se guardan como MIME; al menos uno.
+- **D8 · Cambiar el modo de vencimiento vacía los días que el modo nuevo no usa** (`borradorConModo`): la base los rechaza, y lo escrito no se pierde en
+  silencio porque el campo desaparezca. La vigencia sólo con «renovar»; el aviso con «solicitar» o «renovar».
+- **D9 · Eliminar se explica antes:** una fila sin uso ofrece «Eliminar»; una con uso, «Desactivar» con «Lo usan N documentos y M requisitos». Si el uso
+  llega entre tanto, la base desactiva y el aviso lo dice con lo que devuelve.
+- **D10 (5.09-1) · Las actions llevan el `flujoId` del grupo en su entrada.** Sin él no pueden exigir el permiso (`logistica.catalogos.gestionar` o
+  `flujos`/`repuestos.configurar`) antes de la RPC; si alguien lo falsea, la base vuelve a exigirlo (`42501`).
+- **D11 (5.09-1) · La validación del formulario se prueba contra la base**, no contra una tabla escrita a mano: PGlite con la tabla mínima y
+  `_tipo_documento_validar()` de las migraciones, para que un cambio de la regla en SQL rompa la prueba de la app.
+- **D12 (5.09-2) · Un solo cliente para los dos grupos.** `<TiposDeDocumento>` lleva los dos grupos, **un** modal (`?panel=nuevo-tipo|editar-tipo`) y **una**
+  confirmación (`?panel=eliminar-tipo`), porque la URL tiene un solo `?panel=`. Las reglas de qué abre cada uno (`motivoParaNoAbrirTipo`,
+  `motivoParaNoEliminarPorUrl`, en `entities/documentos/vista-de-grupo.ts`) cubren el grupo inexistente, el de sólo lectura, el tope y el uso.
+- **D13 (5.09-2) · «Eliminar» de un tipo en uso se ve apagado con el motivo** («Lo usa 1 requisito: se desactiva en lugar de eliminarse.») en vez de
+  desaparecer o cambiar de nombre; «Desactivar» ya está en el mismo menú. Es lo que pide `ui.md` (una acción que no se puede dice por qué) y deja un solo
+  camino a «Desactivar».
+- **D14 (5.09-2) · El foco tras «Subir»/«Bajar» se aplica cuando llega el orden nuevo.** La respuesta de la RPC no trae la lista: la página se relee y la fila
+  cambia de lugar después. Mover un nodo con el foco puesto lo quita, así que el foco vuelve al botón al comparar la firma del orden contra la de antes de mover
+  (`firmaDelOrden`). Al llegar al extremo, pasa al otro botón de la fila (como en las demás listas).
+- **D15 (5.09-2) · La pestaña «Documentos» la ven quienes tienen alguna de `flujos.configurar`, `repuestos.configurar` o `logistica.catalogos.gestionar`**
+  (la tarjeta «Flujos» del hub ya admitía las tres). Con sólo la tercera, es la única pestaña y la barra no se dibuja; con las otras dos, la barra aparece por
+  primera vez («Fases» abre primero) y `pestanas.test.ts` y `configuracion-flujos.spec.ts` lo reflejan.
+- **D16 (5.09-2) · `datosParaCrear` devuelve `DatosParaCrear` (todas las claves, sin `activo`)** para que el tipo coincida con el esquema de la action: un tipo
+  nuevo nace activo y no manda `activo`.
+
+<!-- paso:5.11 -->
+
+## 2026-11-11 — Paso 5.11: «Reglas» y la oferta de transporte
+
+- **D1 · Puertos y navieras sólo se leen** (los activos, `limit 201`, corte a 200 con `<AvisoDeTope>`). Su gestión es de la Fase 6 (`logistica`, con
+  `logistica.catalogos.gestionar`); la pantalla dice «Todavía no hay navieras cargadas. Se cargan en Logística.».
+- **D2 · La action de apagar pregunta el impacto antes de escribir.** Con uso devuelve `en_uso` sin llamar a `flujo_regla_cambiar`; si el uso llega entre
+  la pregunta y la escritura, el `23514` se vuelve a preguntar al impacto y se dice igual. La pantalla no precarga el impacto de 10 reglas.
+- **D3 · Encender también ofrece «Deshacer»**, por el mismo camino (puede dar `en_uso`). El toast dice «Regla «Aduana» apagada.», sin género propio
+  de cada nombre.
+- **D4 · «Deshacer» usa la última versión conocida del flujo** (la de la página o la de la última respuesta): apagar A y B y deshacer A no da `PT409` por
+  culpa de la propia persona. Si otra persona tocó el flujo, el conflicto sale igual, dentro de la pantalla.
+- **D5 · Los interruptores siguen a lo que lee el servidor** y se apagan mientras hay un envío en vuelo: un apagado que no se hace no «salta» y vuelve.
+- **D6 · El permiso se dice con `motivoSinPermisoDeReglas`** (pantalla: interruptores y casillas apagados con el motivo; action: primera llave); la base
+  decide. El selector ya sólo ofrece flujos configurables, así que el caso real es un `42501`.
+- **D7 · El borrador de la oferta lleva `key` por la firma de lo guardado** (ids ordenados), no por la versión: encender o apagar otra regla no borra lo
+  que se está marcando.
+- **D8 · Una regla encendida que el ámbito no admite** (dato heredado) se muestra con su interruptor, nunca se esconde (`reglasParaMostrar`).
+- **D9 · Un puerto o naviera guardado que se desactivó** se sigue mostrando, rotulado «(inactivo)», para poder quitarlo (la base los acepta).
+- **D10 · «Vacío: se ofrecen todos.»** sólo se dice en un grupo que tiene algo para marcar; un grupo sin catálogo dice «Todavía no hay … cargad[o]s.».
+- **D11 · Una sola parte** (el plan estimaba dos): pantalla pura sobre RPC con sus pruebas; la sección de `docs/UX.md` entró en el commit de la pestaña
+  porque el e2e la cita y el hook de commit exige que el título exista.
+
+<!-- paso:6.03 -->
+
+# Paso 6.03 — La cadena de `/logistica`
+
+Fecha: 2026-11-12 (`TZ=America/La_Paz date +%F`). Sin compuertas: las dudas del PLAN, con su recomendada. El plan completo: `.piloto/planes/6.03.md`.
+
+- **D1** La tarjeta no lleva foto: se reconoce por nombre, VIN, lote o contenedor y 350 miniaturas pesan.
+- **D2** Con muchas fases la caja se desplaza de costado con `<PistaDeDesborde>`; no se pliegan columnas.
+- **D3** «Sin fase» la pone la base (primera y sólo con tarjetas); el texto lo pone la interfaz. El kanban no ordena: el orden de las columnas es el de la base.
+  Su cursor de «Ver más» va sólo por `id` (sin `fase_desde`, por `vehiculos_fase_desde_coherente`): `cursorDeLaColumna()`.
+- **D4** La tarjeta se nombra `<principal> · <título>` (6.13) y se arma **en el servidor**: los atributos se leen de `vehiculos` bajo la RLS de quien mira, sólo si el
+  origen tiene campo principal, por clave primaria y en tandas de ≤ 100 ids. Si falla o no llegan atributos, la tarjeta dice el título; no tumba el tablero.
+  Una sola lectura del principal y de los ajustes por cadena, no por columna.
+- **D5** «Ver más» es una Server Action de lectura (`verMasDeLaColumna`): así la identidad se arma igual que en la primera carga. Pide `logistica.ver` del origen
+  antes de leer; la base lo vuelve a exigir. Un `22023` (cursor, fase ajena) se dice «No se pudo cargar más. Intenta de nuevo.».
+- **D6** Hasta `TOPE_DE_LO_CARGADO` (500) por columna; al llegar, `<AvisoDeTope>`. El número de la columna es `conteoCorto()` («50+»), nunca un total.
+- **D7** «Demoradas» y «Por aprobar» son una `eleccion` de dos valores y no un `booleano` (un «No» tri-estado no filtra y el chip sería engañoso); sólo se manda a la
+  base lo que es `si`. La búsqueda `q` pide 3 letras o números (espejo de `_logistica_filtros`); `naviera` sólo se ofrece si hay navieras activas.
+- **D8** Las pestañas de origen son los activos con `logistica.ver` y la regla `logistica` activa en su flujo; un `?origen=` ajeno cae en el primero. Un origen
+  cuyo flujo no se pudo leer queda fuera y se cuenta (`fallaron`).
+- **D9** a **D12** (parte 2): abrir una tarjeta es un enlace con `vehiculo=<id>`; celular, una fase a la vez con `?fase=`; «dónde está» la arma el servidor;
+  el presupuesto de JS de `/logistica` se mide con el build.
+- **D13** `navegacion.ts` ya tenía «Logística» disponible: `_shell` no se toca. El kanban no entra a `listas-con-patron.ts` (sólo vigila tablas).
+- **D14** (parte 1) Las tres RPC entran a `RPC_PAGINADAS_DEL_NUCLEO` de `scripts/guardas/paginas-en-la-base.ts` (es del A): la cadena y su columna piden
+  `TAMANO_DE_COLUMNA`; «dónde está», 10.
+- **D14** (parte 2) Los e2e de 6.01 que afirmaban «La cadena llega con el próximo paso.» (`logistica-unidad.spec.ts`) afirman ahora la región de la fase sembrada («<fase>: 1 vehículo»): es consecuencia del cambio de texto, no un arreglo para que pasen.
+- **D15** (parte 2) Cada tarjeta es un `<Link>` con `prefetch={false}`: un clic común abre el panel por nuqs sumando al historial (`useAbrirLaUnidad`, copiado al área `cadena`), y con Ctrl, Mayús, Alt o Meta el navegador abre la URL con `vehiculo=` en otra pestaña. El foco va a la primera tarjeta nueva tras «Ver más» y se anuncia «Se cargaron N más.».
+- **D16** (parte 2) `/logistica` entra al presupuesto de JS con 410 KB (medido 388,9 KB en 30 chunks, más un 5 % a la decena). El e2e siembra tres orígenes: A (tres fases, cinco vehículos), B (una fase con 51) y C (vecino sin permiso).
+
+<!-- paso:6.04 -->
+
+# Paso 6.04 — «Qué falta», mover con nota y conflicto legible, notas, historial y el lote
+
+Fecha: 2026-11-12 (`TZ=America/La_Paz date +%F`). Sin compuertas: las dudas de la fila, con su recomendada. El plan completo: `.piloto/planes/6.04.md` (tres partes: 6.04-1 «Qué falta» y mover; 6.04-2 notas, historial y el enlace de la ficha; 6.04-3 el lote).
+
+- **D1** El lote no mezcla fases: se arma desde una columna (o un grupo en una misma fase), así todas comparten destinos.
+- **D2** «Mover los N que pueden», con su número en el botón: el resultado parcial explícito del Flujo 3 de UX, no todo o nada.
+- **D3** La ficha del vehículo sólo gana el enlace «Ver en logística»: `vehiculos` no puede importar `logistica`.
+- **D4** «Qué falta» nace **abierto** (es lo que se mira para mover); los demás huecos siguen plegados (`abiertoAlInicio` en `HuecoDeLaUnidad`).
+- **D5** Sin realtime: «Qué falta» se relee al volver el foco a la ventana (mínimo 5 s entre lecturas) y cuando otro hueco avisa (`logistica:unidad-cambio`; 6.06 lo dispara al aprobar un documento).
+- **D6** Los destinos salen de `fases_transiciones` desde la fase actual (o las fases iniciales activas si no tiene fase), hasta `TOPE_DE_DESTINOS = 12` (lee 13; si llega, lo dice). Una vista previa por destino, en paralelo.
+- **D7** El `origenId` llega del panel a la action sólo para decidir con `puede()`; la base vuelve a decidir (`cambiar_fase`).
+- **D8** La nota es obligatoria si lo pide la fase de destino o la transición; lo dice la vista previa y se dice junto al campo. Sin nota el botón queda apagado con ese motivo.
+- **D9** Las notas que nacieron de un cambio de fase no se editan ni se borran en la interfaz (parte 2).
+- **D10** «Reintentar los N» (parte 3) usa la misma fase de origen del lote como esperada.
+- **D11** «Marcar que llegó» (hueco del grupo, parte 3) abre el lote del grupo; no inventa una fase «llegó».
+- **D12** Sin actualización optimista: al mover, la action responde y `router.refresh()` repinta la cadena y el panel.
+- **D13** El cuerpo de una nota se acota en la interfaz a 2000 caracteres (la base no tiene tope; no se toca la base).
+- **D14** Un requisito dice a dónde ir por un mapa fijo de su clase (documento → `documentos`; `transporte.*`, `aduana.*`, `pagos.*` → su hueco); el atajo sólo se dibuja si ese hueco existe en el panel.
+- **D15** Las actions de mover aceptan sólo vehículo; la rama de repuesto es de 8.13 (la infra de la base ya recibe `p_repuesto`).
+
+Anotadas al hacer la parte 1:
+
+- **D16** El estado del botón de mover (`estadoDelBoton`) vive en `flujos/entities/mover/` y no en `logistica`: depende de la vista previa y de los motivos de `flujos`, y una entidad de `logistica` no puede importar el `client.ts` de `flujos` (arrastra Server Actions). `logistica` lo usa por `@/modules/flujos/client`.
+- **D17** El rechazo de la base llega a la pantalla como `porCampo: { <hint>: mensaje }` (patrón de `transiciones`): `conflicto`, `requisitos`, `rol`, `nota`, `transicion`, `acceso`.
+- **D18** El borrador de mover (destino abierto, nota y aviso de conflicto) vive en el hueco, no en cada destino: tras un conflicto la unidad cambia de fase, los destinos son otros y la nota sigue a mano.
+- **D19** El atajo de una falta encuentra su hueco por `data-bloque-del-hueco` y lo abre con un aviso del navegador (`logistica:abrir-hueco`); un hueco que el panel no dibuja no ofrece atajo.
+
+Anotadas al hacer la parte 2 (2026-11-12):
+
+- **D20** Notas e historial se leen desde el navegador con la sesión de quien mira (como `dinero`): un hueco recibe sólo `{ unidad }` y su bloque monta el contenido al abrirse. La RLS decide; escribir va por Server Action.
+- **D21** El camino a lo antiguo es «Ir a una fecha»: `creado_en <` el inicio del día siguiente en la zona de la empresa (`hastaDeUnDia`, propio de `logistica` porque el de `cotizaciones` no se puede importar). El salto reemplaza lo leído y dice «Desde el …».
+- **D22** Escribe quien ve la unidad (`logistica.ver` en su origen; la policy pide lo mismo). Editar es sólo de la propia y sin cambio de fase, en el lugar. **Sin «Borrar»** (cambia lo planeado): la prueba SQL N3 (`supabase/tests/areas/mover/notas.sql`) mostró que el borrado suave por `update` da 42501 aunque no pida `returning`, porque `notas: leer` también se aplica a la fila nueva, que ya no es legible. Borrar una nota propia pide una RPC `security definer`: abierto **6-3**, un paso de datos (riesgo rojo), fuera de esta parte.
+- **D23** Más reciente primero, de a `TAMANO_DE_VER_MAS` hasta `TOPE_DE_LO_CARGADO`; el cuerpo de una nota se acota a 2000 en el Zod (D13).
+- **D24** Las dos listas se releen sin soltar lo que se ve cuando cambia `unidad.faseId` y con `logistica:unidad-cambio`; guardar o corregir una nota avisa (también relee «Qué falta», barato).
+- **D25** «Ver en logística» sale con sólo `logistica.ver` en el origen del vehículo: lo decide la página de la ficha con `puede()` y la ficha recibe una booleana (`vehiculos` no importa `logistica`, D3).
+- **D26** Corregir una nota no manda versión (son notas propias; dos ventanas de la misma persona, gana la última). El texto de una nota de cambio sale de la fase embebida (`historial_fases → fases`), una sola consulta, nunca una por fila. Corregir pide la fila de vuelta (`select('id').limit(1)`) para saber si tocó alguna: la fila nueva sigue viva y pasa `notas: leer`.
+- **Deuda de la base, sin tocar:** `authenticated` tiene `update` sobre toda la tabla `notas` y la policy `notas: editar` sólo mira el autor: la base no impide que su autora cambie el cuerpo de una nota de cambio de fase ni su `historial_fase_id`; el filtro `historial_fase_id is null` de la action es lo que lo cierra en la interfaz (D9). Una RPC para 6-3 puede cerrar las dos cosas.
+
+<!-- paso:6.05 -->
+
+## 2026-11-11 — Paso 6.05: documentos en la base
+
+- **D1 · Un objeto y N filas** (duda 1, la recomendada). Un archivo subido para N vehículos es un objeto en la carpeta del primero y N filas de
+  `documentos` con la misma ruta. Quien ve cualquiera de esas filas vivas lee el objeto (policy «documentos: leer» de `storage.objects`).
+- **D2 · Eliminar no se deshace** (duda 2, la recomendada). Es un borrado suave y no hay restaurar. Para corregir, se sube otro.
+- **D3 · `visible_portal` lo marca quien aprueba** (duda 3, la recomendada). `documento_registrar` no lo recibe; sólo lo cambia `documento_editar`
+  con la clave de aprobar.
+- **D4 · El refcount cuenta sólo las filas vivas.** `storage_refcount('documentos', …)` ignora las eliminadas. Si no, un documento eliminado retendría su
+  objeto para siempre, porque `storage_gc_reclamar` vuelve a contar antes de borrar.
+- **D5 · Hasta 100 vehículos por llamada.** Cubre un contenedor o un embarque y acota la transacción.
+- **D6 · Los ids derivan de `p_id` y de la unidad** (`md5(p_id || ':' || unidad)::uuid`). Reintentar devuelve las mismas filas, sin importar el orden del
+  arreglo. Si los ids ya existen con otra ruta, de otra persona o con otro conjunto de unidades, `23505/id`. Un reintento simultáneo cae en
+  `on conflict do nothing` y vuelve a la rama idempotente, así que nunca sale un `23505` crudo.
+- **D7 · El vencimiento se valida, no se limpia.**
+  - `ninguno` con fecha da `22023/vence_el`, y `solicitar` sin fecha también.
+  - `renovar` sin fecha calcula la emisión (o la subida) más `vigencia_dias`.
+  - Al editar, las fechas se revalidan sólo si cambian: un tipo que cambió de modo no traba editar la nota.
+- **D8 · El mime y los bytes de `storage.objects.metadata` pesan más que los del cliente**, como en `cotizacion_adjuntar`. Los formatos admitidos salen del
+  tipo.
+- **D9 · Quien subió puede editar y eliminar mientras siga «subido»**, si conserva la clave de subir. Lo aprobado o rechazado sólo lo toca quien aprueba.
+- **D10 · Quien aprueba puede aprobar lo que subió él mismo.** El producto no tiene regla de cuatro ojos. Es reversible.
+- **D11 · La carrera de dos quitas se prueba (K1, `supabase/tests/areas/documentos/carreras.mjs`).** El trigger serializa con un candado por unidad y
+  tipo.
+- **D12 · Queda una carrera para 6.02 (1), del carril a.** Mover a una fase que exige el documento mientras alguien lo quita puede dejar la unidad «fuera de
+  regla», porque `cambiar_fase` evalúa antes de tomar la unidad. Cuando `cambiar_fase` tome la unidad `for update` antes de
+  `previsualizar_cambio_fase`, el `for share` del trigger serializa los dos órdenes sin interbloqueo.
+- **D13 · El portal oculta los tipos sin `visible_portal_permitido` al leer**, sin tocar `documentos.visible_portal`: volver a permitirlo los muestra de
+  nuevo. Además, `documento_sellos` mira el permiso del tipo sólo cuando `visible_portal` se enciende. Así, un visible de un tipo al que se le apagó el
+  permiso (D8 de 5.03) se sigue revisando, editando y eliminando.
+- **D14 · El paso cabe en una parte** (6 commits de código). La fila estimaba 3.
+
+<!-- paso:6.13 -->
+
+# Paso 6.13 — El campo «principal» de un origen (6-1)
+
+Fecha: 2026-11-11 (`TZ=America/La_Paz date +%F`). Sin compuertas: las dudas del PLAN, con su recomendada.
+
+- **D1** Marcar otro principal **desmarca** el anterior en la misma llamada; el índice único parcial `origenes_campos_principal_unico`
+  sigue siendo el candado.
+- **D2** En logística la identidad **acompaña** al título («<principal> · <título>»); en la fila, la tarjeta y el resumen **reemplaza** al
+  título como nombre y el título pasa a la línea secundaria (sólo con principal con valor). Se hace en el 6.13-2.
+- **D3** Lo hace el carril c en su PR (lo del núcleo se agrega o edita en el PR del carril); la migración empieza por `origenes_campos`,
+  dominio del carril c. Sin `espera`.
+- **D4** `origen_campo_guardar` **sigue devolviendo `timestamptz`**: cambiar el retorno exige `drop` y rompe `humo.sql` y la infra. El PLAN
+  pedía que devolviera el desmarcado; la pantalla avisa antes de guardar cuál deja de ser principal, con el layout cargado. Salvedad: si otra
+  persona cambió el principal entre la carga y el guardado, el aviso nombra el que estaba en pantalla y no salta PT409 (sólo se compara la
+  versión del campo que se guarda); el desmarcado igual queda bien en la base y se ve al revalidar. `origen_campo_crear` sí lo devuelve
+  (`desmarcado` en su `jsonb`).
+- **D5** Un campo `moneda` **no puede ser principal** (`check` y mensaje de la RPC): la identidad es texto y todo monto va por `<Monto>`.
+- **D6** Ningún origen queda con principal al migrar: sin relleno. Nada cambia en pantalla hasta que alguien marca uno.
+- **D7** (6.13-2) «Principal» vive sólo en el panel del campo y la fila lleva la insignia: el aviso se ve siempre antes de guardar.
+- **D8** `origen_campo_guardar` toma **siempre** el origen `for no key update` antes que el campo (auditoría del plan): dos marcas
+  concurrentes del mismo origen, un cambio de grupo que renumera el origen, `origen_campo_mover` y `origen_campo_crear` van en fila en el
+  mismo orden (origen → campo), sin `40P01`. `no key update` no frena el `key share` de las FK que apuntan al origen. Lo prueba K1.
+- **D9** (6.13-2) El e2e usa un campo propio «Lote interno»: «Lote» es la columna común `vehiculos.lote`, reservada.
+- **D10** (6.13-2) `CampoDeVehiculo.principal` es opcional en `vehiculos`.
+- **D11** (6.13-2) El panel de logística arma la identidad en la composición del núcleo con `leerCampoPrincipal()` de `origenes` e
+  `identidadDeVehiculo` de `vehiculos` (dependencia nueva `logistica → origenes`, sin ciclo). **Para el carril a, 6.03:** la tarjeta de la
+  cadena (`features/cadena`, todavía vacía) pide la identidad con estas mismas funciones.
+- **D12** El principal puede ser además «En tarjeta»: `en_tarjeta` vuelve a decir sólo qué se ve en la tarjeta.
+- **El desmarcar es un ayudante** (`_origen_campos_desmarcar_principal(origen, salvo)`, sin `security definer` y sin EXECUTE para nadie;
+  lo llaman las dos RPC como su dueño). Aun así `origen_campo_guardar` queda en 119 líneas de función (ya medía ≈ 94, sobre el tope de 80):
+  del tipo del abierto **4-64**; partirla mueve una `security definer` con sus pruebas. `scripts/carreras.mjs` (373 → 375 líneas, ya sobre
+  300; 4-64) suma un import y una llamada: las carreras nuevas viven en `supabase/tests/areas/origenes/carreras.mjs`.
+- **K2** (observación menor de la auditoría): la traducción del `23505` del índice a `PT409` sí tiene prueba que puede caer: una sesión
+  `postgres` marca un principal sin confirmar y `guardar` espera en el índice y sale `PT409` con el mensaje humano.
+
+## 6.13-2 (2026-11-11)
+
+- **D13** La identidad recibe **el campo principal, no la lista**: `identidadDeVehiculo(vehiculo, principal, formato)`, con
+  `campoPrincipalDe(campos)` aparte. Logística sólo tiene un `CampoPrincipal` de `origenes` (clave, etiqueta, tipo, opciones), no un
+  `CampoDeVehiculo`: con la firma por lista no compilaba sin inventar campos. Cambia la firma, no la conducta.
+- **D14** El panel del campo, con la bandera encendida, dice **antes de guardar** los dos rechazos de la base (monto, desactivado) con los
+  mismos textos, y si desmarca a otro principal. Es ayuda, no bloquea: decide la RPC.
+- **D15** El e2e también abre `/logistica/vehiculo/<id>`: es la única prueba de la identidad en el panel de la unidad.
+- **D16** `configuracionDeOrigen` recibe el principal actual opcional (ausente = ninguno): el test del formulario de campo no cambia.
+- **D17** La página `/vehiculos/[id]`, el PDF, la web, la hoja de cotizar y `leerTitulosDeVehiculos()` siguen con el título: la fila de
+  PLAN nombra la lista, el resumen y logística. La misma función sirve después.
+- **D18** (cambia lo del plan) La composición cruzada de logística no puede vivir en `areas/nucleo/composicion.ts`: el lint
+  (`boundaries`) no deja que una entrada importe otro módulo. Va a `features/nucleo/unidad-con-identidad.ts` (como
+  `vehiculos/features/alta/fuentes.ts`), que lee también `getAjustes()` de `empresa`: el principal de número o fecha sale con el formato
+  regional de la empresa, sin deuda. Si el principal no se puede leer, queda el título.
+
+<!-- paso:7.02 -->
+
+# 7.02 (2026-11-11)
+
+- **D1** · Abrir un aviso lo marca accionado sólo en `tarea_asignada`, `recordatorio` y `demora_fase`, y sólo si la fila pedía acción. `turno_web` se acciona por `web_confirmar_contacto` (Fase 8) y `limpieza_pronto` por «Conservar»: abrirlos sólo los marca leídos.
+- **D2** · Realtime por `postgres_changes`, `INSERT` y `UPDATE` con `usuario_id=eq.<yo>`, nunca `DELETE` (no pasa por RLS). Plan B si en local no entrega: releer cada 30 s con la pestaña visible. Se confirma en la parte 2.
+- **D3** · Sin migración: la lectura va por PostgREST bajo la RLS, con cursor `or(creado_en.lt.X, and(creado_en.eq.X, id.lt.Y))` con la fecha entre comillas, sobre los índices del 7.01.
+- **D4** · «Marcar todas como leídas» sólo pone `leida_en`, por lotes de 200 y hasta 5 por clic; si el último vino lleno, `quedanMas`.
+- **D5** · Se escribe por Server Actions con `update` bajo la RLS y los grants de columna; el cliente de navegador sólo lee.
+- **D6** · La acción propia de cada tipo vive en un registro de `src/app/(app)/_shell/huecos/` (las funciones no cruzan de servidor a cliente); la Fase 8 suma «Contacté» editando sólo ese registro (parte 2).
+- **D7** · El contador y la lista de la campana se leen en el cliente al montar, no en el layout; el contador lee 10 y muestra «9+».
+- La consulta de lo de la campana y la de cada página están escritas una vez (`infra/consultas.ts`) y las usan el servidor y el navegador.
+- **D2 (resultado)** · `postgres_changes` bajo RLS anda en el stack local (la campana de una sesión abierta se actualiza sin recargar): no hace falta el plan B ni policies en `realtime.messages`.
+- **D8** · El canal de Realtime se une **después** de `realtime.setAuth()`. Unido antes entra como `anon`, que no puede leer `notificaciones`, y Realtime rechaza el filtro `usuario_id=eq.<yo>` con «invalid column for filter» (`realtime.subscription_check_filters` pide `SELECT` de columna al rol del token). Lo reusa 7.09 y 7.11 vía `canal.client.ts`.
+- **D9** · El contador y Realtime van en un componente `diferido()` (`SuscripcionDeLaCampana`): el cliente de Supabase del navegador en el shell subía el JS en frío de `/cotizaciones` de 358 a 424 KB; diferido, 355 KB. El popover también va diferido. El documento de `/perfil` pasó de 80,3 a 82,7 KB (botón, rutas con pantalla y usuario por props): presupuesto de 82 a 85 KB (+3 %).
+- **D10** · `destinoDe` trata `/` como sólo ella misma: como prefijo (`/` + `/`) toda ruta habría contado como disponible.
+- **D11** · «Por accionar» sin filas dice «Nada pide tu acción» con «Ver todas» (un `EstadoVacio` con su botón) y no `EstadoSinResultados`, que sólo ofrece «Limpiar filtros»: acá no hay filtros que limpiar, hay una pestaña.
+- **D12** · Tras una señal de Realtime la lista relee su primera página y la **funde** (`fundirPagina`): lo cargado dentro del tramo que cubre la lectura fresca y que ya no viene (se accionó, o se purgó) sale; lo de «Ver más» se queda. «Marcar todas como leídas» deja a la vista lo cargado como leído sin esperar la señal.
+- **D13** · (CI del PR #116 en rojo, 2026-11-11) El canal relee **al unirse**, también la primera vez, no sólo tras un corte: un aviso insertado entre la lectura de la pantalla y la unión del canal (≈ 1 s en el CI) nunca llegaba como señal y «un aviso nuevo entra arriba de la lista abierta» caía. `alReconectar` de `canal.client.ts` es ahora «se unió o volvió a verse»; la campana lee dos veces al montar (la primera para pintar pronto el número).
+- **D14** · La campana monta su contador y su canal (`SuscripcionDeLaCampana`) cuando el navegador descansa (`useAlDescansar`, `requestIdleCallback` con tope de 3 s), no al hidratar el marco: evaluar el código del cliente de Supabase mientras React hidrataba retrasaba ≈ 320 ms (480 → 800 ms, medido contra `origin/main` con el mismo spec) el primer clic que vale en toda pantalla, y caían «Ver más», «Salir de un lead» y la tecla N, que clican sin esperar la hidratación.
+- **D15** · Los specs que cuentan pedidos a la base dejan fuera los de la campana (`e2e/soporte/pedidos-del-marco.ts`: `esDelMarco`): no son de la pantalla que se prueba. Y la campana suma una parada de Tab: `CONTROLES_DE_LA_ASESORA` 58/54 y `CONTROLES_DE_LA_DUENA` 54/50 (escritorio/celular) en la tarea de oro 2, y `CONTROLES_MAXIMOS` 33 en la tarea de oro 4 (KLM 13,3 s de 30).
+
+<!-- paso:7.05 -->
+
+## 2026-11-11 — Paso 7.05: correo de la app, adaptadores `resend` y `cloudflare` (7-1)
+
+- **D1** · Variables: `RESEND_API_KEY`; `CLOUDFLARE_ACCOUNT_ID` y `CLOUDFLARE_API_TOKEN` (los nombres estándar de Cloudflare). Cada una se pide sólo con su proveedor;
+  las de otro proveedor no se piden ni se rechazan si están. El ID de cuenta se valida como 32 hexadecimales y además va con `encodeURIComponent` en la ruta.
+- **D2** · `pnpm email:probar` es `scripts/email-probar.ts` con `tsx`, no `.mjs` como decía `docs/PLAN.md`: los adaptadores son TypeScript y un `.mjs` no los
+  importa. Mismo patrón que `env-check.ts`. La elección del adaptador sale de `index.ts` a `proveedor.ts` (sin `server-only`) por lo mismo.
+- **D3** · Cloudflare, según su documentación (leída 2026-11-11): el REST no devuelve id de mensaje (sólo el binding de Workers). El contrato de `AdaptadorDeEmail`
+  exige un id, así que el éxito devuelve `sin-id`; lo que importa es que la API aceptó el envío (`success: true`). Con varios destinatarios, uno en
+  `permanent_bounces` no tumba el envío de los demás: sólo es fallo si ninguno quedó en `delivered` ni en `queued`. Las etiquetas del mensaje se ignoran (Cloudflare no las tiene).
+  Sigue sin probarse con un envío real; `email:probar` y `ENTORNOS.md` lo dicen hasta que alguien lo confirme.
+- **D4** · Sin reintentos ni idempotencia: un fallo es un valor y quien llama decide (las notificaciones y los jobs vendrán después).
+- **D5** · Cada pedido tiene un tope de 10 s (`AbortSignal.timeout`); vencido = «no respondió».
+- **D6** · Un mensaje de error nunca lleva la clave ni el texto libre del proveedor (puede traer correos de personas): a lo sumo un código corto (`validation_error`, `10001`).
+  401/403 dicen qué variable revisar; 429, que se espere.
+- **D7** · El archivo de Resend se llama `resend-rest.ts`, no `resend.ts`: el lint (`NINGUN_SDK_DE_CORREO`, patrón `resend`) rechaza importar cualquier ruta llamada así.
+  Su prueba conserva el nombre `resend.test.ts`. No se tocó la regla de lint.
+
+<!-- paso:9.02 -->
+
+# 9.02 · Inicio: la bandeja con huecos y los bloques de lo que ya existe (2026-11-11)
+
+- **D1 · «Sin seguimiento».** Mío (mi cartera: `leads_cartera_vista`), sin ningún seguimiento (`ultimo_seguimiento_en` nulo) y creado hace más de 24 h. `ajustes_empresa.lead_dormido_meses` es otra cosa y sigue sin lector.
+- **D2 · Dónde se lee.** En el servidor: cada bloque tras su `<Suspense>` con `await connection()`. Inicio no suma JS (salvo el botón «Reintentar») y un bloque lento no frena a los demás. La página también llama `connection()` antes de leer la sesión y los ajustes: sin eso, `leerAjustes()` corría mientras Next preparaba la ruta y avisaba de `Date.now()`.
+- **D3 · Tope.** 5 por bloque, pidiendo 6; el número que se dice sale de `cantidadAcotada` («3 recordatorios», «más de 5 recordatorios»), nunca de un total.
+- **D4 · «Recordatorios de hoy».** Los míos pendientes con hora antes del fin del día en la zona de la empresa, **vencidos incluidos** y marcados «Vencido»: uno olvidado no desaparece a medianoche. Amplía la fila (que dice «los que vencen hoy»); se revierte cambiando una condición de `leads/infra/queries/bandeja.ts`.
+- **D5 · La zona.** Sale de `ajustes_empresa.zona_horaria` (la lee la página con `leerAjustes()`; si no se puede, `ZONA_POR_DEFECTO`). `leads` recibe instantes (`finDeHoy`, `creadoAntesDe`), no sabe de zonas al leer.
+- **D6 · Quién dibuja el título.** `<Bandeja>` pone la `<section>` y el `<h2>`; el archivo de cada bloque sólo el cuerpo. El título se ve mientras carga o falla, y la fase que llena su hueco no toca el marco.
+- **D7 · Sin filtro inventado.** Ni el listado de leads ni Equipo tienen el filtro que el bloque necesitaría («sin seguimiento», «sin rol»): el encabezado no enlaza y cada fila lleva a su ficha (`/leads/<id>?seccion=seguimientos`, `/configuracion/equipo?persona=<id>`).
+- **D8 · «Sin rol».** Perfil activo, no bloqueado y sin fila en `usuarios_roles`, con la anti-unión de PostgREST (`.is('usuarios_roles', null)` sobre la relación embebida): sin RPC ni migración. Comprobado en el e2e contra la base local.
+- **D9 · Error de un bloque.** `EstadoError` con «Reintentar» (`router.refresh()` en una transición); el resto de la bandeja queda pintado.
+- **D10 · Sin migración ni índice.** Las tres lecturas usan lo que hay: `recordatorios_usuario_idx`, `leads_asesores_listado_idx` (por `leads_cartera_vista`) y `perfiles_vigentes_orden_idx`. Sin `count`, sin `offset`, `limit 6`.
+
+<!-- paso:9.03 -->
+
+## 2026-11-11 — Paso 9.03-1: dominancia sobre la persona, la base (9-1)
+
+- **Desbloquear también exige dominar** (recomendada del PLAN): es la misma RPC con `p_bloquear = false`, y desbloquear a quien tiene más permisos que tú es devolverle el acceso.
+- **Quitar un rol que dominas a alguien que no dominas, tampoco** (recomendada del PLAN): la regla del 2026-10-21 es sobre la persona, no sobre el rol.
+- **`dominada` no entra en `equipo_lista()`; se lee con `personas_dominadas(p_ids uuid[])`** (≤ 101 ids, exige `equipo.usuarios.ver` o `.gestionar`). `equipo_lista()` devuelve `setof uuid` desde tres rutas de SQL dinámico: cambiarle el retorno obligaba a `drop function`, a reescribir `equipo-lista.sql` y `medir-equipo.sql` y a tocar el registro de páginas. La lectura aparte deja intacto el plan medido de la lista y sirve igual a la página de una persona.
+- **Orden de las comprobaciones:** permiso → cuenta propia → perfil `for update` (PT409 si no está) → dominancia (42501) → estado (PT409). Quien no domina a la persona no se entera de su estado.
+- **Candados:** además del perfil, los roles de la persona `for share` (un `rbac_otorgar()` sobre un rol que ya tiene no se cuela) y, al asignar y quitar, `p_rol` `for share` antes de `rol_dominado` (auditoría del plan). La comprobación va en una función `volatile` y en una sentencia aparte del candado: en READ COMMITTED así ve lo que el otro acaba de confirmar.
+- **«El dueño domina a todos» = quien llama tiene el rol de clave `dueno`** (activo y sin bloqueo), aunque a ese rol le falte algún permiso (`nivel_crear(…, p_conceder = false)` o un permiso nuevo de una migración futura).
+- **Asignar o quitar un rol a una persona sin perfil es PT409** «Esa persona ya no está en el equipo.» (antes, 23503 de la FK al asignar y nada al quitar).
+- **El mensaje:** `No puedes <bloquear a | desbloquear a | dar de baja a | cambiar los roles de> <nombre>: tiene permisos que tú no tienes.` (42501).
+- **`humo.sql`:** los dos tramos donde Gabriela bloqueaba o daba de baja a la dueña los hace ahora Pablo (rol `dueno`, invitación sin aceptar): Gabriela ya no domina a la dueña y caería por eso antes que por el guardián; el guardián sigue sin contar a Pablo.
+- **Un commit para la regla y su lectura** (el plan decía dos): `personas_dominadas()` es la cara pública de `_personas_dominadas()`, va en la misma migración y así la base se resetea una vez por commit.
+
+## 2026-11-11 — Paso 9.03-2: dominancia sobre la persona, la interfaz (9-1)
+
+- **Deshabilitado con motivo, nunca escondido:** «Cambiar sus roles», «Bloquear»/«Desbloquear» y «Dar de baja» se siguen dibujando, apagados, con una nota al final del «⋯» (el patrón de la cuenta propia).
+- **El motivo nombra lo que ofrece el menú:** «Tiene permisos que tú no tienes: no puedes cambiar sus roles, bloquearla ni darla de baja.» (o «desbloquearla»).
+- **Si `personas_dominadas()` falla, apaga:** la lista se ve igual, `dominada` es `null` y la nota dice «No pudimos comprobar si tienes todos sus permisos. Recarga la página para intentarlo de nuevo.». Un error nunca habilita una acción.
+- **La cuenta propia gana:** sobre sí misma no se mira `dominada` (quien llama se domina a sí mismo en la base).
+- **`motivoSobrePersona()` no mira el estado** (auditoría del plan): el panel de roles se abre también a mano por `?persona=`, aun sobre una dada de baja, y ahí apaga igual.
+- **Con `equipo.usuarios.ver` sin `.gestionar`** la lectura se pide igual, sin ramificar: el «⋯» y el panel no se dibujan para esa persona.
+- **Panel de roles:** el motivo de la persona va una vez arriba de la lista y en el nombre accesible de cada interruptor; el motivo por rol se queda como estaba.
+- **Fuera de alcance:** «Generar otro enlace de invitación» no se apaga (su action ya exige dominar los roles), y el `?baja=` escrito a mano abre el diálogo y la base rechaza con su mensaje.
+
+<!-- paso:5.01-1 -->
+
+## 2026-11-11 — Paso 5.01-1
+
+- **El 5.01 se parte en dos:** 5.01-1 (la versión del flujo y su contrato, `fase_crear`, `fase_guardar`, sin escritura directa, la carrera) y 5.01-2 (`fase_mover`,
+  `fase_eliminar` con versión y el `drop` de la firma vieja, `fase_reactivar`, `fase_impacto`, el flujo de repuestos por migración, la línea de `fase_eliminar` en
+  `escala.sql` y sus 42501: «las seis»). Entero eran 9 o 10 commits de código. Plan: `.piloto/planes/5.01.md`. `docs/plan.yaml` conserva un solo `5.01`: **este PR no marca
+  `integrado 5.01`**; 5.04, 5.05, 5.07 y 5.10 esperan al 5.01-2, aunque las firmas del contrato ya quedan aquí.
+- **Firmas congeladas** (las usan 5.05, 5.07 y 5.10): `public._flujo_para_editar(p_flujo uuid, p_actualizado_en_esperado timestamptz) returns public.flujos` y
+  `public._flujo_tocar(p_flujo uuid) returns timestamptz`, sin EXECUTE para `authenticated`. Toda RPC de configuración las llama (antes y al final) y devuelve la versión.
+- **Lo que pidió la auditoría del plan (observaciones), aplicado:** en crear, la forma antes del permiso y las validaciones tras el candado; `if not found` → PT409 tras cada
+  `for update`; K2 (quien no tiene `flujos.configurar`, `supervision` en las carreras, no espera el candado); `drop trigger trg_actualizado_en on flujos`; los topes nuevos sólo sobre las claves que llegan; enteros dentro de `int4`.
+
+- D1 · Versión **por flujo**, no por fila (recomendada de la fila, duda a): una fila bloqueada sirve a las tablas hijas sin `actualizado_en`; dos personas en el
+  mismo flujo chocan con `PT409`, aceptable en una pantalla de dueño.
+- D2 · Se puede jubilar la única inicial activa (duda b); entra con `fase_eliminar` en el 5.01-2, con `unica_inicial` en `fase_impacto`.
+- D3 · El flujo de repuestos por migración (duda c), en el 5.01-2.
+- D4 · La versión la mueve un trigger propio de `flujos` (`flujo_version`, C1) y no `_flujo_tocar` a mano: el trigger genérico la pisaría con `now()` (V1) y
+  `migraciones.md` › «Forma» pide `greatest(clock_timestamp(), anterior + 1 µs)` para lo que se mueve dos veces en una transacción.
+- D5 · Los dos ayudantes del contrato sin EXECUTE para `authenticated` (C4): llamados sueltos dejarían bloquear filas de `flujos` a cualquiera.
+- D6 · El permiso se mira antes del candado (C2 b-c): quien no puede no espera ni hace esperar; el permiso no depende de nada que cambie en la fila (ámbito y
+  origen no se editan).
+- D7 · Un flujo o una fase que ya no existen dan `PT409` con «Recarga» (como `categoria_mover`, B:8667), no `42501`.
+- D8 · El texto del `42501` es «No tienes permiso para configurar este flujo.» (de tú); `fase_eliminar` vieja dice «Sin permiso…» hasta el 5.01-2, que la
+  unifica.
+- D9 · Renombrar un origen mueve la versión de su flujo (V13): quien tenga la pantalla abierta recibe `PT409` al guardar. Raro y reversible; no se exceptúa.
+- D10 · `fase_crear` sin `es_logistica` toma el valor de la regla `logistica` del flujo, para que crear en un flujo con la regla apagada no falle por un
+  default de la tabla (V5, V7).
+- D11 · Topes de texto (nombre 60, alias 60, descripciones 500) e ícono por formato `^[a-z0-9-]{1,40}$`: la tabla no los tiene y la pantalla del 5.04 los
+  necesita; el catálogo de íconos vive en TS, la base sólo mira la forma. Se miran sólo sobre las claves que llegan (una fase vieja que los pase guarda otros campos).
+- D12 · El caso con usuario simulado de C12 va en `areas/flujos/fases-guardar.sql` (V7; empezó en `fases.sql`, que pasó de 300 líneas), no en `humo.sql` (la fila; `migraciones.md` pide `humo.sql` en general).
+- D13 · «Versión del flujo» en `docs/GLOSARIO.md` la escribe el 5.02 (carril a, su fila lo nombra): escribirla aquí también chocaría en el mismo archivo.
+- D14 · La carrera se registra en `scripts/carreras.mjs` (import + llamada, como comprobantes) y no con un `correr-carreras.mjs` suelto como `areas/final/`: así
+  la corre `db:carreras` en el CI.
+- **El candado del contrato es `for no key update`** (de la auditoría del informe): `for update` sobre `flujos` y sobre la fase chocaba con el `key share` de las FK de
+  `cambiar_fase` (`vehiculos.fase_id`, `historial_fases.flujo_id`) y podía terminar en 40P01. Dos guardados de configuración se siguen serializando (K1). `fase_guardar`
+  asigna `nombre` sólo si cambia: asignar una columna de un único (`fases_flujo_id_nombre_key`), aun con el mismo valor, toma el candado de clave (medido); renombrar sí
+  espera a quien mueve un vehículo a esa fase. 5.05, 5.07 y 5.10 heredan el candado por `_flujo_para_editar`; si escriben una columna de un único de su tabla, lo mismo.
+
+<!-- paso:5.01-2 -->
+
+## 2026-11-11 — Paso 5.01-2
+
+- **El 5.01 queda entero con el 5.01-2:** el 5.01-1 (la versión del flujo y su contrato, `fase_crear`, `fase_guardar`, sin escritura directa) y el 5.01-2 (`fase_mover`,
+  `fase_impacto` y `_fase_uso`, `fase_eliminar` con versión y sin la firma vieja, `fase_reactivar`, el flujo de repuestos por migración, K4) hechos. Este PR marca
+  `integrado 5.01` (`parcial: false`) y desbloquea 5.04, 5.05, 5.07 y 5.10. Plan: `.piloto/planes/5.01-2.md`.
+- **Lo que pidió la auditoría del plan (observaciones), aplicado:** A2 deshabilita `trg_flujo_regla_apagar_validar` en su bloque revertido; D21 dice que un cambio de
+  fase hacia la fase que se borra recibe el `23503`; la semilla no vuelve a meter reglas en un flujo de repuestos existente; `fase_impacto` no devuelve versión (D15).
+
+- D15 · `fase_impacto` y `fase_eliminar` comparten `_fase_uso()`: lo que la pantalla anuncia es lo que eliminar hace. Tope fijo de 50 (lee 51) dentro de la
+  función y sin parámetro: no es una página y un `p_tope` pediría `_acotar_pagina`. `fase_impacto` no devuelve versión: es una lectura sin candado (la versión la
+  tiene la pantalla).
+- D16 · Las paradas cuentan también las unidades en la papelera: la FK `restrict` de `vehiculos.fase_id` no las distingue y el borrado caería.
+- D17 · Impiden borrar todas las esperas que apuntan a la fase: la FK `restrict` frena cualquiera. Una espera siempre viene del otro ámbito (vehículos ↔ repuestos: lo exige
+  el trigger de `fases_requisitos`); el mensaje no dice «otro flujo».
+- D18 · El resultado de `fase_eliminar` conserva los participios del viejo (`jubilada | eliminada`); `fase_impacto` usa los verbos de la fila (`jubilar | eliminar | bloqueada`), que anuncian.
+- D19 · Una fase ya jubilada con historial o unidades no tiene nada que hacer: impacto `bloqueada`/`ya_jubilada` y eliminar `22023`. Una jubilada sin nada se borra.
+- D20 · «Única inicial» se mira sólo si la fase está activa: una inicial jubilada no sostiene el flujo.
+- D21 · `fase_eliminar` toma la fase `for update` antes de contar: espera al cambio de fase en curso hacia ella y cuenta lo que dejó (jubila en vez de un `23503`
+  crudo). Jubilar sólo escribe `activa` (`no key update`): después no frena a nadie. Queda un caso: un cambio de fase hacia F (`cambiar_fase`, `cambiar_fase_lote` o un vehículo que nace en F) que llega mientras se
+  borra recibe el `23503` de la FK (lo traduce 5.05).
+- D22 · `fase_mover` renumera todas las fases del flujo (activas y jubiladas) de 10 en 10 por (posición, nombre, id), escribe sólo las que cambian y siempre mueve
+  la versión (también sin cambio): una regla sola, como `categoria_mover`.
+- D23 · `fase_reactivar` valida las reglas del flujo sobre la fila (`_fase_validar` con claves vacías); ya activa → `22023`. Sin evento de actividad nuevo
+  (`trg_auditar` lo registra); jubilar y eliminar conservan `fase.jubilada` y `fase.eliminada`. Una regla apagada con una fase jubilada que la usa sólo se
+  alcanza por escritura directa (`trg_flujo_regla_apagar_validar` cuenta también las jubiladas): la validación de reactivar queda como defensa.
+- D24 · El flujo de repuestos por migración se crea sólo si falta, y las 7 reglas sólo con el flujo que crea: uno existente no se toca (sus reglas son de la
+  empresa). `seed.sql` toma el flujo existente y siembra fases sólo si no tiene ninguna.
+- D25 · Carrera nueva sólo K4 (eliminar contra un cambio de fase que entra): dos `fase_mover` o `fase_reactivar` con la misma versión los serializa el mismo
+  `_flujo_para_editar` que K1 ya prueba.
+- D26 · `p_despues_de` igual a la fase → `22023` con hint `despues_de` (es la forma del pedido); un ancla de otro flujo o que ya no existe → `PT409` «Recarga» (D7).
+- D27 · El `42501` de las seis dice «No tienes permiso para configurar este flujo.» (cierra D8: la vieja «Sin permiso…» desaparece con su firma).
+- D28 · (auditoría del informe, menor) Si ya había `orden` repetido y el ancla lo comparte con otra fase de nombre posterior, la movida cae detrás de esa otra (modelo
+  `categoria_mover`). Tras el primer movimiento no quedan repetidos; queda para 5.04 si hace falta (desempatar por la posición renumerada del ancla).
+
+<!-- paso:5.04-1 -->
+
+## 2026-11-11 — 5.04-1: las fases, lo puro y las actions
+
+Las decisiones D1 a D17 del plan (`.piloto/planes/5.04.md`) siguen en pie; esta parte (sin interfaz) cumple las que tocan lo puro y la escritura. Lo que
+cambió o se precisó al escribirlas:
+
+- **D2 afinada · `flujoId` sólo en crear.** Las demás RPC reciben la fase y la base saca su flujo; sólo `fase_crear(p_id, p_flujo, …)` necesita el
+  `flujoId`. Todas las actions llevan `origenId` (nulo = repuestos) para exigir el permiso antes de escribir: `puede(permisos, 'flujos.configurar',
+origenId)` o `puede(permisos, 'repuestos.configurar')`. Es la primera llave; la base (`puede_configurar_flujo`) vuelve a exigirlo y manda.
+- **D3 · La lectura del impacto es la action `leerImpactoDeUnaFase`** (no escribe, no revalida). El área `fases` no tiene lectura propia: la lista y el
+  inspector leen del núcleo (`leerFlujoParaConfigurar`).
+- **D5 y C6 · «unidades», no «vehículos».** `fase_impacto().paradas` suma vehículos e ítems de repuestos (también en la papelera): el texto dice
+  «N unidades siguen en ella» (el término ya está en el módulo), con «más de 50» en el tope.
+- **Crear no es idempotente por id.** `fase_crear` no devuelve «repetido» como los tipos de documento: repetir el id del intento da `23505` con el
+  texto «Esa fase ya existe.» (`hint = id`, que no es un campo del formulario). La interfaz (5.04-2) usa un id nuevo por apertura del modal y, si el
+  intento se repite tras un corte, relee la lista antes de reintentar.
+- **Revalidación.** Cada escritura revalida `RUTAS.configuracionDeFlujos` y `RUTAS.vehiculos` (`'layout'`): `vehiculos` lee `leerFasesDeOrigen`.
+  Lo hace la action, no el repositorio.
+- **Tipos de `database.types.ts`.** `fase_mover` y `fase_crear` no admiten nulo en `p_despues_de`; se castea en el repositorio (nulo = primera), igual
+  que el 5.09.
+- **Prueba contra la base (D11 del 5.09, opcional recomendada): hecha.** `reglas-de-fase-contra-la-base.test.ts` corre `_fase_validar()` real en PGlite
+  (tabla mínima + `flujo_regla_activa` de tabla) sobre 26 casos y exige el mismo campo en el `hint` y el mismo texto que `validarFase()`. Sólo
+  `_fase_validar`: `_fase_forma` (la forma) y `_fase_unico` los prueba `supabase/tests/areas/flujos/fases*.sql`.
+- **Paleta de color (D7):** `Azul #465fff`, `Violeta #7a5af8`, `Cobre #c7680a`, `Turquesa #0e7490`, `Rojo #f04438`, `Naranja #f79009`, `Verde #027a48`,
+  `Gris #717c93` (el neutro de `fase_crear`). Los nombres son de esta pantalla, no de la base.
+
+<!-- paso:5.04-2 -->
+
+## 2026-11-11 — 5.04-2: la lista de fases
+
+Las decisiones D1 a D17 del plan (`.piloto/planes/5.04.md`) siguen en pie; esta parte cumple D1, D3, D4, D5, D13, D14 y D16. Lo que cambió o se precisó:
+
+- **Sin segunda planificación.** El plan del 5.04 ya traía `Precondiciones` y `Conducta` de las tres partes; la 5.04-2 salió de ahí, sin otra pasada del planificador.
+- **El estado de cada escritura vive en su componente.** `accionesDeFila` y `accionesDeLaLista` son huecos separados que sólo comparten la URL: cada uno lleva su
+  `useListaDeFases()` (una escritura a la vez por componente) y el foco tras mover lo guarda la fila (`useFocoTrasMover` con la firma del orden).
+- **D4 afinada · una jubilada no abre «Jubilar o eliminar» por URL:** `motivoParaNoQuitarFase` dice «Esa fase ya está jubilada: reactívala si la quieres usar.» y la URL se
+  limpia; en el «⋯» una jubilada sólo ofrece Editar y Reactivar.
+- **Conflicto (`PT409`):** va al aviso de arriba del flujo (`avisarConflicto`); en el modal de «Nueva fase», al aviso del propio modal con «Recargar», que se va cuando llega
+  la versión nueva. Lo escrito queda.
+- **Crear con un corte de red:** igual que el 5.09, lo escrito queda y sale solo al volver la conexión con el mismo id de intento. Si el servidor ya la había creado, la
+  base contesta «Esa fase ya existe.» y la persona ve la lista releída (queda anotado: la base no es idempotente por id).
+- **Reactivar** no ofrece «Deshacer» (C5): avisa «Fase «X» reactivada.»; si una regla del flujo lo impide, el `23514` se dice tal cual.
+- **El e2e nuevo ya existe** (`e2e/configuracion-flujos-fases.spec.ts`, parte 1 del recorrido): la 5.04-3 lo completa con el inspector, el portal y la jubilación con historial.
+
+<!-- paso:5.04-3 -->
+
+## 2026-11-11 — 5.04-3: el inspector › Datos
+
+D1 a D17 del plan padre (`.piloto/planes/5.04.md`) quedan cumplidas con esta parte. Lo que se decidió o se precisó aquí (`.piloto/planes/5.04-3.md`, D18 a D25):
+
+- **D18 · Un solo bloque «Datos» con cinco `<Bloque>`s adentro** (Identidad abierto, el resto plegado; uno con un error se fuerza abierto). No se tocó `inspector-de-fase.tsx` más allá de D17: sin hueco, sigue la lectura.
+- **D19 · Sin `diferido()` propio:** el inspector ya se pide al abrirse y el formulario viaja en su chunk. `presupuesto-js` no se corrió (el CI lo marca si pasa).
+- **D20 · Una jubilada se edita** (la base lo acepta) y arriba dice que no es destino de ningún cambio.
+- **D21 · Con errores locales no se llama a la base** (`validarFase`); el error de la base con su `hint` se pinta igual. Foco al primer campo con error en orden visual; el foco de un interruptor va a su botón (la tarjeta lleva el `id` y se busca el primer control adentro).
+- **D22 · Tras guardar** el panel queda abierto con «Fase «X» guardada.»; el formulario se reinicia con `key` (`fase.id` + versión). Entre el envío y la llegada, todo apagado a mano.
+- **D23 · El motivo del interruptor apagado va en su ayuda** (`<InterruptorConMotivo>`); «Es inicial» avisa, sin bloquear, si otra fase activa ya lo es.
+- **D24 · «Llegada de repuestos»** en los dos ámbitos; su ayuda dice que sólo una fase por flujo puede contarla.
+- **D25 · «Nombre para el cliente»** es obligatorio con «Visible en el portal» encendido y no se borra al apagarlo.
+- **Pie del formulario con `<PieDelPanel>`** (no un pie propio): toma la salida del `<Drawer>` por contexto, así un aviso que sale de la pantalla con cambios sin guardar pregunta en el mismo pie. «Cancelar» vuelve a lo guardado y tira el borrador.
+- **Se agregó `campo-de-texto-largo.tsx`** (etiqueta, ayuda y error sobre `<Textarea>`): `Campo` sólo cubre una línea y la descripción se usa dos veces. `use-valores-de-fase.ts` sí se partió del hook (el lint pide ≤ 80 líneas por función).
+- **El e2e:** la siembra del historial va por SQL (`historial_fases`), como la prueba `fases-eliminar.sql`; el spec quita lo sembrado también al empezar, porque una corrida caída lo dejaba y frenaba el borrado del origen.
+
+<!-- paso:5.06-1 -->
+
+## 2026-11-11 — Paso 5.06-1
+
+- **D1 · Una sola sección:** «Quién puede mover a esta fase» arriba (sólo lectura en la parte 1) y la lista de salidas debajo.
+- **D2 · «Salida de una fase»** entra al glosario; en código sigue `transicion`.
+- **D3 · El hueco `bloques.salidas` recibe `roles`** y el inspector los pasa: `flujos` no importa `equipo`. Con el hueco lleno ya no se dibuja `LecturaDeSalidas`.
+- **D4 · Alta en línea con estado local;** sólo quitar vive en la URL (`?eliminar=salida&salida=<id>`). Reversible si la persona prefiere URL.
+- **D5 · Destinos:** fases activas, distintas de la propia y que aún no son salida; sin ninguna, el botón se apaga con su motivo.
+- **D6 · Acción vacía = «Mover»** (la base la guarda nula); máximo 40 caracteres.
+- **D7 · Chips:** uno por salida en la fila, hasta 3 y «+N más»; texto con el color de la fase destino, no enlaces.
+- **D9 · «Entradas»:** sólo lectura.
+- **D10 · El id del intento se reutiliza al reintentar;** «ya existe» sobre el campo `id` se toma por hecho (sobre `a_fase_id` es un error de destino repetido y va junto a su campo).
+- **Constantes de la URL de quitar** en `entities/transiciones/vista-de-salidas.ts`: `confirmar-con-url.test.ts` pidió sólo que el hook que abre nombre `PANEL_ELIMINAR_SALIDA` (lo hace por su `import`), no hizo falta declararla dentro.
+- **Clave `eliminar` compartida** con requisitos y agenda: conviven (cada hook abre con su valor); el e2e recorre quitar una salida con el inspector abierto y pasa.
+
+<!-- paso:5.06-2 -->
+
+## 2026-11-11 — Paso 5.06-2
+
+- **D11 · Un solo botón «Guardar» en la salida:** manda lo que cambió en dos pedidos seguidos (acción y nota, luego roles), el segundo con la versión del primero. Reversible a dos botones sin tocar las RPC.
+- **D12 · «Acción» y «Pide nota al mover» se factorizan** de la forma de alta a `campos-de-salida.tsx`; el alta no cambia de conducta.
+- **D13 · Lo nuevo cuelga de `useSalidasDeLaFase`** (`editar`, `ponerRolesDeFase`): una sola escritura a la vez en todo el bloque; la fase y las salidas no se pisan la versión.
+- **D14 · `alternarRol(actuales, rolId, marcado)`** y no `(actuales, visibles, marcado)`: tocar un solo id ya conserva los que el selector no muestra.
+- **D15 · Borrador con `key` por la firma de lo guardado** en el selector de la fase; en la salida, la forma nace al abrir «Editar» y no se reinicia mientras está abierta.
+- **D16 · Estado local, no URL,** para editar; sólo quitar vive en la URL.
+- **D17 · El e2e edita «Comprar»**, no «Embarcar» (el primer test ya la quitó).
+- **D18 · Sin roles que elegir:** «No hay roles para elegir.»; guardar sigue permitido (lista vacía = quita la lista).
+- **D19 · Una forma a la vez:** abrir «Editar» apaga «Agregar salida» y los demás «Editar» (y al revés) en vez de cerrar lo escrito sin avisar.
+- **Sin avisos de precedencia:** limitar a un rol que quien configura no tiene, o dejar a nadie con el permiso, no avisa; eso es del 5.12 «Revisar».
+
+<!-- paso:5.07-1 -->
+
+## 2026-11-11 — Paso 5.07-1
+
+- **El 5.07 se parte en dos:** 5.07-1 la escritura (validar, crear, guardar, mover, eliminar, sin escritura directa) y 5.07-2 la lectura (impacto y «fuera de
+  regla»). Este PR no marca integrado el 5.07. Plan: `.piloto/planes/5.07.md`.
+- **D1 · Un requisito nace informativo** (recomendada de la fila): `requisito_crear` pone `bloqueante = false` y el default de la columna pasa a `false`.
+- **D2 · `fuera_de_regla()` se borra en el 5.07-2** (recomendada de la fila): da ids a cualquiera, sin permiso ni tope; la reemplaza `flujo_fuera_de_regla`.
+- **D3 · El alta en el registro de páginas va en el 5.08**, no aquí: `scripts/guardas/paginas.test.ts` cae si una entrada no tiene quién la llame desde `src/`.
+  Se aparta de la fila.
+- **D4 · `bloqueante` no va al crear:** si llega, `22023` con `hint = 'bloqueante'` (no se ignora en silencio).
+- **D5 · `espera_ambito` no se pide:** sale del ámbito del flujo (vehículos → `hijos`, repuestos → `padre`); si llega, `22023`.
+- **D6 · `formatos: []` se rechaza** (`22023`): el requisito no se cumpliría nunca. Nulo = todos los del tipo.
+- **D7 · En UPDATE el trigger revalida sólo el grupo cuyo campo cambió** (la espera, el documento o el dato; un cambio de `fase_id` o `tipo`, todo): una espera
+  vieja (regla apagada o fase jubilada después) o un tipo cuyos formatos cambiaron no impiden guardar sus notas, volverla bloqueante ni reordenar la fase. De la
+  auditoría del plan; lo fijan R6, E2 y E4.
+- **D8 · Sin carrera nueva:** todo corre bajo el candado de `_flujo_para_editar` (carreras K1–K3 del 5.01); el orden no es único.
+- **D9 · Las unidades en la papelera no cuentan** en el impacto ni en «fuera de regla» (5.07-2).
+- **D10 · Sin tope de requisitos por fase ni rechazo de duplicados:** la fila no lo pide; si molesta, lo dice la pantalla del 5.08.
+- **El primer requisito de una fase queda en `orden` 10** (`coalesce(max, 0) + 10`, como `fase_crear`), no en 0 como decía el borrador del plan.
+
+<!-- paso:5.07-2 -->
+
+## 2026-11-11 — Paso 5.07-2
+
+- **Cierra el 5.07** (parte 2 de 2, la lectura). Plan: `.piloto/planes/5.07-2.md`; D1–D10 en `docs/pasos/5.07-1/decisiones.md`.
+- **D11 · El `for share` vuelve a `fase_requisito_validar()`.** El 5.03 la recreó leyendo los formatos del tipo `for share`; la parte 1 la recreó desde la base en
+  una migración posterior y lo perdió al unirse con `main`. Una migración nueva (`requisitos_validar_con_candado`) la recrea desde la vigente con ese único
+  cambio, y una prueba de definición (R16) lo fija, porque el 5.03 no dejó carrera.
+- **D12 · R11–R15 van en `supabase/tests/areas/flujos/requisitos-lectura.sql`**, no en `requisitos.sql` (que pasaría de 300 líneas).
+- **D13 · `flujo_fuera_de_regla` mira también las fases jubiladas** con requisitos bloqueantes: quien sigue ahí sigue fuera de regla (mostrar de más es
+  reversible; esconder, no).
+- **D14 · A lo sumo 1.000 unidades por fase, sin orden**, tomadas una vez en un arreglo: ordenar leería la fase entera. Con más, es una muestra; `revisadas` lo dice.
+- **D15 · GLOSARIO y RENDIMIENTO se editan en el PR del carril:** el paso 8 del piloto sólo veda ESTADO, PLAN, BITACORA y DECISIONES.
+- **D16 · Las filas de `docs/PLAN.md` que nombran `fuera_de_regla` (751, 757, 1063) no se tocan** (carril con coordinador): van «Para el coordinador».
+- **D17 · Un requisito o un flujo que no existe da `PT409` antes que el permiso**, como `requisito_guardar`: el id no dice nada que la lectura de
+  `fases_requisitos` no diga ya.
+
+<!-- paso:5.08-1 -->
+
+## 2026-11-11 — Paso 5.08: «Requisitos para entrar» (decisiones de la parte 1)
+
+- **D1 · Clave con regla apagada:** se ofrece con la nota «La regla «X» está apagada: nadie podrá cumplirlo.» y no se bloquea (la base la acepta). Los nombres de
+  regla (`transporte`, `aduana`, `pagos`) salen del prefijo de la clave; confirmados contra `flujos_reglas_regla_check`.
+- **D2 · El selector excluye las claves que la fase ya pide:** la base permite repetirlas, pero no tiene sentido; si ya las pide todas, «Agregar requisito» queda
+  apagado con su motivo.
+- **D3 · Los nombres que el bloque necesita se leen por una Server Action de lectura**, una vez por flujo y guardados un minuto: el hueco `bloques.requisitos` es de
+  cliente y sólo recibe `{flujo, fase}`, y ampliarlo con datos rompería a 5.04 y 5.06, que lo comparten.
+- **D4 · «Agregar requisito» es en línea dentro del bloque** (`?agregar=dato`), no un modal dentro del drawer (`ui.md`). La confirmación de quitar usa
+  `?eliminar=requisito&quitar=<id>` para no ocupar `?panel=` ni `?fase=`.
+- **D5 · El inspector sigue registrado `sinFormulario`** en `drawers-con-salida.ts`: la guarda no pidió otra cosa. El formulario avisa los cambios sin guardar con
+  `useCambiosSinGuardar({ preguntaAlCerrar: true })`.
+- **D6 · `LecturaDeRequisitos` (núcleo) queda arriba como resumen** y el bloque agrega la lista debajo.
+- **D7 · Cada action lleva el `ambito` del flujo** para exigir `flujos.configurar` o `repuestos.configurar` antes de la RPC; la base lo vuelve a exigir.
+- **D8 · Los tipos de documento se leen en `infra/requisitos/opciones.ts`, no de `documentos`:** un área no importa otra (`areas-de-flujos.test.ts`).
+
+<!-- paso:5.08-2 -->
+
+## 2026-11-11 — Paso 5.08: «Requisitos para entrar» (decisiones de la parte 2)
+
+- **D1 · Una sola action `crearRequisito` con unión discriminada por `tipo`** (reemplaza `crearRequisitoDeDato`): tres actions iguales serían tres archivos con el mismo
+  permiso y el mismo `revalidatePath`. El repositorio pasa a `crear({ id, faseId, actualizadoEnEsperado, tipo, datos })`.
+- **D2 · El selector de la forma es en línea**, no un menú desplegable: se alcanza con teclado igual y no abre un segundo menú dentro del drawer.
+- **D3 · La edición se abre en el lugar del botón de agregar**, no dentro de la fila: la lista conserva su orden y alto, y el foco vuelve al «⋯» de su fila al cerrar.
+- **D4 · La espera ofrece las fases activas del otro flujo**, todas las que se leen (hasta 100 flujos y 1.000 fases; un tope lo dice con `<AvisoDeTope>`); sin filtrar por permiso
+  de origen (la base no lo pide: `fases: leer` es de cualquier cuenta con sesión).
+- **D5 · El ámbito del flujo viaja a la lectura de opciones** (`{ flujoId, ambito }`): evita releer el encabezado y la caché por flujo sigue igual.
+- **D6 · Mínimo y máximo son enteros ≥ 1** (como la base): «Escribe un número entero.» si no lo es; «Pide al menos 1 archivo.» si es menor que 1.
+- **D7 · «Sin cambios» se dice en el formulario** («No hay nada que guardar.»), no con un toast, y no llama a la base.
+- **D8 · Las formas no guardan borrador en `sessionStorage`:** ninguna pasa de 6 campos (`ui.md`).
+- **D9 · La URL del selector es `?agregar=nuevo&forma=…`** (no `?agregar=<forma>`): `usePanelPorUrl` lleva una sola pareja clave-valor por panel y la guarda de la vuelta del
+  foco espera una sola entrada por clave; una forma desconocida cae en el selector. El e2e de la parte 1 se ajustó a esa URL.
+- **D10 · `TipoParaRequisito` gana `delFlujo`:** con tipos de la empresa y del flujo a la vez, el selector marca los del flujo con « · de este flujo» (el nombre puede repetirse entre grupos).
+- **D11 · Un tipo de documento que no se pudo leer** no deja enviar el formulario de documento (sólo «Cancelar») y la edición de un documento sin su tipo no toca los formatos.
+
+<!-- paso:5.08-3 -->
+
+## 2026-11-11 — Paso 5.08 (decisiones de la parte 3)
+
+- **D11 · «Bloqueante» vive sólo en la fila**, no también en «Editar»: dos lugares harían dos caminos de impacto.
+- **D12 · La confirmación de impacto es en línea**, no `<Confirmar>`: no destruye nada (se revierte con el mismo interruptor) y no entra en `confirmar-con-url`. Estado local: recargar la descarta.
+- **D13 · El impacto se lee por una Server Action de lectura** (`leerImpactoDeRequisito`), como las opciones: el hueco es de cliente y la RPC necesita la sesión.
+- **D14 · El aviso de fuera de regla no lleva esqueleto** (`<Suspense fallback={null}>`): lo normal es que no haya nada y un esqueleto saltaría.
+- **D15 · Sin caché del conteo:** debe reflejar el último cambio; la RPC ya acota y la pestaña es de configuración.
+- **D16 · Repuestos:** el título es «Ítem de repuestos» (no hay lector de títulos de ítems) y no hay «Verlas en el inventario».
+- **D17 · El camino al inventario es por fase** (`/vehiculos?origen=&fase=`), porque el filtro del inventario es por fase; `FILTRO_FASE` sale por `vehiculos/index.ts` (una línea aditiva).
+- **D18 · `revisadas ≥ 1.000` se avisa en el impacto:** el conteo sale de una muestra y callarlo daría un número que parece exacto.
+- **D19 · Si no se pudieron leer los títulos,** el panel lo dice con un aviso y rotula «Vehículo» (no «Un vehículo que no puedes ver»: sería mentir sobre el permiso).
+- **D20 · Una fase jubilada se rotula « (jubilada)»** en el panel: la RPC también mira las jubiladas.
+- **D21 · `guardarRequisito` acepta `bloqueante`** (la RPC ya lo admitía) y el formulario de edición sigue sin escribirlo.
+
+<!-- paso:5.10-1 -->
+
+## 2026-11-11 — Paso 5.10-1
+
+- **El 5.10 se parte en dos:** 5.10-1 (las reglas: uso, impacto, cambiar, sin escritura directa) y 5.10-2 (la oferta de transporte: tabla, `flujo_oferta_guardar`,
+  `flujo_oferta`, sin escritura directa, fichas de `logistica` y `flujos`, glosario «Oferta de transporte»). Entero eran 7-8 commits de código y dos disparadores del
+  Nivel 2 distintos (4 y 6). Plan: `.piloto/planes/5.10.md` (trae el 5.10-2 servido). `docs/plan.yaml` conserva un solo `5.10`: **este PR no marca `integrado 5.10`**; el
+  5.11 espera al 5.10-2.
+- **Lo que pidió la auditoría del plan (observaciones), aplicado:** apagar una regla ya apagada no mira el uso (puede haber flujos con «esperas» apagada y requisitos de
+  espera vivos, de cuando la base no lo miraba); el `42501` antes que el `22023` del catálogo, con su caso en R1; el trigger trata cambiar `regla` o `flujo_id` de una fila
+  encendida como apagarla; la prueba va antes de `vehiculos-visibilidad.sql` en la lista fija.
+
+- D1 · Puertos y navieras no tienen pantalla ni RPC y `navieras` nace vacía: su catálogo queda para la **Fase 6** (es de `logistica`, con `logistica.catalogos.gestionar`), y
+  el 5.11 lo dice en su vacío («Todavía no hay navieras cargadas. Se cargan en Logística.»). Es la recomendada de la fila: no mete tablas de otro módulo en la Fase 5.
+- D2 · El paso se parte (arriba).
+- D3 · Las fases jubiladas también cuentan como uso (como el trigger de antes y D23 del 5.01-2): reactivarlas exigiría la regla.
+- D4 · Cada requisito del impacto lleva también `fase_nombre`, además del `{id, fase}` de la fila: la pantalla del 5.11 nombra la fase y enlaza `?fase=` sin otra lectura.
+  «Vivos» = todos los de `tipo = 'espera'` de fases del flujo, activas o jubiladas (los requisitos no tienen borrado lógico).
+- D5 · El trigger deja pasar el borrado en cascada de un flujo (el flujo ya no está). Es defensa: hoy la FK de `fases` corre antes que la de `flujos_reglas` y borra fases y
+  requisitos primero; R8 es la guarda de que la cascada (`origen_eliminar`) sigue pasando, no una prueba de D5 sola.
+- D6 · `flujo_regla_impacto` no devuelve versión ni toma candado (como `fase_impacto`). Con la regla ya apagada da `bloquea: false` (apagarla no hace nada) y las listas
+  igual, informativas. Listas con tope 50 leyendo 51: la app las corta con `cortarAlTope()`.
+- D7 · Encender una regla fuera del catálogo del ámbito → `22023`; apagarla se permite siempre (limpia una fila heredada, p. ej. un `aduana` en repuestos escrito a mano).
+- D8 · `flujo_regla_cambiar` mueve la versión siempre, también si la regla ya estaba así (como `fase_mover`, D22 del 5.01-2).
+- D9 · El mensaje del `23514` es genérico en la base («la usan fases o requisitos de este flujo», hint `regla`): los nombres humanos de las reglas viven en TS (5.11,
+  `entities/reglas/catalogo.ts`) y la pantalla nombra fases y requisitos desde el impacto. El `22023` del catálogo tampoco nombra el ámbito («no está disponible en este flujo»).
+- D10 · La prueba va en la lista fija (`supabase/tests/flujos-reglas.sql`), como pide la fila, y no en `areas/flujos/` (el carril a es base y edita la lista). Sus ayudantes usan
+  el prefijo `flr_`: `fr_` ya lo usa `areas/flujos/fases-reactivar.sql` y la corrida es una sola sesión de PGlite.
+- D11 · Queda una carrera hasta el 5.07, que no es regresión: `fases_requisitos` todavía se escribe directo, y su trigger lee la regla «esperas» sin tomar el flujo. Así,
+  apagar «esperas» con `flujo_regla_cambiar`, que toma `flujos` `for no key update`, a la vez que otra persona crea un requisito de espera puede dejar la regla apagada con un
+  requisito vivo. Ese estado ya se admite (una regla ya apagada no bloquea, R4). Se cierra cuando el 5.07 pase los requisitos por RPC con `_flujo_para_editar`.
+
+<!-- paso:5.10-2 -->
+
+## 2026-11-11 — Paso 5.10-2
+
+- **Este PR marca `integrado 5.10`:** el 5.10-2 (la oferta de transporte) cierra el paso que el 5.10-1 dejó partido; el 5.11 queda libre. Plan:
+  `.piloto/planes/5.10-2.md`. La auditoría del plan dio observaciones y quedaron aplicadas en el texto: O2 prueba que la validación no escribe (la atomicidad la da
+  la transacción), la ficha de `logistica` dice que la leerá en la Fase 6, D1 nombra el aviso INFO y `flujo_oferta` dice de dónde sale su tope.
+
+- D1 · La oferta queda sin PK, como pide la fila: la unicidad la dan los dos únicos parciales; sin `id` sustituto (nadie apunta a sus filas y el reemplazo es por
+  flujo). El aviso INFO `no_primary_key` de `scripts/splinter.sql` sobre esta tabla es esperado: no se «arregla» con una PK sustituta.
+- D2 · Un btree `(flujo_id)` además de los parciales: la FK `flujo_id` y el `delete` del reemplazo perdían el índice que les daba la PK.
+- D3 · Tope de 200 ids por lista (`22023` con el nombre del arreglo en el hint): el selector nunca pasa de decenas; corta un pedido desmedido.
+- D4 · Un id inexistente → `23503` con mensaje humano, comprobado antes de escribir; uno inactivo se acepta (la oferta «nunca invalida lo guardado»; la pantalla ofrece
+  los activos y muestra el inactivo con su marca).
+- D5 · Guardar exige «transporte» encendida (`23514`, hint `transporte`); apagarla después no borra la oferta (al volver a encenderla reaparece). `flujo_oferta` la lee
+  siempre y dice `transporte`.
+- D6 · `flujo_oferta` es `security invoker`, sin versión ni candado, y no exige permiso de configurar: todo lo que lee es «leer = true» y la usará Logística en la Fase 6.
+- D7 · Orden de lectura: puertos por `(orden, nombre, id)`, navieras por `(nombre, id)`.
+- D8 · `flujo_oferta_guardar` mueve la versión siempre, también sin cambio (como D8 del 5.10-1).
+- D9 · La prueba va en su propio `supabase/tests/flujos-oferta.sql` (`flujos-reglas.sql` ya tiene 300 líneas; la fila decía ese archivo), en la lista fija justo detrás,
+  con prefijo `flo_`. O7 es el caso con usuario simulado que pide `migraciones.md`, sin caso nuevo en `humo.sql` (como R7 del 5.10-1).
+- D10 · La tabla, `flujo_oferta_guardar` y `flujo_oferta` van en un solo commit: los tipos regenerados traen las dos columnas nulables y las dos RPC juntas, y la regla
+  pide migración y `db:types` en el mismo commit.
+
+<!-- paso:5.12-1 -->
+
+# Paso 5.12-1 — «Revisar», la base de `revisar_flujo()`
+
+5.12-1 es parcial: el PR no marca `integrado 5.12`; la pantalla (la franja) sigue en 5.12-2.
+
+Fecha: 2026-11-12 (`TZ=America/La_Paz date +%F`). Sin compuertas: la duda del PLAN, con su recomendada. El plan: `.piloto/planes/5.12-1.md`.
+
+- **D1** «Revisar» no frena: avisa y enlaza, nunca impide guardar (un flujo se arma por pasos y a medio armar siempre tiene avisos).
+- **D2** Quien no configura el flujo recibe cero filas, no `42501` (lo pide el assert de la fila; además sólo quien configura ve la franja). Un flujo
+  inexistente o nulo, también cero filas.
+- **D3** `rol_sin_personas` sólo cuando **ninguno** de los roles de la lista tiene persona activa: un rol vacío al lado de uno con gente no impide mover.
+  No replica la precedencia de `_puede_mover`: la lista de la fase cuenta aunque cada entrada tenga la suya, y no mira `flujos.mover.cualquiera` (un aviso
+  de más ahí es tolerable: es sólo un aviso).
+- **D4** `sin_salida` e `inalcanzable` no cambian: una fase cuya única salida va a una jubilada recibe `salida_a_jubilada` y no además `sin_salida`.
+- **D5** Persona activa = `perfiles.activo and not perfiles.bloqueado`, la misma de la dominancia de equipo. No se usa `_estado_de_persona(…)` a propósito:
+  ése separa «invitada» de «activa», y aquí una invitación sin aceptar cuenta como persona (menos avisos falsos; reversible).
+- **D6** `entrada_no_automatica` sólo en flujos de vehículos (espejo de `_vehiculo_fase_de_entrada`, que sólo existe para vehículos). Con una sola inicial,
+  cualquier requisito bloqueante cuenta (sin un vehículo no se puede evaluar si se cumple): por eso es `info` y dice «pueden nacer».
+- **D7** La salida no promete orden (lo ordena `entities/revisar/avisos.ts` en la 5.12-2); los textos de los ocho códigos de antes no cambian.
+
+<!-- paso:5.12-2 -->
+
+# Paso 5.12-2 — «Revisar», la franja sobre el flujo
+
+5.12-2 cierra el paso 5.12: el PR marca `integrado 5.12`.
+
+Fecha: 2026-11-12 (`TZ=America/La_Paz date +%F`). Sin compuertas ni preguntas abiertas. El plan: `.piloto/planes/5.12-2.md`.
+
+- **D1** El resumen cuenta errores y avisos; las de información no entran («Todo en orden» con sólo información, que se ve al abrir). No alarma por lo que
+  no es un problema; reversible.
+- **D2** La franja nace cerrada **siempre**, también con un error (cambia lo que proponía la 5.12-1): todo flujo recién creado tiene `sin_inicial` y la
+  franja abierta empujaría la lista en cada visita; el resumen ya dice «1 error» con su icono. Reversible.
+- **D3** La palabra del nivel `info` es «Información», no «Sugerencia» (cambia la 5.12-1): `entrada_no_automatica` y `sin_bloqueantes` describen, no
+  proponen un cambio.
+- **D4** Lectura por Server Action desde el hueco de cliente (sólo recibe `{flujo}`), releída por `flujo.version` y conservando lo leído mientras relee;
+  sin `memoriaDeLectura` (el resultado cambia con cada guardado).
+- **D5** Tope de 200 avisos con `<AvisoDeTope>` (un flujo tiene decenas de fases; `escala.md` › «Lo que se dibuja tiene tope»).
+- **D6** Un aviso abre su fase con un botón que llama `useFaseAbierta().abrir()`, no un `<Link>`: suma al historial igual, conserva la query y devuelve el
+  foco; un enlace con nombres de fase chocaría con los locators de los specs vecinos.
+- **D7** Permiso de la action por ámbito sin origen, como las demás lecturas del módulo; el origen lo decide la base, que da cero filas.
+- **D8** Un aviso sin fase (`sin_inicial`, varias iniciales) o con una fase fuera de las leídas va sin botón.
+- **D9** La sección de `docs/UX.md` va en el commit de la franja y no en el de docs: la guarda del mapa exige que el título que cita el spec exista en el
+  árbol al commitear.
+
+<!-- paso:6.01-4 -->
+
+- **D18 · Logística se enciende en la navegación con su primera pantalla**, no con la cadena (6.03): `disponible` dice si existe la página (`navegacion.test.ts`), y `/logistica` ya existe con el drawer de la unidad.
+
+<!-- paso:6.02-1 -->
+
+## 2026-11-11 — Paso 6.02-1
+
+- **Parte 1 de 3** (la escritura de mover). Plan: `.piloto/planes/6.02.md`; las respuestas a la auditoría, `.piloto/planes/6.02.respuestas.md`.
+- **D1 · «Publicar sin mover la versión de la ficha» (duda 1 de la fila) no entra:** toca `vehiculos/features/vitrina`, fuera de este paso de base. Queda
+  como abierto **6-2** (`vitrina_actualizado_en`), como dice la propia duda.
+- **D2 · `for no key update` y no `for update`:** serializa a dos que mueven la misma unidad y no frena el `key share` de las FK de quien inserta hijos del
+  vehículo (documentos, notas, transportes) mientras se mueve; `fase_id` y `fase_desde` no son clave de nadie. El acceso va antes del candado (como
+  `_flujo_para_editar` del 5.01): quien no ve la unidad recibe 42501 sin esperar.
+- **D3 · La esperada nula es estricta:** vale sólo para una unidad sin fase; con fase da PT409. Cierra la deuda aceptada «`cambiar_fase` acepta
+  `p_fase_esperada` nulo» en vez de dejarla escrita. Nadie de `src/` llama todavía; `supabase/tests/humo.sql:230` pasa la esperada real.
+- **D4 · Inexistente, en la papelera o sin `logistica.ver` (`repuestos.ver` para un ítem) dan un solo texto y 42501 (hint `acceso`)**, el mismo
+  «… ya no está disponible: no existe o ya no tienes acceso.» de la interfaz del 6.01; sale de un ayudante, `_unidad_sin_acceso()`, que sólo ejecuta
+  `service_role`. El nombre de quien movió (PT409) sólo llega a quien ya pasó el acceso.
+- **D5 · El PT409 de mover no dice «Recarga»:** la interfaz ofrece recargar (patrón del 4.20-1).
+- **D6 · `flujo_fuera_de_regla` no se ensancha a `logistica.ver`** (punto 4 de la fila): el 5.07 la dejó sólo para quien configura; lo de una unidad lo dará
+  `logistica_unidad` (6.02-3). Ensanchar después es reversible; esconder, no.
+- **D7 · Un lote mal formado no mueve nada** (22023, hint `p_unidades`): la forma es del llamador, no de una unidad. Un vehículo repetido se rechaza para que
+  el resultado tenga una fila por unidad. Los ids se validan con `pg_input_is_valid` antes de convertir.
+- **D8 · La vista previa del lote es invocadora:** sólo llama a la `definer` de una unidad, que ya mira el acceso.
+- **D9 · Sin `flujos.mover` del origen da 23514 con hint `rol`**, como hasta ahora `_puede_mover`: la fila pide cuatro códigos de rechazo.
+- **D10 · Sólo `vehiculos` deja de mover su versión al mover;** `repuestos_items` queda para la Fase 8.
+- **D11 · La carrera vive en `supabase/tests/areas/mover/carreras.mjs`** (patrón del 5.01) y no en `scripts/carreras/mover.mjs`; `scripts/carreras.mjs` la
+  importa y la llama.
+- **D12 · El 6.02 se parte en 3:** 6.02-1 la escritura (Nivel 1), 6.02-2 la cadena (índice, Nivel 2), 6.02-3 la unidad y «dónde está».
+- **D13 · «Documentos cargados» = vivos de cualquier estado y sólo frenan enviar a la papelera y la limpieza** (`p_al_enviar`). La purga de lo que ya está en
+  la papelera no cambia: junta y encola las rutas de `documentos` a propósito, y frenarla dejaría para siempre a un vehículo ya borrado.
+- **D14 · Los docs de esta parte van a `docs/pasos/6.02-1/`** (como 5.07-1 y 5.07-2).
+- **D15 · El lote toma `assert_activo()` al principio:** una cuenta bloqueada aborta el lote entero en vez de devolver 200 filas sin código.
+
+<!-- paso:6.02-2 -->
+
+## 2026-11-11 — Paso 6.02-2
+
+- **Parte 2 de 3** (las lecturas de la cadena). Plan: `.piloto/planes/6.02-2.md`; las respuestas a la auditoría (bloqueó una vez: «Sin fase» sin origen),
+  `.piloto/planes/6.02-2.respuestas.md`.
+- **D1 · `security definer`, no invocadora** (la fila decía `security invoker`): las policies de `transportes` y `documentos` preguntan
+  `puede_unidad(…, 'logistica.ver')` por fila; una invocadora que filtra por naviera, contenedor, booking o «por aprobar» pagaría un `puede_vehiculo` por fila
+  recorrida, justo lo que la fila prohíbe. La definer resuelve el alcance una vez por origen y lo aplica a `vehiculos` con el predicado de su policy; toda
+  consulta empieza por `origen_id = p_origen and eliminado_en is null`. Reversible sin cambiar la firma si las policies de las hijas dejan de ser por fila.
+- **D2 · Se borra `vehiculos_origen_fase_idx`:** `vehiculos_cadena_idx (origen_id, fase_id, fase_desde, id)` lo cubre como prefijo con el mismo predicado y
+  nadie lo nombra; la FK sigue cubierta por `vehiculos_fase_id_idx`.
+- **D3 · Alcance = el menor de `logistica.ver` y `vehiculos.ver` del origen:** es lo que vería la invocadora (la policy de `vehiculos` más la regla de la
+  fila). Quien tiene `logistica.ver` todos y `vehiculos.ver` propios ve sólo lo suyo (CA2).
+- **D4 · Sin acceso, 42501 hint `acceso`** antes de leer nada, no una cadena vacía: la interfaz distingue «sin permiso» de «origen vacío».
+- **D5 · «Sin fase» = `fase_id` nulo, por `id`; `fase_desde` existe si y sólo si hay fase:** lo asegura el check `vehiculos_fase_desde_coherente`, y el
+  trigger `trg_0_fase_desde_coherente` completa a quien escribe sólo `fase_id` (los fixtures de las pruebas y `e2e/soporte/inventario-postgrest.ts` lo hacen;
+  el check solo los rompería). Sin eso, una fila incoherente desaparecía del tablero sin aviso (auditoría, objeción 4).
+- **D6 · Jubiladas y «Sin fase» sólo si traen tarjetas con los filtros aplicados;** las jubiladas al final. Una fase activa sin `es_logistica` no es columna.
+- **D7 · Los filtros son de fila sobre el recorrido de la columna** (como la búsqueda del kanban): `q` contiene en título, VIN y lote y es prefijo en
+  contenedor y booking, sin el GIN de trigramas (eso es de «dónde está», 6.02-3); `contenedor` y `booking` por igualdad sin mayúsculas; `naviera` por id.
+- **D8 · `demorada` = el predicado de `alertas_demora`** (excluye la fase final y pide la regla `alerta_demora`); el filtro `demoradas` es rango del índice
+  (`fase_desde < corte`). `demora_dias` de la columna son los días con que alerta (nulo si no alerta).
+- **D9 · «Propios» es filtro de fila** con el predicado de la policy, sin rutas por cartera: una columna es una fase de un origen. Medido con Ana (informe).
+- **D10 · El registro en `scripts/guardas/paginas-en-la-base.ts` pasa a 6.03:** `paginas.test.ts` cae con una entrada que nadie llama desde `src/`; la
+  guarda de la base (`escala.sql`) ya exige `_acotar_pagina(p_tope, 50, 100)` desde esta parte.
+- **D11 · `logistica_cadena_columna` lleva `p_origen` primero:** «Sin fase» (`p_fase` nulo) necesita el origen, y el alcance se resuelve sin leer la fase.
+- **D12 · Entradas malas:** filtro desconocido o de otro tipo → 22023 hint `filtros`; fase de otro origen o sin `es_logistica` → 22023 hint `p_fase`; cursor
+  sin `p_desde` → 22023 hint `cursor`; `q` sin 3 letras o dígitos seguidos se ignora.
+
+<!-- paso:6.02-3 -->
+
+## 2026-11-11 — Paso 6.02-3
+
+- **Parte 3 de 3** (la unidad y «dónde está»; cierra el 6.02). Plan: `.piloto/planes/6.02-3.md`; las respuestas a la auditoría (observaciones),
+  `.piloto/planes/6.02-3.respuestas.md`.
+- **D1 · `notas_vehiculo_id_idx` se queda:** el nuevo `notas_vehiculo_vivas_idx` es parcial (`where eliminado_en is null`) y no sirve a la FK para las notas
+  borradas; borrarlo dejaría la cascada de un vehículo sin índice.
+- **D2 · El acceso de `logistica_unidad` es el de la cadena** (`_logistica_alcance` + el «propios» de la policy de `vehiculos`), no un `puede_vehiculo(…,
+'logistica.ver')` suelto: el panel y la tarjeta se ven con la misma regla. Inexistente, papelera y sin acceso: un solo texto (D4 de 6.02-1).
+- **D3 · «Dónde está» busca sólo en orígenes con la regla `logistica` activa:** elegir un resultado cambia a la pestaña de su origen (6.03), y esas pestañas
+  son las de esa regla. Todo origen nuevo la trae activa (`origen_crear_flujo`).
+- **D4 · «Fuera de regla» = algún bloqueante sin cumplir en su fase actual** (el criterio de `flujo_fuera_de_regla`); `faltan` lleva sólo esos. Sin fase, nada falta.
+- **D5 · `movida` sin la nota:** la nota la muestran «Notas» e «Historial» (6.04) con su paginación; aquí sólo quién y cuándo.
+- **D6 · Un texto corto o vacío no es error:** `{unidades: [], hay_mas: false}`; sólo uno de más de 100 caracteres da 22023 hint `p_buscar`.
+- **D7 · Sin orígenes visibles, vacío y no 42501:** «dónde está» cruza orígenes; vacío no dice nada de lo que no se ve.
+- **D8 · Orden:** el VIN o el lote exactos primero, luego lo más nuevo. Con más de 1.000 coincidencias de título se toman 1.000 cualesquiera; con «propios»,
+  el rescate por `vehiculos_creador_idx` trae sólo lo que creó quien busca, no lo de su cartera creado por otra persona (el límite de `buscador_cotizaciones`).
+- **D9 · `titulo` tal cual:** el título con el campo principal (6.13) lo compone la interfaz.
+- **D10 · «Dónde está» busca por título, VIN y lote,** no por contenedor ni booking (son filtros de la cadena, con igualdad, y sus índices no sirven a un `ilike`).
+
+<!-- paso:6.10-1 -->
+
+## 2026-11-11 — Paso 6.10-1: gastos y pagos en la base
+
+- **D1 · El tipo de cambio lo elige quien carga** entre los activos que unen esa moneda con la base. La base guarda el valor de ese momento y el id del tipo
+  (`tipo_cambio_id`, para que lo muestre el drawer de 6.11).
+- **D2 · Una confirmación no se deshace.** `pago_anular` va al 6.10-2 y, si no cabe, al abierto 6-3.
+- **D3 · La «venta» sigue siendo la suma de los pagos confirmados.** `margen_vehiculo` no cambia de contrato.
+- **D4 · En la moneda base, un tipo de cambio es un error** (22023) y no se ignora en silencio.
+- **D5 · La regla `gastos` (o `pagos`) se exige al registrar y al prorratear**, no al corregir ni al borrar. El flujo es el de la fase; sin fase, el del origen
+  (vehículo) o el de repuestos.
+- **D6 · Al prorratear, la suma exacta es la del monto.** Cada fila lleva `round(parte × tasa, 2)`, así que en base puede diferir del total convertido en algún
+  centavo.
+- **D7 · Prorratear reparte en el orden del arreglo**, entre 1 y 200 vehículos, sin repetir, y sólo entre vehículos.
+- **D8 · Un reintento nunca duplica ni pisa.** Por id o por lote devuelve lo ya registrado; con otra unidad u otro conjunto da 23505; un id ya borrado da PT409.
+- **D9 · `pago_registrar` es sólo de vehículo.** Los pagos de un proyecto de repuestos los suma el paso de repuestos.
+- **D10 · Confirmar pide la clave global y además ver el pago** (`logistica.pagos.ver` de la unidad).
+- **D11 · El sello y la inmutabilidad viven en triggers**, no sólo en las RPC: ni `service_role` ni una RPC futura editan un pago confirmado.
+- **D12 · La versión de gastos y pagos sale de un trigger propio** (`greatest(clock_timestamp(), anterior + 1 µs)`).
+- **D13 · `comprobante_ruta` se valida con la forma `<unidad>/<sha-256>.<ext>`**, la que mirarán las policies del 6.10-2.
+- **D14 · El tributo exigido se protege con cualquier requisito `aduana.tributos_pagados` de la fase actual**, bloqueante o no.
+- **D15 · Las carreras viven en `supabase/tests/areas/dinero/carreras.mjs`** y no en `scripts/carreras/pagos-confirmar.mjs`. `scripts/carreras/` no es del
+  carril c; el enganche en `scripts/carreras.mjs` son tres líneas.
+- **D16 · El monto de un gasto es ≥ 0** (un reparto puede dejar 0,00). **El de un pago, > 0.**
+- **D17 · Los docs van a `docs/pasos/6.10-1/`**, porque el paso se parte.
+- **D18 · Las pruebas van en `supabase/tests/areas/dinero/`**, no en `humo.sql`.
+- **D19 · Al corregir, la tasa se relee sólo si cambian la moneda o el tipo.** Con sólo el monto, se usa la tasa guardada en el sentido del tipo guardado. Un
+  registro viejo en otra moneda y sin `tipo_cambio_id` pide elegir el tipo aun para corregir las notas, y eso lo revalúa. En local no hay ninguno; mirarlo
+  antes de cargar datos reales.
+- **D20 · Un tipo de cambio sirve en los dos sentidos:** moneda → base multiplica y base → moneda divide. Se guarda el valor tal cual y el sentido sale del tipo
+  (`on delete restrict`). Los datos reales son USD → BOB con la base en USD.
+- **D21 · Un monto con más de dos decimales es un error.** Se mira antes de asignarlo a la fila, porque numeric(18,2) redondea en silencio.
+- **D22 · Un pago confirmado admite `lead_id` → nulo** (la FK al borrar el lead) **y `eliminado_en`**, nada más.
+
+<!-- paso:6.10-2 -->
+
+## 2026-11-11 — Paso 6.10-2: comprobantes, listas, margen y anular un pago
+
+- **D1 · Un comprobante se lee por la fila que lo nombra**, no sólo por la carpeta. Un gasto pide `gastos.ver` de su unidad, un pago `pagos.ver` y una compra
+  de repuestos `costos.ver`. Con la carpeta sola, quien ve pagos (el asesor, con «propios») listaría la carpeta del vehículo y bajaría los comprobantes de
+  gastos (DECISIONES, 2026-10-13: el inventario no muestra costos). Un prorrateo se lee desde cualquier vehículo del lote, aunque el archivo esté en la
+  carpeta del primero.
+- **D2 · Un objeto que ninguna fila nombra** (recién subido) lo lee sólo quien puede subir a esa carpeta. Uno de una fila borrada no lo lee nadie por la API
+  (lo limpia `storage-gc` por refcount).
+- **D3 · La unidad sale del nombre con `_comprobante_unidad`**, como `_cotizacion_de_objeto`: un nombre fuera de `<uuid>/<64 hex>.<ext>` da falso y no 22P02.
+- **D4 · `gastos_listar` y `pagos_listar` son de vehículos.** Los de repuestos los lista su paso (Fase 8).
+- **D5 · El tamaño es `_acotar_pagina(p_tope, 50, 100) + 1`** (una de más: hay otra página). El registro en `paginas-en-la-base.ts` va en 6.11, con la
+  llamada. Con cursor y sin cursor son dos consultas (`escala.md`), para que la condición del cursor quede como condición de índice.
+- **D6 · Sin la clave en ningún origen, la lista sale vacía**, como la RLS, y no da 42501.
+- **D7 · Las listas no devuelven el lead ni las notas** (el drawer de 6.11 lee la fila). Sí el título del vehículo y el nombre de la categoría: quien ve la
+  fila del gasto o del pago ya ve a qué vehículo pertenece y su categoría.
+- **D8 · `margen_vehiculo` con un vehículo inexistente o en la papelera da 42501** con el mismo texto que sin la clave; antes devolvía ceros a quien tenía la
+  clave en otro origen. `por_categoria` lleva sólo las categorías con gasto vivo, en el orden del catálogo, y suma `real`.
+- **D9 · `pago_anular`** usa la clave de confirmar y un motivo de 1 a 500; sólo anula confirmados de vehículo. No deja sin cumplir un requisito
+  `pagos.confirmado` o `pagos.umbral_pct` de la fase actual, bloqueante o no. La constancia va a `actividad`, sin columnas nuevas. Mira si se ve el pago
+  antes de decir que es de un proyecto. Límite conocido: no cubre la anulación a la vez que un cambio de fase (abierto, como los tributos).
+- **D10 · Un pago confirmado y anulado no vuelve**: su `eliminado_en` sólo va de nulo a una fecha (lo dice `pago_sellado`).
+- **D11 · Los gastos y pagos viejos sin `tipo_cambio_id` no se migran.** Al corregirlos, la base pide el tipo; en local no hay ninguno y la nube no se toca.
+- **D12 · Las pruebas de storage van en `areas/dinero/comprobantes.sql`**, sobre el doble de `storage.objects` de PGlite, y corrieron también contra el
+  storage real del Postgres 17 local.
+
+<!-- paso:6.11-1 -->
+
+## 2026-11-11 — Paso 6.11-1: los huecos «Gastos» y «Margen» (parte 1 de 4 del 6.11)
+
+- **D1 · El 6.11 se parte en cuatro** (la fila lo estimaba): 6.11-1 (esta: entities, lecturas, hueco «Gastos», hueco «Margen», e2e tramo 1), 6.11-2 (hueco «Pagos» con confirmar, sello visible y
+  anular un confirmado), 6.11-3 (`/logistica/gastos`, `?ver=gastos|pagos`, `ENLACE_DE_DINERO` y el registro de `gastos_listar`/`pagos_listar` en las guardas) y 6.11-4 (prorratear a un grupo y las
+  categorías de gasto).
+- **D2 · Permisos en el cliente por `mis_permisos`** (`infra/dinero/permisos.client.ts`, 30 s de memoria): un hueco sólo recibe `{ unidad }` y no hay hook de permisos en el cliente. Los botones de
+  escribir salen de `puede(permisos, 'logistica.gastos.editar', unidad.origenId)`; mientras llegan o si falla la lectura no hay ninguno. No se tocó el núcleo.
+- **D3 · El comprobante tiene su propia subida** (`infra/dinero/comprobante.client.ts`): `subirPorHash` de `shared` sólo admite buckets públicos y un documento no se comprime. Valida tipo
+  (pdf, jpeg, png, webp) y peso (≤ 10 MB) antes de subir, no usa `upsert` y «ya existe» cuenta como éxito. Un objeto subido y no guardado lo limpia `storage-gc` (D2 de 6.10-2).
+- **D4 · El margen no depende de la regla `gastos` ni `pagos`** (`regla: null`): existe aunque el flujo apague una de las dos. Se dibuja con `logistica.margen.ver` del origen.
+- **D5 · La lista de gastos de una unidad es una lectura directa** (`gastos_vehiculo_idx`, tope 50 + 1, más recientes primero), no `gastos_listar`, que no filtra por vehículo (es de 6.11-3).
+- **D6 · Eliminar un gasto no ofrece «Deshacer»**: `<Confirmar>` que nombra la categoría y la fecha en el título y muestra el monto con `<Monto>` adentro (el título es texto y con el Modo Live
+  encendido un monto escrito ahí se vería). Un `PT409` al eliminar («ya no existe») es éxito suave.
+- **D7 · Preselección del tipo de cambio:** uno solo, o el predeterminado si es el primero; si no, lo elige quien carga (D1 de 6.10-1). Con la moneda base no hay campo.
+- **D8 · `gasto_registrar` se llama con todos sus parámetros** (`nuloParaLaBase`): no declara valores por omisión y sus tipos generados no admiten nulo. Un cambio de firma sería una migración
+  (fuera de este paso).
+- **D9 · El e2e va sólo en escritorio** (la fila lo pide); el archivo lo marca con `@sin-celular-archivo`.
+
+<!-- paso:6.11-2 -->
+
+## 2026-11-11 — Paso 6.11-2: el hueco «Pagos» (parte 2 de 4 del 6.11)
+
+- **D1 · Anular va en un `<Drawer>` con motivo** (`?panel=anular-pago&pago=<id>`): el `<Confirmar>` no tiene campo de texto. Motivo de 1 a 500 letras con el error junto al campo; el rechazo general de la
+  base (la fase actual pide pagos confirmados, `23514`) se dice dentro del drawer, que no se cierra.
+- **D2 · Confirmar y eliminar van con `<Confirmar>` en su URL** (`?panel=confirmar-pago|eliminar-pago&pago=<id>`) que nombra el concepto en el título y muestra el monto con `<Monto>` adentro (con el
+  Modo Live un monto escrito en el título se vería). «Confirmar pago» dice «Queda sellado: no se podrá editar. Si te equivocas, se anula con un motivo.» Eliminar no ofrece «Deshacer».
+- **D3 · El lead no se elige en esta parte.** El alta manda `p_lead = null` y la edición no toca `lead_id`: el disparador `trg_lead_visible` rechaza con 42501 un lead que quien escribe no ve, y un asesor
+  sin acceso al lead vinculado no podría registrar el pago. El margen no depende del lead. **Abierto:** «vincular el pago a un lead» para quien lo pida.
+- **D4 · Un confirmado es de sólo lectura:** sin «Editar» ni «Eliminar» aunque quien mira lo pueda todo; ofrece «Ver comprobante» y, con `logistica.pagos.confirmar`, «Anular pago» en `⋯`. Qué botones
+  salen lo decide una sola función pura, `accionesDelPago`; la base lo vuelve a exigir.
+- **D5 · Quien no puede confirmar no ve el botón** (`logistica.pagos.confirmar` es global). Un conflicto al confirmar («Ana ya lo confirmó hace 2 min»), al eliminar (ya confirmado) o al anular no es un
+  error para quien actuaba: se cierra el diálogo, se dice con el mensaje de la base y se vuelve a leer.
+- **D6 · Sello:** «Confirmado por <nombre> el <fecha y hora>» en la zona de la empresa; si `perfiles` no da el nombre (persona dada de baja, lectura caída), «Confirmado por otra persona el …». Los nombres
+  se leen en una sola consulta por todos los pagos de la lista.
+- **D7 · Monto de un pago: mayor que cero con a lo sumo dos decimales** (D16 de 6.10-1); el de un gasto sigue siendo ≥ 0. La lectura del texto tipeado se extrajo a `entities/dinero/monto-tipeado.ts` y
+  la usan los dos formularios.
+- **D8 · Tipo de cambio:** igual que el gasto (lo elige quien carga; con la moneda base no hay campo). El equivalente en base lo devuelve la base: nunca se calcula en el navegador.
+- **D9 · Se reutiliza lo de 6.11-1** (`campo-de-comprobante`, `use-comprobante`, `useOpcionesDeGasto`, las memorias de lectura); «Ver comprobante» salió a `components/ver-comprobante.ts` para las dos
+  filas. El rechazo de la base por campo (`falloDeLaBase`) pasó a `infra/dinero/rpc.ts` y lo comparten gastos y pagos.
+- **D10 · La lista de pagos de una unidad es una lectura directa** (`pagos_vehiculo_idx`, tope 50 + 1, más recientes primero), no `pagos_listar` (de 6.11-3).
+- **D11 · El e2e no sube comprobante ni anula:** lo de anular lo cubren vitest y las pruebas SQL de 6.10; el e2e registra, confirma con otra cuenta y mira el margen. Los tres diálogos de URL declaran su
+  `usePanelPorUrl` en su propio archivo (lo exige `confirmar-con-url.test.ts`) y comparten la revisión de `usePagoPorUrl`.
+
+<!-- paso:6.11-3 -->
+
+## 2026-11-11 — Paso 6.11-3: `/logistica/gastos` (parte 3 de 4 del 6.11)
+
+- **D1 · El cursor de `(fecha, id)` viaja como instante** `<fecha>T00:00:00Z` para pasar `leerCursor()` (que sólo acepta instantes completos); la infra manda a la base sólo la fecha. No se tocó `src/shared`.
+- **D2 · Sin «Anterior».** Las dos RPC sólo caminan hacia adelante (`(fecha, id) < cursor`). Hay «Siguiente», «Volver a los más recientes» y el «atrás» del navegador; `anterior` es siempre nulo. Sin migración.
+- **D3 · La fila abre el panel de la unidad de `/logistica`** (`?vehiculo=`, el mismo `DrawerDeLaUnidad` y `UnidadAbierta`): la página los importa de `src/app`, y pasa la clave al componente del módulo como prop. Abrir suma al historial con la vuelta del foco.
+- **D4 · La lista de pagos no nombra a quien confirmó:** `pagos_listar` no lo trae y leer `perfiles` por fila sería N+1. Dice «Confirmado» con «el <fecha>»; el nombre está en el sello del panel de la unidad.
+- **D5 · Cambiar de vista («Gastos» ↔ «Pagos») limpia filtros y página:** no son los mismos filtros.
+- **D6 · Ninguna suma ni total en la lista.** Cada monto es el de su fila y el equivalente es el `monto_base` que guardó la base; el total de una unidad es su margen.
+- **D7 · Sin «Ver comprobante» ni acciones por fila:** abrir la unidad es el camino a corregir, eliminar, confirmar o anular (los diálogos viven en un solo lugar).
+- **D8 · La lista no se refresca mientras el panel está abierto;** al cerrarlo, la página se vuelve a pedir (`shallow: false`).
+- **D9 · Página fija de `TAMANO_DE_PAGINA_POR_DEFECTO`** (50), sin `?por=`: así lo registra la guarda de tamaño de página.
+- **D10 · El enlace «Gastos» pide `logistica.gastos.ver`** (un enlace lleva un solo permiso). Quien sólo ve pagos entra por «Ver todos en Gastos» del hueco «Pagos» o por la URL; la página atiende cualquiera de las dos claves.
+- **D11 · `?ver=` o un filtro inválido se descartan, nunca dan error.** El pedido manda a cada RPC sólo las claves que acepta (una de más da 22023); lo cubre `entities/dinero/listas.test.ts`.
+- **D12 · Limitación aceptada:** la hoja de filtros del celular usa `?panel=filtros`, la misma clave que los drawers de gasto y de pago (abrir uno cierra el otro). La hoja se cierra al tocar una fila.
+- **D13 · Sin filtro por vehículo ni por proveedor:** la base no los tiene (sería una migración). Abierto para quien lo pida.
+- **D14 · La prueba de huecos de la unidad** (`huecos-de-la-unidad.test.tsx`) afirmaba que ninguna área declaraba huecos y estaba en rojo desde 6.11-1: ahora afirma que sin permisos no se dibuja ninguno.
+
+<!-- paso:6.11-4 -->
+
+## 2026-11-11 — Paso 6.11-4: prorratear y categorías de gasto (parte 4 de 4, cierra el 6.11)
+
+- **D1 · Partes iguales**, como la base en 6.10. Por valor del vehículo u otro criterio es el abierto **6-6** (base e interfaz).
+- **D2 · El prorrateo no tiene e2e de pantalla:** ninguna página de grupo monta `HUECOS_DE_DINERO_EN_EL_GRUPO` (6.08 y 6.09 no están integradas). Se cubre con vitest de entidad (los números de la base), de esquema y de componente; el e2e de esta parte es el de las categorías. Quien monte la página de grupo añade su recorrido.
+- **D3 · `id` de embarque = booking; de contenedor = número** (no hay otra definición hoy: `pantallas/transporte-*.ts` siguen vacíos). El hueco lee sus unidades con `.limit(201)`; con más de 200 avisa y no deja repartir (no se parte en lotes).
+- **D4 · Sin comprobante en el prorrateo:** cargarlo una vez y repetirlo en N filas rompe «borrar por refcount» sin ganar nada; se adjunta desde cada unidad.
+- **D5 · La vista previa nunca muestra un equivalente ni un total en base:** muestra cada parte en la moneda del gasto, la suma de las partes (el monto tipeado) y dice que el equivalente lo calcula la base al confirmar.
+- **D6 · Categoría en uso:** la lista no cuenta usos por fila; «Eliminar» se ofrece siempre y, si la base responde 23503, el diálogo dice que se desactive. Una categoría con propósito `tributos` no cambia de propósito en la interfaz (Aduana la lee); la base no lo impide.
+- **D7 · Orden = un número 0–32767 del modal**, no botones: intercambiar dos serían dos escrituras sin transacción. La lista usa `ListaDeCatalogo` con `icono: null` y los botones de orden apagados con el motivo.
+- **D8 · Propósito = un select con los seis del `check` de la base** más «Sin propósito»; sus nombres salen de una tabla en `entities/dinero/categoria.ts` con un test que la ata a esa lista.
+- **D9 · Escritura directa por Server Action** con el cliente de quien pide; el límite es la RLS (`logistica.catalogos.gestionar`). Una escritura que la RLS deja en cero filas se dice «No tienes permiso…», nunca éxito.
+- **D10 · El `lote` del prorrateo** se conserva si la respuesta se perdió (`inesperado`) o no hubo red y se renueva al cambiar lo escrito, al rechazar la base (no escribió nada) y tras un éxito; un reintento devuelve `ya_existia` y se trata como éxito.
+- **D11 · El catálogo llena la sección «Logística» del hub:** `secciones.test.ts` pasa a ocho y `catalogos.test.ts` y el e2e de Configuración › Logística dejan de afirmar «no hay nada que configurar».
+
+<!-- paso:7.01-1 -->
+
+## 2026-11-11 — Paso 7.01-1: notificaciones, la base (la puerta, la lista, realtime y los jobs)
+
+- **D1 · Las preferencias no apagan la campana** (la recomendada de la fila): la puerta mira sólo baja y bloqueo; la campana es el registro y las preferencias
+  gobiernan sólo el push (7.03). Así no cambian las filas que insertan otras fases.
+- **D2 · La limpieza avisa al creador del vehículo, 3 días antes** (la recomendada de la fila; se hace en la 7.01-2): es quien tiene «Conservar».
+- **D3 · `actividad_purgar()` no se programa** (la recomendada de la fila): borra auditoría y es de la Fase 9. Esta fase purga lo suyo con
+  `notificaciones_purgar()`; que las dos borren lo mismo cuando la Fase 9 la programe no hace daño.
+- **D4 · Cambiar la hora de un recordatorio reemplaza su aviso abierto:** antes de avisar, `recordatorios_notificar()` borra la notificación del mismo
+  recordatorio que sigue sin accionar. Si quedara, el antispam se tragaría el aviso nuevo y `notificado_en` quedaría sellado sin aviso. Se puede revertir
+  cambiándolo por sellar `accionada_en`.
+- **D5 · Un recordatorio eliminado se sella sin avisar:** si sólo se filtrara, quedaría al frente de `recordatorios_pendientes_idx` y cada corrida lo volvería a
+  recorrer. Conducta aceptada (auditoría del plan, obs. 4): uno borrado antes de su hora y restaurado después no avisa (`recordatorio_restaurar` no vuelve
+  `notificado_en` a nulo); la agenda igual lo muestra «Vencido».
+- **D6 · La publicación de Realtime tiene su doble en PGlite** (el preámbulo de `scripts/probar-schema.mjs` la crea vacía) en vez de quitar la línea de la
+  migración: así `db:probar` mira el catálogo de verdad. No hizo falta el plan B.
+- **D7 · `notificaciones_por_accionar_idx` lleva las columnas de la lista** (`usuario_id, creado_en desc, id desc`): «primero las que piden acción» de 7.02 corre
+  el mismo cursor sobre el parcial.
+- **D8 · Sin índice nuevo para la purga:** el `limit` corta el recorrido al llenar el lote, lo viejo está al principio y corre una vez al día. Un índice por
+  `visto_en` pagaría una escritura en cada visita.
+- **D9 · Un destinatario sin perfil también se descarta en silencio** (antes caía por la FK): una notificación nunca hace fallar la operación que avisa.
+- **D10 · `recordatorios_notificar()` entra al inventario de la cartera de `humo.sql`:** lee la fila vigente de `leads_asesores` del dueño del recordatorio
+  sólo para elegir la `ruta` de su propio aviso; a quien está de baja no le llega nada (la puerta).
+- **D11 · Sin prueba de carrera para el job:** dos corridas solapadas se reparten las filas con `skip locked` y el antispam frena lo que quede; no hay candado
+  de numeración ni de dinero.
+- **D12 · Realtime no aplica RLS a los `DELETE`** (llegan a todo suscriptor con la PK): este paso borra en D4 y en la purga diaria. 7.02 se suscribe sólo a
+  `INSERT` y `UPDATE` con filtro `usuario_id=eq.<yo>` y nunca reacciona a `DELETE` (auditoría del plan, obs. 2). Va en la ficha de `notificaciones`. Realtime
+  igual decodifica cada `DELETE` de la purga (hasta 50.000 por noche): 7.02 apunta ese costo en `docs/RENDIMIENTO.md` al escribir la fila de la campana.
+- **D13 · El 7.01 se parte en dos sesiones:** 7.01-1 (esta) y 7.01-2 (los avisos al compartir, transferir y limpiar, con `avisos-de-cartera.sql`). Juntas
+  pasaban de 6 commits de código, y la 7.01-2 tiene que decidir la marca de «ya avisado» de la limpieza, el choque con el antispam al volver a compartir y en
+  qué job corre.
+
+<!-- paso:7.01-2 -->
+
+## 2026-11-11 — Paso 7.01-2: los avisos de cartera y de limpieza
+
+- **D1 · Ningún aviso nombra al lead** (ni teléfono, ni número, ni nombre): un lead puede llamarse como su teléfono (alta desde un mensaje), el texto viaja
+  por Realtime y el aviso queda después de que le quiten el acceso. Dice «<quien> te compartió/transfirió un lead» y se abre por la `ruta` (`/leads/<id>`).
+  Sumar el nombre es una línea.
+- **D2 · La limpieza avisa al creador del vehículo, 3 días antes:** ya anotada en la 7.01-1 (la recomendada de la fila).
+- **D3 · Repetir reemplaza el aviso abierto:** volver a compartir tras quitar el acceso, o transferir A→B→A→B, borra el aviso sin accionar de antes y deja
+  uno nuevo (si no, el antispam se lo tragaría). Como estos avisos no piden acción y 7.02 marca leída al abrir, `accionada_en` casi siempre queda nulo:
+  en la práctica se borra también el anterior ya leído, y lo reemplaza uno igual y más nuevo. Se acepta (sellar `accionada_en` dejaría dos iguales).
+- **D4 · La marca de «ya avisado» de la limpieza es una tabla propia** (`limpieza_avisos`): una columna en `vehiculos` movería `actualizado_en` (PT409 a quien
+  tiene la ficha abierta) y escribiría en `actividad`; un `exists` sobre `notificaciones` se pierde cuando la persona borra el aviso o lo purga la purga.
+- **D5 · Una vez por vehículo, para siempre:** ni quitar «Conservar» ni restaurar de la papelera vuelven a avisar. Límite conocido; la marca guarda la fecha
+  avisada para poder cambiar la regla sin migrar datos.
+- **D6 · Sólo avisa al destinatario:** al saliente de una transferencia (queda compartido), a quien transfiere, a quien quita el acceso o a quien sale, no.
+- **D7 · `lead_compartido` y `lead_transferido` sin acción** (`requiere_accion = false`): informan; no hay botón que los resuelva.
+- **D8 · `limpieza_pronto` con acción:** pide decidir «Conservar». Al accionarse se libera el antispam, pero manda la marca (D4).
+- **D9 · No se toca quién puede conservar ni restaurar:** si el creador ya no puede editar el vehículo, igual se le avisa (lo conservador).
+- **D10 · La ficha de `vehiculos` no cambia:** el aviso lo documenta la de `notificaciones` y el GLOSARIO.
+- **D11 · La ventana se repite en SQL** (`_limpieza_ventana_de_aviso()` = 3), atada a `VENTANA_DE_AVISO_DIAS` por comentarios en los dos lados; la prueba L1
+  fija el borde (hoy + 3 avisa, hoy + 4 no).
+- **D12 · Un vencido pendiente también avisa, una vez:** su fecha cae en hoy o mañana (`greatest(vence, proxima)`), que es cuando se va.
+- **D13 · Job propio y diario** (`limpieza-avisar`, 13:15 UTC, ≈ 09:15 en La Paz): `limpieza_automatica_correr` devuelve temprano (`temprano`, `ya_corrio`) y
+  recrearla para avisar era más riesgo.
+- **D14 · Un aviso por vehículo, no agrupado por creador** (la fila: «una vez por vehículo»), con tope de 200 por corrida. Agrupar, si resulta ruidoso, es de
+  7.02/7.03.
+- **D15 · El cuerpo de `limpieza_pronto` no lleva la fecha:** una fecha visible se formatea con `fechas.ts`, no con `to_char` en SQL; la ficha, a la que lleva
+  la `ruta`, ya dice «Se limpia el dd/mm». (El plan la ponía en el cuerpo.)
+- **D16 · Sin tope de filas revisadas en `limpieza_avisar()`:** cada día recorre, por `vehiculos_limpieza_orden_idx` y con cota superior, los retenidos por
+  ancla y los ya avisados (saltados por PK), como la corrida nocturna recorre los retenidos. Límite conocido: si crecen, el arreglo es una cota inferior o
+  un índice parcial (sin `limpieza_avisos`).
+
+<!-- paso:7.03-1 -->
+
+## 2026-11-11 — Paso 7.03-1: push web, la base
+
+- **D1 · Un pase y no un secreto compartido** (duda 1 de la fila): la base no guarda secretos. `push_disparar()` crea un pase de un uso (10 min) atado a
+  la notificación y lo manda por `pg_net`; la función lo canjea con `push_abrir()`.
+- **D2 · El envío va con Web Crypto (RFC 8291/8292) en la 7.03-2** (duda 2): el contrato lo importa Vitest desde Node y un `npm:web-push` no carga ahí.
+  Se verifica ese día con `pnpm funciones`.
+- **D3 · El push lleva título, cuerpo y `ruta`, nada más** (duda 3): `push_abrir()` no devuelve tipo, ids ni referencia.
+- **D4 · Tope de 10 por persona: se borra la menos reciente** en vez de rechazar (quien cambia de navegador no queda trabado; cambiarlo por un 22023 es una
+  línea). El candado consultivo del tope no lleva carrera en `scripts/carreras/`: si fallara quedarían 11, sin dinero ni datos ajenos; el canje de un uso
+  lo serializa el `update … where usado_en is null`.
+- **D5 · `push_desuscribir` no exige el permiso:** quien perdió el rol tiene que poder quitar las suyas; sin el permiso igual no recibe nada.
+- **D6 · `push_pases` es tabla propia, no `cola_gc_pases`:** el pase queda atado a su notificación (cascade) y `storage_gc_abrir` no puede quemar uno de push.
+- **D7 · Un pase y un pedido por notificación** (`for each row`): la función manda a lo sumo 10 por invocación. Un lote de 200 avisos de un job encola hasta
+  200 pedidos `pg_net` si todos tienen push; se acepta (asíncronos tras el commit).
+- **D8 · Sin `url_proyecto` el disparo calla** (sin warning): corre por cada notificación y los jobs ya avisan de la falta.
+- **D9 · `fallos` sólo cuenta;** se borran sólo las 404/410 (un servicio caído no tira suscripciones buenas). 7.04 puede mostrar `fallos`.
+- **D10 · Las pruebas van en `areas/push/push.sql` y `disparo.sql`** (tope de 300 líneas por archivo).
+- **D11 · `push_abrir` y `push_resultado` entran en la 7.03-1** (la fila los ponía en la parte 2): son SQL y se prueban con `db:probar`; la 7.03-2 no toca la base.
+- **D12 · Sin caso en `humo.sql`** (desvío de `.claude/rules/migraciones.md`): las policies tocadas tienen su prueba de área con usuario simulado (S2, S4).
+- **D13 · Dos defensas contra el proxy abierto:** la base valida el endpoint (`_push_endpoint_valido()`: `https`, sin `\`, espacios ni control, host de la
+  lista justo tras `https://`), borra al migrar las filas que no pasan (antes cualquiera insertaba la suya) y `push_abrir` sólo devuelve las válidas; el
+  adaptador de la 7.03-2 vuelve a validar con `new URL()` y no hace `fetch` si no pasa.
+- **D14 · La preferencia de push por tipo es un objeto** (check `preferencias_push_por_tipo`, `not valid` para no frenar la migración por una fila previa).
+
+<!-- paso:7.03-2 -->
+
+## 2026-11-11 — Paso 7.03-2: push web, la función
+
+- **D15 · Web Crypto propio, no `web-push` en Deno** (duda 2 de la fila; confirma D2 de la 7.03-1): `webpush.sendNotification` hace su propio pedido
+  `https` de Node y no admite el `fetch` inyectado que pide la fila; la decisión no depende de si `npm:web-push` carga en el runtime. `web-push` y su
+  `http_ece` quedan como oráculo de la prueba de contrato (sin instalar nada).
+- **D16 · Primero el pase, después las claves:** con `verify_jwt = false` cualquiera puede llamar; si las claves se miraran antes, un anónimo sabría si
+  el push está configurado. Que el pase quede usado sin resultado no cuesta nada: `push_abrir` lo limpia al día.
+- **D17 · `{ ok: false, error: { codigo: 'sin_claves', mensaje } }` con HTTP 200:** la convención de errores como valores del README y de `storage-gc`.
+  La fila decía `{ ok: false, codigo }` de corrido; el código es el mismo y nadie más lo consume (`pg_net` sólo lo guarda). Desvío dicho.
+- **D18 · Sólo 404/410 caducan:** 3xx, 400, 403, 413, 429 y 5xx son `fallo`; no se borra una suscripción buena por un error nuestro (un 403 es otra
+  clave VAPID).
+- **D19 · Carga ≤ 3000 bytes, `TTL` de 24 h, sin `Urgency` ni `Topic`:** lejos del límite de 4096 del registro; un aviso de más de un día ya está en la
+  campana. `ruta` viaja sólo si empieza por `/` y no por `//`.
+- **D20 · En paralelo, 10 s por suscripción:** ≤ 10 suscripciones en ≤ 10 s, debajo de los 30 s de `pg_net`.
+- **D21 · `push` no entra a la guardia de funciones del e2e ni a la lista del CI:** ningún spec la llama y `push_web` nace apagada.
+- **D22 · La lista de hosts vive dos veces** (SQL y `enviar.ts`) a propósito: es la segunda defensa contra el proxy abierto.
+- **D23 · `redirect: 'manual'`** (auditoría del plan): un 307/308 de un host permitido reenviaría el `POST` con su cuerpo a un host que la lista no
+  revisó; todo 3xx es `fallo`.
+- **D24 · La prueba de la función va en su archivo** (`push-funcion.test.ts`) y no en `push-contrato.test.ts`: juntas pasaban las 300 líneas.
+
+<!-- paso:7.06-1 -->
+
+## 2026-11-11 — Paso 7.06-1: escribir eventos y tareas por RPC
+
+- **D1 · Un evento puede llevar una cotización:** `eventos.cotizacion_id`, FK `on delete set null`, con índice. Las tareas ya la tenían.
+- **D2 · Quién cambia una tarea:**
+  - El creador la edita, la elimina y la reasigna (reasignar, con `agenda.tareas.asignar`).
+  - El responsable sólo la completa y la reabre.
+  - Se aparta de antes, cuando el responsable con `asignar` también reasignaba: sigue la recomendada de la fila.
+- **D3 · Una tarea nacida en una conversación** sólo se da o se reasigna a un miembro de esa conversación.
+- **D4 · La conversación de la tarea es una columna,** `tareas.conversacion_id`, que fija `tarea_crear` y no cambia. No se deduce de
+  `mensajes.tarea_id`: una ficha compartida después en otro chat no amplía quién la ve.
+- **D5 · La versión de `eventos` y `tareas` la mueve `agenda_version()`,** con `greatest(clock_timestamp(), anterior + 1 µs)`. Reemplaza a
+  `trg_actualizado_en`, que no se movía dos veces en una transacción.
+- **D6 · `aplicado_en` de los permisos de agenda no se toca:** vive en `seed.sql` (carril a), y el seed lo pisaría.
+- **D7 · El registro de `paginas-en-la-base.ts`** llega con la primera llamada de su RPC (7.07). La guarda falla con una entrada que nadie llama.
+- **D8 · Las pruebas con usuario simulado** van en `supabase/tests/areas/agenda/`, no en `humo.sql`.
+- **D9 · Un evento puede empezar en el pasado** (para registrar una reunión hecha). Sólo la tarea no vence en el pasado.
+- **D10 · Avisos de evento:** `evento_invitacion` no pide acción y quitar a alguien no avisa. Un evento privado o público no lleva destinatarios.
+- **D11 · Completar, eliminar o reasignar** accionan la `tarea_asignada` abierta del responsable (al reasignar, la del anterior).
+- **D12 · `reasignar_tarea` cambia de firma** a `(p_tarea, p_actualizado_en_esperado, p_responsable)`. La vieja se borra con `drop`, sin dejar sobrecarga.
+- **D13 · Las RPC de escritura responden `{resultado, id, actualizado_en}`.** La cotización se comprueba con `puede_cotizacion()`, nunca leyendo `public.cotizaciones`.
+- **D14 · Los docs van por parte,** en `docs/pasos/7.06-1/`.
+- **D15 · `p_datos` al guardar:**
+  - Una clave presente es un cambio, una ausente no toca nada y un nulo quita el valor.
+  - Una clave desconocida da 22023 con la clave en el hint.
+  - `p_destinatarios` nulo deja la lista como está.
+- **D16 · Eliminar un evento público o «seleccionados»** exige `agenda.eventos.publicar`.
+- **D17 · Orden en toda RPC que edita:**
+  - `assert_activo()`, luego la fila `for update`.
+  - Si no la ve, 42501 «No encontramos…». Si no le toca, 42501.
+  - Después `sin_cambios`, luego la versión (PT409) y al final el cambio.
+  - `reasignar_tarea` pide `asignar` antes de tomar la fila: a una persona bloqueada le llega «No tienes el permiso», y escribir no puede igual.
+- **D18 · Publicar también para despublicar:** `evento_guardar` exige `agenda.eventos.publicar` si el evento era o queda público o «seleccionados».
+  Es coherente con D16: sin esto, quien perdió el permiso podría volverlo privado y después eliminarlo.
+- **D19 · A quien ya estaba no se le revalida:** al guardar, sólo a quien se suma como destinatario se le pide estar activo y sin bloqueo. Una baja
+  posterior no impide editar el título.
+
+<!-- paso:7.06-2 -->
+
+## 2026-11-11 — Paso 7.06-2: lecturas de la agenda y visibilidad
+
+- **D20 · Las lecturas de la agenda son de invocador:** `agenda_rango` y `agenda_tareas_sin_fecha` dejan que la RLS de cada tabla decida y «mi agenda»
+  es un filtro encima. Así las subastas quedan bajo la RLS de vehículos y ningún error de la función filtra una fila. `agenda_quienes_reciben` es
+  definer porque usa ayudantes revocados (`_agenda_puede_recibir`, `_equipo_lista_indexable`, `_equipo_busqueda_patron`).
+- **D21 · `eventos: leer` en línea,** con `_agenda_soy_destinatario(id)` definer y de authenticated (la evalúa la policy). `puede_evento` queda para
+  `eventos_destinatarios: leer` y `evento_guardar`. E10 y T8 la exceptúan por firma.
+- **D22 · «Mi agenda»:** eventos que creé, públicos o donde soy destinatario; tareas de las que soy responsable; mis recordatorios pendientes; las
+  subastas que la RLS me deja ver. Con `p_de_todos` (exige `agenda.ver_todo`): todos los eventos y todas las tareas con fecha. Las tareas que di a
+  otros no están: si 7.07 las pide, es una ruta más por `(creado_por, vence_en)`.
+- **D23 · Cada cosa entra por su fecha** en `[p_desde, p_hasta)`: el evento por su inicio (uno que empezó antes y sigue no aparece), la tarea por su
+  vencimiento, el recordatorio por su hora y la subasta por su cierre.
+- **D24 · Tope fijo de 200 por clase,** sin parámetro de tamaño; la respuesta trae `tope` y `hay_mas`. El rango es obligatorio, en orden y de hasta 45 días.
+- **D25 · `agenda_rango` devuelve sólo lo que dibuja un chip.** El recordatorio va sin lead; ninguna lectura toca `cotizaciones`.
+- **D26 · «Sin fecha»:** mis tareas (responsable) vivas, sin fecha y no canceladas (pendientes y completadas), la más nueva primero, cursor
+  `(creado_en, id)`, 20 por defecto y 50 como mucho.
+- **D27 · `agenda_quienes_reciben` suma `p_conversacion`** a la firma de la fila, para que reasignar una tarea del chat no ofrezca a quien D3
+  rechazaría. Pide `agenda.tareas.asignar`, busca como Equipo (nombre o email, ≥ 3 letras o dígitos) y corta en 20.
+- **D28 · 7.06-3 entra en esta parte:** `entities/visibilidad.ts` es espejo de la base, nunca la autoridad; D3 y quién puede recibir siguen en la base.
+- **D29 · Sin `medir-*.sql`:** `eventos` y `tareas` no son tablas que crecen y el rango acota a 45 días. Las subastas usan el mismo índice por origen y
+  tienen el mismo límite con «propios» que ya anotó 4-23 para el panel del vehículo (`medir-panel-cierre-subasta.sql`).
+- **D30 · Docs en `docs/pasos/7.06-2/`** (carril con coordinador); la sección «Agenda» de `docs/RENDIMIENTO.md` sí se toca.
+
+<!-- paso:7.07-1 -->
+
+## 2026-11-11 — Paso 7.07-1: el calendario de lectura de `/agenda`
+
+- **D1 · La semana empieza el lunes.** Es lo que se usa en el país de la zona por defecto; es una constante (`PRIMER_DIA_DE_LA_SEMANA`) de `entities/calendario`.
+- **D2 · El mes en el celular es una lista por día,** sólo con los días que tienen algo, no la grilla (la recomendada de la fila). Mes y semana comparten `ListaPorDia`.
+- **D3 · El celular abre en «día»** por el ancho de la petición (`anchoDeEstaPeticion()` contra `CORTE_DE_LA_TABLA`) y el escritorio en «mes»; `?vista=` manda.
+- **D4 · «Hoy» y los cortes de día son los de la zona de la empresa** (`ajustes_empresa.zona_horaria`, `ZONA_POR_DEFECTO` si falla). El rango que se pide a la base se
+  arma con `inicioDelDia(primerDía)` y `inicioDelDia(díaSiguiente(últimoDía))`: un día con cambio de horario dura 23 o 25 h (lo prueba el 25 de oct de 2026 en Madrid).
+- **D5 · `?de=todos` sin `agenda.ver_todo` se ignora** (la base volvería a exigirlo) y el interruptor «Ver la de todos» no se dibuja: es un filtro de lectura, no una acción.
+- **D6 · Colores por clase con tokens existentes:** evento `info`, tarea `positivo`, recordatorio `aviso`, subasta `visitado`; el chip dice su clase con texto.
+- **D7 · El error de lectura sube al `error.tsx` de `(app)`** con «Reintentar» (`datosO`), como el resto de las pantallas de lectura.
+- **D8 · Calendario propio con CSS grid y `date-fns`/`Intl`:** ninguna librería nueva. El título del rango sale de `Intl` en español; ningún mes escrito en el código.
+- **D9 · En esta parte evento, tarea y recordatorio no son enlaces** (sus paneles llegan en 7.07-2 y 7.07-3); sólo la subasta navega, a `/vehiculos/<id>`.
+- **D10 · El título es el `<h1>` y las cuatro clases del filtro son botones de alternar con texto** (`aria-pressed`); sin ninguna elegida se vuelve a «todas».
+- **D11 · `Agenda` aparece en la barra lateral de todos** (`permisos: null`): `navegacion.test.ts` ahora espera `['inicio', 'agenda']` sin permisos.
+- **D12 · El «+N más» de una celda cuenta lo cargado:** si una clase llegó al tope (`hay_mas`), dice «+N+ más» y al pie sale el `AvisoDeTope` con «Ver el día».
+- **D13 · Los números de `?ver=` van como un solo `parseAsString`** con la lista separada por comas (no `parseAsArrayOf`: ningún uso existente en el repo); `leerClases` ignora lo desconocido.
+
+<!-- paso:7.07-2 -->
+
+## 2026-11-11 — Paso 7.07-2: los paneles de evento y de tarea de `/agenda`
+
+- **D1 · El selector de destinatarios lee `perfiles` desde el navegador** (`id` y `nombre`, activas y sin bloqueo, desde 3 letras, 21 filas y 20 mostradas): `perfiles: leer`
+  lo deja a toda persona activa y la base vuelve a exigir activos y sin bloqueo al guardar. `equipo_lista` no sirve (pide `equipo.usuarios.ver`). Descartada: una RPC nueva.
+- **D2 · El responsable de una tarea usa `agenda_quienes_reciben`** y sólo con `agenda.tareas.asignar`; sin él, el texto dice «Será tu tarea.».
+- **D3 · Los chips de evento y tarea son enlaces** a `?evento=` / `?tarea=` que conservan `vista`, `fecha`, `ver` y `de` (`entradasDeAgenda(…, rutaDe)`).
+- **D4 · Ver y editar comparten la URL:** `?evento=<id>` ve; `&editar=1` cambia el cuerpo (dos `<Drawer>`, el de detalle y el de formulario, ambos registrados). Cerrar vuelve a pedir
+  la página sin esas claves (`shallow: false`); entrar y salir de «editar» no pide nada.
+- **D5 · «Nuevo evento» y «Nueva tarea» son `?panel=nuevo-evento|nueva-tarea`** (shallow); `N` abre «Nuevo evento». Tras crear, se cierra el alta y se abre el detalle por
+  `usePanelDeDetalle().abrirEvento(id)` (nuqs): un `router.replace` dejaba el estado de nuqs con `panel` abierto y el alta seguía a la vista.
+- **D6 · Valores de partida en la zona de la empresa:** el evento, a las 09:00 del día de la vista (hoy si ya pasó); la tarea, a las 18:00 y, si ya pasaron, mañana.
+- **D7 · Los vínculos (lead, vehículo, cotización) se muestran como enlace y no se editan;** los formularios no mandan esas claves, así que la base las conserva.
+- **D8 · El vencimiento de una tarea es obligatorio en la interfaz** mientras no exista «Sin fecha» (7.07-3): una tarea sin fecha no saldría en el calendario.
+- **D9 · Quién ve a quién:** la lista de destinatarios la ve sólo quien creó el evento; «Editar» y «Eliminar» no se dibujan para quien no puede (`puedeEditarEvento`, `puedeEditarTarea`);
+  sólo las opciones «Público» y «Seleccionados» se deshabilitan con motivo.
+- **D10 · El detalle se lee en el servidor por id** (`leerEvento`, `leerTarea`); lo que no se ve, no existe o está eliminado dice lo mismo: «No encontramos este evento/esta tarea».
+- **D11 · Errores:** el `hint` de la base va junto a su campo; `PT409` → `<AvisoDeConflicto>` con «Recargar»; eliminar es un `<Confirmar>` que nombra el objeto.
+- **D12 · `evento_guardar` recibe siempre la lista de destinatarios** (`[]` si no es «seleccionados»): el tipo generado no admite nulo. `tarea_guardar` nunca manda `responsable_id`.
+- **D13 · «Destinatario» es el término** (tabla `eventos_destinatarios`, pantalla «Destinatarios»), no «invitado»; entró al glosario.
+- **D14 · La asesora del terreno del e2e no recibía tareas:** el spec le agrega `agenda.tareas.recibir` a su rol (lo borra `limpiarListado` con el rol).
+
+<!-- paso:7.07-3 -->
+
+## 2026-11-11 — Paso 7.07-3: completar, reasignar, «Sin fecha», recordatorios y la bandeja
+
+- **D1 · Completar es un botón en el pie del panel de la tarea** (`Marcar como hecha` / `Reabrir`), sólo para quien `puedeCompletarTarea`; poner, no alternar (`completada: true|false`).
+- **D2 · Reasignar vive dentro del detalle, sin URL propia:** «Cambiar de responsable» despliega el selector de una persona (`agenda_quienes_reciben`) y «Reasignar»; no es otro drawer. El rechazo de la
+  base (`hint responsable_id`) va junto al selector.
+- **D3 · «Sin fecha» es una sección bajo el calendario,** cerrada al entrar, que se lee al abrirla y descarta lo cargado al cerrarla (una tarea completada o creada desde un panel no queda vieja).
+  Sólo se dibuja si el filtro incluye tareas. Cada fila es un enlace a `?tarea=<id>`.
+- **D4 · Tope de «Sin fecha»:** 500 (`TOPE_DE_LO_CARGADO`) con `<AvisoDeTope>`; son tareas mías y pocas, no hay otra pantalla donde ir.
+- **D5 · El vencimiento de una tarea es opcional** (relaja la D8 de 7.07-2): vacío es «sin fecha»; con valor y cambiado, no puede quedar en el pasado. Una tarea sin fecha no sale en el calendario.
+- **D6 · El panel del recordatorio lee por id en el servidor** (`recordatorios_vista`, bajo la RLS); lo que no existe, está eliminado o es ajeno dice «No encontramos este recordatorio.». Estado con texto
+  (Pendiente, Completado, Vencido; completado gana sobre vencido). No se edita aquí: el pie dice «Edítalo desde el lead».
+- **D7 · «Completar» el recordatorio usa la action de `leads` por su `client.ts`** (la RPC exige que sea de quien actúa); como esa action no revalida `/agenda`, el hook llama `router.refresh()`.
+- **D8 · «Mis tareas»:** pendientes cuyo responsable soy yo (la RLS deja ver también las que di y, con `agenda.ver_todo`, todas: por eso el filtro), `vence_en` ascendente con las sin fecha al final
+  (el orden de `tareas_responsable_idx`), `limit 6`; cada fila enlaza a `/agenda?tarea=<id>`.
+- **D9 · «Ver todas» lo dibuja cada bloque** (`VerTodasDelBloque`) siempre que haya filas, hacia `/agenda?ver=tarea` o `/agenda?ver=recordatorio`; las filas de «Recordatorios de hoy» no cambian de destino.
+- **D10 · El e2e prueba el camino de la fila y lo nuevo en dos pruebas** (escritorio, `@sin-celular` con motivo); nada de volumen ni de conflicto por interfaz.
+- **D11 · «Sin fecha» es el nombre** en tipos, tablas y UI (`agenda_tareas_sin_fecha`, «Tareas sin fecha»); entró al glosario.
+
+<!-- paso:7.08-1 -->
+
+## 2026-11-11 — Paso 7.08-1: conversaciones y membresía del chat (parte 1 de 3 del 7.08)
+
+- **D1 · El 7.08 se parte en tres** por capa de la base: 7.08-1 conversaciones y membresía, 7.08-2 mensajes y menciones, 7.08-3 lecturas paginadas
+  y no leídos.
+- **D2 · `par_directo` es un `uuid[]` ordenado que puede quedar nulo.** Una directa vieja duplicada queda con nulo: sus miembros la siguen leyendo,
+  pero `chat_directa` no la devuelve. No se fusionan conversaciones en una migración.
+- **D3 · La regla del canal global vive en `es_miembro()`,** no en cada policy: un solo lugar corta la lectura, la escritura de mensajes y lo que la
+  agenda pasa por ahí (`tareas: leer`, `tarea_crear`, `agenda_quienes_reciben`, `_agenda_tarea_tomar`). Quien pierde `chat.global` y no es
+  responsable ni creador de una tarea del canal deja de verla y de tocarla.
+- **D4 · Con quien no puede usar el chat** (de baja, bloqueado o sin `chat.participar`) no se abre una directa ni se lo suma a un grupo.
+- **D5 · Una directa no se deja; se silencia.**
+- **D6 · El grupo lo administra quien lo creó** (duda 3 de la fila). Si sale, nadie lo administra y el grupo sigue.
+- **D7 · `chat_grupo_miembros`, `chat_leer` y `chat_silenciar` van sin versión:** son idempotentes y no pisan nada. La versión de `conversaciones` la
+  movería cada mensaje y daría PT409 falsos. Hay que sumarlas a las excepciones de `.claude/rules/migraciones.md` (lo hace el coordinador).
+- **D8 · Un grupo tiene de 2 a 50 personas** (el tope de destinatarios de un evento) y un nombre de 1 a 80 caracteres.
+- **D9 · `chat_leer` recibe hasta dónde se leyó** y no lee `mensajes`: un mensaje de otra transacción con hora anterior no queda leído sin verse.
+- **D10 · `ultimo_mensaje_en` lo mueve un trigger,** no cada RPC: lo cubre todo camino que inserte un mensaje. En el canal global los envíos se
+  serializan en el tramo corto del `update`.
+- **D11 · El canal global se siembra en la migración** (la nube no corre el seed) con el nombre del seed, «Equipo».
+- **D12 · La publicación de realtime se toca en un bloque `do`** que mira `pg_publication`: PGlite no la tiene y la migración queda idempotente.
+- **D13 · `aplicado_en` de `chat.*` no se toca:** vive en `seed.sql` (carril a).
+- **D14 · Sin prueba de carreras** (duda 4 de la fila): la directa la cuida el índice único y `chat_directa` relee si pierde.
+- **D15 · Las RPC responden `{resultado, id}`** (más `ultimo_leido_en` en `chat_leer`); ninguna expone versión.
+- **D16 · Entrar al canal global no pide `chat.participar`:** se puede leer sin escribir.
+- **D17 · Los docs de la parte van en `docs/pasos/7.08-1/`;** la partición en `docs/PLAN.md` la anota el coordinador.
+- **D18 · La dueña no lee conversaciones donde no es miembro** (a propósito); ninguna RPC le da un atajo.
+- **D19 · `conversaciones_miembros` va a realtime como pide la fila,** sabiendo que Realtime no aplica RLS a los DELETE: un suscriptor recibe la
+  clave `(conversacion_id, usuario_id)` de quien sale de una conversación ajena (sólo uuids). Se acepta; regla para 7.09: suscribirse sólo a INSERT
+  y UPDATE filtrados por `usuario_id=eq.<yo>`.
+
+<!-- paso:7.08-2 -->
+
+## 2026-11-11 — Paso 7.08-2: mensajes del chat (parte 2 de 3 del 7.08)
+
+- **D1** · 7.08-2 lleva todo lo de mensajes (cabe en 5 commits); 7.08-3 no cambia.
+- **D2** · El cuerpo guarda cada mención como `#[<tipo>:<uuid>]` y la RPC exige que el conjunto de tokens del texto sea igual al de `p_menciones`: la referencia, nunca el
+  nombre. El parser de 7.10 escribe y lee ese formato.
+- **D3** · Mencionar o mandar en ficha un vehículo, lead o cotización exige verlo (lo mismo para los dos caminos); a una persona se la puede mencionar
+  siempre.
+- **D4** · El aviso `mencion` va sólo a miembros vigentes, no a quien envía, aunque esté silenciada (recomendada de 7.10); sin cuerpo (no copia el texto
+  a `notificaciones`), referencia `mensaje`, ruta `/chat?c=`. Al editar, los repetidos los absorbe `notificaciones_antispam`.
+- **D5** · Un mensaje admite hasta 4.000 caracteres; con ficha, el texto es opcional.
+- **D6** · Ventana de 15 minutos, constante en la RPC (duda 1). Editar pide `chat.participar` y versión `coalesce(editado_en, creado_en)` (regla de
+  `.claude/rules/migraciones.md`: toda RPC de edición lleva versión).
+- **D7** · Editar reemplaza el conjunto de menciones.
+- **D8** · Borra el autor o quien tiene `chat.moderar`, siempre siendo miembro (la dueña sin atajo, D18 de 7.08-1); sin ventana; sin versión (idempotente,
+  como `leads_papelera_enviar`): va a las excepciones. El cuerpo se vacía y las menciones se borran (duda 2); la ficha queda y el aviso ya dado queda
+  (no tiene contenido).
+- **D9** · El borrado sin cuerpo es un check, no sólo la RPC; un borrado previo con cuerpo se vacía en la migración (sin prueba de datos previos: PGlite
+  arranca vacío, lo dice la bitácora).
+- **D10** · `mensaje_editar_validar` se conserva como defensa (autor y `editado_en`) y deja pasar el borrado del moderador.
+- **D11** · El id del mensaje viene del navegador; el de la tarea o el evento lo genera el servidor. Un candado consultivo por id hace idempotente el par sin
+  dejar una tarea huérfana si chocan dos reintentos.
+- **D12** · Primero la RPC de agenda con sus reglas y después la del chat (miembro vigente), todo en una transacción: un error deshace la tarea o el evento.
+- **D13** · El evento sigue la visibilidad de 7.06 (privado por defecto): los demás miembros ven la ficha como placeholder salvo que lo publique quien puede.
+- **D14** · `tarea_crear` y `agenda_quienes_reciben` (carril b) no se tocan: `mensaje_tarea_crear` es más estricto; aviso al carril b.
+- **D15** · El índice del hilo reemplaza a `mensajes_conversacion_fecha_idx`; `mensajes_conversacion_id_idx` queda (reversible, sin medir hoy).
+- **D16** · `mensaje_enviar` no crea fichas de tarea ni de evento.
+- **D17** · `p_responde_a` es de la misma conversación; puede estar borrado.
+- **D18** · Sin prueba de carreras (duda 4).
+- **D19** · Docs en `docs/pasos/7.08-2/`; la partición la anota el coordinador.
+- **D20** · `creado_en` lo fija el servidor con `clock_timestamp()`.
+- **D21** · Una ficha de vehículo, lead o cotización puede quedar sin su referencia: sus FK son `on delete set null` y las papeleras borran de verdad;
+  exigirla frenaba la purga. Tarea y evento la siguen exigiendo (sus FK son `restrict`).
+
+<!-- paso:7.08-3 -->
+
+## 2026-11-11 — Paso 7.08-3: lecturas del chat (parte 3 de 3 del 7.08)
+
+- **D1** · `chat_conversaciones` y `chat_no_leidos` son `security definer`, no de invocador (a diferencia de `agenda_tareas_sin_fecha`): contar no
+  leídos bajo la RLS paga `es_miembro` por cada mensaje (hasta 2.000 por página). Repiten la regla entera, calculada una vez
+  (`v_global := tiene_permiso('chat.global')`; por fila `m.usuario_id = yo and (not c.es_global or v_global)`), y `lista.sql` L1 y L4 la prueban en el
+  borde que importa (global con fila y sin permiso). Si la regla de `es_miembro` cambia, cambia en los tres lugares.
+- **D2** · La lista parte de las filas de miembro de quien mira y ordena el top-N; `conversaciones_ultimo_mensaje_idx` (orden global) no sirve a
+  ninguna ruta y se borra: con él, cada mensaje volvía no-HOT el update de `ultimo_mensaje_en`. Respaldo: `EXPLAIN` con 200.000 conversaciones
+  (`.piloto/salidas/7.08-3/explain-200k.txt`, como dueño de la tabla y con valores literales). Desnormalizar `ultimo_mensaje_en` en `conversaciones_miembros` se descarta: cada mensaje del global
+  escribiría una fila por miembro, todas en `supabase_realtime`. Reversible.
+- **D3** · No leídos lee a lo sumo 100 entradas de `mensajes_hilo_idx` posteriores a la lectura y cuenta las de otros: acotado aunque la persona
+  haya escrito mucho sin leer. Si entre esas 100 hay propias, el número puede quedar bajo «99+»; por la pantalla no pasa (7.09 marca leído lo que
+  se ve, también al enviar). Los eliminados cuentan (el hilo muestra «Mensaje eliminado»).
+- **D4** · Tope 100 = `tope + 1` con tope 99: la base devuelve 0…100 y el código escribe «99+» con `conteoAcotado`/`conteoCorto`.
+  `chat_no_leidos()` devuelve un entero, no un objeto.
+- **D5** · Enviar no mueve la última lectura de quien envía: lo haría con `clock_timestamp()` y marcaría leído un mensaje ajeno de otra
+  transacción con hora anterior (lo que D9 de 7.08-1 evitó con `p_hasta`). Lo hace 7.09 con `chat_leer`.
+- **D6** · `p_tamano`: 20 por defecto (`TAMANO_DE_VER_MAS`) y 50 como mucho, como la agenda. Cursor `(ultimo_mensaje_en, id)`: una conversación
+  que recibe un mensaje mientras se pagina sube y no reaparece abajo; la trae la relectura de la cabeza (realtime de 7.09).
+- **D7** · El registro en `scripts/guardas/areas-c/paginas-en-la-base.ts` va con el primer llamador (7.09): `paginas.test.ts` rechaza una entrada
+  sin `.rpc(` en `src/`. `_acotar_pagina` ya lo vigila `escala.sql`.
+- **D8** · Sin vista previa del último mensaje: su cuerpo lleva tokens de mención que resuelve 7.10; 7.09 la suma con `create or replace` si su
+  diseño la pide.
+- **D9** · La lista devuelve `no_leidos` también de las silenciadas (con `silenciada`, la pantalla decide); el total no las suma («silenciar apaga
+  los no leídos», PLAN:1681).
+- **D10** · Leer no pide permiso aparte de la membresía (como la RLS de `mensajes`); `otro.nombre` sale aunque la persona esté de baja (la directa
+  sigue siendo legible).
+
+<!-- paso:7.12-1 -->
+
+## 2026-11-11 — 7.12-1: el buscador, la base
+
+- **Compuerta `datos`** por `buscador_cotizaciones` (un `security definer` nuevo): con `PILOTO_AUTO=todo` se aprobó sola. La sostiene B4 de
+  `supabase/tests/areas/buscador/buscador.sql` (la RPC ve lo mismo que la tabla para tres personas) y las mutaciones del informe.
+- **D1 · Las tres secciones son RPC**, no sólo la de cotizaciones: el assert pide «con 2 letras, nada» y el mínimo en el servidor, y por PostgREST no
+  hay dónde ponerlo. Las de leads y vehículos son invocadoras: no copian ninguna visibilidad.
+- **D2 · `buscador_leads` devuelve ids**, no filas: una `setof leads_vista` sólo nace en `_leads_vista_crear()`; el 7.12-2 hidrata con
+  `leads_vista_por_ids`, que recorta teléfono y privados.
+- **D3 · «La cotización que su nivel no ve»** se lee como el alcance de `cotizaciones.ver` (propios o todos, y la cartera): la fila no se recorta por
+  los niveles de la fórmula y la RPC no devuelve nada que un nivel recorte.
+- **D4 · No entra al inventario de `cotizaciones-visibilidad.sql`:** su detector no la ve (no nombra lo oculto ni devuelve la fila) y registrarla
+  rompería esa prueba; la ata B5 de `forma.sql` (columnas exactas y cuerpo sin lo oculto). Si un cambio la hace nombrar lo oculto, el detector la pide.
+- **D5 · Sin `lead_id`, `vehiculo_id` ni `creado_por`** en `buscador_cotizaciones`: el buscador muestra número y título; lo demás, al abrir la ficha.
+- **D6 · Hasta 1.000 candidatas por título**, de los orígenes que quien llama ve, más sus propias por `cotizaciones_creador_idx`: con más coincidencias
+  la sección muestra las propias más nuevas y cinco de la muestra; las de cartera ajena pueden quedar fuera. El camino a lo completo es
+  `/cotizaciones` (7.13 decide el enlace).
+- **D7 · `visita_registrar` no mira si la entidad se ve:** escribe sólo filas propias y no revela nada; la hidratación (7.12-2) pasa por la RLS de
+  cada entidad. Acepta `lead`, `vehiculo` y `cotizacion`.
+- **D8 · El tope de 50 sin candado:** dos visitas a la vez pueden dejar 51 un rato; la próxima recorta y `actividad_purgar()` borra lo de más de 30 días.
+- **D9 · Sin `medir-buscador.sql` en esta parte** (pruebas sólo en lo clave): el `EXPLAIN` de `buscador_cotizaciones` queda pendiente del 7.12-2, dicho
+  en RENDIMIENTO como límite sin assert.
+- **D10 · `#n` busca leads y cotizaciones**, no vehículos.
+- **D11 · Los docs de esta parte van a `docs/pasos/7.12-1/`**, como `docs/pasos/5.02-1/`.
+
+<!-- paso:7.12-2 -->
+
+## 2026-11-11 — Paso 7.12-2: el buscador, lo del navegador y la medición (parte 2 de 2 del 7.12)
+
+Siguen la numeración del 7.12-1 (`docs/pasos/7.12-1/decisiones.md`, D1–D11).
+
+- **D12 · Las lecturas viven en `buscador/infra` y salen por `buscador/client.ts`**, no en `leads`, `vehiculos` y `cotizaciones`: llaman a las RPC
+  `buscador_*` (dominio y carril b) y D1 ya las hizo RPC del buscador. 7.10 (`chat`) importa `@/modules/buscador/client` y suma `chat --> buscador` a
+  `docs/ARQUITECTURA.md`, sin ciclo. Reversible: se mueven a sus módulos sin tocar la base.
+- **D13 · El mínimo se decide con `interpretarBusqueda()` de `@/modules/leads/client`, y la llama la feature que compone** (la paleta del 7.13, el selector
+  `#` del 7.10). `entities` e `infra` no pueden importar otro módulo (`eslint.config.mjs`, auditoría del plan): `ranking.ts` recibe la interpretación ya
+  hecha con su propio tipo estructural (`Interpretacion`), y `buscar*.client.ts` reciben el texto ya validado. La base repite el mínimo y manda.
+- **D14 · Cancelar no tiene un valor propio:** la lectura no lanza; con la señal ya cancelada no pide nada, y quien canceló descarta la respuesta mirando su
+  `signal`. Así no se ensancha `Resultado` (de `src/shared`, del A, y disparador del Nivel 2).
+- **D15 · Los últimos abiertos son una lista mezclada por recencia**, sin grupos: se leen 16 y se muestran 8, para que una oculta o purgada no deje la lista corta.
+- **D16 · Registrar la visita no entra aquí:** es una escritura y va por Server Action en el 7.13 (`<RegistrarVisita>`).
+- **D17 · La hidratación no muestra marcador:** lo que no se ve desaparece, como en `leerNombresDeLeads`; si falla una de las tres lecturas, falla la lectura entera.
+- **D18 · `medir-buscador.sql` mide sólo `buscador_cotizaciones`** (D9: el único definer con `ilike` sobre una tabla que crece). El número se mide como `#n`
+  (`soloNumero`), Ana con 100 propias fijas (no crecen con N) y las 10 «Zafiro único» de la dueña entre las más viejas; antes de medir se vacía la lista
+  pendiente del GIN (`gin_clean_pending_list`), que en la nube vacía el autovacuum. La guarda (sin el GIN) muerde si recorre la tabla o si el heap crece.
+- **D19 · `MEDIR_SOLO` en el runner:** corre una medición sin las otras veinte de `db:medir:volumen`; va en el mismo commit que la medición (sin él no se corre sola).
+- **D20 · Sin test de `resultados.ts` aparte ni de `infra/`:** pruebas sólo en lo clave; `filasDesde` lo cubre `ranking.test.ts` y el camino feliz, el e2e del 7.13.
+- **D21 · `POR_SECCION` vive en `buscador/entities/ranking.ts`**, no en `src/shared/lib/paginacion.ts`: es el tope de una sección del buscador, no una página de
+  lista (precedente: `MAXIMO_DE_PAGINA_DE_VEHICULOS`), y `shared` es del A y dispara el Nivel 2.
+- **D22 · La contingencia de la medición entró: la ruta de las propias sólo corre donde se tiene «propios» sin «todos»** (`20261111200531_buscador_cotizaciones_rutas.sql`).
+  Con el plan genérico, un título raro de la dueña recorría todas sus propias por `cotizaciones_creador_idx` (2.235 → 11.147 bloques, 46 → 229 ms): la ruta corría
+  también en los orígenes con «todos». Se probó además pasar las dos consultas de candidatas a `execute … using` (`medir-buscador-2.txt`): planificada con el
+  texto, la del título va por un Seq Scan con `limit 1000` para un título común (≈ 600 bloques si las coincidencias se reparten; la tabla entera si quedan al
+  final), y la medición lo marcó como recorrido. Se quedan estáticas: el genérico va por el GIN. Queda como límite declarado en RENDIMIENTO lo que hace el plan a
+  medida en las 5 primeras llamadas de una sesión. La visibilidad no cambia: menos candidatas, y la misma policy repetida (B4 de `buscador.sql` sigue en verde y
+  suma el caso mixto: «todos» en un origen y «propios» en otro, atrapado por la mutación `v_solo_propios := v_t`). Lo que se pierde: quien ve «todos» en un
+  origen, con más de 1.000 coincidencias de un título, ya no tiene sus propias primero (la ruta del título toma 1.000 cualesquiera); llega por `#número` o
+  afinando el texto. Es un buscador con tope, no una lista. Se desvía de C14 del plan, que proponía `execute … using`: lo medido lo descartó.
+- **Compuerta `datos` (contingencia de C14):** cambiar `buscador_cotizaciones`, un `security definer`, sin cambiar su firma, lo que devuelve ni la policy repetida.
+  Con `PILOTO_AUTO=todo` se aprueba sola con la primera opción («seguir con la migración»); el informe se audita.
+
+<!-- paso:8.06-1 -->
+
+# 8.06-1: decisiones (2026-11-11)
+
+- **D1 · La dirección vive en un solo lugar.** Va en `integraciones.config.revalidar_url` y el secreto en Vault (`integracion:web_publica`). Esto cierra la
+  contradicción 1 de `docs/PLAN.md` (dos casas para la URL). La base es la que avisa al sitio y no lee variables de Vercel. El 8.06-2 borra
+  `WEB_PUBLICA_REVALIDAR_URL` y `WEB_PUBLICA_REVALIDAR_SECRETO` de `esquemas.ts`, `.env.example` y `docs/ENTORNOS.md`.
+  Mientras pg_net no manda el pedido, el secreto queda en las cabeceras de `net.http_request_queue`. Es lo normal en pg_net, y en Supabase esa tabla no se
+  le concede a `authenticated`. `db:probar` no lo puede comprobar, porque en PGlite el doble es `net.pedidos`.
+- **D2 · Cola y job cada minuto, no un disparo por cambio.** Una limpieza puede tocar miles de vehículos y serían miles de POST. Se usan triggers por
+  sentencia y un pedido por minuto que junta todas las etiquetas.
+- **D3 · Qué direcciones se aceptan.** La dirección puede ser `https://`, o `http://localhost|127.0.0.1`, que sirve sólo para «Probar» en local y en el e2e.
+  **El job sólo envía a `https://`**, así pg_net nunca le pega a un puerto local del servidor de la base. Riesgo aceptado: la regex acepta IP literales y
+  hosts privados. Lo acota que la dirección la fija sólo `empresa.ajustes.gestionar`, que el cuerpo es fijo y que nadie lee la respuesta de pg_net.
+  El 8.06-2 rechaza el loopback en producción, para que «Probar» no mande el secreto al localhost del servidor de Next.
+- **D4 · Sin índice único ni `on conflict` sobre la etiqueta** (bloqueo de la auditoría del plan). Con `on conflict`, la inserción especulativa espera el
+  commit de quien encoló primero. Eso serializaba todas las escrituras de vehículos del minuto y abría interbloqueos nuevos. Ahora es un insert simple
+  que deduplica sólo dentro de la propia transacción (columna `transaccion xid8`).
+  Tampoco se deduplica contra cualquier fila, como proponía la auditoría. Si una transacción confía en la fila confirmada de otra, el job puede
+  consumirla y avisar al sitio antes de que la propia confirme, y ese cambio no se revalidaría.
+  Las filas repetidas entre transacciones se borran al enviar (`array_agg(distinct …)`). Si el job no puede enviar, las compacta y deja la más vieja de
+  cada etiqueta, así una cola apagada no crece. R7b cae si alguien vuelve a poner un índice único.
+- **D5 · Triggers por sentencia sin tablas de transición.** Anotan aunque la sentencia no cambie filas: el peor caso es un pedido por minuto.
+- **D6 · Apagar no avisa al sitio.** `web.vehiculos` deja de devolver filas al instante, y lo que el sitio tenga en caché vence por su propia caducidad.
+- **D7 (8.06-2) · «Probar» corre en el servidor de Next**, con el cliente admin acotado a `integracion_secreto('web_publica')` y con el permiso comprobado antes.
+- **D8 · Encender no exige dirección ni secreto.** Sin ellos, la cola espera y no se pierde nada.
+  En `web_publica`, `integracion_guardar` guarda sólo `revalidar_url`, así que un `p_config` sin esa clave la borra. Por eso el 8.06-2 tiene que mandar
+  siempre `revalidar_url` junto con la config, o `p_config` nulo cuando sólo enciende o apaga.
+- **D9 · La cola de asesores anota sólo con `insert`, `delete` y `update of orden`.** `disponible`, `ultima_asignacion_en` y `asignadas_total`
+  cambian con cada turno.
+- **`categorias` también anota `vehiculos`** (auditoría, punto 4): `interno.vitrina_vehiculos` publica el nombre de la categoría.
+- **La fila `web_publica` pasa a ser catálogo:** está en una migración con `on conflict`, porque la nube no corre el seed.
+- **Contrato con el sitio** (lo escribe el 8.06-2 en la ficha de `web`):
+  - El pedido es `POST <revalidar_url>`, con `Content-Type: application/json` y `Authorization: Bearer <secreto>`.
+  - El cuerpo es `{"etiquetas": [...]}`, ordenadas y sin repetir. `{"etiquetas": []}` es «Probar».
+  - Sale a lo sumo un pedido por minuto. pg_net no reintenta: un pedido perdido lo cubre la caducidad del sitio.
+
+<!-- paso:8.06-2 -->
+
+# 8.06-2: decisiones (2026-11-11)
+
+- **D10 · El loopback se prueba sólo si la base del despliegue es local.** «Probar» acepta `http(s)://localhost|127.x` sólo si
+  `NEXT_PUBLIC_SUPABASE_URL` también es de loopback (local, CI, e2e). No se corta por `NODE_ENV`: el e2e de CI corre `next start` y se rechazaría
+  también ahí. Tampoco hace falta una variable nueva: la base local ya dice «esto no es la nube». Un despliegue propio con Supabase en el mismo host
+  (`http://127.0.0.1` tras un proxy) dejaría probar contra el loopback: es aceptable, `docs/ENTORNOS.md` da Vercel con la base en la nube.
+- **D11 · SSRF: se acotan las IP literales, no lo que resuelve el DNS.** La app rechaza el loopback (salvo D10), las redes internas escritas tal cual
+  (`0/8`, `10/8`, `100.64/10`, `169.254/16`, `172.16/12`, `192.168/16`), IPv6 literal, usuario y clave, y mira el host ya normalizado por WHATWG
+  (`2130706433` y `0x7f.1` son `127.0.0.1`) y sin el punto final (`localhost.`). Un nombre que resuelve a una IP interna no se ataja: no hay
+  dependencia para fijar la IP resuelta y un `dns.lookup` previo no evita el rebinding. Lo limitan el permiso `empresa.ajustes.gestionar`, el cuerpo
+  fijo, no seguir redirecciones y que sólo vuelve el código. Tampoco se rechazan las redes reservadas que no son del servidor (`192.0.0.0/24`,
+  `198.18.0.0/15`, multicast `224.0.0.0/4`, `240.0.0.0/4`): no apuntan a la red del servidor y «Probar» sólo devuelve el código.
+- **D12 · No se rechaza el loopback al guardar.** La base lo acepta (D3 del 8.06-1), el job no lo usa (sólo manda a `https://`) y «Probar» lo corta
+  (D10). El esquema del formulario corre también en el navegador y no lee el entorno.
+- **D13 · La app es más estricta que la base.** La regex de `integracion_guardar` queda como está: lo que la app rechaza (redes internas, IP en decimal)
+  no llega; lo que entra por RPC directa lo acota D3 del 8.06-1.
+- **D14 · Apagar la web pública no lleva «Deshacer» ni confirmación.** Es el patrón de apibara, se revierte con el mismo interruptor y la ayuda dice
+  antes del clic cuántos vehículos dejan de verse.
+- **D15 · Mensajes del secreto neutros** («Tiene al menos 8 caracteres.») para las dos integraciones: un solo esquema, sin texto por clave.
+- **D16 · «Probar» no guarda el resultado** (sin columna ni evento): es una comprobación a pedido, no un estado.
+- **D17 · Segunda excepción del cliente admin.** `integracion_secreto()` sólo la ejecuta `service_role`; «Probar» corre en el servidor de Next
+  (no en pg_net, que no devuelve el código a la pantalla). `probarRevalidacion()` comprueba el permiso con el cliente de quien prueba, lee y valida la
+  dirección guardada y recién entonces crea el admin para esa única llamada. El lint, `.claude/rules/datos.md` y `admin.ts` la nombran.
+
+## Contrato con el sitio
+
+`POST <revalidar_url>` con `Content-Type: application/json` y `Authorization: Bearer <secreto>`; cuerpo `{"etiquetas": [...]}` con
+`guias|faqs|testimonios|ajustes|asesores|vehiculos`, ordenadas y sin repetir. `{"etiquetas": []}` es «Probar» y no revalida nada. El receptor compara el
+secreto en tiempo constante y responde 2xx. A lo sumo un pedido por minuto y sólo a `https://`; sin reintentos (lo cubre la caducidad propia del
+sitio); apagar la integración no avisa (D6 del 8.06-1). Ninguna variable de entorno: dirección y secreto en Configuración › Empresa › Integraciones ›
+Web pública.
+
+<!-- paso:8.08-1 -->
+
+# 8.08-1: decisiones (2026-11-12)
+
+- **D1 · Un ítem que terminó sin llegar no frena al vehículo** (duda 1 de la fila; cierra la contradicción 3 de la Fase 8). `evaluar_requisitos` (rama
+  `hijos`) cumple si todos los ítems vivos fuera de stock llegaron a la fase esperada o terminaron en otra final («Perdido»); el `detalle` suma
+  `sin_llegar`. La regla vive en `_repuesto_ante_espera` (sólo `service_role`), que da `llego` también si el ítem está en la fase esperada aunque no tenga
+  historial. Cambia una función de `flujos`, cuya ficha no está en los módulos del paso: el aviso va en la ficha de `repuestos` y la bitácora le pide al
+  coordinador la línea en `src/modules/flujos/CLAUDE.md`.
+- **D2 · Un proyecto sólo se elimina vacío** (duda 2): sin ítems vivos, compras, pagos ni cotizaciones; borrado suave, con «Deshacer» por
+  `repuesto_proyecto_restaurar(p_proyecto, p_eliminado_en_esperado)`. Restaurar choca con el único proyecto vivo por vehículo: 23505.
+- **D3 · `datos` (jsonb) de los catálogos no se dibuja** (duda 3; aplica en 8.08-3).
+- **D4 · Eliminar un ítem o un proyecto lleva la versión esperada**, como `tarea_eliminar` y `evento_eliminar` (`migraciones.md` › «Forma»), aunque la fila
+  escriba `repuesto_item_eliminar(p_item)`.
+- **D5 · También se quita el INSERT directo de proyectos** y el UPDATE de tabla (queda UPDATE por columna de etiqueta, VIN, lead, cliente y notas). Sin eso,
+  quien tiene `repuestos.editar` creaba un proyecto de un vehículo que no ve. Un `check` impide etiqueta o VIN propios en un proyecto con vehículo.
+- **D6 · La lista no trae `lead_id` ni el teléfono del cliente**, y el título del vehículo sale sólo con `vehiculos.ver` de su origen. Los pendientes de un
+  vehículo traen los nombres de sus fases sólo con `logistica.ver` del vehículo (auditoría del plan, hallazgo 3).
+- **D7 · Búsqueda de la lista:** sólo dígitos (hasta 18) busca el número o el texto; si no, 3 caracteres o más, escapado, sobre etiqueta, VIN y cliente. No
+  busca por el título del vehículo, que no todos ven.
+- **D8 · Un proyecto cerrado no recibe ítems**, y cerrarlo no exige que los ítems hayan terminado.
+- **D9 · «Borrar sólo sin uso» va con un trigger** `before delete` en la base, no con un control en la app: no tiene carrera y cubre los ítems eliminados y
+  las líneas de cotización.
+- **D10 · Sin carrera en esta parte.** El arnés `scripts/carreras.mjs` lo arma a mano el carril A y no está en los módulos del paso. «Eliminar un proyecto
+  mientras se crea un ítem» lo resuelve el orden de candados (`for update` del proyecto al eliminar contra `for share` al crear el ítem, tomado antes de
+  leer su estado). Se propone sumar esa carrera a `scripts/carreras/repuestos-stock.mjs` en el 8.10.
+- **D11 · Docs:** una carpeta por parte (`docs/pasos/8.08-1/`), porque `consolidar-docs.mjs` consolida una vez por carpeta.
+- **D12 · Estado del proyecto:** la base da las cuentas (`items`, `pendientes`, `en_stock`, `terminados`) y `entities` deriva la etiqueta (8.09).
+- **D13 · Qué espera el vehículo:** las esperas de las fases a las que puede pasar desde la actual; sin fase, las de las iniciales activas de su flujo.
+- **D14 · Validaciones del ítem:** descripción de 1 a 500 caracteres; cantidad entera desde 1; precio ≥ 0 y con moneda existente; cada catálogo, vivo y de
+  su tipo.
+- **D15 · Registro de páginas:** ninguna entrada en `paginas-en-la-base.ts` hasta que haya quien llame la RPC desde `src/` (la lista en 8.09, los pendientes
+  en 8.13): la guarda rompe con una entrada sin llamador.
+- **D16 · Toda RPC que escribe pide `repuestos.editar` antes del candado** (auditoría del plan, que bloqueó por `eliminar` y `restaurar` sin permiso
+  explícito). R6 y B2 lo prueban con `repuestos.ver` sin `repuestos.editar`.
+- **D17 · Abierto para 8.09 (auditoría del informe, hallazgo 3).** Dos `repuesto_item_crear` (o `repuesto_proyecto_crear`) a la vez con el mismo id caen
+  en la PK con un 23505 sin mensaje humano, y la repetición idempotente de un ítem responde sin mirar si el proyecto sigue vivo. No rompe datos; 8.09 envuelve
+  el `insert` en `exception when unique_violation` con «Ese identificador ya está en uso…».
+- **D18 · Eliminar un ítem recién nacido de un proyecto cerrado se permite** (auditoría del informe, hallazgo 4): es borrado suave de un ítem sin historial
+  ni uso, y deshacer una carga equivocada no debería exigir reabrir el proyecto. Crear sí lo rechaza.
+
+<!-- paso:8.08-2 -->
+
+# 8.08-2: decisiones (2026-11-12)
+
+- **D19 · Los nombres de los cuatro catálogos son fijos.** Las claves son el `check` del esquema (`repuestos_catalogos_catalogo_check`), no un dato de la
+  empresa, como `PROPOSITOS_DE_CATEGORIA` (6.11-4). `catalogo.test.ts` (K1) ata la lista a la última migración que define el `check`; los valores salen de
+  la base. `modo_transporte` se muestra como «Vía de transporte» (glosario).
+- **D20 · La guarda de áreas va en `scripts/guardas/areas-c/`**, que es del carril. En `logistica` y `flujos` la dejó el A en la raíz de `scripts/guardas/`.
+  Es una copia adaptada, no se generaliza (generalizarla es editar archivos del A); unificarla queda para el A.
+- **D21 · «Ordenar» es el campo «Orden» del formulario**, con las flechas apagadas y su motivo, como «Categorías de gasto». Mover con flechas sin RPC son dos
+  `UPDATE` no atómicos. Reversible: una RPC `repuesto_catalogo_mover` y las flechas, más adelante.
+- **D22 · Tope de 200 valores por catálogo**, como las categorías de gasto, con `limit 201` y `cortarAlTope`.
+- **D23 · Escritura directa bajo RLS, sin RPC**, como las categorías de gasto (6.11-4, D9): un valor de catálogo no otorga permisos, y «en uso» lo protege el
+  trigger del 8.08-1.
+- **D24 · Cero filas: sin permiso o «ya no existe».** Una relectura por id lo distingue (la policy de lectura es `true`), en vez de decir siempre «sin permiso».
+- **D25 · La columna «Uso» no tiene dato** para quien sólo configura (la RLS de ítems pide `repuestos.ver`). La 8.08-3 escribe «—», y el motivo lo da el
+  error al borrar.
+- **D26 · Las actions comprueban `repuestos.configurar` antes de escribir**, aunque no salgan por `client.ts`: da el texto propio y deja la RLS como la
+  protección (probada en K2 y K3).
+- **D27 · Ninguna action sale por los barriles.** Los componentes de la 8.08-3 viven en el mismo módulo y las importan en relativo (`modulos.md`).
+
+<!-- paso:8.08-3 -->
+
+# 8.08-3: decisiones (2026-11-12)
+
+- **D28 · «Cotizador» no se dibuja hasta el 8.12.** Una pestaña sin contenido es una pestaña muerta. `pestanas.ts` lleva sólo «Catálogos» y, con una, no hay
+  barra. El 8.12 suma su línea y la barra.
+- **D29 · La columna de uso dice el «Orden».** `columnaDeUso` es obligatoria y el uso real no se puede leer (D25: la RLS de ítems pide `repuestos.ver`).
+  Mostrar el número explica el orden, que se cambia en «Editar» (D21). Cambia la presentación de D25 («—»), no su regla.
+- **D30 · «Agregar <valor>»** en vez de «Nuevo/Nueva»: los cuatro valores tienen género distinto, y «Agregar» no lo pide.
+- **D31 · El e2e no prueba «en uso».** K1 de `supabase/tests/areas/repuestos/catalogos.sql` lo prueba con el texto exacto y el diálogo lo muestra tal cual.
+  Sembrar un ítem en uso desde el e2e pide proyecto y fase.
+- **D32 · «Eliminar», no «Borrar»,** como Categorías de gasto y Tipos de lead: una misma palabra en toda Configuración.
+- **D33 · Lo nuevo sale al final:** el «Orden» inicial es `ordenSiguiente` del catálogo, no 0.
+- **D34 · La lectura va en el servidor** (como Leads › Tipos) y no en el cliente como Categorías de gasto: `leerCatalogosDeRepuestos` ya es de servidor y el
+  `revalidatePath` de cada action renueva la página. El e2e lo prueba.
+- **D35 · La entrada es `pantallas/catalogos.ts`, no `pantallas/configuracion.ts`** como nombra el «Lugar» de la fila 8.08 de `docs/PLAN.md`: la guarda de
+  áreas del 8.08-2 exige una entrada por área.
+
+<!-- paso:pedido-4 -->
+
+# pedido-4 (pedido del carril c, 5.03)
+
+- `.github/workflows/ci.yml` › job `e2e`: el paso «chromium y lo que pide del sistema» corre `playwright install --with-deps chromium` con `timeout --kill-after=10 240`; si cae (apt sin espejo, exit 100) o se cuelga, un aviso `::warning::` y `playwright install chromium` sin apt.
+- Por qué es seguro: la imagen ubuntu-24.04 ya trae las bibliotecas del sistema (apt decía «already the newest version»); sin apt sólo faltan fuentes extra (fonts-ipafont, unifont, wqy, xfonts), que no cambian los e2e.
+- El tope de 240 s cubre apt normal (≈ 30–60 s) más la descarga de chromium; si el timeout corta durante la descarga, el respaldo la repite sin red de apt.
+- `timeout` mata el grupo de procesos, así que un `apt-get` colgado no queda vivo.
+- Es una guarda del piloto (`.github/workflows/`): el coordinador no integra este PR solo; lo deja entrar la persona.
+- Prueba: `scripts/guardas/workflows.test.ts` (45 en verde) y el chequeo de la sintaxis shell con un `timeout` que falla y otro que vence; el efecto real se ve en el CI del PR.
