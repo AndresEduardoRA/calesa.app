@@ -144,6 +144,7 @@ export const NAVEGACION = [
       'empresa.ajustes.gestionar',
       'empresa.tipos_cambio.gestionar',
       'origenes.gestionar',
+      'leads.campos.gestionar',
       'leads.configurar',
       'cotizaciones.configurar',
       'flujos.configurar',

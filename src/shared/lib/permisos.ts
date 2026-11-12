@@ -31,6 +31,7 @@ export const CLAVES_PERMISO = [
   'leads.portal.gestionar',
   'leads.exportar',
   'leads.configurar',
+  'leads.campos.gestionar',
   'cotizaciones.ver',
   'cotizaciones.crear',
   'cotizaciones.editar',

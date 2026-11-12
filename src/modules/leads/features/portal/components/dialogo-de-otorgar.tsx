@@ -18,6 +18,8 @@ type Props = {
   acceso: AccesoDelCliente
   empresa: string
   direccion: string | null
+  // El mensaje del portal de la empresa; nulo = el de fábrica.
+  mensaje: string | null
 }
 
 // El texto del único botón principal: dice qué va a pasar con lo que hay en el campo.
@@ -42,6 +44,7 @@ export function DialogoDeOtorgar({
   acceso,
   empresa,
   direccion,
+  mensaje,
 }: Props) {
   const idForm = useId()
   const otorgar = useOtorgarPortal({ leadId, version: versionDelAcceso(acceso), abierto })
@@ -72,6 +75,7 @@ export function DialogoDeOtorgar({
           leadNombre={leadNombre}
           empresa={empresa}
           direccion={direccion}
+          mensaje={mensaje}
         />
       </Modal>
     )

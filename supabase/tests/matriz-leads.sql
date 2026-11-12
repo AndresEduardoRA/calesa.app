@@ -408,6 +408,21 @@ begin
       end loop;
     end loop;
   end loop;
+  -- La plantilla del embudo (9.04-4) es de `leads.configurar`, que ninguna de las 8 tiene: el camino que pasa lo prueba
+  -- `areas/plantillas/plantillas.sql`. Guardar null con la versión vigente no cambia nada si pasara.
+  insert into matriz_cubiertas values ('embudo_plantilla_guardar') on conflict do nothing;
+  for p in 1..8 loop
+    v_esp := case when p in (6, 7) then v_cuenta else '42501: No tienes el permiso «leads.configurar».' end;
+    v_real := pg_temp.celda(v_personas[p],
+      'select public.embudo_plantilla_guardar(null, (select embudo_actualizado_en from public.ajustes_leads where id = 1))');
+    v_n := v_n + 1;
+    if v_real is distinct from v_esp then
+      v_mal := v_mal + 1;
+      if v_mal <= 12 then
+        v_fallas := v_fallas || format(E'\n  embudo_plantilla_guardar · %s: esperaba «%s» y fue «%s»', v_nombres[p], v_esp, v_real);
+      end if;
+    end if;
+  end loop;
   if v_n < 260 then raise exception 'la matriz de oportunidades se achicó: % celdas', v_n; end if;
   if v_mal > 0 then raise exception '% de % celdas no dieron lo esperado:%', v_mal, v_n, v_fallas; end if;
 end $$;

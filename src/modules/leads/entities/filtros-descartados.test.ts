@@ -11,6 +11,8 @@ function campo(clave: string, extra: Partial<CampoDeLead> = {}): CampoDeLead {
     opciones: [],
     requerido: false,
     valorDefecto: null,
+    minimo: null,
+    maximo: null,
     grupo: null,
     orden: 0,
     esSistema: false,

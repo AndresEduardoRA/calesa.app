@@ -186,6 +186,12 @@ const DATOS_DE_PRUEBA = {
       texto: true,
     },
   },
+  'configuracion-de-leads.sql': {
+    _migracion_lcg: {
+      ruta: path.join(base, 'migrations', '20261112151143_leads_campos_gestionar.sql'),
+      texto: true,
+    },
+  },
 }
 
 async function cargarDatos(archivo) {

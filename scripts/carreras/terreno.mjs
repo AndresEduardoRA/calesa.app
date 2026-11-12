@@ -15,7 +15,8 @@ export const PERSONAS = {
   compartido: '00000000-0000-4000-8000-0000000c0002',
   supervision: '00000000-0000-4000-8000-0000000c0003',
   destino: '00000000-0000-4000-8000-0000000c0004',
-  // Quien configura los leads (los orígenes): leads.configurar, y crea y edita los suyos; cotizaciones.configurar (carreras/tonos.mjs) y
+  // Quien configura los leads (los orígenes): leads.configurar, y crea y edita los suyos; leads.campos.gestionar (privatiza un campo en
+  // carreras/cartera.mjs); cotizaciones.configurar (carreras/tonos.mjs) y
   // equipo.roles.gestionar (carreras/niveles.mjs).
   configura: '00000000-0000-4000-8000-0000000c0005',
   // Cotiza y edita cotizaciones y ve los leads, pero no los vehículos (carreras/cotizaciones.mjs): lo que no ve no lo espera.
@@ -220,6 +221,7 @@ export async function sembrar(db) {
   )
   for (const clave of [
     'leads.configurar',
+    'leads.campos.gestionar',
     'leads.ver',
     'leads.crear',
     'leads.editar',

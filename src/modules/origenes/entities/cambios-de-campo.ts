@@ -22,6 +22,9 @@ export type CambiosDeCampo = Partial<{
   activo: boolean
   principal: boolean
   valorDefecto: ValorDefecto | null
+  // El rango (9-2); null quita el límite.
+  minimo: number | null
+  maximo: number | null
 }>
 
 // Los cambios que viajan tal cual, con su columna en la base. `opciones` (sin lo que no es clave ni etiqueta) va aparte.
@@ -37,6 +40,8 @@ const COLUMNA_DE = {
   activo: 'activo',
   principal: 'principal',
   valorDefecto: 'valor_defecto',
+  minimo: 'minimo',
+  maximo: 'maximo',
 } as const satisfies Record<Exclude<keyof CambiosDeCampo, 'opciones'>, string>
 
 type ClaveTalCual = keyof typeof COLUMNA_DE
@@ -68,6 +73,8 @@ const CLAVES_SIMPLES = [
   'claveApibara',
   'activo',
   'principal',
+  'minimo',
+  'maximo',
 ] as const satisfies readonly (keyof CambiosDeCampo & keyof CampoDeLayout)[]
 
 function copiarSiCambio<K extends (typeof CLAVES_SIMPLES)[number]>(

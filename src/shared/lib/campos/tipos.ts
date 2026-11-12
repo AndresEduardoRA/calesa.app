@@ -71,6 +71,9 @@ export function tieneOpciones(tipo: TipoDeCampo): boolean {
   return tipo === 'opcion' || tipo === 'multi_opcion'
 }
 
+// El tope de todo número de un campo (también el de un mínimo o un máximo): el de la base.
+export const NUMERO_MAXIMO = 1_000_000_000_000
+
 export type OpcionDeCampo = { clave: string; etiqueta: string }
 
 // Lo que el formulario de alta trae puesto en un campo. Qué forma admite cada tipo lo dice
@@ -88,6 +91,9 @@ export type CampoBase<Tipo extends TipoDeCampo = TipoDeCampo> = {
   requerido: boolean
   // Sólo precarga el alta; null = nada.
   valorDefecto: ValorDefecto | null
+  // El rango (9-2): sólo un número o un monto; null = sin límite.
+  minimo: number | null
+  maximo: number | null
   grupo: string | null
   orden: number
   // Viene de fábrica: no se elimina ni cambia de tipo ni de clave.

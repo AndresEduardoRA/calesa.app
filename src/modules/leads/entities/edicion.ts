@@ -185,13 +185,14 @@ function origenDeEdicion({ ficha, valores, origenes }: Entrada, motivos: Motivos
 // obligatorio después de cargar el lead tiene que completarse antes de guardar, aunque lo único que
 // se cambie sea el tipo) y sólo viaja si cambió.
 function atributosDeEdicion(
-  { valores, iniciales, campos, zona, locale }: Entrada,
+  { ficha, valores, iniciales, campos, zona, locale }: Entrada,
   motivos: Motivos,
 ): NonNullable<CambiosDeLead['atributos']> {
   const parche: NonNullable<CambiosDeLead['atributos']> = {}
   for (const campo of campos) {
     const clave = claveDeAtributoEnEdicion(campo.clave)
-    const base = esquemaDeValor(campo, { zona, locale })
+    // Con lo guardado: un valor que ya estaba fuera del rango, o una opción que se sacó, no impide guardar otro dato.
+    const base = esquemaDeValor(campo, { zona, locale, guardado: ficha.atributos[campo.clave] })
     const leido = (campo.requerido ? requerir(base) : base).safeParse(
       valores[clave] ?? vacioDe(campo),
     )

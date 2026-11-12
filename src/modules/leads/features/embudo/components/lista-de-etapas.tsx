@@ -4,11 +4,11 @@ import { PlusIcon } from 'lucide-react'
 import { useId } from 'react'
 import { Button } from '@/shared/ui/button'
 import { MAXIMO_DE_ETAPAS } from '../../../entities/embudo'
-import type { PanelDeEtapas } from '../hooks/use-panel-de-etapas'
+import type { EtapasEnEdicion } from '../hooks/use-etapas-editables'
 import { FilaDeEtapa } from './fila-de-etapa'
 
 // Las etapas del panel, en su orden, y «Agregar etapa» (hasta 12).
-export function ListaDeEtapas({ panel }: { panel: PanelDeEtapas }) {
+export function ListaDeEtapas({ panel }: { panel: EtapasEnEdicion }) {
   const grupo = useId()
   return (
     <fieldset className="grid gap-2">

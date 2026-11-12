@@ -1,0 +1,10 @@
+## 2026-11-12 — Paso 9.04-1: `leads.campos.gestionar` (9-3)
+
+- **Nombre y orden de la clave:** «Gestionar los campos de los leads», orden 215 (justo después de «Configurar leads», 210). «Gestionar» es el verbo de las claves hermanas (`equipo.usuarios.gestionar`, `leads.portal.gestionar`).
+- **«Mismo alcance» = «todos» y sin origen:** `leads.configurar` no va por origen ni por alcance, así que toda concesión suya es ésa; copiar filas podría duplicar por origen. La reciben el dueño y todo rol con alguna fila de `leads.configurar` (precedente: `cotizaciones.papelera.purgar`, 4.15-7). Nadie pierde nada.
+- **La pestaña que no puedes abrir se ve apagada con su motivo** en una línea visible bajo la barra (no sólo un `title`), y las que comparten motivo van en una línea. La URL que pide una apagada abre la primera habilitada, en vez de un «sin permiso» dentro de la página. La lectura del motivo con lector de pantalla (un `TabsTrigger` deshabilitado no recibe foco) queda para el pulido de la Fase 9.
+- **El enlace «Configurar los campos» del listado y el editor de campos siguen a la clave nueva**, y también `vista-previa-de-campo` (llama a `lead_campo_impacto`).
+- **No se editan `permisos-enforcement.sql` ni `humo.sql`:** la clave nueva entra por el caso genérico, y el bloque de `…0030` sólo espera `insufficient_privilege`.
+- **La prueba de la concesión vuelve a ejecutar la migración** sobre roles propios, como el precedente: en la base reseteada no hay más rol con `leads.configurar` que el dueño, y la concesión no se pondría a prueba.
+- **Las dudas del PLAN, con la recomendada:** (1) un valor que ya estaba fuera del rango no impide guardar → 9.04-2; (2) las plantillas con `leads.configurar`, sin clave nueva → 9.04-4; (3) el 6.13 ya está en `main`, así que no choca con el panel del campo; (4) el paso se parte en cinco partes (9.04-1 a 9.04-5).
+- **El nombre del permiso en los motivos va escrito en el código** (`MOTIVO_SIN_PERMISO_CAMPOS`, `pestanas.ts`), como el `MOTIVO_SIN_PERMISO_LEADS` de antes: `permisos.ts` no tiene un mapa de etiquetas y el nombre del catálogo sale de `permisos.nombre`.

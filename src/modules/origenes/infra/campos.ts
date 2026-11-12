@@ -25,6 +25,8 @@ const crear: RepositorioCampos['crear'] = async (nuevo) => {
     p_clave_apibara: nuevo.claveApibara ?? undefined,
     p_valor_defecto: nuevo.valorDefecto ?? undefined,
     p_principal: nuevo.principal,
+    p_minimo: nuevo.minimo ?? undefined,
+    p_maximo: nuevo.maximo ?? undefined,
   })
   if (error) {
     return { ok: false, error: errorDePostgrest(error) }
@@ -72,9 +74,14 @@ const eliminar: RepositorioCampos['eliminar'] = async ({ id, actualizadoEnEspera
   return ok(null)
 }
 
-const impacto: RepositorioCampos['impacto'] = async (id) => {
+const impacto: RepositorioCampos['impacto'] = async (id, rango) => {
   const supabase = await createClient()
-  const { data, error } = await supabase.rpc('origen_campo_impacto', { p_campo: id })
+  // Sin rango propuesto no viaja `p_cambios`: la base mide con el vigente.
+  const conRango = rango !== undefined && Object.keys(rango).length > 0
+  const { data, error } = await supabase.rpc('origen_campo_impacto', {
+    p_campo: id,
+    ...(conRango ? { p_cambios: rango } : {}),
+  })
   if (error) {
     return { ok: false, error: errorDePostgrest(error) }
   }

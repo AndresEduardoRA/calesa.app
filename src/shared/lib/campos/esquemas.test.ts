@@ -37,9 +37,11 @@ describe('esquemaEtiqueta y esquemaGrupo', () => {
 describe('conReglasDeCampo', () => {
   const esquema = conReglasDeCampo(
     z.object({
-      tipo: z.enum(['texto', 'opcion']),
+      tipo: z.enum(['texto', 'opcion', 'numero']),
       opciones: z.array(z.object({ clave: z.string(), etiqueta: z.string() })),
-      valorDefecto: z.union([z.string(), z.null()]),
+      valorDefecto: z.union([z.string(), z.number(), z.null()]),
+      minimo: z.number().nullable().default(null),
+      maximo: z.number().nullable().default(null),
     }),
   )
   const OPCIONES = [{ clave: 'a', etiqueta: 'A' }]
@@ -69,5 +71,17 @@ describe('conReglasDeCampo', () => {
     expect(
       esquema.safeParse({ tipo: 'opcion', opciones: OPCIONES, valorDefecto: 'a' }).success,
     ).toBe(true)
+  })
+  it('el rango es el de la base y su motivo va en su dato', () => {
+    const numero = { tipo: 'numero', opciones: [], valorDefecto: null }
+    expect(esquema.safeParse({ ...numero, minimo: 1, maximo: 10 }).success).toBe(true)
+    expect(esquema.safeParse({ ...numero, minimo: 5, maximo: 4 }).error?.issues[0]).toMatchObject({
+      path: ['maximo'],
+      message: 'El mínimo no puede ser mayor que el máximo.',
+    })
+    expect(
+      esquema.safeParse({ tipo: 'texto', opciones: [], valorDefecto: null, minimo: 1 }).error
+        ?.issues[0]?.path,
+    ).toEqual(['minimo'])
   })
 })
