@@ -31,7 +31,7 @@ const campo = CAMPO as CampoDeLayout
 describe('impactoDesde', () => {
   it('lee lo que cuenta la base', () => {
     expect(impactoDesde({ total: 5, con_valor: 3, sin_valor: 2, por_opcion: { full: 3 } })).toEqual(
-      { total: 5, conValor: 3, sinValor: 2, porOpcion: { full: 3 } },
+      { total: 5, conValor: 3, sinValor: 2, porOpcion: { full: 3 }, fueraDeRango: null },
     )
   })
 
@@ -41,7 +41,13 @@ describe('impactoDesde', () => {
 })
 
 describe('resumenDeImpacto', () => {
-  const impacto = { total: 5, conValor: 3, sinValor: 2, porOpcion: { full: 3, basico: 0 } }
+  const impacto = {
+    total: 5,
+    conValor: 3,
+    sinValor: 2,
+    porOpcion: { full: 3, basico: 0 },
+    fueraDeRango: null,
+  }
 
   it('un cambio de tipo con datos bloquea y cuenta cuántos', () => {
     const resumen = resumenDeImpacto(campo, { tipo: 'numero' }, impacto)
@@ -92,6 +98,7 @@ describe('resumenDeEliminacion', () => {
       conValor: 1,
       sinValor: 4,
       porOpcion: {},
+      fueraDeRango: null,
     })
     expect(resumen.bloquea).toBe(true)
     expect(resumen.avisos[0]).toContain('1 vehículo tiene un valor en «Kit»')
@@ -103,6 +110,7 @@ describe('resumenDeEliminacion', () => {
       conValor: 0,
       sinValor: 5,
       porOpcion: {},
+      fueraDeRango: null,
     })
     expect(resumen.bloquea).toBe(false)
     expect(resumen.avisos[0]).toContain('no se puede deshacer')

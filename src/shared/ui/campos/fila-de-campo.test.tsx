@@ -19,6 +19,8 @@ const CAMPO: CampoBase & { enTarjeta: boolean; filtrable: boolean } = {
   enTarjeta: true,
   filtrable: false,
   valorDefecto: null,
+  minimo: null,
+  maximo: null,
   esSistema: true,
   activo: true,
   actualizadoEn: '2026-10-12T20:00:00+00:00',

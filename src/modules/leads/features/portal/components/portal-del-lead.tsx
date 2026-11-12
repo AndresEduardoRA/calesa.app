@@ -22,12 +22,14 @@ type Props = {
   // Para el texto de WhatsApp: el nombre de la empresa y la dirección de la web (nula si no hay).
   empresa: string
   direccion: string | null
+  // El mensaje del portal de la empresa; nulo = el de fábrica.
+  mensaje: string | null
 }
 
 // La sección «Portal» de la ficha (sólo con el lead en la cartera y `leads.portal.gestionar`): cómo está
 // el acceso del cliente y lo que se puede hacer. Nunca se dibuja vacía: sin acceso, explica y ofrece
 // darlo.
-export function PortalDelLead({ leadId, leadNombre, acceso, empresa, direccion }: Props) {
+export function PortalDelLead({ leadId, leadNombre, acceso, empresa, direccion, mensaje }: Props) {
   const panel = usePanelDePortal()
   const desbloqueo = useAction(desbloquearPortal)
   const vigente = acceso.estado === 'activo' || acceso.estado === 'bloqueado'
@@ -81,6 +83,7 @@ export function PortalDelLead({ leadId, leadNombre, acceso, empresa, direccion }
           acceso={acceso}
           empresa={empresa}
           direccion={direccion}
+          mensaje={mensaje}
         />
       ) : null}
       {vigente ? (

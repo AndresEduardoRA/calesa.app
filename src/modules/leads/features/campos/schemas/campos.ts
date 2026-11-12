@@ -5,6 +5,7 @@ import {
   esquemaClave,
   esquemaEtiqueta,
   esquemaGrupo,
+  esquemaLimite,
   esquemaOpciones,
   esquemaValorDefecto,
   esquemaVersion,
@@ -26,6 +27,8 @@ export const esquemaCrearCampo = conReglasDeCampo(
     soloCartera: z.boolean(),
     valorDefecto: esquemaValorDefecto,
     valorDefectoEmpresa: datoDeLaEmpresa,
+    minimo: esquemaLimite,
+    maximo: esquemaLimite,
   }),
 )
   .refine((campo) => campo.valorDefectoEmpresa === null || campo.tipo === 'texto', {
@@ -54,6 +57,8 @@ export const esquemaGuardarCampo = z.object({
       soloCartera: z.boolean().optional(),
       activo: z.boolean().optional(),
       valorDefecto: esquemaValorDefecto.optional(),
+      minimo: esquemaLimite.optional(),
+      maximo: esquemaLimite.optional(),
       valorDefectoEmpresa: datoDeLaEmpresa.optional(),
     })
     .refine((cambios) => Object.values<unknown>(cambios).some((valor) => valor !== undefined), {
@@ -73,4 +78,10 @@ export const esquemaEliminarCampo = z.object({
   actualizadoEnEsperado: esquemaVersion,
 })
 
-export const esquemaVistaPreviaDeCampo = z.object({ id: z.guid() })
+// Con `rango`, la base cuenta también cuántos quedarían fuera del rango propuesto (sólo lee `minimo` y `maximo`).
+export const esquemaVistaPreviaDeCampo = z.object({
+  id: z.guid(),
+  rango: z
+    .object({ minimo: esquemaLimite.optional(), maximo: esquemaLimite.optional() })
+    .optional(),
+})

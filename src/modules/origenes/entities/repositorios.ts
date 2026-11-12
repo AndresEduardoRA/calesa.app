@@ -1,6 +1,7 @@
 // Lo que los casos de uso de `features/` necesitan de afuera, dicho como interfaces. La
 // implementación (Supabase) vive en `infra/` y se la entrega `composicion.ts`.
 import type { Resultado } from '@/shared/lib/errores'
+import type { Rango } from '@/shared/lib/campos'
 import type { CambiosDeCampo } from './cambios-de-campo'
 import type {
   CampoDeLayout,
@@ -59,6 +60,8 @@ export type RepositorioCampos = {
     valorDefecto: ValorDefecto | null
     // Marcarlo desmarca el principal anterior del origen (en la misma llamada).
     principal: boolean
+    minimo: number | null
+    maximo: number | null
   }) => Promise<Resultado<Creado>>
   guardar: (pedido: {
     id: string
@@ -72,7 +75,8 @@ export type RepositorioCampos = {
     actualizadoEnEsperado: string
   }) => Promise<Resultado<Editado>>
   eliminar: (pedido: { id: string; actualizadoEnEsperado: string }) => Promise<Resultado<null>>
-  impacto: (id: string) => Promise<Resultado<ImpactoDeCampo>>
+  // Con `rango`, también cuántos quedarían fuera del rango propuesto.
+  impacto: (id: string, rango?: Partial<Rango>) => Promise<Resultado<ImpactoDeCampo>>
   // Un campo por cada dato nuevo que trajo apibara (por su ruta). Devuelve cuántos nacieron.
   agregarDeApibara: (pedido: {
     origenId: string

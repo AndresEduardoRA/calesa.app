@@ -21,6 +21,9 @@ export type CampoDeVehiculo = {
   // Un campo desactivado no se muestra, no se filtra y no se escribe; su dato se conserva.
   activo: boolean
   valorDefecto: string | number | boolean | string[] | null
+  // El rango de un número o un monto (9-2); opcional, como `principal`.
+  minimo?: number | null
+  maximo?: number | null
   // El que nombra al vehículo en la lista, el resumen y logística (uno por origen, o ninguno).
   principal?: boolean
 }

@@ -65,6 +65,25 @@ describe('esRutaPublica', () => {
     expect(esRutaPublica('/')).toBe(false)
     expect(esRutaPublica('/ingresos')).toBe(false)
   })
+
+  it('deja pasar lo de /api/portal/, que valida su propia cookie, y nada más', () => {
+    expect(esRutaPublica('/api/portal/estado')).toBe(true)
+    expect(esRutaPublica('/api/portal/documentos/0b6f8f8e-6f6a-4c1e-9d3e-0a6e2c5b7f10')).toBe(true)
+    expect(esRutaPublica('/api/portal')).toBe(false)
+    expect(esRutaPublica('/api/portalx')).toBe(false)
+    expect(esRutaPublica('/api/portal-x/a')).toBe(false)
+  })
+
+  it('sin sesión, una ruta del portal sigue sin ir al ingreso', () => {
+    expect(
+      decidirAcceso({
+        ruta: '/api/portal/estado',
+        busqueda: '',
+        haySesion: false,
+        esAccion: false,
+      }),
+    ).toEqual({ tipo: 'seguir' })
+  })
 })
 
 describe('decidirAcceso', () => {

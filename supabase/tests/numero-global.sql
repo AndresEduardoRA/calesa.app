@@ -271,6 +271,8 @@ declare
     'leads_exportacion_registrar', 'deja la constancia (cuántas filas y qué filtros): ningún lead',
     'cotizacion_hoja_guardada', 'devuelve una cotización: el número de cotización de la anterior y de la nueva (_cotizacion_cadena), nunca el de un lead; del lead, sólo su id y si se ve',
     'lead_campo_crear', 'devuelve el campo creado: nada de leads',
+    'lead_campo_guardar', 'devuelve la versión del campo guardado (9.04-2: nombra el tipo «número» por el rango): nada de leads',
+    'lead_campo_impacto', 'devuelve el impacto del campo (9.04-2): cuántos leads tienen valor, por opción y fuera del rango, nunca un número de un lead',
     'cotizaciones_listado', 'devuelve cotizaciones (4.16-1): su número de cotización y el id de su lead, con la RLS de quien llama; nunca el número de un lead',
     'vehiculos_inventario', 'devuelve vehículos (4.16-2a): su número de vehículo y el id de su lead, con la RLS de quien llama; nunca el número de un lead',
     '_vehiculos_inventario_sql', 'devuelve el texto de la consulta del inventario (4.16-2a): nombra el número del vehículo y lead_id, sin datos ni valores',

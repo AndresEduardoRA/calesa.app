@@ -29,6 +29,9 @@ export { leerOrigenesDeLeadConUso } from './composicion'
 // Configuración › Leads › Tipos de seguimiento: `leerTiposDeSeguimientoConUso()` trae los tipos con su icono y si algún seguimiento los usa;
 // `<TiposDeSeguimiento>` (por `pantallas/configuracion`) los crea, ordena, renombra y desactiva; ninguno es de sistema.
 export { leerTiposDeLeadConUso, leerTiposDeSeguimientoConUso } from './composicion'
+// Configuración › Leads › «Plantilla del embudo» y «Mensaje del portal» (9.04): `leerAjustesDeLeads()` trae las dos plantillas con su
+// versión; las dibujan `<PlantillaDelEmbudo>` y `<MensajeDelPortal>` (por `pantallas/configuracion`).
+export { leerAjustesDeLeads } from './composicion'
 
 // El listado de `/leads`: lo lee la página (`leerListadoDeLeads`) y lo dibuja `<ListadoDeLeads>` con
 // el drawer rápido (`?lead=`) adentro. El alcance («míos» y «todos») y lo que cada quien ve lo
