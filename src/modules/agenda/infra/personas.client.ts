@@ -37,15 +37,20 @@ export async function leerPersonasParaEvento(
   return ok(cortarPersonas(data))
 }
 
-// A quién darle una tarea: sólo quien puede recibirla (`agenda_quienes_reciben`, que pide `agenda.tareas.asignar`; sin conversación).
+// A quién darle una tarea: sólo quien puede recibirla (`agenda_quienes_reciben`, que pide `agenda.tareas.asignar`). Con `conversacion` (la tarea nace
+// de un mensaje del chat), sólo sus miembros.
 export async function leerPersonasParaTarea(
   texto: string,
+  conversacion?: string,
 ): Promise<Resultado<PersonasEncontradas>> {
   const buscado = textoDeBusqueda(texto)
   if (buscado === null) {
     return ok(SIN_PERSONAS)
   }
-  const { data, error } = await createClient().rpc('agenda_quienes_reciben', { p_texto: buscado })
+  const { data, error } = await createClient().rpc('agenda_quienes_reciben', {
+    p_texto: buscado,
+    ...(conversacion ? { p_conversacion: conversacion } : {}),
+  })
   if (error) {
     return { ok: false, error: errorDePostgrest(error) }
   }
