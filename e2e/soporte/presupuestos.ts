@@ -13,6 +13,8 @@ export const PRESUPUESTO_DE_JS_EN_KB: Readonly<Record<string, number>> = {
   '/cotizaciones/nuevo': 460,
   // La página de una cotización guardada (4.15-3), con una cotización sembrada en la subasta de la semilla: el mismo marco y la misma hoja, sin las barras del vehículo y del cliente: medido 438,6 KB en 27 chunks, más un 2 % hacia arriba.
   '/cotizaciones/[id]': 448,
+  // La cadena de logística (6.03-2), con la dueña de la prueba y el primer origen de la semilla con la logística encendida: medido 388,9 KB en 30 chunks, más un 5 % hacia arriba a la decena.
+  '/logistica': 410,
 }
 
 // Lo que una sección de la ficha puede aportar al documento sobre `/perfil`, en KB. Era 44 hasta la 9e; con el shell delgado (`/perfil` ya

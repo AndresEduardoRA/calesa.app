@@ -1,3 +1,4 @@
+import { AccionesDeFila, AccionesDeLaLista, DatosDeLaFase } from '@/modules/flujos/pantallas/fases'
 import type { HuecosDelFlujo } from '@/modules/flujos/pantallas/configuracion'
 import { BloqueDeRequisitos } from '@/modules/flujos/pantallas/requisitos'
 import { BloqueDeSalidas, SalidasDeLaFila } from '@/modules/flujos/pantallas/transiciones'
@@ -6,6 +7,8 @@ import { BloqueDeSalidas, SalidasDeLaFila } from '@/modules/flujos/pantallas/tra
 // del inspector (`HuecosDelFlujo`). Son componentes de cliente. Cada paso suma su línea acá al llenar su hueco: 5.04 (acciones y «Datos»), 5.06 (salidas),
 // 5.08 (requisitos) y 5.12 (la franja).
 export const HUECOS_DE_FLUJOS: HuecosDelFlujo = {
+  accionesDeLaLista: AccionesDeLaLista,
+  accionesDeFila: AccionesDeFila,
   salidasDeFila: SalidasDeLaFila,
-  bloques: { requisitos: BloqueDeRequisitos, salidas: BloqueDeSalidas },
+  bloques: { datos: DatosDeLaFase, requisitos: BloqueDeRequisitos, salidas: BloqueDeSalidas },
 }

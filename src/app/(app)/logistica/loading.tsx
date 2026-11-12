@@ -1,5 +1,5 @@
-import { EsqueletoDetalle } from '@/shared/ui/esqueletos'
+import { EsqueletoDeTablero } from '@/modules/logistica/pantallas/cadena'
 
 export default function CargandoLogistica() {
-  return <EsqueletoDetalle />
+  return <EsqueletoDeTablero />
 }
