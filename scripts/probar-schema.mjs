@@ -233,6 +233,7 @@ const LISTA_FIJA = [
   'lead-oportunidades-pagina.sql',
   'rueda-por-rol.sql',
   'equipo-lista.sql',
+  'dominancia-persona.sql',
   'permisos-enforcement.sql',
   'validar-formula.sql',
   'validar-diseno.sql',

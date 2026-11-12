@@ -530,8 +530,9 @@ do $$ declare r1 uuid; r2 uuid; begin
   perform public.rbac_asignar_rol('00000000-0000-0000-0000-000000000007', (select id from public.roles where clave = 'dueno'), true);
 end $$;
 reset role;
--- Gabriela (dos roles que suman) alcanza para que la dueña pueda ser bloqueada.
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000006', false);
+-- Gabriela (dos roles que suman) alcanza para que la dueña pueda ser bloqueada. Bloquea Pablo: Gabriela no domina a la
+-- dueña (9-1) y caería por eso antes que por el guardián.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000007', false);
 set role authenticated;
 do $$ begin
   set constraints all immediate;
@@ -552,7 +553,8 @@ do $$ begin
   exception when check_violation then null; end;
 end $$;
 reset role;
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000006', false);
+-- Lo intenta Pablo, que domina a la dueña: cae por el guardián.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000007', false);
 set role authenticated;
 do $$ begin
   set constraints all immediate;

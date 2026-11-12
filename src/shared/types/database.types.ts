@@ -7565,6 +7565,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      _exigir_persona_dominada: {
+        Args: { p_accion: string; p_usuario: string }
+        Returns: undefined
+      }
       _exigir_version: {
         Args: { p_actual: string; p_esperado: string; p_mensaje: string }
         Returns: undefined
@@ -8247,6 +8251,7 @@ export type Database = {
         Args: { p_tipo: Database['public']['Enums']['tipo_lote_papelera'] }
         Returns: undefined
       }
+      _personas_dominadas: { Args: { p_ids: string[] }; Returns: string[] }
       _plantilla_borrador_ausente: {
         Args: { p_esperada: string; p_origen: string }
         Returns: undefined
@@ -9786,6 +9791,8 @@ export type Database = {
           origen_id: string
         }[]
       }
+      persona_dominada: { Args: { p_usuario: string }; Returns: boolean }
+      personas_dominadas: { Args: { p_ids: string[] }; Returns: string[] }
       plantilla_descartar_borrador: {
         Args: { p_actualizado_en_esperado: string; p_origen: string }
         Returns: undefined
