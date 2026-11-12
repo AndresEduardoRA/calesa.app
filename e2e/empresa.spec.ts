@@ -19,6 +19,7 @@ import {
   ultimoCambioDe,
   type InstantaneaDeEmpresa,
 } from './soporte/empresa'
+import { vigilarVaultDeApibara } from './soporte/apibara-clave'
 import { ingresar } from './soporte/pasos'
 
 // Configuración › Empresa contra la app compilada y el Supabase local. La empresa es una fila
@@ -39,8 +40,11 @@ let duena = ''
 let cambista = ''
 let proyecto = ''
 let antes: InstantaneaDeEmpresa
+// La clave de apibara en Vault: al terminar el spec tiene que quedar como estaba, con su huella (9-8).
+const vault = vigilarVaultDeApibara()
 
 test.beforeAll(async ({}, info) => {
+  vault.empezar()
   await borrarPersonasDePrueba()
   await borrarRolesDePrueba()
   antes = await tomarInstantaneaDeEmpresa()
@@ -59,9 +63,11 @@ test.beforeAll(async ({}, info) => {
 })
 
 test.afterAll(async () => {
+  vault.dejarComoEstaba()
   await restaurarEmpresa(antes)
   await borrarPersonasDePrueba()
   await borrarRolesDePrueba()
+  vault.verificar()
 })
 
 async function entrar(page: Page, correo: string) {
@@ -194,6 +200,7 @@ test('sin el permiso de ajustes, la pestaña Empresa sale deshabilitada con el m
 test('guarda la clave de apibara sin volver a mostrarla, y recién entonces la activa', async ({
   page,
 }) => {
+  test.skip(vault.hayClaveReal, 'hay una clave real de apibara: guardar otra la pisaría (9-8)')
   const secreto = `e2e-clave-${proyecto}-0123456789`
   await entrar(page, duena)
   await page.goto('/configuracion/empresa?seccion=integraciones')
