@@ -16,9 +16,15 @@ import {
   abrirForma,
   abrirInspector,
   borrarRequisitosDePrueba,
+  borrarTiposDeRequisitoDePrueba,
   descripcionesDeLaLista,
+  estadoDeLaRegla,
+  faseDeRepuestos,
   faseSinRequisitos,
+  filaDeRequisito,
+  fijarRegla,
   requisitosEnLaBase,
+  sembrarTipoActivo,
 } from './soporte/requisitos'
 
 // Configuración › Flujos › inspector de una fase › «Requisitos para entrar» (5.08-1, `docs/UX.md` › «Flujos: requisitos para entrar (estados propios)»): la
@@ -30,14 +36,20 @@ let proyecto = ''
 let duena = ''
 let configuradora = ''
 let fase = { id: '', nombre: '' }
+let tipo = { id: '', nombre: '' }
+let esperasAntes: boolean | null = null
 const notas = (resto: string) => `${PREFIJO_DE_REQUISITO_E2E} ${resto} ${proyecto}`
 
 test.beforeAll(async ({}, info) => {
   proyecto = info.project.name
   borrarRequisitosDePrueba()
+  borrarTiposDeRequisitoDePrueba()
   await borrarPersonasDePrueba()
   await borrarRolesDePrueba()
   fase = faseSinRequisitos()
+  tipo = { nombre: `${PREFIJO_DE_REQUISITO_E2E} Documento`, id: '' }
+  tipo.id = sembrarTipoActivo(tipo.nombre)
+  esperasAntes = estadoDeLaRegla('esperas')
   duena = correoDePrueba(`duena-requisitos-${proyecto}`)
   configuradora = correoDePrueba(`configuradora-requisitos-${proyecto}`)
   await crearDuenaDePrueba({ email: duena, contrasena: CONTRASENA, nombre: 'Rita Requisitos' })
@@ -58,7 +70,9 @@ test.beforeAll(async ({}, info) => {
 })
 
 test.afterAll(async () => {
+  fijarRegla('esperas', esperasAntes)
   borrarRequisitosDePrueba()
+  borrarTiposDeRequisitoDePrueba()
   await borrarPersonasDePrueba()
   await borrarRolesDePrueba()
 })
@@ -134,4 +148,92 @@ test('quien sólo configura el flujo también agrega un requisito', async ({ pag
   await expect(formulario).toBeHidden()
   await expect(inspector.getByText('Naviera', { exact: true })).toBeVisible()
   expect(requisitosEnLaBase(fase.id)).toEqual([...antes, 'transporte.naviera:false:'])
+})
+
+test('la dueña agrega un documento y una espera', async ({ page }) => {
+  const antes = requisitosEnLaBase(fase.id)
+  await entrar(page, duena, { fresco: true })
+
+  // Con la regla «Esperas» apagada, «Espera» queda apagada y dice por qué.
+  fijarRegla('esperas', null)
+  let inspector = await abrirInspector(page, fase.id)
+  await inspector.getByRole('button', { name: 'Agregar requisito' }).click()
+  const selector = inspector.getByRole('group', { name: 'Qué requisito agregar' })
+  await expect(selector.getByRole('button', { name: 'Espera', exact: true })).toBeDisabled()
+  await expect(
+    selector.getByText('Enciende la regla «Esperas» del flujo para pedir una espera.'),
+  ).toBeVisible()
+
+  // Documento: con un máximo de 0 el motivo va junto al campo y la base no cambia.
+  await selector.getByRole('button', { name: 'Documento', exact: true }).click()
+  const documento = inspector.getByRole('form', { name: 'Agregar requisito de documento' })
+  await documento.getByLabel('Tipo de documento').selectOption(tipo.id)
+  await documento.getByLabel('Máximo de archivos').fill('0')
+  await documento.getByRole('button', { name: 'Agregar requisito' }).click()
+  await expect(documento.getByText('Pide al menos 1 archivo.')).toBeVisible()
+  expect(requisitosEnLaBase(fase.id)).toEqual(antes)
+  await documento.getByLabel('Mínimo de archivos').fill('1')
+  await documento.getByLabel('Máximo de archivos').fill('3')
+  await documento.getByRole('checkbox', { name: 'PDF' }).check()
+  await documento.getByLabel('Notas (opcional)').fill(notas('documento'))
+  await documento.getByRole('button', { name: 'Agregar requisito' }).click()
+  await expect(documento).toBeHidden()
+  await expect(
+    inspector.getByText(`${tipo.nombre} · 1 a 3 archivos · PDF`, { exact: true }),
+  ).toBeVisible()
+  expect(filaDeRequisito(fase.id, 'documento')).toBe(
+    `1|3|application/pdf|false||${notas('documento')}`,
+  )
+
+  // Espera: con la regla encendida, una fase del flujo de repuestos.
+  fijarRegla('esperas', true)
+  inspector = await abrirInspector(page, fase.id)
+  await abrirForma(inspector, 'Espera')
+  const espera = inspector.getByRole('form', { name: 'Agregar requisito de espera' })
+  const faseEsperada = faseDeRepuestos()
+  await espera.getByLabel('Fase que se espera').selectOption({ label: faseEsperada })
+  await espera.getByLabel('Notas (opcional)').fill(notas('espera'))
+  await espera.getByRole('button', { name: 'Agregar requisito' }).click()
+  await expect(espera).toBeHidden()
+  await expect(
+    inspector.getByText(`Espera a que un repuesto llegue a «${faseEsperada}»`, { exact: true }),
+  ).toBeVisible()
+  expect(filaDeRequisito(fase.id, 'espera')).toBe(`|||false|hijos|${notas('espera')}`)
+})
+
+test('la dueña edita un documento, un porcentaje y no guarda sin cambios', async ({ page }) => {
+  await entrar(page, duena, { fresco: true })
+  const inspector = await abrirInspector(page, fase.id)
+  const documento = `${tipo.nombre} · 1 a 3 archivos · PDF`
+  const editar = inspector.getByRole('form', { name: 'Editar requisito' })
+
+  // Sin tocar nada: lo dice el formulario y no se llama a la base.
+  const antes = filaDeRequisito(fase.id, 'documento')
+  await masAccionesDe(page, documento).click()
+  await menuDe(page, documento).getByRole('menuitem', { name: 'Editar', exact: true }).click()
+  await expect(page).toHaveURL(/editar=requisito&requisito=/)
+  await editar.getByRole('button', { name: 'Guardar' }).click()
+  await expect(editar.getByText('No hay nada que guardar.')).toBeVisible()
+  expect(filaDeRequisito(fase.id, 'documento')).toBe(antes)
+
+  // El máximo baja a 2 y se vacían las notas.
+  await editar.getByLabel('Máximo de archivos').fill('2')
+  await editar.getByLabel('Notas (opcional)').fill('')
+  await editar.getByRole('button', { name: 'Guardar' }).click()
+  await expect(editar).toBeHidden()
+  await expect(
+    inspector.getByText(`${tipo.nombre} · 1 a 2 archivos · PDF`, { exact: true }),
+  ).toBeVisible()
+  expect(filaDeRequisito(fase.id, 'documento')).toBe('1|2|application/pdf|false||')
+
+  // El porcentaje de pagos.
+  const pagos = 'Pagos confirmados: 50 % del precio'
+  await masAccionesDe(page, pagos).click()
+  await menuDe(page, pagos).getByRole('menuitem', { name: 'Editar', exact: true }).click()
+  await editar.getByLabel('Porcentaje del precio').fill('60')
+  await editar.getByRole('button', { name: 'Guardar' }).click()
+  await expect(editar).toBeHidden()
+  await expect(
+    inspector.getByText('Pagos confirmados: 60 % del precio', { exact: true }),
+  ).toBeVisible()
 })
