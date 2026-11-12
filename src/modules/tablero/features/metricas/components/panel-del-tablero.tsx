@@ -40,7 +40,11 @@ export function PanelDelTablero({ permisos, periodo, zona = ZONA_POR_DEFECTO }: 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {montajes.map((montaje) => (
           <MarcoDeWidget key={montaje.widget.clave} widget={montaje.widget}>
-            <Suspense fallback={<EsqueletoDeWidget />}>
+            <Suspense
+              fallback={
+                <EsqueletoDeWidget alto={montaje.widget.tamano === 'ancho' ? 'grafica' : 'cifra'} />
+              }
+            >
               <MontajeDeWidget montaje={montaje} ventana={ventana} permisos={permisos} />
             </Suspense>
           </MarcoDeWidget>
