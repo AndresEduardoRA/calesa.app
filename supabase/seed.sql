@@ -86,7 +86,7 @@ insert into public.permisos (clave, modulo, nombre, descripcion, por_origen, con
   ('repuestos.costos.ver', 'repuestos', 'Ver costos de repuestos', 'Compras, pagos y cotizaciones con costo', false, false, 'policy repuestos_compras, policy pagos, policy gastos, policy repuestos_cotizaciones, comprobante_puede, repuestos_proyecto_margen', 490),
   ('repuestos.costos.editar', 'repuestos', 'Registrar costos de repuestos', 'Compras y pagos', false, false, 'repuesto_compra_guardar, repuesto_compra_eliminar, repuesto_compra_restaurar, comprobante_puede', 500),
   ('repuestos.cotizar', 'repuestos', 'Cotizar repuestos', 'Usar el cotizador de repuestos', false, false, 'policy repuestos_cotizaciones, repuestos_cotizacion_crear, repuestos_cotizacion_guardar, repuestos_cotizacion_aceptar, repuestos_cotizacion_anular', 510),
-  ('repuestos.configurar', 'repuestos', 'Configurar repuestos', 'Catálogos, flujo y cotizador de repuestos', false, false, 'puede_configurar_flujo, policy repuestos_catalogos', 520),
+  ('repuestos.configurar', 'repuestos', 'Configurar repuestos', 'Catálogos, flujo y cotizador de repuestos', false, false, 'puede_configurar_flujo, policy repuestos_catalogos, policy repuestos_cotizador_config, policy repuestos_tramos_logistica, policy repuestos_cajas', 520),
   ('agenda.eventos.publicar', 'agenda', 'Publicar eventos', 'Crear eventos visibles para todos o para seleccionados', false, false, 'policy eventos', 530),
   ('agenda.tareas.asignar', 'agenda', 'Dar tareas', 'Asignar tareas a otros', false, false, 'policy tareas, reasignar_tarea', 540),
   ('agenda.tareas.recibir', 'agenda', 'Recibir tareas', 'Puede ser responsable de tareas', false, false, 'tarea_validar', 550),
