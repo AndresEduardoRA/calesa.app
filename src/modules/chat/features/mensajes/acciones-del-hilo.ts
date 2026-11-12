@@ -6,6 +6,8 @@ import type { ResultadoDeGuardar } from './hooks/use-edicion'
 // Lo que el hilo le da a cada burbuja para actuar sobre su mensaje (7.09-4). Un solo objeto baja por `CuerpoDelHilo` y `ListaDelHilo`.
 export type AccionesDelMensaje = {
   usuarioId: string
+  // El hilo del widget (7.11): lee y responde; la burbuja no dibuja el «⋯» (responder con cita, editar y borrar viven en `/chat`).
+  sinMenu?: true
   // Quien tiene `chat.moderar`: puede borrar lo ajeno. Sólo decide lo que se ofrece; la base lo vuelve a exigir.
   puedeModerar: boolean
   responder: (mensaje: Mensaje) => void

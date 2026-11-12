@@ -1486,6 +1486,8 @@ layout)` en `entities/` (el valor del campo principal mostrado con `shared/lib/c
   NO entra: código de producto nuevo; lo que falle al 100 % se arregla aquí y lo que no, se anota. **Assert:** `pnpm test:e2e:completo`
   con los dos proyectos en verde y el CI del PR en verde; la tabla de criterios sin filas vacías. Lugar: `e2e/`, `docs/`,
   `src/modules/{logistica,flujos,tablero}/CLAUDE.md`. Nivel **3** (cierre). Tipo: pantalla. Partes estimadas: 2.
+  **6.14-1** (hecho el 2026-11-12; `docs/pasos/6.14-1/`): la tarea de oro 3 (`e2e/logistica-tarea-de-oro.spec.ts`, en los dos proyectos: mover 1, KLM 11,3 s;
+  el contenedor de 8, KLM 14,6 s) y el recorrido de la IA con 5 líneas de pulido. Queda el **6.14-2**: el Nivel 3 y los docs de cierre.
 
 ### Riesgos y huecos
 
@@ -2155,6 +2157,11 @@ Pro.
 (4.20 y 4.28): **4-61**, **4-62** y **4-63** (el foco tras recargar y «atrás» que quedó del 4-49), **5a-29** y **5a-30** (del 4.20) y **5a-33** (del 4.28). Los recorre la
 auditoría AA de la Fase 9, con 5a-28. Los defectos de pulido nuevos se anotan aquí, en una línea.
 
+- (6.14-1) «Qué falta» del panel de la unidad deja un hueco vacío arriba del primer destino y de «Desde esta fase no hay a dónde mover.» (escritorio y celular; `logistica-tarea-de-oro` 02, 03 y 08).
+- (6.14-1) El resumen del contenedor pone «Mover el grupo» debajo de toda la lista de unidades: con 8 hay que desplazar para llegar a «Marcar que llegó» (escritorio y celular; `logistica-tarea-de-oro` 05).
+- (6.14-1) `/logistica/embarques` › Contenedores dice «Las primeras.» sobre la lista sin decir de qué (escritorio y celular; `logistica-tarea-de-oro` 04).
+- (6.14-1) El margen sin gastos dice «Real USD 0,00»: es cierto, pero junto a «Sin venta registrada» parece un costo cargado; «Sin gastos» lo diría sin cifra (escritorio y celular; `logistica-tarea-de-oro` 08).
+- (6.14-1) La cadena de la dueña: en el celular las pestañas de origen parten en dos líneas y la última queda cortada en el borde; en escritorio la tercera columna se corta sin indicio de que se desplaza (`logistica-tarea-de-oro` 01 y 09).
 - (5.04-3) El inspector de fase no se miró al 200 % (los bloques anidados miden con `minmax(0, 1fr)`; sin captura): `docs/pasos/5.04-3/bitacora.md`.
 - (4.18-3b) «Copiar texto» apagado nombra por `aria-describedby` un id que no está en el DOM mientras la tarjeta carga (`copiar-texto-de-la-tarjeta.tsx`): el aviso y «Falta el total para copiarlo.» sólo se dibujan con la tarjeta.
 

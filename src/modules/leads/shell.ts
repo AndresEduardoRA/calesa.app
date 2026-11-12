@@ -5,3 +5,5 @@
 // importan `src/app/(app)/layout.tsx` y `src/app/(app)/_shell/` (lo cuida el lint). «Nuevo lead» no recibe nada del servidor: lee lo que
 // necesita desde el navegador al abrirse (`infra/contexto-de-alta.client.ts`).
 export { AltaDeLead } from './features/alta/components/alta-de-lead'
+// «Escribirle por chat» del aviso «Lo tiene …» (7.11-2): un booleano del layout (`chat.participar`), porque `leads` no importa `chat`.
+export { ProveedorDeEscribirPorChat } from './features/chat/components/proveedor-de-escribir-por-chat'

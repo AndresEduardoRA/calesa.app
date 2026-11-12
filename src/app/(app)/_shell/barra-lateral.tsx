@@ -1,3 +1,4 @@
+import { NoLeidosDeLaBarra } from '@/modules/chat/shell.client'
 import type { Permisos } from '@/shared/lib/permisos'
 import { EnlaceNav } from './enlace-nav'
 import { entradasVisibles } from './navegacion'
@@ -15,6 +16,7 @@ export function BarraLateral({ permisos }: { permisos: Permisos }) {
             <EnlaceNav ruta={ruta}>
               <Icono aria-hidden />
               {titulo}
+              {clave === 'chat' ? <NoLeidosDeLaBarra /> : null}
             </EnlaceNav>
           </li>
         ))}
