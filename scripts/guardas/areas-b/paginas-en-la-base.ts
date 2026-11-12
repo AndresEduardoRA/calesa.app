@@ -1,7 +1,7 @@
-// Las RPC con tamaño de página del carril B: «Tareas sin fecha» de la agenda (7.07-3) y las secciones del buscador (7.12-2). Es un pedazo de `RPC_PAGINADAS`
+// Las RPC con tamaño de página del carril B: «Tareas sin fecha» de la agenda (7.07-3), las secciones del buscador (7.12-2) y los grupos de transporte (6.08-3). Es un pedazo de `RPC_PAGINADAS`
 // (`paginas-en-la-base.ts`, del A) que la guarda suma con `import.meta.glob('./areas-*/paginas-en-la-base.ts')` (`registros-de-carriles.ts`).
 import { POR_SECCION } from '../../../src/modules/buscador/entities/ranking'
-import { TAMANO_DE_VER_MAS } from '../../../src/shared/lib/paginacion'
+import { TAMANO_DE_PAGINA_POR_DEFECTO, TAMANO_DE_VER_MAS } from '../../../src/shared/lib/paginacion'
 import type { RpcPaginada } from '../paginas-en-la-base'
 
 export const REGISTRO: readonly RpcPaginada[] = [
@@ -30,5 +30,12 @@ export const REGISTRO: readonly RpcPaginada[] = [
     parametro: 'p_tamano',
     pideElCodigo: POR_SECCION,
     lista: 'buscador, sección cotizaciones',
+  },
+  // Embarques y contenedores de `/logistica/embarques` (6.08-3), por cursor opaco; la base acota con `_acotar_pagina(p_tope, 50, 100)` y recorre a lo sumo 2.000 filas por llamada.
+  {
+    rpc: 'transporte_grupos',
+    parametro: 'p_tope',
+    pideElCodigo: TAMANO_DE_PAGINA_POR_DEFECTO,
+    lista: 'embarques y contenedores de /logistica/embarques',
   },
 ]
