@@ -63,8 +63,9 @@ export async function exportarTodo(entrada: Entrada): Promise<SalidaDeExportacio
 }
 
 // Lo común a toda entidad, una vez que su fuente está lista: contar, registrar y armar el flujo.
+// Una fuente `null` es un origen que no está: lo mismo que uno donde no se ve nada (no dice si existe), sin contar ni registrar.
 async function seguirCon<Fila>(
-  fuente: Resultado<Fuente<Fila>>,
+  fuente: Resultado<Fuente<Fila> | null>,
   {
     pedido,
     sesion,
@@ -73,16 +74,17 @@ async function seguirCon<Fila>(
   }: { pedido: Pedido; sesion: Sesion; zona: string; ahora: () => number },
 ): Promise<SalidaDeExportacionTotal> {
   if (!fuente.ok) {
-    // Un origen que no está: lo mismo que uno donde no se ve nada (no dice si existe), sin contar ni registrar.
-    return fuente.error.codigo === 'no_encontrado'
-      ? { tipo: 'vacia' }
-      : { tipo: 'error', mensaje: NO_SE_PUDO }
+    return { tipo: 'error', mensaje: NO_SE_PUDO }
+  }
+  if (fuente.data === null) {
+    return { tipo: 'vacia' }
   }
   const corte = new Date(ahora()).toISOString()
   const rango = rangoDelPedido(pedido, zona, corte)
   const tope = TOPE_POR_ENTIDAD[pedido.entidad]
 
-  const contadas = await fuente.data.lector.contar(rango, tope)
+  const { lector, columnas, etiqueta } = fuente.data
+  const contadas = await lector.contar(rango, tope)
   if (!contadas.ok) {
     return { tipo: 'error', mensaje: NO_SE_PUDO }
   }
@@ -110,11 +112,11 @@ async function seguirCon<Fila>(
 
   return {
     tipo: 'listo',
-    nombre: nombreDelArchivo(pedido.entidad, corte, zona, fuente.data.etiqueta),
+    nombre: nombreDelArchivo(pedido.entidad, corte, zona, etiqueta),
     filas,
     flujo: armarFlujo({
-      lector: fuente.data.lector,
-      columnas: fuente.data.columnas,
+      lector,
+      columnas,
       rango,
       filas,
       delimitador: pedido.delimitador,

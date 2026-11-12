@@ -35,7 +35,7 @@ Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista pre
 - Importar nunca pisa: un teléfono existente se reporta como «ya existe» (en masa **no se nombra a nadie**, como en `leads`) y lo del limbo no se adopta en bloque: `crear_lead` con `adoptar` es una decisión por lead.
 - El contrato de `leads` (Fase 3, parte 8, `docs/DECISIONES.md`): `_lead_crear(…, p_recordar_origen)` y `leads_importar_lote` son lo que se llama por fila o por lote; `importaciones.archivo_ruta` es nulo sólo en la de `leads`.
 - El CSV usa `;` o `,` detectado, UTF-8 con BOM al exportar (Excel en español).
-- Exportar todo: el permiso (efectivo) → la sesión → layout y catálogos → el conteo hasta `TOPE_DE_FILAS + 1` → **el registrar** → el flujo. Con más del
+- Exportar todo: el permiso (efectivo) → la sesión → layout y catálogos → el conteo hasta `TOPE_POR_ENTIDAD[entidad] + 1` → **el registrar** → el flujo. Con más del
   tope o ninguna fila, no se registra; con 42501 o el cupo gastado, 403 o 429 sin leer filas; nunca se registra dos veces; el archivo nunca lleva más
   filas que las registradas (el conteo y la lectura usan el mismo instante de corte y la lectura corta en `filas`). Lo prueba `route.test.ts`.
 - El orden está escrito una vez (`seguirCon` de `lecturas.ts`): una entidad sólo trae su fuente (lector, columnas y etiqueta del archivo).

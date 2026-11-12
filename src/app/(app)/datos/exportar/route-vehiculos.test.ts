@@ -167,6 +167,12 @@ describe('POST /datos/exportar: vehículos de un origen', () => {
     ningunaLectura()
   })
 
+  it('T14 · un no_encontrado del layout de un origen que existe es un error (500), no un 404', async () => {
+    leerLayout.mockResolvedValue({ ok: false, error: { codigo: 'no_encontrado', mensaje: 'x' } })
+    expect((await pedir()).status).toBe(500)
+    ningunaLectura()
+  })
+
   it('T14 · sin el permiso, 403 sin leer ni los orígenes', async () => {
     getPermisos.mockResolvedValue([])
     expect((await pedir()).status).toBe(403)
