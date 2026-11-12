@@ -10,12 +10,13 @@ Lo que el CRM configura para la web pública y el portal del cliente: ajustes de
 
 ## Archivos clave
 
-- `entities/contenido/doc.ts` (+ `doc-nodos.ts`): `htmlDelDocumento()`, espejo de `_web_doc_html()` (la lista blanca del documento del sitio y su HTML); `doc.casos.ts` corre contra los dos en `doc.test.ts` (PGlite). Imagen = `{ruta, alt}` relativa al bucket `web`: sale `<img data-ruta alt>` y el sitio arma la URL.
-- Existe: `entities/repositorios.ts`, `entities/rueda.ts` (`puedeEstarEnLaRueda`, los dos textos), `features/rueda/components/estado-en-la-rueda.tsx` (la sección «Turnos de la web» de `/perfil`, por `pantallas/perfil.ts`), `infra/queries/sitio.ts` (`getDireccionPublica`), `composicion.ts`. Lo demás llega con la Fase 8.
-- `entities/cola.ts` — **todavía no existe** (Fase 8): reglas de la rueda (orden, cupo, pegajoso, prioridad) documentadas y testeadas como espejo de `web.solicitar_asesor` (la base decide). Lo que sí existe es `entities/rueda.ts`, el espejo de «¿el rol recibe turnos?».
+- **Áreas** (8.01-2; lo vigila `scripts/guardas/areas-b/areas-de-web.test.ts`): `sitio`, `contenido`, `cola`, `turnos`, `portal` y el `nucleo`. Un área vive en `features|entities|infra/<área>/`, `areas/<área>/{index,client,composicion}.ts` y `pantallas/<área>.ts`; las entradas de la raíz sólo hacen `export *` de cada área. Lo nuevo va en su área, nunca en la raíz; un área no importa otra. Una pantalla cuyo nombre no dice su área (`perfil` → `turnos`, `sitio-guias|faqs|testimonios` → `contenido`) va en `PANTALLAS_DE_AREA` de la guarda.
+- `sitio`: `entities/sitio/repositorios.ts`, `infra/sitio/direccion-publica.ts` (`getDireccionPublica`), `areas/sitio/composicion.ts` (`leerDireccionPublica`).
+- `turnos`: `entities/turnos/rueda.ts` (`puedeEstarEnLaRueda`, los dos textos), `features/turnos/rueda/components/estado-en-la-rueda.tsx` (la sección «Turnos de la web» de `/perfil`, por `pantallas/perfil.ts`).
+- `contenido`: `entities/contenido/doc.ts` (+ `doc-nodos.ts`): `htmlDelDocumento()`, espejo de `_web_doc_html()` (la lista blanca del documento del sitio y su HTML); `doc.casos.ts` corre contra los dos en `doc.test.ts` (PGlite). Imagen = `{ruta, alt}` relativa al bucket `web`: sale `<img data-ruta alt>` y el sitio arma la URL.
+- `cola`: `entities/cola/` — **todavía vacío** (8.04): reglas de la rueda (orden, cupo, pegajoso, prioridad) documentadas y testeadas como espejo de `web.solicitar_asesor` (la base decide). `portal`: vacío hasta 8.07.
 - Revalidar: lo hace la base (cola `interno.web_revalidar_pendiente`, triggers `web_revalidar`, job `web-revalidar`); no hay `infra/revalidar.ts` ni variables de entorno. Dirección (`integraciones.config.revalidar_url`) y secreto (Vault `integracion:web_publica`) se cargan en Configuración › Empresa › Integraciones › Web pública (módulo `empresa`, que también hace «Probar»). `app/api/portal/*` firma la cookie del portal.
 - **Contrato con el sitio** (8.06-2, `docs/pasos/8.06-2/decisiones.md`): `POST <revalidar_url>` con `Content-Type: application/json` y `Authorization: Bearer <secreto>`; cuerpo `{"etiquetas": [...]}` con `guias|faqs|testimonios|ajustes|asesores|vehiculos`, ordenadas y sin repetir. `{"etiquetas": []}` es «Probar» y no revalida nada. El receptor compara el secreto en tiempo constante y responde 2xx. A lo sumo un pedido por minuto y sólo a `https://`; sin reintentos (lo cubre la caducidad propia del sitio); apagar la integración no avisa.
-- `features/sitio/`, `features/guias/`, `features/faqs/`, `features/testimonios/`, `features/cola/`.
 
 ## Tablas
 
