@@ -3,3 +3,4 @@
 export { leerConversacion } from './infra/conversacion.client'
 export { leerPaginaDeConversaciones } from './infra/conversaciones.client'
 export { suscribirseALaLista } from './infra/realtime.client'
+export { leerPersonas } from './infra/personas.client'
