@@ -5,7 +5,7 @@ import { conRed, resultadoDeAccion } from '@/shared/lib/formularios'
 import { Button } from '@/shared/ui/button'
 import { avisarConDeshacer, avisarError, avisarExito } from '@/shared/ui/toasts'
 import type { ConfiguracionEnLaRueda } from '../../../../entities/cola/rueda'
-import { configurarEnLaRueda } from '../actions/configurar-en-la-rueda'
+import { deshacerQuitar } from '../actions/deshacer-quitar'
 import { quitarDeLaRueda } from '../actions/quitar-de-la-rueda'
 
 type Props = { configuracion: ConfiguracionEnLaRueda; nombre: string }
@@ -14,7 +14,7 @@ type Props = { configuracion: ConfiguracionEnLaRueda; nombre: string }
 // gana (8.04-1, D8). La página se relee por la revalidación.
 export function QuitarDeLaRueda({ configuracion, nombre }: Props) {
   const quitar = useAction(quitarDeLaRueda)
-  const deshacer = useAction(configurarEnLaRueda)
+  const deshacer = useAction(deshacerQuitar)
 
   async function alQuitar() {
     const resultado = resultadoDeAccion(await conRed(quitar.executeAsync(configuracion)))
