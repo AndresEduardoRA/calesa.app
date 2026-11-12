@@ -13,7 +13,7 @@ Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista pre
 - `entities/plantillas.ts` — columnas de cada plantilla CSV con sus validadores Zod (teléfono normalizado por la base con el código de la empresa, fechas ISO, orígenes por nombre).
 - `infra/importar.ts` — llama a `supabase/functions/importar-csv` (fuera de la Server Action: es trabajo en segundo plano).
 - `entities/exportacion.ts` — exportar todo: el pedido (Zod), `TOPE_DE_FILAS` (250.000, medido), `FILAS_POR_PEDIDO` (el `max_rows`), el rango por fechas con el instante de corte, lo que contesta el registrar y los tipos `LectorDeExportacion`, `ColumnasDeExportacion` y `Registrador`.
-- `infra/cliente-del-flujo.ts` — `prepararSesion()`: la sesión de quien exporta con su token **fijo** (`accessToken` de supabase-js: nunca refresca). `infra/exportacion.ts` — el conteo y las páginas de `datos_exportar_leads()` por cursor, el registrar y los nombres de los dueños. `infra/paginas.ts` — lo común de leer por páginas (`enElRango`, `siguienteDe`, `contarHasta`). `infra/vehiculos.ts` (9.05-2b) — los vehículos de un origen de la tabla `vehiculos`, de a 1.000, bajo la RLS de quien exporta (no `vehiculos_inventario()`).
+- `infra/cliente-del-flujo.ts` — `prepararSesion()`: la sesión de quien exporta con su token **fijo** (`accessToken` de supabase-js: nunca refresca). `infra/exportacion.ts` — el conteo y las páginas de `datos_exportar_leads()` por cursor, el registrar y los nombres de los dueños. `infra/paginas.ts` — lo común de leer por páginas (`enElRango`, `siguienteDe`, `contarHasta`). `infra/vehiculos.ts` (9.05-2b) — los vehículos de un origen de la tabla `vehiculos`, de a 1.000, bajo la RLS de quien exporta (no `vehiculos_inventario()`). `infra/cotizaciones.ts` (9.05-2c) — las cotizaciones de la tabla `cotizaciones` (todas o de un origen), de a 1.000, bajo la RLS de quien exporta (no `cotizaciones_listado()`), y los nombres de una página: clientes por `leads_vista_por_ids` y títulos de `vehiculos` de a `IDS_POR_CONSULTA_DE_NOMBRES` (100).
 - `features/exportar/lecturas.ts` (`exportarTodo`: el orden), `flujo.ts` (el `ReadableStream`), `fuente-de-<entidad>.ts` y `columnas-de-<entidad>.ts` (leads y vehículos; la 9.05-2c suma cotizaciones con un `case` en `lecturas.ts`, sin tocar el flujo ni el route); `features/importar/` (mapeo, vista previa, resultado).
 
 ## Tablas
@@ -28,6 +28,8 @@ Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista pre
   La RLS decide las filas; de un lead ajeno, el teléfono enmascarado y sin los campos de sólo cartera; el número global sólo con
   `leads.numero_global.ver`. No pide el permiso (devuelve lo que la vista ya da). PostgREST le pone el orden `(creado_en, id)`, el cursor y
   `max_rows`: se inlinea, así que **no le pongas** `strict`, `search_path`, `security definer`, `volatile` ni `begin atomic`.
+- Cotizaciones (9.05-2c): la tabla `cotizaciones` (sólo columnas con `grant select`; la papelera la cortan sus policies y el filtro explícito), `leads_vista_por_ids`
+  (sólo `id, nombre`) y `vehiculos` (`id, titulo`), todo con el cliente del flujo. Medido en `supabase/tests/medir-datos-exportar-cotizaciones.sql`.
 
 ## No se rompe
 

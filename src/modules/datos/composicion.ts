@@ -2,12 +2,18 @@
 // `features/` importan de este archivo, nunca de `infra/` (lo verifica eslint-plugin-boundaries).
 import 'server-only'
 import type {
+  FilaDeCotizacionAExportar,
   FilaDeLeadAExportar,
   FilaDeVehiculoAExportar,
   LectorDeExportacion,
   Registrador,
 } from './entities/exportacion'
 import type { ClienteDelFlujo } from './infra/cliente-del-flujo'
+import {
+  clientesDeCotizaciones,
+  lectorDeCotizaciones,
+  titulosDeVehiculos,
+} from './infra/cotizaciones'
 import { lectorDeLeads, nombresDePersonas, registradorDe } from './infra/exportacion'
 import { lectorDeVehiculos } from './infra/vehiculos'
 
@@ -23,6 +29,17 @@ export const leerVehiculosAExportar: (
   cliente: ClienteDelFlujo,
   origenId: string,
 ) => LectorDeExportacion<FilaDeVehiculoAExportar> = lectorDeVehiculos
+
+// Las cotizaciones (9.05-2c): la tabla bajo la RLS de quien exporta, todas o las de un origen, y los nombres de una página (clientes por
+// `leads_vista_por_ids`, títulos de vehículos de a 100), siempre con el cliente del flujo.
+export const leerCotizacionesAExportar: (
+  cliente: ClienteDelFlujo,
+  origenId: string | null,
+) => LectorDeExportacion<FilaDeCotizacionAExportar> = lectorDeCotizaciones
+
+export const leerClientesDeCotizaciones = clientesDeCotizaciones
+
+export const leerTitulosDeVehiculos = titulosDeVehiculos
 
 // Uno solo para todas las entidades: ninguna fuente trae el suyo, así que ninguna lo puede saltar.
 export const registrarExportacion: (cliente: ClienteDelFlujo) => Registrador = registradorDe

@@ -5,12 +5,16 @@ import { DELIMITADORES, type Celda, type Delimitador } from '@/shared/lib/csv/es
 import type { Resultado } from '@/shared/lib/errores'
 import { diaEnZona, diaSiguiente, inicioDelDia } from '@/shared/lib/fechas'
 import type { Cursor } from '@/shared/lib/paginacion'
+import type { Enums } from '@/shared/types/database.types'
 
 // Cuántas filas lleva como mucho un archivo. Es el techo de la base (`datos_exportacion_registrar`, 250.000); medido con volumen en
 // `supabase/tests/medir-datos-exportar.sql` (9.05-2): si la lectura entera no entra en la vida del token, este tope baja (la base sigue igual).
 export const TOPE_DE_FILAS = 250000
 // De a cuántas filas se lee: el `max_rows` de PostgREST (`supabase/config.toml`). Más, y PostgREST cortaría sin avisar.
 export const FILAS_POR_PEDIDO = 1000
+// De a cuántos ids se piden los títulos de los vehículos de una página de cotizaciones: es un GET con `.in('id', …)` y 100 uuids son ≈ 3,7 KB de
+// URL (1.000 serían ≈ 37 KB). El mismo tope que `titulos-de-vehiculos.ts` de `vehiculos`.
+export const IDS_POR_CONSULTA_DE_NOMBRES = 100
 // Si al token de la sesión le queda menos que esto al empezar, se renueva dentro del pedido (la cookie nueva viaja en la respuesta).
 export const VIDA_MINIMA_DEL_TOKEN_MS = 5 * 60_000
 // El flujo no pide una página si al token le queda menos que esto: corta con error antes que mandar un pedido que va a dar 401.
@@ -168,6 +172,22 @@ export type FilaDeVehiculoAExportar = {
   aceptaPermuta: boolean | null
   faseId: string | null
   atributos: Record<string, unknown>
+  creadoEn: string
+  actualizadoEn: string
+}
+
+// La fila de la tabla `cotizaciones` que lee el flujo (9.05-2c), en camelCase: sólo columnas con `grant select` para `authenticated`. Sin autor,
+// fórmula, plantilla, notas, valores ni totales. `totalBase` es el total en la moneda base tal como lo guarda la base (`numeric(18,2)`).
+export type FilaDeCotizacionAExportar = {
+  id: string
+  numero: number
+  origenId: string
+  leadId: string | null
+  vehiculoId: string | null
+  clase: Enums<'clase_cotizacion'>
+  estado: Enums<'estado_cotizacion'>
+  titulo: string | null
+  totalBase: number
   creadoEn: string
   actualizadoEn: string
 }
