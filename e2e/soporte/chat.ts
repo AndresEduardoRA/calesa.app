@@ -12,6 +12,7 @@ import {
   crearDuenaDePrueba,
   crearPersona,
   darRolDePrueba,
+  type PermisoDePrueba,
 } from './base'
 import { CONTRASENA } from './alta'
 import { sql } from './sql'
@@ -43,7 +44,7 @@ async function crearConRol(
   proyecto: string,
   etiqueta: string,
   nombre: string,
-  permisos: string[],
+  permisos: PermisoDePrueba[],
 ): Promise<PersonaDelChat> {
   const email = correoDePrueba(`${etiqueta}-chat-${proyecto}`)
   await crearPersona({ email, contrasena: CONTRASENA, nombre, invitada: true })
@@ -79,7 +80,11 @@ export function sembrarMensaje(
        values ('${conversacion}', '${autor}', '${cuerpo.replaceAll("'", "''")}', now() - interval '${String(haceMinutos)} minutes')`)
 }
 
-export async function prepararChat(proyecto: string): Promise<TerrenoDelChat> {
+// `permisosDeAna`: los de Ana, de ventas; por omisión sólo `chat.participar`. Un e2e que la hace mencionar su lead le suma `leads.ver`.
+export async function prepararChat(
+  proyecto: string,
+  opciones: { permisosDeAna?: PermisoDePrueba[] } = {},
+): Promise<TerrenoDelChat> {
   borrarChatDePrueba()
   await borrarPersonasDePrueba()
   await borrarRolesDePrueba()
@@ -91,7 +96,7 @@ export async function prepararChat(proyecto: string): Promise<TerrenoDelChat> {
     id: sql(`select id from auth.users where email = '${emailDeLaDuena}'`),
   }
   const [ana, luis, marta, sofia] = await Promise.all([
-    crearConRol(proyecto, 'ana', 'Ana Chat', ['chat.participar']),
+    crearConRol(proyecto, 'ana', 'Ana Chat', opciones.permisosDeAna ?? ['chat.participar']),
     crearConRol(proyecto, 'luis', 'Luis Chat', ['chat.participar']),
     crearConRol(proyecto, 'marta', 'Marta Chat', ['chat.participar']),
     // Sin `chat.participar`: tiene otro permiso cualquiera para que el rol exista.
