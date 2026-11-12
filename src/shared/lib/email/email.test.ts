@@ -26,6 +26,55 @@ function pedidoSimulado(respuesta: Response | Error) {
   return { pedir, llamadas }
 }
 
+describe('cambiar de proveedor es cambiar variables (el assert del paso 7.05)', () => {
+  const cuenta = '0123456789abcdef0123456789abcdef'
+  const claves = {
+    EMAIL_REMITENTE: remitente.email,
+    EMAIL_REMITENTE_NOMBRE: remitente.nombre,
+    RESEND_API_KEY: 're_clave',
+    CLOUDFLARE_ACCOUNT_ID: cuenta,
+    CLOUDFLARE_API_TOKEN: 'cf_token',
+  }
+  const respuestas = {
+    resend: () => Response.json({ id: 'rs_1' }),
+    cloudflare: () =>
+      Response.json({ success: true, errors: [], result: { delivered: ['ana@ejemplo.com'] } }),
+  }
+
+  it.each(['resend', 'cloudflare'] as const)(
+    'con EMAIL_PROVEEDOR=%s el mismo enviarEmail devuelve un id y sólo cambia a dónde va el pedido',
+    async (proveedor) => {
+      const { pedir, llamadas } = pedidoSimulado(respuestas[proveedor]())
+      const r = await enviarEmail(mensaje, {
+        entorno: entorno({ ...claves, EMAIL_PROVEEDOR: proveedor }),
+        pedir,
+      })
+      expect(r.ok).toBe(true)
+      expect(r.ok ? r.data.id : '').not.toBe('')
+      expect(llamadas).toHaveLength(1)
+      expect(llamadas[0]?.url).toContain(
+        proveedor === 'resend' ? 'https://api.resend.com/' : 'https://api.cloudflare.com/',
+      )
+      expect(llamadas[0]?.cuerpo).toMatchObject({
+        subject: 'Hola',
+        html: '<p>Hola</p>',
+        text: 'Hola',
+      })
+    },
+  )
+
+  it('un proveedor sin su clave no pide nada y dice qué falta', async () => {
+    const { pedir, llamadas } = pedidoSimulado(respuestas.resend())
+    const r = await enviarEmail(mensaje, {
+      entorno: entorno({ ...claves, RESEND_API_KEY: undefined, EMAIL_PROVEEDOR: 'resend' }),
+      pedir,
+    })
+    expect(r).toMatchObject({ ok: false, error: { codigo: 'regla' } })
+    expect(r.ok ? '' : r.error.mensaje).toContain('Falta la configuración de resend')
+    expect(llamadas).toEqual([])
+  })
+})
+
 describe('el adaptador de Mailpit (contrato con su API)', () => {
   it('manda POST /api/v1/send con remitente, destinatarios, asunto, HTML, texto y etiquetas, y devuelve el id', async () => {
     const { pedir, llamadas } = pedidoSimulado(Response.json({ ID: 'abc123' }))
@@ -105,11 +154,5 @@ describe('enviarEmail()', () => {
     )
     expect(r).toMatchObject({ ok: false, error: { codigo: 'validacion' } })
     expect(llamadas).toEqual([])
-  })
-
-  it('un proveedor sin adaptador o sin su clave no manda nada y lo dice', async () => {
-    const r = await enviarEmail(mensaje, { entorno: entorno({ EMAIL_PROVEEDOR: 'resend' }) })
-    expect(r).toMatchObject({ ok: false, error: { codigo: 'regla' } })
-    expect(r.ok ? '' : r.error.mensaje).toContain('Falta la configuración de resend')
   })
 })
