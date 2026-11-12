@@ -8371,6 +8371,7 @@ export type Database = {
         }
       }
       _recordatorio_titulo: { Args: { p_hint: string; p_valor: string }; Returns: string }
+      _repuesto_ante_espera: { Args: { p_fase: string; p_item: string }; Returns: string }
       _repuesto_catalogo: {
         Args: { p_catalogo: string; p_clave: string; p_datos: Json }
         Returns: string
