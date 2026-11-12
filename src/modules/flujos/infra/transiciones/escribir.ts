@@ -62,4 +62,42 @@ export const transicionesSupabase: RepositorioDeTransiciones = {
       }),
     )
   },
+  guardar: async ({ id, actualizadoEnEsperado, cambios }) => {
+    const supabase = await createClient()
+    // Sólo las claves presentes; `accion: null` viaja como nulo («Mover»), nunca ausente.
+    const p_cambios: Record<string, string | boolean | null> = {}
+    if (cambios.accion !== undefined) {
+      p_cambios.accion = cambios.accion
+    }
+    if (cambios.notaObligatoria !== undefined) {
+      p_cambios.nota_obligatoria = cambios.notaObligatoria
+    }
+    return comoResultado(
+      await supabase.rpc('transicion_guardar', {
+        p_transicion: id,
+        p_actualizado_en_esperado: actualizadoEnEsperado,
+        p_cambios,
+      }),
+    )
+  },
+  ponerRolesDeFase: async ({ faseId, actualizadoEnEsperado, roles }) => {
+    const supabase = await createClient()
+    return comoResultado(
+      await supabase.rpc('fase_roles_poner', {
+        p_fase: faseId,
+        p_actualizado_en_esperado: actualizadoEnEsperado,
+        p_roles: [...roles],
+      }),
+    )
+  },
+  ponerRolesDeTransicion: async ({ id, actualizadoEnEsperado, roles }) => {
+    const supabase = await createClient()
+    return comoResultado(
+      await supabase.rpc('transicion_roles_poner', {
+        p_transicion: id,
+        p_actualizado_en_esperado: actualizadoEnEsperado,
+        p_roles: [...roles],
+      }),
+    )
+  },
 }

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { FaseParaConfigurar, FlujoParaConfigurar } from '../flujo'
 import {
   LARGO_MAXIMO_DE_ACCION,
+  cambiosDeSalida,
   destinosDisponibles,
   entradasDe,
   motivoSinDestinos,
@@ -89,5 +90,39 @@ describe('validarSalida', () => {
     expect(
       validarSalida({ aFaseId: B, accion: `${justa}x`, notaObligatoria: false }, disponibles),
     ).toMatchObject({ ok: false, errores: { accion: expect.any(String) as string } })
+  })
+})
+
+describe('cambiosDeSalida', () => {
+  const original = { accion: 'Embarcar', notaObligatoria: true }
+
+  it('sin cambios es nulo, aunque la acción traiga espacios', () => {
+    expect(cambiosDeSalida(original, { accion: 'Embarcar', notaObligatoria: true })).toBeNull()
+    expect(cambiosDeSalida(original, { accion: '  Embarcar ', notaObligatoria: true })).toBeNull()
+  })
+
+  it('manda sólo lo que cambió', () => {
+    expect(cambiosDeSalida(original, { accion: 'Embarcar', notaObligatoria: false })).toEqual({
+      notaObligatoria: false,
+    })
+    expect(cambiosDeSalida(original, { accion: ' Zarpar ', notaObligatoria: true })).toEqual({
+      accion: 'Zarpar',
+    })
+    expect(cambiosDeSalida(original, { accion: 'Zarpar', notaObligatoria: false })).toEqual({
+      accion: 'Zarpar',
+      notaObligatoria: false,
+    })
+  })
+
+  it('la acción vacía es nula si antes tenía una, y no es cambio si antes era nula', () => {
+    expect(cambiosDeSalida(original, { accion: '  ', notaObligatoria: true })).toEqual({
+      accion: null,
+    })
+    expect(
+      cambiosDeSalida(
+        { accion: null, notaObligatoria: false },
+        { accion: '', notaObligatoria: false },
+      ),
+    ).toBeNull()
   })
 })

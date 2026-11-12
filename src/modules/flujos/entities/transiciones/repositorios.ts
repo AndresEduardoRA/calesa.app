@@ -23,4 +23,21 @@ export type RepositorioDeTransiciones = {
     id: string
     actualizadoEnEsperado: string
   }) => Promise<ResultadoDeTransicion<VersionDeTransicion>>
+  // Sólo las claves que cambiaron: `accion` (nula = «Mover») y `notaObligatoria`. Sin ninguna, la base dice «No hay cambios para guardar.».
+  guardar: (pedido: {
+    id: string
+    actualizadoEnEsperado: string
+    cambios: { accion?: string | null; notaObligatoria?: boolean }
+  }) => Promise<ResultadoDeTransicion<VersionDeTransicion>>
+  // Reemplazo de todo o nada: la lista vacía quita la lista (queda «cualquiera», o la de la fase destino en una salida).
+  ponerRolesDeFase: (pedido: {
+    faseId: string
+    actualizadoEnEsperado: string
+    roles: readonly string[]
+  }) => Promise<ResultadoDeTransicion<VersionDeTransicion>>
+  ponerRolesDeTransicion: (pedido: {
+    id: string
+    actualizadoEnEsperado: string
+    roles: readonly string[]
+  }) => Promise<ResultadoDeTransicion<VersionDeTransicion>>
 }

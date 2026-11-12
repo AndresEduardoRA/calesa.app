@@ -15,8 +15,13 @@ export const BORRADOR_DE_SALIDA_NUEVA: BorradorDeSalida = {
 }
 
 // Los campos del formulario donde cae un error (los del `hint` de la base).
-export type CampoDeSalida = 'a_fase_id' | 'accion' | 'de_fase_id'
-export const CAMPOS_DE_SALIDA: readonly CampoDeSalida[] = ['a_fase_id', 'accion', 'de_fase_id']
+export type CampoDeSalida = 'a_fase_id' | 'accion' | 'de_fase_id' | 'roles'
+export const CAMPOS_DE_SALIDA: readonly CampoDeSalida[] = [
+  'a_fase_id',
+  'accion',
+  'de_fase_id',
+  'roles',
+]
 
 export function esCampoDeSalida(campo: string | undefined): campo is CampoDeSalida {
   return CAMPOS_DE_SALIDA.some((c) => c === campo)
@@ -27,6 +32,7 @@ export const MENSAJES_DE_SALIDA = {
   accionLarga: `La acción tiene hasta ${String(LARGO_MAXIMO_DE_ACCION)} caracteres.`,
   sinOtraFase: 'No hay otra fase activa a la que salir.',
   yaSalesATodas: 'Ya sacas a todas las fases activas.',
+  nadaQueGuardar: 'No hay nada que guardar.',
 } as const
 
 const porFaseDestino =
@@ -97,4 +103,26 @@ export function validarSalida(
       notaObligatoria: borrador.notaObligatoria,
     },
   }
+}
+
+// Lo que de una salida se puede editar (el destino no: se quita y se crea otra).
+export type OriginalDeSalida = { accion: string | null; notaObligatoria: boolean }
+export type EdicionDeSalida = { accion: string; notaObligatoria: boolean }
+export type CambiosDeSalida = { accion?: string | null; notaObligatoria?: boolean }
+
+// Sólo lo que cambió respecto de la salida tal como está, o nulo si nada. La acción vacía o de espacios es nula («Mover»); mandar lo que no cambió sólo
+// mueve la versión del flujo.
+export function cambiosDeSalida(
+  original: OriginalDeSalida,
+  valores: EdicionDeSalida,
+): CambiosDeSalida | null {
+  const cambios: CambiosDeSalida = {}
+  const accion = valores.accion.trim() === '' ? null : valores.accion.trim()
+  if (accion !== original.accion) {
+    cambios.accion = accion
+  }
+  if (valores.notaObligatoria !== original.notaObligatoria) {
+    cambios.notaObligatoria = valores.notaObligatoria
+  }
+  return Object.keys(cambios).length > 0 ? cambios : null
 }
