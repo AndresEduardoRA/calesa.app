@@ -76,7 +76,8 @@ test('un bloque de otra fase todavía muestra su vacío, sin tumbar a los demás
 }) => {
   await entrar(page, t.personas.duena)
   await page.goto('/')
-  const bloque = page.getByRole('region', { name: 'Vehículos trabados' })
-  await expect(bloque.getByText('Ningún vehículo trabado.')).toBeVisible()
+  // «Esperas que destraban vehículos» sigue siendo un hueco (lo llena la Fase 8); los de logística ya dependen de la base (6.12-2).
+  const bloque = page.getByRole('region', { name: 'Esperas que destraban vehículos' })
+  await expect(bloque.getByText('Ningún vehículo espera repuestos.')).toBeVisible()
   await expect(page.getByRole('region', { name: 'Recordatorios de hoy' })).toBeVisible()
 })

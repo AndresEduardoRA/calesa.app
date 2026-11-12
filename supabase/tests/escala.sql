@@ -45,7 +45,9 @@ declare
     ('_encolar_para_limpiar', 'las rutas de un lote de hasta 200 vehículos'),
     ('_cotizacion_descartados', 'las entradas tipeadas de UNA cotización (claves de su snapshot): a lo sumo los nodos de su fórmula'),
     ('cotizacion_contadores', 'trigger: los reportes o favoritos de UNA cotización'),
-    ('estado_cola_web', 'la cola de asesores de la web (el equipo)')
+    ('estado_cola_web', 'la cola de asesores de la web (el equipo)'),
+    -- Tablero (9.07, D1): un agregado de un período cerrado se cuenta en la base, con ventana máxima y por índice de fecha.
+    ('tablero_cotizaciones', 'agregado de un período cerrado (≤ 366 días) por índice de fecha: cotizaciones_listado_idx')
   ) t (f, m));
   v_malas text[];
   v_vivas text[];
