@@ -10,7 +10,7 @@ import type { LectorDeMensajes } from '../entities/repositorios'
 // Sin el embed `responde`: `mensajes → mensajes` es una relación sobre sí misma y PostgREST la resuelve en el sentido contrario (un arreglo de
 // respuestas) o la rechaza por ambigua. La cita se lee aparte, por clave primaria.
 const COLUMNAS_DEL_HILO =
-  'id, conversacion_id, autor_id, tipo, cuerpo, creado_en, editado_en, eliminado_en, responde_a_id, autor:perfiles!mensajes_autor_id_fkey(nombre)'
+  'id, conversacion_id, autor_id, tipo, cuerpo, creado_en, editado_en, eliminado_en, responde_a_id, vehiculo_id, lead_id, cotizacion_id, tarea_id, evento_id, autor:perfiles!mensajes_autor_id_fkey(nombre)'
 const COLUMNAS_DE_LA_CITA =
   'id, cuerpo, eliminado_en, autor:perfiles!mensajes_autor_id_fkey(nombre)'
 
