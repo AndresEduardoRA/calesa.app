@@ -2,8 +2,8 @@
 
 import { useRouter } from 'next/navigation'
 import { useAbiertoAlgunaVez } from '@/shared/ui/use-abierto-alguna-vez'
-import { usePanelDeDirecta } from '../hooks/use-paneles-de-chat'
-import { ModalDeDirectaDiferido } from './diferidos'
+import { usePanelDeDirecta, usePanelDeGrupo } from '../hooks/use-paneles-de-chat'
+import { ModalDeDirectaDiferido, ModalDeGrupoDiferido } from './diferidos'
 
 type Props = {
   usuarioId: string
@@ -15,6 +15,13 @@ export function PanelesDeChat({ usuarioId, recargar }: Props) {
   const router = useRouter()
   const directa = usePanelDeDirecta()
   const montarDirecta = useAbiertoAlgunaVez(directa.abierto)
+  const grupo = usePanelDeGrupo()
+  const montarGrupo = useAbiertoAlgunaVez(grupo.abierto)
+  // La URL nueva ya no trae `panel`: el modal se cierra.
+  const abrirConversacion = (conversacion: string) => {
+    void recargar()
+    router.push(`/chat?c=${conversacion}`)
+  }
   return (
     <>
       {montarDirecta ? (
@@ -22,11 +29,15 @@ export function PanelesDeChat({ usuarioId, recargar }: Props) {
           abierto={directa.abierto}
           alCerrar={directa.cerrar}
           usuarioId={usuarioId}
-          alAbrir={(conversacion) => {
-            void recargar()
-            // La URL nueva ya no trae `panel`: el modal se cierra.
-            router.push(`/chat?c=${conversacion}`)
-          }}
+          alAbrir={abrirConversacion}
+        />
+      ) : null}
+      {montarGrupo ? (
+        <ModalDeGrupoDiferido
+          abierto={grupo.abierto}
+          alCerrar={grupo.cerrar}
+          usuarioId={usuarioId}
+          alCrear={abrirConversacion}
         />
       ) : null}
     </>

@@ -6,3 +6,6 @@ import { diferido } from '@/shared/ui/diferido'
 export const ModalDeDirectaDiferido = diferido(() =>
   import('./modal-de-directa').then((modulo) => modulo.ModalDeDirecta),
 )
+export const ModalDeGrupoDiferido = diferido(() =>
+  import('./modal-de-grupo').then((modulo) => modulo.ModalDeGrupo),
+)

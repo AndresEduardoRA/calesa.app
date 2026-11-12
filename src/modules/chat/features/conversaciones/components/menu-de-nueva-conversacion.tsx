@@ -1,6 +1,6 @@
 'use client'
 
-import { MegaphoneIcon, MessageSquarePlusIcon, UserRoundPlusIcon } from 'lucide-react'
+import { MegaphoneIcon, MessageSquarePlusIcon, UserRoundPlusIcon, UsersIcon } from 'lucide-react'
 import { useAction } from 'next-safe-action/hooks'
 import { useRouter } from 'next/navigation'
 import { enviarAccion } from '@/shared/lib/enviar-accion'
@@ -14,7 +14,7 @@ import {
 import { avisarError } from '@/shared/ui/toasts'
 import { entrarAlGlobal } from '../actions/entrar-al-global'
 import { MENSAJE_DE_VALIDACION } from '../../resultado'
-import { usePanelDeDirecta } from '../hooks/use-paneles-de-chat'
+import { usePanelDeDirecta, usePanelDeGrupo } from '../hooks/use-paneles-de-chat'
 
 const RENGLON = 'min-h-11 md:min-h-8'
 
@@ -28,6 +28,7 @@ type Props = {
 export function MenuDeNuevaConversacion({ puedeGlobal, recargar }: Props) {
   const router = useRouter()
   const directa = usePanelDeDirecta()
+  const grupo = usePanelDeGrupo()
   const entrar = useAction(entrarAlGlobal)
 
   async function entrarAlCanal() {
@@ -59,6 +60,15 @@ export function MenuDeNuevaConversacion({ puedeGlobal, recargar }: Props) {
         >
           <UserRoundPlusIcon aria-hidden />
           Mensaje directo
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className={RENGLON}
+          onClick={() => {
+            grupo.abrir()
+          }}
+        >
+          <UsersIcon aria-hidden />
+          Nuevo grupo
         </DropdownMenuItem>
         {puedeGlobal ? (
           <DropdownMenuItem
