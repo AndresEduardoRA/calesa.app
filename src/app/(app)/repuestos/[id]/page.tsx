@@ -89,7 +89,13 @@ async function Proyecto({
       {llenas.length > 1 ? <PestanasDelProyecto pestanas={llenas} /> : null}
       {abierta === 'compras' ? (
         <Suspense fallback={<EsqueletoListado filas={4} columnas={4} />}>
-          <SeccionDeCompras proyectoId={proyecto.id} />
+          <SeccionDeCompras
+            proyectoId={proyecto.id}
+            items={hoja.filas.map((f) => ({ id: f.id, descripcion: f.descripcion }))}
+            monedas={monedas.monedas.filter((m) => m.activa)}
+            puedeEditarCostos={puede(sesion.permisos, 'repuestos.costos.editar')}
+            cerrado={proyecto.cerradoEn !== null}
+          />
         </Suspense>
       ) : (
         <HojaConStock
