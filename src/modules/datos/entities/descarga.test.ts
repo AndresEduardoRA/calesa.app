@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { estadoDeLaRespuesta, nombreDeLaDisposicion } from './descarga'
+import { estadoDeLaRespuesta, nombreDeLaDisposicion, pedidoDelFormulario } from './descarga'
 
 const JSON_ = 'application/json'
 const respuesta = (status: number, cuerpo: unknown, tipo = JSON_, redirigida = false) =>
@@ -54,5 +54,35 @@ describe('nombreDeLaDisposicion', () => {
       nombreDeLaDisposicion('attachment; filename="leads-todos-2026-11-12.csv"', 'leads'),
     ).toBe('leads-todos-2026-11-12.csv')
     expect(nombreDeLaDisposicion(null, 'cotizaciones')).toBe('cotizaciones.csv')
+  })
+})
+
+describe('pedidoDelFormulario', () => {
+  const ORIGEN = '3f0c9a43-6a2e-4c43-9b1a-0b6d1c2e8f10'
+  const vacio = { desde: '', hasta: '', origen: '' }
+
+  it('sin fechas pide todo con «;»; en cotizaciones el origen vacío es todos', () => {
+    expect(pedidoDelFormulario({ entidad: 'leads', ...vacio, origen: ORIGEN })).toEqual({
+      ok: true,
+      pedido: { entidad: 'leads', delimitador: ';' },
+    })
+    expect(pedidoDelFormulario({ entidad: 'cotizaciones', ...vacio })).toEqual({
+      ok: true,
+      pedido: { entidad: 'cotizaciones', delimitador: ';' },
+    })
+  })
+
+  it('el rango al revés se dice en «Hasta»; vehículos sin origen, en «Origen»', () => {
+    expect(
+      pedidoDelFormulario({ entidad: 'leads', ...vacio, desde: '2026-02-01', hasta: '2026-01-01' }),
+    ).toEqual({ ok: false, campo: 'hasta', mensaje: 'La fecha final es anterior a la inicial.' })
+    expect(pedidoDelFormulario({ entidad: 'vehiculos', ...vacio })).toMatchObject({
+      ok: false,
+      campo: 'origen',
+    })
+    expect(pedidoDelFormulario({ entidad: 'vehiculos', ...vacio, origen: ORIGEN })).toEqual({
+      ok: true,
+      pedido: { entidad: 'vehiculos', delimitador: ';', origen: ORIGEN },
+    })
   })
 })

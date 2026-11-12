@@ -1,6 +1,6 @@
 // Lo que contesta `POST /datos/exportar`, dicho como el estado de una tarjeta de «Exportar». Sin I/O: el pedido lo hace `use-descarga.ts`.
 import { z } from 'zod'
-import type { Entidad } from './exportacion'
+import { esquemaDelPedido, type Entidad, type Pedido } from './exportacion'
 
 // Espejo del cupo de `datos_exportacion_registrar` (3 por hora y por entidad): sólo para decirlo. Lo cumple la base.
 export const EXPORTACIONES_POR_HORA = 3
@@ -80,4 +80,33 @@ export function estadoDeLaRespuesta({
 
 export function nombreDeLaDisposicion(disposicion: string | null, entidad: Entidad): string {
   return /filename="([^"]+)"/.exec(disposicion ?? '')?.[1] ?? `${entidad}.csv`
+}
+
+export type CampoDelFormulario = 'desde' | 'hasta' | 'origen'
+
+export type Formulario = { entidad: Entidad; desde: string; hasta: string; origen: string }
+
+// El formulario de una tarjeta como el pedido del route, validado con el mismo esquema (sin gastar un viaje ni cupo). Vacío = sin límite;
+// en cotizaciones, el origen vacío es «Todos los orígenes». El primer error dice en qué campo va.
+export function pedidoDelFormulario({
+  entidad,
+  desde,
+  hasta,
+  origen,
+}: Formulario):
+  { ok: true; pedido: Pedido } | { ok: false; campo: CampoDelFormulario; mensaje: string } {
+  const leido = esquemaDelPedido.safeParse({
+    entidad,
+    delimitador: ';',
+    ...(desde ? { desde } : {}),
+    ...(hasta ? { hasta } : {}),
+    ...(entidad !== 'leads' && origen ? { origen } : {}),
+  })
+  if (leido.success) {
+    return { ok: true, pedido: leido.data }
+  }
+  const primero = leido.error.issues[0]
+  const ruta = primero?.path[0]
+  const campo: CampoDelFormulario = ruta === 'origen' || ruta === 'desde' ? ruta : 'hasta'
+  return { ok: false, campo, mensaje: primero?.message ?? 'Revisa el rango de fechas.' }
 }
