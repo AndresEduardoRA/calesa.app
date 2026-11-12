@@ -179,6 +179,11 @@ test('T6 la dueña oculta y ordena widgets en «Personalizar» y, tras recargar,
   const restablecer = panel.getByRole('button', { name: 'Restablecer' })
   await restablecer.click()
   await expect(restablecer).toBeDisabled()
+  // «Restablecer» se apaga apenas empieza a guardar: se espera a que el tablero termine de redibujarse (los controles vuelven) antes de cerrar,
+  // porque cerrar con el redibujo en vuelo lo pierde.
+  const deOrigen = panel.getByRole('switch', { name: 'Mostrar Leads por origen' })
+  await expect(deOrigen).toBeChecked()
+  await expect(deOrigen).toBeEnabled()
   await cerrar()
   await expect(titulo('Leads por origen')).toBeVisible()
 })
