@@ -6668,3 +6668,37 @@ begin
   delete from public.tipos_documento where id = v_tipo;
   delete from storage.objects where bucket_id = 'documentos' and name = v_ruta;
 end $$;
+
+-- @test aduana: la cabecera de una declaración se lee con gestionar o con un vehículo vivo que se ve, no con logistica.ver de otro origen (policy declaraciones_aduana: leer, 6.07-3 D41)
+begin;
+do $$
+declare v_o uuid; v_o2 uuid; v_veh uuid; v_veh2 uuid; v_rol uuid; v_d1 uuid; v_d2 uuid; v_ids uuid[]; v_n int;
+  v_quien uuid := '00000000-0000-4000-8000-0000000d0741';
+begin
+  insert into public.origenes (clave, nombre) values ('humo_adu_1', 'Humo aduana 1') returning id into v_o;
+  insert into public.origenes (clave, nombre) values ('humo_adu_2', 'Humo aduana 2') returning id into v_o2;
+  insert into public.vehiculos (origen_id, titulo) values (v_o, 'Humo aduana visible') returning id into v_veh;
+  insert into public.vehiculos (origen_id, titulo) values (v_o2, 'Humo aduana ajeno') returning id into v_veh2;
+  insert into public.declaraciones_aduana (numero) values ('HUMO-ADU-1') returning id into v_d1;
+  insert into public.declaraciones_aduana (numero) values ('HUMO-ADU-2') returning id into v_d2;
+  insert into public.declaraciones_vehiculos (declaracion_id, vehiculo_id) values (v_d1, v_veh), (v_d2, v_veh2);
+  v_ids := array[v_d1, v_d2];
+  insert into auth.users (id, email, raw_app_meta_data) values (v_quien, 'humo.aduana@ejemplo.com', '{"invitado": true}');
+  delete from public.usuarios_roles where usuario_id = v_quien;
+  insert into public.roles (clave, nombre) values ('humo_aduana', 'Humo aduana') returning id into v_rol;
+  insert into public.usuarios_roles (usuario_id, rol_id, es_principal) values (v_quien, v_rol, true);
+  insert into public.roles_permisos (rol_id, permiso_clave, origen_id, alcance) values (v_rol, 'logistica.ver', v_o, 'todos');
+  perform set_config('request.jwt.claim.sub', v_quien::text, true);
+  perform set_config('request.jwt.claim.role', 'authenticated', true);
+  set local role authenticated;
+  if (select array_agg(id) from public.declaraciones_aduana where id = any (v_ids)) is distinct from array[v_d1] then
+    raise exception 'con logistica.ver de un origen debía leer sólo la declaración de su vehículo';
+  end if;
+  reset role;
+  insert into public.roles_permisos (rol_id, permiso_clave, origen_id, alcance) values (v_rol, 'logistica.aduana.gestionar', null, 'todos');
+  set local role authenticated;
+  select count(*) into v_n from (select 1 from public.declaraciones_aduana where id = any (v_ids) limit 3) x;
+  if v_n <> 2 then raise exception 'con logistica.aduana.gestionar debía leer las dos declaraciones y leyó %', v_n; end if;
+  reset role;
+end $$;
+rollback;

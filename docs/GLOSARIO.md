@@ -65,6 +65,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Dato común** — `camposComunes()` / columnas de `vehiculos`: lo que tiene todo vehículo y es columna (título, marca, año, VIN, precio…).
 - **Sin fase** — `vehiculos.fase_id` nulo / `<BadgeDeFase>`: vehículo que todavía no entró al flujo de su origen; lo ubica quien mueve.
 - **Inventario** — `/vehiculos` / `<ListadoDeVehiculos>`: el listado de vehículos, una pestaña por origen. `vehiculos_inventario()` lee una página de un origen por rutas (lo de «todos», lo creado, la cartera), con los filtros del layout en SQL (4.16-2a). La pantalla la lee para quien ve «propios» (`fuenteDelInventario()`); quien ve «todos», por PostgREST (4.16-2b).
+- **Lote (de mover)** — `cambiar_fase_lote()` / `<DrawerDelLote>`, `?panel=lote`: de 1 a 200 vehículos de una misma fase que se mueven a otra con una nota común, cada uno resuelto por sí mismo (resultado parcial). Se arma eligiendo en la cadena o por un contenedor o reserva. En la UI, «lote». No es el «lote de papelera» ni el «lote de subasta».
 - **Lote de subasta** — `vehiculos.lote` + `plataforma`: identificador en la subasta (Copart/IAAI). No es el lote de papelera.
 - **Foto** — `vehiculos_imagenes` / `Foto`, `<SeccionDeFotos>`: una imagen de un vehículo (hasta 24).
 - **Portada** — `vehiculos_imagenes.es_portada` / `vehiculo_foto_portada()`: la foto principal de un vehículo, una sola.

@@ -5,3 +5,8 @@ export {
   leerHistorialDeLaUnidad,
   NO_SE_LEYO_EL_HISTORIAL,
 } from '../../infra/mover/historial.client'
+export {
+  leerUnidadesDelGrupo,
+  NO_SE_LEYO_EL_GRUPO,
+  type PedidoDelGrupo,
+} from '../../infra/mover/grupo-del-lote.client'
