@@ -233,6 +233,7 @@ Cada sección por su RPC, de a `_acotar_pagina(p_tamano, 5, 20)` + 1, con el mí
   lo **del período**, no en la tabla; rankings cortados con `row_number()` (10 orígenes, 20 personas) y un día por fecha con `generate_series`.
 - Sin presupuesto medido ni `EXPLAIN` en `db:medir:volumen`: no es una lista; si la pantalla (9.08) lo pide, se mide con el período de 366 días.
 - `/tablero` (9.08-1): a lo sumo dos RPC por carga (una por grupo, compartidas con `cache()`); Server Components sin JS propio salvo el «Reintentar» de un widget caído y los `<Link>`. Sin presupuesto de JS hasta la parte 3 (el `<Drawer>` de «Personalizar» va con `diferido()`).
+- `/tablero` (9.08-2): las cinco gráficas son HTML y SVG de servidor; 90 días son 180 rectángulos y 90 filas de tabla (acotado por la ventana); sin consulta nueva (leen lo que ya leen las cifras) y sin JS de cliente propio.
 
 ## JS en frío (con gzip, lo que el documento nombra)
 

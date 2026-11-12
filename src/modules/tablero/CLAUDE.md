@@ -16,7 +16,8 @@ Bandeja de inicio por rol y tablero de métricas con widgets personalizables por
 - `entities/widgets.ts` — `WIDGETS_TABLERO` (catálogo: clave, título, permisos, grupo de RPC, tamaño, `disponible`; `margen-del-mes` y `cola-web` son huecos del 9.11), `widgetsVisibles(permisos)` y `aplicarPreferencia(visibles, {orden, ocultos} | null)`. `entities/periodo.ts` (`?periodo=mes|mes-anterior|90d`, calculado con la zona de la empresa), `entities/cifras.ts` (una tasa nula es «Sin datos», nunca «0 %») y `entities/metricas.ts` (los payloads de las RPC con Zod y `RepositorioDeMetricas`).
 - `infra/queries/metricas.ts` — las RPC `tablero_leads` y `tablero_cotizaciones` (9.07; una por grupo de widgets, piden `tablero.metricas.ver`, ventana ≤ 366 días), validadas con Zod; `composicion.ts` las une a la interfaz. «Convertidos» sale de `leads.cliente_desde` (sin grant: la leen esas RPC y queda en la foto de `actividad`, D12).
 - `features/metricas/` — `lectura.ts` (una llamada por grupo y request, con `cache()`), `widgets/<clave>.tsx` (un archivo por widget, Server Component que dibuja su cuerpo; `widgets/registro.ts` los une con un `Record<ClaveDeWidget, …>`; **quien llena un hueco edita su archivo**) y `components/` (`panel-del-tablero`, `marco-de-widget`, `montaje-de-widget` con `await connection()` tras su `<Suspense>`, `selector-de-periodo` con tres `<Link>`, `error-de-widget` con «Reintentar»). Cada cifra es un `role="group"` con nombre «Título: valor».
-- Pendiente: las gráficas SVG con los tokens `--viz-*` y «Ver como tabla» (9.08-2); «Personalizar» y la preferencia `tablero.widgets` (9.08-3).
+- `entities/graficas.ts` (escala redonda, fracción, marcas de días, textos y topes `TOPE_DE_ORIGENES`/`TOPE_DE_PERSONAS`) y `features/metricas/graficas/` (`barras-por-dia`, `ranking`, `tabla-equivalente` con «Ver como tabla» en un `<details>`, `vacio-de-grafica`, `leyenda`): HTML y SVG de servidor con los tokens `--viz-*`; una gráfica es `role="img"`, no `group`. Cinco widgets anchos las usan (`leads-por-dia`, `cotizaciones-por-dia`, `leads-por-origen`, `leads-por-persona`, `cotizaciones-por-origen`).
+- Pendiente: «Personalizar» y la preferencia `tablero.widgets` (9.08-3).
 
 ## Tablas
 
@@ -31,4 +32,4 @@ Ninguna propia. Lee `preferencias_usuario` (equipo) y las vistas/RPC de los otro
 
 ## Ojo
 
-- Las gráficas usan la escala de `--viz-*`; nunca colores sueltos. Leer la skill `dataviz` antes de agregar una.
+- Las gráficas usan la escala de `--viz-*`; nunca colores sueltos. La skill `dataviz` no está en este árbol: regirse por `design/tokens.css` y las decisiones D15 a D21 de `docs/pasos/9.08-2/decisiones.md`.
