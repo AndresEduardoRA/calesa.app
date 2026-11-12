@@ -23,3 +23,12 @@ desactivado o «<otro> deja de ser el principal») y la insignia «Principal» e
 Sin cambios de base. Abierto **6-1**: cerrado.
 
 - e2e completo: no (6.13-2, Nivel 2: lo corre el CI del PR)
+
+## 6.13 · retoma por el CI en rojo (2026-11-11)
+
+El bloque 3 del e2e caía en `leads-portal-acceso` › tarea de oro 4 (33 teclas, tope 32): el mismo rojo que arregló el 6.10 en el PR #105,
+todavía sin integrar. Traído con `cherry-pick -x` (el spec espera la sección «Portal» y el foco en la pestaña antes de tabular); en local,
+24/24 con `--repeat-each=3` y 16 teclas en escritorio y celular. Sin cambios de producto ni de base; al integrarse los dos PR el cambio es
+el mismo.
+
+- e2e completo: no (6.13, retoma del CI: sólo `leads-portal-acceso`; lo prueba el CI del PR)
