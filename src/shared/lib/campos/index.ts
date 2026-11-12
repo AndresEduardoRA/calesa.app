@@ -75,7 +75,18 @@ export {
   texto,
   unaDe,
   vin,
+  type CampoDeEsquema,
   type ContextoDeEsquema,
   type Dato,
   type Esquema,
 } from './esquema-de-valor'
+export {
+  fueraDeRango,
+  motivoDeRango,
+  problemaDelRango,
+  rangoDe,
+  rangoSeAcota,
+  tieneRango,
+  type ProblemaDelRango,
+  type Rango,
+} from './rango'
