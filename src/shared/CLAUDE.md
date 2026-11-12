@@ -28,7 +28,7 @@ Ficha completa (cada componente con su historia y sus trampas): `docs/archivo/mo
 - `lib/atajos.ts` + `ui/atajos/` — `ATAJOS`, `teclasDelAtajo()`, `<ProveedorAtajos>`, `useAtajo()`: responde el último registrado. `<AyudaDeAtajos>` registra `?` y abre
   `<ListaDeAtajos>` («Atajos de teclado», un `Dialog` sin URL con una fila por clave de `ATAJOS`; su código viaja por `diferido()` hasta pulsar `?`).
 - `lib/color.ts` (`tokensDeMarca()`, `cssDeMarca()`), `lib/imagenes.ts` (`comprimirImagen()`, `extensionDe()`, `hashDe()`), `lib/almacen.ts`, `lib/iconos.ts` (catálogo cerrado de 24 iconos), `lib/apibara.ts`.
-- `config/esquemas.ts` — el entorno en Zod (puro): `entornoPublico()`, `entornoDelServidor()`, el arranque, el build y `pnpm env:check`. `config/app.ts`: nombre y colores.
+- `config/esquemas.ts` — el entorno en Zod (puro): `entornoPublico()`, `entornoDelServidor()`, el arranque, el build y `pnpm env:check` (con `produccion`, los esquemas de presencia de Vercel y Supabase; sus lectores, en `scripts/lib/entornos/`). `config/app.ts`: nombre y colores.
 - `lib/email/` — `enviarEmail()`: la única puerta del correo; un adaptador REST por proveedor (`EMAIL_PROVEEDOR`: `mailpit`, `resend` y `cloudflare`); `proveedor.ts` elige el adaptador y `pnpm email:probar <destino>` manda uno de prueba. Un archivo no se llama `resend.ts`: el lint prohíbe importar algo llamado `resend`.
 - `ui/diferido.tsx` — `diferido()`: el único lugar que carga código diferido (el lint prohíbe `next/dynamic`).
 - `ui/modal.tsx`, `ui/drawer.tsx`, `ui/confirmar.tsx` — diálogos controlados desde la URL. `ui/modal-de-formulario.tsx` es el contrato de un formulario en un modal; `ui/use-envio-de-modal.ts` el envío de uno sin versión.

@@ -100,6 +100,72 @@ export const esquemaDeLaDemo = z.object({
   APIBARA_CLAVE: opcional(texto),
 })
 
+// Producción, por API (`pnpm env:check produccion`): se mira qué NOMBRES hay en cada lugar, nunca un valor. Quien lee arma un registro
+// donde cada nombre presente vale `'presente'` (y, de Auth, `'distinto'` si el ajuste no es el esperado); estos esquemas dicen qué falta.
+const hay = z.literal('presente', { error: 'falta' })
+const nombresDeVercel = {
+  NEXT_PUBLIC_SUPABASE_URL: hay,
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: hay,
+  SUPABASE_SECRET_KEY: hay,
+  PORTAL_COOKIE_SECRETO: hay,
+}
+// Un preview no manda correo ni push: sólo lo que arranca la app.
+export const esquemaDePreview = z.object(nombresDeVercel)
+
+type ClaveDeProveedor = 'RESEND_API_KEY' | 'CLOUDFLARE_ACCOUNT_ID' | 'CLOUDFLARE_API_TOKEN'
+const sinValor = z.literal('presente').optional()
+export const esquemaDeProduccion = z
+  .object({
+    ...nombresDeVercel,
+    NEXT_PUBLIC_VAPID_PUBLIC_KEY: hay,
+    EMAIL_PROVEEDOR: hay,
+    EMAIL_REMITENTE: hay,
+    EMAIL_REMITENTE_NOMBRE: hay,
+    RESEND_API_KEY: sinValor,
+    CLOUDFLARE_ACCOUNT_ID: sinValor,
+    CLOUDFLARE_API_TOKEN: sinValor,
+  })
+  .superRefine((e, ctx) => {
+    // El valor de EMAIL_PROVEEDOR no se lee: basta un juego completo de cualquier proveedor real.
+    const completo = (claves: readonly ClaveDeProveedor[]) =>
+      claves.every((c) => e[c] === 'presente')
+    if (!completo(CLAVES_DEL_PROVEEDOR.resend) && !completo(CLAVES_DEL_PROVEEDOR.cloudflare))
+      ctx.addIssue({
+        code: 'custom',
+        path: ['EMAIL_PROVEEDOR_CLAVE'],
+        message:
+          'falta la clave de un proveedor de correo: RESEND_API_KEY, o CLOUDFLARE_ACCOUNT_ID y CLOUDFLARE_API_TOKEN',
+      })
+  })
+
+// Secretos de las funciones de Supabase: sólo `push` los lee. Las `SUPABASE_*` las inyecta Supabase.
+export const esquemaDeLasFunciones = z.object({
+  VAPID_PRIVATE_KEY: hay,
+  VAPID_SUBJECT: hay,
+  NEXT_PUBLIC_VAPID_PUBLIC_KEY: hay,
+})
+
+// Auth de Supabase: lo que sube `scripts/demo/restaurar.sh` (docs/ENTORNOS.md). `mailer_otp_exp` es lo único que se compara.
+export const VIDA_DE_LA_INVITACION = 86400
+export const esquemaDeAuth = z.object({
+  site_url: hay,
+  uri_allow_list: hay,
+  smtp_host: hay,
+  smtp_user: hay,
+  smtp_pass: hay,
+  smtp_admin_email: hay,
+  smtp_sender_name: hay,
+  mailer_templates_confirmation_content: hay,
+  mailer_templates_recovery_content: hay,
+  mailer_templates_invite_content: hay,
+  mailer_templates_email_change_content: hay,
+  mailer_templates_magic_link_content: hay,
+  mailer_templates_reauthentication_content: hay,
+  mailer_otp_exp: z.literal('presente', {
+    error: (i) => (i.input === undefined ? 'falta' : `distinto de ${VIDA_DE_LA_INVITACION}`),
+  }),
+})
+
 export type Problema = { variable: string; motivo: string }
 
 // Lo que falta o está mal en `entorno` según `esquema`, sin los valores (nunca se imprime un valor).

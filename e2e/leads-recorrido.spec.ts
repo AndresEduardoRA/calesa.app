@@ -16,6 +16,7 @@ import {
   enfocado,
   limpiarRecorrido,
   prepararRecorrido,
+  quieto,
   recibeElClic,
   sinScrollHorizontal,
   tactil,
@@ -238,6 +239,8 @@ test('B · con el drawer abierto: otro lead, «atrás», y lo privado de la ases
   await page.goto(`/leads?lead=${r.uno.id}&pestana=seguimientos`)
   const drawer = page.getByRole('dialog', { name: r.uno.nombre })
   await expect(drawer.getByRole('region', { name: 'Seguimientos' })).toBeVisible()
+  // El drawer entra deslizándose y mide menos mientras entra: se mide quieto.
+  await quieto(drawer)
   const otro = aLaVista(page.getByText(r.dos.nombre, { exact: true })).first()
   const caja = await otro.boundingBox()
   const delDrawer = await drawer.boundingBox()

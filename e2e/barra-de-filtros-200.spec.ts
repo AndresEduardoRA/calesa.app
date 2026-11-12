@@ -17,8 +17,9 @@ import {
   prepararListado,
   type TerrenoDelListado,
 } from './soporte/leads-listado'
+import { esperarHidratado } from './soporte/listas-por-pagina'
 import {
-  aLaVistaSinDesplazar,
+  aLaVistaAlAcomodarse,
   capturar,
   sinScrollHorizontal,
   textoGrandeAlCargar,
@@ -154,12 +155,14 @@ test('una búsqueda de 22 letras al 200 %: el chip se corta con «…» y no ens
   const chip = aLaVista(page.getByRole('button', { name: `Quitar el filtro «${BUSQUEDA_LARGA}»` }))
   await expect(chip).toBeVisible()
   const texto = chip.locator('.truncate')
+  // El listado llega pintado antes de hidratar y, un instante, más ancho que la pantalla: se mide ya hidratado.
+  await esperarHidratado(page)
   await sinScrollHorizontal(page)
-  await aLaVistaSinDesplazar(chip, 'el chip de la búsqueda')
+  await aLaVistaAlAcomodarse(chip, 'el chip de la búsqueda')
   await expect(texto).toHaveAttribute('title', `«${BUSQUEDA_LARGA}»`)
   if (esMovil(page)) {
     // En 412 px el chip no cabe entero: se corta, y el «×» (el último hijo del botón) sigue a la vista.
     expect(await texto.evaluate((e) => e.scrollWidth > e.clientWidth)).toBe(true)
-    await aLaVistaSinDesplazar(chip.locator('svg'), 'la «×» del chip')
+    await aLaVistaAlAcomodarse(chip.locator('svg'), 'la «×» del chip')
   }
 })

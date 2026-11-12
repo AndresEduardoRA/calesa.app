@@ -10,6 +10,7 @@ import {
 import { irAFicha } from './soporte/leads-ficha'
 import { sql } from './soporte/sql'
 import {
+  aLaVistaAlAcomodarse,
   capturar,
   limpiarRecorrido,
   prepararRecorrido,
@@ -112,6 +113,13 @@ for (const zoom of ['100', '200'] as const) {
       // Las pestañas de un origen quedan bajo el título largo: sin llevar la barra a la vista, las tres capturas eran la misma imagen.
       if (nombre.startsWith('origen-')) {
         await page.getByRole('tablist').first().scrollIntoViewIfNeeded()
+      }
+      // La barra de secciones se desplaza hasta la abierta recién al hidratar: se captura con ella ya a la vista.
+      if ((await page.getByRole('tablist').count()) > 0) {
+        await aLaVistaAlAcomodarse(
+          page.getByRole('tab', { selected: true }).first(),
+          `la pestaña abierta de «${nombre}»`,
+        )
       }
       await capturar(page, info, `${nombre}-${zoom}`)
       if (nombre === 'equipo') {
