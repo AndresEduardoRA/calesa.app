@@ -15,3 +15,21 @@ export const TEXTO_CON_RUEDA =
 export function textoDeLaRueda(permisos: Permisos): string {
   return puedeEstarEnLaRueda(permisos) ? TEXTO_CON_RUEDA : TEXTO_SIN_RUEDA
 }
+
+export const TEXTO_SIN_SUMAR = 'Quien administra la cola todavía no te sumó a la rueda.'
+export const TEXTO_VER_COMO = 'Estás mirando como otro rol: sal de «Ver como» para cambiarlo.'
+export const AYUDA_DE_DISPONIBILIDAD =
+  'Apagado, no te llegan turnos nuevos. Un turno que ya tienes sigue abierto hasta que lo confirmes o venza.'
+
+// Por qué el interruptor de disponibilidad no se puede mover, o `null` si se puede. Con «Ver como» las escrituras irían a la cuenta real
+// (no al rol que se mira), así que se apaga mientras se mira a otro (D12 del 8.05-2).
+export function motivoSinInterruptor(entrada: {
+  permisos: Permisos
+  habilitado: boolean
+  miraOtroRol: boolean
+}): string | null {
+  if (!puedeEstarEnLaRueda(entrada.permisos)) return TEXTO_SIN_RUEDA
+  if (entrada.miraOtroRol) return TEXTO_VER_COMO
+  if (!entrada.habilitado) return TEXTO_SIN_SUMAR
+  return null
+}

@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { requerirSesion } from '@/modules/equipo'
 import { FormularioPerfil, PreferenciasPerfil } from '@/modules/equipo/pantallas/perfil'
-import { EstadoEnLaRueda } from '@/modules/web/pantallas/perfil'
+import { TurnosDelPerfil } from '@/modules/web/pantallas/perfil'
 import { urlPublicaONull } from '@/shared/lib/almacen'
 import { EsqueletoFormulario } from '@/shared/ui/esqueletos'
 import { NotificacionesSeccion } from './notificaciones-seccion'
@@ -23,7 +23,9 @@ export default async function PaginaPerfil() {
         avatarUrl={urlPublicaONull('avatares', sesion.avatarRuta)}
         actualizadoEn={sesion.perfilActualizadoEn}
       />
-      <EstadoEnLaRueda permisos={sesion.permisos} />
+      <Suspense fallback={<EsqueletoFormulario bloques={1} campos={1} />}>
+        <TurnosDelPerfil permisos={sesion.permisos} miraOtroRol={sesion.perspectiva.rol !== null} />
+      </Suspense>
       <PreferenciasPerfil />
       <Suspense fallback={<EsqueletoFormulario bloques={1} campos={3} />}>
         <NotificacionesSeccion usuarioId={sesion.usuarioId} permisos={sesion.permisos} />
