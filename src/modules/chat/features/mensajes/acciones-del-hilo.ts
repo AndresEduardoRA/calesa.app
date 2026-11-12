@@ -1,5 +1,6 @@
 import type { Mensaje } from '../../entities/mensajes'
 import type { ContextoDeMenciones } from '../menciones/contexto-de-menciones'
+import type { ContextoDeFichas } from '../fichas/contexto-de-fichas'
 import type { ResultadoDeGuardar } from './hooks/use-edicion'
 
 // Lo que el hilo le da a cada burbuja para actuar sobre su mensaje (7.09-4). Un solo objeto baja por `CuerpoDelHilo` y `ListaDelHilo`.
@@ -16,4 +17,6 @@ export type AccionesDelMensaje = {
   guardarEdicion: (mensaje: Mensaje, texto: string) => Promise<ResultadoDeGuardar>
   // 7.10-1: lo que el mensaje menciona, resuelto bajo la sesión de quien mira, y cómo abrirlo.
   menciones: ContextoDeMenciones
+  // 7.10-3: las fichas de tarea y de evento del hilo, leídas bajo la sesión de quien mira, y cómo completar una.
+  fichas: ContextoDeFichas
 }

@@ -16,7 +16,12 @@ export type TerrenoDeMenciones = TerrenoDelChat & {
 
 export async function prepararMenciones(proyecto: string): Promise<TerrenoDeMenciones> {
   const t = await prepararChat(proyecto, {
-    permisosDeAna: ['chat.participar', { clave: 'leads.ver', alcance: 'propios' }],
+    permisosDeAna: [
+      'chat.participar',
+      { clave: 'leads.ver', alcance: 'propios' },
+      'agenda.tareas.asignar',
+    ],
+    permisosDeLuis: ['chat.participar', 'agenda.tareas.recibir'],
   })
   await borrarLeadsDePrueba()
   const leadId = await crearLead({
