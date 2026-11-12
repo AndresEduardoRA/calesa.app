@@ -76,17 +76,20 @@ test('una unidad que no existe, o un id que no es válido, dice que ya no está 
   }
 })
 
-// `/logistica` (6.01-3): hasta que llegue la cadena (6.03) sólo dibuja el panel de `?vehiculo=<id>` en un drawer por URL.
-test('/logistica sin unidad dice que la cadena llega después', async ({ page }) => {
+// `/logistica` (6.01-3, con la cadena del 6.03): dibuja la cadena de su origen y, con `?vehiculo=<id>`, el panel de la unidad en un drawer por URL.
+test('/logistica sin unidad dibuja la cadena del origen y ningún panel', async ({ page }) => {
   await entrar(page, terreno.conLogistica, { fresco: true })
-  await page.goto('/logistica')
-  await expect(page.getByText('La cadena llega con el próximo paso.')).toBeVisible()
+  // `?fase=` elige la columna del celular (donde se ve una fase por vez y la primera es «Sin fase»); en escritorio no cambia nada.
+  await page.goto(`/logistica?fase=${terreno.fase.id}`)
+  await expect(
+    page.getByRole('region', { name: `${terreno.fase.nombre}: 1 vehículo` }),
+  ).toBeVisible()
   await expect(page.getByRole('dialog')).toHaveCount(0)
 })
 
 test('?vehiculo=<id> abre el panel de la unidad en un drawer y Esc lo cierra', async ({ page }) => {
   await entrar(page, terreno.conLogistica, { fresco: true })
-  await page.goto(`/logistica?vehiculo=${terreno.enFase.id}`)
+  await page.goto(`/logistica?vehiculo=${terreno.enFase.id}&fase=${terreno.fase.id}`)
   const panel = page.getByRole('dialog')
   await expect(panel.getByRole('heading', { name: terreno.enFase.titulo })).toBeVisible()
   await expect(panel.getByText('Desde hace 3 días en esta fase')).toBeVisible()
@@ -98,7 +101,9 @@ test('?vehiculo=<id> abre el panel de la unidad en un drawer y Esc lo cierra', a
   await page.keyboard.press('Escape')
   await expect(page.getByRole('dialog')).toBeHidden()
   await expect(page).not.toHaveURL(/vehiculo=/)
-  await expect(page.getByText('La cadena llega con el próximo paso.')).toBeVisible()
+  await expect(
+    page.getByRole('region', { name: `${terreno.fase.nombre}: 1 vehículo` }),
+  ).toBeVisible()
 })
 
 test('en el drawer, una unidad que no existe o un id inválido dice que ya no está disponible', async ({
@@ -117,7 +122,9 @@ test('con sólo vehiculos.ver ni /logistica ni el drawer muestran la unidad', as
   await entrar(page, terreno.sinLogistica, { fresco: true })
   await page.goto('/logistica')
   await expect(page.getByText('No tienes permiso para ver esto')).toBeVisible()
-  await expect(page.getByText('La cadena llega con el próximo paso.')).toHaveCount(0)
+  await expect(
+    page.getByRole('region', { name: `${terreno.fase.nombre}: 1 vehículo` }),
+  ).toHaveCount(0)
   await page.goto(`/logistica?vehiculo=${terreno.enFase.id}`)
   await expect(page.getByText('No tienes permiso para ver esto')).toBeVisible()
   await expect(page.getByText(terreno.enFase.titulo)).toHaveCount(0)

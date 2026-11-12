@@ -21,3 +21,6 @@ Fecha: 2026-11-12 (`TZ=America/La_Paz date +%F`). Sin compuertas: las dudas del 
 - **D13** `navegacion.ts` ya tenía «Logística» disponible: `_shell` no se toca. El kanban no entra a `listas-con-patron.ts` (sólo vigila tablas).
 - **D14** (parte 1) Las tres RPC entran a `RPC_PAGINADAS_DEL_NUCLEO` de `scripts/guardas/paginas-en-la-base.ts` (es del A): la cadena y su columna piden
   `TAMANO_DE_COLUMNA`; «dónde está», 10.
+- **D14** (parte 2) Los e2e de 6.01 que afirmaban «La cadena llega con el próximo paso.» (`logistica-unidad.spec.ts`) afirman ahora la región de la fase sembrada («<fase>: 1 vehículo»): es consecuencia del cambio de texto, no un arreglo para que pasen.
+- **D15** (parte 2) Cada tarjeta es un `<Link>` con `prefetch={false}`: un clic común abre el panel por nuqs sumando al historial (`useAbrirLaUnidad`, copiado al área `cadena`), y con Ctrl, Mayús, Alt o Meta el navegador abre la URL con `vehiculo=` en otra pestaña. El foco va a la primera tarjeta nueva tras «Ver más» y se anuncia «Se cargaron N más.».
+- **D16** (parte 2) `/logistica` entra al presupuesto de JS con 410 KB (medido 388,9 KB en 30 chunks, más un 5 % a la decena). El e2e siembra tres orígenes: A (tres fases, cinco vehículos), B (una fase con 51) y C (vecino sin permiso).
