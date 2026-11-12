@@ -27,5 +27,9 @@ export const REGISTRO: Record<string, RegistroDeDrawer> = {
   'src/modules/logistica/features/transporte/components/drawer-del-grupo.tsx': {
     sinFormulario:
       'sólo es el marco del resumen de un grupo (6.08-3): no guarda nada tipeado; lo que cada área escriba en sus huecos va en formularios que preguntan por sí solos',
+  }, // El formulario de «Editar grupo» (6.08-4): tapa al resumen y pregunta antes de perder lo escrito.
+  'src/modules/logistica/features/transporte/components/drawer-de-edicion-del-grupo.tsx': {
+    formulario: 'src/modules/logistica/features/transporte/components/formulario-del-grupo.tsx',
+    mecanismo: 'contexto',
   },
 }
