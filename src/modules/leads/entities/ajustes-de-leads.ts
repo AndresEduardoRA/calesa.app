@@ -82,9 +82,9 @@ type FalloDeAjustes = { ok: false; error: ErrorApp; campo?: string }
 type Version = Promise<{ ok: true; data: { actualizadoEn: string } } | FalloDeAjustes>
 
 export type EscritorDeAjustesDeLeads = {
-  // `etapas` nulas: vuelven las de fábrica.
+  // `etapas` nulas: vuelven las de fábrica. Sin id: una plantilla no es de ningún embudo.
   guardarPlantillaDelEmbudo: (pedido: {
-    etapas: readonly Etapa[] | null
+    etapas: readonly Omit<Etapa, 'id'>[] | null
     actualizadoEnEsperado: string
   }) => Version
   // `texto` nulo: vuelve el de fábrica.

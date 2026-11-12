@@ -28,6 +28,12 @@ export const PESTANAS = [
     permiso: 'leads.configurar',
     nombreDelPermiso: 'Configurar leads',
   },
+  {
+    clave: 'embudo',
+    titulo: 'Plantilla del embudo',
+    permiso: 'leads.configurar',
+    nombreDelPermiso: 'Configurar leads',
+  },
 ] as const satisfies readonly {
   clave: string
   titulo: string
@@ -47,7 +53,7 @@ export const PERMISOS_DE_LEADS: readonly ClavePermiso[] = [
 
 export type PestanaDeLeads = { clave: Pestana; titulo: string; motivo?: string }
 
-// Las cuatro, en su orden; la que esta persona no puede abrir lleva el motivo.
+// Todas, en su orden; la que esta persona no puede abrir lleva el motivo.
 export function pestanasPara(permisos: Permisos): PestanaDeLeads[] {
   return PESTANAS.map(({ clave, titulo, permiso, nombreDelPermiso }) =>
     puede(permisos, permiso)
