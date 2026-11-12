@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { avisoDeNumero, leerNumeroTipeado } from '@/shared/lib/numero-tipeado'
+import { leerMontoDeDinero } from './monto-tipeado'
 
 // Un gasto de una unidad (6.11-1) y su formulario. El monto en base y la tasa los calcula la base al guardar: aquí nunca se multiplica (el equivalente que se muestra
 // es el que ella devolvió). Reglas de la base que se anticipan para escribir el motivo junto al campo: categoría obligatoria, monto ≥ 0 con a lo sumo dos decimales
@@ -144,23 +144,6 @@ export type ValidacionDeGasto =
 
 const FECHA = /^\d{4}-\d{2}-\d{2}$/
 
-function leerMonto(texto: string, locale: string): { monto?: number; error?: string } {
-  const leido = leerNumeroTipeado(texto, locale)
-  if (!leido.ok) {
-    return { error: avisoDeNumero(texto, leido.motivo, locale) }
-  }
-  if (leido.valor === null) {
-    return { error: 'Escribe el monto.' }
-  }
-  if (leido.valor < 0) {
-    return { error: 'El monto no puede ser negativo.' }
-  }
-  if (leido.decimales > 2) {
-    return { error: 'El monto lleva como mucho dos decimales.' }
-  }
-  return { monto: leido.valor }
-}
-
 function vacioANulo(texto: string): string | null {
   const limpio = texto.trim()
   return limpio === '' ? null : limpio
@@ -194,7 +177,7 @@ export function validarGasto(
 ): ValidacionDeGasto {
   const errores = erroresDeCampos(borrador)
   const { monedaBase, locale, tiposDisponibles } = contexto
-  const { monto, error } = leerMonto(borrador.monto, locale)
+  const { monto, error } = leerMontoDeDinero(borrador.monto, locale, { positivo: false })
   if (error !== undefined) {
     errores['monto'] = error
   }

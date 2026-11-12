@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { formatearNumero } from '@/shared/lib/formato'
 
 // Un tipo de cambio de la empresa (6.11-1). Sirve en los dos sentidos (D20 de 6.10-1): moneda → base multiplica y base → moneda divide. Cuál convierte un gasto lo elige
 // quien carga entre los activos que unen su moneda con la base (D1); la base guarda el valor de ese momento.
@@ -67,4 +68,12 @@ export function opcionesDeTipoDeCambio(
         a.orden - b.orden ||
         a.nombre.localeCompare(b.nombre, 'es'),
     )
+}
+
+const TASA_CON_CUATRO_DECIMALES = 4
+
+/** «Oficial · BOB → USD · 6,96»: cómo se ofrece un tipo de cambio al elegirlo. El valor lo escribe la base; aquí sólo se muestra. */
+export function etiquetaDeTipoDeCambio(tipo: TipoDeCambio, locale: string): string {
+  const valor = formatearNumero(tipo.valor, { locale, decimales: TASA_CON_CUATRO_DECIMALES })
+  return `${tipo.nombre} · ${tipo.monedaDe} → ${tipo.monedaA} · ${valor}`
 }

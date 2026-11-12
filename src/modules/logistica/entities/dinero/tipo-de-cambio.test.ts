@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { opcionesDeTipoDeCambio, type TipoDeCambio } from './tipo-de-cambio'
+import { etiquetaDeTipoDeCambio, opcionesDeTipoDeCambio, type TipoDeCambio } from './tipo-de-cambio'
 
 const tipo = (id: string, p: Partial<TipoDeCambio>): TipoDeCambio => ({
   id,
@@ -38,5 +38,13 @@ describe('opcionesDeTipoDeCambio', () => {
 
   it('con la moneda base no ofrece ninguno', () => {
     expect(opcionesDeTipoDeCambio([tipo('a', {})], 'USD', 'USD')).toEqual([])
+  })
+})
+
+describe('etiquetaDeTipoDeCambio', () => {
+  it('nombra el par y el valor con hasta cuatro decimales', () => {
+    expect(etiquetaDeTipoDeCambio(tipo('Oficial', { nombre: 'Oficial' }), 'es-BO')).toBe(
+      'Oficial · BOB → USD · 6,96',
+    )
   })
 })
