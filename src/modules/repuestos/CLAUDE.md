@@ -40,6 +40,10 @@ Proyectos de repuestos por vehículo (o externos), ítems que recorren el flujo 
   `pantallas/compras.ts`). En 8.11-3: un solo «Registrar compra» arriba de la lista (apagado con su motivo sin `repuestos.costos.editar` o con el proyecto cerrado;
   la página calcula `puedeEditarCostos` con `puede()`), el Drawer `?panel=compra&compra=<id|nueva>` (con `diferido()`, montado al abrirse; ítems y monedas los pasa
   la página, sin otra lectura) y «Editar» y «Eliminar» en la fila. Tras escribir, la action revalida la página: la lista y el margen se vuelven a leer en el servidor.
+- **Pagos del cliente** (8.13-5): la pestaña «Pagos» de `/repuestos/[id]` (`?pestana=pagos`, tras «Compras») sólo existe con `repuestos.costos.ver`; la dibuja
+  `PagosDelProyectoDiferido` de `logistica` (`pantallas/dinero-proyecto.ts`) con `cerrado` y los permisos que calcula la página. Registrar pide
+  `repuestos.costos.editar` y `repuestos.ver` (`pago_registrar_proyecto`); confirmar, `logistica.pagos.confirmar`; anular un pago de proyecto todavía no (8-13d).
+  Un pago vivo cumple `proyecto.pago_cliente`.
 - **Configuración del cotizador** (8.12-2, área `cotizador`): la pestaña «Cotizador» de `/configuracion/repuestos` (`?seccion=cotizador`) la lee
   `src/app/(app)/configuracion/repuestos/seccion-cotizador.tsx` con `leerConfiguracionDelCotizador()` (por `areas/cotizador/index.ts`: la vigente, el historial
   con tope 20 y tramos y cajas con tope 200) y las monedas activas, y dibuja `<ConfiguracionDelCotizador>` (por `pantallas/cotizador-configuracion.ts`). Las
