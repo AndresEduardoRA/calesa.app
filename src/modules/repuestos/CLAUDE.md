@@ -62,6 +62,8 @@ El módulo se parte por **área** (8.08-2, igual que `logistica`) para que los p
 - `entities/stock/{errores,mover,movimientos,paneles,repositorio}.ts` (8.10-2) — el rechazo de la base por campo (`rechazoDeStock`), la respuesta de mover y la fila tras
   moverlo (`filaTrasMover`), la página del historial (cursor `id`) y el panel. `infra/stock/{mover,movimientos}.ts` los leen y escriben; `areas/stock/composicion.ts` los une.
 - `entities/stock/{reasignar,vista}.ts` (8.10-3) — la respuesta de reasignar y las claves y rutas de la vista «Stock»; `infra/stock/reasignar.ts` la llama.
+- `entities/compras/margen.ts` (8.11-1) — `leerMargen` (la respuesta de `repuestos_proyecto_margen`: `sinPrecio` como conteo acotado, tope 200, y el margen en nulo
+  si hay ítems sin precio aunque llegue un número) y `textoSinPrecio` («Sin precio en N ítems»). Sin aritmética de dinero: la cuenta es de la base.
 - `features/proyectos/`, `features/items/` (hoja), `features/compras/`, `features/stock/`, `features/cotizador/`, `features/catalogos/`.
 - La base (8.08-1): `repuesto_proyecto_crear` / `_cerrar` / `_reabrir` / `_eliminar` / `_restaurar`, `repuesto_item_crear` / `_eliminar`,
   `repuestos_proyectos_listar`, `repuestos_pendientes_de_vehiculo`, `_repuesto_ante_espera` y el trigger `repuestos_catalogo_sin_uso`. De 8.09-3: los triggers `repuestos_imagen_integridad` y `repuestos_imagen_encolar` (prueba `areas/repuestos/imagenes.sql`). De 8.10-1: `repuesto_stock_mover`,
