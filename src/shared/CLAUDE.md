@@ -23,7 +23,7 @@ Ficha completa (cada componente con su historia y sus trampas): `docs/archivo/mo
 - `lib/memoria-de-lectura.ts` — `memoriaDeLectura(leer, vidaMs)`: lectura del navegador compartida y con vida corta.
 - `lib/enviar-accion.ts`, `lib/formularios.ts`, `lib/borrador.ts` + `ui/use-borrador.ts` — lo común de un formulario con `useAction`: envío con `sinRed`, errores por campo, borrador en `sessionStorage`.
 - `lib/filtros/` — filtros declarativos de un listado, sin nuqs ni módulos (`EsquemaDeFiltros`, `leerFiltros()`, `chipsDe()`, `cumpleElMinimo()`); `campos.ts` traduce campos del layout a filtros.
-- `lib/campos/` — motor de campos configurables, sin I/O (`TIPOS_DE_CAMPO`, `esquemaDeValor()`, `valorMostrado()`, `campoDeFormulario()`); `ui/campos/` trae `<EditorDeCampos>`, `<DatosPorGrupo>`, `<CampoDeFormulario>`.
+- `lib/campos/` — motor de campos configurables, sin I/O (`TIPOS_DE_CAMPO`, `esquemaDeValor()`, `valorMostrado()`, `campoDeFormulario()`; `rango.ts`, el rango de un número o un monto, espejo de `_valor_fuera_de_rango` y `_campo_rango`); `ui/campos/` trae `<EditorDeCampos>` (su panel lleva «Mínimo» y «Máximo» en un número o un monto, `campo-rango.tsx`), `<DatosPorGrupo>`, `<CampoDeFormulario>`.
 - `lib/ancho.ts` — `anchoDeLaPeticion()` y los cortes `CORTE_DEL_TABLERO`/`CORTE_DE_LA_TABLA`/`CORTE_DEL_PANEL`; `ui/ancho-de-pantalla.tsx` (`useAlMenos()`).
 - `lib/atajos.ts` + `ui/atajos/` — `ATAJOS`, `<ProveedorAtajos>`, `useAtajo()`: responde el último registrado.
 - `lib/color.ts` (`tokensDeMarca()`, `cssDeMarca()`), `lib/imagenes.ts` (`comprimirImagen()`, `extensionDe()`, `hashDe()`), `lib/almacen.ts`, `lib/iconos.ts` (catálogo cerrado de 24 iconos), `lib/apibara.ts`.
