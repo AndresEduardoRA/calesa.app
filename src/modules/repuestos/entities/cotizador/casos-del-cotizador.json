@@ -1,0 +1,428 @@
+{
+  "configs": {
+    "A": {
+      "version": 1,
+      "moneda": "USD",
+      "config": {
+        "id": 1,
+        "factor_importado": "1.3500",
+        "recargo_local": "0.1000",
+        "redondeo": "1.00",
+        "vigente_desde": "2026-11-12T00:00:00+00:00"
+      },
+      "tramos": [
+        {
+          "costo_min": "0.00",
+          "costo_max": "100.00",
+          "monto": "15.00"
+        },
+        {
+          "costo_min": "100.00",
+          "costo_max": "500.00",
+          "monto": "40.00"
+        },
+        {
+          "costo_min": "500.00",
+          "costo_max": "2000.00",
+          "monto": "90.00"
+        }
+      ],
+      "cajas": [
+        {
+          "id": "00000000-0000-4000-8000-0000000000a1",
+          "monto": "10.00"
+        },
+        {
+          "id": "00000000-0000-4000-8000-0000000000a2",
+          "monto": "25.00"
+        }
+      ]
+    },
+    "B": {
+      "version": 1,
+      "moneda": "USD",
+      "config": {
+        "id": 2,
+        "factor_importado": "1.2000",
+        "recargo_local": "0.0750",
+        "redondeo": "0.05",
+        "vigente_desde": "2026-11-12T00:00:00+00:00"
+      },
+      "tramos": [
+        {
+          "costo_min": "0.00",
+          "costo_max": "100.00",
+          "monto": "15.00"
+        },
+        {
+          "costo_min": "100.00",
+          "costo_max": "500.00",
+          "monto": "40.00"
+        },
+        {
+          "costo_min": "500.00",
+          "costo_max": "2000.00",
+          "monto": "90.00"
+        }
+      ],
+      "cajas": [
+        {
+          "id": "00000000-0000-4000-8000-0000000000a1",
+          "monto": "10.00"
+        },
+        {
+          "id": "00000000-0000-4000-8000-0000000000a2",
+          "monto": "25.00"
+        }
+      ]
+    },
+    "C": {
+      "version": 1,
+      "moneda": "USD",
+      "config": {
+        "id": 3,
+        "factor_importado": "1.3500",
+        "recargo_local": "0.1000",
+        "redondeo": "10.00",
+        "vigente_desde": "2026-11-12T00:00:00+00:00"
+      },
+      "tramos": [
+        {
+          "costo_min": "0.00",
+          "costo_max": "100.00",
+          "monto": "15.00"
+        },
+        {
+          "costo_min": "100.00",
+          "costo_max": null,
+          "monto": "50.00"
+        }
+      ],
+      "cajas": [
+        {
+          "id": "00000000-0000-4000-8000-0000000000a1",
+          "monto": "10.00"
+        },
+        {
+          "id": "00000000-0000-4000-8000-0000000000a2",
+          "monto": "25.00"
+        }
+      ]
+    },
+    "D": {
+      "version": 1,
+      "moneda": "USD",
+      "config": {
+        "id": 4,
+        "factor_importado": "1.3500",
+        "recargo_local": "0.1000",
+        "redondeo": "1.00",
+        "vigente_desde": "2026-11-12T00:00:00+00:00"
+      },
+      "tramos": [
+        {
+          "costo_min": "50.00",
+          "costo_max": "100.00",
+          "monto": "15.00"
+        }
+      ],
+      "cajas": []
+    },
+    "E": {
+      "version": 1,
+      "moneda": "USD",
+      "config": {
+        "id": 5,
+        "factor_importado": "1.3500",
+        "recargo_local": "0.1000",
+        "redondeo": "0.00",
+        "vigente_desde": "2026-11-12T00:00:00+00:00"
+      },
+      "tramos": [
+        {
+          "costo_min": "0.00",
+          "costo_max": "100.00",
+          "monto": "15.00"
+        },
+        {
+          "costo_min": "100.00",
+          "costo_max": "500.00",
+          "monto": "40.00"
+        },
+        {
+          "costo_min": "500.00",
+          "costo_max": "2000.00",
+          "monto": "90.00"
+        }
+      ],
+      "cajas": [
+        {
+          "id": "00000000-0000-4000-8000-0000000000a1",
+          "monto": "10.00"
+        },
+        {
+          "id": "00000000-0000-4000-8000-0000000000a2",
+          "monto": "25.00"
+        }
+      ]
+    }
+  },
+  "casos": [
+    {
+      "nombre": "K1",
+      "que": "importado con la logística sugerida",
+      "config": "A",
+      "bloque": "importado",
+      "cantidad": 1,
+      "costo": "80.00",
+      "logistica": null,
+      "caja": "10.00",
+      "esperado": {
+        "logistica_sugerida": "15.00",
+        "unitario": "133.00",
+        "total": "133.00",
+        "falta": null
+      }
+    },
+    {
+      "nombre": "K2",
+      "que": "149,9865 redondea a 150 y se multiplica por la cantidad",
+      "config": "A",
+      "bloque": "importado",
+      "cantidad": 3,
+      "costo": "99.99",
+      "logistica": null,
+      "caja": "0",
+      "esperado": {
+        "logistica_sugerida": "15.00",
+        "unitario": "150.00",
+        "total": "450.00",
+        "falta": null
+      }
+    },
+    {
+      "nombre": "K3",
+      "que": "el costo_min del tramo es inclusivo",
+      "config": "A",
+      "bloque": "importado",
+      "cantidad": 1,
+      "costo": "100.00",
+      "logistica": null,
+      "caja": "25.00",
+      "esperado": {
+        "logistica_sugerida": "40.00",
+        "unitario": "200.00",
+        "total": "200.00",
+        "falta": null
+      }
+    },
+    {
+      "nombre": "K4",
+      "que": "local con la logística escrita",
+      "config": "A",
+      "bloque": "local",
+      "cantidad": 2,
+      "costo": "80.00",
+      "logistica": "20.00",
+      "caja": "10.00",
+      "esperado": {
+        "logistica_sugerida": "15.00",
+        "unitario": "121.00",
+        "total": "242.00",
+        "falta": null
+      }
+    },
+    {
+      "nombre": "K5",
+      "que": "0 escrito no es nulo; 5,5 sube a 6 (mitad hacia arriba)",
+      "config": "A",
+      "bloque": "local",
+      "cantidad": 1,
+      "costo": "5.00",
+      "logistica": "0.00",
+      "caja": "0",
+      "esperado": {
+        "logistica_sugerida": "15.00",
+        "unitario": "6.00",
+        "total": "6.00",
+        "falta": null
+      }
+    },
+    {
+      "nombre": "K6",
+      "que": "por encima del último tramo no hay sugerencia",
+      "config": "A",
+      "bloque": "importado",
+      "cantidad": 1,
+      "costo": "2500.00",
+      "logistica": null,
+      "caja": "10.00",
+      "esperado": {
+        "logistica_sugerida": null,
+        "unitario": null,
+        "total": null,
+        "falta": "logistica"
+      }
+    },
+    {
+      "nombre": "K7",
+      "que": "sin tramo, con la logística escrita",
+      "config": "A",
+      "bloque": "importado",
+      "cantidad": 1,
+      "costo": "2500.00",
+      "logistica": "120.00",
+      "caja": "10.00",
+      "esperado": {
+        "logistica_sugerida": null,
+        "unitario": "3505.00",
+        "total": "3505.00",
+        "falta": null
+      }
+    },
+    {
+      "nombre": "K8",
+      "que": "11,83575 al múltiplo de 0,05",
+      "config": "B",
+      "bloque": "local",
+      "cantidad": 1,
+      "costo": "10.01",
+      "logistica": "1.00",
+      "caja": "0",
+      "esperado": {
+        "logistica_sugerida": "15.00",
+        "unitario": "11.85",
+        "total": "11.85",
+        "falta": null
+      }
+    },
+    {
+      "nombre": "K9",
+      "que": "59,9955 al múltiplo de 10",
+      "config": "C",
+      "bloque": "importado",
+      "cantidad": 1,
+      "costo": "33.33",
+      "logistica": null,
+      "caja": "0",
+      "esperado": {
+        "logistica_sugerida": "15.00",
+        "unitario": "60.00",
+        "total": "60.00",
+        "falta": null
+      }
+    },
+    {
+      "nombre": "K10",
+      "que": "tramo abierto; 3425 es mitad y sube a 3430",
+      "config": "C",
+      "bloque": "importado",
+      "cantidad": 1,
+      "costo": "2500.00",
+      "logistica": null,
+      "caja": "0",
+      "esperado": {
+        "logistica_sugerida": "50.00",
+        "unitario": "3430.00",
+        "total": "3430.00",
+        "falta": null
+      }
+    },
+    {
+      "nombre": "K11",
+      "que": "sin costo no hay sugerencia ni total",
+      "config": "A",
+      "bloque": "importado",
+      "cantidad": 1,
+      "costo": null,
+      "logistica": null,
+      "caja": "10.00",
+      "esperado": {
+        "logistica_sugerida": null,
+        "unitario": null,
+        "total": null,
+        "falta": "costo"
+      }
+    },
+    {
+      "nombre": "K12",
+      "que": "sin caja elegida no hay total",
+      "config": "A",
+      "bloque": "importado",
+      "cantidad": 1,
+      "costo": "80.00",
+      "logistica": null,
+      "caja": null,
+      "esperado": {
+        "logistica_sugerida": "15.00",
+        "unitario": null,
+        "total": null,
+        "falta": "caja"
+      }
+    },
+    {
+      "nombre": "K13",
+      "que": "debajo del primer tramo no hay sugerencia",
+      "config": "D",
+      "bloque": "importado",
+      "cantidad": 1,
+      "costo": "20.00",
+      "logistica": null,
+      "caja": "0",
+      "esperado": {
+        "logistica_sugerida": null,
+        "unitario": null,
+        "total": null,
+        "falta": "logistica"
+      }
+    },
+    {
+      "nombre": "K14",
+      "que": "un total desde 10^16 no cabe",
+      "config": "A",
+      "bloque": "importado",
+      "cantidad": 100000,
+      "costo": "9999999999999.99",
+      "logistica": "0",
+      "caja": "0",
+      "esperado": {
+        "logistica_sugerida": null,
+        "unitario": null,
+        "total": null,
+        "falta": "no_cabe"
+      }
+    },
+    {
+      "nombre": "K15",
+      "que": "local con la sugerida del segundo tramo",
+      "config": "A",
+      "bloque": "local",
+      "cantidad": 3,
+      "costo": "100.00",
+      "logistica": null,
+      "caja": "25.00",
+      "esperado": {
+        "logistica_sugerida": "40.00",
+        "unitario": "182.00",
+        "total": "546.00",
+        "falta": null
+      }
+    },
+    {
+      "nombre": "K16",
+      "que": "un redondeo de 0 vale 0,01",
+      "config": "E",
+      "bloque": "importado",
+      "cantidad": 1,
+      "costo": "10.01",
+      "logistica": "0",
+      "caja": "0",
+      "esperado": {
+        "logistica_sugerida": "15.00",
+        "unitario": "13.51",
+        "total": "13.51",
+        "falta": null
+      }
+    }
+  ]
+}
