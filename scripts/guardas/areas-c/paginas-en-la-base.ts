@@ -3,6 +3,7 @@
 import { TAMANO_DE_PAGINA_POR_DEFECTO, TAMANO_DE_VER_MAS } from '../../../src/shared/lib/paginacion'
 import { TOPE_DE_FUERA_DE_REGLA } from '../../../src/modules/flujos/entities/requisitos/fuera-de-regla'
 import { TOPE_DE_IMPACTO } from '../../../src/modules/flujos/entities/requisitos/impacto'
+import { TOPE_DE_BLOQUE } from '../../../src/modules/tablero/entities/bandeja'
 import type { RpcPaginada } from '../paginas-en-la-base'
 
 export const REGISTRO: readonly RpcPaginada[] = [
@@ -65,5 +66,12 @@ export const REGISTRO: readonly RpcPaginada[] = [
     parametro: 'p_tamano',
     pideElCodigo: TAMANO_DE_VER_MAS,
     lista: 'mis conversaciones del chat',
+  },
+  // La bandeja de logística en Inicio (6.12-2): demoradas, trabados y por aprobar, `TOPE_DE_BLOQUE` cada una (la base pide uno de más).
+  {
+    rpc: 'logistica_bandeja',
+    parametro: 'p_tope',
+    pideElCodigo: TOPE_DE_BLOQUE,
+    lista: 'la bandeja de logística en Inicio (demoradas, trabados y por aprobar)',
   },
 ]

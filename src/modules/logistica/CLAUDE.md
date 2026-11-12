@@ -5,7 +5,7 @@ Operación diaria sobre el flujo: cadena por fase, mover con vista previa, docum
 ## Entra y sale
 
 - Entra: acciones de logística en `/logistica/*`, subida de documentos (también desde cámara), confirmación de pagos, cron de alertas.
-- Sale: `leerUnidad(id)` (la unidad de vehículo bajo la RLS de quien mira; nula si no existe, está en la papelera o no la ve; su `titulo` es «<principal> · <título>» si el origen tiene campo principal, 6.13: `features/nucleo/unidad-con-identidad.ts`, y si el principal no se puede leer queda el título), `huecosVisibles`, `ORDEN_DE_HUECOS`, `refDeUnidad` y los tipos de la unidad y de los huecos; por `pantallas/unidad.ts`, `<PanelDeLaUnidad>` (6.01). Del área `cadena` (6.03-1): `leerCadena(origenId, filtros)` (columnas con la primera página de tarjetas nombradas por el campo principal), `dondeEsta(busqueda)` (hasta 10, en todos los orígenes de la persona; con texto corto no llama a la base), `leerOrigenesDeLaCadena(permisos)` (las pestañas), `leerNavieras()`, el esquema y el pedido de filtros (`esquemaDeFiltrosDeLaCadena`, `pedidoDeLaCadena`) y sus claves de URL (`origen`, `fase`, `q`, `demoradas`, `por_aprobar`, `contenedor`, `booking`, `naviera`). Saldrá `bandejaLogistica()` (para `tablero`), `margenDe(vehiculoId)`, `<LineaTiempoUnidad>`. Lo consumirán `tablero`, `vehiculos` (ficha), `web` (portal: fases y documentos visibles).
+- Sale: `leerUnidad(id)` (la unidad de vehículo bajo la RLS de quien mira; nula si no existe, está en la papelera o no la ve; su `titulo` es «<principal> · <título>» si el origen tiene campo principal, 6.13: `features/nucleo/unidad-con-identidad.ts`, y si el principal no se puede leer queda el título), `huecosVisibles`, `ORDEN_DE_HUECOS`, `refDeUnidad` y los tipos de la unidad y de los huecos; por `pantallas/unidad.ts`, `<PanelDeLaUnidad>` (6.01). Del área `cadena` (6.03-1): `leerCadena(origenId, filtros)` (columnas con la primera página de tarjetas nombradas por el campo principal), `dondeEsta(busqueda)` (hasta 10, en todos los orígenes de la persona; con texto corto no llama a la base), `leerOrigenesDeLaCadena(permisos)` (las pestañas), `leerNavieras()`, el esquema y el pedido de filtros (`esquemaDeFiltrosDeLaCadena`, `pedidoDeLaCadena`) y sus claves de URL (`origen`, `fase`, `q`, `demoradas`, `por_aprobar`, `contenedor`, `booking`, `naviera`). Del área `alertas` (6.12-2): `bandejaLogistica(tope)` (demoradas, trabados y por aprobar de quien mira, una lectura de `logistica_bandeja` por request con `cache()`), `detalleDeDemorada` y `detalleDeTrabado` (para los bloques de Inicio de `tablero`, que arman sus «Ver todas» con las claves de URL del área `cadena`: un área no importa otra). Saldrá `margenDe(vehiculoId)`, `<LineaTiempoUnidad>`. Lo consumirán `tablero`, `vehiculos` (ficha), `web` (portal: fases y documentos visibles).
 - Depende de: `vehiculos`, `origenes`, `empresa`, `flujos`, `cotizaciones`.
 
 ## Áreas
@@ -60,10 +60,22 @@ El panel exige `logistica.ver` en el origen de la unidad **y** que la RLS de `ve
 ## Tablas
 
 `documentos`, `puertos`, `navieras`, `transportes` (1:1 con la unidad), `declaraciones_aduana`, `declaraciones_vehiculos`, `categorias_gasto`, `gastos`, `pagos`, `notas`.
+RPC: `margen_vehiculo`, `alertas_demora` (job `alertas-demora`), `storage_refcount`; mover vía `flujos`. La oferta de transporte es de `flujos`: la leerá en la Fase 6
+por `flujo_oferta()`. Gastos y pagos se escriben sólo por RPC (6.10): `gasto_registrar`, `gasto_guardar`, `gasto_eliminar`, `gastos_prorratear`,
 RPC: `margen_vehiculo`, `alertas_demora` (cron), `storage_refcount`; mover vía `flujos`. La oferta de transporte es de `flujos` (la escribe
 `flujo_oferta_guardar` en Configuración › Flujos › Reglas); logística sólo la lee por `flujo_oferta()` (el hueco «Transporte», 6.08). Gastos y pagos se escriben sólo por RPC (6.10): `gasto_registrar`, `gasto_guardar`, `gasto_eliminar`, `gastos_prorratear`,
 `pago_registrar`, `pago_guardar`, `pago_eliminar`, `pago_confirmar` y `pago_anular`. Se leen por cursor con `gastos_listar` y `pagos_listar` (6.10-2);
 el bucket `comprobantes` lo abre `comprobante_puede` (la fila que nombra el objeto).
+**Alertas (6.12-1, la base):** `trg_alertas_cerrar_al_mover` (en `historial_fases`) acciona los `demora_fase` abiertos de la unidad al moverla, por
+`notificaciones_referencia_idx`.
+`alertas_demora()` (job `alertas-demora`, cada hora en el minuto 12) recorre por lotes los pares (origen, fase) que alertan, avisa a quien tiene
+`flujos.mover`, `logistica.ver` y `vehiculos.ver` del origen (el menor alcance: con `propios`, la unidad que creó o la de su cartera) y reabre el mismo aviso
+pasado `fases.alerta_cada_horas` (nulo = 72 h).
+`documentos_vencimientos()` (job `documentos-vencimientos`, 11:15 UTC) avisa `documento_por_vencer` a quien tiene `logistica.documentos.subir` del origen
+(mismo menor alcance), una vez por persona y documento desde `vence_el - aviso_dias`; el texto cambia con `modo_vencimiento`.
+`logistica_bandeja(p_tope)` (definer, `authenticated`; 5, máximo 20) da `{ demoradas, trabados, por_aprobar }`, cada una `{ filas, hay_mas }`, sólo de
+los orígenes que quien mira ve (por aprobar, además con `logistica.documentos.aprobar`); trabado = demorada a la que le falta un requisito bloqueante para
+su fase siguiente (GLOSARIO). La leen los tres bloques de logística de Inicio por `bandejaLogistica(TOPE_DE_BLOQUE)` (6.12-2, registrada en la guarda de páginas).
 
 ## No se rompe
 
