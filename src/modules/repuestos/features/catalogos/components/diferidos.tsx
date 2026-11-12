@@ -6,3 +6,8 @@ import { diferido } from '@/shared/ui/diferido'
 export const ModalDeValorDiferido = diferido(() =>
   import('./modal-de-valor').then((modulo) => modulo.ModalDeValor),
 )
+
+// La confirmación de eliminar un valor se pide al abrirse (`useAbiertoAlgunaVez()`).
+export const EliminarValorDiferido = diferido(() =>
+  import('./eliminar-valor').then((modulo) => modulo.EliminarValor),
+)
