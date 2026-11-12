@@ -1,3 +1,5 @@
+import type { Route } from 'next'
+import Link from 'next/link'
 import type { FaseResumen } from '@/modules/flujos'
 import type { OrigenResumen } from '@/modules/origenes'
 import {
@@ -12,6 +14,8 @@ import {
   InsigniaDeVitrina,
   MenuDeVehiculoDeLaFicha,
 } from '@/modules/vehiculos/pantallas/ficha'
+import { unidadDeLogistica } from '@/shared/lib/rutas'
+import { buttonVariants } from '@/shared/ui/button'
 
 type Props = {
   vehiculo: Vehiculo
@@ -22,12 +26,14 @@ type Props = {
   publicar: PermisoDeVitrina
   editable: boolean
   papelera: PermisoDePapelera
+  // `logistica.ver` en el origen del vehículo: sin él no hay enlace (D25). Lo decide la página con `puede()`.
+  verEnLogistica: boolean
 }
 
-// La cabecera de la ficha con lo que la persona puede hacer desde ahí: «Editar» y el «⋯» con la lista de siempre (publicar en la web,
+// La cabecera de la ficha con lo que la persona puede hacer desde ahí: «Ver en logística», «Editar» y el «⋯» con la lista de siempre (publicar en la web,
 // apagado y con el motivo si no tiene el permiso, y, separada, enviar a la papelera).
 export function Encabezado(props: Props) {
-  const { vehiculo, origen, fase, previa, publicar, editable, papelera } = props
+  const { vehiculo, origen, fase, previa, publicar, editable, papelera, verEnLogistica } = props
   return (
     <CabeceraDeVehiculo
       vehiculo={vehiculo}
@@ -45,6 +51,14 @@ export function Encabezado(props: Props) {
       }
       acciones={
         <>
+          {verEnLogistica ? (
+            <Link
+              href={unidadDeLogistica(vehiculo.id) as Route}
+              className={buttonVariants({ variant: 'outline', className: 'min-h-11 md:min-h-8' })}
+            >
+              Ver en logística
+            </Link>
+          ) : null}
           {editable ? <BotonEditarVehiculo vehiculo={vehiculo} /> : null}
           <MenuDeVehiculoDeLaFicha vehiculo={vehiculo} publicar={publicar} papelera={papelera} />
         </>
