@@ -6,7 +6,30 @@ Proyectos de repuestos por vehículo (o externos), ítems que recorren el flujo 
 
 - Entra: proyectos desde la ficha del vehículo o sueltos, hoja de ítems editable celda a celda (XCell compacta), compras, movimientos de stock, cotizaciones de repuestos.
 - Sale: `proyectoDe(vehiculoId)`, `esperasQueDestraban(vehiculoId)` (para `flujos`/`logistica`), `<ResumenRepuestos>`. Lo consumen `vehiculos`, `logistica`, `tablero`, `buscador`.
+- Sale por `index.ts` (área `catalogos`, 8.08-2): `leerCatalogosDeRepuestos()` (los cuatro, con los desactivados, tope 200 cada uno) y `CATALOGOS_DE_REPUESTOS`; por
+  `client.ts`, lo puro del formulario de un valor (`validarValor`, `cambiosDeValor`, `ordenSiguiente`…). Las actions `crearValor`, `guardarValor` y
+  `eliminarValor` (`features/catalogos/actions/`, `repuestos.configurar`) no salen por los barriles: las importan en relativo los componentes de la 8.08-3.
+- Sale por `pantallas/catalogos.ts` (8.08-3): `<CatalogosDeRepuestos>`, la pestaña «Catálogos» de `/configuracion/repuestos`; la lee `src/app/(app)/configuracion/repuestos/seccion-catalogos.tsx`.
 - Depende de: `vehiculos`, `flujos`, `leads`.
+
+## Áreas
+
+El módulo se parte por **área** (8.08-2, igual que `logistica`) para que los pasos 8.09–8.13 agreguen archivos propios y no editen los compartidos. Un área vive en
+`features/<área>/`, `entities/<área>/`, `infra/<área>/`, `areas/<área>/{index,client,composicion}.ts` y `pantallas/<área>.ts` (y `pantallas/<área>-<pantalla>.ts`). El
+**núcleo** es la carpeta `nucleo` de cada capa. `index.ts`, `client.ts` y `composicion.ts` de la raíz sólo hacen `export *` del núcleo y de cada área: nadie los edita.
+
+| Área        | La llena                | Qué es                                                          |
+| ----------- | ----------------------- | --------------------------------------------------------------- |
+| `nucleo`    | —                       | lo compartido entre áreas (hoy vacío)                           |
+| `proyectos` | 8.09                    | `/repuestos`: el listado de proyectos, crear, cerrar, eliminar  |
+| `items`     | 8.09                    | `/repuestos/[id]`: la hoja de ítems                             |
+| `stock`     | 8.10                    | movimientos de stock y sobrantes                                |
+| `compras`   | 8.11                    | compras y pagos (con `repuestos.costos.*`)                      |
+| `cotizador` | 8.12                    | la configuración versionada y las cotizaciones de repuestos     |
+| `catalogos` | 8.08 (pantalla: 8.08-3) | los cuatro catálogos: leer, crear, guardar y borrar valores     |
+| `flujo`     | 8.13                    | el panel de pendientes para `logistica` y los bloques de Inicio |
+
+**Un área no importa otra** (lo vigila `scripts/guardas/areas-c/areas-de-repuestos.test.ts`): lo compartido va al núcleo.
 
 ## Archivos clave
 
@@ -31,6 +54,8 @@ Proyectos de repuestos por vehículo (o externos), ítems que recorren el flujo 
   `stock_cantidad` no tienen grant de UPDATE). Toda RPC que escribe pide `repuestos.editar`. Un proyecto sólo se elimina vacío.
 - El ítem nace en la única fase inicial activa del flujo de repuestos con su fila de historial; si hay cero o varias, o algo que decidir, nace sin fase.
 - Un valor de catálogo en uso (por un ítem, aun eliminado, o una línea de cotización) no se borra: se desactiva.
+- Los valores de catálogo se escriben directo bajo la RLS de `repuestos.configurar` (sin RPC: no otorgan permisos); guardar nunca manda `catalogo`
+  (el grant de UPDATE es de toda la tabla: lo acota la 8.10, H1). Cero filas al escribir nunca es éxito.
 
 ## Ojo
 
