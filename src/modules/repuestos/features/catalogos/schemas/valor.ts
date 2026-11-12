@@ -27,7 +27,7 @@ export const esquemaGuardarValor = z.object({
       activo: z.boolean().optional(),
       orden: orden.optional(),
     })
-    .refine((c) => Object.keys(c).length > 0),
+    .refine((c) => Object.keys(c).length > 0, { error: 'No hay cambios que guardar.' }),
 })
 
 export const esquemaEliminarValor = z.object({ id: z.guid(), nombre })
