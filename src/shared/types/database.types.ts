@@ -2716,6 +2716,8 @@ export type Database = {
           filtrable: boolean
           grupo: string | null
           id: string
+          maximo: number | null
+          minimo: number | null
           opciones: NonNullable<Json>
           orden: number
           requerido: boolean
@@ -2736,6 +2738,8 @@ export type Database = {
           filtrable?: boolean
           grupo?: string | null
           id?: string
+          maximo?: number | null
+          minimo?: number | null
           opciones?: NonNullable<Json>
           orden?: number
           requerido?: boolean
@@ -2755,6 +2759,8 @@ export type Database = {
           filtrable?: boolean
           grupo?: string | null
           id?: string
+          maximo?: number | null
+          minimo?: number | null
           opciones?: NonNullable<Json>
           orden?: number
           requerido?: boolean
@@ -3766,6 +3772,8 @@ export type Database = {
           filtrable: boolean
           grupo: string | null
           id: string
+          maximo: number | null
+          minimo: number | null
           opciones: NonNullable<Json>
           orden: number
           origen_id: string
@@ -3787,6 +3795,8 @@ export type Database = {
           filtrable?: boolean
           grupo?: string | null
           id?: string
+          maximo?: number | null
+          minimo?: number | null
           opciones?: NonNullable<Json>
           orden?: number
           origen_id: string
@@ -3807,6 +3817,8 @@ export type Database = {
           filtrable?: boolean
           grupo?: string | null
           id?: string
+          maximo?: number | null
+          minimo?: number | null
           opciones?: NonNullable<Json>
           orden?: number
           origen_id?: string
@@ -7247,6 +7259,10 @@ export type Database = {
         }
         Returns: Json
       }
+      _atributos_rango: {
+        Args: { p_anteriores: Json; p_campos: Json; p_nuevos: Json }
+        Returns: undefined
+      }
       _atributos_validar: {
         Args: { p_atributos: Json; p_campos: Json; p_msg_objeto: string }
         Returns: undefined
@@ -8818,6 +8834,10 @@ export type Database = {
       _unidad_sin_acceso: { Args: { p_vehiculo: string }; Returns: string }
       _url_del_proyecto: { Args: Record<PropertyKey, never>; Returns: string }
       _uuid_de: { Args: { p_hint: string; p_valor: Json }; Returns: string }
+      _valor_fuera_de_rango: {
+        Args: { p_maximo: number; p_minimo: number; p_valor: Json }
+        Returns: boolean
+      }
       _vehiculo_a_lote: {
         Args: {
           p_lote: string
