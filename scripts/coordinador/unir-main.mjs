@@ -10,7 +10,8 @@
 // Sólo une lo que se puede unir sin mirar: notas y registros con puros agregados de los dos lados. Si algún choque es de código, de lo
 // generado (los tipos de la base piden una base para regenerarlos), si los dos lados cambiaron una línea que ya existía (la unión la
 // dejaría dos veces) o si un `.mjs` unido no pasa `node --check`, no empuja nada y el paso vuelve a su carril como antes. Si el carril
-// empujó entre medio, el push no avanza y se reintenta en la vuelta siguiente. COORD_UNIR=0 lo apaga.
+// empujó entre medio, el push no avanza y se reintenta en la vuelta siguiente. COORD_UNIR=0 lo apaga. Si git une main sin ningún choque
+// (GitHub puede dar por chocado un PR que git une limpio), empuja ese merge y el CI decide.
 //
 // Variables: COORD_UNIR_REGISTROS (patrones separados por espacios; la misma lista que PILOTO_UNIR_REGISTROS en carril.sh).
 import { execFileSync } from 'node:child_process'
@@ -68,14 +69,33 @@ export function unirMain(rama, oid, { cwd = process.cwd() } = {}) {
     const remota = git(['ls-remote', 'origin', `refs/heads/${rama}`]).split('\t')[0]
     if (remota !== oid) return { hecho: false, motivo: 'la rama cambió desde que se miró el PR' }
     const main = git(['rev-parse', 'origin/main']).trim()
-    let salida
+    // Con main ya dentro de la rama no hay nada que unir (GitHub tarda en enterarse del merge que se acaba de empujar): sin esto, cada
+    // vuelta empujaría otro merge vacío y el CI volvería a empezar.
     try {
-      git(['merge-tree', '--write-tree', '-z', oid, main])
-      return { hecho: false, motivo: 'main entra sin choques' }
+      git(['merge-base', '--is-ancestor', main, oid])
+      return { hecho: false, motivo: 'main ya está en la rama' }
+    } catch (err) {
+      if (err.status !== 1) throw err
+    }
+    let salida
+    let limpio = null
+    try {
+      limpio = git(['merge-tree', '--write-tree', '-z', oid, main]).split('\0')[0].trim()
     } catch (err) {
       // 1 = hay choques (lo esperado); otra cosa, un error de git.
       if (err.status !== 1) throw err
       salida = String(err.stdout)
+    }
+    if (limpio) {
+      // Sin choques para git y GitHub dice CONFLICTING (el #186, el cierre 6.14 del 2026-11-12: su merge de prueba no es el de git).
+      // El merge limpio se empuja tal cual, que es lo que haría el carril sin sesión al quedar libre; el CI corre sobre ese commit.
+      const commit = git(['commit-tree', limpio, '-p', oid, '-p', main, '-F', '-'], {
+        input:
+          `Merge remote-tracking branch 'origin/main' into ${rama}\n\n` +
+          'Lo hizo el coordinador: GitHub daba el PR por chocado y git une main sin choques.\n',
+      }).trim()
+      git(['push', '--quiet', 'origin', `${commit}:refs/heads/${rama}`])
+      return { hecho: true, commit, unidos: [], soloNotas: false }
     }
     const [arbol, ...resto] = salida.split('\0')
     const etapas = new Map()

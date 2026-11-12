@@ -16,7 +16,8 @@ import { literal, sql } from './soporte/sql'
 
 // El tablero de la cola web (8.04-2, abierto 8-1). Una vendedora habilitada en la cola, con WhatsApp y disponible, pero cuyo rol no tiene
 // `web.cola.participar`: la dueña la ve aparte, en «Habilitada, pero su rol no recibe turnos de la web», y no en la rueda. Cuando su rol recibe el permiso,
-// «Actualizar» la pasa a la rueda. Arriba, «Sin asignar» muestra la solicitud que no encontró asesor. La 8.04-3 suma «habilitar sin el permiso avisa».
+// «Actualizar» la pasa a la rueda. Arriba, «Sin asignar» muestra la solicitud que no encontró asesor. Y habilitarla desde «Agregar a la rueda» sin el permiso
+// en su rol lo avisa (8.04-3, cierra 8-1).
 const CLAVE = 'una-clave-de-prueba-9'
 const DUENA = 'Dalia Cola'
 const VENDEDORA = 'Vera Cola'
@@ -24,6 +25,7 @@ const EN_LA_RUEDA = 'En la rueda'
 const SIN_ROL = 'Habilitada, pero su rol no recibe turnos de la web'
 
 let duena = ''
+let vendedoraId = ''
 let rolId = ''
 let token = ''
 let codigo = ''
@@ -56,6 +58,7 @@ test.beforeAll(async ({}, info) => {
     .eq('nombre', rol)
     .single<{ id: string }>()
   rolId = fila?.id ?? ''
+  vendedoraId = perfil?.id ?? ''
   token = `e2ecolatablero${proyecto}0001`
   codigo = `#WEB-E2E-${proyecto.slice(0, 4).toUpperCase()}`
   // Habilitada en la cola, con WhatsApp y disponible: sólo le falta el permiso del rol. Y una solicitud que no encontró asesor.
@@ -84,6 +87,14 @@ function permisoDeLaRueda(dar: boolean) {
   )
 }
 
+// Habilitada en la cola (o no), con sus valores de fábrica.
+function habilitada(si: boolean) {
+  sql(
+    `update public.cola_web_asesores set habilitado = ${si ? 'true' : 'false'}, max_abiertas = null, prioridad = 0, orden = 0
+       where usuario_id = ${literal(vendedoraId)}`,
+  )
+}
+
 async function abrirElTablero(page: Page) {
   await page.goto('/ingreso')
   await ingresar(page, duena, CLAVE)
@@ -96,6 +107,7 @@ test('la habilitada cuyo rol no recibe turnos figura aparte, y la sin asignar ar
   page,
 }) => {
   permisoDeLaRueda(false)
+  habilitada(true)
   await abrirElTablero(page)
   const aparte = page.getByRole('region', { name: SIN_ROL })
   await expect(aparte.getByText(VENDEDORA)).toBeVisible()
@@ -108,6 +120,7 @@ test('la habilitada cuyo rol no recibe turnos figura aparte, y la sin asignar ar
 
 test('con el permiso en su rol, «Actualizar» la pasa a la rueda', async ({ page }) => {
   permisoDeLaRueda(false)
+  habilitada(true)
   await abrirElTablero(page)
   const rueda = page.getByRole('region', { name: EN_LA_RUEDA })
   await expect(page.getByRole('region', { name: SIN_ROL }).getByText(VENDEDORA)).toBeVisible()
@@ -116,4 +129,26 @@ test('con el permiso en su rol, «Actualizar» la pasa a la rueda', async ({ pag
   await page.getByRole('button', { name: 'Actualizar' }).click()
   await expect(rueda.getByText(VENDEDORA)).toBeVisible()
   await expect(page.getByRole('region', { name: SIN_ROL }).getByText(VENDEDORA)).toHaveCount(0)
+})
+
+test('habilitar desde «Agregar a la rueda» a quien su rol no recibe turnos lo avisa', async ({
+  page,
+}) => {
+  permisoDeLaRueda(false)
+  habilitada(false)
+  await abrirElTablero(page)
+  await expect(page.getByRole('region', { name: SIN_ROL })).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Agregar a la rueda' }).click()
+  const panel = page.getByRole('dialog', { name: 'Agregar a la rueda' })
+  await panel.getByLabel('Buscar en el equipo').fill('Vera')
+  await panel.getByRole('button', { name: `Elegir ${VENDEDORA}` }).click()
+  await panel.getByRole('button', { name: 'Agregar a la rueda' }).click()
+
+  await expect(
+    page.getByText('Quedó habilitada, pero su rol no recibe turnos de la web.'),
+  ).toBeVisible()
+  await expect(panel).toBeHidden()
+  await expect(page.getByRole('region', { name: SIN_ROL }).getByText(VENDEDORA)).toBeVisible()
+  await expect(page.getByRole('region', { name: EN_LA_RUEDA }).getByText(VENDEDORA)).toHaveCount(0)
 })

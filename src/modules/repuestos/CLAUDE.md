@@ -33,8 +33,10 @@ Proyectos de repuestos por vehículo (o externos), ítems que recorren el flujo 
   `proyectos`). Las actions `reasignarStock` y `buscarProyectosAbiertos` (las dos con `repuestos.editar` antes) no salen por los barriles.
 - **Compras** (8.11-2, área `compras`): la pestaña «Compras» de `/repuestos/[id]` (`?pestana=compras`) sólo existe con `repuestos.costos.ver` (`pestanasLlenas(permisos)` en
   `src/app/(app)/repuestos/[id]/pestanas.ts`; sin él la URL abre «Ítems» y no se lee nada de compras). La lee `seccion-compras.tsx` al abrirla con
-  `leerComprasDelProyecto` (tope 200) y `leerMargenDelProyecto` (por `areas/compras/index.ts`) y dibuja `<MargenDelProyecto>` y `<ListaDeCompras>` (por
-  `pantallas/compras.ts`). Registrar, editar, eliminar y el comprobante llegan con 8.11-3.
+  `leerComprasDelProyecto` (tope 200) y `leerMargenDelProyecto` (por `areas/compras/index.ts`) y dibuja `<MargenDelProyecto>` y `<ComprasDelProyecto>` (por
+  `pantallas/compras.ts`). En 8.11-3: un solo «Registrar compra» arriba de la lista (apagado con su motivo sin `repuestos.costos.editar` o con el proyecto cerrado;
+  la página calcula `puedeEditarCostos` con `puede()`), el Drawer `?panel=compra&compra=<id|nueva>` (con `diferido()`, montado al abrirse; ítems y monedas los pasa
+  la página, sin otra lectura) y «Editar» y «Eliminar» en la fila. Tras escribir, la action revalida la página: la lista y el margen se vuelven a leer en el servidor.
 - Depende de: `vehiculos`, `flujos`, `leads`.
 
 ## Áreas
@@ -70,6 +72,12 @@ El módulo se parte por **área** (8.08-2, igual que `logistica`) para que los p
   si hay ítems sin precio aunque llegue un número) y `textoSinPrecio` («Sin precio en N ítems»). Sin aritmética de dinero: la cuenta es de la base.
 - `entities/compras/compra.ts` (8.11-2) — la fila de la lista (`filasDeCompraDesde`, `COLUMNAS_DE_COMPRA` con el ítem embebido, `TOPE_DE_COMPRAS`); `monto_base` se lee
   (nulo en filas de antes de 8.11-1), nunca se calcula. `infra/compras/{listar,margen}.ts` leen la lista y el margen.
+- `entities/compras/{formulario,errores,acciones,paneles,comprobante,repositorio}.ts` (8.11-3) — el formulario con los textos de la base (0 vale; al editar,
+  `cambiosDeCompra` sólo lo que cambió, nunca `monto_base`), el `hint` de la base en su campo (`rechazoDeCompra`) y el motivo para apagar «Registrar compra».
+  `infra/compras/escribir.ts` llama las tres RPC (la esperada nula crea, con `ESPERADA_NULA`); las actions `guardarCompra`, `eliminarCompra` y `restaurarCompra`
+  (`repuestos.costos.editar` con `puede()` antes, `revalidatePath` del proyecto después; `z.strictObject` sin `monto_base` ni `proyecto_id`) no salen por los barriles.
+- `infra/compras/comprobante.client.ts` (8.11-3) — el comprobante de una compra al bucket privado `comprobantes`, `<proyecto>/<sha-256>.<ext>`, sin comprimir (copia del
+  de `logistica`, que no se importa); sale por `areas/compras/composicion.client.ts`. «Ver comprobante» pide una URL de 60 s al tocarlo, también desde la fila.
 - `features/proyectos/`, `features/items/` (hoja), `features/compras/`, `features/stock/`, `features/cotizador/`, `features/catalogos/`.
 - La base (8.08-1): `repuesto_proyecto_crear` / `_cerrar` / `_reabrir` / `_eliminar` / `_restaurar`, `repuesto_item_crear` / `_eliminar`,
   `repuestos_proyectos_listar`, `repuestos_pendientes_de_vehiculo`, `_repuesto_ante_espera` y el trigger `repuestos_catalogo_sin_uso`. De 8.09-3: los triggers `repuestos_imagen_integridad` y `repuestos_imagen_encolar` (prueba `areas/repuestos/imagenes.sql`). De 8.10-1: `repuesto_stock_mover`,

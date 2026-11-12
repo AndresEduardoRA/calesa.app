@@ -6143,6 +6143,66 @@ Fecha: 2026-11-12 (`TZ=America/La_Paz date +%F`). Sin compuertas ni preguntas ab
 - **D10** (Para el 6.14-2) 6-4 no lo tomó ningún paso y arreglarlo es código de producto: queda en «los decide la persona», con las dos opciones de su fila.
 - **D11** (Para el 6.14-2) El 6-3 de «borrar una nota propia por RPC» (6.04, D22) pasa a **6-7**: el número 6-3 ya era `pago_anular`, cerrado en el 6.10-2.
 
+<!-- paso:7.11-1 -->
+
+## 2026-11-12 · Decisiones del paso 7.11-1 (widget del chat)
+
+- **D1 · En el celular la burbuja es un enlace a `/chat`:** un panel flotante taparía el pie y las listas. El botón que abre el panel existe desde 768 px.
+- **D2 · La burbuja va con `z-40`, por debajo de los modales y drawers (`z-50`):** con un panel abierto su velo la cubre y no tapa el pie. El panel del widget no es modal y se cierra con Escape.
+- **D3 · Abajo a la derecha;** en el celular, a 5 rem del borde para no tapar los avisos (el toaster sale abajo a la derecha allí y a la izquierda desde 768 px).
+- **D4 · El estado del widget (abierto, conversación elegida) es local, no la URL:** abrirlo no cambia la pantalla de atrás, y llevarlo a la URL cambiaría la de `/leads`. Es la excepción a «registro abierto en la URL» de `.claude/rules/ui.md`; el panel no tiene `<Confirmar>` ni `<Drawer>`.
+- **D5 · El panel es sólo leer y responder:** el «⋯» del mensaje no se dibuja (`AccionesDelMensaje.sinMenu`); editar, borrar, responder con cita, `/tarea`, `/evento` y silenciar viven en `/chat`. Un comando `/tarea` o `/evento` y una mención llevan allí (`?panel=`, `?mencion=`).
+- **D7 · El contador cuenta sólo lo no silenciado y 100 es «99+»:** lo que dice la base (`chat_no_leidos`); no se inventa otro.
+- **D8 · El hilo recibe la conversación de la lista ya leída** (con su `ultimo_leido_en`): el panel no relee una por una, y el contador se mueve cuando `useMarcarLeido` llama a `chat_leer` (la señal de mi fila de miembro).
+- **D9 · El panel se monta sólo abierto** (su código ya cargado no se vuelve a pedir): al cerrar se sueltan sus canales de Realtime y al reabrir se relee la primera página. Queda una sola suscripción permanente: la del contador.
+- **D10 · Tope de JS de `/cotizaciones/[id]`: 448 → 452 KB.** Ya medía 447,3 antes del paso; el marco con la burbuja suma ≈ 1,9 KB (y un chunk) en toda pantalla, más de los 1,5 KB previstos, con el panel, el hilo y Realtime por `diferido()`. Regla del 5 %: el resto de topes no se tocan.
+
+<!-- paso:7.11-2 -->
+
+## 2026-11-12 · Decisiones del paso 7.11-2 («Escribirle por chat» y `/chat?con=`)
+
+- **D6 · El enlace se ofrece a quien tiene `chat.participar`;** que la otra persona también lo tenga no se sabe en el navegador sin una RPC nueva: lo decide `chat_directa` y la página `/chat` lo dice. Sin SQL.
+- **D11 · No se agrega `RUTAS.chat`:** no existe y el widget y la barra usan la ruta literal; el enlace usa `/chat?con=` con `as Route`.
+- **D12 · Un `?con=` que falla se dice con `<Aviso tono="peligro">` y la lista debajo,** no con `EstadoError` (de cliente, exige «Reintentar»): no se pierde la pantalla; reintentar es recargar. El mensaje es el de la base.
+- **D13 · `ASESORA` de los e2e del alta no se toca** (no trae `chat.participar`; sumarlo movería el marco de unos 15 specs): el caso feliz va en `chat-widget.spec.ts` (con chat y `leads.ver` sólo de los propios, para que el aviso diga «Lo tiene Luis» y no «Ya existe») y `leads-alta.spec.ts` afirma que sin chat no hay enlace.
+- **D14 · `?con=` se resuelve en el render con `chat_directa`,** una RPC idempotente (devuelve la directa existente), en vez de una action desde el cliente: un enlace plano sirve con el botón de atrás y en el celular sin JS extra. Una directa recién creada y vacía no aparece en la lista del otro hasta el primer mensaje.
+
+<!-- paso:7.11-3 -->
+
+## 2026-11-12 · Decisiones del paso 7.11-3 (rojos del CI)
+
+- **D15 · La burbuja del chat no cuenta como lo que «tapa» un texto en la medición del 200 %:** flota sobre el marco por diseño y al final de una página cae sobre lo último. Rellenar el pie de toda pantalla para esquivarla es pulido de la Fase 9 (`docs/PLAN.md` › «Pulido para la Fase 9»): al 200 % la burbuja puede tapar la última línea de una página.
+- **D16 · `chat_no_leidos` es pedido del marco** (`esDelMarco`), como los avisos de la campana: una prueba que cuenta pedidos de su pantalla no lo cuenta.
+
+<!-- paso:7.14-1 -->
+
+# Paso 7.14-1 — El cierre de la Fase 7 (parte 1 de 2): el recorrido, el push de verdad, 7-2 y el JS del marco
+
+Fecha: 2026-11-12 (`TZ=America/La_Paz date +%F`). Sin compuertas ni preguntas abiertas. El plan: `.piloto/planes/7.14-1.md`.
+
+- **D1** El 7.14 se parte en 7.14-1 (7-2, el push de verdad, el recorrido y el JS) y 7.14-2 (el Nivel 3 y los docs de cierre): el completo corre una vez sobre
+  el SHA con el arreglo de 7-2 y lo que pida el recorrido; los 33 docs de paso de la fase y las dos esperas largas no caben con margen en la misma sesión.
+- **D2** Un endpoint simulado no puede recibir el push: la base (`push_suscribir`) y la función (`endpointPermitido`) sólo aceptan `https` sin puerto de los
+  servicios de push conocidos, a propósito (la función no es un proxy abierto, D22 del 7.03-2). Sumar un host de prueba debilitaría esa defensa y tocaría una
+  función `security definer`: no se hace. `push-de-verdad.sh` prueba de verdad todo lo que está antes (aviso → disparo → pase → pg_net → gateway → función →
+  canje) y la última milla vale por `push-contrato.test.ts`, como dice la fila.
+- **D3** El script corre sin claves VAPID en la función y se niega si `supabase/functions/.env` las trae: con claves mandaría un pedido real a un servicio de
+  push con un endpoint inventado. Una respuesta que no sea `sin_claves` es ✗.
+- **D4** El aviso del script entra por `notificar()` con el tipo `tarea_asignada`, la puerta que usa la tarea; la tarea nacida en el chat la recorre el e2e (R1).
+- **D5** El recorrido corre en `escritorio` y `movil` (la campana y el chat se usan con el celular); sin capturas (pruebas sólo lo clave).
+- **D6** 7-2 lo toma este paso: un arreglo en la campana, sin tocar `src/shared` (un reintento general en `diferido()` es otra intención y Nivel 2). La burbuja
+  del chat tiene el mismo patrón; el 7.14-2 la anota como abierto.
+- **D7** Al volver la red se remonta la suscripción (`key`): vuelve a pedir el código y el conteo y quita el «Sin conexión» de ese intento. Sin red, el aviso
+  sigue con «Reintentar».
+- **D8** Ningún tope de JS cambió: todas las rutas quedaron bajo el suyo.
+- **D9** (Para el 7.14-2) PLAN y ESTADO se editan directo y BITACORA y DECISIONES por el script, como el 6.14-2. Si el 6.14-2 todavía no está en `main`, ESTADO
+  sólo sustituye lo de la Fase 7.
+- **D10** (Para el 7.14-2) `aplicado_en` de `chat.participar` y `chat.moderar` es dato de catálogo: queda como **7-3**, lo decide la persona.
+- **D11** R3 busca con Ana el teléfono de su propio lead y el lead de la dueña, y con Luis (sin `leads.ver`) el lead de Ana: «no busca por teléfono» no se
+  confunde con «no lo ve».
+- **D12** Con la base sin cuentas, `push-de-verdad.sh` crea primero una dueña de prueba en su propia transacción y la borra al salir: la primera cuenta nace
+  dueña y el permiso de registro (`auth_registro_permitido`, diferido) se mira al confirmar.
+
 <!-- paso:8.02-1 -->
 
 - **D1 · La categoría de una pregunta frecuente es texto libre con sugerencias** (8.02-1): la columna `web_faqs.categoria` es `text` y `web.faqs` la expone tal cual; el campo lleva un `<datalist>` con las categorías ya usadas. Reversible: un catálogo sería una migración.
@@ -6172,6 +6232,137 @@ Fecha: 2026-11-12 (`TZ=America/La_Paz date +%F`). Sin compuertas ni preguntas ab
 - **D12 · Los errores `22022` y `P0002` de las RPC se dicen con su mensaje:** `errorDePostgrest` no los conocía (caían en «Algo falló…»); `rechazoDeTestimonio()` los mapea en `entities/contenido/errores.ts`, con el `hint = 'canal'` junto al campo. `rechazoDeEscritura()` y `sinFilas()` toman sus textos por parámetro (con los de las preguntas por omisión: la parte 1 no cambia).
 - **D13 · Los tres paneles de «un testimonio por id» comparten un hook** (`use-testimonio-de-url.ts`) y cada uno tiene su hook fino con su `usePanelPorUrl(<su constante>)`, porque la guarda de `<Confirmar>` pide el nombre del panel y el estado en la URL en el archivo registrado.
 - **Pulido para la Fase 9 (ya anotado en 8.02-1, D4):** la columna «Estado» de `ListaDeCatalogo` dice «Activo» en todos los testimonios; una `etiquetaDeEstado` opcional lo resolvería para FAQs y testimonios.
+
+<!-- paso:8.03-1 -->
+
+# 8.03-1: decisiones (2026-11-12)
+
+Guías con el editor, publicar y la página de la guía (parte 1 de 2 del 8.03; categorías y legales son el 8.03-2).
+
+- **D1 · Legales (8.03-2): `terminos` y `privacidad`**, los dos que la base admite (`_web_ajustes_validar`). La recomendada de la fila.
+- **D2 · «Programar» entra**: `publicada_en` futura; `web.guias` ya filtra `publicada_en <= now()`. Sin base nueva. La recomendada de la fila.
+- **D3 · Guardar, publicar, programar y despublicar son un solo `update`** con `actualizado_en` esperado: publicar guarda lo que hay en pantalla (no existe «publicar
+  lo guardado» con cambios sin guardar). Sin RPC ni migración: la policy `web_guias: editar` y `trg_web_guia_publicar_validar` (`42501` sin `web.guias.publicar`, sólo si
+  cambia `publicada_en`) ya lo cubren. La action comprueba los dos permisos antes de escribir; la base los repite.
+- **D4 · «Nueva guía» crea el borrador con título y dirección** en un `<Drawer>` (`?panel=guia-nueva`) y lleva a `/configuracion/web/guias/<id>`: la página sólo edita
+  filas que existen.
+- **D5 · Conflicto = cero filas** del `update … where actualizado_en = <esperado>`; un segundo `select` distingue «Esta guía ya no existe.». Es una tabla de configuración
+  sin RPC de versión.
+- **D6 · «Publicar» pone `publicada_en = ahora − 60 s`**: el reloj de Next no es el de la base y con «ahora» exacto la guía saldría «Programada» unos segundos.
+  «Programar» pide una fecha de al menos un minuto adelante.
+- **D7 · Publicar y programar exigen texto**, permiso y red, con ese orden de motivos; despublicar sólo pide el permiso. El motivo del botón apagado queda a la vista
+  bajo los botones (`aria-describedby`), no sólo en un `title`.
+- **D8 · La dirección** (`slug`) se arma con el título en «Nueva guía» y se puede editar. En la página de la guía **no sigue al título** (cambiaría la URL de una
+  guía ya publicada) y la ayuda lo advierte.
+- **D9 · Categoría y autor** se leen con tope + 1 (100); la categoría y el autor actuales entran aunque ya no estén activos («(desactivada)»). El nombre del autor sólo
+  se ve en la web si su perfil es público: la ayuda lo dice. Hasta el 8.03-2 no hay forma de crear categorías.
+- **D10 · Sin migración, sin `src/shared`**: la ruta de la guía se arma en `entities/contenido/guias.ts` (`rutaDeGuia`), no en `rutas.ts`.
+- **D11 · Imágenes en `guias/<hash>.webp` del bucket `web`** (WebP de hasta 1600 px). Al guardar o eliminar se retiran con `quitarSiHuerfano` las que dejaron de estar; una
+  imagen subida y nunca guardada queda huérfana (deuda aceptada).
+- **D12 · La imagen sólo entra en el primer nivel del documento** (así lo exige `_web_doc_html`): el botón la inserta tras el bloque donde está el cursor y
+  `documentoLimpio` descarta lo anidado. Una `<img>` pegada de otro sitio no crea nada (el nodo sólo lee `img[data-ruta]`).
+- **D13 · La búsqueda por título es del servidor** (`?q=`, desde 3 letras, `ilike` con `%`, `_` y `\` escapados): son decenas de guías, sin índice ni cursor.
+- **D14 · El estado se calcula al leer** (`ahora` se toma tras la consulta, tras `await connection()`): «Borrador», «Programada para el …» o «Publicada el …», siempre
+  con palabras.
+- **D15 · «Programar…» es un campo en línea bajo la barra** (fecha y hora de la empresa; ISO al servidor), no un modal: ningún modal abre otro nivel y evita un
+  `?panel=` más sin ganar nada. Microdecisión de pantalla.
+- **D16 · «Eliminar guía» es un botón al pie de la página**, no un menú «⋯» (la cabecera no tiene otra acción secundaria). Abre `<Confirmar>` con `?eliminar=guia`.
+- **D17 · La lista no tiene «⋯»**: un clic en la fila (o el botón con el título) abre la página de la guía. Con `<AbrirResumen>` como parada de Tab.
+- **D18 · `documentoLimpio` aplana las listas demasiado hondas** (la base admite profundidad 6: una lista sólo cabe hasta la profundidad 3) y baja a párrafo un
+  título dentro de una lista o una cita; los títulos de nivel distinto de 2 y 3 pasan a 3. Defensa en el navegador y otra vez en la action: la base es la frontera.
+
+<!-- paso:8.03-2 -->
+
+# 8.03-2: decisiones (2026-11-12)
+
+Categorías de las guías y legales con el editor (parte 2 de 2 del 8.03: con ella el 8.03 queda completo).
+
+- **D1 · Dos legales fijos**, `terminos` («Términos y condiciones») y `privacidad` («Política de privacidad»): los que la base admite. Sus títulos nacen con esos textos
+  y se pueden editar (1–120). La recomendada de la fila.
+- **D2 · Un solo formulario y un solo «Guardar» para los dos legales.** `ajustes_web.actualizado_en` es una versión para toda la fila: guardar un documento por separado
+  cambiaría la `key` y descartaría lo escrito en el otro. Se manda `{ legales: { terminos?, privacidad? } }` con sólo los documentos que tienen texto; la base
+  aplica encima de lo guardado y conserva lo que no llega. Un documento sin texto y sin guardar antes no se crea; uno ya guardado al que se le borra el texto da «Escribe
+  el texto de …» junto al editor (quitar un legal no entra: la base lo permite con `null`, la pantalla no lo ofrece).
+- **D3 · Conflicto de legales = el de «Ajustes»**: `PT409` → `<AvisoDeConflicto>` dentro del formulario y «Recargar» (borra el borrador y refresca); la versión es la `key`.
+  Guardar legales y guardar «Ajustes» comparten versión.
+- **D4 · Borrador de legales** con `useBorradorDeEstado` (clave `web-legales`): el título y el documento de cada uno son estado controlado.
+- **D5 · Etiquetas fijas de los dos editores** («Texto de los términos», «Texto de la política»): con dos editores en la pantalla el nombre accesible `Texto` de las
+  guías chocaría. La imagen va apagada (`imagenes={false}`) y, por defensa, la escritura quita cualquier nodo `image` de primer nivel (`sinImagenes`); la frontera es la base.
+- **D6 · La tabla de categorías no tiene versión** (`id, slug, nombre, orden, activa`): la última escritura gana. Renombrar con cero filas es «Esta categoría ya no existe.».
+  Sin RPC ni migración.
+- **D7 · La dirección (`slug`) de una categoría sale del nombre al crearla** (`slugDe`, el de las guías) y **renombrar no la cambia**: la dirección del sitio no se
+  mueve por un cambio de texto. Sin letras ni números: «Escribe un nombre con letras o números.». `23505` → «Ya hay una categoría con ese nombre.» junto al campo.
+- **D8 · Ordenar reescribe `orden` 0..n−1** de todas, con **un** `upsert` de sólo las filas que cambian (con todas en `0` por defecto, intercambiar dos no ordenaría).
+  Una carrera con un renombrar simultáneo es una ventana de milisegundos sobre una tabla de configuración: aceptada. Crear pone `orden` = el mayor + 1.
+- **D9 · Tope de 100 categorías** (`TOPE_DE_CATEGORIAS`, igual que las opciones de la guía: el selector las muestra todas). La lista se lee con 101; la 101.ª no se crea.
+  La tabla entra a `TABLAS_ACOTADAS` de la guarda de escala con ese motivo.
+- **D10 · «Borrar sólo sin guías» es regla de la action**: `web_guias.categoria_id` es `on delete set null`, el borrado no falla solo. La action lee una guía de esa categoría
+  (`limit 1`); si hay, rechaza y no borra. En la lista, «Eliminar» sale apagado con «Tiene guías: desactívala.».
+- **D11 · «Con guías» / «Sin guías» sale de una sola lectura acotada** (`web_guias.categoria_id in (…) limit 1000`, por `web_guias_categoria_id_idx`), sin consulta por fila ni
+  números. Si llega al tope, las que no aparecen dicen «Sin verificar» y «Eliminar» queda encendido (la action vuelve a revisar).
+- **D12 · Desactivar sólo esconde la categoría del selector de la guía nueva**: la guía que ya la tiene la sigue mostrando («(desactivada)») y `web.guias` sigue sirviendo
+  su nombre. Reversible, sin confirmación.
+- **D13 · La lista de categorías se lee con la pestaña «Guías»** (en paralelo con las guías); el panel (`?panel=categorias`) y sus cinco actions viajan en su chunk
+  diferido y el diálogo de eliminar tiene su URL (`?eliminar=categoria&categoria=<id>`). Tras cada cambio, `revalidatePath` en la action y ningún `router.refresh()`.
+- **D14 · El selector de la guía dice** «Todavía no hay categorías. Se crean desde «Categorías» en Guías.» (lo anunció la D9 del 8.03-1).
+- **D15 · Docs del paso en `docs/pasos/8.03-2/`** (como el 8.03-1 dejó `docs/pasos/8.03-1/`): con un carril con coordinador no se editan `ESTADO`, `PLAN`, `BITACORA` ni
+  `DECISIONES`.
+- **D16 · El pie del panel «Categorías» es «Listo»** (cierra). El nombre escrito sin agregar avisa con `<CambiosSinGuardar>` (la guarda de drawers lo exige) pero no
+  hay borrador: es una sola línea.
+
+<!-- paso:8.04-1 -->
+
+## 2026-11-12 · Decisiones del paso 8.04-1 (la base del tablero de la cola web, las solicitudes por cursor y el job)
+
+- **D1** · **Una lectura propia, sin tocar `estado_cola_web`**: `cola_web_tablero()` lista **todas** las habilitadas, con `en_la_rueda` calculado por
+  `puede_estar_en_la_rueda()`. La vista queda como está: filtra por la rueda y esconde justo a quien está habilitada sin el permiso (8-1).
+- **D2** · **Respuesta `jsonb` `{filas, hay_mas}`**, como `agenda_tareas_sin_fecha`: la base lee `tope + 1`. El tablero, `_acotar_pagina(p_tope, 100, 200)`
+  (100 = `TOPE_DEL_EQUIPO`: la rueda no pasa del equipo); las solicitudes, `_acotar_pagina(p_tamano, 20, 50)` (20 = `TAMANO_DE_VER_MAS`). Los registros de
+  `scripts/guardas/areas-b/paginas-en-la-base.ts` entran en la 8.04-2, con su llamada: la guarda exige que cada entrada tenga quién la llame.
+- **D3** · **El índice va `(estado, creado_en desc, id desc)`**, no `(…, id)` como decía la fila: el orden de la lista es `creado_en desc, id desc` y el
+  cursor `(creado_en, id) < (c, i)` sólo es condición de índice con las dos columnas en el mismo sentido.
+- **D4** · **«Sin asignar» = todas las `sin_asignar`, de la más nueva a la más vieja, por cursor**, sin recorte por fecha (no esconder nada). El número que
+  dibuje la 8.04-2 es el de la primera página («más de 20»), nunca un `count(*)`.
+- **D5** · **El título del vehículo sale de `web.vehiculos`** (lo que el visitante vio; nulo si dejó de verse): costos y VIN quedan fuera por construcción.
+- **D6** · **El tablero no devuelve el WhatsApp**, sólo `falta_whatsapp`; una solicitud tampoco trae `token_visitante`, `utm` ni `lead_id`.
+- **D7** · **`cuenta_activa` aparte de `en_la_rueda`**: `puede_estar_en_la_rueda()` también es falso con la cuenta bloqueada o inactiva, y la pantalla no
+  debe decir «su rol no recibe turnos» de quien está bloqueada.
+- **D8** · **`cola_web_configurar` no cambia** (upsert sin versión, última escritura gana): `cola_web_asesores` es de configuración y no tiene
+  `actualizado_en`; ponerle versión es otra RPC y otro paso.
+- **D9** · **`aplicado_en` de `web.cola.gestionar` se actualiza en la migración y en `supabase/seed.sql`**: el seed corre después de las migraciones con
+  `on conflict (clave) do update … aplicado_en = excluded.aplicado_en` y, sin tocarlo, dejaba el texto viejo en local y en el CI (auditoría del plan).
+- **D10** · **El job va en su propia migración**, `web-expirar-solicitudes` cada 5 minutos con el límite por defecto de la función (200 por corrida);
+  comando sin URL. Cierra el arrastrado «el job `web_expirar_solicitudes` se programa con esta fase».
+- **D11** · **`abiertas` del tablero es un conteo exacto a propósito**: el orden de la rueda que dibuja la app es el espejo del de `web.solicitar_asesor`,
+  que cuenta igual; lo acota el cupo de cada persona (≤ 50) y va por `solicitudes_web_asesor_abiertas_idx`. Dicho en el comentario de la función.
+- **D12** · **Para la 8.04-2:** `ruta` de una solicitud es texto libre del visitante anónimo (`web.solicitar_asesor`, `p_ruta`): la pantalla lo dibuja
+  como texto, nunca como enlace ni como HTML (auditoría del informe).
+
+<!-- paso:8.04-2 -->
+
+## 2026-11-12 · Decisiones del paso 8.04-2 (la lectura del tablero de la cola web y su pantalla de sólo lectura)
+
+- **D13** · **«Ver más» se lee en el navegador**, como «Tareas sin fecha» de la agenda: `infra/cola/solicitudes.client.ts` llama `cola_web_solicitudes` con
+  la sesión de quien mira (la RPC es de definidor y vuelve a exigir `web.cola.gestionar`) y sale por `areas/cola/client.ts`. La primera página la lee el
+  servidor, para el conteo y para que la pantalla llegue dibujada. Ninguna Server Action para leer.
+- **D14** · **El orden de la rueda usa el `cupo` de cada fila** (la base ya lo da como `coalesce(max_abiertas, max_abiertas_default)`): `ordenDeLaRueda(filas)`
+  no recibe `cupoPorDefecto` (lo nombraba el plan de la 8.04-1). Una sola fuente del cupo.
+- **D15** · **La rueda muestra a todas las que están en ella**: primero, numeradas en el orden de la ruleta (`<ol>`), las que hoy recibirían un turno nuevo
+  (disponibles y con WhatsApp); al final, por nombre, las que no, con «Hoy no recibe turnos nuevos: …» (le falta el WhatsApp gana sobre no disponible). Sin
+  etiqueta «le toca»: el turno abierto y el pegajoso de la base pueden adelantarse; el número es el orden de la ruleta, no una promesa.
+- **D16** · **`fuente` y `ruta` se dibujan como texto tal cual**: no hay catálogo de fuentes ni en la base ni en `src`. Ponerles nombre es del 8.05
+  (`<TarjetaTurno>`); si allí nace una etiqueta, va en el núcleo para que `cola` la pueda usar (un área no importa otra).
+- **D17** · **La política se lee en el área `cola`** (`infra/cola/politica.ts` sobre `ajustes_web`, una fila), no en `sitio`: un área no importa otra. El
+  tablero usa `colaActiva` y `whatsappRespaldo` (los avisos de arriba); la 8.04-3 reusa el lector para el formulario (trae las cinco claves y `actualizadoEn`).
+- **D18** · **«Actualizar» y volver a la pestaña = `router.refresh()`** desde `actualizar-tablero.tsx`, una copia corta de `RefrescarAlVolver` de `leads`: no
+  se mueve a `src/shared` (subiría la parte a Nivel 2) ni se importa de otro módulo. La lista de «Sin asignar» lleva `key` = la firma de la primera página,
+  así «Actualizar» descarta lo traído con «Ver más».
+- **D19** · **Al tope de lo cargado (500), el aviso sin camino a lo antiguo**: no hay filtro ni fecha para las `sin_asignar` (fuera de la fila del PLAN), y a
+  quien quedó ahí ya se lo mandó al respaldo. Reversible: un filtro por fecha es otra RPC.
+- **D20** · **El tablero con `hay_mas`** (más de 100 habilitadas, `TOPE_DEL_EQUIPO`) avisa «Mostrando las primeras 100 habilitadas, por nombre.» y agrupa lo
+  leído. Los números de cada fila (vencidas, abiertas de su cupo) son columnas o conteos acotados por el cupo, no totales de una tabla que crece.
+- **D21** · **Cada parte del tablero con su error**: si una de las tres lecturas falla, esa parte muestra su error con «Reintentar» (`router.refresh()`) y las
+  otras se dibujan igual; no se tira la pantalla entera a `error.tsx`.
 
 <!-- paso:8.07-2 -->
 
@@ -6286,6 +6477,61 @@ La ruta del documento no sale en el cuerpo ni en un error; sí viaja dentro de l
 - **D17** · Lo que sumó la auditoría del plan: `buscarProyectosAbiertos` lee por `repositorioDeProyectos.listar` (`features` no importa `infra`) y arma las opciones
   en el servidor (no viaja la fila entera); el `id` del ítem nuevo nace con el formulario, cuya `key` es la `apertura`, así reabrir da uno nuevo.
 
+<!-- paso:8.11-1 -->
+
+## 2026-11-12 · Decisiones del paso 8.11-1 (la base de compras y margen de repuestos)
+
+- **D1 · El tipo de cambio es el por defecto vigente al guardar,** congelado en la fila (`tipo_cambio_id` y `tipo_cambio_aplicado`), como `pagos`: la recomendada de la fila.
+  Primero `moneda → base` y, si no hay, `base → moneda`. Editar sin cambiar la moneda conserva la tasa; cambiar la moneda toma la vigente. Sin un tipo por defecto activo,
+  23502 hint `moneda` con el texto que dice dónde marcarlo. La compra no deja elegir el tipo (a diferencia de `pagos`): se puede ampliar con una clave más en la lista.
+- **D2 · `monto_base`, `tipo_cambio_aplicado` y `tipo_cambio_id` en `p_datos` dan 22023,** no se ignoran en silencio (como `_pago_de_cambios`). El assert («`monto_base`
+  lo pone la base aunque el cliente mande otro») se cumple porque el valor del cliente nunca queda guardado: al crear no queda la fila y al editar las tres columnas
+  no cambian (B1).
+- **D3 · Una sola RPC crea y edita:** con la esperada nula crea, idempotente por id (un reintento devuelve lo guardado con `ya_existia: true`) y nunca pisa, como
+  `gasto_registrar`; el mismo id en otro proyecto da 23505. Sin cambios devuelve `sin_cambios: true` sin mirar la versión, como `pago_guardar`.
+  El reintento idempotente no mira si el proyecto sigue abierto: no escribe nada y devuelve la compra que ya existe (auditoría del informe, 4).
+- **D4 · Un proyecto cerrado no recibe ni cambia compras** (23514 hint `proyecto`), igual que la hoja: se reabre, se registra y se cierra.
+- **D5 · `repuesto_compra_restaurar` entra aunque la fila no la nombra:** borrar es reversible y `ui.md` pide «Deshacer». Restaurar una compra cuyo ítem se eliminó da
+  23514 hint `item_id`: la regla de 8.08 («un ítem con compras vivas no se borra») no se rompe por la puerta de atrás (auditoría del plan, 3).
+- **D6 · El precio de un ítem es `cantidad × precio_cliente`** (`precio_cliente` es unitario: 8.12 copia allí el precio unitario de la línea). Con un ítem vivo sin precio
+  **o con precio y sin moneda** (la hoja escribe las dos celdas por separado), el margen es nulo en **todas** las monedas: no se sabe en qué moneda iría ese precio
+  (auditoría del plan, 1). El margen usa la cantidad pedida: lo que pasó a stock o se reasignó (8.10) no la descuenta; si eso cambia, es de 8.13.
+- **D7 · El margen y las tres RPC de escritura piden además `repuestos.ver`:** el margen revela la suma de los precios de los ítems y la respuesta de escribir devuelve
+  `monto_base` y la tasa (auditoría del plan, 6).
+- **D8 · Sin carrera nueva:** no hay saldo ni numeración; la versión bajo `for update` es el patrón de `pagos`, probado por K1 de `supabase/tests/areas/dinero/carreras.mjs`.
+- **D9 · La prueba de las policies va en `areas/repuestos/compras.sql`** (B3, B4) y no en `humo.sql`: es la regla de un carril (`migraciones.md`), como en 8.10-1.
+- **D10 · Sin índice nuevo para la lista:** es por proyecto, con `repuestos_compras_proyecto_id_idx`, y llevará un tope de 200 (8.11-2). Compras no es una tabla que crece.
+- **D11 · El monto es ≥ 0,** como el `check` de la tabla y los gastos. El proveedor es opcional, de hasta 200 caracteres; las notas, de hasta 2000.
+- **D12 · Un conflicto de versión da PT409 sin hint** (lo lanza `_exigir_version`, como en `pagos` y `gastos`); «ya no existe» lleva hint `conflicto`.
+- **D13 · `aplicado_en` también en `seed.sql`:** el seed hace `on conflict (clave) do update set … aplicado_en` y con `db:reset` pisaría la migración (auditoría del plan, 2).
+  `repuestos.costos.ver` nombra además las policies de `pagos`, `gastos` y `repuestos_cotizaciones`, que ya lo usaban.
+- **D14 · La migración `repuestos_compras_guardar` tiene 345 líneas y `_repuesto_compra_de_datos` 136** (el plan estimaba ≈ 230): es la lista cerrada con un hint
+  por campo, como `_pago_de_cambios`, y la tasa. No se parte después de verificada con las mutaciones de dinero. Si un paso la recrea, la parte en
+  `_repuesto_compra_validar` y `_repuesto_compra_tasa`. La prueba sí se partió (`compras.sql` B1–B4 y `compras-version.sql` B5–B8, auditoría del informe, 1–3).
+- **Escrituras directas quitadas** (abierto «Quitar escrituras directas» de `docs/PLAN.md`, que cita 8.11): las policies «repuestos_compras: crear» y «editar» y los
+  privilegios de INSERT, UPDATE y DELETE de `authenticated`. Ninguna pantalla las usaba; las tres pruebas SQL que insertan compras corren como `postgres`.
+- **Queda abierto** para «Pulido para la Fase 9» › seguridad: los pagos de un proyecto de repuestos todavía se escriben sólo por `pago_*` de vehículo
+  (`pago_registrar` exige `p_vehiculo`). Es de 8.13.
+
+<!-- paso:8.11-2 -->
+
+## 2026-11-12 · Decisiones del paso 8.11-2 (la pestaña «Compras», la lista y el margen)
+
+- **D1 · La clave de URL es `?pestana=compras`,** no `?seccion=` como dice la fila: la barra de `/repuestos/[id]` usa `pestana` desde 8.09-2. La conducta pedida
+  (sin permiso cae en «Ítems») es la misma.
+- **D2 · Sin `diferido()` para la sección:** se lee y se dibuja en el servidor sólo con la pestaña abierta, y `diferido()` no dibuja en el servidor. No se midió si el
+  código de cliente de la lista (≈ 120 líneas) entra al chunk de la ruta; `/repuestos/[id]` no tiene presupuesto de JS. El Drawer de 8.11-3 sí va con `diferido()`.
+- **D3 · La celda del comprobante pasa a 8.11-3,** con la subida: verlo pide la URL firmada y hoy ninguna compra puede tener comprobante desde la app.
+- **D4 · Con «Compras» abierta se sigue leyendo la hoja:** la cabecera (estado del proyecto, «sin ítems») la necesita; son ≤ 201 filas por índice.
+- **D5 · La fila ya trae `item_id`, `notas`, `comprobante_ruta` y `actualizado_en`** para que 8.11-3 edite sin tocar la lectura.
+- **D6 · Si la lista o el margen fallan, sube al `error.tsx` con «Reintentar»,** como las demás lecturas de la página.
+- **D7 · El permiso de una pestaña es una sola clave opcional (`permiso?`),** no una lista como en Configuración.
+- **D8 · Tipo de esta parte: pantalla** sobre permisos y RPC de 8.11-1 (sin migración). Lo de riesgo: quién ve la pestaña (`pestanasLlenas`) y nulo ≠ 0 en pantalla.
+- **D9 · El equivalente en la moneda base sale de `monto_base`, leído, nunca calculado;** una fila de antes de 8.11-1 con `monto_base` nulo se lee y no dibuja
+  «Equivale a» (la columna admite nulo; auditoría del plan, 1).
+- **D10 · El tope de 200 compras por proyecto lleva `<AvisoDeTope>` sin camino** (excepción a «siempre hay un camino a lo antiguo»): compras no es una tabla que
+  crece y un proyecto no llega a 200. Si aparece, el camino (filtro por fecha) va a «Pulido para la Fase 9».
+
 <!-- paso:9.04-1 -->
 
 ## 2026-11-12 — Paso 9.04-1: `leads.campos.gestionar` (9-3)
@@ -6382,3 +6628,44 @@ Fecha: 2026-11-12 (`TZ=America/La_Paz date +%F`). Sin compuertas ni preguntas ab
 - **D6** La ficha de `flujos` (> 30 KB) suma una frase y no se recorta en este paso: recortarla es otra intención.
 - **D7** La ficha de `tablero` ya está al día (los tres bloques de logística llenos, 6.12-2): se verifica, no se reescribe.
 - **D8** Una fila de la tabla de criterios con más de una prueba sólo dice «verde» si todas lo están; una inestable lo dice con su nombre.
+<!-- paso:flujo-8 -->
+
+## 2026-11-12 — FLUJO-8: la puerta de fase mira el último veredicto, y el camino de un PR a `main` se acorta
+
+Medido el 2026-11-12 a las 13:25, a 28,7 h de lanzar (49 de 69 pasos; 10 pasos en las 5 h desde FLUJO-7). De los 23 PR integrados
+ese día, de abierto a integrado: mediana 38 min, p75 77, máximo 309 (el 9.04, cuatro CI rojos). Simulado con `plan.mjs` › `siguiente`
+y las duraciones del día, lo que queda termina en serie (8.14 → 9.12 y 9.13 → 9.14) y cada PR de ese tramo y cada puerta suman
+entero al reloj: con 40 min por PR, ≈ 14 h; con 75, ≈ 17.
+
+- **La puerta de fase con carriles mira el último veredicto del workflow `ci` en `main`** (`scripts/piloto/ci.sh` › `ci_veredicto`,
+  `bucle.sh` › `puerta_de_fase`), no su última corrida. En `main` cada integración cancela la corrida anterior (42 de 79 del 11 al
+  12-11; 35 verdes, 2 rojas), así que «la última» casi siempre corría o estaba cancelada, y `gh run list` mezclaba el workflow `demo`:
+  el 6.14 esperó 24 min con `main` sano y pasó por una corrida de `demo` de 38 s, que no prueba nada. Ahora: una corrida terminada, ni
+  cancelada ni saltada, dice cómo está `main`; verde, la puerta abre sin esperar a la que corre; roja, espera a la más nueva en curso
+  si la hay. Se descartó quitar la puerta en los cierres (el cierre corre su Nivel 3 igual): «no cerrar una fase con el CI en rojo»
+  sigue siendo la regla, y con el último veredicto se cumple sin esperar.
+- **Un rojo de `main` se vuelve a correr una vez antes del `ci-fix`** (`gh run rerun --failed`, anotado en `.piloto/puertas/rerun-<id>`):
+  los rojos de `main` de esos dos días con un job caído a la vista fueron del runner (apt el 11, Docker Hub «toomanyrequests» el 12) y
+  un `ci-fix` es una sesión de opus en el carril del camino crítico. Mientras esa corrida corre otra vez sigue siendo la del rojo: no
+  vale el verde de antes. Y el rojo de la base (`rojo-base`) no entraba en ningún caso de la puerta: terminaba en «no encuentra un CI
+  completo» y, tras seis esperas, aparcaba el cierre; ahora va al `ci-fix` como cualquier rojo.
+- **Un check con veredicto está terminado, diga lo que diga su `status`** (`scripts/coordinador/pr.mjs` › `estadoDe`). GitHub dejó
+  «Cambios · ¿base y e2e?» del #181 (6.14, parte 1) en `IN_PROGRESS` con conclusión `SUCCESS` y hora de fin: con todos los jobs en
+  verde el PR quedó «pendiente» más de una hora y nada lo iba a integrar hasta el push siguiente.
+- **Sólo «Carriles» en rojo y con migraciones atrasadas: renumera el coordinador** (`pr.mjs` › `soloElOrden`). Es lo que dice esa
+  guarda cuando el CI corre después de que otra migración entró a `main`; como era un «rojo firme», el PR volvía a su carril y
+  esperaba a que terminara la sesión en curso para un remiendo sin sesión (el 9.04: 33 min, y otro CI). Si «Carriles» caía además por
+  otra cosa, lo dice el CI del commit renumerado, en 30 s.
+- **`pnpm test` corre en 3 jobs** (`.github/workflows/ci.yml` › `pruebas`, `vitest --shard`). En un solo job eran 14 de los 15 a 18 min
+  del «Nivel 1» (962 archivos, 10 052 pruebas, 844 s): el job más largo de un PR con e2e dirigidos (los cierres y las partes: el e2e
+  terminaba a los 5 min y la base a los 8) y la causa de que el veredicto de `main` llegara tarde. Son dos jobs más por corrida; el
+  repo es público y el promedio medido es de ≈ 2,4 corridas a la vez. No se tocaron los bloques del e2e (18 a 22 min con el completo):
+  cada bloque comparte una base entre sus specs, y repartirlos de otro modo a esta altura puede destapar dependencias de orden.
+- **`limpiar-ramas` ya no escribe en el registro** «fatal: Not a valid commit name» en cada vuelta (84 líneas en una mañana): la punta
+  de un PR que empujó el propio coordinador no está en el repo local, y `git` lo decía por stderr.
+- **Medido y no cambiado:** el reintento a ciegas de un CI rojo (de 10 de ese día, 3 terminaron en verde: sigue valiendo lo que
+  cuesta). Los rojos de e2e de la tarde fueron casi todos del propio paso: la paleta (7.13) y el widget del chat (7.11) suman un pedido
+  del marco y caen las pruebas que cuentan pedidos (`cotizar-guardada-guardar`, `cotizaciones-listado-resumen`, `vehiculos-resumen`);
+  la sesión de arreglo los resuelve en ≈ 5 min, lo caro es la vuelta de CI. Y un carril que choca consigo mismo (8.02, 8.03 y 8.04 en
+  `configuracion/web`): encadenar la rama del paso nuevo sobre la del PR propio sin integrar pide cambiar cómo se cortan las ramas con
+  el piloto en marcha; queda anotado.
