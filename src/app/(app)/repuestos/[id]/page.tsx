@@ -15,21 +15,22 @@ import { CabeceraDeProyecto } from '@/modules/repuestos/pantallas/proyectos'
 import { leerMonedasYTiposCambio } from '@/modules/empresa'
 import { leerVehiculo } from '@/modules/vehiculos'
 import { datosO } from '@/shared/lib/errores'
-import { RUTAS } from '@/shared/lib/rutas'
+import { RUTAS, unParametro } from '@/shared/lib/rutas'
 import { buttonVariants } from '@/shared/ui/button'
 import { EstadoSinPermiso, EstadoVacio } from '@/shared/ui/estados'
 import { EsqueletoListado } from '@/shared/ui/esqueletos'
 import { HojaConStock } from './hoja-con-stock'
-import { pestanasLlenas } from './pestanas'
+import { pestanaDe, pestanasLlenas } from './pestanas'
 import { PestanasDelProyecto } from './pestanas-del-proyecto'
+import { SeccionDeCompras } from './seccion-compras'
 
 export const metadata: Metadata = { title: 'Proyecto de repuestos' }
 
-// Un proyecto de repuestos (`docs/UX.md` › «Repuestos»): su cabecera y la hoja de ítems. Lo que no existe, está eliminado o quien mira no ve se dicen igual (D49), con un enlace al listado.
-export default function PaginaDeUnProyecto({ params }: PageProps<'/repuestos/[id]'>) {
+// Un proyecto de repuestos (`docs/UX.md` › «Repuestos»): su cabecera y la hoja de ítems o, con `repuestos.costos.ver` y `?pestana=compras`, sus compras y el margen. Lo que no existe, está eliminado o quien mira no ve se dicen igual (D49), con un enlace al listado.
+export default function PaginaDeUnProyecto({ params, searchParams }: PageProps<'/repuestos/[id]'>) {
   return (
     <Suspense fallback={<EsqueletoListado filas={6} columnas={6} />}>
-      <Proyecto params={params} />
+      <Proyecto params={params} searchParams={searchParams} />
     </Suspense>
   )
 }
@@ -47,9 +48,12 @@ function NoDisponible() {
   )
 }
 
-async function Proyecto({ params }: { params: PageProps<'/repuestos/[id]'>['params'] }) {
+async function Proyecto({
+  params,
+  searchParams,
+}: Pick<PageProps<'/repuestos/[id]'>, 'params' | 'searchParams'>) {
   await connection()
-  const [sesion, { id }] = await Promise.all([requerirSesion(), params])
+  const [sesion, { id }, parametros] = await Promise.all([requerirSesion(), params, searchParams])
   if (!puede(sesion.permisos, 'repuestos.ver')) {
     return <EstadoSinPermiso />
   }
@@ -71,7 +75,9 @@ async function Proyecto({ params }: { params: PageProps<'/repuestos/[id]'>['para
     cerradoEn: proyecto.cerradoEn,
     ...cuentasDeLaHoja(hoja.filas),
   })
-  const llenas = pestanasLlenas()
+  // Sin `repuestos.costos.ver` la pestaña «Compras» no está y `?pestana=compras` abre «Ítems»: no se lee ninguna compra ni el margen.
+  const llenas = pestanasLlenas(sesion.permisos)
+  const abierta = pestanaDe(unParametro(parametros['pestana']), llenas)
   return (
     <CabeceraDeProyecto
       proyecto={proyecto}
@@ -81,15 +87,21 @@ async function Proyecto({ params }: { params: PageProps<'/repuestos/[id]'>['para
       sinItems={hoja.filas.length === 0}
     >
       {llenas.length > 1 ? <PestanasDelProyecto pestanas={llenas} /> : null}
-      <HojaConStock
-        proyectoId={proyecto.id}
-        filas={hoja.filas}
-        hayMas={hoja.hayMas}
-        catalogos={catalogos}
-        monedas={monedas.monedas.filter((m) => m.activa)}
-        puedeEditar={puedeEditar}
-        cerrado={proyecto.cerradoEn !== null}
-      />
+      {abierta === 'compras' ? (
+        <Suspense fallback={<EsqueletoListado filas={4} columnas={4} />}>
+          <SeccionDeCompras proyectoId={proyecto.id} />
+        </Suspense>
+      ) : (
+        <HojaConStock
+          proyectoId={proyecto.id}
+          filas={hoja.filas}
+          hayMas={hoja.hayMas}
+          catalogos={catalogos}
+          monedas={monedas.monedas.filter((m) => m.activa)}
+          puedeEditar={puedeEditar}
+          cerrado={proyecto.cerradoEn !== null}
+        />
+      )}
     </CabeceraDeProyecto>
   )
 }

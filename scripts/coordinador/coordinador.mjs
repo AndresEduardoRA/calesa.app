@@ -448,7 +448,7 @@ function sincronizar(plan, estado) {
             process.env.COORD_UNIR_SIN_CI !== '0'
           anotar(paso.id, { arreglar: null, unido_verde: sinCi ? r.commit : null })
           informe.push(
-            `${paso.id}: uní main a #${e.pr} (${r.unidos.join(' ')}): ${sinCi ? 'sólo notas y su CI ya estaba en verde, se integra sin esperar otro' : 'su CI corre otra vez'}`,
+            `${paso.id}: uní main a #${e.pr} (${r.unidos.join(' ') || 'sin choques para git'}): ${sinCi ? 'sólo notas y su CI ya estaba en verde, se integra sin esperar otro' : 'su CI corre otra vez'}`,
           )
           continue
         }

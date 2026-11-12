@@ -31,6 +31,10 @@ Proyectos de repuestos por vehículo (o externos), ítems que recorren el flujo 
   reasignar, vender suelto y devolver (`?panel=reasignar-stock|vender-stock|devolver-stock&item=<id>`). El campo «Proyecto destino» lo compone
   `src/app/(app)/repuestos/buscador-de-proyecto-destino.tsx` con `buscarProyectoAbierto` de `pantallas/proyectos.ts` (render prop: el área `stock` no importa
   `proyectos`). Las actions `reasignarStock` y `buscarProyectosAbiertos` (las dos con `repuestos.editar` antes) no salen por los barriles.
+- **Compras** (8.11-2, área `compras`): la pestaña «Compras» de `/repuestos/[id]` (`?pestana=compras`) sólo existe con `repuestos.costos.ver` (`pestanasLlenas(permisos)` en
+  `src/app/(app)/repuestos/[id]/pestanas.ts`; sin él la URL abre «Ítems» y no se lee nada de compras). La lee `seccion-compras.tsx` al abrirla con
+  `leerComprasDelProyecto` (tope 200) y `leerMargenDelProyecto` (por `areas/compras/index.ts`) y dibuja `<MargenDelProyecto>` y `<ListaDeCompras>` (por
+  `pantallas/compras.ts`). Registrar, editar, eliminar y el comprobante llegan con 8.11-3.
 - Depende de: `vehiculos`, `flujos`, `leads`.
 
 ## Áreas
@@ -62,11 +66,17 @@ El módulo se parte por **área** (8.08-2, igual que `logistica`) para que los p
 - `entities/stock/{errores,mover,movimientos,paneles,repositorio}.ts` (8.10-2) — el rechazo de la base por campo (`rechazoDeStock`), la respuesta de mover y la fila tras
   moverlo (`filaTrasMover`), la página del historial (cursor `id`) y el panel. `infra/stock/{mover,movimientos}.ts` los leen y escriben; `areas/stock/composicion.ts` los une.
 - `entities/stock/{reasignar,vista}.ts` (8.10-3) — la respuesta de reasignar y las claves y rutas de la vista «Stock»; `infra/stock/reasignar.ts` la llama.
+- `entities/compras/margen.ts` (8.11-1) — `leerMargen` (la respuesta de `repuestos_proyecto_margen`: `sinPrecio` como conteo acotado, tope 200, y el margen en nulo
+  si hay ítems sin precio aunque llegue un número) y `textoSinPrecio` («Sin precio en N ítems»). Sin aritmética de dinero: la cuenta es de la base.
+- `entities/compras/compra.ts` (8.11-2) — la fila de la lista (`filasDeCompraDesde`, `COLUMNAS_DE_COMPRA` con el ítem embebido, `TOPE_DE_COMPRAS`); `monto_base` se lee
+  (nulo en filas de antes de 8.11-1), nunca se calcula. `infra/compras/{listar,margen}.ts` leen la lista y el margen.
 - `features/proyectos/`, `features/items/` (hoja), `features/compras/`, `features/stock/`, `features/cotizador/`, `features/catalogos/`.
 - La base (8.08-1): `repuesto_proyecto_crear` / `_cerrar` / `_reabrir` / `_eliminar` / `_restaurar`, `repuesto_item_crear` / `_eliminar`,
   `repuestos_proyectos_listar`, `repuestos_pendientes_de_vehiculo`, `_repuesto_ante_espera` y el trigger `repuestos_catalogo_sin_uso`. De 8.09-3: los triggers `repuestos_imagen_integridad` y `repuestos_imagen_encolar` (prueba `areas/repuestos/imagenes.sql`). De 8.10-1: `repuesto_stock_mover`,
   `repuesto_stock_reasignar` (con `_repuesto_stock_item` y `_repuesto_stock_aplicar`, privadas) y `repuestos_stock_listar` (pruebas `stock.sql`, `stock-reasignar.sql`,
-  `stock-listar.sql` y E7 de `esperas.sql`; carreras `scripts/carreras/repuestos-stock.mjs`). Sus pruebas, en
+  `stock-listar.sql` y E7 de `esperas.sql`; carreras `scripts/carreras/repuestos-stock.mjs`). De 8.11-1: `repuesto_compra_guardar` / `_eliminar` / `_restaurar`
+  (con `_repuesto_compra_tc_vigente`, `_repuesto_compra_proyecto` y `_repuesto_compra_de_datos`, privadas; pruebas `compras.sql` y `compras-version.sql`) y
+  `repuestos_proyecto_margen` (prueba `compras-margen.sql`). Sus pruebas, en
   `supabase/tests/areas/repuestos/` (`proyectos`, `base`, `listar`, `esperas`, `catalogos`).
 
 ## Tablas
@@ -89,6 +99,16 @@ El módulo se parte por **área** (8.08-2, igual que `logistica`) para que los p
   de la cantidad menos lo ya entrado. `en_stock_desde` lo fija la base al pasar de 0 y lo limpia al volver a 0: con algo en stock, el ítem no cuenta para la
   espera de su vehículo (una sola unidad basta). Valen en un proyecto cerrado; el destino cerrado no recibe. El parámetro es `p_unidades` (`escala.sql` toma
   `p_cantidad` por un tamaño de página).
+- **Las compras se escriben sólo por RPC** (8.11-1): `repuesto_compra_guardar` (la esperada nula crea, idempotente por id; puesta, edita con `PT409`),
+  `repuesto_compra_eliminar` y `repuesto_compra_restaurar`, con `repuestos.costos.editar` y `repuestos.ver`; sin INSERT, UPDATE ni DELETE directos. `monto_base`,
+  `tipo_cambio_aplicado` y `tipo_cambio_id` los pone la base con el tipo de cambio **por defecto vigente** al crear o al cambiar la moneda, y quedan congelados al
+  editar el monto (como `pagos`); mandarlos en `p_datos` da 22023. Un proyecto cerrado no recibe ni cambia compras (23514); restaurar una compra cuyo ítem se
+  eliminó, tampoco. Se leen sólo con `repuestos.costos.ver` (RLS).
+- **El margen del proyecto** (`repuestos_proyecto_margen`, 8.11-1) lo calcula la base por moneda: Σ cantidad × `precio_cliente` (unitario) de los ítems vivos − Σ
+  compras vivas. Con algún ítem vivo sin precio **o con precio y sin moneda**, el margen es nulo en todas las monedas (nulo no es 0); `sin_precio` corta en 201. Pide
+  `repuestos.costos.ver` y `repuestos.ver`. Usa la cantidad pedida: lo que pasó a stock o se reasignó no la descuenta.
+- La pestaña «Compras» se esconde con `puede(permisos, 'repuestos.costos.ver')`, nunca por rol; esconderla es comodidad: la autoridad es la RLS y el
+  `assert_permiso` del margen. En pantalla, un margen nulo es «Sin precio en N ítems» y un margen 0 es un monto.
 - Los valores de catálogo se escriben directo bajo la RLS de `repuestos.configurar` (sin RPC: no otorgan permisos); el UPDATE es sólo de `nombre`, `activo` y
   `orden` (8.10-1): `catalogo`, `id` y `datos` dan 42501. Cero filas al escribir nunca es éxito.
 
