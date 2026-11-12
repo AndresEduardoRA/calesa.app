@@ -24,6 +24,7 @@ describe('secciones de configuración', () => {
       'logistica',
       'repuestos',
       ...(SECCIONES_DE_WEB.length > 0 ? ['web'] : []),
+      'cola-web',
       'equipo',
       'roles',
     ])
