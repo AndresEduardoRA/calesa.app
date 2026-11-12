@@ -51,7 +51,7 @@ export const SECCIONES = [
       'Los campos de los leads, quién los ve, de dónde llegan, qué es cada lead y cómo se contactó.',
     ruta: RUTAS.configuracionDeLeads,
     Icono: ContactRoundIcon,
-    permisos: ['leads.configurar'],
+    permisos: ['leads.campos.gestionar', 'leads.configurar'],
   },
   SECCION_DE_COTIZACION,
   SECCION_DE_FLUJOS,
