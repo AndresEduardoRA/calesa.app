@@ -45,10 +45,15 @@ El módulo se parte por **área** (8.08-2, igual que `logistica`) para que los p
 ## Archivos clave
 
 - `entities/cotizador.ts` — fórmula importado (costo × factor + logística + caja) / local ((costo + logística + caja) × (1 + recargo)) con redondeo del snapshot; tests.
-- `entities/stock.ts` — reglas de sobrante (reasignar / vender suelto / devolver) y movimientos.
+- `entities/stock/` (8.10-1) — `motivos.ts` (los cinco motivos, su sentido y su texto; `MOTIVOS_POR_MOVER`, `MOTIVOS_CON_BOTON`), `reglas.ts` (espejo de las RPC del stock:
+  `disponibleParaStock`, `validarMovimiento`, `validarReasignacion`, `enStockTras`; los textos son los de la base y un test lo compara con la migración) y `listado.ts`
+  (la fila de `repuestos_stock_listar` y su cursor `(en_stock_desde, id)` con `codificarCursor` de `shared`, sin «Anterior»).
+- `infra/stock/listar.ts` (8.10-1) — `leerStock(cursor)`: `repuestos_stock_listar` con `TAMANO_DE_PAGINA_POR_DEFECTO` (la lee la vista «Stock» de 8.10-3).
 - `features/proyectos/`, `features/items/` (hoja), `features/compras/`, `features/stock/`, `features/cotizador/`, `features/catalogos/`.
 - La base (8.08-1): `repuesto_proyecto_crear` / `_cerrar` / `_reabrir` / `_eliminar` / `_restaurar`, `repuesto_item_crear` / `_eliminar`,
-  `repuestos_proyectos_listar`, `repuestos_pendientes_de_vehiculo`, `_repuesto_ante_espera` y el trigger `repuestos_catalogo_sin_uso`. De 8.09-3: los triggers `repuestos_imagen_integridad` y `repuestos_imagen_encolar` (prueba `areas/repuestos/imagenes.sql`). Sus pruebas, en
+  `repuestos_proyectos_listar`, `repuestos_pendientes_de_vehiculo`, `_repuesto_ante_espera` y el trigger `repuestos_catalogo_sin_uso`. De 8.09-3: los triggers `repuestos_imagen_integridad` y `repuestos_imagen_encolar` (prueba `areas/repuestos/imagenes.sql`). De 8.10-1: `repuesto_stock_mover`,
+  `repuesto_stock_reasignar` (con `_repuesto_stock_item` y `_repuesto_stock_aplicar`, privadas) y `repuestos_stock_listar` (pruebas `stock.sql`, `stock-reasignar.sql`,
+  `stock-listar.sql` y E7 de `esperas.sql`; carreras `scripts/carreras/repuestos-stock.mjs`). Sus pruebas, en
   `supabase/tests/areas/repuestos/` (`proyectos`, `base`, `listar`, `esperas`, `catalogos`).
 
 ## Tablas
@@ -65,8 +70,14 @@ El módulo se parte por **área** (8.08-2, igual que `logistica`) para que los p
   `stock_cantidad` no tienen grant de UPDATE). Toda RPC que escribe pide `repuestos.editar`. Un proyecto sólo se elimina vacío.
 - El ítem nace en la única fase inicial activa del flujo de repuestos con su fila de historial; si hay cero o varias, o algo que decidir, nace sin fase.
 - Un valor de catálogo en uso (por un ítem, aun eliminado, o una línea de cotización) no se borra: se desactiva.
-- Los valores de catálogo se escriben directo bajo la RLS de `repuestos.configurar` (sin RPC: no otorgan permisos); guardar nunca manda `catalogo`
-  (el grant de UPDATE es de toda la tabla: lo acota la 8.10, H1). Cero filas al escribir nunca es éxito.
+- **El stock se mueve sólo por RPC** (8.10-1): sin INSERT de `repuestos_stock_movimientos` (ni su secuencia) ni UPDATE de `en_stock_desde` o `stock_cantidad`.
+  `repuesto_stock_mover` (cantidad positiva, el sentido sale del motivo; `PT409` si el stock cambió) y `repuesto_stock_reasignar` (todo o nada, idempotente
+  por el id del ítem nuevo, comprobado tras el candado del origen) toman el ítem `for update`; el stock nunca queda negativo. Lo que entra por `sobrante` no pasa
+  de la cantidad menos lo ya entrado. `en_stock_desde` lo fija la base al pasar de 0 y lo limpia al volver a 0: con algo en stock, el ítem no cuenta para la
+  espera de su vehículo (una sola unidad basta). Valen en un proyecto cerrado; el destino cerrado no recibe. El parámetro es `p_unidades` (`escala.sql` toma
+  `p_cantidad` por un tamaño de página).
+- Los valores de catálogo se escriben directo bajo la RLS de `repuestos.configurar` (sin RPC: no otorgan permisos); el UPDATE es sólo de `nombre`, `activo` y
+  `orden` (8.10-1): `catalogo`, `id` y `datos` dan 42501. Cero filas al escribir nunca es éxito.
 
 ## Ojo
 

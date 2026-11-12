@@ -200,6 +200,10 @@ Cada sección por su RPC, de a `_acotar_pagina(p_tamano, 5, 20)` + 1, con el mí
   cursor son dos consultas. Las cuentas de ítems de cada fila leen como mucho 201 ítems vivos por `repuestos_items_proyecto_id_idx` (un número que se muestra
   nunca es un total exacto), y el título del vehículo (`puede_vehiculo`) se calcula sólo para la página. El texto (≥ 3 o sólo dígitos) es filtro, no índice:
   con un texto que no coincide recorre los proyectos vivos por el índice del número (**límite sin assert**; la tabla crece por decenas al día).
+- `repuestos_stock_listar()` (definer, 8.10-1): los ítems vivos en stock por cursor `(en_stock_desde, id)` sobre el índice parcial
+  `repuestos_items_en_stock_idx (en_stock_desde desc, id desc) where en_stock_desde is not null and eliminado_en is null`, de a 50 (máximo 100) más uno; con cursor
+  y sin cursor son dos consultas; ids primero y luego el proyecto y el título (`puede_vehiculo`) sólo de la página. Sin `count` ni `offset`; sin presupuesto medido
+  (no es una tabla de las que se siembran). El historial de un ítem va por `repuestos_stock_movimientos_item_id_idx` (pocos por ítem).
 - `repuestos_pendientes_de_vehiculo()` (definer): un proyecto vivo por vehículo (`repuestos_proyecto_por_vehiculo`), sus ítems por
   `repuestos_items_proyecto_id_idx` y las esperas de las fases siguientes del vehículo; de a 50 (máximo 200) más uno.
 - Sin siembra de volumen ni `EXPLAIN` en `db:medir:volumen` (`repuestos_proyectos` no está entre las tablas que crecen de `escala.md`; regla del 2026-11-08).
