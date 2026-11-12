@@ -1,4 +1,4 @@
-// Los `<Drawer>` de la agenda (7.07-2): el detalle de un evento y de una tarea (sin formulario) y los formularios de alta y edición (con su `<CambiosSinGuardar>`). Es un pedazo de
+// Los `<Drawer>` de la agenda (7.07-2) —el detalle de un evento y de una tarea (sin formulario) y los formularios de alta y edición (con su `<CambiosSinGuardar>`)— y el resumen de un grupo de transporte (6.08-3). Es un pedazo de
 // `DRAWERS` (`drawers-con-salida.ts`, del A) que la guarda suma con `import.meta.glob('./areas-*/drawers-con-salida.ts')` (`registros-de-carriles.ts`).
 import type { RegistroDeDrawer } from '../drawers-con-salida'
 
@@ -22,5 +22,10 @@ export const REGISTRO: Record<string, RegistroDeDrawer> = {
   'src/modules/agenda/features/tareas/components/panel-de-formulario-de-tarea.tsx': {
     formulario: 'src/modules/agenda/features/tareas/components/panel-de-formulario-de-tarea.tsx',
     mecanismo: 'contexto',
+  },
+  // El resumen de un embarque o contenedor de `/logistica/embarques` (6.08-3).
+  'src/modules/logistica/features/transporte/components/drawer-del-grupo.tsx': {
+    sinFormulario:
+      'sólo es el marco del resumen de un grupo (6.08-3): no guarda nada tipeado; lo que cada área escriba en sus huecos va en formularios que preguntan por sí solos',
   },
 }
