@@ -759,6 +759,43 @@ configuración se escribiría con `.insert()`/`.update()` directo bajo policies,
 Otras contradicciones con el párrafo de PLAN: ninguna de alcance. «Encender/apagar con impacto» y «aviso de impacto» no tienen función
 en la base (sólo el trigger que cuenta). Sin jobs de cron ni funciones edge en esta fase.
 
+### Tabla de criterios
+
+Cada criterio del «Terminado cuando» y del párrafo de la fase con la prueba que lo mide y su resultado en el Nivel 3 del 5.13-1 (las de Configuración corren
+sólo en escritorio; «base» = `db:probar` o `db:carreras`, que corren en el CI de cada PR).
+
+| Criterio                                                                                                   | Prueba                                                                                                                                                                                                                                                                                                                                                                                                                              | Proyectos                      | Resultado                                                                                                 |
+| ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| El dueño arma desde cero un flujo de 5 fases con requisitos de los tres tipos sin tocar SQL                | `configuracion-flujos-recorrido.spec.ts` › «E2E 5.13 la dueña crea un origen y arma 5 fases con sus salidas» y «E2E 5.13 la dueña pide un documento, un dato y una espera; Revisar marca la fase sin salida y la espera cruzada, y las corrige»                                                                                                                                                                                     | escritorio                     | verde (3 de 3 dos veces; completo sobre `649e6a8b`)                                                       |
+| «Revisar» marca una fase sin salida y una espera cruzada                                                   | el mismo «E2E 5.13 la dueña pide un documento…»; `configuracion-flujos-revisar.spec.ts` › «E2E 5.12 la franja marca la fase sin salida y la espera cruzada, abre la fase y el aviso se va al agregarle la salida»; `supabase/tests/flujos-revisar.sql`                                                                                                                                                                              | escritorio y base              | verde                                                                                                     |
+| Jubilar una fase con historial la saca de los destinos sin romper nada                                     | `configuracion-flujos-recorrido.spec.ts` › «E2E 5.13 un vehículo nuevo nace en la inicial, se mueve por SQL y jubilar su fase la saca de los destinos sin dejar de nombrarla» (`previsualizar_cambio_fase` responde «jubilada»; `/vehiculos` y la ficha la siguen nombrando); `configuracion-flujos-fases.spec.ts` › «la dueña jubila una fase con historial y la reactiva»; `areas/flujos/fases-eliminar.sql`, `fases-impacto.sql` | escritorio y base              | verde                                                                                                     |
+| Fases con todos sus atributos, ordenar, eliminar sin historial y reactivar                                 | `configuracion-flujos-fases.spec.ts` › «la dueña crea fases, sube una y elimina otra», «la dueña edita los datos de una fase en el inspector», «la dueña jubila una fase con historial y la reactiva»; `areas/flujos/{fases,fases-guardar,fases-mover,fases-reactivar}.sql`                                                                                                                                                         | escritorio y base              | verde                                                                                                     |
+| Transiciones con acción y nota obligatoria                                                                 | `configuracion-flujos-transiciones.spec.ts` › «la dueña agrega dos salidas, ve sus chips, recarga y quita una»; `areas/flujos/{transiciones,transiciones-datos}.sql`                                                                                                                                                                                                                                                                | escritorio y base              | verde                                                                                                     |
+| Roles por fase y por transición                                                                            | `configuracion-flujos-transiciones.spec.ts` › «la dueña limita la fase a un rol, edita la salida y la limita a un rol»; `areas/flujos/transiciones.sql`                                                                                                                                                                                                                                                                             | escritorio y base              | verde                                                                                                     |
+| Requisitos: documento (tipo, mínimo, máximo, formatos), dato y espera a una fase de otro flujo             | `configuracion-flujos-requisitos.spec.ts` › «la dueña agrega dos datos, sube uno y quita el otro», «la dueña agrega un documento y una espera»; `areas/flujos/{requisitos,requisitos-editar,requisitos-lectura}.sql`                                                                                                                                                                                                                | escritorio y base              | verde en la base; «la dueña agrega dos datos…» cayó una vez en el completo y pasó 3 de 3 sola (inestable) |
+| Aviso de impacto antes de volver bloqueante un requisito y «fuera de regla»                                | `configuracion-flujos-requisitos.spec.ts` › «la dueña vuelve bloqueante un dato, ve el impacto y las unidades fuera de regla»; `areas/flujos/requisitos.sql` (`requisito_impacto`, `flujo_fuera_de_regla`)                                                                                                                                                                                                                          | escritorio y base              | verde (en el triaje del completo, con el resto del spec serial)                                           |
+| Reglas del flujo: encender y apagar con impacto                                                            | `configuracion-flujos-reglas.spec.ts` › «la dueña apaga una regla sin uso con «Deshacer» y guarda la oferta de transporte» (con una fase de aduana, «No se puede apagar «Aduana»»); `supabase/tests/flujos-reglas.sql`                                                                                                                                                                                                              | escritorio y base              | verde                                                                                                     |
+| Tipos de documento globales y por flujo, con vencimiento                                                   | `configuracion-flujos-documentos.spec.ts` › «la dueña crea un tipo del flujo con vencimiento, lo edita y lo sube de orden», «desactiva uno en uso (y lee por qué no se elimina) y elimina uno sin uso», «quien sólo configura el flujo ve los tipos de toda la empresa deshabilitados, con el motivo»; `areas/flujos/{tipos-de-documento,tipos-de-documento-datos}.sql`                                                             | escritorio y base              | verde                                                                                                     |
+| Oferta de transporte                                                                                       | `configuracion-flujos-reglas.spec.ts` › la misma; `supabase/tests/flujos-oferta.sql`                                                                                                                                                                                                                                                                                                                                                | escritorio y base              | verde                                                                                                     |
+| La configuración se escribe sólo por RPC con la versión del flujo (`PT409` legible, sin escritura directa) | `areas/flujos/fases.sql` (versión vieja → `PT409`); la escritura directa da `42501` en `fases-guardar.sql`, `transiciones.sql`, `requisitos.sql` y `tipos-de-documento.sql`; `areas/flujos/carreras.mjs` (dos guardados con la misma versión)                                                                                                                                                                                       | base                           | verde en `db:probar` (1.168 ✓) y en el `db:carreras` de los dos completos                                 |
+| Quien no configura no entra; desde Orígenes se llega al flujo                                              | `configuracion-flujos.spec.ts` › «una asesora no ve la pantalla de flujos», «un origen recién creado llega desde Orígenes y su flujo está vacío»; `e2e/origenes.spec.ts` («Siguientes pasos» enlaza al flujo, 5.02)                                                                                                                                                                                                                 | escritorio (Orígenes: los dos) | verde                                                                                                     |
+
+La pantalla de mover es de la Fase 6 (6.04): el recorrido mueve por SQL como la dueña (D4 del 5.13-1).
+
+### Cierre de la Fase 5
+
+**Fase 5 cerrada el 2026-11-12** con el Nivel 3 del 5.13-1, corrido por proyecto (cada uno desde `db:reset` y `db:carreras`, 22,1 s y 17,2 s): escritorio,
+sobre `649e6a8b`, 1.107 en verde, 16 saltadas, 2 caídas y 4 sin correr en 43,5 min (44,6 de reloj); celular, sobre `6df82b05`, 791 en verde, 27 saltadas y 0
+caídas en 31,0 min (32,0 de reloj). De las dos caídas del escritorio, `vehiculos-resumen-casos` era real (el aviso «Sin conexión» de la campana diferida
+chocaba con el del resumen; arreglado en `83c0dada`, y la campana queda como **7-2**) y `configuracion-flujos-requisitos` es inestable (3 de 3 sola). El
+primer completo de celular, sobre `83c0dada`, cayó en cascada (105): `borrarPersonasDePrueba` ordenaba `created_at` como texto y borraba a la dueña antes que a
+la otra cuenta; arreglado en `6df82b05`. 5a-4b: los dos proyectos suman 76,6 min de reloj (70,4 en el 4.28; la suite de escritorio pasó de 1.046 a 1.107).
+`db:probar` 1.168 en verde, `db:lint` sin errores (48 avisos y 69 «extra» en 29 funciones) y `mapa.sh --check` en verde. El recorrido
+(`configuracion-flujos-recorrido.spec.ts`): la dueña crea un origen, arma cinco fases con sus salidas, pide un dato, un documento y una espera contra el flujo de
+repuestos; «Revisar» marca la fase sin salida y la espera cruzada y se corrigen; el vehículo nace en la inicial y jubilar su fase lo saca de los destinos.
+Lo que deja: **6-4** (Fase 6), **7-2** (Fase 7), **9-13** (Fase 9), una línea en «Pulido para la Fase 9» y `flujos.activo` sin lector («Riesgos y huecos»).
+La «Partición» sigue aquí hasta que una sesión con permiso la pase a `docs/archivo/PLAN.md`.
+
 ### Partición
 
 Un paso, su verificación y su PR; quién lo hace y de qué depende lo dice `docs/plan.yaml` (la tabla de «Carriles de las fases 5 a 9»). Cada fila dice qué entra, su assert y el lugar. Sus «Dudas» ya traen la opción recomendada: sin compuertas, **esa es la decisión**, y quien haga el paso la anota en `docs/DECISIONES.md` (el carril base) o en `docs/pasos/<paso>/decisiones.md`.
@@ -767,7 +804,7 @@ Modelo de pantalla que fijan las filas (no hay diseño en `docs/UX.md`): un fluj
 «Revisar» arriba, pestañas `?seccion=fases|reglas|documentos`, y un **inspector de fase** (`?fase=<id>`, `<Drawer>`) con tres bloques que
 llena cada área. Áreas del módulo: `fases`, `transiciones`, `requisitos`, `reglas`, `documentos`, `revisar` (+ `mover`, reservada a la Fase 6).
 
-- **5.01** — La base de «Fases»: la versión del flujo y las RPC de fase. Hoy se escribe directo bajo RLS (policies `fases: crear|editar`,
+- **5.01** (hecho el 2026-11-11; `docs/pasos/5.01-1/`, `5.01-2/`) — La base de «Fases»: la versión del flujo y las RPC de fase. Hoy se escribe directo bajo RLS (policies `fases: crear|editar`,
   B:26349-26353). Entra, en migraciones `fases_*`: (1) el contrato de versión, que usan también 5.05, 5.07 y 5.10: `_flujo_para_editar(p_flujo,
 p_actualizado_en_esperado)` (bloquea la fila de `flujos` con `for update`, exige `puede_configurar_flujo()` → `42501`, y `_exigir_version()` →
   `PT409` «Otra persona cambió este flujo mientras lo editabas.») y `_flujo_tocar(p_flujo)` (mueve `flujos.actualizado_en` con
@@ -795,7 +832,7 @@ exists`, con las 7 reglas de `seed.sql:207`, sin fases). No entra: transiciones,
   (disparador 4: borra policies). Tipo: datos y dinero. Partes estimadas: 3.
   Dudas, con la recomendada: (a) ¿versión por flujo o por fila? Recomiendo **por flujo**: una sola fila bloqueada sirve a las tablas hijas que no tienen `actualizado_en` (transiciones, requisitos, roles, reglas, oferta) y evita cuatro `alter table`; el costo (dos personas configurando el mismo flujo a la vez chocan con `PT409`) es aceptable en una pantalla de dueño. (b) ¿se puede jubilar la única inicial activa? Recomiendo **sí** (como hoy), con `unica_inicial` en `fase_impacto` y el error `sin_inicial` de «Revisar»: prohibirlo impide rehacer un flujo. (c) ¿el flujo de repuestos por migración? Recomiendo **sí**: un despliegue donde el seed no corra queda sin él y nadie puede crearlo.
 
-- **5.02** — La pantalla `/configuracion/flujos`: el núcleo, las áreas y los huecos (deja la base del módulo). Entra: la ruta
+- **5.02** (hecho el 2026-11-11; `docs/pasos/5.02-1/`, `5.02-2/`) — La pantalla `/configuracion/flujos`: el núcleo, las áreas y los huecos (deja la base del módulo). Entra: la ruta
   `src/app/(app)/configuracion/flujos/` (`page.tsx`, `loading.tsx` con su esqueleto sin importar el barril, `seccion.ts` con
   `SECCION_DE_FLUJOS`, `pestanas.ts` + test, `seccion-abierta.tsx`, y una carpeta por área con su `pestanas.ts` y `seccion.tsx` como
   `empresa/comprobantes/`), `RUTAS.configuracionDeFlujos`, la sección sumada a `secciones.ts`, y `DESTINOS_DE_PASO.flujo.ruta` de
@@ -826,7 +863,7 @@ exists`, con las 7 reglas de `seed.sql:207`, sin fases). No entra: transiciones,
   `src/shared/lib/rutas.ts`, `e2e/`. Nivel **2** (disparador 1: `src/shared`). Tipo: pantalla. Partes estimadas: 3.
   Dudas, con la recomendada: (a) la ficha planea «camino / lista / historial»: recomiendo **sólo la lista**; el «camino» son las salidas dibujadas como chips en cada fila (5.06) y el «historial» de cambios es `actividad` (Fase 9); un grafo dibujado es pulido. (b) ¿cómo se elige el flujo en la URL? Recomiendo `?origen=<id>` (igual que Configuración › Cotización, y sirve al enlace de Orígenes) y `?ambito=repuestos`. (c) ¿4-48 y 4-102 aquí? Recomiendo sí; si no, siguen «sin fase».
 
-- **5.03** — La base de «Tipos de documento». Entra, en migraciones `tipos_documento_*`: `tipo_documento_crear(p_id, p_flujo, p_datos jsonb)`
+- **5.03** (hecho el 2026-11-11; `docs/pasos/5.03/`) — La base de «Tipos de documento». Entra, en migraciones `tipos_documento_*`: `tipo_documento_crear(p_id, p_flujo, p_datos jsonb)`
   (`p_flujo` nulo = global), `tipo_documento_guardar(p_id, p_actualizado_en_esperado, p_cambios jsonb)` (nombre, descripcion, activo, formatos,
   modo_vencimiento, vigencia_dias, aviso_dias, visible_portal_permitido), `tipo_documento_mover(p_id, p_actualizado_en_esperado, p_despues_de)`,
   `tipo_documento_eliminar(p_id, p_actualizado_en_esperado)` → `{accion: eliminado|desactivado, documentos, requisitos}` (con uso se desactiva:
@@ -842,7 +879,7 @@ vigencia_dias`; un tipo de flujo no repite el nombre de un global activo; `23505
   `supabase/tests/areas/flujos/`, `database.types.ts`, `docs/GLOSARIO.md`. Nivel **2** (disparador 4). Tipo: datos y dinero. Partes estimadas: 2.
   Dudas, con la recomendada: (a) qué significan los modos (nada los lee ni los explica): recomiendo `ninguno` = no vence; `solicitar` = quien sube escribe la fecha de vencimiento; `renovar` = vence solo a los `vigencia_dias` de subido; `aviso_dias` = cuántos días antes avisa; la Fase 6 lo hace cumplir en `documentos.vence_el`. (b) `proposito` (texto de la semilla que nada lee): recomiendo no editarlo en la pantalla.
 
-- **5.04** — «Fases»: crear, editar, ordenar, jubilar o eliminar y reactivar. Área `fases`, sobre las RPC del 5.01. Llena `pantallas/fases.ts`
+- **5.04** (hecho el 2026-11-12; `docs/pasos/5.04-1/`, `5.04-2/`, `5.04-3/`) — «Fases»: crear, editar, ordenar, jubilar o eliminar y reactivar. Área `fases`, sobre las RPC del 5.01. Llena `pantallas/fases.ts`
   y los huecos del 5.02: «Nueva fase» (`?panel=nueva-fase`: nombre, color, inicial o final); el bloque «Datos» del inspector en `<Bloque>`s
   («Identidad»: nombre, descripción, color, icono con `<SelectorDeIcono>`; «En el flujo»: inicial, final, nota obligatoria, logística; «Alerta
   por demora»: `demora_dias` —vacío hereda el valor de la empresa y lo dice, 0 la apaga— y `alerta_cada_horas`; «Transporte y aduana»:
@@ -862,7 +899,7 @@ vigencia_dias`; un tipo de flujo no repite el nombre de un global activo; `23505
   `pantallas/fases.ts`, `src/app/(app)/configuracion/flujos/fases/`, `scripts/guardas/areas-b/`. Nivel **1**. Tipo: pantalla. Partes estimadas: 3.
   Dudas, con la recomendada: en el flujo de repuestos, web, portal y aduana no existen como regla: recomiendo mostrarlos deshabilitados con el motivo, no esconderlos (patrón de `docs/UX.md`).
 
-- **5.05** — La base de «Transiciones» y de quién mueve. Entra, en migraciones `transiciones_*`: `transicion_crear(p_id, p_flujo,
+- **5.05** (hecho el 2026-11-11; `docs/pasos/5.05/`) — La base de «Transiciones» y de quién mueve. Entra, en migraciones `transiciones_*`: `transicion_crear(p_id, p_flujo,
 p_actualizado_en_esperado, p_de, p_a, p_accion, p_nota_obligatoria)`, `transicion_guardar(p_transicion, p_actualizado_en_esperado, p_cambios)`
   (accion, nota_obligatoria), `transicion_eliminar(p_transicion, p_actualizado_en_esperado)`, `fase_roles_poner(p_fase,
 p_actualizado_en_esperado, p_roles uuid[])` y `transicion_roles_poner(p_transicion, p_actualizado_en_esperado, p_roles uuid[])` (reemplazo
@@ -877,7 +914,7 @@ p_actualizado_en_esperado, p_roles uuid[])` y `transicion_roles_poner(p_transici
   `database.types.ts`. Nivel **2** (disparador 4). Tipo: datos y dinero. Partes estimadas: 2.
   Dudas, con la recomendada: ¿quien configura el flujo puede limitar a un rol que no domina (`rol_dominado`)? Recomiendo **sí**: no otorga nada (sigue haciendo falta `flujos.mover`), sólo acota quién mueve.
 
-- **5.06** — «Salidas y quién mueve» en el inspector. Área `transiciones`, sobre el 5.05. Llena `pantallas/transiciones.ts`: el bloque del
+- **5.06** (hecho el 2026-11-12; `docs/pasos/5.06-1/`, `5.06-2/`) — «Salidas y quién mueve» en el inspector. Área `transiciones`, sobre el 5.05. Llena `pantallas/transiciones.ts`: el bloque del
   inspector con «Quién puede mover a esta fase» (roles; vacío dice «Cualquiera con el permiso de mover»), la lista de **salidas** de la fase
   (destino entre las fases activas del flujo que aún no son salida, la acción que dirá el botón —«Embarcar»—, nota obligatoria, y roles
   propios: vacío hereda los de la fase destino), con alta en línea, edición y quitar por `?eliminar=` (`<Confirmar>` con URL), y «Entradas» de
@@ -890,7 +927,7 @@ p_actualizado_en_esperado, p_roles uuid[])` y `transicion_roles_poner(p_transici
   Lugar: `src/modules/flujos/{features,entities,infra,areas}/transiciones/`, `pantallas/transiciones.ts`, `scripts/guardas/areas-b/`. Nivel
   **1**. Tipo: pantalla. Partes estimadas: 2.
 
-- **5.07** — La base de «Requisitos»: RPC, impacto y «fuera de regla». Entra, en migraciones `requisitos_*`: `requisito_crear(p_id, p_fase,
+- **5.07** (hecho el 2026-11-11; `docs/pasos/5.07-1/`, `5.07-2/`) — La base de «Requisitos»: RPC, impacto y «fuera de regla». Entra, en migraciones `requisitos_*`: `requisito_crear(p_id, p_fase,
 p_actualizado_en_esperado, p_tipo, p_datos jsonb)` (**nace informativo** siempre; el default de `fases_requisitos.bloqueante` pasa a `false`),
   `requisito_guardar(p_requisito, p_actualizado_en_esperado, p_cambios)` (notas, min_archivos, max_archivos, formatos, `config.pct`,
   bloqueante), `requisito_mover`, `requisito_eliminar`, por `_flujo_para_editar()`; la validación sigue en `fase_requisito_validar()`
@@ -909,7 +946,7 @@ p_actualizado_en_esperado, p_tipo, p_datos jsonb)` (**nace informativo** siempre
   estimadas: 3.
   Dudas, con la recomendada: (a) ¿nace informativo aunque la columna diga `true`? Recomiendo **sí** (lo dice la ficha y es lo que hace posible el aviso de impacto); la semilla sigue insertando bloqueantes a mano. (b) ¿se borra `fuera_de_regla()`? Recomiendo **sí**: hoy filtra ids a quien no ve esos vehículos.
 
-- **5.08** — «Requisitos para entrar», el aviso de impacto y «fuera de regla». Área `requisitos`, sobre el 5.07. Llena
+- **5.08** (hecho el 2026-11-11; `docs/pasos/5.08-1/`, `5.08-2/`, `5.08-3/`) — «Requisitos para entrar», el aviso de impacto y «fuera de regla». Área `requisitos`, sobre el 5.07. Llena
   `pantallas/requisitos.ts`: el bloque del inspector con los requisitos de la fase en orden (tipo, descripción humana, `<Badge>` «Bloqueante» o
   «Informativo») y «Agregar requisito» en tres formas: **Documento** (un tipo activo global o del flujo, mínimo y máximo de archivos, formatos
   dentro de los del tipo), **Dato** (una clave de `claves_dato_requisito(ámbito)` con su etiqueta de `entities/requisitos/claves.ts`;
@@ -928,7 +965,7 @@ p_actualizado_en_esperado, p_tipo, p_datos jsonb)` (**nace informativo** siempre
   `src/app/(app)/configuracion/flujos/requisitos/`, `scripts/guardas/areas-c/`. Nivel **1**. Tipo: pantalla. Partes estimadas: 3.
   Dudas, con la recomendada: una clave de dato cuya regla está apagada (`transporte.*`, `aduana.*`, `pagos.*`): la base la acepta; recomiendo ofrecerla con una nota («La regla «Aduana» está apagada: nadie podrá cumplirlo») y no bloquear, hasta que la Fase 6 decida qué esconde cada regla.
 
-- **5.09** — «Documentos»: los tipos de documento de la empresa y del flujo. Área `documentos`, sobre el 5.03. Llena `pantallas/documentos.ts`
+- **5.09** (hecho el 2026-11-11; `docs/pasos/5.09/`) — «Documentos»: los tipos de documento de la empresa y del flujo. Área `documentos`, sobre el 5.03. Llena `pantallas/documentos.ts`
   y la pestaña `?seccion=documentos`: dos grupos, «De toda la empresa» (los cambia `logistica.catalogos.gestionar`; quien sólo configura el
   flujo los ve deshabilitados con motivo) y «Sólo de este flujo» (quien configura el flujo); `<ListaDeCatalogo>` de `shared` con orden por
   botones; alta y edición en modal (`?panel=nuevo-tipo&de=empresa|flujo`, `?panel=editar-tipo&tipo=<id>`): nombre, descripción, formatos
@@ -941,7 +978,7 @@ p_actualizado_en_esperado, p_tipo, p_datos jsonb)` (**nace informativo** siempre
   `src/app/(app)/configuracion/flujos/documentos/`, `scripts/guardas/areas-c/`. Nivel **1**. Tipo: pantalla. Partes estimadas: 2.
   Dudas, con la recomendada: ninguna (las del vencimiento se deciden en el 5.03).
 
-- **5.10** — La base de «Reglas» y de la oferta de transporte. Entra, en migraciones `flujo_regla_*` y `flujo_oferta_*`:
+- **5.10** (hecho el 2026-11-11; `docs/pasos/5.10-1/`, `5.10-2/`) — La base de «Reglas» y de la oferta de transporte. Entra, en migraciones `flujo_regla_*` y `flujo_oferta_*`:
   `flujo_regla_cambiar(p_flujo, p_actualizado_en_esperado, p_regla, p_activa)` (inserta la fila si falta; el catálogo por ámbito: el de
   repuestos no admite `vitrina_web`, `portal_cliente` ni `aduana`) y `flujo_regla_impacto(p_flujo, p_regla)` → `{bloquea, fases: [{id,
 nombre}], requisitos: [{id, fase}]}`: las fases que la marcan (lo que hoy sólo cuenta `flujo_regla_apagar_validar()`, B:11307) y, nuevo, los
@@ -959,7 +996,7 @@ p_actualizado_en_esperado, p_puertos_origen uuid[], p_puertos_destino uuid[], p_
   `database.types.ts`, `src/modules/{flujos,logistica}/CLAUDE.md`. Nivel **2** (disparadores 4 y 6). Tipo: datos y dinero. Partes estimadas: 2.
   Dudas, con la recomendada: puertos y navieras no tienen pantalla ni RPC, y `navieras` nace vacía: recomiendo dejar ese catálogo a la **Fase 6** (es de `logistica`, con `logistica.catalogos.gestionar`) y que el 5.11 lo diga en su vacío; la alternativa (una pestaña «Catálogos» aquí) mete tablas de otro módulo en esta fase.
 
-- **5.11** — «Reglas» y la oferta de transporte. Área `reglas`, sobre el 5.10. Llena `pantallas/reglas.ts` y la pestaña `?seccion=reglas`:
+- **5.11** (hecho el 2026-11-11; `docs/pasos/5.11/`) — «Reglas» y la oferta de transporte. Área `reglas`, sobre el 5.10. Llena `pantallas/reglas.ts` y la pestaña `?seccion=reglas`:
   una fila por regla del catálogo del ámbito con `<Switch>`, nombre y explicación (`entities/reglas/catalogo.ts`: las 10 claves del check
   B:20834 con su texto y qué enciende cada una; test contra el SQL); apagar lee `flujo_regla_impacto()`: con uso no apaga y dice qué fases o
   requisitos la usan, cada una con enlace a su inspector (`?fase=`); sin uso apaga al momento con toast «Deshacer». Bloque «Oferta de
@@ -971,7 +1008,7 @@ p_actualizado_en_esperado, p_puertos_origen uuid[], p_puertos_destino uuid[], p_
   de `catalogo.ts`. Lugar: `src/modules/flujos/{features,entities,infra,areas}/reglas/`, `pantallas/reglas.ts`,
   `src/app/(app)/configuracion/flujos/reglas/`. Nivel **1**. Tipo: pantalla. Partes estimadas: 2.
 
-- **5.12** — «Revisar»: los avisos que faltan y la franja. Dos partes. **Parte 1, base** (migración `revisar_flujo_*`): `create or replace
+- **5.12** (hecho el 2026-11-12; `docs/pasos/5.12-1/`, `5.12-2/`) — «Revisar»: los avisos que faltan y la franja. Dos partes. **Parte 1, base** (migración `revisar_flujo_*`): `create or replace
 revisar_flujo()` desde su definición vigente (B:16734, misma firma), que sólo responde a quien configura ese flujo y suma `rol_sin_personas`
   (aviso: una fase o una transición limitada a roles sin ninguna persona activa; la ficha lo promete y no existe), `entrada_no_automatica`
   (info: hay más de una inicial activa, o la única pide nota, requisitos bloqueantes o roles, y por eso los vehículos nacen «Sin fase»; espejo
@@ -989,7 +1026,7 @@ revisar_flujo()` desde su definición vigente (B:16734, misma firma), que sólo 
   policy ni tabla). Tipo: datos y dinero (parte 1), pantalla (parte 2). Partes estimadas: 2.
   Dudas, con la recomendada: ¿«Revisar» frena algo? Recomiendo **no**: avisa y enlaza, nunca impide guardar (un flujo se arma por pasos y a medio armar siempre tiene avisos).
 
-- **5.13** — El cierre de la Fase 5. El recorrido de la IA del «Terminado cuando», como `e2e/configuracion-flujos-recorrido.spec.ts` (la
+- **5.13** (hecho el 2026-11-12; `docs/pasos/5.13-1/`, `5.13-2/`) — El cierre de la Fase 5. El recorrido de la IA del «Terminado cuando», como `e2e/configuracion-flujos-recorrido.spec.ts` (la
   dueña, sin SQL para configurar): crea un origen (nace sin fases), arma 5 fases con sus salidas, un requisito de documento, uno de dato y uno
   de espera contra el flujo de repuestos; «Revisar» marca una fase sin salida y una espera cruzada y las corrige; un vehículo nuevo nace en
   la inicial, se mueve con `cambiar_fase` por SQL (mover no tiene pantalla hasta la Fase 6) y, al jubilar esa fase con historial, deja de ser
@@ -999,8 +1036,10 @@ revisar_flujo()` desde su definición vigente (B:16734, misma firma), que sólo 
   las fichas de `flujos` y `logistica`, GLOSARIO («Oferta de transporte»), «Siguientes pasos» de Orígenes con su enlace, y lo que quede a
   «Pulido para la Fase 9». No entra: nada nuevo de producto. Abiertos: deja escritos para la Fase 6 los de la sección C. **Assert:** el
   recorrido en verde, `pnpm test:e2e:completo` con los dos proyectos, `db:probar`, `db:lint`, `db:carreras` y `mapa.sh --check`. Lugar:
-  `e2e/`, `docs/`, `src/modules/flujos/CLAUDE.md`. Nivel **3** (cierre). Tipo: pantalla. Partes estimadas: 2.
+  `e2e/`, `docs/`, `src/modules/flujos/CLAUDE.md`. Nivel **3** (cierre). Tipo: pantalla. Partes estimadas: 2. Hecho en dos: el **5.13-1** (el recorrido y el Nivel 3) y el **5.13-2** (los docs de cierre).
   Dudas, con la recomendada: ninguna. **Paralelismo.** Arrancan a la vez 5.01 (b), 5.02 (a) y 5.03 (c): no dependen de nada. Después, cada carril en lo suyo sin tocar archivos ajenos: **b** 5.04 → 5.05 → 5.06 (áreas `fases` y `transiciones`); **c** 5.09, 5.07 → 5.08 (áreas `documentos` y `requisitos`); **a** 5.10 → 5.11 → 5.12 → 5.13 (áreas `reglas` y `revisar`, y el núcleo). Las cuatro bases (5.01, 5.05, 5.07, 5.10) son migraciones distintas sobre tablas distintas; 5.05, 5.07 y 5.10 esperan a `_flujo_para_editar()` del 5.01. Las pantallas 5.04, 5.06, 5.08, 5.09 y 5.11 pueden correr juntas (cada una llena su `pantallas/<área>.ts`). **No en paralelo:** 5.02 con ninguna pantalla (crea los huecos); 5.12 va después de 5.06 y 5.08 (su e2e arregla el aviso desde el inspector).
+
+Total de la fase: 13 pasos y 24 partes, todos hechos (la fase cerró con el 5.13, el 2026-11-12).
 
 ### Riesgos y huecos
 
@@ -1011,9 +1050,10 @@ revisar_flujo()` desde su definición vigente (B:16734, misma firma), que sólo 
 - **Decisiones de producto que la base no resuelve** (cada una con su recomendada en el paso): versión por flujo (5.01), significado del
   vencimiento (5.03), requisito que nace informativo (5.07), quién carga puertos y navieras (5.10), si «Revisar» frena (5.12).
 - **`flujos_transporte_oferta` no admite filas**: lo deduje de la definición (PK sobre dos columnas que los check quieren nulas); no lo
-  ejecuté. El 5.10 lo confirma con un `insert` antes de migrar.
+  ejecuté. El 5.10 lo confirma con un `insert` antes de migrar. (Confirmado y rehecho en el 5.10-2.)
 - **El flujo de repuestos depende del seed.** No pude determinar si el proyecto de producción corre `seed.sql`; el 5.01 lo cubre igual.
-- **`flujos.activo`**: no encontré quién lo lee. No se edita en esta fase; el 5.13 lo anota.
+- **`flujos.activo`**: no encontré quién lo lee. No se edita en esta fase; el 5.13 lo anota. En el cierre (5.13-2): nadie lo lee y ninguna
+  pantalla lo edita; queda así hasta que alguien lo necesite.
 - **`escala.sql`**: no leí cómo trata una excepción que deja de hacer falta; si falla por «sobrante», el paso borra su línea.
 - **Tamaño:** el 5.02 es el más ancho (ruta, áreas, lectura, inspector); si no cabe en 3 partes, la lista de sólo lectura y el inspector
   son su tercera y cuarta. El 5.08 lleva tres formularios distintos: 3 partes justas.
@@ -1043,6 +1083,10 @@ Abiertos que caen aquí (de ESTADO: mover de fase y publicar sin mover la versi�
   vehículo en la lista, el resumen y el panel de logística (no `en_tarjeta`); como mucho uno por origen, impuesto en la base (índice único
   parcial); sin ninguno, vale el título. Lugar: `origenes_campos` (columna, RPC de edición del campo y su layout), `features/campos` del
   editor y `vehiculos`.
+- **6-4** (Fase 6; salió del 5.08 y el 5.11, anotado en el cierre de la Fase 5): un requisito de dato cuya regla está apagada (`transporte.*`,
+  `aduana.*`, `pagos.*`) se puede pedir —la pantalla avisa «nadie podrá cumplirlo» y no lo impide— y su hueco de logística no se dibuja con la
+  regla apagada: una unidad en esa fase no puede cumplirlo. Decidir si `revisar_flujo()` lo avisa con un código propio o si la RPC lo rechaza.
+  Lo reconcilia el 6.14 si ningún paso antes lo toma. Lugar: `flujos` (área `requisitos` o `revisar`).
 
 ### Lo que ya existe y lo que falta (leído el 2026-11-09)
 
@@ -1447,14 +1491,16 @@ layout)` en `entities/` (el valor del campo principal mostrado con `shared/lib/c
 
 - **`docs/archivo/` no se pudo leer** (permiso denegado): si la historia de `cambiar_fase` o de los embarques dice algo más, no lo vi.
 - **No sé cómo parte la Fase 5** ni si su paso base reorganiza `flujos`: lo cubren C y la duda 2 de 6.01; el coordinador no debería
-  integrar a la vez 6.01 y el paso de la Fase 5 que toque `flujos/index.ts`.
+  integrar a la vez 6.01 y el paso de la Fase 5 que toque `flujos/index.ts`. (La Fase 5 cerró el 2026-11-12: `flujos` quedó por áreas y mover
+  es del 6.04.)
 - **«Trabado» no está definido** en UX ni en el GLOSARIO: 6.12 propone una definición barata. Es la decisión de producto que más pesa.
 - **`tiene_permiso` sin origen** (A.10): no propongo volver por origen `logistica.aduana.gestionar` ni `logistica.pagos.confirmar`
   (cambia el catálogo y la matriz de Roles); 6.07 y 6.10 acotan lo que se **lee**. Si la persona las quiere por origen, es otro paso.
 - **La carrera de `cambiar_fase`** (A.1) sale de leer el SQL, no de reproducirla (no podía correr nada): 6.02 escribe primero
   `scripts/carreras/mover.mjs`; si no cae, el candado se deja donde está y se dice.
 - **`fuera_de_regla(p_flujo)` no escala** (evalúa cada unidad del flujo): la Fase 6 no la usa para listas; quien la muestre (Fase 5)
-  necesita tope. Sin paso aquí.
+  necesita tope. Sin paso aquí. (Resuelto en el 5.07: `fuera_de_regla()` se borró; `flujo_fuera_de_regla(p_flujo, p_tope)` pide permiso y
+  tiene tope.)
 - **6.04 es el paso más grande** (5 partes): si no cabe, el corte natural es (a)–(d) y el lote (e) aparte.
 - **Nada depende de afuera del repo**: ni claves, ni VAPID, ni correo, ni dominio. Los jobs usan `pg_cron` de la base. La cámara es el
   `capture` de `<ZonaDeArchivos>`: en e2e sólo se prueba que el botón está; probar en un iPhone ya es deuda de ESTADO.
@@ -1482,6 +1528,10 @@ muestra placeholder; el buscador nunca devuelve algo que la RLS esconde ni busca
   su variable de clave en `src/shared/config/esquemas.ts`, `pnpm email:probar <destino>` (un correo real con el proveedor configurado), y el
   mismo contrato en `supabase/functions/` si una función edge manda correo. Assert: cambiar `EMAIL_PROVEEDOR` de `resend` a `cloudflare`
   no cambia código (docs/ENTORNOS.md › «Cambiar de Resend a Cloudflare»).
+- **7-2** (Fase 7; salió del 5.13-1): la suscripción de la campana va con `diferido()` y el aviso `aqui`
+  (`notificaciones/features/campana/components/campana.tsx:34-40`); pedida sin red, deja «Sin conexión» con «Reintentar» en el encabezado y
+  el contador no se suscribe hasta reintentar o recargar. Assert: con la red de vuelta, la campana se suscribe sola (o el aviso del
+  encabezado no aparece). Lo toma el próximo paso de `notificaciones` o el 7.14.
 
 ### Lo que ya existe y lo que falta (leído el 2026-11-09)
 
@@ -2105,6 +2155,7 @@ Pro.
 (4.20 y 4.28): **4-61**, **4-62** y **4-63** (el foco tras recargar y «atrás» que quedó del 4-49), **5a-29** y **5a-30** (del 4.20) y **5a-33** (del 4.28). Los recorre la
 auditoría AA de la Fase 9, con 5a-28. Los defectos de pulido nuevos se anotan aquí, en una línea.
 
+- (5.04-3) El inspector de fase no se miró al 200 % (los bloques anidados miden con `minmax(0, 1fr)`; sin captura): `docs/pasos/5.04-3/bitacora.md`.
 - (4.18-3b) «Copiar texto» apagado nombra por `aria-describedby` un id que no está en el DOM mientras la tarjeta carga (`copiar-texto-de-la-tarjeta.tsx`): el aviso y «Falta el total para copiarlo.» sólo se dibujan con la tarjeta.
 
 - **4-50** (desde el 4.18-1, P7): el resumen fijo al pie al 200 %; el 4.18-2 no lo empeora al 100 % y el assert de hoy sigue verde.
@@ -2239,6 +2290,8 @@ Abiertos de esta fase:
   contraseñas, y Live encendido, tipear y confirmar un monto en la hoja de cotizar no ofrece guardar nada, en escritorio y en el celular;
   si lo ofrece, se decide de nuevo (con `type="text"` y sólo el CSS el valor queda en el árbol de accesibilidad: `docs/DECISIONES.md`,
   «Paso 4.12 (1 de 2)», hb). Lugar: `src/shared/ui/xcell/entrada-de-xcell.tsx` y su ficha; se mira cuando la hoja (4.13) exista.
+- **9-13** (Fase 9; salió del 5.05): `rbac_eliminar_rol` sobre un rol que figura en una lista de quién mueve (`fases_roles`,
+  `fases_transiciones_roles`) da el `23503` crudo de la FK `restrict`; mensaje humano o quitar el rol de las listas. Lugar: `equipo` y su RPC.
 
 ### Lo que ya existe y lo que falta (leído el 2026-11-09)
 
