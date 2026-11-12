@@ -280,7 +280,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Oferta de transporte** — `flujos_transporte_oferta` / `flujo_oferta_guardar`: los puertos de origen, de destino y las navieras que ofrecen los selectores de un flujo con la regla «Transporte»; vacía = se ofrece todo; filtra, nunca invalida lo guardado.
 - **Jubilar** — `fases.activa = false` / `fase_eliminar`: sacar una fase de los destinos sin romper el historial.
 - **Fuera de regla** — `flujo_fuera_de_regla()`: unidad en una fase cuyos requisitos bloqueantes ya no cumple. Sólo quien configura el flujo la lee, con tope.
-- **Revisar** — `revisar_flujo()`: avisos de coherencia del flujo (sin salida, inalcanzable, esperas cruzadas…).
+- **Revisar** — `revisar_flujo()`: avisos de coherencia del flujo (sin salida, inalcanzable, esperas cruzadas…); cada fila es un aviso de nivel error, aviso o información (`AvisoDeRevision`), y la franja sobre el flujo los resume.
 - **Cadena** — `/logistica`: kanban de unidades por fase.
 - **Mover** — `cambiar_fase()` / `previsualizar_cambio_fase()`: cambiar de fase, con vista previa de qué falta.
 - **Alerta por demora** — `fases.demora_dias` / `alertas_demora()`: aviso cuando una unidad lleva más días de lo esperado en una fase.
