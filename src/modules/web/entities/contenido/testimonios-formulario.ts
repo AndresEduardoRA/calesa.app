@@ -196,3 +196,17 @@ export function validarConsentimiento(
     },
   }
 }
+
+/** Editando, sin cambiar la foto y sin diferencias con lo guardado: no hay nada que guardar. */
+export function sinNadaQueGuardar(
+  original: Testimonio | null,
+  validacion: ValidacionDeTestimonio,
+  fotoCambia: boolean,
+): boolean {
+  return (
+    original !== null &&
+    validacion.ok &&
+    !fotoCambia &&
+    cambiosDeTestimonio(original, { ...validacion.datos, fotoRuta: original.fotoRuta }) === null
+  )
+}
