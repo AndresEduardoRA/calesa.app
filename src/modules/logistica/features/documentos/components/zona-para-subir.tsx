@@ -3,8 +3,8 @@
 import { useEnLinea } from '@/shared/ui/use-en-linea'
 import { ZonaDeArchivos } from '@/shared/ui/zona-de-archivos'
 import { aceptarDelTipo, formatosLegibles } from '../../../entities/documentos/admision'
+import type { DestinoDeDocumentos } from '../../../entities/documentos/destino'
 import type { TipoDeDocumento } from '../../../entities/documentos/documento'
-import type { Unidad } from '../../../entities/nucleo/unidad'
 import { useBandeja } from '../hooks/use-bandeja'
 import { useCambiosDeLaBandeja } from '../hooks/use-cambios-de-la-bandeja'
 import { useSubirLaBandeja } from '../hooks/use-subir-la-bandeja'
@@ -13,7 +13,9 @@ import { CampoDelTipo, CamposDeFechasYNota } from './campos-de-la-bandeja'
 import { PieDeLaBandeja } from './pie-de-la-bandeja'
 
 type Props = {
-  unidad: Unidad
+  destino: DestinoDeDocumentos
+  // El título de la zona: «Subir documentos» en una unidad.
+  titulo: string
   // Los tipos para elegir, con los que pide una fase primero.
   tipos: readonly TipoDeDocumento[]
   // `null` mientras se leen los permisos; `false` sin `logistica.documentos.subir` en el origen.
@@ -31,11 +33,11 @@ function textoDelBoton(n: number, faltan: number, enCurso: boolean): string {
 
 // Subir documentos a la unidad (6.06-2): elegir archivos los deja en una bandeja sin subir; «Subir N documentos» sube cada objeto y recién entonces lo registra. Cerrar el panel con
 // archivos en la bandeja pregunta; en la pestaña de la ficha, que no tiene panel, lo hace el navegador. Se apaga con su motivo, nunca desaparece.
-export function ZonaParaSubir({ unidad, tipos, puedeSubir }: Props) {
+export function ZonaParaSubir({ destino, titulo, tipos, puedeSubir }: Props) {
   const b = useBandeja(tipos)
   const enLinea = useEnLinea()
   const s = useSubirLaBandeja({
-    unidad,
+    destino,
     tipo: b.tipo,
     valores: b.valores,
     entran: b.entran,
@@ -63,7 +65,7 @@ export function ZonaParaSubir({ unidad, tipos, puedeSubir }: Props) {
         void s.subir()
       }}
     >
-      <h4 className="font-medium">Subir documentos</h4>
+      <h4 className="font-medium">{titulo}</h4>
       <CampoDelTipo {...campos} />
       <ZonaDeArchivos
         aceptar={aceptarDelTipo(b.tipo)}

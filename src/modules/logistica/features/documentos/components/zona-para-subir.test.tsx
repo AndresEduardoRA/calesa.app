@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fallo, ok } from '@/shared/lib/errores'
 import type { TipoDeDocumento } from '../../../entities/documentos/documento'
+import { destinoDeLaUnidad } from '../../../entities/documentos/destino'
 import type { Unidad } from '../../../entities/nucleo/unidad'
 
 const llamadas = vi.hoisted(() => ({ orden: [] as string[], ids: [] as string[] }))
@@ -75,7 +76,14 @@ afterEach(cleanup)
 
 describe('ZonaParaSubir: commit diferido', () => {
   it('elegir deja el archivo en la bandeja y no sube nada; lo que el tipo no admite dice por qué', async () => {
-    render(<ZonaParaSubir unidad={unidad} tipos={[tipoBl]} puedeSubir />)
+    render(
+      <ZonaParaSubir
+        destino={destinoDeLaUnidad(unidad)}
+        titulo="Subir documentos"
+        tipos={[tipoBl]}
+        puedeSubir
+      />,
+    )
     fireEvent.change(screen.getByLabelText('Tipo de documento'), { target: { value: tipoBl.id } })
     elegir([pdf('bl.pdf'), new File(['x'], 'foto.jpg', { type: 'image/jpeg' })])
     expect(await screen.findByText('bl.pdf')).toBeTruthy()
@@ -85,7 +93,14 @@ describe('ZonaParaSubir: commit diferido', () => {
   })
 
   it('sube el objeto y recién entonces lo registra; al fallar el registro pide reintentar con el mismo id', async () => {
-    render(<ZonaParaSubir unidad={unidad} tipos={[tipoBl]} puedeSubir />)
+    render(
+      <ZonaParaSubir
+        destino={destinoDeLaUnidad(unidad)}
+        titulo="Subir documentos"
+        tipos={[tipoBl]}
+        puedeSubir
+      />,
+    )
     fireEvent.change(screen.getByLabelText('Tipo de documento'), { target: { value: tipoBl.id } })
     elegir(pdf('bl.pdf'))
     fireEvent.click(await screen.findByRole('button', { name: 'Subir 1 documento' }))
@@ -106,7 +121,14 @@ describe('ZonaParaSubir: commit diferido', () => {
 
   it('un archivo que no subió no se registra', async () => {
     subida.falla = true
-    render(<ZonaParaSubir unidad={unidad} tipos={[tipoBl]} puedeSubir />)
+    render(
+      <ZonaParaSubir
+        destino={destinoDeLaUnidad(unidad)}
+        titulo="Subir documentos"
+        tipos={[tipoBl]}
+        puedeSubir
+      />,
+    )
     fireEvent.change(screen.getByLabelText('Tipo de documento'), { target: { value: tipoBl.id } })
     elegir(pdf('bl.pdf'))
     fireEvent.click(await screen.findByRole('button', { name: 'Subir 1 documento' }))
@@ -115,7 +137,14 @@ describe('ZonaParaSubir: commit diferido', () => {
   })
 
   it('sin permiso de subir la zona queda apagada y lo dice', () => {
-    render(<ZonaParaSubir unidad={unidad} tipos={[tipoBl]} puedeSubir={false} />)
+    render(
+      <ZonaParaSubir
+        destino={destinoDeLaUnidad(unidad)}
+        titulo="Subir documentos"
+        tipos={[tipoBl]}
+        puedeSubir={false}
+      />,
+    )
     expect(screen.getByText('Necesitas permiso para subir documentos.')).toBeTruthy()
     expect(screen.getByRole('button', { name: /Elegir archivos/ }).hasAttribute('disabled')).toBe(
       true,
