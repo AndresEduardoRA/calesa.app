@@ -5,6 +5,7 @@ import { Button } from '@/shared/ui/button'
 import { Skeleton } from '@/shared/ui/skeleton'
 import { HAY_MAS_DESTINOS, SIN_DESTINOS, SIN_FASE } from '../../../entities/mover/textos'
 import type { Unidad } from '../../../entities/nucleo/unidad'
+import { useBorradorDeMover } from '../hooks/use-borrador-de-mover'
 import { useParaMover } from '../hooks/use-para-mover'
 import { DestinoDeMover } from './destino-de-mover'
 import { FueraDeRegla } from './fuera-de-regla'
@@ -12,7 +13,8 @@ import { FueraDeRegla } from './fuera-de-regla'
 // El hueco «Qué falta» del panel de la unidad (6.04): a dónde puede ir la unidad y, para cada destino, lo que esa fase le pide. Nace abierto (es lo primero que se mira para mover). Se relee al volver
 // el foco a la ventana y cuando otro hueco avisa que cambió algo; sin realtime.
 export function HuecoQueFalta({ unidad }: { unidad: Unidad }) {
-  const { lectura, actualizando, reintentar } = useParaMover(unidad)
+  const { lectura, actualizando, reintentar, releer } = useParaMover(unidad)
+  const borrador = useBorradorDeMover()
   if (lectura.tipo === 'cargando') {
     return (
       <div aria-busy="true" aria-label="Cargando lo que falta" className="grid gap-2">
@@ -52,7 +54,14 @@ export function HuecoQueFalta({ unidad }: { unidad: Unidad }) {
       ) : (
         <ul className="grid gap-3">
           {dato.destinos.map((destino) => (
-            <DestinoDeMover key={destino.faseId} destino={destino} />
+            <DestinoDeMover
+              key={destino.faseId}
+              unidad={unidad}
+              destino={destino}
+              puedeMover={dato.puedeMover}
+              borrador={borrador}
+              releer={releer}
+            />
           ))}
         </ul>
       )}

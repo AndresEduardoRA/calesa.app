@@ -28,7 +28,10 @@ export function PanelDeLaUnidad({ unidad, origen, fase, huecos, aviso = null }: 
     <div className="grid gap-4" data-slot="panel-de-la-unidad">
       <header className="grid gap-2">
         <div className="flex flex-wrap items-start justify-between gap-2">
-          <h2 className="text-(length:--text-lg) font-semibold text-(--color-ink)">
+          <h2
+            tabIndex={-1}
+            className="text-(length:--text-lg) font-semibold text-(--color-ink) outline-none focus-visible:shadow-(--shadow-focus)"
+          >
             {unidad.titulo}
           </h2>
           <Link

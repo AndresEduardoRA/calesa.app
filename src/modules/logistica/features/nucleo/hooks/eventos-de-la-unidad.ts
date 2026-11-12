@@ -73,3 +73,8 @@ export function useHayHueco(clave: string): boolean {
     () => false,
   )
 }
+
+/** Lleva el foco al título del panel de la unidad (p. ej. tras mover, cuando lo que se tocaba cambió de lugar). */
+export function enfocarElTituloDeLaUnidad(): void {
+  document.querySelector<HTMLElement>('[data-slot="panel-de-la-unidad"] h2')?.focus()
+}
