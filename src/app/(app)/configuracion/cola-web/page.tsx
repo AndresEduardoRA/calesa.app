@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { puede, requerirSesion } from '@/modules/equipo'
 import { ActualizarTablero } from '@/modules/web/pantallas/cola'
+import { unParametro } from '@/shared/lib/rutas'
 import { EstadoSinPermiso } from '@/shared/ui/estados'
 import { EsqueletoListado } from '@/shared/ui/esqueletos'
 import { TableroDeLaCola } from './tablero-de-la-cola'
@@ -9,9 +10,12 @@ import { TableroDeLaCola } from './tablero-de-la-cola'
 export const metadata: Metadata = { title: 'Cola web' }
 
 // Configuración › Cola web (8.04-2): quién recibe los turnos de la web y las solicitudes que quedaron sin asesor. Entra quien tiene `web.cola.gestionar`;
-// sin la clave, «No tienes permiso». Las dos lecturas de la base vuelven a exigir la clave. Las escrituras (agregar, quitar, la política) llegan con la 8.04-3.
-export default async function PaginaDeColaWeb() {
-  const sesion = await requerirSesion()
+// sin la clave, «No tienes permiso». Las lecturas y las escrituras de la base vuelven a exigir la clave. `?panel=agregar-a-la-rueda&q=` abre «Agregar a la
+// rueda» y busca en el equipo (8.04-3).
+export default async function PaginaDeColaWeb({
+  searchParams,
+}: PageProps<'/configuracion/cola-web'>) {
+  const [sesion, parametros] = await Promise.all([requerirSesion(), searchParams])
   if (!puede(sesion.permisos, 'web.cola.gestionar')) {
     return <EstadoSinPermiso />
   }
@@ -27,7 +31,11 @@ export default async function PaginaDeColaWeb() {
         <ActualizarTablero />
       </div>
       <Suspense fallback={<EsqueletoListado filas={6} columnas={3} />}>
-        <TableroDeLaCola permisos={sesion.permisos} />
+        <TableroDeLaCola
+          permisos={sesion.permisos}
+          panel={unParametro(parametros['panel'])}
+          busqueda={unParametro(parametros['q'])}
+        />
       </Suspense>
     </div>
   )

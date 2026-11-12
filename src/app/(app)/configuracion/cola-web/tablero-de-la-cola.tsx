@@ -1,19 +1,43 @@
-import { leerPoliticaDeLaCola, leerSinAsignar, leerTableroDeLaCola } from '@/modules/web'
+import { filtroDelEquipoDesde, leerEquipo } from '@/modules/equipo'
 import {
+  leerPoliticaDeLaCola,
+  leerSinAsignar,
+  leerTableroDeLaCola,
+  PANEL_AGREGAR_A_LA_RUEDA,
+  personasParaLaRueda,
+  type Tablero,
+} from '@/modules/web'
+import {
+  AgregarALaRueda,
   AvisosDeLaPolitica,
   ErrorDeLectura,
   RuedaDeLaCola,
   SinAsignar,
 } from '@/modules/web/pantallas/cola'
+import type { Resultado } from '@/shared/lib/errores'
 import { puede, type Permisos } from '@/shared/lib/permisos'
 
+type Props = {
+  permisos: Permisos
+  // `?panel=` y `?q=` de la página: con «Agregar a la rueda» abierto se lee una página del equipo.
+  panel: string | undefined
+  busqueda: string | undefined
+}
+
 // El cuerpo de Configuración › Cola web (8.04-2): tres lecturas en paralelo —la política, la primera página de «Sin asignar» y el tablero— y cada parte
-// con su error si no llegó, sin tapar las otras. «Actualizar» y volver a la pestaña repiten las tres (`router.refresh()`).
-export async function TableroDeLaCola({ permisos }: { permisos: Permisos }) {
-  const [politica, sinAsignar, tablero] = await Promise.all([
+// con su error si no llegó, sin tapar las otras. «Actualizar» y volver a la pestaña repiten las tres (`router.refresh()`). Con «Agregar a la rueda» abierto
+// (8.04-3), una cuarta: la página del equipo que cumple la búsqueda (sólo si quien mira ve el equipo).
+export async function TableroDeLaCola({ permisos, panel, busqueda }: Props) {
+  const puedeVerEquipo =
+    puede(permisos, 'equipo.usuarios.ver') || puede(permisos, 'equipo.usuarios.gestionar')
+  const puedeVerRoles =
+    puede(permisos, 'equipo.roles.ver') || puede(permisos, 'equipo.roles.gestionar')
+  const conEquipo = panel === PANEL_AGREGAR_A_LA_RUEDA && puedeVerEquipo
+  const [politica, sinAsignar, tablero, equipo] = await Promise.all([
     leerPoliticaDeLaCola(),
     leerSinAsignar(null),
     leerTableroDeLaCola(),
+    conEquipo ? leerEquipo(filtroDelEquipoDesde({ q: busqueda })) : null,
   ])
   return (
     <div className="grid gap-6">
@@ -37,15 +61,41 @@ export async function TableroDeLaCola({ permisos }: { permisos: Permisos }) {
         />
       )}
       {tablero.ok ? (
-        <RuedaDeLaCola
+        <ParteDeLaRueda
           tablero={tablero.data}
-          puedeVerRoles={
-            puede(permisos, 'equipo.roles.ver') || puede(permisos, 'equipo.roles.gestionar')
-          }
+          equipo={equipo}
+          puedeVerEquipo={puedeVerEquipo}
+          puedeVerRoles={puedeVerRoles}
         />
       ) : (
         <ErrorDeLectura titulo="No pudimos leer la rueda" mensaje={tablero.error.mensaje} />
       )}
+    </div>
+  )
+}
+
+type PropsDeLaRueda = {
+  tablero: Tablero
+  // La página del equipo, si se leyó (panel abierto y quien mira ve el equipo).
+  equipo: Resultado<{ personas: Parameters<typeof personasParaLaRueda>[0]; hayMas: boolean }> | null
+  puedeVerEquipo: boolean
+  puedeVerRoles: boolean
+}
+
+// «Agregar a la rueda» y la rueda. Sin el tablero no se dibuja: no sabría quién ya está habilitada.
+function ParteDeLaRueda({ tablero, equipo, puedeVerEquipo, puedeVerRoles }: PropsDeLaRueda) {
+  const leido = equipo?.ok ? equipo.data : null
+  return (
+    <div className="grid gap-4">
+      <AgregarALaRueda
+        personas={leido ? personasParaLaRueda(leido.personas, tablero.filas) : null}
+        hayMas={leido?.hayMas ?? false}
+        errorDelEquipo={equipo && !equipo.ok ? equipo.error.mensaje : null}
+        puedeVerEquipo={puedeVerEquipo}
+        puedeVerRoles={puedeVerRoles}
+        hayMasEnElTablero={tablero.hayMas}
+      />
+      <RuedaDeLaCola tablero={tablero} puedeVerRoles={puedeVerRoles} />
     </div>
   )
 }

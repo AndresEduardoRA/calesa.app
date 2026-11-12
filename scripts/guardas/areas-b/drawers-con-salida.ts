@@ -48,4 +48,9 @@ export const REGISTRO: Record<string, RegistroDeDrawer> = {
       'src/modules/web/features/contenido/testimonios/components/panel-de-consentimiento.tsx',
     mecanismo: 'contexto',
   },
+  // «Agregar a la rueda» de Configuración › Cola web (8.04-3): con alguien elegido, pregunta al salir (el aviso «Abrir Roles» sale de la pantalla).
+  'src/modules/web/features/cola/rueda/components/panel-agregar-a-la-rueda.tsx': {
+    formulario: 'src/modules/web/features/cola/rueda/components/panel-agregar-a-la-rueda.tsx',
+    mecanismo: 'contexto',
+  },
 }
