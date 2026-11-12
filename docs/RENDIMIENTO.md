@@ -42,6 +42,12 @@ Sección «Seguimientos» de la ficha y pestaña del drawer.
 - «¿A quién?»: `agenda_quienes_reciben()`, ≥ 3 letras o dígitos, tope 20, sobre `perfiles` (el equipo, no crece).
 - Sin siembra de volumen ni `medir-*.sql`: `eventos` y `tareas` no son tablas que crecen (7.06-2, D29).
 
+## Gastos y pagos (6.11-3)
+
+- `/logistica/gastos`: `gastos_listar()` y `pagos_listar()` (invocadoras con `security definer` que filtran por origen y alcance), por cursor `(fecha desc, id desc)`, de a `TAMANO_DE_PAGINA_POR_DEFECTO` (50, más una), sin selector `?por=` (D9), sin total y sin `offset`. Índices: `gastos_fecha_idx` y `pagos_fecha_idx` (parciales `where eliminado_en is null`). Registradas en `scripts/guardas/areas-c/paginas-en-la-base.ts`.
+- **Sin medir con volumen** (abierto **6-5**, `docs/pasos/6.11-3/bitacora.md`): falta `supabase/tests/medir-gastos-pagos-listar.sql`. Con «propios» el filtro `en_cartera` por fila puede descartar filas al profundizar; hasta medirlo no hay presupuesto.
+- Las listas de un hueco de la unidad (`gastos_vehiculo_idx`, `pagos_vehiculo_idx`) llevan tope 50 + 1 con aviso y el camino «Ver todos en Gastos».
+
 ## Chat (7.08)
 
 - Lista: `chat_conversaciones()`, 20 por «Ver más» (50 como mucho), cursor `(ultimo_mensaje_en, id)`. Parte de `conversaciones_miembros_usuario_idx`

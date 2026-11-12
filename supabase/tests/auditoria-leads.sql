@@ -159,7 +159,6 @@ declare
     ('cotizacion_reportar(uuid,text)', 'M'),
     ('cotizacion_reporte_retirar(uuid)', 'M'),
     ('cotizacion_favorito_poner(uuid,boolean)', 'M'),
-    ('evaluar_requisitos(uuid,uuid,uuid)', 'X'),
     ('margen_vehiculo(uuid)', 'X'),
     -- Lee una cotización recortada por nivel (4.10): el recorte lo prueba cotizaciones-visibilidad.sql.
     ('cotizacion_leer(uuid)', 'L'),
@@ -205,6 +204,9 @@ declare
     -- Las listas (6.10-2): miran `vehiculos.lead_id` sólo para el alcance «propios» (`en_cartera`), como `puede_vehiculo`; no devuelven el lead.
     ('gastos_listar(date,uuid,integer,jsonb)', 'L'),
     ('pagos_listar(date,uuid,integer,jsonb)', 'L'),
+    -- La unidad y «dónde está» (6.02-3): miran `vehiculos.lead_id` sólo para el alcance «propios» (`en_cartera`), como la cadena; no devuelven el lead.
+    ('logistica_unidad(uuid)', 'L'),
+    ('logistica_donde_esta(text,integer)', 'L'),
     -- El chat (7.08-2): una ficha o mención de lead se pide visible (`puede_lead`, `trg_lead_visible`); no toca la cartera ni devuelve el lead.
     -- Responden {resultado, id, …} (`areas/chat/mensajes.sql`, `mensajes-editar.sql`, `fichas.sql`).
     ('mensaje_enviar(uuid,uuid,text,jsonb,uuid,jsonb)', 'X'),

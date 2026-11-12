@@ -7,4 +7,19 @@ export const REGISTRO: Record<string, RegistroDeDrawer> = {
     sinFormulario:
       'sólo lista las unidades que quedaron fuera de regla y enlaza al inventario: no guarda nada tipeado; arreglarlas es de la unidad (Fase 6)',
   },
+  // El formulario de un gasto de la unidad (6.11-1): `?panel=gasto&gasto=<id|nuevo>`. Dice que tiene algo escrito con `useCambiosSinGuardar` en el mismo archivo.
+  'src/modules/logistica/features/dinero/components/drawer-de-gasto.tsx': {
+    formulario: 'src/modules/logistica/features/dinero/components/drawer-de-gasto.tsx',
+    mecanismo: 'contexto',
+  },
+  // El formulario de un pago de la unidad (6.11-2): `?panel=pago&pago=<id|nuevo>`.
+  'src/modules/logistica/features/dinero/components/drawer-de-pago.tsx': {
+    formulario: 'src/modules/logistica/features/dinero/components/drawer-de-pago.tsx',
+    mecanismo: 'contexto',
+  },
+  // Anular un pago confirmado, con su motivo (6.11-2): `?panel=anular-pago&pago=<id>`.
+  'src/modules/logistica/features/dinero/components/drawer-de-anulacion.tsx': {
+    formulario: 'src/modules/logistica/features/dinero/components/drawer-de-anulacion.tsx',
+    mecanismo: 'contexto',
+  },
 }
