@@ -8,6 +8,7 @@
 --   L4. La IP no se guarda: columnas exactas, huella = HMAC-SHA256(ip, sal) y no la IP; sin la sal, 55000.
 --   L5. anon y authenticated no ejecutan las funciones ni leen la tabla (llamada y catálogo); service_role sí ejecuta.
 --   L6. La purga borra la ventana vencida, deja la vigente y devuelve 1; el job portal-intentos-purgar está programado sin URL.
+--   L7. web.portal_direccion_publica() da null con la columna nula y la dirección cuando se fija.
 
 -- Corre una sentencia con un rol de la base (service_role, anon, authenticated) y devuelve cómo terminó (de `portal-cliente.sql`).
 create or replace function pg_temp.con_rol(p_rol text, p_sql text) returns jsonb language plpgsql as $$
@@ -114,10 +115,12 @@ do $$
 declare r jsonb; v_rol text; v_fn text;
 begin
   foreach v_rol in array array['anon', 'authenticated'] loop
+    r := pg_temp.con_rol(v_rol, 'select to_jsonb(web.portal_direccion_publica())');
+    if r ->> 'estado' is distinct from '42501' then raise exception '% ejecutó portal_direccion_publica: %', v_rol, r; end if;
     r := pg_temp.con_rol(v_rol, 'select to_jsonb(public.portal_intentos_purgar())');
     if r ->> 'estado' is distinct from '42501' then raise exception '% ejecutó portal_intentos_purgar: %', v_rol, r; end if;
   end loop;
-  foreach v_fn in array array['public.portal_intentos_purgar()'] loop
+  foreach v_fn in array array['web.portal_direccion_publica()', 'public.portal_intentos_purgar()'] loop
     foreach v_rol in array array['anon', 'authenticated', 'public'] loop
       if has_function_privilege(v_rol, v_fn, 'execute') then raise exception '% puede ejecutar %', v_rol, v_fn; end if;
     end loop;
@@ -163,3 +166,16 @@ begin
 end $$;
 rollback;
 
+-- @test portal_direccion_publica: nula sin dirección y la dirección cuando se fija (L7)
+begin;
+do $$
+declare r jsonb;
+begin
+  update public.ajustes_web set direccion_publica = null where id = 1;
+  r := pg_temp.con_rol('service_role', 'select to_jsonb(web.portal_direccion_publica())');
+  if r is distinct from '{"ok": true, "valor": null}'::jsonb then raise exception 'sin dirección: %', r; end if;
+  update public.ajustes_web set direccion_publica = 'https://sitio.ejemplo.com' where id = 1;
+  r := pg_temp.con_rol('service_role', 'select to_jsonb(web.portal_direccion_publica())');
+  if r is distinct from '{"ok": true, "valor": "https://sitio.ejemplo.com"}'::jsonb then raise exception 'con dirección: %', r; end if;
+end $$;
+rollback;

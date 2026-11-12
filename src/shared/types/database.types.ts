@@ -11013,6 +11013,7 @@ export type Database = {
         Args: { p_actual: string; p_lead: string; p_nueva: string; p_otorgado_en: string }
         Returns: boolean
       }
+      portal_direccion_publica: { Args: Record<PropertyKey, never>; Returns: string }
       portal_documento_ruta: {
         Args: { p_documento: string; p_lead: string; p_otorgado_en: string }
         Returns: string
