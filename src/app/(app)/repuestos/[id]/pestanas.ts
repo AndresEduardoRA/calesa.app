@@ -1,5 +1,7 @@
-// Las pestañas de `/repuestos/[id]` (8.09-2, C6). Hoy hay una sola, «Ítems»; «Compras» (8.11) y «Cotizaciones» (8.12) son huecos: están acá como datos con `lleno: false` y no se dibujan
-// hasta que su paso las llene (una pestaña sin pantalla es un botón muerto, D28 de 8.08-3). Cuando su paso cambie `lleno` a `true`, aparece la barra. Con una sola pestaña llena la barra no se dibuja.
+// Las pestañas de `/repuestos/[id]` (8.09-2, C6). «Ítems» siempre; «Compras» (8.11-2) sólo con `repuestos.costos.ver`; «Cotizaciones» (8.12) es un hueco: está acá como dato
+// con `lleno: false` y no se dibuja hasta que su paso la llene (una pestaña sin pantalla es un botón muerto, D28 de 8.08-3). Con una sola pestaña visible la barra no se dibuja.
+// Esconder una pestaña es comodidad, no seguridad: la autoridad es la RLS y el `assert_permiso` de cada lectura.
+import { puede, type ClavePermiso, type Permisos } from '@/shared/lib/permisos'
 import type { AlMenosUna } from '../../configuracion/empresa/pestanas'
 
 export type PestanaDelProyecto = {
@@ -7,31 +9,35 @@ export type PestanaDelProyecto = {
   titulo: string
   // ¿Su paso ya la llenó?
   lleno: boolean
+  // La clave que hace falta para verla, además de `repuestos.ver` (la de la página).
+  permiso?: ClavePermiso
 }
 
 export const PESTANA_DE_ITEMS = 'items'
 
 export const PESTANAS: readonly PestanaDelProyecto[] = [
   { clave: PESTANA_DE_ITEMS, titulo: 'Ítems', lleno: true },
-  // 8.11 las llena con las compras y su permiso de costos.
-  { clave: 'compras', titulo: 'Compras', lleno: false },
+  { clave: 'compras', titulo: 'Compras', lleno: true, permiso: 'repuestos.costos.ver' },
   // 8.12 las llena con las cotizaciones de repuestos.
   { clave: 'cotizaciones', titulo: 'Cotizaciones', lleno: false },
 ]
 
-/** Las que se dibujan, en su orden: «Ítems» siempre está. */
+/** Las que se dibujan para quien mira, en su orden: «Ítems» siempre está. */
 export function pestanasLlenas(
+  permisos: Permisos,
   pestanas: readonly PestanaDelProyecto[] = PESTANAS,
 ): AlMenosUna<PestanaDelProyecto> {
-  const llenas = pestanas.filter((p) => p.lleno)
+  const llenas = pestanas.filter(
+    (p) => p.lleno && (p.permiso === undefined || puede(permisos, p.permiso)),
+  )
   const [primera, ...resto] = llenas
   return primera === undefined ? [PESTANAS[0] as PestanaDelProyecto] : [primera, ...resto]
 }
 
-/** Lo que viene en la URL lo escribe cualquiera: lo que no es una pestaña llena abre «Ítems». */
+/** Lo que viene en la URL lo escribe cualquiera: lo que no es una pestaña visible para quien mira abre «Ítems». */
 export function pestanaDe(
   valor: string | undefined,
-  pestanas: readonly PestanaDelProyecto[] = PESTANAS,
+  llenas: AlMenosUna<PestanaDelProyecto>,
 ): string {
-  return pestanasLlenas(pestanas).find((p) => p.clave === valor)?.clave ?? PESTANA_DE_ITEMS
+  return llenas.find((p) => p.clave === valor)?.clave ?? PESTANA_DE_ITEMS
 }
