@@ -14,7 +14,7 @@ import { formatearMonto } from '../src/shared/lib/formato'
 
 // La pestaña «Cotizaciones» de `/repuestos/[id]` y la hoja en sólo lectura (8.12-3): la dueña abre la pestaña vacía, crea una cotización (va directo a su hoja,
 // «Borrador», sin líneas), vuelve y la ve en la lista «Sin total» (nulo no es 0); una segunda «Nueva cotización» crea otra (el id del intento se renovó). Con
-// dos líneas y el total sembrados por SQL (escribir líneas es de 8.12-4), la hoja muestra cada una en su bloque y el total que guardó la base. Quien sólo tiene
+// dos líneas y el total sembrados por SQL y la cotización aceptada (una borrador es editable desde 8.12-4, D53), la hoja muestra cada una en su bloque y el total que guardó la base. Quien sólo tiene
 // `repuestos.ver` no ve la pestaña, y la URL de la cotización le dice que no tiene permiso.
 // La etiqueta no empieza con «E2E»: la limpieza de `repuestos-proyecto.spec.ts` borra esas. Borrar el proyecto borra sus cotizaciones y líneas en cascada.
 test.describe.configure({ mode: 'serial' })
@@ -112,7 +112,7 @@ test('crear una cotización lleva a su hoja; la lista y la hoja muestran lo que 
     insert into repuestos_cotizaciones_lineas (cotizacion_id, descripcion, bloque, cantidad, costo, logistica_sugerida, caja, total, orden) values
       (${literal(id)}, 'Filtro importado', 'importado', 1, 80, 15, 10, 133, 0),
       (${literal(id)}, 'Aceite local', 'local', 2, 90, 15, 5, 242, 1);
-    update repuestos_cotizaciones set total = 375 where id = ${literal(id)}`)
+    update repuestos_cotizaciones set total = 375, estado = 'aceptada', aceptada_en = now() where id = ${literal(id)}`)
   await page.goto(rutaDeLaPrimera)
   const importado = page.getByRole('list', { name: 'Líneas de Importado' })
   await expect(importado.getByRole('listitem')).toHaveCount(1)
