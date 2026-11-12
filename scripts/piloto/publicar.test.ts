@@ -132,9 +132,10 @@ describe('publicar.sh › la rama del carril A', () => {
 
   it('si el PR no se puede abrir, avisa: la rama ya quedó empujada y la vuelta siguiente lo reintenta', () => {
     commitear('src/a.ts', 'a\n')
-    const r = publicar('4.99', { FAKE_GH_PR: '1' })
+    const r = publicar('4.99', { FAKE_GH_PR: '1', PILOTO_GH_ESPERA: '0' })
     expect(r.estado).toBe(1)
     expect(r.salida).toContain('gh pr create falló')
+    expect(llamadasGh().match(/^pr create/gm)).toHaveLength(3) // GitHub falla a ratos: tres intentos
     expect(remotoEn()).toBe(git(repo, 'rev-parse', 'HEAD'))
   })
 
