@@ -78,4 +78,10 @@ export const esquemaEliminarCampo = z.object({
   actualizadoEnEsperado: esquemaVersion,
 })
 
-export const esquemaVistaPreviaDeCampo = z.object({ id: z.guid() })
+// Con `rango`, la base cuenta también cuántos quedarían fuera del rango propuesto (sólo lee `minimo` y `maximo`).
+export const esquemaVistaPreviaDeCampo = z.object({
+  id: z.guid(),
+  rango: z
+    .object({ minimo: esquemaLimite.optional(), maximo: esquemaLimite.optional() })
+    .optional(),
+})

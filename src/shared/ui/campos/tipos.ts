@@ -67,8 +67,9 @@ export type EdicionesDeCampos<Cambios, Nuevo> = {
   cambiarActivo: (campo: DeLaFila, activo: boolean) => Promise<Resultado<unknown>>
   mover: (campo: DeLaFila, despuesDe: string | null) => Promise<Resultado<unknown>>
   eliminar: (campo: DeLaFila) => Promise<Resultado<unknown>>
-  // Cuántos registros tienen valor: se llama antes de un cambio que podría tocarlos.
-  vistaPrevia: (campoId: string) => Promise<Resultado<ImpactoDeCampo>>
+  // Cuántos registros tienen valor: se llama antes de un cambio que podría tocarlos. Con `rango`, cuenta también cuántos quedarían
+  // fuera del rango propuesto.
+  vistaPrevia: (campoId: string, rango?: Partial<Rango>) => Promise<Resultado<ImpactoDeCampo>>
   enCurso: boolean
   errores: { crear: Partial<Record<string, string[]>> | undefined }
 }

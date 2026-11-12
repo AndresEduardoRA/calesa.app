@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import {
   problemaDelRango,
+  rangoDe,
   tieneRango,
   valorDefectoPara,
   type CampoBase,
@@ -54,7 +55,7 @@ async function guardarCambios<Campo extends CampoBase, Cambios extends object, N
     return { estado: 'sin_cambios' }
   }
   if (!confirmado && configuracion.necesitaVistaPrevia(editado, cambios)) {
-    const conteo = await ediciones.vistaPrevia(editado.id)
+    const conteo = await ediciones.vistaPrevia(editado.id, rangoDe(cambios))
     if (!conteo.ok) {
       return { estado: 'fallo' }
     }

@@ -15,5 +15,5 @@ export const vistaPreviaDeCampo = actionClient
     if (!puede(ctx.permisos, 'leads.campos.gestionar')) {
       return fallo('sin_permiso', MOTIVO_SIN_PERMISO_CAMPOS)
     }
-    return repositorioCamposDeLead.impacto(parsedInput.id)
+    return repositorioCamposDeLead.impacto(parsedInput.id, parsedInput.rango)
   })
