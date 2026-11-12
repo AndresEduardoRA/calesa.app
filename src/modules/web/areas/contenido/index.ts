@@ -1,2 +1,4 @@
-// La API de servidor del área `contenido` de `web`: la llenan los pasos 8.02 y 8.03. Sale por el `index.ts` de la raíz.
-export {}
+// La API de servidor del área `contenido` de `web`: la pestaña «Preguntas frecuentes» de Configuración › Sitio web (8.02-1; la compone `src/app`) y,
+// con el 8.03, guías y legales. Sale por el `index.ts` de la raíz.
+export { leerFaqs } from '../../infra/contenido/faqs'
+export { TOPE_DE_FAQS, type Faq } from '../../entities/contenido/faqs'
