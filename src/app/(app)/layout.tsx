@@ -87,7 +87,7 @@ async function Shell({ children }: { children: ReactNode }) {
               campana={
                 <HuecoCampana usuarioId={sesion.usuarioId} disponibles={RUTAS_CON_PANTALLA} />
               }
-              flotante={<HuecoChat />}
+              flotante={<HuecoChat sesion={sesion} zona={ajustes.zonaHoraria} />}
               menuUsuario={
                 <MenuUsuario
                   persona={{

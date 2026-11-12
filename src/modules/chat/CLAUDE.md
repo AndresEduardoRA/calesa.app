@@ -5,7 +5,7 @@ Mensajería interna: conversaciones directas (deduplicadas), grupos y canal glob
 ## Entra y sale
 
 - Entra: mensajes del usuario, comandos `/tarea` y `/evento`, menciones; señales realtime de Supabase.
-- Sale: `abrirConversacionCon(usuarioId)` (CTA «contactar al dueño del lead»), `<WidgetChat>`, `noLeidos()`. Lo consumen `leads` (CTA), `app/` (widget), `tablero`.
+- Sale: `abrirConversacionCon(usuarioId)` (CTA «contactar al dueño del lead»), `<WidgetChat>` y `<NoLeidosDeLaBarra>` por `shell.client.ts` (sólo el layout `(app)`), `noLeidos()`. Lo consumen `leads` (CTA), `app/` (widget y barra lateral), `tablero`.
 - Depende de: `agenda` (por `agenda/client.ts`: `SelectorDePersonas`, las reglas puras del formulario de tarea y evento, `leerPersonasParaTarea` y la action `completarTarea`), `vehiculos`, `leads`, `cotizaciones` (fichas de mención) y `buscador` (las lecturas del selector `#`; `leads/client` da `interpretarBusqueda`).
 
 ## Archivos clave
@@ -34,7 +34,12 @@ Mensajería interna: conversaciones directas (deduplicadas), grupos y canal glob
   `mensaje_eliminar`, `chat_leer`) y `suscribirseAlHilo`.
 - `entities/reglas-del-mensaje.ts` — ventana de edición de 15 minutos desde la creación, quién edita y quién borra (el autor, o `chat.moderar`), la cita (`CitaDeMensaje`, `textoDeCita`); puro.
 - `features/conversaciones/` (lista, `actions/`, el menú «Nueva conversación» con sus modales de directa y de grupo y `confirmar-salir`), `features/mensajes/` (hilo, redactor con envío optimista del mismo `id`, «Ver anteriores» hasta el tope, el «⋯»
-  de silenciar y salir; responder con cita, editar en línea, borrar por URL y el «⋯» de cada burbuja), `features/widget/`; la pantalla sale por `pantallas/chat.ts`. `?panel=nueva|grupo|salir|borrar-mensaje` (éste con `mensaje=<id>`) no toca `?c=`.
+  de silenciar y salir; responder con cita, editar en línea, borrar por URL y el «⋯» de cada burbuja), `features/widget/` (7.11-1, abajo); la pantalla sale por `pantallas/chat.ts`. `?panel=nueva|grupo|salir|borrar-mensaje` (éste con `mensaje=<id>`) no toca `?c=`.
+- Widget flotante (7.11-1): `shell.client.ts` exporta `WidgetChat` (la burbuja, fuera de `/chat`; el layout lo monta por `HuecoChat`, sólo con `chat.participar`) y `NoLeidosDeLaBarra`.
+  `features/widget/no-leidos-store.ts` es el contador de la pestaña (valor, `suscribir`, `poner`; sin importar Supabase: viaja en el JS de todas las pantallas) y lo escribe `SuscripcionDeNoLeidos` (diferida; `chat_no_leidos`
+  por `infra/no-leidos.client.ts` al descansar el navegador, tras cada señal de `suscribirseALaLista` con 250 ms de espera y al reconectar; un fallo deja el último valor). La burbuja es un botón desde 768 px y un enlace a `/chat` debajo; `z-40`.
+  El panel (`PanelDelWidgetDiferido`) se monta sólo abierto: lee la primera página de la lista, elige la conversación por estado local (**el widget no usa la URL**) y compone el hilo sin `?panel=`, `?mencion=` ni borrado por URL
+  (`HiloDelWidget`: `useHilo`, `useEnvio`, `useMarcarLeido`, fichas y menciones; `AccionesDelMensaje.sinMenu` quita el «⋯»). Sólo leer y responder: editar, borrar, `/tarea` y `/evento` y menciones llevan a `/chat`.
 - `?c=<id>` ilegible = sin selección; sin fila propia = «ya no es mía» (nunca un 404).
 
 ## Tablas
