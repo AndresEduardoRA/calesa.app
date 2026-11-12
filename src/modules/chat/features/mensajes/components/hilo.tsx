@@ -5,6 +5,7 @@ import type { Conversacion } from '../../../entities/conversaciones'
 import type { Mensaje } from '../../../entities/mensajes'
 import { citaDe } from '../../../entities/reglas-del-mensaje'
 import type { AccionesDelMensaje } from '../acciones-del-hilo'
+import { useEdicion } from '../hooks/use-edicion'
 import { useEnvio } from '../hooks/use-envio'
 import { useHilo } from '../hooks/use-hilo'
 import { useMarcarLeido } from '../hooks/use-marcar-leido'
@@ -30,7 +31,15 @@ export function Hilo({ conversacion, usuarioId, zona }: Props) {
       campo.current?.focus()
     }
   }, [respondiendoA])
-  const acciones: AccionesDelMensaje = { responder: setRespondiendoA }
+  const edicion = useEdicion({ reemplazar: hilo.reemplazar })
+  const acciones: AccionesDelMensaje = {
+    usuarioId,
+    responder: setRespondiendoA,
+    editandoId: edicion.editandoId,
+    empezarAEditar: edicion.empezar,
+    cancelarEdicion: edicion.cancelar,
+    guardarEdicion: edicion.guardar,
+  }
   const envio = useEnvio({
     conversacion: conversacion.id,
     usuarioId,

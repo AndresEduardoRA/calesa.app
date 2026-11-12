@@ -6,6 +6,7 @@ import { cn } from 'cn'
 import type { Mensaje } from '../../../entities/mensajes'
 import type { AccionesDelMensaje } from '../acciones-del-hilo'
 import { CitaEnLaBurbuja } from './cita-de-respuesta'
+import { EditarEnLinea } from './editar-en-linea'
 import { MenuDelMensaje } from './menu-del-mensaje'
 
 type Props = {
@@ -55,10 +56,32 @@ function AvisoDeFallo({
   )
 }
 
+// Lo de adentro: la cita si responde a otro, y el texto (o «Mensaje eliminado», o el editor si es el que se está editando).
+function TextoDeLaBurbuja({
+  mensaje,
+  acciones,
+}: {
+  mensaje: Mensaje
+  acciones: AccionesDelMensaje
+}) {
+  if (mensaje.eliminadoEn !== null) {
+    return <p className="text-(--color-ink-soft) italic">Mensaje eliminado</p>
+  }
+  return (
+    <>
+      {mensaje.respondeAId !== null ? <CitaEnLaBurbuja cita={mensaje.responde} /> : null}
+      {acciones.editandoId === mensaje.id ? (
+        <EditarEnLinea mensaje={mensaje} acciones={acciones} />
+      ) : (
+        <p className="whitespace-pre-wrap">{mensaje.cuerpo}</p>
+      )}
+    </>
+  )
+}
+
 // Un mensaje del hilo: el propio a la derecha, el ajeno a la izquierda. El texto es siempre texto (nunca HTML) y respeta los saltos de línea. El
 // estado de un envío va en palabras, no sólo en color.
 export function Burbuja({ mensaje, propio, mostrarAutor, zona, alReintentar, acciones }: Props) {
-  const eliminado = mensaje.eliminadoEn !== null
   const menu = <MenuDelMensaje mensaje={mensaje} acciones={acciones} />
   return (
     <li className={cn('flex min-w-0 flex-col', propio ? 'items-end' : 'items-start')}>
@@ -77,14 +100,7 @@ export function Burbuja({ mensaje, propio, mostrarAutor, zona, alReintentar, acc
               {mensaje.autorNombre ?? 'Alguien del equipo'}
             </p>
           ) : null}
-          {mensaje.respondeAId !== null && !eliminado ? (
-            <CitaEnLaBurbuja cita={mensaje.responde} />
-          ) : null}
-          {eliminado ? (
-            <p className="text-(--color-ink-soft) italic">Mensaje eliminado</p>
-          ) : (
-            <p className="whitespace-pre-wrap">{mensaje.cuerpo}</p>
-          )}
+          <TextoDeLaBurbuja mensaje={mensaje} acciones={acciones} />
           <PieDeLaBurbuja mensaje={mensaje} zona={zona} />
         </div>
         {propio ? null : menu}

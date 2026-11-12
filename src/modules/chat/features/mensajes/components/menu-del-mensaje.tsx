@@ -1,7 +1,7 @@
 'use client'
 
-import { MoreHorizontalIcon, ReplyIcon } from 'lucide-react'
-import { useRef } from 'react'
+import { MoreHorizontalIcon, PencilIcon, ReplyIcon } from 'lucide-react'
+import { useRef, useState } from 'react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu'
 import type { Mensaje } from '../../../entities/mensajes'
-import { puedeResponder } from '../../../entities/reglas-del-mensaje'
+import { puedeEditar, puedeResponder } from '../../../entities/reglas-del-mensaje'
 import type { AccionesDelMensaje } from '../acciones-del-hilo'
 
 const RENGLON = 'min-h-11 md:min-h-8'
@@ -24,12 +24,21 @@ export function MenuDelMensaje({
   acciones: AccionesDelMensaje
 }) {
   const eligio = useRef(false)
+  // El reloj se toma al abrir el menú, no al dibujar: la ventana de edición se mide en ese momento.
+  const [ahora, setAhora] = useState(0)
   const responder = puedeResponder(mensaje)
+  const editar = puedeEditar(mensaje, acciones.usuarioId, ahora)
   if (!responder) {
     return null
   }
   return (
-    <DropdownMenu>
+    <DropdownMenu
+      onOpenChange={(abierto) => {
+        if (abierto) {
+          setAhora(Date.now())
+        }
+      }}
+    >
       <DropdownMenuTrigger
         aria-label="Más acciones del mensaje"
         className="flex size-11 shrink-0 items-center justify-center rounded-(--radius-md) text-(--color-ink-soft) outline-none hover:bg-(--color-surface-3) focus-visible:shadow-(--shadow-focus) md:size-8"
@@ -55,6 +64,18 @@ export function MenuDelMensaje({
           <ReplyIcon aria-hidden />
           Responder
         </DropdownMenuItem>
+        {editar ? (
+          <DropdownMenuItem
+            className={RENGLON}
+            onClick={() => {
+              eligio.current = true
+              acciones.empezarAEditar(mensaje.id)
+            }}
+          >
+            <PencilIcon aria-hidden />
+            Editar
+          </DropdownMenuItem>
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   )
