@@ -321,6 +321,8 @@ como los de `docs/`; `PILOTO_UNIR_REGISTROS=` lo apaga. Y `gh` se vuelve a pedir
   carril como antes. `COORD_UNIR=0` y `COORD_UNIR_SIN_CI=0` lo apagan.
 - **El commit de renumerar del carril va con `PILOTO=1`**: no corre `probar-schema` (≈ 4 min 30 s por vez).
 - **Una migración sin fecha real** (renumerada a mano hasta el segundo 60) la renumeran el coordinador y el carril; la sesión no renumera.
+- **Si GitHub no sabe si un PR choca** (`UNKNOWN`, la primera consulta tras cada integración), el coordinador pregunta otra vez a los
+  2,5 s en vez de perder la vuelta (`COORD_SIN_SABER_VECES`, `COORD_SIN_SABER_ESPERA`).
 
 ## El ensayo en seco (2026-10-26)
 

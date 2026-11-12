@@ -102,16 +102,36 @@ function migracionesAtrasadas(archivos) {
 // vuelta siguiente), y un PR que toca las guardas del piloto no se integra solo: la copia del bucle sale de main y los tres carriles se
 // recargan con ella (COORD_GUARDAS_SOLAS=1 lo deja).
 const GUARDAS_SOLAS = process.env.COORD_GUARDAS_SOLAS === '1'
+// GitHub calcula si un PR choca con main recién cuando alguien lo pregunta: la primera consulta tras cada integración contesta UNKNOWN y
+// deja el cálculo andando. Con una consulta por vuelta, cada PR perdía una vuelta de 3 min después de cada integración (y otra si entre
+// medio entraba otro PR): ni se integraba el que estaba en verde ni se atendía el que chocaba (el #126 del 2026-11-12, dos vueltas). Se
+// vuelve a preguntar COORD_SIN_SABER_VECES (1) vez, a los COORD_SIN_SABER_ESPERA ms (2500).
+const SIN_SABER_VECES = Number(process.env.COORD_SIN_SABER_VECES ?? 1)
+const SIN_SABER_ESPERA = Number(process.env.COORD_SIN_SABER_ESPERA ?? 2500)
+const sinSaber = (pr) =>
+  pr.state === 'OPEN' && pr.mergeable !== 'MERGEABLE' && pr.mergeable !== 'CONFLICTING'
+
 export function mirarPr(numero) {
-  const pr = JSON.parse(
-    gh(
-      'pr',
-      'view',
-      String(numero),
-      '--json',
-      'state,mergeable,statusCheckRollup,headRefOid,headRefName,files',
-    ),
-  )
+  const leer = () =>
+    JSON.parse(
+      gh(
+        'pr',
+        'view',
+        String(numero),
+        '--json',
+        'state,mergeable,statusCheckRollup,headRefOid,headRefName,files',
+      ),
+    )
+  let pr = leer()
+  for (let n = 0; n < SIN_SABER_VECES && sinSaber(pr); n += 1) {
+    if (SIN_SABER_ESPERA > 0) pausa(SIN_SABER_ESPERA)
+    try {
+      pr = leer()
+    } catch {
+      // Vale la primera respuesta: la vuelta siguiente vuelve a mirar.
+      break
+    }
+  }
   const checks = (pr.statusCheckRollup ?? []).filter((c) => !IGNORAR_CHECKS.test(nombreDe(c)))
   // Un estado de commit (el de Vercel: `state`, sin `status`) en PENDING o EXPECTED sigue corriendo; antes contaba como terminado y
   // rojo, y el paso volvía a su carril por un «CI en rojo» que un minuto después era verde (el PR 80, 2026-11-08).
@@ -162,7 +182,7 @@ export function mirarPr(numero) {
     rojo,
     integrable: pr.mergeable === 'MERGEABLE',
     // GitHub todavía no calculó si choca con main (unos segundos tras cada integración): no dice que el choque de antes se fue.
-    sinSaber: pr.state === 'OPEN' && pr.mergeable !== 'MERGEABLE' && pr.mergeable !== 'CONFLICTING',
+    sinSaber: sinSaber(pr),
     firme,
     colgado,
     oid: pr.headRefOid ?? null,
