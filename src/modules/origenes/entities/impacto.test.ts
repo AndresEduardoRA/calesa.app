@@ -20,6 +20,7 @@ const [CAMPO] = camposDesde([
     filtrable: false,
     publico_web: false,
     clave_apibara: null,
+    principal: false,
     es_sistema: false,
     activo: true,
     actualizado_en: '2026-10-12T20:00:00+00:00',

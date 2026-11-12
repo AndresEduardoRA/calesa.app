@@ -5,8 +5,8 @@ Operación diaria sobre el flujo: cadena por fase, mover con vista previa, docum
 ## Entra y sale
 
 - Entra: acciones de logística en `/logistica/*`, subida de documentos (también desde cámara), confirmación de pagos, cron de alertas.
-- Sale: `leerUnidad(id)` (la unidad de vehículo bajo la RLS de quien mira; nula si no existe, está en la papelera o no la ve), `huecosVisibles`, `ORDEN_DE_HUECOS`, `refDeUnidad` y los tipos de la unidad y de los huecos; por `pantallas/unidad.ts`, `<PanelDeLaUnidad>` (6.01). Saldrá `bandejaLogistica()` (para `tablero`), `margenDe(vehiculoId)`, `<LineaTiempoUnidad>`, `dondeEsta(busqueda)`. Lo consumirán `tablero`, `vehiculos` (ficha), `web` (portal: fases y documentos visibles).
-- Depende de: `vehiculos`, `flujos`, `cotizaciones`.
+- Sale: `leerUnidad(id)` (la unidad de vehículo bajo la RLS de quien mira; nula si no existe, está en la papelera o no la ve; su `titulo` es «<principal> · <título>» si el origen tiene campo principal, 6.13: `features/nucleo/unidad-con-identidad.ts`, y si el principal no se puede leer queda el título), `huecosVisibles`, `ORDEN_DE_HUECOS`, `refDeUnidad` y los tipos de la unidad y de los huecos; por `pantallas/unidad.ts`, `<PanelDeLaUnidad>` (6.01). Saldrá `bandejaLogistica()` (para `tablero`), `margenDe(vehiculoId)`, `<LineaTiempoUnidad>`, `dondeEsta(busqueda)`. Lo consumirán `tablero`, `vehiculos` (ficha), `web` (portal: fases y documentos visibles).
+- Depende de: `vehiculos`, `origenes`, `empresa`, `flujos`, `cotizaciones`.
 
 ## Áreas
 

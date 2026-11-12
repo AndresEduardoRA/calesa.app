@@ -12,11 +12,13 @@ import {
   vistaDelResumen,
   type VistaDelResumen,
 } from '../../../entities/resumen'
+import type { IdentidadDeVehiculo } from '../../../entities/identidad'
 import type { ParaCotizar } from '../../../entities/ruta-para-cotizar'
 import type { Vehiculo } from '../../../entities/vehiculo'
 import type { PermisoDeVitrina } from '../../../entities/vitrina'
 import { FichaDeVehiculo } from '../../ficha/components/ficha-de-vehiculo'
 import type { DatosDelOrigen } from '../../listado/components/tipos'
+import { useIdentidad } from '../../listado/hooks/use-identidad'
 import { useResumenDeVehiculo } from '../hooks/use-resumen-de-vehiculo'
 import { useVehiculoDelResumen } from '../hooks/use-vehiculo-del-resumen'
 import { CabeceraDelResumen } from './cabecera-del-resumen'
@@ -40,6 +42,20 @@ type Props = DatosDelOrigen & {
 }
 
 const ES_GUID = z.guid()
+
+// El título del drawer es lo que nombra al vehículo (su campo principal o su título) y la descripción, «<origen> · #12»; si lo
+// nombra su campo principal, el título va en el medio: «<origen> · <título> · #12».
+function encabezadoDelResumen(
+  sinVehiculo: boolean,
+  origen: string,
+  mostrado: { numero: number } | null,
+  nombrado: IdentidadDeVehiculo | null,
+): { titulo: string; descripcion: string | undefined } {
+  if (sinVehiculo) return { titulo: 'Vehículo no disponible', descripcion: undefined }
+  if (mostrado === null || nombrado === null) return { titulo: 'Vehículo', descripcion: undefined }
+  const partes = [origen, nombrado.titulo, `#${String(mostrado.numero)}`]
+  return { titulo: nombrado.nombre, descripcion: partes.filter((p) => p !== null).join(' · ') }
+}
 
 function EsqueletoDelResumen({ etiqueta }: { etiqueta: string }) {
   return (
@@ -171,18 +187,20 @@ export function ResumenDeVehiculo({ filas, editables, verInteresados, children, 
   // Al cerrarse, el resumen tarda un momento en irse: conserva su último vehículo para no vaciarse.
   const ultimo = useUltimo(vista.tipo === 'vehiculo' ? vista.vehiculo : null)
   const mostrado = vista.tipo === 'vehiculo' ? vista.vehiculo : ultimo
-  const sinVehiculo = vista.tipo === 'no_disponible'
+  const identidad = useIdentidad(datos.campos)
+  const encabezado = encabezadoDelResumen(
+    vista.tipo === 'no_disponible',
+    datos.origen.nombre,
+    mostrado,
+    mostrado === null ? null : identidad(mostrado),
+  )
   return (
     <Drawer
       abierto={id !== null}
       ancho="amplio"
       alCerrar={resumen.cerrar}
-      titulo={sinVehiculo ? 'Vehículo no disponible' : (mostrado?.titulo ?? 'Vehículo')}
-      descripcion={
-        sinVehiculo || mostrado === null
-          ? undefined
-          : `${datos.origen.nombre} · #${String(mostrado.numero)}`
-      }
+      titulo={encabezado.titulo}
+      descripcion={encabezado.descripcion}
     >
       <ContenidoDelResumen
         {...datos}

@@ -55,7 +55,12 @@ export type CampoDeLayout = CampoBase<TipoDeCampo> & {
   filtrable: boolean
   publicoWeb: boolean
   claveApibara: string | null
+  // El campo que identifica al vehículo en la lista, el resumen y logística: uno por origen como mucho, activo y nunca un monto (6.13).
+  principal: boolean
 }
+
+// Lo que hace falta del campo principal para mostrar la identidad de un vehículo (`leerCampoPrincipal()`).
+export type CampoPrincipal = Pick<CampoDeLayout, 'clave' | 'etiqueta' | 'tipo' | 'opciones'>
 
 const esquemaOpciones = z.array(z.object({ clave: z.string(), etiqueta: z.string() })).catch([])
 
@@ -80,6 +85,7 @@ const esquemaCampos = z.array(
     filtrable: z.boolean(),
     publico_web: z.boolean(),
     clave_apibara: z.string().nullable(),
+    principal: z.boolean(),
     es_sistema: z.boolean(),
     activo: z.boolean(),
     actualizado_en: z.string(),
@@ -105,6 +111,7 @@ export function camposDesde(filas: unknown): CampoDeLayout[] {
       filtrable: fila.filtrable,
       publicoWeb: fila.publico_web,
       claveApibara: fila.clave_apibara,
+      principal: fila.principal,
       esSistema: fila.es_sistema,
       activo: fila.activo,
       actualizadoEn: fila.actualizado_en,
@@ -113,6 +120,20 @@ export function camposDesde(filas: unknown): CampoDeLayout[] {
 }
 
 export type GrupoDeCampos = GrupoGenerico<CampoDeLayout>
+
+const esquemaCampoPrincipal = z
+  .object({
+    clave: z.string(),
+    etiqueta: z.string(),
+    tipo: z.enum(TIPOS_DE_CAMPO),
+    opciones: esquemaOpciones,
+  })
+  .nullable()
+
+// La fila del campo principal (o ninguna) como `CampoPrincipal`.
+export function campoPrincipalDesde(fila: unknown): CampoPrincipal | null {
+  return esquemaCampoPrincipal.parse(fila ?? null)
+}
 
 // La clave de un campo nuevo sale de su etiqueta; si choca con una columna de `vehiculos` o con
 // otro campo del origen se le agrega un sufijo.

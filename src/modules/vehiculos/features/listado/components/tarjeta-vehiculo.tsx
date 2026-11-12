@@ -5,6 +5,7 @@ import { AbrirResumen, TarjetaDeLista } from '@/shared/ui/lista'
 import { Monto } from '@/shared/ui/monto'
 import { camposDeTarjeta, type CampoDeVehiculo } from '../../../entities/campo'
 import type { Vehiculo } from '../../../entities/vehiculo'
+import { useIdentidad } from '../hooks/use-identidad'
 import { BadgeDeFase } from './badge-de-fase'
 import { Miniatura } from './miniatura'
 import { ValorDeCampo } from './valor-de-campo'
@@ -14,7 +15,7 @@ type Props = {
   // El layout del origen del vehículo: de ahí salen los datos «en tarjeta».
   campos: readonly CampoDeVehiculo[]
   fase: { nombre: string; color: string } | null
-  // Abre el vehículo (un clic en cualquier parte de la tarjeta, o Enter sobre su título).
+  // Abre el vehículo (un clic en cualquier parte de la tarjeta, o Enter sobre su nombre).
   alAbrir: () => void
   // Su resumen está abierto: la tarjeta se marca.
   abierta?: boolean
@@ -29,6 +30,7 @@ type Props = {
 // Un vehículo en una tarjeta de la lista (`@/shared/ui/lista`): lo que se ve en el celular en vez de la fila de la tabla.
 export function TarjetaVehiculo(props: Props) {
   const { vehiculo, campos, fase, alAbrir, abierta, acciones, insignias, seleccion } = props
+  const identidad = useIdentidad(campos)(vehiculo)
   const datos = camposDeTarjeta(campos).filter((campo) => {
     const valor = vehiculo.atributos[campo.clave]
     return valor !== undefined && valor !== null && valor !== ''
@@ -41,10 +43,10 @@ export function TarjetaVehiculo(props: Props) {
         <Miniatura ruta={vehiculo.portadaRuta} className="w-20" />
         <div className="grid min-w-0 flex-1 gap-1 @max-[16rem]:flex-none">
           <h3 className="text-(length:--text-base) font-medium [overflow-wrap:anywhere] text-(--color-ink)">
-            <AbrirResumen nombre={vehiculo.titulo}>{vehiculo.titulo}</AbrirResumen>
+            <AbrirResumen nombre={identidad.nombre}>{identidad.nombre}</AbrirResumen>
           </h3>
           <p className="text-(length:--text-xs) text-(--color-ink-soft) tabular-nums">
-            #{vehiculo.numero}
+            {identidad.titulo === null ? '' : `${identidad.titulo} · `}#{vehiculo.numero}
             {vehiculo.anio ? ` · ${String(vehiculo.anio)}` : ''}
             {vehiculo.vin ? ` · ${vehiculo.vin}` : ''}
           </p>

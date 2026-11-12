@@ -27,6 +27,7 @@ export const esquemaCrearCampo = conReglasDeCampo(
     publicoWeb: z.boolean(),
     claveApibara,
     valorDefecto: esquemaValorDefecto,
+    principal: z.boolean(),
   }),
 )
 
@@ -46,6 +47,7 @@ export const esquemaGuardarCampo = z.object({
       publicoWeb: z.boolean().optional(),
       claveApibara: claveApibara.optional(),
       activo: z.boolean().optional(),
+      principal: z.boolean().optional(),
       valorDefecto: esquemaValorDefecto.optional(),
     })
     .refine((cambios) => Object.values<unknown>(cambios).some((valor) => valor !== undefined), {

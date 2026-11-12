@@ -4,7 +4,7 @@ export type Unidad = {
   tipo: 'vehiculo' | 'repuesto'
   id: string
   origenId: string
-  // El título del vehículo (`vehiculos.titulo`); 6.13 lo cambia por la identidad del campo «principal» del origen.
+  // Lo que nombra al vehículo: su título (`vehiculos.titulo`) o, si su origen tiene campo principal, «<principal> · <título>» (6.13).
   titulo: string
   faseId: string | null
   // Cuándo entró a su fase (ISO); nulo si no tiene fase. De ahí salen los días en la fase.
