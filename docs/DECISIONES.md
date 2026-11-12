@@ -5563,3 +5563,559 @@ Siguen la numeración de la parte 3 (llegó a D31). Plan: `.piloto/planes/7.09-4
 - **D39 (ajuste)** — El menú es de Base UI, no Radix: el foco no vuelve al «⋯» tras elegir una acción (`finalFocus`) y los renglones usan `onClick`. El reloj de `puedeEditar` se toma al abrir el menú.
 - **D40–D43** — Cumplidas: la cita sobre el redactor se conserva al reintentar; los estados del hilo ya estaban (7.09-3) y se documentan en `docs/UX.md`; Nivel 1 con e2e dirigido en los dos proyectos; lo demás queda fuera.
 - **D44** — El CI cayó en `e2e/cotizar-tarea-de-oro-recorrido.spec.ts` (escritorio): la entrada de Chat en la navegación suma una parada de Tab (59 → 60 la asesora; 55 → 56 la dueña); el celular no cambia. Contados de nuevo con el spec dirigido en los dos proyectos (6 ✓, `.piloto/salidas/7.09/recorrido.log`).
+
+<!-- paso:9.07 -->
+
+# 9.07 · Tablero: las métricas en la base (2026-11-12)
+
+- **D1 · Excepción a «un número que se muestra nunca es un total exacto».** Un agregado de un período cerrado (las RPC `tablero_*`) se cuenta en la base, con ventana máxima de 366 días y por índice de fecha; si usa `count(`, con su motivo en `supabase/tests/escala.sql` (`tablero_cotizaciones`; `tablero_leads` suma con `sum` y no entra al registro). Las listas siguen igual. Escrita en `.claude/rules/escala.md`.
+- **D2 · Conversión.** «Convertidos» = leads con `cliente_desde` en el período; «Tasa» = convertidos / creados del período, con 4 decimales y nula con `creados = 0`. Puede pasar de 1 (se convierten leads creados antes): no se recorta.
+- **D3 · Los clientes de antes.** Quedan con `cliente_desde` nulo: no se sabe cuándo pasaron y no se inventa. `tablero_leads` devuelve `conversion_desde` (el día en que se aplicó la migración en ese entorno, `_tablero_conversion_desde()`) para que el widget diga «Desde <fecha>».
+- **D4 · Alta directa como cliente.** Un lead que nace con un tipo de clase `cliente` (también por importación) queda sin fecha: sólo el paso de prospecto a cliente la pone, así una importación no infla la tasa.
+- **D5 · De cliente a cliente.** Conserva la fecha; volver a prospecto la vacía. Nadie la escribe a mano (el trigger la repone).
+- **D6 · «Finales».** Las cotizaciones creadas en el período que hoy son de clase final, cualquiera sea su estado: no hay fecha de cuándo se marcó final. Sumar esa fecha es otro paso.
+- **D7 · Ranking por persona.** Por el dueño vigente del lead. Un lead sin dueño, o cuyo dueño está en una baja en curso (`_bajas_en_curso()`), cuenta en el total y no en el ranking (la regla de humo.sql: toda lectura que nombra a una persona dice quién se queda).
+- **D8 · Ranking por origen de leads.** Por `leads.origen_lead_id`; el lead sin origen es un grupo con id y nombre nulos (la pantalla escribe «Sin origen»).
+- **D9 · Alcance.** Quien tiene `tablero.metricas.ver` (global) cuenta toda la empresa, sin mirar carteras, niveles ni `cotizaciones.ver`: sólo hay cuentas y nombres de personas y orígenes, ningún dato de un lead ni monto.
+- **D10 · Período.** Fechas inclusivas en la zona de `ajustes_empresa`, como intervalo semiabierto; nulas, al revés o de más de 366 días dan 22023 con su `hint`.
+- **D11 · Orden de los rankings.** Más creados, más convertidos (o finales), nombre (nulos al final), id; sólo grupos con algo en el período; `*_hay_mas` dice si había más que el tope.
+- **D12 · `cliente_desde` en la actividad.** Aparece en la foto que guarda `lead_auditar` como cualquier columna: no es privado (el cambio de tipo ya está en la misma foto). Recortarla es de la revisión de `registrar_actividad` del 9.01 (carril c).
+- **D13 · Sin partir.** Una parte: tres migraciones (`tablero_cliente_desde`, `tablero_leads`, `tablero_cotizaciones`), un test SQL y los tipos.
+
+<!-- paso:6.08-1 -->
+
+## 6.08-1 — Catálogos de puertos y navieras (2026-11-12)
+
+- **D1** (duda 1 de la fila) Sacar una unidad de un contenedor **no** es «editar el grupo»: se hace en el hueco de esa unidad (6.08-2); el grupo sólo aplica el mismo cambio a todas.
+- **D2** (duda 2 de la fila) Los catálogos de puertos y navieras son de esta fase: la Fase 5 sólo los lee (`flujos`: «Se cargan en Logística»). La semilla trae 5 puertos y ninguna naviera.
+- **D3** Sin «Eliminar»: borrar un puerto o una naviera deja nulos los transportes y vacía la oferta de los flujos (`ON DELETE SET NULL` / `CASCADE`); se desactiva.
+- **D4** Escritura directa bajo la RLS (`logistica.catalogos.gestionar`), sin RPC ni migración: no otorgan permisos (como las categorías de gasto). Una escritura que deja 0 filas es «sin permiso».
+- **D5** Un puerto sin país puede repetirse: la unicidad `(nombre, pais)` no cubre `NULL`. La action lo mira antes y rechaza igual que la base; una alta simultánea de dos personas puede duplicarlo y se tolera
+  (se arregla desactivando uno) en lugar de agregar un índice por expresión (migración).
+- **D6** El orden de los puertos es un número en «Editar» (como las categorías): intercambiar dos serían dos escrituras sin transacción. Las navieras no tienen `orden` y se listan por nombre.
+- **D7** «Puertos» es la pestaña por omisión de Configuración › Logística (el primer catálogo de `CATALOGOS_DE_TRANSPORTE`, que `catalogos.ts` antepone).
+- **D8** Desactivar no cambia lo guardado ni la oferta del flujo: `_transporte_validar` sólo frena lo nuevo y `flujo_oferta` devuelve `activo`. La ayuda del formulario lo dice.
+- **D9** Sin versión en el catálogo (la tabla no tiene `actualizado_en`): gana el último, igual que las categorías de gasto; sin `<AvisoDeConflicto>`.
+- **D10** (microdecisión) Un solo `CatalogoDeTransporte` (encabezado, cinco estados, lista) sirve a los dos catálogos; los formularios son dos hooks y dos modales porque los campos difieren. Un nombre se normaliza
+  (recorta y colapsa espacios) antes de validar y guardar; el código se guarda en mayúsculas y sin espacios.
+
+<!-- paso:6.08-2 -->
+
+## 6.08-2 — El hueco «Transporte» de la unidad (2026-11-12)
+
+- **D11** (microdecisión) Los campos van en tres `<Bloque>` abiertos (Ruta; Contenedor y booking; Fechas y notas) dentro del bloque del hueco: lo que pide la fila sin esconder nada. Un bloque con un error adentro se fuerza abierto.
+- **D12** Sin `logistica.transporte.editar` del origen: los mismos campos apagados con lo guardado y el motivo escrito, sin «Guardar». Mientras `mis_permisos` no llegó, el formulario está apagado.
+- **D13** Opciones del selector = lo que ofrece `flujo_oferta` (vacío = todos los activos) más lo ya guardado, siempre visible y rotulado («(inactiva)», «(fuera de la oferta)»): una desactivación no esconde un dato guardado (la base sólo frena lo nuevo).
+- **D14** El flujo de la unidad se busca con `flujos` por origen, ámbito y `activo` desde el navegador (precedente `infra/documentos/tipos.client.ts`); no se cambia `Unidad`, que es del núcleo. No hay lector de la oferta para el navegador en `flujos` (es `server-only`): el hueco llama
+  `flujo_oferta` y parsea con una copia de `ofertaDesde` (un área no importa otra).
+- **D15** El formulario guarda un borrador de los campos tocados, no una copia de la fila: «Recargar» tras un conflicto trae la versión nueva y lo tocado sigue escrito; tras guardar, lo escrito se suelta cuando llega la versión nueva.
+- **D16** La validación local repite las reglas de la base con sus mismos textos sólo para ahorrar un viaje, y sólo en lo que cambió; manda la base (su rechazo viaja por `hint`).
+- **D17** Sin fila y sin campos tocados, «Guardar» está apagado: no se crea un transporte vacío.
+- **D18** Las fechas son `date` (sin hora): `<input type="date">` y `AAAA-MM-DD` tal cual; no pasan por zona ni por `fechas.ts`.
+- **D19** La unidad de repuesto no existe aún (8.13): el hueco sólo trata vehículos y, ante un repuesto, lo dice en una línea.
+- **D20** Sin migración: la base de 6.07 cubre guardar, la oferta y los rechazos con `hint`.
+- **D21** (corrige el plan) La base quita **todo** espacio del contenedor y del booking (`regexp_replace(v, '\s', '', 'g')`) y los pasa a mayúsculas: «ecmu 123» no es un error sino «ECMU123». La validación local hace lo mismo antes de revisar la forma.
+
+<!-- paso:6.08-3 -->
+
+## 6.08-3 — `/logistica/embarques`: embarques y contenedores (2026-11-12)
+
+- **D22** Sin botón «Editar grupo» en esta parte: lo trae la 6.08-4 junto con su drawer (un control apagado sin destino confunde). Reversible.
+- **D23** No se crea `pantallas/transporte-grupo.ts`: el área no declara ningún hueco propio en el grupo; lo que declaran `mover`, `documentos` y `dinero` se monta desde `src/app` (`embarques/huecos-del-grupo.ts`).
+- **D24** Las vistas `?grupo=` son enlaces que no conservan filtros ni cursor (la clave de `q` y el cursor significan otra cosa en cada tipo), como las de Gastos.
+- **D25** `DrawerDelGrupo` se registra `sinFormulario` (el resumen sólo muestra; cada hueco pregunta al cerrar por sí solo), con el argumento del panel de la unidad.
+- **D26** Se omite «días en la fase» del resumen: `transporte_grupo` no lo trae y leerlo sería una lectura por fila (N+1, `escala.md`).
+- **D27** Los huecos de grupo se dibujan por permiso en cualquier origen y sin mirar la regla de flujo: un grupo puede cruzar orígenes y flujos, y la base vuelve a exigirlo por unidad. Sólo con unidades visibles.
+- **D28** El cursor de la lista es el `siguiente` opaco de la base (uuid) en `?cursor=`, validado con `z.guid()`; no se usa `leerCursor` de `shared` (su formato, instante + id, no aplica). No se toca `shared`.
+- **D29** El filtro de estado se escribe «En tránsito» (sin fecha de arribo) / «Ya llegaron» (con arribo); «Todos» no manda nada.
+- **D30** «Varias»/«Varios» y «—» se distinguen: un dato que difiere entre unidades se dice «Varias»; uno que ninguna tiene, «—». Un id de catálogo que no aparece (p. ej. un catálogo de más de 200) se dice «—», nunca el uuid.
+- **D31** La unidad de repuesto aparece en el resumen como texto plano (sin enlace) hasta 8.13; la lista no las distingue.
+- **D32** Sin migración: `transporte_grupos` y `transporte_grupo` (6.07) cubren la lista y el resumen.
+- **D33** Sin `medir-*.sql`: no existe una sonda de volumen de transporte (sólo la prueba SQL de 6.07-3); la fila de `docs/RENDIMIENTO.md` dice «sin medir con volumen», como Gastos. Corrige la afirmación de la parte 1 de que la sonda ya existía.
+- **D34** Los filtros de naviera y de puertos ofrecen sólo los activos de los catálogos (sin opciones, el filtro no se dibuja); el nombre de una fila sale de todos, activos o no. Un grupo cuya naviera se desactivó se ve por su nombre pero no se filtra por ella.
+- **D35** La búsqueda `q` se manda como `prefijo` sólo si, además del mínimo del esquema, tiene tres `[A-Za-z0-9]` seguidos (la base los exige tras quitar espacios y pasar a mayúsculas): «ab-c» no filtra.
+
+<!-- paso:6.08-4 -->
+
+## 6.08-4 — «Editar grupo» y cierre de la fila 6.08 (2026-11-12)
+
+- **D36** El formulario de «Editar grupo» **tapa** al resumen (un solo drawer a la vez, como aduana D8); cancelar y guardar vuelven al resumen con `replace`. Dos drawers apilados son más difíciles de cerrar y de probar, y aduana ya tiene el patrón.
+- **D37** Sin `logistica.transporte.editar` ni `repuestos.editar` en ningún origen no se dibuja el botón y `?panel=editar-grupo` se ignora. Con permiso pero con un grupo que no se puede editar desde aquí (más de 200 unidades, unidades que no se ven o que no se pueden editar), el botón sale apagado con el motivo y una URL escrita a mano abre el drawer con el motivo y sin campos. La base manda siempre.
+- **D38** «Varios» = las unidades **vistas** difieren (`valoresComunes` sobre `transporte_grupo`). Un campo en «Varios» **no se vacía**: vacío = no tocar. Vaciar el dato de todas se hace en un campo común.
+- **D39** `notas` queda fuera del grupo: la RPC no las admite y son de cada unidad.
+- **D40** Campos propios del grupo (`campos-del-grupo.tsx`) y no los del hueco: no se toca 6.08-2, no hay notas ni enlace a Configuración, y las opciones son todos los activos (un grupo cruza flujos; la oferta y la fase las revisa la base por unidad y rechaza con «<título>»).
+- **D41** Los rechazos se dicen «No se cambió ninguna: <motivo>» (es todo o nada); «Recargar» = `router.refresh()` y conserva lo escrito (borrador por campo tocado).
+- **D42** Si se cambia el contenedor o el booking del tipo, el resumen sigue abierto bajo la clave nueva que devuelve la base; no se avisa de una fusión con otro grupo que ya la tuviera.
+- **D43** El e2e de `configuracion-logistica` (crear una naviera y verla ofrecida) ya existe desde 6.08-1; no se repite.
+- **D44** Sin migración y sin auditor: pantalla sobre una RPC existente, sin permiso ni dato nuevo.
+- **D45** Las reglas van en `entities/transporte/edicion-del-grupo.ts` y no en `grupos.ts` (267 líneas: pasaría de 300). Se aparta de la fila sólo en el nombre del archivo.
+- **D46** El e2e arma un grupo en el que difieren el ETA **y** el zarpe (sólo la primera unidad tiene zarpe), así que esperaba un «Varios» y hay dos: el plan lo había supuesto de un solo campo. La prueba comprueba los dos y que sólo se toca el ETA.
+
+<!-- paso:6.09-1 -->
+
+## 6.09-1 — Aduana de lectura (2026-11-12)
+
+- **D1** «Pagada» y «Faltan los tributos de N» salen sólo de la base (`pagada`, `faltan`); nunca se calculan en el cliente. Con `hayOcultos` y `faltan > 0` el texto agrega «y de unidades que no ves»;
+  ya pagada no se dice nada de ocultos; sin vehículos, «Sin vehículos».
+- **D2** El vencimiento usa el día de la empresa (`diaEnZona`): «Vencida el …» si pasó y no está pagada, «Vence hoy», «Vence mañana», «Vence en N días» (hasta 7), si no «Vence el 10 ene 2027». Una pagada
+  muestra la fecha sin alarma. Siempre texto; el color sólo refuerza.
+- **D3** El canal se dice con su texto («Verde», «Amarillo», «Rojo», «Sin canal»); los valores salen del tipo generado y el texto de un `Record` exhaustivo.
+- **D6** Quien tiene `logistica.aduana.gestionar` y no `logistica.ver` no entra a la página ni ve el enlace (la página exige `logistica.ver`): lo más conservador.
+- **D8** La lista abre el resumen por `?declaracion=<id>` en un `<Drawer>`; el alta y la edición (6.09-2) van por `?panel=` y no conviven con él.
+- **D9** «Unidades» es el número de la base (acotado a 201: «más de 200»), nunca un total exacto.
+- **D11** Sin paginación numerada: «Siguiente» por cursor `(creado_en, id)` y «Volver a las más recientes»; sin «Anterior».
+- **D13** El hueco lee «Tributos pagados» de `declaracion_leer` (sin montos, funciona con sólo `logistica.ver`); si la unidad no está entre las 200 que trae, dice «Abre la declaración para ver los tributos.».
+- **D14** El hueco pide `logistica.ver` y la regla `aduana`; sin declaración dice «Esta unidad no está en ninguna declaración.» con «Ver declaraciones».
+- **Tributos en la lista:** el filtro «pagada» es una elección de tres (todas, pagadas, con tributos pendientes) y no un booleano: un «No» tri-estado no filtraría y el chip diría lo contrario.
+- **Sin `medir-*.sql`** (tabla de volumen bajo, D34 de 6.07).
+
+<!-- paso:6.09-2 -->
+
+## 6.09-2 — Aduana: escribir (2026-11-12)
+
+- **D15** El buscador de vehículos busca al enviar (Enter o «Buscar»), no con un debounce a cada letra: una petición por intención, sin temporizadores, y una respuesta vieja no pisa a una nueva. El mínimo (3 letras o números) es el mismo que el de la lista.
+- **D16** El alta y la edición no convive con el resumen (D8): el formulario es un panel propio por `?panel=` que la página dibuja leyendo la declaración en el servidor (`shallow: false`); guardar o cancelar vuelve al resumen con `replace` para que «atrás» no reabra el formulario.
+- **D17** `?panel=canal` va sobre el resumen sin tocar `?declaracion=`: se abre con `usePanelPorUrl(PANEL_CANAL)` sin claves extra, así abrir y cerrar sólo escriben `?panel=`.
+- **D18** Tras un conflicto de versión el formulario y la composición guardan la versión con la que chocaron: «Recargar» (`router.refresh()`) trae la declaración nueva y lo escrito se queda; el aviso se apaga solo cuando la versión cambia. El borrador se compara contra la versión nueva.
+- **D19** Un vehículo ya marcado para quitar o ya agregado por otra persona se descarta solo al releer la declaración; «Guardar vehículos» manda sólo lo que aún aplica.
+- **D20** El e2e no consulta la lista por rol mientras hay un panel modal abierto (el resto de la página queda oculto para el árbol de accesibilidad): el «Faltan los tributos de 2» se lee en el resumen y la fila «Pagada» se lee tras recargar la página.
+
+<!-- paso:6.12-1 -->
+
+## 6.12-1 — Alertas y bandeja de logística: la base (2026-11-12)
+
+- **D1 · «Trabado»:** una unidad **demorada** a la que le falta al menos un requisito **bloqueante** para entrar a su fase siguiente (la activa de menor
+  `fases.orden` entre las que tienen transición desde la suya); se evalúan sólo las primeras 50 demoradas que ve quien mira. Sin transición de salida no
+  está trabada. El motivo es la descripción del primer requisito incumplido por `fases_requisitos (orden, id)`. Cierra el abierto «Trabado no está definido».
+- **D2 · A quién se avisa la demora:** a quien tiene `flujos.mover`, `logistica.ver` y `vehiculos.ver` del origen; manda el menor alcance de las tres (con
+  `propios`, la unidad que creó o la de un lead de su cartera). Nadie recibe un aviso de lo que no puede abrir. Quien está en una baja en curso deja de contar
+  su cartera.
+- **D3 · Cada cuánto:** `alertas-demora` cada hora en el minuto 12; `alerta_cada_horas` nulo = 72 h. `documentos-vencimientos` a las 11:15 UTC (07:15 en
+  America/La_Paz).
+- **D4 · Reabrir** es la misma fila (el antispam deja una abierta por persona, tipo y unidad): sin leer, `creado_en = now()`, título y cuerpo al día. El
+  primer aviso es un insert y ya empuja si `push_web` está activa (`trg_notificaciones_push`, 7.03); reabrir es un update y no empuja.
+- **D5 · Después de accionada** (abrir un `demora_fase` lo acciona): no se avisa de nuevo hasta pasado `alerta_cada_horas` desde el último aviso de la
+  fase actual; uno anterior a `fase_desde` no cuenta.
+- **D6 · Vencimientos:** sólo documentos de vehículos (los de repuestos, Fase 8) que todavía no vencieron (`vence_el >= hoy`, el día de la empresa);
+  una vez por persona y documento desde que empieza su ventana (`vence_el - aviso_dias`, medianoche de la empresa): si alguien corre la fecha y la ventana
+  vuelve a abrirse, avisa otra vez. Destinatarios: `logistica.documentos.subir` del origen con la regla de D2. Con `aviso_dias` mayor que 90, la purga diaria
+  puede borrar el aviso leído y se avisa dos veces: se acepta.
+- **D7 · Textos** (en la base): `Vehículo demorado en «<fase>»` / `<título> lleva <N> días en la fase (el límite es <D>)`; `Documento por vencer:
+«<tipo>»` / `<título> · vence el <d> <mes> <aaaa>.` más `Sube el nuevo para renovarlo.` o `Pide uno nuevo antes de que venza.`. El mes sale de un
+  arreglo fijo, no de `lc_time`. Ruta: `/logistica/vehiculo/<id>`.
+- **D8 · Las pruebas de los jobs** van en `supabase/tests/areas/alertas/jobs.sql`, no en `supabase/tests/jobs.sql` (ése es de los jobs de funciones edge).
+- **D9 · Sin candado en el job:** si alguien mueve la unidad mientras corre, puede quedar abierto un aviso de la fase anterior; se cierra al abrirlo o al
+  volver a moverla. Hacer esperar a quien mueve sería peor. Para achicar la ventana, cada escritura vuelve a pedir que la unidad siga en esa fase con ese
+  `fase_desde`.
+- **D10 · Índice nuevo** `notificaciones_referencia_idx`: «ya avisé» y «cerrar al mover» buscan por unidad o documento y el antispam empieza por
+  `usuario_id`. Con él el paso es Nivel 2: el e2e completo lo corre el CI del PR.
+- **D11 · Topes por corrida:** 2.000 unidades y 2.000 documentos, de a 200 por cursor. Con más de 2.000 demoradas a la vez, las más nuevas esperan.
+- **D12 · Sin `medir-*.sql`:** rangos acotados de índices ya medidos (`vehiculos_cadena_idx`, 6.02), una cola corta y jobs con tope.
+- **D13 · Firma:** `alertas_demora()` conserva `returns integer`: cuántos avisos intentó (la puerta de 7.01 puede descartar en silencio).
+- **D14 · Orígenes de la bandeja:** todos los que la persona ve, activos o no. «Por aprobar» lista sólo documentos de vehículos (los de repuestos, 8.05).
+- **D15 · La papelera no cierra avisos abiertos:** la unidad borrada ya no alerta; el aviso viejo muere al abrirlo o con la purga.
+
+<!-- paso:6.12-2 -->
+
+## 6.12-2 — La bandeja de logística en Inicio (2026-11-12)
+
+- **D16 · «Ver todas».** «Alertas por demora» → `/logistica?origen=<origen de la primera fila>&demoradas=si`: sin `origen` la cadena abre la primera
+  pestaña y cambiar de pestaña suelta los filtros, así que una demora de otro origen no se vería. «Documentos por aprobar» → `/logistica?por_aprobar=si`
+  (sus filas no traen el origen). «Vehículos trabados» **no lleva** «Ver todas»: la cadena no tiene un filtro de trabados, y mandar a las demoradas
+  mostraría unidades que no están trabadas.
+- **D17 · Una lectura para los tres bloques:** `bandejaLogistica(tope)` va memorizada por request con `cache()` de React, así los tres bloques de la misma
+  pantalla hacen una sola llamada a `logistica_bandeja`. El `tope` lo pasa el bloque (`TOPE_DE_BLOQUE`): `logistica` no importa `tablero`.
+- **D18 · El título es el de la base** (`vehiculos.titulo`), sin el campo principal de 6.13: para nombrarlo habría que leer los atributos de cada fila. La
+  fase y el enlace al panel identifican la unidad.
+- **D19 · Textos de las filas:** demorada, `«<fase>» · Desde hace N días en esta fase` (el texto del panel de la unidad, del núcleo: el de la tarjeta es del
+  área `cadena` y un área no importa otra); trabado, `Falta para «<fase siguiente>»: <motivo>` (el motivo de la base ya dice «Documento: <tipo>»); por
+  aprobar, `<tipo> · subido <hace…>`. Las rutas de «Ver todas» las arma cada bloque en `tablero` con las claves de URL que exporta el área `cadena`.
+- **D20 · Un fallo de la lectura apaga los tres bloques** (es una sola llamada): cada uno dibuja `<ErrorDeBloque/>` con «Reintentar».
+- **D21 · El spec viejo de Inicio** («un bloque de otra fase todavía muestra su vacío») miraba «Vehículos trabados», que ahora depende de la base; pasa a
+  mirar «Esperas que destraban vehículos», que sigue hueco hasta la Fase 8.
+- **D22 · El e2e corre en `escritorio` y `movil`** (Inicio no es Configuración). En el celular la cadena muestra una fase a la vez: el spec elige la pestaña
+  de la unidad si está la lista «Fases», sin preguntar por el proyecto.
+- **D23 · `documento_por_vencer` en el catálogo:** icono `FileClock`, `accionAlAbrir: true` (abrirlo lleva al panel donde se sube el nuevo), etiqueta
+  «Vencimientos», descripción «Cuando un documento de una unidad está por vencer.». Las preferencias de push suman la fila solas.
+
+<!-- paso:7.10-1 -->
+
+## 2026-11-12 — 7.10-1
+
+Plan: `.piloto/planes/7.10.md`. Las no mencionadas se cumplieron tal cual (D5, D8 y D9 son de las partes 2 y 3).
+
+- **D1** — El 7.10 se parte en tres partes que cierran solas: leer y dibujar (esta), el selector `#`, y `/tarea` y `/evento`. En el e2e de esta parte la mención se siembra por SQL.
+- **D2 (desviación de la fila)** — El drawer de la mención es **propio del chat**: muestra lo ya leído y un enlace «Abrir en Leads|Vehículos|Cotizaciones». No reusa `DrawerDeLead`, `ResumenDeVehiculo` ni `ResumenDeCotizacion`: ninguno sale por `client.ts` y
+  se montan con las filas, orígenes y permisos que trae la página de su lista. Reversible: se cambia el cuerpo del drawer sin tocar la URL ni el parser.
+- **D3** — «Eliminado» sólo cuando se sabe (la fila vino con `eliminado_en` o la FK de la ficha quedó nula). Un lead purgado, para quien no lo ve, se lee «No tienes acceso…»: decirlo distinto filtraría existencia sin una función `security definer`.
+- **D4** — El chip de persona no abre drawer (sólo hay un nombre); `?mencion=usuario:<id>` se limpia como un valor ilegible. Reversible con «Escribirle por chat» (7.11).
+- **D6** — La interfaz no envía fichas de lead, vehículo o cotización; si llega una (otro cliente), se dibuja como mención.
+- **D7** — La edición de un mensaje con menciones no cambia en esta parte; 7.10-2 manda `menciones` también al editar.
+- **D10 (ajuste)** — Un chip «No tienes acceso…» o «Eliminado» (de lead, vehículo o cotización) es un botón que abre el drawer, que dice lo mismo sin ningún dato ni enlace (así el clic de la fila del plan es alcanzable). La persona sin acceso es texto.
+- **D11 (ajuste)** — La mención abierta por una URL pegada (que el hilo no leyó) se pide con la misma lectura de una referencia (`adicional` de `useReferenciasDelHilo`, memorizada por el texto de la URL para no repetirla en cada dibujo).
+
+<!-- paso:7.10-2 -->
+
+## 2026-11-12 — 7.10-2
+
+Plan: `.piloto/planes/7.10-2.md`. Cierra la D7 de 7.10-1 (editar manda `p_menciones`).
+
+- **D10** — La consulta del `#` es una palabra sola, sin espacios: un nombre de dos palabras se halla por una de ellas. Reversible: cambiar la expresión de `consultaAbierta`.
+- **D11** — Dos referencias con la misma etiqueta se distinguen con « (2)» sólo en el campo; el cuerpo guarda el token.
+- **D12** — El campo es un `<textarea>` plano: `#Nombre` no se resalta ni se protege; si se edita, queda como texto y no menciona.
+- **D13** — El panel va dentro del formulario, sobre el campo, no como popover (no pelea el foco y se prueba igual).
+- **D14** — Un envío rechazado por una mención (ya no la ves) queda «No enviado» con su motivo; no se quita la mención en silencio.
+- **D15** — Se puede mencionar a cualquier persona activa y sin bloqueo, sea o no miembro; la base sólo avisa a los miembros vigentes.
+- **D16** — No se ofrece mencionarse a uno mismo (`leerPersonas` excluye a quien escribe).
+
+<!-- paso:7.10-3 -->
+
+## 2026-11-12 — 7.10-3
+
+Plan: `.piloto/planes/7.10-3.md`. **Corrige la D8 de 7.10**: suponía que un evento privado llegaba a las personas elegidas y la base lo rechaza (los destinatarios sólo valen con visibilidad `seleccionados`, que pide `agenda.eventos.publicar`).
+
+- **D17** — `/evento` con invitados es un evento «para seleccionados» y pide `agenda.eventos.publicar`; sin ese permiso nace privado y sin invitados, y la ficha dice «Evento no disponible» a los demás miembros. No se otorga nada.
+- **D18** — `/tarea` y `/evento` se reconocen al enviar (Enter o el botón), con un aviso bajo el campo; un menú de comandos con `/` queda fuera. Reversible: sólo cambia `useRedactor`.
+- **D19** — El responsable y los invitados se eligen con `SelectorDePersonas` de agenda (≥ 3 letras), no con la lista de todos los miembros: el canal global no tiene tope. La tarea sólo ofrece a quien puede recibir y es miembro (`agenda_quienes_reciben` con la conversación).
+- **D20** — En una directa la otra persona viene elegida (responsable o invitada) y se puede quitar. Sin `agenda.tareas.asignar`, la tarea es de quien la crea.
+- **D21** — Sólo el responsable completa o reabre desde la ficha; el creador, que también puede en la base, lo hace en la agenda (enlace en la ficha). Reversible: `puedeCompletarDesdeFicha`.
+- **D22** — El título de partida (lo escrito tras el comando) vive en estado y no en la URL: recargar con el panel abierto lo abre vacío.
+- **D23** — Sin Realtime de tareas: si otra persona completa, la ficha lo muestra al releer el hilo.
+- **D24** — El drawer de «Nueva tarea» no reusa el panel de agenda (monta calendario, `hoy` y el detalle); los campos y las reglas sí vienen de agenda por `client.ts`.
+- **D25** — La tarea del chat nace sin vencimiento (opcional) y el evento empieza mañana a las 09:00 de la zona de la empresa; no hay descripción ni lugar en el formulario corto.
+
+**Para `docs/DECISIONES.md` al cerrar el 7.10** (las de las tres partes): D2 y D3 de 7.10-1 (drawer propio del chat; «purgado» y «no lo veo» no se distinguen), D10, D12 y D15 de 7.10-2 (una palabra tras el `#`; campo plano; cualquier persona activa) y D17–D25.
+
+<!-- paso:7.13-1 -->
+
+## 2026-11-12 — 7.13-1
+
+- **La visita va por Server Action**, no por un RPC del navegador: es una escritura (D16 de 7.12-2). Cuesta un POST más al abrir una ficha; ningún spec que cuenta acciones lo notó.
+- **La lista de atajos es un `Dialog` sin URL**, no un `<Modal>`: es una ayuda de sólo lectura, sin nada escrito que perder.
+- **La lista sale del catálogo `ATAJOS`**: un atajo nuevo aparece solo y `teclasDelAtajo` falla en test si no se puede mostrar.
+- **`<RegistrarVisita>` va después de las salidas «no disponible»** de cada ficha: lo que la RLS esconde no deja marca.
+
+<!-- paso:7.13-2 -->
+
+## 2026-11-12 — 7.13-2
+
+- **D4 · Un texto que parece teléfono no pide la sección de leads.** `pareceTelefono` (≥ 7 dígitos, sólo separadores, sin `#`) la omite y el estado `listo` trae `porTelefono`
+  para decir «No se busca por teléfono». Vehículos (VIN, lote) y cotizaciones sí se piden. Costo: un número de lead de 7 o más dígitos sin `#` no se encuentra por su número; con `#` sí. Reversible borrando una línea del hook.
+- **D5 · «Últimos abiertos» sin memoria:** se releen cada vez que la paleta se abre, porque las visitas cambian con cada ficha.
+- **D6 · `reposo` y no «vacío»:** bajo el mínimo (o cerrada) se muestran «Últimos abiertos» y acciones; la parte 3 no necesita un estado «mínimo».
+- **D7 · El estado se deriva** de lo guardado y de una clave en vez de un `setState` en el efecto: sin parpadeo de la lista vieja y sin `react-hooks/set-state-in-effect`.
+- **D8 · Las acciones se filtran en `entities`, sin mínimo y sin base:** valen sin red y con texto corto.
+- **D9 · Los hooks reciben las lecturas por argumento** (con `composicion.client.ts` por defecto): el test no mockea módulos.
+- **«Sin conexión» no es un código de `ErrorApp`:** `errorDePostgrest` da `inesperado` y cambia sólo el mensaje; se decide con `!navigator.onLine` o `MENSAJE_SIN_CONEXION` (`estadoDeError`). `MENSAJE_SIN_RESPUESTA` queda como `error` con «Reintentar».
+- **El test del hook mockea `server-only`:** `leads/client` reexporta una Server Action y en Vitest el import llega entero (el mismo `vi.mock` que usan otras pruebas).
+
+<!-- paso:7.13-3 -->
+
+## 2026-11-12 — 7.13-3
+
+- **D1 · «Ver atajos» cierra la paleta y abre la lista de `?`** en el mismo estado del hueco (`HuecoBuscador`).
+- **D2 · `Ctrl+K` con la paleta abierta no alterna:** es idempotente como `?`; se cierra con Esc.
+- **D6 · «Ver todos en Leads» sólo sale si la sección de leads trae filas;** lleva el texto interpretado (`#12` queda `#12`).
+- **D7 · Las acciones «ir a» incluyen las secciones de Configuración visibles** (≈ 30 acciones para la dueña). Costo medido: +7 KB en el documento de cada pantalla (tope de `/perfil` 96 → 103 KB). Reversible quitando `configuracion` de `accionesDeLaPaleta`.
+- **D8 · Enter navega con `router.push`,** no con `<Link>`: una fila de cmdk no es un enlace; Ctrl+clic no abre pestaña nueva.
+- **Corrección de V32:** `useAbrirNuevoLead` no envuelve a `usePanelDeAlta` (registraría dos veces la vuelta del foco); lee sólo `panel` y llama `abrirConVuelta`. Vive en el mismo archivo que `usePanelDeAlta` porque
+  `scripts/guardas/paneles-con-vuelta.test.ts` exige las dos funciones de la vuelta en todo archivo con `history: 'push'`.
+- **Grupos de la paleta:** «Crear», «Navegar» y «Ayuda» (el plan decía «Ir a»; las acciones se llaman «Ir a …» y el grupo repetía el texto). Sin token `--color-ink-muted` en el diseño: la segunda línea de las filas usa `--color-ink-soft`.
+- **El foco del alta tras la paleta:** la acción se ejecuta en el siguiente macrotask tras cerrar; el e2e confirma que el foco queda dentro del panel.
+
+<!-- paso:8.01-1 -->
+
+# 8.01-1: decisiones (2026-11-12)
+
+- **D1 · El HTML del sitio lo deriva la base** (duda 1 de la fila; cierra la contradicción 4 de la Fase 8, «Tiptap saneado» sin con qué). El editor
+  manda un documento de ProseMirror; `_web_doc_html()` lo valida contra una lista blanca y escribe el HTML (como `_seguimiento_detalle()` en leads). Sin
+  saneador de HTML ni dependencia nueva. Espejo en `src/modules/web/entities/contenido/doc.ts` con la misma tabla de casos.
+- **D2 · `legales` = `{terminos|privacidad: {titulo, doc, html, actualizado_en}}`** (duda 2). `html` y `actualizado_en` los pone
+  `trg_web_ajustes_legales`, escriba quien escriba (también `service_role`); `actualizado_en` cambia sólo si cambió el título o el documento. La
+  migración pasó lo guardado por la misma validación y se detiene si una clave no cumple (en la nube no hubo pantalla de legales: se espera `{}`).
+  **Contrato con el repo del sitio:** `web.ajustes.legales` cambia de forma; el sitio dibuja `legales.<clave>.html` y `titulo`.
+- **D3 · La política de la cola la cambia quien tenga `web.cola.gestionar` o `web.ajustes.gestionar`** (duda 3; cierra la contradicción 2). Las claves
+  `cola_activa`, `ttl_contacto_minutos`, `dias_pegajoso`, `max_abiertas_default` y `max_intentos`; lo demás pide `web.ajustes.gestionar`. El permiso se
+  mira por las claves que llegan, no por las que cambian: la pestaña «Ajustes» (8.01-4) manda sólo las del sitio.
+- **D4 · Imagen del documento = `{type: 'image', attrs: {ruta, alt?}}`**, con `ruta` relativa al bucket público `web` (letras, dígitos, `_`, `-`,
+  carpetas y extensión `webp|png|jpg|jpeg` en minúsculas). Sale `<img data-ruta="…" alt="…">` y el sitio arma la URL pública, como ya lo hace con
+  `portada`. Un `src`, un esquema u otro host se rechazan. **Contrato con el repo del sitio.**
+- **D5 · Fuera de la lista blanca se rechaza (22023, hint `doc`), no se recorta**: el editor (8.03) limpia antes de mandar.
+- **D6 · `minutos_lectura` lo calcula sólo la base**: palabras / 200 hacia arriba, al menos 1; sin palabras, nulo. No se espeja en TS.
+- **D7 · Los legales no llevan imágenes** (nadie cuenta sus rutas) y no pueden quedar vacíos.
+- **D8 · Una guía de antes sin documento conserva su HTML** mientras nadie escriba el cuerpo (la migración no borra contenido), pero una guía publicada
+  siempre lleva el HTML derivado: la migración despublica las publicadas sin documento (con `raise notice` de cuántas) y publicar recalcula desde el
+  documento. El HTML heredado no está saneado: por eso no se sirve.
+- **D9 · `redes` admite `facebook`, `instagram`, `tiktok`, `youtube`, `x` y `linkedin` (`https://`, hasta 500); `seo`, `titulo` (70) y `descripcion`
+  (160).** Se reemplazan enteros; un valor nulo o vacío omite la clave. Ampliar es una migración.
+- **D10 · `web_testimonio_consentir` y `web_testimonio_retirar` llevan `p_actualizado_en_esperado`** aunque la fila las nombre sin él (`migraciones.md`:
+  toda RPC de edición). Retirar uno ya retirado devuelve la versión sin escribir.
+- **D11 · El canal del consentimiento es texto libre de 1 a 80** (la pantalla de 8.02 ofrece sugerencias). Registrarlo de nuevo tras retirarlo lo reactiva.
+- **D12 · La migración despublicó los testimonios publicados sin el trío**: la vista ya no los mostraba; así el trigger no rompe sus próximas escrituras.
+- **D13 · `aplicado_en` de `web.ajustes.gestionar` pasa a `web_ajustes_guardar`** y el de `web.cola.gestionar` suma la política de la cola, en la
+  migración y en el seed (auditoría del plan).
+- **D14 · Los ayudantes del documento y de los ajustes no son superficie de PostgREST**: sin `execute` para `anon` ni `authenticated`; los usan triggers y
+  RPC `security definer`.
+- **D15 · El consentimiento está atado al texto**: en un testimonio con consentimiento registrado, cambiar `cliente`, `texto` o `foto_ruta` anula el
+  consentimiento y lo despublica (auditoría del plan: la persona consintió ese texto y esa foto). Cambiar la ciudad o el vehículo apaga sólo el permiso
+  de mostrarlos (`consent_ciudad`, `consent_vehiculo`) y el testimonio sigue publicado (auditoría del informe); cambiar el orden no toca nada.
+- **D17 · Queda para después (auditoría del informe, menores):** la migración no vuelve a validar `redes` ni `seo` ya guardados (en la nube nunca hubo
+  pantalla; se validan al guardar por la RPC); `_web_doc_nodo` y `_web_ajustes_objeto` pasan las 80 líneas por función: se parten cuando se toquen.
+- **D16 · La RPC no crea la fila única de `ajustes_web`**: la crea el seed y la migración (`on conflict do nothing`); un `insert … on conflict` en cada
+  llamada dispararía los triggers por sentencia (revalidar) aunque no escriba.
+
+<!-- paso:8.01-2 -->
+
+# 8.01-2: decisiones (2026-11-12)
+
+- **D1 · La rueda es del área `turnos`** (lo dice la fila). El componente va en `features/turnos/rueda/components/`, un caso dentro del área (como
+  `logistica/features/mover/lote/`), y deja lugar a otros casos de turnos (8.05).
+- **D2 · La dirección pública es del área `sitio`.** `infra/queries/sitio.ts` pasa a `infra/sitio/direccion-publica.ts` (un archivo, una
+  responsabilidad: 8.01-4 suma el escritor al lado) y la interfaz a `entities/sitio/repositorios.ts` (en la raíz de `entities/` sería núcleo).
+- **D3 · Hay `areas/nucleo/` aunque hoy esté vacío:** lo exige el modelo (las guardas de `logistica` y `repuestos`) y da lugar a lo compartido sin tocar
+  las entradas de la raíz.
+- **D4 · Sin `features|entities|infra/nucleo/` vacíos:** la guarda no los pide; los crea quien los llene.
+- **D5 · La guarda nombra el área de una pantalla con `PANTALLAS_DE_AREA` antes de mirar el prefijo.** `pantallas/perfil.ts` no cambia de nombre (la
+  fila) y es de `turnos`; los huecos `sitio-guias|faqs|testimonios` (8.01-3) reexportarán `features/contenido/`. Sin el mapa, `perfil` sería núcleo y
+  el núcleo no importa áreas. Es una tabla: reversible. `htmlDelDocumento` no sale por `areas/contenido/` hasta que alguien lo use (8.03).
+- **D6 · La guarda vive en `scripts/guardas/areas-b/`** (del carril B), como la de `repuestos` en `areas-c/`, y no se registra en ningún archivo del
+  carril A: es un `*.test.ts` que vitest descubre.
+
+<!-- paso:8.01-3 -->
+
+# 8.01-3: decisiones (2026-11-12)
+
+- **D1 · El hueco es `HuecoDePestana<P = never> = ComponentType<P> | null`**, en `entities/nucleo/hueco-de-pestana.ts` (lo usan `sitio` y `contenido`).
+  Nulo = la pestaña no existe; el paso que lo llena declara sus props. El `| null` se queda en el tipo aunque se llene: sin él, `no-unnecessary-condition`
+  avisaría en `pestanas.ts`.
+- **D2 · Sin pestañas llenas, «Sitio web» no figura en el hub** (precedente `SECCIONES_DE_LOGISTICA`): `secciones.ts` importa `SECCIONES_DE_WEB` (0 o 1),
+  no `SECCION_DE_WEB` suelta como decía la fila; el efecto es el que la fila pide (nadie ve una tarjeta que lleva a nada).
+- **D3 · La tarjeta se abre con las claves de las pestañas llenas**, no de todas: al llenarse sólo «Ajustes», quien tiene sólo `web.contenido.gestionar` no la ve.
+- **D4 · Por URL:** sin ninguna clave de las pestañas, «No tienes permiso»; con alguna pero sin pestaña llena para esa persona, «Por ahora no hay nada que
+  configurar aquí.» (como Logística).
+- **D5 · `/configuracion/cola-web` es del 8.04:** aquí sólo `RUTAS.configuracionDeColaWeb`, sin carpeta ni sección vacía.
+- **D6 · `sitio-legales` es del área `contenido`** en `PANTALLAS_DE_AREA` de la guarda: el 8.03 la llena desde `features/contenido/legales/`. El permiso sigue
+  siendo `web.ajustes.gestionar` (es de la pestaña, no del área).
+- **D7 · Textos:** «Sitio web» con `GlobeIcon`; pestañas «Ajustes», «Legales», «Guías», «Preguntas frecuentes», «Testimonios», en el orden de la fila.
+  Reversibles: los ajusta el paso que llena cada una.
+
+<!-- paso:8.01-4 -->
+
+# 8.01-4: decisiones (2026-11-12)
+
+- **D1 · El formulario de «Ajustes» viaja diferido** (`diferido()`, `features/sitio/ajustes/components/diferidos.tsx`). `pestanas.ts` importa el hueco para saber
+  si está lleno y el hub (`secciones.ts`) importa `pestanas.ts`: con el componente directo, el formulario y su action entrarían al grafo de `/configuracion`. La
+  pestaña no se dibuja en el servidor; mientras llega el código, `<EsqueletoFormulario bloques={3} campos={4} />`. Reversible.
+- **D2 · El conteo de lo que deja de verse sale de la vista pública `web.vehiculos`**, filtrada por `origen_nombre` (único) con `limit 51`: sin RPC, sin
+  migración, sin permiso nuevo. Es lo que ve un visitante, así que incluye «web activa»: con la web apagada no deja de verse nada y no hay aviso.
+- **D3 · El conteo se lee al abrir la pestaña**, uno por origen que hoy se ve, en paralelo. Si uno falla, ese origen avisa sin número y la pestaña sigue en pie.
+- **D4 · El aviso sale bajo la casilla al destildar un origen que hoy se ve**, antes de guardar y sin confirmación (guardar es reversible). Con 0 vehículos no avisa.
+- **D5 · Un origen visible que no aparece en la lista (inactivo) se conserva al guardar** (`origenesAGuardar`): no se cae de la web sin que nadie lo vea.
+- **D6 · Se mandan todas las claves del sitio que edita la pestaña**, no sólo las cambiadas; la versión frena el pisotón, y `redes` y `seo` se reemplazan
+  enteras de todos modos. Nunca `legales` ni la política de la cola.
+- **D7 · El conflicto (`PT409`) va con `<AvisoDeConflicto>` dentro del formulario**, con el texto de la base. «Recargar» borra el borrador y hace
+  `router.refresh()`: la versión nueva cambia la `key` y el formulario se vuelve a montar desde la base. Un error 22023 de la base va junto a su campo (por el
+  `hint`); los demás, por toast.
+- **D8 · El borrador** (`useBorrador('ajustes-del-sitio')`) **guarda sólo los 13 campos de texto**; las casillas y el interruptor arrancan de lo guardado. Sin
+  modo de sólo lectura: la página sólo abre la pestaña con `web.ajustes.gestionar`.
+- **D9 · Textos** (reversibles): bloques «Identidad», «Contacto», «Vitrina» (abiertos), «Redes» y «Buscadores» (plegados, se abren con un error); éxito
+  «Ajustes del sitio guardados»; sin orígenes «Todavía no hay orígenes activos.»; los mensajes de validación son los de la base, palabra por palabra.
+- **D10 · `docs/UX.md` no se toca** en esta parte. Estados de la pestaña, para que el carril `a` sume la fila: cargando (el `fallback` de la página y el
+  esqueleto del diferido); error al leer (el `error.tsx` con «Reintentar»); sin permiso (la página, 8.01-3); vacío (no aplica a la fila única; la lista de
+  orígenes tiene su texto); sin red (el aviso «No hay conexión…» y `conRed`); conflicto (D7).
+
+<!-- paso:8.07-1 -->
+
+# 8.07-1: decisiones (2026-11-12)
+
+- **D1 · `node:crypto`, no `jose`.** La cookie del portal (8.07-2) se firma con HMAC-SHA256 de `node:crypto`: firma lo mismo sin dependencia nueva.
+- **D2 · El sitio reescribe `/api/portal/*` hacia el CRM.** Así la cookie queda de primera parte y alcanza `SameSite=Lax`. Va como contrato en el 8.07-3.
+- **D3 · Sesión de 7 días.** Revocar o volver a otorgar la cortan antes, por `otorgado_en`.
+- **D4 · `portal_intento` recibe la IP y calcula la huella adentro** con `HMAC-SHA256(ip, portal:sal)`, en vez de recibir una huella hecha
+  (`p_huella`, como decía la fila). La sal nunca sale de Vault y no hace falta otra RPC para leerla. Es HMAC y no `digest` porque una sal como clave es la
+  forma correcta de un hash con secreto (un sha256 sin clave de una IPv4 se adivina recorriendo 2^32 direcciones) y porque PGlite sólo trae el HMAC real.
+  El assert «otra huella no» se prueba como «otra IP no» (L2).
+- **D5 · Ventana fija de 15 minutos por huella, que cuenta todo intento.** El límite va antes del login, cuando todavía no se sabe si falla.
+  `Retry-After: 900` fijo, el máximo: no hace falta otra lectura ni le dice a nadie cuánto falta. Reversible: la función puede devolver los segundos.
+- **D6 · Qué IP llega detrás de la reescritura: pendiente de medir (no es contrato todavía).** Vercel reescribe el `x-forwarded-for` que llega de
+  afuera: detrás de la reescritura del sitio todos los clientes podrían llegar con la IP de salida del sitio y, como se cuenta todo intento, el portal
+  entero quedaría en 10 ingresos cada 15 minutos. Si nada pisa la cabecera, tomar su primera entrada deja saltarse el límite. La base de esta parte no
+  depende de eso: `portal_intento(p_ip)` sirve igual. El 8.07-3 mide qué IP llega a través de la reescritura y elige entre una cabecera propia que el
+  sitio firme con un secreto compartido, o limitar también por código cuando la IP no es de fiar (`docs/PLAN.md` › «La IP real tras la reescritura»).
+  Mientras, la base sigue bloqueando por código (5 fallos, 15 minutos).
+- **D7 · El `Origin` del sitio se lee con `web.portal_direccion_publica()`** (sólo `service_role`), que entra en «el admin sólo para `web.portal_*`».
+  `direccion_publica` no se suma a la vista `web.ajustes`: cambiaría el tipado del sitio, que es otro repo.
+- **D8 · La purga corre cada 5 minutos, de a 10.000**, sobre las ventanas vencidas, por el índice de `ventana_desde`.
+- **D9 · Sin script en `scripts/carreras/`.** El contador es un solo `insert … on conflict do update` por la clave primaria: dos pedidos a la vez de la
+  misma IP se serializan en esa fila y ninguno se pierde. No hay candado de aplicación ni numeración.
+- **D10 · `otorgado_en` viaja en la cookie como el texto de la base**, con microsegundos. Un `Date` de JS lo redondearía a milisegundos y
+  `_portal_vigente` (igualdad exacta) dejaría de reconocer la sesión.
+- **D11 · Un cuerpo inválido en `ingresar` responde el mismo 401 que un login fallido.** Sólo el 429 (límite) y el 503 (sin secreto) se distinguen, a
+  propósito.
+- **El contrato del portal.** `docs/PLAN.md` pide leer `docs/archivo` (`rg -n 'Contrato del portal' docs/archivo`): esta sesión lo intentó y el permiso
+  lo negó (también al auditor). El contrato vigente es `docs/DECISIONES.md` › «Contrato del portal para la Fase 8» (2026-10-15): no fija nombre de cookie,
+  duración ni forma del límite; pide la cookie firmada con `lead_id` y `otorgado_en`, el login que responde igual a cualquier fallo y que nunca se vean
+  costos, VIN completo ni privados. No contradice la fila.
+- **Compuerta `datos`** (`security definer` y Vault): aprobada sola por `PILOTO_AUTO` (decisión vigente «aprobar»).
+
+<!-- paso:8.09-1 -->
+
+# 8.09-1: decisiones (2026-11-12)
+
+- **D36 · El filtro de estado tiene tres opciones:** Abiertos (por defecto), Cerrados y Todos. La fila pide «abiertos o cerrados» y un proyecto cerrado no debe
+  desaparecer sin camino de vuelta. `todos` manda `p_estado` nulo. Reversible.
+- **D37 · Sin «Anterior».** El cursor es el `numero` del último proyecto; la base sólo camina hacia adelante. Se reusa `<Paginacion siguiente anterior={null}>`
+  (como `/logistica/gastos`): el plan creía que no servía, pero acepta cualquier texto de cursor. Con cursor, «Volver al principio».
+- **D38 · El cliente de un proyecto de un vehículo no se pide:** la ficha del vehículo ya lo vincula. El cliente libre, el teléfono y el lead sólo existen en el
+  proyecto externo (la base no los prohíbe; no se exponen juntos para no duplicar).
+- **D39 · Tras crear, el drawer se cierra y se queda en el listado** (toast «Proyecto #N creado.»). El detalle llega en 8.09-2, que lo cambia a «ir al detalle».
+- **D40 · Un `?vehiculo=` inválido o que no se ve abre el formulario como «Externo» con el aviso «No encontramos ese vehículo o no tienes acceso.»,** nunca un error.
+  El servidor lo resuelve sólo con el panel abierto y con `repuestos.editar`; la URL puede cambiar después de cargar, así que el id resuelto se compara con el de la URL.
+- **D41 · «Completo» no es «Cerrado»:** cerrar es una acción explícita (8.09-2). El estado derivado sale sólo de las cuentas de la base (≤ 201 ítems por proyecto);
+  no hay un estado «Con problema».
+- **D42 · El lead se pide sólo con `leads.ver`;** sin ella el bloque no se dibuja (la base lo vuelve a exigir con `trg_lead_visible`).
+- **D43 · «200+» en vez de un total exacto:** las cuentas de ítems leen como mucho 201 por proyecto (`textoDeItems`).
+- **D44 · El vacío de primera vez no sabe si hay proyectos cerrados:** con el filtro «Abiertos» dice «Todavía no hay proyectos de repuestos.» y aclara que los cerrados
+  no se muestran (elige «Todos»). Evita una segunda lectura sólo para afinar el texto.
+- **D45 · La guarda de páginas pide `TAMANO_DE_PAGINA_POR_DEFECTO` (50), no el máximo:** `paginas.test.ts` exige que lo registrado sea el valor por defecto de
+  `_acotar_pagina(p_tamano, 50, 100)`; el máximo de la lista (100, `MAXIMO_DE_PAGINA_DE_REPUESTOS`) sale del selector «Ítems por página».
+- **D46 · Esta parte es Nivel 1, no 2:** `navegacion.ts` (`_shell`, el disparador) no se toca hasta 8.09-2; `/repuestos/<id>` da 404 hasta entonces y el menú
+  sigue sin llevar a `/repuestos`. Se entra por la URL.
+- **D47 · Los buscadores de vehículo y de lead viven en `src/app/(app)/repuestos/`** y llegan al drawer como funciones de render: `repuestos` no importa `buscador`.
+  Un número solo («#12») no busca vehículos (D10 del buscador); un vehículo se busca con texto.
+
+<!-- paso:8.09-2 -->
+
+# 8.09-2: decisiones (2026-11-12)
+
+- **D48 · Sólo cantidad y precio son `XCell`.** Es numérica (`format: numero | monto | porcentaje`): no tiene texto ni selección. Descripción, tracking, notas y los cuatro catálogos son celdas
+  propias de `features/items/` (entrada de texto y `<select>` nativo) con el mismo teclado básico (Enter guarda y baja a la misma columna de la fila siguiente; Esc vuelve a lo guardado). No se
+  ensanchó `shared/ui/xcell` (duda 1 de la fila). La `XCell` muestra su etiqueta en cada celda: la densidad compacta va a «Pulido para la Fase 9».
+- **D49 · Un proyecto que no existe, está eliminado o no se ve da el mismo mensaje** («Este proyecto ya no está disponible: no existe o ya no tienes acceso.», con «Volver a Repuestos»); sin `notFound()`.
+- **D50 · La cabecera no muestra el teléfono ni el lead del cliente:** sólo el nombre (la lista tampoco). Reversible.
+- **D51 · Los pendientes del estado derivado se cuentan sobre las filas leídas** (≤ 200): sin stock y sin fase o en una fase no final (la misma cuenta de `repuestos_proyectos_listar`).
+- **D52 · La moneda por defecto de un precio es la primera de las activas** (la lista de `leerMonedasYTiposCambio` no trae un orden propio). Va en el mismo `update` cuando el ítem no tenía moneda;
+  vaciar el precio no borra la moneda.
+- **D53 · El conflicto no nombra a quién cambió el ítem** (el `update` directo no lo dice): «Otra persona cambió este ítem. Recarga para ver lo nuevo.» con `<AvisoDeConflicto>`.
+- **D54 · Con 200 ítems no se dibuja la fila nueva** y `<AvisoDeTope>` dice por qué; la hoja no pagina.
+- **D55 · Eliminar un proyecto vacío (y su «Deshacer») pasa a 8.09-4:** la fila del PLAN no lo pide.
+- **D56 · «Cerrar proyecto» no pide confirmación** (se deshace con «Reabrir»): toast con «Deshacer», que llama a la acción contraria con la versión que devolvió la primera.
+- **D57 · La hoja no se pide con `diferido()`:** es el contenido de la pantalla, no un panel que se abre; sólo el `<Confirmar>` de eliminar va diferido (`useAbiertoAlgunaVez`).
+- **D58 · Sólo lectura = texto plano**, no 200 `XCell` con candado (sin `repuestos.editar` o con el proyecto cerrado). El aviso del proyecto cerrado va arriba de la hoja.
+- **D59 · La fila nueva lleva sólo la descripción:** la cantidad (1 por defecto), el precio y lo demás se llenan después con el teclado. La action `crearItem` acepta cantidad, precio y moneda (validados con las
+  mismas reglas) por si la fila crece, pero la hoja hoy no los manda.
+- **D60 · Guardar una celda, agregar y eliminar un ítem no llaman a `revalidatePath`:** la hoja ya tiene la fila nueva (la action la devuelve entera) y recargar lee de la base; un `revalidatePath` volvería a
+  mandar las filas y pisaría lo que se está tecleando en otra celda. Cerrar y reabrir sí revalidan el detalle y el listado.
+- **D61 · «Nuevo proyecto» ya no cierra el panel antes de ir al detalle:** nuqs escribe `?panel=` de forma asíncrona y pisaba el destino de `router.push`. Ir al detalle saca el panel de la pantalla.
+- **D62 · Un guardado por celda va por una cola por fila** (`colaPorClave`): el segundo parte de la versión que dejó el primero. Cada guardado lee la versión de la fila al correr, no al encolarse.
+- **Hueco que queda para 8.10** (la base no lo frena hoy): el `update` por columna de un ítem **no mira si el proyecto está cerrado** ni valida que un `tipo_pieza_id` sea de su catálogo (sólo
+  `repuesto_item_crear` lo hace). La pantalla vuelve la hoja de lectura al cerrar; 8.10, que ya revisa los `grant` de `repuestos_items` (quita `UPDATE(en_stock_desde)`), decide si lo cierra con una RPC.
+
+<!-- paso:8.09-3 -->
+
+## 2026-11-12 · Paso 8.09-3: imágenes del ítem (parte 3 de 4 del 8.09)
+
+- **D63 · Se hace con una migración, no acotada:** sin ella «borrar por refcount» y el tope de 8 no se cumplen (`cola_gc_storage` sólo la escribe `service_role`). Dos triggers y un índice; sin RPC, policy ni permiso nuevos.
+- **D64 · La lista del panel se lee por una action** (`leerImagenesDeItem`) al abrirlo, no por un lector de navegador: `repuestos` no tiene `composicion.client.ts` y la guarda de áreas no lo admite. Nada de esto viaja con la hoja.
+- **D65 · Sin miniatura de 480 px:** la tabla no tiene columna para ella. Se sirve el WebP de ≤ 1600 px con `unoptimized` (como las fotos del vehículo: `next.config.ts` sólo admite `*.supabase.co`), sólo de las ≤ 8 de un panel abierto. Excepción anotada en `docs/RENDIMIENTO.md`.
+- **D66 · No se barren los huérfanos de `repuestos`** en `storage_gc_reclamar()` (subidas a medias): hoy sólo barre `vehiculos`. Cuesta almacenamiento, no corrección. Pulido de la Fase 9.
+- **D67 · Tope 8 en la base, bajo candado por ítem** (`pg_advisory_xact_lock`), y el mismo 8 en `entities/items/imagenes.ts`. No hay prueba de carrera de dos sesiones: el peor caso es una imagen de más. El conteo va acotado con `limit 8` (`supabase/tests/escala.sql`).
+- **D68 · «Quitar» no pide confirmación y ofrece «Deshacer»:** volver a insertar la ruta la saca de la cola de limpieza (rescate) mientras corre la gracia de 24 h; pasada la gracia, si la limpieza ya la reclamó, falla con su mensaje.
+- **D69 · Elegir sube al momento** (sin bandeja de «Subir N»): el panel es chico y la bandeja es de `vehiculos`. Lo repetido se detecta por el hash del WebP achicado, no por el del original.
+- **D70 · El botón «Imágenes» y la columna «Acciones» se ven también para quien sólo ve:** ver las imágenes es de `repuestos.ver`; sin `repuestos.editar` (o con el proyecto cerrado) el panel no tiene zona ni «Quitar».
+- **D71 · La tabla ya no se actualiza:** `drop policy "repuestos_items_imagenes: editar"` y `revoke update`. Nadie cambia `item_id` ni `ruta` (saltaría el tope, la carpeta y el encolado); la app sólo inserta y borra.
+- **D72 · El proyecto cerrado y el ítem eliminado frenan el INSERT en la base** (23514, hint `proyecto` / `item`), no sólo la pantalla. La action no lo consulta antes: lo dice el trigger y `errorDePostgrest` conserva su mensaje.
+- **D73 · La subida del navegador usa `subirPorHash` de `shared` desde el hook** (`use-subida-de-imagenes.ts`): los demás módulos lo envuelven en `infra/*.client.ts` + `composicion.client.ts`, pero la guarda de áreas de `repuestos` sólo admite `index`, `client` y `composicion`. Deuda para la Fase 9 (ampliar la guarda y mover la subida a `infra/items/imagenes.client.ts`), no se tocó la guarda.
+- **D74 · Agregar usa `insert` y no `upsert … ignoreDuplicates`:** el repositorio ya filtra lo repetido contra lo leído; si dos «agregar» de la misma ruta coinciden, uno falla con 23505 (error de más, nunca éxito falso).
+- **Huecos que quedan para 8.10** (la base no los frena hoy): borrar una imagen de un proyecto cerrado o de un ítem eliminado (la policy de borrar sólo mira `repuestos.editar`; la pantalla esconde «Quitar»); y el trigger de insert corre antes del `with check`, así que quien no puede editar recibe 23514 en vez de 42501 (sólo adivinando un uuid sabría si un ítem existe). Además, la policy de Storage de `repuestos` no mira la carpeta.
+
+<!-- paso:8.09-4 -->
+
+## 2026-11-12 · Decisiones del paso 8.09-4
+
+- **D75 · La ficha del vehículo lo muestra en una pestaña «Repuestos» (no en un bloque de «Ficha»):** la ficha ya la declaraba, las listas hijas se leen al abrir su pestaña (`escala.md`) y quien no la abre no paga la lectura. Visible con `repuestos.ver` global (no por origen) y la última de la barra. Como ya todas las pestañas declaradas tienen sección, sale el campo `disponible`: el test compara cada pestaña con su `seccion-<clave>.tsx`.
+- **D76 · `pantallas/proyectos-vehiculo.ts` y no `pantallas/vehiculo.ts`** (la fila de PLAN decía `vehiculo.ts`): un archivo sin prefijo de área es del núcleo y el núcleo no importa el área `proyectos` (guarda `areas-de-repuestos`).
+- **D77 · Eliminar un proyecto vacío no pide confirmación:** es reversible (`repuesto_proyecto_restaurar`), así que se hace de una vez y el aviso ofrece «Deshacer» (`ui.md`). Sólo se ofrece con `repuestos.editar` y la hoja sin ítems; compras, pagos o cotizaciones los rechaza la base con su texto. Al eliminar se vuelve al listado.
+- **D78 · El recuento por fase se lee dentro del área `proyectos`** con su propia consulta de ≤ 201 ítems (un área no importa otra: no se reutiliza `leerItemsDelProyecto`). Dos lecturas chicas, sin N+1; el conteo nunca es un total exacto («más de 200»).
+- **D79 · Cinco pestañas ensanchaban la página en el celular:** la raíz de las pestañas lleva `min-w-0` para que se desplace la barra y no la página (la hizo caer `vehiculos-fotos` y `vehiculos-cotizaciones` en `movil`).
+
+<!-- paso:8.09-5 -->
+
+- **D80 · La dueña suma una parada de Tab con «Repuestos» en el menú (57 en escritorio):** 8.09-2 encendió la entrada (`disponible: true`) y sólo quien tiene `repuestos.ver` la recibe; la asesora no, y sigue en 60. Se subió `CONTROLES_DE_LA_DUENA` de escritorio a 57 (el celular sigue en 50: su menú no suma paradas antes del contenido). Lo cayó el CI en el bloque 2 (`E2E R2`); `E2E R1` salió «inestable» sólo porque el grupo es `serial` y el reintento repite todo.
+
+<!-- paso:8.10-1 -->
+
+## 2026-11-12 · Decisiones del paso 8.10-1 (la base del stock de repuestos)
+
+- **D1 · «Vender suelto» no registra precio:** es un movimiento con motivo y nota (la tabla no tiene monto); el cobro es un pago del proyecto (8.13). La recomendada de la fila.
+- **D2 · La cantidad va siempre positiva y el sentido sale del motivo:** la fila del movimiento guarda la cantidad con signo. Un signo mal puesto no puede volver una salida en entrada.
+- **D3 · Mover y reasignar valen en un proyecto cerrado:** los sobrantes nacen justamente al terminar un proyecto. El que no recibe nada es el **destino** cerrado.
+- **D4 · Motivos cerrados y validados en la RPC, sin `check` en la tabla:** `sobrante` (entra), `vendido`, `devuelto`, `ajuste` (salen por `repuesto_stock_mover`) y `reasignado` (sale sólo por `repuesto_stock_reasignar`). La nube puede tener filas viejas con otro texto y un `check` fallaría la migración allá.
+- **D5 · «Devolver» es devolver al proveedor** (sale del stock). Volver un sobrante al proyecto no se ofrece: sería un `ajuste`, con rastro.
+- **D6 · `ajuste` sólo resta** (merma, conteo): uno de entrada fabricaría stock y sacaría ítems de la espera. En 8.10 no tiene botón (sólo la RPC y la regla).
+- **D7 · Lo que entra por `sobrante` tiene tope:** la cantidad del ítem menos lo que ya entró por `sobrante` (bajo el candado, por `repuestos_stock_movimientos_item_id_idx`). Una unidad que salió no vuelve a entrar como si no hubiera salido. **Abierto:** `cantidad` se sigue editando directo en la hoja (`GRANT UPDATE("cantidad")`, `infra/items/guardar.ts`): subirla habilita más sobrante y bajarla puede quedar por debajo de lo ya pasado. El candado del stock no lo cubre (auditoría del plan, 3).
+- **D8 · La espera no cambia:** `en_stock_desde` se fija al pasar de 0 a más y se limpia al volver a 0; `evaluar_requisitos` mira `en_stock_desde is null`. Así, **una sola unidad** en stock saca el ítem entero de la espera de su vehículo, y uno que vació su stock vuelve a contar si no llegó a su fase (E7 de `esperas.sql` lo fija). Es lo conservador (ante la duda, el vehículo espera; se destraba marcándolo perdido); si cambia, lo decide 8.13.
+- **D9 · `nota` nueva en `repuestos_stock_movimientos`** (nula o de 1 a 500 caracteres) y `p_nota` al final de `repuesto_stock_mover`: la fila habla de «motivo y nota» y la tabla no tenía dónde.
+- **D10 · `repuesto_stock_reasignar` suma `p_id`** (el id del ítem nuevo): idempotente como `repuesto_item_crear`. La búsqueda del id va **después** del candado del origen: dos llamadas con el mismo id (doble clic) se ordenan ahí y la segunda devuelve la misma respuesta en vez del 23505 crudo de la clave primaria (auditoría del plan, 1; carrera K2b). No lleva stock esperado: dos reasignaciones válidas de un stock que alcanza entran las dos; lo que se impide es el negativo.
+- **D11 · El ítem reasignado** copia descripción y los cuatro catálogos tal como están, `cantidad = unidades`, sin precio, moneda ni tracking (el precio es para otro cliente), nota «Reasignado desde el proyecto #N.», y nace como cualquier ítem: en la fase de entrada con su historial. Efecto conocido: si el destino tiene un vehículo con una espera `hijos`, ese vehículo espera una pieza que ya está en el depósito hasta que alguien la mueva (8.13).
+- **D12 · Cursor de la lista en dos parámetros** (`p_cursor_en`, `p_cursor_id`, como `gastos_listar`) e índice `(en_stock_desde desc, id desc)` (la fila decía `id` ascendente): con `desc` en las dos columnas el cursor es una comparación de filas que el índice resuelve. En la app viaja con `codificarCursor` de `shared`.
+- **D13 · El historial no cambia de índice:** `repuestos_stock_movimientos_item_id_idx (item_id)` alcanza (pocos movimientos por ítem).
+- **D14 · Quedan abiertos para «Pulido para la Fase 9» › seguridad** (la fila no los pide): el `update` por columna de un ítem de un proyecto cerrado sin validar el catálogo (8.09-2), borrar una imagen de un proyecto cerrado o de un ítem eliminado y la policy de Storage que no mira la carpeta (8.09-3), y el `UPDATE(cantidad)` directo frente al tope de D7.
+- **D15 · El parámetro se llama `p_unidades` y no `p_cantidad`** (la fila decía `p_cantidad`): `supabase/tests/escala.sql` toma todo `p_cantidad` de una función que el cliente ejecuta por un tamaño de página y exige `_acotar_pagina`. Cambiar el nombre es más barato y más claro que abrirle una excepción a la guarda.
+- **D16 · `infra/stock/listar.ts` entra en esta parte** (el plan lo dejaba para 8.10-2): `scripts/guardas/paginas.test.ts` exige que toda RPC con tamaño esté en el registro **y** que cada entrada tenga quién la llame. Es la lectura sola, sin barril ni pantalla.
+- **D17 · El UPDATE de `repuestos_catalogos` es sólo de `nombre`, `activo` y `orden`** (H1 de 8.08-2): `catalogo`, `id` y `datos` dan 42501. `datos` no lo escribe la app (auditoría del plan, 8).
+- **Escrituras directas quitadas** (abierto «Quitar escrituras directas» de `docs/PLAN.md`): el INSERT de `repuestos_stock_movimientos` (con su policy y la secuencia), el `UPDATE(en_stock_desde)` de `repuestos_items` y el UPDATE de `catalogo`/`id`/`datos` de `repuestos_catalogos`. Ninguna pantalla las usaba; `humo.sql` y `permisos-enforcement.sql` siguen en verde.
+
+<!-- paso:8.10-2 -->
+
+## 2026-11-12 · Decisiones del paso 8.10-2 (el servidor del stock, «Pasar a stock» y el historial del ítem)
+
+- **D1 · Reasignar del lado servidor va a 8.10-3**, donde está su botón: aquí nadie lo llamaría.
+- **D2 · `moverStock` acepta `sobrante`, `vendido` y `devuelto`:** 8.10-3 la reusa sin tocarla. `ajuste` no tiene botón (D6 de 8.10-1) y `reasignado` tiene su RPC.
+- **D3 · Tras mover, la fila toma la respuesta de la RPC** (`stock_cantidad`, `en_stock_desde`, `actualizado_en`) y no se relee con `leerItem`, como decía el plan
+  del 8.10-1: `leerItem` es del área `items` y el área `stock` no la importa. El cambio se aplica sobre la fila **vigente** de la hoja (`cambiarFila(id, cambio)`), así
+  no pisa una celda guardada entretanto, y la celda siguiente no choca con `PT409` (la respuesta trae el `actualizado_en` que puso el trigger).
+- **D4 · El hueco de la hoja se llena en un Client Component de `src/app`** (`src/app/(app)/repuestos/[id]/hoja-con-stock.tsx`), no en `page.tsx`: una función no
+  cruza de un Server Component a uno de cliente. El hueco tiene dos partes, `accionDeFila(fila)` y `panel(api)`; el área `stock` declara su propio tipo de `api`
+  (`ApiDeLaHojaParaStock`) y no importa el de `items` (auditoría del plan, 3).
+- **D5 · «Stock» está en toda fila, también para quien sólo ve:** el historial se lee con `repuestos.ver`, como «Imágenes». El formulario, sólo con `repuestos.editar`,
+  y vale con el proyecto cerrado (D3 de 8.10-1: los sobrantes nacen al terminar).
+- **D6 · «En stock: N» sólo con N > 0**, en un `<Badge>` de texto junto al botón. Con 0 no se dice nada.
+- **D7 · El formulario no sabe cuánto entró ya por `sobrante`:** valida entero ≥ 1 y ≤ la cantidad del ítem; el tope exacto lo dice la base junto al campo.
+- **D8 · Tras pasar, el panel queda abierto:** el formulario se vacía, el historial se relee y un toast lo confirma. **Sin `revalidatePath`**, como `guardarCelda`:
+  la hoja ya tiene la fila. Efecto conocido: el estado derivado de la cabecera (pendientes) se ve al volver a entrar.
+- **D9 · El historial va por la action `leerMovimientosDeItem`**, `id desc` con el `id` como cursor, de a `TAMANO_DE_VER_MAS` hasta `TOPE_DE_LO_CARGADO` con
+  `<AvisoDeTope>`. **Sin «Ir a una fecha»:** un ítem tiene pocos movimientos (D13 de 8.10-1); la excepción quedó escrita en `docs/RENDIMIENTO.md`. La primera página se
+  lee con `useLecturaAlMontar` (como las imágenes) y otra vez tras pasar a stock (un esqueleto breve); «Ver más» suma por evento.
+- **D10 · Un motivo que no está en la lista** (filas viejas de la nube) se muestra con su texto tal cual.
+- **D11 · Las actions no llevan test de Vitest** (no hay precedente de una action con sesión en Vitest): el permiso lo prueba la base (S3 de `stock.sql`, 8.10-1) y
+  `moverStock` mira `puede()` antes de escribir. Lo clave con test: el esquema y la traducción de errores.
+- **D12 · El e2e usa la etiqueta `Prueba stock e2e <proyecto>`**, que no empieza con «E2E»: la limpieza de `repuestos-proyecto.spec.ts` borra `like 'E2E%'`. Cada
+  proyecto de Playwright limpia sólo la suya.
+- **D13 · El e2e corre en `escritorio` y `movil`** (auditoría del plan, 1): el CI lo corre en los dos y el hueco se dibuja también en las tarjetas.
+- **D14 · Un `porCampo` de una clave que no es un campo del formulario** (`motivo`, `proyecto`, `id`) va como aviso del formulario (auditoría del plan, 5).
+
+<!-- paso:flujo-7 -->
+
+## 2026-11-12 — FLUJO-7: la tarea de oro 2 se mide por KLM y no por la cuenta exacta de teclas
+
+Medido el 2026-11-12, a 23 h de lanzar (39 de 69 pasos; los carriles en sesión el 81–93 % del reloj): de los CI rojos de un PR que no eran
+del entorno, el que más se repitió no era de ningún paso.
+
+- **`e2e/cotizar-tarea-de-oro-recorrido.spec.ts` ya no exige la cuenta exacta de teclas de control** (`toBe(60)`, `toBe(56)`): la anota y
+  exige lo que pide `docs/UX.md`, KLM ≤ 90 s (hoy ≈ 57 s la asesora y 41 s la dueña; cada parada más son 0,28 s). Tras abrir la hoja el
+  foco recorre el marco, así que cada entrada nueva de la navegación sumaba una parada y el spec caía en el PR de **otro** paso, que no
+  la había tocado: dos PR en verde, cada uno con su «+1», quedaban en rojo al entrar el segundo. Cayó en 6.01, 7.07, 7.02, 7.09 y 8.09
+  (este último, tres CI rojos seguidos y 7 h abierto con el paso terminado): de 1 a 3 h y una sesión de arreglo cada vez, y a las fases 8
+  y 9 les faltan más entradas. Se descartó descontar las paradas del marco para conservar la cuenta: pedía medirlas en cada pantalla del
+  recorrido y volver a contarlas con el completo local. `cotizar-tarea-de-oro-enlace` conserva su cuenta exacta: arranca en la hoja con
+  «Saltar al contenido» y no cruza la navegación.
+- **El mismo spec espera las dos fotos de la subasta en la base** (`fotosConOrigen`) y no su aviso, que se cierra solo a los pocos
+  segundos: si las fotos terminaban antes que el recorrido, el aviso ya no estaba (así cayó el spec corriendo solo, como dirigido, en
+  el PR de este arreglo; en el completo pasaba por tiempos).
+- **`e2e/configuracion-flujos-requisitos.spec.ts` espera el orden de la lista tras «Subir»** (`expect.poll`) en vez de leerla una vez: la
+  base ya había cambiado y la lista se volvía a dibujar un instante después (el 9.04-1, rojo en los dos intentos del CI).
+- **Medido y no cambiado:** el reintento a ciegas de un CI rojo. Desde el arreglo de chromium, de 31 reintentos 11 terminaron en verde
+  (el FLUJO-6 había contado 2 de 14): vale los ≈ 17 min que cuesta. Los choques «dudosos» de un registro (una línea editada de un lado
+  y un agregado encima del otro, `scripts/guardas/areas-c/drawers-con-salida.ts`) siguen yendo al carril: unirlos a ciegas deja un `.ts`
+  que no compila.
