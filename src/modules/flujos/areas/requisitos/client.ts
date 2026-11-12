@@ -12,6 +12,14 @@ export {
   notasDeRequisito,
   textoDeBloqueo,
 } from '../../entities/requisitos/descripcion'
+export type { ImpactoDeRequisito } from '../../entities/requisitos/impacto'
+export { resumenDeImpacto } from '../../entities/requisitos/impacto'
+export {
+  PANEL_FUERA_DE_REGLA,
+  textoDeFaltan,
+  textoDelAviso,
+} from '../../entities/requisitos/fuera-de-regla'
+export type { GrupoFueraDeRegla, UnidadDelPanel } from '../../entities/requisitos/fuera-de-regla'
 export type {
   FaseDelOtroFlujo,
   OpcionesDeRequisitos,
@@ -20,5 +28,6 @@ export type {
 export { crearRequisito } from '../../features/requisitos/actions/crear-requisito'
 export { eliminarRequisito } from '../../features/requisitos/actions/eliminar-requisito'
 export { guardarRequisito } from '../../features/requisitos/actions/guardar-requisito'
+export { leerImpactoDeRequisito } from '../../features/requisitos/actions/leer-impacto-de-requisito'
 export { leerOpcionesDeRequisitos } from '../../features/requisitos/actions/leer-opciones'
 export { moverRequisito } from '../../features/requisitos/actions/mover-requisito'

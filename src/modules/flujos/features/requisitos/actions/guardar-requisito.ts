@@ -9,7 +9,7 @@ import type { VersionNueva } from '../../../entities/requisitos/respuestas'
 import { esquemaGuardarRequisito } from '../schemas/requisitos'
 import { comoResultado, motivoSinPermisoDeRequisitos, sinPermisoDeRequisitos } from './resultado'
 
-// Guarda lo que cambió de un requisito (`null` vacía el campo). No toca «Bloqueante»: el aviso de impacto lo cambia aparte.
+// Guarda lo que cambió de un requisito (`null` vacía el campo). `bloqueante` lo manda el interruptor de la fila, después de su aviso de impacto.
 export const guardarRequisito = actionClient
   .inputSchema(esquemaGuardarRequisito)
   .action(async ({ parsedInput, ctx }): Promise<ResultadoDeAccion<VersionNueva>> => {

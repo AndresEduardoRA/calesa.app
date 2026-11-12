@@ -3,6 +3,7 @@ import {
   esquemaCrearRequisito,
   esquemaEliminarRequisito,
   esquemaGuardarRequisito,
+  esquemaLeerImpacto,
   esquemaLeerOpciones,
   esquemaMoverRequisito,
 } from './requisitos'
@@ -114,7 +115,7 @@ describe('esquemas de requisitos: documento, espera y guardar', () => {
       ).success,
     ).toBe(true)
     expect(esquemaGuardarRequisito.safeParse(guardar({})).success).toBe(true)
-    expect(esquemaGuardarRequisito.safeParse(guardar({ bloqueante: true })).success).toBe(false)
+    expect(esquemaGuardarRequisito.safeParse(guardar({ orden: 3 })).success).toBe(false)
     expect(esquemaGuardarRequisito.safeParse(guardar({ tipo: 'dato' })).success).toBe(false)
     expect(esquemaGuardarRequisito.safeParse({ ...guardar({}), id: 'x' }).success).toBe(false)
     expect(esquemaGuardarRequisito.safeParse(guardar({ config: { pct: '5' } })).success).toBe(false)
@@ -147,5 +148,28 @@ describe('esquemas de requisitos: mover, eliminar y leer opciones', () => {
     expect(esquemaLeerOpciones.safeParse({ flujoId: 'x', ambito: 'vehiculos' }).success).toBe(false)
     expect(esquemaLeerOpciones.safeParse({ flujoId: ID }).success).toBe(false)
     expect(esquemaLeerOpciones.safeParse({ flujoId: ID, ambito: 'repuestos' }).success).toBe(true)
+  })
+})
+
+describe('«Bloqueante» y su impacto', () => {
+  const guardar = (cambios: unknown) =>
+    esquemaGuardarRequisito.safeParse({
+      id: ID,
+      ambito: 'vehiculos',
+      actualizadoEnEsperado: '2026-11-11T10:00:00Z',
+      cambios,
+    })
+
+  it('guardar acepta bloqueante solo y lo exige booleano', () => {
+    expect(guardar({ bloqueante: true }).success).toBe(true)
+    expect(guardar({ bloqueante: false }).success).toBe(true)
+    expect(guardar({ bloqueante: 'si' }).success).toBe(false)
+    expect(guardar({ bloqueante: true, orden: 3 }).success).toBe(false)
+  })
+
+  it('leer el impacto exige un id guid y un ámbito', () => {
+    expect(esquemaLeerImpacto.safeParse({ id: ID, ambito: 'repuestos' }).success).toBe(true)
+    expect(esquemaLeerImpacto.safeParse({ id: 'no', ambito: 'repuestos' }).success).toBe(false)
+    expect(esquemaLeerImpacto.safeParse({ id: ID, ambito: 'otro' }).success).toBe(false)
   })
 })

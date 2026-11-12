@@ -51,12 +51,13 @@ export const esquemaCrearRequisito = z.discriminatedUnion('tipo', [
   }),
 ])
 
-// Editar: sólo lo que cambió; `null` vacía el campo. «Bloqueante» no está (lo cambia otro camino).
+// Editar: sólo lo que cambió; `null` vacía el campo. `bloqueante` lo manda el interruptor de la fila, solo.
 export const esquemaGuardarRequisito = z.object({
   id: z.guid(),
   ambito,
   actualizadoEnEsperado: version,
   cambios: z.strictObject({
+    bloqueante: z.boolean().optional(),
     config: z.strictObject({ pct: z.number() }).nullable().optional(),
     min_archivos: z.number().int().nullable().optional(),
     max_archivos: z.number().int().nullable().optional(),
@@ -84,3 +85,6 @@ export const esquemaEliminarRequisito = z.object({
 })
 
 export const esquemaLeerOpciones = z.object({ flujoId: z.guid(), ambito })
+
+// El impacto de volver bloqueante un requisito: el ámbito decide el permiso que se exige.
+export const esquemaLeerImpacto = z.object({ id: z.guid(), ambito })
