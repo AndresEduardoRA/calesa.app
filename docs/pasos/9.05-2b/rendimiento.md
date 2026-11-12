@@ -1,0 +1,3 @@
+<!-- Ancla: en docs/RENDIMIENTO.md, después de la línea «- Exportar todo (leads, 9.05-2): …». -->
+
+- Exportar todo (vehículos de un origen, 9.05-2b): páginas de 1.000 de la tabla `vehiculos` bajo la RLS de quien exporta, por cursor `(creado_en, id)` y `vehiculos_origen_listado_idx`, hasta `TOPE_POR_ENTIDAD.vehiculos` (250.000), una página a la vez; conteo previo de ids hasta tope + 1; con 250.000 en un origen, página ≤ 0,9 ms (≈ 115 buffers), conteo entero 0,3 s, lectura entera 0,4 s (sin el viaje HTTP ni el JSON de PostgREST); Pía («propios», 5.000) 82 ms; 3 por hora; `supabase/tests/medir-datos-exportar-vehiculos.sql`.
