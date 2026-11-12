@@ -76,6 +76,14 @@ export function leerPaginaDeConversaciones(json: unknown): Resultado<PaginaDeCon
   })
 }
 
+// Lo que devuelve `chat_no_leidos` (0 a 100, el tope de la base): lo demás es un fallo, no un número.
+export function leerNoLeidos(json: unknown): Resultado<number> {
+  const lectura = z.number().int().min(0).max(MAXIMO_DE_LA_BASE).safeParse(json)
+  return lectura.success
+    ? ok(lectura.data)
+    : fallo('inesperado', 'No pudimos leer tus mensajes sin leer.')
+}
+
 // `0 → null` (no hay insignia), `1..99 → «n»`, `100 en adelante → «99+»`.
 export function textoDeNoLeidos(n: number): string | null {
   if (n <= 0) {
