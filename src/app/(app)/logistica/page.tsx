@@ -18,7 +18,11 @@ import {
   EstadoDeLaCadena,
   PestanasDeOrigen,
 } from '@/modules/logistica/pantallas/cadena'
-import { BarraDelLote, ProveedorDeLaSeleccion } from '@/modules/logistica/pantallas/mover'
+import {
+  BarraDelLote,
+  DrawerDelLote,
+  ProveedorDeLaSeleccion,
+} from '@/modules/logistica/pantallas/mover'
 import { leerFiltros } from '@/shared/lib/filtros'
 import { unParametro } from '@/shared/lib/rutas'
 import { EstadoSinPermiso } from '@/shared/ui/estados'
@@ -148,6 +152,7 @@ async function CadenaDelOrigen({
     <ProveedorDeLaSeleccion origenId={origenId} firmaDelPedido={JSON.stringify(filtros)}>
       {tablero}
       <BarraDelLote />
+      <DrawerDelLote origenId={origenId} />
     </ProveedorDeLaSeleccion>
   )
 }

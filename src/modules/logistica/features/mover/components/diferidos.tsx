@@ -20,3 +20,8 @@ export const HuecoDeHistorialDiferido = diferido(() =>
 export const BarraDelLoteDiferida = diferido(() =>
   import('./barra-del-lote').then((modulo) => modulo.BarraDelLote),
 )
+
+// El drawer del lote se pide al abrirse la primera vez (con la barra); `src/app` lo monta cerrado y el resto no pesa en frío.
+export const DrawerDelLoteDiferido = diferido(() =>
+  import('./drawer-del-lote').then((modulo) => modulo.DrawerDelLote),
+)
