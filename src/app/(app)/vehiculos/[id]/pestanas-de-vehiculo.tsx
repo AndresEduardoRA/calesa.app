@@ -13,6 +13,8 @@ export function PestanasDeVehiculo({ pestanas }: { pestanas: readonly PestanaVis
   const [{ seccion }, setParametros] = useQueryStates(PARAMETROS, { shallow: false })
   return (
     <Tabs
+      // Con cinco pestañas la barra ya no cabe en el celular: `min-w-0` deja que se desplace ella y no la página.
+      className="min-w-0"
       // Lo que venga en la URL que no sea una pestaña visible abre la ficha.
       value={pestanaDeVehiculo(seccion, pestanas)}
       onValueChange={(elegida) => {

@@ -5,11 +5,22 @@ Proyectos de repuestos por vehículo (o externos), ítems que recorren el flujo 
 ## Entra y sale
 
 - Entra: proyectos desde la ficha del vehículo o sueltos, hoja de ítems editable celda a celda (XCell compacta), compras, movimientos de stock, cotizaciones de repuestos.
-- Sale: `proyectoDe(vehiculoId)`, `esperasQueDestraban(vehiculoId)` (para `flujos`/`logistica`), `<ResumenRepuestos>`. Lo consumen `vehiculos`, `logistica`, `tablero`, `buscador`.
+- Sale: `proyectoDe(vehiculoId)` y `leerResumenDeVehiculo(vehiculoId)` (8.09-4, por el `index.ts` del área `proyectos`), `esperasQueDestraban(vehiculoId)` (para `flujos`/`logistica`), `<ResumenRepuestos>` (por `pantallas/proyectos-vehiculo.ts`, 8.09-4: la pestaña «Repuestos» de `/vehiculos/[id]`). Lo consumen `vehiculos`, `logistica`, `tablero`, `buscador`.
 - Sale por `index.ts` (área `catalogos`, 8.08-2): `leerCatalogosDeRepuestos()` (los cuatro, con los desactivados, tope 200 cada uno) y `CATALOGOS_DE_REPUESTOS`; por
   `client.ts`, lo puro del formulario de un valor (`validarValor`, `cambiosDeValor`, `ordenSiguiente`…). Las actions `crearValor`, `guardarValor` y
   `eliminarValor` (`features/catalogos/actions/`, `repuestos.configurar`) no salen por los barriles: las importan en relativo los componentes de la 8.08-3.
 - Sale por `pantallas/catalogos.ts` (8.08-3): `<CatalogosDeRepuestos>`, la pestaña «Catálogos» de `/configuracion/repuestos`; la lee `src/app/(app)/configuracion/repuestos/seccion-catalogos.tsx`.
+- Sale por `pantallas/proyectos.ts` (8.09-1): `<ListadoDeProyectos>`, `<BotonNuevoProyecto>`, `<DrawerDeNuevoProyectoDiferido>` y `useNuevoProyectoPorUrl`; por el `index.ts` del área, el
+  pedido del listado (`esquemaDelListado`, `pedidoDelListado`, `leerCursorDeProyectos`), `leerProyectosDelListado` y el estado derivado (`estadoDelProyecto`). La action
+  `crearProyecto` no sale por los barriles: la importa el hook del drawer. El cursor del listado es el `numero` y no tiene «Anterior»; los buscadores de vehículo y de lead los
+  compone `src/app/(app)/repuestos/` (este módulo no importa `buscador`).
+- Sale por `pantallas/items.ts` (8.09-2): `<HojaDeItems>` (la hoja de `/repuestos/[id]`); por `pantallas/proyectos.ts`, además, `<CabeceraDeProyecto>`. Por el `index.ts`: `leerProyecto`, `leerItemsDelProyecto`,
+  `leerItem`, `cuentasDeLaHoja` y `FilaDeItem` (núcleo). Las actions `guardarCelda`, `crearItem`, `eliminarItem`, `cerrarProyecto` y `reabrirProyecto` no salen por los barriles.
+- **La hoja** (`features/items/`): sólo cantidad y precio son `XCell` (es numérica); el resto son celdas propias. Guardar una celda es un `update` directo por columna que **versiona el repositorio**
+  (`infra/items/guardar.ts`, `.eq('actualizado_en', …)`): cero filas nunca es éxito. Una cola por fila (`colaPorClave`) evita que dos celdas del mismo ítem choquen. Las funciones que bajan a las
+  `XCell` son estables (`memo`). Sin `repuestos.editar` o con el proyecto cerrado, texto plano. La base **no** frena el `update` de un ítem de un proyecto cerrado (hueco para 8.10).
+- **Resumen en la ficha y eliminar** (8.09-4, `features/proyectos/`): la pestaña «Repuestos» (`repuestos.ver` global; la lee `src/app/(app)/vehiculos/[id]/seccion-repuestos.tsx` al abrirla) dibuja `<ResumenRepuestos>`: sin proyecto, «Crear proyecto de repuestos» (sólo con `repuestos.editar`) que abre `/repuestos?panel=nuevo-proyecto&vehiculo=<id>`; con él, el enlace, el estado y los ítems por fase (≤ 201 leídos; «más de 200»). Un archivo `pantallas/<x>.ts` sin prefijo de área es del núcleo y no importa un área (D76). «Eliminar proyecto» (cabecera, `repuestos.editar` y hoja sin ítems) va sin confirmación y con «Deshacer» (`eliminarProyecto` y `restaurarProyecto`, que no salen por los barriles).
+- **Imágenes del ítem** (8.09-3, `features/items/`): panel `?panel=imagenes&item=<id>` (`pantallas/items.ts` lo trae con la hoja), objetos `<item_id>/<sha-256>.webp` en el bucket `repuestos`, **tope 8 en la base** (`repuestos_imagen_integridad`, candado por ítem) y el mismo 8 en `entities/items/imagenes.ts`. La tabla sólo se escribe por insert y delete (sin UPDATE). La app **no borra objetos**: borrar la fila encola la ruta (`repuestos_imagen_encolar`, por refcount) y «Deshacer» la rescata. Las actions `leerImagenesDeItem`, `agregarImagenes` y `quitarImagen` no salen por los barriles. La subida usa `subirPorHash` de `shared` desde el hook (D73). La base no frena borrar una imagen de un proyecto cerrado (hueco para 8.10).
 - Depende de: `vehiculos`, `flujos`, `leads`.
 
 ## Áreas
@@ -37,7 +48,7 @@ El módulo se parte por **área** (8.08-2, igual que `logistica`) para que los p
 - `entities/stock.ts` — reglas de sobrante (reasignar / vender suelto / devolver) y movimientos.
 - `features/proyectos/`, `features/items/` (hoja), `features/compras/`, `features/stock/`, `features/cotizador/`, `features/catalogos/`.
 - La base (8.08-1): `repuesto_proyecto_crear` / `_cerrar` / `_reabrir` / `_eliminar` / `_restaurar`, `repuesto_item_crear` / `_eliminar`,
-  `repuestos_proyectos_listar`, `repuestos_pendientes_de_vehiculo`, `_repuesto_ante_espera` y el trigger `repuestos_catalogo_sin_uso`. Sus pruebas, en
+  `repuestos_proyectos_listar`, `repuestos_pendientes_de_vehiculo`, `_repuesto_ante_espera` y el trigger `repuestos_catalogo_sin_uso`. De 8.09-3: los triggers `repuestos_imagen_integridad` y `repuestos_imagen_encolar` (prueba `areas/repuestos/imagenes.sql`). Sus pruebas, en
   `supabase/tests/areas/repuestos/` (`proyectos`, `base`, `listar`, `esperas`, `catalogos`).
 
 ## Tablas

@@ -1,15 +1,14 @@
-// Las pestañas de la ficha de un vehículo (docs/UX.md › Vehículo), declaradas enteras. Sólo se
-// muestran las que ya existen: una pestaña es `disponible` cuando tiene su `seccion-<clave>.tsx`
-// en esta carpeta, y un test lo compara con el disco. Así ninguna pestaña lleva a la nada.
+// Las pestañas de la ficha de un vehículo (docs/UX.md › Vehículo). Con «Repuestos» (8.09-4) ya están todas las declaradas: cada una tiene su `seccion-<clave>.tsx` en esta carpeta y un
+// test lo compara con el disco, así que ninguna pestaña lleva a la nada. Una pestaña nueva se declara aquí al crear su sección.
 
 import { puede, type Permisos } from '@/shared/lib/permisos'
 
 export const PESTANAS_DE_VEHICULO = [
-  { clave: 'ficha', titulo: 'Ficha', disponible: true },
-  { clave: 'fotos', titulo: 'Fotos', disponible: true },
-  { clave: 'documentos', titulo: 'Documentos', disponible: true },
-  { clave: 'cotizaciones', titulo: 'Cotizaciones', disponible: true },
-  { clave: 'repuestos', titulo: 'Repuestos', disponible: false },
+  { clave: 'ficha', titulo: 'Ficha' },
+  { clave: 'fotos', titulo: 'Fotos' },
+  { clave: 'documentos', titulo: 'Documentos' },
+  { clave: 'cotizaciones', titulo: 'Cotizaciones' },
+  { clave: 'repuestos', titulo: 'Repuestos' },
 ] as const
 
 // El parámetro de la URL que dice qué pestaña está abierta.
@@ -17,25 +16,23 @@ export const CLAVE_DE_PESTANA = 'seccion'
 
 export type PestanaDeVehiculo = (typeof PESTANAS_DE_VEHICULO)[number]['clave']
 
-export function pestanasDisponibles() {
-  return PESTANAS_DE_VEHICULO.filter((pestana) => pestana.disponible)
-}
-
 // Una pestaña de la barra: lo único que cruza al navegador.
 export type PestanaVisible = { clave: PestanaDeVehiculo; titulo: string }
 
-// Las pestañas que quien mira ve: las disponibles, «Cotizaciones» sólo con `cotizaciones.ver` en el origen del vehículo (la RLS de `cotizaciones` va por el origen) y «Documentos» sólo
-// con `logistica.ver` en él (la de `documentos` también).
+// Las pestañas que quien mira ve: todas, con «Cotizaciones» sólo con `cotizaciones.ver` en el origen del vehículo (la RLS de `cotizaciones` va por el origen) y «Documentos» sólo
+// con `logistica.ver` en él (la de `documentos` también) y «Repuestos» con `repuestos.ver`, que es global y no va por origen (8.09-4, D75).
 export function pestanasVisibles({
   cotizaciones,
   documentos,
+  repuestos,
 }: {
   cotizaciones: boolean
   documentos: boolean
+  repuestos: boolean
 }): PestanaVisible[] {
-  return pestanasDisponibles()
-    .filter((pestana) => pestana.clave !== 'cotizaciones' || cotizaciones)
+  return PESTANAS_DE_VEHICULO.filter((pestana) => pestana.clave !== 'cotizaciones' || cotizaciones)
     .filter((pestana) => pestana.clave !== 'documentos' || documentos)
+    .filter((pestana) => pestana.clave !== 'repuestos' || repuestos)
     .map(({ clave, titulo }) => ({ clave, titulo }))
 }
 
@@ -57,5 +54,6 @@ export function pestanasDeQuienMira(permisos: Permisos, origenId: string): Pesta
   return pestanasVisibles({
     cotizaciones: puede(permisos, 'cotizaciones.ver', origenId),
     documentos: puede(permisos, 'logistica.ver', origenId),
+    repuestos: puede(permisos, 'repuestos.ver'),
   })
 }

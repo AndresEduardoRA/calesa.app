@@ -230,6 +230,8 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Vigencia** — `ajustes_empresa.vigencia_dias` (7 por defecto, de 1 a 365): cuántos días vale una cotización desde el día de su `creado_en`. La cambia quien tiene `cotizaciones.configurar` en todos los orígenes (ver «Ajustes de cotización»).
 - **Vencida** — derivada: `creado_en` + vigencia < hoy, por día y en la zona de la empresa (`vence_el` y `vencida` de `cotizacion_hoja_guardada()`): cotización que pasó su vigencia. No es un estado guardado.
 - **Cotizar encima (N+1)** — `cotizacion_encima()`, `cotizacion_padre_id`, `version`: crear la versión nueva de una cotización (otra cotización, preventa, con la publicada y las tarifas de hoy y lo tipeado de la anterior); la anterior no cambia; una viva por anterior.
+- **Imagen del ítem** — `repuestos_items_imagenes` / `?panel=imagenes&item=<id>`: la imagen de un repuesto (hasta 8 por ítem, WebP ≤ 1600 px, objeto `<item>/<sha-256>.webp` en el bucket `repuestos`); no se llama «foto» (las fotos son del vehículo) (8.09-3).
+- **Hoja de ítems** — la tabla (tarjetas en el celular) de `/repuestos/[id]`: una fila por ítem del proyecto, editable celda a celda con `repuestos.editar` (`HojaDeItems`, `features/items/`); hasta 200 ítems (8.09-2).
 - **Hoja de una guardada** — `cotizacion_hoja_guardada()`: la lectura que abre una cotización guardada con SU versión, lo que quien mira puede guardar, la vigencia y la cadena (anterior y versión nueva).
 - **Desactualizada** — `cotizacion_crear(… p_abierta …)` (PT409 `desactualizada`): la fórmula o un tipo de cambio cambió tras abrir la hoja: «Usar la versión N+1» o «Guardar con la N». No es «vencida».
 - **Vehículo obligatorio al cotizar** — `ajustes_empresa.vehiculo_obligatorio_al_cotizar` (sí por defecto): con «no», una preventa se guarda sin vehículo. Lo cambia quien tiene `cotizaciones.configurar` en todos los orígenes (ver «Ajustes de cotización»).
@@ -293,7 +295,10 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Visible en el portal** — `documentos.visible_portal`: un documento que la persona compradora ve en el portal. Sólo lo enciende quien aprueba documentos y sólo si el tipo lo admite (`tipos_documento.visible_portal_permitido`); apagarlo siempre se puede. No: «público», «compartido».
 - **Tipo de documento** — `tipos_documento` / `tipo_documento_crear()`: qué documento pide el ciclo (Título, BL…); de toda la empresa (`flujo_id` nulo) o de un flujo; formatos aceptados y vencimiento (`ninguno`, `solicitar`, `renovar`, con `aviso_dias`). En uso no se borra: se desactiva. No: «clase de documento».
 - **Transporte** — `transportes`: naviera, puertos, contenedor, booking y fechas de UNA unidad.
+- **Puerto** — `puertos`: origen o destino de un transporte; nombre, país y código opcionales, `orden` y `activo`. Catálogo de la empresa en Configuración › Logística › Puertos; no se elimina, se desactiva. No: «terminal», «destino».
+- **Naviera** — `navieras`: la empresa que lleva el contenedor; nombre y `activo`. Catálogo de la empresa en Configuración › Logística › Navieras; no se elimina, se desactiva; cada flujo ofrece las suyas (`flujos_transporte_oferta`). No: «línea marítima», «carrier».
 - **Embarque / Contenedor** — grupo por `transportes.booking` / `contenedor`: agrupación, no entidad.
+- **Grupo (de transporte)** — el conjunto de unidades que comparten `booking` o `contenedor`; no es una entidad: `transporte_grupos()` lo cuenta y `transporte_grupo()` lo lista (las que quien mira ve, hasta 200). No: «lote», «carga».
 - **Declaración aduanera** — `declaraciones_aduana`, `declaraciones_vehiculos`: DUI: número, canal de aforo, vencimiento de tributos; N:M.
 - **Gasto** — `gastos`, `categorias_gasto`: costo real imputado a una unidad, en su moneda y en base.
 - **Pago** — `pagos`: pago del cliente; confirmar es un acto sellado.
