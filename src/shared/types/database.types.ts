@@ -8438,6 +8438,37 @@ export type Database = {
         }
       }
       _recordatorio_titulo: { Args: { p_hint: string; p_valor: string }; Returns: string }
+      _repuesto_ante_espera: { Args: { p_fase: string; p_item: string }; Returns: string }
+      _repuesto_catalogo: {
+        Args: { p_catalogo: string; p_clave: string; p_datos: Json }
+        Returns: string
+      }
+      _repuesto_fase_de_entrada: { Args: { p_item: string }; Returns: string }
+      _repuesto_proyecto_tomar: {
+        Args: { p_esperado: string; p_proyecto: string }
+        Returns: {
+          actualizado_en: string
+          cerrado_en: string | null
+          cliente_nombre: string | null
+          cliente_telefono: string | null
+          creado_en: string
+          creado_por: string | null
+          eliminado_en: string | null
+          id: string
+          lead_id: string | null
+          notas: string | null
+          numero: number
+          vehiculo_etiqueta: string | null
+          vehiculo_id: string | null
+          vin: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'repuestos_proyectos'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       _requisito_aplicar: {
         Args: {
           p_datos: Json
@@ -10044,6 +10075,66 @@ export type Database = {
           p_tabla: string
         }
         Returns: undefined
+      }
+      repuesto_item_crear: {
+        Args: { p_datos: Json; p_id: string; p_proyecto: string }
+        Returns: Json
+      }
+      repuesto_item_eliminar: {
+        Args: { p_actualizado_en_esperado: string; p_item: string }
+        Returns: Json
+      }
+      repuesto_proyecto_cerrar: {
+        Args: { p_actualizado_en_esperado: string; p_proyecto: string }
+        Returns: Json
+      }
+      repuesto_proyecto_crear: { Args: { p_datos: Json; p_id: string }; Returns: Json }
+      repuesto_proyecto_eliminar: {
+        Args: { p_actualizado_en_esperado: string; p_proyecto: string }
+        Returns: Json
+      }
+      repuesto_proyecto_reabrir: {
+        Args: { p_actualizado_en_esperado: string; p_proyecto: string }
+        Returns: Json
+      }
+      repuesto_proyecto_restaurar: {
+        Args: { p_eliminado_en_esperado: string; p_proyecto: string }
+        Returns: Json
+      }
+      repuestos_pendientes_de_vehiculo: {
+        Args: { p_tope?: number; p_vehiculo: string }
+        Returns: {
+          descripcion: string
+          espera_fase_id: string
+          espera_fase_nombre: string
+          fase_destino_id: string
+          fase_destino_nombre: string
+          fase_id: string
+          fase_nombre: string
+          item_id: string
+          proyecto_id: string
+          proyecto_numero: number
+          requisito_id: string
+        }[]
+      }
+      repuestos_proyectos_listar: {
+        Args: { p_cursor: number; p_estado: string; p_q: string; p_tamano: number }
+        Returns: {
+          actualizado_en: string
+          cerrado_en: string
+          cliente_nombre: string
+          en_stock: number
+          id: string
+          items: number
+          numero: number
+          pendientes: number
+          terminados: number
+          ultima_actividad: string
+          vehiculo_etiqueta: string
+          vehiculo_id: string
+          vehiculo_titulo: string
+          vin: string
+        }[]
       }
       requisito_crear: {
         Args: {
