@@ -9297,6 +9297,7 @@ export type Database = {
         Args: { p_actualizado_en_esperado: string; p_datos: Json; p_id: string }
         Returns: Json
       }
+      declaracion_leer: { Args: { p_id: string }; Returns: Json }
       declaracion_vehiculos_poner: {
         Args: {
           p_actualizado_en_esperado: string
