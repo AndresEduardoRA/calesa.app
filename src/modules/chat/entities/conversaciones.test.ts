@@ -3,6 +3,7 @@ import {
   cursorDe,
   fundirPagina,
   idDeConversacionEnLaUrl,
+  idDeUsuarioEnLaUrl,
   leerNoLeidos,
   leerPaginaDeConversaciones,
   sumarPagina,
@@ -178,6 +179,17 @@ describe('idDeConversacionEnLaUrl', () => {
     expect(idDeConversacionEnLaUrl('')).toBeNull()
     expect(idDeConversacionEnLaUrl(null)).toBeNull()
     expect(idDeConversacionEnLaUrl(`${ID_A}xyz`)).toBeNull()
+  })
+})
+
+describe('idDeUsuarioEnLaUrl', () => {
+  it('acepta un GUID y descarta lo ilegible', () => {
+    expect(idDeUsuarioEnLaUrl(ID_A)).toBe(ID_A)
+    expect(idDeUsuarioEnLaUrl('abc')).toBeNull()
+    expect(idDeUsuarioEnLaUrl('')).toBeNull()
+    expect(idDeUsuarioEnLaUrl(null)).toBeNull()
+    expect(idDeUsuarioEnLaUrl(undefined)).toBeNull()
+    expect(idDeUsuarioEnLaUrl(`${ID_A}xyz`)).toBeNull()
   })
 })
 

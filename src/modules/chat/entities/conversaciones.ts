@@ -105,6 +105,12 @@ export function idDeConversacionEnLaUrl(texto: string | null | undefined): strin
   return lectura.success ? lectura.data : null
 }
 
+// `?con=`: la persona con quien abrir la directa; sólo un GUID, lo ilegible es como no pedir nada.
+export function idDeUsuarioEnLaUrl(texto: string | null | undefined): string | null {
+  const lectura = esquemaDeId.safeParse(texto)
+  return lectura.success ? lectura.data : null
+}
+
 // Del más reciente al más viejo: `(ultimo_mensaje_en, id)` descendente, como lee la base.
 function masRecientePrimero(a: Conversacion, b: Conversacion): number {
   if (a.ultimoMensajeEn !== b.ultimoMensajeEn) {
