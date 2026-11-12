@@ -15,7 +15,9 @@ export default async function PaginaPerfil() {
   return (
     <div className="grid max-w-2xl gap-4">
       <h1 className="text-(length:--text-xl) font-semibold text-(--color-ink)">Mi perfil</h1>
+      {/* La versión del perfil es la `key`: guardar la ficha de la web la cambia y «Tus datos» se vuelve a montar con la nueva. */}
       <FormularioPerfil
+        key={sesion.perfilActualizadoEn}
         usuarioId={sesion.usuarioId}
         nombre={sesion.nombre}
         email={sesion.email}
