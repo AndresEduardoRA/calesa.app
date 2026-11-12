@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { connection } from 'next/server'
 import { Suspense } from 'react'
 import { z } from 'zod'
+import { RegistrarVisita } from '@/modules/buscador/pantallas/visita'
 import { leerAsesorDeLaCotizacion, leerHojaDeUnaGuardada } from '@/modules/cotizaciones'
 import {
   CabeceraDeLaGuardada,
@@ -86,6 +87,7 @@ async function Cotizacion({ params }: { params: PageProps<'/cotizaciones/[id]'>[
   }
   return (
     <>
+      <RegistrarVisita tipo="cotizacion" id={hoja.cotizacion.id} />
       <CabeceraDeLaGuardada
         id={hoja.cotizacion.id}
         numero={hoja.cotizacion.numero}

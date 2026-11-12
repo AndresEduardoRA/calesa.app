@@ -26,6 +26,7 @@ import {
   SeccionPortal,
   SeccionSeguimientos,
 } from '@/modules/leads/pantallas/ficha'
+import { RegistrarVisita } from '@/modules/buscador/pantallas/visita'
 import { getOrigenes } from '@/modules/origenes'
 import { opcionesDeVehiculoDelLead } from '@/modules/vehiculos'
 import {
@@ -139,26 +140,29 @@ export default async function PaginaLead({ params, searchParams }: PageProps<'/l
   const ve = loQueVe(sesion.permisos, datos.ficha.enCartera)
   const seccion = seccionDeLead(unParametro(parametros[CLAVE_DE_SECCION]), ve)
   return (
-    <FichaDeLead
-      ficha={datos.ficha}
-      campos={datos.campos}
-      origen={datos.origen}
-      tipo={datos.tipo}
-      usuarioId={sesion.usuarioId}
-      puedeEditar={puedeEditarLead(sesion.permisos, datos.ficha.enCartera)}
-      puedeCambiarTelefono={puedeCambiarTelefonoDeLead(sesion.permisos, datos.ficha.enCartera)}
-      seccion={seccion}
-      ve={ve}
-      paraCotizar={paraCotizar}
-      etiquetas={datos.etiquetas}
-      cartera={datos.cartera}
-      accionesDeCartera={accionesDeCartera(sesion.permisos, datos.cartera)}
-      puedeEnviarAPapelera={puedeEnviarLead(
-        sesion.permisos,
-        duenoDe(datos.cartera)?.usuarioId ?? null,
-        sesion.usuarioId,
-      )}
-      {...seccionesDe(datos, seccion, ve)}
-    />
+    <>
+      <RegistrarVisita tipo="lead" id={datos.ficha.id} />
+      <FichaDeLead
+        ficha={datos.ficha}
+        campos={datos.campos}
+        origen={datos.origen}
+        tipo={datos.tipo}
+        usuarioId={sesion.usuarioId}
+        puedeEditar={puedeEditarLead(sesion.permisos, datos.ficha.enCartera)}
+        puedeCambiarTelefono={puedeCambiarTelefonoDeLead(sesion.permisos, datos.ficha.enCartera)}
+        seccion={seccion}
+        ve={ve}
+        paraCotizar={paraCotizar}
+        etiquetas={datos.etiquetas}
+        cartera={datos.cartera}
+        accionesDeCartera={accionesDeCartera(sesion.permisos, datos.cartera)}
+        puedeEnviarAPapelera={puedeEnviarLead(
+          sesion.permisos,
+          duenoDe(datos.cartera)?.usuarioId ?? null,
+          sesion.usuarioId,
+        )}
+        {...seccionesDe(datos, seccion, ve)}
+      />
+    </>
   )
 }

@@ -122,6 +122,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Reciente (de un lead)** — `leads_asesores.lead_reciente_en`, `reciente_en` de `leads_vista` y `leads_cartera_vista`, `leads_asesores_reciente_idx`: el último seguimiento vivo del lead o, sin ninguno, su alta (`coalesce(ultimo_seguimiento_en, creado_en)`). Ordena «míos» del panel del cliente; la copia está en todas las filas de la cartera del lead, también las revocadas. No: «actividad» (es la auditoría).
 - **Candidatos de la búsqueda** — `leads_candidatos()`, `leads_vista_por_ids()`, `leads_busqueda_idx` / `entities/candidatos.ts`: primeros leads que coinciden con un nombre, sacados de un índice.
 - **Buscador** — `buscador_leads()`, `buscador_vehiculos()`, `buscador_cotizaciones()` / `src/modules/buscador`: la búsqueda por sección (leads, vehículos, cotizaciones) con el mínimo en la base y tope 5 por sección; la paleta `Ctrl/Cmd+K` la dibuja (7.13).
+- **Paleta** — `<Paleta>`, `AccionDeLaPaleta` / `src/modules/buscador`: la superposición `Ctrl/Cmd+K` que busca y ejecuta acciones; sin URL. Sus acciones se ofrecen con `puede()`.
 - **Últimos abiertos** — `visitados` / `visita_registrar()`, `visitados_usuario_visto_idx`: lo último que cada persona abrió (lead, vehículo o cotización), a lo sumo 50; se lee bajo la RLS de cada entidad.
 - **Míos / Todos** — `?alcance=todos` / `alcanceDelListado()`, `<SelectorDeAlcance>`: modos del listado de leads; «míos» (defecto) = `en_cartera`.
 - **Mías** (cotizaciones) — `p_mias` de `cotizaciones_listado()`, `PedidoDelListado.mias`: filtro del listado `/cotizaciones`: las que creó quien mira (`creado_por`). No es «Míos» de leads (`en_cartera`).
@@ -176,6 +177,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Dar acceso / Volver a otorgar** — `otorgar_portal`: volver a otorgar cambia código y clave; los anteriores y la sesión abierta dejan de valer.
 - **Revocar (el acceso)** — `revocar_portal`: el código deja de valer y la sesión se corta; irreversible, se da uno nuevo.
 - **Desbloquear** — `portal_desbloquear`: limpiar el bloqueo de 15 minutos que dejan cinco intentos fallidos.
+- **Límite por IP (del portal)** — `interno.portal_intentos` / `web.portal_intento()`: 10 intentos de ingreso por IP cada 15 minutos; la IP se guarda sólo como **huella** (HMAC con la sal `portal:sal`).
 - **Versión del acceso** — `accesos_portal.otorgado_en`: cuándo se otorgó; da conflicto en «Volver a otorgar» y vence la sesión del portal.
 - **Novedades** — `web.portal_snapshot().novedades`: lo «Visible para el cliente» sin vehículo suyo; las 30 más nuevas.
 - **Dirección de la web** — `ajustes_web.direccion_publica` / `leerDireccionPublica()`: la dirección pública del sitio.
@@ -310,7 +312,10 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Nota** — `notas`: bloc de notas de una unidad; la del cambio de fase apunta a su historial.
 - **Proyecto de repuestos** — `repuestos_proyectos`: un proyecto por vehículo (o externo).
 - **Ítem de repuesto** — `repuestos_items`: el repuesto que recorre el flujo de repuestos.
-- **Stock** — `repuestos_items.stock_cantidad`, `_stock_movimientos`: sobrantes disponibles.
+- **Stock** — `repuestos_items.stock_cantidad`, `_stock_movimientos`: sobrantes disponibles. Se mueve sólo por `repuesto_stock_mover` y `repuesto_stock_reasignar` (8.10); nunca negativo.
+- **Sobrante** — lo que de un ítem entra a stock (motivo `sobrante`, «Pasar a stock»): como mucho su cantidad menos lo que ya entró.
+- **Vender suelto** — sacar del stock lo vendido fuera de un proyecto (motivo `vendido`); no registra precio: el cobro es un pago del proyecto.
+- **Reasignar** — pasar unidades del stock de un ítem a otro proyecto abierto (motivo `reasignado`): nace un ítem nuevo allá, en la fase de entrada.
 - **Compra** — `repuestos_compras`: costo de un repuesto (permiso aparte).
 - **Catálogo de repuestos** — `repuestos_catalogos.catalogo` (`CATALOGOS_DE_REPUESTOS`): tipo de pieza, condición, vía de transporte o país de origen. Cada fila es un **valor** (`ValorDeCatalogo`); un valor en uso no se borra, se desactiva. La clave `modo_transporte` se muestra como «Vía de transporte».
 - **Cotizador de repuestos** — `repuestos_cotizador_config`, `_tramos_logistica`, `_cajas`, `repuestos_cotizaciones`: fórmula propia importado/local con tramos y cajas.

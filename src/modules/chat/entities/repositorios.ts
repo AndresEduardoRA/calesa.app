@@ -4,6 +4,7 @@ import type { Cursor } from '@/shared/lib/paginacion'
 import type { Conversacion, CursorDeConversaciones, PaginaDeConversaciones } from './conversaciones'
 import type { FalloDeEscritura, RespuestaDeEscritura } from './escritura'
 import type { ClaseDeMencion, Referencia } from './menciones'
+import type { MapaDeFichas, PedidoDeFicha } from './fichas'
 import type { PaginaDeMensajes } from './mensajes'
 import type { PersonasEncontradas } from './personas'
 import type { EstadoDeReferencia } from './referencias'
@@ -88,3 +89,23 @@ export type RepositorioDeMensajes = {
 export type LectorDeReferencias = (
   referencias: readonly Referencia[],
 ) => Promise<Resultado<Map<string, EstadoDeReferencia>>>
+
+// Crear una tarea o un evento desde un mensaje del chat (7.10-3): `mensaje_tarea_crear` y `mensaje_evento_crear` crean la cosa y su ficha en una transacción.
+// `id` es el del mensaje, el del formulario al abrirse: reintentar es `repetido`, nunca dos tareas. Quién puede lo dice la base (42501, 23514); el `hint` es el campo.
+export type RepositorioDeFichas = {
+  crearTarea: (pedido: {
+    id: string
+    conversacion: string
+    datos: { titulo: string; vence_en?: string; responsable_id?: string }
+  }) => RespuestaDeEscritura
+  crearEvento: (pedido: {
+    id: string
+    conversacion: string
+    datos: { titulo: string; inicia_en: string; visibilidad: 'privado' | 'seleccionados' }
+    destinatarios: readonly string[]
+  }) => RespuestaDeEscritura
+}
+
+// Las tareas y eventos que traen las fichas del hilo (7.10-3), leídos con la sesión de quien mira: una lectura por clase y por tanda, más una de los
+// nombres de los responsables. Lo que no se ve, llega como «no disponible».
+export type LectorDeFichas = (pedidas: readonly PedidoDeFicha[]) => Promise<Resultado<MapaDeFichas>>

@@ -60,6 +60,13 @@ export const REGISTRO: readonly RpcPaginada[] = [
     pideElCodigo: TAMANO_DE_PAGINA_POR_DEFECTO,
     lista: 'proyectos de /repuestos',
   },
+  // `/repuestos?vista=stock` (8.10-1): ítems en stock por cursor `(en_stock_desde, id)`, una página de `TAMANO_DE_PAGINA_POR_DEFECTO`, sin selector `?por=`.
+  {
+    rpc: 'repuestos_stock_listar',
+    parametro: 'p_tamano',
+    pideElCodigo: TAMANO_DE_PAGINA_POR_DEFECTO,
+    lista: 'stock de repuestos (?vista=stock)',
+  },
   // `/logistica/aduana` (6.09-1): una página de `TAMANO_DE_PAGINA_POR_DEFECTO` por cursor `(creado_en, id)`, sin selector `?por=`.
   {
     rpc: 'declaraciones_listar',

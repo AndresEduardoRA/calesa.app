@@ -106,7 +106,7 @@ export function cambiarElFactorVivo(origenId: string, factorDe2019: number): voi
      where f.tabla_id = t.id and t.origen_id = ${literal(origenId)}::uuid and t.clave = 'ch_tabla' and f.valores ->> 'anio' = '2019'`)
 }
 
-// Los guardados de una cotización guardada (4.15-3): cada POST de la Server Action de `/cotizaciones/<id>` (lleva la cabecera `next-action`), con lo que mandó.
+// Los guardados de una cotización guardada (4.15-3): cada POST de la Server Action de guardar en `/cotizaciones/<id>` (lleva la cabecera `next-action`), con lo que mandó.
 export type PedidoDeEdicionVisto = {
   intento: string
   cotizacionId: string
@@ -134,8 +134,11 @@ export async function vigilarGuardadosDeUnaGuardada(
     async (ruta) => {
       const pedido = ruta.request()
       if (pedido.method() === 'POST' && (await pedido.headerValue('next-action')) !== null) {
-        const [visto] = JSON.parse(pedido.postData() ?? '[]') as [PedidoDeEdicionVisto]
-        pedidos.push(visto)
+        const [visto] = JSON.parse(pedido.postData() ?? '[]') as [Partial<PedidoDeEdicionVisto>]
+        // La ficha también deja su visita al buscador (7.13-1) por otra Server Action a esta misma URL: no es un guardado, y sólo el guardado lleva `intento`.
+        if (visto.intento !== undefined) {
+          pedidos.push(visto as PedidoDeEdicionVisto)
+        }
       }
       await ruta.fallback()
     },

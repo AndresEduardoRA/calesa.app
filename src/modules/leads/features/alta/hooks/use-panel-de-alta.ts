@@ -5,6 +5,7 @@ import { useMemo } from 'react'
 import { CLAVE_DE_PANEL } from '@/shared/lib/filtros'
 import { abrirConVuelta, useVueltaDelFoco } from '@/shared/ui/vuelta-del-foco'
 import { CLAVE_DE_ELEGIR, claveParaElegir } from '../../../entities/elegir-al-crear'
+import { adelantarElAlta } from '../components/diferidos'
 
 // El valor de `?panel=` que abre «Nuevo lead». Distinto de `nuevo` (el de un vehículo) y de
 // `filtros`: cada pantalla tiene su `?panel=` y éste puede abrirse desde cualquiera.
@@ -49,5 +50,20 @@ export function usePanelDeAlta() {
         { history: 'replace', shallow: false },
       )
     },
+  }
+}
+
+// Abrir «Nuevo lead» desde fuera del panel (la paleta de la barra). No es `usePanelDeAlta()`: ese hook registra la vuelta del foco del panel y `<AltaDeLead>` ya lo usa;
+// montarlo otra vez en el hueco la registraría dos veces. Éste sólo lee la clave `panel` (para no volver a abrir lo abierto) y escribe la misma entrada.
+export function useAbrirNuevoLead(): () => void {
+  const [url, escribir] = useQueryStates({ [CLAVE_DE_PANEL]: parseAsString })
+  const abierto = url[CLAVE_DE_PANEL] === PANEL_NUEVO_LEAD
+  return () => {
+    adelantarElAlta()
+    abrirConVuelta(
+      CLAVE_DE_PANEL,
+      () => escribir({ [CLAVE_DE_PANEL]: PANEL_NUEVO_LEAD }, { history: 'push' }),
+      abierto,
+    )
   }
 }

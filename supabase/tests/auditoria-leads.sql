@@ -235,6 +235,10 @@ declare
     ('repuestos_proyectos_listar(bigint,integer,text,text)', 'L'),
     -- Lo que la espera de un vehículo aguarda (8.08-1): ítems y fases, sin el vínculo del proyecto (`areas/repuestos/esperas.sql`).
     ('repuestos_pendientes_de_vehiculo(uuid,integer)', 'L'),
+    -- El stock de un ítem (8.10-1): reasignar toma el proyecto destino para ver si está vivo y abierto y lee el número del origen; la lista
+    -- devuelve el número, la etiqueta y el título del vehículo (sólo a quien lo ve), sin el vínculo ni el teléfono (`areas/repuestos/stock-*.sql`).
+    ('repuesto_stock_reasignar(uuid,uuid,integer,uuid)', 'X'),
+    ('repuestos_stock_listar(timestamp with time zone,uuid,integer)', 'L'),
     -- El consentimiento de un testimonio (8.01-1): toman el testimonio; `lead_id` no se lee ni se escribe (lo cuida `trg_lead_visible`)
     -- (`areas/web/testimonios-consentimiento.sql`).
     ('web_testimonio_consentir(uuid,timestamp with time zone,text,boolean,boolean,boolean)', 'X'),

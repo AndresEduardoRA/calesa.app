@@ -86,7 +86,7 @@ test('con el texto al 200 % el tipo de cambio sigue a mano en el menú', async (
   await expect(menu.getByRole('button', { name: 'Tipos de cambio' })).toContainText('11,68')
 })
 
-// El buscador de la barra (5b-1). Hasta la Fase 7 es `<BuscadorPendiente>`, un botón que guarda su lugar: con la barra de ~300 px del
+// El buscador de la barra (5b-1). Es `<Buscador>` (7.13), el botón que abre la paleta: con la barra de ~300 px del
 // 200 % en el celular su «Buscar» llevaba `truncate` y sólo se veía «B…», y su alto estaba en rem (72 px al 200 %). Por debajo de 24 rem
 // de barra queda el icono, en un blanco de 44 px con su nombre; desde 24 rem, el icono y «Buscar» entero. Corre en los dos proyectos con
 // el mismo viewport de celular, así que lo que cuenta es el ancho de la barra, no el aparato.
@@ -154,4 +154,27 @@ test('con el texto normal el buscador se llama «Buscar», también en escritori
   await capturar(page, info, 'buscador-normal')
   await expect(buscadorDeLaBarra(page)).toBeVisible()
   await expect(buscadorDeLaBarra(page).getByText('Buscar', { exact: true })).toBeVisible()
+})
+
+test('el botón «Buscar» está habilitado y abre la paleta al 200 % sin scroll horizontal', async ({
+  page,
+}) => {
+  await page.setViewportSize(CELULAR)
+  await entrar(page, r.ana.email)
+  await irALeads(page)
+  await conTextoAl(page, '200%')
+  const buscador = buscadorDeLaBarra(page)
+  await expect(buscador).toBeEnabled()
+  await expect(buscador).not.toHaveAttribute('aria-disabled')
+  await expect(buscador).not.toHaveAttribute('title')
+  await buscador.click()
+  const paleta = page.getByRole('dialog', { name: 'Buscar' })
+  await expect(paleta).toBeVisible()
+  const caja = await paleta.boundingBox()
+  expect(
+    Math.round((caja?.x ?? -1) + (caja?.width ?? 0)),
+    'borde derecho de la paleta',
+  ).toBeLessThanOrEqual(CELULAR.width)
+  expect(caja?.x ?? -1, 'borde izquierdo de la paleta').toBeGreaterThanOrEqual(0)
+  await sinScrollHorizontal(page)
 })

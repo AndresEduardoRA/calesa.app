@@ -74,7 +74,12 @@ function TextoDeLaBurbuja({
       {acciones.editandoId === mensaje.id ? (
         <EditarEnLinea mensaje={mensaje} acciones={acciones} />
       ) : (
-        <CuerpoConMenciones mensaje={mensaje} menciones={acciones.menciones} />
+        <CuerpoConMenciones
+          mensaje={mensaje}
+          menciones={acciones.menciones}
+          fichas={acciones.fichas}
+          usuarioId={acciones.usuarioId}
+        />
       )}
     </>
   )
