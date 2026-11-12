@@ -34,7 +34,15 @@ const tresNiveles = doc(
   vinetas(item(p(t('a')), vinetas(item(p(t('b')), vinetas(item(p(t('c')))))))),
 )
 
+// 94 bytes de envoltorio (`jsonb::text`) + el texto: justo 102400 bytes se acepta.
+const TEXTO_DE_100_KB = 'a'.repeat(102306)
+
 const CASOS_ACEPTADOS: Caso[] = [
+  {
+    nombre: 'justo 100 KB',
+    documento: doc(p(t(TEXTO_DE_100_KB))),
+    html: `<p>${TEXTO_DE_100_KB}</p>`,
+  },
   { nombre: 'un párrafo', documento: doc(p(t('Hola'))), html: '<p>Hola</p>' },
   { nombre: 'nulo es vacío', documento: null, html: '' },
   { nombre: 'sin contenido es vacío', documento: { type: 'doc' }, html: '' },
@@ -253,8 +261,8 @@ const CASOS_RECHAZADOS: Caso[] = [
   },
   { nombre: 'la raíz no es doc', documento: p(t('x')), motivo: MOTIVO_DE_FORMATO },
   {
-    nombre: 'más de 100 KB',
-    documento: doc(p(t('a'.repeat(102400)))),
+    nombre: 'un byte más de 100 KB',
+    documento: doc(p(t('a'.repeat(102307)))),
     motivo: MOTIVO_DE_TAMANO,
   },
 ]

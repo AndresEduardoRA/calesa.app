@@ -1,6 +1,6 @@
 -- El consentimiento de un testimonio se registra y se retira por RPC (8.01-1, C13–C16): `consent_*` deja de escribirse directo, un
 -- testimonio no se publica sin el trío (quién, cuándo, por qué canal) y sin retirar, y cambiar lo que dice o su foto anula el
--- consentimiento (D15): la persona consintió ese texto y esa foto.
+-- consentimiento (D15): la persona consintió ese texto y esa foto. Cambiar la ciudad o el vehículo apaga sólo el permiso de mostrarlos.
 
 -- D12: los publicados sin el trío (o retirados) ya no se veían en `web.testimonios`; se despublican para que el trigger no rompa sus
 -- próximas escrituras.
@@ -23,6 +23,13 @@ begin
     new.consent_foto := false;
     new.consent_retirado_en := null;
     new.publicado := false;
+  end if;
+  -- La ciudad o el vehículo que cambian no salen con un consentimiento dado para otros.
+  if tg_op = 'UPDATE' and new.ciudad is distinct from old.ciudad then
+    new.consent_ciudad := false;
+  end if;
+  if tg_op = 'UPDATE' and new.vehiculo is distinct from old.vehiculo then
+    new.consent_vehiculo := false;
   end if;
   if new.publicado
      and (new.consent_por is null or new.consent_en is null or new.consent_canal is null or new.consent_retirado_en is not null) then

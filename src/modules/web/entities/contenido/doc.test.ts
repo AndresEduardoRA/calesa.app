@@ -28,6 +28,8 @@ describe('las piezas de la lista blanca', () => {
     expect(hrefSeguro('tel:+591700')).toBe('tel:+591700')
     expect(hrefSeguro('JavaScript:alert(1)')).toBeNull()
     expect(hrefSeguro('https://a.com\n')).toBeNull()
+    expect(hrefSeguro('https://a.com/\u0085')).toBeNull()
+    expect(hrefSeguro(`https://${'😀'.repeat(1992)}`)).not.toBeNull()
   })
 
   it('rutaDeImagenSegura sólo admite rutas relativas del bucket', () => {

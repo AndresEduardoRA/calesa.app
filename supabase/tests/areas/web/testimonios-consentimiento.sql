@@ -10,7 +10,8 @@
 --   T6. Retirar despublica y web.testimonios no lo trae; publicar de nuevo da 22023; retirar otra vez devuelve la misma versión.
 --   T7. Consentir de nuevo reactiva (retirado nulo) y se puede publicar.
 --   T8. Retirar sin consentimiento da 22023 hint consentimiento.
---   T9. Cambiar el texto de uno consentido y publicado anula el consentimiento y lo despublica (D15); cambiar el orden no.
+--   T9. Cambiar el texto de uno consentido y publicado anula el consentimiento y lo despublica (D15); cambiar el orden no; cambiar la ciudad o el
+--       vehículo apaga sólo su permiso y sigue publicado.
 
 create or replace function pg_temp.wt_persona(p_concesiones text[]) returns uuid language plpgsql as $f$
 declare v_id uuid := gen_random_uuid(); v_rol uuid; c text;
@@ -170,14 +171,26 @@ declare
   v_id uuid;
   v jsonb;
 begin
-  insert into public.web_testimonios (cliente, texto) values ('Eva', 'Excelente') returning id into v_id;
-  v := pg_temp.wt_consentir(v_editor, v_id, true);
+  insert into public.web_testimonios (cliente, texto, ciudad, vehiculo) values ('Eva', 'Excelente', 'Sucre', 'Hilux') returning id into v_id;
+  v := pg_temp.wt_corre(v_editor, format('select public.web_testimonio_consentir(%L, %L, ''WhatsApp'', true, true, false)::text',
+    v_id, pg_temp.wt_version(v_id)));
   v := pg_temp.wt_corre(v_editor, format('update public.web_testimonios set publicado = true, orden = 3 where id = %L returning id', v_id));
   v := pg_temp.wt_corre(v_editor, format('update public.web_testimonios set orden = 4 where id = %L returning id', v_id));
   if v ->> 'v' is null or not (select publicado from public.web_testimonios where id = v_id)
      or (select consent_por from public.web_testimonios where id = v_id) is null then
     raise exception 'T9: cambiar el orden tocó el consentimiento (%)', v;
   end if;
+  v := pg_temp.wt_corre(v_editor, format('update public.web_testimonios set ciudad = ''Potosí'', vehiculo = ''RAV4'' where id = %L returning id', v_id));
+  if v ->> 'v' is null or not (select publicado from public.web_testimonios where id = v_id)
+     or (select consent_ciudad or consent_vehiculo from public.web_testimonios where id = v_id)
+     or (select consent_por from public.web_testimonios where id = v_id) is null then
+    raise exception 'T9: cambiar la ciudad y el vehículo no apagó sólo sus permisos (%)', v;
+  end if;
+  set local role anon;
+  if (select ciudad is not null or vehiculo is not null from web.testimonios where cliente = 'Eva') then
+    raise exception 'T9: web.testimonios muestra la ciudad o el vehículo cambiados';
+  end if;
+  reset role;
   v := pg_temp.wt_corre(v_editor, format('update public.web_testimonios set texto = ''Pésimo'' where id = %L returning id', v_id));
   if v ->> 'v' is null or (select publicado from public.web_testimonios where id = v_id)
      or (select consent_por from public.web_testimonios where id = v_id) is not null

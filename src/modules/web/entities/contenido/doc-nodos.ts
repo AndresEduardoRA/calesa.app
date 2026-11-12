@@ -37,16 +37,17 @@ const NO_VACIOS = ['bulletList', 'orderedList', 'listItem', 'blockquote']
 const PROTOCOLO = /^(https?:\/\/|mailto:|tel:)/i
 const RUTA_DE_IMAGEN = /^[A-Za-z0-9_-]+(\/[A-Za-z0-9_-]+)*\.(webp|png|jpe?g)$/
 
-// Un espacio o un caracter de control (lo que rechaza `[[:space:][:cntrl:]]` en la base).
+// Un espacio o un caracter de control (lo que rechaza `[[:space:][:cntrl:]]` en la base), con los
+// controles C1 (U+0080–U+009F): el espejo rechaza de más, nunca de menos.
 function esEspacioOControl(caracter: string): boolean {
   const codigo = caracter.codePointAt(0) ?? 0
-  return codigo <= 0x20 || codigo === 0x7f || /\s/.test(caracter)
+  return codigo <= 0x20 || (codigo >= 0x7f && codigo <= 0x9f) || /\s/.test(caracter)
 }
 
 // Lo que se puede poner en un `href` (`_seguimiento_href_valido`): http, https, mailto o tel, sin
-// espacios ni caracteres de control, de 1 a 2000. `null` = no se admite.
+// espacios ni caracteres de control, de 1 a 2000 caracteres (`char_length`). `null` = no se admite.
 export function hrefSeguro(href: unknown): string | null {
-  if (typeof href !== 'string' || href.length === 0 || href.length > 2000) {
+  if (typeof href !== 'string' || href.length === 0 || [...href].length > 2000) {
     return null
   }
   return PROTOCOLO.test(href) && ![...href].some(esEspacioOControl) ? href : null

@@ -7,7 +7,8 @@
 --       o con espacio delante, y una imagen de otro host, con `//`, con `..` o con `src` se rechazan con 22023 hint `doc`.
 --   D2. La imagen válida sale `<img data-ruta=… alt="">`; título 1 y más de 100 KB se rechazan con su motivo.
 --   D3. Minutos: nulo y sin palabras → nulo; 200 palabras → 1; 201 → 2.
---   D4. `anon` y `authenticated` no ejecutan ninguna función `_web_doc%` ni `_web_html_escapar`.
+--   D4. `anon` y `authenticated` no ejecutan ninguna función `_web_doc%` ni `_web_html_escapar`, ni los ayudantes de los ajustes ni las tres
+--       funciones de trigger de 8.01-1.
 
 create or replace function pg_temp.dh_html(p_doc jsonb) returns jsonb language plpgsql as $f$
 declare v text; v_m text; v_e text; v_h text;
@@ -92,14 +93,17 @@ begin
   end if;
 end $$;
 
--- @test web doc: ningún rol de la app ejecuta los ayudantes del documento (D4)
+-- @test web doc: ningún rol de la app ejecuta los ayudantes del documento y de los ajustes ni los triggers (D4)
 do $$
 declare v_malas text[];
 begin
   select array_agg(p.oid::regprocedure::text || ' por ' || r.rol) into v_malas
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     cross join (values ('anon'), ('authenticated')) r (rol)
-   where n.nspname = 'public' and (p.proname like '\_web\_doc%' or p.proname = '_web_html_escapar')
+   where n.nspname = 'public' and (p.proname like '\_web\_doc%' or p.proname = '_web_html_escapar'
+       or p.oid in ('public._web_ajustes_valor(text,jsonb)'::regprocedure, 'public._web_ajustes_objeto(text,jsonb,jsonb)'::regprocedure,
+                    'public._web_legales_validar(jsonb,jsonb)'::regprocedure, 'public.web_guia_cuerpo()'::regprocedure,
+                    'public.web_ajustes_legales()'::regprocedure, 'public.web_testimonio_exigir_consentimiento()'::regprocedure))
      and has_function_privilege(r.rol, p.oid, 'execute');
   if v_malas is not null then
     raise exception 'D4: estos ayudantes del documento los ejecuta un rol de la app: %', v_malas;
