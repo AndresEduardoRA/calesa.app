@@ -35,3 +35,10 @@
   con `conRespuesta()` y tope propio: `soporte/esperas.ts`».
 - **Trampa del build:** si `next build` cae con «Type '/tablero' is not assignable to RouteImpl», `pnpm typecheck` (que corre `next typegen`)
   lo arregla; no era del código.
+- **4-41 (9.09-3), D1–D6.** Producción pide en Vercel las públicas, la secreta, `PORTAL_COOKIE_SECRETO`, la VAPID pública, el correo (remitente, nombre y un
+  juego completo de Resend o de Cloudflare: el valor de `EMAIL_PROVEEDOR` no se lee); un preview sólo las cuatro que arrancan la app; las funciones, las
+  tres de push; Auth, SMTP, plantillas, URLs y `mailer_otp_exp` = 86400 (lo único que se compara). Tokens e ids de proyecto sólo de `process.env`; el
+  ref de Supabase de `SUPABASE_PROJECT_REF` o de `[remotes.demo]`. Salida 0/1/2 (2 gana sobre 1). `pnpm env:check` sin argumento no usa la red.
+  Un fallo de la API dice «HTTP n» o «sin respuesta», nunca el cuerpo ni la URL. El tipo `Lectura` vive en `lectura.ts` (no en `produccion.ts`) para
+  que los lectores no importen a quien los usa. Contratos de las dos API sin verificar con la nube: lo confirma el primer corrido real de la persona.
+- **Pedido al integrador** (docs de carril): PLAN › fila 9.09 «hechas las partes 1 a 4» y mover el abierto 4-41 al archivo como cerrado por 9.09-3.
