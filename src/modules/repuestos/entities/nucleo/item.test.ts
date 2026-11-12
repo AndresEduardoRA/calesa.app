@@ -11,6 +11,7 @@ const base = {
   pais_origen_id: null,
   modo_transporte_id: null,
   cantidad: 2,
+  stock_cantidad: 0,
   precio_cliente: 150.5,
   moneda: 'USD',
   tracking: null,
@@ -34,6 +35,13 @@ describe('filasDeItemDesde', () => {
       fase: { nombre: 'En camino', color: '#123456', esFinal: false },
       enStock: false,
     })
+  })
+
+  it('lee las unidades en stock', () => {
+    expect(
+      filaDeItemDesde({ ...base, stock_cantidad: 2, en_stock_desde: '2026-11-12T11:00:00+00:00' }),
+    ).toMatchObject({ stockCantidad: 2, enStock: true })
+    expect(filaDeItemDesde({ ...base, stock_cantidad: undefined })).toBeNull()
   })
 
   it('una fila con otra forma invalida toda la lectura', () => {
