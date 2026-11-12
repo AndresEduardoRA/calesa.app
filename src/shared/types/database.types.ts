@@ -10795,6 +10795,7 @@ export type Database = {
         Args: { p_filas: Json; p_nota: string; p_tabla: string; p_version_esperada: number }
         Returns: Json
       }
+      tablero_cola_web: { Args: { p_desde: string; p_hasta: string }; Returns: Json }
       tablero_cotizaciones: { Args: { p_desde: string; p_hasta: string }; Returns: Json }
       tablero_leads: { Args: { p_desde: string; p_hasta: string }; Returns: Json }
       tablero_margen: { Args: { p_desde: string; p_hasta: string }; Returns: Json }

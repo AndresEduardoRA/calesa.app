@@ -1,4 +1,4 @@
--- El margen del mes del tablero en la base (paso 9.11-1). No depende de otro archivo (`SOLO=areas/tablero/margen-y-cola.sql`). Los
+-- El margen del mes y la cola web del tablero en la base (paso 9.11-1), 1 de 2. No depende de otro archivo (`SOLO=areas/tablero/margen-y-cola.sql`). Los
 -- ayudantes del dinero son copia de `areas/dinero/margen.sql`. Cada bloque abre su transacción y la revierte.
 --
 -- Qué asegura:
@@ -7,8 +7,9 @@
 --       confirmado se cuenta aparte (`sin_venta`) y el que sólo tiene un gasto no aparece.
 --   R2. Un vehículo cae en el período de su último pago confirmado, con todos sus pagos (D3); el que tiene uno solo, viejo, cae en su mes.
 --   R3. Sin vehículos, venta, real, cotizado y margen son nulos, nunca 0.
---   R4. Con `logistica.margen.ver` en un solo origen, sólo ése; sin la clave, 42501.
+--   R4. Con `logistica.margen.ver` en un solo origen, sólo ése; sin la clave, 42501; sin `web.cola.gestionar`, 42501 en la cola.
 --   R5. `anon` no ejecuta, `authenticated` sí; `definer` con `search_path` vacío; una ventana de 367 días, 22023 con hint `p_hasta`.
+--   Las cifras de la cola (R6 y R7) están en `cola-web.sql`.
 
 -- Una persona activa con estas claves (`clave[:alcance[:origen]]`) y su nombre.
 create or replace function pg_temp.tmc_persona(p_claves text[], p_nombre text default 'TMC persona') returns uuid language plpgsql as $f$
@@ -247,7 +248,7 @@ begin
 end $$;
 rollback;
 
--- @test tablero: R4 · permisos: sólo los orígenes de quien mira; sin la clave, 42501
+-- @test tablero: R4 · permisos: sólo los orígenes de quien mira; sin la clave, 42501 en cada una
 begin;
 do $$
 declare t jsonb := pg_temp.tmc_terreno(); m jsonb; h date := pg_temp.tmc_hoy();
@@ -258,15 +259,18 @@ begin
     raise exception 'R4: con la clave sólo en o2 debía ver sólo o2 (798,11): %', m;
   end if;
   perform pg_temp.tmc_da('R4: margen sin la clave', pg_temp.tmc_margen_mes(pg_temp.tmc_persona(array['tablero.metricas.ver'])), '42501');
+  perform pg_temp.tmc_da('R4: cola sin gestionar',
+    pg_temp.tmc_corre(pg_temp.tmc_persona(array['tablero.metricas.ver', 'web.cola.participar']),
+                      format('select public.tablero_cola_web(%L, %L)', h, h)), '42501');
 end $$;
 rollback;
 
 -- @test tablero: R5 · privilegios y ventana
 begin;
 do $$
-declare f text; q uuid := pg_temp.tmc_persona(array['logistica.margen.ver']);
+declare f text; q uuid := pg_temp.tmc_persona(array['logistica.margen.ver', 'web.cola.gestionar']);
 begin
-  foreach f in array array['tablero_margen'] loop
+  foreach f in array array['tablero_margen', 'tablero_cola_web'] loop
     if has_function_privilege('anon', format('public.%I(date, date)', f), 'execute') then raise exception 'R5: anon ejecuta %', f; end if;
     if not has_function_privilege('authenticated', format('public.%I(date, date)', f), 'execute') then raise exception 'R5: authenticated no ejecuta %', f; end if;
     if not exists (select 1 from pg_proc p where p.oid = format('public.%I(date, date)', f)::regprocedure and p.prosecdef
