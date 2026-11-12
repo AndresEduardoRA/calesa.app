@@ -5,7 +5,7 @@ Proyectos de repuestos por vehículo (o externos), ítems que recorren el flujo 
 ## Entra y sale
 
 - Entra: proyectos desde la ficha del vehículo o sueltos, hoja de ítems editable celda a celda (XCell compacta), compras, movimientos de stock, cotizaciones de repuestos.
-- Sale: `proyectoDe(vehiculoId)` y `leerResumenDeVehiculo(vehiculoId)` (8.09-4, por el `index.ts` del área `proyectos`), `esperasQueDestraban(vehiculoId)` (para `flujos`/`logistica`), `<ResumenRepuestos>` (por `pantallas/proyectos-vehiculo.ts`, 8.09-4: la pestaña «Repuestos» de `/vehiculos/[id]`). Lo consumen `vehiculos`, `logistica`, `tablero`, `buscador`.
+- Sale: `proyectoDe(vehiculoId)` y `leerResumenDeVehiculo(vehiculoId)` (8.09-4, por el `index.ts` del área `proyectos`), `esperasQueDestraban(vehiculoId)` (8.13-1, por el `index.ts` del área `flujo`: `Resultado<{ items, hayMas }>`, una fila por ítem con sus esperas, hasta 50; con `repuestos_pendientes_de_vehiculo`, que oculta los nombres de fase sin `logistica.ver`; para el panel del vehículo de `logistica`), `<ResumenRepuestos>` (por `pantallas/proyectos-vehiculo.ts`, 8.09-4: la pestaña «Repuestos» de `/vehiculos/[id]`). Lo consumen `vehiculos`, `logistica`, `tablero`, `buscador`.
 - Sale por `index.ts` (área `catalogos`, 8.08-2): `leerCatalogosDeRepuestos()` (los cuatro, con los desactivados, tope 200 cada uno) y `CATALOGOS_DE_REPUESTOS`; por
   `client.ts`, lo puro del formulario de un valor (`validarValor`, `cambiosDeValor`, `ordenSiguiente`…). Las actions `crearValor`, `guardarValor` y
   `eliminarValor` (`features/catalogos/actions/`, `repuestos.configurar`) no salen por los barriles: las importan en relativo los componentes de la 8.08-3.
