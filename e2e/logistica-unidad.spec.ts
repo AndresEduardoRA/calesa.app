@@ -79,7 +79,8 @@ test('una unidad que no existe, o un id que no es válido, dice que ya no está 
 // `/logistica` (6.01-3, con la cadena del 6.03): dibuja la cadena de su origen y, con `?vehiculo=<id>`, el panel de la unidad en un drawer por URL.
 test('/logistica sin unidad dibuja la cadena del origen y ningún panel', async ({ page }) => {
   await entrar(page, terreno.conLogistica, { fresco: true })
-  await page.goto('/logistica')
+  // `?fase=` elige la columna del celular (donde se ve una fase por vez y la primera es «Sin fase»); en escritorio no cambia nada.
+  await page.goto(`/logistica?fase=${terreno.fase.id}`)
   await expect(
     page.getByRole('region', { name: `${terreno.fase.nombre}: 1 vehículo` }),
   ).toBeVisible()
@@ -88,7 +89,7 @@ test('/logistica sin unidad dibuja la cadena del origen y ningún panel', async 
 
 test('?vehiculo=<id> abre el panel de la unidad en un drawer y Esc lo cierra', async ({ page }) => {
   await entrar(page, terreno.conLogistica, { fresco: true })
-  await page.goto(`/logistica?vehiculo=${terreno.enFase.id}`)
+  await page.goto(`/logistica?vehiculo=${terreno.enFase.id}&fase=${terreno.fase.id}`)
   const panel = page.getByRole('dialog')
   await expect(panel.getByRole('heading', { name: terreno.enFase.titulo })).toBeVisible()
   await expect(panel.getByText('Desde hace 3 días en esta fase')).toBeVisible()
