@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { connection } from 'next/server'
-import { Suspense } from 'react'
+import { Suspense, type ComponentProps, type ReactNode } from 'react'
 import { puede, requerirSesion } from '@/modules/equipo'
 import { leerCatalogosDeRepuestos } from '@/modules/repuestos'
 import {
@@ -15,6 +15,7 @@ import { CabeceraDeProyecto } from '@/modules/repuestos/pantallas/proyectos'
 import { leerMonedasYTiposCambio } from '@/modules/empresa'
 import { leerVehiculo } from '@/modules/vehiculos'
 import { datosO } from '@/shared/lib/errores'
+import type { Permisos } from '@/shared/lib/permisos'
 import { RUTAS, unParametro } from '@/shared/lib/rutas'
 import { buttonVariants } from '@/shared/ui/button'
 import { EstadoSinPermiso, EstadoVacio } from '@/shared/ui/estados'
@@ -23,10 +24,12 @@ import { HojaConStock } from './hoja-con-stock'
 import { pestanaDe, pestanasLlenas } from './pestanas'
 import { PestanasDelProyecto } from './pestanas-del-proyecto'
 import { SeccionDeCompras } from './seccion-compras'
+import { SeccionDeCotizaciones } from './seccion-cotizaciones'
 
 export const metadata: Metadata = { title: 'Proyecto de repuestos' }
 
-// Un proyecto de repuestos (`docs/UX.md` › «Repuestos»): su cabecera y la hoja de ítems o, con `repuestos.costos.ver` y `?pestana=compras`, sus compras y el margen. Lo que no existe, está eliminado o quien mira no ve se dicen igual (D49), con un enlace al listado.
+// Un proyecto de repuestos (`docs/UX.md` › «Repuestos»): su cabecera y la hoja de ítems o, con `repuestos.costos.ver` y `?pestana=compras`, sus compras y el margen, o, con
+// `repuestos.cotizar` y `?pestana=cotizaciones`, sus cotizaciones. Lo que no existe, está eliminado o quien mira no ve se dicen igual (D49), con un enlace al listado.
 export default function PaginaDeUnProyecto({ params, searchParams }: PageProps<'/repuestos/[id]'>) {
   return (
     <Suspense fallback={<EsqueletoListado filas={6} columnas={6} />}>
@@ -78,6 +81,14 @@ async function Proyecto({
   // Sin `repuestos.costos.ver` la pestaña «Compras» no está y `?pestana=compras` abre «Ítems»: no se lee ninguna compra ni el margen.
   const llenas = pestanasLlenas(sesion.permisos)
   const abierta = pestanaDe(unParametro(parametros['pestana']), llenas)
+  const seccion = seccionAbierta(abierta, {
+    proyectoId: proyecto.id,
+    hoja,
+    catalogos,
+    monedas: monedas.monedas.filter((m) => m.activa),
+    permisos: sesion.permisos,
+    cerrado: proyecto.cerradoEn !== null,
+  })
   return (
     <CabeceraDeProyecto
       proyecto={proyecto}
@@ -87,27 +98,57 @@ async function Proyecto({
       sinItems={hoja.filas.length === 0}
     >
       {llenas.length > 1 ? <PestanasDelProyecto pestanas={llenas} /> : null}
-      {abierta === 'compras' ? (
-        <Suspense fallback={<EsqueletoListado filas={4} columnas={4} />}>
-          <SeccionDeCompras
-            proyectoId={proyecto.id}
-            items={hoja.filas.map((f) => ({ id: f.id, descripcion: f.descripcion }))}
-            monedas={monedas.monedas.filter((m) => m.activa)}
-            puedeEditarCostos={puede(sesion.permisos, 'repuestos.costos.editar')}
-            cerrado={proyecto.cerradoEn !== null}
-          />
-        </Suspense>
-      ) : (
-        <HojaConStock
-          proyectoId={proyecto.id}
-          filas={hoja.filas}
-          hayMas={hoja.hayMas}
-          catalogos={catalogos}
-          monedas={monedas.monedas.filter((m) => m.activa)}
-          puedeEditar={puedeEditar}
-          cerrado={proyecto.cerradoEn !== null}
-        />
-      )}
+      {seccion}
     </CabeceraDeProyecto>
+  )
+}
+
+type DatosDeLaSeccion = {
+  proyectoId: string
+  hoja: { filas: ComponentProps<typeof HojaConStock>['filas']; hayMas: boolean }
+  catalogos: ComponentProps<typeof HojaConStock>['catalogos']
+  monedas: (ComponentProps<typeof HojaConStock>['monedas'][number] & { nombre: string })[]
+  permisos: Permisos
+  cerrado: boolean
+}
+
+// Lo que dibuja la pestaña abierta. Compras y cotizaciones se leen recién al abrirse (`escala.md` › «Carga del cliente»).
+function seccionAbierta(abierta: string, datos: DatosDeLaSeccion): ReactNode {
+  const { proyectoId, hoja, catalogos, monedas, permisos, cerrado } = datos
+  if (abierta === 'compras') {
+    return (
+      <Suspense fallback={<EsqueletoListado filas={4} columnas={4} />}>
+        <SeccionDeCompras
+          proyectoId={proyectoId}
+          items={hoja.filas.map((f) => ({ id: f.id, descripcion: f.descripcion }))}
+          monedas={monedas}
+          puedeEditarCostos={puede(permisos, 'repuestos.costos.editar')}
+          cerrado={cerrado}
+        />
+      </Suspense>
+    )
+  }
+  if (abierta === 'cotizaciones') {
+    return (
+      <Suspense fallback={<EsqueletoListado filas={4} columnas={4} />}>
+        <SeccionDeCotizaciones
+          proyectoId={proyectoId}
+          monedas={monedas}
+          cerrado={cerrado}
+          puedeConfigurar={puede(permisos, 'repuestos.configurar')}
+        />
+      </Suspense>
+    )
+  }
+  return (
+    <HojaConStock
+      proyectoId={proyectoId}
+      filas={hoja.filas}
+      hayMas={hoja.hayMas}
+      catalogos={catalogos}
+      monedas={monedas}
+      puedeEditar={puede(permisos, 'repuestos.editar')}
+      cerrado={cerrado}
+    />
   )
 }
