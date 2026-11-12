@@ -79,7 +79,8 @@ begin
   if has_function_privilege('anon', v_reg, 'execute') then raise exception 'anon ejecuta el registrar'; end if;
   if not has_function_privilege('authenticated', v_reg, 'execute') then raise exception 'authenticated no ejecuta el registrar'; end if;
   -- El candado por persona va antes de leer las constancias: si falta o queda después, dos exportaciones a la vez se cuelan por debajo del tope.
-  v_src := (select prosrc from pg_proc where oid = v_reg);
+  -- Sin comentarios: un candado comentado no cuenta.
+  v_src := regexp_replace((select prosrc from pg_proc where oid = v_reg), '--[^\n]*', '', 'g');
   v_candado := strpos(v_src, 'pg_advisory_xact_lock(hashtext(''datos_exportacion''), hashtext(v_yo::text))');
   v_lee := strpos(v_src, 'from public.actividad');
   if v_candado = 0 or v_lee = 0 or v_candado > v_lee then raise exception 'el candado por persona no va antes de leer actividad (% / %)', v_candado, v_lee; end if;
