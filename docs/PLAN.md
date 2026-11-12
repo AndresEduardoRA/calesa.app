@@ -1082,11 +1082,27 @@ Abiertos que caen aquí (de ESTADO: mover de fase y publicar sin mover la versi�
   vehículo y la cadena de logística necesitan un «qué es este vehículo» propio — un campo marcado «principal» es lo que identifica al
   vehículo en la lista, el resumen y el panel de logística (no `en_tarjeta`); como mucho uno por origen, impuesto en la base (índice único
   parcial); sin ninguno, vale el título. Lugar: `origenes_campos` (columna, RPC de edición del campo y su layout), `features/campos` del
-  editor y `vehiculos`.
+  editor y `vehiculos`. **Cerrado en el 6.13** (2026-11-11).
+
+#### Los decide la persona
+
 - **6-4** (Fase 6; salió del 5.08 y el 5.11, anotado en el cierre de la Fase 5): un requisito de dato cuya regla está apagada (`transporte.*`,
   `aduana.*`, `pagos.*`) se puede pedir —la pantalla avisa «nadie podrá cumplirlo» y no lo impide— y su hueco de logística no se dibuja con la
   regla apagada: una unidad en esa fase no puede cumplirlo. Decidir si `revisar_flujo()` lo avisa con un código propio o si la RPC lo rechaza.
-  Lo reconcilia el 6.14 si ningún paso antes lo toma. Lugar: `flujos` (área `requisitos` o `revisar`).
+  Lo reconcilia el 6.14 si ningún paso antes lo toma. Lugar: `flujos` (área `requisitos` o `revisar`). No lo tomó ningún paso: lo decide la
+  persona (6.14-2).
+- **6-2** (salió del 6.02-1; lo decide la persona): publicar en la vitrina mueve la versión de la ficha, porque `vehiculo_vitrina` usa
+  `vehiculos.actualizado_en` como su versión. La duda 1 de la fila 6.02 propone una columna `vitrina_actualizado_en` que la RPC exige y devuelve. Lugar:
+  migración y `vehiculos/features/vitrina`. Paso de datos.
+- **6-5** (salió del 6.11-3; lo decide la persona): medir `gastos_listar` y `pagos_listar` con volumen (`supabase/tests/medir-gastos-pagos-listar.sql`,
+  ≈ 50.000 filas en dos orígenes, como la dueña con «todos» y como una persona con «propios»), como pide `docs/RENDIMIENTO.md` › «Gastos y pagos (6.11-3)».
+- **6-6** (salió del 6.11-4; lo decide la persona): prorratear un gasto por el valor del vehículo u otro criterio (hoy, partes iguales). Base e interfaz.
+- **6-7** (salió del 6.04 como «6-3», renumerado en el 6.14 porque 6-3 era `pago_anular`; lo decide la persona): borrar una nota propia con una RPC
+  `security definer` (el borrado suave por `update` da `42501` por `notas: leer`, `supabase/tests/areas/mover/notas.sql` N3), que cierre además que su autora
+  pueda cambiar el cuerpo de una nota de cambio de fase. Paso de datos (rojo).
+
+Cerrados en la fase: **6-1** (6.13), **6-3** `pago_anular` (6.10-2), la papelera manual con `documentos` y mover sin tocar la versión de la ficha (6.02-1),
+el enforcement de `logistica.pagos.confirmar` (6.10).
 
 ### Lo que ya existe y lo que falta (leído el 2026-11-09)
 
@@ -1132,6 +1148,44 @@ están declarados y vacíos (`tablero/entities/bandeja.ts`); la pestaña «Docum
     permisos (B:29695, B:29772, B:31051); `previsualizar_cambio_fase` no lo mira para un repuesto (B:16158).
 12. `_vehiculo_motivo_de_bloqueo` (B:7796) no mira `documentos`: es el arrastre «la papelera manual no mira `documentos`».
 
+### Tabla de criterios
+
+Cada criterio del «Terminado cuando» y del párrafo de la fase con la prueba que lo mide y su resultado en el Nivel 3 del 6.14-2 («base» = `db:probar` o
+`db:carreras`, que corren en el CI de cada PR; «unidad» = Vitest; las rutas `areas/…` son de `supabase/tests/`).
+
+| Criterio                                                                        | Prueba                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Proyectos                                          | Resultado                                                      |
+| ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- | -------------------------------------------------------------- |
+| Mover 1 vehículo en ≤ 15 s                                                      | `logistica-tarea-de-oro.spec.ts` › «E2E R1 logística mueve una unidad desde la cadena en ≤ 15 s»; `logistica-mover.spec.ts` › «E2E mover · con la nota obligatoria el botón está apagado y dice por qué; con la nota mueve»                                                                                                                                                                                                                                                       | escritorio y movil                                 | verde en los dos (KLM 11,3 s; el robot, 1,1–1,5 s)             |
+| Marcar la llegada de un contenedor de 8 en ≤ 60 s con vista previa por unidad   | `logistica-tarea-de-oro.spec.ts` › «E2E R4 logística marca que llegó un contenedor de 8 desde embarques en ≤ 60 s, viendo antes qué falta en cada uno»; `logistica-lote.spec.ts` › «E2E lote · un contenedor con una unidad sin su documento: mueve las siete y reintenta la que faltaba»; `areas/mover/lote.sql`                                                                                                                                                                 | escritorio, movil y base                           | verde en los dos (KLM 14,6 s; el robot, 2,1–2,8 s)             |
+| No se mueve sin el documento bloqueante                                         | `logistica-tarea-de-oro.spec.ts` › «E2E R2 sin el documento bloqueante el botón se apaga y dice cuál»; `logistica-mover.spec.ts` › «E2E mover · un requisito bloqueante sin aprobar apaga el botón y dice cuál; al aprobarlo se habilita»; `areas/mover/mover.sql`, `areas/documentos/exigido.sql`                                                                                                                                                                                | escritorio, movil y base                           | verde (los dos)                                                |
+| El conflicto da `PT409` legible, con el nombre de quien movió                   | `logistica-tarea-de-oro.spec.ts` › «E2E R3 si la dueña movió antes, logística lee su nombre y no se mueve nada»; `logistica-mover.spec.ts` › «E2E mover · si otra persona movió antes, el aviso de conflicto la nombra y no se mueve nada»; `areas/mover/version.sql`, `areas/mover/carreras.mjs`                                                                                                                                                                                 | escritorio, movil y base                           | verde (los dos)                                                |
+| El margen `null` dice «Sin venta registrada», nunca $0                          | `logistica-tarea-de-oro.spec.ts` › «E2E R5 la dueña ve el margen de una unidad sin venta: «Sin venta registrada», nunca 0»; `logistica-gastos-y-pagos.spec.ts` › «E2E registrar un gasto en otra moneda muestra su equivalente y el margen sin venta»; `src/modules/logistica/entities/dinero/margen.test.ts`; `areas/dinero/margen.sql`                                                                                                                                          | escritorio y movil (R5), escritorio, unidad y base | verde (los dos)                                                |
+| Cadena por fase con alerta por demora y filtros en la URL                       | `logistica-cadena.spec.ts` › «las columnas van en el orden de la base con su número y el demorado lo dice con texto», «el clic en una tarjeta abre el panel sobre los filtros, Esc lo cierra y «Limpiar» vuelve a las cinco», «las pestañas de origen: el vecino sin permiso no está y el otro cambia de origen y suelta los filtros», ««Ver más» trae la que falta de una columna de 51 y el número deja de ser «50+»»; `areas/mover/cadena.sql`, `fase-desde.sql`               | escritorio, movil y base                           | verde (los dos)                                                |
+| «Dónde está»                                                                    | `logistica-cadena.spec.ts` › «la búsqueda por VIN deja una tarjeta, dice dónde está y sobrevive a recargar»; `areas/mover/donde-esta.sql`                                                                                                                                                                                                                                                                                                                                         | escritorio, movil y base                           | verde (los dos)                                                |
+| Panel de la unidad con «qué falta» y sus permisos                               | `logistica-unidad.spec.ts` › «con logistica.ver ve la unidad: título, origen, fase y días en la fase», «?vehiculo=<id> abre el panel de la unidad en un drawer y Esc lo cierra», «con sólo vehiculos.ver ni /logistica ni el drawer muestran la unidad»; el bloqueante de `logistica-mover.spec.ts` (arriba); `areas/mover/unidad.sql`, `permisos.sql`                                                                                                                            | escritorio, movil y base                           | verde (los dos)                                                |
+| Lote con vista previa por unidad y resultado parcial                            | `logistica-lote.spec.ts` › «E2E lote · un contenedor con una unidad sin su documento: mueve las siete y reintenta la que faltaba», «E2E lote · elegir una unidad con su casilla, mover a otra fase y limpiar la selección»; `areas/mover/lote.sql`                                                                                                                                                                                                                                | escritorio, movil y base                           | verde (los dos)                                                |
+| Notas e historial                                                               | `logistica-mover.spec.ts` › «E2E mover · el historial dice quién movió y con qué nota; las notas se escriben y se corrigen; la ficha enlaza a logística»; `areas/mover/notas.sql`                                                                                                                                                                                                                                                                                                 | escritorio, movil y base                           | verde (los dos)                                                |
+| Documentos: commit diferido, aprobar o rechazar con motivo, vencimiento, portal | `logistica-documentos.spec.ts` › «E2E subir un PDF: la bandeja no sube nada hasta «Subir» y la fila queda «Subido»», «E2E quien no puede subir ve la zona apagada y el motivo», «E2E sin la clave de aprobar, «Aprobar» queda apagado y dice por qué», «E2E aprobar el BL: la fila queda «Aprobado» y «Qué falta» cumple el requisito del destino»; `areas/documentos/{registrar,revisar,portal,objeto-compartido,exigido}.sql`, `carreras.mjs`; `areas/alertas/vencimientos.sql` | escritorio y base                                  | verde                                                          |
+| Transporte 1:1 y grupos (embarques, contenedores); editar el grupo todo o nada  | `logistica-transporte.spec.ts` › «E2E cargar naviera, contenedor y fechas en el hueco y verlos guardados», «E2E si otra persona cargó el transporte, el aviso conserva lo escrito», «E2E ver el contenedor con sus dos unidades en /logistica/embarques y buscarlo», «E2E «Editar grupo» cambia la ETA de las tres unidades de un contenedor»; `areas/transporte/{guardar,grupo,grupos,exigido,escritura-directa}.sql`, `carreras.mjs`                                            | escritorio y base                                  | verde                                                          |
+| Aduana: DUI N:M, canal de aforo, «pagada» derivada                              | `logistica-aduana.spec.ts` › «E2E crear una declaración con dos vehículos, asignarle el canal y verla pagada», «E2E quien no gestiona la aduana ve la lista sin «Nueva declaración»»; `areas/aduana/{composicion,guardar,exigido,leer,listar,escritura-directa}.sql`, `carreras.mjs`                                                                                                                                                                                              | escritorio y base                                  | verde                                                          |
+| Gastos y pagos; confirmar un pago es un acto sellado                            | `logistica-gastos-y-pagos.spec.ts` › «E2E registrar un pago, confirmarlo con otra cuenta y ver la venta en el margen», «E2E la lista de /logistica/gastos muestra el gasto y el pago, filtra y abre la unidad», «E2E sin gastos.ver ni pagos.ver /logistica/gastos dice que no hay permiso»; `areas/dinero/{gastos,pagos,anular,prorratear,comprobantes,listar,escritura-directa}.sql`, `carreras.mjs`                                                                            | escritorio y base                                  | verde                                                          |
+| Bandeja de logística en Inicio                                                  | `inicio-bandeja-logistica.spec.ts` › «con una unidad demorada y un documento subido, Inicio los muestra y «Ver todas» abre la cadena filtrada»; `areas/alertas/bandeja.sql`                                                                                                                                                                                                                                                                                                       | escritorio, movil y base                           | verde (los dos)                                                |
+| Alertas por demora (cron y notificación)                                        | `areas/alertas/demora.sql`, `jobs.sql`                                                                                                                                                                                                                                                                                                                                                                                                                                            | base                                               | verde en `db:probar` (1.343 ✓, 0 caídas) y en el CI de cada PR |
+| El campo «principal» identifica al vehículo (6-1)                               | `origenes-campo-principal.spec.ts` › «marcar «Lote interno» como principal lo vuelve el nombre del vehículo en la lista y en logística»; `src/modules/vehiculos/entities/identidad.test.ts`; `areas/origenes/principal.sql`, `carreras.mjs`                                                                                                                                                                                                                                       | escritorio, unidad y base                          | verde                                                          |
+
+El recorrido de la IA (`logistica-tarea-de-oro.spec.ts` › R6, con `E2E_CAPTURAS`) no es un criterio: lo visto está en el informe del 6.14-1 y en «Pulido para la Fase 9».
+
+### Cierre de la Fase 6
+
+**Fase 6 cerrada el 2026-11-12** con el Nivel 3 del 6.14-2, corrido por proyecto (cada uno desde `db:reset` y `db:carreras`, 16,4 s y 18,1 s): escritorio,
+sobre `225b1c99`, 1.191 en verde, 16 saltadas, 0 caídas y 0 sin correr en 49,1 min (51,1 de reloj); celular, sobre `225b1c99`, 834 en verde, 27 saltadas y
+0 caídas en 38,1 min (39,2 de reloj). Sin triaje: ninguna caída. 5a-4b: los dos proyectos suman 90,3 min de reloj (76,6 en el 5.13-1; la suite de escritorio
+pasó de 1.129 a 1.207 pruebas, con las fases 7 a 9 corriendo en paralelo y la máquina cargada por los otros dos carriles). `db:probar` 1.343 ✓ y 0 caídas,
+`db:lint` sin errores (59 avisos y 69 «extra» en 35 funciones) y `mapa.sh --check` en verde. La tarea de oro 3 (`e2e/logistica-tarea-de-oro.spec.ts`,
+logística y la dueña, en los dos proyectos): mover 1 desde la cadena, KLM 11,3 s de 15; el contenedor de 8 desde `/logistica/embarques` con la vista previa,
+KLM 14,6 s de 60; el bloqueante, el conflicto con nombre y el margen sin venta. Lo que deja: **6-2**, **6-4**, **6-5**, **6-6** y **6-7** (los decide la
+persona, arriba) y cinco líneas en «Pulido para la Fase 9». La «Partición» sigue aquí hasta que una sesión con permiso la pase a `docs/archivo/PLAN.md`.
+
 ### Partición
 
 Un paso, su verificación y su PR; quién lo hace y de qué depende lo dice `docs/plan.yaml` (la tabla de «Carriles de las fases 5 a 9»). Cada fila dice qué entra, su assert y el lugar. Sus «Dudas» ya traen la opción recomendada: sin compuertas, **esa es la decisión**, y quien haga el paso la anota en `docs/DECISIONES.md` (el carril base) o en `docs/pasos/<paso>/decisiones.md`.
@@ -1148,7 +1202,7 @@ depende de otro paso; las bases de datos de documentos, transporte y dinero tamp
 los otros dos, con una salvedad: 6.13 conviene **antes** de 6.03 (la tarjeta de la cadena nace con la identidad del vehículo; si llega
 después, 6.13 edita un archivo del área `cadena`). 47 partes: a 14 más 2 del cierre, b 14, c 17.
 
-- **6.01** — La base del módulo `logistica`: entradas por área, el panel de la unidad con huecos y las rutas. Sin cambio de datos. Entra:
+- **6.01** (hecho el 2026-11-11; `docs/pasos/6.01-1/`, `6.01-2/`, `6.01-3/`, `6.01-4/`, `6.01-5/`) — La base del módulo `logistica`: entradas por área, el panel de la unidad con huecos y las rutas. Sin cambio de datos. Entra:
   (1) las ocho áreas con sus tres entradas vacías y `index.ts`, `client.ts` y `composicion.ts` de la raíz que sólo llevan
   `export * from './areas/<x>/…'` (nadie los vuelve a tocar); la guarda `scripts/guardas/areas-de-logistica.test.ts` (la raíz sólo reexporta,
   un área no importa otra), copiada de `areas-de-cotizaciones`. (2) `entities/nucleo/unidad.ts`: `Unidad` (vehículo o repuesto, uno solo) y
@@ -1180,7 +1234,7 @@ después, 6.13 edita un archivo del área `cadena`). 47 partes: a 14 más 2 del 
   `e2e/`. Nivel **2** (`src/shared`). Tipo: pantalla. Partes estimadas: 3.
   Dudas, con la recomendada: (1) ¿El panel de la unidad es un drawer sobre la cadena o siempre una página? Recomiendo los dos con el mismo componente: drawer desde la cadena (UX, Flujo 3: «panel lateral») y página para el enlace de una notificación. (2) Si el paso base de la Fase 5 ya partió `flujos` en áreas, 6.01 sólo suma `areas/mover`; si no, crea `areas/` él y la Fase 5 se suma: lo decide quien llegue primero, sin preguntar.
 
-- **6.02** — Mover en la base: el candado, el conflicto con nombre, el lote por unidad y las lecturas de la cadena. Sólo `supabase/` y
+- **6.02** (hecho el 2026-11-11; `docs/pasos/6.02-1/`, `6.02-2/`, `6.02-3/`) — Mover en la base: el candado, el conflicto con nombre, el lote por unidad y las lecturas de la cadena. Sólo `supabase/` y
   `scripts/carreras/`. Entra: (1) `cambiar_fase` (B:8443) toma `for update` de la unidad **antes** de `previsualizar_cambio_fase`; su PT409
   dice quién y cuándo desde `historial_fases` («Rosa Mamani la movió a «Embarcado» hace 1 min.», con `_hace()`), con tuteo; los rechazos
   llevan `hint` con un código (`requisitos`, `rol`, `transicion`, `nota`). `p_fase_esperada` nulo sigue valiendo sólo para una unidad sin
@@ -1215,7 +1269,7 @@ eliminado_en is null`. Cierra los arrastres de ESTADO «mover de fase sin mover 
   `scripts/guardas/paginas-en-la-base.ts`, `src/shared/types/database.types.ts`. Nivel **2** (índices). Tipo: datos y dinero. Partes estimadas: 3.
   Dudas, con la recomendada: (1) «Publicar sin mover la versión de la ficha» (la otra mitad del arrastre): `vehiculo_vitrina` (B:19125) usa `vehiculos.actualizado_en` como su propia versión. Recomiendo una columna `vitrina_actualizado_en` que `vehiculo_vitrina` exige y devuelve, y sacar las columnas de vitrina del `when` del trigger; si no cabe en una parte, se hace sólo la fase y lo de publicar queda como abierto **6-2** en PLAN (toca `vehiculos/features/vitrina`). (2) ¿La columna «Sin fase» va en la cadena? Recomiendo sí, primera y sólo si tiene unidades: es el único lugar desde donde entran a una fase inicial. (3) ¿Qué orden dentro de una columna? Recomiendo la que más lleva primero (`fase_desde` ascendente): lo demorado queda arriba sin otro índice.
 
-- **6.03** — La cadena: `/logistica` como kanban por fase, con filtros en la URL, alerta por demora y «dónde está». Entra: pestañas de
+- **6.03** (hecho el 2026-11-12; `docs/pasos/6.03/`) — La cadena: `/logistica` como kanban por fase, con filtros en la URL, alerta por demora y «dónde está». Entra: pestañas de
   origen `?origen=` (los orígenes donde tengo `logistica.ver` y la regla `logistica` está activa; nombres y colores de la base), una columna
   por fase que devuelve `logistica_cadena()` con su `<Badge>` de color de la fila, `TAMANO_DE_COLUMNA` tarjetas y «Ver más» por cursor
   (`logistica_cadena_columna`) hasta `TOPE_DE_LO_CARGADO` con `<AvisoDeTope>`; el número de la columna, acotado (`conteoCorto()`, «50+»),
@@ -1236,7 +1290,7 @@ eliminado_en is null`. Cierra los arrastres de ESTADO «mover de fase sin mover 
   Tipo: pantalla. Partes estimadas: 3.
   Dudas, con la recomendada: (1) ¿La tarjeta lleva foto? Recomiendo no: quien mueve reconoce por VIN, lote o contenedor, y 350 miniaturas pesan. (2) ¿Las columnas de un origen con 12 fases? Recomiendo desplazamiento de costado dentro de su caja con `<PistaDeDesborde>`, sin plegar columnas.
 
-- **6.04** — El panel «qué falta», mover con nota y conflicto legible, notas, historial y el lote con vista previa y resultado parcial (la
+- **6.04** (hecho el 2026-11-12; `docs/pasos/6.04/`) — El panel «qué falta», mover con nota y conflicto legible, notas, historial y el lote con vista previa y resultado parcial (la
   tarea de oro 3). Entra, en cinco partes: **(a)** `flujos`, área `mover`: `entities/mover/` (el esquema Zod de la vista previa,
   `etiquetaDeRequisito()` con una etiqueta por cada clave de `claves_dato_requisito()` y un test que cae si falta una; `motivoLegible()`),
   las actions `previsualizarCambio`, `cambiarFase` y `cambiarFaseLote` (`puede(permisos, 'flujos.mover', origenId)` y la base otra vez;
@@ -1266,7 +1320,7 @@ eliminado_en is null`. Cierra los arrastres de ESTADO «mover de fase sin mover 
   `pantallas/cadena.ts` (la selección), `src/app/(app)/vehiculos/[id]/encabezado.tsx`, `e2e/`. Nivel **1**. Tipo: pantalla. Partes estimadas: 5.
   Dudas, con la recomendada: (1) ¿El lote mezcla unidades de fases distintas? Recomiendo no: se arma desde una columna (o un grupo en una misma fase), así todas comparten destinos y la vista previa se entiende. (2) ¿«Mover los que pueden» o todo o nada? Recomiendo los que pueden, dicho en el botón con su número: es el «resultado parcial explícito» del Flujo 3 de UX. (3) ¿La línea de tiempo va también en la ficha del vehículo? Recomiendo sólo el enlace «Ver en logística»: `pestanas.ts` no declara esa pestaña y `vehiculos` no puede importar `logistica`.
 
-- **6.05** — Documentos en la base: registrar con commit diferido, revisar con versión, lo que la fase exige y el objeto compartido. Sólo
+- **6.05** (hecho el 2026-11-11; `docs/pasos/6.05/`) — Documentos en la base: registrar con commit diferido, revisar con versión, lo que la fase exige y el objeto compartido. Sólo
   `supabase/`. Entra: (1) `documento_registrar(p_id, p_vehiculos uuid[], p_repuesto, p_tipo, p_ruta, p_nombre, p_mime, p_bytes,
 p_emitido_el, p_vence_el, p_nota)`: se llama **después** de subir el objeto (`<unidad>/<sha-256>.<ext>` en el bucket `documentos`);
   idempotente por `p_id`; exige `logistica.documentos.subir` en cada unidad, tipo activo y del flujo de la unidad o global, `mime` dentro de
@@ -1289,7 +1343,7 @@ p_actualizado_en_esperado, p_estado, p_motivo)` (`logistica.documentos.aprobar`;
   (policy e índices). Tipo: datos y dinero. Partes estimadas: 3.
   Dudas, con la recomendada: (1) ¿Un documento común es un objeto y N filas (la ficha) o N objetos como las fotos (DECISIONES, 2026-10-13)? Recomiendo un objeto y N filas con la policy por fila: un BL de 20 MB por 8 no se sube 8 veces desde un celular en puerto. (2) ¿Eliminar un documento se puede deshacer? Recomiendo `<Confirmar>` que lo nombra y sin restaurar: el reemplazo es subir otro. (3) ¿Quién marca «visible en el portal»? Recomiendo quien aprueba (`logistica.documentos.aprobar`), no quien sube: es lo que ve el cliente.
 
-- **6.06** — Documentos: subir con la cámara y commit diferido, aprobar o rechazar, vencimiento y «visible en el portal». Entra: el hueco
+- **6.06** (hecho el 2026-11-12; `docs/pasos/6.06-1/`, `6.06-2/`, `6.06-3/`) — Documentos: subir con la cámara y commit diferido, aprobar o rechazar, vencimiento y «visible en el portal». Entra: el hueco
   «Documentos» del panel (`pantallas/documentos-unidad.ts`) y la pestaña «Documentos» de `/vehiculos/[id]?seccion=documentos`
   (`seccion-documentos.tsx`, que compone el mismo componente; `pestanas.ts` la pone disponible sólo con `logistica.ver` del origen).
   Lista por tipo de documento (nombres de la base; los que pide la fase siguiente, arriba), con estado en `<Badge>` con texto, el motivo
@@ -1311,7 +1365,7 @@ p_actualizado_en_esperado, p_estado, p_motivo)` (`logistica.documentos.aprobar`;
   Nivel **1**. Tipo: pantalla. Partes estimadas: 3.
   Dudas, con la recomendada: (1) ¿Una foto sacada con la cámara se convierte a WebP? No: es un documento y no se comprime (CLAUDE.md); recomiendo avisar el tamaño antes de subir si pasa de 10 MB. (2) ¿La pestaña «Documentos» de la ficha deja subir o sólo ver? Recomiendo lo mismo que el panel (un solo componente): menos código y el permiso ya lo decide la base.
 
-- **6.07** — Transporte y aduana en la base: guardar con versión, aplicar a un grupo todo o nada, declaraciones y lo que la fase exige.
+- **6.07** (hecho el 2026-11-12; `docs/pasos/6.07-1/`, `6.07-2/`, `6.07-3/`) — Transporte y aduana en la base: guardar con versión, aplicar a un grupo todo o nada, declaraciones y lo que la fase exige.
   Sólo `supabase/` y `scripts/carreras/`. Entra, transporte: (1) `transporte_guardar(p_vehiculo, p_repuesto,
 p_actualizado_en_esperado, p_cambios jsonb)`: la esperada nula crea la fila 1:1 (si ya existe, `PT409`); exige
   `logistica.transporte.editar`, la regla `transporte` del flujo y, para contenedor, la regla `contenedor` y `fases.permite_contenedor`;
@@ -1340,7 +1394,7 @@ p_actualizado_en_esperado, p_agregar uuid[], p_quitar uuid[])` (quitar pone `rem
   (índice). Tipo: datos y dinero. Partes estimadas: 4.
   Dudas, con la recomendada: (1) ¿Qué orden tienen los grupos? Recomiendo por clave con filtros (naviera, puerto, «en tránsito» = sin arribo) y búsqueda por prefijo: ordenar por ETA pide agrupar toda la tabla. (2) ¿Quién lee una declaración? Hoy basta `logistica.ver` en cualquier origen (B:26245). Recomiendo que la lectura devuelva sólo los vehículos que quien mira ve y deje la cabecera a quien ve al menos uno. (3) ¿Cambiar el canal una vez puesto? Recomiendo sí, con la versión, pero la composición sigue congelada.
 
-- **6.08** — Transporte: el hueco de la unidad, `/logistica/embarques` (embarques y contenedores) con «editar el grupo», y los catálogos
+- **6.08** (hecho el 2026-11-12; `docs/pasos/6.08-1/`, `6.08-2/`, `6.08-3/`, `6.08-4/`) — Transporte: el hueco de la unidad, `/logistica/embarques` (embarques y contenedores) con «editar el grupo», y los catálogos
   de puertos y navieras. Entra: (1) el hueco «Transporte» (`pantallas/transporte-unidad.ts`): naviera, puerto de origen y de destino (lo
   que ofrece `flujos_transporte_oferta` del flujo; lista vacía = todos los activos), contenedor, booking, zarpe, ETA, arribo y notas, en
   `<Bloque>`; guardar con versión, conflicto «Alguien lo cambió · Recargar» (`<AvisoDeConflicto>`); sin `logistica.transporte.editar` del
@@ -1362,7 +1416,7 @@ p_actualizado_en_esperado, p_agregar uuid[], p_quitar uuid[])` (quitar pone `rem
   `scripts/guardas/areas-b/`, `e2e/`. Nivel **1**. Tipo: pantalla. Partes estimadas: 4.
   Dudas, con la recomendada: (1) ¿Sacar una unidad de un contenedor es «editar el grupo»? No: se hace en el hueco de esa unidad; el grupo sólo aplica a todas. (2) ¿Los catálogos de puertos y navieras son de esta fase o de la 5 («oferta de transporte»)? Recomiendo aquí: la semilla no trae navieras y sin ellas el hueco no sirve; si la Fase 5 ya los hizo, esta parte se salta.
 
-- **6.09** — Aduana: `/logistica/aduana` con las declaraciones, su composición, el canal de aforo y «pagada», y el hueco de la unidad.
+- **6.09** (hecho el 2026-11-12; `docs/pasos/6.09-1/`, `6.09-2/`) — Aduana: `/logistica/aduana` con las declaraciones, su composición, el canal de aforo y «pagada», y el hueco de la unidad.
   Entra: lista por cursor (`declaraciones_listar`) con el patrón de lista: número, canal en `<Badge>` con texto, aceptada, «Vence el …»
   de los tributos (vencida o por vencer, con texto), despachante, unidades (acotado) y «Pagada» o «Faltan los tributos de N»; filtros en
   URL (canal, pagada, `q` por número); resumen `?declaracion=<id>` con sus vehículos y, por cada uno, si tiene el tributo. Alta y edición
@@ -1379,7 +1433,7 @@ p_actualizado_en_esperado, p_agregar uuid[], p_quitar uuid[])` (quitar pone `rem
   `src/app/(app)/logistica/aduana/`, `scripts/guardas/areas-c/`, `e2e/`. Nivel **1**. Tipo: pantalla. Partes estimadas: 3.
   Dudas, con la recomendada: (1) ¿Los colores del canal (verde, amarillo, rojo)? Son los nombres del enum: `<Badge>` con el texto y un tono de `design/tokens.css`, nunca sólo color. (2) ¿«DUI» o «declaración» en la interfaz? Recomiendo «Declaración» (GLOSARIO; «DUI» es de un país).
 
-- **6.10** — Gastos y pagos en la base: el monto en moneda base lo calcula la base, prorratear, y confirmar un pago como acto sellado.
+- **6.10** (hecho el 2026-11-11; `docs/pasos/6.10-1/`, `6.10-2/`) — Gastos y pagos en la base: el monto en moneda base lo calcula la base, prorratear, y confirmar un pago como acto sellado.
   Sólo `supabase/` y `scripts/carreras/`. Entra: (1) `gasto_registrar(p_id, p_vehiculo, p_repuesto, p_categoria, p_moneda, p_monto,
 p_tipo_cambio uuid, p_fecha, p_proveedor, p_comprobante_ruta, p_notas)`: idempotente por id; la base lee el valor vigente del tipo de
   cambio elegido y escribe `tipo_cambio_aplicado` y `monto_base = round(monto × valor, 2)` (en la moneda base, sin tipo de cambio y
@@ -1406,7 +1460,7 @@ p_actualizado_en_esperado)`**: exige `logistica.pagos.confirmar`, bloquea la fil
   `scripts/guardas/areas-c/`. Nivel **2** (policies, columna e índices). Tipo: datos y dinero. Partes estimadas: 4.
   Dudas, con la recomendada: (1) Con varios tipos de cambio con nombre (Aduana, Paralelo…), ¿cuál convierte un gasto? Recomiendo que lo elija quien carga, entre los activos de esa moneda a la base, y que la base guarde el valor de ese momento: es lo que hace la cotización. (2) ¿Se puede deshacer una confirmación? Recomiendo no; un error se corrige con `pago_anular` (misma clave, motivo obligatorio, borrado suave con constancia en `actividad`), que entra en este paso si cabe en sus partes y si no queda como abierto **6-3**. (3) ¿«Venta» son los pagos confirmados (hoy) o el total de la cotización final? Recomiendo dejarlo: sin cobro confirmado no hay venta que mostrar.
 
-- **6.11** — Gastos, pagos y margen: los huecos de la unidad, `/logistica/gastos`, prorratear a un grupo y las categorías de gasto.
+- **6.11** (hecho el 2026-11-11; `docs/pasos/6.11-1/`, `6.11-2/`, `6.11-3/`, `6.11-4/`) — Gastos, pagos y margen: los huecos de la unidad, `/logistica/gastos`, prorratear a un grupo y las categorías de gasto.
   Entra: (1) hueco «Gastos» (`logistica.gastos.ver` del origen; sin la clave no se dibuja: los costos no se anuncian): lista de la unidad
   con categoría (de la base), proveedor, fecha, monto en su moneda y en la base con `<Monto>` (Modo Live), comprobante; alta y edición
   en `<Drawer>` con categoría, moneda, monto, tipo de cambio (los activos de esa moneda; el equivalente se muestra cuando lo devuelve la
@@ -1429,7 +1483,7 @@ p_actualizado_en_esperado)`**: exige `logistica.pagos.confirmar`, bloquea la fil
   `scripts/guardas/areas-c/`, `e2e/`. Nivel **1**. Tipo: pantalla. Partes estimadas: 4.
   Dudas, con la recomendada: (1) ¿La lista de gastos muestra un total? No («un número que se muestra nunca es un total exacto»); el total de una unidad sí (lo da `margen_vehiculo`). (2) ¿Prorratear en partes iguales o por valor del vehículo? Recomiendo partes iguales ahora (es lo que hace la base en 6.10); otro criterio es un abierto. (3) ¿Quién no tiene `logistica.gastos.ver` ve el hueco apagado o no lo ve? Recomiendo no verlo (DECISIONES, 2026-10-13: el inventario no muestra costos).
 
-- **6.12** — Alertas por demora y por vencimiento (cron) y la bandeja de logística en Inicio. Entra, base: (1) el job `alertas-demora`
+- **6.12** (hecho el 2026-11-12; `docs/pasos/6.12-1/`, `6.12-2/`) — Alertas por demora y por vencimiento (cron) y la bandeja de logística en Inicio. Entra, base: (1) el job `alertas-demora`
   (cada hora, en la migración, con `cron.schedule`) llama a `alertas_demora()` reescrita: por lotes con tope por corrida, usa
   `notificar()` (B:14653), repite el aviso de una unidad que sigue demorada cada `fases.alerta_cada_horas` (nulo = 72 h) reabriendo la
   misma notificación (el antispam B:23679 sigue: una abierta por persona, tipo y unidad), respeta `demora_dias = 0` y la regla
@@ -1455,7 +1509,7 @@ p_actualizado_en_esperado)`**: exige `logistica.pagos.confirmar`, bloquea la fil
   pasa a **2** si necesita un índice). Tipo: datos y dinero. Partes estimadas: 3.
   Dudas, con la recomendada: (1) ¿Qué es un vehículo «trabado»? Evaluar los requisitos de todas las unidades es caro (`fuera_de_regla` recorre el flujo entero). Recomiendo: una unidad **demorada** a la que le falta un requisito bloqueante para su siguiente fase (la de menor `orden` entre sus transiciones), evaluando sólo las primeras 50 demoradas; el bloque dice qué le falta. (2) ¿A quién se avisa la demora, a quien puede mover (hoy) o a quien ve logística? Recomiendo quien puede mover: es quien lo resuelve. (3) ¿Cada cuánto corre? Recomiendo cada hora; con `alerta_cada_horas` nulo, un recordatorio cada 72 h (lo que dice la ficha de `notificaciones`).
 
-- **6.13** — El campo «principal» de un origen (**6-1**): qué identifica a un vehículo en la lista, el resumen y logística. Entra:
+- **6.13** (hecho el 2026-11-11; `docs/pasos/6.13/`) — El campo «principal» de un origen (**6-1**): qué identifica a un vehículo en la lista, el resumen y logística. Entra:
   migración con la columna `origenes_campos.principal boolean not null default false` y el índice único parcial `(origen_id) where
 principal`; `origen_campo_crear` (B:15008) y `origen_campo_guardar` (B:15081) aceptan `principal` (marcar uno desmarca el anterior en
   la misma llamada y lo devuelve; un campo inactivo no puede serlo; desactivar el principal lo desmarca); la lectura del layout
@@ -1473,7 +1527,7 @@ layout)` en `entities/` (el valor del campo principal mostrado con `shared/lib/c
   `e2e/`. Nivel **2** (columna e índice; `src/shared` si toca el formulario). Tipo: datos y dinero. Partes estimadas: 3.
   Dudas, con la recomendada: (1) ¿Marcar otro principal desmarca el anterior o se rechaza? Recomiendo desmarcar y decirlo: el índice único sigue siendo el candado y la persona no tiene que ir a buscar el otro. (2) ¿La identidad reemplaza al título o lo acompaña? Recomiendo que lo acompañe en logística («<principal> · <título>») y lo reemplace sólo donde hoy `en_tarjeta` hacía de identidad. (3) Lo toma un carril que no es base: necesita `origenes/` y `vehiculos/` en su `dueno_de` para este paso, o lo hace el **a** entre 6.02 y 6.03.
 
-- **6.14** — El cierre de la Fase 6: el recorrido de la IA por la tarea de oro 3, la tabla de criterios, ESTADO y BITACORA. Entra:
+- **6.14** (hecho el 2026-11-12; `docs/pasos/6.14-1/`, `6.14-2/`) — El cierre de la Fase 6: el recorrido de la IA por la tarea de oro 3, la tabla de criterios, ESTADO y BITACORA. Entra:
   `e2e/logistica-tarea-de-oro.spec.ts` con dos cuentas (logística y dueña), en `escritorio` y `movil`: mover 1 unidad desde la cadena
   en ≤ 15 s (reloj y KLM, como el recorrido del 4.28); «marcar que llegó» un contenedor de 8 desde `/logistica/embarques` en ≤ 60 s con
   la vista previa por unidad; no se mueve sin el documento bloqueante; el conflicto se lee con el nombre de quien movió; el margen dice
@@ -1486,8 +1540,10 @@ layout)` en `entities/` (el valor del campo principal mostrado con `shared/lib/c
   NO entra: código de producto nuevo; lo que falle al 100 % se arregla aquí y lo que no, se anota. **Assert:** `pnpm test:e2e:completo`
   con los dos proyectos en verde y el CI del PR en verde; la tabla de criterios sin filas vacías. Lugar: `e2e/`, `docs/`,
   `src/modules/{logistica,flujos,tablero}/CLAUDE.md`. Nivel **3** (cierre). Tipo: pantalla. Partes estimadas: 2.
-  **6.14-1** (hecho el 2026-11-12; `docs/pasos/6.14-1/`): la tarea de oro 3 (`e2e/logistica-tarea-de-oro.spec.ts`, en los dos proyectos: mover 1, KLM 11,3 s;
-  el contenedor de 8, KLM 14,6 s) y el recorrido de la IA con 5 líneas de pulido. Queda el **6.14-2**: el Nivel 3 y los docs de cierre.
+  Hecho en dos: el **6.14-1** (la tarea de oro 3, KLM 11,3 y 14,6 s, y el recorrido de la IA con cinco líneas de pulido) y el **6.14-2** (el Nivel 3 y
+  los docs de cierre).
+
+Total de la fase: 14 pasos y 40 partes, todos hechos (la fase cerró con el 6.14, el 2026-11-12).
 
 ### Riesgos y huecos
 
@@ -1496,6 +1552,7 @@ layout)` en `entities/` (el valor del campo principal mostrado con `shared/lib/c
   integrar a la vez 6.01 y el paso de la Fase 5 que toque `flujos/index.ts`. (La Fase 5 cerró el 2026-11-12: `flujos` quedó por áreas y mover
   es del 6.04.)
 - **«Trabado» no está definido** en UX ni en el GLOSARIO: 6.12 propone una definición barata. Es la decisión de producto que más pesa.
+  (Resuelto en el 6.12: «Trabado» en el GLOSARIO.)
 - **`tiene_permiso` sin origen** (A.10): no propongo volver por origen `logistica.aduana.gestionar` ni `logistica.pagos.confirmar`
   (cambia el catálogo y la matriz de Roles); 6.07 y 6.10 acotan lo que se **lee**. Si la persona las quiere por origen, es otro paso.
 - **La carrera de `cambiar_fase`** (A.1) sale de leer el SQL, no de reproducirla (no podía correr nada): 6.02 escribe primero
@@ -1512,7 +1569,7 @@ layout)` en `entities/` (el valor del campo principal mostrado con `shared/lib/c
 - **JS de `/logistica`**: el panel carga nueve huecos, cada uno con `diferido()` y lectura al abrirse; un presupuesto pasado por ≤ 5 %
   se sube en `docs/RENDIMIENTO.md` (regla vigente).
 - **Abiertos que pueden nacer**: **6-2** (publicar sin mover la versión de la ficha, si 6.02 no lo alcanza; `vehiculos/features/vitrina`)
-  y **6-3** (`pago_anular`, si 6.10 no lo alcanza; área `dinero`).
+  y **6-3** (`pago_anular`, si 6.10 no lo alcanza; área `dinero`). (6-2 nació en el 6.02-1 y lo decide la persona; 6-3 se cerró en el 6.10-2.)
 
 ## Fase 7 — Agenda, chat, notificaciones y buscador
 
