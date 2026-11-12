@@ -168,6 +168,8 @@ Cada sección por su RPC, de a `_acotar_pagina(p_tamano, 5, 20)` + 1, con el mí
 - `repuestos_pendientes_de_vehiculo()` (definer): un proyecto vivo por vehículo (`repuestos_proyecto_por_vehiculo`), sus ítems por
   `repuestos_items_proyecto_id_idx` y las esperas de las fases siguientes del vehículo; de a 50 (máximo 200) más uno.
 - Sin siembra de volumen ni `EXPLAIN` en `db:medir:volumen` (`repuestos_proyectos` no está entre las tablas que crecen de `escala.md`; regla del 2026-11-08).
+- Catálogos de Configuración (8.08-2): 4 × `limit 201` por PostgREST, sin índice por `orden` (tabla de configuración, decenas de filas); tope 200 por
+  catálogo, con `<AvisoDeTope>` en la 8.08-3.
 
 ## JS en frío (con gzip, lo que el documento nombra)
 
