@@ -43,6 +43,11 @@ import { carrerasDeFases } from '../supabase/tests/areas/flujos/carreras.mjs'
 import { carrerasDeDocumentos } from '../supabase/tests/areas/documentos/carreras.mjs'
 import { carrerasDeMover } from '../supabase/tests/areas/mover/carreras.mjs'
 import { carrerasDelPrincipal } from '../supabase/tests/areas/origenes/carreras.mjs'
+import {
+  carrerasDeTransporte,
+  limpiarTransporte,
+} from '../supabase/tests/areas/transporte/carreras.mjs'
+import { carrerasDeAduana, limpiarAduana } from '../supabase/tests/areas/aduana/carreras.mjs'
 
 // La base de ESTE worktree (la principal o un carril: scripts/lib/stack-local.mjs).
 const url = process.env.CARRERAS_DB_URL ?? stackLocal().urlDb
@@ -367,7 +372,11 @@ try {
   await carrerasDeDocumentos({ orquesta, carrera, espero })
   await carrerasDeMover({ orquesta, carrera, espero, conectar })
   await carrerasDelPrincipal({ orquesta, carrera, espero })
+  await carrerasDeTransporte({ orquesta, espero, conectar, esperarBloqueo })
+  await carrerasDeAduana({ orquesta, espero, conectar, esperarBloqueo })
 } finally {
+  await limpiarAduana(orquesta).catch((e) => fallas.push(`limpiar la aduana: ${e.message}`))
+  await limpiarTransporte(orquesta).catch((e) => fallas.push(`limpiar el transporte: ${e.message}`))
   await limpiarDinero(orquesta).catch((e) => fallas.push(`limpiar los gastos: ${e.message}`))
   await limpiarComprobantes(orquesta).catch((e) =>
     fallas.push(`limpiar los comprobantes: ${e.message}`),

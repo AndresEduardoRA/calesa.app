@@ -152,6 +152,56 @@ export async function aprobarElBl(terreno: TerrenoDeMover, vehiculoId: string): 
   exigir(errorAlAprobar, 'aprobar el documento')
 }
 
+export type LoteSembrado = {
+  contenedor: string
+  // Los ocho del contenedor, todos en B: los siete primeros con el BL aprobado, el último sin él.
+  delContenedor: Unidad[]
+  sinBl: Unidad
+  // Una unidad en B con el BL aprobado y sin contenedor: la que elige la prueba de las casillas.
+  suelta: Unidad
+}
+
+// El terreno del lote (6.04-3), sobre el de `sembrarMover`: ocho vehículos en B con el mismo contenedor (`transportes.contenedor`), siete con el BL aprobado y uno sin él (B → C pide el BL), y una
+// suelta en B con el BL aprobado. Todos desde hace dos días.
+export async function sembrarLote(
+  terreno: TerrenoDeMover,
+  proyecto: string,
+): Promise<LoteSembrado> {
+  const cliente = admin()
+  const hace2 = new Date(Date.now() - 2 * DIA).toISOString()
+  const titulo = (n: number) => `E2E Lote ${String(n)} ${proyecto}`
+  const titulos = [...Array.from({ length: 8 }, (_, i) => titulo(i + 1)), `E2E Suelta ${proyecto}`]
+  const { data, error } = await cliente
+    .from('vehiculos')
+    .insert(
+      titulos.map((t) => ({
+        origen_id: terreno.origen.id,
+        titulo: t,
+        fase_id: terreno.b.id,
+        fase_desde: hace2,
+      })),
+    )
+    .select('id, titulo')
+    .returns<Unidad[]>()
+  exigir(error, 'cargar los vehículos del lote')
+  const unidad = (t: string): Unidad => ({
+    id: data?.find((v) => v.titulo === t)?.id ?? '',
+    titulo: t,
+  })
+  const delContenedor = titulos.slice(0, 8).map(unidad)
+  const contenedor = `ELOTE${proyecto.toUpperCase().slice(0, 3)}${String(Date.now()).slice(-6)}`
+  const { error: errorDeTransportes } = await cliente
+    .from('transportes')
+    .insert(delContenedor.map((u) => ({ vehiculo_id: u.id, contenedor })))
+  exigir(errorDeTransportes, 'crear los transportes del lote')
+  const sinBl = delContenedor[7] ?? { id: '', titulo: '' }
+  const suelta = unidad(`E2E Suelta ${proyecto}`)
+  for (const u of [...delContenedor.slice(0, 7), suelta]) {
+    await aprobarElBl(terreno, u.id)
+  }
+  return { contenedor, delContenedor, sinBl, suelta }
+}
+
 // Quita lo que `sembrarMover` creó (los vehículos primero: un origen con vehículos no se borra; los documentos caen con ellos). Las personas y los roles los limpia el spec.
 export async function borrarMover(proyecto: string): Promise<void> {
   const clave = `${PREFIJO_CLAVE_E2E}${claveDe(proyecto)}`
