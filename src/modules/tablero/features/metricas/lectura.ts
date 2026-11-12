@@ -10,3 +10,11 @@ export const leerMetricasDeLeads = cache((desde: string, hasta: string) =>
 export const leerMetricasDeCotizaciones = cache((desde: string, hasta: string) =>
   repositorioDeMetricas.cotizaciones(desde, hasta),
 )
+
+export const leerMargenDelMes = cache((desde: string, hasta: string) =>
+  repositorioDeMetricas.margen(desde, hasta),
+)
+
+export const leerColaWeb = cache((desde: string, hasta: string) =>
+  repositorioDeMetricas.colaWeb(desde, hasta),
+)
