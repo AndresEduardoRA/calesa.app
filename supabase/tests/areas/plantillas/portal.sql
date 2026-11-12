@@ -97,6 +97,9 @@ begin
   for v_caso, v_texto in select * from (values
     ('sin {clave}', 'Hola {cliente}, entra con {codigo}'),
     ('variable desconocida', 'Hola {telefono}: {codigo} / {clave}'),
+    ('variable con mayúscula', 'Hola {Cliente}: {codigo} / {clave}'),
+    ('variable con espacios', 'Hola { cliente }: {codigo} / {clave}'),
+    ('variable con tilde', 'Tu {código}: {codigo} / {clave}'),
     ('1001 caracteres', '{codigo}{clave}' || repeat('x', 986))
   ) t (caso, texto) loop
     r := pg_temp.pmo_guardar(gala, v_texto);
@@ -114,6 +117,7 @@ begin
   r := pg_temp.pmo_guardar(gala, E'  \r\n ');
   if r <> 'sin error' or pg_temp.pmo_mensaje() is not null or pg_temp.pmo_version() <= v_antes then raise exception 'en blanco no restableció: %', r; end if;
   r := pg_temp.pmo_guardar(gala, 'Hola {codigo} {clave}');
+  if r <> 'sin error' or pg_temp.pmo_mensaje() is null then raise exception 'guardar antes de restablecer: %', r; end if;
   r := pg_temp.pmo_guardar(gala, null);
   if r <> 'sin error' or pg_temp.pmo_mensaje() is not null then raise exception 'null no restableció: %', r; end if;
 end $$;

@@ -4,7 +4,7 @@
 -- La prueba: `supabase/tests/areas/plantillas/portal.sql` y el caso «sin {codigo}» de `plantillas.sql`.
 
 -- ---------------------------------------------------------------------------------------------------
--- C7 · validar y normalizar. Sólo para las funciones «definer»: `auditoria-leads.sql` cae si `^_portal_` queda al alcance de la app.
+-- C7 · validar y normalizar. Toda `{…}` cuenta como variable (`{Codigo}`, `{ codigo }` se rechazan: una errata no sale literal). Sólo para las funciones «definer»: `auditoria-leads.sql` cae si `^_portal_` queda al alcance de la app.
 -- ---------------------------------------------------------------------------------------------------
 create or replace function public._portal_mensaje_normalizar(p_texto text) returns text
 language plpgsql immutable
@@ -19,7 +19,7 @@ begin
   if char_length(v) > 1000 then
     raise exception 'El mensaje lleva hasta 1000 caracteres.' using errcode = '22023', hint = 'texto';
   end if;
-  for v_var in select m[1] from regexp_matches(v, '\{([a-z_]+)\}', 'g') m loop
+  for v_var in select m[1] from regexp_matches(v, '\{([^{}]*)\}', 'g') m loop
     if not (v_var = any (array['cliente', 'empresa', 'codigo', 'clave', 'direccion'])) then
       raise exception '{%} no es una variable del mensaje. Usa {cliente}, {empresa}, {codigo}, {clave} o {direccion}.', v_var
         using errcode = '22023', hint = 'texto';
