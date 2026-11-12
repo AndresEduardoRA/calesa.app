@@ -5,8 +5,9 @@
 --   L1. Como service_role, 10 intentos de una IP dan true; el 11.º y el 12.º, false; la fila queda con cuenta 11.
 --   L2. Otra IP da true (otra huella); null y '' cuentan juntas como 'desconocida'.
 --   L3. Vencida la ventana (15 min), la misma IP vuelve a dar true con cuenta 1.
---   L4. La IP no se guarda: columnas exactas, huella = HMAC-SHA256(ip, sal) y no la IP; sin la sal, 55000.
---   L5. anon y authenticated no ejecutan las funciones ni leen la tabla (llamada y catálogo); service_role sí ejecuta.
+--   L4. La IP no se guarda: columnas exactas, huella = HMAC-SHA256(ip, sal) y no la IP; sin la sal, 55000; la tabla tiene RLS.
+--   L5. anon y authenticated no ejecutan las funciones ni leen la tabla (llamada y catálogo); service_role sí ejecuta; las tres son
+--       security definer con search_path vacío.
 --   L6. La purga borra la ventana vencida, deja la vigente y devuelve 1; el job portal-intentos-purgar está programado sin URL.
 --   L7. web.portal_direccion_publica() da null con la columna nula y la dirección cuando se fija.
 
@@ -96,6 +97,9 @@ begin
    where a.attrelid = 'interno.portal_intentos'::regclass and a.attnum > 0 and not a.attisdropped;
   if v_cols is distinct from array['huella', 'ventana_desde', 'cuenta'] then raise exception 'columnas: %', v_cols; end if;
   perform pg_temp.intento('203.0.113.7');
+  if not (select c.relrowsecurity from pg_class c where c.oid = 'interno.portal_intentos'::regclass) then
+    raise exception 'interno.portal_intentos sin RLS';
+  end if;
   if (select count(*) from interno.portal_intentos) <> 1 then raise exception 'se esperaba una fila'; end if;
   if not exists (select 1 from interno.portal_intentos where huella = pg_temp.huella('203.0.113.7')) then
     raise exception 'la huella no es el HMAC de la IP con la sal';
@@ -125,6 +129,12 @@ begin
       if has_function_privilege(v_rol, v_fn, 'execute') then raise exception '% puede ejecutar %', v_rol, v_fn; end if;
     end loop;
     if not has_function_privilege('service_role', v_fn, 'execute') then raise exception 'service_role no puede ejecutar %', v_fn; end if;
+  end loop;
+  -- Las tres son security definer con search_path vacío (la guarda general de auditoria-leads.sql sólo mira public).
+  foreach v_fn in array array['web.portal_intento(text)', 'web.portal_direccion_publica()', 'public.portal_intentos_purgar()'] loop
+    if not (select p.prosecdef and p.proconfig is not distinct from array['search_path=""'] from pg_proc p where p.oid = v_fn::regprocedure) then
+      raise exception '% no es security definer con search_path vacío', v_fn;
+    end if;
   end loop;
   foreach v_rol in array array['anon', 'authenticated'] loop
     r := pg_temp.con_rol(v_rol, 'select to_jsonb(web.portal_intento(''203.0.113.7''))');
