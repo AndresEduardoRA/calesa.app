@@ -311,6 +311,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Stock** — `repuestos_items.stock_cantidad`, `_stock_movimientos`: sobrantes disponibles. Se mueve sólo por `repuesto_stock_mover` y `repuesto_stock_reasignar` (8.10); nunca negativo.
 - **Sobrante** — lo que de un ítem entra a stock (motivo `sobrante`, «Pasar a stock»): como mucho su cantidad menos lo que ya entró.
 - **Vender suelto** — sacar del stock lo vendido fuera de un proyecto (motivo `vendido`); no registra precio: el cobro es un pago del proyecto.
+- **Devolver al proveedor** — sacar del stock lo que se devuelve a quien lo vendió (motivo `devuelto`, botón «Devolver»).
 - **Reasignar** — pasar unidades del stock de un ítem a otro proyecto abierto (motivo `reasignado`): nace un ítem nuevo allá, en la fase de entrada.
 - **Compra** — `repuestos_compras`: costo de un repuesto (permiso aparte).
 - **Catálogo de repuestos** — `repuestos_catalogos.catalogo` (`CATALOGOS_DE_REPUESTOS`): tipo de pieza, condición, vía de transporte o país de origen. Cada fila es un **valor** (`ValorDeCatalogo`); un valor en uso no se borra, se desactiva. La clave `modo_transporte` se muestra como «Vía de transporte».
@@ -332,6 +333,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Pegajoso** — `ajustes_web.dias_pegajoso`: un visitante vuelve al mismo asesor dentro del plazo.
 - **Respaldo** — `ajustes_web.whatsapp_respaldo`: número que recibe cuando nadie está disponible.
 - **Guía / FAQ / Testimonio** — `web_guias`, `web_faqs`, `web_testimonios`: contenido de la web pública; nace despublicado.
+- **Consentimiento (de un testimonio)** — `web_testimonio_consentir` / `web_testimonio_retirar`: lo que da el cliente para que su testimonio se publique: quién lo registró, cuándo y por qué canal, y si se muestran su ciudad, su vehículo y su foto. Cambiar el nombre, el texto o la foto lo anula.
 - **Superficie pública** — esquema `web`: vistas y RPC que consume el repo de la web.
 - **Bandeja** — `/` / `<Bandeja>`: pantalla de inicio; lo que hay que hacer ahora.
 - **Bloque de la bandeja** — `BLOQUES_BANDEJA` / `bloquesVisibles()`: una lista de pendientes del Inicio; se muestra según los permisos de la persona.
