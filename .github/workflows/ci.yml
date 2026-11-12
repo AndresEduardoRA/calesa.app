@@ -301,9 +301,12 @@ jobs:
           if [ "$PROYECTOS" = ambos ]; then proyecto=(); fi
           read -ra especs <<< "$ESPECS"
           pnpm exec playwright test --shard=${{ matrix.bloque }}/"$DE" "${proyecto[@]}" "${especs[@]}"
-      - name: el log de las funciones, junto a los artefactos
+      - name: el log de las funciones y de la base, junto a los artefactos
         if: failure()
-        run: cp "$RUNNER_TEMP/funciones.log" e2e-fallos/ 2>/dev/null || { mkdir -p e2e-fallos && cp "$RUNNER_TEMP/funciones.log" e2e-fallos/; }
+        run: |
+          mkdir -p e2e-fallos
+          cp "$RUNNER_TEMP/funciones.log" e2e-fallos/ 2>/dev/null || true
+          bash scripts/ci/volcar-base.sh e2e-fallos
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
