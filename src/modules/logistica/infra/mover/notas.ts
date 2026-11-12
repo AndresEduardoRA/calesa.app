@@ -20,12 +20,17 @@ function guardada(fila: { id: string; actualizado_en: string }): ResultadoDeAcci
 }
 
 export const notasSupabase: RepositorioDeNotas = {
-  async crear({ vehiculoId, cuerpo, autorId }) {
+  async crear({ cuerpo, autorId, ...unidad }) {
+    // Una de las dos columnas y nunca las dos (`num_nonnulls(vehiculo_id, repuesto_id) = 1`).
+    const ref =
+      'vehiculoId' in unidad
+        ? { vehiculo_id: unidad.vehiculoId }
+        : { repuesto_id: unidad.repuestoId }
     const { data, error } = await (
       await createClient()
     )
       .from('notas')
-      .insert({ vehiculo_id: vehiculoId, cuerpo, autor_id: autorId })
+      .insert({ ...ref, cuerpo, autor_id: autorId })
       .select('id, actualizado_en')
       .single()
     return error ? fallaConLaBase(error) : guardada(data)

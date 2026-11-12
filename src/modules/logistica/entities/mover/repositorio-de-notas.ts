@@ -6,11 +6,13 @@ export type NotaGuardada = { id: string; actualizadoEn: string }
 
 export type RepositorioDeNotas = {
   // El autor es quien pide: lo pone el servidor, nunca el cliente.
-  crear: (pedido: {
-    vehiculoId: string
-    cuerpo: string
-    autorId: string
-  }) => Promise<ResultadoDeAccion<NotaGuardada>>
+  // De un vehículo o de un repuesto, uno y sólo uno.
+  crear: (
+    pedido: ({ vehiculoId: string } | { repuestoId: string }) & {
+      cuerpo: string
+      autorId: string
+    },
+  ) => Promise<ResultadoDeAccion<NotaGuardada>>
   // Sólo la propia y que no sea de un cambio de fase; si no toca ninguna fila, «ya no está».
   editar: (pedido: {
     id: string

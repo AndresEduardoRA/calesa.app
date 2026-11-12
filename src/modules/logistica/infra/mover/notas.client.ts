@@ -9,9 +9,10 @@ import type { PaginaDeLaUnidad, PedidoDeLaLista } from '../../entities/mover/pag
 
 export const NO_SE_LEYERON_LAS_NOTAS = 'No se pudieron cargar las notas.'
 
-// Por `notas_vehiculo_vivas_idx (vehiculo_id, creado_en desc, id desc) where eliminado_en is null`, con `limit 21`: recorre a lo sumo esas filas, por profundo que sea el cursor.
+// Por `notas_vehiculo_vivas_idx (vehiculo_id, creado_en desc, id desc) where eliminado_en is null` (o `notas_repuesto_id_idx` si es un ítem), con `limit 21`: recorre a lo sumo esas filas, por profundo que sea el cursor.
 export async function leerNotasDeLaUnidad({
   unidadId,
+  tipo,
   cursor,
   hasta,
 }: PedidoDeLaLista): Promise<Resultado<PaginaDeLaUnidad<NotaDeLaUnidad>>> {
@@ -22,7 +23,7 @@ export async function leerNotasDeLaUnidad({
     .select(
       'id, cuerpo, autor_id, historial_fase_id, creado_en, actualizado_en, autor:perfiles!notas_autor_id_fkey(nombre), historial:historial_fases!notas_historial_fase_id_fkey(a:fases!historial_fases_a_fase_id_fkey(nombre))',
     )
-    .eq('vehiculo_id', unidadId)
+    .eq(tipo === 'repuesto' ? 'repuesto_id' : 'vehiculo_id', unidadId)
     .is('eliminado_en', null)
   if (hasta !== null) {
     consulta = consulta.lt('creado_en', hasta)
