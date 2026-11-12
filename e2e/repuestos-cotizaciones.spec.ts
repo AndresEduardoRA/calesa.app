@@ -129,6 +129,9 @@ test('sin `repuestos.cotizar`: no hay pestaña y la hoja dice que no hay permiso
 }) => {
   await entrar(page, lectora, { fresco: true })
   await page.goto(`/repuestos/${proyecto}?pestana=cotizaciones`)
+  // La URL abre la hoja de ítems (vacía): tiene que verse, no sólo faltar lo de cotizaciones.
+  await expect(page.getByRole('heading', { level: 1, name: /^Proyecto #\d+$/ })).toBeVisible()
+  await expect(page.getByText('Este proyecto todavía no tiene ítems.')).toBeVisible()
   await expect(page.getByLabel('Nuevo ítem: descripción')).toHaveCount(0)
   await expect(page.getByRole('tab')).toHaveCount(0)
   await expect(page.getByRole('list', { name: 'Cotizaciones del proyecto' })).toHaveCount(0)
