@@ -1,14 +1,17 @@
 // Lo que los requisitos de fase necesitan de afuera, dicho como interfaces. La implementación (Supabase) vive en `infra/requisitos/` y la une
 // `areas/requisitos/composicion.ts`.
+import type { AmbitoDeFlujo } from '../flujo'
 import type { ErrorApp, Resultado } from '@/shared/lib/errores'
 import type { DatosDeDato } from './formulario-de-dato'
 import type { OpcionesDeRequisitos } from './opciones'
 import type { VersionNueva } from './respuestas'
 
-// Los nombres que el bloque necesita (tipos de documento) de un flujo: los de toda la empresa y los suyos, con `tope + 1` leídos por grupo.
-export type LectorDeOpcionesDeRequisitos = (
-  flujoId: string,
-) => Promise<Resultado<OpcionesDeRequisitos>>
+// Lo que el bloque necesita nombrar y ofrecer, de un flujo: los tipos de documento (los de toda la empresa y los suyos) y las fases activas del otro
+// ámbito, con `tope + 1` leídos por grupo.
+export type LectorDeOpcionesDeRequisitos = (pedido: {
+  flujoId: string
+  ambito: AmbitoDeFlujo
+}) => Promise<Resultado<OpcionesDeRequisitos>>
 
 // Una escritura que falla: el error y, si la base nombró un campo del formulario en el `hint`, ese campo.
 export type FalloDeRequisito = { ok: false; error: ErrorApp; campo?: string }

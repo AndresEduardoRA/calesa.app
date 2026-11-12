@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type { RequisitoParaConfigurar } from '../flujo'
-import { clavesQueFaltan, destinoDeRequisito, requisitosDeLaFase } from './vista-de-fase'
+import {
+  clavesQueFaltan,
+  destinoDeRequisito,
+  reglaDeEsperasActiva,
+  requisitosDeLaFase,
+  tiposActivos,
+} from './vista-de-fase'
 
 function r(id: string, orden: number, parcial: Partial<RequisitoParaConfigurar> = {}) {
   return {
@@ -58,5 +64,20 @@ describe('requisitosDeLaFase y clavesQueFaltan', () => {
     expect(quedan).not.toContain('vehiculo.vin')
     expect(quedan).toContain('vehiculo.lead')
     expect(clavesQueFaltan('repuestos', [])).toContain('repuesto.tracking')
+  })
+})
+
+describe('tiposActivos y reglaDeEsperasActiva', () => {
+  it('sólo los tipos activos, en el orden leído', () => {
+    const tipo = (id: string, activo: boolean) => ({ id, nombre: id, formatos: [], activo })
+    expect(
+      tiposActivos([tipo('a', true), tipo('b', false), tipo('c', true)]).map((t) => t.id),
+    ).toEqual(['a', 'c'])
+  })
+
+  it('«Esperas» cuenta sólo encendida', () => {
+    expect(reglaDeEsperasActiva({ reglas: [{ regla: 'esperas', activa: true }] })).toBe(true)
+    expect(reglaDeEsperasActiva({ reglas: [{ regla: 'esperas', activa: false }] })).toBe(false)
+    expect(reglaDeEsperasActiva({ reglas: [{ regla: 'pagos', activa: true }] })).toBe(false)
   })
 })

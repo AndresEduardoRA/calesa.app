@@ -69,6 +69,8 @@ describe('esquemas de requisitos', () => {
         actualizadoEnEsperado: 'v',
       }).success,
     ).toBe(false)
-    expect(esquemaLeerOpciones.safeParse({ flujoId: 'x' }).success).toBe(false)
+    expect(esquemaLeerOpciones.safeParse({ flujoId: 'x', ambito: 'vehiculos' }).success).toBe(false)
+    expect(esquemaLeerOpciones.safeParse({ flujoId: ID }).success).toBe(false)
+    expect(esquemaLeerOpciones.safeParse({ flujoId: ID, ambito: 'repuestos' }).success).toBe(true)
   })
 })

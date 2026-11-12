@@ -1,7 +1,8 @@
 // Los requisitos de una fase tal como el bloque del inspector los ordena y los ofrece. Puro: el orden lo manda `orden` (la base renumera de 10 en 10),
 // y mover es «después de X» (nulo = primero), como lo recibe `requisito_mover`.
-import type { AmbitoDeFlujo, RequisitoParaConfigurar } from '../flujo'
+import type { AmbitoDeFlujo, FlujoParaConfigurar, RequisitoParaConfigurar } from '../flujo'
 import { CLAVES_POR_AMBITO } from './claves'
+import type { TipoParaRequisito } from './opciones'
 
 export type DireccionDeRequisito = 'subir' | 'bajar'
 
@@ -44,10 +45,34 @@ export function clavesQueFaltan(
   return CLAVES_POR_AMBITO[ambito].filter((clave) => !tiene.has(clave))
 }
 
-// Las partes de la URL del bloque (nuqs): «Agregar requisito» (`?agregar=dato`) y la confirmación de quitar (`?eliminar=requisito&quitar=<id>`). Una clave
-// propia para cada uno: el panel del inspector ya ocupa `?fase=` y el diálogo no puede ocupar `?panel=`.
+// Los tipos de documento que un requisito nuevo puede pedir: los activos, en el orden leído.
+export function tiposActivos(tipos: readonly TipoParaRequisito[]): TipoParaRequisito[] {
+  return tipos.filter((t) => t.activo)
+}
+
+// La regla «Esperas» del flujo (la base no deja pedir una espera con ella apagada).
+export function reglaDeEsperasActiva(flujo: Pick<FlujoParaConfigurar, 'reglas'>): boolean {
+  return flujo.reglas.some((r) => r.regla === 'esperas' && r.activa)
+}
+
+// Las partes de la URL del bloque (nuqs): «Agregar requisito» (`?agregar=elegir|dato|documento|espera`), editar (`?editar=requisito&requisito=<id>`) y la
+// confirmación de quitar (`?eliminar=requisito&quitar=<id>`). Una clave propia para cada uno: el panel del inspector ya ocupa `?fase=` y el diálogo no puede
+// ocupar `?panel=`.
 export const CLAVE_AGREGAR = 'agregar'
+export const FORMA_DE_ELEGIR = 'elegir'
 export const FORMA_DE_DATO = 'dato'
+export const FORMA_DE_DOCUMENTO = 'documento'
+export const FORMA_DE_ESPERA = 'espera'
+export const FORMAS_DE_AGREGAR = [
+  FORMA_DE_ELEGIR,
+  FORMA_DE_DATO,
+  FORMA_DE_DOCUMENTO,
+  FORMA_DE_ESPERA,
+] as const
+export type FormaDeAgregar = (typeof FORMAS_DE_AGREGAR)[number]
+export const CLAVE_EDITAR = 'editar'
+export const PANEL_EDITAR_REQUISITO = 'requisito'
+export const CLAVE_DEL_REQUISITO_A_EDITAR = 'requisito'
 export const CLAVE_ELIMINAR = 'eliminar'
 export const PANEL_ELIMINAR_REQUISITO = 'requisito'
 export const CLAVE_DEL_REQUISITO_A_QUITAR = 'quitar'

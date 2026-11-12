@@ -3,8 +3,7 @@
 import { leerNumeroTipeado } from '@/shared/lib/numero-tipeado'
 import type { AmbitoDeFlujo } from '../flujo'
 import { CLAVE_CON_PORCENTAJE, CLAVES_POR_AMBITO } from './claves'
-
-export const LARGO_MAXIMO_DE_LAS_NOTAS = 500
+import { MENSAJE_DE_NOTAS_LARGAS, validarNotas } from './notas'
 
 export type BorradorDeDato = {
   clave: string
@@ -28,7 +27,7 @@ export const MENSAJES_DE_DATO = {
   claveFuera: 'Ese dato no se puede pedir en este flujo.',
   sinPorcentaje: 'Escribe el porcentaje, de 1 a 100.',
   porcentajeFuera: 'El porcentaje es un número de 1 a 100.',
-  notasLargas: `Las notas tienen hasta ${String(LARGO_MAXIMO_DE_LAS_NOTAS)} caracteres.`,
+  notasLargas: MENSAJE_DE_NOTAS_LARGAS,
 } as const
 
 // Lo que se manda a `requisito_crear` como `p_datos`.
@@ -36,6 +35,24 @@ export type DatosDeDato = {
   clave_dato: string
   notas?: string
   config?: { pct: number }
+}
+
+// El porcentaje de `pagos.umbral_pct` tal como se tipea: de 1 a 100. Lo comparten agregar y editar.
+export function validarPorcentaje(
+  texto: string,
+  locale: string,
+): { ok: true; valor: number } | { ok: false; error: string } {
+  const leido = leerNumeroTipeado(texto, locale)
+  if (!leido.ok) {
+    return { ok: false, error: MENSAJES_DE_DATO.porcentajeFuera }
+  }
+  if (leido.valor === null) {
+    return { ok: false, error: MENSAJES_DE_DATO.sinPorcentaje }
+  }
+  if (leido.valor < 1 || leido.valor > 100) {
+    return { ok: false, error: MENSAJES_DE_DATO.porcentajeFuera }
+  }
+  return { ok: true, valor: leido.valor }
 }
 
 type Validacion =
@@ -55,21 +72,16 @@ export function validarDato(
 
   let pct: number | null = null
   if (borrador.clave === CLAVE_CON_PORCENTAJE) {
-    const leido = leerNumeroTipeado(borrador.porcentaje, locale)
-    if (!leido.ok) {
-      errores.config = MENSAJES_DE_DATO.porcentajeFuera
-    } else if (leido.valor === null) {
-      errores.config = MENSAJES_DE_DATO.sinPorcentaje
-    } else if (leido.valor < 1 || leido.valor > 100) {
-      errores.config = MENSAJES_DE_DATO.porcentajeFuera
-    } else {
+    const leido = validarPorcentaje(borrador.porcentaje, locale)
+    if (leido.ok) {
       pct = leido.valor
+    } else {
+      errores.config = leido.error
     }
   }
 
-  const notas = borrador.notas.trim()
-  // La base cuenta caracteres, no unidades UTF-16.
-  if (Array.from(notas).length > LARGO_MAXIMO_DE_LAS_NOTAS) {
+  const notas = validarNotas(borrador.notas)
+  if (!notas.ok) {
     errores.notas = MENSAJES_DE_DATO.notasLargas
   }
 
@@ -80,7 +92,7 @@ export function validarDato(
     ok: true,
     datos: {
       clave_dato: borrador.clave,
-      ...(notas === '' ? {} : { notas }),
+      ...(notas.ok && notas.valor !== null ? { notas: notas.valor } : {}),
       ...(pct === null ? {} : { config: { pct } }),
     },
   }

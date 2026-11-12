@@ -26,7 +26,7 @@ import { useOpcionesDeRequisitos } from './use-opciones-de-requisitos'
 export function useRequisitosDeLaFase(flujo: FlujoParaConfigurar, fase: FaseParaConfigurar) {
   const { version } = useVersionDelFlujo()
   const escritura = useEscrituraDeRequisitos()
-  const opciones = useOpcionesDeRequisitos(flujo.id)
+  const opciones = useOpcionesDeRequisitos(flujo.id, flujo.ambito)
   const [anuncio, setAnuncio] = useState('')
   const [movimiento, setMovimiento] = useState<(Movimiento & { firmaAntes: string }) | null>(null)
   const requisitos = useMemo(

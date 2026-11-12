@@ -2,7 +2,7 @@
 
 import { Label } from '@/shared/ui/label'
 import { Textarea } from '@/shared/ui/textarea'
-import { LARGO_MAXIMO_DE_LAS_NOTAS } from '../../../entities/requisitos/formulario-de-dato'
+import { LARGO_MAXIMO_DE_LAS_NOTAS } from '../../../entities/requisitos/notas'
 
 type Props = {
   valor: string

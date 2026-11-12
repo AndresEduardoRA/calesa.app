@@ -6,11 +6,11 @@ import { leerOpcionesDeRequisitos as leer } from '../../../areas/requisitos/comp
 import type { OpcionesDeRequisitos } from '../../../entities/requisitos/opciones'
 import { esquemaLeerOpciones } from '../schemas/requisitos'
 
-// Los tipos de documento que los requisitos de un flujo nombran. Una lectura que el cliente pide una vez al abrirse el bloque (el hueco del inspector es de
+// Los tipos de documento que los requisitos de un flujo nombran y las fases que una espera puede esperar. Una lectura que el cliente pide una vez al abrirse el bloque (el hueco del inspector es de
 // cliente y sólo recibe `{flujo, fase}`); la RLS de la base decide qué ve quien pide.
 export const leerOpcionesDeRequisitos = actionClient
   .inputSchema(esquemaLeerOpciones)
   .action(async ({ parsedInput }): Promise<ResultadoDeAccion<OpcionesDeRequisitos>> => {
-    const lectura = await leer(parsedInput.flujoId)
+    const lectura = await leer(parsedInput)
     return lectura.ok ? lectura : { ok: false, error: lectura.error }
   })

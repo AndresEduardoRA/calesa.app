@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { AMBITOS_DE_FLUJO } from '../../../entities/flujo'
-import { LARGO_MAXIMO_DE_LAS_NOTAS } from '../../../entities/requisitos/formulario-de-dato'
+import { LARGO_MAXIMO_DE_LAS_NOTAS } from '../../../entities/requisitos/notas'
 
 // Lo que cruza el límite de los requisitos: la forma y la lista cerrada de claves. Lo que vale cada dato (la clave del ámbito, el porcentaje, el largo de las
 // notas) lo dice la base con el campo en el `hint`. El `ambito` va en todas: la action necesita saber qué permiso exigir antes de escribir.
@@ -37,4 +37,4 @@ export const esquemaEliminarRequisito = z.object({
   actualizadoEnEsperado: version,
 })
 
-export const esquemaLeerOpciones = z.object({ flujoId: z.guid() })
+export const esquemaLeerOpciones = z.object({ flujoId: z.guid(), ambito })

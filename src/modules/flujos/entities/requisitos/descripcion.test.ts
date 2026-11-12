@@ -26,6 +26,8 @@ function requisito(parcial: Partial<RequisitoParaConfigurar>): RequisitoParaConf
 const opciones: OpcionesDeRequisitos = {
   tipos: [{ id: 't1', nombre: 'Título', formatos: ['application/pdf'], activo: true }],
   truncado: false,
+  fases: [{ id: 'fr', nombre: 'Recibido', flujo: 'Repuestos' }],
+  fasesTruncado: false,
 }
 
 describe('descripcionDeRequisito', () => {
@@ -72,6 +74,20 @@ describe('descripcionDeRequisito', () => {
     expect(
       descripcionDeRequisito(requisito({ tipo: 'espera', esperaAmbito: 'padre' }), null),
     ).toContain('el vehículo')
+  })
+
+  it('una espera nombra la fase leída; una que no figura, que ya no está activa', () => {
+    const espera = requisito({ tipo: 'espera', esperaAmbito: 'hijos', esperaFaseId: 'fr' })
+    expect(descripcionDeRequisito(espera, opciones)).toBe(
+      'Espera a que un repuesto llegue a «Recibido»',
+    )
+    expect(
+      descripcionDeRequisito({ ...espera, esperaAmbito: 'padre', esperaFaseId: 'fx' }, opciones),
+    ).toBe('Espera a que el vehículo llegue a una fase que ya no está activa')
+    // Mientras las opciones no llegaron, la forma genérica.
+    expect(descripcionDeRequisito(espera, null)).toBe(
+      'Espera a que un repuesto llegue a una fase del otro flujo',
+    )
   })
 })
 

@@ -54,9 +54,18 @@ function descripcionDeDocumento(
     .join(' · ')
 }
 
-function descripcionDeEspera(r: RequisitoParaConfigurar): string {
+export const TEXTO_DE_FASE_QUE_YA_NO_ESTA = 'una fase que ya no está activa'
+
+function descripcionDeEspera(
+  r: RequisitoParaConfigurar,
+  opciones: OpcionesDeRequisitos | null,
+): string {
   const quien = r.esperaAmbito === 'padre' ? 'el vehículo' : 'un repuesto'
-  return `Espera a que ${quien} llegue a una fase del otro flujo`
+  if (opciones === null) {
+    return `Espera a que ${quien} llegue a una fase del otro flujo`
+  }
+  const fase = opciones.fases.find((f) => f.id === r.esperaFaseId)
+  return `Espera a que ${quien} llegue a ${fase ? `«${fase.nombre}»` : TEXTO_DE_FASE_QUE_YA_NO_ESTA}`
 }
 
 export function descripcionDeRequisito(
@@ -73,7 +82,7 @@ export function descripcionDeRequisito(
     case 'documento':
       return descripcionDeDocumento(r, opciones)
     case 'espera':
-      return descripcionDeEspera(r)
+      return descripcionDeEspera(r, opciones)
   }
 }
 
