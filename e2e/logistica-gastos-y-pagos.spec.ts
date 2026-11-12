@@ -67,7 +67,8 @@ test('E2E registrar un gasto en otra moneda muestra su equivalente y el margen s
 
   await entrar(page, terreno.conDinero, { fresco: true })
   await page.goto(`/logistica/vehiculo/${terreno.enFase.id}`)
-  await page.getByText('Gastos', { exact: true }).click()
+  // El título del bloque, no el enlace «Gastos» de la sub-navegación de Logística.
+  await page.locator('span:text-is("Gastos")').click()
   await expect(page.getByText('Esta unidad no tiene gastos registrados.')).toBeVisible()
 
   await page.getByRole('button', { name: 'Registrar gasto' }).click()
@@ -164,4 +165,58 @@ test('E2E registrar un pago, confirmarlo con otra cuenta y ver la venta en el ma
   } finally {
     await contexto.close()
   }
+})
+
+// Tramo 3 (6.11-3): `/logistica/gastos` lista, con lo que dejaron las pruebas de arriba (un gasto en otra moneda y un pago confirmado en la unidad), los gastos y los pagos que se ven. Un
+// clic en la fila abre el panel de su unidad sin salir de la lista; ninguna suma en pantalla; un filtro sin coincidencias dice «Nada coincide» y se limpia. Quien no ve gastos ni pagos
+// entra por la URL y encuentra «No tienes permiso».
+test('E2E la lista de /logistica/gastos muestra el gasto y el pago, filtra y abre la unidad', async ({
+  page,
+}) => {
+  await entrar(page, terreno.conDinero, { fresco: true })
+  await page.goto('/logistica')
+  const barra = page.getByRole('navigation', { name: 'Logística', exact: true })
+  await barra.getByRole('link', { name: 'Gastos' }).click()
+  await expect(page).toHaveURL(/\/logistica\/gastos/)
+  await expect(barra.getByRole('link', { name: 'Gastos' })).toHaveAttribute('aria-current', 'page')
+
+  // Los gastos: la unidad, la categoría y el equivalente que guardó la base; ningún total.
+  const abrir = page.getByRole('button', { name: `Abrir unidad ${terreno.enFase.titulo}` })
+  await expect(abrir).toBeVisible()
+  await expect(page.getByRole('cell', { name: 'Flete marítimo' })).toBeVisible()
+  await expect(page.getByText(/Equivale a/)).toBeVisible()
+  await expect(page.getByText(/Total/)).toHaveCount(0)
+
+  // La fila abre el panel de su unidad, y Esc lo cierra dejando la lista donde estaba.
+  await abrir.click()
+  await expect(page).toHaveURL(/vehiculo=/)
+  const panel = page.getByRole('dialog', { name: 'Unidad' })
+  await expect(panel.getByRole('heading', { name: terreno.enFase.titulo })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(panel).toBeHidden()
+  await expect(page).toHaveURL(/\/logistica\/gastos/)
+  await expect(abrir).toBeVisible()
+
+  // Los pagos: el concepto y su estado.
+  await page
+    .getByRole('navigation', { name: 'Qué lista ver' })
+    .getByRole('link', { name: 'Pagos' })
+    .click()
+  await expect(page).toHaveURL(/ver=pagos/)
+  await expect(page.getByRole('button', { name: /Anticipo e2e/ })).toBeVisible()
+  await expect(page.getByText('Confirmado', { exact: true })).toBeVisible()
+
+  // El pago ya está confirmado: «sin confirmar» no encuentra nada y «Limpiar filtros» lo trae de vuelta.
+  await page.goto('/logistica/gastos?ver=pagos&confirmacion=sin_confirmar')
+  await expect(page.getByText('Nada coincide con los filtros')).toBeVisible()
+  await page.getByRole('button', { name: 'Limpiar filtros' }).click()
+  await expect(page.getByRole('button', { name: /Anticipo e2e/ })).toBeVisible()
+})
+
+test('E2E sin gastos.ver ni pagos.ver /logistica/gastos dice que no hay permiso', async ({
+  page,
+}) => {
+  await entrar(page, terreno.conLogistica, { fresco: true })
+  await page.goto('/logistica/gastos')
+  await expect(page.getByText('No tienes permiso para ver esto')).toBeVisible()
 })
