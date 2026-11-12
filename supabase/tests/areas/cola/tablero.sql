@@ -219,8 +219,8 @@ declare
   v_antes public.cola_web_asesores; v_fila public.cola_web_asesores; v_habilitada public.cola_web_asesores;
   v_r jsonb;
 begin
-  insert into public.cola_web_asesores (usuario_id, habilitado, max_abiertas, prioridad, orden, disponible) values (v_b, false, null, 0, 0, false)
-  on conflict (usuario_id) do update set habilitado = false, max_abiertas = null, prioridad = 0, orden = 0, disponible = false;
+  insert into public.cola_web_asesores (usuario_id, habilitado, max_abiertas, prioridad, orden, disponible) values (v_b, false, null, 0, 0, true)
+  on conflict (usuario_id) do update set habilitado = false, max_abiertas = null, prioridad = 0, orden = 0, disponible = true;
   select * into v_antes from public.cola_web_asesores where usuario_id = v_b;
 
   -- (a) sin gestionar: 42501 y nada cambia.

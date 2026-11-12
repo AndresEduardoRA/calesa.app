@@ -121,7 +121,6 @@ test('la habilitada cuyo rol no recibe turnos figura aparte, y la sin asignar ar
 test('con el permiso en su rol, «Actualizar» la pasa a la rueda', async ({ page }) => {
   permisoDeLaRueda(false)
   habilitada(true)
-  habilitada(true)
   await abrirElTablero(page)
   const rueda = page.getByRole('region', { name: EN_LA_RUEDA })
   await expect(page.getByRole('region', { name: SIN_ROL }).getByText(VENDEDORA)).toBeVisible()
