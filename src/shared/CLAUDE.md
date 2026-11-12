@@ -55,7 +55,7 @@ Ficha completa (cada componente con su historia y sus trampas): `docs/archivo/mo
 
 ## Ojo
 
-- `admin.ts` importa `server-only`; el lint sólo deja importarlo desde `equipo/infra/invitaciones.ts` y `empresa/infra/revalidacion-prueba.ts`.
+- `admin.ts` importa `server-only`; el lint sólo deja importarlo desde `equipo/infra/invitaciones.ts`, `empresa/infra/revalidacion-prueba.ts` y `web/infra/portal/rpc.ts`.
 - Esc dentro de un diálogo lo atiende Base UI (cierra sólo el de más arriba y detiene el evento en `document`): el atajo «cerrar» de `ProveedorAtajos` no lo ve, por eso `<Modal>` no lo registra. Un `<Modal>` abierto desde un `<Drawer>` se dibuja dentro de los hijos del Drawer.
 - Un `<fieldset disabled>` no apaga los `Switch` de Base UI: pásales `disabled` a mano.
 - Estado de filtros y paneles en la URL con `nuqs`; `nuqs` es `'use client'`, así que `lib/filtros` lee la URL a mano. En tests con `NuqsTestingAdapter`, espera la escritura (`waitFor`).

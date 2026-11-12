@@ -179,6 +179,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Desbloquear** — `portal_desbloquear`: limpiar el bloqueo de 15 minutos que dejan cinco intentos fallidos.
 - **Límite por IP (del portal)** — `interno.portal_intentos` / `web.portal_intento()`: 10 intentos de ingreso por IP cada 15 minutos; la IP se guarda sólo como **huella** (HMAC con la sal `portal:sal`).
 - **Versión del acceso** — `accesos_portal.otorgado_en`: cuándo se otorgó; da conflicto en «Volver a otorgar» y vence la sesión del portal.
+- **Sesión del portal** — cookie `portal` / `SesionDelPortal`, `firmarSesionDelPortal()`, `leerSesionDelPortal()`: firmada con HMAC-SHA256 (`PORTAL_COOKIE_SECRETO`), 7 días; lleva `lead_id` y `otorgado_en`, y deja de valer al volver a otorgar o revocar.
 - **Novedades** — `web.portal_snapshot().novedades`: lo «Visible para el cliente» sin vehículo suyo; las 30 más nuevas.
 - **Dirección de la web** — `ajustes_web.direccion_publica` / `leerDireccionPublica()`: la dirección pública del sitio.
 - **Cotización** — `cotizaciones`: cálculo de una fórmula para un lead/vehículo, con snapshot.
