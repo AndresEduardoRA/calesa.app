@@ -32,6 +32,7 @@ import { carrerasDeNumeros } from './carreras/numeros.mjs'
 import { carrerasDeLaRueda } from './carreras/rueda.mjs'
 import { stackLocal } from './lib/stack-local.mjs'
 import { carrerasDeLaCartera, carrerasDePrivacidad } from './carreras/cartera.mjs'
+import { carrerasDeDominancia, limpiarDominancia } from './carreras/dominancia.mjs'
 import { carrerasDeLoReciente } from './carreras/cartera-reciente.mjs'
 import {
   carrerasDeComprobantes,
@@ -39,6 +40,7 @@ import {
 } from '../supabase/tests/areas/comprobantes/carreras.mjs'
 import { carrerasDeDinero, limpiarDinero } from '../supabase/tests/areas/dinero/carreras.mjs'
 import { carrerasDeFases } from '../supabase/tests/areas/flujos/carreras.mjs'
+import { carrerasDeDocumentos } from '../supabase/tests/areas/documentos/carreras.mjs'
 import { carrerasDeMover } from '../supabase/tests/areas/mover/carreras.mjs'
 import { carrerasDelPrincipal } from '../supabase/tests/areas/origenes/carreras.mjs'
 import {
@@ -132,6 +134,7 @@ const inicio = Date.now()
 try {
   // Un comprobante frena el borrado de su cotización: lo de comprobantes (4.26-1) se limpia antes que el terreno.
   await limpiarComprobantes(orquesta)
+  await limpiarDominancia(orquesta)
   await limpiar(orquesta)
   await sembrar(orquesta)
 
@@ -357,6 +360,7 @@ try {
   await carrerasDeConfiguracionDeLeads({ orquesta, carrera, espero })
   await carrerasDeMarcas({ orquesta, carrera, espero })
   await carrerasDeNumeros({ orquesta, carrera, espero, conectar, esperarBloqueo })
+  await carrerasDeDominancia({ orquesta, carrera, espero })
   await carrerasDeLaCartera({ orquesta, carrera, espero, conectar, esperarBloqueo })
   await carrerasDePrivacidad({ orquesta, carrera, espero })
   await carrerasDeLoReciente({ orquesta, carrera, espero })
@@ -364,6 +368,7 @@ try {
   await carrerasDeComprobantes({ orquesta, espero, conectar, esperarBloqueo })
   await carrerasDeDinero({ orquesta, espero, conectar, esperarBloqueo })
   await carrerasDeFases({ orquesta, carrera, espero, conectar })
+  await carrerasDeDocumentos({ orquesta, carrera, espero })
   await carrerasDeMover({ orquesta, carrera, espero, conectar })
   await carrerasDelPrincipal({ orquesta, carrera, espero })
   await carrerasDeTransporte({ orquesta, espero, conectar, esperarBloqueo })
@@ -373,6 +378,7 @@ try {
   await limpiarComprobantes(orquesta).catch((e) =>
     fallas.push(`limpiar los comprobantes: ${e.message}`),
   )
+  await limpiarDominancia(orquesta).catch((e) => fallas.push(`limpiar la dominancia: ${e.message}`))
   await limpiar(orquesta).catch((e) => fallas.push(`limpiar: ${e.message}`))
   await orquesta.end()
 }

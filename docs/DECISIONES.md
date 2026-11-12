@@ -3717,3 +3717,30 @@ Medido a 13,5 h de lanzar: 20 de 69 pasos integrados; los carriles estuvieron vi
 - **Un «conflicto con main» no se borra mientras GitHub no sabe** (`pr.mjs` › `sinSaber`, `coordinador.mjs`): tras cada integración
   GitHub contesta `UNKNOWN` unos segundos, la marca de devuelto se iba y el carril que preguntaba en ese rato tomaba un paso nuevo. El 7.02
   estuvo así más de 4 h, con cinco pasos colgando de él.
+
+## 2026-11-11 — FLUJO-6: el coordinador une main a un PR en conflicto y renumerar no paga el hook
+
+Medido el 2026-11-11, a 15 h de lanzar (23 de 69 pasos): los carriles estuvieron en sesión el 72–89 % del reloj, así que lo que
+frena ya no es un carril parado sino el camino del PR hasta `main` (el 7.02, 8 h abierto con cinco pasos detrás; el 6.05 y el 5.04, 5 h).
+
+- **Un PR publicado que choca con main sólo en notas o registros lo une el coordinador** (`scripts/coordinador/unir-main.mjs`): antes
+  volvía a su carril, que lo remendaba sin sesión pero recién al terminar la sesión en curso (de 20 a 60 min), y en ese rato main se
+  movía y volvía a chocar. Es `unir_docs` de `carril.sh` sin árbol de trabajo (`git merge-tree`, `git merge-file --union`, un commit de
+  merge empujado a la rama del PR), con las mismas reglas: notas (`docs/*.md`, la ficha `CLAUDE.md`) y registros con puros agregados; un
+  choque de código, de lo generado, de una línea que los dos cambiaron o un `.mjs` que no pasa `node --check` vuelve a su carril como
+  antes. Sólo los pasos publicados: en una parte el carril sigue trabajando en la rama y un push ajeno lo haría divergir.
+  `COORD_UNIR=0` lo apaga.
+- **Si el choque era sólo de notas y el CI ya estaba en verde, se integra sin esperar otro CI** (`unido_verde`, como `renumerado_verde`):
+  el merge no cambia nada de lo que el CI probó. Con un registro unido, el CI decide. Se descartó saltarse el CI también ahí: la unión de
+  un `.ts` o un `.sql` puede dejar algo que no compila. `COORD_UNIR_SIN_CI=0` vuelve a esperar siempre.
+- **El commit de renumerar del carril va con `PILOTO=1`** (`carril.sh` › `renumerar_migraciones`): sin él, el hook corría
+  `probar-schema` sobre las migraciones renombradas, ≈ 4 min 30 s con el carril parado cada vez que traía main (medido en los tres).
+- **Una migración sin fecha real se renumera sola** (`pr.mjs` › `fechaReal`, `renumerar.mjs`, `carril.sh` › `fecha_real`): la sesión
+  del 6.05 renumeró a mano sumando uno hasta `…1260`, el Nivel 1 cayó y el PR perdió un CI y una vuelta por su carril. Va antes que el
+  rojo: esa migración sola lo explica. La skill dice ahora que la sesión no renumera.
+- **GitHub se vuelve a consultar cuando no sabe si un PR choca** (`pr.mjs` › `mirarPr`): calcula eso recién cuando se le pregunta, y la
+  primera consulta tras cada integración contesta `UNKNOWN`. Con una consulta por vuelta, cada PR perdía 3 min después de cada
+  integración (el #126 del 12-11, dos vueltas). Una segunda consulta a los 2,5 s (`COORD_SIN_SABER_VECES`, `COORD_SIN_SABER_ESPERA`).
+- **No se hizo:** detectar un rojo heredado de main (el e2e no corre en los push a `main`; el 11-11 tres sesiones diagnosticaron la
+  misma tarea de oro rota). Pide leer los nombres de las pruebas caídas de cada corrida y decidir quién arregla; se anota aquí por si
+  vuelve a costar. La primera sesión que lo ve lo arregla en su PR y las demás lo reciben al traer main.

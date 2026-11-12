@@ -313,6 +313,17 @@ final; lo leído son las vueltas por el tamaño del contexto): lo que baja el ga
 carreras, presupuestos, tres pruebas SQL compartidas, `scripts/guardas/*.ts`) o en la ficha `CLAUDE.md` de una unidad se une sin sesión,
 como los de `docs/`; `PILOTO_UNIR_REGISTROS=` lo apaga. Y `gh` se vuelve a pedir si GitHub falla (`COORD_GH_REINTENTOS`, `PILOTO_GH_ESPERA`).
 
+**FLUJO-6 (2026-11-11).** Con los carriles en sesión el 72–89 % del reloj, lo que frena es el camino del PR hasta `main`
+(`docs/DECISIONES.md` › «FLUJO-6»):
+
+- **El coordinador une main a un PR publicado en conflicto** (`unir-main.mjs`) si los choques son sólo de notas o de registros con puros
+  agregados, sin esperar a su carril; con sólo notas sobre un CI en verde lo integra sin otro CI (`unido_verde`). Lo demás vuelve a su
+  carril como antes. `COORD_UNIR=0` y `COORD_UNIR_SIN_CI=0` lo apagan.
+- **El commit de renumerar del carril va con `PILOTO=1`**: no corre `probar-schema` (≈ 4 min 30 s por vez).
+- **Una migración sin fecha real** (renumerada a mano hasta el segundo 60) la renumeran el coordinador y el carril; la sesión no renumera.
+- **Si GitHub no sabe si un PR choca** (`UNKNOWN`, la primera consulta tras cada integración), el coordinador pregunta otra vez a los
+  2,5 s en vez de perder la vuelta (`COORD_SIN_SABER_VECES`, `COORD_SIN_SABER_ESPERA`).
+
 ## El ensayo en seco (2026-10-26)
 
 `bash scripts/piloto/arrancar.sh --en-seco --nota .piloto/contexto/3a.md` («el 3a está en curso en otra sesión: planear el 4.13-3b sobre su contrato»), con `PILOTO_TOPE_USD_PASO=15`:

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { MenuMovil } from './menu-movil'
-import { BuscadorPendiente } from './buscador-pendiente'
+import { HuecoBuscador } from './huecos/buscador'
 import { ConmutadorLive } from './conmutador-live'
 
 type Props = {
@@ -17,6 +17,12 @@ type Props = {
   // Lo que tiene que quedar a la vista en toda pantalla, pegado bajo la barra superior (el banner
   // de la perspectiva «ver como»). Quien lo llena decide si se muestra.
   aviso?: ReactNode
+  // La campana de avisos, a la derecha del tipo de cambio (`huecos/campana.tsx`). Sin ella no ocupa lugar.
+  campana?: ReactNode
+  // El buscador global (`huecos/buscador.tsx`); sin él, el botón deshabilitado de hoy.
+  buscador?: ReactNode
+  // Lo que flota sobre toda pantalla, como la burbuja del chat (`huecos/chat.tsx`).
+  flotante?: ReactNode
   children: ReactNode
 }
 
@@ -30,6 +36,9 @@ export function Marco({
   tipoCambio,
   nuevoLead,
   aviso,
+  campana,
+  buscador = <HuecoBuscador />,
+  flotante,
   children,
 }: Props) {
   return (
@@ -65,7 +74,7 @@ export function Marco({
               </div>
             ) : null}
           </MenuMovil>
-          <BuscadorPendiente />
+          {buscador}
           <div className="ml-auto flex shrink-0 items-center gap-1">
             {nuevoLead}
             {tipoCambio ? (
@@ -74,6 +83,7 @@ export function Marco({
                 {tipoCambio}
               </div>
             ) : null}
+            {campana}
             <ConmutadorLive />
             {menuUsuario}
           </div>
@@ -83,6 +93,7 @@ export function Marco({
           {children}
         </main>
       </div>
+      {flotante}
     </div>
   )
 }

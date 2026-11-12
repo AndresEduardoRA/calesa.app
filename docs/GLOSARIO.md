@@ -8,7 +8,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Permiso** — `permisos` (clave `modulo.recurso.accion`): capacidad fija por código; se asigna, no se crea.
 - **Concesión** — `roles_permisos`: un permiso dado a un rol, acotado a un origen y con alcance.
 - **Alcance** — `alcance_permiso` (`propios` | `todos`): si el permiso aplica a lo propio (cartera/creado por mí) o a todo.
-- **Dominancia** — `rol_dominado()`, `concesion_dominada()` / `entities/dominancia.ts`: nadie otorga, edita, asigna ni quita lo que no tiene.
+- **Dominancia** — `rol_dominado()`, `concesion_dominada()` / `entities/dominancia.ts`: nadie otorga, edita, asigna ni quita lo que no tiene. Sobre la persona, `persona_dominada()` / `personas_dominadas()`: nadie bloquea, da de baja ni cambia los roles de quien tiene permisos que él no cubre (el dueño sí).
 - **Guardián** — `rbac_guardian()`: siempre queda alguien que opera y gestiona roles y personas; el rol dueño conserva los permisos de equipo.
 - **Invitado** — `app_metadata.invitado` / `perfiles.invitado_en` / `invitarPersona()`: persona cuya cuenta creó alguien del equipo, con un rol, aunque el registro esté cerrado.
 - **Invitación pendiente** — `EstadoPersona` `invitacion_pendiente` (`invitado_en` sin `invitacion_aceptada_en`): aún no eligió contraseña.
@@ -273,6 +273,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Fase** — `fases`: estado del ciclo; inicial, final, jubilada, logística.
 - **Fase inicial** — `fases.es_inicial` / `_vehiculo_fase_de_entrada()`: por donde un vehículo entra al flujo.
 - **Transición** — `fases_transiciones`: paso permitido entre dos fases, con acción y nota obligatoria.
+- **Salida de una fase** — en la interfaz, una transición vista desde la fase de la que parte («Salidas y quién mueve»); la que llega a una fase es una **entrada**. En tipos, tablas y RPC sigue siendo `transicion`.
 - **Requisito** — `fases_requisitos` (documento | dato | espera): qué pide una fase para entrar; bloqueante o informativo.
 - **Espera** — requisito `espera`: un vehículo espera a sus repuestos / un repuesto a su vehículo.
 - **Regla del flujo** — `flujos_reglas`: capacidad encendida/apagada (vitrina, portal, aduana, esperas…).

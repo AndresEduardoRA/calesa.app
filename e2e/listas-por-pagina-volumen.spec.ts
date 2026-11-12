@@ -11,6 +11,7 @@ import {
   vistasDelHtml,
 } from './soporte/listas-por-pagina'
 import { esMovil } from './soporte/inventario'
+import { esDelMarco } from './soporte/pedidos-del-marco'
 import { entrarConSesion } from './soporte/pasos'
 import { capturar, sinScrollHorizontal } from './soporte/recorrido'
 import { sql } from './soporte/sql'
@@ -70,7 +71,7 @@ function observar(page: Page) {
   const pedidos: Request[] = []
   page.on('request', (pedido) => pedidos.push(pedido))
   return {
-    aLaBase: () => pedidos.filter((p) => A_LA_BASE.test(p.url())).length,
+    aLaBase: () => pedidos.filter((p) => A_LA_BASE.test(p.url()) && !esDelMarco(p.url())).length,
     acciones: () =>
       pedidos.filter((p) => p.method() === 'POST' && p.headers()['next-action'] !== undefined)
         .length,

@@ -30,5 +30,5 @@ export const PRESUPUESTO_DE_LA_FICHA_CON_10_OPORTUNIDADES_EN_KB = 66
 // toda pantalla del marco (`e2e/presupuesto-js.spec.ts`). Antes del cierre 5b-fix el shell mandaba el contexto del alta de lead (los
 // catálogos y el layout de campos) en cada documento: 79,3 KB con la semilla y 106,6 con 100 + 100 (~26 KB de más); ahora pesa lo mismo con
 // los dos (77,4 KB, tolerancia ±1 KB). Con las entradas del marco que se fueron encendiendo (Logística, 6.01) pesa 82,8 KB (84.810 B en
-// escritorio): sobre lo medido más un 5 %.
-export const PRESUPUESTO_DEL_DOCUMENTO_DE_PERFIL_EN_KB = 87
+// escritorio) y con la campana en la barra (7.02-2: su botón, las rutas con pantalla y el usuario por props) 86,6 KB (86.627 B): sobre lo medido más un 5 %.
+export const PRESUPUESTO_DEL_DOCUMENTO_DE_PERFIL_EN_KB = 91

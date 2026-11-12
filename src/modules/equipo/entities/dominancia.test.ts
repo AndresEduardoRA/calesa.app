@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Permisos } from '@/shared/lib/permisos'
-import { alcanceOtorgable, concesionDominada, rolDominado } from './dominancia'
+import { alcanceOtorgable, concesionDominada, dominadasDesde, rolDominado } from './dominancia'
 
 const OFICINA = '11111111-1111-1111-1111-111111111111'
 const USA = '22222222-2222-2222-2222-222222222222'
@@ -68,5 +68,26 @@ describe('alcanceOtorgable', () => {
     expect(alcanceOtorgable(gestora, 'vehiculos.ver', OFICINA)).toBe('propios')
     expect(alcanceOtorgable(gestora, 'vehiculos.ver', null)).toBeNull()
     expect(alcanceOtorgable(gestora, 'leads.crear', null)).toBeNull()
+  })
+})
+
+describe('dominadasDesde', () => {
+  const A = '00000000-0000-0000-0000-00000000000a'
+  const B = '00000000-0000-0000-0000-00000000000b'
+
+  it('los ids que devolvió personas_dominadas(), una vez cada uno', () => {
+    expect(dominadasDesde({ data: [A, B, A], error: null })).toEqual(new Set([A, B]))
+    expect(dominadasDesde({ data: [], error: null })).toEqual(new Set())
+  })
+
+  it('si la lectura falló, no se sabe (null): nada se habilita por omisión', () => {
+    expect(dominadasDesde({ data: [A], error: { message: 'x' } })).toBeNull()
+    expect(dominadasDesde({ data: null, error: { message: 'x' } })).toBeNull()
+  })
+
+  it('una forma inesperada tampoco se sabe', () => {
+    for (const data of [null, [1], ['x'], {}, 'a']) {
+      expect(dominadasDesde({ data, error: null })).toBeNull()
+    }
   })
 })
