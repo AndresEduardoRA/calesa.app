@@ -10,6 +10,7 @@ import type { Unidad } from '../../../entities/nucleo/unidad'
 const ORIGEN = '11111111-1111-4111-8111-111111111111'
 
 const lecturas = vi.hoisted(() => ({
+  hayMas: false,
   permisos: [] as Permisos,
   gastos: [] as Gasto[],
 }))
@@ -20,7 +21,8 @@ vi.mock('../../../areas/dinero/composicion.client', () => ({
   NO_SE_CARGO_EL_MARGEN: 'No se pudo cargar el margen.',
   NO_SE_CARGARON_LAS_OPCIONES: 'No se pudieron cargar las opciones del gasto.',
   leerMisPermisos: () => Promise.resolve(ok(lecturas.permisos)),
-  leerGastosDeLaUnidad: () => Promise.resolve(ok({ gastos: lecturas.gastos, hayMas: false })),
+  leerGastosDeLaUnidad: () =>
+    Promise.resolve(ok({ gastos: lecturas.gastos, hayMas: lecturas.hayMas })),
   leerOpcionesDeGasto: () =>
     Promise.resolve(ok({ categorias: [], monedas: [], tiposDeCambio: [] })),
   subirComprobante: () => Promise.resolve(ok('x')),
@@ -72,6 +74,7 @@ function dibujar() {
 }
 
 beforeEach(() => {
+  lecturas.hayMas = false
   lecturas.gastos = [gasto]
 })
 
@@ -114,5 +117,22 @@ describe('HuecoDeGastos', () => {
     lecturas.permisos = [concesion('logistica.gastos.ver')]
     dibujar()
     expect(await screen.findByText('Esta unidad no tiene gastos registrados.')).toBeTruthy()
+  })
+})
+
+describe('Hueco de gastos: «Ver todos en Gastos»', () => {
+  it('con el tope lleva a la lista de gastos del origen de la unidad', async () => {
+    lecturas.hayMas = true
+    lecturas.permisos = [concesion('logistica.gastos.ver')]
+    dibujar()
+    const enlace = await screen.findByRole('link', { name: 'Ver todos en Gastos' })
+    expect(enlace.getAttribute('href')).toBe(`/logistica/gastos?ver=gastos&origen=${ORIGEN}`)
+  })
+
+  it('sin el tope no hay enlace', async () => {
+    lecturas.permisos = [concesion('logistica.gastos.ver')]
+    dibujar()
+    await screen.findByText('Flete')
+    expect(screen.queryByRole('link', { name: 'Ver todos en Gastos' })).toBeNull()
   })
 })

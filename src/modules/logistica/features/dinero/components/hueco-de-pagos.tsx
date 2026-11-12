@@ -15,6 +15,7 @@ import { usePanelesDePago } from '../hooks/use-paneles-de-pago'
 import { usePermisosDeDinero } from '../hooks/use-permisos-de-dinero'
 import { DialogosDePago } from './dialogos-de-pago'
 import { ListaDePagos } from './lista-de-pagos'
+import { VerTodosEnGastos } from './ver-todos-en-gastos'
 
 function Cargando() {
   return (
@@ -84,6 +85,7 @@ export function HuecoDePagos({ unidad }: { unidad: Unidad }) {
           {lectura.dato.hayMas ? (
             <AvisoDeTope
               texto={textoDelTope(TOPE_DE_PAGOS_DE_LA_UNIDAD, { sustantivo: 'pagos' })}
+              camino={<VerTodosEnGastos vista="pagos" origenId={unidad.origenId} />}
             />
           ) : null}
         </>

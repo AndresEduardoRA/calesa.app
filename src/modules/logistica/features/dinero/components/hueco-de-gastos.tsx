@@ -19,6 +19,7 @@ import { usePermisosDeDinero } from '../hooks/use-permisos-de-dinero'
 import { ConfirmarEliminarGasto } from './confirmar-eliminar-gasto'
 import { DrawerDeGasto } from './drawer-de-gasto'
 import { ListaDeGastos } from './lista-de-gastos'
+import { VerTodosEnGastos } from './ver-todos-en-gastos'
 
 function Cargando() {
   return (
@@ -90,6 +91,7 @@ export function HuecoDeGastos({ unidad }: { unidad: Unidad }) {
           {lectura.dato.hayMas ? (
             <AvisoDeTope
               texto={textoDelTope(TOPE_DE_GASTOS_DE_LA_UNIDAD, { sustantivo: 'gastos' })}
+              camino={<VerTodosEnGastos vista="gastos" origenId={unidad.origenId} />}
             />
           ) : null}
         </>
