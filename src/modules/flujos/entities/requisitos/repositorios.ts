@@ -6,6 +6,8 @@ import type { CambiosDeRequisito } from './formulario-de-edicion'
 import type { DatosDeDato } from './formulario-de-dato'
 import type { DatosDeDocumento } from './formulario-de-documento'
 import type { DatosDeEspera } from './formulario-de-espera'
+import type { UnidadFueraDeRegla } from './fuera-de-regla'
+import type { ImpactoDeRequisito } from './impacto'
 import type { OpcionesDeRequisitos } from './opciones'
 import type { VersionNueva } from './respuestas'
 
@@ -15,6 +17,16 @@ export type LectorDeOpcionesDeRequisitos = (pedido: {
   flujoId: string
   ambito: AmbitoDeFlujo
 }) => Promise<Resultado<OpcionesDeRequisitos>>
+
+// Cuántas unidades ya en la fase quedarían fuera de regla si este requisito se volviera bloqueante (`requisito_impacto`). Sólo lee.
+export type LectorDeImpactoDeRequisito = (pedido: {
+  requisitoId: string
+}) => Promise<Resultado<ImpactoDeRequisito>>
+
+// Las unidades que hoy están fuera de regla en un flujo (`flujo_fuera_de_regla`): `tope + 1` como máximo, sin títulos, por orden de fase.
+export type LectorDeFueraDeRegla = (pedido: {
+  flujoId: string
+}) => Promise<Resultado<{ unidades: UnidadFueraDeRegla[]; hayMas: boolean }>>
 
 // Una escritura que falla: el error y, si la base nombró un campo del formulario en el `hint`, ese campo.
 export type FalloDeRequisito = { ok: false; error: ErrorApp; campo?: string }
