@@ -91,6 +91,9 @@ export type CampoBase<Tipo extends TipoDeCampo = TipoDeCampo> = {
   requerido: boolean
   // Sólo precarga el alta; null = nada.
   valorDefecto: ValorDefecto | null
+  // El rango (9-2): sólo un número o un monto; null = sin límite.
+  minimo: number | null
+  maximo: number | null
   grupo: string | null
   orden: number
   // Viene de fábrica: no se elimina ni cambia de tipo ni de clave.

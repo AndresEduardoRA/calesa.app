@@ -37,6 +37,8 @@ const CAMPO: CampoDeLayout = {
   opciones: [],
   requerido: false,
   valorDefecto: null,
+  minimo: null,
+  maximo: null,
   grupo: 'Motor',
   orden: 1,
   esSistema: false,

@@ -13,6 +13,8 @@ const CAMPO: CampoDeLead = {
   ],
   requerido: false,
   valorDefecto: null,
+  minimo: null,
+  maximo: null,
   valorDefectoEmpresa: null,
   grupo: 'Datos personales',
   orden: 10,

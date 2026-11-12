@@ -22,6 +22,8 @@ const CAMPO: CampoBase = {
   opciones: [],
   requerido: false,
   valorDefecto: null,
+  minimo: null,
+  maximo: null,
   grupo: 'Datos',
   orden: 1,
   esSistema: false,

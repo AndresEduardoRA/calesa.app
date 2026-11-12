@@ -33,6 +33,8 @@ const CAMPO: CampoDeLead = {
   opciones: [],
   requerido: false,
   valorDefecto: null,
+  minimo: null,
+  maximo: null,
   grupo: 'Obra',
   orden: 1,
   esSistema: false,

@@ -51,6 +51,8 @@ function campo(cambios: Partial<CampoDeLead> & Pick<CampoDeLead, 'clave'>): Camp
     opciones: [],
     requerido: false,
     valorDefecto: null,
+    minimo: null,
+    maximo: null,
     valorDefectoEmpresa: null,
     grupo: null,
     orden: 0,
