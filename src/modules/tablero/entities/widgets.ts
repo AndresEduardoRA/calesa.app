@@ -97,15 +97,17 @@ export const WIDGETS_TABLERO = [
     tamano: 'ancho',
     disponible: true,
   },
-  // Huecos del 9.11: su permiso se afina allá (el del margen es otro).
+  // Lee `tablero_margen` (9.11), que pide `logistica.margen.ver` y sólo suma los orígenes donde la persona lo tiene: el widget sale con
+  // esa clave en cualquier origen, no con `tablero.metricas.ver` (la página sí lo pide).
   {
     clave: 'margen-del-mes',
     titulo: 'Margen del mes',
-    permisos: ['tablero.metricas.ver'],
+    permisos: ['logistica.margen.ver'],
     grupo: 'margen',
     tamano: 'cifra',
-    disponible: false,
+    disponible: true,
   },
+  // Hueco del 9.11: su permiso se afina allá.
   {
     clave: 'cola-web',
     titulo: 'Cola de la web',

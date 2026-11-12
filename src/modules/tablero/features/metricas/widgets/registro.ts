@@ -15,6 +15,7 @@ import { CuerpoDeLeadsCreados } from './leads-creados'
 import { CuerpoDeLeadsPorDia } from './leads-por-dia'
 import { CuerpoDeLeadsPorOrigen } from './leads-por-origen'
 import { CuerpoDeLeadsPorPersona } from './leads-por-persona'
+import { CuerpoDeMargenDelMes } from './margen-del-mes'
 import { CuerpoDeTasaDeConversion } from './tasa-de-conversion'
 import type { CuerpoDeWidget } from './tipos'
 
@@ -33,7 +34,7 @@ const CUERPOS: Record<ClaveDeWidget, CuerpoDeWidget> = {
   'leads-por-origen': CuerpoDeLeadsPorOrigen,
   'leads-por-persona': CuerpoDeLeadsPorPersona,
   'cotizaciones-por-origen': CuerpoDeCotizacionesPorOrigen,
-  'margen-del-mes': HUECO,
+  'margen-del-mes': CuerpoDeMargenDelMes,
   'cola-web': HUECO,
 }
 
