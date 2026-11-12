@@ -4,6 +4,7 @@ import type { Conversacion } from '../../../entities/conversaciones'
 import { citaDe } from '../../../entities/reglas-del-mensaje'
 import type { AccionesDelMensaje } from '../acciones-del-hilo'
 import { MencionAbierta } from '../../menciones/components/mencion-abierta'
+import { useFichasDelHilo } from '../../fichas/hooks/use-fichas-del-hilo'
 import { useMencionesDelHilo } from '../../menciones/hooks/use-menciones-del-hilo'
 import { useBorradoPorUrl } from '../hooks/use-borrado-por-url'
 import { useEdicion } from '../hooks/use-edicion'
@@ -36,6 +37,7 @@ export function Hilo({ conversacion, usuarioId, zona, puedeModerar }: Props) {
     cargada: hilo.lectura === 'listo',
   })
   const mencion = useMencionesDelHilo(hilo.mensajes)
+  const fichas = useFichasDelHilo(hilo.mensajes)
   const acciones: AccionesDelMensaje = {
     usuarioId,
     puedeModerar,
@@ -46,6 +48,7 @@ export function Hilo({ conversacion, usuarioId, zona, puedeModerar }: Props) {
     pedirBorrado: borrado.abrir,
     guardarEdicion: edicion.guardar,
     menciones: mencion.menciones,
+    fichas,
   }
   const envio = useEnvio({
     conversacion: conversacion.id,

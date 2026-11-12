@@ -4,6 +4,7 @@ import type { Cursor } from '@/shared/lib/paginacion'
 import type { Conversacion, CursorDeConversaciones, PaginaDeConversaciones } from './conversaciones'
 import type { FalloDeEscritura, RespuestaDeEscritura } from './escritura'
 import type { ClaseDeMencion, Referencia } from './menciones'
+import type { MapaDeFichas, PedidoDeFicha } from './fichas'
 import type { PaginaDeMensajes } from './mensajes'
 import type { PersonasEncontradas } from './personas'
 import type { EstadoDeReferencia } from './referencias'
@@ -104,3 +105,7 @@ export type RepositorioDeFichas = {
     destinatarios: readonly string[]
   }) => RespuestaDeEscritura
 }
+
+// Las tareas y eventos que traen las fichas del hilo (7.10-3), leídos con la sesión de quien mira: una lectura por clase y por tanda, más una de los
+// nombres de los responsables. Lo que no se ve, llega como «no disponible».
+export type LectorDeFichas = (pedidas: readonly PedidoDeFicha[]) => Promise<Resultado<MapaDeFichas>>
