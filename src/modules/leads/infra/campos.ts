@@ -25,6 +25,8 @@ const crear: RepositorioCamposDeLead['crear'] = async (nuevo) => {
     p_solo_cartera: nuevo.soloCartera,
     p_valor_defecto: nuevo.valorDefecto ?? undefined,
     p_valor_defecto_empresa: nuevo.valorDefectoEmpresa ?? undefined,
+    p_minimo: nuevo.minimo ?? undefined,
+    p_maximo: nuevo.maximo ?? undefined,
   })
   if (error) {
     return { ok: false, error: errorDePostgrest(error) }
@@ -80,9 +82,14 @@ const eliminar: RepositorioCamposDeLead['eliminar'] = async ({ id, actualizadoEn
   return ok(null)
 }
 
-const impacto: RepositorioCamposDeLead['impacto'] = async (id) => {
+const impacto: RepositorioCamposDeLead['impacto'] = async (id, rango) => {
   const supabase = await createClient()
-  const { data, error } = await supabase.rpc('lead_campo_impacto', { p_campo: id })
+  // Sin rango propuesto no viaja `p_cambios`: la base mide con el vigente.
+  const conRango = rango !== undefined && Object.keys(rango).length > 0
+  const { data, error } = await supabase.rpc('lead_campo_impacto', {
+    p_campo: id,
+    ...(conRango ? { p_cambios: rango } : {}),
+  })
   if (error) {
     return { ok: false, error: errorDePostgrest(error) }
   }

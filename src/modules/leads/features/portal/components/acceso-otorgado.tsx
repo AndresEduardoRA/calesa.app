@@ -10,17 +10,20 @@ type Props = {
   empresa: string
   // La dirección pública de la web; nula si no está configurada.
   direccion: string | null
+  // El mensaje del portal de la empresa; nulo = el de fábrica.
+  mensaje: string | null
 }
 
 // Lo que se le pasa al cliente, una sola vez: el código en grande y dictable, la clave y el texto listo
 // para WhatsApp. Al cerrar el diálogo se olvida.
-export function AccesoOtorgado({ otorgado, leadNombre, empresa, direccion }: Props) {
+export function AccesoOtorgado({ otorgado, leadNombre, empresa, direccion, mensaje }: Props) {
   const texto = textoParaWhatsApp({
     cliente: leadNombre,
     empresa,
     codigo: otorgado.codigo,
     clave: otorgado.clave,
     direccion,
+    plantilla: mensaje,
   })
   return (
     <div className="grid gap-4">

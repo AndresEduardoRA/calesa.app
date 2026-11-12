@@ -1,9 +1,10 @@
-// Mover el stock de un ítem y leer sus movimientos, dicho como interfaz (8.10-2, C5). La implementación (Supabase) vive en `infra/stock/` y se la entrega `areas/stock/composicion.ts`.
+// Mover el stock de un ítem, reasignarlo y leer sus movimientos, dicho como interfaz (8.10-2, C5; 8.10-3, C1). La implementación (Supabase) vive en `infra/stock/` y se la entrega `areas/stock/composicion.ts`.
 import type { ResultadoDeAccion } from '@/shared/lib/enviar-accion'
 import type { Resultado } from '@/shared/lib/errores'
 import type { MotivoPorMover } from './motivos'
 import type { PaginaDeMovimientos } from './movimientos'
 import type { RespuestaDeMover } from './mover'
+import type { RespuestaDeReasignar } from './reasignar'
 
 export type PedidoDeMover = {
   itemId: string
@@ -14,9 +15,19 @@ export type PedidoDeMover = {
   nota: string | null
 }
 
+export type PedidoDeReasignar = {
+  itemId: string
+  proyectoDestinoId: string
+  unidades: number
+  // El id del ítem nuevo, creado en el navegador al abrir el formulario: la RPC es idempotente por él.
+  id: string
+}
+
 export type RepositorioDeStock = {
   // `repuesto_stock_mover`: bajo el candado del ítem, nunca negativo. Un rechazo trae su campo (`rechazoDeStock`).
   mover: (pedido: PedidoDeMover) => Promise<ResultadoDeAccion<RespuestaDeMover>>
+  // `repuesto_stock_reasignar`: todo o nada, descuenta del origen y crea el ítem en el destino.
+  reasignar: (pedido: PedidoDeReasignar) => Promise<ResultadoDeAccion<RespuestaDeReasignar>>
   // Los movimientos del ítem del más nuevo al más viejo, de a una página; con `cursor`, los anteriores a ese id. La RLS decide qué se ve.
   movimientos: (pedido: {
     itemId: string

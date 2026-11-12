@@ -54,6 +54,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Campo de fábrica** — `origenes_campos.es_sistema`, `leads_campos.es_sistema`: campo preconfigurado; no se elimina ni cambia de tipo o clave. «Sistema» nombra otra cosa (rol dueño).
 - **Campo desactivado** — `origenes_campos.activo = false`: sale del formulario y filtros; sus datos siguen en `vehiculos.atributos`.
 - **Campo principal** — `origenes_campos.principal`: el campo que identifica al vehículo en la lista, el resumen y logística; uno por origen como mucho, activo y no de monto; sin él, el título.
+- **Rango (de un campo)** — `leads_campos.minimo`/`maximo`, `origenes_campos.minimo`/`maximo`, `_valor_fuera_de_rango()`: el mínimo y el máximo de un campo `numero` o `moneda` (nulos = sin límite); un valor que cambia y queda fuera se rechaza, uno que ya estaba fuera no impide guardar. `*_campo_impacto().fuera_de_rango` cuenta los que quedarían fuera.
 - **Valor por defecto de un campo** — `valor_defecto` / `valorDefectoPara()`, `valorDefectoVigente()`: lo que el alta trae puesto; sólo precarga.
 - **Origen inactivo** — `origenes.activo = false`: origen que ya no recibe vehículos ni cotizaciones nuevos; sus fichas se siguen viendo. Reversible.
 - **Origen sin uso** — `motivoParaNoEliminar()` / `origen_eliminar()`: sin vehículos (papelera incluida), cotizaciones ni fórmula publicada.
@@ -164,10 +165,13 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Gestionar etiquetas** — `?panel=etiquetas` / `<DialogoDeEtiquetas>`: crear, renombrar, recolorear y eliminar las propias.
 - **Embudo / Etapa / Oportunidad** — `embudos`, `embudos_etapas`, `oportunidades` / `embudo_*`, `oportunidad_*`: embudo personal de 3 a 12 etapas (inicial, ganada, perdida).
 - **Embudo por defecto** — `embudos.es_default` / `embudo_por_defecto()`: el creado la primera vez («Ventas»); no se elimina, se renombra.
+- **Plantilla del embudo** — `ajustes_leads.embudo_etapas` / `embudo_plantilla_guardar()`: las etapas con que nace el embudo por defecto de cada persona; nula = las seis de fábrica (`_embudo_etapas_de_fabrica()`). Sólo afecta a los embudos que nacen después.
 - **Mover a…** — `oportunidad_mover()` / `<MenuMoverA>`: cambiar de etapa desde un menú; ganada o perdida cierra, abierta reabre.
 - **Motivo de pérdida** — `oportunidades.motivo_perdida`: por qué se perdió (opcional, hasta 200), al mover a una etapa perdida; se limpia al reabrir.
 - **Vista de embudo** — `/leads?vista=embudo` / `<VistaDeEmbudo>`: el kanban de tus oportunidades en un embudo; los filtros de la lista no aplican.
 - **Portal del cliente** — `accesos_portal` / `web.portal_*` / `?seccion=portal`: lo que el cliente ve en la web con código y clave: sus vehículos, lo «Visible para el cliente» y novedades.
+- **Mensaje del portal** — `ajustes_leads.portal_mensaje` / `portal_mensaje_guardar()`: el texto para WhatsApp al dar acceso al portal, con `{cliente}`, `{empresa}`, `{codigo}`, `{clave}` y `{direccion}`; nulo = el de fábrica.
+- **Ajustes de leads** — `ajustes_leads` / `ajustes_leads_leer()`: la fila única con las plantillas de leads por empresa (la del embudo y el mensaje del portal), cada una con su versión.
 - **Código del portal** — `accesos_portal.codigo` / `codigoDictado()`: `XXX-YYYYY`: prefijo de la empresa y cinco símbolos sin I, O, 0 ni 1.
 - **Clave temporal** — `otorgar_portal(p_clave)`: la da el equipo al otorgar (8 a 64 o generada).
 - **Dar acceso / Volver a otorgar** — `otorgar_portal`: volver a otorgar cambia código y clave; los anteriores y la sesión abierta dejan de valer.
@@ -175,6 +179,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Desbloquear** — `portal_desbloquear`: limpiar el bloqueo de 15 minutos que dejan cinco intentos fallidos.
 - **Límite por IP (del portal)** — `interno.portal_intentos` / `web.portal_intento()`: 10 intentos de ingreso por IP cada 15 minutos; la IP se guarda sólo como **huella** (HMAC con la sal `portal:sal`).
 - **Versión del acceso** — `accesos_portal.otorgado_en`: cuándo se otorgó; da conflicto en «Volver a otorgar» y vence la sesión del portal.
+- **Sesión del portal** — cookie `portal` / `SesionDelPortal`, `firmarSesionDelPortal()`, `leerSesionDelPortal()`: firmada con HMAC-SHA256 (`PORTAL_COOKIE_SECRETO`), 7 días; lleva `lead_id` y `otorgado_en`, y deja de valer al volver a otorgar o revocar.
 - **Novedades** — `web.portal_snapshot().novedades`: lo «Visible para el cliente» sin vehículo suyo; las 30 más nuevas.
 - **Dirección de la web** — `ajustes_web.direccion_publica` / `leerDireccionPublica()`: la dirección pública del sitio.
 - **Cotización** — `cotizaciones`: cálculo de una fórmula para un lead/vehículo, con snapshot.
@@ -311,6 +316,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Stock** — `repuestos_items.stock_cantidad`, `_stock_movimientos`: sobrantes disponibles. Se mueve sólo por `repuesto_stock_mover` y `repuesto_stock_reasignar` (8.10); nunca negativo.
 - **Sobrante** — lo que de un ítem entra a stock (motivo `sobrante`, «Pasar a stock»): como mucho su cantidad menos lo que ya entró.
 - **Vender suelto** — sacar del stock lo vendido fuera de un proyecto (motivo `vendido`); no registra precio: el cobro es un pago del proyecto.
+- **Devolver al proveedor** — sacar del stock lo que se devuelve a quien lo vendió (motivo `devuelto`, botón «Devolver»).
 - **Reasignar** — pasar unidades del stock de un ítem a otro proyecto abierto (motivo `reasignado`): nace un ítem nuevo allá, en la fase de entrada.
 - **Compra** — `repuestos_compras`: costo de un repuesto (permiso aparte).
 - **Catálogo de repuestos** — `repuestos_catalogos.catalogo` (`CATALOGOS_DE_REPUESTOS`): tipo de pieza, condición, vía de transporte o país de origen. Cada fila es un **valor** (`ValorDeCatalogo`); un valor en uso no se borra, se desactiva. La clave `modo_transporte` se muestra como «Vía de transporte».
@@ -332,6 +338,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Pegajoso** — `ajustes_web.dias_pegajoso`: un visitante vuelve al mismo asesor dentro del plazo.
 - **Respaldo** — `ajustes_web.whatsapp_respaldo`: número que recibe cuando nadie está disponible.
 - **Guía / FAQ / Testimonio** — `web_guias`, `web_faqs`, `web_testimonios`: contenido de la web pública; nace despublicado.
+- **Consentimiento (de un testimonio)** — `web_testimonio_consentir` / `web_testimonio_retirar`: lo que da el cliente para que su testimonio se publique: quién lo registró, cuándo y por qué canal, y si se muestran su ciudad, su vehículo y su foto. Cambiar el nombre, el texto o la foto lo anula.
 - **Superficie pública** — esquema `web`: vistas y RPC que consume el repo de la web.
 - **Bandeja** — `/` / `<Bandeja>`: pantalla de inicio; lo que hay que hacer ahora.
 - **Bloque de la bandeja** — `BLOQUES_BANDEJA` / `bloquesVisibles()`: una lista de pendientes del Inicio; se muestra según los permisos de la persona.

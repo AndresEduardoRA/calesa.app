@@ -3,3 +3,6 @@
 
 export const MOTIVO_SIN_PERMISO_LEADS =
   'Puedes ver cómo está configurado, pero no tienes el permiso «Configurar leads» para cambiarlo.'
+
+export const MOTIVO_SIN_PERMISO_CAMPOS =
+  'Puedes ver cómo está configurado, pero no tienes el permiso «Gestionar los campos de los leads» para cambiarlo.'

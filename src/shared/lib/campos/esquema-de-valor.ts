@@ -4,7 +4,10 @@
 import { avisoDeNumero, leerNumeroTipeado } from '../numero-tipeado'
 import { z } from 'zod'
 import { instanteDeLocal } from '../fechas'
-import type { OpcionDeCampo, TipoDeCampo } from './tipos'
+import { fueraDeRango, motivoDeRango } from './rango'
+import { NUMERO_MAXIMO, type OpcionDeCampo, type TipoDeCampo } from './tipos'
+
+export { NUMERO_MAXIMO }
 
 export type Dato = string | number | boolean | string[] | null
 
@@ -13,7 +16,6 @@ export type Esquema = z.ZodType<Dato, unknown>
 export const OBLIGATORIO = 'Este dato es obligatorio.'
 export const LARGO_DE_TEXTO = 500
 export const LARGO_DE_TEXTO_LARGO = 5000
-export const NUMERO_MAXIMO = 1_000_000_000_000
 const LARGO_DE_CORREO = 160
 const LARGO_DE_DOCUMENTO = 30
 const VIN = /^[A-HJ-NPR-Z0-9]{11,17}$/
@@ -156,31 +158,50 @@ function opcionesValidas(opciones: readonly OpcionDeCampo[], guardado: unknown):
   ])
 }
 
-type DeTipo = (opciones: readonly OpcionDeCampo[], contexto: ContextoDeEsquema) => Esquema
+// Lo que el esquema lee del campo. El rango (9-2) sólo lo lleva un número o un monto, y lo nombra con su etiqueta.
+export type CampoDeEsquema = {
+  tipo: TipoDeCampo
+  opciones: readonly OpcionDeCampo[]
+  etiqueta?: string
+  minimo?: number | null
+  maximo?: number | null
+}
+
+type DeTipo = (campo: CampoDeEsquema, contexto: ContextoDeEsquema) => Esquema
+
+// Un número o un monto, con el rango del campo si lo tiene. Un valor igual a lo guardado pasa aunque esté fuera: cambiar el rango no
+// obliga a corregir lo ya cargado, como en la base (`_atributos_rango` sólo mira lo que cambió).
+function numeroDelCampo(campo: CampoDeEsquema, contexto: ContextoDeEsquema): Esquema {
+  const esquema = numero(-NUMERO_MAXIMO, NUMERO_MAXIMO, false, contexto.locale)
+  const rango = { minimo: campo.minimo ?? null, maximo: campo.maximo ?? null }
+  if (rango.minimo === null && rango.maximo === null) {
+    return esquema
+  }
+  return esquema.refine((valor) => !fueraDeRango(valor, rango) || valor === contexto.guardado, {
+    error: motivoDeRango(campo.etiqueta ?? 'Este dato', rango, contexto.locale),
+  })
+}
 
 const ESQUEMA_POR_TIPO: Record<TipoDeCampo, DeTipo> = {
   texto: () => texto(LARGO_DE_TEXTO),
   texto_largo: () => texto(LARGO_DE_TEXTO_LARGO),
   lote: () => texto(LARGO_DE_TEXTO),
-  numero: (_opciones, contexto) => numero(-NUMERO_MAXIMO, NUMERO_MAXIMO, false, contexto.locale),
-  moneda: (_opciones, contexto) => numero(-NUMERO_MAXIMO, NUMERO_MAXIMO, false, contexto.locale),
+  numero: numeroDelCampo,
+  moneda: numeroDelCampo,
   booleano: siONo,
   fecha,
-  fecha_hora: (_opciones, contexto) => fechaHora(contexto.zona),
+  fecha_hora: (_campo, contexto) => fechaHora(contexto.zona),
   url: enlace,
   vin,
   correo,
   documento,
-  opcion: (opciones, contexto) => unaDe(opcionesValidas(opciones, contexto.guardado)),
-  multi_opcion: (opciones, contexto) => variasDe(opcionesValidas(opciones, contexto.guardado)),
+  opcion: (campo, contexto) => unaDe(opcionesValidas(campo.opciones, contexto.guardado)),
+  multi_opcion: (campo, contexto) => variasDe(opcionesValidas(campo.opciones, contexto.guardado)),
 }
 
 // El esquema de un campo del layout, según su tipo.
-export function esquemaDeValor(
-  campo: { tipo: TipoDeCampo; opciones: readonly OpcionDeCampo[] },
-  contexto: ContextoDeEsquema,
-): Esquema {
-  return ESQUEMA_POR_TIPO[campo.tipo](campo.opciones, contexto)
+export function esquemaDeValor(campo: CampoDeEsquema, contexto: ContextoDeEsquema): Esquema {
+  return ESQUEMA_POR_TIPO[campo.tipo](campo, contexto)
 }
 
 // El primer motivo de cada campo que no pasó, por su clave en el formulario.

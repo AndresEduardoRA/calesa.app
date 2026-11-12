@@ -9,8 +9,11 @@ paths:
 - Lecturas en `infra/queries/*.ts` con `import 'server-only'`; realtime y fetch del browser en
   `infra/*.client.ts` (`@/shared/lib/supabase/browser`). Nunca desde componentes.
 - El cliente de servidor se crea por request (`createClient()` de `@/shared/lib/supabase/server`).
-- El cliente admin (secret key) salta la RLS: sólo en route handlers del portal, webhooks y crons. Dos
-  excepciones. Invitar personas: `conAdminDeAuth()` de `src/modules/equipo/infra/invitaciones.ts`, que
+- El cliente admin (secret key) salta la RLS: sólo en los tres archivos de abajo (los webhooks y los crons
+  se suman cuando existan). Las RPC del portal: `src/modules/web/infra/portal/rpc.ts`, que no comprueba un
+  permiso de persona porque el portal no tiene sesión de Supabase (la puerta es la cookie firmada y
+  `_portal_vigente` en la base), sólo llama `web.portal_*` y firma URLs de 60 s del bucket `documentos`, y
+  nunca devuelve la ruta; los route handlers de `app/api/portal/*` llegan a él por `@/modules/web`. Invitar personas: `conAdminDeAuth()` de `src/modules/equipo/infra/invitaciones.ts`, que
   comprueba `equipo.usuarios.gestionar` con el cliente de quien invita antes de crear el admin, entrega
   sólo `auth.admin` (`CuentasInvitadas`) y no asigna el rol. Probar la revalidación de la web pública:
   `probarRevalidacion()` de `src/modules/empresa/infra/revalidacion-prueba.ts`, que comprueba

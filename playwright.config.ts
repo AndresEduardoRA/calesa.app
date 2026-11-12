@@ -67,6 +67,10 @@ export default defineConfig({
       ...(process.env as Record<string, string>),
       NEXT_PUBLIC_VAPID_PUBLIC_KEY:
         process.env['NEXT_PUBLIC_VAPID_PUBLIC_KEY'] ?? CLAVE_PUBLICA_DE_PRUEBA,
+      // El secreto de la cookie del portal (`e2e/portal-api.spec.ts`): uno de prueba, no el real. Con `||`: una variable vacía en
+      // `.env.local` cuenta como ausente y el portal respondería 503. El del entorno gana.
+      PORTAL_COOKIE_SECRETO:
+        process.env['PORTAL_COOKIE_SECRETO'] || 'secreto-de-prueba-del-portal-e2e-no-es-real-0000',
     },
     reuseExistingServer: false,
     timeout: 120_000,

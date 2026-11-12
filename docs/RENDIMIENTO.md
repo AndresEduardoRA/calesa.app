@@ -210,7 +210,8 @@ Cada sección por su RPC, de a `_acotar_pagina(p_tamano, 5, 20)` + 1, con el mí
 - `repuestos_stock_listar()` (definer, 8.10-1): los ítems vivos en stock por cursor `(en_stock_desde, id)` sobre el índice parcial
   `repuestos_items_en_stock_idx (en_stock_desde desc, id desc) where en_stock_desde is not null and eliminado_en is null`, de a 50 (máximo 100) más uno; con cursor
   y sin cursor son dos consultas; ids primero y luego el proyecto y el título (`puede_vehiculo`) sólo de la página. Sin `count` ni `offset`; sin presupuesto medido
-  (no es una tabla de las que se siembran). El historial de un ítem va por `repuestos_stock_movimientos_item_id_idx` (pocos por ítem): por la action
+  (no es una tabla de las que se siembran). La dibuja `/repuestos?vista=stock` (8.10-3), una página de `TAMANO_DE_PAGINA_POR_DEFECTO`; el buscador de proyecto
+  destino de «Reasignar» lee una página de `TAMANO_DE_VER_MAS` de abiertos por `repuestos_proyectos_listar()`. El historial de un ítem va por `repuestos_stock_movimientos_item_id_idx` (pocos por ítem): por la action
   `leerMovimientosDeItem` (8.10-2), `id desc` con el `id` como cursor, de a `TAMANO_DE_VER_MAS` más uno, tope `TOPE_DE_LO_CARGADO` con `<AvisoDeTope>`. **Excepción a
   «siempre hay un camino a lo antiguo»:** más allá de 500 movimientos de un ítem no hay «Ir a una fecha»; un ítem tiene pocos (D9 de 8.10-2).
 - `repuestos_pendientes_de_vehiculo()` (definer): un proyecto vivo por vehículo (`repuestos_proyecto_por_vehiculo`), sus ítems por

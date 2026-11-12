@@ -343,3 +343,143 @@ begin
     raise exception 'la base no quedó como estaba'; end if;
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- @test campos: leads.campos.gestionar escribe los campos y leads.configurar lo demás, cada una sin la otra (9.04-1, 9-3)
+-- Qué asegura: (a) con sólo `leads.configurar`, las cinco `lead_campo_*` dan 42501 y los orígenes, tipos de lead y tipos de seguimiento pasan; con sólo
+-- `leads.campos.gestionar`, al revés. Personas con un rol propio, todo en una transacción revertida.
+begin;
+create or replace function pg_temp.lcg_persona(p_concesiones text[]) returns uuid language plpgsql as $f$
+declare v_id uuid := gen_random_uuid(); v_rol uuid; c text;
+begin
+  insert into auth.users (id, email, raw_app_meta_data) values (v_id, v_id || '@ejemplo.com', '{"invitado": true}');
+  insert into public.roles (clave, nombre) values ('lcg_' || substr(v_id::text, 1, 8), 'LCG ' || substr(v_id::text, 1, 8)) returning id into v_rol;
+  insert into public.usuarios_roles (usuario_id, rol_id, es_principal) values (v_id, v_rol, true);
+  foreach c in array p_concesiones loop
+    insert into public.roles_permisos (rol_id, permiso_clave, alcance) values (v_rol, c, 'todos');
+  end loop;
+  return v_id;
+end $f$;
+create or replace function pg_temp.lcg_como(p_quien uuid) returns void language plpgsql as $f$
+begin
+  perform set_config('request.jwt.claim.sub', p_quien::text, true);
+  perform set_config('request.jwt.claim.role', 'authenticated', true);
+end $f$;
+do $$
+declare
+  a uuid := pg_temp.lcg_persona(array['leads.configurar']); b uuid := pg_temp.lcg_persona(array['leads.campos.gestionar']);
+  r jsonb; c uuid; v timestamptz;
+begin
+  -- B (sólo campos): crea, cuenta, guarda y mueve un campo.
+  perform pg_temp.lcg_como(b);
+  set local role authenticated;
+  r := public.lead_campo_crear('lcg_campo', 'LCG campo', 'texto');
+  c := (r ->> 'id')::uuid; v := (r ->> 'actualizado_en')::timestamptz;
+  perform public.lead_campo_impacto(c);
+  v := public.lead_campo_guardar(c, v, '{"etiqueta": "LCG campo 2"}');
+  if (select etiqueta from public.leads_campos where id = c) <> 'LCG campo 2' then raise exception 'B no guardó el campo'; end if;
+  v := public.lead_campo_mover(c, v, null);
+  -- … y no toca orígenes, tipos de lead ni tipos de seguimiento.
+  perform pg_temp.falla($f$select public.tipo_lead_crear(gen_random_uuid(), 'LCG tipo B', 'cliente')$f$, '42501', 'leads.configurar');
+  perform pg_temp.falla($f$select public.origen_lead_crear(gen_random_uuid(), 'LCG origen B', null)$f$, '42501', 'leads.configurar');
+  perform pg_temp.falla($f$select public.tipo_seguimiento_crear(gen_random_uuid(), 'LCG seguimiento B', null)$f$, '42501', 'leads.configurar');
+  reset role;
+
+  -- A (sólo configurar): ninguna de las cinco; orígenes, tipos de lead y tipos de seguimiento, sí.
+  perform pg_temp.lcg_como(a);
+  set local role authenticated;
+  perform pg_temp.falla($f$select public.lead_campo_crear('lcg_otro', 'LCG otro', 'texto')$f$, '42501', 'leads.campos.gestionar');
+  perform pg_temp.falla(format($f$select public.lead_campo_guardar(%L, %L, '{"etiqueta": "Intruso"}')$f$, c, v), '42501', 'leads.campos.gestionar');
+  perform pg_temp.falla(format($f$select public.lead_campo_mover(%L, %L, null)$f$, c, v), '42501', 'leads.campos.gestionar');
+  perform pg_temp.falla(format($f$select public.lead_campo_eliminar(%L, %L)$f$, c, v), '42501', 'leads.campos.gestionar');
+  perform pg_temp.falla(format($f$select public.lead_campo_impacto(%L)$f$, c), '42501', 'leads.campos.gestionar');
+  perform public.tipo_lead_crear(gen_random_uuid(), 'LCG tipo A', 'cliente');
+  perform public.origen_lead_crear(gen_random_uuid(), 'LCG origen A', null);
+  perform public.tipo_seguimiento_crear(gen_random_uuid(), 'LCG seguimiento A', null);
+  reset role;
+  if (select etiqueta from public.leads_campos where id = c) <> 'LCG campo 2' then raise exception 'A cambió el campo'; end if;
+
+  -- B lo elimina.
+  perform pg_temp.lcg_como(b);
+  set local role authenticated;
+  perform public.lead_campo_eliminar(c, v);
+  reset role;
+  if exists (select 1 from public.leads_campos where id = c) then raise exception 'B no eliminó el campo'; end if;
+end $$;
+reset role;
+rollback;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test campos: la migración concede leads.campos.gestionar al dueño y a quien tenía leads.configurar, y volver a ejecutarla no cambia nada (9.04-1)
+-- (b) El texto de la migración llega en `_migracion_lcg` (`DATOS_DE_PRUEBA`) y se ejecuta sobre roles propios, como en la nube.
+begin;
+do $$
+declare
+  o uuid := (select id from public.origenes order by clave limit 1); r1 uuid; r2 uuid; v_antes jsonb; v_n int; v_mal text[];
+  v_sql text := (select doc #>> '{}' from _migracion_lcg);
+begin
+  if v_sql is null or v_sql !~ 'leads\.campos\.gestionar' then raise exception 'la migración del 9.04-1 no llegó o no nombra la clave'; end if;
+  select to_jsonb(p) into v_antes from public.permisos p where p.clave = 'leads.campos.gestionar';
+  if v_antes is null then raise exception 'no existe la clave leads.campos.gestionar en el catálogo'; end if;
+
+  insert into public.roles (clave, nombre) values ('lcg_r1', 'LCG R1') returning id into r1;
+  insert into public.roles (clave, nombre) values ('lcg_r2', 'LCG R2') returning id into r2;
+  insert into public.roles_permisos (rol_id, permiso_clave, alcance) values (r1, 'leads.configurar', 'todos');
+  insert into public.roles_permisos (rol_id, permiso_clave, origen_id, alcance) values (r2, 'vehiculos.ver', o, 'todos');
+  delete from public.roles_permisos where permiso_clave = 'leads.campos.gestionar';
+  update public.permisos set descripcion = 'pisado', aplicado_en = 'pisado' where clave = 'leads.configurar';
+
+  execute v_sql;
+
+  -- Quién la tiene: el dueño y todo rol con `leads.configurar`, con «todos» y sin origen; nadie más.
+  select array_agg(r.clave order by r.clave) into v_mal from public.roles r
+   where (r.clave = 'dueno' or exists (select 1 from public.roles_permisos x where x.rol_id = r.id and x.permiso_clave = 'leads.configurar'))
+     and not exists (select 1 from public.roles_permisos x where x.rol_id = r.id and x.permiso_clave = 'leads.campos.gestionar' and x.alcance = 'todos' and x.origen_id is null);
+  if v_mal is not null then raise exception 'la migración no concedió la clave con «todos» y sin origen a: %', v_mal; end if;
+  select array_agg(distinct r.clave order by r.clave) into v_mal from public.roles r join public.roles_permisos x on x.rol_id = r.id and x.permiso_clave = 'leads.campos.gestionar'
+   where r.clave <> 'dueno' and not exists (select 1 from public.roles_permisos y where y.rol_id = r.id and y.permiso_clave = 'leads.configurar');
+  if v_mal is not null then raise exception 'la migración concedió la clave a roles sin leads.configurar: %', v_mal; end if;
+  -- R1 conserva las dos; R2 (sin leads.configurar) no gana nada.
+  if (select count(*) from public.roles_permisos where rol_id = r1 and permiso_clave in ('leads.configurar', 'leads.campos.gestionar')) <> 2 then
+    raise exception 'R1 (con leads.configurar) no quedó con las dos'; end if;
+  if exists (select 1 from public.roles_permisos where rol_id = r2 and permiso_clave = 'leads.campos.gestionar') then raise exception 'R2 (sin leads.configurar) la recibió'; end if;
+
+  -- La fila del catálogo es la del seed, y leads.configurar vuelve a decir lo suyo (sin los campos).
+  if (select to_jsonb(p) from public.permisos p where p.clave = 'leads.campos.gestionar') is distinct from v_antes then
+    raise exception 'la migración y el seed no dicen lo mismo de la clave'; end if;
+  if (select jsonb_build_object('descripcion', descripcion, 'aplicado_en', aplicado_en) from public.permisos where clave = 'leads.configurar')
+     is distinct from jsonb_build_object('descripcion', 'Los orígenes de lead, los tipos de lead y los tipos de seguimiento',
+       'aplicado_en', 'origen_lead_*, origenes_lead_con_uso, tipo_lead_*, tipos_lead_con_uso, tipo_seguimiento_*, tipos_seguimiento_con_uso') then
+    raise exception 'la migración no dejó el texto de leads.configurar'; end if;
+
+  -- Otra vez: ni una concesión ni un campo de más.
+  select count(*) into v_n from public.roles_permisos where permiso_clave = 'leads.campos.gestionar';
+  execute v_sql;
+  if (select count(*) from public.roles_permisos where permiso_clave = 'leads.campos.gestionar') <> v_n then raise exception 'ejecutarla otra vez duplicó concesiones'; end if;
+  if (select to_jsonb(p) from public.permisos p where p.clave = 'leads.campos.gestionar') is distinct from v_antes then raise exception 'ejecutarla otra vez cambió el catálogo'; end if;
+end $$;
+rollback;
+
+-- @test campos: las cinco lead_campo_* nombran leads.campos.gestionar y no leads.configurar, con prosecdef y sin execute para anon ni PUBLIC (9.04-1)
+do $$
+declare r record; v_n int := 0;
+begin
+  if (select jsonb_build_object('modulo', modulo, 'nombre', nombre, 'por_origen', por_origen, 'con_alcance', con_alcance, 'orden', orden)
+        from public.permisos where clave = 'leads.campos.gestionar')
+     is distinct from '{"modulo": "leads", "nombre": "Gestionar los campos de los leads", "por_origen": false, "con_alcance": false, "orden": 215}'::jsonb then
+    raise exception 'la fila de leads.campos.gestionar no es la esperada'; end if;
+  if not exists (select 1 from public.roles_permisos x join public.roles ro on ro.id = x.rol_id
+                  where ro.clave = 'dueno' and x.permiso_clave = 'leads.campos.gestionar' and x.alcance = 'todos' and x.origen_id is null) then
+    raise exception 'el dueño no tiene leads.campos.gestionar'; end if;
+  for r in select f.oid, f.proname, f.prosrc, f.prosecdef, f.proconfig from pg_proc f join pg_namespace n on n.oid = f.pronamespace
+            where n.nspname = 'public' and f.proname in ('lead_campo_crear', 'lead_campo_guardar', 'lead_campo_eliminar', 'lead_campo_mover', 'lead_campo_impacto') loop
+    v_n := v_n + 1;
+    if r.prosrc like '%''leads.configurar''%' then raise exception '% todavía nombra leads.configurar', r.proname; end if;
+    if r.prosrc not like '%''leads.campos.gestionar''%' then raise exception '% no nombra leads.campos.gestionar', r.proname; end if;
+    if not r.prosecdef or r.proconfig is distinct from array['search_path=""'] then raise exception '% perdió prosecdef o el search_path vacío: % %', r.proname, r.prosecdef, r.proconfig; end if;
+    if has_function_privilege('anon', r.oid, 'execute') then raise exception 'anon puede ejecutar %', r.proname; end if;
+    if exists (select 1 from pg_proc f, aclexplode(coalesce(f.proacl, acldefault('f', f.proowner))) a where f.oid = r.oid and a.grantee = 0 and a.privilege_type = 'EXECUTE') then
+      raise exception 'PUBLIC puede ejecutar %', r.proname; end if;
+    if not has_function_privilege('authenticated', r.oid, 'execute') then raise exception 'authenticated perdió execute sobre %', r.proname; end if;
+  end loop;
+  if v_n <> 5 then raise exception 'esperaba las cinco lead_campo_* y hay %', v_n; end if;
+end $$;

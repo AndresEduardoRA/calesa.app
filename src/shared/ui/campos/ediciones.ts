@@ -1,4 +1,4 @@
-import type { ImpactoDeCampo } from '@/shared/lib/campos'
+import type { ImpactoDeCampo, Rango } from '@/shared/lib/campos'
 import type { ErrorApp, Resultado } from '@/shared/lib/errores'
 import { conRed, resultadoDeAccion } from '@/shared/lib/formularios'
 import { avisarConDeshacer } from '@/shared/ui/toasts'
@@ -31,7 +31,7 @@ export function edicionesDeCampos<
   guardando: Accion<{ id: string; actualizadoEnEsperado: string; cambios: Cambios }, Editado>
   moviendo: Accion<{ id: string; despuesDe: string | null; actualizadoEnEsperado: string }, Editado>
   eliminando: Accion<{ id: string; actualizadoEnEsperado: string }, null>
-  contando: Accion<{ id: string }, ImpactoDeCampo>
+  contando: Accion<{ id: string; rango?: Partial<Rango> }, ImpactoDeCampo>
 }): EdicionesDeCampos<Cambios, Nuevo> {
   const { creando, guardando, moviendo, eliminando, contando } = acciones
   // Activar o desactivar es un cambio como cualquier otro: sólo viaja `activo`.
@@ -93,8 +93,11 @@ export function edicionesDeCampos<
         `Campo «${campo.etiqueta}» eliminado`,
       ),
     // Cuántos registros tienen valor: se llama antes de un cambio que podría tocarlos.
-    vistaPrevia: async (campoId) =>
-      cerrarConAviso(resultadoDeAccion(await conRed(contando.executeAsync({ id: campoId }))), null),
+    vistaPrevia: async (campoId, rango) =>
+      cerrarConAviso(
+        resultadoDeAccion(await conRed(contando.executeAsync({ id: campoId, rango }))),
+        null,
+      ),
     enCurso:
       creando.isPending ||
       guardando.isPending ||
