@@ -34,6 +34,19 @@ describe('tipoDe', () => {
   })
 })
 
+describe('etiquetas de las preferencias de push', () => {
+  it.each(DE_LA_BASE)('el tipo %s tiene su etiqueta y su descripción', (tipo) => {
+    const conocido = TIPOS_DE_NOTIFICACION[tipo]
+    expect(conocido?.etiqueta.trim()).not.toBe('')
+    expect(conocido?.descripcion.trim()).not.toBe('')
+  })
+
+  it('las etiquetas no se repiten', () => {
+    const etiquetas = DE_LA_BASE.map((tipo) => TIPOS_DE_NOTIFICACION[tipo]?.etiqueta)
+    expect(new Set(etiquetas).size).toBe(DE_LA_BASE.length)
+  })
+})
+
 describe('accionaAlAbrir', () => {
   it.each(['tarea_asignada', 'recordatorio', 'demora_fase'])(
     'abrir %s la da por accionada si pedía acción',

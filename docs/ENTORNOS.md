@@ -44,6 +44,8 @@ sin imprimir valores; la app cae al compilar si falta una pública y al arrancar
 | `DEMO_*`                                                         | Resetear y sembrar la demo                             | `.env.demo`                                 | las claves **sí** | la persona                                               |
 | `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`                  | Migrar la demo desde CI                                | secretos de GitHub                          | **sí**            | la persona (etapa 6)                                     |
 
+La clave pública VAPID (`NEXT_PUBLIC_VAPID_PUBLIC_KEY`) también la lee el servidor de la app para dibujar el interruptor de `/perfil` (7.04): sin ella dice «Falta la clave pública…» y no deja encender; el e2e usa una de prueba, sin privada (`playwright.config.ts`).
+
 ## `.env.demo`
 
 Lo leen `scripts/demo/*.sh` (nunca la app). Plantilla, sin valores:

@@ -9,6 +9,7 @@ import { MOTIVO_SIN_PERMISO_AJUSTES, MOTIVO_SIN_SECRETO } from '../../../entitie
 import { useApibara } from '../hooks/use-apibara'
 import { CampoSecreto } from './campo-secreto'
 import { ConfigApibara } from './config-apibara'
+import { PushWeb } from './push-web'
 import { UsoDeApibara } from './uso-de-apibara'
 import { WebPublica } from './web-publica'
 
@@ -19,13 +20,23 @@ type Props = {
   // La fila de la web pública, si la instalación la tiene, y cuántos vehículos cambian al
   // encenderla o apagarla (sólo para quien puede editar).
   webPublica?: Integracion | undefined
+  // La fila de los avisos push, si la instalación la tiene, y si falta la clave pública (la lee el servidor de `app/`).
+  pushWeb?: Integracion | undefined
+  sinClavePublica: boolean
   vehiculosQueCambian: ConteoAcotado | null
   puedeEditar: boolean
 }
 
 // La pestaña «Integraciones»: apibara (su interruptor, su configuración no secreta y su clave) y
-// la web pública. Los secretos van a Vault y no se vuelven a mostrar.
-export function Integraciones({ apibara, webPublica, vehiculosQueCambian, puedeEditar }: Props) {
+// la web pública y los avisos push. Los secretos van a Vault y no se vuelven a mostrar.
+export function Integraciones({
+  apibara,
+  webPublica,
+  pushWeb,
+  sinClavePublica,
+  vehiculosQueCambian,
+  puedeEditar,
+}: Props) {
   const ediciones = useApibara(apibara.actualizadoEn)
   const sinClave = !puedeActivarse(apibara)
   const config = configDeApibara(apibara.config)
@@ -72,6 +83,9 @@ export function Integraciones({ apibara, webPublica, vehiculosQueCambian, puedeE
           vehiculosQueCambian={vehiculosQueCambian}
           puedeEditar={puedeEditar}
         />
+      ) : null}
+      {pushWeb ? (
+        <PushWeb pushWeb={pushWeb} sinClavePublica={sinClavePublica} puedeEditar={puedeEditar} />
       ) : null}
     </div>
   )

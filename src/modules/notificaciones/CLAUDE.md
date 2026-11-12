@@ -7,17 +7,17 @@ Campana in-app con «requiere acción», realtime, web push (VAPID) y preferenci
 - Entra: `notificar()` desde RPC y triggers (tareas, turnos web, alertas de demora, recordatorios, menciones; la cartera con `lead_compartir` y
   `lead_transferir`; la limpieza con `limpieza_avisar`), suscripciones push del navegador.
 - Sale: `<Campana>` (`shell.client.ts`, el marco), `<ListaDeNotificaciones>` (`pantallas/notificaciones.ts`, `/notificaciones`),
-  `leerPaginaDeNotificaciones()` y `filtroDeLista()` (`index.ts`), `usePush()` y `preferenciasDe(usuario)` (7.03/7.04). Lo consume `app/` (barra y página) y `tablero`.
+  `leerPaginaDeNotificaciones()` y `filtroDeLista()` (`index.ts`), `<NotificacionesDelPerfil>` (`pantallas/perfil.ts`, el bloque de `/perfil`). Lo consume `app/` (barra y página) y `tablero`.
 - Depende de: `equipo`.
 
 ## Archivos clave
 
-- `entities/tipos.ts` — catálogo por `tipo` (icono, si abrirlo acciona); `destino.ts` — una `ruta` sólo es enlace si es interna y su pantalla existe;
+- `entities/tipos.ts` — catálogo por `tipo` (icono, si abrirlo acciona, `etiqueta` y `descripcion` de las preferencias); `estado-del-push.ts` — la prioridad de los motivos de un interruptor deshabilitado; `preferencia-de-push.ts` — sólo se guarda lo apagado; `destino.ts` — una `ruta` sólo es enlace si es interna y su pantalla existe;
   `notificacion.ts` — la fila validada, el cursor `(creado_en, id)` y los topes; `fundir.ts` — fundir la primera página con lo cargado.
 - `infra/consultas.ts` — las lecturas, escritas una vez para el servidor (`queries/`) y el navegador (`notificaciones.client.ts`); `infra/notificaciones.ts`
   — abrir y marcar (RLS + grants de columna). El canal de Realtime es `shared/lib/supabase/canal.client.ts`.
 - `features/campana/` (botón, contador y popover, el contenido y Realtime diferidos) y `features/lista/` (la página: `CuerpoDeLaLista`,
-  «Ver más», «Marcar todas», **la fila `FilaDeNotificacion` que usan la campana y la página**, `actions/`). `features/preferencias/` llega con 7.04.
+  «Ver más», «Marcar todas», **la fila `FilaDeNotificacion` que usan la campana y la página**, `actions/`). `features/push/` (`usePush()`, este navegador y «Tus navegadores», las acciones `suscribirPush` y `quitarSuscripcion`) y `features/preferencias/` (un interruptor de push por tipo del catálogo, `guardarPreferenciaDePush`; el bloque servidor `NotificacionesDelPerfil`). `infra/push.client.ts` es lo del navegador (soporte, permiso, service worker, suscripción) y no importa nada del servidor. `public/sw.js` atiende `push` y `notificationclick`.
 - **La acción propia de un tipo** («Contacté» de un turno web) la dibuja `app/`: el registro `ACCIONES_DE_NOTIFICACIONES` de
   `src/app/(app)/_shell/huecos/acciones-de-notificaciones.ts` llega por props (una función no cruza de servidor a cliente). La Fase 8 suma su entrada.
 - `supabase/functions/push` (7.03-2) canjea el pase de `push_disparar` y envía (RFC 8291/8292 con Web Crypto).
@@ -63,3 +63,4 @@ limpieza, sólo `service_role`); purga `visitados`. RPC/trigger: `notificar`, `n
 - `requiere_accion` muestra el botón en la campana (p. ej. «Contacté» de un turno web); al resolverse se marca leída por la acción, no por abrir la campana.
 - La campana pide su contador y su canal cuando el navegador descansa (`useAlDescansar`), no al hidratar: el cliente de Supabase evaluado durante la hidratación retrasa ≈ 320 ms el primer clic que vale en toda pantalla. Sus pedidos a `notificaciones` no cuentan en un spec que mide pedidos a la base (`esDelMarco` de `e2e/soporte/pedidos-del-marco.ts`), y su parada de Tab sí cuenta en las tareas de oro.
 - `suscribirseACambios` avisa (`alReconectar`) en **cada** unión del canal, la primera incluida: lo anterior a la unión no llegó como señal.
+- **El push del perfil** (7.04): `usePush()` lee el navegador con `getRegistration()` (nunca `ready`, que se cuelga sin registro) y registra `/sw.js` él mismo al encender: el layout sólo lo registra en producción, así que en dev y en e2e no hay service worker hasta que alguien enciende. La clave pública VAPID se lee en el servidor (`NotificacionesSeccion` de `app/`) y llega por props. Si la base rechaza la suscripción, el hook da de baja la del navegador (no deja una huérfana). La preferencia se escribe directo bajo RLS propia (`guardarPreferenciaDePush` lee la fila, cambia una clave y borra la fila si queda vacía; dos pestañas a la vez pueden pisarse una clave). `notificationclick` sólo abre rutas del mismo origen que empiezan con una sola `/`; si no, `/notificaciones` (`sw.test.ts` lo prueba con `node:vm`).
