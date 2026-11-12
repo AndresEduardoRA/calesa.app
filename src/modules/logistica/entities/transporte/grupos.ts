@@ -212,3 +212,56 @@ export function nombreDeCatalogo(
   }
   return lista.find((e) => e.id === id)?.nombre ?? null
 }
+
+export type TextosDelGrupo = {
+  // Nulo = ninguna unidad tiene el dato (o su id ya no está en el catálogo leído): la interfaz escribe «—».
+  naviera: string | null
+  ruta: string | null
+  zarpe: string | null
+  eta: string | null
+  arribo: string | null
+  unidades: string
+}
+
+type Catalogo = readonly { id: string; nombre: string }[]
+
+function textoDe<T extends string>(
+  valor: ValorDelGrupo<T>,
+  texto: (v: T) => string | null,
+  varios: string,
+): string | null {
+  return valor.tipo === 'varios' ? varios : valor.tipo === 'comun' ? texto(valor.valor) : null
+}
+
+/**
+ * Lo que dice cada columna de la fila de un grupo (C5): el nombre del catálogo o la fecha escrita si es común; «Varias» o «Varios» si las unidades difieren; nulo si no hay dato. Un id que
+ * ya no está en el catálogo leído es nulo, nunca el uuid.
+ */
+export function textosDelGrupo(
+  g: GrupoDeTransporte,
+  catalogos: { navieras: Catalogo; puertos: Catalogo },
+  fecha: (iso: string) => string,
+): TextosDelGrupo {
+  const puerto = (id: string | null, campo: CampoDeVarios) =>
+    textoDe(
+      valorDelGrupo(id, campo, g.varios),
+      (v) => nombreDeCatalogo(catalogos.puertos, v),
+      'Varios',
+    )
+  const origen = puerto(g.puertoOrigenId, 'puerto_origen_id')
+  const destino = puerto(g.puertoDestinoId, 'puerto_destino_id')
+  const dia = (valor: string | null, campo: CampoDeVarios) =>
+    textoDe(valorDelGrupo(valor, campo, g.varios), fecha, 'Varias')
+  return {
+    naviera: textoDe(
+      valorDelGrupo(g.navieraId, 'naviera_id', g.varios),
+      (v) => nombreDeCatalogo(catalogos.navieras, v),
+      'Varias',
+    ),
+    ruta: origen === null && destino === null ? null : `${origen ?? '—'} → ${destino ?? '—'}`,
+    zarpe: dia(g.zarpeEl, 'zarpe_el'),
+    eta: dia(g.etaEl, 'eta_el'),
+    arribo: dia(g.arriboEl, 'arribo_el'),
+    unidades: textoDeUnidades(g.unidades, g.hayMas),
+  }
+}

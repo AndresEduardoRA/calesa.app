@@ -4,6 +4,7 @@ import {
   nombreDeCatalogo,
   paginaDeGruposDesde,
   textoDeUnidades,
+  textosDelGrupo,
   valorDelGrupo,
 } from './grupos'
 
@@ -133,5 +134,60 @@ describe('textos', () => {
     expect(nombreDeCatalogo(lista, ID)).toBe('Maersk')
     expect(nombreDeCatalogo(lista, '22222222-2222-4222-8222-222222222222')).toBeNull()
     expect(nombreDeCatalogo(lista, null)).toBeNull()
+  })
+})
+
+describe('la fila de un grupo', () => {
+  const NAVIERA = '11111111-1111-4111-8111-111111111111'
+  const ORIGEN = '22222222-2222-4222-8222-222222222222'
+  const catalogos = {
+    navieras: [{ id: NAVIERA, nombre: 'Maersk' }],
+    puertos: [{ id: ORIGEN, nombre: 'Miami' }],
+  }
+  const grupo = {
+    clave: 'ECMU123456',
+    unidades: 2,
+    hayMas: false,
+    hayOcultas: false,
+    navieraId: NAVIERA,
+    puertoOrigenId: ORIGEN,
+    puertoDestinoId: null,
+    zarpeEl: '2026-12-01',
+    etaEl: null,
+    arriboEl: null,
+    varios: ['eta_el' as const],
+  }
+  const fecha = (iso: string) => `día ${iso}`
+
+  it('escribe lo común, «Varias» lo que difiere y nada lo que falta', () => {
+    expect(textosDelGrupo(grupo, catalogos, fecha)).toEqual({
+      naviera: 'Maersk',
+      ruta: 'Miami → —',
+      zarpe: 'día 2026-12-01',
+      eta: 'Varias',
+      arribo: null,
+      unidades: '2 unidades',
+    })
+  })
+
+  it('los puertos que difieren dicen «Varios» y un id que ya no está no se escribe', () => {
+    const t = textosDelGrupo(
+      {
+        ...grupo,
+        navieraId: '33333333-3333-4333-8333-333333333333',
+        puertoOrigenId: null,
+        varios: ['puerto_destino_id'],
+      },
+      catalogos,
+      fecha,
+    )
+    expect(t.naviera).toBeNull()
+    expect(t.ruta).toBe('— → Varios')
+  })
+
+  it('sin origen ni destino no hay ruta', () => {
+    expect(
+      textosDelGrupo({ ...grupo, puertoOrigenId: null, varios: [] }, catalogos, fecha).ruta,
+    ).toBeNull()
   })
 })
