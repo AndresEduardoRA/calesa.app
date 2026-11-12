@@ -25,3 +25,8 @@ export const BarraDelLoteDiferida = diferido(() =>
 export const DrawerDelLoteDiferido = diferido(() =>
   import('./drawer-del-lote').then((modulo) => modulo.DrawerDelLote),
 )
+
+// El hueco del grupo lo dibuja el resumen de un contenedor (6.08); su código se pide entonces.
+export const HuecoMoverElGrupoDiferido = diferido(() =>
+  import('./hueco-mover-el-grupo').then((modulo) => modulo.HuecoMoverElGrupo),
+)

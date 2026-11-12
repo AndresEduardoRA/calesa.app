@@ -6,11 +6,14 @@ import { Drawer } from '@/shared/ui/drawer'
 import { focoDeQuienAbrio } from '@/shared/ui/foco-de-quien-abre'
 import { usePanelPorUrl } from '@/shared/ui/use-panel-por-url'
 import {
+  CLAVE_DE_BOOKING_DEL_LOTE,
+  CLAVE_DE_CONTENEDOR_DEL_LOTE,
   CLAVE_DE_DESTINO_DEL_LOTE,
   CLAVES_DEL_LOTE,
   PANEL_DEL_LOTE,
 } from '../../../entities/mover/claves-del-lote'
 import { useSeleccionDeLaCadena } from '../../nucleo/seleccion/use-seleccion-de-la-cadena'
+import { CuerpoDelGrupo } from './cuerpo-del-grupo'
 import { CuerpoDelLote } from './cuerpo-del-lote'
 
 function SinUnidades({ alCerrar }: { alCerrar: () => void }) {
@@ -32,8 +35,48 @@ function SinUnidades({ alCerrar }: { alCerrar: () => void }) {
   )
 }
 
+type Fuente = {
+  origenId: string
+  grupo: { tipo: 'contenedor' | 'booking'; valor: string } | null
+  destinoInicial: string | null
+  alHaberResultado: () => void
+  alCerrar: () => void
+}
+
+// De dónde salen las unidades: del grupo de la URL (`?contenedor=` o `?booking=`, que manda, D31) o de la selección de la cadena. Sin ninguna, «No elegiste ninguna unidad.».
+function ContenidoDelLote({ origenId, grupo, destinoInicial, alHaberResultado, alCerrar }: Fuente) {
+  const seleccion = useSeleccionDeLaCadena()
+  if (grupo) {
+    return (
+      <CuerpoDelGrupo
+        origenId={origenId}
+        tipo={grupo.tipo}
+        valor={grupo.valor}
+        destinoInicial={destinoInicial}
+        alHaberResultado={() => undefined}
+        alCerrar={alCerrar}
+      />
+    )
+  }
+  const fase = seleccion?.estado.fase ?? null
+  const unidades = seleccion
+    ? [...seleccion.estado.elegidos].map(([id, { nombre }]) => ({ id, nombre }))
+    : []
+  if (!fase || unidades.length === 0) return <SinUnidades alCerrar={alCerrar} />
+  return (
+    <CuerpoDelLote
+      origenId={origenId}
+      fase={fase}
+      unidades={unidades}
+      destinoInicial={destinoInicial}
+      alHaberResultado={alHaberResultado}
+      alCerrar={alCerrar}
+    />
+  )
+}
+
 // El drawer del lote (`?panel=lote`, 6.04-3): mover varias unidades de una fase a otra con una nota común. Lo que se mueve sale de la selección de la cadena (en memoria: recargar con el panel
-// abierto dice «No elegiste ninguna unidad.», D31). Al cerrar con un resultado a la vista, la selección se vacía: lo elegido ya se movió o ya se dijo por qué no.
+// abierto dice «No elegiste ninguna unidad.», D31) o de un grupo. Al cerrar con un resultado a la vista, la selección se vacía: lo elegido ya se movió o ya se dijo por qué no.
 export function DrawerDelLote({ origenId }: { origenId: string }) {
   const panel = usePanelPorUrl(PANEL_DEL_LOTE, CLAVES_DEL_LOTE)
   const seleccion = useSeleccionDeLaCadena()
@@ -43,10 +86,14 @@ export function DrawerDelLote({ origenId }: { origenId: string }) {
     huboResultado.current = false
     panel.cerrar()
   }
-  const fase = seleccion?.estado.fase ?? null
-  const unidades = seleccion
-    ? [...seleccion.estado.elegidos].map(([id, { nombre }]) => ({ id, nombre }))
-    : []
+  const contenedor = panel.valor(CLAVE_DE_CONTENEDOR_DEL_LOTE)
+  const booking = panel.valor(CLAVE_DE_BOOKING_DEL_LOTE)
+  const grupo =
+    contenedor !== null
+      ? ({ tipo: 'contenedor', valor: contenedor } as const)
+      : booking !== null
+        ? ({ tipo: 'booking', valor: booking } as const)
+        : null
   return (
     <Drawer
       abierto={panel.abierto}
@@ -57,20 +104,15 @@ export function DrawerDelLote({ origenId }: { origenId: string }) {
       focoAlCerrar={focoDeQuienAbrio}
     >
       {panel.abierto ? (
-        fase && unidades.length > 0 ? (
-          <CuerpoDelLote
-            origenId={origenId}
-            fase={fase}
-            unidades={unidades}
-            destinoInicial={panel.valor(CLAVE_DE_DESTINO_DEL_LOTE)}
-            alHaberResultado={() => {
-              huboResultado.current = true
-            }}
-            alCerrar={cerrar}
-          />
-        ) : (
-          <SinUnidades alCerrar={cerrar} />
-        )
+        <ContenidoDelLote
+          origenId={origenId}
+          grupo={grupo}
+          destinoInicial={panel.valor(CLAVE_DE_DESTINO_DEL_LOTE)}
+          alHaberResultado={() => {
+            huboResultado.current = true
+          }}
+          alCerrar={cerrar}
+        />
       ) : null}
     </Drawer>
   )

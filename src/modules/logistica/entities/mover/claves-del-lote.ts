@@ -2,4 +2,10 @@
 // abrir y se borran juntas al cerrar, así abrir desde la barra no deja un `contenedor` viejo.
 export const PANEL_DEL_LOTE = 'lote'
 export const CLAVE_DE_DESTINO_DEL_LOTE = 'destino'
-export const CLAVES_DEL_LOTE = [CLAVE_DE_DESTINO_DEL_LOTE, 'contenedor', 'booking'] as const
+export const CLAVE_DE_CONTENEDOR_DEL_LOTE = 'contenedor'
+export const CLAVE_DE_BOOKING_DEL_LOTE = 'booking'
+export const CLAVES_DEL_LOTE = [
+  CLAVE_DE_DESTINO_DEL_LOTE,
+  CLAVE_DE_CONTENEDOR_DEL_LOTE,
+  CLAVE_DE_BOOKING_DEL_LOTE,
+] as const

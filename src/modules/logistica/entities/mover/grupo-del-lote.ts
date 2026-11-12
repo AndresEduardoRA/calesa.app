@@ -1,3 +1,5 @@
+import { z } from 'zod'
+
 // El lote de un grupo (6.04-3, contenedor o reserva): de las unidades del grupo entran las que están en **una misma fase** (D1: un lote no mezcla fases). Reglas puras, sin I/O.
 
 export type UnidadDelGrupo = {
@@ -54,4 +56,33 @@ export function fraseDelGrupo(entran: number, fuera: number): string {
   if (fuera === 0) return `Se eligieron ${String(entran)}.`
   const estan = fuera === 1 ? 'está' : 'están'
   return `Se eligieron ${String(entran)} de ${String(entran + fuera)}; ${String(fuera)} ${estan} en otra fase y no ${fuera === 1 ? 'entra' : 'entran'}.`
+}
+
+const esquemaDeLaLectura = z.array(
+  z.object({
+    id: z.guid(),
+    titulo: z.string(),
+    fase_id: z.guid().nullable(),
+    fase: z.object({ nombre: z.string(), orden: z.number() }).nullable(),
+  }),
+)
+
+/** Lo que devuelve la lectura de un grupo, o `null` si la forma no es la esperada. Una unidad con dos transportes del mismo grupo cuenta una vez. */
+export function unidadesDeLaLecturaDelGrupo(crudo: unknown): UnidadDelGrupo[] | null {
+  const leidas = esquemaDeLaLectura.safeParse(crudo)
+  if (!leidas.success) return null
+  const vistas = new Set<string>()
+  const unidades: UnidadDelGrupo[] = []
+  for (const fila of leidas.data) {
+    if (vistas.has(fila.id)) continue
+    vistas.add(fila.id)
+    unidades.push({
+      id: fila.id,
+      titulo: fila.titulo,
+      faseId: fila.fase_id,
+      faseNombre: fila.fase?.nombre ?? null,
+      faseOrden: fila.fase?.orden ?? null,
+    })
+  }
+  return unidades
 }
