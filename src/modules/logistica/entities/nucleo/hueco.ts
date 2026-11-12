@@ -16,6 +16,8 @@ export type HuecoDeLaUnidad = {
   // La regla de `flujos_reglas` que lo enciende (`transporte`, `aduana`, `gastos`, `pagos`…). Nula: no depende de una regla.
   regla: string | null
   componente: ComponentType<{ unidad: Unidad }>
+  // El bloque nace abierto (y su contenido se pide al hidratar el panel). Los demás nacen plegados. Lo usa «Qué falta» (6.04), que es lo primero que se mira para mover.
+  abiertoAlInicio?: boolean
 }
 
 /** El orden fijo del panel, sea cual sea el archivo que declara cada hueco. */
