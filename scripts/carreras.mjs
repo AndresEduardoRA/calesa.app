@@ -40,6 +40,7 @@ import {
 } from '../supabase/tests/areas/comprobantes/carreras.mjs'
 import { carrerasDeDinero, limpiarDinero } from '../supabase/tests/areas/dinero/carreras.mjs'
 import { carrerasDeFases } from '../supabase/tests/areas/flujos/carreras.mjs'
+import { carrerasDeDocumentos } from '../supabase/tests/areas/documentos/carreras.mjs'
 import { carrerasDeMover } from '../supabase/tests/areas/mover/carreras.mjs'
 import { carrerasDelPrincipal } from '../supabase/tests/areas/origenes/carreras.mjs'
 
@@ -363,6 +364,7 @@ try {
   await carrerasDeComprobantes({ orquesta, espero, conectar, esperarBloqueo })
   await carrerasDeDinero({ orquesta, espero, conectar, esperarBloqueo })
   await carrerasDeFases({ orquesta, carrera, espero, conectar })
+  await carrerasDeDocumentos({ orquesta, carrera, espero })
   await carrerasDeMover({ orquesta, carrera, espero, conectar })
   await carrerasDelPrincipal({ orquesta, carrera, espero })
 } finally {
