@@ -89,6 +89,18 @@ export function veredictoDelArchivo(
   return { entra: true }
 }
 
+const LARGO_MAXIMO_DEL_NOMBRE = 200
+
+/** El nombre con que se registra: sin barras (la base las rechaza), sin espacios de los bordes y de hasta 200 caracteres; un nombre que queda vacío es «documento». */
+export function nombreParaGuardar(nombre: string): string {
+  const limpio = nombre
+    .replace(/[\\/]+/g, '-')
+    .trim()
+    .slice(0, LARGO_MAXIMO_DEL_NOMBRE)
+    .trim()
+  return limpio === '' ? 'documento' : limpio
+}
+
 /** El aviso de un archivo pesado, o nulo si no pasa de 10 MB: «Pesa 12,4 MB: en una red lenta tarda.» */
 export function avisoDelPeso(bytes: number): string | null {
   return bytes > PESO_QUE_AVISA ? `Pesa ${formatearBytes(bytes)}: en una red lenta tarda.` : null

@@ -6,6 +6,7 @@ import {
   erroresDeLaBandeja,
   extensionDelDocumento,
   formatosLegibles,
+  nombreParaGuardar,
   PESO_MAXIMO_DEL_DOCUMENTO,
   veredictoDelArchivo,
   type ArchivoElegido,
@@ -97,6 +98,14 @@ describe('formatos y peso', () => {
   it('avisa el peso sólo pasados 10 MB', () => {
     expect(avisoDelPeso(10 * 1024 * 1024)).toBeNull()
     expect(avisoDelPeso(12 * 1024 * 1024)).toBe('Pesa 12 MB: en una red lenta tarda.')
+  })
+})
+
+describe('nombreParaGuardar', () => {
+  it('quita las barras, recorta a 200 y no deja el nombre vacío', () => {
+    expect(nombreParaGuardar('  a/b\\c.pdf ')).toBe('a-b-c.pdf')
+    expect(nombreParaGuardar('x'.repeat(300))).toHaveLength(200)
+    expect(nombreParaGuardar('   ')).toBe('documento')
   })
 })
 
