@@ -8,6 +8,7 @@ const DE_LA_BASE = [
   'lead_transferido',
   'limpieza_pronto',
   'demora_fase',
+  'documento_por_vencer',
   'turno_web',
   'turno_web_perdido',
   'evento',
