@@ -390,12 +390,23 @@ function sincronizar(plan, estado) {
     ) {
       const r = renumerarMigraciones(pr.rama, pr.oid)
       if (r.hecho) {
+        // Con el CI ya en verde, el commit de renumerar (mismo contenido, otra versión) se integra sin esperar otra corrida: el
+        // 11-11-2026 cada PR con migraciones pagó de 2 a 6 CI de ≈ 17 min (el 6.10, cinco renumeradas y 7 h abierto), porque mientras
+        // corría el segundo entraba otra migración a main. COORD_RENUMERAR_SIN_CI=0 vuelve a esperar al CI.
+        const sinCi = pr.verde && r.commit && process.env.COORD_RENUMERAR_SIN_CI !== '0'
         estado = {
           ...estado,
-          pasos: { ...estado.pasos, [paso.id]: { ...estado.pasos[paso.id], arreglar: null } },
+          pasos: {
+            ...estado.pasos,
+            [paso.id]: {
+              ...estado.pasos[paso.id],
+              arreglar: null,
+              renumerado_verde: sinCi ? r.commit : null,
+            },
+          },
         }
         informe.push(
-          `${paso.id}: renumeré las migraciones de #${e.pr} (${r.pares.join(' ')}): su CI corre otra vez`,
+          `${paso.id}: renumeré las migraciones de #${e.pr} (${r.pares.join(' ')}): ${sinCi ? 'su CI ya estaba en verde, se integra sin esperar otro' : 'su CI corre otra vez'}`,
         )
         continue
       }
@@ -409,7 +420,15 @@ function sincronizar(plan, estado) {
       }
       if (pr.arreglar) informe.push(`${paso.id}: ${pr.arreglar} (#${e.pr}): vuelve a su carril`)
     }
-    if (!pr.listo) continue
+    // El commit que el coordinador renumeró sobre un CI en verde: vale ese verde mientras la punta sea ese commit, no choque con main,
+    // no le falte renumerar otra vez y su CI nuevo no haya dicho ya que no.
+    const yaVerde =
+      e.renumerado_verde &&
+      e.renumerado_verde === pr.oid &&
+      !pr.arreglar &&
+      !pr.rojo &&
+      pr.integrable
+    if (!pr.listo && !yaVerde) continue
     if (!integraSolo(paso, MERGE_AUTO)) {
       informe.push(`${paso.id}: CI en verde; es ${paso.riesgo}: lo integra la persona (#${e.pr})`)
       continue

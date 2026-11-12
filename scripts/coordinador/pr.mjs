@@ -111,6 +111,10 @@ export function mirarPr(numero) {
     arreglar,
     pendiente,
     listo,
+    // El CI terminó en verde y no choca con main, falte o no renumerar: lo que `renumerar` necesita saber para no pagar otro CI.
+    verde: !pendiente && !rojo && checks.length > 0 && pr.mergeable === 'MERGEABLE',
+    rojo,
+    integrable: pr.mergeable === 'MERGEABLE',
     firme,
     colgado,
     oid: pr.headRefOid ?? null,

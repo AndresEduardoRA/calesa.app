@@ -151,6 +151,36 @@ test('CI todavía corriendo: no integra', () => {
   assert.equal(correr('sincronizar').trim(), '')
 })
 
+test('el commit que el coordinador renumeró sobre un CI en verde se integra sin esperar otro CI; otro commit, no', () => {
+  const { correr, pr, dir, respuestas } = repo()
+  correr('siguiente', 'ui')
+  correr('publicado', 'P02', '8')
+  const ruta = join(dir, '.git/coordinador/estado.json')
+  const estado = JSON.parse(readFileSync(ruta, 'utf8'))
+  estado.pasos.P02.renumerado_verde = 'abc123'
+  writeFileSync(ruta, JSON.stringify(estado))
+  const corriendo = [{ status: 'IN_PROGRESS', conclusion: null }]
+  pr(8, { state: 'OPEN', mergeable: 'MERGEABLE', headRefOid: 'otro', statusCheckRollup: corriendo })
+  assert.equal(correr('sincronizar').trim(), '')
+  pr(8, { state: 'OPEN', mergeable: 'UNKNOWN', headRefOid: 'abc123', statusCheckRollup: [] })
+  assert.equal(correr('sincronizar').trim(), '')
+  pr(8, {
+    state: 'OPEN',
+    mergeable: 'MERGEABLE',
+    headRefOid: 'abc123',
+    statusCheckRollup: [{ name: 'Base', status: 'COMPLETED', conclusion: 'FAILURE' }, ...corriendo],
+  })
+  assert.doesNotMatch(correr('sincronizar'), /integrado/)
+  pr(8, {
+    state: 'OPEN',
+    mergeable: 'MERGEABLE',
+    headRefOid: 'abc123',
+    statusCheckRollup: corriendo,
+  })
+  assert.match(correr('sincronizar'), /P02: integrado por el coordinador \(#8/)
+  assert.match(readFileSync(join(respuestas, 'merges-args'), 'utf8'), /--match-head-commit abc123/)
+})
+
 test('un estado de commit pendiente (otro servicio) no es un CI en rojo: espera; en ERROR, sí', () => {
   const { correr, pr } = repo()
   correr('siguiente', 'ui')
