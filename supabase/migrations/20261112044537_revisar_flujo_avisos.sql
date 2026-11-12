@@ -78,7 +78,7 @@ begin
   -- C7
   select 'aviso', 'salida_a_jubilada', 'La fase «' || d.nombre || '» tiene una salida a «' || h.nombre || '», que está jubilada.', d.id
     from public.fases_transiciones t join f d on d.id = t.de_fase_id join public.fases h on h.id = t.a_fase_id
-    where not h.activa;
+    where not h.activa and h.flujo_id = p_flujo;
 
   -- C5: espejo de `_vehiculo_fase_de_entrada()`, que sólo existe para vehículos.
   select fl.ambito into v_ambito from public.flujos fl where fl.id = p_flujo;
