@@ -2,6 +2,8 @@
 
 Paleta global (Ctrl/Cmd+K) que busca leads, vehículos, cotizaciones y acciones acotada a los permisos del usuario, con últimos abiertos.
 
+**Fase 7 cerrada el 2026-11-12** (7.14): R3 de `e2e/fase-7-recorrido.spec.ts` (ni lo que la RLS esconde ni el teléfono).
+
 ## Entra y sale
 
 - Entra: texto (el mínimo de `MINIMO_DE_BUSQUEDA`: 3 letras o dígitos seguidos, o un número de lead o cotización), atajos de teclado.

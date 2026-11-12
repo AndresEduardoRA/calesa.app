@@ -115,6 +115,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Limbo** — `lead_en_limbo()` / `_leads_al_limbo_de()`: lead sin asesores vigentes; invisible hasta que alguien lo toma al registrar su teléfono.
 - **Adoptar** — `crear_lead()` con `adoptar` / «Tomar lead»: tomar un lead del limbo al registrar su teléfono.
 - **Alta rápida** — `crear_lead()` / `<AltaDeLead>`: alta con primer seguimiento y recordatorio opcional desde cualquier pantalla («Nuevo lead» o `N`), en una transacción.
+- **Widget** — `WIDGETS_TABLERO` / `widgetsVisibles()`: una tarjeta de `/tablero` con su clave, sus permisos y su grupo de RPC. La persona los oculta y los ordena en «Personalizar» y se guarda como su preferencia `tablero.widgets`. No existe en Inicio: ahí se llama «bloque».
 - **Más datos** — `camposDelAlta()` / `<BloqueDeCampos>`: bloque plegado del alta con los campos no requeridos, ya precargados.
 - **Primer seguimiento** — `crear_lead()` (`p_seguimiento`): el que se anota al dar de alta: tipo, resumen y recordatorio opcional.
 - **En cartera** — `leads_vista.en_cartera` (de `leads.cartera`) / `en_cartera()`: el lead está en la cartera de quien mira; da el teléfono completo y los privados.
@@ -337,6 +338,8 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Mención** — `mensajes_menciones`: `#` a vehículo, lead, cotización o persona; no otorga acceso.
 - **No leídos** — `chat_conversaciones().no_leidos`, `chat_no_leidos()`: mensajes de otras personas posteriores a tu última lectura de una conversación (`conversaciones_miembros.ultimo_leido_en`), contados entre las 100 entradas más nuevas (las propias ocupan lugar y no suman); 100 se muestra «99+». El total no suma las silenciadas.
 - **Notificación** — `notificaciones` / `notificar()`: aviso en la campana; `requiere_accion` para lo que pide clic.
+- **Campana** — `notificaciones/features/campana`, `<Campana>`: el botón de la barra superior con el número de no leídas y el popover de las que piden acción; se suscribe diferida y otra vez al volver la red.
+- **Widget del chat** — `chat/features/widget`, `<WidgetChat>`: el botón flotante con los no leídos que abre el chat fuera de `/chat` (en el celular, un enlace a `/chat`); los docs y las pruebas le dicen «la burbuja», que no es la **burbuja de un mensaje** del hilo.
 - **Push** — `suscripciones_push`: suscripción web push del navegador.
 - **Actividad** — `actividad` / `registrar_actividad()`: auditoría inmutable, 14 días.
 - **Turno web** — `solicitudes_contacto_web` / `web.solicitar_asesor`: cada «Contactar asesor» en la web pública.

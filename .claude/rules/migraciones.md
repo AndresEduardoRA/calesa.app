@@ -56,8 +56,9 @@ paths:
 - Toda RPC de edición nace con `p_actualizado_en_esperado timestamptz` sin default y lo pasa por `_exigir_version()`; las de crear
   no. Una RPC que guarda la única fila de su clase (`plantilla_guardar_borrador`: el borrador del origen) toma la esperada nula como crear: si la fila ya existe,
   PT409; nunca pisa. Una que publica sobre una versión (`formula_publicar()`, `formula_cambiar_constante()`) lleva `p_publicada_esperada uuid default null` (una
-  versión, no una hora). Una de lote, por elemento. Excepciones: `formula_guardar_borrador` hasta el 4.21 y `leads_papelera_enviar` (todo o nada,
-  idempotente por lote). Una versión que debe moverse dos veces en una transacción no usa el trigger genérico:
+  versión, no una hora). Una de lote, por elemento. Excepciones: `formula_guardar_borrador` hasta el 4.21, `leads_papelera_enviar` (todo o nada,
+  idempotente por lote) y las del chat, idempotentes y que no pisan nada: `chat_grupo_miembros`, `chat_leer`, `chat_silenciar` y
+  `mensaje_eliminar` (7.08). Una versión que debe moverse dos veces en una transacción no usa el trigger genérico:
   `greatest(clock_timestamp(), anterior + 1 µs)`; la de una cotización la sella `cotizacion_version()`.
 - Un `if` de plpgsql termina en el primer `then`, también el de un `case`: esa condición va a una variable antes.
 - Clave nueva de requisito de fase = caso en `_requisito_dato_cumplido()` y en `claves_dato_requisito()`.
