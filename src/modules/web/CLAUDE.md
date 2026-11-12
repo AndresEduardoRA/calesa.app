@@ -20,7 +20,7 @@ Lo que el CRM configura para la web pública y el portal del cliente: ajustes de
 ## Tablas
 
 `ajustes_web`, `web_categorias_guias`, `web_guias`, `web_faqs`, `web_testimonios`, `cola_web_asesores`, `solicitudes_contacto_web`, `eventos_web`. Vistas `web.vehiculos`, `web.asesores`, `web.guias`, `web.faqs`, `web.testimonios`, `web.ajustes`; `public.estado_cola_web`.
-RPC: `puede_estar_en_la_rueda(uuid)`, `web.solicitar_asesor`, `web.registrar_evento`, `web.portal_login/snapshot/documento_ruta/cambiar_clave`, `web_confirmar_contacto`, `web_expirar_solicitudes`, `cola_web_configurar`.
+RPC: `web_ajustes_guardar`, `puede_estar_en_la_rueda(uuid)`, `web.solicitar_asesor`, `web.registrar_evento`, `web.portal_login/snapshot/documento_ruta/cambiar_clave`, `web_confirmar_contacto`, `web_expirar_solicitudes`, `cola_web_configurar`.
 
 ## No se rompe
 
@@ -29,6 +29,7 @@ RPC: `puede_estar_en_la_rueda(uuid)`, `web.solicitar_asesor`, `web.registrar_eve
 - Un vehículo se ve si está publicado (`vehiculo_vitrina()`, que vive en `vehiculos`), no está en la papelera, su fase está activa y publica, su origen está activo y en `ajustes_web.origenes_visibles`, y la integración `web_publica` está activa.
 - La rueda avanza al asignar; el asesor que no confirma en `ajustes_web.ttl_contacto_minutos` pierde el turno y se reasigna a quien no estuvo en la cadena. `unassigned` es la métrica que más importa.
 - Guías, FAQs y testimonios nacen despublicados; un testimonio exige consentimiento registrado.
+- **Los ajustes de la web se escriben sólo por `web_ajustes_guardar(versión, cambios)`** (`authenticated` no tiene `update` sobre `ajustes_web`): claves ausentes no cambian; las del sitio piden `web.ajustes.gestionar`, las de la política de la cola (`cola_activa`, `ttl_contacto_minutos`, `dias_pegajoso`, `max_abiertas_default`, `max_intentos`) `web.cola.gestionar` o `web.ajustes.gestionar`; `PT409`; errores 22023 con la clave en `hint`. `legales` = `{terminos|privacidad: {titulo, doc, html, actualizado_en}}`: `trg_web_ajustes_legales` rehace `html` y `actualizado_en`, escriba quien escriba (contrato con el sitio: D2 de la 8.01-1).
 - **El HTML de una guía lo deriva la base**: el editor escribe `web_guias.cuerpo_doc` y `trg_web_guia_cuerpo` pone `cuerpo_html` y `minutos_lectura` con `_web_doc_html()` y `_web_doc_minutos()` (lo que llegue en `cuerpo_html` se pisa; publicar recalcula). Una guía de antes sin documento conserva su HTML despublicada. Las imágenes del cuerpo cuentan en `storage_refcount('web', …)`; encolar al GC las que salen del cuerpo es del editor (8.03).
 - `eventos_web` no guarda IP ni user agent: sólo el token anónimo; purga a 12 meses.
 
