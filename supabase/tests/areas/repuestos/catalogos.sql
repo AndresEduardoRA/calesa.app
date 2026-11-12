@@ -4,6 +4,8 @@
 -- Qué asegura:
 --   K1. Con `repuestos.configurar` (y sin `repuestos.ver`): borrar un valor sin uso pasa; uno que usa un ítem eliminado da 23514 hint en_uso y el ítem
 --       conserva su valor; uno que usa una línea de cotización, 23514. Sin `repuestos.configurar`, el borrado no toca filas (policy).
+--   K2. Sin `repuestos.configurar`, crear un valor da 42501 (policy de INSERT); con él, pasa (8.08-2: las actions escriben directo bajo RLS).
+--   K3. Sin `repuestos.configurar`, renombrar un valor no toca filas; con él, toca una (policy de UPDATE).
 
 create or replace function pg_temp.rp_sin_duena() returns void language plpgsql as $f$
 begin
@@ -104,6 +106,50 @@ begin
   if pg_temp.rp_corre(conf, format('with x as (delete from public.repuestos_catalogos where id = %L returning 1) select to_jsonb(count(*)) from x', libre))
      <> '1'::jsonb then
     raise exception 'K1: un valor sin uso no se borró';
+  end if;
+end $$;
+rollback;
+
+
+-- @test repuestos: crear un valor de catálogo pide repuestos.configurar (K2)
+begin;
+do $$
+declare
+  conf uuid := pg_temp.rp_persona(array['repuestos.configurar']);
+  nadie uuid := pg_temp.rp_persona(array['repuestos.ver']);
+begin
+  perform pg_temp.rp_es('K2 sin configurar', pg_temp.rp_corre(nadie,
+    $q$with x as (insert into public.repuestos_catalogos (catalogo, nombre) values ('pais_origen', 'rpk nadie') returning 1) select to_jsonb(count(*)) from x$q$),
+    '42501', null);
+  if pg_temp.rp_ok('K2 con configurar', pg_temp.rp_corre(conf,
+    $q$with x as (insert into public.repuestos_catalogos (catalogo, nombre) values ('pais_origen', 'rpk conf') returning 1) select to_jsonb(count(*)) from x$q$))
+     <> '1'::jsonb then
+    raise exception 'K2: con repuestos.configurar no se creó el valor';
+  end if;
+end $$;
+rollback;
+
+-- @test repuestos: guardar un valor de catálogo pide repuestos.configurar (K3)
+begin;
+do $$
+declare
+  conf uuid := pg_temp.rp_persona(array['repuestos.configurar']);
+  nadie uuid := pg_temp.rp_persona(array['repuestos.ver']);
+  v uuid;
+begin
+  insert into public.repuestos_catalogos (catalogo, nombre) values ('condicion', 'rpk guardar') returning id into v;
+  if pg_temp.rp_ok('K3 sin configurar', pg_temp.rp_corre(nadie, format(
+    'with x as (update public.repuestos_catalogos set nombre = %L where id = %L returning 1) select to_jsonb(count(*)) from x', 'rpk nadie', v)))
+     <> '0'::jsonb then
+    raise exception 'K3: sin repuestos.configurar se renombró un valor';
+  end if;
+  if (select nombre from public.repuestos_catalogos where id = v) is distinct from 'rpk guardar' then
+    raise exception 'K3: el nombre cambió sin permiso';
+  end if;
+  if pg_temp.rp_ok('K3 con configurar', pg_temp.rp_corre(conf, format(
+    'with x as (update public.repuestos_catalogos set nombre = %L, activo = false where id = %L returning 1) select to_jsonb(count(*)) from x', 'rpk conf', v)))
+     <> '1'::jsonb then
+    raise exception 'K3: con repuestos.configurar no se renombró el valor';
   end if;
 end $$;
 rollback;
