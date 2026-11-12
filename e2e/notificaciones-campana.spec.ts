@@ -69,9 +69,10 @@ test('abrir la notificación lleva a su ruta y la marca leída y accionada', asy
   await expect(campana(page)).toHaveAccessibleName('Notificaciones', { timeout: 20_000 })
 })
 
+// Una ruta interna que ninguna pantalla va a tener: con una real (`/agenda`, que llegó con 7.07) el spec se rompía al llegar su pantalla.
 test('una ruta sin pantalla no es un enlace: se marca leída y lo dice', async ({ page }) => {
   sql(`insert into public.notificaciones (usuario_id, tipo, titulo, ruta, requiere_accion)
-       values ('${anaId}', 'recordatorio', '${TITULO_SIN_PANTALLA}', '/agenda?recordatorio=1', false)`)
+       values ('${anaId}', 'recordatorio', '${TITULO_SIN_PANTALLA}', '/e2e-sin-pantalla?recordatorio=1', false)`)
   await entrar(page, r.ana.email)
   await irALeads(page)
   await expect(campana(page)).toHaveAccessibleName(/1 sin leer/, { timeout: 20_000 })
