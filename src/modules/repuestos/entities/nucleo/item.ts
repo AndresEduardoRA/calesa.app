@@ -17,6 +17,8 @@ export type FilaDeItem = {
   paisOrigenId: string | null
   modoTransporteId: string | null
   cantidad: number
+  // Las unidades de este ítem que están en el stock (8.10-2): 0 si no pasó nada. Sólo cambia por `repuesto_stock_mover` y `repuesto_stock_reasignar`.
+  stockCantidad: number
   // Precio al cliente: `numeric(18,2)`, nulo = sin precio. No es un costo (los costos viven en las compras).
   precioCliente: number | null
   moneda: string | null
@@ -31,7 +33,7 @@ export type FilaDeItem = {
 
 // Las columnas que pide la hoja, con la fase embebida (una lectura, sin N+1).
 export const COLUMNAS_DE_ITEM =
-  'id, proyecto_id, descripcion, tipo_pieza_id, condicion_id, pais_origen_id, modo_transporte_id, cantidad, precio_cliente, moneda, tracking, notas, en_stock_desde, actualizado_en, fase:fases(id, nombre, color, es_final)'
+  'id, proyecto_id, descripcion, tipo_pieza_id, condicion_id, pais_origen_id, modo_transporte_id, cantidad, stock_cantidad, precio_cliente, moneda, tracking, notas, en_stock_desde, actualizado_en, fase:fases(id, nombre, color, es_final)'
 
 const esquemaDeFilaDeBase = z.object({
   id: z.guid(),
@@ -42,6 +44,7 @@ const esquemaDeFilaDeBase = z.object({
   pais_origen_id: z.guid().nullable(),
   modo_transporte_id: z.guid().nullable(),
   cantidad: z.number().int(),
+  stock_cantidad: z.number().int(),
   precio_cliente: z.number().nullable(),
   moneda: z.string().nullable(),
   tracking: z.string().nullable(),
@@ -65,6 +68,7 @@ function aFilaDeItem(f: FilaDeItemDeLaBase): FilaDeItem {
     paisOrigenId: f.pais_origen_id,
     modoTransporteId: f.modo_transporte_id,
     cantidad: f.cantidad,
+    stockCantidad: f.stock_cantidad,
     precioCliente: f.precio_cliente,
     // `char(3)`: la base rellena con espacios si el código fuera más corto; los códigos de moneda tienen tres letras.
     moneda: f.moneda === null ? null : f.moneda.trim(),

@@ -19,7 +19,7 @@ type Props = {
   aviso?: ReactNode
   // La campana de avisos, a la derecha del tipo de cambio (`huecos/campana.tsx`). Sin ella no ocupa lugar.
   campana?: ReactNode
-  // El buscador global (`huecos/buscador.tsx`); sin él, el botón deshabilitado de hoy.
+  // El buscador global (`huecos/buscador.tsx`); sin él, el botón con la paleta y sin acciones (sólo busca).
   buscador?: ReactNode
   // Lo que flota sobre toda pantalla, como la burbuja del chat (`huecos/chat.tsx`).
   flotante?: ReactNode
@@ -37,7 +37,7 @@ export function Marco({
   nuevoLead,
   aviso,
   campana,
-  buscador = <HuecoBuscador />,
+  buscador = <HuecoBuscador acciones={[]} />,
   flotante,
   children,
 }: Props) {

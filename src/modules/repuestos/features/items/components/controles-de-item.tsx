@@ -41,6 +41,8 @@ export type ControlesDeItem = {
   notas: ReactNode
   fase: ReactNode
   imagenes: ReactNode
+  // Lo del hueco de la hoja (8.10-2); nulo sin hueco.
+  hueco: ReactNode
   eliminar: ReactNode
 }
 
@@ -220,6 +222,7 @@ export function controlesDeItem(fila: FilaDeItem, c: ContextoDeLaHoja): Controle
     notas: textoDeItem(fila, c, 'notas'),
     fase: <FaseDelItemInsignia fase={fila.fase} />,
     imagenes: imagenesDeItem(fila, c),
+    hueco: c.accionDeFila ? c.accionDeFila(fila) : null,
     eliminar: eliminarDeItem(fila, c),
   }
 }

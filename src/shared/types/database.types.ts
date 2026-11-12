@@ -10253,6 +10253,7 @@ export type Database = {
       }
       portal_desbloquear: { Args: { p_lead: string }; Returns: undefined }
       portal_estado: { Args: { p_lead: string }; Returns: Json }
+      portal_intentos_purgar: { Args: Record<PropertyKey, never>; Returns: number }
       previsualizar_cambio_fase: {
         Args: { p_fase_destino: string; p_repuesto: string; p_vehiculo: string }
         Returns: Json
@@ -11087,10 +11088,12 @@ export type Database = {
         Args: { p_actual: string; p_lead: string; p_nueva: string; p_otorgado_en: string }
         Returns: boolean
       }
+      portal_direccion_publica: { Args: Record<PropertyKey, never>; Returns: string }
       portal_documento_ruta: {
         Args: { p_documento: string; p_lead: string; p_otorgado_en: string }
         Returns: string
       }
+      portal_intento: { Args: { p_ip: string }; Returns: boolean }
       portal_login: {
         Args: { p_clave: string; p_codigo: string }
         Returns: {
