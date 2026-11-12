@@ -1,0 +1,7 @@
+## 2026-11-12 · Decisiones del paso 8.09-4
+
+- **D75 · La ficha del vehículo lo muestra en una pestaña «Repuestos» (no en un bloque de «Ficha»):** la ficha ya la declaraba, las listas hijas se leen al abrir su pestaña (`escala.md`) y quien no la abre no paga la lectura. Visible con `repuestos.ver` global (no por origen) y la última de la barra. Como ya todas las pestañas declaradas tienen sección, sale el campo `disponible`: el test compara cada pestaña con su `seccion-<clave>.tsx`.
+- **D76 · `pantallas/proyectos-vehiculo.ts` y no `pantallas/vehiculo.ts`** (la fila de PLAN decía `vehiculo.ts`): un archivo sin prefijo de área es del núcleo y el núcleo no importa el área `proyectos` (guarda `areas-de-repuestos`).
+- **D77 · Eliminar un proyecto vacío no pide confirmación:** es reversible (`repuesto_proyecto_restaurar`), así que se hace de una vez y el aviso ofrece «Deshacer» (`ui.md`). Sólo se ofrece con `repuestos.editar` y la hoja sin ítems; compras, pagos o cotizaciones los rechaza la base con su texto. Al eliminar se vuelve al listado.
+- **D78 · El recuento por fase se lee dentro del área `proyectos`** con su propia consulta de ≤ 201 ítems (un área no importa otra: no se reutiliza `leerItemsDelProyecto`). Dos lecturas chicas, sin N+1; el conteo nunca es un total exacto («más de 200»).
+- **D79 · Cinco pestañas ensanchaban la página en el celular:** la raíz de las pestañas lleva `min-w-0` para que se desplace la barra y no la página (la hizo caer `vehiculos-fotos` y `vehiculos-cotizaciones` en `movil`).

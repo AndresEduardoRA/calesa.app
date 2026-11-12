@@ -212,7 +212,8 @@ declare
   p uuid := pg_temp.rp_proyecto(ed); i uuid := gen_random_uuid(); q text;
 begin
   perform pg_temp.rp_ok('B4 ítem', pg_temp.rp_item(ed, p, i, '{"descripcion": "x"}'));
-  insert into public.repuestos_items_imagenes (item_id, ruta) values (i, 'repuestos/rp.webp');
+  insert into storage.objects (bucket_id, name) values ('repuestos', i::text || '/' || repeat('a', 64) || '.webp');
+  insert into public.repuestos_items_imagenes (item_id, ruta) values (i, i::text || '/' || repeat('a', 64) || '.webp');
   foreach q in array array['repuestos_items', 'repuestos_proyectos', 'repuestos_items_imagenes'] loop
     if pg_temp.rp_corre(nadie, format('select to_jsonb(count(*)) from (select 1 from public.%I limit 5) x', q)) <> '0'::jsonb then
       raise exception 'B4: sin repuestos.ver se lee %', q;
