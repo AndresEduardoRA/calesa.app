@@ -124,3 +124,14 @@ describe('tramos y cajas', () => {
     })
   })
 })
+
+describe('los topes', () => {
+  // `Number` lleva el texto canónico al JSON del insert: con ≤ 15 cifras significativas la forma más corta del JSON es la misma cifra (D20).
+  it.each(Object.entries(C))(
+    '%s: el tope tiene a lo sumo 15 cifras y vuelve igual por Number',
+    (_, campo) => {
+      expect(campo.maximo.replace('.', '').replace(/^0+/, '').length).toBeLessThanOrEqual(15)
+      expect(String(Number(campo.maximo))).toBe(campo.maximo)
+    },
+  )
+})
