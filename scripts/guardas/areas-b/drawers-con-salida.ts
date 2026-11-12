@@ -32,4 +32,9 @@ export const REGISTRO: Record<string, RegistroDeDrawer> = {
     formulario: 'src/modules/logistica/features/transporte/components/formulario-del-grupo.tsx',
     mecanismo: 'contexto',
   },
+  // «Nueva guía» de Configuración › Sitio web › Guías (8.03-1): `?panel=guia-nueva`; el formulario dice que tiene algo escrito.
+  'src/modules/web/features/contenido/guias/components/drawer-nueva-guia.tsx': {
+    formulario: 'src/modules/web/features/contenido/guias/components/formulario-de-nueva-guia.tsx',
+    mecanismo: 'contexto',
+  },
 }
