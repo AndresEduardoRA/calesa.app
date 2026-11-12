@@ -1,4 +1,4 @@
-// Leer, crear, cerrar y reabrir proyectos, dicho como interfaz (8.09-1 y 8.09-2). La implementación (Supabase, `repuestos_proyectos_listar` y `repuesto_proyecto_crear`) vive en
+// Leer, crear, cerrar, reabrir, eliminar y restaurar proyectos, dicho como interfaz (8.09-1 y 8.09-2). La implementación (Supabase, `repuestos_proyectos_listar` y `repuesto_proyecto_crear`) vive en
 // `infra/proyectos/` y se la entrega `areas/proyectos/composicion.ts`.
 import type { ResultadoDeAccion } from '@/shared/lib/enviar-accion'
 import type { Resultado } from '@/shared/lib/errores'
@@ -22,6 +22,10 @@ export type CierreDeProyecto = { id: string; actualizadoEn: string; cerradoEn: s
 
 export type PedidoDeCierre = { id: string; actualizadoEn: string }
 
+// Lo que devuelven eliminar y restaurar (8.09-4): cuándo quedó eliminado (para deshacer) o la versión nueva al volver.
+export type EliminacionDeProyecto = { id: string; eliminadoEn: string }
+export type RestauracionDeProyecto = { id: string; actualizadoEn: string }
+
 export type RepositorioDeProyectos = {
   // Una página del listado (la base devuelve `tamano + 1`); sin `repuestos.ver` es vacía.
   listar: (pedido: PedidoDelListado) => Promise<Resultado<PaginaDeProyectos>>
@@ -33,4 +37,10 @@ export type RepositorioDeProyectos = {
   // Con la versión que se vio (`PT409` si otra persona lo cambió); uno ya cerrado (o ya abierto) es 23514 con su texto.
   cerrar: (pedido: PedidoDeCierre) => Promise<ResultadoDeAccion<CierreDeProyecto>>
   reabrir: (pedido: PedidoDeCierre) => Promise<ResultadoDeAccion<CierreDeProyecto>>
+  // Sólo uno sin ítems, compras, pagos ni cotizaciones (23514 `en_uso` con su texto); con la versión que se vio. Reversible: `restaurar` con el `eliminadoEn` que devolvió.
+  eliminar: (pedido: PedidoDeCierre) => Promise<ResultadoDeAccion<EliminacionDeProyecto>>
+  restaurar: (pedido: {
+    id: string
+    eliminadoEn: string
+  }) => Promise<ResultadoDeAccion<RestauracionDeProyecto>>
 }

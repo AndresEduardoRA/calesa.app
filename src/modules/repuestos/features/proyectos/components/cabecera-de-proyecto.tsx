@@ -5,6 +5,7 @@ import { RUTAS } from '@/shared/lib/rutas'
 import type { ProyectoDetallado } from '../../../entities/proyectos/detalle'
 import type { EstadoDelProyecto as Estado } from '../../../entities/proyectos/estado'
 import { BotonDeCierre } from './boton-de-cierre'
+import { BotonDeEliminarProyecto } from './boton-de-eliminar-proyecto'
 import { EstadoDelProyecto } from './estado-del-proyecto'
 
 type Props = {
@@ -13,6 +14,8 @@ type Props = {
   tituloDelVehiculo: string | null
   estado: Estado
   puedeEditar: boolean
+  // La hoja no tiene ítems vivos: sólo así se ofrece eliminar el proyecto (8.09-4).
+  sinItems?: boolean
   // Lo que va debajo de la cabecera (las pestañas o la hoja).
   children?: ReactNode
 }
@@ -26,13 +29,14 @@ function Dato({ etiqueta, children }: { etiqueta: string; children: ReactNode })
   )
 }
 
-// La cabecera de `/repuestos/[id]` (8.09-2, C5): el número, el vehículo (con enlace si se ve) o «Externo», el cliente, las notas, el estado derivado y, con `repuestos.editar`, cerrar o reabrir.
+// La cabecera de `/repuestos/[id]` (8.09-2, C5): el número, el vehículo (con enlace si se ve) o «Externo», el cliente, las notas, el estado derivado y, con `repuestos.editar`, cerrar o reabrir (y eliminar, si la hoja no tiene ítems).
 // En el celular se apila y el botón ocupa el ancho. No muestra el teléfono ni el lead del cliente (D50).
 export function CabeceraDeProyecto({
   proyecto,
   tituloDelVehiculo,
   estado,
   puedeEditar,
+  sinItems = false,
   children,
 }: Props) {
   const esDeVehiculo = proyecto.vehiculoId !== null
@@ -76,12 +80,21 @@ export function CabeceraDeProyecto({
           </dl>
         </div>
         {puedeEditar ? (
-          <BotonDeCierre
-            id={proyecto.id}
-            numero={proyecto.numero}
-            actualizadoEn={proyecto.actualizadoEn}
-            cerrado={proyecto.cerradoEn !== null}
-          />
+          <div className="flex flex-col gap-2 sm:flex-row">
+            {sinItems ? (
+              <BotonDeEliminarProyecto
+                id={proyecto.id}
+                numero={proyecto.numero}
+                actualizadoEn={proyecto.actualizadoEn}
+              />
+            ) : null}
+            <BotonDeCierre
+              id={proyecto.id}
+              numero={proyecto.numero}
+              actualizadoEn={proyecto.actualizadoEn}
+              cerrado={proyecto.cerradoEn !== null}
+            />
+          </div>
         ) : null}
       </header>
       {children}

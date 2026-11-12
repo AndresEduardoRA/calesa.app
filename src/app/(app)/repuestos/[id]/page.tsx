@@ -78,6 +78,7 @@ async function Proyecto({ params }: { params: PageProps<'/repuestos/[id]'>['para
       tituloDelVehiculo={vehiculo?.titulo ?? null}
       estado={estado}
       puedeEditar={puedeEditar}
+      sinItems={hoja.filas.length === 0}
     >
       {llenas.length > 1 ? <PestanasDelProyecto pestanas={llenas} /> : null}
       <HojaDeItems
