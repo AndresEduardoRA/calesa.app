@@ -13,6 +13,14 @@ export const LARGO_MAXIMO = 4000
 // `enviando` y `fallido` son del navegador: todavía no hay fila en la base.
 export type EstadoDeEnvio = 'enviado' | 'enviando' | 'fallido'
 
+// El mensaje al que responde otro (`mensajes.responde_a_id`): lo mínimo para dibujar la cita.
+export type CitaDeMensaje = {
+  id: string
+  autorNombre: string | null
+  cuerpo: string | null
+  eliminado: boolean
+}
+
 export type Mensaje = {
   id: string
   conversacionId: string
@@ -25,6 +33,8 @@ export type Mensaje = {
   editadoEn: string | null
   eliminadoEn: string | null
   respondeAId: string | null
+  // Nulo si no responde a nadie o si el original ya no se puede leer (la burbuja dice «Mensaje no disponible»).
+  responde: CitaDeMensaje | null
   estado: EstadoDeEnvio
   // Por qué no se envió, dicho por la base o por la red.
   motivoDelFallo?: string
@@ -47,6 +57,14 @@ const esquemaDeFila = z.object({
   eliminado_en: z.string().nullable(),
   responde_a_id: z.guid().nullable(),
   autor: z.object({ nombre: z.string().nullable() }).nullish(),
+  responde: z
+    .object({
+      id: z.guid(),
+      cuerpo: z.string().nullable(),
+      eliminado_en: z.string().nullable(),
+      autor: z.object({ nombre: z.string().nullable() }).nullish(),
+    })
+    .nullish(),
 })
 
 const esquemaDeFilas = z.array(esquemaDeFila)
@@ -73,6 +91,14 @@ export function leerMensajes(filas: unknown, tamano: number): Resultado<PaginaDe
         editadoEn: f.editado_en,
         eliminadoEn: f.eliminado_en,
         respondeAId: f.responde_a_id,
+        responde: f.responde
+          ? {
+              id: f.responde.id,
+              autorNombre: f.responde.autor?.nombre ?? null,
+              cuerpo: f.responde.cuerpo,
+              eliminado: f.responde.eliminado_en !== null,
+            }
+          : null,
         estado: 'enviado',
       }))
       .reverse(),
@@ -174,6 +200,7 @@ export function mensajeLocal(datos: {
   yo: string
   nombre: string | null
   ahora: string
+  responde?: CitaDeMensaje | null
 }): Mensaje {
   return {
     id: datos.id,
@@ -185,7 +212,8 @@ export function mensajeLocal(datos: {
     creadoEn: datos.ahora,
     editadoEn: null,
     eliminadoEn: null,
-    respondeAId: null,
+    respondeAId: datos.responde?.id ?? null,
+    responde: datos.responde ?? null,
     estado: 'enviando',
   }
 }

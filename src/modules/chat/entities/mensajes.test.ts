@@ -34,6 +34,7 @@ function mensaje(n: number, extra: Partial<Mensaje> = {}): Mensaje {
     editadoEn: null,
     eliminadoEn: null,
     respondeAId: null,
+    responde: null,
     estado: 'enviado',
     ...extra,
   }
