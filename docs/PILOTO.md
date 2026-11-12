@@ -337,6 +337,7 @@ que pesa cada espera del camino de un PR a `main` y de la puerta de fase (`docs/
   vuelve a correr una vez (`.piloto/puertas/rerun-<id>`) antes de mandar un `ci-fix`, y el de la base va al `ci-fix` como cualquiera.
 - **Un check con veredicto está terminado** aunque GitHub lo deje en `IN_PROGRESS` (`pr.mjs`): el #181 quedó «pendiente» con todo en verde.
 - **Sólo «Carriles» en rojo y con migraciones atrasadas: renumera el coordinador**, sin esperar a que el carril quede libre.
+- **Si git une `main` sin choques, el coordinador empuja ese merge** aunque GitHub dé el PR por chocado (`unir-main.mjs`; el #186).
 - **`pnpm test` corre en 3 jobs** (`vitest --shard`, `ci.yml` › `pruebas`): el Nivel 1 baja de 15–18 min a lo que tarde la parte más larga.
 
 ## El ensayo en seco (2026-10-26)
