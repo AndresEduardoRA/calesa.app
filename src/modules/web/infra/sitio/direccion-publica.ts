@@ -2,7 +2,7 @@ import 'server-only'
 import { cache } from 'react'
 import { errorDePostgrest, ok } from '@/shared/lib/errores'
 import { createClient } from '@/shared/lib/supabase/server'
-import type { LectorDeDireccionPublica } from '../../entities/repositorios'
+import type { LectorDeDireccionPublica } from '../../entities/sitio/repositorios'
 
 // La dirección pública de la web: la lee cualquier cuenta con sesión (`ajustes_web: leer`). Sin
 // pantalla para cargarla hasta Configuración › Sitio web (Fase 8): mientras, nula.

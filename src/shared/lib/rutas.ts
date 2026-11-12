@@ -21,6 +21,8 @@ export const RUTAS = {
   configuracionDeFlujos: '/configuracion/flujos',
   configuracionDeLogistica: '/configuracion/logistica',
   configuracionDeRepuestos: '/configuracion/repuestos',
+  configuracionDeWeb: '/configuracion/web',
+  configuracionDeColaWeb: '/configuracion/cola-web',
   leads: '/leads',
   papeleraDeLeads: '/leads/papelera',
   importarLeads: '/leads/importar',
