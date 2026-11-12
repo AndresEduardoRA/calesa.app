@@ -19,6 +19,7 @@ const ajustes: AjustesEmpresa = {
   whatsapp: null,
   email: null,
   logoRuta: null,
+  logoOscuroRuta: null,
   colorAcento: null,
   iconos: null,
   locale: 'es-BO',

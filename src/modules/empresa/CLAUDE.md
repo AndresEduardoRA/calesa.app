@@ -8,7 +8,7 @@ Ficha completa: `docs/archivo/modulos/empresa.md`, sólo con grep.
 
 - Entra: Configuración › Empresa (`/configuracion/empresa`): formulario de ajustes y carga del logo. Configuración › Cotización › Ajustes (`?seccion=ajustes`): la vigencia y el vehículo obligatorio al cotizar.
 - Sale (`index.ts`, **sin componentes**):
-  - `getAjustes()` — lo mínimo de la empresa, una lectura por request, funciona sin sesión (nombre, logo, color, íconos, formato regional, zona horaria, moneda base, registro abierto, primer registro). Nunca tumba una pantalla. Lo consumen `app/` y `equipo` (registro). `registroDisponible()`.
+  - `getAjustes()` — lo mínimo de la empresa, una lectura por request, funciona sin sesión (nombre, logo, logo para el tema oscuro, color, íconos, formato regional, zona horaria, moneda base, registro abierto, primer registro). Nunca tumba una pantalla. Lo consumen `app/` y `equipo` (registro). `registroDisponible()`.
   - `getPoliticaDeLimpieza()` — limpieza automática de vehículos de subasta y días de gracia; sin poder leerla, se da por apagada.
   - `getTiposCambio()` — vigentes, el por defecto adelante; lista vacía si falla. Lo usa `app/` (`<TiposCambioVigentes>`); lo usará `cotizaciones`, que congela los que usa.
   - `integracionActiva('apibara')` — si la base no responde, no.

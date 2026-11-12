@@ -41,6 +41,7 @@ describe('ajustesEmpresaDesde', () => {
     expect(ajustes.papeleraDias).toBe(30)
     expect(ajustes.telefonoCc).toBe('+591')
     expect(ajustes.iconos).toBeNull()
+    expect(ajustes.logoOscuroRuta).toBeNull()
     expect(ajustes.actualizadoEn).toBe('2026-10-12T14:00:00.123456+00:00')
   })
 })
@@ -49,6 +50,13 @@ describe('cambiosComoColumnas', () => {
   it('el código de país viaja como telefono_cc, y null lo vacía', () => {
     expect(cambiosComoColumnas({ telefonoCc: '+54' })).toEqual({ telefono_cc: '+54' })
     expect(cambiosComoColumnas({ telefonoCc: null })).toEqual({ telefono_cc: null })
+  })
+
+  it('el logo oscuro viaja como logo_oscuro_ruta, y null lo quita', () => {
+    expect(cambiosComoColumnas({ logoOscuroRuta: 'logos/b.png' })).toEqual({
+      logo_oscuro_ruta: 'logos/b.png',
+    })
+    expect(cambiosComoColumnas({ logoOscuroRuta: null })).toEqual({ logo_oscuro_ruta: null })
   })
 
   it('nombra las columnas y manda sólo lo que cambia', () => {

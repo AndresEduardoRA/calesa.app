@@ -17,6 +17,8 @@ export type AjustesEmpresa = {
   whatsapp: string | null
   email: string | null
   logoRuta: string | null
+  // El logo para el tema oscuro; null: con el tema oscuro vale el normal.
+  logoOscuroRuta: string | null
   colorAcento: string | null
   iconos: Iconos | null
   locale: string
@@ -47,6 +49,7 @@ export function ajustesEmpresaDesde(fila: Tables<'ajustes_empresa'>): AjustesEmp
     whatsapp: fila.whatsapp,
     email: fila.email,
     logoRuta: fila.logo_ruta,
+    logoOscuroRuta: fila.logo_oscuro_ruta,
     colorAcento: fila.color_acento,
     iconos: iconosDesde(fila.iconos),
     locale: fila.locale,
@@ -77,6 +80,7 @@ const COLUMNA: Record<keyof CambiosDeAjustes, string> = {
   whatsapp: 'whatsapp',
   email: 'email',
   logoRuta: 'logo_ruta',
+  logoOscuroRuta: 'logo_oscuro_ruta',
   colorAcento: 'color_acento',
   iconos: 'iconos',
   locale: 'locale',
