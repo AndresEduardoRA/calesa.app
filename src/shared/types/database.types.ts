@@ -9998,6 +9998,25 @@ export type Database = {
         Args: { p_eliminado_en_esperado: string; p_proyecto: string }
         Returns: Json
       }
+      repuestos_proyectos_listar: {
+        Args: { p_cursor: number; p_estado: string; p_q: string; p_tamano: number }
+        Returns: {
+          actualizado_en: string
+          cerrado_en: string
+          cliente_nombre: string
+          en_stock: number
+          id: string
+          items: number
+          numero: number
+          pendientes: number
+          terminados: number
+          ultima_actividad: string
+          vehiculo_etiqueta: string
+          vehiculo_id: string
+          vehiculo_titulo: string
+          vin: string
+        }[]
+      }
       requisito_crear: {
         Args: {
           p_actualizado_en_esperado: string

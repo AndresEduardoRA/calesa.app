@@ -221,6 +221,13 @@ begin
       raise exception 'B4: con repuestos.ver no se lee %', q;
     end if;
   end loop;
+  -- Las RPC de lectura: ninguna fila, cuando ya existen.
+  if pg_temp.rp_corre(nadie, 'select to_jsonb(count(*)) from public.repuestos_proyectos_listar(null, 10, null, null)') <> '0'::jsonb then
+    raise exception 'B4: sin repuestos.ver la lista de proyectos trae filas';
+  end if;
+  if pg_temp.rp_corre(ed, 'select to_jsonb(count(*)) from public.repuestos_proyectos_listar(null, 10, null, null)') = '0'::jsonb then
+    raise exception 'B4: con repuestos.ver la lista de proyectos no trae filas';
+  end if;
 end $$;
 rollback;
 
@@ -235,5 +242,13 @@ begin
     and has_column_privilege('authenticated', format('public.%I', c.table_name), c.column_name, 'select')
     and c.column_name ~ '(costo|monto|margen|tipo_cambio|compra)';
   if v_cols is not null then raise exception 'B5: authenticated lee columnas de costo: %', v_cols; end if;
+  -- Las salidas de las RPC de lectura (argumentos de modo `t`).
+  select string_agg(p.proname || '.' || a.nombre, ', ') into v_cols
+  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+  cross join lateral unnest(p.proargnames, p.proargmodes) as a(nombre, modo)
+  where n.nspname = 'public' and p.proname in ('repuestos_proyectos_listar', 'repuestos_pendientes_de_vehiculo')
+    and a.modo = 't' and a.nombre ~ '(costo|monto|margen|tipo_cambio|compra)';
+  if v_cols is not null then raise exception 'B5: una lectura devuelve columnas de costo: %', v_cols; end if;
+  if not exists (select 1 from pg_proc where proname = 'repuestos_proyectos_listar') then raise exception 'B5: falta la lista de proyectos'; end if;
 end $$;
 rollback;
