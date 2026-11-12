@@ -121,3 +121,60 @@ test('T5 la dueña ve las cinco gráficas y «Ver como tabla» abre los números
   await expect(seccion.getByRole('columnheader', { name: 'Día' })).toBeVisible()
   await expect(seccion.getByRole('columnheader', { name: 'Creados' })).toBeVisible()
 })
+
+test('T6 la dueña oculta y ordena widgets en «Personalizar» y, tras recargar, sigue igual; «Restablecer» los devuelve', async ({
+  page,
+}) => {
+  await page.context().clearCookies()
+  await entrar(page, t.duena, { fresco: true })
+  await page.goto('/tablero?periodo=90d')
+  const titulo = (nombre: string) => page.getByRole('heading', { name: nombre, level: 2 })
+  const panel = page.getByRole('dialog', { name: 'Personalizar el tablero' })
+  // Con el panel abierto, lo de atrás queda fuera del árbol de accesibilidad: se cierra para mirar el tablero y se abre para cambiarlo.
+  const abrir = async () => {
+    await page.getByRole('button', { name: 'Personalizar' }).click()
+    await expect(panel).toBeVisible()
+  }
+  const cerrar = async () => {
+    await page.keyboard.press('Escape')
+    await expect(panel).toBeHidden()
+  }
+  await expect(titulo('Leads por origen')).toBeVisible()
+
+  await abrir()
+  await expect(page).toHaveURL(/panel=personalizar/)
+  // Abrir el panel no pierde el período.
+  await expect(page).toHaveURL(/periodo=90d/)
+  const interruptor = panel.getByRole('switch', { name: 'Mostrar Leads por origen' })
+  await interruptor.click()
+  await expect(interruptor).not.toBeChecked()
+  await expect(interruptor).toBeEnabled()
+  await cerrar()
+  await expect(titulo('Leads por origen')).toHaveCount(0)
+
+  await page.reload()
+  await expect(titulo('Leads por día')).toBeVisible()
+  await expect(titulo('Leads por origen')).toHaveCount(0)
+  await abrir()
+  await expect(panel.getByRole('switch', { name: 'Mostrar Leads por origen' })).not.toBeChecked()
+
+  // El orden: «Cotizaciones por día» sube sobre «Leads por día».
+  const subir = panel.getByRole('button', { name: 'Subir Cotizaciones por día' })
+  await subir.click()
+  await expect(subir).toBeEnabled()
+  await cerrar()
+  await page.reload()
+  await expect(titulo('Leads por día')).toBeVisible()
+  const encabezados = await page.getByRole('heading', { level: 2 }).allTextContents()
+  expect(encabezados.indexOf('Cotizaciones por día')).toBeGreaterThanOrEqual(0)
+  expect(encabezados.indexOf('Cotizaciones por día')).toBeLessThan(
+    encabezados.indexOf('Leads por día'),
+  )
+
+  await abrir()
+  const restablecer = panel.getByRole('button', { name: 'Restablecer' })
+  await restablecer.click()
+  await expect(restablecer).toBeDisabled()
+  await cerrar()
+  await expect(titulo('Leads por origen')).toBeVisible()
+})
