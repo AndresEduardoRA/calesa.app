@@ -46,3 +46,8 @@
   - `08efae5c` el portal;
   - `d3f9682d` el fix de la auditoría del informe (reintentar tras eliminar da `23505/id`);
   - y el de docs.
+- **Tras unir main otra vez (a9f1cbd7):** choque en `scripts/carreras.mjs` (se juntan las carreras de documentos y las del principal del
+  origen). Las seis migraciones pasan a `20261112011255`–`…260` (`5bc5ceed`). Main dejó `fases_requisitos.bloqueante` en `false` por omisión
+  (5.07) y dos pruebas de `exigido.sql` cayeron porque su requisito nacía no bloqueante: ahora lo crean bloqueante (`8edca51b`). El rojo del CI
+  anterior era la S5 del tope de push, arreglada en main (#130). `db:reset`, `db:types` sin diff, `db:probar` 1084 ✓ (`probar-final.log`),
+  `db:carreras` en verde con la K1 de documentos (`carreras-tras-main.log`).
