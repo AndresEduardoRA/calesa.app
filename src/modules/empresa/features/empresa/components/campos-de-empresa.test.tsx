@@ -38,6 +38,7 @@ function campos(props: Partial<Parameters<typeof CamposDeEmpresa>[0]> = {}) {
     <CamposDeEmpresa
       ajustes={ajustes}
       logoUrl={null}
+      logoOscuroUrl={null}
       monedas={[
         {
           codigo: 'USD',
@@ -54,6 +55,8 @@ function campos(props: Partial<Parameters<typeof CamposDeEmpresa>[0]> = {}) {
       enCurso={false}
       logo={{ tipo: 'igual' }}
       alCambiarLogo={vi.fn()}
+      logoOscuro={{ tipo: 'igual' }}
+      alCambiarLogoOscuro={vi.fn()}
       registroAbierto={false}
       alCambiarRegistro={vi.fn()}
       limpiezaAutomatica

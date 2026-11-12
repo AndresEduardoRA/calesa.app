@@ -10,12 +10,15 @@ import { BloqueRegion } from './bloque-region'
 
 // Los errores de validación que devuelve la action, por campo.
 export type ErroresDeAjustes =
-  Partial<Record<(typeof CAMPOS_DE_AJUSTES)[number] | 'logoRuta', string[]>> | undefined
+  | Partial<Record<(typeof CAMPOS_DE_AJUSTES)[number] | 'logoRuta' | 'logoOscuroRuta', string[]>>
+  | undefined
 
 type Props = {
   ajustes: AjustesEmpresa
   // URL pública del logo guardado, ya armada en el servidor.
   logoUrl: string | null
+  // URL pública del logo para el tema oscuro, si hay.
+  logoOscuroUrl: string | null
   monedas: readonly Moneda[]
   zonas: readonly string[]
   conDatosCargados: boolean
@@ -26,6 +29,8 @@ type Props = {
   enCurso: boolean
   logo: LogoElegido
   alCambiarLogo: (logo: LogoElegido) => void
+  logoOscuro: LogoElegido
+  alCambiarLogoOscuro: (logo: LogoElegido) => void
   registroAbierto: boolean
   alCambiarRegistro: (abierto: boolean) => void
   limpiezaAutomatica: boolean
@@ -47,6 +52,9 @@ export function CamposDeEmpresa(props: Props) {
         logoUrl={props.logoUrl}
         logo={props.logo}
         alCambiarLogo={props.alCambiarLogo}
+        logoOscuroUrl={props.logoOscuroUrl}
+        logoOscuro={props.logoOscuro}
+        alCambiarLogoOscuro={props.alCambiarLogoOscuro}
         deshabilitado={bloqueado}
         errores={errores}
       />

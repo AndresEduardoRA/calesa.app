@@ -187,7 +187,7 @@ test('sin el permiso de ajustes, la pestaña Empresa sale deshabilitada con el m
   await expect(suya.getByText(MOTIVO_SIN_PERMISO)).toBeVisible()
   await expect(suya.getByLabel('Nombre de la empresa')).toBeDisabled()
   await expect(suya.getByLabel('Zona horaria')).toBeDisabled()
-  await expect(suya.getByRole('button', { name: 'Subir logo' })).toBeDisabled()
+  await expect(suya.getByRole('button', { name: 'Subir logo', exact: true })).toBeDisabled()
   await expect(suya.getByRole('button', { name: 'Guardar', exact: true })).toBeHidden()
 
   // Lo que sí gestiona, lo edita: los tipos de cambio.
@@ -308,7 +308,7 @@ test('carga el logo al guardar, regenera los íconos y el manifest los sirve', a
     mimeType: 'image/svg+xml',
     buffer: Buffer.from(LOGO_SVG),
   })
-  await expect(page.getByRole('button', { name: 'Cambiar logo' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Cambiar logo', exact: true })).toBeVisible()
   expect((await ajustesGuardados()).logo_ruta).toBeNull()
 
   // Si el logo no sube, la fila no se guarda.

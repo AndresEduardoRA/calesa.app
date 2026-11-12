@@ -129,6 +129,7 @@ describe.each(CASOS)('FormularioEmpresa en una carga limpia: $nombre', (caso) =>
       <FormularioEmpresa
         ajustes={caso.ajustes}
         logoUrl={null}
+        logoOscuroUrl={null}
         monedas={MONEDAS}
         zonas={['America/La_Paz']}
         conDatosCargados={caso.conDatosCargados}
