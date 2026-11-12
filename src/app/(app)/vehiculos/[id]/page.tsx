@@ -29,7 +29,7 @@ import {
   CLAVE_DE_PESTANA,
   hayBarraDePestanas,
   pestanaDeVehiculo,
-  pestanasVisibles,
+  pestanasDeQuienMira,
 } from './pestanas'
 import { PestanasDeVehiculo } from './pestanas-de-vehiculo'
 
@@ -81,9 +81,7 @@ export default async function PaginaVehiculo({
   const editable = editables.has(encontrado.id)
   const fase = datosO(fases).find((una) => una.id === encontrado.faseId) ?? null
   const publicar = permisoDeVitrina(sesion.permisos, origen)
-  const pestanas = pestanasVisibles({
-    cotizaciones: puede(sesion.permisos, 'cotizaciones.ver', origen.id),
-  })
+  const pestanas = pestanasDeQuienMira(sesion.permisos, origen.id)
   const pestana = pestanaDeVehiculo(unParametro(parametros[CLAVE_DE_PESTANA]), pestanas)
   return (
     <div className="grid max-w-4xl gap-4">
