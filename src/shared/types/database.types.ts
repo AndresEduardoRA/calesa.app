@@ -8693,6 +8693,82 @@ export type Database = {
         Returns: Json
       }
       _repuesto_compra_tc_vigente: { Args: { p_moneda: string }; Returns: string }
+      _repuesto_cotizacion_linea: {
+        Args: {
+          p_bloque: string
+          p_caja: number
+          p_cantidad: number
+          p_costo: number
+          p_logistica: number
+          p_snapshot: Json
+        }
+        Returns: Json
+      }
+      _repuesto_cotizacion_linea_de: {
+        Args: { p_cotizacion: string; p_linea: Json; p_orden: number; p_snapshot: Json }
+        Returns: {
+          bloque: string
+          caja: number | null
+          caja_sugerida: number | null
+          cantidad: number
+          condicion_id: string | null
+          costo: number | null
+          cotizacion_id: string
+          descripcion: string
+          id: string
+          item_id: string | null
+          logistica: number | null
+          logistica_sugerida: number | null
+          orden: number
+          tipo_pieza_id: string | null
+          total: number | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'repuestos_cotizaciones_lineas'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _repuesto_cotizacion_monto: { Args: { p_clave: string; p_linea: Json }; Returns: number }
+      _repuesto_cotizacion_para_cambiar: {
+        Args: { p_esperado: string; p_id: string }
+        Returns: {
+          aceptada_en: string | null
+          actualizado_en: string
+          config_snapshot: NonNullable<Json>
+          creado_en: string
+          creado_por: string | null
+          estado: Database['public']['Enums']['estado_cotizacion_repuestos']
+          id: string
+          moneda: string
+          notas: string | null
+          numero: number
+          proyecto_id: string
+          total: number | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'repuestos_cotizaciones'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _repuesto_cotizacion_proyecto: { Args: { p_proyecto: string }; Returns: undefined }
+      _repuesto_cotizacion_respuesta: {
+        Args: {
+          c: Omit<
+            Database['public']['Tables']['repuestos_cotizaciones']['Row'],
+            Database['public']['Tables']['repuestos_cotizaciones']['ComputedFields']
+          >
+          p_ya_existia: boolean
+        }
+        Returns: Json
+      }
+      _repuesto_cotizacion_sugerida: {
+        Args: { p_costo: number; p_snapshot: Json }
+        Returns: number
+      }
       _repuesto_fase_de_entrada: { Args: { p_item: string }; Returns: string }
       _repuesto_proyecto_tomar: {
         Args: { p_esperado: string; p_proyecto: string }
@@ -10592,6 +10668,22 @@ export type Database = {
       }
       repuesto_stock_reasignar: {
         Args: { p_id: string; p_item: string; p_proyecto_destino: string; p_unidades: number }
+        Returns: Json
+      }
+      repuestos_cotizacion_aceptar: {
+        Args: { p_actualizado_en_esperado: string; p_id: string }
+        Returns: Json
+      }
+      repuestos_cotizacion_anular: {
+        Args: { p_actualizado_en_esperado: string; p_id: string }
+        Returns: Json
+      }
+      repuestos_cotizacion_crear: {
+        Args: { p_id: string; p_moneda: string; p_proyecto: string }
+        Returns: Json
+      }
+      repuestos_cotizacion_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_id: string; p_lineas: Json; p_notas: string }
         Returns: Json
       }
       repuestos_pendientes_de_vehiculo: {

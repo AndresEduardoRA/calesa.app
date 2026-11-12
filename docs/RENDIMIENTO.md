@@ -225,6 +225,10 @@ Cada sección por su RPC, de a `_acotar_pagina(p_tamano, 5, 20)` + 1, con el mí
 - Pestaña «Repuestos» de la ficha del vehículo (8.09-4): `proyectoDe` es `limit 1` por `repuestos_proyecto_por_vehiculo` y el recuento por fase lee como mucho 201 ítems por `repuestos_items_proyecto_id_idx`; sólo al abrir la pestaña (nunca con la ficha); componentes de servidor, sin JS de cliente nuevo.
 - Catálogos de Configuración (8.08-2): 4 × `limit 201` por PostgREST, sin índice por `orden` (tabla de configuración, decenas de filas); tope 200 por
   catálogo, con `<AvisoDeTope>` en la 8.08-3.
+- Configuración del cotizador (8.12-2, pestaña «Cotizador» de `/configuracion/repuestos`): tres lecturas en paralelo por PostgREST bajo la RLS de
+  `repuestos.cotizar` o `repuestos.configurar`: la configuración por su PK (`order by id desc`, la primera es la vigente) con tope 20 + 1, los tramos por
+  `repuestos_tramos_logistica_moneda_idx` con tope 200 + 1 y las cajas por `repuestos_cajas_moneda_monto_key` con tope 200 + 1, cada una con `<AvisoDeTope>`.
+  Tablas de configuración (decenas de filas): sin medición. Los modales de tramo y caja se piden al abrirse (`diferido()`).
 
 ## Tablero: métricas (9.07)
 
