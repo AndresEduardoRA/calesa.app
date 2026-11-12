@@ -870,3 +870,24 @@ test('GitHub contesta UNKNOWN la primera vez que se le pregunta tras una integra
   pr(8, { state: 'OPEN', mergeable: 'MERGEABLE', statusCheckRollup: verde })
   assert.match(correr('sincronizar'), /P02: integrado por el coordinador \(#8/)
 })
+
+test('un check con veredicto está terminado aunque GitHub lo deje IN_PROGRESS: el PR en verde se integra', () => {
+  const { correr, pr } = repo()
+  correr('siguiente', 'ui')
+  correr('publicado', 'P02', '8')
+  const cambios = { name: 'Cambios · ¿base y e2e?', status: 'IN_PROGRESS' }
+  // Sin veredicto, sigue corriendo: no se integra.
+  pr(8, {
+    state: 'OPEN',
+    mergeable: 'MERGEABLE',
+    statusCheckRollup: [...verde, { ...cambios, conclusion: '' }],
+  })
+  assert.equal(correr('sincronizar').trim(), '')
+  // El del #181 (2026-11-12): IN_PROGRESS con conclusión SUCCESS.
+  pr(8, {
+    state: 'OPEN',
+    mergeable: 'MERGEABLE',
+    statusCheckRollup: [...verde, { ...cambios, conclusion: 'SUCCESS' }],
+  })
+  assert.match(correr('sincronizar'), /P02: integrado por el coordinador \(#8/)
+})

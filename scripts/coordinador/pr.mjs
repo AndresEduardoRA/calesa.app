@@ -137,10 +137,14 @@ export function mirarPr(numero) {
   // rojo, y el paso volvía a su carril por un «CI en rojo» que un minuto después era verde (el PR 80, 2026-11-08).
   // Un job cancelado (lo cancela el push siguiente o su tope de tiempo) tampoco es rojo: no hubo veredicto, y el paso volvía a su
   // carril a «arreglar» un CI que no había fallado (PR 69, 2026-11-08). Queda pendiente hasta la corrida siguiente.
+  // Un check con veredicto está terminado, diga lo que diga su `status`: GitHub dejó «Cambios» del #181 en IN_PROGRESS con conclusión
+  // SUCCESS y hora de fin (2026-11-12), y el PR, con todo en verde, quedó «pendiente» sin que nadie lo fuera a integrar nunca.
   const estadoDe = (c) =>
     c.conclusion === 'CANCELLED'
       ? 'PENDING'
-      : (c.status ?? (['PENDING', 'EXPECTED'].includes(c.state) ? 'PENDING' : 'COMPLETED'))
+      : c.conclusion
+        ? 'COMPLETED'
+        : (c.status ?? (['PENDING', 'EXPECTED'].includes(c.state) ? 'PENDING' : 'COMPLETED'))
   const pendiente = checks.some((c) => estadoDe(c) !== 'COMPLETED')
   const rojos = checks.filter(
     (c) => estadoDe(c) === 'COMPLETED' && !CHECK_BIEN.has(c.conclusion ?? c.state),
