@@ -55,6 +55,15 @@ export function useHojaDeItems({ proyectoId, filasDelServidor, monedaPorDefecto 
 
   const altasYBajas = useAltasYBajasDeItems({ proyectoId, filasRef, poner })
 
+  // Cambia una fila sobre la vigente (el hueco de la hoja, 8.10-2): un id que ya no está no hace nada.
+  const cambiarFila = useCallback(
+    (id: string, cambio: (fila: FilaDeItem) => FilaDeItem) => {
+      if (!filasRef.current.some((f) => f.id === id)) return
+      poner(filasRef.current.map((f) => (f.id === id ? cambio(f) : f)))
+    },
+    [poner],
+  )
+
   return {
     filas,
     errores,
@@ -63,6 +72,7 @@ export function useHojaDeItems({ proyectoId, filasDelServidor, monedaPorDefecto 
       setConflicto(null)
     },
     alReiniciar: useCallback(() => undefined, []),
+    cambiarFila,
     ...escritura,
     ...altasYBajas,
   }
