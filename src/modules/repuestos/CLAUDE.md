@@ -42,6 +42,12 @@ Proyectos de repuestos por vehículo (o externos), ítems que recorren el flujo 
   con tope 20 y tramos y cajas con tope 200) y las monedas activas, y dibuja `<ConfiguracionDelCotizador>` (por `pantallas/cotizador-configuracion.ts`). Las
   actions `publicarConfiguracion`, `guardarTramo` y `guardarCaja` (`repuestos.configurar` con `puede()` antes) no salen por los barriles. Los modales de tramo y
   caja van en la URL (`?panel=tramo&tramo=<id|nuevo>&moneda=`, ídem `caja`).
+- **Cotizaciones de un proyecto** (8.12-3, área `cotizador`): la pestaña «Cotizaciones» de `/repuestos/[id]` (`?pestana=cotizaciones`) sólo existe con
+  `repuestos.cotizar` (quien sólo tiene `repuestos.costos.ver` no la ve, D30). La lee `seccion-cotizaciones.tsx` al abrirla con `leerCotizacionesDelProyecto`
+  (tope 50, por `repuestos_cotizaciones_proyecto_id_idx`) y dibuja `<CotizacionesDelProyecto>` (por `pantallas/cotizador.ts`): «Nueva cotización» con la moneda en
+  la misma barra (la action `crearCotizacion`, `repuestos.cotizar` y `repuestos.ver` con `puede()` antes, no sale por los barriles; el id se renueva al crear y al
+  cambiar la moneda) y la lista. La hoja es `/repuestos/[id]/cotizaciones/[cotizacion]` con `leerCotizacion(proyectoId, id)` y `<HojaDeLectura>` (por
+  `pantallas/cotizador-cotizacion.ts`): sólo lectura, los montos que guardó la base (nada se recalcula). La hoja editable, aceptar y anular llegan con 8.12-4.
 - Depende de: `vehiculos`, `flujos`, `leads`.
 
 ## Áreas
@@ -74,6 +80,9 @@ El módulo se parte por **área** (8.08-2, igual que `logistica`) para que los p
   texto exacto con enteros a escala fija), `decimalCanonico` (lo que valida la action), `validarFormula`/`validarTramo`/`validarCaja` y el recargo en % ↔
   fracción con el mismo entero. `filas-de-configuracion.ts` (las filas leídas con `::text` y `agruparPorMoneda`), `errores-de-configuracion.ts` (el error de la
   base en su campo: 23P01 en «Desde», los `check` por nombre, 23505 en «Monto») y `repositorio.ts`; `infra/cotizador/{configuracion,escribir-configuracion}.ts`.
+- `entities/cotizador/{cotizacion,hoja-de-lectura,errores-de-cotizacion}.ts` (8.12-3) — la fila de la lista y la cotización con sus líneas, con los montos como
+  texto (`::text`) y nulo nunca 0; `falta` de una línea sin total sale de `calcularLinea` con su snapshot (o `desconocida`); `rechazoAlCrear` (el `hint`
+  `config` o `moneda` en su campo). `infra/cotizador/{cotizaciones,crear-cotizacion}.ts` leen y llaman `repuestos_cotizacion_crear`.
 - `entities/stock/` (8.10-1) — `motivos.ts` (los cinco motivos, su sentido y su texto; `MOTIVOS_POR_MOVER`, `MOTIVOS_CON_BOTON`), `reglas.ts` (espejo de las RPC del stock:
   `disponibleParaStock`, `validarMovimiento`, `validarReasignacion`, `enStockTras`; los textos son los de la base y un test lo compara con la migración) y `listado.ts`
   (la fila de `repuestos_stock_listar` y su cursor `(en_stock_desde, id)` con `codificarCursor` de `shared`, sin «Anterior»).
