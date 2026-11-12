@@ -8963,6 +8963,16 @@ export type Database = {
         Returns: Json
       }
       _version_publicada_por: { Args: { p_formula: string }; Returns: string }
+      _web_doc_html: { Args: { p_doc: Json }; Returns: string }
+      _web_doc_imagen: { Args: { p_nodo: Json }; Returns: string }
+      _web_doc_marcas: { Args: { p_html: string; p_marcas: Json }; Returns: string }
+      _web_doc_minutos: { Args: { p_doc: Json }; Returns: number }
+      _web_doc_nodo: {
+        Args: { p_nodo: Json; p_padre: string; p_profundidad: number }
+        Returns: string
+      }
+      _web_doc_ruta_valida: { Args: { p_ruta: string }; Returns: boolean }
+      _web_html_escapar: { Args: { p_texto: string }; Returns: string }
       actividad_purgar: { Args: Record<PropertyKey, never>; Returns: number }
       agenda_quienes_reciben: { Args: { p_conversacion?: string; p_texto: string }; Returns: Json }
       agenda_rango: {
