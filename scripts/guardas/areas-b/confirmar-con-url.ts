@@ -34,4 +34,15 @@ export const REGISTRO: Record<string, ConfirmarConUrl> = {
     abre: 'src/modules/web/features/contenido/faqs/hooks/use-eliminar-faq-por-url.ts',
     senal: 'PANEL_ELIMINAR_FAQ',
   },
+  // `?panel=retirar-consentimiento&testimonio=<id>` (8.02-2): retirar el consentimiento de un testimonio, desde el «⋯» de la lista.
+  'src/modules/web/features/contenido/testimonios/components/confirmar-retirar-consentimiento.tsx':
+    {
+      abre: 'src/modules/web/features/contenido/testimonios/hooks/use-retirar-consentimiento-por-url.ts',
+      senal: 'PANEL_RETIRAR_CONSENTIMIENTO',
+    },
+  // `?panel=eliminar-testimonio&testimonio=<id>` (8.02-2): eliminar un testimonio, desde el «⋯» de la lista.
+  'src/modules/web/features/contenido/testimonios/components/confirmar-eliminar-testimonio.tsx': {
+    abre: 'src/modules/web/features/contenido/testimonios/hooks/use-eliminar-testimonio-por-url.ts',
+    senal: 'PANEL_ELIMINAR_TESTIMONIO',
+  },
 }
