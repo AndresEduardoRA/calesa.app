@@ -9,10 +9,10 @@
 --   T2. Datos y filtros: dos unidades con distinta ETA dan eta_el nulo y «eta_el» en varios, la naviera común sale; naviera, en_transito y
 --       puerto_destino dejan sólo los grupos con alguna que cumple; un filtro de más, un uuid mal escrito o un tipo que no existe, 22023 con la clave.
 --   T3. Cursor y prefijo: con tope 2, dos grupos y siguiente = el segundo; desde ahí, el resto y siguiente nulo; un prefijo con minúsculas y espacios
---       acota; un prefijo de 2, 22023; el cursor nulo y el vacío son la primera página; desde un cursor que es una clave vieja en minúsculas se sigue
---       después de ella (cursor opaco, D39).
+--       acota; un prefijo de 2, 22023; el cursor nulo y el vacío son la primera página; el cursor es el id de una fila (D43): desde la de una clave
+--       vieja en minúsculas se sigue después de ella (D39), y una clave o un id que no existe dan 22023.
 --   T4. Recorrido y escala: con 2.000 transportes que no cumplen la naviera antes del que sí, la primera llamada vuelve cortada, sin grupos y con un
---       siguiente; seguir desde él llega al que cumple. La sonda y las filas del grupo, en su plan genérico, van por transportes_booking_idx.
+--       siguiente que es un id, no una clave (D43); seguir desde él llega al que cumple. La sonda y las filas del grupo, en su plan genérico, van por transportes_booking_idx.
 
 -- La primera cuenta de una base vacía queda dueña (con `SOLO=`): una de relleno antes, para que ninguna de la prueba lo sea.
 create or replace function pg_temp.trn_persona(p_concesiones text[]) returns uuid language plpgsql as $f$
@@ -176,9 +176,10 @@ begin
   perform pg_temp.trn_unidad((t ->> 'o')::uuid, null, p || 'ABDU1');
   perform pg_temp.trn_unidad((t ->> 'o')::uuid, null, p || 'ZZZU1');
   r := pg_temp.trn_grupos(q, 'contenedor', jsonb_build_object('prefijo', p), 2);
-  if pg_temp.trn_claves(r) is distinct from array[p || 'ABCU1', p || 'ABCU2'] or r ->> 'siguiente' is distinct from p || 'ABCU2'
+  if pg_temp.trn_claves(r) is distinct from array[p || 'ABCU1', p || 'ABCU2']
+     or r ->> 'siguiente' is distinct from (select x.id::text from public.transportes x where x.contenedor = p || 'ABCU2')
      or r -> 'cortada' <> 'false'::jsonb then
-    raise exception 'T3: tope 2 debía dar ABCU1, ABCU2 y siguiente ABCU2: %', r;
+    raise exception 'T3: tope 2 debía dar ABCU1, ABCU2 y siguiente la fila de ABCU2 (D43): %', r;
   end if;
   r := pg_temp.trn_grupos(q, 'contenedor', jsonb_build_object('prefijo', p), 2, r ->> 'siguiente');
   if pg_temp.trn_claves(r) is distinct from array[p || 'ABDU1', p || 'ZZZU1'] or r -> 'siguiente' <> 'null'::jsonb then
@@ -193,9 +194,12 @@ begin
   r := pg_temp.trn_grupos(q, 'contenedor', jsonb_build_object('prefijo', p), 2, null);
   r2 := pg_temp.trn_grupos(q, 'contenedor', jsonb_build_object('prefijo', p), 2, '  ');
   if r is distinct from r2 then raise exception 'T3: el cursor vacío debía ser la primera página: % / %', r, r2; end if;
-  -- D39 · cursor opaco: desde una clave vieja en minúsculas (de antes de transporte_guardar) se sigue después de ella, sin volver a ella.
+  -- D39, D43 · cursor opaco (el id de una fila): desde una clave vieja en minúsculas (de antes de transporte_guardar) se sigue después de ella,
+  -- sin volver a ella. Un cursor que no es un id, o el de una fila que ya no existe, da 22023.
   perform pg_temp.trn_unidad((t ->> 'o')::uuid, null, lower(p) || 'zzzu9');
-  r := pg_temp.trn_grupos(q, 'contenedor', null, 1, lower(p) || 'zzzu9');
+  perform pg_temp.trn_es('T3 cursor que es una clave', pg_temp.trn_grupos(q, 'contenedor', null, 1, p || 'ABCU2'), '22023', 'cursor');
+  perform pg_temp.trn_es('T3 cursor de una fila que no existe', pg_temp.trn_grupos(q, 'contenedor', null, 1, gen_random_uuid()::text), '22023', 'cursor');
+  r := pg_temp.trn_grupos(q, 'contenedor', null, 1, (select x.id::text from public.transportes x where x.contenedor = lower(p) || 'zzzu9'));
   if pg_temp.trn_g(r, lower(p) || 'zzzu9') is not null
      or (cardinality(pg_temp.trn_claves(r)) > 0 and (pg_temp.trn_claves(r))[1] <= lower(p) || 'zzzu9') then
     raise exception 'T3: desde la clave vieja debía seguir después de ella: %', r;
@@ -229,8 +233,8 @@ declare x record; r jsonb; vueltas int := 0;
 begin
   select * into x from trn_t4;
   r := pg_temp.trn_grupos(x.quien, 'booking', jsonb_build_object('prefijo', x.p, 'naviera', x.n2));
-  if r -> 'cortada' <> 'true'::jsonb or r -> 'grupos' <> '[]'::jsonb or r ->> 'siguiente' is null then
-    raise exception 'T4: tras 2.000 filas debía volver cortada, sin grupos y con un siguiente: %', r;
+  if r -> 'cortada' <> 'true'::jsonb or r -> 'grupos' <> '[]'::jsonb or not pg_input_is_valid(r ->> 'siguiente', 'uuid') then
+    raise exception 'T4: tras 2.000 filas debía volver cortada, sin grupos y con un siguiente que es un id, no una clave (D43): %', r;
   end if;
   loop
     vueltas := vueltas + 1;
