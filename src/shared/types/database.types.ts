@@ -9575,6 +9575,25 @@ export type Database = {
         Args: { p_entidad: string; p_filas: number; p_filtros?: Json }
         Returns: Json
       }
+      datos_exportar_leads: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          actualizado_en: string
+          atributos: Json
+          creado_en: string
+          dueno_id: string
+          en_cartera: boolean
+          id: string
+          nombre: string
+          numero: number
+          origen_lead_id: string
+          telefono_cc: string
+          telefono_principal: string
+          telefono_visible: boolean
+          tipo_lead_id: string
+          ultimo_seguimiento_en: string
+        }[]
+      }
       declaracion_canal: {
         Args: { p_actualizado_en_esperado: string; p_canal: string; p_id: string }
         Returns: Json

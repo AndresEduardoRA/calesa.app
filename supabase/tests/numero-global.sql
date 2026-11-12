@@ -56,6 +56,7 @@ insert into sondas (nombre, plantilla, control) values
   ('leads_vista', $q$select * from public.leads_vista$q$, true),
   ('leads_cartera_vista', $q$select * from public.leads_cartera_vista$q$, true),
   ('leads_vista_por_ids', $q$select * from public.leads_vista_por_ids(array(select id from public.leads))$q$, true),
+  ('datos_exportar_leads', $q$select * from public.datos_exportar_leads()$q$, true),
   ('recordatorios_vista', $q$select * from public.recordatorios_vista$q$, true),
   ('lead_ficha', $q$select public.lead_ficha('{lp}')$q$, true),
   ('lead_ficha', $q$select public.lead_ficha('{la}')$q$, true),

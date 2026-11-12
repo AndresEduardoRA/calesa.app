@@ -22,6 +22,10 @@ Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista pre
   `vehiculos` y `cotizaciones`; hasta 250.000 filas por archivo; filtros sólo `desde`, `hasta` (fecha) y `origen` (obligatorio en vehículos,
   rechazado en leads); 3 por hora por persona y por entidad, con candado por persona (`{ok: false, libre_en}` la cuarta). Deja la constancia
   `datos.exportado` en `actividad` con entidad, filas y filtros: nada de nadie. El route handler la llama **antes** del primer byte.
+- `datos_exportar_leads()` (9.05-1, invocadora): los leads a exportar, `leads_vista` con la sesión de quien exporta y sin las marcas de quien mira.
+  La RLS decide las filas; de un lead ajeno, el teléfono enmascarado y sin los campos de sólo cartera; el número global sólo con
+  `leads.numero_global.ver`. No pide el permiso (devuelve lo que la vista ya da). PostgREST le pone el orden `(creado_en, id)`, el cursor y
+  `max_rows`: se inlinea, así que **no le pongas** `strict`, `search_path`, `security definer`, `volatile` ni `begin atomic`.
 
 ## No se rompe
 

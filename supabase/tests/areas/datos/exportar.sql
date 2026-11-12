@@ -163,3 +163,91 @@ begin
   if pg_temp.dex_constancias(ada) <> 2 then raise exception 'un rechazo dejó constancia (%)', pg_temp.dex_constancias(ada); end if;
 end $$;
 rollback;
+
+-- @test exportar: con dos cuentas y la consulta del route handler, de un lead ajeno sale el teléfono enmascarado y ningún campo de sólo cartera
+begin;
+select pg_temp.dex_preparar();
+-- Un campo de sólo cartera y uno público, como los crearía quien configura leads.
+insert into public.leads_campos (clave, etiqueta, tipo, solo_cartera) values ('dex_privado', 'DEX privado', 'texto', true), ('dex_publico', 'DEX público', 'texto', false);
+do $$
+declare ada uuid := '00000000-0000-4000-8000-00000009905a'; bea uuid := '00000000-0000-4000-8000-00000009905b';
+        v_la uuid := gen_random_uuid(); v_lb uuid := gen_random_uuid(); v_web uuid := (select id from public.origenes_lead where clave = 'web');
+        v_filas jsonb; v_fila jsonb; v_tel_la text; v_tel_lb text; v_n int;
+        -- La consulta del route handler: la de PostgREST, una página por cursor (creado_en, id) con el tope de max_rows.
+        v_consulta constant text := 'select coalesce(jsonb_agg(to_jsonb(t)), ''[]'') from (select * from public.datos_exportar_leads() order by creado_en desc, id desc limit 1000) t';
+begin
+  perform pg_temp.dex_como(bea, format('select public.crear_lead(%L, %L::jsonb)', v_lb, jsonb_build_object('nombre', 'DEX de Bea', 'telefono_principal', '79195002',
+    'origen_lead_id', v_web, 'atributos', jsonb_build_object('dex_privado', 'secreto de Bea', 'dex_publico', 'abierto'))));
+  perform pg_temp.dex_como(ada, format('select public.crear_lead(%L, %L::jsonb)', v_la, jsonb_build_object('nombre', 'DEX de Ada', 'telefono_principal', '79195001',
+    'origen_lead_id', v_web)));
+  select telefono_principal into v_tel_la from public.leads where id = v_la;
+  select telefono_principal into v_tel_lb from public.leads where id = v_lb;
+  if v_tel_la is null or v_tel_lb is null then raise exception 'el terreno no creó los dos leads'; end if;
+  if (select atributos ->> 'dex_privado' from public.leads where id = v_lb) is distinct from 'secreto de Bea' then raise exception 'el lead de Bea no guardó el campo privado'; end if;
+
+  -- Ada (exporta todo, ve «todos»): el lead de Bea con el teléfono enmascarado, sin el campo privado y con el público.
+  v_filas := pg_temp.dex_como(ada, v_consulta);
+  v_fila := (select f from jsonb_array_elements(v_filas) f where f ->> 'id' = v_lb::text);
+  if v_fila is null then raise exception 'Ada no recibe el lead de Bea'; end if;
+  if v_fila ->> 'telefono_principal' is distinct from public.enmascarar_telefono(v_tel_lb) or v_fila ->> 'telefono_principal' = v_tel_lb then
+    raise exception 'el teléfono del lead ajeno no va enmascarado: %', v_fila ->> 'telefono_principal';
+  end if;
+  if (v_fila -> 'telefono_visible') <> 'false'::jsonb or (v_fila -> 'en_cartera') <> 'false'::jsonb then raise exception 'el lead ajeno figura en la cartera de Ada: %', v_fila; end if;
+  if (v_fila -> 'atributos') ? 'dex_privado' then raise exception 'el campo de sólo cartera sale del lead ajeno: %', v_fila -> 'atributos'; end if;
+  if (v_fila -> 'atributos' ->> 'dex_publico') is distinct from 'abierto' then raise exception 'el campo público no sale: %', v_fila -> 'atributos'; end if;
+  -- Ninguna fila fuera de su cartera trae el teléfono guardado ni un campo de sólo cartera, y sin leads.numero_global.ver no hay número global.
+  select count(*) into v_n from jsonb_array_elements(v_filas) f join public.leads l on l.id = (f ->> 'id')::uuid
+   where (f -> 'en_cartera') = 'false'::jsonb
+     and (f ->> 'telefono_principal' = l.telefono_principal
+          or exists (select 1 from public.leads_campos c where c.solo_cartera and (f -> 'atributos') ? c.clave));
+  if v_n <> 0 then raise exception '% filas ajenas con el teléfono o un campo privado', v_n; end if;
+  if exists (select 1 from jsonb_array_elements(v_filas) f where f ->> 'numero' is not null) then raise exception 'sin leads.numero_global.ver salió un número global'; end if;
+  -- Las columnas son las del archivo: ninguna marca de quien mira ni el nombre de quien numeró.
+  if (select array_agg(k order by k) from jsonb_object_keys(v_fila) k) <> array['actualizado_en', 'atributos', 'creado_en', 'dueno_id', 'en_cartera', 'id', 'nombre',
+       'numero', 'origen_lead_id', 'telefono_cc', 'telefono_principal', 'telefono_visible', 'tipo_lead_id', 'ultimo_seguimiento_en'] then
+    raise exception 'las columnas no son las del archivo: %', (select array_agg(k order by k) from jsonb_object_keys(v_fila) k);
+  end if;
+  -- El control: el lead propio de Ada sale completo.
+  v_fila := (select f from jsonb_array_elements(v_filas) f where f ->> 'id' = v_la::text);
+  if v_fila is null or v_fila ->> 'telefono_principal' is distinct from v_tel_la or (v_fila -> 'en_cartera') <> 'true'::jsonb then
+    raise exception 'el lead propio de Ada no sale completo: %', v_fila;
+  end if;
+
+  -- Bea (ve «propios»): sólo su cartera, con su lead completo y el campo privado (lo recorta la cartera, no la función).
+  v_filas := pg_temp.dex_como(bea, v_consulta);
+  if exists (select 1 from jsonb_array_elements(v_filas) f where (f -> 'en_cartera') <> 'true'::jsonb) then raise exception 'Bea recibe leads fuera de su cartera'; end if;
+  if exists (select 1 from jsonb_array_elements(v_filas) f where f ->> 'id' = v_la::text) then raise exception 'Bea recibe el lead de Ada'; end if;
+  v_fila := (select f from jsonb_array_elements(v_filas) f where f ->> 'id' = v_lb::text);
+  if v_fila is null or v_fila ->> 'telefono_principal' is distinct from v_tel_lb or (v_fila -> 'atributos' ->> 'dex_privado') is distinct from 'secreto de Bea' then
+    raise exception 'Bea no recibe su lead completo: %', v_fila;
+  end if;
+end $$;
+rollback;
+
+-- @test exportar: la lectura es invocadora y se inlinea (sin Function Scan): el cursor y el límite llegan al índice del listado
+begin;
+select pg_temp.dex_preparar();
+do $$
+declare r record; v_plan text := ''; v_fn regprocedure := 'public.datos_exportar_leads()'::regprocedure;
+begin
+  -- Si pierde una de estas cosas, Postgres deja de inlinearla y calcula las columnas caras de todos los leads antes de cortar la página.
+  select p.prosecdef, p.provolatile, p.proisstrict, p.proconfig, l.lanname, p.prosqlbody into r
+    from pg_proc p join pg_language l on l.oid = p.prolang where p.oid = v_fn;
+  if r.prosecdef then raise exception 'datos_exportar_leads es security definer: ni se inlinea ni respeta la sesión'; end if;
+  if r.provolatile <> 's' then raise exception 'datos_exportar_leads no es stable (%)', r.provolatile; end if;
+  if r.proisstrict then raise exception 'datos_exportar_leads es strict'; end if;
+  if r.proconfig is not null then raise exception 'datos_exportar_leads tiene SET (%)', r.proconfig; end if;
+  if r.lanname <> 'sql' then raise exception 'datos_exportar_leads no es SQL'; end if;
+  if r.prosqlbody is not null then raise exception 'datos_exportar_leads es begin atomic: depende de leads_vista y rompe _leads_vista_crear()'; end if;
+  if has_function_privilege('anon', v_fn, 'execute') then raise exception 'anon puede llamar datos_exportar_leads'; end if;
+  if not has_function_privilege('authenticated', v_fn, 'execute') then raise exception 'authenticated no puede llamar datos_exportar_leads'; end if;
+  perform set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-00000009905a', true);
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000009905a","role":"authenticated"}', true);
+  set local role authenticated;
+  for r in execute 'explain select id, creado_en from public.datos_exportar_leads() where creado_en < now() order by creado_en desc, id desc limit 1001' loop
+    v_plan := v_plan || E'\n' || r."QUERY PLAN";
+  end loop;
+  reset role;
+  if v_plan ~* 'Function Scan' then raise exception E'datos_exportar_leads aparece como un Function Scan (no se inlinea):%', v_plan; end if;
+end $$;
+rollback;

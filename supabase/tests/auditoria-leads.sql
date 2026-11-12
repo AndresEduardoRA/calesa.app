@@ -254,7 +254,10 @@ declare
     -- (D9), sin contenido de ningún lead ni monto (`areas/tablero/metricas.sql`).
     ('tablero_leads(date,date)', 'X'),
     ('tablero_cotizaciones(date,date)', 'X'),
-    ('storage_refcount(text,text)', 'X')
+    ('storage_refcount(text,text)', 'X'),
+    -- La lectura de exportar todo (9.05-1): invocadora sobre `leads_vista`; entra por sus columnas de salida (`tipo_lead_id`, `origen_lead_id`),
+    -- no recibe un lead, y la RLS y las funciones de la vista recortan teléfono y campos de sólo cartera (`areas/datos/exportar.sql`).
+    ('datos_exportar_leads()', 'L')
   ) t (f, c));
   r record; v_fallas text := '';
 begin
