@@ -9571,6 +9571,10 @@ export type Database = {
         Args: { p_id: string; p_lead: Json; p_recordatorio?: Json; p_seguimiento?: Json }
         Returns: Json
       }
+      datos_exportacion_registrar: {
+        Args: { p_entidad: string; p_filas: number; p_filtros?: Json }
+        Returns: Json
+      }
       declaracion_canal: {
         Args: { p_actualizado_en_esperado: string; p_canal: string; p_id: string }
         Returns: Json

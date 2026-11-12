@@ -18,6 +18,11 @@ Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista pre
 
 `importaciones` (estado, totales, informe por fila). RPC: `crear_lead` por fila (misma regla de limbo y duplicados).
 
+- `datos_exportacion_registrar(p_entidad, p_filas, p_filtros)` (9.05-1, definer): el enforcement de `datos.exportar.todo`. Entidades `leads`,
+  `vehiculos` y `cotizaciones`; hasta 250.000 filas por archivo; filtros sólo `desde`, `hasta` (fecha) y `origen` (obligatorio en vehículos,
+  rechazado en leads); 3 por hora por persona y por entidad, con candado por persona (`{ok: false, libre_en}` la cuarta). Deja la constancia
+  `datos.exportado` en `actividad` con entidad, filas y filtros: nada de nadie. El route handler la llama **antes** del primer byte.
+
 ## No se rompe
 
 - Exportar respeta RLS: lo que no ves no sale. El teléfono completo sale sólo de la propia cartera.
@@ -28,3 +33,5 @@ Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista pre
 ## Ojo
 
 - `datos.exportar.todo` / `datos.importar.todo` son los únicos permisos que ven datos de otros en bloque: sólo para el dueño.
+- `datos.exportar.todo` tiene su enforcement en `datos_exportacion_registrar` (9.05-1): exportar todo sin pasar por ella es saltarse el permiso y el
+  límite. «Todo» no trae teléfonos ni lo privado de carteras ajenas (`docs/DECISIONES.md`, duda 2 del 9.05): la lectura va con la sesión.

@@ -269,6 +269,7 @@ declare
     '_oportunidad_json', 'recibe una oportunidad y devuelve el número del vehículo, nunca el de un lead',
     'lead_seguimiento', 'devuelve un seguimiento: sólo el número del vehículo que nombra',
     'leads_exportacion_registrar', 'deja la constancia (cuántas filas y qué filtros): ningún lead',
+    'datos_exportacion_registrar', 'deja la constancia (entidad, cuántas filas y los filtros desde/hasta/origen, 9.05-1): ningún lead',
     'cotizacion_hoja_guardada', 'devuelve una cotización: el número de cotización de la anterior y de la nueva (_cotizacion_cadena), nunca el de un lead; del lead, sólo su id y si se ve',
     'lead_campo_crear', 'devuelve el campo creado: nada de leads',
     'lead_campo_guardar', 'devuelve la versión del campo guardado (9.04-2: nombra el tipo «número» por el rango): nada de leads',
