@@ -11,7 +11,8 @@ import {
 import { borrarDocumentos, sembrarDocumentos, type TerrenoDeDocumentos } from './soporte/documentos'
 
 // Documentos de la unidad (6.06). Parte 2: quien tiene `logistica.documentos.subir` elige un PDF, lo deja en la bandeja (sin subir nada), elige el tipo «E2E BL» y «Subir 1 documento»: el
-// objeto va al bucket y la fila queda «Subido» en la lista. Quien no tiene esa clave ve la zona apagada y su motivo.
+// objeto va al bucket y la fila queda «Subido» en la lista. Quien no tiene esa clave ve la zona apagada y su motivo. Parte 3: otra cuenta con `logistica.documentos.aprobar` aprueba ese BL, la fila
+// pasa a «Aprobado» y el requisito de «Qué falta» queda «Cumplido» (el botón de mover se habilita); quien sólo sube ve «Aprobar» apagado y por qué.
 test.describe.configure({ mode: 'serial' })
 
 let proyecto = ''
@@ -84,4 +85,47 @@ test('E2E quien no puede subir ve la zona apagada y el motivo', async ({ page })
   const hueco = page.locator('[data-hueco="documentos"]')
   await expect(hueco.getByText('Necesitas permiso para subir documentos.')).toBeVisible()
   await expect(hueco.getByRole('button', { name: 'Elegir archivos' })).toBeDisabled()
+})
+
+test('E2E sin la clave de aprobar, «Aprobar» queda apagado y dice por qué', async ({ page }) => {
+  await entrar(page, terreno.quienSube.correo, { fresco: true })
+  await page.goto(`/logistica/vehiculo/${terreno.enB.id}`)
+  await page.locator('span:text-is("Documentos")').click()
+  const hueco = page.locator('[data-hueco="documentos"]')
+  await expect(hueco.getByText('Subido', { exact: true })).toBeVisible()
+  await expect(hueco.getByRole('button', { name: 'Aprobar' })).toBeDisabled()
+  await expect(hueco.getByRole('switch', { name: 'Visible en el portal' })).toBeDisabled()
+  await expect(hueco.getByText('Necesitas permiso para aprobar documentos.').first()).toBeVisible()
+})
+
+test('E2E aprobar el BL: la fila queda «Aprobado» y «Qué falta» cumple el requisito del destino', async ({
+  page,
+}) => {
+  await entrar(page, terreno.quienAprueba.correo, { fresco: true })
+  await page.goto(`/logistica/vehiculo/${terreno.enB.id}`)
+  await expect(page.getByRole('heading', { name: terreno.enB.titulo })).toBeVisible()
+  const bloque = page.locator('[data-destino]').filter({ hasText: terreno.c.nombre })
+  await page.getByRole('button', { name: `Elegir el destino «${terreno.c.nombre}»` }).click()
+  await expect(bloque.getByText('Falta', { exact: true })).toBeVisible()
+  await expect(bloque.getByRole('button', { name: `Mover a «${terreno.c.nombre}»` })).toBeDisabled()
+
+  await page.locator('span:text-is("Documentos")').click()
+  const hueco = page.locator('[data-hueco="documentos"]')
+  await expect(hueco.getByText('Subido', { exact: true })).toBeVisible()
+  await hueco.getByRole('button', { name: 'Aprobar' }).click()
+  await expect(hueco.getByText('Aprobado', { exact: true })).toBeVisible()
+  await expect(hueco.getByRole('button', { name: 'Aprobar' })).toHaveCount(0)
+
+  const fila = await admin()
+    .from('documentos')
+    .select('estado, revisado_por')
+    .eq('vehiculo_id', terreno.enB.id)
+    .limit(2)
+  expect(fila.data).toHaveLength(1)
+  expect(fila.data?.[0]?.estado).toBe('aprobado')
+  expect(fila.data?.[0]?.revisado_por).not.toBeNull()
+
+  // Aprobar avisa a «Qué falta», que se relee sin esperar al foco.
+  await expect(bloque.getByText('Cumplido', { exact: true })).toBeVisible()
+  await expect(bloque.getByRole('button', { name: `Mover a «${terreno.c.nombre}»` })).toBeEnabled()
 })

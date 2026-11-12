@@ -5,8 +5,8 @@ import {
   subirDocumento,
 } from '../../../areas/documentos/composicion.client'
 import { camposDeFechasDelTipo, nombreParaGuardar } from '../../../entities/documentos/admision'
+import type { DestinoDeDocumentos } from '../../../entities/documentos/destino'
 import type { TipoDeDocumento } from '../../../entities/documentos/documento'
-import type { Unidad } from '../../../entities/nucleo/unidad'
 import { registrarDocumentos } from '../actions/registrar-documentos'
 import type { EntradaDeLaBandeja, ValoresDeLaBandeja } from './use-bandeja'
 
@@ -23,7 +23,7 @@ export type ResultadoDeSubir =
 // Un archivo de la bandeja: primero el objeto al bucket y recién entonces `documento_registrar` por su Server Action (commit diferido). `intento` es el id de este archivo: con el mismo,
 // reintentar devuelve las mismas filas.
 type Pedido = {
-  unidad: Unidad
+  destino: DestinoDeDocumentos
   entrada: EntradaDeLaBandeja
   valores: ValoresDeLaBandeja
   tipo: TipoDeDocumento | null
@@ -31,10 +31,10 @@ type Pedido = {
 }
 
 export async function subirYRegistrar(pedido: Pedido): Promise<ResultadoDeSubir> {
-  const { unidad, entrada, valores, tipo, intento } = pedido
+  const { destino, entrada, valores, tipo, intento } = pedido
   const { archivo, datos } = entrada
   const fechas = camposDeFechasDelTipo(tipo)
-  const subida = await subirDocumento(unidad.id, archivo, datos.hash).catch(() =>
+  const subida = await subirDocumento(destino.carpeta, archivo, datos.hash).catch(() =>
     fallo('inesperado', MENSAJE_DE_SUBIDA_FALLIDA),
   )
   if (!subida.ok) {
@@ -43,8 +43,8 @@ export async function subirYRegistrar(pedido: Pedido): Promise<ResultadoDeSubir>
   const envio = await enviarAccion(
     registrarDocumentos({
       id: intento,
-      vehiculos: unidad.tipo === 'vehiculo' ? [unidad.id] : [],
-      repuestoId: unidad.tipo === 'repuesto' ? unidad.id : null,
+      vehiculos: destino.vehiculos,
+      repuestoId: destino.repuestoId,
       tipoId: valores.tipoId,
       ruta: subida.data,
       nombre: nombreParaGuardar(archivo.name),

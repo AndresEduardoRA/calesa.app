@@ -59,6 +59,16 @@ Sección «Seguimientos» de la ficha y pestaña del drawer.
   `mensajes` no son tablas que crecen de `.claude/rules/escala.md`.
 - Límite sin assert: una conversación que recibe un mensaje mientras se pagina sube y no reaparece abajo; la relectura de la cabeza la trae.
 
+## Hilo (7.09)
+
+- El hilo se lee en el navegador: páginas de 21 filas (`tamano + 1`) por `mensajes_hilo_idx (conversacion_id, creado_en desc, id desc)`, sin `offset` ni `count`; tope de 500
+  con `<AvisoDeTope>` e `<IrAUnaFecha>` como camino a lo antiguo. La señal relee 20 filas (una sola por ráfaga, con debounce de 250 ms).
+- La cita de un mensaje respondido se lee **aparte**, por `mensajes_pkey` (`id in (…)`, ≤ 21 ids, y sólo si la página trae respuestas): el embed `responde` no sirve sobre una
+  relación a sí misma (PostgREST la rechaza por ambigua o la devuelve como arreglo de respuestas).
+- `chat_leer`, `mensaje_editar` y `mensaje_eliminar` son escrituras de una fila. El DOM es de a lo sumo 500 burbujas, cada una con un «⋯» (el contenido del menú sólo existe abierto).
+- Límite sin assert: un `UPDATE` (editar o borrar) de un mensaje más viejo que los 20 más nuevos no se refresca en la **otra** sesión hasta recargar o «Ver anteriores».
+  Sin siembra de volumen ni `medir-*.sql`: `mensajes` no es una tabla que crece de `.claude/rules/escala.md`; su consulta es la del índice medido en 7.08.
+
 ## Inicio: la bandeja (9.02)
 
 - Tres lecturas en el servidor, cada una `limit 6` y cada una tras el `<Suspense>` de su bloque (un bloque lento no frena a los demás): `recordatorios_vista` por `recordatorios_usuario_idx`; `leads_cartera_vista` por `leads_asesores_listado_idx` (cuesta lo que pesa la cartera de quien mira, no la tabla); `perfiles` por `perfiles_vigentes_orden_idx`.

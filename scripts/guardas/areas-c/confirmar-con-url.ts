@@ -68,4 +68,14 @@ export const REGISTRO: Record<string, ConfirmarConUrl> = {
     abre: 'src/modules/repuestos/features/items/hooks/use-eliminar-item-por-url.ts',
     senal: 'PANEL_ELIMINAR_ITEM',
   },
+  // `?panel=salir` sobre la conversación abierta (7.09-2); no toca `?c=`.
+  'src/modules/chat/features/conversaciones/components/confirmar-salir.tsx': {
+    abre: 'src/modules/chat/features/conversaciones/hooks/use-salir-por-url.ts',
+    senal: 'PANEL_SALIR_DE_LA_CONVERSACION',
+  },
+  // `?panel=borrar-mensaje&mensaje=<id>` sobre la conversación abierta (7.09-4); no toca `?c=`.
+  'src/modules/chat/features/mensajes/components/confirmar-borrado.tsx': {
+    abre: 'src/modules/chat/features/mensajes/hooks/use-borrado-por-url.ts',
+    senal: 'PANEL_BORRAR_MENSAJE',
+  },
 }

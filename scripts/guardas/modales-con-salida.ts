@@ -45,4 +45,10 @@ export const MODALES: Record<string, RegistroDeModal> = {
     sinFormulario:
       'dibuja celdas tipeables de la hoja, que confirman en la hoja y su borrador; cerrar o «atrás» las desmonta sin confirmar: un número abierto se confirma al perder el foco, lo demás se descarta, y Esc con una celda abierta cancela sólo la celda',
   },
+  // --- chat
+  'src/modules/chat/features/conversaciones/components/modal-de-directa.tsx': {
+    sinFormulario:
+      'busca y elige a una persona: el texto de búsqueda no se guarda y elegir actúa al instante',
+    tambien: ['src/modules/chat/features/conversaciones/components/buscador-de-personas.tsx'],
+  },
 }

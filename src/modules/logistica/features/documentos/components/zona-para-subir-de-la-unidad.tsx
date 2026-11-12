@@ -2,6 +2,7 @@
 
 import { puede } from '@/shared/lib/permisos'
 import { ordenarTiposParaElegir } from '../../../entities/documentos/admision'
+import { destinoDeLaUnidad } from '../../../entities/documentos/destino'
 import type { Unidad } from '../../../entities/nucleo/unidad'
 import { usePermisosDeDocumentos } from '../hooks/use-permisos-de-documentos'
 import type { DatoDeDocumentos } from '../hooks/use-documentos-de-la-unidad'
@@ -21,7 +22,8 @@ export function ZonaParaSubirDeLaUnidad({
   const puedeSubir = permisos === null ? null : puede(permisos, clave, unidad.origenId)
   return (
     <ZonaParaSubir
-      unidad={unidad}
+      destino={destinoDeLaUnidad(unidad)}
+      titulo="Subir documentos"
       tipos={ordenarTiposParaElegir(dato.tipos, new Set(dato.requisitos.map((r) => r.tipoId)))}
       puedeSubir={puedeSubir}
     />
