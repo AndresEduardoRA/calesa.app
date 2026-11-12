@@ -7038,6 +7038,17 @@ export type Database = {
         Args: { p_defecto: number; p_maximo: number; p_pedido: number }
         Returns: number
       }
+      _aduana_vehiculo_visible: {
+        Args: {
+          p_algun: string[]
+          p_creado_por: string
+          p_lead: string
+          p_origen: string
+          p_todos: string[]
+          p_yo: string
+        }
+        Returns: boolean
+      }
       _agenda_cotizacion: { Args: { p_cot: string; p_hint?: string }; Returns: string }
       _agenda_destinatarios_aplicar: {
         Args: { p_dest: string[]; p_evento: string; p_titulo: string }
@@ -7465,6 +7476,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      _declaracion_resumen: {
+        Args: { p_algun: string[]; p_id: string; p_todos: string[]; p_yo: string }
+        Returns: Record<string, unknown>
+      }
       _declaracion_vehiculos_listas: {
         Args: { p_agregar: string[]; p_quitar: string[] }
         Returns: Record<string, unknown>
@@ -7473,6 +7488,7 @@ export type Database = {
         Args: { p_agregar: string[]; p_declaracion: string; p_todos: string[] }
         Returns: undefined
       }
+      _declaraciones_filtros: { Args: { p_filtros: Json }; Returns: Record<string, unknown> }
       _dinero_filtros: {
         Args: { p_claves: string[]; p_filtros: Json }
         Returns: Record<string, unknown>
@@ -9289,6 +9305,24 @@ export type Database = {
           p_quitar: string[]
         }
         Returns: Json
+      }
+      declaraciones_listar: {
+        Args: { p_desde: string; p_filtros: Json; p_id: string; p_tope: number }
+        Returns: {
+          aceptada_el: string
+          actualizado_en: string
+          canal: string
+          creado_en: string
+          deposito: string
+          despachante: string
+          faltan: number
+          hay_ocultos: boolean
+          id: string
+          numero: string
+          pagada: boolean
+          vehiculos: number
+          vence_tributos_el: string
+        }[]
       }
       documento_editar: {
         Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_id: string }
