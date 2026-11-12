@@ -23,9 +23,12 @@ sin imprimir valores; la app cae al compilar si falta una pública y al arrancar
 | `SUPABASE_SECRET_KEY`                                            | API de admin de Auth (invitar)                         | ídem                                        | **sí**            | ídem                                                     |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY`                                   | Push web (Fase 7)                                      | `.env.local`; Vercel; función `push`        | no                | la persona                                               |
 | `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`                             | Push web (Fase 7)                                      | función `push` (secreto)                    | la privada **sí** | la persona                                               |
-| `EMAIL_PROVEEDOR`                                                | `ninguno`, `mailpit` (resend y cloudflare: Fase 7)     | `.env.local`; Vercel                        | no                | la persona                                               |
+| `EMAIL_PROVEEDOR`                                                | `ninguno`, `mailpit`, `resend` o `cloudflare`          | `.env.local`; Vercel                        | no                | la persona                                               |
 | `EMAIL_REMITENTE`, `…_NOMBRE`                                    | Remitente de la app y de Auth                          | `.env.local`; Vercel; `.env.demo`           | no                | la persona                                               |
 | `MAILPIT_URL`                                                    | Correo local (`http://127.0.0.1:54624`)                | `.env.local`                                | no                | `preparar.sh`                                            |
+| `RESEND_API_KEY`                                                 | Clave de Resend (con `EMAIL_PROVEEDOR=resend`)         | `.env.local`; Vercel                        | **sí**            | la persona                                               |
+| `CLOUDFLARE_ACCOUNT_ID`                                          | ID de cuenta de Cloudflare (32 hexadecimales)          | `.env.local`; Vercel                        | no                | la persona                                               |
+| `CLOUDFLARE_API_TOKEN`                                           | Token con **Email Sending: Edit** (con `cloudflare`)   | `.env.local`; Vercel                        | **sí**            | la persona                                               |
 | `SUPABASE_PROJECT_ID`, `SUPABASE_*_PORT`, `PUERTO_APP`, `E2E_*`  | El stack, la app y el e2e de un carril de Orca         | `.env.carril` (sólo en un carril)           | no                | `preparar.sh`                                            |
 | `SMTP_HOST`, `SMTP_USUARIO`, `SMTP_CLAVE`                        | SMTP de los correos de Auth                            | `.env.demo` → Supabase Auth                 | la clave **sí**   | la persona                                               |
 | `SUPABASE_AUTH_EXTERNAL_GOOGLE_*`                                | Google OAuth                                           | `.env.demo` → panel de Auth                 | el secret **sí**  | la persona                                               |
@@ -96,8 +99,16 @@ un preview nunca migra, y un PR con migraciones se verifica en local y en CI.
 
 - **Correos de Auth** (confirmación, invitación, recuperación): los manda Supabase Auth por SMTP (arriba).
 - **Correos de la app:** `enviarEmail()` de `src/shared/lib/email/`, el único lugar que manda correo, con un adaptador por proveedor por su
-  API REST elegido por `EMAIL_PROVEEDOR`. Hoy: `mailpit` (local). `resend` y `cloudflare` llegan en la Fase 7 (`docs/PLAN.md`). ESLint
-  prohíbe importar el SDK de un proveedor. Las plantillas viven en el repo; nada se guarda en el panel del proveedor.
+  API REST elegido por `EMAIL_PROVEEDOR`: `mailpit` (local), `resend` o `cloudflare`. ESLint prohíbe importar el SDK de un proveedor.
+  Las plantillas viven en el repo; nada se guarda en el panel del proveedor.
+- **Qué pide cada proveedor,** además de `EMAIL_REMITENTE` y `EMAIL_REMITENTE_NOMBRE`: `mailpit`, `MAILPIT_URL`; `resend`, `RESEND_API_KEY`;
+  `cloudflare`, `CLOUDFLARE_ACCOUNT_ID` y `CLOUDFLARE_API_TOKEN`. La app no arranca si falta una (`pnpm env:check` lo dice sin imprimir valores).
+- **Probarlo:** `pnpm email:probar <destino>` manda un correo de prueba con el proveedor de `.env.local`, por el mismo adaptador que la app, y
+  dice el id o el motivo del rechazo; nunca imprime una clave. Es el único camino que manda un correo real.
+- **Cloudflare, lo verificado:** el contrato (`POST /accounts/{cuenta}/email/sending/send`, `from {address, name}`, `to` como arreglo, y una
+  respuesta con `delivered`, `permanent_bounces` y `queued` pero **sin id de mensaje**, por lo que el id del contrato es `sin-id`) se leyó el
+  2026-11-11 en la documentación pública de Cloudflare y se prueba con `fetch` simulado; **no** con un envío real. El primer
+  `pnpm email:probar` con Cloudflare lo confirma (y repite este aviso hasta entonces).
 - **Un subdominio sólo para enviar** (`correo.<dominio>`): el SPF, el DKIM y el DMARC de cada proveedor viven ahí, y cambiar de proveedor
   no toca el dominio principal.
 - **Recomendación: el DNS del dominio en Cloudflare desde ya.** Email Sending sólo acepta un dominio que sea una zona de tu cuenta de
@@ -110,8 +121,8 @@ un preview nunca migra, y un PR con migraciones se verifica en local y en CI.
    migrar) y dejar que agregue los registros; esperar a que figuren verificados. Los de Resend se quedan hasta el paso 5.
 2. **Token:** Cloudflare › API Tokens, un token de cuenta con el permiso **Email Sending: Edit**.
 3. **Variables:** en `.env.demo`, `SMTP_HOST=smtp.mx.cloudflare.net`, `SMTP_USUARIO=api_token`, `SMTP_CLAVE=<el token>`;
-   `EMAIL_REMITENTE` con el dominio dado de alta. Si la app ya manda correo (Fase 7), en Vercel `EMAIL_PROVEEDOR=cloudflare` y su token.
+   `EMAIL_REMITENTE` con el dominio dado de alta. En la app, en Vercel `EMAIL_PROVEEDOR=cloudflare`, `CLOUDFLARE_ACCOUNT_ID` y `CLOUDFLARE_API_TOKEN`: ningún código cambia.
 4. **Subir y probar:** `bash scripts/demo/restaurar.sh` (o sólo `supabase config push`) y pedir una recuperación de contraseña; la app,
-   con `pnpm email:probar <destino>` (Fase 7).
+   con `pnpm email:probar <destino>`.
 5. **Volver atrás:** las mismas variables con los valores de Resend y subir de nuevo; con los dos dados de alta, el cambio es inmediato.
    Cuando Cloudflare lleve una semana sin rebotes, borrar los registros de Resend.

@@ -20,27 +20,63 @@ export type CambiosDeCampo = Partial<{
   publicoWeb: boolean
   claveApibara: string | null
   activo: boolean
+  principal: boolean
   valorDefecto: ValorDefecto | null
 }>
+
+// Los cambios que viajan tal cual, con su columna en la base. `opciones` (sin lo que no es clave ni etiqueta) va aparte.
+const COLUMNA_DE = {
+  etiqueta: 'etiqueta',
+  tipo: 'tipo',
+  requerido: 'requerido',
+  grupo: 'grupo',
+  enTarjeta: 'en_tarjeta',
+  filtrable: 'filtrable',
+  publicoWeb: 'publico_web',
+  claveApibara: 'clave_apibara',
+  activo: 'activo',
+  principal: 'principal',
+  valorDefecto: 'valor_defecto',
+} as const satisfies Record<Exclude<keyof CambiosDeCampo, 'opciones'>, string>
+
+type ClaveTalCual = keyof typeof COLUMNA_DE
+const CLAVES_TAL_CUAL = Object.keys(COLUMNA_DE) as ClaveTalCual[]
 
 // Lo que viaja a `origen_campo_guardar()` (columnas de la base). Un valor `undefined` no viaja:
 // la base no lo toca; un `null` explícito vacía la columna.
 export function cambiosComoColumnas(cambios: CambiosDeCampo): Record<string, Json> {
   const columnas: Record<string, Json> = {}
-  if (cambios.etiqueta !== undefined) columnas['etiqueta'] = cambios.etiqueta
-  if (cambios.tipo !== undefined) columnas['tipo'] = cambios.tipo
+  for (const clave of CLAVES_TAL_CUAL) {
+    const valor = cambios[clave]
+    if (valor !== undefined) columnas[COLUMNA_DE[clave]] = valor
+  }
   if (cambios.opciones !== undefined) {
     columnas['opciones'] = cambios.opciones.map(({ clave, etiqueta }) => ({ clave, etiqueta }))
   }
-  if (cambios.requerido !== undefined) columnas['requerido'] = cambios.requerido
-  if (cambios.grupo !== undefined) columnas['grupo'] = cambios.grupo
-  if (cambios.enTarjeta !== undefined) columnas['en_tarjeta'] = cambios.enTarjeta
-  if (cambios.filtrable !== undefined) columnas['filtrable'] = cambios.filtrable
-  if (cambios.publicoWeb !== undefined) columnas['publico_web'] = cambios.publicoWeb
-  if (cambios.claveApibara !== undefined) columnas['clave_apibara'] = cambios.claveApibara
-  if (cambios.activo !== undefined) columnas['activo'] = cambios.activo
-  if (cambios.valorDefecto !== undefined) columnas['valor_defecto'] = cambios.valorDefecto
   return columnas
+}
+
+// Las que se comparan con `!==`; opciones y valor por defecto tienen su comparación.
+const CLAVES_SIMPLES = [
+  'etiqueta',
+  'tipo',
+  'requerido',
+  'grupo',
+  'enTarjeta',
+  'filtrable',
+  'publicoWeb',
+  'claveApibara',
+  'activo',
+  'principal',
+] as const satisfies readonly (keyof CambiosDeCampo & keyof CampoDeLayout)[]
+
+function copiarSiCambio<K extends (typeof CLAVES_SIMPLES)[number]>(
+  cambios: CambiosDeCampo,
+  campo: CampoDeLayout,
+  formulario: Required<CambiosDeCampo>,
+  clave: K,
+): void {
+  if (formulario[clave] !== campo[clave]) cambios[clave] = formulario[clave]
 }
 
 // Sólo lo que la persona cambió respecto de lo guardado: así una edición no pisa lo que otra
@@ -50,16 +86,8 @@ export function cambiosRespectoDe(
   formulario: Required<CambiosDeCampo>,
 ): CambiosDeCampo {
   const cambios: CambiosDeCampo = {}
-  if (formulario.etiqueta !== campo.etiqueta) cambios.etiqueta = formulario.etiqueta
-  if (formulario.tipo !== campo.tipo) cambios.tipo = formulario.tipo
+  for (const clave of CLAVES_SIMPLES) copiarSiCambio(cambios, campo, formulario, clave)
   if (!mismasOpciones(formulario.opciones, campo.opciones)) cambios.opciones = formulario.opciones
-  if (formulario.requerido !== campo.requerido) cambios.requerido = formulario.requerido
-  if (formulario.grupo !== campo.grupo) cambios.grupo = formulario.grupo
-  if (formulario.enTarjeta !== campo.enTarjeta) cambios.enTarjeta = formulario.enTarjeta
-  if (formulario.filtrable !== campo.filtrable) cambios.filtrable = formulario.filtrable
-  if (formulario.publicoWeb !== campo.publicoWeb) cambios.publicoWeb = formulario.publicoWeb
-  if (formulario.claveApibara !== campo.claveApibara) cambios.claveApibara = formulario.claveApibara
-  if (formulario.activo !== campo.activo) cambios.activo = formulario.activo
   if (!mismoValorDefecto(formulario.valorDefecto, campo.valorDefecto)) {
     cambios.valorDefecto = formulario.valorDefecto
   }

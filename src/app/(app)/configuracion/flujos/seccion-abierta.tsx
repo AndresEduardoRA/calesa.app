@@ -8,6 +8,7 @@ import { SECCIONES_DE_FASES } from './fases/seccion'
 import { HUECOS_DE_FLUJOS } from './huecos'
 import type { PedidoDeFlujos, SeccionDeFlujos } from './pestanas'
 import { SECCIONES_DE_REGLAS } from './reglas/seccion'
+import { FueraDeReglaDelFlujo } from './requisitos/fuera-de-regla'
 import { SECCIONES_DE_REQUISITOS } from './requisitos/seccion'
 
 // Lo que dibuja cada pestaña de un área, por su clave: cada área llena el suyo en su carpeta.
@@ -33,6 +34,7 @@ export function SeccionAbierta({ pestana, ...pedido }: PedidoDeFlujos & { pestan
           origenPedido={pedido.origenPedido}
           ambitoPedido={pedido.ambitoPedido}
           huecos={HUECOS_DE_FLUJOS}
+          sobreLaLista={(flujo) => <FueraDeReglaDelFlujo flujo={flujo} />}
         />
       </Suspense>
     )
