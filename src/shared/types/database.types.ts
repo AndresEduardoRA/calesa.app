@@ -8371,6 +8371,11 @@ export type Database = {
         }
       }
       _recordatorio_titulo: { Args: { p_hint: string; p_valor: string }; Returns: string }
+      _repuesto_catalogo: {
+        Args: { p_catalogo: string; p_clave: string; p_datos: Json }
+        Returns: string
+      }
+      _repuesto_fase_de_entrada: { Args: { p_item: string }; Returns: string }
       _repuesto_proyecto_tomar: {
         Args: { p_esperado: string; p_proyecto: string }
         Returns: {
@@ -9967,6 +9972,14 @@ export type Database = {
           p_tabla: string
         }
         Returns: undefined
+      }
+      repuesto_item_crear: {
+        Args: { p_datos: Json; p_id: string; p_proyecto: string }
+        Returns: Json
+      }
+      repuesto_item_eliminar: {
+        Args: { p_actualizado_en_esperado: string; p_item: string }
+        Returns: Json
       }
       repuesto_proyecto_cerrar: {
         Args: { p_actualizado_en_esperado: string; p_proyecto: string }

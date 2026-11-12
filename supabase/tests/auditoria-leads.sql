@@ -224,6 +224,9 @@ declare
     ('repuesto_proyecto_reabrir(uuid,timestamp with time zone)', 'X'),
     ('repuesto_proyecto_eliminar(uuid,timestamp with time zone)', 'X'),
     ('repuesto_proyecto_restaurar(uuid,timestamp with time zone)', 'X'),
+    -- Los ítems (8.08-1): toman el proyecto para ver si está vivo y abierto; no tocan el lead (`areas/repuestos/base.sql`).
+    ('repuesto_item_crear(uuid,uuid,jsonb)', 'X'),
+    ('repuesto_item_eliminar(uuid,timestamp with time zone)', 'X'),
     ('storage_refcount(text,text)', 'X')
   ) t (f, c));
   r record; v_fallas text := '';
