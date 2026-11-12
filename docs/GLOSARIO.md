@@ -164,10 +164,13 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Gestionar etiquetas** — `?panel=etiquetas` / `<DialogoDeEtiquetas>`: crear, renombrar, recolorear y eliminar las propias.
 - **Embudo / Etapa / Oportunidad** — `embudos`, `embudos_etapas`, `oportunidades` / `embudo_*`, `oportunidad_*`: embudo personal de 3 a 12 etapas (inicial, ganada, perdida).
 - **Embudo por defecto** — `embudos.es_default` / `embudo_por_defecto()`: el creado la primera vez («Ventas»); no se elimina, se renombra.
+- **Plantilla del embudo** — `ajustes_leads.embudo_etapas` / `embudo_plantilla_guardar()`: las etapas con que nace el embudo por defecto de cada persona; nula = las seis de fábrica (`_embudo_etapas_de_fabrica()`). Sólo afecta a los embudos que nacen después.
 - **Mover a…** — `oportunidad_mover()` / `<MenuMoverA>`: cambiar de etapa desde un menú; ganada o perdida cierra, abierta reabre.
 - **Motivo de pérdida** — `oportunidades.motivo_perdida`: por qué se perdió (opcional, hasta 200), al mover a una etapa perdida; se limpia al reabrir.
 - **Vista de embudo** — `/leads?vista=embudo` / `<VistaDeEmbudo>`: el kanban de tus oportunidades en un embudo; los filtros de la lista no aplican.
 - **Portal del cliente** — `accesos_portal` / `web.portal_*` / `?seccion=portal`: lo que el cliente ve en la web con código y clave: sus vehículos, lo «Visible para el cliente» y novedades.
+- **Mensaje del portal** — `ajustes_leads.portal_mensaje` / `portal_mensaje_guardar()`: el texto para WhatsApp al dar acceso al portal, con `{cliente}`, `{empresa}`, `{codigo}`, `{clave}` y `{direccion}`; nulo = el de fábrica.
+- **Ajustes de leads** — `ajustes_leads` / `ajustes_leads_leer()`: la fila única con las plantillas de leads por empresa (la del embudo y el mensaje del portal), cada una con su versión.
 - **Código del portal** — `accesos_portal.codigo` / `codigoDictado()`: `XXX-YYYYY`: prefijo de la empresa y cinco símbolos sin I, O, 0 ni 1.
 - **Clave temporal** — `otorgar_portal(p_clave)`: la da el equipo al otorgar (8 a 64 o generada).
 - **Dar acceso / Volver a otorgar** — `otorgar_portal`: volver a otorgar cambia código y clave; los anteriores y la sesión abierta dejan de valer.
