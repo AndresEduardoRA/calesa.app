@@ -4,6 +4,7 @@
 import { CONTRASENA } from './alta'
 import { admin, correoDePrueba, crearPersona, darRolDePrueba, PREFIJO_ROL_E2E } from './base'
 import { borrarLogistica, sembrarLogistica, type TerrenoDeLogistica } from './logistica'
+import { borrarVehiculosDe } from './vehiculos'
 
 export type TerrenoDeDinero = TerrenoDeLogistica & {
   // Ve y edita gastos y pagos y ve el margen en el origen; no confirma pagos.
@@ -77,13 +78,13 @@ export async function sembrarDinero(proyecto: string): Promise<TerrenoDeDinero> 
   return { ...terreno, conDinero: email, conConfirmacion: emailDeConfirmacion }
 }
 
-// Lo que se hizo en el terreno de dinero se quita antes del de logística: un vehículo con gastos o pagos no se borra.
-export async function borrarDinero(proyecto: string): Promise<void> {
+// Los gastos y pagos de los vehículos del terreno: un vehículo con gastos o pagos no se borra.
+async function borrarGastosYPagos(proyecto: string): Promise<void> {
   const cliente = admin()
   const { data: origen } = await cliente
     .from('origenes')
     .select('id')
-    .eq('clave', `e2e_logistica_${proyecto}`)
+    .eq('clave', claveDelOrigen(proyecto))
     .maybeSingle<{ id: string }>()
   if (origen) {
     const { data: vehiculos } = await cliente
@@ -98,7 +99,25 @@ export async function borrarDinero(proyecto: string): Promise<void> {
       await cliente.from('pagos').delete().in('vehiculo_id', ids)
     }
   }
+}
+
+const claveDelOrigen = (proyecto: string) => `e2e_logistica_${proyecto}`
+
+// Lo que se hizo en el terreno de dinero se quita antes del de logística.
+export async function borrarDinero(proyecto: string): Promise<void> {
+  await borrarGastosYPagos(proyecto)
   await borrarLogistica(proyecto)
+}
+
+// Como `borrarDinero`, pero sólo este origen: no barre los demás orígenes de prueba. Para un spec que convive con otro terreno que tiene
+// cotizaciones (`tablero.spec.ts`), cuyo origen no se puede borrar todavía. Las personas y los roles los limpia el spec.
+export async function borrarDineroDeEsteOrigen(proyecto: string): Promise<void> {
+  await borrarGastosYPagos(proyecto)
+  await borrarVehiculosDe([claveDelOrigen(proyecto)])
+  const { error } = await admin().from('origenes').delete().eq('clave', claveDelOrigen(proyecto))
+  if (error) {
+    throw new Error(`No se pudo borrar el origen de dinero: ${error.message}`)
+  }
 }
 
 // El tipo de cambio por defecto de la empresa entre la moneda base y otra: lo que un gasto en esa otra moneda convierte. Lee la base, no un valor escrito aquí.

@@ -5,11 +5,13 @@ import {
   sembrarParaMarcar,
   type TerrenoDeLaFinal,
 } from './soporte/cotizaciones-final'
+import { borrarDineroDeEsteOrigen, sembrarDinero } from './soporte/dinero'
 import { expect, test, type Page } from './soporte/prueba'
 
 // El tablero de métricas (9.08-1, fila del tablero en `docs/UX.md`): la dueña ve las cinco cifras; al marcar final una cotización, «Convertidos» sube en uno
 // (se compara el aumento, no un valor fijo: otros specs también convierten leads este mes); el período vive en la URL y uno desconocido cae en «Este mes».
-// Una persona sin `tablero.metricas.ver` no tiene la entrada en el menú y la ruta le dice que no tiene permiso.
+// Una persona sin `tablero.metricas.ver` no tiene la entrada en el menú y la ruta le dice que no tiene permiso. T7 (9.11-2): al confirmar un pago en la unidad,
+// «Margen del mes» sube exactamente ese pago (se compara la diferencia: otros specs confirman pagos este mes) y el nombre del grupo no lleva el monto.
 test.describe.configure({ mode: 'serial' })
 
 let t: TerrenoDeLaFinal
@@ -19,6 +21,8 @@ test.beforeAll(async ({}, info) => {
 })
 
 test.afterAll(async () => {
+  // Primero el terreno de dinero de T7 (sus pagos apuntan a la dueña, que borra `limpiarFinal`), sin barrer el origen de la final.
+  await borrarDineroDeEsteOrigen(t.proyecto)
   await limpiarFinal()
 })
 
@@ -177,4 +181,62 @@ test('T6 la dueña oculta y ordena widgets en «Personalizar» y, tras recargar,
   await expect(restablecer).toBeDisabled()
   await cerrar()
   await expect(titulo('Leads por origen')).toBeVisible()
+})
+
+const formato = (n: number) =>
+  new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)
+
+const margenConMonto = (page: Page) =>
+  page.getByRole('group', { name: 'Margen del mes', exact: true })
+const margenSinVenta = (page: Page) =>
+  page.getByRole('group', { name: 'Margen del mes: Sin venta registrada', exact: true })
+
+// El margen en centavos, con su signo («Sin venta registrada» cuenta como 0). Espera a que el widget cargue: cada uno tiene su `<Suspense>`.
+async function leerMargen(page: Page): Promise<number> {
+  await expect(margenSinVenta(page).or(margenConMonto(page))).toBeVisible()
+  if ((await margenSinVenta(page).count()) > 0) {
+    return 0
+  }
+  const texto =
+    (await margenConMonto(page)
+      .locator('[data-cifra="margen"] [data-monto-valor]')
+      .textContent()) ?? ''
+  const centavos = Number(texto.replace(/\D/g, ''))
+  return /[-−]/.test(texto) ? -centavos : centavos
+}
+
+// @sin-celular: el panel de dinero de la unidad, donde se confirma el pago, se prueba en escritorio como pide la fila 6.11
+test('T7 la dueña ve subir el margen del mes al confirmar un pago', async ({ page }) => {
+  await borrarDineroDeEsteOrigen(t.proyecto)
+  const terreno = await sembrarDinero(t.proyecto)
+  await page.context().clearCookies()
+  await entrar(page, t.duena, { fresco: true })
+  await page.goto('/tablero')
+  await expect(page.getByRole('heading', { name: 'Margen del mes', level: 2 })).toBeVisible()
+  const antes = await leerMargen(page)
+
+  await page.goto(`/logistica/vehiculo/${terreno.enFase.id}`)
+  await page.getByText('Pagos', { exact: true }).click()
+  await page.getByRole('button', { name: 'Registrar pago' }).click()
+  const formulario = page.getByRole('dialog', { name: 'Registrar pago' })
+  await expect(formulario).toBeVisible()
+  await formulario.getByLabel('Concepto').fill('Venta T7')
+  await formulario.getByLabel('Monto').fill(formato(1500))
+  await formulario.getByRole('button', { name: 'Registrar pago' }).click()
+  await expect(formulario).toBeHidden()
+  const pagos = page.getByRole('list', { name: 'Pagos de la unidad' })
+  await expect(pagos.getByText('Sin confirmar')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Confirmar pago' }).click()
+  const confirmar = page.getByRole('dialog', { name: 'Confirmar el pago «Venta T7»' })
+  await expect(confirmar).toBeVisible()
+  await confirmar.getByRole('button', { name: 'Confirmar pago' }).click()
+  await expect(confirmar).toBeHidden()
+  await expect(pagos.getByText('Sin confirmar')).toHaveCount(0)
+
+  await page.goto('/tablero')
+  await expect(margenConMonto(page)).toBeVisible()
+  expect((await leerMargen(page)) - antes).toBe(150000)
+  const nombre = (await margenConMonto(page).getAttribute('aria-label')) ?? ''
+  expect(nombre).not.toMatch(/\d/)
 })
