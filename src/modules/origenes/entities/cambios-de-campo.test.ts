@@ -57,6 +57,8 @@ describe('cambios', () => {
     activo: campo.activo,
     principal: campo.principal,
     valorDefecto: campo.valorDefecto,
+    minimo: campo.minimo,
+    maximo: campo.maximo,
   }
 
   it('sin tocar nada no hay cambios', () => {

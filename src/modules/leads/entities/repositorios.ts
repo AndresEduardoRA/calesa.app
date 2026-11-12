@@ -1,7 +1,7 @@
 // Lo que los casos de uso de `features/` necesitan de afuera, dicho como interfaces. La
 // implementación (Supabase) vive en `infra/` y se la entrega `composicion.ts`.
 import type { NumerosDeLead } from '@/shared/lib/numeros-de-lead'
-import type { OpcionDeCampo, TipoDeCampoDeLead, ValorDefecto } from '@/shared/lib/campos'
+import type { OpcionDeCampo, Rango, TipoDeCampoDeLead, ValorDefecto } from '@/shared/lib/campos'
 import type { ErrorApp, Resultado } from '@/shared/lib/errores'
 import type { Cursor, Pagina } from '@/shared/lib/paginacion'
 import type { ContextoDeAlta, DatosDeAlta, TipoDeSeguimiento } from './alta'
@@ -52,6 +52,8 @@ export type RepositorioCamposDeLead = {
     soloCartera: boolean
     valorDefecto: ValorDefecto | null
     valorDefectoEmpresa: DatoDeLaEmpresa | null
+    minimo: number | null
+    maximo: number | null
   }) => Promise<Resultado<Creado>>
   guardar: (pedido: {
     id: string
@@ -65,7 +67,8 @@ export type RepositorioCamposDeLead = {
     actualizadoEnEsperado: string
   }) => Promise<Resultado<Editado>>
   eliminar: (pedido: { id: string; actualizadoEnEsperado: string }) => Promise<Resultado<null>>
-  impacto: (id: string) => Promise<Resultado<ImpactoDeCampo>>
+  // Con `rango`, también cuántos quedarían fuera del rango propuesto.
+  impacto: (id: string, rango?: Partial<Rango>) => Promise<Resultado<ImpactoDeCampo>>
 }
 
 // Todos los campos, también los desactivados: quien consume filtra `activo`.

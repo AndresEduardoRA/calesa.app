@@ -23,7 +23,7 @@ Ficha completa (cada componente con su historia y sus trampas): `docs/archivo/mo
 - `lib/memoria-de-lectura.ts` — `memoriaDeLectura(leer, vidaMs)`: lectura del navegador compartida y con vida corta.
 - `lib/enviar-accion.ts`, `lib/formularios.ts`, `lib/borrador.ts` + `ui/use-borrador.ts` — lo común de un formulario con `useAction`: envío con `sinRed`, errores por campo, borrador en `sessionStorage`.
 - `lib/filtros/` — filtros declarativos de un listado, sin nuqs ni módulos (`EsquemaDeFiltros`, `leerFiltros()`, `chipsDe()`, `cumpleElMinimo()`); `campos.ts` traduce campos del layout a filtros.
-- `lib/campos/` — motor de campos configurables, sin I/O (`TIPOS_DE_CAMPO`, `esquemaDeValor()`, `valorMostrado()`, `campoDeFormulario()`); `ui/campos/` trae `<EditorDeCampos>`, `<DatosPorGrupo>`, `<CampoDeFormulario>`.
+- `lib/campos/` — motor de campos configurables, sin I/O (`TIPOS_DE_CAMPO`, `esquemaDeValor()`, `valorMostrado()`, `campoDeFormulario()`; `rango.ts`, el rango de un número o un monto, espejo de `_valor_fuera_de_rango` y `_campo_rango`); `ui/campos/` trae `<EditorDeCampos>` (su panel lleva «Mínimo» y «Máximo» en un número o un monto, `campo-rango.tsx`), `<DatosPorGrupo>`, `<CampoDeFormulario>`.
 - `lib/ancho.ts` — `anchoDeLaPeticion()` y los cortes `CORTE_DEL_TABLERO`/`CORTE_DE_LA_TABLA`/`CORTE_DEL_PANEL`; `ui/ancho-de-pantalla.tsx` (`useAlMenos()`).
 - `lib/atajos.ts` + `ui/atajos/` — `ATAJOS`, `teclasDelAtajo()`, `<ProveedorAtajos>`, `useAtajo()`: responde el último registrado. `<AyudaDeAtajos>` registra `?` y abre
   `<ListaDeAtajos>` («Atajos de teclado», un `Dialog` sin URL con una fila por clave de `ATAJOS`; su código viaja por `diferido()` hasta pulsar `?`).
@@ -55,7 +55,7 @@ Ficha completa (cada componente con su historia y sus trampas): `docs/archivo/mo
 
 ## Ojo
 
-- `admin.ts` importa `server-only`; el lint sólo deja importarlo desde `equipo/infra/invitaciones.ts` y `empresa/infra/revalidacion-prueba.ts`.
+- `admin.ts` importa `server-only`; el lint sólo deja importarlo desde `equipo/infra/invitaciones.ts`, `empresa/infra/revalidacion-prueba.ts` y `web/infra/portal/rpc.ts`.
 - Esc dentro de un diálogo lo atiende Base UI (cierra sólo el de más arriba y detiene el evento en `document`): el atajo «cerrar» de `ProveedorAtajos` no lo ve, por eso `<Modal>` no lo registra. Un `<Modal>` abierto desde un `<Drawer>` se dibuja dentro de los hijos del Drawer.
 - Un `<fieldset disabled>` no apaga los `Switch` de Base UI: pásales `disabled` a mano.
 - Estado de filtros y paneles en la URL con `nuqs`; `nuqs` es `'use client'`, así que `lib/filtros` lee la URL a mano. En tests con `NuqsTestingAdapter`, espera la escritura (`waitFor`).

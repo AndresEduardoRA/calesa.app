@@ -6,15 +6,15 @@ import { puede } from '@/shared/lib/permisos'
 import { RUTAS } from '@/shared/lib/rutas'
 import { actionClient } from '@/shared/lib/safe-action'
 import { repositorioCamposDeLead } from '../../../composicion'
-import { MOTIVO_SIN_PERMISO_LEADS } from '../../../entities/motivos'
+import { MOTIVO_SIN_PERMISO_CAMPOS } from '../../../entities/motivos'
 import { esquemaMoverCampo } from '../schemas/campos'
 
 // «Ponlo después de X»: relativo, no por posición, así que sigue bien aunque alguien haya agregado un campo mientras tanto.
 export const moverCampo = actionClient
   .inputSchema(esquemaMoverCampo)
   .action(async ({ parsedInput, ctx }) => {
-    if (!puede(ctx.permisos, 'leads.configurar')) {
-      return fallo('sin_permiso', MOTIVO_SIN_PERMISO_LEADS)
+    if (!puede(ctx.permisos, 'leads.campos.gestionar')) {
+      return fallo('sin_permiso', MOTIVO_SIN_PERMISO_CAMPOS)
     }
     const hecho = await repositorioCamposDeLead.mover(parsedInput)
     if (hecho.ok) {

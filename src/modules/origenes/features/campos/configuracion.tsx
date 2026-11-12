@@ -6,12 +6,13 @@ import {
 } from '@/shared/lib/campos'
 import { Bloque } from '@/shared/ui/bloque'
 import { Campo } from '@/shared/ui/campo'
-import type {
-  BanderaDeCampo,
-  ConfiguracionDeCampos,
-  ContextoDelHueco,
-  TextosDelEditor,
-  ValoresDeCampo,
+import {
+  rangoDelFormulario,
+  type BanderaDeCampo,
+  type ConfiguracionDeCampos,
+  type ContextoDelHueco,
+  type TextosDelEditor,
+  type ValoresDeCampo,
 } from '@/shared/ui/campos'
 import {
   cambiosRespectoDe,
@@ -40,6 +41,8 @@ const VALORES_DE_UN_CAMPO_NUEVO: ValoresDeCampo = {
   grupo: '',
   activo: true,
   valorDefecto: null,
+  minimo: null,
+  maximo: null,
   banderas: {
     requerido: false,
     enTarjeta: false,
@@ -62,6 +65,8 @@ function valoresIniciales(campo: CampoDeLayout | null): ValoresDeCampo {
     grupo: campo.grupo ?? '',
     activo: campo.activo,
     valorDefecto: campo.valorDefecto,
+    minimo: campo.minimo,
+    maximo: campo.maximo,
     banderas: {
       requerido: campo.requerido,
       enTarjeta: campo.enTarjeta,
@@ -89,6 +94,7 @@ function cambiosDe(campo: CampoDeLayout, valores: ValoresDeCampo): CambiosDeCamp
     activo: valores.activo,
     principal: banderas['principal'] ?? false,
     valorDefecto: valores.valorDefecto,
+    ...rangoDelFormulario(valores),
   })
 }
 
@@ -230,6 +236,7 @@ export function configuracionDeOrigen({
       claveApibara: tipoDeOrigen === 'subasta' ? (valores.textos[CLAVE_APIBARA] ?? '') : null,
       valorDefecto: valores.valorDefecto,
       principal: valores.banderas['principal'] ?? false,
+      ...rangoDelFormulario(valores),
     }),
     cambiosDe,
     conBandera: (clave, valor) => ({ [clave]: valor }),

@@ -6,6 +6,7 @@ import {
   admiteValorDefecto,
   valorDefectoPara,
 } from './valor-defecto'
+import { problemaDelRango } from './rango'
 import { tieneOpciones, type OpcionDeCampo, type TipoDeCampo, type ValorDefecto } from './tipos'
 
 export const esquemaVersion = z.string().min(1)
@@ -69,16 +70,27 @@ export function esquemaTextoOpcional(largo: number) {
     .nullable()
 }
 
+// Un mínimo o un máximo del rango (9-2): un número o null (sin límite). El tope y el orden los mira `conReglasDeCampo`.
+export const esquemaLimite = z.number().nullable()
+
 type DatosDeCampo = {
   tipo: TipoDeCampo
   opciones: OpcionDeCampo[]
   valorDefecto: ValorDefecto | null
+  minimo: number | null
+  maximo: number | null
 }
 
 // Lo que no se puede decir campo por campo: un tipo con opciones las necesita, uno sin ellas no las
-// lleva, y el valor por defecto tiene que servir para ese tipo.
+// lleva, el valor por defecto tiene que servir para ese tipo y el rango, ser el de la base (`_campo_rango`).
 export function conReglasDeCampo<Esquema extends z.ZodType<DatosDeCampo>>(esquema: Esquema) {
   return esquema
+    .superRefine((campo, ctx) => {
+      const problema = problemaDelRango(campo)
+      if (problema) {
+        ctx.addIssue({ code: 'custom', path: [problema.campo], message: problema.mensaje })
+      }
+    })
     .refine((campo) => !tieneOpciones(campo.tipo) || campo.opciones.length > 0, {
       path: ['opciones'],
       error: 'Un campo de opciones necesita al menos una.',

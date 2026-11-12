@@ -17,6 +17,8 @@ const NUEVO = {
   claveApibara: '',
   valorDefecto: null,
   principal: false,
+  minimo: null,
+  maximo: null,
 }
 
 describe('esquemaCrearCampo', () => {

@@ -16,6 +16,39 @@ function pasa(esquema: Esquema, valor: unknown): unknown {
   return r.success ? r.data : 'ERROR'
 }
 
+describe('esquemaDeValor con rango', () => {
+  it('un número con rango dice su motivo y deja los bordes y lo vacío', () => {
+    const campo = {
+      tipo: 'numero' as const,
+      opciones: [],
+      etiqueta: 'Edad',
+      minimo: 18,
+      maximo: 99,
+    }
+    const esquema = esquemaDeValor(campo, { locale: 'es-BO' })
+    expect(esquema.safeParse('120').error?.issues[0]?.message).toBe('«Edad» va de 18 a 99.')
+    expect(pasa(esquema, '18')).toBe(18)
+    expect(pasa(esquema, '99')).toBe(99)
+    expect(pasa(esquema, '')).toBeNull()
+    expect(
+      pasa(esquemaDeValor({ ...campo, minimo: null, maximo: null }, { locale: 'es-BO' }), '120'),
+    ).toBe(120)
+  })
+
+  it('un valor ya guardado fuera del rango pasa; otro fuera, no', () => {
+    const campo = {
+      tipo: 'moneda' as const,
+      opciones: [],
+      etiqueta: 'Precio',
+      minimo: null,
+      maximo: 1000,
+    }
+    const esquema = esquemaDeValor(campo, { locale: 'es-BO', guardado: 1500 })
+    expect(pasa(esquema, '1500')).toBe(1500)
+    expect(esquema.safeParse('1600').error?.issues[0]?.message).toBe('«Precio» va hasta 1.000.')
+  })
+})
+
 describe('esquemaDeValor', () => {
   it('todo tipo de campo tiene su esquema', () => {
     for (const tipo of TIPOS_DE_CAMPO) {

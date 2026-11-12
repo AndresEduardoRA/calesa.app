@@ -13,6 +13,8 @@ const CAMPO: CampoDeLead = {
   ],
   requerido: false,
   valorDefecto: null,
+  minimo: null,
+  maximo: null,
   valorDefectoEmpresa: null,
   grupo: 'Datos personales',
   orden: 10,
@@ -37,6 +39,8 @@ const IGUAL = {
   activo: CAMPO.activo,
   valorDefecto: CAMPO.valorDefecto,
   valorDefectoEmpresa: CAMPO.valorDefectoEmpresa,
+  minimo: CAMPO.minimo,
+  maximo: CAMPO.maximo,
 }
 
 describe('cambiosRespectoDe', () => {

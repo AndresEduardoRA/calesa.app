@@ -1,11 +1,11 @@
 'use client'
 
 import type { Etapa } from '../../../entities/embudo'
-import type { PanelDeEtapas } from '../hooks/use-panel-de-etapas'
+import type { EtapasEnEdicion } from '../hooks/use-etapas-editables'
 
 const CASILLA = 'inline-flex min-h-11 items-center gap-1.5 text-(length:--text-sm) md:min-h-8'
 
-type Props = { etapa: Etapa; indice: number; grupo: string; panel: PanelDeEtapas }
+type Props = { etapa: Etapa; indice: number; grupo: string; panel: EtapasEnEdicion }
 
 // Inicial (una sola en el embudo: radios del mismo grupo), ganada o perdida.
 export function MarcasDeEtapa({ etapa, indice, grupo, panel }: Props) {

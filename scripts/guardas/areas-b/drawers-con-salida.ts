@@ -43,4 +43,20 @@ export const REGISTRO: Record<string, RegistroDeDrawer> = {
       'src/modules/web/features/contenido/categorias/components/formulario-de-categoria.tsx',
     mecanismo: 'contexto',
   },
+  // El alta y la edición de una pregunta frecuente de Configuración › Sitio web (8.02-1): lo escrito queda en su borrador y pregunta al salir.
+  'src/modules/web/features/contenido/faqs/components/panel-de-faq.tsx': {
+    formulario: 'src/modules/web/features/contenido/faqs/components/panel-de-faq.tsx',
+    mecanismo: 'contexto',
+  },
+  // El alta y la edición de un testimonio de Configuración › Sitio web (8.02-2): lo escrito queda en su borrador y pregunta al salir.
+  'src/modules/web/features/contenido/testimonios/components/panel-de-testimonio.tsx': {
+    formulario: 'src/modules/web/features/contenido/testimonios/components/panel-de-testimonio.tsx',
+    mecanismo: 'contexto',
+  },
+  // «Registrar consentimiento» de un testimonio (8.02-2): el canal y las casillas escritas quedan en su borrador y preguntan al salir.
+  'src/modules/web/features/contenido/testimonios/components/panel-de-consentimiento.tsx': {
+    formulario:
+      'src/modules/web/features/contenido/testimonios/components/panel-de-consentimiento.tsx',
+    mecanismo: 'contexto',
+  },
 }

@@ -40,6 +40,19 @@ describe('necesitaVistaPrevia', () => {
     expect(necesitaVistaPrevia(CAMPO, { opciones: [A] })).toBe(true)
   })
 
+  it('acotar el rango pide contar; quitarlo o ensancharlo, no', () => {
+    const puntaje = {
+      tipo: 'numero',
+      requerido: false,
+      opciones: [],
+      minimo: 1,
+      maximo: 10,
+    } as const
+    expect(necesitaVistaPrevia(puntaje, { maximo: 5 })).toBe(true)
+    expect(necesitaVistaPrevia(puntaje, { minimo: 2 })).toBe(true)
+    expect(necesitaVistaPrevia(puntaje, { maximo: null, minimo: 0 })).toBe(false)
+  })
+
   it('renombrar, desactivar o dejar el mismo tipo no', () => {
     expect(necesitaVistaPrevia(CAMPO, { etiqueta: 'Otro' })).toBe(false)
     expect(necesitaVistaPrevia(CAMPO, { activo: false })).toBe(false)

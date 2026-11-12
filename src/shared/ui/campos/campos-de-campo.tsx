@@ -5,12 +5,14 @@ import {
   ETIQUETA_DE_TIPO_DE_CAMPO,
   MOTIVO_CAMPO_DE_FABRICA,
   tieneOpciones,
+  tieneRango,
   type CampoBase,
   type TipoDeCampo,
 } from '@/shared/lib/campos'
 import { Campo } from '@/shared/ui/campo'
 import { CampoSeleccion } from '@/shared/ui/campo-seleccion'
 import { Interruptor } from '@/shared/ui/interruptor'
+import { CampoRango } from './campo-rango'
 import { CampoValorDefecto } from './campo-valor-defecto'
 import { EditorDeOpciones } from './editor-de-opciones'
 import type { BanderaDeCampo, ErroresDeCampo, ValoresDeCampo } from './tipos'
@@ -104,6 +106,35 @@ function CampoGrupo({ valor, alCambiar, existentes, error, deshabilitado }: Prop
   )
 }
 
+type PropsDelValor = Pick<Props, 'valores' | 'alCambiar' | 'errores' | 'deshabilitado'>
+
+// Lo que precarga el alta y, en un número o un monto, el rango que admite.
+function ValorYRango({ valores, alCambiar, errores, deshabilitado }: PropsDelValor) {
+  return (
+    <>
+      <CampoValorDefecto
+        tipo={valores.tipo}
+        opciones={valores.opciones}
+        valor={valores.valorDefecto}
+        alCambiar={(valorDefecto) => {
+          alCambiar({ valorDefecto })
+        }}
+        error={errores.valorDefecto}
+        deshabilitado={deshabilitado}
+      />
+      {tieneRango(valores.tipo) ? (
+        <CampoRango
+          minimo={valores.minimo}
+          maximo={valores.maximo}
+          alCambiar={alCambiar}
+          errores={errores}
+          deshabilitado={deshabilitado}
+        />
+      ) : null}
+    </>
+  )
+}
+
 // Los datos de un campo del layout. La clave sale de la etiqueta al crear y no cambia después.
 export function CamposDeCampo(props: Props) {
   const { valores, alCambiar, alCambiarBandera, campo, banderas, tipos } = props
@@ -153,14 +184,10 @@ export function CamposDeCampo(props: Props) {
           deshabilitado={deshabilitado}
         />
       ) : null}
-      <CampoValorDefecto
-        tipo={valores.tipo}
-        opciones={valores.opciones}
-        valor={valores.valorDefecto}
-        alCambiar={(valorDefecto) => {
-          alCambiar({ valorDefecto })
-        }}
-        error={errores.valorDefecto}
+      <ValorYRango
+        valores={valores}
+        alCambiar={alCambiar}
+        errores={errores}
         deshabilitado={deshabilitado}
       />
       <CampoGrupo

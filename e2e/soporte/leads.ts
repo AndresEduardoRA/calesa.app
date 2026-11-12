@@ -37,6 +37,8 @@ export type CampoDeLeadEnLaBase = {
   opciones: { clave: string; etiqueta: string }[]
   valor_defecto: unknown
   valor_defecto_empresa: string | null
+  minimo: number | null
+  maximo: number | null
 }
 
 // El layout de los leads, en su orden.
@@ -44,7 +46,7 @@ export async function camposDeLead(): Promise<CampoDeLeadEnLaBase[]> {
   const { data, error } = await admin()
     .from('leads_campos')
     .select(
-      'id, clave, etiqueta, tipo, orden, grupo, requerido, en_tabla, filtrable, solo_cartera, es_sistema, activo, opciones, valor_defecto, valor_defecto_empresa',
+      'id, clave, etiqueta, tipo, orden, grupo, requerido, en_tabla, filtrable, solo_cartera, es_sistema, activo, opciones, valor_defecto, valor_defecto_empresa, minimo, maximo',
     )
     .order('orden')
     .returns<CampoDeLeadEnLaBase[]>()
