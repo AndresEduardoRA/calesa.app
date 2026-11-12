@@ -22,3 +22,8 @@ export const FormularioDeEdicionDiferido = diferido(() =>
 export const EliminarRequisitoDiferido = diferido(() =>
   import('./eliminar-requisito').then((modulo) => modulo.EliminarRequisito),
 )
+
+// El panel de «fuera de regla» (`?panel=fuera-de-regla`) se pide recién al abrirse.
+export const PanelDeFueraDeReglaDiferido = diferido(() =>
+  import('./panel-de-fuera-de-regla').then((modulo) => modulo.PanelDeFueraDeRegla),
+)

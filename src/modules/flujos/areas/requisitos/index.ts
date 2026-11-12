@@ -4,6 +4,7 @@
 export { leerFueraDeRegla } from './composicion'
 export { TOPE_DE_FUERA_DE_REGLA, armarFueraDeRegla } from '../../entities/requisitos/fuera-de-regla'
 export type {
+  GrupoDelPanel,
   GrupoFueraDeRegla,
   UnidadFueraDeRegla,
 } from '../../entities/requisitos/fuera-de-regla'

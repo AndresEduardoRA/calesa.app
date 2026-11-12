@@ -63,6 +63,9 @@ export type GrupoFueraDeRegla = {
   unidades: UnidadDelPanel[]
 }
 
+// Lo que cruza al cliente: el grupo con su camino al inventario (`src/app` lo arma; nulo si no hay inventario al que enlazar, como en repuestos).
+export type GrupoDelPanel = GrupoFueraDeRegla & { href: string | null }
+
 // Agrupa por fase en el orden en que llegan (la base las trae por orden de fase). `titulos` son los de los vehículos que quien mira puede ver; `null` si no se
 // pudieron leer. Un grupo de fase jubilada lo dice; una fase que ya no está en el flujo, también.
 export function armarFueraDeRegla(
