@@ -18,4 +18,5 @@ export {
   type SesionDelPortal,
 } from '../../entities/portal/sesion'
 export { ipDelPedido } from '../../entities/portal/ip'
+export { mismoOrigenDelPortal } from '../../entities/portal/origen'
 export type { IngresoDelPortal } from '../../entities/portal/repositorios'
