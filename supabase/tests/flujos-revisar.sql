@@ -78,7 +78,7 @@ begin
   return fl;
 end $f$;
 
--- Los avisos que recibe una persona, como `codigo:fase_id` ordenados (nulo si la llamada falla, con el error en un aviso de la sesión).
+-- Los avisos que recibe una persona, como `codigo:fase_id` ordenados. Un error de la llamada hace caer el bloque.
 create or replace function pg_temp.frv_avisos(p_quien uuid, p_flujo uuid) returns text[] language plpgsql as $f$
 declare v text[];
 begin
@@ -170,7 +170,7 @@ do $$
 declare
   fl uuid := pg_temp.frv_flujo(); rep uuid := (select id from public.flujos where ambito = 'repuestos');
   config uuid := pg_temp.frv_persona(array['flujos.configurar', 'repuestos.configurar']);
-  i uuid := pg_temp.frv_fase_id(fl, 'I'); a uuid := pg_temp.frv_fase_id(fl, 'A'); i2 uuid; td uuid;
+  i uuid := pg_temp.frv_fase_id(fl, 'I'); a uuid := pg_temp.frv_fase_id(fl, 'A'); i2 uuid; td uuid; r1 uuid; v text[];
   -- Su rol propio (en una base sin cuentas, la primera también recibe «dueno»).
   con_gente uuid := (select ur.rol_id from public.usuarios_roles ur join public.roles r on r.id = ur.rol_id where ur.usuario_id = config and r.clave like 'frv\_%');
 begin
@@ -189,10 +189,13 @@ begin
   insert into public.fases_requisitos (fase_id, tipo, bloqueante, tipo_documento_id) values (i, 'documento', true, td);
   perform pg_temp.frv_es('R4 la inicial pide un requisito bloqueante', pg_temp.frv_avisos(config, fl), pg_temp.frv_esperado('entrada_no_automatica:' || i));
   -- El flujo de repuestos es uno y compartido (trae sus fases de la siembra): sólo se afirma que no aparece el código.
-  perform pg_temp.frv_fase(rep, 'FRV inicial 1', 1001, true, false);
+  -- Que «FRV inicial 1» (sin salida) aparezca asegura que la llamada sí respondió.
+  r1 := pg_temp.frv_fase(rep, 'FRV inicial 1', 1001, true, false);
   perform pg_temp.frv_fase(rep, 'FRV inicial 2', 1002, true, false);
   if (select count(*) from public.fases where flujo_id = rep and es_inicial and activa) < 2 then raise exception 'R4: repuestos debía tener dos iniciales'; end if;
-  if exists (select 1 from unnest(pg_temp.frv_avisos(config, rep)) x where x like 'entrada_no_automatica:%') then
+  v := pg_temp.frv_avisos(config, rep);
+  if not ('sin_salida:' || r1) = any (v) then raise exception 'R4: repuestos debía responder (sin_salida de FRV inicial 1) y dio %', v; end if;
+  if exists (select 1 from unnest(v) x where x like 'entrada_no_automatica:%') then
     raise exception 'R4: repuestos no debía dar entrada_no_automatica';
   end if;
 end $$;
@@ -215,18 +218,19 @@ begin
 end $$;
 rollback;
 
--- @test revisar: salida_a_jubilada sin sin_salida ni inalcanzable de más (R6)
+-- @test revisar: salida_a_jubilada sin sin_salida ni inalcanzable de más, también si es la única salida (R6, D4)
 begin;
 do $$
 declare
-  fl uuid := pg_temp.frv_flujo(); config uuid := pg_temp.frv_persona(array['flujos.configurar']);
-  a uuid := pg_temp.frv_fase_id(fl, 'A'); f uuid := pg_temp.frv_fase_id(fl, 'F'); j uuid := pg_temp.frv_fase(fl, 'J', 50);
+  fl uuid := pg_temp.frv_flujo(false); config uuid := pg_temp.frv_persona(array['flujos.configurar']);
+  b uuid := pg_temp.frv_fase_id(fl, 'B'); f uuid := pg_temp.frv_fase_id(fl, 'F'); j uuid := pg_temp.frv_fase(fl, 'J', 50);
 begin
-  perform pg_temp.frv_salida(a, j);
+  -- La única salida de B va a J.
+  perform pg_temp.frv_salida(b, j);
   perform pg_temp.frv_salida(j, f);
   perform pg_temp.frv_es('R6 J activa', pg_temp.frv_avisos(config, fl), '{}');
   update public.fases set activa = false where id = j;
-  perform pg_temp.frv_es('R6 J jubilada', pg_temp.frv_avisos(config, fl), pg_temp.frv_esperado('salida_a_jubilada:' || a));
+  perform pg_temp.frv_es('R6 J jubilada', pg_temp.frv_avisos(config, fl), pg_temp.frv_esperado('salida_a_jubilada:' || b));
 end $$;
 rollback;
 
