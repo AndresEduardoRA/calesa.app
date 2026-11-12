@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { filaDeItemDesde, type FilaDeItem } from '../nucleo/item'
-import { armarHoja, cuentasDeLaHoja, hojaLlena } from './hoja'
+import { armarHoja, cuentasDeLaHoja, hojaLlena, nombreDelValor } from './hoja'
 
 const ID = '7f9c1d2e-3a4b-4c5d-8e6f-0123456789ab'
 const fila = (): FilaDeItem =>
@@ -37,5 +37,21 @@ describe('la hoja', () => {
   })
   it('las cuentas salen de lo leído', () => {
     expect(cuentasDeLaHoja(filas(3))).toEqual({ items: 3, pendientes: 3 })
+  })
+})
+
+describe('nombreDelValor', () => {
+  const catalogos = {
+    tipo_pieza: { valores: [{ id: 'a', nombre: 'Faro', activo: false }] },
+    condicion: { valores: [] },
+    pais_origen: { valores: [] },
+    modo_transporte: { valores: [] },
+  }
+  it('da el nombre aunque el valor esté desactivado', () => {
+    expect(nombreDelValor(catalogos, 'tipo_pieza', 'a')).toBe('Faro')
+  })
+  it('sin id o con un id que ya no está, nulo', () => {
+    expect(nombreDelValor(catalogos, 'tipo_pieza', null)).toBeNull()
+    expect(nombreDelValor(catalogos, 'condicion', 'a')).toBeNull()
   })
 })

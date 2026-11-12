@@ -13,7 +13,7 @@ import {
 import { crearAsesoraDeLaSemilla } from './soporte/recorrido'
 import { sql } from './soporte/sql'
 
-// `/repuestos` (8.09-1): la dueña crea un proyecto externo con la tecla N y lo ve en la lista; la búsqueda por `?q=` lo deja o no deja filas; quien sólo ve repuestos ve la
+// `/repuestos` (8.09-1): la dueña crea un proyecto externo con la tecla N, cae en su detalle y lo ve en la lista; la búsqueda por `?q=` lo deja o no deja filas; quien sólo ve repuestos ve la
 // lista sin «Nuevo proyecto» ni atajo; la asesora de la semilla no tiene `repuestos.ver`. El vinculado a un vehículo (`?vehiculo=`) se prueba en 8.09-4 con
 // `repuestos-proyecto.spec.ts`. El spec limpia lo que crea por su etiqueta.
 test.describe.configure({ mode: 'serial' })
@@ -84,7 +84,10 @@ test('la dueña crea un proyecto externo con N y lo ve en la lista; la búsqueda
   await nuevo(page).getByRole('button', { name: 'Crear proyecto' }).click()
   await expect(nuevo(page)).toBeHidden()
 
-  // Sigue en la lista y el proyecto nuevo (el de número más alto) está primero, sin ítems.
+  // Tras crear se va al detalle del proyecto (8.09-2); de ahí se vuelve a la lista, donde el nuevo (el de número más alto) está primero, sin ítems.
+  await expect(page).toHaveURL(/\/repuestos\/[0-9a-f-]{36}$/)
+  await expect(page.getByRole('heading', { name: /^Proyecto #\d+$/ })).toBeVisible()
+  await page.goto('/repuestos')
   const principal = page.getByRole('main')
   await expect(principal.getByText(`Externo · ${ETIQUETA}`)).toBeVisible()
   await expect(principal.getByText('Taller Los Pinos')).toBeVisible()

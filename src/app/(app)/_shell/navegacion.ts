@@ -91,7 +91,7 @@ export const NAVEGACION = [
     Icono: BoxesIcon,
     zona: 'principal',
     permisos: ['repuestos.ver'],
-    disponible: false,
+    disponible: true,
   },
   {
     clave: 'agenda',

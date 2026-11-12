@@ -20,7 +20,6 @@ export type ElegidoInicial = { id: string; titulo: string }
 type Args = {
   // El vehículo con que abre el formulario (`?vehiculo=`), ya resuelto por el servidor y visible para quien mira.
   vehiculoInicial: ElegidoInicial | null
-  alCerrar: () => void
   abierto: boolean
 }
 
@@ -32,7 +31,7 @@ const VACIO: EstadoDelFormulario = {
 
 // El estado del formulario «Nuevo proyecto»: el borrador (en `sessionStorage`: son más de 6 campos) y el motivo junto a cada campo; el envío es de `useEnvioDeProyecto`. Cada apertura
 // trae un id de intento nuevo (`crypto.randomUUID()`) y los campos vacíos, o el vehículo con que se abrió.
-export function useFormularioDeProyecto({ vehiculoInicial, alCerrar, abierto }: Args) {
+export function useFormularioDeProyecto({ vehiculoInicial, abierto }: Args) {
   const [intento] = useState(() => crypto.randomUUID())
   const [inicial] = useState<EstadoDelFormulario>(() =>
     vehiculoInicial
@@ -70,7 +69,6 @@ export function useFormularioDeProyecto({ vehiculoInicial, alCerrar, abierto }: 
   const envio = useEnvioDeProyecto({
     intento,
     abierto,
-    alCerrar,
     alGuardar: borrador.limpiar,
     alRechazarCampos: setErrores,
   })

@@ -29,3 +29,33 @@ export const AVISO_DE_PROYECTO_CERRADO = 'El proyecto está cerrado: reábrelo p
 export const MOTIVO_SIN_PERMISO_PARA_EDITAR = 'Sin permiso para editar.'
 export const MOTIVO_PROYECTO_CERRADO = 'Proyecto cerrado.'
 export const TEXTO_DE_HOJA_VACIA = 'Este proyecto todavía no tiene ítems.'
+
+// Los catálogos que la hoja ofrece en sus celdas: cuatro listas de valores (la página pasa `leerCatalogosDeRepuestos()` tal cual: tiene de más). `areas/items` no importa
+// `areas/catalogos`, así que lo que necesita lo declara acá y el tipo de aquel lo cumple por estructura.
+export type ValorDeLaHoja = { id: string; nombre: string; activo: boolean }
+export const CATALOGOS_DE_LA_HOJA = [
+  'tipo_pieza',
+  'condicion',
+  'pais_origen',
+  'modo_transporte',
+] as const
+export type ClaveDeCatalogoDeLaHoja = (typeof CATALOGOS_DE_LA_HOJA)[number]
+export type CatalogosDeLaHoja = Record<
+  ClaveDeCatalogoDeLaHoja,
+  { valores: readonly ValorDeLaHoja[] }
+>
+
+/** Una moneda que se ofrece en la hoja (las activas de la empresa, en su orden). */
+export type MonedaDeLaHoja = { codigo: string; simbolo: string; decimales: number }
+
+/** El nombre de un valor de catálogo por su id (también si ya se desactivó: lo guardado no se pierde); nulo si no hay id o ya no está. */
+export function nombreDelValor(
+  catalogos: CatalogosDeLaHoja,
+  catalogo: ClaveDeCatalogoDeLaHoja,
+  id: string | null,
+): string | null {
+  if (id === null) {
+    return null
+  }
+  return catalogos[catalogo].valores.find((v) => v.id === id)?.nombre ?? null
+}

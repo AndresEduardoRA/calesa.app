@@ -1,17 +1,19 @@
 'use client'
 
+import type { Route } from 'next'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { enviarAccion } from '@/shared/lib/enviar-accion'
 import { avisarExito } from '@/shared/ui/toasts'
 import { useReintentoAlVolver } from '@/shared/ui/use-reintento-al-volver'
 import type { DatosDeProyecto } from '../../../entities/proyectos/repositorio'
+import { rutaDelProyecto } from '../../../entities/proyectos/rutas'
 import { crearProyecto } from '../actions/crear-proyecto'
 
 type Args = {
   // El id del intento: se conserva en cada reintento, así reenviar no duplica (la base es idempotente por id).
   intento: string
   abierto: boolean
-  alCerrar: () => void
   // Se creó: tira el borrador.
   alGuardar: () => void
   // La base rechazó campos concretos: el motivo junto a cada uno.
@@ -21,14 +23,9 @@ type Args = {
 const MENSAJE_DE_VALIDACION = 'Revisa los datos del proyecto.'
 
 // El envío de un proyecto nuevo (8.09-1): por su Server Action y qué pasa con la respuesta. Sin conexión, lo escrito queda pendiente y sale solo al volver la red; un rechazo de la base
-// se dice por campo o arriba del formulario. Tras crear, el drawer se cierra y la lista se renueva con el `revalidatePath` de la action (D39: el detalle llega en la parte 2).
-export function useEnvioDeProyecto({
-  intento,
-  abierto,
-  alCerrar,
-  alGuardar,
-  alRechazarCampos,
-}: Args) {
+// se dice por campo o arriba del formulario. Tras crear, el drawer se cierra y se va al detalle del proyecto, donde se cargan los ítems (8.09-2; antes se quedaba en el listado, D39).
+export function useEnvioDeProyecto({ intento, abierto, alGuardar, alRechazarCampos }: Args) {
+  const router = useRouter()
   const [aviso, setAviso] = useState<string | null>(null)
   const [pendiente, setPendiente] = useState<DatosDeProyecto | null>(null)
   const [enCurso, setEnCurso] = useState(false)
@@ -45,7 +42,8 @@ export function useEnvioDeProyecto({
       alGuardar()
       setPendiente(null)
       avisarExito(`Proyecto #${String(envio.data.numero)} creado.`)
-      alCerrar()
+      // Ir al detalle ya saca el panel de la pantalla: cerrarlo antes escribiría `?panel=` en la URL (nuqs, asíncrono) y pisaría el destino.
+      router.push(rutaDelProyecto(envio.data.id) as Route)
       return true
     }
     if ('sinRed' in envio) {

@@ -28,7 +28,6 @@ function Formulario(p: Omit<Props, 'apertura'>) {
   const formulario = useRef<HTMLFormElement>(null)
   const f = useFormularioDeProyecto({
     vehiculoInicial: p.vehiculoInicial,
-    alCerrar: p.alCerrar,
     abierto: p.abierto,
   })
   // Con algo escrito, la acción de un aviso que sale de la pantalla pregunta en el pie; descartar tira el borrador.
