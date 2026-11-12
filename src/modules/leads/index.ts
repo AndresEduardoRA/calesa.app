@@ -45,6 +45,17 @@ export {
 } from './features/importar/lecturas'
 // Exportar a CSV (parte 8): lo llama el route handler de `src/app/(app)/leads/exportar`.
 export { exportarLeadsEnCsv, type SalidaDeExportacion } from './features/exportar/lecturas'
+// La clave del panel de exportar (`/leads?panel=exportar`): «Mis leads» de `/datos` enlaza a ese diálogo sin repetir el texto.
+export { PANEL_EXPORTAR } from './entities/exportacion'
+// Exportar todo (`datos`, 9.05-2): las celdas de un lead y sus catálogos, para que el archivo de «todo» diga cada valor como el propio
+// (una sola regla por tipo de campo). Lo de quién ve qué lo decide la base en la lectura de `datos`, no esto.
+export { leerCatalogosDeLead } from './composicion'
+export {
+  ENCABEZADO_DEL_NUMERO_GLOBAL,
+  camposDeExportacion,
+  telefonoDeExportacion,
+  valorDeExportacion,
+} from './entities/exportacion'
 // La vista de embudo de `/leads` (`?vista=embudo`): los embudos de quien mira y el kanban del elegido
 // (`leerVistaDeEmbudo`), dibujados por `<VistaDeEmbudo>`; mientras llega, `<EsqueletoDeTablero>`. Sólo
 // las oportunidades propias sobre leads de la cartera: lo decide la base.

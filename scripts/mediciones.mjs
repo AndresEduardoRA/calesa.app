@@ -76,6 +76,21 @@ export const MEDICIONES_BASE = [
 // la semilla no lo tiene. `pnpm db:medir:volumen`; después, `pnpm db:reset`.
 export const MEDICIONES_CON_VOLUMEN = [
   [
+    'supabase/tests/medir-datos-exportar.sql',
+    'Exportar todo de leads (9.05-2): la consulta del route handler a datos_exportar_leads() con la siembra, como authenticated y con el plan genérico: la primera página, una profunda por cursor y una de ids de la dueña («todos», por leads_listado_idx, sin Function Scan); el conteo entero hasta el tope y la lectura entera por páginas (s), y Berta («propios») sin assert',
+    MEDIANA,
+  ],
+  [
+    'supabase/tests/medir-datos-exportar-vehiculos.sql',
+    'Exportar todo de vehículos (9.05-2b): la consulta del route handler a la tabla vehiculos con 250.000 de un origen, como authenticated y con el plan genérico: la primera página y una profunda por cursor de la dueña («todos», por vehiculos_origen_listado_idx, sin Seq Scan); el conteo entero hasta el tope y la lectura entera por páginas (s), y Pía («propios») sin assert',
+    MEDIANA,
+  ],
+  [
+    'supabase/tests/medir-datos-exportar-cotizaciones.sql',
+    'Exportar todo de cotizaciones (9.05-2c): la consulta del route handler a la tabla cotizaciones con ≈ 250.000 vivas, como authenticated y con el plan genérico: la primera página, una profunda por cursor (cotizaciones_listado_idx) y la de un origen (cotizaciones_origen_creado_idx) de la dueña, sin Seq Scan; el conteo entero y la lectura entera por páginas (s); los nombres de una página (leads_vista_por_ids y vehiculos de a 100); y Pía («propios») sin assert, con su página más cara',
+    MEDIANA,
+  ],
+  [
     'supabase/tests/medir-escala.sql',
     'Escala de toda la app, 50.000 leads y 50.000 cotizaciones sembradas (dueña «todos» y Ana «propios»)',
     MEDIANA,
