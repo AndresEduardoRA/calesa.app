@@ -36,6 +36,11 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Tipo de cambio** — `tipos_cambio` (clave: oficial, paralelo…) / `TipoCambio`: valor nombrado entre dos monedas; un solo valor vigente por clave; se congela en cada cotización.
 - **Tipo de cambio por defecto** — `tipos_cambio.es_default`: el que se usa entre dos monedas cuando no se elige otro; uno solo por par.
 - **Historial de un tipo de cambio** — `tipos_cambio_historial` / `CambioDeValor`: de cuánto a cuánto cambió, quién y cuándo; lo escribe un trigger.
+- **Monto en moneda base** — `gastos.monto_base`, `pagos.monto_base` / `_monto_en_base()`: lo calcula la base con el tipo de cambio elegido (su valor de ese momento queda en `tipo_cambio_aplicado`); quien carga nunca lo manda.
+- **Prorratear** — `gastos_prorratear()` / `gastos.lote_id`: repartir un gasto entre 1 y 200 vehículos en partes iguales; los centavos que sobran, a los primeros, y la suma es exacta. Un reparto es un lote.
+- **Confirmar un pago** — `pago_confirmar()` / `logistica.pagos.confirmar`: acto aparte de registrarlo; el sello (quién y cuándo) lo pone la base y un pago confirmado ya no se edita ni se elimina.
+- **Anular un pago** — `pago_anular()` / `logistica.pagos.confirmar`: saca de la venta un pago confirmado, con motivo y constancia `pago.anulado` en `actividad`; no vuelve. No se confunde con eliminar, que es sólo para uno sin confirmar. No deja sin cumplir lo que la fase actual pide de pagos (6.10-2).
+- **Comprobante de un gasto o pago** — `gastos.comprobante_ruta`, `pagos.comprobante_ruta`, bucket `comprobantes` / `comprobante_puede()`: el archivo que respalda un gasto o un pago, en la carpeta de su unidad (`<unidad>/<sha-256>.<ext>`); lo lee quien ve la fila que lo nombra. No es el **Comprobante** de venta (6.10-2).
 - **Integración** — `integraciones` / `Integracion`, `integracionActiva()`: interruptor + config no secreta (apibara, push, web pública).
 - **Secreto de una integración** — `integraciones.secreto_guardado_en` / `integracion_guardar_secreto()`: clave de API en Vault.
 - **Origen** — `origenes`: de dónde viene un vehículo (subasta USA, China, oficina, Corea…); tipo subasta o manual.
@@ -283,7 +288,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Declaración aduanera** — `declaraciones_aduana`, `declaraciones_vehiculos`: DUI: número, canal de aforo, vencimiento de tributos; N:M.
 - **Gasto** — `gastos`, `categorias_gasto`: costo real imputado a una unidad, en su moneda y en base.
 - **Pago** — `pagos`: pago del cliente; confirmar es un acto sellado.
-- **Desviación / Margen** — `margen_vehiculo()`: cotizado − real / venta − real (null si no hay venta).
+- **Desviación / Margen** — `margen_vehiculo()`: cotizado − real / venta − real (null si no hay venta); `por_categoria` reparte el real por categoría de gasto (6.10-2).
 - **Nota** — `notas`: bloc de notas de una unidad; la del cambio de fase apunta a su historial.
 - **Proyecto de repuestos** — `repuestos_proyectos`: un proyecto por vehículo (o externo).
 - **Ítem de repuesto** — `repuestos_items`: el repuesto que recorre el flujo de repuestos.

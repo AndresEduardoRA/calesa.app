@@ -193,6 +193,18 @@ declare
     ('evento_crear(uuid,jsonb,uuid[])', 'X'),
     ('evento_guardar(uuid,timestamp with time zone,jsonb,uuid[])', 'X'),
     ('evento_eliminar(uuid,timestamp with time zone)', 'X'),
+    -- Los pagos (6.10-1): escriben `public.pagos` y su `lead_id`, pero el lead lo exige `trg_lead_visible` dentro de la RPC (`puede_lead` con
+    -- `leads.ver`, el mismo mensaje para uno ajeno o inexistente) y no lo devuelven. Lo prueba `areas/dinero/pagos.sql`.
+    ('pago_registrar(uuid,uuid,uuid,text,text,numeric,uuid,text,date,text,text)', 'X'),
+    ('pago_guardar(uuid,timestamp with time zone,jsonb)', 'X'),
+    ('pago_eliminar(uuid,timestamp with time zone)', 'X'),
+    ('pago_confirmar(uuid,timestamp with time zone)', 'X'),
+    ('pago_anular(uuid,timestamp with time zone,text)', 'X'),
+    -- Los comprobantes (6.10-2): nombra `public.pagos` y `public.repuestos_proyectos` para decidir si se lee o sube un objeto; devuelve un booleano.
+    ('comprobante_puede(text,text)', 'L'),
+    -- Las listas (6.10-2): miran `vehiculos.lead_id` sólo para el alcance «propios» (`en_cartera`), como `puede_vehiculo`; no devuelven el lead.
+    ('gastos_listar(date,uuid,integer,jsonb)', 'L'),
+    ('pagos_listar(date,uuid,integer,jsonb)', 'L'),
     -- El chat (7.08-2): una ficha o mención de lead se pide visible (`puede_lead`, `trg_lead_visible`); no toca la cartera ni devuelve el lead.
     -- Responden {resultado, id, …} (`areas/chat/mensajes.sql`, `mensajes-editar.sql`, `fichas.sql`).
     ('mensaje_enviar(uuid,uuid,text,jsonb,uuid,jsonb)', 'X'),
