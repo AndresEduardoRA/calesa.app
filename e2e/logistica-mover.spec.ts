@@ -17,6 +17,8 @@ test.describe.configure({ mode: 'serial' })
 
 let proyecto = ''
 let terreno: TerrenoDeMover
+// El vehículo que la segunda cuenta movió de A a B con la nota «Yo primero.» (lo deja la prueba 3 y lo lee la 4).
+let conCambioDeOtra = ''
 
 test.beforeAll(async ({}, info) => {
   proyecto = info.project.name
@@ -98,6 +100,7 @@ test('E2E mover · si otra persona movió antes, el aviso de conflicto la nombra
   // La segunda cuenta mueve primero el vehículo que sigue en A… que ya está en B por la primera prueba: se usa un vehículo nuevo.
   await entrar(page, terreno.primera.correo)
   const sinMover = await vehiculoNuevoEnA(terreno)
+  conCambioDeOtra = sinMover
   await page.goto(`/logistica/vehiculo/${sinMover}`)
   await page.getByRole('button', { name: `Elegir el destino «${terreno.b.nombre}»` }).click()
   await page.getByLabel('Nota interna (obligatoria)').fill('Mi nota.')
@@ -121,6 +124,50 @@ test('E2E mover · si otra persona movió antes, el aviso de conflicto la nombra
   await page.getByRole('button', { name: `Elegir el destino «${terreno.c.nombre}»` }).click()
   await expect(page.getByLabel(/Nota interna/)).toHaveValue('Mi nota.')
   await otra.context().close()
+})
+
+const bloque = (page: Page, clave: string) => page.locator(`[data-bloque-del-hueco="${clave}"]`)
+
+test('E2E mover · el historial dice quién movió y con qué nota; las notas se escriben y se corrigen; la ficha enlaza a logística', async ({
+  page,
+}) => {
+  await entrar(page, terreno.primera.correo, { fresco: true })
+  await page.goto(`/logistica/vehiculo/${conCambioDeOtra}`)
+
+  // Historial: el cambio que hizo la otra persona, con su nombre y su nota.
+  await bloque(page, 'historial').locator('summary').click()
+  const historial = page.locator('[data-hueco="historial"]')
+  await expect(historial.getByText(`«${terreno.a.nombre}» → «${terreno.b.nombre}»`)).toBeVisible()
+  await expect(historial).toContainText('Rosa Mamani')
+  await expect(historial).toContainText('Yo primero.')
+
+  // Notas: la del cambio de fase dice de dónde nació y no se edita (no es de esta cuenta ni se corrige).
+  await bloque(page, 'notas').locator('summary').click()
+  const notas = page.locator('[data-hueco="notas"]')
+  const delCambio = notas.locator('[data-nota]').filter({ hasText: 'Yo primero.' })
+  await expect(delCambio).toContainText(`al pasar a «${terreno.b.nombre}»`)
+  await expect(delCambio.getByRole('button', { name: 'Editar' })).toHaveCount(0)
+
+  // Escribir una nota propia: aparece con «Editar».
+  await notas.getByLabel('Escribir una nota').fill('Revisar el BL')
+  await notas.getByRole('button', { name: 'Guardar nota' }).click()
+  const propia = notas.locator('[data-nota]').filter({ hasText: 'Revisar el BL' })
+  await expect(propia).toBeVisible()
+  await expect(notas.getByLabel('Escribir una nota')).toHaveValue('')
+
+  // Corregirla en el lugar con Ctrl+Enter.
+  await propia.getByRole('button', { name: 'Editar' }).click()
+  await propia.getByLabel('Corregir la nota').fill('Revisar el BL con Ana')
+  await propia.getByLabel('Corregir la nota').press('Control+Enter')
+  await expect(
+    notas.locator('[data-nota]').filter({ hasText: 'Revisar el BL con Ana' }),
+  ).toBeVisible()
+  await expect(notas.getByLabel('Corregir la nota')).toHaveCount(0)
+
+  // La ficha del vehículo enlaza a su unidad en logística.
+  await page.goto(`/vehiculos/${conCambioDeOtra}`)
+  await page.getByRole('link', { name: 'Ver en logística' }).click()
+  await expect(page).toHaveURL(new RegExp(`/logistica/vehiculo/${conCambioDeOtra}$`))
 })
 
 async function vehiculoNuevoEnA(t: TerrenoDeMover): Promise<string> {
