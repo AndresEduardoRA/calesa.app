@@ -4,9 +4,9 @@ Bandeja de inicio por rol y tablero de métricas con widgets personalizables por
 
 ## Entra y sale
 
-- Entra: permisos del usuario, `?periodo=` de la URL y, desde el 9.08-3, la preferencia `tablero.widgets` de `preferencias_usuario`.
+- Entra: permisos del usuario, `?periodo=` de la URL y, la preferencia `tablero.widgets` de `preferencias_usuario`.
 - Sale: `<Bandeja nombre permisos sinRol zona>` para `/` por `pantallas/inicio.ts` (sólo `src/app`; el `index.ts` no exporta componentes, hoy nada) y `<PanelDelTablero permisos periodo zona>` para `/tablero` por `pantallas/tablero.ts` (9.08-1). No lo consume ningún módulo.
-- Depende de: `leads` (recordatorios de hoy, leads sin seguimiento), `agenda` (mis tareas: `leerMisTareas`, 7.07-3), `equipo` (personas sin rol) y `logistica` (los tres bloques de la Fase 6: `bandejaLogistica`, una lectura por request, y las claves de URL de la cadena para «Ver todas», 6.12-2), por su `index.ts`. Cuando los demás bloques tengan contenido: `web` (y por su API, `cotizaciones`, `repuestos`). «Ver todas» (`components/ver-todas-del-bloque.tsx`) lo dibuja cada bloque que lo necesita, bajo su lista.
+- Depende de: `leads` (recordatorios de hoy, leads sin seguimiento), `agenda` (mis tareas: `leerMisTareas`, 7.07-3), `equipo` (personas sin rol; `client.ts`: `guardarPreferencia` y `CLAVE_WIDGETS_DEL_TABLERO`) y `logistica` (los tres bloques de la Fase 6: `bandejaLogistica`, una lectura por request, y las claves de URL de la cadena para «Ver todas», 6.12-2), por su `index.ts`. Cuando los demás bloques tengan contenido: `web` (y por su API, `cotizaciones`, `repuestos`). «Ver todas» (`components/ver-todas-del-bloque.tsx`) lo dibuja cada bloque que lo necesita, bajo su lista.
 
 ## Archivos clave
 
@@ -17,7 +17,7 @@ Bandeja de inicio por rol y tablero de métricas con widgets personalizables por
 - `infra/queries/metricas.ts` — las RPC `tablero_leads` y `tablero_cotizaciones` (9.07; una por grupo de widgets, piden `tablero.metricas.ver`, ventana ≤ 366 días), validadas con Zod; `composicion.ts` las une a la interfaz. «Convertidos» sale de `leads.cliente_desde` (sin grant: la leen esas RPC y queda en la foto de `actividad`, D12).
 - `features/metricas/` — `lectura.ts` (una llamada por grupo y request, con `cache()`), `widgets/<clave>.tsx` (un archivo por widget, Server Component que dibuja su cuerpo; `widgets/registro.ts` los une con un `Record<ClaveDeWidget, …>`; **quien llena un hueco edita su archivo**) y `components/` (`panel-del-tablero`, `marco-de-widget`, `montaje-de-widget` con `await connection()` tras su `<Suspense>`, `selector-de-periodo` con tres `<Link>`, `error-de-widget` con «Reintentar»). Cada cifra es un `role="group"` con nombre «Título: valor».
 - `entities/graficas.ts` (escala redonda, fracción, marcas de días, textos y topes `TOPE_DE_ORIGENES`/`TOPE_DE_PERSONAS`) y `features/metricas/graficas/` (`barras-por-dia`, `ranking`, `tabla-equivalente` con «Ver como tabla» en un `<details>`, `vacio-de-grafica`, `leyenda`): HTML y SVG de servidor con los tokens `--viz-*`; una gráfica es `role="img"`, no `group`. Cinco widgets anchos las usan (`leads-por-dia`, `cotizaciones-por-dia`, `leads-por-origen`, `leads-por-persona`, `cotizaciones-por-origen`).
-- Pendiente: «Personalizar» y la preferencia `tablero.widgets` (9.08-3).
+- `entities/personalizar.ts` (mover, alternar, `aPreferencia`, `filasDesde`) y `features/metricas/personalizar/`: «Personalizar» (`?panel=personalizar`, `<Drawer>` con `diferido()`; interruptor y subir/bajar por widget, guarda al cambiar con `guardarPreferencia` de `equipo/client`, «Restablecer» manda `null`). Sólo se ofrece lo que `widgetsVisibles(permisos)` deja ver; `/tablero` aplica la preferencia con `widgetsParaMontar(permisos, preferencia)`.
 
 ## Tablas
 
