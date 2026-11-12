@@ -5,14 +5,16 @@ Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista pre
 ## Entra y sale
 
 - Entra: archivo CSV subido desde el navegador, mapeo de columnas, confirmación.
-- Sale: `/datos`.
-- Depende de: `leads`, `vehiculos`. **Los listados no dependen de `datos`:** el CSV de lo propio de `leads` (exportar «lo que ves» e importar con vista previa) vive en `leads` (Fase 3, parte 8) y `datos` lo consume por su entrada y reutiliza `shared/lib/csv` (`escribir`, `leer`, `descargar`). Lo que es de `datos` es el **todo del dueño** con `datos.exportar.todo` e `importar-csv`.
+- Sale: `/datos` y `POST /datos/exportar` (9.05-2: el archivo de «exportar todo» por un flujo; `index.ts` da `exportarTodo`, `esquemaDelPedido` y `TOPE_DE_FILAS`).
+- Depende de: `leads` (las celdas de su exportación propia y sus catálogos, por su entrada), `vehiculos`; el route handler compone `equipo` (`getPermisos`) y `empresa` (`leerAjustes`). **Los listados no dependen de `datos`:** el CSV de lo propio de `leads` (exportar «lo que ves» e importar con vista previa) vive en `leads` (Fase 3, parte 8) y `datos` lo consume por su entrada y reutiliza `shared/lib/csv` (`escribir`, `leer`, `descargar`). Lo que es de `datos` es el **todo del dueño** con `datos.exportar.todo` e `importar-csv`.
 
 ## Archivos clave
 
 - `entities/plantillas.ts` — columnas de cada plantilla CSV con sus validadores Zod (teléfono normalizado por la base con el código de la empresa, fechas ISO, orígenes por nombre).
 - `infra/importar.ts` — llama a `supabase/functions/importar-csv` (fuera de la Server Action: es trabajo en segundo plano).
-- `features/exportar/`, `features/importar/` (mapeo, vista previa, resultado).
+- `entities/exportacion.ts` — exportar todo: el pedido (Zod), `TOPE_DE_FILAS` (250.000, medido), `FILAS_POR_PEDIDO` (el `max_rows`), el rango por fechas con el instante de corte, lo que contesta el registrar y los tipos `LectorDeExportacion`, `ColumnasDeExportacion` y `Registrador`.
+- `infra/cliente-del-flujo.ts` — `prepararSesion()`: la sesión de quien exporta con su token **fijo** (`accessToken` de supabase-js: nunca refresca). `infra/exportacion.ts` — el conteo y las páginas de `datos_exportar_leads()` por cursor, el registrar y los nombres de los dueños.
+- `features/exportar/lecturas.ts` (`exportarTodo`: el orden), `flujo.ts` (el `ReadableStream`), `fuente-de-leads.ts` y `columnas-de-leads.ts` (cada entidad: la 9.05-2b suma vehículos y cotizaciones sin tocar el flujo); `features/importar/` (mapeo, vista previa, resultado).
 
 ## Tablas
 
@@ -33,9 +35,17 @@ Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista pre
 - Importar nunca pisa: un teléfono existente se reporta como «ya existe» (en masa **no se nombra a nadie**, como en `leads`) y lo del limbo no se adopta en bloque: `crear_lead` con `adoptar` es una decisión por lead.
 - El contrato de `leads` (Fase 3, parte 8, `docs/DECISIONES.md`): `_lead_crear(…, p_recordar_origen)` y `leads_importar_lote` son lo que se llama por fila o por lote; `importaciones.archivo_ruta` es nulo sólo en la de `leads`.
 - El CSV usa `;` o `,` detectado, UTF-8 con BOM al exportar (Excel en español).
+- Exportar todo: el permiso (efectivo) → la sesión → layout y catálogos → el conteo hasta `TOPE_DE_FILAS + 1` → **el registrar** → el flujo. Con más del
+  tope o ninguna fila, no se registra; con 42501 o el cupo gastado, 403 o 429 sin leer filas; nunca se registra dos veces; el archivo nunca lleva más
+  filas que las registradas (el conteo y la lectura usan el mismo instante de corte y la lectura corta en `filas`). Lo prueba `route.test.ts`.
+- Un fallo a mitad del flujo, o un token a menos de 30 s de vencer, lo corta con error: una descarga fallida, nunca un CSV que parezca entero.
 
 ## Ojo
 
 - `datos.exportar.todo` / `datos.importar.todo` son los únicos permisos que ven datos de otros en bloque: sólo para el dueño.
 - `datos.exportar.todo` tiene su enforcement en `datos_exportacion_registrar` (9.05-1): exportar todo sin pasar por ella es saltarse el permiso y el
   límite. «Todo» no trae teléfonos ni lo privado de carteras ajenas (`docs/DECISIONES.md`, duda 2 del 9.05): la lectura va con la sesión.
+- **`getSession()` sólo en `prepararSesion()`** (la excepción a «nunca getSession()»): `getClaims()` no da el token crudo, así que se toma de la sesión
+  y se verifica **ese mismo** con `getClaims(token)`; `sub` y `exp` salen de los claims verificados, nunca de la sesión. El flujo no usa la cookie:
+  lee con un cliente de token fijo, armado en `infra/` (refrescar a mitad del flujo rotaría el refresh token sin poder guardarlo y cerraría la sesión
+  por reuso). Si al token le quedan menos de 5 min, se renueva **dentro del pedido y antes de crear la `Response`** (Next agrega la cookie nueva).
