@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
+import { CLAVE_PUBLICA_DE_PRUEBA } from './e2e/soporte/push'
 import { archivosSinCelular, patronesDePruebasSinCelular } from './e2e/soporte/sin-celular'
 
 // Corre contra la app COMPILADA (NEXT_DIST_DIR=.next-e2e) y Supabase local (supabase start).
@@ -61,6 +62,12 @@ export default defineConfig({
       ? `NEXT_DIST_DIR=.next-e2e pnpm next start -p ${puerto}`
       : `pnpm next dev -p ${puerto}`,
     url: `http://localhost:${puerto}`,
+    // La clave pública de los avisos push (no es un secreto): sin ella el perfil dice «sin clave». La del entorno gana.
+    env: {
+      ...(process.env as Record<string, string>),
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY:
+        process.env['NEXT_PUBLIC_VAPID_PUBLIC_KEY'] ?? CLAVE_PUBLICA_DE_PRUEBA,
+    },
     reuseExistingServer: false,
     timeout: 120_000,
   },
