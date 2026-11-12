@@ -4663,6 +4663,109 @@ Parte 1 de 2 (`parcial: true`): queda el **6.14-2**, el Nivel 3 (`pnpm test:e2e:
 - **Sin arreglos de producto** ni inestables. Ningún `src/` tocado.
 - e2e completo: no (6.14-1, Nivel 1: el spec nuevo en escritorio y movil; el completo con los dos proyectos lo corre el 6.14-2)
 
+<!-- paso:7.11-1 -->
+
+## 2026-11-12 · Paso 7.11-1: la burbuja del chat, el panel y los no leídos (parte 1 de 2)
+
+### Hecho
+
+- El contador de no leídos de la pestaña: `leerNoLeidos` (la entidad valida 0 a 100), `infra/no-leidos.client.ts` (`chat_no_leidos`), un store sin Supabase y `SuscripcionDeNoLeidos`
+  (diferida; lee al descansar el navegador, tras cada señal de la lista con 250 ms de espera y al reconectar).
+- `<WidgetChat>` en el hueco del marco (`HuecoChat`, sólo con `chat.participar`): la burbuja con el contador, oculta en `/chat`; botón que abre el panel desde 768 px y enlace a `/chat` en el celular.
+- El panel diferido: la lista (las mismas filas de `/chat`, que aquí son botones) y el hilo sin tocar la URL (`HiloDelWidget`); «Abrir en Chat», «Volver a la lista», Escape y el foco de vuelta a la burbuja.
+- El contador también en la entrada «Chat» de la barra lateral y del menú del celular (`NoLeidosDeLaBarra`, el mismo store).
+- `e2e/chat-widget.spec.ts`: llega un mensaje en `/leads`, la burbuja y la barra dicen «1», se abre, se responde con la URL intacta y el contador vuelve a 0; en el celular la burbuja lleva a `/chat`; sin permiso, ni burbuja ni entrada.
+
+Commits: ver `git log` de la rama (cuatro de código y el de docs).
+
+### Verificación
+
+- e2e `chat-widget`, `chat` y `chat-menciones` en escritorio y movil: 34 de 34 (2 saltadas por proyecto), `.piloto/salidas/7.11/e2e-dirigidos.txt`; `chat-widget` repetido 4 veces en escritorio: 8 de 8.
+- `presupuesto-js`, `avisos-sobre-el-pie`, `avisos-con-panel`, `botones-texto-200` y `buscador` en verde (`.piloto/salidas/7.11/e2e-presupuesto*.txt`). JS en frío con gzip, antes → después: `/leads` 512,0 → 513,8, `/perfil` 418,6 → 420,5,
+  `/vehiculos` 477,8 → 479,7, `/cotizaciones` 357,2 → 359,1, `/cotizaciones/nuevo` 443,0 → 444,9, `/cotizaciones/[id]` 447,3 → 449,2 (tope 448 → 452), `/logistica` 397,2 → 399,2: ≈ 1,9 KB y un chunk en todas.
+- `vitest` de `src/modules/chat` y `scripts/guardas`: 1.251 en verde; `typecheck` y `lint` limpios. Sin SQL: no corre `db:probar`.
+
+### Para copiar a `docs/PLAN.md` (la sesión de un carril no edita el PLAN)
+
+- Bajo la fila 7.11: «7.11-1 hecha (burbuja, panel y no leídos; docs del paso); sigue 7.11-2 («Escribirle por chat», `/chat?con=`, `leads-alta.spec.ts:216`)».
+- Abierto: `/cotizaciones/[id]` ya medía 447,3 de 448 antes del paso (el tope se subió a 452 con la burbuja); la próxima pantalla que sume al marco lo vuelve a rozar.
+
+e2e completo: no (7.11-1, Nivel 2; dirigidos: chat-widget, chat, chat-menciones, presupuesto-js, avisos-sobre-el-pie, avisos-con-panel, botones-texto-200 y buscador en escritorio y movil)
+
+<!-- paso:7.11-2 -->
+
+## 2026-11-12 · Paso 7.11-2: «Escribirle por chat» y `/chat?con=` (parte 2 de 2)
+
+### Hecho
+
+- `/chat?con=<usuario>`: `idDeUsuarioEnLaUrl` (puro, con test), `abrirConversacionCon` (composición e `index.ts` de `chat`) y la página, que lo resuelve antes de leer la lista: con éxito va a `/chat?c=<id>`; si la base lo niega (o es uno mismo) lo dice arriba y deja la lista.
+- `Verificacion.duenoId` (sólo si la base manda `dueno_id`), `ProveedorDeEscribirPorChat` (booleano del layout, `chat.participar`) y el enlace «Escribirle por chat» tras «Lo tiene X.» en el aviso del teléfono. `leads` no importa `chat`.
+- `e2e/chat-widget.spec.ts`: dos casos nuevos (el enlace desde el alta abre la directa ya existente, sin duplicarla; `/chat?con=` con alguien sin chat lo dice y deja la lista). `e2e/leads-alta.spec.ts`: sin chat no hay enlace.
+
+Commits: ver `git log` de la rama (tres de código y el de docs).
+
+### Verificación
+
+- Vitest: `verificacion.test.ts` (`duenoId` sólo si viene, GUID ilegible = error) y `conversaciones.test.ts` (`idDeUsuarioEnLaUrl`); `scripts/guardas` 1.119 en verde; `typecheck`, `lint` y `mapa.sh --check` limpios. Sin SQL: no corre `db:probar`.
+- e2e (`.piloto/salidas/7.11/`): `chat-widget` escritorio 4 y movil 3 en verde (las saltadas son de cada proyecto), `chat` 9 y 9, `leads-alta`, `-casos`, `-un-drawer`, `-contexto` y `leads-ficha-telefonos` en escritorio 40, `leads-alta-un-drawer` y `leads-ficha-telefonos` en movil 15, `presupuesto-js` y `avisos-sobre-el-pie` 14 (escritorio) y 6 (movil, 8 saltadas): sin subir ningún tope.
+- Ojo: correr `chat-widget` y `chat` en el mismo comando los hace compartir terreno (cada uno borra y siembra las mismas personas) y un caso del widget cae; van en comandos aparte.
+
+### Para copiar a `docs/PLAN.md` y `docs/ESTADO.md` (la sesión de un carril no los edita)
+
+- Bajo la fila 7.11: «7.11 completa (2 de 2)».
+- Quitar «Escribirle por chat» de `docs/ESTADO.md` › «Pendientes que se arrastran» y de los arrastrados de la Fase 8.
+
+e2e completo: no (7.11-2, Nivel 2; dirigidos: chat-widget, chat, leads-alta, leads-alta-casos, leads-alta-un-drawer, leads-alta-contexto, leads-ficha-telefonos, presupuesto-js, avisos-sobre-el-pie en escritorio y movil)
+
+<!-- paso:7.11-3 -->
+
+## 2026-11-12 · Paso 7.11-3: los rojos del CI del 7.11 (arreglo, sin parte nueva)
+
+### Hecho
+
+El e2e completo del CI (corrida 43258979924) cayó en tres pruebas de escritorio por la burbuja y el contador del chat, que ahora viven en el marco de toda pantalla:
+
+- `cotizaciones-listado-resumen` (R1) y `vehiculos-resumen` (un pedido a la base) cuentan pedidos a `/rest/v1/`: `chat_no_leidos` entró en la cuenta. `e2e/soporte/pedidos-del-marco.ts` › `esDelMarco` lo deja fuera, igual que a `notificaciones`.
+- `configuracion-cotizacion-niveles-200`: al 200 % «5 de 10 niveles posibles.» queda al final de la página bajo la burbuja (`fixed`, abajo a la derecha). `textosQueNoSeVenEnteros` no cuenta a la burbuja como lo que tapa.
+- `buscador` (Ctrl+K) pasó al reintentar: inestable de arranque en frío, no es del 7.11 ni un abierto (`.claude/rules/e2e.md`).
+
+### Verificación
+
+- e2e escritorio de los tres specs, 14 en verde (`.piloto/salidas/7.11/e2e-ci-fix.log`). Sin SQL ni interfaz tocada: sólo `e2e/`.
+
+e2e completo: no (7.11-3, arreglo de specs; lo prueba el CI del PR; dirigidos: configuracion-cotizacion-niveles-200, cotizaciones-listado-resumen, vehiculos-resumen)
+
+<!-- paso:7.14-1 -->
+
+## 7.14-1 · El cierre de la Fase 7: el recorrido del «Terminado cuando», el push de verdad, 7-2 y el JS del marco (2026-11-12)
+
+Parte 1 de 2 (`parcial: true`): queda el **7.14-2**, el Nivel 3 (`pnpm test:e2e:completo` con los dos proyectos) y los docs de cierre (tabla de criterios,
+«Cierre de la Fase 7», «Partición» marcada, abiertos 7-x, «Riesgos y huecos», ESTADO, las fichas de `agenda`, `chat`, `notificaciones` y `buscador`, UX y
+GLOSARIO). Su plan está servido en `.piloto/planes/7.14-1.md` › «Partición» (borrador de la tabla en V40, abiertos en V42).
+
+- **7-2 cerrado:** la campana vuelve a pedir su suscripción diferida con cada evento `online` (`useVueltaDeLaRed()` como `key` en `campana.tsx`): pedida sin
+  red ya no queda en «Sin conexión» hasta tocar «Reintentar». `campana.test.tsx` usa el `diferido()` de verdad sobre un cargador que falla dos veces (la
+  carga y su reintento) y después resuelve: al llegar `online`, el botón pasa a «Notificaciones, 1 sin leer» y el aviso se va.
+- **`supabase/tests/push-de-verdad.sh`:** un aviso `tarea_asignada` por `notificar()` a una persona de prueba con rol `asesor` y una suscripción sembrada
+  dispara `trg_notificaciones_push`, crea un pase, pg_net llega por el gateway a la función `push` servida, que canjea el pase y responde 200 `sin_claves`.
+  Dos corridas en verde (`.piloto/salidas/7.14/push-de-verdad-{1,2}.txt`: notificaciones 68 y 69, un pase cada una, usado); al final no queda ninguna cuenta
+  `push-de-verdad-%` y `push_web` vuelve a apagada. Con la base recién reseteada (sin cuentas) el script crea antes una dueña de prueba en su propia
+  transacción: una invitada sin aceptar no puede ser la única que gestiona el equipo (`rbac_guardian`) y el permiso de registro se mira al confirmar.
+  El runtime local alcanza la función por el gateway (`url_proyecto` del seed); el endpoint simulado no hace falta (D2). La última milla (firma, cifrado,
+  envío) sigue en `push-contrato.test.ts`.
+- **`e2e/fase-7-recorrido.spec.ts`**, tres pruebas en serie, `escritorio` y `movil`: R1, Ana da la tarea con `/tarea` en su directa con Luis y la campana de
+  Luis, abierta en otra sesión en `/perfil`, pasa a «1 sin leer» sin recargar y su popover trae la tarea (en la base, una `tarea_asignada` con ese título en el
+  `cuerpo`); R2, Luis lee «No tienes acceso a este lead», el nombre no está en el DOM ni en un `href` y el drawer no tiene enlaces; R3, Ana encuentra su lead por
+  el nombre, no el de la dueña («Sin resultados para…») y con el teléfono de su propio lead la paleta dice «No se busca por teléfono.»; Luis, sin `leads.ver`,
+  no encuentra el de Ana.
+- **Corridas:** la primera de escritorio cayó en R1 por el assert de SQL (miraba el título del aviso; el título de la tarea va en el `cuerpo`: es del spec,
+  no del producto). Después, `fase-7-recorrido` + `notificaciones-campana` 10/10 dos veces en cada proyecto (`.piloto/salidas/7.14/dirigidos-{escritorio,movil}-{1,2}.log`).
+  `vitest related` de la campana 1/1; `scripts/guardas` 36 archivos, 1.128 en verde; `typecheck` limpio.
+- **JS del marco** (`e2e/presupuesto-js.spec.ts`, escritorio, 9/9): todas las rutas bajo su tope, ninguno cambia (`docs/RENDIMIENTO.md` › «JS en frío»,
+  «Cierre de la Fase 7»). Documento de `/perfil` 103.360 B de 103 KB.
+- **Sin arreglos de producto** fuera de 7-2 ni inestables.
+- e2e completo: no (7.14-1, Nivel 1: el recorrido en escritorio y movil y los dirigidos; el completo con los dos proyectos lo corre el 7.14-2)
+
 <!-- paso:8.02-1 -->
 
 ## 2026-11-12 · Paso 8.02-1: preguntas frecuentes de Configuración › Sitio web (parte 1 de 2)
@@ -4690,6 +4793,96 @@ e2e completo: no (8.02-1, Nivel 1: lo corre el CI del PR; dirigidos en verde)
 - Con esto el 8.02 queda completo (2 de 2: preguntas frecuentes y testimonios con consentimiento). Para quien consolida: marcar completa la fila 8.02 de `docs/PLAN.md` (2 de 2) y sumar una línea al estado: 8.02, preguntas frecuentes y testimonios con consentimiento de `/configuracion/web`.
 
 e2e completo: no (8.02-2, Nivel 1: lo corre el CI del PR; dirigidos en verde)
+
+<!-- paso:8.03-1 -->
+
+## 2026-11-12 · Paso 8.03-1: guías con el editor, publicar y la página de la guía (parte 1 de 2 del 8.03)
+
+- **Hecho:**
+  - **Reglas** (`entities/contenido/`): `guias.ts` (estado, dirección, `puedePublicar`, acciones y motivo de la barra, `rutasDeImagenes`) y `documento-limpio.ts`
+    (reduce lo que emite Tiptap a la lista blanca de `doc.ts`), con sus pruebas.
+  - **Lectura y escritura** (`infra/contenido/`): la lista con búsqueda y tope + 1, la guía, categorías y autores para los selectores, y la escritura con la versión
+    esperada; actions `crearGuia`, `guardarGuia` (permisos antes de la base) y `eliminarGuia`.
+  - **El editor** propio del área (`features/contenido/editor/`): títulos, negrita, cursiva, listas, cita, enlace e imagen al bucket `web`; viaja diferido.
+  - **Pestaña «Guías»** (lista, búsqueda, «Nueva guía» en un panel) y **página de la guía** (`/configuracion/web/guias/[id]`): contenido con el editor, datos
+    (categoría, autor, portada), buscadores, Guardar, Publicar, Programar, Despublicar y Eliminar con confirmación por URL.
+  - Sin migración, sin `src/shared`. Decisiones en `decisiones.md` (D1–D18).
+- **e2e completo: no (8.03-1, Nivel 1: lo corre el CI del PR; dirigidos: configuracion-web-guias y configuracion-web-ajustes en escritorio)**
+- **Para el carril a (coordinador):** anotar bajo la fila 8.03 de `docs/PLAN.md`: «8.03-1 hecha (guías con el editor: lista, página, publicar, programar,
+  despublicar y eliminar; el editor propio del área en `features/contenido/editor/`); quedan categorías y legales (8.03-2)»; el paso sigue asignado a b.
+  Al unir con la rama del 8.02 habrá choques triviales en `seccion-abierta.tsx`, `pestanas.test.ts`, `areas/contenido/*`, `scripts/guardas/areas-b/*` y la
+  ficha de `web`.
+
+<!-- paso:8.03-2 -->
+
+## 2026-11-12 · Paso 8.03-2: categorías de las guías y legales con el editor (parte 2 de 2 del 8.03)
+
+- **Hecho:**
+  - **Reglas** (`entities/contenido/`): `categorias.ts` (orden 0..n−1, dirección, uso, motivo de no eliminar) y `legales.ts` (lectura con defensa, qué se manda,
+    motivos por campo), con sus pruebas.
+  - **Lectura y escritura** (`infra/contenido/`): categorías con su uso en una sola consulta acotada, las cinco escrituras (`upsert` para ordenar; «sólo sin guías» al
+    eliminar) y los legales por `web_ajustes_guardar` con sólo la clave `legales`; cinco actions de categorías y `guardarLegales`, todas con el permiso antes de la base.
+  - **Panel «Categorías»** (`?panel=categorias` en la pestaña «Guías»): `<ListaDeCatalogo>` con crear, renombrar, ordenar, desactivar y eliminar con confirmación por URL.
+  - **Pestaña «Legales»** (`?seccion=legales`): términos y política con el mismo editor sin imágenes y un solo «Guardar».
+  - Sin migración, sin `src/shared`. Decisiones en `decisiones.md` (D1–D16). Con esto el **8.03 queda completo (2 de 2)**.
+- **e2e completo: no (8.03-2, Nivel 1: lo corre el CI del PR; dirigidos: configuracion-web-legales, configuracion-web-guias y configuracion-web-ajustes en escritorio)**
+- **Para el carril a (coordinador):** anotar bajo la fila 8.03 de `docs/PLAN.md`: «8.03-2 hecha (categorías en `?panel=categorias` y legales en `?seccion=legales` con
+  el mismo editor); 8.03 completa (2 de 2)». El paso no sigue asignado a b.
+
+<!-- paso:8.04-1 -->
+
+## 2026-11-12 · Paso 8.04-1: la base del tablero de la cola web, las solicitudes por cursor y el job (parte 1 de 3)
+
+### Hecho
+
+- `cola_web_tablero()` (`security definer`, `web.cola.gestionar`, `_acotar_pagina(p_tope, 100, 200)`): **todas** las habilitadas de `cola_web_asesores`
+  con `en_la_rueda` (`puede_estar_en_la_rueda`) y `cuenta_activa` aparte, `falta_whatsapp` (sin el número), cupo heredado, abiertas, totales y tasa de
+  contacto; `{filas, hay_mas}`. Es la lectura propia que pide 8-1, sin pasar por `estado_cola_web`.
+- `cola_web_solicitudes(estado, cursor)` (igual de definidor, `_acotar_pagina(p_tamano, 20, 50)`): una página por `(creado_en, id)` sobre el índice nuevo
+  `solicitudes_contacto_web_estado_creado_idx (estado, creado_en desc, id desc)`, título de `web.vehiculos`, sin token, UTM, lead ni WhatsApp.
+- `aplicado_en` de `web.cola.gestionar` en la migración y en `seed.sql`.
+- El job `web-expirar-solicitudes` cada 5 minutos (cierra el arrastrado «el job `web_expirar_solicitudes` se programa con esta fase»).
+- Pruebas: `supabase/tests/areas/cola/tablero.sql` (T1–T5) y un caso en `supabase/tests/jobs.sql`. Tipos regenerados, ficha de `web` y `RENDIMIENTO.md`.
+- Siguen la 8.04-2 (entidades, infra, registros de páginas, la pantalla de sólo lectura y las dos primeras pruebas de `e2e/cola-web-tablero.spec.ts`) y la
+  8.04-3 (agregar, quitar con deshacer, la política y el aviso; cierra 8-1).
+
+Commits: `ab5083c4`, `39877c21`, `d91b7f22` y el de docs.
+
+### Verificación
+
+- `pnpm db:probar` entero: 1301 ✓, 0 ✗ (`.piloto/salidas/8.04-1/db-probar.txt`); T5 después, aparte (`db-probar-t5.txt`).
+- e2e dirigido `rueda-por-rol` en escritorio: 2 de 2 (`.piloto/salidas/8.04-1/e2e-rueda-por-rol.txt`).
+- Guardas de páginas, migraciones y carriles: 94 de 94; `pnpm lint` exit 0; `mapa.sh --check` exit 0.
+- e2e completo: no (8.04-1, Nivel 2: lo corre el CI del PR; dirigido rueda-por-rol en escritorio)
+
+<!-- paso:8.04-2 -->
+
+## 2026-11-12 · Paso 8.04-2: la lectura del tablero de la cola web y su pantalla de sólo lectura (parte 2 de 3)
+
+### Hecho
+
+- `entities/cola/`: el parseo de `cola_web_tablero` y `cola_web_solicitudes`, `agruparTablero` (en la rueda, sin rol, cuenta inactiva; una fila en un solo
+  grupo), `ordenDeLaRueda` (espejo documentado del paso 5 de `web.solicitar_asesor`, con su test O1–O7), el cursor y el conteo acotado de «Sin asignar» y la
+  política de la cola.
+- `infra/cola/`: el tablero con `TOPE_DEL_EQUIPO`, la primera página de «Sin asignar» en el servidor y «Ver más» en el navegador, la política de
+  `ajustes_web`; composición y entradas del área; los dos registros de `areas-b/paginas-en-la-base.ts`; una línea en `RENDIMIENTO.md`.
+- `/configuracion/cola-web` (`web.cola.gestionar`): avisos de la política (cola apagada, sin WhatsApp de respaldo), «Sin asignar» destacado con «Ver más»,
+  la rueda en el orden de la ruleta, los grupos «Habilitada, pero su rol no recibe turnos de la web» y «Cuenta bloqueada o inactiva», «Actualizar» y relectura
+  al volver a la pestaña. Su tarjeta en el hub de Configuración. Ficha de `web` (las tres líneas de `cola`, de uniones, quedan en una) y glosario
+  («Sin asignar»).
+- `e2e/cola-web-tablero.spec.ts` con las dos primeras pruebas (sin celular).
+- Sigue la 8.04-3: agregar a la rueda, el aviso al habilitar sin el permiso, quitar con «Deshacer», la política y la tercera prueba del e2e; cierra 8-1.
+
+Commits: `a1103c5b`, `2716eb32`, `c4dcd527`, `61bc2407` y el de docs.
+
+### Verificación
+
+- Vitest de `entities/cola`: 10 de 10; guardas, `secciones.test.ts` y `entities/cola`: 39 archivos, 1140 pruebas (`.piloto/salidas/8.04-2/vitest-guardas.txt`).
+- `pnpm typecheck` sin errores; lint en el hook de cada commit; `mapa.sh --check` exit 0.
+- e2e dirigido `cola-web-tablero` en escritorio: 2 de 2. `configuracion-200` en los dos proyectos: 51 de 52 (la primera prueba se quedó en `/ingreso`
+  con el servidor recién levantado); repetida sola, pasa.
+- Sin base nueva: `db:reset` y `db:types` sin cambios en los tipos.
+- e2e completo: no (8.04-2, Nivel 1: lo corre el CI del PR; dirigidos cola-web-tablero en escritorio y configuracion-200)
 
 <!-- paso:8.07-2 -->
 
@@ -4779,6 +4972,65 @@ Commits: `b1e6e8f9`, `799e5fc6`, `ed24bcd8`, `9be2c3db`, `15731d48`, `093e6099` 
   e2e del assert completo (`e2e/repuestos-stock.spec.ts`).
 
 e2e completo: no (8.10-3, Nivel 1: lo corre el CI del PR; dirigidos repuestos-stock y repuestos-listado en escritorio y movil)
+
+<!-- paso:8.11-1 -->
+
+## 2026-11-12 · Paso 8.11-1: la base de compras y margen de repuestos (parte 1 de 3)
+
+### Hecho
+
+- Migración `repuestos_compras_guardar`: `tipo_cambio_id` (con índice) y la versión propia (`trg_compra_version`); `repuesto_compra_guardar` (la esperada nula crea,
+  idempotente por id; puesta, edita con `PT409`), `repuesto_compra_eliminar` y `repuesto_compra_restaurar`, con `repuestos.costos.editar` y `repuestos.ver`. La base
+  pone `monto_base` y la tasa con el tipo de cambio por defecto vigente y los congela al editar el monto; la lista de datos es cerrada (mandar `monto_base` da 22023).
+  Sin las policies de crear y editar ni INSERT, UPDATE o DELETE para `authenticated`.
+- Migración `repuestos_compras_margen`: `repuestos_proyecto_margen` por moneda; nulo, no 0, con un ítem vivo sin precio o sin moneda; `sin_precio` hasta 201.
+- `entities/compras/margen.ts` (`leerMargen`, `textoSinPrecio`) con su test.
+- `aplicado_en` de `repuestos.costos.ver` y `repuestos.costos.editar` en la migración y en `seed.sql`; las cuatro RPC en `auditoria-leads.sql`; «Margen del proyecto»
+  en el GLOSARIO; la ficha del módulo.
+
+### Verificación
+
+- `SOLO=areas/repuestos/{compras,compras-version,compras-margen}.sql pnpm db:probar`: B1–B8 y M1–M4 en verde (`.piloto/salidas/8.11-1/compras-partido.log`).
+- `pnpm db:probar` completo dos veces: 1.352 y 1.358 en verde, 0 caídas (`.piloto/salidas/8.11-1/db-probar-{1,2}.log`). `pnpm db:lint`: nada en las funciones nuevas.
+- Mutaciones de dinero (10): M1–M4, M3b, M5, M5b y M6–M8 hacen caer su prueba (`.piloto/salidas/8.11-1/mutaciones.log`).
+- `vitest` de `scripts/guardas` y `entities/compras`: 1.128 en verde (`.piloto/salidas/8.11-1/vitest-guardas.log`). `pnpm typecheck` limpio.
+- e2e dirigido `repuestos-proyecto` en escritorio: 6 de 6 (`.piloto/salidas/8.11-1/e2e-repuestos-proyecto.log`).
+
+### Para copiar a `docs/PLAN.md` (la sesión de un carril no edita el PLAN)
+
+- 8.11-1 hecha: la base de compras (`repuesto_compra_guardar`, `_eliminar`, `_restaurar`, `repuestos_proyecto_margen`), sin escritura directa en
+  `repuestos_compras`, y `entities/compras/margen.ts`. **8.11 sigue:** 8.11-2 (pestaña «Compras», lista y margen) y 8.11-3 (Drawer, comprobante y e2e del registro).
+- Abierto para «Pulido para la Fase 9» › seguridad: los pagos de un proyecto de repuestos (8.13; ver `docs/pasos/8.11-1/decisiones.md`).
+
+e2e completo: no (8.11-1, Nivel 2: lo corre el CI del PR; dirigido repuestos-proyecto en escritorio)
+
+<!-- paso:8.11-2 -->
+
+## 2026-11-12 · Paso 8.11-2: la pestaña «Compras», la lista y el margen (parte 2 de 3)
+
+### Hecho
+
+- `entities/compras/compra.ts` (la fila de la lista, `monto_base` leído y nulo en filas de antes de 8.11-1) con su test; `infra/compras/{listar,margen}.ts`
+  (`leerComprasDelProyecto`, tope 200 más uno sobre `repuestos_compras_proyecto_id_idx`; `leerMargenDelProyecto` por `repuestos_proyecto_margen`).
+- `<ListaDeCompras>` y `<MargenDelProyecto>` por `pantallas/compras.ts`: un margen nulo dice «Sin precio en N ítems» y un margen 0 es un monto.
+- La pestaña «Compras» de `/repuestos/[id]` (`?pestana=compras`) sólo con `repuestos.costos.ver` (`pestanasLlenas(permisos)` con `puede()`); sin él la URL abre
+  «Ítems» y no se lee nada de compras. `seccion-compras.tsx` lee la lista y el margen sólo con la pestaña abierta.
+- `e2e/repuestos-compras.spec.ts` (con costos: lista, margen 100/60/40 y «Sin precio en 1 ítem»; sin costos: no hay pestaña). Ficha, `docs/UX.md` y `docs/RENDIMIENTO.md`.
+
+### Verificación
+
+- `vitest related` (`pestanas.test.ts`, `compra.test.ts`): 7 en verde (`.piloto/salidas/8.11-2/vitest-related-1.log`); `scripts/guardas`: 1.122 en verde
+  (`vitest-guardas.log`); `typecheck` y `eslint` de lo tocado limpios.
+- e2e dirigidos `repuestos-compras`, `repuestos-proyecto` y `repuestos-stock` en escritorio y móvil: 20 de 20 (`.piloto/salidas/8.11-2/e2e-dirigidos.log`).
+- Sin `db:*`: esta parte no toca `supabase/`.
+
+### Para copiar a `docs/PLAN.md` (la sesión de un carril no edita el PLAN)
+
+- 8.11-2 hecha: la pestaña «Compras» de `/repuestos/[id]` sólo con `repuestos.costos.ver` (sin él `?pestana=compras` abre «Ítems»), la lista (proveedor, ítem,
+  monto y equivalente, fecha; tope 200) y el margen por moneda con «Sin precio en N ítems». **8.11 sigue:** 8.11-3 (Drawer, eliminar con «Deshacer»,
+  comprobante y el e2e del registro).
+
+e2e completo: no (8.11-2, Nivel 1 con interfaz: lo corre el CI del PR; dirigidos repuestos-compras, repuestos-proyecto, repuestos-stock en escritorio y movil)
 
 <!-- paso:9.04-1 -->
 

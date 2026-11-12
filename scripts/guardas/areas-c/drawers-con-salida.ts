@@ -41,6 +41,11 @@ export const REGISTRO: Record<string, RegistroDeDrawer> = {
     formulario: 'src/modules/repuestos/features/stock/components/drawer-de-salida.tsx',
     mecanismo: 'contexto',
   },
+  // Registrar y editar una compra de un proyecto de repuestos (8.11-3): `?panel=compra&compra=<id|nueva>`. Dice que tiene algo escrito con `useCambiosSinGuardar` en el mismo archivo.
+  'src/modules/repuestos/features/compras/components/drawer-de-compra.tsx': {
+    formulario: 'src/modules/repuestos/features/compras/components/drawer-de-compra.tsx',
+    mecanismo: 'contexto',
+  },
   // Vista «Stock» de `/repuestos` (8.10-3): `?panel=reasignar-stock&item=<id>`. Dice que tiene algo escrito con `useCambiosSinGuardar` en el mismo archivo.
   'src/modules/repuestos/features/stock/components/drawer-de-reasignar.tsx': {
     formulario: 'src/modules/repuestos/features/stock/components/drawer-de-reasignar.tsx',

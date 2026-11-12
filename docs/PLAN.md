@@ -1845,6 +1845,7 @@ ranking.ts` (orden y agrupación) con su test. NO entra: la paleta, buscar repue
   **Assert:** `e2e/fase-7-recorrido.spec.ts` en verde y `pnpm test:e2e:completo` con los dos proyectos. Lugar: `e2e/`, `docs/`. Nivel **3**
   (cierre). Tipo: pantalla. Partes estimadas: 2.
   Dudas, con la recomendada: ninguna. **Paralelo.** Pueden arrancar a la vez 7.01, 7.05, 7.06 y 7.12 (no comparten archivos fuera de `supabase/migrations/` y `database.types.ts`). Después: 7.02 ∥ 7.03 ∥ 7.08 ∥ 7.07; 7.04 ∥ 7.09 ∥ 7.13; 7.10 ∥ 7.11. No en paralelo: 7.07 con 7.09 (la misma `navegacion.ts` y su test; una línea cada uno, se unen, pero mejor en serie) y 7.11 con 7.13 sólo si 7.02 no dejó los huecos.
+  **7.14-1** (hecho el 2026-11-12; `docs/pasos/7.14-1/`): el recorrido del «Terminado cuando» (`e2e/fase-7-recorrido.spec.ts`, los dos proyectos), `supabase/tests/push-de-verdad.sh` (de la base a la función servida, con el pase canjeado), 7-2 y el JS del marco. Queda el **7.14-2**: el Nivel 3 y los docs de cierre.
 
 ### Riesgos y huecos
 
