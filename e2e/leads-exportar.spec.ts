@@ -3,6 +3,7 @@ import type { Page } from '@playwright/test'
 import { formatearNumero } from '../src/shared/lib/formato'
 import { expect, test } from './soporte/prueba'
 import { CONTRASENA, entrar } from './soporte/alta'
+import { conRespuesta, demorarPedido, esRuta } from './soporte/esperas'
 import {
   PREFIJO_ROL_E2E,
   admin,
@@ -252,12 +253,49 @@ test('el límite por hora: la sexta se dice con la hora y no se descarga', async
   await irALeads(page)
   await abrirExportar(page)
   const dialogo = dialogoDeExportar(page)
-  await dialogo.getByRole('button', { name: 'Descargar' }).click()
+  await conRespuesta(
+    page,
+    esRuta('/leads/exportar'),
+    () => dialogo.getByRole('button', { name: 'Descargar' }).click(),
+    'exportar con 5 veces en la hora',
+  )
   await expect(dialogo).toContainText('Ya exportaste 5 veces en la última hora')
   await expect(dialogo).toContainText(/a las \d{2}:\d{2}/)
   // Sigue abierto y se puede cerrar.
   await dialogo.getByRole('button', { name: 'Cancelar' }).click()
   await expect(dialogo).toBeHidden()
+})
+
+// @sin-celular: el pedido demorado se espera igual con cualquier ancho y la exportación en escritorio y celular la cubre su otro caso.
+test('el límite por hora con el pedido demorado 6 s: el diálogo lo dice cuando llega la respuesta', async ({
+  page,
+}) => {
+  const id = await idDe(exporta)
+  const filas = Array.from({ length: 5 }, () => ({
+    accion: 'leads.exportado',
+    actor_id: id,
+    tabla: 'leads',
+    detalle: { filas: 1, filtros: [] },
+  }))
+  const { error } = await admin().from('actividad').insert(filas)
+  exigir(error, 'sembrar las exportaciones de la hora')
+  await entrar(page, exporta)
+  await irALeads(page)
+  await abrirExportar(page)
+  const dialogo = dialogoDeExportar(page)
+  const demorados = await demorarPedido(
+    page,
+    (pedido) => pedido.method() === 'POST' && new URL(pedido.url()).pathname === '/leads/exportar',
+    6_000,
+  )
+  await conRespuesta(
+    page,
+    esRuta('/leads/exportar'),
+    () => dialogo.getByRole('button', { name: 'Descargar' }).click(),
+    'exportar demorado 6 s',
+  )
+  expect(demorados).toHaveLength(1)
+  await expect(dialogo).toContainText('Ya exportaste 5 veces en la última hora')
 })
 
 // @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)

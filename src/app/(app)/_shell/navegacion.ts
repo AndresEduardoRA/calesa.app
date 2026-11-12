@@ -173,7 +173,7 @@ export const NAVEGACION = [
     zona: 'usuario',
     // Cada persona exporta e importa lo suyo; «todo» lo decide la pantalla con `datos.*.todo`.
     permisos: null,
-    disponible: false,
+    disponible: true,
   },
 ] as const satisfies readonly EntradaNav[]
 

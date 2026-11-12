@@ -1,6 +1,7 @@
 import type { Locator, Page, TestInfo } from '@playwright/test'
 import { expect, test } from './soporte/prueba'
 import { entrarConSesion } from './soporte/pasos'
+import { conRespuesta, demorarPedido, esRpc } from './soporte/esperas'
 import { aLaVista } from './soporte/inventario'
 import { capturar, quieto, sinScrollHorizontal } from './soporte/recorrido'
 import { sql } from './soporte/sql'
@@ -114,15 +115,12 @@ for (const [quien, correo, antiguo] of [
   })
 }
 
-test('el kanban de la dueña con una columna de 8.000: «Ver más» hasta el tope', async ({
-  page,
-}, info) => {
-  test.setTimeout(180_000)
+// La dueña en el kanban, con la columna de 8.000 a la vista: la pestaña (celular) o la columna (escritorio).
+async function columnaDeMiles(page: Page, info: TestInfo): Promise<Locator> {
   await entrarComo(page, DUENA)
   await page.goto('/leads?vista=embudo')
   await expect(page.getByRole('heading', { level: 2 }).first()).toBeVisible()
   await capturar(page, info, 'kanban-inicio')
-  // La pestaña (celular) o la columna (escritorio) con miles.
   if (info.project.name === 'movil') {
     await aLaVista(page.getByRole('tab').filter({ hasText: '500+' }))
       .first()
@@ -130,13 +128,26 @@ test('el kanban de la dueña con una columna de 8.000: «Ver más» hasta el top
   }
   const columna = aLaVista(page.locator('section[aria-label*="más de 500"]')).first()
   await expect(columna).toBeVisible()
+  return columna
+}
+
+test('el kanban de la dueña con una columna de 8.000: «Ver más» hasta el tope', async ({
+  page,
+}, info) => {
+  test.setTimeout(180_000)
+  const columna = await columnaDeMiles(page, info)
   for (let i = 0; i < 12; i += 1) {
     const verMas = columna.getByRole('button', { name: /^Ver más/ })
     if ((await verMas.count()) === 0) {
       break
     }
     const antes = await columna.getByRole('article').count()
-    await verMas.click()
+    await conRespuesta(
+      page,
+      esRpc('embudo_etapa_pagina'),
+      () => verMas.click(),
+      `«Ver más» nº ${String(i + 1)} del kanban de 8.000`,
+    )
     await expect(columna.getByRole('article')).not.toHaveCount(antes)
   }
   await expect(columna.getByText(/Mostrando las 500 con actividad más reciente/)).toBeVisible()
@@ -146,6 +157,26 @@ test('el kanban de la dueña con una columna de 8.000: «Ver más» hasta el top
   )
   await columna.getByText(/Mostrando las 500 con actividad más reciente/).scrollIntoViewIfNeeded()
   await capturar(page, info, 'kanban-tope')
+})
+
+test('el kanban de 8.000: «Ver más» con el pedido demorado 6 s', async ({ page }, info) => {
+  test.setTimeout(180_000)
+  const columna = await columnaDeMiles(page, info)
+  const antes = await columna.getByRole('article').count()
+  // Con la primera página ya leída: sólo el pedido de «Ver más» sale tarde.
+  const demorados = await demorarPedido(
+    page,
+    (pedido) => pedido.method() === 'POST' && pedido.url().endsWith('/rpc/embudo_etapa_pagina'),
+    6_000,
+  )
+  await conRespuesta(
+    page,
+    esRpc('embudo_etapa_pagina'),
+    () => columna.getByRole('button', { name: /^Ver más/ }).click(),
+    '«Ver más» del kanban de 8.000 demorado 6 s',
+  )
+  expect(demorados).toHaveLength(1)
+  await expect(columna.getByRole('article')).not.toHaveCount(antes)
 })
 
 test('las papeleras, vehículos e importación de la dueña', async ({ page }, info) => {

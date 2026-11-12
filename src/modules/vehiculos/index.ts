@@ -93,3 +93,7 @@ export { opcionesDeVehiculoDelLead, type OpcionDeVehiculo } from './features/vin
 
 // La subasta de un vehículo de subasta: su fecha, su estado y cuándo se consultó (`<BloqueDeSubasta>`: `pantallas/ficha`).
 export { fotosPorTraerDe, type SubastaDeVehiculo } from './entities/subasta-vehiculo'
+
+// Los datos comunes de un vehículo con sus etiquetas (el único lugar con texto fijo): los usa `datos` para exportar los vehículos de un
+// origen (9.05-2b). Puro.
+export { camposComunes, type CampoComun, type ClaveComun, type TipoComun } from './entities/comunes'

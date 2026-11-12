@@ -1,8 +1,12 @@
+import type { Page } from '@playwright/test'
 import { expect, test } from './soporte/prueba'
 import {
   aLaVistaAlAcomodarse,
   aLaVistaSinDesplazar,
   avisoNoTapaElPie,
+  conRespuesta,
+  demorarPedido,
+  esRuta,
   recibeElClic,
 } from './soporte/recorrido'
 
@@ -94,4 +98,42 @@ test('aLaVistaAlAcomodarse espera a que la barra lleve la pestaña abierta a la 
   await aLaVistaAlAcomodarse(page.getByRole('tab', { selected: true }), 'la pestaña abierta')
   // Si midió, midió con la barra ya desplazada.
   expect(await barra.evaluate((b) => b.scrollLeft)).toBeGreaterThan(0)
+})
+
+// 9-10: un pedido se espera con su respuesta y un tope propio, no con los 5 s de fábrica de un `expect`. El servidor es de mentira: una
+// ruta del navegador responde, y `demorarPedido` la retrasa 6 s.
+const SERVIDOR = 'http://espera.test'
+async function conServidorDeMentira(page: Page): Promise<void> {
+  await page.route(`${SERVIDOR}/**`, (ruta) =>
+    ruta.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*' }, body: 'listo' }),
+  )
+  await page.setContent('<p>pantalla</p>')
+}
+const pedir = (page: Page) =>
+  page.evaluate((url) => void fetch(`${url}/pedido`, { method: 'POST' }), SERVIDOR)
+
+test('conRespuesta espera una respuesta que llega con 6 s de demora', async ({ page }) => {
+  await conServidorDeMentira(page)
+  const demorados = await demorarPedido(page, (p) => p.method() === 'POST', 6_000)
+  const antes = Date.now()
+  const r = await conRespuesta(page, esRuta('/pedido'), () => pedir(page), {
+    etiqueta: 'pedido de mentira',
+    tope: 15_000,
+  })
+  expect(r.status()).toBe(200)
+  expect(Date.now() - antes).toBeGreaterThanOrEqual(5_900)
+  expect(demorados).toHaveLength(1)
+})
+
+test('conRespuesta falla nombrando la etiqueta y el tope cuando la respuesta no llega', async ({
+  page,
+}) => {
+  await conServidorDeMentira(page)
+  await demorarPedido(page, (p) => p.method() === 'POST', 6_000)
+  await expect(
+    conRespuesta(page, esRuta('/pedido'), () => pedir(page), {
+      etiqueta: 'pedido de mentira',
+      tope: 1_000,
+    }),
+  ).rejects.toThrow(/«pedido de mentira»: no llegó la respuesta en 1000 ms/)
 })

@@ -21,7 +21,16 @@ import { capturarEn } from './capturas'
 import { pieQuieto, recibeElClic } from './esperas'
 
 // Las esperas viven en `esperas.ts`; los specs las siguen importando de aquí.
-export { pieQuieto, quieto, recibeElClic } from './esperas'
+export {
+  conRespuesta,
+  demorarPedido,
+  esAccionDelServidor,
+  esRpc,
+  esRuta,
+  pieQuieto,
+  quieto,
+  recibeElClic,
+} from './esperas'
 
 // --- Capturas ----------------------------------------------------------------------------------------
 

@@ -48,6 +48,6 @@ describe('env:check', () => {
   })
 
   it('un entorno que no existe es un error claro', () => {
-    expect(() => revisar('produccion', archivos({}))).toThrow('entorno desconocido: produccion')
+    expect(() => revisar('nube', archivos({}))).toThrow('entorno desconocido: nube')
   })
 })

@@ -1,13 +1,14 @@
 import { expect, test } from './soporte/prueba'
 import { entrar } from './soporte/alta'
 import { irAFicha } from './soporte/leads-ficha'
+import { esperarHidratado } from './soporte/listas-por-pagina'
 import {
   PREFIJO_DE_ORIGEN_E2E,
   borrarOrigenesDePrueba,
   sembrarOrigen,
 } from './soporte/origenes-de-lead'
 import {
-  aLaVistaSinDesplazar,
+  aLaVistaAlAcomodarse,
   limpiarRecorrido,
   prepararRecorrido,
   sinScrollHorizontal,
@@ -53,7 +54,7 @@ test('la cabecera de la ficha: el origen se corta con «…» y «(inactivo)» q
   const marca = cabecera.getByText('(inactivo)')
   await expect(marca).toBeVisible()
   await sinScrollHorizontal(page)
-  await aLaVistaSinDesplazar(marca, '«(inactivo)» de la cabecera')
+  await aLaVistaAlAcomodarse(marca, '«(inactivo)» de la cabecera')
   // El nombre de 90 letras no cabe en una línea al 200 %: se corta (y el `title` del origen dice el resto).
   expect(await nombre.evaluate((e) => e.scrollWidth > e.clientWidth)).toBe(true)
 })
@@ -64,7 +65,7 @@ test('«Datos» de la ficha: «(inactivo)» queda a la vista junto al origen', a
   await irAFicha(page, r.uno.id)
   const dato = page.locator('dd').filter({ hasText: '(inactivo)' })
   await expect(dato).toBeVisible()
-  await aLaVistaSinDesplazar(dato.getByText('(inactivo)'), '«(inactivo)» de «Datos»')
+  await aLaVistaAlAcomodarse(dato.getByText('(inactivo)'), '«(inactivo)» de «Datos»')
   await sinScrollHorizontal(page)
 })
 
@@ -74,10 +75,12 @@ test('el resumen del lead: dice que el origen está inactivo y no ensancha la p�
   await textoGrandeAlCargar(page)
   await entrar(page, r.t.personas.duena)
   await page.goto(`/leads?lead=${r.uno.id}`)
+  // El listado de atrás se hidrata antes que el resumen (un `diferido()`: con la CPU lenta tarda más que los 5 s de fábrica).
+  await esperarHidratado(page, 30_000)
   const resumen = page.getByRole('dialog', { name: r.uno.nombre })
-  await expect(resumen).toBeVisible()
+  await expect(resumen).toBeVisible({ timeout: 15_000 })
   const marca = resumen.getByText('(inactivo)')
-  await expect(marca).toBeVisible()
-  await aLaVistaSinDesplazar(marca, '«(inactivo)» del resumen')
+  await expect(marca).toBeVisible({ timeout: 15_000 })
+  await aLaVistaAlAcomodarse(marca, '«(inactivo)» del resumen')
   await sinScrollHorizontal(page)
 })

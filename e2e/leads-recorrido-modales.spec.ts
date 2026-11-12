@@ -60,9 +60,17 @@ test('la ficha con sus seis secciones cabe en el celular, y su modal también (l
   page,
 }) => {
   await entrar(page, r.ana.email)
-  for (const seccion of ['', '?seccion=seguimientos', '?seccion=portal']) {
+  const montada = {
+    '': page.getByRole('navigation', { name: 'Secciones del lead' }),
+    '?seccion=seguimientos': page.getByRole('region', { name: 'Seguimientos' }),
+    '?seccion=portal': seccionPortal(page),
+  }
+  for (const [seccion, contenido] of Object.entries(montada)) {
     await irAFicha(page, r.uno.id, seccion)
     await expect(tituloDeLaFicha(page, r.uno.nombre)).toBeVisible()
+    // Las secciones son `diferido()`: se mide con su contenido ya montado y quieto, no con el cascarón que llega primero.
+    await expect(contenido).toBeVisible({ timeout: 15_000 })
+    await quieto(page.locator('main'))
     await sinScrollHorizontal(page)
   }
   await expect(

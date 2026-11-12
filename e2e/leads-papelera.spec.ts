@@ -1,5 +1,6 @@
 import { expect, test } from './soporte/prueba'
 import { entrar } from './soporte/alta'
+import { conRespuesta, demorarPedido, esAccionDelServidor, esRpc } from './soporte/esperas'
 import { borrarLeadsDePrueba, idDe } from './soporte/leads'
 import { telefonoAlAzar } from './soporte/leads-alta'
 import { irAFicha, nuevoLead, tituloDeLaFicha, NO_DISPONIBLE } from './soporte/leads-ficha'
@@ -188,7 +189,12 @@ test('sin permiso: la papelera no abre, no hay enlace y el «⋯» de la ficha n
   await expect(page.getByRole('menuitem', { name: 'Enviar a la papelera' })).toHaveCount(0)
 })
 
-const PREFIJOS_DE_LOTE: Record<string, string> = { Lote200: '1', Lote30: '2', Lote25: '3' }
+const PREFIJOS_DE_LOTE: Record<string, string> = {
+  Lote200: '1',
+  Lote30: '2',
+  Lote25: '3',
+  Demora200: '4',
+}
 
 // Un lote de `n` leads de Berta, sembrado por SQL (el trigger arma su cartera) y enviado a la papelera con su sesión.
 async function loteDeBerta(
@@ -227,10 +233,20 @@ test('un lote de 200 muestra los primeros 20 y «Mostrar los 200»; restaurar un
   await expect(lote).toContainText('Lote de 200')
   await expect(lote.locator('li')).toHaveCount(20)
   await capturar(page, info, 'papelera-lote-de-200')
-  await lote.getByRole('button', { name: 'Mostrar los 200' }).click()
+  await conRespuesta(
+    page,
+    esRpc('leads_papelera_lote'),
+    () => lote.getByRole('button', { name: 'Mostrar los 200' }).click(),
+    '«Mostrar los 200»',
+  )
   await expect(lote.locator('li')).toHaveCount(200)
   const ultimo = nombres[199] ?? ''
-  await page.getByRole('button', { name: `Restaurar ${ultimo}` }).click()
+  await conRespuesta(
+    page,
+    esAccionDelServidor,
+    () => page.getByRole('button', { name: `Restaurar ${ultimo}` }).click(),
+    `«Restaurar ${ultimo}»`,
+  )
   await expect(page.getByText(`«${ultimo}» volvió a tus leads.`)).toBeVisible()
   // La página se volvió a leer: el lote vuelve a sus primeros 20 y ahora son 199.
   await expect(lote).toContainText('quedan 199')
@@ -251,7 +267,12 @@ test('«Mostrar los N» sin red lo dice y reintenta; si el lote se purgó mientr
   await lote.getByRole('button', { name: 'Mostrar los 30' }).click()
   await expect(lote.getByText(/conexión|servidor/)).toBeVisible()
   await context.setOffline(false)
-  await lote.getByRole('button', { name: 'Reintentar' }).click()
+  await conRespuesta(
+    page,
+    esRpc('leads_papelera_lote'),
+    () => lote.getByRole('button', { name: 'Reintentar' }).click(),
+    '«Reintentar» el lote de 30',
+  )
   await expect(lote.locator('li')).toHaveCount(30)
   // Otro lote igual, y lo purgan mientras se mira (el lote queda sellado como lo deja una purga).
   const otro = await loteDeBerta(25, 'Lote25', info.project.name)
@@ -259,9 +280,37 @@ test('«Mostrar los N» sin red lo dice y reintenta; si el lote se purgó mientr
   const segundo = loteDe(page, otro.nombres[0] ?? '')
   await expect(segundo.locator('li')).toHaveCount(20)
   sql(`update public.lotes_papelera set purgado_en = now() where id = ${literal(otro.lote)}`)
-  await segundo.getByRole('button', { name: 'Mostrar los 25' }).click()
+  await conRespuesta(
+    page,
+    esRpc('leads_papelera_lote'),
+    () => segundo.getByRole('button', { name: 'Mostrar los 25' }).click(),
+    '«Mostrar los 25» de un lote purgado',
+  )
   await expect(segundo.getByText('Ese lote ya no está en la papelera.')).toBeVisible()
   await segundo.getByRole('button', { name: 'Recargar' }).click()
   await expect(page.getByText(otro.nombres[0] ?? '')).toHaveCount(0)
   expect(id).not.toBe(otro.lote)
+})
+
+// @sin-celular: el pedido demorado se espera igual con cualquier ancho y el recorrido de la papelera ya corre también en el celular.
+test('«Mostrar los 200» con el pedido demorado 6 s', async ({ page }, info) => {
+  const { nombres } = await loteDeBerta(200, 'Demora200', info.project.name)
+  await entrar(page, t.personas.berta)
+  await page.goto('/leads/papelera')
+  const lote = loteDe(page, nombres[0] ?? '')
+  await expect(lote.locator('li')).toHaveCount(20)
+  // Con la lista ya leída: sólo el pedido del lote sale tarde.
+  const demorados = await demorarPedido(
+    page,
+    (pedido) => pedido.method() === 'POST' && pedido.url().endsWith('/rpc/leads_papelera_lote'),
+    6_000,
+  )
+  await conRespuesta(
+    page,
+    esRpc('leads_papelera_lote'),
+    () => lote.getByRole('button', { name: 'Mostrar los 200' }).click(),
+    '«Mostrar los 200» demorado 6 s',
+  )
+  expect(demorados).toHaveLength(1)
+  await expect(lote.locator('li')).toHaveCount(200)
 })
