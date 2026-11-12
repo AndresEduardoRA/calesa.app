@@ -7,6 +7,7 @@ import { cn } from 'cn'
 import { RUTAS } from '@/shared/lib/rutas'
 import { Campo } from '@/shared/ui/campo'
 import { Button } from '@/shared/ui/button'
+import { EnlaceDeChat } from '../../chat/components/enlace-de-chat'
 import { OpcionesDePais } from './opciones-de-pais'
 import type { OpcionDePais } from '../../../entities/paises/resolver'
 import {
@@ -130,6 +131,9 @@ function AvisoDelTelefono({ aviso, verificacion }: PropsDelAviso) {
             Abrir
           </Link>
         </>
+      ) : null}
+      {verificacion?.estado === 'de_otro' && verificacion.duenoId ? (
+        <EnlaceDeChat duenoId={verificacion.duenoId} />
       ) : null}
     </p>
   )

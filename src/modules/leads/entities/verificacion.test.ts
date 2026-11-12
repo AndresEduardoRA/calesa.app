@@ -21,8 +21,17 @@ describe('verificacionDesde', () => {
     expect(verificacionDesde({ estado: 'de_otro', dueno: 'Diego', dueno_id: ID })).toEqual({
       estado: 'de_otro',
       dueno: 'Diego',
+      duenoId: ID,
     })
     expect(verificacionDesde({ estado: 'de_otro' })).toEqual({ estado: 'de_otro', dueno: null })
+  })
+
+  it('duenoId sólo aparece si la base mandó dueno_id; uno ilegible es un error', () => {
+    expect(verificacionDesde({ estado: 'de_otro', dueno: 'Diego' })).not.toHaveProperty('duenoId')
+    expect(
+      verificacionDesde({ estado: 'de_otro', dueno: 'Diego', dueno_id: null }),
+    ).not.toHaveProperty('duenoId')
+    expect(() => verificacionDesde({ estado: 'de_otro', dueno_id: 'no-es-guid' })).toThrow()
   })
 
   it('un estado que no existe es un error, no un valor', () => {
