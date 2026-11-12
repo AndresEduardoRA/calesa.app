@@ -15,6 +15,7 @@ Ficha completa (cada componente con su historia y sus trampas): `docs/archivo/mo
 - `lib/safe-action.ts` — `actionClient` (exige sesión; `ctx` trae `supabase`, `usuarioId`, `permisos`) y `actionClientPublico`. Toda mutación entra por acá.
 - `lib/errores.ts` — `Resultado<T>`, `ok()`, `fallo()`, `conflicto()`, `errorDePostgrest()` (`PT409` → conflicto, `42501` → sin_permiso), `datosO()`.
 - `lib/permisos.ts` — `puede()`, `alcanceDe()`, `origenesCon()`, `CLAVES_PERMISO`; las claves de nivel de acceso (`esClaveDeNivel()`) las crea la empresa y no están en la lista.
+- `lib/instalacion.ts` y `ui/{use-instalacion.ts,instalar-app.tsx}` — «Instalar la app» del menú del usuario: `ofrecerInstalacion()` (pura: `ninguna` si ya corre instalada o el navegador no instala, `prompt` con el `beforeinstallprompt` guardado, `instrucciones` en iOS) y el hook que guarda el evento.
 - `lib/rutas.ts` (`decidirAcceso()`, `returnToSeguro()`) y `lib/navegacion.ts` (`redirigir()`).
 - `lib/formato.ts`, `lib/fechas.ts` — todo número y toda fecha salen de acá, en el locale y la zona de la empresa.
 - `lib/numero-tipeado.ts` — el lector de un número tipeado, uno solo: `leerNumeroTipeado(texto, locale)`. Lo usan `XCell`, `esquemaDeValor()` y los formularios de dinero.
@@ -55,6 +56,7 @@ Ficha completa (cada componente con su historia y sus trampas): `docs/archivo/mo
 
 ## Ojo
 
+- `use-instalacion.ts` pone sus oyentes (`beforeinstallprompt`, `appinstalled`) al evaluarse el módulo, no en un efecto: el navegador avisa una vez y el menú se monta tarde. Un evento sirve una sola vez, acepte o no la persona.
 - `admin.ts` importa `server-only`; el lint sólo deja importarlo desde `equipo/infra/invitaciones.ts`, `empresa/infra/revalidacion-prueba.ts` y `web/infra/portal/rpc.ts`.
 - Esc dentro de un diálogo lo atiende Base UI (cierra sólo el de más arriba y detiene el evento en `document`): el atajo «cerrar» de `ProveedorAtajos` no lo ve, por eso `<Modal>` no lo registra. Un `<Modal>` abierto desde un `<Drawer>` se dibuja dentro de los hijos del Drawer.
 - Un `<fieldset disabled>` no apaga los `Switch` de Base UI: pásales `disabled` a mano.

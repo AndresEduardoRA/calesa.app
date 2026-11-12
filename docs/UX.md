@@ -68,7 +68,7 @@ Estados propios:
 
 ## Pantallas
 
-Navegación de primer nivel (hasta 7, filtrada por permisos): Inicio · Leads · Vehículos · Cotizaciones · Logística · Agenda · Chat; Repuestos sólo con permiso. Configuración, Actividad y Datos van en el menú del usuario y en `Ctrl/Cmd+K`, con «Mi perfil», «Ver como» (quien gestiona roles), tema, densidad y «Cerrar sesión». Declarada en `src/app/(app)/_shell/navegacion.ts`.
+Navegación de primer nivel (hasta 7, filtrada por permisos): Inicio · Leads · Vehículos · Cotizaciones · Logística · Agenda · Chat; Repuestos sólo con permiso. Configuración, Actividad y Datos van en el menú del usuario y en `Ctrl/Cmd+K`, con «Mi perfil», «Instalar la app» (sólo si el navegador puede instalarla y aún no corre instalada; en iOS explica «Compartir › Agregar a inicio»), «Ver como» (quien gestiona roles), tema, densidad y «Cerrar sesión». Declarada en `src/app/(app)/_shell/navegacion.ts`.
 
 - **Acceso** — `/ingreso`, `/registro`, `/recuperar` (sin sesión): `?returnTo=`, `?aviso=`; `/registro` sólo con registro abierto o sin equipo; `/auth/nueva-contrasena` tras el enlace del correo.
 - **Inicio** — `/` (todos): bandeja por rol + widgets opcionales; bloques por permiso; cada contador lleva a la lista filtrada.
