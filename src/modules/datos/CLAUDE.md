@@ -13,7 +13,7 @@ Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista pre
 - `entities/plantillas.ts` — columnas de cada plantilla CSV con sus validadores Zod (teléfono normalizado por la base con el código de la empresa, fechas ISO, orígenes por nombre).
 - `infra/importar.ts` — llama a `supabase/functions/importar-csv` (fuera de la Server Action: es trabajo en segundo plano).
 - `entities/exportacion.ts` — exportar todo: el pedido (Zod), `TOPE_DE_FILAS` (250.000, medido), `FILAS_POR_PEDIDO` (el `max_rows`), el rango por fechas con el instante de corte, lo que contesta el registrar y los tipos `LectorDeExportacion`, `ColumnasDeExportacion` y `Registrador`.
-- `infra/cliente-del-flujo.ts` — `prepararSesion()`: la sesión de quien exporta con su token **fijo** (`accessToken` de supabase-js: nunca refresca). `infra/exportacion.ts` — el conteo y las páginas de `datos_exportar_leads()` por cursor, el registrar y los nombres de los dueños.
+- `infra/cliente-del-flujo.ts` — `prepararSesion()`: la sesión de quien exporta con su token **fijo** (`accessToken` de supabase-js: nunca refresca). `infra/exportacion.ts` — el conteo y las páginas de `datos_exportar_leads()` por cursor, el registrar y los nombres de los dueños. `infra/paginas.ts` — lo común de leer por páginas (`enElRango`, `siguienteDe`, `contarHasta`). `infra/vehiculos.ts` (9.05-2b) — los vehículos de un origen de la tabla `vehiculos`, de a 1.000, bajo la RLS de quien exporta (no `vehiculos_inventario()`).
 - `features/exportar/lecturas.ts` (`exportarTodo`: el orden), `flujo.ts` (el `ReadableStream`), `fuente-de-leads.ts` y `columnas-de-leads.ts` (cada entidad: la 9.05-2b suma vehículos y cotizaciones sin tocar el flujo); `features/importar/` (mapeo, vista previa, resultado).
 
 ## Tablas
