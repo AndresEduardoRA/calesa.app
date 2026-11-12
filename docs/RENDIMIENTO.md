@@ -80,6 +80,7 @@ Sección «Seguimientos» de la ficha y pestaña del drawer.
 - Tres lecturas en el servidor, cada una `limit 6` y cada una tras el `<Suspense>` de su bloque (un bloque lento no frena a los demás): `recordatorios_vista` por `recordatorios_usuario_idx`; `leads_cartera_vista` por `leads_asesores_listado_idx` (cuesta lo que pesa la cartera de quien mira, no la tabla); `perfiles` por `perfiles_vigentes_orden_idx`.
 - Sin `count`, sin `offset`, sin N+1. No se sembró volumen: ninguna recorre `leads` entera.
 - **Turnos de la web (8.05-1):** el bloque `turnos-web` suma dos lecturas `limit 6` de `solicitudes_contacto_web` (`usuario_id = yo`, por `solicitudes_contacto_web_usuario_id_idx`; las `asignada`, por `solicitudes_web_asesor_abiertas_idx`) y, si hay vehículos, una de `web.vehiculos` por ids (`limit` = los ids). Acotadas por la cola (`max_abiertas`) y por las `vencida` de mi fila; sin `count`, `offset` ni N+1; no se sembró volumen. JS en frío de `/`: `e2e/presupuesto-js.spec.ts` sigue en verde (la tarjeta sólo se monta con turnos; el panel de vincular viaja con `diferido()`).
+- **Repuestos (8.13-4):** los bloques `repuestos-por-mover` y `esperas-repuestos` suman una lectura cada uno, `limit 6` sobre `repuestos_items` (por `repuestos_items_fase_id_idx`, orden `fase_desde`; sin índice propio: abierto 8-13c), con la fase, el proyecto y el título del vehículo embebidos; sin `count`, `offset` ni N+1; no se sembró volumen (tabla fuera de las que crecen). Cuerpos de servidor: sin JS nuevo en `/`.
 
 ## Inventario de escala (9e)
 
