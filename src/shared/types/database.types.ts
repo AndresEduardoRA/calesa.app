@@ -10723,6 +10723,21 @@ export type Database = {
       web_expirar_solicitudes: { Args: { p_limite?: number }; Returns: number }
       web_publica_vehiculos_que_cambian: { Args: Record<PropertyKey, never>; Returns: number }
       web_revalidar_correr: { Args: Record<PropertyKey, never>; Returns: number }
+      web_testimonio_consentir: {
+        Args: {
+          p_actualizado_en_esperado: string
+          p_canal: string
+          p_ciudad: boolean
+          p_foto: boolean
+          p_testimonio: string
+          p_vehiculo: boolean
+        }
+        Returns: string
+      }
+      web_testimonio_retirar: {
+        Args: { p_actualizado_en_esperado: string; p_testimonio: string }
+        Returns: string
+      }
     }
     Enums: {
       alcance_permiso: 'propios' | 'todos'

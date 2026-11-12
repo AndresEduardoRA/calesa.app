@@ -6703,10 +6703,10 @@ begin
 end $$;
 rollback;
 
--- @test web: los ajustes se guardan por web_ajustes_guardar() (policy «ajustes_web: editar» borrada, 8.01-1)
+-- @test web: los ajustes se guardan por web_ajustes_guardar() y consent_* de un testimonio no se escribe directo (policy «ajustes_web: editar» borrada, grants por columna, 8.01-1)
 begin;
 do $$
-declare v_rol uuid; v_codigo text; v_version timestamptz;
+declare v_rol uuid; v_codigo text; v_t uuid; v_version timestamptz;
   v_quien uuid := '00000000-0000-4000-8000-000000080101';
 begin
   insert into auth.users (id, email, raw_app_meta_data) values (v_quien, 'humo.web@ejemplo.com', '{"invitado": true}');
@@ -6714,7 +6714,8 @@ begin
   insert into public.roles (clave, nombre) values ('humo_web', 'Humo web') returning id into v_rol;
   insert into public.usuarios_roles (usuario_id, rol_id, es_principal) values (v_quien, v_rol, true);
   insert into public.roles_permisos (rol_id, permiso_clave, alcance) values
-    (v_rol, 'web.ajustes.gestionar', 'todos');
+    (v_rol, 'web.ajustes.gestionar', 'todos'), (v_rol, 'web.contenido.gestionar', 'todos');
+  insert into public.web_testimonios (cliente, texto) values ('Humo', 'Bien') returning id into v_t;
   v_version := (select actualizado_en from public.ajustes_web where id = 1);
   perform set_config('request.jwt.claim.sub', v_quien::text, true);
   perform set_config('request.jwt.claim.role', 'authenticated', true);
@@ -6729,6 +6730,13 @@ begin
   if (select lema from public.ajustes_web where id = 1) is distinct from 'por la rpc' then
     raise exception 'web_ajustes_guardar no guardó el lema';
   end if;
+  begin
+    update public.web_testimonios set consent_canal = 'directo' where id = v_t;
+    v_codigo := 'sin error';
+  exception when others then v_codigo := sqlstate;
+  end;
+  if v_codigo <> '42501' then raise exception 'con web.contenido.gestionar, escribir consent_canal directo dio %', v_codigo; end if;
+  update public.web_testimonios set orden = 2 where id = v_t;
   reset role;
 end $$;
 rollback;
