@@ -30,5 +30,9 @@ export const REGISTRO: Record<string, RegistroDeDrawer> = {
   // Las imágenes de un ítem de repuestos (8.09-3): `?panel=imagenes&item=<id>`.
   'src/modules/repuestos/features/items/components/drawer-de-imagenes.tsx': {
     sinFormulario: 'sube y quita imágenes al instante: no guarda nada tipeado',
+  // El resumen de una declaración aduanera (6.09-1): `?declaracion=<id>`. Sólo muestra; el formulario de editar y alta llega en 6.09-2.
+  'src/modules/logistica/features/aduana/components/drawer-de-la-declaracion.tsx': {
+    sinFormulario:
+      'sólo muestra los datos y los vehículos de la declaración: no guarda nada tipeado; escribir es de los paneles de 6.09-2',
   },
 }

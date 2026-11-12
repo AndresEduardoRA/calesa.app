@@ -58,6 +58,12 @@ export const REGISTRO: readonly RpcPaginada[] = [
     parametro: 'p_tamano',
     pideElCodigo: TAMANO_DE_PAGINA_POR_DEFECTO,
     lista: 'proyectos de /repuestos',
+  // `/logistica/aduana` (6.09-1): una página de `TAMANO_DE_PAGINA_POR_DEFECTO` por cursor `(creado_en, id)`, sin selector `?por=`.
+  {
+    rpc: 'declaraciones_listar',
+    parametro: 'p_tope',
+    pideElCodigo: TAMANO_DE_PAGINA_POR_DEFECTO,
+    lista: 'declaraciones de /logistica/aduana',
   },
   // `/chat` (7.09-1): la lista de mis conversaciones por cursor `(ultimo_mensaje_en, id)`, de a `TAMANO_DE_VER_MAS` («Ver más», hasta `TOPE_DE_LO_CARGADO`).
   {
