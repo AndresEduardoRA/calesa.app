@@ -10,13 +10,15 @@ import {
 // botón y `reasignado` tiene su RPC (D2). La base vuelve a validarlo todo bajo su candado.
 const ENTERO_MAXIMO = 2147483647
 
+const unidades = z
+  .int({ error: MENSAJE_DE_CANTIDAD_DE_STOCK })
+  .min(1, { error: MENSAJE_DE_CANTIDAD_DE_STOCK })
+  .max(ENTERO_MAXIMO, { error: MENSAJE_DE_CANTIDAD_DE_STOCK })
+
 export const esquemaMoverStock = z.object({
   itemId: z.guid(),
   motivo: z.enum(['sobrante', ...MOTIVOS_CON_BOTON]),
-  unidades: z
-    .int({ error: MENSAJE_DE_CANTIDAD_DE_STOCK })
-    .min(1, { error: MENSAJE_DE_CANTIDAD_DE_STOCK })
-    .max(ENTERO_MAXIMO, { error: MENSAJE_DE_CANTIDAD_DE_STOCK }),
+  unidades,
   stockEsperado: z.int().min(0).max(ENTERO_MAXIMO),
   nota: z
     .string()
@@ -27,6 +29,16 @@ export const esquemaMoverStock = z.object({
 })
 
 export type EntradaDeMoverStock = z.input<typeof esquemaMoverStock>
+
+// Reasignar unidades del stock a otro proyecto (8.10-3, C3). El `id` del ítem nuevo lo crea el navegador al abrir el formulario: la RPC es idempotente por él.
+export const esquemaReasignarStock = z.object({
+  itemId: z.guid(),
+  proyectoDestinoId: z.guid({ error: 'Elige el proyecto destino.' }),
+  unidades,
+  id: z.guid(),
+})
+
+export type EntradaDeReasignarStock = z.input<typeof esquemaReasignarStock>
 
 // El historial de un ítem: sin cursor, la primera página; con él, los anteriores a ese id.
 export const esquemaLeerMovimientos = z.object({
