@@ -14,16 +14,16 @@ El módulo se parte por **área** (6.01, igual que `flujos` y `cotizaciones`) pa
 `entities/<área>/`, `infra/<área>/`, `areas/<área>/{index,client,composicion}.ts` y `pantallas/<área>.ts` (y `pantallas/<área>-<pantalla>.ts`). El **núcleo** (la unidad, el panel y
 sus huecos) es la carpeta `nucleo` de cada capa. `index.ts`, `client.ts` y `composicion.ts` de la raíz sólo hacen `export *` del núcleo y de cada área: nadie los edita.
 
-| Área         | La llena | Qué es                                                                                             |
-| ------------ | -------- | -------------------------------------------------------------------------------------------------- |
-| `nucleo`     | 6.01     | `Unidad`, `HuecoDeLaUnidad`, el panel de la unidad y el orden de sus huecos                        |
-| `cadena`     | 6.03     | el kanban por fase de `/logistica`, filtros y «dónde está» (6.03-1 la lectura; 6.03-2 la pantalla) |
-| `mover`      | 6.04     | «qué falta», mover con nota, notas, historial y el lote (en el panel: sus tres huecos)             |
-| `documentos` | 6.06     | subir, aprobar o rechazar, vencimiento (hueco «documentos»)                                        |
-| `transporte` | 6.08     | embarques y contenedores (hueco «transporte», enlace «Embarques», catálogos)                       |
-| `aduana`     | 6.09     | declaraciones (hueco «aduana», enlace «Aduana»)                                                    |
-| `dinero`     | 6.11     | gastos, pagos y margen (tres huecos, enlace «Gastos», catálogos)                                   |
-| `alertas`    | 6.12     | alertas por demora y por vencimiento, bandeja en Inicio                                            |
+| Área         | La llena | Qué es                                                                                                |
+| ------------ | -------- | ----------------------------------------------------------------------------------------------------- |
+| `nucleo`     | 6.01     | `Unidad`, `HuecoDeLaUnidad`, el panel de la unidad y el orden de sus huecos                           |
+| `cadena`     | 6.03     | el kanban por fase de `/logistica`: columnas con «Ver más», tarjeta, filtros en la URL y «dónde está» |
+| `mover`      | 6.04     | «qué falta», mover con nota, notas, historial y el lote (en el panel: sus tres huecos)                |
+| `documentos` | 6.06     | subir, aprobar o rechazar, vencimiento (hueco «documentos»)                                           |
+| `transporte` | 6.08     | embarques y contenedores (hueco «transporte», enlace «Embarques», catálogos)                          |
+| `aduana`     | 6.09     | declaraciones (hueco «aduana», enlace «Aduana»)                                                       |
+| `dinero`     | 6.11     | gastos, pagos y margen (tres huecos, enlace «Gastos», catálogos)                                      |
+| `alertas`    | 6.12     | alertas por demora y por vencimiento, bandeja en Inicio                                               |
 
 **Los huecos.** El panel de la unidad no sabe qué lleva: cada área declara sus huecos en un archivo suyo de `pantallas/` que hoy está vacío (`<área>-unidad.ts` →
 `HUECOS_DE_<ÁREA>_EN_LA_UNIDAD`; `<área>-grupo.ts`; `<área>-enlace.ts`, nulo hasta que su página existe; `<área>-catalogos.ts`) y sólo `src/app` los junta. Un hueco se dibuja
@@ -35,7 +35,7 @@ El panel exige `logistica.ver` en el origen de la unidad **y** que la RLS de `ve
 
 - `entities/documentos.ts` — estados pendiente/subido/aprobado/rechazado y qué cuenta para un requisito (aprobado y vivo, mime admitido, entre min y max).
 - `entities/grupos.ts` — agrupar `transportes` por booking / contenedor (vistas, no entidades) y la edición «todo o nada».
-- `features/cadena/`, `features/unidad/` (panel con «qué falta»), `features/documentos/`, `features/transporte/`, `features/aduana/`, `features/gastos/`, `features/pagos/`, `features/donde-esta/`.
+- `features/cadena/` (6.03-2: `pantallas/cadena.ts` reexporta `CadenaDeLogistica`, `PestanasDeOrigen`, `EsqueletoDeTablero` y `EstadoDeLaCadena`; `useCadena` siembra por firma y pide una página a la vez por columna; la tarjeta es un enlace con `?vehiculo=`, nunca arrastrar), `features/unidad/` (panel con «qué falta»), `features/documentos/`, `features/transporte/`, `features/aduana/`, `features/gastos/`, `features/pagos/`, `features/donde-esta/`.
 - **Área `dinero`** (6.11-1 a 6.11-4: los huecos «Gastos», «Pagos» y «Margen», `/logistica/gastos`, prorratear y las categorías de gasto). `pantallas/dinero-unidad.ts` los declara con `diferido()`
   (`features/dinero/components/diferidos.tsx`). `entities/dinero/`: `margen.ts` (`textosDelMargen`: un `null` de la base se escribe «Sin cotización final» o «Sin venta registrada», nunca 0, y un 0
   verdadero es un monto), `gasto.ts` (`validarGasto`, `cambiosDeGasto` con el tipo de cambio sólo si cambió la moneda o el tipo, D19), `pago.ts` (`accionesDelPago`: un confirmado nunca se edita ni se elimina; `textoDelSello`; `validarPago` con monto > 0; `validarMotivoDeAnulacion`), `tipo-de-cambio.ts`, `categoria.ts`, `paneles.ts` y `paneles-de-pago.ts`. El navegador lee con la

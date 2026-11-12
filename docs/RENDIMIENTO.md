@@ -138,6 +138,12 @@ Elige 10, 25, 50 o 100 (`listas.por_pagina`, `?por=`); cada lista declara su má
 - Nodos del DOM de una columna en el tope (500 tarjetas): ≤ 10.250; el «⋯» de cada tarjeta cuesta exactamente 3 nodos (`<use>` a un símbolo de `src/shared/ui/lista/simbolos-de-lista.tsx`; `e2e/mas-acciones-icono.spec.ts`). El servidor dibuja una sola distribución (columnas o pestañas) según el ancho de la petición.
 - Oportunidades de la ficha: 10 en el servidor (las abiertas primero) y «Ver más» de a `TAMANO_DE_VER_MAS` desde el navegador, hasta `TOPE_DE_LO_CARGADO` con aviso y el camino «Buscarlas en tu embudo». Documento de la ficha ≤ 66 KB con la sección abierta, con 10 o con 1.000 (62,7 y 61,7 KB). Cada «Ver más», una página de 20 de ≈ 15,5 KB que no crece con la profundidad (≈ 3 ms en la base, `medir-lead-oportunidades.sql`); nodos lineales hasta 500 (238 con 10 y 11.509 con 500). `e2e/leads-oportunidades-ver-todas.spec.ts`.
 
+## La cadena de logística (6.03)
+
+- `/logistica`: `logistica_cadena()` trae la primera página de cada columna (`TAMANO_DE_COLUMNA`, 50), «Ver más» pide de a 50 por `verMasDeLaColumna` hasta `TOPE_DE_LO_CARGADO` (500) por columna con `<AvisoDeTope>`; el número de la columna es `50+`, nunca un total (`limit n + 1`). Índice `vehiculos_cadena_idx (origen_id, fase_id, fase_desde, id)` de 6.02 (plan medido allí). Nada por tarjeta: los atributos para el nombre van en tandas de 100 ids por clave primaria, una vez por lectura. Sin foto ni menú «⋯»: el nodo de cada tarjeta es corto (12 columnas × 50 = 600 tarjetas). Una sola vista en el DOM (escritorio o celular, la elige el ancho de la petición).
+- JS en frío de `/logistica` ≤ 410 KB (medido **388,9** en 30 chunks, `presupuesto-js.spec.ts`, con la dueña de la prueba).
+- Sin volumen de interfaz sembrado: el spec `e2e/logistica-cadena.spec.ts` prueba «Ver más» con una columna de 51, no mide nodos.
+
 ## Buscador (7.12)
 
 Cada sección por su RPC, de a `_acotar_pagina(p_tamano, 5, 20)` + 1, con el mínimo de `MINIMO_DE_BUSQUEDA` en la base (`_buscador_interpretar()`).
