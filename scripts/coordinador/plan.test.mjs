@@ -184,6 +184,27 @@ test('un PR propio en rojo vuelve antes que un paso nuevo', () => {
   assert.equal(r.arreglar, 'CI en rojo')
 })
 
+test('un PR propio devuelto va antes que la parte siguiente del paso en curso, y el arreglo empezado se termina primero', () => {
+  let e = estadoInicial(PLAN)
+  e = marcar(
+    marcar(marcar(e, 'P01', 'asignado'), 'P01', 'publicado', { pr: 1 }),
+    'P01',
+    'integrado',
+  )
+  e = marcar(marcar(e, 'P03', 'asignado', { carril: 'ui' }), 'P03', 'publicado', { pr: 3 })
+  e = marcar(e, 'P04', 'asignado', { carril: 'ui' }) // el paso en curso, entre partes
+  assert.equal(siguiente(PLAN, e, 'ui').paso.id, 'P04')
+  e.pasos.P03.arreglar = 'conflicto con main'
+  const r = siguiente(PLAN, e, 'ui')
+  assert.equal(r.paso.id, 'P03')
+  assert.equal(r.arreglar, 'conflicto con main')
+  // Lo que hace la CLI al darlo: queda asignado con su motivo, y sigue yendo primero hasta que se publique.
+  e = marcar(e, 'P03', 'asignado', { carril: 'ui', arreglar: 'conflicto con main' })
+  assert.equal(siguiente(PLAN, e, 'ui').paso.id, 'P03')
+  e = marcar(e, 'P03', 'publicado', { pr: 3, arreglar: null })
+  assert.equal(siguiente(PLAN, e, 'ui').paso.id, 'P04')
+})
+
 test('con la cuota sobre el umbral sólo avanza el camino crítico; en el tope, nadie', () => {
   let e = estadoInicial(PLAN)
   e = marcar(

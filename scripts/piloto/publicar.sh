@@ -59,20 +59,31 @@ fi
 
 git push --quiet -u origin "$RAMA" || negar "git push origin $RAMA falló."
 
+# GitHub falla a ratos sin que nada esté mal (HTTP 499 y 5xx el 11-11-2026: cada uno era un aviso y 5 min de espera con la rama ya
+# empujada): abrir o comentar el PR se intenta hasta 3 veces, con PILOTO_GH_ESPERA s (5) entre una y otra.
+gh_insistente() {
+  local n
+  for n in 1 2 3; do
+    gh "$@" && return 0
+    [ "$n" -lt 3 ] && sleep "${PILOTO_GH_ESPERA:-5}"
+  done
+  return 1
+}
+
 # El PR de la rama: se abre una vez; cada paso publicado deja un comentario. Nunca un merge.
 PR=$(gh pr list --head "$RAMA" --state open --json number 2>/dev/null | jq -r '.[0].number // empty' 2>/dev/null)
 CORTO=$(git rev-parse --short HEAD)
 if [ -z "$PR" ] && [ -n "${PILOTO_CARRIL:-}" ]; then
   # Un PR por paso (el coordinador integra los verdes): su rama es `<carril>/<paso>`.
-  gh pr create --base main --head "$RAMA" --title "Paso $PASO (carril $PILOTO_CARRIL)" --body "El paso $PASO del carril $PILOTO_CARRIL, verificado por el bucle antes de publicar ($CORTO). Lo integra el coordinador cuando el CI esté en verde." >/dev/null ||
+  gh_insistente pr create --base main --head "$RAMA" --title "Paso $PASO (carril $PILOTO_CARRIL)" --body "El paso $PASO del carril $PILOTO_CARRIL, verificado por el bucle antes de publicar ($CORTO). Lo integra el coordinador cuando el CI esté en verde." >/dev/null ||
     negar "se empujó $RAMA, pero gh pr create falló."
   PR=$(gh pr list --head "$RAMA" --state open --json number 2>/dev/null | jq -r '.[0].number // empty' 2>/dev/null)
 elif [ -z "$PR" ]; then
-  gh pr create --base main --head "$RAMA" --title "Carril A: $RAMA" --body "Los pasos del piloto (carril A), uno por commit de docs al final de cada uno. Cada paso lo verificó el bucle antes de publicarlo (lint, typecheck, test, \`db:probar\` si toca \`supabase/\` y los e2e dirigidos). Lo integra la persona; el piloto nunca hace merge.
+  gh_insistente pr create --base main --head "$RAMA" --title "Carril A: $RAMA" --body "Los pasos del piloto (carril A), uno por commit de docs al final de cada uno. Cada paso lo verificó el bucle antes de publicarlo (lint, typecheck, test, \`db:probar\` si toca \`supabase/\` y los e2e dirigidos). Lo integra la persona; el piloto nunca hace merge.
 
 Primer paso publicado: $PASO ($CORTO)." >/dev/null || negar "se empujó $RAMA, pero gh pr create falló: el PR se abre a mano o en la vuelta siguiente."
 else
-  gh pr comment "$PR" --body "Paso $PASO publicado ($CORTO)." >/dev/null || negar "se empujó $RAMA, pero no se pudo comentar el PR #$PR."
+  gh_insistente pr comment "$PR" --body "Paso $PASO publicado ($CORTO)." >/dev/null || negar "se empujó $RAMA, pero no se pudo comentar el PR #$PR."
 fi
 # Con carril, el coordinador anota el paso como publicado (con el número de su PR).
 if [ -n "${PILOTO_CARRIL:-}" ]; then

@@ -5,7 +5,7 @@
 # `.piloto/ci-rojos.md` (una línea por corrida, con su commit y los jobs que cayeron) y el ruteo lo ve en `hechos.json` › `ci_rojos`.
 # Un CI verde más nuevo borra la lista: lo que fallaba ya no falla. Sólo hay dos casos que sí frenan, porque contaminan lo que se
 # construye encima: un job de la base en rojo (RLS, grants, advisors) y que se acumulen `PILOTO_TOPE_CI_ROJOS` corridas rojas sin
-# arreglar (5 por omisión). Una corrida cancelada (el push siguiente la reemplaza: `cancel-in-progress`) no dice nada.
+# arreglar (5 por omisión); con carriles (`PILOTO_CARRIL`) ninguno de los dos frena. Una corrida cancelada (el push siguiente la reemplaza: `cancel-in-progress`) no dice nada.
 #
 #   ci_resolver <rama>   0 sigue; 1 frena y deja el motivo en CI_MOTIVO. Deja CI_ESTADO: sin|corriendo|cancelado|verde|rojo|rojo-base
 #
@@ -60,11 +60,17 @@ ci_resolver() { # <rama>
     verde) rm -f "$CI_ROJOS" "$ESTADO/ci-fix-intentos" "$ESTADO/ci-fix-head" ;;
     rojo-base)
       ci_anotar_rojo
+      # Con carriles no frena: cada paso sale de origin/main en su rama y el coordinador no integra un PR con el CI en rojo, así que
+      # nada se arrastra. Frenar era un candado sin llave: sin empujar no corre otro CI, y el rojo viejo no se iba nunca (el 11-11-2026 el
+      # B estuvo 3 h y el A 70 min sin publicar por una prueba inestable de main que ya estaba arreglada, con el PR además en conflicto,
+      # donde GitHub ni siquiera corre el CI).
+      [ -n "${PILOTO_CARRIL:-}" ] && return 0
       CI_MOTIVO="el CI $CI_ID tiene la base en rojo ($CI_FALLO): RLS, grants o advisors no se arrastran a los pasos siguientes"
       return 1
       ;;
     rojo)
       ci_anotar_rojo
+      [ -n "${PILOTO_CARRIL:-}" ] && return 0 # lo mismo: el rojo de un PR lo devuelve el coordinador (`arreglar`), no esta cuenta
       if [ "$(ci_rojos_n)" -ge "$TOPE_ROJOS" ]; then
         CI_MOTIVO="hay $(ci_rojos_n) corridas de CI rojas sin arreglar (tope $TOPE_ROJOS): ver $CI_ROJOS"
         return 1

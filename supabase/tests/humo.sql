@@ -227,7 +227,7 @@ do $$ declare v uuid; sin_fase uuid; f_sub uuid; f_comp uuid; pre jsonb; h bigin
   pre := public.previsualizar_cambio_fase(v, null, f_comp);
   if (pre ->> 'ok')::boolean or jsonb_array_length(pre -> 'faltan') <> 2 then raise exception 'esperaba 2 requisitos faltantes: %', pre; end if;
   begin
-    perform public.cambiar_fase(v, null, f_comp, 'x', null);
+    perform public.cambiar_fase(v, null, f_comp, 'x', f_sub);   -- la esperada real: la nula sólo vale sin fase (6.02-1)
     raise exception 'movió sin requisitos';
   exception when check_violation then null; end;
   begin
@@ -271,7 +271,8 @@ do $$ declare c uuid; v uuid; f_comp uuid; h bigint; res jsonb; begin
   select f.id into f_comp from public.fases f join public.flujos fl on fl.id = f.flujo_id join public.origenes o on o.id = fl.origen_id where o.clave = 'subasta_usa' and f.nombre = 'Comprado';
   h := public.cambiar_fase(v, null, f_comp, 'Ganado en subasta', (select f.id from public.fases f join public.flujos fl on fl.id = f.flujo_id join public.origenes o on o.id = fl.origen_id where o.clave = 'subasta_usa' and f.nombre = 'En subasta'));
   if (select count(*) from public.notas where historial_fase_id = h) <> 1 then raise exception 'la nota del cambio no quedó en notas'; end if;
-  res := public.cambiar_fase_lote(array[v, gen_random_uuid()], (select f.id from public.fases f join public.flujos fl on fl.id = f.flujo_id join public.origenes o on o.id = fl.origen_id where o.clave = 'subasta_usa' and f.nombre = 'En tránsito a puerto USA'), null);
+  -- El lote lleva la fase esperada de cada unidad (6.02-1): la de v es «Comprado»; la inexistente no tiene fase.
+  res := public.cambiar_fase_lote(jsonb_build_array(jsonb_build_object('vehiculo', v, 'fase_esperada', f_comp), jsonb_build_object('vehiculo', gen_random_uuid(), 'fase_esperada', null)), (select f.id from public.fases f join public.flujos fl on fl.id = f.flujo_id join public.origenes o on o.id = fl.origen_id where o.clave = 'subasta_usa' and f.nombre = 'En tránsito a puerto USA'), null);
   if (res -> 0 ->> 'ok')::boolean is not true or (res -> 1 ->> 'ok')::boolean is not false then raise exception 'lote parcial mal: %', res; end if;
   if (select count(*) from public.revisar_flujo((select flujo_id from public.fases where id = f_comp)) where nivel = 'error') <> 0 then raise exception 'el flujo de ejemplo no debería tener errores'; end if;
 end $$;
