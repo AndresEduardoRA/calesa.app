@@ -33,13 +33,14 @@ export function textoDelOrigenDeLaNota(
   return fase === null ? 'al pasar de fase' : `al pasar a «${fase}»`
 }
 
-/** Editar y borrar son de quien la escribió, y nunca de una nota que dejó un cambio de fase (D9, D22). */
+/**
+ * Editar es de quien la escribió, y nunca de una nota que dejó un cambio de fase (D9, D22). «Borrar» no existe: la policy de lectura de `notas` rechaza el borrado suave por `update` y
+ * borrar pide una RPC (abierto 6-3; `supabase/tests/areas/mover/notas.sql`, N3).
+ */
 export function quePuedeHacerConLaNota(nota: Pick<NotaDeLaUnidad, 'mia' | 'deCambioDeFase'>): {
   editar: boolean
-  borrar: boolean
 } {
-  const propia = nota.mia && nota.deCambioDeFase === null
-  return { editar: propia, borrar: propia }
+  return { editar: nota.mia && nota.deCambioDeFase === null }
 }
 
 /** Cuántos caracteres le quedan a lo que se escribe (negativo si se pasó). */

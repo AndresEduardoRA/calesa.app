@@ -8,18 +8,11 @@ import {
 } from './notas'
 
 describe('quePuedeHacerConLaNota', () => {
-  it('sólo la propia y que no sea de un cambio de fase', () => {
-    expect(quePuedeHacerConLaNota({ mia: true, deCambioDeFase: null })).toEqual({
-      editar: true,
-      borrar: true,
-    })
-    expect(quePuedeHacerConLaNota({ mia: false, deCambioDeFase: null })).toEqual({
-      editar: false,
-      borrar: false,
-    })
+  it('editar es sólo de la propia y que no sea de un cambio de fase', () => {
+    expect(quePuedeHacerConLaNota({ mia: true, deCambioDeFase: null })).toEqual({ editar: true })
+    expect(quePuedeHacerConLaNota({ mia: false, deCambioDeFase: null })).toEqual({ editar: false })
     expect(quePuedeHacerConLaNota({ mia: true, deCambioDeFase: { haciaFase: 'B' } })).toEqual({
       editar: false,
-      borrar: false,
     })
   })
 })
