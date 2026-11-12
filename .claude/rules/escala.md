@@ -38,6 +38,9 @@ tope, índice y presupuesto está en `docs/RENDIMIENTO.md`.
   `count: 'exact'`. La consulta pide `tope + 1`, `conteoAcotado()` de `src/shared/lib/conteo.ts` la
   vuelve `{ n, hayMas }` y `conteoEnFrase()` («más de 50») o `conteoCorto()` («500+») la escriben.
   PostgREST corta en 1.000 filas: un tope mayor se lee por páginas.
+- Excepción (9.07): un agregado de un **período cerrado** (las RPC `tablero_*`) se cuenta en la base, con
+  ventana máxima de 366 días, por índice de fecha y, si usa `count(`, con su motivo en
+  `supabase/tests/escala.sql`. Las listas y sus números siguen la regla de arriba.
 
 ## Consultas
 
