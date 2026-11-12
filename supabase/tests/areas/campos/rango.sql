@@ -16,11 +16,13 @@ exception when others then
   return sqlstate || coalesce('/' || nullif(v_hint, ''), '') || ': ' || v_msg;
 end $f$;
 
--- Un campo de lead «RG Edad» (número, 18–99) y un origen propio con su campo «RG Año» (número, 18–99).
+-- Dos campos de lead, «RG Edad» (número, 18–99) y «RG Nota» (texto), y un origen propio con «RG Año» (número, 18–99) y «RG Nota».
 create or replace function pg_temp.cmr_preparar() returns void language plpgsql as $f$
 declare o uuid;
 begin
-  insert into public.leads_campos (clave, etiqueta, tipo, orden, minimo, maximo) values ('rg_edad', 'RG Edad', 'numero', 1001, 18, 99);
+  insert into public.leads_campos (clave, etiqueta, tipo, orden, minimo, maximo) values
+    ('rg_edad', 'RG Edad', 'numero', 1001, 18, 99),
+    ('rg_lnota', 'RG Nota', 'texto', 1002, null, null);
   insert into public.origenes (clave, nombre) values ('prueba_rg', 'Prueba rg') returning id into o;
   insert into public.origenes_campos (origen_id, clave, etiqueta, tipo, orden, minimo, maximo) values
     (o, 'rg_anio', 'RG Año', 'numero', 1001, 18, 99),
@@ -70,10 +72,6 @@ begin
   update public.leads_campos set minimo = null, maximo = 99.5 where clave = 'rg_edad';
   r := pg_temp.cmr_lead('{"rg_edad": 100}');
   if r <> '22023/atributos.rg_edad: «RG Edad» va hasta 99.5.' then raise exception 'sólo máximo: %', r; end if;
-  -- Un campo inactivo no se valida.
-  update public.leads_campos set activo = false where clave = 'rg_edad';
-  r := pg_temp.cmr_lead('{"rg_edad": 500}');
-  if r not like 'sin error' and r like '%va hasta%' then raise exception 'un campo inactivo validó el rango: %', r; end if;
 end $$;
 rollback;
 
@@ -92,6 +90,10 @@ begin
   if r <> '22023/atributos.rg_anio: «RG Año» va de 18 a 99.' then raise exception 'actualizar a 17: %', r; end if;
   r := pg_temp.cmr_error(format('update public.vehiculos set atributos = %L where id = %L', '{"rg_anio": 99}', v));
   if r <> 'sin error' then raise exception 'actualizar a 99: %', r; end if;
+  -- Un campo desactivado no se valida (los campos activos del origen filtran el rango).
+  update public.origenes_campos set activo = false where origen_id = o and clave = 'rg_anio';
+  r := pg_temp.cmr_error(format('update public.vehiculos set atributos = %L where id = %L', '{"rg_anio": 500}', v));
+  if r <> 'sin error' then raise exception 'un campo desactivado validó el rango: %', r; end if;
 end $$;
 rollback;
 
@@ -113,8 +115,8 @@ begin
   update public.origenes_campos set minimo = 18, maximo = 99 where origen_id = o and clave = 'rg_anio';
 
   -- Lead: otro atributo cambia y el 17 queda.
-  r := pg_temp.cmr_error(format('update public.leads set atributos = atributos || %L where id = %L', '{"rg_otro": "x"}', l));
-  if r like '%rg_edad%' then raise exception 'lead: el 17 que ya estaba impidió guardar: %', r; end if;
+  r := pg_temp.cmr_error(format('update public.leads set atributos = atributos || %L where id = %L', '{"rg_lnota": "x"}', l));
+  if r <> 'sin error' then raise exception 'lead: el 17 que ya estaba impidió guardar: %', r; end if;
   r := pg_temp.cmr_error(format('update public.leads set nombre = %L, atributos = atributos where id = %L', 'RG viejo 2', l));
   if r <> 'sin error' then raise exception 'lead: guardar sin cambiar el 17: %', r; end if;
   r := pg_temp.cmr_error(format('update public.leads set atributos = atributos || %L where id = %L', '{"rg_edad": 16}', l));
