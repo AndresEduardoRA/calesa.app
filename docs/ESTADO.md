@@ -3,9 +3,9 @@
 > La fuente de verdad de «en qué vamos». **60 líneas como máximo**: lo que deja de ser actual se mueve a `docs/BITACORA.md`. Qué existe
 > en el código lo dice `docs/MAPA.md`; los abiertos con su paso, `docs/PLAN.md`. Las versiones anteriores: `git log -p docs/ESTADO.md`.
 
-**Última actualización:** 2026-11-09
+**Última actualización:** 2026-11-11
 **Fase actual:** **Fases 5 a 9, partidas y abiertas a la vez** (69 pasos en `docs/plan.yaml`; sus filas, en `docs/PLAN.md`). La Fase 4
-cerró el 2026-11-08 con el 4.28. Los carriles están en `PARAR` hasta la orden de la persona: `bash scripts/maquina/lanzar.sh --ya`.
+cerró el 2026-11-08 con el 4.28. Los tres carriles corren desde el 2026-11-11 08:45; cuánto va: `node scripts/coordinador/coordinador.mjs tablero`.
 
 ## Cómo se trabaja
 
@@ -34,10 +34,10 @@ cerró el 2026-11-08 con el 4.28. Los carriles están en `PARAR` hasta la orden 
 
 ## Siguiente
 
-- **Lanzar** (la persona da la orden): `bash scripts/maquina/lanzar.sh` revisa; `--ya` arranca los tres carriles. Los primeros pasos, sin
-  dependencias: 5.01, 5.02, 5.03, 6.10, 6.13, 7.01, 7.05, 7.06, 7.12, 8.01, 8.06, 9.01, 9.02, 9.03, 9.05 y 9.07.
-- **Queda para la persona:** integrar un PR que toca las guardas del piloto o `.github/workflows/` (el coordinador no lo integra solo);
-  producción; un paso aparcado sin reintentos.
+- **En marcha** (lanzado el 2026-11-11): lo integrado, lo abierto y lo aparcado están en el tablero, no aquí. Parar:
+  `bash scripts/maquina/lanzar.sh --parar`. El coordinador integra todo lo que está en verde, también guardas y ramas `fix/`.
+- **Queda para la persona:** producción (variables, secretos, `db push`) y un paso aparcado sin reintentos
+  (`coordinador.mjs reanudar <paso>`).
 - **Para la persona**, con números: **5a-4b**: la suite completa con los dos proyectos tarda 70,4 min de reloj (escritorio 39,5; celular
   30,9), lejos de los 25 min del assert; decidir si vale la segunda pila local o seguir con los shards del CI. Abiertos que decide
   (`docs/PLAN.md` › «Abiertos de la Fase 4» › «Los decide la persona»): 4-39, 4-43, 4-46, 4-52, 4-54, 4-56, 4-64, 4-66, 4-67, 4-71, 4-72,
