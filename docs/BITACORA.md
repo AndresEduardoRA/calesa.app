@@ -3714,3 +3714,287 @@ y `logistica`, abiertos para la Fase 6 y pulido), que es el que cierra la fase.
   e2e completo: sí (5.13-1, cierre, Nivel 3: escritorio 1.107 en verde, 16 saltadas, 2 caídas arregladas o inestables, 43,5 min; movil 791 en verde, 27 saltadas, 0 caídas, 31,0 min)
 - **Commits:** `649e6a8b` el recorrido · `83c0dada` el aviso sin conexión del resumen acotado al contenido · `6df82b05` las cuentas de prueba por fecha al
   borrarlas · la consolidación de docs · esta parte.
+
+<!-- paso:7.04 -->
+
+## 2026-11-12 — Paso 7.04: preferencias de notificaciones y activar el push
+
+- **Hecho:** `public/sw.js` atiende `push` (carga ilegible = «Tienes un aviso nuevo», nunca lanza) y `notificationclick` (sólo abre rutas del mismo
+  origen; si no, `/notificaciones`). Bloque «Notificaciones» en `/perfil` (ancla `#notificaciones`, tras `<Suspense>`): «Recibir avisos en este
+  navegador» (`usePush()`), un interruptor de push por tipo del catálogo (11, con etiqueta y descripción) y «Tus navegadores» con «Quitar». Los cinco
+  motivos (sin permiso, integración apagada, sin clave, sin soporte, negado) dejan el interruptor a la vista, deshabilitado y con su texto. Empresa ›
+  Integraciones gana la tarjeta «Avisos push» (interruptor de `push_web`: **cierra «sin interfaz: `push_web`» de la Deuda aceptada de ESTADO**).
+  `/notificaciones` suma el enlace «Preferencias de avisos». Sin migración ni cambio de `database.types.ts`.
+- **Verificación** (`.piloto/salidas/7.04/`): vitest de lo nuevo y `scripts/guardas` en verde (1.320 y 1.325 al correr las carpetas tocadas);
+  `e2e-perfil-notificaciones.txt`: 6 de 6 en escritorio (encender crea la fila y apagar la quita; apagar «Recordatorios» deja `{"recordatorio": false}`,
+  sobrevive a recargar y encender borra la fila; sin permiso; integración apagada; Empresa enciende `push_web`; sin ajustes queda deshabilitada).
+  `e2e-dirigidos.txt` (perfil-avatar, empresa-integracion-web, notificaciones-campana, interruptor-200, configuracion-200, presupuesto-js,
+  rueda-por-rol; escritorio y celular): 91 verdes y 8 saltadas, y 2 caídas que son el presupuesto del documento de `/perfil` (91,19 de 91 KB);
+  subido a 96 KB (lo medido, 93.382 B, más un 5 %, `docs/RENDIMIENTO.md`) y `e2e-presupuesto.txt`: 10 verdes. JS en frío de `/perfil` 421,7 de 440 KB.
+- **No se probó:** el service worker real ni una suscripción a un servicio de push real (el e2e simula `navigator.serviceWorker` y `Notification`;
+  la seguridad del clic la cubre `sw.test.ts`); la entrega de punta a punta ya es de 7.03.
+- e2e completo: no (7.04, Nivel 1: lo prueba el CI del PR; dirigidos: perfil-notificaciones, perfil-avatar, empresa-integracion-web,
+  notificaciones-campana, interruptor-200, configuracion-200, presupuesto-js, rueda-por-rol)
+
+<!-- paso:5.13-2 -->
+
+## 5.13-2 · El cierre de la Fase 5: los docs de cierre (2026-11-12)
+
+Parte 2 de 2: cierra la fase. Sólo docs, Nivel 1; el recorrido y el Nivel 3 son del 5.13-1.
+
+- **PLAN, Fase 5:** «Tabla de criterios» (13 criterios con su spec, título o archivo SQL y resultado) y «Cierre de la Fase 5» con los números del Nivel 3 y
+  5a-4b (76,6 min de reloj); la «Partición» marcada (cada fila «hecho el …» con sus docs de paso; total: 13 pasos y 24 partes); riesgos viejos anotados como
+  resueltos (`flujos_transporte_oferta` en el 5.10-2, `fuera_de_regla()` en el 5.07) y `flujos.activo` sin lector.
+- **Abiertos nuevos:** **6-4** (requisito de dato con su regla apagada), **7-2** (la campana sin red), **9-13** (`rbac_eliminar_rol` y el `23503` crudo).
+  Pulido para la Fase 9: el inspector de fase al 200 % (5.04-3).
+- **Fichas:** `flujos` (la fase cerrada y lo que deja; `flujos.activo` en «Ojo») y `logistica` (la oferta es de `flujos` y logística sólo la lee; 6-4 en «Ojo»).
+- **ESTADO:** la Fase 5 en «Funcionando»; la fase actual, 6 a 9; los abiertos nuevos en «Pendientes».
+- e2e completo: no (5.13-2, sólo docs: el completo lo corrió el 5.13-1 sobre 649e6a8b y 6df82b05)
+
+<!-- paso:6.06-1 -->
+
+## 2026-11-12 — Paso 6.06-1: documentos de la unidad, lectura (parte 1 de 3)
+
+- **Hecho:** el hueco «Documentos» del panel de la unidad y la pestaña «Documentos» de `/vehiculos/[id]` (un solo componente) leen y muestran, sin escribir todavía:
+  - `entities/documentos/`: tipos y esquemas Zod, estado en texto, vencimiento (vence hoy aún vale), qué cuenta para un requisito (el predicado de `evaluar_requisitos`), `agruparPorTipo`
+    y `formatearBytes`. Test: `requisito.test.ts`.
+  - `infra/documentos/*.client.ts` y `areas/documentos/composicion.client.ts`: documentos vivos con tope 50 y nombres de `perfiles`, tipos del flujo, requisitos de las
+    fases siguientes y URL firmada de 60 s.
+  - `features/documentos/`: hook con relectura al volver el foco y al avisar `logistica:unidad-cambio`, y los cinco estados.
+  - La pestaña sale con `logistica.ver` del origen (`pestanasDeQuienMira`), tras `<Suspense>`.
+- **Falta (partes 2 y 3):** subir con la bandeja (6.06-2); aprobar, rechazar, editar fechas, «Visible en el portal», eliminar, el hueco del grupo y `e2e/logistica-documentos.spec.ts` (6.06-3).
+- **Verificación** (`.piloto/salidas/6.06-1/`): `vitest-entities.txt` (12 ✓), `pnpm typecheck` y `eslint` sin avisos, `scripts/guardas` 1.092 ✓, `vitest` de la ficha de vehículos 7 ✓,
+  e2e dirigidos en `e2e.txt` (logistica-unidad, logistica-mover, logistica-gastos-y-pagos, vehiculos-cotizaciones).
+- e2e completo: no (6.06-1, Nivel 1, lectura sin e2e propio: lo corre el CI del PR)
+- **Commits:** ver `git log` de la rama (4 de código y el de docs).
+
+<!-- paso:6.06-2 -->
+
+## 2026-11-12 — Paso 6.06-2: subir documentos con una bandeja (parte 2 de 3)
+
+- **Hecho:** el hueco «Documentos» (panel y pestaña de la ficha) sube archivos con commit diferido:
+  - `entities/documentos/admision.ts`: qué entra a la bandeja (formato **del tipo**, vacío, 25 MB, repetido por hash), el aviso desde 10 MB, qué fechas pide cada modo de vencimiento
+    (`ninguno` no pregunta, `renovar` opcional, `solicitar` obligatoria), los errores antes de subir, el nombre sin barras y el orden de los tipos (los que pide una fase, primero).
+    Test: `admision.test.ts` (18 ✓).
+  - `infra/documentos/subir.client.ts` (objeto por hash, sin comprimir, «ya existe» no es error), `registrar.ts` (RPC `documento_registrar`) y la action `registrarDocumentos`.
+  - `features/documentos/`: `useBandeja` (elegir deja los archivos sin subir), `useSubirLaBandeja` (primero el objeto, recién entonces el registro; id del intento por archivo atado a lo
+    escrito; avance «2 de 3»; «Reintentar los N que faltan»), la zona, la bandeja, los campos y la pregunta al cerrar con archivos.
+  - e2e propio: `e2e/logistica-documentos.spec.ts` (sube un PDF como BL y queda «Subido»; sin la clave la zona queda apagada con su motivo) y `e2e/soporte/documentos.ts`.
+- **Falta (parte 3):** aprobar, rechazar, editar fechas, «Visible en el portal», eliminar con `<Confirmar>`, el hueco del grupo y el caso de aprobar del e2e.
+- **Verificación** (`.piloto/salidas/6.06-2/`): vitest de `entities/documentos` y `features/documentos` (`vitest.txt`, 34 ✓, con la prueba de la bandeja) y `scripts/guardas` + módulo `logistica` (1.325 ✓), `pnpm typecheck` y
+  `eslint src/modules/logistica` sin avisos, e2e propio `e2e.txt` (2 ✓) y dirigidos `e2e2.txt` (31 ✓: logistica-unidad, logistica-mover, logistica-gastos-y-pagos y el propio, escritorio y móvil).
+- e2e completo: no (6.06-2, Nivel 1, e2e dirigidos del panel y el propio: lo corre además el CI del PR)
+- **Commits:** ver `git log` de la rama (4 de código y el de docs).
+
+<!-- paso:6.06-3 -->
+
+## 2026-11-12 — Paso 6.06-3: revisar, editar, eliminar y subir a un grupo (parte 3 de 3, cierra el 6.06)
+
+- **Hecho:** el hueco «Documentos» completa el área:
+  - `entities/documentos/revision.ts`: quién puede aprobar, rechazar, editar, eliminar y encender el portal (cada acción oculta, habilitada o apagada **con su motivo**), el motivo de rechazo de 1 a
+    500 y `cambiosDeLaEdicion` (sólo lo que cambió; vacío = nulo). Test: `revision.test.ts` (11 ✓). `destino.ts` (una unidad o las de un grupo) y `paneles-de-documento.ts`.
+  - `infra/documentos/modificar.ts` y las actions `revisarDocumento`, `editarDocumento` y `eliminarDocumento` sobre las RPC de 6.05 (`documento_revisar|editar|eliminar`); `rpc.ts` dice el `42501`
+    según la acción. Sin `supabase/`.
+  - Fila: «Aprobar» y «Rechazar» (motivo junto al botón; un `PT409` se dice en la fila y conserva lo escrito), «Editar» (formulario en la fila, sólo lo cambiado), el interruptor «Visible en el
+    portal» (reemplaza al `<Badge>`) y «Eliminar» (`?panel=eliminar-documento&documento=<id>`, el rechazo de la fase se dice tal cual y el diálogo sigue abierto).
+  - Hueco del grupo: `ZonaParaSubir` toma un destino; un archivo se sube **una vez** (carpeta de la primera unidad) y se registra para todas (`vehiculos[]`); con más de 100 unidades se apaga.
+    `pantallas/documentos-grupo.ts` lo declara (aún no hay página de grupo que lo monte: 6.08 y 6.09).
+- **Pruebas:** `acciones-del-documento.test.tsx` (apagado con motivo, aprobar con la versión, rechazar pide motivo, `PT409` conserva el motivo), `confirmar-eliminar-documento.test.tsx`,
+  `hueco-de-documentos-del-grupo.test.tsx` (un objeto y dos filas; más de 100 apaga) y `destino.test.ts`. e2e `logistica-documentos.spec.ts` (escritorio, 4 ✓): sin la clave «Aprobar» está apagado y dice
+  por qué; otra cuenta aprueba el BL, la fila queda «Aprobado» (`revisado_por` en la base) y el destino de «Qué falta» pasa a «Cumplido» con `Mover a «C»` habilitado.
+- **Verificación** (`.piloto/salidas/6.06-3/`): `e2e.txt` (propio, 4 ✓) y `e2e2.txt` (logistica-documentos, -unidad, -mover y -gastos-y-pagos, 33 ✓); vitest de `src/modules/logistica` y `scripts/guardas`
+  (1.348 y 1.093 ✓), `tsc` y `eslint src/modules/logistica` sin avisos.
+- e2e completo: no (6.06-3, Nivel 1, e2e dirigidos del panel y el propio: lo corre además el CI del PR)
+- **Commits:** ver `git log` de la rama (6 de código y el de docs).
+
+<!-- paso:6.07-1 -->
+
+## 2026-11-12 — Paso 6.07-1: la escritura del transporte en la base (parte 1 de 3 del 6.07)
+
+- **Hecho:** `transportes` se escribe sólo por RPC `security definer`, con versión, permiso por origen y lo que la fase exige.
+  - `transporte_guardar(vehículo, repuesto, versión, cambios)`: la fila 1:1 de una unidad. Esperada nula = crear; si ya existe, PT409. Lista cerrada de
+    cambios; contenedor y booking en mayúsculas y sin espacios; las reglas `transporte` y `contenedor`, `permite_contenedor` y la oferta del flujo frenan
+    sólo lo nuevo.
+  - Trigger `trg_transporte_exigido`: no se vacía un dato que la fase actual exige como bloqueante (23514 con la columna en `hint`), por ningún camino.
+  - `transporte_grupo(tipo, clave)` y `transporte_grupo_aplicar(tipo, clave, versiones, cambios)`: leer y editar un embarque (booking) o contenedor,
+    todo o nada, hasta 200 unidades.
+  - Candados en un orden fijo: guardar toma la unidad y después la fila; aplicar, las filas por id y después todas las unidades de una pasada, por id.
+  - Sin policies de crear ni editar y sin insert, update ni delete para `authenticated`. El comentario de la tabla ya no nombra la vista `embarques`.
+- **Commits:**
+  - `668706f8`: guardar el transporte de una unidad.
+  - `5a05dd37`: lo que la fase exige.
+  - `a7b032f2`: sin escritura directa.
+  - `0d53cf11`: leer y aplicar a un grupo.
+  - `b3b83655`: las carreras K1–K4.
+- **Verificación** (`.piloto/salidas/6.07-1/`):
+  - `db:probar` entero en PGlite: 1.118 ✓ y 0 ✗ (16 del transporte: T1–T5, X1–X4, E1, G1–G6).
+  - Carreras del transporte contra el Postgres local: 6 ✓. Con las unidades tomadas en el orden de `transportes.id` (a mano, sin versionar), K3 cae.
+  - `db:lint` sin errores; `scripts/guardas` 1.073 ✓; `typecheck` limpio.
+  - Plan auditado (bloquea, corregido sin 2.ª ronda) e informe auditado (bloquea: permiso antes del candado en aplicar y la papelera, corregidos).
+- e2e completo: no (6.07-1, Nivel 2: lo corre el CI del PR; sin interfaz, sin dirigidos)
+- **Sigue:** 6.07-2 (la escritura de aduana) y 6.07-3 (las lecturas paginadas), servidas en el plan del paso.
+- **Para PLAN (coordinador):** 6.08 debe mostrar con un mensaje humano el 23514 al borrar una naviera exigida (D17).
+
+<!-- paso:6.07-2 -->
+
+## 2026-11-12 — Paso 6.07-2: la escritura de aduana en la base (parte 2 de 3 del 6.07)
+
+- **Hecho:** `declaraciones_aduana` y `declaraciones_vehiculos` se escriben sólo por RPC `security definer`, con versión y `logistica.aduana.gestionar`.
+  - `declaracion_guardar(id, versión, datos)`: crear y editar la cabecera. Número sin espacios alrededor y único (23505 con `hint`); fechas sólo
+    `AAAA-MM-DD`. La versión propia (`declaracion_version`) se mueve dos veces en una transacción.
+  - `declaracion_vehiculos_poner(id, versión, agregar, quitar)`: hasta 200 vehículos que quien pone tiene que ver. Quitar deja la fila con
+    `removido_en`; volver a agregar la revive. Un vehículo vivo en otra declaración: 23514 con el número de la otra. Agregar pide la regla `aduana` y una
+    fase con `permite_aduana`. Un solo recorrido de agregar ∪ quitar en orden de id: el intercambio entre dos declaraciones da 23514, nunca 40P01.
+  - `declaracion_canal(id, versión, canal)`: nunca a nulo, no a una declaración sin vehículos. Con canal la composición queda congelada.
+  - Trigger `trg_declaracion_vehiculo_proteger`, por cualquier camino: congela la composición con canal y no deja quitar un vehículo cuya fase exige
+    `aduana.declaracion` o `aduana.canal` como bloqueante. La purga en cascada de un vehículo pasa.
+  - Sin policies de crear ni editar y sin insert, update ni delete para `authenticated`. Las de leer no cambian (D30).
+- **Commits:**
+  - `dee81b43`: guardar una declaración.
+  - `f23f757b`: poner y quitar vehículos.
+  - `b6645d5f`: el canal de aforo, y los tipos de las tres RPC.
+  - `6c2bae98`: el trigger de la tabla.
+  - `628d49f6`: sin escritura directa.
+  - `d3876624`: las carreras K5, K6 y K6b.
+- **Verificación** (`.piloto/salidas/6.07-2/`):
+  - `db:probar` entero en PGlite: 1.186 ✓ y 0 ✗ (9 de aduana: A1–A2, P1–P4, X1–X2, E1).
+  - Carreras de aduana contra el Postgres local: 4 ✓. Con el recorrido «primero quitar, después agregar» (a mano, sin versionar), K6b da 40P01.
+  - `db:lint` sin avisos nuevos; guardas 1.077 ✓; `typecheck` en verde.
+- **Desvíos del plan:**
+  - Los tipos (`database.types.ts`) entran recién en `b6645d5f`, con las tres RPC juntas: los commits `dee81b43` y `f23f757b` crean funciones sin sus
+    tipos, contra la regla de `db:types` en el mismo commit. Ningún código las usa todavía; no se reescribió el historial.
+  - Las validaciones de poner quedaron en dos ayudantes (`_declaracion_vehiculos_listas` antes de los candados y `_declaracion_vehiculos_validar`
+    después), no en una.
+  - K6b reconoce el rechazo por el texto «ya está en la declaración» (el arnés de carreras no expone el `hint`).
+- **Pendiente:** `scripts/carreras.mjs` pasa de 300 líneas (395, ya pasaba antes de este paso): partirlo.
+- **Para 6.09:** «canal de aforo» y «composición congelada» no tienen entrada propia en el GLOSARIO (sólo dentro de «Declaración aduanera»).
+- e2e completo: no (6.07-2, Nivel 2: lo corre el CI del PR; sin interfaz, sin dirigidos)
+- parcial: sigue 6.07-3 (`pagada`, `declaraciones_listar` con su índice, `declaracion_leer`, `transporte_grupos`).
+
+<!-- paso:6.07-3 -->
+
+## 2026-11-12 — Paso 6.07-3: las lecturas de transporte y aduana (parte 3 de 3: cierra el 6.07)
+
+- **Hecho:** las tres lecturas de la base que piden 6.08 y 6.09, y la policy de leer de la cabecera de aduana por origen.
+  - `declaraciones_listar(desde, id, tope, filtros)`: por cursor `(creado_en desc, id desc)` sobre `declaraciones_aduana_creado_idx`, en lotes de 200
+    sin filtros en la consulta; filtros `canal`, `pagada` y `q` (prefijo del número). Por fila `vehiculos` y `faltan` (de los que se ven), `hay_ocultos`
+    y `pagada` (de todos los vivos). Con `logistica.aduana.gestionar`, todas; con `logistica.ver`, las que tienen un vehículo vivo que se ve; sin ninguna, 42501.
+  - `declaracion_leer(id)`: la cabecera, los vehículos vivos que se ven (hasta 200, con `tributo`), `hay_mas`, `hay_ocultos`, `pagada`, `faltan`. «No
+    existe» y «no la ves» dan el mismo P0002. Su `actualizado_en` sirve de esperada para guardar, poner y el canal.
+  - Policy `declaraciones_aduana: leer`: gestionar, o un vehículo vivo de la declaración que se ve con `logistica.ver` (antes bastaba `logistica.ver`
+    en cualquier origen, y un select directo leía toda cabecera).
+  - `transporte_grupos(tipo, desde, tope, filtros)`: embarques (booking) o contenedores por cursor sobre la clave, con sondas por los índices parciales;
+    filtros naviera, puertos, en tránsito y prefijo; por grupo unidades que se ven, `hay_mas`, `hay_ocultas`, datos comunes y `varios`. Mira a lo sumo
+    2.000 filas por llamada y dice `cortada` para «Seguir buscando». `siguiente` es opaco: el id de una fila, nunca una clave.
+- **Commits:**
+  - `f02ff1a7`: listar las declaraciones con `pagada`.
+  - `2139af8c`: leer una declaración.
+  - `5e64dc87`: la policy de leer por origen.
+  - `4ba17186`: los grupos de transporte.
+  - `69db7103`: `declaracion_leer` en las guardas de leads.
+  - `cd7a7e66`: el cursor de los grupos como un id (de la auditoría del informe).
+- **Verificación** (`.piloto/salidas/6.07-3/`):
+  - `db:probar` entero en PGlite: 1.209 ✓ y 0 ✗ (L1–L4, R1–R3, T1–T4 y el caso de humo).
+  - `db:lint` sin avisos de las funciones nuevas; guardas 1.078 ✓; `typecheck` en verde.
+- **Desvíos del plan:**
+  - La lista de declaraciones recorre por lotes y filtra en plpgsql: con los filtros `$x is null or …` en la consulta, el plan genérico ordenaba toda la
+    tabla aun con `cost 1000` (`l4-plan-viejo.txt`).
+  - El commit `69db7103` no estaba en el plan: `declaracion_leer` nombra `vehiculos.lead_id` (alcance propios) y la auditoría de leads y el inventario del
+    número global la piden registrada. El commit `2139af8c` quedó con esas dos guardas en rojo hasta él.
+- **Para 6.08 y 6.09:** registrar `transporte_grupos` (`areas-b`) y `declaraciones_listar` (`areas-c`) en `paginas-en-la-base.ts` al llamarlas (D38), y
+  nombrar las RPC nuevas en la ficha `src/modules/logistica/CLAUDE.md`.
+- **Pendiente:** `scripts/carreras.mjs` pasa de 300 líneas (de antes de este paso): partirlo.
+- e2e completo: no (6.07-3, Nivel 2: lo corre el CI del PR; sin interfaz, sin dirigidos)
+
+<!-- paso:7.09-1 -->
+
+## 2026-11-12 — Paso 7.09-1: base del módulo `chat` y la lista de conversaciones (parte 1 de 4 del 7.09)
+
+- **Hecho:** el núcleo del módulo `chat` y `/chat` con su lista. Sin migración, policy ni `db:types`: sólo lee con lo que dejó 7.08.
+  - `entities/conversaciones.ts` (tipo, parser Zod de `chat_conversaciones`, cursor, `fundirPagina`, `sumarPagina`, `tituloDe`, `textoDeNoLeidos`,
+    `idDeConversacionEnLaUrl`) con su test; `entities/repositorios.ts`.
+  - `infra/consultas.ts` (la RPC y la lectura de una conversación por la fila propia de miembro), sus pares servidor y `*.client.ts`,
+    `infra/realtime.client.ts` (dos señales, sin `DELETE`), `composicion.ts`, `composicion.client.ts`, `index.ts`, `client.ts`, `pantallas/chat.ts`.
+  - La lista (`features/conversaciones/`: hook con «Ver más», tope y señales; fila con insignia «n sin leer» y silenciada; vacío, error y pie) y
+    `ZonaDelHilo`/`EstadoSinConversacion` (`features/mensajes/`, primeros archivos del área). `/chat` con maestro-detalle por `?c=`, dos pantallas en el
+    celular y los estados sin permiso, vacío, error y «ya no es tuya». `chat` prendido en `navegacion.ts`.
+  - Guarda: `chat_conversaciones` registrada en `scripts/guardas/areas-c/paginas-en-la-base.ts`.
+- **Commits:** `5a30419e` (entidades), `3f2302db` (lecturas), `45b42d1e` (lista y pantalla `/chat`), `5cb82f1a` (e2e) y el de docs.
+- **Verificación** (`.piloto/salidas/7.09-1/`):
+  - `entities/conversaciones.test.ts` 11 ✓ (primero rojo: no existía la entidad). `scripts/guardas` 34 archivos, 1.078 ✓. `typecheck` y `lint` sin avisos.
+  - `e2e/chat.spec.ts`: 8 ✓, 4 en `escritorio` y 4 en `movil` (`e2e-chat.txt`): un mensaje de Luis llega sin recargar, su insignia pasa de «1» a «2 sin leer»
+    y la fila sube; abrir una conversación la selecciona por `?c=` y en el celular «Volver a la lista» regresa; «ya no es tuya»; sin `chat.participar`.
+  - Dirigidos por la entrada nueva del menú: `acceso`, `barra-superior-celular` y `agenda`: 26 ✓, 5 saltadas por diseño (`e2e-menu.txt`).
+- **No se hizo (con su parte):** iniciar una directa, grupo, canal global, silenciar y salir → 7.09-2; el hilo, el redactor, el envío y el assert completo
+  del paso (dos sesiones) → 7.09-3; responder, editar y borrar, y los docs finales (`UX`, `GLOSARIO`, `RENDIMIENTO`) → 7.09-4.
+- e2e completo: no (7.09-1, Nivel 2: lo corre el CI del PR; dirigidos en verde)
+- **Para el coordinador:** una línea bajo la fila 7.09 de `docs/PLAN.md`: «7.09-1 hecha (base y lista); faltan 7.09-2 (iniciar, grupo, global, silenciar,
+  salir), 7.09-3 (hilo y envío, assert) y 7.09-4 (responder, editar, borrar)». El plan de las tres partes que siguen está en `.piloto/planes/7.09.md`
+  («Servida: 7.09-2/3/4»).
+
+<!-- paso:7.09-2 -->
+
+## 2026-11-12 — Paso 7.09-2: iniciar, grupo, canal del equipo, silenciar y salir (parte 2 de 4 del 7.09)
+
+- **Hecho:** escribir conversaciones desde `/chat`, sólo con las RPC de 7.08. Sin migración, policy, RLS ni `db:types`.
+  - `entities/{personas,grupos,escritura}.ts` con sus tests (búsqueda desde 3 letras y tope 20; grupo de 1 a 49 personas más quien lo crea; lectura de la respuesta
+    de las RPC; `puedeSalirDe`) y `RepositorioDeConversaciones` / `LectorDePersonas` en `repositorios.ts`.
+  - `infra/conversaciones-escritura.ts` (cinco RPC con la sesión de quien actúa; el campo del rechazo sale del `hint`), `infra/personas.client.ts`, cinco
+    Server Actions (`features/conversaciones/actions/`) con `revalidatePath('/chat')`.
+  - La lista gana el menú «Nueva conversación»: «Mensaje directo» (`?panel=nueva`), «Nuevo grupo» (`?panel=grupo`) y, con `chat.global`, «Entrar al canal del
+    equipo». El hilo gana el «⋯» con «Silenciar» / «Dejar de silenciar» y «Salir del grupo» / «Salir del canal» (`?panel=salir`). Los paneles viajan con `diferido()`.
+  - Guardas: fila de `modal-de-directa.tsx` en `modales-con-salida.ts` (sólo suma) y de `confirmar-salir.tsx` en `areas-c/confirmar-con-url.ts`.
+- **Commits:** `1ebba869` (entidades), `e7133487` (escritura y personas), la directa y el canal, el grupo, silenciar y salir, `c63205a5` (e2e) y el de docs.
+- **Verificación** (`.piloto/salidas/7.09-2/`):
+  - `entities/{personas,grupos,escritura}.test.ts`: 13 pruebas ✓. `scripts/guardas` y `src/modules/chat`: 39 archivos, 1.116 ✓. `typecheck` y `eslint` sin avisos.
+  - `e2e/chat.spec.ts`: 12 ✓ (6 en `escritorio`, 6 en `movil`; `e2e-chat.txt`). Nuevas: Ana busca a Marta y le abre una directa (la lista de Marta la ve sin recargar), Sofía
+    se rechaza por la base («Esa persona no puede usar el chat.») sin salir del modal, la directa con Luis no se duplica; un grupo nuevo se silencia y se deja (la base lo confirma).
+- **No se hizo (con su parte):** el hilo, el redactor, el envío y el assert completo del paso → 7.09-3; responder, editar, borrar y los docs finales (`UX`, `GLOSARIO`,
+  `RENDIMIENTO`) → 7.09-4. El canal global no tiene e2e propio (el rol de prueba no trae `chat.global`): lo cubre `supabase/tests/areas/chat/global.sql`.
+- e2e completo: no (7.09-2, sin disparador: lo corre el CI del PR; dirigidos en verde)
+- **Para el coordinador:** una línea bajo la fila 7.09 de `docs/PLAN.md`: «7.09-2 hecha (iniciar directa, grupo, global, silenciar, salir); faltan 7.09-3 y 7.09-4».
+
+<!-- paso:7.09-3 -->
+
+## 2026-11-12 — Paso 7.09-3: el hilo y el envío (parte 3 de 4 del 7.09)
+
+- **Hecho:** el hilo de `/chat` y el envío, sólo con `mensaje_enviar` y `chat_leer` de 7.08. Sin migración, policy, RLS ni `db:types`.
+  - `entities/mensajes.ts` con su test (23 pruebas más 4 de `aplicarResultado`): lectura de filas, fusión por `id` con lo pendiente al final, cabeza con hueco, texto válido (4.000), borde
+    exclusivo de «Ir a una fecha», `ultimoDeOtro`, `leerResultadoDeEnvio`. `LectorDeMensajes` y `RepositorioDeMensajes` en `repositorios.ts`.
+  - `infra/mensajes.client.ts` (el hilo se lee en el navegador por `mensajes_hilo_idx`), `infra/mensajes-escritura.ts` (`mensaje_enviar`, `chat_leer`), `suscribirseAlHilo`.
+    Dos Server Actions (`enviar-mensaje`, `marcar-leido`) sin `revalidatePath`.
+  - Hooks `use-hilo` (con `use-senales-del-hilo`, `use-recorrido-del-hilo`, `use-locales-del-hilo`, `hilo-leido`), `use-envio`, `use-marcar-leido`, `use-scroll-del-hilo`; componentes `hilo`,
+    `cuerpo-del-hilo`, `lista-del-hilo`, `burbuja`, `redactor`, `diferidos`. El hilo reemplaza el «Los mensajes llegan con la siguiente parte.».
+  - La señal de `mensajes` de la lista ya no filtra `autor_id=neq` (mi fila sube al escribir); para ello `suscribirseACambios` admite no pasar `filtro` (con su prueba).
+- **Commits:** `116c3852` (entidades), `a3f67532` (lectura y escritura), `00e043a1` (hilo), `77db9f6f` (redactor y envío), `dda23cb0` (marcar leído y D22), `607cb8a9` (e2e) y el de docs.
+- **Verificación** (`.piloto/salidas/7.09-3/`):
+  - `vitest run src/modules/chat scripts/guardas src/shared/lib/supabase`: 43 archivos, 1.172 ✓ (`vitest.txt`). `typecheck` y `eslint` sin avisos.
+  - `e2e/chat.spec.ts`: 8 ✓ en `escritorio` y 8 ✓ en `movil` (`e2e-chat-escritorio.txt`, `e2e-chat-movil.txt`). Nuevas: el assert del paso (Ana escribe a Marta; Marta lo ve sin recargar con
+    «1 sin leer», que se limpia al abrir y la base anota `ultimo_leido_en`; la respuesta le llega a Ana) y el reintento sin red (queda «No enviado · Reintentar» y llega una sola vez).
+- **No se hizo (con su parte):** responder (cita), editar, borrar y los docs finales (`UX`, `GLOSARIO`, `RENDIMIENTO`) → 7.09-4. Sin `pie-del-hilo.tsx`: el aviso de largo vive en `redactor.tsx`.
+- e2e completo: no (7.09-3, Nivel 1: lo corre el CI del PR; dirigidos en verde)
+- **Para el coordinador:** una línea bajo la fila 7.09 de `docs/PLAN.md`: «7.09-3 hecha (hilo, envío optimista, marcar leído; assert del paso cerrado); falta 7.09-4 (responder, editar, borrar, docs finales)».
+
+<!-- paso:7.09-4 -->
+
+## 2026-11-12 — Paso 7.09-4: responder, editar, borrar y los docs del paso (parte 4 de 4 del 7.09)
+
+- **Hecho:** responder, editar dentro de la ventana y borrar mensajes en el hilo de `/chat`, sólo con `mensaje_enviar`, `mensaje_editar` y `mensaje_eliminar` de 7.08. Sin migración, policy, RLS ni `db:types`.
+  - `entities/reglas-del-mensaje.ts` con su test: ventana de 15 minutos desde la creación (borde inclusivo), `puedeEditar`, `puedeBorrar` (el autor o `chat.moderar`), `puedeResponder`,
+    `motivoParaNoBorrar`, `textoDeCita`, `citaDe`, `leerResultadoDeEdicion`. `Mensaje` gana `responde` (la cita).
+  - Server Actions `editar-mensaje` y `eliminar-mensaje` (sin `revalidatePath`); `useEdicion`, `useBorradoPorUrl` (`?panel=borrar-mensaje&mensaje=<id>`, registrado en la guarda de confirmaciones con URL),
+    `reemplazar` en `useLocalesDelHilo`; `useEnvio` conserva el mensaje respondido al reintentar.
+  - Componentes: el «⋯» de la burbuja (Responder, Editar, Borrar), `cita-de-respuesta`, `editar-en-linea`, `confirmar-borrado`; `page.tsx` pasa `puedeModerar` con `puede(…, 'chat.moderar')`.
+  - **Hallazgo:** el embed `responde:mensajes!mensajes_responde_a_id_fkey(…)` del plan no sirve sobre una relación a sí misma: con el nombre de la FK, PostgREST responde 400 (ambigua); con la columna
+    (`!responde_a_id`) devuelve un arreglo de respuestas. La cita se lee aparte, por `mensajes_pkey`, sólo si la página trae respuestas (`fix` aparte).
+- **Commits:** `c8837036` (reglas y cita), `96221cc5` (editar y eliminar por RPC), `58e49a25` (responder), `c5448cc5` (editar), `e8a143d2` (borrar), `696ff59a` (fix: cita aparte), `1d34bb82` (e2e) y el de docs.
+  Son 7 de código (6 del plan más el fix del hallazgo).
+- **Verificación** (`.piloto/salidas/7.09-4/`):
+  - `vitest run src/modules/chat scripts/guardas src/shared/lib/supabase`: 45 archivos, 1.191 ✓ (`vitest.txt`). `typecheck` y `pnpm lint` sin avisos.
+  - `e2e/chat.spec.ts`: 9 ✓ en `escritorio` y 9 ✓ en `movil` (`e2e-chat-ambos.txt`). Nueva: Ana responde a Luis (sólo Responder en lo ajeno), edita lo suyo y lo borra con el diálogo de la URL; Luis lo ve todo sin
+    recargar y la base lo confirma.
+- **No se hizo (D43):** ir al original desde la cita, deshacer un borrado, editar fichas, menciones y `/tarea` (7.10), reacciones, copiar texto, historial de ediciones. Sin e2e de la ventana vencida ni de `chat.moderar`
+  en la interfaz (la regla pura y la base ya los prueban).
+- **Pendiente para la persona:** agregar o quitar miembros de un grupo no tiene pantalla en ningún paso.
+- e2e completo: no (7.09-4, Nivel 1: lo corre el CI del PR; dirigidos en verde)
+- **Para el coordinador:** una línea bajo la fila 7.09 de `docs/PLAN.md`: «7.09-4 hecha (responder, editar dentro de 15 min, borrar con `<Confirmar>` por URL; docs del paso); 7.09 completa (4 de 4)».

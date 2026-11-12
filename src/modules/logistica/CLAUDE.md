@@ -67,8 +67,8 @@ El panel exige `logistica.ver` en el origen de la unidad **y** que la RLS de `ve
 ## Tablas
 
 `documentos`, `puertos`, `navieras`, `transportes` (1:1 con la unidad), `declaraciones_aduana`, `declaraciones_vehiculos`, `categorias_gasto`, `gastos`, `pagos`, `notas`.
-RPC: `margen_vehiculo`, `alertas_demora` (cron), `storage_refcount`; mover vía `flujos`. La oferta de transporte es de `flujos`: la leerá en la Fase 6
-por `flujo_oferta()`. Gastos y pagos se escriben sólo por RPC (6.10): `gasto_registrar`, `gasto_guardar`, `gasto_eliminar`, `gastos_prorratear`,
+RPC: `margen_vehiculo`, `alertas_demora` (cron), `storage_refcount`; mover vía `flujos`. La oferta de transporte es de `flujos` (la escribe
+`flujo_oferta_guardar` en Configuración › Flujos › Reglas); logística sólo la lee por `flujo_oferta()` (el hueco «Transporte», 6.08). Gastos y pagos se escriben sólo por RPC (6.10): `gasto_registrar`, `gasto_guardar`, `gasto_eliminar`, `gastos_prorratear`,
 `pago_registrar`, `pago_guardar`, `pago_eliminar`, `pago_confirmar` y `pago_anular`. Se leen por cursor con `gastos_listar` y `pagos_listar` (6.10-2);
 el bucket `comprobantes` lo abre `comprobante_puede` (la fila que nombra el objeto).
 
@@ -84,3 +84,4 @@ el bucket `comprobantes` lo abre `comprobante_puede` (la fila que nombra el obje
 - Documentos nunca se comprimen; fotos sí (WebP). Objetos por hash; un documento común a 8 vehículos es 1 objeto y 8 filas.
 - «DUI pagada» es derivada: todos los vehículos de la declaración tienen un gasto vivo de la categoría tributos. Comprobante ≠ pago.
 - Conflicto al mover o editar transporte → `PT409` → «Alguien lo cambió · Recargar». Nunca pisar en silencio.
+- Un requisito de dato cuya regla está apagada se puede pedir en `flujos` y su hueco aquí no se dibuja: **6-4** (`docs/PLAN.md`).

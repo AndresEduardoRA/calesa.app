@@ -5283,3 +5283,283 @@ Fecha: 2026-11-12 (`TZ=America/La_Paz date +%F`). Sin compuertas ni preguntas ab
   que pide el 5a-4b.
 - **D8** Una caída del completo que pasa 3 de 3 sola es inestable y se anota sin arreglar (`.claude/rules/e2e.md` › «Inestables»); una que cae siempre es un
   rojo real y se arregla en el paso con su propio `fix` (no se cierra una fase con rojos).
+
+<!-- paso:7.04 -->
+
+## 2026-11-12 — Paso 7.04: preferencias de notificaciones y activar el push
+
+- **D1 · Las preferencias viven en `/perfil`** (duda de la fila, la recomendada), con un enlace desde `/notificaciones`: es donde ya están las demás.
+- **D2 · Apagar un tipo sólo detiene el push, no la campana:** la campana es el registro (ficha del módulo); el bloque lo dice una vez.
+- **D3 · La preferencia se escribe directo bajo RLS propia, no por RPC:** no otorga permisos y la base ya exige un objeto. Una acción lee la fila,
+  cambia una clave y borra la fila si queda vacía (vuelve a «todo encendido»). Dos pestañas pueden pisarse una clave: aceptado.
+- **D4 · El `tipo` acepta `^[a-z][a-z0-9_]{0,59}$`, no sólo el catálogo:** una fase nueva suma tipos sin tocar el esquema; la interfaz ofrece el catálogo.
+- **D5 · La clave pública VAPID se lee en el servidor y llega por props:** ni el e2e ni el despliegue dependen de que el bundle la haya incrustado.
+  `playwright.config.ts` le da al servidor de e2e una clave pública de prueba (no hay privada).
+- **D6 · Con `push_web` apagada, el interruptor del navegador queda deshabilitado con su motivo; los de por tipo siguen activos** (son preferencias).
+- **D7 · `usePush` registra `/sw.js` al encender:** el layout sólo lo registra en producción y `getRegistration()` (no `ready`) lee el estado sin colgarse.
+- **D8 · «Tus navegadores» nombra el navegador desde `user_agent`** («Chrome en Windows») y nunca muestra el `endpoint`; el actual lleva «Este navegador».
+- **D9 · El documento de `/perfil` sube a 96 KB** (de 91): el bloque, el esqueleto de su `<Suspense>` y las props del bloque diferido suman ≈ 6,7 KB
+  (93.382 B medidos); regla del 5 %, sin refactorizar. El JS en frío no cambió de presupuesto (421,7 de 440 KB).
+- **D10 · Los textos de las descripciones por tipo** (`entities/tipos.ts`) son microdecisión de UX: una línea por tipo, «Cuando …».
+
+<!-- paso:5.13-2 -->
+
+# Paso 5.13-2 — El cierre de la Fase 5 (parte 2 de 2): los docs de cierre
+
+Fecha: 2026-11-12 (`TZ=America/La_Paz date +%F`). Sin compuertas ni preguntas abiertas. El plan: `.piloto/planes/5.13-2.md`.
+
+- **D1** La configuración del flujo se escribe por RPC con la versión del flujo: `flujos.actualizado_en` (texto ISO, microsegundos), `_flujo_para_editar()` y
+  `_flujo_tocar()`, `PT409` «Otra persona cambió este flujo mientras lo editabas.»; `authenticated` no escribe directo `fases`, `flujos`, transiciones, roles,
+  requisitos, reglas ni oferta (las pruebas de `42501` en `supabase/tests/areas/flujos/`); los tipos de documento, con versión por fila. Por qué: `datos.md` y
+  `migraciones.md`; antes se escribía bajo policies sin versión (`docs/PLAN.md` › «Fase 5» › «Lo que ya existe»). Detalle: `docs/pasos/5.01-1/`, `5.01-2/`,
+  `5.03/`, `5.05/`, `5.07-1/`, `5.10-1/`.
+- **D2** La oferta de transporte es de `flujos`: la escribe `flujo_oferta_guardar()` (Configuración › Flujos › Reglas, 5.11) y la lee `flujo_oferta()`;
+  `logistica` sólo la lee (el hueco «Transporte», 6.08). Puertos y navieras son catálogos de `logistica` (6.08). Detalle: `docs/pasos/5.10-1/`, `5.10-2/`, `5.11/`.
+- **D3** Lo decidido en las dudas de la fase, todas con la recomendada (sin compuertas), con su detalle en `docs/DECISIONES.md` › `<!-- paso:5.xx -->`: 5.01
+  (versión por flujo; se puede jubilar la única inicial; el flujo de repuestos por migración), 5.02 (sólo la lista, sin «camino» ni «historial»; `?origen=` y
+  `?ambito=repuestos`), 5.03 (qué significa cada modo de vencimiento; `proposito` no se edita), 5.04 (en repuestos, web, portal y aduana deshabilitados con
+  motivo), 5.05 (se puede limitar a un rol que no se domina), 5.07 (nace informativo; se borra `fuera_de_regla()`), 5.08 (una clave con su regla apagada se
+  ofrece con nota → 6-4), 5.10 (puertos y navieras a la Fase 6), 5.12 («Revisar» avisa y no frena). Sin dudas: 5.06, 5.09, 5.11, 5.13.
+- **D4** Los abiertos numerados que la fase deja a la 6 van en «Abiertos que caen aquí» de la Fase 6, donde vive el 6-1 y donde los busca el 6.14; «Riesgos y
+  huecos» sólo se corrige donde quedó viejo (sin borrar). Afina el D6 del 5.13-1, que decía «Riesgos y huecos».
+- **D5** De lo que la fase dejó a la 6, sólo el requisito de dato con su regla apagada no tiene paso (mover → 6.04, puertos y navieras → 6.08, vencimiento →
+  6.05/6.06/6.12, triggers del dato exigido → 6.07, rama de repuestos → 8.13): un abierto, **6-4** (6-2 y 6-3 están reservados). La campana sin red es
+  **7-2**; `rbac_eliminar_rol` con el `23503` crudo es **9-13** (ninguna fila de las fases 6 a 8 toca roles).
+- **D6** `flujos.activo` no se edita ni se quita: nadie lo lee ni lo escribe (comprobado con grep en `src/` y las migraciones nuevas); se anota en «Riesgos y
+  huecos» de la Fase 5 y en la ficha. Es lo más reversible.
+- **D7** La inestable de `configuracion-flujos-requisitos` no es abierto (`.claude/rules/e2e.md` › «Inestables»): se nombra en la tabla y en el cierre.
+- **D8** La fase se da por cerrada con el Nivel 3 del 5.13-1 y el CI del PR; si el CI sale rojo, se arregla en su `fix` aparte antes de integrar.
+- **D9** La «Partición» de la Fase 5 se queda en `docs/PLAN.md`, como la de la Fase 4 (esta sesión no lee `docs/archivo/`); ESTADO lo dice en la misma línea.
+- **D10** GLOSARIO no se toca: «Versión del flujo», «Fase jubilada», «Oferta de transporte», «Jubilar» y «Revisar» ya están. «Siguientes pasos» de Orígenes ya
+  enlaza al flujo desde el 5.02 (`e2e/origenes.spec.ts`): se anota, sin código.
+
+<!-- paso:6.06-1 -->
+
+## 2026-11-12 — Paso 6.06-1: documentos de la unidad, lectura
+
+- **D1 · Una foto de la cámara es un documento y no se comprime** (duda 1, la recomendada). Se avisará el tamaño antes de subir si pasa de 10 MB (6.06-2).
+- **D2 · La pestaña «Documentos» y el panel son un solo componente** (duda 2, la recomendada): `HuecoDeDocumentos` con `{ unidad }`; el permiso lo decide la base.
+- **D3 · El hueco declara `permisos: ['logistica.ver']` y `regla: null`.** No hay regla «documentos» en `CLAVES_DE_REGLAS`. Reversible: se agrega cuando exista.
+- **D4 · Lectura con tope.** Los documentos vivos de la unidad por `documentos_vehiculo_id_idx`, más recientes primero, tope 50 con `limit 51` y `<AvisoDeTope>`. Los tipos
+  activos con `limit 101` (el tope de la base es 100); los de un flujo aparecen sólo en las unidades de ese flujo.
+- **D5 · «Lo que pide la fase siguiente»** = los requisitos de documento de las fases a las que esa unidad puede ir (`fases_transiciones` desde su fase), porque
+  `evaluar_requisitos` mira `fases_requisitos` por la fase de destino. Sin fase no hay ninguno.
+- **D6 · «Hoy» es el día de la empresa** (`diaEnZona` con su zona horaria, calculado al leer). La base compara con su `current_date`: en el borde de la medianoche
+  «Vencido» puede diferir unas horas de «Qué falta»; manda la base.
+- **D7 · «pendiente» se muestra «Sin subir»**; los otros, «Subido», «Aprobado», «Rechazado». Siempre texto, el color es refuerzo.
+- **D8 · Quién subió y quién revisó:** nombres de `perfiles` en una consulta por todos; si falla, «otra persona». Nunca un uuid.
+- **D9 · Ver y Descargar, dos botones por fila.** La URL firmada de 60 s se pide al tocar. «Descargar» sigue la URL con `download` y el nombre del archivo.
+- **D10 · La pestaña lee `leerUnidad` en el servidor** (tras `<Suspense>`) y, si la unidad es nula, dice «Esta unidad ya no está disponible.».
+- **D11 · El hueco se arma por tipo:** los pedidos por una fase primero, luego los que tienen documentos, cada bloque por `orden`; un tipo pedido sin documentos
+  dice «Aún no hay ninguno»; un documento de un tipo desactivado va a «Otro tipo».
+- **D12 · Sin `medir-*.sql`:** una unidad por índice con tope 51; sin tabla ni índice nuevos.
+- **D13 · La fecha de vencimiento se escribe con `formatearFecha`** («Vence el 10 ene 2027»), no «10 de enero de 2027» como decía el plan: el formato de toda la app.
+
+<!-- paso:6.06-2 -->
+
+## 2026-11-12 — Paso 6.06-2: subir documentos con una bandeja
+
+- **D14 · El tipo se elige antes que los archivos y manda.** El selector de tipo va arriba de la zona porque de él salen el `accept` y el aviso de formatos. Un archivo que el tipo
+  no admite no se pierde: sale de lo que se sube con su motivo y vuelve si se elige otro tipo (`repartirLaBandeja`).
+- **D15 · El id del intento va por archivo y atado a lo escrito** (hash + tipo + fechas + nota). Reintentar sin cambiar nada manda el mismo id y la base devuelve las mismas filas; si
+  la persona cambia el tipo o una fecha entre un intento y otro, es otro registro y no choca con `23505/id`.
+- **D16 · Se sube uno por vez y se corta ante lo que fallaría igual:** sin red o con un campo rechazado por la base no se insiste con los demás; los que quedan se reintentan con su
+  motivo. Los registrados salen de la bandeja y avisan a «Qué falta» con `logistica:unidad-cambio`.
+- **D17 · Los campos del formulario que la base nombra por `hint`** son `vence_el`, `tipo` y `nota`; ruta, formato, peso y unidad no tienen campo y se dicen junto al archivo. `42501` dice
+  siempre «No puedes subir documentos a esta unidad.».
+- **D18 · El e2e de subir se adelanta a la parte 2** (el plan lo traía en la 3): subir contra el bucket real es lo único que prueba la policy de carpeta y el registro juntos. La 3 lo extiende con aprobar.
+- **D19 · «Emitido el» sólo se pregunta si el tipo vence.** Un tipo `ninguno` no lleva fechas (la base rechaza un vencimiento) y no se ofrece ni una emisión.
+
+<!-- paso:6.06-3 -->
+
+## 2026-11-12 — Paso 6.06-3: revisar, editar, eliminar y subir a un grupo
+
+- **D20 · Sin identidad en el navegador, «Editar» y «Eliminar» se ofrecen a quien tiene aprobar o subir** (lo mínimo que la base pide) y la base decide: un `42501` se dice dentro de la fila o del
+  diálogo. Reversible: si hace falta apagarlo antes, se lee el uid con `getClaims()` en un `infra/…client.ts`.
+- **D21 · «Aprobar» sale en un documento «Subido» o «Rechazado»; «Rechazar» sólo en «Subido».** Un aprobado que se quiere deshacer se elimina y se sube de nuevo (la base permitiría rechazarlo, no se ofrece).
+- **D22 · El motivo del rechazo se escribe junto al botón** (1 a 500, recortado); vacío apaga «Confirmar rechazo» y dice por qué. Un `PT409` lo conserva porque la fila no se desmonta al releer.
+- **D23 · «Visible en el portal» es un interruptor por fila**, apagado con motivo sin la clave de aprobar o si el tipo no lo admite. Apagar siempre se puede; uno visible de un tipo que ya no lo admite queda
+  encendido y dice «No se ve en el portal: el tipo ya no lo permite.» (D13 de 6.05).
+- **D24 · «Editar» es un formulario dentro de la fila**, sin `<Drawer>` (así no hay guarda de salida nueva); «Guardar» manda sólo lo que cambió y está apagado si nada cambió.
+- **D25 · El hueco del grupo reutiliza la bandeja:** cada archivo se sube una vez a la carpeta de la primera unidad (la de menor id, para que un reintento caiga en la misma ruta) y se registra para todas.
+  Más de 100 unidades: se apaga con «Este grupo tiene más de 100 unidades: súbelo por partes.».
+- **D26 · Los tipos del grupo son los de la primera unidad** (globales y del flujo de su origen); si otra unidad es de otro flujo y la base rechaza el tipo, el motivo sale junto al archivo.
+- **D27 · El hueco del grupo no tiene e2e** (no existe página de grupo): lo prueba un test de componente; su e2e llegará cuando 6.08 o 6.09 lo monten.
+- **D28 · Quien aprueba en el e2e lleva también `flujos.mover`:** sin esa clave «Qué falta» no ofrece el destino y no se puede ver el requisito cumplido.
+
+<!-- paso:6.07-1 -->
+
+## 2026-11-12 — Paso 6.07-1: la escritura del transporte
+
+- **D1 · Los grupos se ordenan por clave**, con filtros y prefijo, no por ETA (ordenar por ETA agrupa toda la tabla). Va en 6.07-3.
+- **D2 · Una declaración muestra sólo los vehículos que quien mira ve.** La cabecera, a quien ve al menos uno o tiene `logistica.aduana.gestionar`.
+  Va en 6.07-3.
+- **D3 · El canal de aforo se puede cambiar con la versión**, pero no vuelve a nulo: la composición sigue congelada. Va en 6.07-2.
+- **D4 · El paso se parte en tres:** la escritura del transporte, la de aduana y las lecturas paginadas.
+- **D5 · Contenedor y booking en mayúsculas y sin espacios**, vacío = nulo, sólo `A-Z 0-9 . / -` y hasta 40. No se valida el dígito de control ISO 6346:
+  uno mal calculado frenaría cargas reales.
+- **D6 · Una unidad sin fase no recibe contenedor:** `permite_contenedor` es de la fase.
+- **D7 · Una naviera o puerto nuevo** debe existir, estar activo y, si la oferta del flujo para su tipo no está vacía, estar en ella. Lo ya guardado se
+  conserva aunque salga de la oferta o se inactive.
+- **D8 · ETA y arribo no pueden ser antes del zarpe**; se valida sólo si cambia alguna de las tres fechas. Las fechas van como `AAAA-MM-DD`.
+- **D9 · `sigue_al_vehiculo` no se cambia aquí** (lo decide repuestos, 8.x); a un repuesto que sigue a su vehículo no se le pone naviera, contenedor ni
+  booking.
+- **D10 · El trigger mira la fase de la unidad dueña de la fila.** Un repuesto que sigue a su vehículo no frena vaciar el transporte del vehículo: queda
+  para 8.08, que recrea `evaluar_requisitos`.
+- **D11 · Con la esperada nula y la fila ya existente, PT409 siempre**, aun sin diferencias. Fuera de eso, sin diferencia no escribe ni mueve la versión.
+- **D12 · Un grupo se lee y se aplica sobre a lo sumo 200 filas**; con más, `hay_mas` al leer y 22023 (`hint = 'grupo'`) al aplicar. Las notas no se
+  aplican a un grupo: son de cada unidad.
+- **D13 · Al aplicar, el permiso antes que la versión:** una unidad del grupo que no veo o no puedo editar da 42501, sin decir cuántas.
+- **D14 · La carrera vive en `supabase/tests/areas/transporte/`** (como las de dinero y mover), no en `scripts/carreras/`; `scripts/carreras.mjs` sólo
+  suma su import y su llamada.
+- **D15 · `transporte_grupo` devuelve por unidad sus datos y si es `editable`:** 6.08 los necesita para «varios» y para apagar con motivo.
+- **D16 · Para un repuesto, la clave es `repuestos.editar`** (la de la policy de antes).
+- **D17 · No se borra una naviera que una unidad usa si su fase exige `transporte.naviera` como bloqueante:** el `on delete set null` dispara el
+  trigger y da 23514. Es conducta nueva del catálogo; 6.08 la muestra con un mensaje humano. Un borrado de naviera a la vez que un aplicar al mismo
+  grupo puede dar 40P01: es raro y se acepta.
+- **D18 · Leer un grupo pide `logistica.ver` o `repuestos.ver` en algún origen, y aplicarlo, la clave de editar:** sin eso, 42501 antes de tocar nada.
+  Si no, cualquier cuenta podría probar números de booking y saber si existen.
+- **D19 · La fila de una unidad en la papelera no es del grupo:** nadie la ve ni la edita, y si contara, el grupo quedaría con `hay_ocultas` y sin poder
+  editarse en bloque hasta purgarla o restaurarla.
+
+<!-- paso:6.07-2 -->
+
+## 2026-11-12 — Paso 6.07-2: la escritura de aduana
+
+- **D20 · La cabecera tiene versión propia:** `declaracion_version()` reemplaza al trigger genérico, como `documento_version`. Poner vehículos toca la
+  cabecera y mueve su versión aunque el cambio sea en la tabla hija.
+- **D21 · Esperada nula sobre una declaración que existe → PT409**, como D11 del transporte. Crear es `p_id` nulo; con esperada, 22023. Una que no existe,
+  PT409 «La declaración ya no existe».
+- **D22 · El número se guarda tal cual, sin espacios alrededor**, 1 a 60. Despachante y depósito ≤ 200, notas ≤ 2.000, fechas sólo `AAAA-MM-DD`. Sin regla
+  entre aceptación y vencimiento de tributos (nadie la pidió).
+- **D23 · Poner y quitar piden ver cada vehículo** (`logistica.ver`): 42501 sin decir cuál. A lo sumo 200 por vez. Agregar uno ya vivo o quitar uno que
+  no está no hace nada.
+- **D24 · Un vehículo vivo en otra declaración: 23514 con el número de la otra.** Lo frena el índice único al escribir: si otra sesión lo está quitando,
+  se espera y entra.
+- **D25 · Agregar pide la regla `aduana` del flujo y una fase con `permite_aduana`.** Quitar no: salir siempre se puede, salvo con canal o si la fase
+  exige la declaración.
+- **D26 · No se pone canal a una declaración sin vehículos vivos:** congelaría una composición vacía.
+- **D27 · El congelamiento vale también en la tabla**, por cualquier camino. La purga en cascada de un vehículo no la frena.
+- **D28 · No se quita un vehículo si su fase exige `aduana.declaracion` o `aduana.canal` como bloqueante**, aunque el canal todavía no se cumpla.
+- **D29 · Carrera propia de aduana** (quitar contra mover, pasar un vehículo entre declaraciones y el intercambio), en `supabase/tests/areas/aduana/`.
+- **D30 · Las policies de leer no cambian aquí:** la lectura con D2 es `declaracion_leer`, en 6.07-3.
+- **Un solo recorrido en orden de id al poner** (de la auditoría del plan): quitar todo y después agregar todo formaba un ciclo cuando dos personas
+  intercambian vehículos entre dos declaraciones (40P01). Ahora toda espera va hacia un id mayor y el intercambio termina en 23514.
+
+<!-- paso:6.07-3 -->
+
+## 2026-11-12 — Paso 6.07-3: las lecturas de transporte y aduana
+
+- **D31 · `pagada` se calcula sobre todos los vehículos vivos de la declaración, los vea o no quien mira:** es un hecho de la declaración. `vehiculos` y
+  `faltan` cuentan sólo los que ve; `hay_ocultos` dice si hay otros, sin número. Sin vivos, `pagada` es falsa. Lo que se deduce, deliberado: con
+  `pagada = false`, `faltan = 0` y `hay_ocultos`, quien mira sabe que a algún vehículo que no ve le falta el tributo (sí o no). `pagada` y `tributo` llegan
+  a quien no tiene `logistica.gastos.ver`: es el estado del requisito `aduana.tributos_pagados`, no un monto ni un comprobante. Vivo = en la
+  composición: un vehículo de la composición que está en la papelera entra en `pagada` y cuenta como oculto para todos.
+- **D32 · Quién lista y lee:** con `logistica.aduana.gestionar`, toda declaración; con `logistica.ver`, la que tiene un vehículo vivo que se ve; sin
+  ninguna de las dos, 42501 antes de leer.
+- **D33 · Una declaración que no existe y una que no ves dan el mismo P0002.** Con la policy de D41, el select directo tampoco las distingue.
+- **D34 · La lista de declaraciones descarta filas del índice** (filtros y visibilidad sin gestionar): la tabla es de volumen bajo y quien la usa a diario
+  tiene gestionar. Sin siembra en `db:medir:volumen`; la prueba L4 fija el plan.
+- **La lista de declaraciones recorre el índice por lotes de 200 y filtra en plpgsql:** con los filtros en la consulta, el plan genérico los creía
+  selectivos y ordenaba toda la tabla.
+- **D35 · `transporte_grupos` devuelve `{tipo, grupos, siguiente, cortada}` y mira a lo sumo 2.000 filas por llamada;** cada clave suma al menos 1.
+  `cortada` = paró por el recorrido antes de llenar la página (la pantalla ofrece «Seguir buscando»). La lista de declaraciones no tiene ese tope
+  (D34): si 6.09 mide que crece, que lo sume con su `cortada`.
+- **D36 · Un grupo entra si alguna unidad que se ve cumple todos los filtros;** sus datos salen de las que se ven: el valor si coinciden, si no nulo y
+  la clave en `varios`.
+- **D37 · La visibilidad de los grupos se resuelve una vez** (orígenes de `logistica.ver`, `repuestos.ver`): equivale a `transporte_grupo`.
+- **D38 · El registro en `paginas-en-la-base.ts` lo hace quien llame** (6.08, 6.09): la guarda exige que alguien en `src/` llame a cada RPC registrada.
+- **D39 · El prefijo corta por la forma normalizada de la clave y el cursor es opaco:** una clave vieja en minúsculas (de antes de `transporte_guardar`)
+  ordena, en ICU, dentro del bloque del prefijo y no corta la búsqueda; el cursor nunca se normaliza (D43). No se normalizan las claves viejas. El
+  caso ICU queda razonado, no probado (PGlite ordena en `C`).
+- **D40 · Filtros de grupos, lista cerrada:** `naviera`, `puerto_origen`, `puerto_destino`, `en_transito`, `prefijo`; un valor mal escrito, 22023 con la clave.
+- **D41 · La policy de leer de `declaraciones_aduana` pasa a la regla de D2:** gestionar, o un vehículo vivo de la declaración que se ve con
+  `logistica.ver`. Antes, con `logistica.ver` en cualquier origen un select directo leía toda cabecera. No se revoca el select.
+- **D42 · `aplicado_en` de `logistica.aduana.gestionar` suma las lecturas y la policy.** El de `logistica.ver` (`puede_unidad`) no se toca.
+- **D43 · El cursor de `transporte_grupos` es el id de una fila de `transportes`, no la clave** (de la auditoría del informe): con `cortada`, la última
+  clave mirada podía ser de un grupo con sólo unidades que quien llama no ve, y siguiendo las páginas se recorrían esas claves. La llamada siguiente
+  resuelve la clave por la PK; una clave o un id que ya no existe da 22023 `hint = 'cursor'` (la lista vuelve a empezar).
+- **Para el coordinador:** filas propuestas para `docs/RENDIMIENTO.md`: «`/logistica/aduana` · `declaraciones_listar` · 50 (máx. 100) ·
+  `declaraciones_aduana_creado_idx` · lotes de 200, filtros sobre el orden, volumen bajo» y «`/logistica/embarques` · `transporte_grupos` · 50 (máx. 100) ·
+  índices parciales de booking y contenedor · recorrido ≤ 2.000 filas, `cortada`». Las filas de 6.08 y 6.09 suman el registro de D38 y el contrato de
+  `transporte_grupos` (`siguiente`, `cortada`, `varios`).
+
+<!-- paso:7.09-1 -->
+
+## 2026-11-12 — Paso 7.09-1: base del módulo `chat` y la lista de conversaciones (parte 1 de 4 del 7.09)
+
+- **D1** · Presencia y «escribiendo…» no entran (la recomendada de la fila 7.09). Cumplida.
+- **D2** · La lista se actualiza por dos señales de Realtime, nunca `DELETE`: `mensajes` `INSERT` con `autor_id=neq.<yo>` (la RLS de
+  `mensajes: leer` decide por suscriptor) y `conversaciones_miembros` `INSERT`/`UPDATE` con `usuario_id=eq.<yo>`. Ante cualquiera se relee la
+  cabeza con `chat_conversaciones` (una sola relectura por ráfaga: espera de 250 ms). Cumplida (`infra/realtime.client.ts`).
+- **D3** · Iniciar una directa buscará en `perfiles` bajo `perfiles: leer`, sin RPC nueva ni migración: el paso no toca la base. Es de la parte 2.
+- **D4** · Las dos pantallas del celular van por CSS (`hidden md:flex` según haya `?c=`), sin medir el ancho; «Volver a la lista» es un
+  `<Link href="/chat">` visible sólo en celular. Cumplida (`e2e/chat.spec.ts`, `movil`).
+- **D5** · `chat` se prende en `navegacion.ts` en esta parte: `navegacion.test.ts` exige que `page.tsx` exista si `disponible` es `true`. El hilo
+  dice «Los mensajes llegan con la siguiente parte.» hasta la parte 3.
+- **D6** · La lista se lee con el mismo código en servidor (primera página, `composicion.ts`) y navegador («Ver más» y señales,
+  `composicion.client.ts`): `infra/consultas.ts` y un parser Zod en `entities/conversaciones.ts` (un JSON mal formado es un `Resultado`).
+- **D7** · Una `?c=` ilegible cuenta como sin selección; un GUID que no es mío dibuja «Esta conversación ya no es tuya» con «Volver a la lista».
+  `leerConversacion` decide por la fila propia de `conversaciones_miembros` (con `chat.global` perdido, la base tampoco la devuelve), no por poder
+  leer `conversaciones`. Cumplida (`e2e/chat.spec.ts`, tercera prueba).
+- **D8** · Sin `chat.participar` la página dice «No tienes permiso…» con `puede()` y no lee la base. Cumplida (cuarta prueba).
+- **D9** · Tope de lo cargado: `TOPE_DE_LO_CARGADO` (500) con `<AvisoDeTope>`; el camino a lo antiguo es abrir la directa por la persona (parte 2).
+- **D10** · Cambio frente al plan: «99+» sale de `textoDeNoLeidos()` (puro, con test), no de `conteoAcotado`/`conteoCorto`: la base ya acota en 100 y
+  esas funciones piden un conteo con `tope + 1` que aquí no hay. El nombre accesible de la insignia en 100 es «Más de 99 sin leer».
+- **D11** · El tope sin assert de `docs/RENDIMIENTO.md` (una conversación que sube mientras se pagina) se deja: lo cubre `fundirPagina` al releer la cabeza
+  (`entities/conversaciones.test.ts`: no borra lo cargado más abajo ni duplica).
+
+<!-- paso:7.09-2 -->
+
+## 2026-11-12 — 7.09-2
+
+Siguen la numeración de la parte 1 (llegó a D11). Plan: `.piloto/planes/7.09-2.md`.
+
+- **D12** — Un grupo se arma con 1 a 49 personas más quien lo crea (2 a 50 en total): espeja `chat_grupo_crear`, que rechaza 50 elegidas. El plan servido decía «2–50».
+- **D13** — Cada acción es una Server Action sobre `RepositorioDeConversaciones` (`features` no importa `infra`); la RPC corre con la sesión de quien actúa y el campo del
+  rechazo sale del `hint`. Éxito ⇒ `revalidatePath('/chat')`.
+- **D14** — «Silenciar» y «Salir» viven en el «⋯» del encabezado del hilo. El diálogo de salir se monta en la lista porque un `DELETE` de miembro no genera señal de Realtime:
+  la lista gana `quitar(id)` y se relee.
+- **D15** — `?panel=nueva|grupo|salir` sin claves nombradas: abrir o cerrar un panel no toca `?c=` (con `claves: ['c']`, cerrar cerraría el hilo). Lo mismo valdrá para el panel de
+  borrar de 7.09-4: `claves: ['mensaje']`, sin `c`.
+- **D16** — El buscador de personas se copia dentro del módulo (sin importar `agenda` ni subirlo a `shared`); Enter en el campo no envía el formulario del grupo.
+- **D17** — Se puede dejar un grupo y el canal global; una directa no (se silencia). Si la fila de la conversación abierta no está cargada, el diálogo abre y la base responde.
+- **D18** — «Entrar al canal del equipo» sólo con `puede(permisos, 'chat.global')`; `ya_estaba` no es error. El nombre «Equipo» es del catálogo, no se escribe.
+- **D19** — Quién no puede usar el chat se rechaza en la base (`23514`): el buscador lista a toda persona activa y sin bloqueo y el modal dice el texto de la base.
+- **D20** — El modal de la directa es un `<Modal>` registrado como `sinFormulario`; el del grupo, un `ModalDeFormulario`. Los paneles van con `diferido()` y `useAbiertoAlgunaVez()`.
+- **D21** — Nivel 1 (esta parte no toca `_shell`, `shared` ni la base); los e2e dirigidos en `escritorio` y `movil`.
+- **Pendiente para la persona:** agregar o quitar miembros de un grupo (`chat_grupo_miembros`, ya en la base) no tiene pantalla en ningún paso de la fila 7.09 ni 7.10.
+
+<!-- paso:7.09-3 -->
+
+## 2026-11-12 — 7.09-3
+
+Siguen la numeración de la parte 2 (llegó a D21). Plan: `.piloto/planes/7.09-3.md`.
+
+- **D22** — La señal de `mensajes` de la lista pierde el filtro `autor_id=neq.<yo>`: sin eso, lo que escribo no mueve mi propia fila. La RLS sigue decidiendo qué llega. Para poder suscribirse sin filtro,
+  `suscribirseACambios` (`shared/lib/supabase/canal.client.ts`) hace `filtro` opcional (no manda `filter`), con su prueba.
+- **D23** — La primera página del hilo se lee en el navegador al montar (esqueleto mientras llega); se descartó `infra/mensajes.ts` de servidor. El hilo se reinicia con el `key` que ya tiene la página.
+- **D24** — El `select` del hilo no trae el embed `responde`; la cita es de 7.09-4 (ensancha `COLUMNAS_DEL_HILO` y el esquema).
+- **D25** — La señal relee los 20 más nuevos y funde por `id`; con hueco (más atrás y ningún `id` conocido) reemplaza lo enviado cargado y vuelve a ofrecer «Ver anteriores». Un `UPDATE` más viejo que esos 20 no se refresca.
+- **D26** — Envío optimista sin `revalidatePath` ni `useEnLinea`: siempre se intenta; si no llega queda «No enviado · Reintentar» y reintentar reusa el mismo `id` y cuerpo (`repetido`). Los envíos van de a uno, en orden.
+- **D27** — `chat_leer` va por una Server Action (`marcar-leido`), sin `revalidatePath`; un fallo no se dice y se reintenta con el siguiente cambio.
+- **D28** — `<IrAUnaFecha>` sólo se ofrece al llegar al tope de 500, junto a `<AvisoDeTope>`. Mirando desde una fecha, el hilo no sigue lo nuevo ni marca leído; enviar vuelve a lo más reciente.
+- **D29** — Fuera de la parte: separadores de día, borrador persistente, «no leídos desde aquí», adjuntos y fichas.
+- **D30** — Nivel 1 (no toca `_shell`, `shared/ui`, la base ni `database.types.ts`; sí `shared/lib/supabase`, que `nivel.mjs` no cuenta como disparador); e2e dirigidos en `escritorio` y `movil`.
+- **D31** — El aviso de largo del redactor y su botón viven en `redactor.tsx` (no hay `pie-del-hilo.tsx`); el cuerpo (cargando, error, vacío, lista) está en `cuerpo-del-hilo.tsx` y `hilo.tsx` sólo une hooks.
+
+<!-- paso:7.09-4 -->
+
+## 2026-11-12 — 7.09-4
+
+Siguen la numeración de la parte 3 (llegó a D31). Plan: `.piloto/planes/7.09-4.md`. Las no mencionadas se cumplieron tal cual.
+
+- **D32 (cambiada)** — `Mensaje.responde: CitaDeMensaje | null`, campo requerido. **Pero la cita no sale del embed** `responde:mensajes!…`: sobre `mensajes → mensajes` PostgREST da 400 con el nombre de la FK y un arreglo
+  con la columna. Se lee en una segunda consulta por pk (`conSusCitas`, ≤ 21 ids, sólo con respuestas); si falla o la RLS no deja ver el original, queda sin cita y la burbuja dice «Mensaje no disponible».
+- **D33** — Las reglas van en `entities/reglas-del-mensaje.ts`, no en `mensajes.ts`. Los tests de la cita se partieron a `mensajes-cita.test.ts` (el de `mensajes.ts` pasaba de 300 líneas).
+- **D34** — Ventana de 15 minutos desde `creadoEn`, borde inclusivo; sólo texto propio y enviado.
+- **D35** — `puedeBorrar` = enviado, no eliminado y (autor o `puedeModerar`, que llega de `puede(…, 'chat.moderar')`).
+- **D36–D38** — Editar y borrar esperan a la base y se aplican por `reemplazar(id, …)`; el error queda dentro del editor o del diálogo; el borrado vive en `?panel=borrar-mensaje&mensaje=<id>`.
+- **D39 (ajuste)** — El menú es de Base UI, no Radix: el foco no vuelve al «⋯» tras elegir una acción (`finalFocus`) y los renglones usan `onClick`. El reloj de `puedeEditar` se toma al abrir el menú.
+- **D40–D43** — Cumplidas: la cita sobre el redactor se conserva al reintentar; los estados del hilo ya estaban (7.09-3) y se documentan en `docs/UX.md`; Nivel 1 con e2e dirigido en los dos proyectos; lo demás queda fuera.
+- **D44** — El CI cayó en `e2e/cotizar-tarea-de-oro-recorrido.spec.ts` (escritorio): la entrada de Chat en la navegación suma una parada de Tab (59 → 60 la asesora; 55 → 56 la dueña); el celular no cambia. Contados de nuevo con el spec dirigido en los dos proyectos (6 ✓, `.piloto/salidas/7.09/recorrido.log`).

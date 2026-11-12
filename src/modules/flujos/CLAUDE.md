@@ -2,6 +2,8 @@
 
 Motor único de flujos: fases, transiciones, requisitos (documento | dato | espera), roles por fase y transición, reglas por flujo, jubilar/eliminar, revisión de coherencia y la RPC `cambiar_fase` que mueve vehículos y repuestos.
 
+**Fase 5 cerrada el 2026-11-12** (5.13): toda la configuración por RPC con la versión del flujo. Deja a la Fase 6 mover (6.04), los catálogos de puertos y navieras (6.08) y el requisito de dato con su regla apagada (**6-4**); y a la 8, la rama de repuestos de mover (8.13).
+
 ## Entra y sale
 
 - Entra: configuración del dueño en `/configuracion/flujos` (un flujo por origen + el de repuestos); llamadas a mover desde `logistica` y `repuestos`.
@@ -164,3 +166,4 @@ invoker`, cualquiera que lea el flujo). Sin PK: la unicidad la dan dos índices 
 - `fases.demora_dias`: NULL hereda `ajustes_empresa.demora_dias_default`, 0 apaga la alerta. Un solo lector del umbral (`alertas_demora`).
 - El vehículo nace en la fase inicial **sólo si no hay nada que decidir** (`vehiculo_crear`: exactamente una inicial activa, que no pide nota, sin requisitos bloqueantes pendientes ni roles que excluyan a quien crea), con su fila en `historial_fases` (`de_fase_id` nulo). Si no, nace sin fase y la primera transición explícita (`cambiar_fase`) lo pone en una inicial. Entrar al nacer no pide `flujos.mover`.
 - Un origen recién creado tiene flujo y reglas pero **ninguna fase**: `leerFasesDeOrigen()` devuelve una lista vacía.
+- `flujos.activo` no lo lee nadie ni lo edita ninguna pantalla (5.13): no filtres por él sin decidir qué apaga.
