@@ -67,6 +67,9 @@ const VARIABLES_DE_PAGINA = {
   lote: constante('src/modules/leads/entities/importacion/limites.ts', 'FILAS_POR_LOTE'),
   // Lo que el buscador pide a cada sección (7.12-2): `medir-buscador.sql` llama a `buscador_cotizaciones` con él.
   por_seccion: constante('src/modules/buscador/entities/ranking.ts', 'POR_SECCION'),
+  // Exportar todo (9.05-2): de a cuántas filas lee el flujo y su tope; `medir-datos-exportar.sql` los usa.
+  filas_exportar: constante('src/modules/datos/entities/exportacion.ts', 'FILAS_POR_PEDIDO'),
+  tope_exportar_todo: constante('src/modules/datos/entities/exportacion.ts', 'TOPE_DE_FILAS'),
 }
 const ARGUMENTOS_DE_PSQL = Object.entries(VARIABLES_DE_PAGINA).flatMap(([nombre, valor]) => [
   '-v',

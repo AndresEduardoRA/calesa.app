@@ -76,6 +76,11 @@ export const MEDICIONES_BASE = [
 // la semilla no lo tiene. `pnpm db:medir:volumen`; después, `pnpm db:reset`.
 export const MEDICIONES_CON_VOLUMEN = [
   [
+    'supabase/tests/medir-datos-exportar.sql',
+    'Exportar todo de leads (9.05-2): la consulta del route handler a datos_exportar_leads() con la siembra, como authenticated y con el plan genérico: la primera página, una profunda por cursor y una de ids de la dueña («todos», por leads_listado_idx, sin Function Scan); el conteo entero hasta el tope y la lectura entera por páginas (s), y Berta («propios») sin assert',
+    MEDIANA,
+  ],
+  [
     'supabase/tests/medir-escala.sql',
     'Escala de toda la app, 50.000 leads y 50.000 cotizaciones sembradas (dueña «todos» y Ana «propios»)',
     MEDIANA,
