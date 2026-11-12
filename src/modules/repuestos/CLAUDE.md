@@ -70,6 +70,10 @@ El módulo se parte por **área** (8.08-2, igual que `logistica`) para que los p
   si hay ítems sin precio aunque llegue un número) y `textoSinPrecio` («Sin precio en N ítems»). Sin aritmética de dinero: la cuenta es de la base.
 - `entities/compras/compra.ts` (8.11-2) — la fila de la lista (`filasDeCompraDesde`, `COLUMNAS_DE_COMPRA` con el ítem embebido, `TOPE_DE_COMPRAS`); `monto_base` se lee
   (nulo en filas de antes de 8.11-1), nunca se calcula. `infra/compras/{listar,margen}.ts` leen la lista y el margen.
+- `entities/compras/{formulario,errores,acciones,paneles,comprobante,repositorio}.ts` (8.11-3) — el formulario con los textos de la base (0 vale; al editar,
+  `cambiosDeCompra` sólo lo que cambió, nunca `monto_base`), el `hint` de la base en su campo (`rechazoDeCompra`) y el motivo para apagar «Registrar compra».
+  `infra/compras/escribir.ts` llama las tres RPC (la esperada nula crea, con `ESPERADA_NULA`); las actions `guardarCompra`, `eliminarCompra` y `restaurarCompra`
+  (`repuestos.costos.editar` con `puede()` antes, `revalidatePath` del proyecto después; `z.strictObject` sin `monto_base` ni `proyecto_id`) no salen por los barriles.
 - `features/proyectos/`, `features/items/` (hoja), `features/compras/`, `features/stock/`, `features/cotizador/`, `features/catalogos/`.
 - La base (8.08-1): `repuesto_proyecto_crear` / `_cerrar` / `_reabrir` / `_eliminar` / `_restaurar`, `repuesto_item_crear` / `_eliminar`,
   `repuestos_proyectos_listar`, `repuestos_pendientes_de_vehiculo`, `_repuesto_ante_espera` y el trigger `repuestos_catalogo_sin_uso`. De 8.09-3: los triggers `repuestos_imagen_integridad` y `repuestos_imagen_encolar` (prueba `areas/repuestos/imagenes.sql`). De 8.10-1: `repuesto_stock_mover`,

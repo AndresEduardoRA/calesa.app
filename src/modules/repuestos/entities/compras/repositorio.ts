@@ -22,9 +22,10 @@ export type RepositorioDeCompras = {
     datos: ClavesDeCompra
   }) => Promise<ResultadoDeAccion<CompraGuardada>>
   // `repuesto_compra_eliminar`: borrado suave, con la versión esperada.
-  eliminar: (
-    pedido: CompraVersionada & { actualizadoEnEsperado: string },
-  ) => Promise<ResultadoDeAccion<CompraVersionada>>
+  eliminar: (pedido: {
+    id: string
+    actualizadoEnEsperado: string
+  }) => Promise<ResultadoDeAccion<CompraVersionada>>
   // `repuesto_compra_restaurar`: el «Deshacer», con la versión que devolvió eliminar.
   restaurar: (pedido: {
     id: string
