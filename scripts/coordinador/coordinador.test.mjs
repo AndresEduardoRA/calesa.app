@@ -687,3 +687,172 @@ test('un paso aparcado cuyo PR termina integrado queda integrado', () => {
   assert.match(correr('sincronizar'), /P02: estaba aparcado y su PR #12 ya está integrado/)
   assert.equal(JSON.parse(correr('estado', 'P02')).estado, 'integrado')
 })
+
+// FLUJO-6: el coordinador une main a un PR publicado que choca sólo en notas, sin esperar a su carril.
+function conRemoto(dir) {
+  const g = (...a) =>
+    execFileSync('git', ['-c', 'user.email=a@b', '-c', 'user.name=t', ...a], {
+      cwd: dir,
+      encoding: 'utf8',
+    }).trim()
+  const remoto = mkdtempSync(join(tmpdir(), 'coord-remoto-'))
+  execFileSync('git', ['init', '-q', '--bare', '-b', 'main', remoto])
+  g('remote', 'add', 'origin', remoto)
+  const escribir = (ruta, texto) => {
+    mkdirSync(join(dir, ruta, '..'), { recursive: true })
+    writeFileSync(join(dir, ruta), texto)
+    g('add', ruta)
+  }
+  escribir('docs/UX.md', '# UX\n')
+  escribir('src/ui/lista.ts', 'export const LISTA = 1\n')
+  g('commit', '-qm', 'base')
+  g('push', '-q', 'origin', 'main')
+  return { g, escribir }
+}
+const IDENTIDAD = {
+  GIT_AUTHOR_NAME: 't',
+  GIT_AUTHOR_EMAIL: 'a@b',
+  GIT_COMMITTER_NAME: 't',
+  GIT_COMMITTER_EMAIL: 'a@b',
+}
+
+test('un PR que choca con main sólo en notas lo une el coordinador; con su CI en verde se integra sin esperar otro', () => {
+  const { dir, correr, pr, respuestas } = repo()
+  const { g, escribir } = conRemoto(dir)
+  g('checkout', '-qb', 'ui/P02')
+  escribir('docs/UX.md', '# UX\n\n## Inicio\n')
+  g('commit', '-qm', 'el paso')
+  g('push', '-q', 'origin', 'ui/P02')
+  const oid = g('rev-parse', 'HEAD')
+  g('checkout', '-q', 'main')
+  escribir('docs/UX.md', '# UX\n\n## Esquema\n')
+  g('commit', '-qm', 'otro carril')
+  g('push', '-q', 'origin', 'main')
+  correr('siguiente', 'ui')
+  correr('publicado', 'P02', '8')
+  const chocando = {
+    state: 'OPEN',
+    mergeable: 'CONFLICTING',
+    headRefOid: oid,
+    headRefName: 'ui/P02',
+  }
+  pr(8, { ...chocando, statusCheckRollup: verde })
+  const salida = correr.con(IDENTIDAD, 'sincronizar')
+  assert.match(salida, /P02: uní main a #8 \(docs\/UX\.md\): sólo notas y su CI ya estaba en verde/)
+  assert.doesNotMatch(salida, /vuelve a su carril/)
+  g('fetch', '-q', 'origin')
+  const unido = g('rev-parse', 'origin/ui/P02')
+  assert.equal(g('rev-parse', `${unido}^1`), oid)
+  assert.match(
+    g('show', `${unido}:docs/UX.md`),
+    /## Inicio[\s\S]*## Esquema|## Esquema[\s\S]*## Inicio/,
+  )
+  // No vuelve a su carril: sigue publicado y sin nada que arreglar.
+  assert.equal(JSON.parse(correr('estado', 'P02')).arreglar, null)
+  // Con la punta en ese commit y su CI todavía corriendo, se integra.
+  pr(8, {
+    state: 'OPEN',
+    mergeable: 'MERGEABLE',
+    headRefOid: unido,
+    headRefName: 'ui/P02',
+    statusCheckRollup: [{ status: 'IN_PROGRESS', conclusion: null }],
+  })
+  assert.match(correr.con(IDENTIDAD, 'sincronizar'), /P02: integrado por el coordinador \(#8/)
+  assert.match(
+    readFileSync(join(respuestas, 'merges-args'), 'utf8'),
+    new RegExp(`--match-head-commit ${unido}`),
+  )
+})
+
+test('un choque de código no lo une el coordinador: lo dice una vez y el paso vuelve a su carril', () => {
+  const { dir, correr, pr } = repo()
+  const { g, escribir } = conRemoto(dir)
+  g('checkout', '-qb', 'ui/P02')
+  escribir('src/ui/lista.ts', 'export const LISTA = 2\n')
+  g('commit', '-qm', 'el paso')
+  g('push', '-q', 'origin', 'ui/P02')
+  const oid = g('rev-parse', 'HEAD')
+  g('checkout', '-q', 'main')
+  escribir('src/ui/lista.ts', 'export const LISTA = 3\n')
+  g('commit', '-qm', 'otro carril')
+  g('push', '-q', 'origin', 'main')
+  correr('siguiente', 'ui')
+  correr('publicado', 'P02', '8')
+  pr(8, {
+    state: 'OPEN',
+    mergeable: 'CONFLICTING',
+    headRefOid: oid,
+    headRefName: 'ui/P02',
+    statusCheckRollup: verde,
+  })
+  const salida = correr.con(IDENTIDAD, 'sincronizar')
+  assert.match(salida, /P02: no pude unir main a #8 \(choca en código \(src\/ui\/lista\.ts\)\)/)
+  assert.match(salida, /P02: conflicto con main \(#8\): vuelve a su carril/)
+  assert.equal(correr.con(IDENTIDAD, 'sincronizar').trim(), '')
+  assert.equal(JSON.parse(correr('siguiente', 'ui')).arreglar, 'conflicto con main')
+  // No empujó nada a la rama del PR.
+  g('fetch', '-q', 'origin')
+  assert.equal(g('rev-parse', 'origin/ui/P02'), oid)
+})
+
+test('un PR con el CI sin terminar que choca en notas se une, pero espera a su CI', () => {
+  const { dir, correr, pr } = repo()
+  const { g, escribir } = conRemoto(dir)
+  g('checkout', '-qb', 'ui/P02')
+  escribir('docs/UX.md', '# UX\n\n## Inicio\n')
+  g('commit', '-qm', 'el paso')
+  g('push', '-q', 'origin', 'ui/P02')
+  const oid = g('rev-parse', 'HEAD')
+  g('checkout', '-q', 'main')
+  escribir('docs/UX.md', '# UX\n\n## Esquema\n')
+  g('commit', '-qm', 'otro carril')
+  g('push', '-q', 'origin', 'main')
+  correr('siguiente', 'ui')
+  correr('publicado', 'P02', '8')
+  const datos = { state: 'OPEN', headRefName: 'ui/P02' }
+  pr(8, { ...datos, mergeable: 'CONFLICTING', headRefOid: oid, statusCheckRollup: [] })
+  assert.match(
+    correr.con(IDENTIDAD, 'sincronizar'),
+    /P02: uní main a #8 \(docs\/UX\.md\): su CI corre otra vez/,
+  )
+  g('fetch', '-q', 'origin')
+  const unido = g('rev-parse', 'origin/ui/P02')
+  const corriendo = [{ status: 'IN_PROGRESS', conclusion: null }]
+  pr(8, { ...datos, mergeable: 'MERGEABLE', headRefOid: unido, statusCheckRollup: corriendo })
+  assert.equal(correr.con(IDENTIDAD, 'sincronizar').trim(), '')
+  pr(8, { ...datos, mergeable: 'MERGEABLE', headRefOid: unido, statusCheckRollup: verde })
+  assert.match(correr.con(IDENTIDAD, 'sincronizar'), /P02: integrado por el coordinador \(#8/)
+})
+
+test('una migración con una hora que no existe pone el Nivel 1 en rojo: el coordinador la renumera en vez de devolver el paso', () => {
+  const { dir, correr, pr } = repo()
+  const { g, escribir } = conRemoto(dir)
+  escribir('supabase/migrations/20261111100000_base.sql', 'select 1;\n')
+  g('commit', '-qm', 'la base')
+  g('push', '-q', 'origin', 'main')
+  g('checkout', '-qb', 'datos/P01')
+  // Renumerada a mano sumando uno: el segundo 60 no existe.
+  escribir('supabase/migrations/20261111135960_tabla.sql', 'create table t();\n')
+  g('commit', '-qm', 'el paso')
+  g('push', '-q', 'origin', 'datos/P01')
+  const oid = g('rev-parse', 'HEAD')
+  g('checkout', '-q', 'main')
+  correr('siguiente', 'datos')
+  correr('publicado', 'P01', '9')
+  pr(9, {
+    state: 'OPEN',
+    mergeable: 'MERGEABLE',
+    headRefOid: oid,
+    headRefName: 'datos/P01',
+    files: [{ path: 'supabase/migrations/20261111135960_tabla.sql' }],
+    statusCheckRollup: [{ name: 'Nivel 1 · lint', status: 'COMPLETED', conclusion: 'FAILURE' }],
+  })
+  const salida = correr.con(IDENTIDAD, 'sincronizar')
+  assert.match(
+    salida,
+    /P01: renumeré las migraciones de #9 \(20261111135960:\d{14}\): su CI corre otra vez/,
+  )
+  assert.doesNotMatch(salida, /vuelve a su carril/)
+  g('fetch', '-q', 'origin')
+  assert.doesNotMatch(g('ls-tree', '-r', '--name-only', 'origin/datos/P01'), /20261111135960/)
+})

@@ -10,6 +10,7 @@ import { execFileSync } from 'node:child_process'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fechaReal } from './pr.mjs'
 
 const MIGRACION = /^supabase\/migrations\/(\d{14})(_[^/]+\.sql)$/
 const MENSAJE =
@@ -63,7 +64,12 @@ export function renumerarMigraciones(rama, oid, { cwd = process.cwd(), ahora = D
     .split('\n')
     .filter((r) => MIGRACION.test(r))
     .sort()
-  if (propias.length === 0 || MIGRACION.exec(propias[0])[1] > tope)
+  // Atrasadas, o con una fecha que no existe o del futuro (pr.mjs › fechaReal): las dos se arreglan con versiones nuevas.
+  if (
+    propias.length === 0 ||
+    (MIGRACION.exec(propias[0])[1] > tope &&
+      propias.every((r) => fechaReal(MIGRACION.exec(r)[1], ahora)))
+  )
     return { hecho: false, motivo: 'no hay migraciones atrasadas' }
   // Dos PR renumerados en la misma vuelta no comparten versiones: el segundo sigue donde terminó el primero.
   let seg = Math.max(segundos(tope), Math.floor(ahora / 1000) - 1, ultimoSeg)
