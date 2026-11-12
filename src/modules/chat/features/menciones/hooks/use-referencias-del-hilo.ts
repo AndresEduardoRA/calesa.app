@@ -14,6 +14,8 @@ import type { LectorDeReferencias } from '../../../entities/repositorios'
 
 type Props = {
   mensajes: readonly Mensaje[]
+  // La mención abierta por la URL, si el hilo todavía no la leyó (un enlace pegado).
+  adicional?: Referencia | null
   // Se inyecta en la prueba; en la pantalla, la lectura real.
   leer?: LectorDeReferencias
 }
@@ -39,16 +41,21 @@ function referenciasDe(mensajes: readonly Mensaje[]): Referencia[] {
 // Resuelve lo mencionado en el hilo bajo la RLS de quien mira: una lectura por cambio de mensajes (por clase adentro), sólo de lo que aún no se
 // resolvió. Un mensaje nuevo por Realtime lee únicamente sus referencias. Una lectura que falla deja esas referencias «pendientes de reintentar»:
 // el chip lo dice y un clic repite la lectura; el hilo no se cae.
-export function useReferenciasDelHilo({ mensajes, leer = leerReferencias }: Props) {
+export function useReferenciasDelHilo({
+  mensajes,
+  adicional = null,
+  leer = leerReferencias,
+}: Props) {
   const [resueltas, setResueltas] = useState<MapaDeReferencias>(new Map())
   const [fallidas, setFallidas] = useState<ReadonlySet<string>>(new Set())
   const enVuelo = useRef(new Set<string>())
   const [intento, setIntento] = useState(0)
 
   useEffect(() => {
-    const faltan = referenciasSinResolver(referenciasDe(mensajes), resueltas).filter(
-      (r) => !enVuelo.current.has(claveDeReferencia(r)),
-    )
+    const faltan = referenciasSinResolver(
+      [...referenciasDe(mensajes), ...(adicional === null ? [] : [adicional])],
+      resueltas,
+    ).filter((r) => !enVuelo.current.has(claveDeReferencia(r)))
     if (faltan.length === 0) {
       return
     }
@@ -78,7 +85,7 @@ export function useReferenciasDelHilo({ mensajes, leer = leerReferencias }: Prop
           setFallidas((antes) => new Set([...antes, ...claves]))
         }
       })
-  }, [mensajes, intento, leer, resueltas])
+  }, [mensajes, adicional, intento, leer, resueltas])
 
   // Repite la lectura de las que fallaron.
   const reintentar = useCallback(() => {

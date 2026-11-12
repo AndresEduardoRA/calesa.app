@@ -7,8 +7,8 @@ import { useReferenciasDelHilo } from './use-referencias-del-hilo'
 
 // Todo lo de las menciones del hilo en un lugar: resolverlas, abrir una por la URL y lo que se le da a cada burbuja.
 export function useMencionesDelHilo(mensajes: readonly Mensaje[]) {
-  const referencias = useReferenciasDelHilo({ mensajes })
   const url = useMencionPorUrl()
+  const referencias = useReferenciasDelHilo({ mensajes, adicional: url.referencia })
   const menciones: ContextoDeMenciones = {
     estadoDe: referencias.estadoDe,
     reintentar: referencias.reintentar,

@@ -3,6 +3,7 @@
 import type { Conversacion } from '../../../entities/conversaciones'
 import { citaDe } from '../../../entities/reglas-del-mensaje'
 import type { AccionesDelMensaje } from '../acciones-del-hilo'
+import { MencionAbierta } from '../../menciones/components/mencion-abierta'
 import { useMencionesDelHilo } from '../../menciones/hooks/use-menciones-del-hilo'
 import { useBorradoPorUrl } from '../hooks/use-borrado-por-url'
 import { useEdicion } from '../hooks/use-edicion'
@@ -89,6 +90,7 @@ export function Hilo({ conversacion, usuarioId, zona, puedeModerar }: Props) {
           }}
         />
       )}
+      <MencionAbierta mencion={mencion} />
       <ConfirmarBorrado
         objetivo={borrado.mensaje}
         usuarioId={usuarioId}
