@@ -10207,6 +10207,7 @@ export type Database = {
       }
       portal_desbloquear: { Args: { p_lead: string }; Returns: undefined }
       portal_estado: { Args: { p_lead: string }; Returns: Json }
+      portal_intentos_purgar: { Args: Record<PropertyKey, never>; Returns: number }
       previsualizar_cambio_fase: {
         Args: { p_fase_destino: string; p_repuesto: string; p_vehiculo: string }
         Returns: Json

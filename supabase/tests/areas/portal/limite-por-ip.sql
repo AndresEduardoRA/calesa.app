@@ -7,6 +7,7 @@
 --   L3. Vencida la ventana (15 min), la misma IP vuelve a dar true con cuenta 1.
 --   L4. La IP no se guarda: columnas exactas, huella = HMAC-SHA256(ip, sal) y no la IP; sin la sal, 55000.
 --   L5. anon y authenticated no ejecutan las funciones ni leen la tabla (llamada y catálogo); service_role sí ejecuta.
+--   L6. La purga borra la ventana vencida, deja la vigente y devuelve 1; el job portal-intentos-purgar está programado sin URL.
 
 -- Corre una sentencia con un rol de la base (service_role, anon, authenticated) y devuelve cómo terminó (de `portal-cliente.sql`).
 create or replace function pg_temp.con_rol(p_rol text, p_sql text) returns jsonb language plpgsql as $$
@@ -108,10 +109,20 @@ begin
 end $$;
 rollback;
 
--- @test portal_intento: anon y authenticated no ejecutan ni leen; service_role ejecuta (L5)
+-- @test portal: anon y authenticated no ejecutan las tres funciones ni leen la tabla; service_role ejecuta (L5)
 do $$
-declare r jsonb; v_rol text;
+declare r jsonb; v_rol text; v_fn text;
 begin
+  foreach v_rol in array array['anon', 'authenticated'] loop
+    r := pg_temp.con_rol(v_rol, 'select to_jsonb(public.portal_intentos_purgar())');
+    if r ->> 'estado' is distinct from '42501' then raise exception '% ejecutó portal_intentos_purgar: %', v_rol, r; end if;
+  end loop;
+  foreach v_fn in array array['public.portal_intentos_purgar()'] loop
+    foreach v_rol in array array['anon', 'authenticated', 'public'] loop
+      if has_function_privilege(v_rol, v_fn, 'execute') then raise exception '% puede ejecutar %', v_rol, v_fn; end if;
+    end loop;
+    if not has_function_privilege('service_role', v_fn, 'execute') then raise exception 'service_role no puede ejecutar %', v_fn; end if;
+  end loop;
   foreach v_rol in array array['anon', 'authenticated'] loop
     r := pg_temp.con_rol(v_rol, 'select to_jsonb(web.portal_intento(''203.0.113.7''))');
     if r ->> 'estado' is distinct from '42501' then raise exception '% ejecutó portal_intento: %', v_rol, r; end if;
@@ -130,4 +141,25 @@ begin
     raise exception 'service_role no puede ejecutar web.portal_intento';
   end if;
 end $$;
+
+-- @test portal_intentos_purgar: se va la ventana vencida, queda la vigente, devuelve cuántas; el job está programado (L6)
+begin;
+do $$
+declare r jsonb;
+begin
+  delete from interno.portal_intentos;
+  perform pg_temp.intento('203.0.113.7');
+  perform pg_temp.intento('203.0.113.8');
+  update interno.portal_intentos set ventana_desde = now() - interval '16 minutes' where huella = pg_temp.huella('203.0.113.7');
+  r := pg_temp.con_rol('service_role', 'select to_jsonb(public.portal_intentos_purgar())');
+  if r is distinct from '{"ok": true, "valor": 1}'::jsonb then raise exception 'la purga devolvió %', r; end if;
+  if exists (select 1 from interno.portal_intentos where huella = pg_temp.huella('203.0.113.7')) then raise exception 'quedó la vencida'; end if;
+  if not exists (select 1 from interno.portal_intentos where huella = pg_temp.huella('203.0.113.8')) then raise exception 'se fue la vigente'; end if;
+  if public.portal_intentos_purgar() <> 0 then raise exception 'la segunda corrida borró algo'; end if;
+  if not exists (select 1 from cron.job where jobname = 'portal-intentos-purgar' and schedule = '*/5 * * * *'
+                 and command = 'select public.portal_intentos_purgar()') then
+    raise exception 'falta el job portal-intentos-purgar';
+  end if;
+end $$;
+rollback;
 
