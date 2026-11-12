@@ -14,16 +14,16 @@ El módulo se parte por **área** (6.01, igual que `flujos` y `cotizaciones`) pa
 `entities/<área>/`, `infra/<área>/`, `areas/<área>/{index,client,composicion}.ts` y `pantallas/<área>.ts` (y `pantallas/<área>-<pantalla>.ts`). El **núcleo** (la unidad, el panel y
 sus huecos) es la carpeta `nucleo` de cada capa. `index.ts`, `client.ts` y `composicion.ts` de la raíz sólo hacen `export *` del núcleo y de cada área: nadie los edita.
 
-| Área         | La llena | Qué es                                                                                                |
-| ------------ | -------- | ----------------------------------------------------------------------------------------------------- |
-| `nucleo`     | 6.01     | `Unidad`, `HuecoDeLaUnidad`, el panel de la unidad y el orden de sus huecos                           |
-| `cadena`     | 6.03     | el kanban por fase de `/logistica`: columnas con «Ver más», tarjeta, filtros en la URL y «dónde está» |
-| `mover`      | 6.04     | «qué falta», mover con nota, notas, historial y el lote (en el panel: sus tres huecos)                |
-| `documentos` | 6.06     | subir, aprobar o rechazar, vencimiento (hueco «documentos»)                                           |
-| `transporte` | 6.08     | embarques y contenedores (hueco «transporte», enlace «Embarques», catálogos)                          |
-| `aduana`     | 6.09     | declaraciones (hueco «aduana», enlace «Aduana»)                                                       |
-| `dinero`     | 6.11     | gastos, pagos y margen (tres huecos, enlace «Gastos», catálogos)                                      |
-| `alertas`    | 6.12     | alertas por demora y por vencimiento, bandeja en Inicio                                               |
+| Área         | La llena | Qué es                                                                                                              |
+| ------------ | -------- | ------------------------------------------------------------------------------------------------------------------- |
+| `nucleo`     | 6.01     | `Unidad`, `HuecoDeLaUnidad`, el panel de la unidad y el orden de sus huecos                                         |
+| `cadena`     | 6.03     | el kanban por fase de `/logistica`: columnas con «Ver más», tarjeta, filtros en la URL y «dónde está»               |
+| `mover`      | 6.04     | «qué falta», mover con nota, notas, historial y el lote (en el panel: sus tres huecos; 6.04-1: «Qué falta» y mover) |
+| `documentos` | 6.06     | subir, aprobar o rechazar, vencimiento (hueco «documentos»)                                                         |
+| `transporte` | 6.08     | embarques y contenedores (hueco «transporte», enlace «Embarques», catálogos)                                        |
+| `aduana`     | 6.09     | declaraciones (hueco «aduana», enlace «Aduana»)                                                                     |
+| `dinero`     | 6.11     | gastos, pagos y margen (tres huecos, enlace «Gastos», catálogos)                                                    |
+| `alertas`    | 6.12     | alertas por demora y por vencimiento, bandeja en Inicio                                                             |
 
 **Los huecos.** El panel de la unidad no sabe qué lleva: cada área declara sus huecos en un archivo suyo de `pantallas/` que hoy está vacío (`<área>-unidad.ts` →
 `HUECOS_DE_<ÁREA>_EN_LA_UNIDAD`; `<área>-grupo.ts`; `<área>-enlace.ts`, nulo hasta que su página existe; `<área>-catalogos.ts`) y sólo `src/app` los junta. Un hueco se dibuja
@@ -47,6 +47,8 @@ El panel exige `logistica.ver` en el origen de la unidad **y** que la RLS de `ve
   el nombre sale de `perfiles`; anular es un drawer con motivo (el `<Confirmar>` no tiene campo de texto); el lead no se elige (se manda nulo, D3 de 6.11-2).
   **Lista (6.11-3):** `/logistica/gastos?ver=gastos|pagos` (`pantallas/dinero.ts`, `ListadoDeDinero`; `ENLACE_DE_DINERO` pide `logistica.gastos.ver`). `entities/dinero/listas.ts` arma el pedido con sólo las claves que cada RPC acepta (una de más da 22023), el cursor `(fecha, id)` viaja como instante a medianoche y no hay «Anterior». La fila abre el panel `?vehiculo=` de `/logistica` y no hay ninguna suma. `infra/dinero/listas.ts` llama `gastos_listar` y `pagos_listar` con `p_tope: TAMANO_DE_PAGINA_POR_DEFECTO` (registradas en la guarda de páginas).
   **Prorratear (6.11-4):** `pantallas/dinero-grupo.ts` declara el hueco «Prorratear un gasto entre las unidades» del resumen de un grupo (`logistica.gastos.editar`; aún no hay página de grupo que lo monte: la traerán 6.08 y 6.09). `entities/dinero/reparto.ts` repite la aritmética de centavos de `gastos_prorratear` (los que sobran, a los primeros) sólo para la vista previa; sin comprobante ni equivalente en base. El `lote` hace de id del intento: se conserva si no se sabe qué pasó y se renueva al cambiar lo escrito o al rechazar la base. Las unidades del grupo salen de `transportes` (booking o contenedor) o `declaraciones_vehiculos` bajo la RLS de quien mira. **Categorías de gasto:** `pantallas/dinero-catalogos.ts` llena el catálogo de `/configuracion/logistica` (`logistica.catalogos.gestionar`); se escribe directo bajo esa RLS por Server Action (sin RPC: no otorga permisos), `entities/dinero/categoria.ts` fija la lista de propósitos del `check` de la base.
+
+- **Área `mover` (6.04-1: «Qué falta» y mover).** `pantallas/mover-unidad.ts` declara el hueco `que-falta` (`abiertoAlInicio`, `diferido()` en `features/mover/components/diferidos.tsx`). `features/mover/`: `useParaMover` (lee con la action `leerParaMover` de `flujos`; se relee al volver el foco con 5 s de mínimo, al cambiar la fase de la unidad y con el aviso `logistica:unidad-cambio`), `useBorradorDeMover` (destino abierto, nota y conflicto viven en el hueco), `useMoverLaUnidad` (envía con `faseEsperada = unidad.faseId`; el conflicto se dice en el formulario, un rechazo relee la vista y el motivo va junto al botón, éxito = `router.refresh()`), los componentes `hueco-que-falta`, `destino-de-mover`, `requisitos-de-un-destino`, `formulario-de-mover`, `fuera-de-regla` y `atajo-de-requisito`. El atajo busca el bloque de otro hueco por `data-bloque-del-hueco` y lo abre con `logistica:abrir-hueco` (`features/nucleo/hooks/eventos-de-la-unidad.ts`); un hueco que el panel no dibuja no ofrece atajo. Los textos y el estado del botón son de `flujos` (`entities/mover/`); `entities/mover/textos.ts` guarda los propios.
 
 ## Tablas
 

@@ -6,7 +6,7 @@ Motor único de flujos: fases, transiciones, requisitos (documento | dato | espe
 
 - Entra: configuración del dueño en `/configuracion/flujos` (un flujo por origen + el de repuestos); llamadas a mover desde `logistica` y `repuestos`.
 - Sale hoy por `index.ts`: `leerFasesDeOrigen(origenId)` → `FaseResumen[]` (id, nombre, color, orden, inicial, final, activa; también las jubiladas). Por `client.ts`: el tipo `FaseResumen`. Lo consume `vehiculos` para mostrar la fase y filtrar por ella. Del área `mover` (6.01): `leerFlujoDeOrigen(origenId)` → `FlujoDeOrigen | null` (`flujoId`, `reglasActivas`, y por fase `notaObligatoria`, `permiteContenedor`, `permiteAduana`, `demoraDias`; error visible si una lista llega al tope) y `reglaActiva(flujo, regla)`; por `client.ts`, sus tipos y `reglaActiva`. Lo consume el panel de la unidad de `logistica`.
-- Saldrá con su fase del plan (todavía no existe): `transicionesDisponibles()`, `previsualizarCambio()`, `cambiarFase()`, `cambiarFaseLote()`, `<BadgeFase>`. Lo consumirán `logistica`, `repuestos`, `web` (fases públicas).
+- **Mover (6.04-1):** por `client.ts`, las actions `leerParaMover`, `previsualizarCambio`, `previsualizarCambioLote`, `cambiarFase` y `cambiarFaseLote` (cada una exige `flujos.mover` o `flujos.mover.cualquiera` en el origen y la base decide otra vez; sólo vehículo, la rama de repuesto es de 8.13) y las reglas puras `estadoDelBoton`, `textoDelBoton`, `motivoLegible`, `etiquetaDeRequisito`, `detalleDeRequisito`, `anclaDeRequisito`. Saldrá con su fase del plan: `<BadgeFase>`. Lo consumen `logistica` (el panel de la unidad) y, luego, `repuestos` y `web` (fases públicas).
 - El flujo de repuestos lo garantiza una migración (`fases_flujo_de_repuestos`, 5.01-2): sin fases y con sus 7 reglas; las fases las siembra `seed.sql` o se crean en «Fases».
 - Depende de: `origenes`.
 
@@ -37,6 +37,12 @@ El módulo se parte por área, como `cotizaciones` (`scripts/guardas/areas-de-fl
 - **Alta en línea con estado local; sólo quitar vive en la URL:** `?eliminar=salida&salida=<id>` (constantes en `entities/transiciones/vista-de-salidas.ts`; registrado en `scripts/guardas/areas-b/confirmar-con-url.ts`). La clave `eliminar` la comparten requisitos (`quitar=`) y agenda: conviven porque cada hook abre sólo con su valor.
 - **Editar y limitar (5.06-2):** componentes `selector-de-roles` (una casilla por rol; `alternarRol` toca sólo ese id y conserva los que no se muestran), `campos-de-salida` (alta y edición comparten «Acción» y «Pide nota»), `formulario-de-edicion-de-salida` (en el lugar de la fila; un solo «Guardar» manda primero la acción y la nota que cambiaron y luego los roles, **el segundo pedido con la versión que devolvió el primero**) y `quien-mueve-a-la-fase` (selector y «Guardar quién mueve»; el borrador se reinicia con `key` por la firma de lo guardado). Todo lo que escribe cuelga de `useSalidasDeLaFase`: una sola escritura a la vez en el bloque, para que no se pisen la versión. Limitar a un rol que quien configura no tiene no avisa (acota, no otorga).
 - `quienMueve(flujo, de, a)`: la lista de la salida manda sobre la de la fase destino; sin listas, cualquiera con el permiso. El id del intento de «Agregar salida» se reutiliza al reintentar: «ya existe» sobre `id` se toma por hecho.
+
+## Mover (6.04)
+
+- Área `mover`: `entities/mover/{vista-previa,requisitos,motivos,para-mover,boton-de-mover}.ts` (puro: Zod de lo que devuelven las RPC, una etiqueta por cada clave de dato de la base —`requisitos.test.ts` la compara con el SQL de `claves_dato_requisito`—, la frase de cada rechazo y el estado del botón), `infra/mover/{mover,destinos}.ts` (las RPC y los destinos con `tope + 1`), `features/mover/{actions,schemas}` y `areas/mover/`.
+- **El rechazo llega como campo:** `porCampo: { <hint>: mensaje }` con `conflicto`, `requisitos`, `rol`, `nota`, `transicion` o `acceso` (el patrón de `transiciones`). El `PT409` conserva el texto de la base, que trae el nombre de quien movió.
+- `leerParaMover` junta `logistica_unidad`, los destinos (hasta 12) y una vista previa por destino en paralelo; la de un destino que falla dice su error y no tumba a los demás. `cambiarFase` no revalida: la pantalla se repinta con `router.refresh()`.
 
 ## Documentos (5.03 y 5.09)
 
