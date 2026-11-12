@@ -7,6 +7,7 @@ import {
   conteoEnFrase,
   type ConteoAcotado,
 } from '@/shared/lib/conteo'
+import { MOTIVO_DOMINANCIA_SIN_LEER, MOTIVO_PERSONA_NO_DOMINADA } from './dominancia'
 import type { RolDeLaPersona } from './sesion'
 
 // Una persona puede estar en un solo estado. El orden importa: una cuenta dada de baja ya no
@@ -33,6 +34,9 @@ export type PersonaDelEquipo = {
   bloqueoMotivo: string | null
   // Dada de baja y con sus leads todavía pasándose por lotes (`equipo_bajas.terminada_en` nulo).
   bajaEnCurso: boolean
+  // Si quien mira la domina (tiene todo lo que ella tiene), según `personas_dominadas()`. null = no se pudo saber, y entonces
+  // nada de lo que exige dominarla se habilita.
+  dominada: boolean | null
   roles: RolDeLaPersona[]
 }
 
@@ -88,8 +92,12 @@ const esquemaPersonas = z.array(
   }),
 )
 
-// Las filas de `perfiles` con sus roles (así las lee infra). El rol principal va primero.
-export function personasDesde(filas: unknown): PersonaDelEquipo[] {
+// Las filas de `perfiles` con sus roles (así las lee infra), y a quiénes de ellas domina quien mira (null = no se sabe). El rol
+// principal va primero.
+export function personasDesde(
+  filas: unknown,
+  dominadas: ReadonlySet<string> | null,
+): PersonaDelEquipo[] {
   return esquemaPersonas.parse(filas).map((fila) => ({
     id: fila.id,
     nombre: fila.nombre,
@@ -105,6 +113,7 @@ export function personasDesde(filas: unknown): PersonaDelEquipo[] {
     bloqueoMotivo: fila.bloqueo_motivo,
     bajaEnCurso:
       !fila.activo && fila.equipo_bajas != null && fila.equipo_bajas.terminada_en === null,
+    dominada: dominadas === null ? null : dominadas.has(fila.id),
     roles: fila.usuarios_roles
       .flatMap(({ es_principal, roles }) =>
         roles ? [{ ...roles, esPrincipal: es_principal }] : [],
@@ -199,7 +208,8 @@ export function idDePersona(valor: string | undefined | null): string | null {
 export const MOTIVO_CUENTA_PROPIA = 'Es tu propia cuenta: no puedes bloquearla ni darla de baja.'
 
 // Lo que quien gestiona el equipo puede hacer sobre una persona, según en qué estado está.
-// Sobre la cuenta propia no se bloquea ni se da de baja (la base también lo impide).
+// Sobre la cuenta propia no se bloquea ni se da de baja (la base también lo impide). Sobre quien
+// no domina, roles, bloqueo y baja se muestran apagados, con el motivo (9-1).
 export type AccionesSobrePersona = {
   roles: boolean
   bloqueo: 'bloquear' | 'desbloquear' | null
@@ -207,15 +217,36 @@ export type AccionesSobrePersona = {
   // Generar otro enlace de invitación: sólo mientras está pendiente.
   enlace: boolean
   esPropia: boolean
+  // Por qué roles, bloqueo y baja salen apagados; null = se pueden.
+  motivoApagado: string | null
 }
 
-export function accionesSobre(
-  persona: Pick<PersonaDelEquipo, 'id' | 'estado'>,
-  yoId: string,
-): AccionesSobrePersona {
+type SobreQuien = Pick<PersonaDelEquipo, 'id' | 'estado' | 'dominada'>
+
+// Por qué no se puede cambiar los roles, bloquear ni dar de baja a una persona, sin mirar su estado
+// (el panel de roles se abre también a mano). La cuenta propia gana: quien llama se domina a sí
+// mismo. Si no se sabe si la domino (null), tampoco se puede.
+export function motivoSobrePersona(persona: SobreQuien, yoId: string): string | null {
+  if (persona.id === yoId || persona.dominada === true) {
+    return null
+  }
+  if (persona.dominada === null) {
+    return MOTIVO_DOMINANCIA_SIN_LEER
+  }
+  return MOTIVO_PERSONA_NO_DOMINADA[persona.estado === 'bloqueada' ? 'desbloquear' : 'bloquear']
+}
+
+export function accionesSobre(persona: SobreQuien, yoId: string): AccionesSobrePersona {
   const esPropia = persona.id === yoId
   if (persona.estado === 'baja') {
-    return { roles: false, bloqueo: null, baja: false, enlace: false, esPropia }
+    return {
+      roles: false,
+      bloqueo: null,
+      baja: false,
+      enlace: false,
+      esPropia,
+      motivoApagado: null,
+    }
   }
   const bloqueo = persona.estado === 'bloqueada' ? 'desbloquear' : 'bloquear'
   return {
@@ -224,6 +255,7 @@ export function accionesSobre(
     baja: !esPropia,
     enlace: persona.estado === 'invitacion_pendiente',
     esPropia,
+    motivoApagado: motivoSobrePersona(persona, yoId),
   }
 }
 

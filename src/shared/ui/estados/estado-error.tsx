@@ -8,15 +8,18 @@ type Props = {
   alReintentar: () => void
   titulo?: string
   descripcion?: string
+  // En un popover o una tarjeta chica el marco se achica.
+  compacto?: boolean
 }
 
 // Falló cargar. Siempre con «Reintentar»: nunca una pantalla en blanco ni un error sin salida.
-export function EstadoError({ alReintentar, titulo, descripcion }: Props) {
+export function EstadoError({ alReintentar, titulo, descripcion, compacto }: Props) {
   return (
     <MarcoEstado
       Icono={CloudAlertIcon}
       titulo={titulo ?? 'No se pudo cargar'}
       descripcion={descripcion ?? 'Puede ser la conexión o un problema de nuestro lado.'}
+      compacto={compacto}
       accion={
         <Button variant="outline" onClick={alReintentar}>
           Reintentar

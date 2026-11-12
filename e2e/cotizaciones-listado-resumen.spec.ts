@@ -3,6 +3,7 @@ import { entrar } from './soporte/alta'
 import { borrarRolesDePrueba } from './soporte/base'
 import { limpiarGuardado } from './soporte/cotizar-guardar'
 import { esMovil } from './soporte/inventario'
+import { esDelMarco } from './soporte/pedidos-del-marco'
 import {
   TITULO_UNO,
   prepararListado,
@@ -57,7 +58,10 @@ test('R1 un clic en la fila o la tarjeta abre el resumen sin pedir nada, y «Abr
   // Lo que costaría abrir: un pedido a la base o a la página del listado (un `router.refresh()`). Los `<Link>` prefetchan sus rutas (el menú, «Abrir cotización»): eso no es abrir.
   page.on('request', (pedido) => {
     const esDeLaPagina = new URL(pedido.url()).pathname === '/cotizaciones'
-    if (pedido.url().includes('/rest/v1/') || (esDeLaPagina && pedido.url().includes('_rsc='))) {
+    if (
+      (pedido.url().includes('/rest/v1/') && !esDelMarco(pedido.url())) ||
+      (esDeLaPagina && pedido.url().includes('_rsc='))
+    ) {
       pedidos.push(pedido.url())
     }
   })

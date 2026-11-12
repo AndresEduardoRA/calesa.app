@@ -3,6 +3,7 @@ import { cache } from 'react'
 import { errorDePostgrest, ok } from '@/shared/lib/errores'
 import { createClient } from '@/shared/lib/supabase/server'
 import { TOPE_DEL_EQUIPO } from '@/shared/lib/paginacion'
+import { dominadasDesde } from '../../entities/dominancia'
 import { personasSinRolDesde } from '../../entities/sin-rol'
 import { idsDelEquipoDesde, listaDelEquipoDesde } from '../../entities/lista-equipo'
 import { personasDesde, vistaPreviaDesde, type FiltroDeEstado } from '../../entities/persona'
@@ -18,9 +19,10 @@ import type {
 const PERSONA_CON_ROLES =
   'id, nombre, email, avatar_ruta, avatar_miniatura_ruta, activo, bloqueado, bloqueo_motivo, invitado_en, invitacion_aceptada_en, equipo_bajas!equipo_bajas_usuario_id_fkey(terminada_en), usuarios_roles!usuarios_roles_usuario_id_fkey(es_principal, roles(id, clave, nombre, color, orden))'
 
-// Las primeras personas por nombre que cumplen el filtro (5a-21). Dos pasos: `equipo_lista()` dice cuáles son (a lo sumo `TOPE_DEL_EQUIPO + 1` ids, ordenados;
-// comprueba `equipo.usuarios.ver`; se apoya en `perfiles_vigentes_orden_idx`, `perfiles_estado_orden_idx` y `perfiles_busqueda_idx`) y después se leen esas filas
-// con sus roles por `id`, con la RLS de siempre. Los argumentos son primitivos para que `cache` repita la lectura de un mismo render.
+// Las primeras personas por nombre que cumplen el filtro (5a-21). Dos etapas: `equipo_lista()` dice cuáles son (a lo sumo `TOPE_DEL_EQUIPO + 1` ids, ordenados;
+// comprueba `equipo.usuarios.ver`; se apoya en `perfiles_vigentes_orden_idx`, `perfiles_estado_orden_idx` y `perfiles_busqueda_idx`) y después, a la vez, se leen
+// esas filas con sus roles por `id` (con la RLS de siempre) y a cuáles domina quien mira (`personas_dominadas()`, un pedido para toda la página, 9-1). Si esa
+// lectura falla, la lista se dibuja igual con `dominada: null`. Los argumentos son primitivos para que `cache` repita la lectura de un mismo render.
 const leerLista = cache(async (texto: string, estado: FiltroDeEstado) => {
   const supabase = await createClient()
   const ids = await supabase.rpc('equipo_lista', {
@@ -35,17 +37,20 @@ const leerLista = cache(async (texto: string, estado: FiltroDeEstado) => {
   if (idsDeLaLista.length === 0) {
     return ok({ personas: [], hayMas: false })
   }
-  const { data, error } = await supabase
-    .from('perfiles')
-    .select(PERSONA_CON_ROLES)
-    .in('id', idsDeLaLista)
-    .order('nombre')
-    .order('email')
-    .order('id')
+  const [{ data, error }, dominadas] = await Promise.all([
+    supabase
+      .from('perfiles')
+      .select(PERSONA_CON_ROLES)
+      .in('id', idsDeLaLista)
+      .order('nombre')
+      .order('email')
+      .order('id'),
+    supabase.rpc('personas_dominadas', { p_ids: idsDeLaLista }),
+  ])
   if (error) {
     return { ok: false, error: errorDePostgrest(error) } as const
   }
-  return ok(listaDelEquipoDesde(data))
+  return ok(listaDelEquipoDesde(data, dominadasDesde(dominadas)))
 })
 
 export const getEquipo: LectorDeEquipo = ({ texto, estado }) => leerLista(texto, estado)
@@ -53,15 +58,14 @@ export const getEquipo: LectorDeEquipo = ({ texto, estado }) => leerLista(texto,
 // Una persona por su id, esté o no en la página que se dibuja (`?persona=` y `?baja=` traen un id de la URL).
 export const getPersona: LectorDePersona = cache(async (personaId) => {
   const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('perfiles')
-    .select(PERSONA_CON_ROLES)
-    .eq('id', personaId)
-    .maybeSingle()
+  const [{ data, error }, dominadas] = await Promise.all([
+    supabase.from('perfiles').select(PERSONA_CON_ROLES).eq('id', personaId).maybeSingle(),
+    supabase.rpc('personas_dominadas', { p_ids: [personaId] }),
+  ])
   if (error) {
     return { ok: false, error: errorDePostgrest(error) }
   }
-  return ok(data ? (personasDesde([data])[0] ?? null) : null)
+  return ok(data ? (personasDesde([data], dominadasDesde(dominadas))[0] ?? null) : null)
 })
 
 // ¿Hay alguien más que quien mira? Dos personas vigentes alcanzan para saber que no.

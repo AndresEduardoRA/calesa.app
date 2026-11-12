@@ -6,14 +6,21 @@ Campana in-app con «requiere acción», realtime, web push (VAPID) y preferenci
 
 - Entra: `notificar()` desde RPC y triggers (tareas, turnos web, alertas de demora, recordatorios, menciones; la cartera con `lead_compartir` y
   `lead_transferir`; la limpieza con `limpieza_avisar`), suscripciones push del navegador.
-- Sale: `<Campana>`, `usePush()`, `preferenciasDe(usuario)`. Lo consume `app/` (topbar) y `tablero`.
+- Sale: `<Campana>` (`shell.client.ts`, el marco), `<ListaDeNotificaciones>` (`pantallas/notificaciones.ts`, `/notificaciones`),
+  `leerPaginaDeNotificaciones()` y `filtroDeLista()` (`index.ts`), `usePush()` y `preferenciasDe(usuario)` (7.03/7.04). Lo consume `app/` (barra y página) y `tablero`.
 - Depende de: `equipo`.
 
 ## Archivos clave
 
-- `entities/tipos.ts` — catálogo tipado de notificaciones (clave, título, ruta destino, requiere acción).
-- `infra/realtime.client.ts`; `supabase/functions/push` (7.03-2) canjea el pase de `push_disparar` y envía (RFC 8291/8292 con Web Crypto).
-- `features/campana/`, `features/preferencias/`.
+- `entities/tipos.ts` — catálogo por `tipo` (icono, si abrirlo acciona); `destino.ts` — una `ruta` sólo es enlace si es interna y su pantalla existe;
+  `notificacion.ts` — la fila validada, el cursor `(creado_en, id)` y los topes; `fundir.ts` — fundir la primera página con lo cargado.
+- `infra/consultas.ts` — las lecturas, escritas una vez para el servidor (`queries/`) y el navegador (`notificaciones.client.ts`); `infra/notificaciones.ts`
+  — abrir y marcar (RLS + grants de columna). El canal de Realtime es `shared/lib/supabase/canal.client.ts`.
+- `features/campana/` (botón, contador y popover, el contenido y Realtime diferidos) y `features/lista/` (la página: `CuerpoDeLaLista`,
+  «Ver más», «Marcar todas», **la fila `FilaDeNotificacion` que usan la campana y la página**, `actions/`). `features/preferencias/` llega con 7.04.
+- **La acción propia de un tipo** («Contacté» de un turno web) la dibuja `app/`: el registro `ACCIONES_DE_NOTIFICACIONES` de
+  `src/app/(app)/_shell/huecos/acciones-de-notificaciones.ts` llega por props (una función no cruza de servidor a cliente). La Fase 8 suma su entrada.
+- `supabase/functions/push` (7.03-2) canjea el pase de `push_disparar` y envía (RFC 8291/8292 con Web Crypto).
 
 ## Tablas
 
@@ -54,3 +61,5 @@ limpieza, sólo `service_role`); purga `visitados`. RPC/trigger: `notificar`, `n
   La función `push` (7.03-2) canjea antes de mirar las claves (sin ellas, `sin_claves`), vuelve a validar el host, no sigue redirecciones y sólo
   da por caducada una suscripción con 404/410 (un 403 o un 5xx es `fallo`). Contrato: `supabase/tests/push-contrato.test.ts` y `push-funcion.test.ts`.
 - `requiere_accion` muestra el botón en la campana (p. ej. «Contacté» de un turno web); al resolverse se marca leída por la acción, no por abrir la campana.
+- La campana pide su contador y su canal cuando el navegador descansa (`useAlDescansar`), no al hidratar: el cliente de Supabase evaluado durante la hidratación retrasa ≈ 320 ms el primer clic que vale en toda pantalla. Sus pedidos a `notificaciones` no cuentan en un spec que mide pedidos a la base (`esDelMarco` de `e2e/soporte/pedidos-del-marco.ts`), y su parada de Tab sí cuenta en las tareas de oro.
+- `suscribirseACambios` avisa (`alReconectar`) en **cada** unión del canal, la primera incluida: lo anterior a la unión no llegó como señal.
