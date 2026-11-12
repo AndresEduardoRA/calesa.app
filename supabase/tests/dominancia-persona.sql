@@ -82,6 +82,8 @@ begin
   end if;
   -- Desbloquear también exige dominar (D1).
   update public.perfiles set bloqueado = true, bloqueado_en = now() where id = b::uuid;
+  -- La dominancia va antes que el estado: bloquear a quien ya está bloqueada no dice «ya estaba» a quien no la domina.
+  perform pg_temp.dom_espero('A', format('select public.equipo_bloquear(%L, true)', b), '42501 No puedes bloquear a Dom B' || m);
   perform pg_temp.dom_espero('A', format('select public.equipo_bloquear(%L, false)', b), '42501 No puedes desbloquear a Dom B' || m);
   if not (select bloqueado from public.perfiles where id = b::uuid) then raise exception 'A desbloqueó a B'; end if;
 end $$;
