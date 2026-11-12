@@ -52,7 +52,11 @@ export function idsDelEquipoDesde(json: unknown): string[] {
 // La lista que se dibuja: las primeras `tope` personas en el orden en que llegaron y si había más (se lee una de más: `cortarAlTope()`).
 export type ListaDelEquipo = { personas: PersonaDelEquipo[]; hayMas: boolean }
 
-export function listaDelEquipoDesde(filas: unknown, tope = TOPE_DEL_EQUIPO): ListaDelEquipo {
-  const { filas: personas, hayMas } = cortarAlTope(personasDesde(filas), tope)
+export function listaDelEquipoDesde(
+  filas: unknown,
+  dominadas: ReadonlySet<string> | null,
+  tope = TOPE_DEL_EQUIPO,
+): ListaDelEquipo {
+  const { filas: personas, hayMas } = cortarAlTope(personasDesde(filas, dominadas), tope)
   return { personas, hayMas }
 }

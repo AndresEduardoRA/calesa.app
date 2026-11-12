@@ -22,7 +22,8 @@ export type AccionesDeLaLista = {
 }
 
 // Las líneas del «⋯» de una persona, en su orden. Lo que no aplica a su estado no aparece; sobre la cuenta propia se dice por qué no se la
-// puede bloquear ni dar de baja. Mientras algo está en curso las acciones se apagan (el botón sigue: quien lo abre lee por qué).
+// puede bloquear ni dar de baja. Sobre quien no se domina (o si no se pudo saber), roles, bloqueo y baja salen apagados y una nota dice por
+// qué (9-1). Mientras algo está en curso las acciones se apagan (el botón sigue: quien lo abre lee por qué).
 export function lineasDeLaPersona(
   acciones: AccionesSobrePersona,
   deshabilitado: boolean,
@@ -34,12 +35,13 @@ export function lineasDeLaPersona(
   },
 ): AccionDeMenu[] {
   const lineas: AccionDeMenu[] = []
+  const sinDominar = deshabilitado || acciones.motivoApagado !== null
   if (acciones.roles) {
     lineas.push({
       tipo: 'accion',
       clave: 'roles',
       etiqueta: 'Cambiar sus roles',
-      deshabilitada: deshabilitado,
+      deshabilitada: sinDominar,
       despuesDeCerrar: true,
       alElegir: hacer.verRoles,
     })
@@ -59,7 +61,7 @@ export function lineasDeLaPersona(
       tipo: 'accion',
       clave: 'bloqueo',
       etiqueta: bloquear ? 'Bloquear' : 'Desbloquear',
-      deshabilitada: deshabilitado,
+      deshabilitada: sinDominar,
       alElegir: () => {
         hacer.cambiarBloqueo(bloquear)
       },
@@ -73,7 +75,7 @@ export function lineasDeLaPersona(
         clave: 'baja',
         etiqueta: 'Dar de baja',
         destructiva: true,
-        deshabilitada: deshabilitado,
+        deshabilitada: sinDominar,
         despuesDeCerrar: true,
         alElegir: hacer.darDeBaja,
       },
@@ -81,6 +83,9 @@ export function lineasDeLaPersona(
   }
   if (acciones.esPropia) {
     lineas.push({ tipo: 'nota', clave: 'cuenta-propia', texto: MOTIVO_CUENTA_PROPIA })
+  }
+  if (acciones.motivoApagado !== null) {
+    lineas.push({ tipo: 'nota', clave: 'no-dominada', texto: acciones.motivoApagado })
   }
   return lineas
 }
