@@ -97,12 +97,22 @@ export function ChipDeMencion({ referencia, estado, menciones }: Props) {
       </button>
     )
   }
-  if (estado.situacion === 'eliminado') {
-    return <span className="text-(--color-ink-soft) italic">Eliminado</span>
-  }
-  if (estado.situacion === 'sin_acceso') {
+  if (estado.situacion !== 'visible') {
+    // Lo que no se ve o ya no está se dice en palabras; la persona no abre nada, y lo demás abre el drawer, que dice lo mismo sin datos.
+    const texto = estado.situacion === 'eliminado' ? 'Eliminado' : textoSinAcceso(referencia.clase)
+    if (referencia.clase === 'usuario' || referencia.id === '') {
+      return <span className="text-(--color-ink-soft) italic">{texto}</span>
+    }
     return (
-      <span className="text-(--color-ink-soft) italic">{textoSinAcceso(referencia.clase)}</span>
+      <button
+        type="button"
+        className={cn(CLASES_DEL_CHIP, 'bg-transparent text-(--color-ink-soft) italic')}
+        onClick={() => {
+          menciones.abrir(referencia)
+        }}
+      >
+        {texto}
+      </button>
     )
   }
   if (estado.datos.clase === 'usuario') {
