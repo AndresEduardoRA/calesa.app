@@ -3738,6 +3738,9 @@ frena ya no es un carril parado sino el camino del PR hasta `main` (el 7.02, 8 h
 - **Una migración sin fecha real se renumera sola** (`pr.mjs` › `fechaReal`, `renumerar.mjs`, `carril.sh` › `fecha_real`): la sesión
   del 6.05 renumeró a mano sumando uno hasta `…1260`, el Nivel 1 cayó y el PR perdió un CI y una vuelta por su carril. Va antes que el
   rojo: esa migración sola lo explica. La skill dice ahora que la sesión no renumera.
+- **GitHub se vuelve a consultar cuando no sabe si un PR choca** (`pr.mjs` › `mirarPr`): calcula eso recién cuando se le pregunta, y la
+  primera consulta tras cada integración contesta `UNKNOWN`. Con una consulta por vuelta, cada PR perdía 3 min después de cada
+  integración (el #126 del 12-11, dos vueltas). Una segunda consulta a los 2,5 s (`COORD_SIN_SABER_VECES`, `COORD_SIN_SABER_ESPERA`).
 - **No se hizo:** detectar un rojo heredado de main (el e2e no corre en los push a `main`; el 11-11 tres sesiones diagnosticaron la
   misma tarea de oro rota). Pide leer los nombres de las pruebas caídas de cada corrida y decidir quién arregla; se anota aquí por si
   vuelve a costar. La primera sesión que lo ve lo arregla en su PR y las demás lo reciben al traer main.
