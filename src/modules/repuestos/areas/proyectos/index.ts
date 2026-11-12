@@ -7,6 +7,7 @@ export {
   MAXIMO_DE_PAGINA_DE_REPUESTOS,
   armarPaginaDeProyectos,
   esquemaDelListado,
+  estadoDelListadoDe,
   leerCursorDeProyectos,
   pedidoDelListado,
   type EstadoDelListado,

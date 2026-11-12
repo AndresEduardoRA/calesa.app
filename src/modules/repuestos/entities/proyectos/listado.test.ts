@@ -6,6 +6,7 @@ import {
   leerCursorDeProyectos,
   pedidoDelListado,
   textoDeItems,
+  vehiculoDeLaFila,
   type FilaDeProyecto,
 } from './listado'
 
@@ -120,5 +121,31 @@ describe('esquemaDelListado', () => {
     const esquema = esquemaDelListado()
     expect(esquema.busqueda?.clave).toBe('q')
     expect(esquema.filtros[0]).toMatchObject({ clave: 'estado', porDefecto: 'abiertos' })
+  })
+})
+
+describe('vehiculoDeLaFila', () => {
+  const base = fila(1)
+  it('un externo se llama «Externo · etiqueta» y su VIN va aparte', () => {
+    expect(vehiculoDeLaFila({ ...base, vin: 'VIN123' })).toEqual({
+      titulo: 'Externo · Camión',
+      detalle: 'VIN123',
+    })
+  })
+  it('uno del inventario muestra su título', () => {
+    expect(
+      vehiculoDeLaFila({
+        ...base,
+        vehiculoId: 'x',
+        vehiculoTitulo: 'Toyota Hilux',
+        vehiculoEtiqueta: null,
+      }),
+    ).toEqual({ titulo: 'Toyota Hilux', detalle: null })
+  })
+  it('uno que no se ve no se nombra', () => {
+    expect(
+      vehiculoDeLaFila({ ...base, vehiculoId: 'x', vehiculoTitulo: null, vehiculoEtiqueta: null })
+        .titulo,
+    ).toBe('Vehículo que no puedes ver')
   })
 })

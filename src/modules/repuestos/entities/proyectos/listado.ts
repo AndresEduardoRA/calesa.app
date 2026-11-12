@@ -173,3 +173,13 @@ export const TOPE_DE_ITEMS_CONTADOS = 200
 export function textoDeItems(items: number): string {
   return items > TOPE_DE_ITEMS_CONTADOS ? `${String(TOPE_DE_ITEMS_CONTADOS)}+` : String(items)
 }
+
+export const TEXTO_DE_VEHICULO_QUE_NO_SE_VE = 'Vehículo que no puedes ver'
+
+/** Cómo se nombra el vehículo de una fila: el título si quien mira lo ve, «Externo · etiqueta» si no es del inventario; el VIN de un externo va aparte. */
+export function vehiculoDeLaFila(fila: FilaDeProyecto): { titulo: string; detalle: string | null } {
+  if (fila.vehiculoId !== null) {
+    return { titulo: fila.vehiculoTitulo ?? TEXTO_DE_VEHICULO_QUE_NO_SE_VE, detalle: null }
+  }
+  return { titulo: `Externo · ${fila.vehiculoEtiqueta ?? '—'}`, detalle: fila.vin }
+}

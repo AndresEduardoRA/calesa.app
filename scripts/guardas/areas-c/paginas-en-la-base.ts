@@ -52,4 +52,11 @@ export const REGISTRO: readonly RpcPaginada[] = [
     pideElCodigo: TAMANO_DE_PAGINA_POR_DEFECTO,
     lista: 'pagos de /logistica/gastos',
   },
+  // `/repuestos` (8.09-1): proyectos por cursor `numero`: de fábrica `TAMANO_DE_PAGINA_POR_DEFECTO` (lo que da la base sin pedido) y hasta 100 con `?por=` (`MAXIMO_DE_PAGINA_DE_REPUESTOS`, el máximo de `_acotar_pagina`).
+  {
+    rpc: 'repuestos_proyectos_listar',
+    parametro: 'p_tamano',
+    pideElCodigo: TAMANO_DE_PAGINA_POR_DEFECTO,
+    lista: 'proyectos de /repuestos',
+  },
 ]
