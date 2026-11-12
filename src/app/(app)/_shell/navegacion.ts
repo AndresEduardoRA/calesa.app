@@ -109,7 +109,7 @@ export const NAVEGACION = [
     Icono: MessagesSquareIcon,
     zona: 'principal',
     permisos: ['chat.participar'],
-    disponible: false,
+    disponible: true,
   },
   {
     clave: 'perfil',
