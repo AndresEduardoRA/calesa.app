@@ -20,7 +20,7 @@ Ficha completa: `docs/archivo/modulos/equipo.md`, sólo con grep.
 
 ## Archivos clave
 
-- `entities/sesion.ts` — `Sesion` desde `mi_sesion()`: estado, perfil, roles reales, permisos **efectivos**, perspectiva, preferencias. `entities/preferencias.ts` — `densidad`, `tema`, `porPagina` (10, 25, 50, 100); última escritura gana, sin versión.
+- `entities/sesion.ts` — `Sesion` desde `mi_sesion()`: estado, perfil, roles reales, permisos **efectivos**, perspectiva, preferencias. `entities/preferencias.ts` — `densidad`, `tema`, `porPagina` (10, 25, 50, 100) y `widgetsDelTablero` (`tablero.widgets`, `{orden, ocultos}`; `guardarPreferencia` sale por `client.ts`); última escritura gana, sin versión.
 - `entities/dominancia.ts` — espejo de `concesion_dominada()` y `rol_dominado()`. `entities/{matriz,rol}.ts`; personas por rol = `ConteoAcotado`. `puede()` y el catálogo de claves: `@/shared/lib/permisos`.
 - `entities/lista-equipo.ts` — `MINIMO_DE_BUSQUEDA_DEL_EQUIPO` (3 letras o dígitos), `TOPE_DEL_EQUIPO`. `entities/persona.ts` — `accionesSobre()`, `motivoSobrePersona()`, `dominada`, `VistaPreviaDeBaja`. `entities/{invitacion,perspectiva,vista}.ts` (`RUTA_DE_PANTALLA`: un listado nuevo que guarda vistas se suma ahí).
 - `composicion.ts` / `composicion.client.ts` dan a `features/` la implementación de `infra/` (nunca la importa) para las interfaces de `entities/repositorios*.ts`.

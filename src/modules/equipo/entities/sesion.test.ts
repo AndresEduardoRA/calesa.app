@@ -43,7 +43,7 @@ describe('sesionDesde', () => {
         rol: null,
         roles: [{ id: ROL, nombre: 'Dueño', color: '#465fff' }],
       },
-      preferencias: { densidad: 'comoda', tema: null, porPagina: null },
+      preferencias: { densidad: 'comoda', tema: null, porPagina: null, widgetsDelTablero: null },
     })
   })
 
