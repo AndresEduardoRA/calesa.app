@@ -3,6 +3,7 @@
 import type { Conversacion } from '../../../entities/conversaciones'
 import { useEnvio } from '../hooks/use-envio'
 import { useHilo } from '../hooks/use-hilo'
+import { useMarcarLeido } from '../hooks/use-marcar-leido'
 import { useScrollDelHilo } from '../hooks/use-scroll-del-hilo'
 import { CuerpoDelHilo } from './cuerpo-del-hilo'
 import { Redactor } from './redactor'
@@ -22,6 +23,13 @@ export function Hilo({ conversacion, usuarioId, zona }: Props) {
     usuarioId,
     agregarLocal: hilo.agregarLocal,
     resolver: hilo.resolver,
+  })
+  useMarcarLeido({
+    conversacion: conversacion.id,
+    usuarioId,
+    mensajes: hilo.mensajes,
+    ultimoLeidoEn: conversacion.ultimoLeidoEn,
+    activo: hilo.lectura === 'listo' && hilo.desde === null,
   })
   return (
     <div className="flex min-h-0 flex-1 flex-col">

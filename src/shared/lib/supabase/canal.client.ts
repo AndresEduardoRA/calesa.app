@@ -8,8 +8,8 @@ type Evento = 'INSERT' | 'UPDATE' | 'DELETE'
 
 export type OpcionesDeCanal = {
   tabla: string
-  // Un filtro de postgres_changes, p. ej. `usuario_id=eq.<id>`.
-  filtro: string
+  // Un filtro de postgres_changes, p. ej. `usuario_id=eq.<id>`. Sin filtro llega toda fila que la RLS le deje ver a quien se suscribe.
+  filtro?: string
   eventos: readonly Evento[]
   alCambiar: () => void
   // El canal se unió (la primera vez o tras un corte) o la pestaña volvió a verse: lo que pasó antes no llegó como señal.
@@ -44,7 +44,7 @@ export function suscribirseACambios({
     for (const event of eventos) {
       nuevo = nuevo.on(
         'postgres_changes',
-        { event, schema: 'public', table: tabla, filter: filtro },
+        { event, schema: 'public', table: tabla, ...(filtro ? { filter: filtro } : {}) },
         () => alCambiar(),
       )
     }

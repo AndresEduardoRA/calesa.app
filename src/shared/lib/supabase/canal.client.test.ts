@@ -74,6 +74,18 @@ describe('suscribirseACambios', () => {
     ).toBe(true)
   })
 
+  it('sin filtro no manda `filter`: la RLS decide qué llega', async () => {
+    suscribirseACambios({
+      tabla: 'mensajes',
+      eventos: ['INSERT'],
+      alCambiar: vi.fn(),
+      alReconectar: vi.fn(),
+    })
+    await esperarAlCanal()
+    expect(pedidos).toHaveLength(1)
+    expect('filter' in (pedidos[0]?.filtro ?? {})).toBe(false)
+  })
+
   it('cada suscripción tiene su canal', async () => {
     await suscribir()
     await suscribir()

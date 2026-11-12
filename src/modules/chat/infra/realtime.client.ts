@@ -11,8 +11,8 @@ export type SenalesDeLaLista = {
 }
 
 // Dos canales de una tabla cada uno (`canal.client.ts`); `desuscribir()` cierra los dos.
-//  - `mensajes` `INSERT` de otra persona: la RLS de `mensajes: leer` decide por suscriptor, así sólo llegan los de mis conversaciones.
-//    Lo que escribo yo lo actualiza la acción (`autor_id=neq.<yo>`).
+//  - `mensajes` `INSERT`, también los míos (D22 de 7.09-3: sin eso, lo que escribo no mueve mi propia fila): la RLS de `mensajes: leer`
+//    decide por suscriptor, así sólo llegan los de mis conversaciones.
 //  - `conversaciones_miembros` `INSERT`/`UPDATE` míos: una directa que otra persona me abre, silenciar o leer desde otra pestaña.
 export function suscribirseALaLista(
   usuarioId: string,
@@ -20,7 +20,6 @@ export function suscribirseALaLista(
 ): () => void {
   const desdeMensajes = suscribirseACambios({
     tabla: 'mensajes',
-    filtro: `autor_id=neq.${usuarioId}`,
     eventos: ['INSERT'],
     alCambiar,
     alReconectar,
