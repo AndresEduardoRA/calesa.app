@@ -15,6 +15,10 @@ begin
   if not exists (select 1 from cron.job where jobname = 'web-revalidar' and command = 'select public.web_revalidar_correr()') then
     raise exception 'falta el job web-revalidar que lee la dirección y el secreto al correr';
   end if;
+  if not exists (select 1 from cron.job where jobname = 'web-expirar-solicitudes' and schedule = '*/5 * * * *'
+                   and command = 'select public.web_expirar_solicitudes()') then
+    raise exception 'falta el job web-expirar-solicitudes cada 5 minutos';
+  end if;
   if exists (select 1 from cron.job where command ~ 'https?://') then
     raise exception 'un job lleva una URL escrita en su comando';
   end if;

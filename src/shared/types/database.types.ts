@@ -9300,6 +9300,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      cola_web_solicitudes: {
+        Args: {
+          p_cursor_creado?: string
+          p_cursor_id?: string
+          p_estado: Database['public']['Enums']['estado_solicitud_web']
+          p_tamano?: number
+        }
+        Returns: Json
+      }
+      cola_web_tablero: { Args: { p_tope?: number }; Returns: Json }
       comprobante_anular: { Args: { p_comprobante: string; p_motivo: string }; Returns: Json }
       comprobante_emitir: {
         Args: { p_cotizacion: string; p_cotizacion_esperada: string }

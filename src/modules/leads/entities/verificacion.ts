@@ -24,8 +24,8 @@ export type Verificacion =
   | { estado: 'limbo' }
   // Es un lead que esta persona puede ver.
   | { estado: 'existe'; leadId: string; numeros: NumerosDeLead; nombre: string; esMio: boolean }
-  // Lo tiene otra persona: sólo se sabe de quién, nada más del lead.
-  | { estado: 'de_otro'; dueno: string | null }
+  // Lo tiene otra persona: sólo se sabe de quién, nada más del lead. `duenoId` (si la base lo manda) deja escribirle por chat.
+  | { estado: 'de_otro'; dueno: string | null; duenoId?: string }
   // Es el principal de este mismo lead (sólo al cambiarlo): no hay nada que cambiar.
   | { estado: 'mismo' }
 
@@ -54,7 +54,11 @@ const esquema = z.discriminatedUnion('estado', [
     nombre: z.string(),
     es_mio: z.boolean(),
   }),
-  z.object({ estado: z.literal('de_otro'), dueno: z.string().nullable().optional() }),
+  z.object({
+    estado: z.literal('de_otro'),
+    dueno: z.string().nullable().optional(),
+    dueno_id: z.guid().nullable().optional(),
+  }),
   z.object({ estado: z.literal('mismo') }),
 ])
 
@@ -94,12 +98,16 @@ export function verificacionDesde(crudo: unknown): Verificacion {
         esMio: lectura.es_mio,
       }
     case 'de_otro':
-      return { estado: 'de_otro', dueno: lectura.dueno ?? null }
+      return {
+        estado: 'de_otro',
+        dueno: lectura.dueno ?? null,
+        ...(lectura.dueno_id ? { duenoId: lectura.dueno_id } : {}),
+      }
   }
 }
 
-// Lo que se le dice a quien tipea, y si deja seguir. «Lo tiene …» sin acción: escribirle por chat
-// llega con el chat (Fase 7).
+// Lo que se le dice a quien tipea, y si deja seguir. «Lo tiene …» no lleva acción en el texto: el enlace
+// «Escribirle por chat» lo pone la pantalla (`features/chat/`) con `duenoId`.
 export type AvisoDeTelefono = {
   tono: 'neutro' | 'aviso' | 'peligro'
   texto: string

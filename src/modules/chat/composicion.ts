@@ -13,4 +13,16 @@ import { getPaginaDeConversaciones } from './infra/conversaciones'
 
 export const leerPaginaDeConversaciones: LectorDePaginaDeConversaciones = getPaginaDeConversaciones
 export const leerConversacion: LectorDeUnaConversacion = getConversacion
+
+// `/chat?con=<usuario>`: abre (o reencuentra) la directa con esa persona; la base decide si se puede (`chat_directa`). Devuelve el
+// mensaje legible de la base, no el error entero: la página sólo lo dice.
+export async function abrirConversacionCon(
+  usuarioId: string,
+): Promise<{ ok: true; data: { id: string } } | { ok: false; error: string }> {
+  const abierta = await repositorioDeConversaciones.abrirDirecta(usuarioId)
+  return abierta.ok
+    ? { ok: true, data: { id: abierta.data.id } }
+    : { ok: false, error: abierta.error.mensaje }
+}
+
 export { repositorioDeConversaciones, repositorioDeFichas, repositorioDeMensajes }
