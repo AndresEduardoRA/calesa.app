@@ -45,6 +45,11 @@ export const esquemaGuardarWebPublica = z.object({
   revalidarUrl: direccionDeRevalidacion.optional(),
 })
 
+export const esquemaGuardarPushWeb = z.object({
+  actualizadoEnEsperado: version,
+  activa: z.boolean(),
+})
+
 // El secreto entra una vez y no vuelve a salir: ninguna action lo devuelve.
 export const esquemaGuardarSecreto = z.object({
   // Las integraciones que llevan secreto.

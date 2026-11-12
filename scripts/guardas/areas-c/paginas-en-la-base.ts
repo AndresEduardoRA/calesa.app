@@ -52,4 +52,11 @@ export const REGISTRO: readonly RpcPaginada[] = [
     pideElCodigo: TAMANO_DE_PAGINA_POR_DEFECTO,
     lista: 'pagos de /logistica/gastos',
   },
+  // `/chat` (7.09-1): la lista de mis conversaciones por cursor `(ultimo_mensaje_en, id)`, de a `TAMANO_DE_VER_MAS` («Ver más», hasta `TOPE_DE_LO_CARGADO`).
+  {
+    rpc: 'chat_conversaciones',
+    parametro: 'p_tamano',
+    pideElCodigo: TAMANO_DE_VER_MAS,
+    lista: 'mis conversaciones del chat',
+  },
 ]

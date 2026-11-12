@@ -6,6 +6,8 @@ import { BloqueSubasta } from './bloque-subasta'
 import { BloqueVinculo } from './bloque-vinculo'
 import type { PestanaDeVehiculo } from './pestanas'
 import { SeccionCotizaciones } from './seccion-cotizaciones'
+import { SeccionDocumentos } from './seccion-documentos'
+import { EsqueletoDeDocumentos } from './esqueleto-de-documentos'
 import { SeccionFicha } from './seccion-ficha'
 import { SeccionFotos } from './seccion-fotos'
 
@@ -39,6 +41,14 @@ export function ContenidoDeLaPestana({
           deSubasta={origen.tipo === 'subasta'}
           puedeEditar={editable}
         />
+      </Suspense>
+    )
+  }
+  if (pestana === 'documentos') {
+    return (
+      // Lee la unidad en el servidor (su fase y su origen), tras la cabecera y las pestañas.
+      <Suspense fallback={<EsqueletoDeDocumentos />}>
+        <SeccionDocumentos vehiculoId={vehiculo.id} />
       </Suspense>
     )
   }

@@ -1,5 +1,6 @@
 import { leerIntegraciones, leerVehiculosQueCambian } from '@/modules/empresa'
 import { Integraciones } from '@/modules/empresa/pantallas/configuracion-empresa'
+import { entornoPublico } from '@/shared/config/entorno'
 import { datosO } from '@/shared/lib/errores'
 import { EstadoVacio } from '@/shared/ui/estados'
 
@@ -18,11 +19,14 @@ export async function SeccionIntegraciones({ puedeEditar }: { puedeEditar: boole
     )
   }
   const webPublica = integraciones.find((una) => una.clave === 'web_publica')
+  const pushWeb = integraciones.find((una) => una.clave === 'push_web')
   const conteo = webPublica && puedeEditar ? await leerVehiculosQueCambian() : null
   return (
     <Integraciones
       apibara={apibara}
       webPublica={webPublica}
+      pushWeb={pushWeb}
+      sinClavePublica={!entornoPublico().NEXT_PUBLIC_VAPID_PUBLIC_KEY}
       vehiculosQueCambian={conteo?.ok ? conteo.data : null}
       puedeEditar={puedeEditar}
     />

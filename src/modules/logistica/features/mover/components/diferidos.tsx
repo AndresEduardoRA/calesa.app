@@ -15,3 +15,18 @@ export const HuecoDeNotasDiferido = diferido(() =>
 export const HuecoDeHistorialDiferido = diferido(() =>
   import('./hueco-de-historial').then((modulo) => modulo.HuecoDeHistorial),
 )
+
+// La barra del lote aparece con el primer elegido: su código se pide entonces y no pesa en el JS en frío de la cadena (6.04-3).
+export const BarraDelLoteDiferida = diferido(() =>
+  import('./barra-del-lote').then((modulo) => modulo.BarraDelLote),
+)
+
+// El drawer del lote se pide al abrirse la primera vez (con la barra); `src/app` lo monta cerrado y el resto no pesa en frío.
+export const DrawerDelLoteDiferido = diferido(() =>
+  import('./drawer-del-lote').then((modulo) => modulo.DrawerDelLote),
+)
+
+// El hueco del grupo lo dibuja el resumen de un contenedor (6.08); su código se pide entonces.
+export const HuecoMoverElGrupoDiferido = diferido(() =>
+  import('./hueco-mover-el-grupo').then((modulo) => modulo.HuecoMoverElGrupo),
+)

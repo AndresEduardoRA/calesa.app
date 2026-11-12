@@ -2,10 +2,12 @@
 // muestran las que ya existen: una pestaña es `disponible` cuando tiene su `seccion-<clave>.tsx`
 // en esta carpeta, y un test lo compara con el disco. Así ninguna pestaña lleva a la nada.
 
+import { puede, type Permisos } from '@/shared/lib/permisos'
+
 export const PESTANAS_DE_VEHICULO = [
   { clave: 'ficha', titulo: 'Ficha', disponible: true },
   { clave: 'fotos', titulo: 'Fotos', disponible: true },
-  { clave: 'documentos', titulo: 'Documentos', disponible: false },
+  { clave: 'documentos', titulo: 'Documentos', disponible: true },
   { clave: 'cotizaciones', titulo: 'Cotizaciones', disponible: true },
   { clave: 'repuestos', titulo: 'Repuestos', disponible: false },
 ] as const
@@ -22,10 +24,18 @@ export function pestanasDisponibles() {
 // Una pestaña de la barra: lo único que cruza al navegador.
 export type PestanaVisible = { clave: PestanaDeVehiculo; titulo: string }
 
-// Las pestañas que quien mira ve: las disponibles, y «Cotizaciones» sólo con `cotizaciones.ver` en el origen del vehículo (la RLS de `cotizaciones` va por el origen).
-export function pestanasVisibles({ cotizaciones }: { cotizaciones: boolean }): PestanaVisible[] {
+// Las pestañas que quien mira ve: las disponibles, «Cotizaciones» sólo con `cotizaciones.ver` en el origen del vehículo (la RLS de `cotizaciones` va por el origen) y «Documentos» sólo
+// con `logistica.ver` en él (la de `documentos` también).
+export function pestanasVisibles({
+  cotizaciones,
+  documentos,
+}: {
+  cotizaciones: boolean
+  documentos: boolean
+}): PestanaVisible[] {
   return pestanasDisponibles()
     .filter((pestana) => pestana.clave !== 'cotizaciones' || cotizaciones)
+    .filter((pestana) => pestana.clave !== 'documentos' || documentos)
     .map(({ clave, titulo }) => ({ clave, titulo }))
 }
 
@@ -40,4 +50,12 @@ export function pestanaDeVehiculo(
   visibles: readonly PestanaVisible[],
 ): PestanaDeVehiculo {
   return visibles.find((pestana) => pestana.clave === valor)?.clave ?? 'ficha'
+}
+
+/** Las pestañas que ve quien tiene esos permisos en el origen del vehículo. */
+export function pestanasDeQuienMira(permisos: Permisos, origenId: string): PestanaVisible[] {
+  return pestanasVisibles({
+    cotizaciones: puede(permisos, 'cotizaciones.ver', origenId),
+    documentos: puede(permisos, 'logistica.ver', origenId),
+  })
 }

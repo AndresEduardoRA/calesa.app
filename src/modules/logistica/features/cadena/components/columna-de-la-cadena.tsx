@@ -5,6 +5,9 @@ import { AvisoDeTope } from '@/shared/ui/aviso-de-tope'
 import { Button } from '@/shared/ui/button'
 import { enElTope, numeroDeLaColumna, puedeVerMas } from '../../../entities/cadena/columna'
 import type { ColumnaDeLaCadena } from '../../../entities/cadena/leer'
+import { useSeleccionDeLaCadena } from '../../nucleo/seleccion/use-seleccion-de-la-cadena'
+import { BotonElegirLaColumna } from './boton-elegir-la-columna'
+import { CasillaDeLaTarjeta } from './casilla-de-la-tarjeta'
 import { TarjetaDeLaCadena } from './tarjeta-de-la-cadena'
 
 type Props = {
@@ -93,12 +96,26 @@ export function ColumnaDeLaCadena({
   alAbrir,
   alVerMas,
 }: Props) {
+  // Sin proveedor (quien no puede mover) no hay casillas; la columna «Sin fase» no elige: no tiene destinos comunes.
+  const seleccion = useSeleccionDeLaCadena()
+  const fase =
+    seleccion && columna.faseId !== null
+      ? { id: columna.faseId, nombre: columna.nombre ?? '' }
+      : null
+  const unidades = columna.tarjetas.map((t) => ({ id: t.id, nombre: t.nombre }))
   return (
     <section
       aria-label={`${columna.nombre ?? 'Sin fase'}: ${frasePorColumna(columna)}`}
       className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-2 rounded-(--radius-card) bg-(--color-surface-2) p-2"
     >
       {conEncabezado ? <Encabezado columna={columna} /> : null}
+      {seleccion && fase && unidades.length > 0 ? (
+        <BotonElegirLaColumna
+          alElegir={() => {
+            seleccion.elegirLaColumna(fase, unidades)
+          }}
+        />
+      ) : null}
       {columna.tarjetas.length === 0 ? (
         <p className="px-1 py-4 text-center text-(length:--text-sm) text-(--color-ink-soft)">
           {filtrada ? 'Ningún vehículo coincide.' : 'Sin vehículos en esta fase.'}
@@ -106,13 +123,24 @@ export function ColumnaDeLaCadena({
       ) : (
         <ul className="grid grid-cols-[minmax(0,1fr)] gap-2">
           {columna.tarjetas.map((tarjeta) => (
-            <li key={tarjeta.id} className="min-w-0">
-              <TarjetaDeLaCadena
-                tarjeta={tarjeta}
-                ahora={ahora}
-                href={hrefDe(tarjeta.id)}
-                alAbrir={alAbrir}
-              />
+            <li key={tarjeta.id} className="flex min-w-0 items-start gap-1">
+              {seleccion && fase ? (
+                <CasillaDeLaTarjeta
+                  nombre={tarjeta.nombre}
+                  elegida={seleccion.estado.elegidos.has(tarjeta.id)}
+                  alAlternar={() => {
+                    seleccion.alternar(fase, { id: tarjeta.id, nombre: tarjeta.nombre })
+                  }}
+                />
+              ) : null}
+              <div className="min-w-0 flex-1">
+                <TarjetaDeLaCadena
+                  tarjeta={tarjeta}
+                  ahora={ahora}
+                  href={hrefDe(tarjeta.id)}
+                  alAbrir={alAbrir}
+                />
+              </div>
             </li>
           ))}
         </ul>
