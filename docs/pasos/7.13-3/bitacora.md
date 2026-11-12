@@ -6,8 +6,8 @@
     `lista-de-resultados`, `fila-de-resultado`, `reintentar`, `diferidos`); `shell.client.ts`. La paleta es un `CommandDialog` sin URL con filtro propio, viaja con `diferido()`
     y se adelanta al llegar el puntero. Estados: buscando, sin resultados, error y sin conexión con «Reintentar», parcial, «No se busca por teléfono».
   - `leads`: `useAbrirNuevoLead()` (en `use-panel-de-alta.ts`, por la guarda de paneles con vuelta) y `shell.client.ts`.
-  - `src/app/(app)`: `_shell/acciones-de-la-paleta.ts` (por `puede()`, con test), `HuecoBuscador({ acciones })` que une `buscador`, `leads` y la lista de `?`; el layout lo monta
-    y se borra `buscador-pendiente.tsx`.
+  - `src/app/(app)`: `_shell/acciones-de-la-paleta.ts` (por `puede()`, con test), `HuecoBuscador({ acciones })` que une `buscador`, `leads` y la lista de `?`; el layout lo monta.
+    `buscador-pendiente.tsx` ya no lo usa nadie y queda sin borrar: la guarda de carriles no deja al B borrar lo del núcleo.
   - e2e: `buscador.spec.ts` (Ctrl+K y Enter abren la ficha y sale en «Últimos abiertos», el ajeno no aparece; Nueva cotización, Nuevo lead con el foco dentro del panel y Ver todos; sin conexión y Reintentar)
     y `barra-superior-celular.spec.ts` (botón habilitado, paleta dentro de 412 px al 200 %).
 - **Commits:** `feat(shared)`, `feat(buscador)` ×2, `feat(app)`, `test(buscador)` y el de docs.
@@ -20,3 +20,6 @@
 - **Para el carril A:**
   - En `docs/PLAN.md`, fila 7.13: «**7.13 hecha (3 de 3)** (la paleta `Ctrl/Cmd+K`, «Últimos abiertos», acciones por `puede()`, `?`; `docs/pasos/7.13-3/`)». Cierra «el atajo `?` sin lista» (`docs/PLAN.md:1562`) y «la paleta» y «la lista de `?`» de `docs/PLAN.md:1551`.
   - 7.11 y 7.13 ya no comparten hueco: `<BuscadorPendiente>` no existe (`docs/PLAN.md:1595`).
+
+- **Necesita del carril A:** borrar `src/app/(app)/_shell/buscador-pendiente.tsx` (sin usos desde el 7.13-3; el paso, la ficha de `_shell` y `docs/PLAN.md` › Buscador aún lo nombran).
+- **Arreglo del CI (e2e):** la ficha de la cotización guarda su visita con otra Server Action a la misma URL, y el vigilante de `cotizar-guardada-guardar.spec.ts` la contaba como un guardado; ahora sólo cuenta los pedidos con `intento`.
