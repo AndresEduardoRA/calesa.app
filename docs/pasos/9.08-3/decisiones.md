@@ -1,0 +1,12 @@
+## 2026-11-12 · Paso 9.08-3 (sigue la numeración de 9.08-2, que llegó a D25)
+
+- **D26 · Sin SQL.** `preferencias_usuario(usuario_id, clave, valor jsonb)` con su RLS por dueña ya sirve: no hay migración, ni `db:*`, ni policy nueva.
+- **D27 · La acción sale por `equipo/client.ts`, no por `index.ts`.** El consumidor es un Client Component y `index.ts` arrastra `server-only` (precedentes `agenda/client.ts` y `leads/client.ts`). Es la misma acción genérica `guardarPreferencia`; no se crea otra.
+- **D28 · Qué se guarda:** `orden` = todas las claves que la persona puede ver, en su orden (ocultas incluidas); `ocultos` = las ocultas. Una clave que ya no existe o que dejó de ver se ignora al leer y se pierde al volver a guardar; un widget nuevo del catálogo queda al final.
+- **D29 · Guarda al cambiar, sin botón «Guardar».** Una sola petición en vuelo (los controles se apagan mientras guarda); si falla, la lista queda como estaba y sale el error; si sale bien, `router.refresh()` redibuja el tablero.
+- **D30 · «Restablecer»** manda `valor: null` (la acción borra la fila) y devuelve el orden del catálogo con todo visible; va apagado si no hay nada guardado. Sin confirmación (es reversible).
+- **D31 · Ocultar todos es válido:** «Ocultaste todos los widgets» con «Elige cuáles quieres ver en «Personalizar».»; `EstadoSinPermiso` queda sólo para quien no ve ninguno. «Personalizar» está siempre en la cabecera y su `?panel=personalizar` conserva `?periodo=`.
+- **D32 · El `<Drawer>` va con `diferido()` y figura en la guarda de drawers como `sinFormulario`** (interruptores y botones que guardan en el acto: no hay nada tipeado).
+- **D33 · `BotonesDeOrden` y `useFocoTrasMover` se importan por su ruta**, sin ampliar el barril de `src/shared/ui/lista-de-catalogo/`. `aplicarPreferencia` pasó a ser genérica en el tipo del widget para conservar `WidgetConClave` sin tocar su regla.
+- **D34 · El e2e cierra el panel antes de mirar el tablero:** con el `<Drawer>` abierto lo de atrás queda fuera del árbol de accesibilidad, así que un `toHaveCount(0)` con el panel abierto sería un falso verde.
+- **D35 · Los controles de «Personalizar» siguen apagados hasta que el tablero se redibuja** (`enviando || redibujando`): cerrar el panel cambia la URL y un `router.refresh()` en vuelo se perdía, así que bajo la carga del CI el tablero seguía con lo anterior (T6 cayó en el PR del 9.08-3). Ahora «habilitado» en el e2e significa «ya redibujado».

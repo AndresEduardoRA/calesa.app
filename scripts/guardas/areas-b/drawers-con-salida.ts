@@ -3,6 +3,11 @@
 import type { RegistroDeDrawer } from '../drawers-con-salida'
 
 export const REGISTRO: Record<string, RegistroDeDrawer> = {
+  // «Personalizar» del tablero (9.08-3).
+  'src/modules/tablero/features/metricas/personalizar/panel-de-personalizar.tsx': {
+    sinFormulario:
+      'sólo interruptores y botones de orden que guardan en el acto: no hay nada tipeado que perder',
+  },
   'src/modules/agenda/features/eventos/components/panel-de-evento.tsx': {
     sinFormulario:
       'sólo es el detalle de un evento, con «Editar» y «Eliminar»: no guarda nada tipeado; lo que se escribe está en el formulario de edición, que se registra aparte',
