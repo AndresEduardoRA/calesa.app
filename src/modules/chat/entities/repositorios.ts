@@ -3,7 +3,7 @@ import type { Resultado } from '@/shared/lib/errores'
 import type { Cursor } from '@/shared/lib/paginacion'
 import type { Conversacion, CursorDeConversaciones, PaginaDeConversaciones } from './conversaciones'
 import type { FalloDeEscritura, RespuestaDeEscritura } from './escritura'
-import type { Referencia } from './menciones'
+import type { ClaseDeMencion, Referencia } from './menciones'
 import type { PaginaDeMensajes } from './mensajes'
 import type { PersonasEncontradas } from './personas'
 import type { EstadoDeReferencia } from './referencias'
@@ -68,6 +68,8 @@ export type RepositorioDeMensajes = {
     conversacion: string
     cuerpo: string
     respondeA?: string
+    // Los tokens del cuerpo, únicos (7.10-2): la base exige que sean el mismo conjunto.
+    menciones?: readonly { tipo: ClaseDeMencion; id: string }[]
   }) => Promise<{ ok: true; data: { id: string; creadoEn: string } } | FalloDeEscritura>
   // Marca leído hasta ese instante (sólo avanza).
   leer: (pedido: { conversacion: string; hasta: string }) => RespuestaDeEscritura
