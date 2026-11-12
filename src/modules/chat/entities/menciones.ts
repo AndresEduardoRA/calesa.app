@@ -156,3 +156,22 @@ export function aCuerpoConTokens(
     demasiadas: unicas.size > MAXIMO_DE_MENCIONES,
   }
 }
+
+export type ComandoDelChat = 'tarea' | 'evento'
+
+// `/tarea` o `/evento` al principio del texto (7.10-3), seguido de un blanco o del fin: `/tareas` no es comando, ni `mi /tarea`. `resto` es lo escrito
+// después (recortado y cortado en `largoMaximo`, el del título) y sirve de título de partida. Se reconoce al enviar, no al teclear.
+export function comandoDelTexto(
+  texto: string,
+  largoMaximo: number,
+): { comando: ComandoDelChat; resto: string } | null {
+  const hallado = /^\/(tarea|evento)(?=\s|$)/i.exec(texto.trimStart())
+  if (hallado === null) {
+    return null
+  }
+  const resto = texto.trimStart().slice(hallado[0].length).trim()
+  return {
+    comando: hallado[1]?.toLowerCase() === 'tarea' ? 'tarea' : 'evento',
+    resto: [...resto].slice(0, largoMaximo).join(''),
+  }
+}

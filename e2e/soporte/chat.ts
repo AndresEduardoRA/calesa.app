@@ -34,10 +34,13 @@ export type TerrenoDelChat = {
 const delDominio = `select id from auth.users where email like '%@${DOMINIO_E2E}'`
 
 // Las conversaciones y los mensajes de las personas de prueba: `conversaciones.creado_por` y `mensajes.autor_id` no
-// tienen `on delete cascade`, así que se borran antes que las personas (los miembros y los mensajes caen con su conversación).
+// tienen `on delete cascade`, así que se borran antes que las personas (los miembros y los mensajes caen con su conversación); igual las tareas y
+// los eventos que se crean desde el chat (7.10-3).
 export function borrarChatDePrueba(): void {
   sql(`delete from public.mensajes where autor_id in (${delDominio});
-       delete from public.conversaciones where creado_por in (${delDominio})`)
+       delete from public.conversaciones where creado_por in (${delDominio});
+       delete from public.tareas where creado_por in (${delDominio}) or responsable_id in (${delDominio});
+       delete from public.eventos where creado_por in (${delDominio})`)
 }
 
 async function crearConRol(
@@ -80,10 +83,11 @@ export function sembrarMensaje(
        values ('${conversacion}', '${autor}', '${cuerpo.replaceAll("'", "''")}', now() - interval '${String(haceMinutos)} minutes')`)
 }
 
-// `permisosDeAna`: los de Ana, de ventas; por omisión sólo `chat.participar`. Un e2e que la hace mencionar su lead le suma `leads.ver`.
+// `permisosDeAna` y `permisosDeLuis`: los de Ana (ventas) y Luis (logística); por omisión sólo `chat.participar`. Un e2e que hace mencionar un lead suma `leads.ver`
+// a Ana y uno que crea una tarea, `agenda.tareas.asignar` a Ana y `agenda.tareas.recibir` a Luis.
 export async function prepararChat(
   proyecto: string,
-  opciones: { permisosDeAna?: PermisoDePrueba[] } = {},
+  opciones: { permisosDeAna?: PermisoDePrueba[]; permisosDeLuis?: PermisoDePrueba[] } = {},
 ): Promise<TerrenoDelChat> {
   borrarChatDePrueba()
   await borrarPersonasDePrueba()
@@ -97,7 +101,7 @@ export async function prepararChat(
   }
   const [ana, luis, marta, sofia] = await Promise.all([
     crearConRol(proyecto, 'ana', 'Ana Chat', opciones.permisosDeAna ?? ['chat.participar']),
-    crearConRol(proyecto, 'luis', 'Luis Chat', ['chat.participar']),
+    crearConRol(proyecto, 'luis', 'Luis Chat', opciones.permisosDeLuis ?? ['chat.participar']),
     crearConRol(proyecto, 'marta', 'Marta Chat', ['chat.participar']),
     // Sin `chat.participar`: tiene otro permiso cualquiera para que el rol exista.
     crearConRol(proyecto, 'sofia', 'Sofía Chat', ['agenda.tareas.recibir']),

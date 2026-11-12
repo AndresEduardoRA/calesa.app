@@ -1,5 +1,7 @@
+import { RUTAS } from '@/shared/lib/rutas'
+
 // La URL de la hoja de cotizar (`docs/UX.md` › «Cotizar»): `/cotizaciones/nuevo?origen=&lead=&vehiculo=`. Las claves son nombres de la URL; los ids se validan donde se leen.
-export const RUTA_DE_LA_HOJA = '/cotizaciones/nuevo'
+export const RUTA_DE_LA_HOJA: string = RUTAS.nuevaCotizacion
 export const CLAVE_DE_ORIGEN = 'origen'
 export const CLAVE_DE_LEAD = 'lead'
 export const CLAVE_DE_VEHICULO = 'vehiculo'
@@ -15,7 +17,7 @@ export function rutaDeLaHoja(datos: { origen: string; lead: string | null }): st
 
 // El listado `/cotizaciones` (4.16-4a): sin vehículo es el listado entero; con él, el camino a lo antiguo del historial de un vehículo (`?vehiculo=`, que no es un filtro del
 // esquema: ni chip ni lo borra «Limpiar»). El único lugar que escribe esa ruta.
-export const RUTA_DEL_LISTADO = '/cotizaciones'
+export const RUTA_DEL_LISTADO: string = RUTAS.cotizaciones
 
 // Con `lead` (4.17-4b), el de la sección «Cotizaciones» de la ficha del lead; con los dos, el lead primero.
 export function rutaDelListado(datos: { vehiculo?: string; lead?: string }): string {

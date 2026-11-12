@@ -27,13 +27,19 @@ export const RUTAS = {
   papeleraDeLeads: '/leads/papelera',
   importarLeads: '/leads/importar',
   vehiculos: '/vehiculos',
+  nuevoVehiculo: '/vehiculos?panel=nuevo',
   papeleraDeVehiculos: '/vehiculos/papelera',
   logistica: '/logistica',
   embarques: '/logistica/embarques',
   aduana: '/logistica/aduana',
   gastosDeLogistica: '/logistica/gastos',
   repuestos: '/repuestos',
+  cotizaciones: '/cotizaciones',
+  nuevaCotizacion: '/cotizaciones/nuevo',
 } as const
+
+// El valor de `?panel=` que abre el alta de un vehículo (`RUTAS.nuevoVehiculo`). Vive acá porque lo leen el módulo `vehiculos` y la paleta del buscador (que no puede importarlo).
+export const PANEL_NUEVO_DE_VEHICULOS = 'nuevo'
 
 // La unidad de logística (6.01) tiene su propia página: a ella apuntan las notificaciones de demora. `RUTAS` es un objeto fijo; la que lleva un id es una función.
 export function unidadDeLogistica(id: string): string {
