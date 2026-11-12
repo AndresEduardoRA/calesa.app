@@ -45,3 +45,28 @@ export function resumenDelLote(
 export function idsParaReintentar(filas: readonly FilaDelLote[]): string[] {
   return filas.filter((f) => !f.ok).map((f) => f.vehiculoId)
 }
+
+function sinSalir(
+  id: string,
+  vista: VistaPreviaDeUnaUnidad | undefined,
+  fase: { id: string; nombre: string },
+): FilaDelLote {
+  const base = { vehiculoId: id, ok: false, historialId: null }
+  if (!vista) return { ...base, codigo: null, motivo: null }
+  if (vista.faseActual !== fase.id) {
+    return { ...base, codigo: 'conflicto', motivo: `Ya no está en «${fase.nombre}».` }
+  }
+  return { ...base, codigo: vista.codigos[0] ?? null, motivo: vista.motivos[0] ?? null }
+}
+
+/** Las filas de todo el lote, en el orden de las unidades: lo que respondió la base y, de las que no se enviaron (su vista decía que no podían), por qué se quedaron. */
+export function filasDelLoteCompleto(
+  enviadas: readonly FilaDelLote[],
+  vistas: readonly VistaPreviaDeUnaUnidad[],
+  ids: readonly string[],
+  fase: { id: string; nombre: string },
+): FilaDelLote[] {
+  const respondidas = new Map(enviadas.map((f) => [f.vehiculoId, f]))
+  const vistaDe = new Map(vistas.map((v) => [v.vehiculoId, v]))
+  return ids.map((id) => respondidas.get(id) ?? sinSalir(id, vistaDe.get(id), fase))
+}

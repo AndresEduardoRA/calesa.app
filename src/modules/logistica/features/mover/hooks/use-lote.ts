@@ -11,7 +11,12 @@ import {
 } from '@/modules/flujos/client'
 import { enviarAccion } from '@/shared/lib/enviar-accion'
 import { avisarError, avisarExito } from '@/shared/ui/toasts'
-import { idsParaReintentar, resumenDelLote, type ResumenDelLote } from '../lote/resultado-del-lote'
+import {
+  filasDelLoteCompleto,
+  idsParaReintentar,
+  resumenDelLote,
+  type ResumenDelLote,
+} from '../lote/resultado-del-lote'
 import { notaObligatoriaDelLote, puedenDelLote, type FaseDelLote } from '../lote/vista-del-lote'
 import { useVistaDelLote } from './use-vista-del-lote'
 
@@ -79,8 +84,10 @@ export function useLote(args: {
       else setFallo(envio.error.mensaje)
       return
     }
-    const resumen = resumenDelLote(envio.data, nombres, vistas)
-    setResultado({ ...resumen, filas: envio.data, vistas })
+    // El resultado es el de todo el lote: las que no se enviaron (su vista decía que no podían) cuentan como no movidas, con su motivo.
+    const filas = filasDelLoteCompleto(envio.data, vistas, aMirar, fase)
+    const resumen = resumenDelLote(filas, nombres, vistas)
+    setResultado({ ...resumen, filas, vistas })
     alHaberResultado()
     if (envio.data.some((f) => f.ok)) avisarExito(resumen.titular)
     router.refresh()

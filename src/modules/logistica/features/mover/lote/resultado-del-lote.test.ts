@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { FilaDelLote, VistaPreviaDeUnaUnidad } from '@/modules/flujos/client'
-import { idsParaReintentar, resumenDelLote, titularDelLote } from './resultado-del-lote'
+import {
+  filasDelLoteCompleto,
+  idsParaReintentar,
+  resumenDelLote,
+  titularDelLote,
+} from './resultado-del-lote'
 
 // `flujos/client` trae las Server Actions y su `server-only`: aquí sólo se usan sus reglas puras.
 vi.mock('server-only', () => ({}))
@@ -75,5 +80,51 @@ describe('el resultado de un lote', () => {
     expect(
       idsParaReintentar([fila('a'), fila('x', { ok: false }), fila('y', { ok: false })]),
     ).toEqual(['x', 'y'])
+  })
+})
+
+describe('el lote completo', () => {
+  const vista = (id: string, parcial: Partial<VistaPreviaDeUnaUnidad>): VistaPreviaDeUnaUnidad => ({
+    vehiculoId: id,
+    ok: true,
+    motivos: [],
+    codigos: [],
+    faseActual: 'b',
+    requisitos: [],
+    faltan: [],
+    notaObligatoria: false,
+    ...parcial,
+  })
+
+  it('las que no se enviaron cuentan como no movidas, con su motivo, y se pueden reintentar', () => {
+    const faltan = [
+      {
+        requisitoId: 'r',
+        tipo: 'documento' as const,
+        bloqueante: true,
+        descripcion: 'Documento: BL',
+        cumplido: false,
+        detalle: {},
+      },
+    ]
+    const vistas = [
+      vista('a', {}),
+      vista('x', { ok: false, codigos: ['requisitos'], faltan }),
+      vista('y', { faseActual: 'otra' }),
+    ]
+    const filas = filasDelLoteCompleto([fila('a')], vistas, ['a', 'x', 'y'], {
+      id: 'b',
+      nombre: 'En puerto',
+    })
+    expect(filas.map((f) => [f.vehiculoId, f.ok])).toEqual([
+      ['a', true],
+      ['x', false],
+      ['y', false],
+    ])
+    const r = resumenDelLote(filas, nombres, vistas)
+    expect(r.titular).toBe('Se movió 1 de 3.')
+    expect(r.fallidas[0]?.linea).toBe('No se movió «Toyota Hilux». Falta: BL aprobado.')
+    expect(r.fallidas[1]?.linea).toBe('No se movió «Kia Rio». Ya no está en «En puerto».')
+    expect(idsParaReintentar(filas)).toEqual(['x', 'y'])
   })
 })
