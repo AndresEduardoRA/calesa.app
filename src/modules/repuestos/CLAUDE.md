@@ -47,7 +47,14 @@ Proyectos de repuestos por vehículo (o externos), ítems que recorren el flujo 
   (tope 50, por `repuestos_cotizaciones_proyecto_id_idx`) y dibuja `<CotizacionesDelProyecto>` (por `pantallas/cotizador.ts`): «Nueva cotización» con la moneda en
   la misma barra (la action `crearCotizacion`, `repuestos.cotizar` y `repuestos.ver` con `puede()` antes, no sale por los barriles; el id se renueva al crear y al
   cambiar la moneda) y la lista. La hoja es `/repuestos/[id]/cotizaciones/[cotizacion]` con `leerCotizacion(proyectoId, id)` y `<HojaDeLectura>` (por
-  `pantallas/cotizador-cotizacion.ts`): sólo lectura, los montos que guardó la base (nada se recalcula). La hoja editable, aceptar y anular llegan con 8.12-4.
+  `pantallas/cotizador-cotizacion.ts`): sólo lectura, los montos que guardó la base (nada se recalcula).
+- **La hoja editable** (8.12-4): una borrador con el proyecto abierto y el snapshot válido dibuja `<HojaEditable key={actualizadoEn}>` (por
+  `pantallas/cotizador-cotizacion.ts`); los ítems para «Agregar desde un ítem» los lee la página con `leerItemsDelProyecto` (el área `cotizador` no importa
+  `items`) y los pasa como `ItemParaCotizar[]`. Lo puro es `entities/cotizador/hoja-editable.ts`: lo que emite una `XCell` pasa a texto exacto
+  (`montoDeCelda`, `cantidadDeCelda`) antes de entrar al estado, el total en vivo es `calcularHoja` (la fórmula de la base; sólo informa) y `pedidoDeGuardar`
+  nunca manda totales ni sugerencias (↺ de la logística = `null`). Una línea nueva nace sin caja; la caja es un `<select>` «Caja N» con la elegida en
+  `<Monto>` al lado. Las actions `guardarCotizacion`, `aceptarCotizacion` (pide además `repuestos.editar`) y `anularCotizacion` (`puede()` antes) no salen
+  por los barriles; el error de una línea llega a su celda por `details` + `hint` (`entities/cotizador/errores.ts`).
 - Depende de: `vehiculos`, `flujos`, `leads`.
 
 ## Áreas
@@ -157,4 +164,5 @@ El módulo se parte por **área** (8.08-2, igual que `logistica`) para que los p
 - Las esperas vehículo↔repuestos (`fases_requisitos.espera_fase_id`) cumplen cuando ningún ítem vivo está pendiente; los que terminaron sin llegar no frenan y se muestran.
   La regla vive en `_repuesto_ante_espera` (`llego` / `sin_llegar` / `pendiente`) y `evaluar_requisitos` —de `flujos`— la usa en su rama `hijos`, con
   `detalle = {hijos, llegaron, sin_llegar}` (8.08-1). Si `flujos` recrea `evaluar_requisitos`, conserva esa rama.
-- Por encima del último tramo de logística no hay sugerencia: la celda pide el monto (`emptyLabel`), no asume 0.
+- Por encima del último tramo de logística no hay sugerencia: la celda de logística queda vacía y el total dice «Sin total · Falta la logística»; no
+  asume 0 (`XCell` no tiene `emptyLabel`, D43 de 8.12-4).

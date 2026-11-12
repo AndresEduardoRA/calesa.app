@@ -14,3 +14,4 @@ export {
   type FilaDeCotizacion,
 } from '../../entities/cotizador/cotizacion'
 export { type CotizacionConLineas } from '../../entities/cotizador/hoja-de-lectura'
+export { type ItemParaCotizar } from '../../entities/cotizador/hoja-editable'

@@ -3,8 +3,14 @@ import Link from 'next/link'
 import { connection } from 'next/server'
 import { Suspense } from 'react'
 import { puede, requerirSesion } from '@/modules/equipo'
-import { leerCotizacion, leerProyecto } from '@/modules/repuestos'
-import { HojaDeLectura } from '@/modules/repuestos/pantallas/cotizador-cotizacion'
+import {
+  leerCotizacion,
+  leerItemsDelProyecto,
+  leerProyecto,
+  type CotizacionConLineas,
+  type ItemParaCotizar,
+} from '@/modules/repuestos'
+import { HojaDeLectura, HojaEditable } from '@/modules/repuestos/pantallas/cotizador-cotizacion'
 import { datosO } from '@/shared/lib/errores'
 import { RUTAS } from '@/shared/lib/rutas'
 import { buttonVariants } from '@/shared/ui/button'
@@ -13,8 +19,9 @@ import { EsqueletoListado } from '@/shared/ui/esqueletos'
 
 export const metadata: Metadata = { title: 'Cotización de repuestos' }
 
-// Una cotización de repuestos (8.12-3, C12): la hoja en sólo lectura. Pide `repuestos.ver` y `repuestos.cotizar` (D30); la autoridad es la RLS. Una cotización
-// que no existe, que es de otro proyecto o que quien mira no ve, y un proyecto que no está, se dicen igual. Sin `loading.tsx` propio (D40).
+// Una cotización de repuestos (8.12-3, C12; 8.12-4, C9). Pide `repuestos.ver` y `repuestos.cotizar` (D30); la autoridad es la RLS. Una cotización que no
+// existe, que es de otro proyecto o que quien mira no ve, y un proyecto que no está, se dicen igual. Sin `loading.tsx` propio (D40). Una borrador con el
+// proyecto abierto y el snapshot válido es la hoja editable (D41: la base rechaza lo mismo); si no, la de lectura.
 export default function PaginaDeUnaCotizacion({
   params,
 }: PageProps<'/repuestos/[id]/cotizaciones/[cotizacion]'>) {
@@ -63,11 +70,33 @@ async function Cotizacion({
       />
     )
   }
+  const datos = { id: proyecto.id, numero: proyecto.numero }
+  const { cotizacion: c } = leida
+  if (c.estado === 'borrador' && proyecto.cerradoEn === null && c.snapshot.ok) {
+    return (
+      <HojaEditable
+        key={c.actualizadoEn}
+        cotizacion={c}
+        snapshot={c.snapshot.snapshot}
+        lineas={leida.lineas}
+        proyecto={datos}
+        items={await itemsParaCotizar(proyecto.id)}
+      />
+    )
+  }
   return (
-    <HojaDeLectura
-      cotizacion={leida.cotizacion}
-      lineas={leida.lineas}
-      proyecto={{ id: proyecto.id, numero: proyecto.numero }}
-    />
+    <HojaDeLectura {...leida} proyecto={datos} nota={notaDeLectura(leida, proyecto.cerradoEn)} />
   )
+}
+
+// Los ítems del proyecto para «Agregar desde un ítem» (D49): el área `cotizador` no importa `items`, así que los lee la página (tope 200, `armarHoja`).
+async function itemsParaCotizar(proyectoId: string): Promise<ItemParaCotizar[]> {
+  const hoja = datosO(await leerItemsDelProyecto(proyectoId))
+  return hoja.filas.map((f) => ({ id: f.id, descripcion: f.descripcion, cantidad: f.cantidad }))
+}
+
+function notaDeLectura({ cotizacion }: CotizacionConLineas, cerradoEn: string | null) {
+  return cotizacion.estado === 'borrador' && cerradoEn !== null
+    ? 'El proyecto está cerrado: reábrelo para cotizar.'
+    : undefined
 }

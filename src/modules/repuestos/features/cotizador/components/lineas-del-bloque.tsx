@@ -7,7 +7,8 @@ import type { FaltaEnLaHoja, LineaDeLectura } from '../../../entities/cotizador/
 
 type Props = { id: string; titulo: string; lineas: readonly LineaDeLectura[]; moneda: string }
 
-const MOTIVO: Readonly<Record<Exclude<FaltaEnLaHoja, 'desconocida'>, string>> = {
+// La usa también la hoja editable (8.12-4).
+export const MOTIVO: Readonly<Record<Exclude<FaltaEnLaHoja, 'desconocida'>, string>> = {
   costo: 'Falta el costo',
   logistica: 'Falta la logística',
   caja: 'Falta la caja',
