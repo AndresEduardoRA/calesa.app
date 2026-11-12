@@ -6662,6 +6662,7 @@ export type Database = {
           categoria_id: string | null
           creado_en: string
           creado_por: string | null
+          cuerpo_doc: Json | null
           cuerpo_html: string
           id: string
           minutos_lectura: number | null
@@ -6681,6 +6682,7 @@ export type Database = {
           categoria_id?: string | null
           creado_en?: string
           creado_por?: string | null
+          cuerpo_doc?: Json | null
           cuerpo_html?: string
           id?: string
           minutos_lectura?: number | null
@@ -6699,6 +6701,7 @@ export type Database = {
           categoria_id?: string | null
           creado_en?: string
           creado_por?: string | null
+          cuerpo_doc?: Json | null
           cuerpo_html?: string
           id?: string
           minutos_lectura?: number | null

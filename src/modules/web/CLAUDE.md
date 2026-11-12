@@ -29,6 +29,7 @@ RPC: `puede_estar_en_la_rueda(uuid)`, `web.solicitar_asesor`, `web.registrar_eve
 - Un vehículo se ve si está publicado (`vehiculo_vitrina()`, que vive en `vehiculos`), no está en la papelera, su fase está activa y publica, su origen está activo y en `ajustes_web.origenes_visibles`, y la integración `web_publica` está activa.
 - La rueda avanza al asignar; el asesor que no confirma en `ajustes_web.ttl_contacto_minutos` pierde el turno y se reasigna a quien no estuvo en la cadena. `unassigned` es la métrica que más importa.
 - Guías, FAQs y testimonios nacen despublicados; un testimonio exige consentimiento registrado.
+- **El HTML de una guía lo deriva la base**: el editor escribe `web_guias.cuerpo_doc` y `trg_web_guia_cuerpo` pone `cuerpo_html` y `minutos_lectura` con `_web_doc_html()` y `_web_doc_minutos()` (lo que llegue en `cuerpo_html` se pisa; publicar recalcula). Una guía de antes sin documento conserva su HTML despublicada. Las imágenes del cuerpo cuentan en `storage_refcount('web', …)`; encolar al GC las que salen del cuerpo es del editor (8.03).
 - `eventos_web` no guarda IP ni user agent: sólo el token anónimo; purga a 12 meses.
 
 ## Ojo
