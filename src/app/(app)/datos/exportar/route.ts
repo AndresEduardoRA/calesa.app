@@ -1,11 +1,6 @@
 import { leerAjustes } from '@/modules/empresa'
 import { getPermisos } from '@/modules/equipo'
-import {
-  TOPE_DE_FILAS,
-  esquemaDelPedido,
-  exportarTodo,
-  type SalidaDeExportacionTotal,
-} from '@/modules/datos'
+import { esquemaDelPedido, exportarTodo, type SalidaDeExportacionTotal } from '@/modules/datos'
 import { MENSAJE_SESION_VENCIDA } from '@/shared/lib/errores'
 import { ZONA_POR_DEFECTO } from '@/shared/lib/fechas'
 
@@ -13,7 +8,8 @@ import { ZONA_POR_DEFECTO } from '@/shared/lib/fechas'
 // lo abre. Autentica por la cookie de sesión y comprueba que el pedido salga de esta misma dirección. La constancia
 // (`datos_exportacion_registrar`: el permiso real y 3 por hora) se deja **antes** del primer byte: sin ella, 403 o 429 y ningún dato.
 //
-//   POST { entidad: "leads", delimitador: ";" | ",", desde?: "AAAA-MM-DD", hasta?: "AAAA-MM-DD" }
+//   POST { entidad: "leads" | "vehiculos", delimitador: ";" | ",", desde?: "AAAA-MM-DD", hasta?: "AAAA-MM-DD", origen?: uuid }
+//   (vehículos: `origen` obligatorio, un archivo por origen; leads: sin `origen`)
 //   200 text/csv (con BOM, por un flujo) | 400 {pedido} | 401 {sesion} | 403 {origen|sin_permiso} | 404 {vacia} | 409 {demasiadas, tope}
 //   | 429 {limite, libreEn} | 500 {error}
 
@@ -56,7 +52,7 @@ function respuestaDeLaSalida(salida: SalidaDeExportacionTotal): Response {
     case 'vacia':
       return respuesta({ codigo: 'vacia', mensaje: 'No hay nada para exportar en ese rango.' }, 404)
     case 'demasiadas':
-      return respuesta({ codigo: 'demasiadas', tope: TOPE_DE_FILAS }, 409)
+      return respuesta({ codigo: 'demasiadas', tope: salida.tope }, 409)
     case 'limite':
       return respuesta({ codigo: 'limite', libreEn: salida.libreEn }, 429)
     case 'error':

@@ -16,34 +16,40 @@ export const VIDA_MINIMA_DEL_TOKEN_MS = 5 * 60_000
 // El flujo no pide una página si al token le queda menos que esto: corta con error antes que mandar un pedido que va a dar 401.
 export const MARGEN_DEL_TOKEN_MS = 30_000
 
-// Lo que se puede exportar hoy. La 9.05-2b suma vehículos y cotizaciones.
-export const ENTIDADES_DISPONIBLES = ['leads'] as const
+// Lo que se puede exportar hoy. La 9.05-2c suma cotizaciones.
+export const ENTIDADES_DISPONIBLES = ['leads', 'vehiculos'] as const
 export type Entidad = (typeof ENTIDADES_DISPONIBLES)[number]
 
 // El tope de filas por archivo de cada entidad: nunca más que el de la base (`TOPE_DE_FILAS`). Si la medición de una entidad dice que su lectura
-// entera no entra en la vida del token, baja sólo el suyo (vehículos: `supabase/tests/medir-datos-exportar-vehiculos.sql`, 9.05-2b).
+// entera no entra en la vida del token, baja sólo el suyo. Vehículos: con 250.000 de un origen, conteo 0,3 s y lectura 0,4 s
+// (`supabase/tests/medir-datos-exportar-vehiculos.sql`, 9.05-2b).
 export const TOPE_POR_ENTIDAD: Record<Entidad, number> = {
   leads: TOPE_DE_FILAS,
+  vehiculos: TOPE_DE_FILAS,
 }
 
+const comunesDelPedido = {
+  delimitador: z.enum(DELIMITADORES),
+  desde: z.iso.date().optional(),
+  hasta: z.iso.date().optional(),
+}
+
+// Espejo de la base: en leads el origen no es un filtro (`strict` lo rechaza); en vehículos es obligatorio (un archivo por origen). La base lo
+// vuelve a exigir.
 export const esquemaDelPedido = z
-  .object({
-    entidad: z.enum(ENTIDADES_DISPONIBLES),
-    delimitador: z.enum(DELIMITADORES),
-    desde: z.iso.date().optional(),
-    hasta: z.iso.date().optional(),
-    origen: z.guid().optional(),
-  })
-  .strict()
+  .discriminatedUnion('entidad', [
+    z.object({ entidad: z.literal('leads'), ...comunesDelPedido }).strict(),
+    z
+      .object({
+        entidad: z.literal('vehiculos'),
+        ...comunesDelPedido,
+        origen: z.guid({ error: 'Elige el origen de los vehículos.' }),
+      })
+      .strict(),
+  ])
   .refine((p) => p.desde === undefined || p.hasta === undefined || p.desde <= p.hasta, {
     error: 'La fecha final es anterior a la inicial.',
     path: ['hasta'],
-  })
-  // Espejo de la base: en leads el origen no es un filtro (la base lo vuelve a rechazar). Hoy sólo hay leads; la 9.05-2b lo condiciona a la
-  // entidad (vehículos lo exige).
-  .refine((p) => p.origen === undefined, {
-    error: 'Los leads no se filtran por origen.',
-    path: ['origen'],
   })
 
 export type Pedido = z.infer<typeof esquemaDelPedido>
@@ -55,7 +61,7 @@ export function filtrosDelPedido(pedido: Pedido): FiltrosDelPedido {
   return {
     ...(pedido.desde === undefined ? {} : { desde: pedido.desde }),
     ...(pedido.hasta === undefined ? {} : { hasta: pedido.hasta }),
-    ...(pedido.origen === undefined ? {} : { origen: pedido.origen }),
+    ...(pedido.entidad === 'vehiculos' ? { origen: pedido.origen } : {}),
   }
 }
 
@@ -194,7 +200,7 @@ export type SalidaDeExportacionTotal =
   | { tipo: 'sin_permiso' }
   | { tipo: 'sesion' }
   | { tipo: 'vacia' }
-  | { tipo: 'demasiadas' }
+  | { tipo: 'demasiadas'; tope: number }
   | { tipo: 'limite'; libreEn: string }
   | { tipo: 'error'; mensaje: string }
 

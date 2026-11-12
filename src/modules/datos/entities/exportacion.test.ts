@@ -12,6 +12,7 @@ import {
   etiquetaDeArchivo,
   TOPE_DE_FILAS,
   TOPE_POR_ENTIDAD,
+  ENTIDADES_DISPONIBLES,
 } from './exportacion'
 
 const ZONA = 'America/La_Paz'
@@ -34,7 +35,12 @@ describe('esquemaDelPedido', () => {
       { entidad: 'leads', delimitador: ';', desde: '2026-02-01', hasta: '2026-01-31' },
     ],
     ['leads con origen', { entidad: 'leads', delimitador: ';', origen: ORIGEN }],
-    ['vehículos (todavía no)', { entidad: 'vehiculos', delimitador: ';', origen: ORIGEN }],
+    ['vehículos sin origen', { entidad: 'vehiculos', delimitador: ';' }],
+    [
+      'vehículos con un origen que no es guid',
+      { entidad: 'vehiculos', delimitador: ';', origen: 'x' },
+    ],
+    ['cotizaciones (todavía no)', { entidad: 'cotizaciones', delimitador: ';' }],
     ['una fecha imposible', { entidad: 'leads', delimitador: ';', desde: '2026-02-30' }],
     ['un origen que no es guid', { entidad: 'leads', delimitador: ';', origen: 'x' }],
     ['otro separador', { entidad: 'leads', delimitador: '|' }],
@@ -44,7 +50,35 @@ describe('esquemaDelPedido', () => {
   })
 })
 
+describe('esquemaDelPedido: vehículos', () => {
+  it('pasa con su origen', () => {
+    const pedido = esquemaDelPedido.safeParse({
+      entidad: 'vehiculos',
+      delimitador: ';',
+      origen: ORIGEN,
+      hasta: '2026-01-31',
+    })
+    expect(pedido.success).toBe(true)
+  })
+
+  it('sin origen, lo pide de tú', () => {
+    const pedido = esquemaDelPedido.safeParse({ entidad: 'vehiculos', delimitador: ';' })
+    expect(pedido.error?.issues[0]?.path).toEqual(['origen'])
+  })
+})
+
 describe('filtrosDelPedido', () => {
+  it('en vehículos trae el origen', () => {
+    expect(
+      filtrosDelPedido({
+        entidad: 'vehiculos',
+        delimitador: ';',
+        origen: ORIGEN,
+        desde: '2026-01-01',
+      }),
+    ).toEqual({ desde: '2026-01-01', origen: ORIGEN })
+  })
+
   it('trae sólo las claves presentes', () => {
     expect(filtrosDelPedido({ entidad: 'leads', delimitador: ';' })).toEqual({})
     expect(filtrosDelPedido({ entidad: 'leads', delimitador: ',', hasta: '2026-03-01' })).toEqual({
@@ -142,7 +176,8 @@ describe('etiquetaDeArchivo', () => {
 })
 
 describe('TOPE_POR_ENTIDAD', () => {
-  it('ninguna entidad pasa el techo de la base', () => {
+  it('tiene cada entidad disponible y ninguna pasa el techo de la base', () => {
+    expect(Object.keys(TOPE_POR_ENTIDAD).toSorted()).toEqual([...ENTIDADES_DISPONIBLES].toSorted())
     for (const tope of Object.values(TOPE_POR_ENTIDAD)) {
       expect(tope).toBeGreaterThan(0)
       expect(tope).toBeLessThanOrEqual(TOPE_DE_FILAS)

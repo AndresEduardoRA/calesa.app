@@ -1,8 +1,9 @@
 import 'server-only'
+import type { Resultado } from '@/shared/lib/errores'
 import { puede, type Permisos } from '@/shared/lib/permisos'
-import { prepararSesion, registrarExportacion } from '../../composicion'
+import { prepararSesion, registrarExportacion, type ClienteDelFlujo } from '../../composicion'
 import {
-  TOPE_DE_FILAS,
+  TOPE_POR_ENTIDAD,
   filtrosDelPedido,
   nombreDelArchivo,
   rangoDelPedido,
@@ -10,7 +11,8 @@ import {
   type SalidaDeExportacionTotal,
 } from '../../entities/exportacion'
 import { armarFlujo } from './flujo'
-import { fuenteDeLeads } from './fuente-de-leads'
+import { fuenteDeLeads, type Fuente } from './fuente-de-leads'
+import { fuenteDeVehiculos } from './fuente-de-vehiculos'
 
 type Entrada = {
   pedido: Pedido
@@ -21,11 +23,14 @@ type Entrada = {
   ahora?: () => number
 }
 
+type Sesion = { cliente: ClienteDelFlujo; venceEn: number }
+
 const NO_SE_PUDO = 'No pudimos preparar la exportación. Vuelve a intentarlo.'
 
-// Exportar todo (9.05-2, `datos.exportar.todo`). El orden es el contrato: el permiso, la sesión, el layout y los catálogos, el conteo hasta
-// el tope (con más, o con ninguna, no se registra nada), **la constancia** (`datos_exportacion_registrar`: permiso real y 3 por hora) y recién
-// después el flujo. Ningún byte del archivo sale antes de la constancia, nunca se registra dos veces y el archivo no pasa las filas registradas.
+// Exportar todo (9.05-2, `datos.exportar.todo`). El orden es el contrato: el permiso, la sesión, la fuente de la entidad (su layout y sus
+// catálogos), el conteo hasta el tope (con más, o con ninguna, no se registra nada), **la constancia** (`datos_exportacion_registrar`: permiso real
+// y 3 por hora) y recién después el flujo. Ningún byte del archivo sale antes de la constancia, nunca se registra dos veces y el archivo no pasa
+// las filas registradas. El orden está escrito una sola vez (`seguirCon`): cada entidad sólo trae su fuente.
 export async function exportarTodo(entrada: Entrada): Promise<SalidaDeExportacionTotal> {
   const { pedido, permisos, zona, codigoDePais, ahora = Date.now } = entrada
   if (!puede(permisos, 'datos.exportar.todo')) {
@@ -35,32 +40,61 @@ export async function exportarTodo(entrada: Entrada): Promise<SalidaDeExportacio
   if (!sesion.ok) {
     return { tipo: 'sesion' }
   }
-  const { cliente, venceEn } = sesion.data
-  const fuente = await fuenteDeLeads({
-    cliente,
+  const { cliente } = sesion.data
+  switch (pedido.entidad) {
+    case 'leads':
+      return seguirCon(
+        await fuenteDeLeads({
+          cliente,
+          zona,
+          codigoDePais,
+          conNumeroGlobal: puede(permisos, 'leads.numero_global.ver'),
+        }),
+        { pedido, sesion: sesion.data, zona, ahora },
+      )
+    case 'vehiculos':
+      return seguirCon(await fuenteDeVehiculos({ cliente, origenId: pedido.origen, zona }), {
+        pedido,
+        sesion: sesion.data,
+        zona,
+        ahora,
+      })
+  }
+}
+
+// Lo común a toda entidad, una vez que su fuente está lista: contar, registrar y armar el flujo.
+async function seguirCon<Fila>(
+  fuente: Resultado<Fuente<Fila>>,
+  {
+    pedido,
+    sesion,
     zona,
-    codigoDePais,
-    conNumeroGlobal: puede(permisos, 'leads.numero_global.ver'),
-  })
+    ahora,
+  }: { pedido: Pedido; sesion: Sesion; zona: string; ahora: () => number },
+): Promise<SalidaDeExportacionTotal> {
   if (!fuente.ok) {
-    return { tipo: 'error', mensaje: NO_SE_PUDO }
+    // Un origen que no está: lo mismo que uno donde no se ve nada (no dice si existe), sin contar ni registrar.
+    return fuente.error.codigo === 'no_encontrado'
+      ? { tipo: 'vacia' }
+      : { tipo: 'error', mensaje: NO_SE_PUDO }
   }
   const corte = new Date(ahora()).toISOString()
   const rango = rangoDelPedido(pedido, zona, corte)
+  const tope = TOPE_POR_ENTIDAD[pedido.entidad]
 
-  const contadas = await fuente.data.lector.contar(rango, TOPE_DE_FILAS)
+  const contadas = await fuente.data.lector.contar(rango, tope)
   if (!contadas.ok) {
     return { tipo: 'error', mensaje: NO_SE_PUDO }
   }
   if (contadas.data.hayMas) {
-    return { tipo: 'demasiadas' }
+    return { tipo: 'demasiadas', tope }
   }
   const filas = contadas.data.n
   if (filas === 0) {
     return { tipo: 'vacia' }
   }
 
-  const registro = await registrarExportacion(cliente)(
+  const registro = await registrarExportacion(sesion.cliente)(
     pedido.entidad,
     filas,
     filtrosDelPedido(pedido),
@@ -76,14 +110,15 @@ export async function exportarTodo(entrada: Entrada): Promise<SalidaDeExportacio
 
   return {
     tipo: 'listo',
-    nombre: nombreDelArchivo(pedido.entidad, corte, zona),
+    nombre: nombreDelArchivo(pedido.entidad, corte, zona, fuente.data.etiqueta),
     filas,
     flujo: armarFlujo({
-      ...fuente.data,
+      lector: fuente.data.lector,
+      columnas: fuente.data.columnas,
       rango,
       filas,
       delimitador: pedido.delimitador,
-      venceEn,
+      venceEn: sesion.venceEn,
       ahora,
     }),
   }

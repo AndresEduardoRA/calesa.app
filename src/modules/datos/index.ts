@@ -5,6 +5,7 @@
 export { exportarTodo } from './features/exportar/lecturas'
 export {
   TOPE_DE_FILAS,
+  TOPE_POR_ENTIDAD,
   esquemaDelPedido,
   type Pedido,
   type SalidaDeExportacionTotal,

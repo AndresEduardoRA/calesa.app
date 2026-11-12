@@ -12,6 +12,8 @@ import { encabezadosDeLeads, filaDeLead, type ContextoDeLeads } from './columnas
 export type Fuente<Fila> = {
   lector: LectorDeExportacion<Fila>
   columnas: ColumnasDeExportacion<Fila>
+  // Lo que distingue el nombre del archivo (el origen de los vehículos).
+  etiqueta?: string
 }
 
 type EntradaDeLaFuente = {

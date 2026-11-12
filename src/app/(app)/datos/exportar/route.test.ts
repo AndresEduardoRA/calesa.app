@@ -30,6 +30,7 @@ vi.mock('@/modules/leads', async (importOriginal) => ({
   leerCatalogosDeLead: () => leerCatalogosDeLead(),
 }))
 
+import { TOPE_POR_ENTIDAD } from '@/modules/datos'
 import { POST } from './route'
 
 const AHORA = new Date('2026-11-12T20:00:00Z')
@@ -160,7 +161,10 @@ describe('POST /datos/exportar', () => {
     contar.mockResolvedValue(ok({ n: 250000, hayMas: true }))
     const demasiadas = await pedir()
     expect(demasiadas.status).toBe(409)
-    expect(await demasiadas.json()).toEqual({ codigo: 'demasiadas', tope: 250000 })
+    expect(await demasiadas.json()).toEqual({
+      codigo: 'demasiadas',
+      tope: TOPE_POR_ENTIDAD.leads,
+    })
     contar.mockResolvedValue(ok({ n: 0, hayMas: false }))
     expect((await pedir()).status).toBe(404)
     expect(registrar).not.toHaveBeenCalled()
@@ -184,6 +188,7 @@ describe('POST /datos/exportar: el flujo', () => {
     expect((await pedir(undefined, 'https://otra.app')).status).toBe(403)
     for (const cuerpo of [
       { entidad: 'vehiculos', delimitador: ';' },
+      { entidad: 'cotizaciones', delimitador: ';' },
       { entidad: 'leads', delimitador: ';', origen: '00000000-0000-4000-8000-000000000001' },
       { entidad: 'leads', delimitador: ';', desde: '2026-11-10', hasta: '2026-11-01' },
     ]) {
