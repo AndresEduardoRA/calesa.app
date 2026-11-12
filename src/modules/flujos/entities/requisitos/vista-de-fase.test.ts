@@ -3,6 +3,7 @@ import type { RequisitoParaConfigurar } from '../flujo'
 import {
   clavesQueFaltan,
   destinoDeRequisito,
+  formaDeAgregarDe,
   reglaDeEsperasActiva,
   requisitosDeLaFase,
   tiposActivos,
@@ -69,7 +70,13 @@ describe('requisitosDeLaFase y clavesQueFaltan', () => {
 
 describe('tiposActivos y reglaDeEsperasActiva', () => {
   it('sólo los tipos activos, en el orden leído', () => {
-    const tipo = (id: string, activo: boolean) => ({ id, nombre: id, formatos: [], activo })
+    const tipo = (id: string, activo: boolean) => ({
+      id,
+      nombre: id,
+      formatos: [],
+      activo,
+      delFlujo: false,
+    })
     expect(
       tiposActivos([tipo('a', true), tipo('b', false), tipo('c', true)]).map((t) => t.id),
     ).toEqual(['a', 'c'])
@@ -79,5 +86,14 @@ describe('tiposActivos y reglaDeEsperasActiva', () => {
     expect(reglaDeEsperasActiva({ reglas: [{ regla: 'esperas', activa: true }] })).toBe(true)
     expect(reglaDeEsperasActiva({ reglas: [{ regla: 'esperas', activa: false }] })).toBe(false)
     expect(reglaDeEsperasActiva({ reglas: [{ regla: 'pagos', activa: true }] })).toBe(false)
+  })
+})
+
+describe('formaDeAgregarDe', () => {
+  it('una forma conocida se respeta; una desconocida o ausente cae en el selector', () => {
+    expect(formaDeAgregarDe('documento')).toBe('documento')
+    expect(formaDeAgregarDe('espera')).toBe('espera')
+    expect(formaDeAgregarDe('otra')).toBe('elegir')
+    expect(formaDeAgregarDe(null)).toBe('elegir')
   })
 })

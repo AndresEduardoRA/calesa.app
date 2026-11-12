@@ -26,6 +26,7 @@ const tipo: TipoParaRequisito = {
   nombre: 'Título',
   formatos: ['application/pdf', 'image/jpeg'],
   activo: true,
+  delFlujo: false,
 }
 
 describe('validarEdicion', () => {

@@ -55,10 +55,12 @@ export function reglaDeEsperasActiva(flujo: Pick<FlujoParaConfigurar, 'reglas'>)
   return flujo.reglas.some((r) => r.regla === 'esperas' && r.activa)
 }
 
-// Las partes de la URL del bloque (nuqs): «Agregar requisito» (`?agregar=elegir|dato|documento|espera`), editar (`?editar=requisito&requisito=<id>`) y la
-// confirmación de quitar (`?eliminar=requisito&quitar=<id>`). Una clave propia para cada uno: el panel del inspector ya ocupa `?fase=` y el diálogo no puede
-// ocupar `?panel=`.
+// Las partes de la URL del bloque (nuqs): «Agregar requisito» (`?agregar=nuevo&forma=elegir|dato|documento|espera`), editar (`?editar=requisito&requisito=<id>`)
+// y la confirmación de quitar (`?eliminar=requisito&quitar=<id>`). Una clave propia para cada uno: el panel del inspector ya ocupa `?fase=` y el diálogo no
+// puede ocupar `?panel=`.
 export const CLAVE_AGREGAR = 'agregar'
+export const PANEL_AGREGAR = 'nuevo'
+export const CLAVE_DE_LA_FORMA = 'forma'
 export const FORMA_DE_ELEGIR = 'elegir'
 export const FORMA_DE_DATO = 'dato'
 export const FORMA_DE_DOCUMENTO = 'documento'
@@ -70,6 +72,11 @@ export const FORMAS_DE_AGREGAR = [
   FORMA_DE_ESPERA,
 ] as const
 export type FormaDeAgregar = (typeof FORMAS_DE_AGREGAR)[number]
+
+// La forma que dice la URL; una desconocida cae en el selector.
+export function formaDeAgregarDe(valor: string | null): FormaDeAgregar {
+  return FORMAS_DE_AGREGAR.find((forma) => forma === valor) ?? FORMA_DE_ELEGIR
+}
 export const CLAVE_EDITAR = 'editar'
 export const PANEL_EDITAR_REQUISITO = 'requisito'
 export const CLAVE_DEL_REQUISITO_A_EDITAR = 'requisito'

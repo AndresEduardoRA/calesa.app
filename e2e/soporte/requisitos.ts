@@ -52,3 +52,15 @@ export async function descripcionesDeLaLista(inspector: Locator): Promise<string
     .allInnerTexts()
   return textos.map((t) => t.trim())
 }
+
+// «Agregar requisito» y la forma que se elige en el selector («Dato», «Documento» o «Espera»).
+export async function abrirForma(
+  inspector: Locator,
+  forma: 'Dato' | 'Documento' | 'Espera',
+): Promise<void> {
+  await inspector.getByRole('button', { name: 'Agregar requisito' }).click()
+  await inspector
+    .getByRole('group', { name: 'Qué requisito agregar' })
+    .getByRole('button', { name: forma, exact: true })
+    .click()
+}

@@ -18,11 +18,12 @@ const COLUMNAS = 'id, nombre, formatos, activo'
 
 type Fila = { id: string; nombre: string; formatos: string[]; activo: boolean }
 
-const comoTipo = (f: Fila): TipoParaRequisito => ({
+const comoTipo = (f: Fila, delFlujo: boolean): TipoParaRequisito => ({
   id: f.id,
   nombre: f.nombre,
   formatos: f.formatos,
   activo: f.activo,
+  delFlujo,
 })
 
 // Las fases activas del otro ámbito (un vehículo espera a sus repuestos y un repuesto a su vehículo), con el nombre de su flujo. Los flujos por
@@ -109,7 +110,10 @@ export const leerOpcionesDeRequisitos: LectorDeOpcionesDeRequisitos = async ({
   }
   const dePrimero = cortarAlTope(empresa.data, TOPE_DE_TIPOS_PARA_REQUISITOS)
   const deSegundo = cortarAlTope(delFlujo.data, TOPE_DE_TIPOS_PARA_REQUISITOS)
-  const tipos = [...dePrimero.filas, ...deSegundo.filas].map(comoTipo)
+  const tipos = [
+    ...dePrimero.filas.map((f) => comoTipo(f, false)),
+    ...deSegundo.filas.map((f) => comoTipo(f, true)),
+  ]
   return tipos.every((t) => typeof t.id === 'string' && typeof t.nombre === 'string')
     ? ok({
         tipos,

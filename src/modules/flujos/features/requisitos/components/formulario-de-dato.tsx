@@ -1,8 +1,6 @@
 'use client'
 
 import { useRef } from 'react'
-import { Aviso } from '@/shared/ui/aviso'
-import { Button } from '@/shared/ui/button'
 import { Campo } from '@/shared/ui/campo'
 import { CampoSeleccion } from '@/shared/ui/campo-seleccion'
 import { useCambiosSinGuardar } from '@/shared/ui/cambios-del-panel'
@@ -17,14 +15,13 @@ import { clavesQueFaltan } from '../../../entities/requisitos/vista-de-fase'
 import { useFormularioDeDato } from '../hooks/use-formulario-de-dato'
 import type { RequisitosDeLaFase } from '../hooks/use-requisitos-de-la-fase'
 import { CampoDeNotas } from './campo-de-notas'
+import { PieDeFormulario } from './pie-de-formulario'
 
 type Props = {
   flujo: FlujoParaConfigurar
   requisitos: RequisitosDeLaFase
   alCerrar: () => void
 }
-
-const BOTON = 'h-11 md:h-8'
 
 // La nota bajo el selector cuando la clave elegida depende de una regla del flujo que está apagada (D1): se ofrece igual, y se dice que nadie podrá cumplirla.
 function notaDeRegla(flujo: FlujoParaConfigurar, clave: string): string | null {
@@ -95,21 +92,13 @@ export function FormularioDeDato({ flujo, requisitos, alCerrar }: Props) {
           f.escribir({ notas }, 'notas')
         }}
       />
-      {f.aviso === null ? null : <Aviso tono="peligro">{f.aviso}</Aviso>}
-      <div className="flex flex-wrap gap-2">
-        <Button type="submit" className={BOTON} disabled={f.enCurso}>
-          {f.enCurso ? 'Agregando…' : 'Agregar requisito'}
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          className={BOTON}
-          disabled={f.enCurso}
-          onClick={alCerrar}
-        >
-          Cancelar
-        </Button>
-      </div>
+      <PieDeFormulario
+        aviso={f.aviso}
+        enCurso={f.enCurso}
+        etiqueta="Agregar requisito"
+        etiquetaEnCurso="Agregando…"
+        alCerrar={alCerrar}
+      />
     </form>
   )
 }

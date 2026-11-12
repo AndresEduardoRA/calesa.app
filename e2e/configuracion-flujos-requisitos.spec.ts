@@ -13,6 +13,7 @@ import {
 import { masAccionesDe, menuDe } from './soporte/lista-de-catalogo'
 import {
   PREFIJO_DE_REQUISITO_E2E,
+  abrirForma,
   abrirInspector,
   borrarRequisitosDePrueba,
   descripcionesDeLaLista,
@@ -69,8 +70,8 @@ test('la dueña agrega dos datos, sube uno y quita el otro', async ({ page }) =>
   const formulario = inspector.getByRole('form', { name: 'Agregar requisito de dato' })
 
   // Un dato simple: nace informativo, al final de la fase.
-  await inspector.getByRole('button', { name: 'Agregar requisito' }).click()
-  await expect(page).toHaveURL(/agregar=dato/)
+  await abrirForma(inspector, 'Dato')
+  await expect(page).toHaveURL(/forma=dato/)
   await formulario.getByLabel('Dato que se pide').selectOption('vehiculo.vin')
   await formulario.getByLabel('Notas (opcional)').fill(notas('VIN'))
   await formulario.getByRole('button', { name: 'Agregar requisito' }).click()
@@ -79,7 +80,7 @@ test('la dueña agrega dos datos, sube uno y quita el otro', async ({ page }) =>
   expect(requisitosEnLaBase(fase.id)).toEqual([...antes, 'vehiculo.vin:false:'])
 
   // Con porcentaje: sin él, el motivo va junto al campo y no se llama a la base.
-  await inspector.getByRole('button', { name: 'Agregar requisito' }).click()
+  await abrirForma(inspector, 'Dato')
   await formulario.getByLabel('Dato que se pide').selectOption('pagos.umbral_pct')
   await formulario.getByLabel('Notas (opcional)').fill(notas('pagos'))
   await formulario.getByRole('button', { name: 'Agregar requisito' }).click()
@@ -125,7 +126,7 @@ test('quien sólo configura el flujo también agrega un requisito', async ({ pag
   const antes = requisitosEnLaBase(fase.id)
   await entrar(page, configuradora, { fresco: true })
   const inspector = await abrirInspector(page, fase.id)
-  await inspector.getByRole('button', { name: 'Agregar requisito' }).click()
+  await abrirForma(inspector, 'Dato')
   const formulario = inspector.getByRole('form', { name: 'Agregar requisito de dato' })
   await formulario.getByLabel('Dato que se pide').selectOption('transporte.naviera')
   await formulario.getByLabel('Notas (opcional)').fill(notas('naviera'))

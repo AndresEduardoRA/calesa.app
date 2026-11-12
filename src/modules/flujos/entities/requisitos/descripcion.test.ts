@@ -24,7 +24,9 @@ function requisito(parcial: Partial<RequisitoParaConfigurar>): RequisitoParaConf
 }
 
 const opciones: OpcionesDeRequisitos = {
-  tipos: [{ id: 't1', nombre: 'Título', formatos: ['application/pdf'], activo: true }],
+  tipos: [
+    { id: 't1', nombre: 'Título', formatos: ['application/pdf'], activo: true, delFlujo: false },
+  ],
   truncado: false,
   fases: [{ id: 'fr', nombre: 'Recibido', flujo: 'Repuestos' }],
   fasesTruncado: false,

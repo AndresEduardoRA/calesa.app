@@ -13,6 +13,8 @@ export type TipoParaRequisito = {
   nombre: string
   formatos: string[]
   activo: boolean
+  // Es de este flujo (si no, es de toda la empresa).
+  delFlujo: boolean
 }
 
 // Una fase activa del otro flujo, con el nombre de su flujo (ya dice de dónde viene).

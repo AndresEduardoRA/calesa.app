@@ -8,8 +8,14 @@ import type { TipoParaRequisito } from './opciones'
 
 const LOCALE = 'es-BO'
 const tipos: TipoParaRequisito[] = [
-  { id: 't1', nombre: 'Título', formatos: ['application/pdf', 'image/jpeg'], activo: true },
-  { id: 't2', nombre: 'Viejo', formatos: ['application/pdf'], activo: false },
+  {
+    id: 't1',
+    nombre: 'Título',
+    formatos: ['application/pdf', 'image/jpeg'],
+    activo: true,
+    delFlujo: false,
+  },
+  { id: 't2', nombre: 'Viejo', formatos: ['application/pdf'], activo: false, delFlujo: false },
 ]
 const borrador = (parcial: Partial<BorradorDeDocumento>): BorradorDeDocumento => ({
   ...BORRADOR_DE_DOCUMENTO_NUEVO,

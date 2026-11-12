@@ -39,6 +39,10 @@ const ETIQUETA_DE_FORMATO: Record<string, string> = {
   'image/webp': 'WebP',
 }
 
+// El formato como se lee («PDF»); uno que no conoce la tabla se dice tal cual.
+export const etiquetaDeFormato = (formato: string): string =>
+  ETIQUETA_DE_FORMATO[formato] ?? formato
+
 function descripcionDeDocumento(
   r: RequisitoParaConfigurar,
   opciones: OpcionesDeRequisitos | null,
@@ -46,9 +50,7 @@ function descripcionDeDocumento(
   const tipo = opciones?.tipos.find((t) => t.id === r.tipoDocumentoId)
   const nombre =
     opciones === null ? TEXTO_DE_TIPO_SIN_NOMBRE : (tipo?.nombre ?? TEXTO_DE_TIPO_QUE_YA_NO_EXISTE)
-  const formatos = r.formatos?.length
-    ? r.formatos.map((f) => ETIQUETA_DE_FORMATO[f] ?? f).join(', ')
-    : null
+  const formatos = r.formatos?.length ? r.formatos.map(etiquetaDeFormato).join(', ') : null
   return [nombre, textoDeArchivos(r.minArchivos, r.maxArchivos), formatos]
     .filter((parte) => parte !== null)
     .join(' · ')
