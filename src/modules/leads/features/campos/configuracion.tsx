@@ -31,7 +31,7 @@ import {
   type DatosDeLaEmpresa,
 } from '../../entities/campo'
 import { resumenDeEliminacion, resumenDeImpacto } from '../../entities/impacto'
-import { MOTIVO_SIN_PERMISO_LEADS } from '../../entities/motivos'
+import { MOTIVO_SIN_PERMISO_CAMPOS } from '../../entities/motivos'
 import type { esquemaCrearCampo } from './schemas/campos'
 import type { z } from 'zod'
 
@@ -44,7 +44,7 @@ const TEXTOS: TextosDelEditor = {
   vacioTitulo: 'Los leads no tienen campos activos',
   vacioDescripcion:
     'Un lead sólo llevará su nombre, su teléfono, su tipo y su origen. Agrega los datos que tu equipo necesita.',
-  motivoSinPermiso: MOTIVO_SIN_PERMISO_LEADS,
+  motivoSinPermiso: MOTIVO_SIN_PERMISO_CAMPOS,
   panelNuevo: 'Campo nuevo',
   panelDescripcionNuevo: 'Un dato propio de tus leads: prospectos y clientes llevan los mismos.',
   panelDescripcionExistente: 'Cómo se ve y se usa este dato en los leads, y quién lo recibe.',
