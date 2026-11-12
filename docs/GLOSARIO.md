@@ -306,7 +306,10 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Nota** — `notas`: bloc de notas de una unidad; la del cambio de fase apunta a su historial.
 - **Proyecto de repuestos** — `repuestos_proyectos`: un proyecto por vehículo (o externo).
 - **Ítem de repuesto** — `repuestos_items`: el repuesto que recorre el flujo de repuestos.
-- **Stock** — `repuestos_items.stock_cantidad`, `_stock_movimientos`: sobrantes disponibles.
+- **Stock** — `repuestos_items.stock_cantidad`, `_stock_movimientos`: sobrantes disponibles. Se mueve sólo por `repuesto_stock_mover` y `repuesto_stock_reasignar` (8.10); nunca negativo.
+- **Sobrante** — lo que de un ítem entra a stock (motivo `sobrante`, «Pasar a stock»): como mucho su cantidad menos lo que ya entró.
+- **Vender suelto** — sacar del stock lo vendido fuera de un proyecto (motivo `vendido`); no registra precio: el cobro es un pago del proyecto.
+- **Reasignar** — pasar unidades del stock de un ítem a otro proyecto abierto (motivo `reasignado`): nace un ítem nuevo allá, en la fase de entrada.
 - **Compra** — `repuestos_compras`: costo de un repuesto (permiso aparte).
 - **Catálogo de repuestos** — `repuestos_catalogos.catalogo` (`CATALOGOS_DE_REPUESTOS`): tipo de pieza, condición, vía de transporte o país de origen. Cada fila es un **valor** (`ValorDeCatalogo`); un valor en uso no se borra, se desactiva. La clave `modo_transporte` se muestra como «Vía de transporte».
 - **Cotizador de repuestos** — `repuestos_cotizador_config`, `_tramos_logistica`, `_cajas`, `repuestos_cotizaciones`: fórmula propia importado/local con tramos y cajas.

@@ -55,6 +55,8 @@ async function Conversaciones({ parametros }: { parametros: PageProps<'/chat'>['
           usuarioId={sesion.usuarioId}
           zona={zona}
           puedeModerar={puede(sesion.permisos, 'chat.moderar')}
+          puedeAsignar={puede(sesion.permisos, 'agenda.tareas.asignar')}
+          puedePublicar={puede(sesion.permisos, 'agenda.eventos.publicar')}
         />
       </div>
     </div>

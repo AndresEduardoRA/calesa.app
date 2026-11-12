@@ -6,12 +6,13 @@ Mensajería interna: conversaciones directas (deduplicadas), grupos y canal glob
 
 - Entra: mensajes del usuario, comandos `/tarea` y `/evento`, menciones; señales realtime de Supabase.
 - Sale: `abrirConversacionCon(usuarioId)` (CTA «contactar al dueño del lead»), `<WidgetChat>`, `noLeidos()`. Lo consumen `leads` (CTA), `app/` (widget), `tablero`.
-- Depende de: `agenda` (tareas/eventos), `vehiculos`, `leads`, `cotizaciones` (fichas de mención) y `buscador` (las lecturas del selector `#`; `leads/client` da `interpretarBusqueda`).
+- Depende de: `agenda` (por `agenda/client.ts`: `SelectorDePersonas`, las reglas puras del formulario de tarea y evento, `leerPersonasParaTarea` y la action `completarTarea`), `vehiculos`, `leads`, `cotizaciones` (fichas de mención) y `buscador` (las lecturas del selector `#`; `leads/client` da `interpretarBusqueda`).
 
 ## Archivos clave
 
 - `entities/conversaciones.ts` — la fila de `chat_conversaciones` validada, cursor, fusión de páginas, `textoDeNoLeidos` («99+») y `?c=`; puro.
-- `entities/menciones.ts` — el parser del cuerpo (`#[<tipo>:<uuid>]` → texto y menciones, referencias únicas hasta 20, `?mencion=`), puro. Desde 7.10-2 también arma: `consultaAbierta` (el `#` tras el cursor: una palabra sola), `etiquetaDeMencion`/`etiquetaLibre` y `aCuerpoConTokens` (`#Nombre` → `#[clase:id]`; las `menciones` salen del cuerpo final; más de 20 = `demasiadas`). `/comando` llega con 7.10-3.
+- `entities/menciones.ts` — el parser del cuerpo (`#[<tipo>:<uuid>]` → texto y menciones, referencias únicas hasta 20, `?mencion=`), puro. Desde 7.10-2 también arma: `consultaAbierta` (el `#` tras el cursor: una palabra sola), `etiquetaDeMencion`/`etiquetaLibre` y `aCuerpoConTokens` (`#Nombre` → `#[clase:id]`; las `menciones` salen del cuerpo final; más de 20 = `demasiadas`).
+  Desde 7.10-3, `comandoDelTexto` (`/tarea` o `/evento` al principio del texto, seguido de un blanco o del fin; el resto, cortado en el largo del título, es el título de partida).
   `entities/referencias.ts` — lo que apunta una mención o una ficha ya validado (`visible`, `sin_acceso`, `eliminado`; lo no leído no está en el mapa) y `Mensaje.ficha`; puro.
 - Menciones (7.10-1): `infra/referencias.client.ts` lee, con la sesión de quien mira, **una lectura por clase y por tanda de 100** (`leads_vista_por_ids`, `vehiculos`, `cotizaciones`, `perfiles`; sin teléfono, privados ni montos).
   `features/menciones/`: `useReferenciasDelHilo` (sólo lo no resuelto; un fallo deja «No se pudo cargar · Reintentar» en el chip), `ChipDeMencion` (botón si se ve; «No tienes acceso a este lead», «Eliminado»; la persona no abre nada),
@@ -19,6 +20,10 @@ Mensajería interna: conversaciones directas (deduplicadas), grupos y canal glob
 - Selector `#` (7.10-2): `features/menciones/hooks/use-busqueda-de-menciones.ts` (250 ms, `AbortController`, `buscarLeads|Vehiculos|Cotizaciones` de `@/modules/buscador/client` en paralelo más `leerPersonas`; `agruparResultados` corta en 5 por clase),
   `components/selector-de-menciones.tsx` (listbox dentro del formulario, con `diferido()`; estados: mínimo, buscando, vacío, error con «Reintentar», parcial) y `use-menciones-en-redactor.ts` (lo elegido, la opción activa, Escape y el teclado: Enter y Tab eligen sólo con opciones).
   `features/mensajes/hooks/use-redactor.ts` lleva el texto, el cursor y el envío; el campo guarda `#Nombre` y el token se arma al enviar (`menciones` por la action y `p_menciones`; reintentar reusa id, cuerpo y menciones; editar manda las del cuerpo).
+- Fichas de tarea y evento (7.10-3): `entities/fichas.ts` (filas validadas, `EstadoDeFicha`: `visible`, `no_disponible`, `eliminada`; `puedeCompletarDesdeFicha`, `estaVencida`; puro) e `infra/fichas.client.ts` (una lectura por clase y por tanda de 100 ids más una de `perfiles`: `id, nombre`).
+  `features/fichas/`: `useFichasDelHilo` (sólo lo no resuelto; `marcarCompletada` y `releer`), `FichaDelMensaje` (cargando, «No se pudo cargar · Reintentar», «Tarea|Evento no disponible», «Eliminada», visible), `FichaDeTarea` (el responsable ve «Marcar como hecha» o «Reabrir», vía `completarTarea` de agenda) y `FichaDeEvento`.
+  Crear: `infra/fichas-escritura.ts` (`mensaje_tarea_crear` y `mensaje_evento_crear`; el `hint` es el campo) y las actions `crearTareaDelChat` y `crearEventoDelChat`. `/tarea` y `/evento` se reconocen **al enviar** (aviso bajo el campo), vacían el campo y abren `?panel=tarea|evento`
+  (`usePanelesDeFicha`, `PanelDeTarea`, `PanelDeEvento`, diferidos; el título de partida va en estado y cada apertura es un formulario nuevo). Los invitados se buscan entre los miembros (`infra/miembros.client.ts`).
 - `infra/consultas.ts` — la RPC de la lista y la lectura de una conversación (sólo si es mía: fila propia de `conversaciones_miembros`); sus pares
   `conversaciones*.ts` (servidor) y `*.client.ts` (navegador). `infra/realtime.client.ts` — tres señales (`mensajes` sin filtro y mis filas de miembro para la lista; `mensajes` de la conversación abierta
   para el hilo; sin `DELETE`); la fila es señal, se rehidrata por la RPC.
@@ -67,6 +72,7 @@ RPC (`security definer`, desde 7.08-1): `chat_directa`, `chat_global_entrar`, `c
 
 ## Ojo
 
+- `/tarea` y `/evento` se reconocen al enviar, no al teclear. Un evento con invitados es «para seleccionados» y la base lo exige con `agenda.eventos.publicar`: sin ese permiso nace **privado y sin invitados**, y los demás miembros leen «Evento no disponible». La ficha de una tarea no se refresca por Realtime: si otra persona la completa, se ve al releer el hilo. `?panel=tarea|evento` no toca `?c=`.
 - `?mencion=` no es `?panel=`: se lee con `useQueryState` y no cierra ni cambia la conversación abierta. Editar un mensaje con tokens los muestra tal cual en el editor; `editar` manda `p_menciones` con las que quedan en el texto (borrar un token a mano la quita). El campo del redactor es un `<textarea>` plano: `#Nombre` no se protege como bloque y, si se edita, queda como texto sin mención.
 - La señal de `mensajes` de la lista incluye lo propio (mueve mi fila); el hilo relee los 20 más nuevos y funde por `id`. «No enviado · Reintentar» reusa el `id`: la base responde `repetido`.
 - Editar y borrar esperan a la base y la señal `UPDATE` los refleja; un mensaje más viejo que los 20 más nuevos no se refresca en la otra sesión. `mensajes → mensajes` no se embebe en PostgREST (400 o arreglo): la cita se lee aparte.

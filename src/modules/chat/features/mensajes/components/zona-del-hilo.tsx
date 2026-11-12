@@ -21,11 +21,21 @@ type Props = {
   zona: string
   // `chat.moderar`: puede borrar mensajes de otras personas.
   puedeModerar: boolean
+  puedeAsignar: boolean
+  puedePublicar: boolean
 }
 
 // El lado derecho de `/chat`: el encabezado y el hilo de la conversación abierta. El `key` de quien lo usa lo reinicia al cambiar de
 // conversación y el foco pasa al encabezado.
-export function ZonaDelHilo({ idSolicitado, lectura, usuarioId, zona, puedeModerar }: Props) {
+export function ZonaDelHilo({
+  idSolicitado,
+  lectura,
+  usuarioId,
+  zona,
+  puedeModerar,
+  puedeAsignar,
+  puedePublicar,
+}: Props) {
   const router = useRouter()
   const encabezado = useRef<HTMLHeadingElement>(null)
   const hayHilo = lectura?.ok === true && lectura.data !== null
@@ -82,6 +92,8 @@ export function ZonaDelHilo({ idSolicitado, lectura, usuarioId, zona, puedeModer
         usuarioId={usuarioId}
         zona={zona}
         puedeModerar={puedeModerar}
+        puedeAsignar={puedeAsignar}
+        puedePublicar={puedePublicar}
       />
     </section>
   )
