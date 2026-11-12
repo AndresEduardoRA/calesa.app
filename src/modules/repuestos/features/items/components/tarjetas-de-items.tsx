@@ -20,7 +20,7 @@ function Campo({ etiqueta, children }: { etiqueta: string; children: ReactNode }
   )
 }
 
-// La hoja en el celular (8.09-2, C8): una tarjeta por ítem con los mismos controles de la fila de la tabla, uno bajo otro; la fase y «Eliminar» al pie. Nada ensancha la página: `min-w-0` en cada hijo.
+// La hoja en el celular (8.09-2, C8): una tarjeta por ítem con los mismos controles de la fila de la tabla, uno bajo otro; la fase, «Imágenes» y «Eliminar» al pie. Nada ensancha la página: `min-w-0` en cada hijo.
 export function TarjetasDeItems({ filas, contexto, filaNueva }: Props) {
   return (
     <ul className="grid grid-cols-[minmax(0,1fr)] gap-2">
@@ -46,7 +46,10 @@ export function TarjetasDeItems({ filas, contexto, filaNueva }: Props) {
             <Campo etiqueta="Notas">{c.notas}</Campo>
             <div className="flex flex-wrap items-center justify-between gap-2">
               {c.fase}
-              {c.eliminar}
+              <div className="flex flex-wrap gap-1">
+                {c.imagenes}
+                {c.eliminar}
+              </div>
             </div>
           </li>
         )

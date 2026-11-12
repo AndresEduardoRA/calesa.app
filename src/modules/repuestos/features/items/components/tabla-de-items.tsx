@@ -32,7 +32,7 @@ export function TablaDeItems({ filas, contexto, filaNueva }: Props) {
           <TableHead>Tracking</TableHead>
           <TableHead>Notas</TableHead>
           <TableHead>Fase</TableHead>
-          {contexto.editable ? <TableHead>Acciones</TableHead> : null}
+          <TableHead>Acciones</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -53,14 +53,19 @@ export function TablaDeItems({ filas, contexto, filaNueva }: Props) {
               <TableCell className="min-w-36 align-top">{c.tracking}</TableCell>
               <TableCell className="min-w-48 align-top">{c.notas}</TableCell>
               <TableCell className="align-top">{c.fase}</TableCell>
-              {contexto.editable ? <TableCell className="align-top">{c.eliminar}</TableCell> : null}
+              <TableCell className="align-top">
+                <div className="flex flex-wrap gap-1">
+                  {c.imagenes}
+                  {c.eliminar}
+                </div>
+              </TableCell>
             </TableRow>
           )
         })}
         {filaNueva ? (
           <TableRow data-fila-de-item="nueva">
             <TableCell className="min-w-64 align-top">{filaNueva}</TableCell>
-            <TableCell colSpan={contexto.editable ? 11 : 10} />
+            <TableCell colSpan={11} />
           </TableRow>
         ) : null}
       </TableBody>

@@ -1,6 +1,6 @@
 'use client'
 
-import { Trash2Icon } from 'lucide-react'
+import { ImageIcon, Trash2Icon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Button } from '@/shared/ui/button'
 import { Monto } from '@/shared/ui/monto'
@@ -40,6 +40,7 @@ export type ControlesDeItem = {
   tracking: ReactNode
   notas: ReactNode
   fase: ReactNode
+  imagenes: ReactNode
   eliminar: ReactNode
 }
 
@@ -167,6 +168,26 @@ function monedaDeItem(fila: FilaDeItem, c: ContextoDeLaHoja) {
   )
 }
 
+// «Imágenes» está en toda fila, también para quien sólo ve (8.09-3, C14, D70): el panel decide qué deja hacer.
+function imagenesDeItem(fila: FilaDeItem, c: ContextoDeLaHoja) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      data-imagenes-item={fila.id}
+      aria-label={`Imágenes del ítem ${fila.descripcion}`}
+      className="min-h-11 md:min-h-9"
+      onClick={() => {
+        c.alPedirImagenes(fila.id)
+      }}
+    >
+      <ImageIcon aria-hidden />
+      Imágenes
+    </Button>
+  )
+}
+
 function eliminarDeItem(fila: FilaDeItem, c: ContextoDeLaHoja) {
   return c.editable ? (
     <Button
@@ -198,6 +219,7 @@ export function controlesDeItem(fila: FilaDeItem, c: ContextoDeLaHoja): Controle
     tracking: textoDeItem(fila, c, 'tracking'),
     notas: textoDeItem(fila, c, 'notas'),
     fase: <FaseDelItemInsignia fase={fila.fase} />,
+    imagenes: imagenesDeItem(fila, c),
     eliminar: eliminarDeItem(fila, c),
   }
 }

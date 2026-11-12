@@ -11,6 +11,7 @@ import {
 } from '../../../entities/items/hoja'
 import type { FilaDeItem } from '../../../entities/nucleo/item'
 import { useEliminarItemPorUrl } from '../hooks/use-eliminar-item-por-url'
+import { useImagenesPorUrl } from '../hooks/use-imagenes-por-url'
 import { useHojaDeItems } from '../hooks/use-hoja-de-items'
 import {
   AvisoDeCerrado,
@@ -19,7 +20,7 @@ import {
   HojaVacia,
 } from './avisos-de-la-hoja'
 import type { ContextoDeLaHoja } from './contexto-de-la-hoja'
-import { ConfirmarEliminarItemDiferido } from './diferidos'
+import { ConfirmarEliminarItemDiferido, DrawerDeImagenesDiferido } from './diferidos'
 import { FilaNueva } from './fila-nueva'
 import { TablaDeItems } from './tabla-de-items'
 import { TarjetasDeItems } from './tarjetas-de-items'
@@ -57,7 +58,7 @@ function Vistas({
   )
 }
 
-// La hoja de ítems de un proyecto (8.09-2, C8 a C13): la tabla desde 768 px y, debajo, una tarjeta por ítem, en una sola vista, editable celda a celda con `repuestos.editar` y el proyecto abierto; sin
+// La hoja de ítems de un proyecto (8.09-2, C8 a C13; imágenes: 8.09-3): la tabla desde 768 px y, debajo, una tarjeta por ítem, en una sola vista, editable celda a celda con `repuestos.editar` y el proyecto abierto; sin
 // eso, de lectura. Vacío de primera vez, aviso del proyecto cerrado, tope de 200 (D54: con 200 no se dibuja la fila nueva) y el conflicto con «Recargar». No filtra ni pagina: hasta 200 filas.
 export function HojaDeItems(props: PropsDeLaHoja) {
   const editable = props.puedeEditar && !props.cerrado
@@ -70,6 +71,9 @@ export function HojaDeItems(props: PropsDeLaHoja) {
   const eliminacion = useEliminarItemPorUrl(hoja.filas, editable)
   const montarEliminar = useAbiertoAlgunaVez(eliminacion.abierto)
   const aEliminar = eliminacion.item
+  const imagenes = useImagenesPorUrl(hoja.filas)
+  const montarImagenes = useAbiertoAlgunaVez(imagenes.abierto)
+  const deImagenes = imagenes.item
 
   const contexto: ContextoDeLaHoja = {
     editable,
@@ -81,6 +85,7 @@ export function HojaDeItems(props: PropsDeLaHoja) {
     alConfirmarNumero: hoja.alConfirmarNumero,
     alReiniciar: hoja.alReiniciar,
     alPedirEliminar: eliminacion.abrir,
+    alPedirImagenes: imagenes.abrir,
   }
   const filaNueva = cabeOtro(editable, hoja.filas, props.hayMas) ? (
     <FilaNueva alAgregar={hoja.agregar} />
@@ -108,6 +113,17 @@ export function HojaDeItems(props: PropsDeLaHoja) {
           focoAlCerrar={() => focoDeEliminar(aEliminar)}
         />
       ) : null}
+      {montarImagenes ? (
+        <DrawerDeImagenesDiferido
+          abierto={imagenes.abierto}
+          alCerrar={imagenes.cerrar}
+          apertura={imagenes.apertura}
+          item={deImagenes}
+          editable={editable}
+          cerrado={props.cerrado}
+          focoAlCerrar={() => focoDeImagenes(deImagenes)}
+        />
+      ) : null}
     </section>
   )
 }
@@ -115,4 +131,9 @@ export function HojaDeItems(props: PropsDeLaHoja) {
 // Al cerrar el diálogo el foco vuelve al botón «Eliminar» de esa fila (la URL lo abrió y el botón pudo redibujarse).
 function focoDeEliminar(item: FilaDeItem | null): HTMLElement | true {
   return (item && document.querySelector<HTMLElement>(`[data-eliminar-item="${item.id}"]`)) ?? true
+}
+
+// Al cerrar el panel el foco vuelve al botón «Imágenes» de esa fila (la URL lo abrió y el botón pudo redibujarse).
+function focoDeImagenes(item: FilaDeItem | null): HTMLElement | true {
+  return (item && document.querySelector<HTMLElement>(`[data-imagenes-item="${item.id}"]`)) ?? true
 }

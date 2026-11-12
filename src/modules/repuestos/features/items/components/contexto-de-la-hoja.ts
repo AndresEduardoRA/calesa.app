@@ -14,4 +14,6 @@ export type ContextoDeLaHoja = {
   alConfirmarNumero: (id: string, valor: number | null) => void
   alReiniciar: (id: string) => void
   alPedirEliminar: (itemId: string) => void
+  // Abre el panel de imágenes del ítem (`?panel=imagenes&item=<id>`, 8.09-3): también para quien sólo ve (D70).
+  alPedirImagenes: (itemId: string) => void
 }
