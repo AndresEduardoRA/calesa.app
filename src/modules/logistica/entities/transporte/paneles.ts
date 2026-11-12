@@ -1,8 +1,10 @@
 // Las claves de URL de `/logistica/embarques` (6.08-3): la vista (`?grupo=embarques|contenedores`) y el resumen abierto (`?booking=<clave>` en embarques, `?contenedor=<clave>` en
-// contenedores: las mismas claves que ya usa el lote de `mover`). 6.08-4 suma aquí el panel de «Editar grupo».
+// contenedores: las mismas claves que ya usa el lote de `mover`) y el panel de «Editar grupo» (6.08-4).
 export const CLAVE_DE_GRUPO = 'grupo'
 export const CLAVE_DE_BOOKING = 'booking'
 export const CLAVE_DE_CONTENEDOR = 'contenedor'
+// El valor de `?panel=` que abre el formulario de «Editar grupo»; tapa al resumen, no convive con él.
+export const PANEL_EDITAR_GRUPO = 'editar-grupo'
 
 export const VISTAS_DE_GRUPOS = ['embarques', 'contenedores'] as const
 export type VistaDeGrupos = (typeof VISTAS_DE_GRUPOS)[number]
