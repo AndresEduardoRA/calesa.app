@@ -339,15 +339,14 @@ export function deLaFecha(cursor: Cursor): { fecha: string; id: string } | null 
   return { fecha, id: cursor.id }
 }
 
-/** La página que se muestra de lo leído (hasta una fila más que el tamaño). Sólo «siguiente»: `anterior` es siempre nulo. */
+/** La página que se muestra de lo leído (hasta una fila más que el tamaño). Sólo «siguiente»: la base camina hacia adelante, así que `anterior` es siempre nulo. */
 export function paginaDeDinero<Fila extends { id: string; fecha: string }>(
   leidas: readonly Fila[],
-  cursor: Cursor | null,
 ): Pagina<Fila> {
   const pagina = armarPaginaPor(
     leidas,
     TAMANO_DE_PAGINA_POR_DEFECTO,
-    cursor,
+    null,
     (fila) => `${fila.fecha}T00:00:00Z`,
   )
   return { ...pagina, anterior: null }

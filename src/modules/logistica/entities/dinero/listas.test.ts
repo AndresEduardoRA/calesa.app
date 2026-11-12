@@ -156,11 +156,11 @@ describe('el cursor de fecha', () => {
       id: `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`,
       fecha: '2026-11-10',
     }))
-    const pagina = paginaDeDinero(filas, leerCursor(cursorDeFila(filas[0]!)))
+    const pagina = paginaDeDinero(filas)
     expect(pagina.filas).toHaveLength(TAMANO_DE_PAGINA_POR_DEFECTO)
     expect(pagina.siguiente).not.toBeNull()
     expect(pagina.anterior).toBeNull()
-    expect(paginaDeDinero(filas.slice(0, TAMANO_DE_PAGINA_POR_DEFECTO), null).siguiente).toBeNull()
+    expect(paginaDeDinero(filas.slice(0, TAMANO_DE_PAGINA_POR_DEFECTO)).siguiente).toBeNull()
   })
 })
 
