@@ -1,8 +1,11 @@
 import type { ComponentType } from 'react'
 import type { FaseParaConfigurar, FlujoParaConfigurar } from '../../../entities/flujo'
+import type { RolLeido } from '../../../entities/lectura-de-fase'
 
 type DelFlujo = { flujo: FlujoParaConfigurar }
 type DeUnaFase = { flujo: FlujoParaConfigurar; fase: FaseParaConfigurar }
+// Las salidas nombran roles: los lee `src/app` (`flujos` no importa `equipo`) y los entrega el inspector (5.06).
+type DeUnaFaseConRoles = DeUnaFase & { roles: readonly RolLeido[] }
 
 // Los huecos de la pantalla de flujos (5.02): cada área de `flujos` llena el suyo en su paso, sin editar la pantalla. Son componentes **de cliente**
 // opcionales (D14): lo que cruza de `src/app` a la pantalla sólo es serializable si lo es; vacío = nada dibujado. Los junta `src/app/(app)/configuracion/flujos/huecos.ts`.
@@ -18,7 +21,7 @@ export type HuecosDelFlujo = {
   // Dentro del inspector, bajo lo leído de cada bloque.
   bloques?: {
     datos?: ComponentType<DeUnaFase>
-    salidas?: ComponentType<DeUnaFase>
+    salidas?: ComponentType<DeUnaFaseConRoles>
     requisitos?: ComponentType<DeUnaFase>
   }
 }
