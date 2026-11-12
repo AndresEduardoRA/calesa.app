@@ -12,4 +12,14 @@ export const REGISTRO: Record<string, RegistroDeDrawer> = {
     formulario: 'src/modules/logistica/features/dinero/components/drawer-de-gasto.tsx',
     mecanismo: 'contexto',
   },
+  // El formulario de un pago de la unidad (6.11-2): `?panel=pago&pago=<id|nuevo>`.
+  'src/modules/logistica/features/dinero/components/drawer-de-pago.tsx': {
+    formulario: 'src/modules/logistica/features/dinero/components/drawer-de-pago.tsx',
+    mecanismo: 'contexto',
+  },
+  // Anular un pago confirmado, con su motivo (6.11-2): `?panel=anular-pago&pago=<id>`.
+  'src/modules/logistica/features/dinero/components/drawer-de-anulacion.tsx': {
+    formulario: 'src/modules/logistica/features/dinero/components/drawer-de-anulacion.tsx',
+    mecanismo: 'contexto',
+  },
 }
