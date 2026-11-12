@@ -26,7 +26,7 @@ const CAMPO: CampoDeLead = {
   activo: true,
   actualizadoEn: '2026-10-14T20:00:00+00:00',
 }
-const IMPACTO = { total: 5, conValor: 3, sinValor: 2, porOpcion: { leo: 3 } }
+const IMPACTO = { total: 5, conValor: 3, sinValor: 2, porOpcion: { leo: 3 }, fueraDeRango: null }
 
 describe('resumenDeImpacto', () => {
   it('lo del motor, dicho con «lead»', () => {

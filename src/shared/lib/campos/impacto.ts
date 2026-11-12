@@ -1,6 +1,8 @@
 // Lo que cambiaría una edición del layout, contado por la base antes de hacerla, y cómo se dice.
 import { z } from 'zod'
+import { conteoAcotado, conteoEnFrase } from '../conteo'
 import { opcionesQuitadas, type CambiosComunes } from './cambios'
+import { rangoDe, rangoSeAcota, type Rango } from './rango'
 import type { CampoBase, OpcionDeCampo } from './tipos'
 
 export type ImpactoDeCampo = {
@@ -10,13 +12,19 @@ export type ImpactoDeCampo = {
   sinValor: number
   // Cuántos registros tienen cada opción.
   porOpcion: Record<string, number>
+  // Con un valor fuera del rango propuesto (o del vigente), acotado: la base corta en 51 (más de 50). Null si no aplica.
+  fueraDeRango: number | null
 }
+
+// El tope del conteo de fuera de rango: la base cuenta hasta uno más.
+const TOPE_FUERA_DE_RANGO = 50
 
 const esquemaImpacto = z.object({
   total: z.number(),
   con_valor: z.number(),
   sin_valor: z.number(),
   por_opcion: z.record(z.string(), z.number()),
+  fuera_de_rango: z.number().nullable().optional(),
 })
 
 export function impactoDesde(json: unknown): ImpactoDeCampo {
@@ -26,6 +34,7 @@ export function impactoDesde(json: unknown): ImpactoDeCampo {
     conValor: impacto.con_valor,
     sinValor: impacto.sin_valor,
     porOpcion: impacto.por_opcion,
+    fueraDeRango: impacto.fuera_de_rango ?? null,
   }
 }
 
@@ -44,12 +53,31 @@ const contados = (cantidad: number, sustantivo: Sustantivo) =>
 
 type DelCampo = Pick<CampoBase, 'tipo' | 'requerido' | 'etiqueta'> & {
   opciones: readonly OpcionDeCampo[]
+} & Partial<Rango>
+
+// Un rango que se acota con valores ya cargados fuera: avisa y no bloquea (el dato se conserva; la base sólo valida lo que cambia).
+function avisoDeRango(
+  campo: DelCampo,
+  cambios: object,
+  impacto: ImpactoDeCampo,
+  sustantivo: Sustantivo,
+): string | null {
+  const vigente = { minimo: campo.minimo ?? null, maximo: campo.maximo ?? null }
+  if (!rangoSeAcota(vigente, rangoDe(cambios)) || !impacto.fueraDeRango) {
+    return null
+  }
+  const conteo = conteoAcotado(impacto.fueraDeRango, TOPE_FUERA_DE_RANGO)
+  if (!conteo.hayMas && conteo.n === 1) {
+    return `1 ${sustantivo.singular} tiene un valor fuera de este rango. Lo conserva; el rango rige cuando alguien cambie ese dato.`
+  }
+  const cuantos = conteoEnFrase(conteo)
+  return `${cuantos.charAt(0).toUpperCase()}${cuantos.slice(1)} ${sustantivo.plural} tienen un valor fuera de este rango. Lo conservan; el rango rige cuando alguien cambie ese dato.`
 }
 
 // Dice, con los números, qué le pasa a lo ya cargado si se hace este cambio.
 export function resumenDeImpacto(
   campo: DelCampo,
-  cambios: CambiosComunes,
+  cambios: CambiosComunes & Partial<Rango>,
   impacto: ImpactoDeCampo,
   sustantivo: Sustantivo,
 ): ResumenDeImpacto {
@@ -79,6 +107,11 @@ export function resumenDeImpacto(
     avisos.push(
       `Hay ${sustantivo.plural} con opciones que sacas: ${detalle}. Conservan el valor, pero ya no se podrá elegir.`,
     )
+  }
+
+  const fuera = avisoDeRango(campo, cambios, impacto, sustantivo)
+  if (fuera) {
+    avisos.push(fuera)
   }
 
   return { bloquea, avisos }

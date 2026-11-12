@@ -88,7 +88,9 @@ function ediciones(parcial: Partial<EdicionesDeCampos<Cambios, Nuevo>> = {}) {
     mover: vi.fn(listo),
     eliminar: vi.fn(listo),
     vistaPrevia: vi.fn(() =>
-      Promise.resolve(ok({ total: 0, conValor: 0, sinValor: 0, porOpcion: {} })),
+      Promise.resolve(
+        ok({ total: 0, conValor: 0, sinValor: 0, porOpcion: {}, fueraDeRango: null }),
+      ),
     ),
     enCurso: false,
     errores: { crear: undefined },

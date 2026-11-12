@@ -11,7 +11,13 @@ const CAMPO = {
     { clave: 'leo', etiqueta: 'Leo' },
   ],
 } as const
-const IMPACTO = { total: 5, conValor: 3, sinValor: 2, porOpcion: { leo: 3, aries: 0 } }
+const IMPACTO = {
+  total: 5,
+  conValor: 3,
+  sinValor: 2,
+  porOpcion: { leo: 3, aries: 0 },
+  fueraDeRango: null,
+}
 
 describe('impactoDesde', () => {
   it('lee lo que cuenta la base', () => {
@@ -20,6 +26,7 @@ describe('impactoDesde', () => {
       conValor: 3,
       sinValor: 2,
       porOpcion: { leo: 3 },
+      fueraDeRango: null,
     })
   })
 
@@ -74,11 +81,57 @@ describe('resumenDeImpacto', () => {
   })
 })
 
+describe('resumenDeImpacto con rango', () => {
+  const PUNTAJE = {
+    tipo: 'numero',
+    requerido: false,
+    etiqueta: 'Puntaje',
+    opciones: [],
+    minimo: 1,
+    maximo: 10,
+  } as const
+  const fuera = (n: number | null) => ({ ...IMPACTO, fueraDeRango: n })
+
+  it('lee el conteo de fuera de rango; sin él, null', () => {
+    expect(
+      impactoDesde({ total: 1, con_valor: 1, sin_valor: 0, por_opcion: {} }).fueraDeRango,
+    ).toBeNull()
+    expect(
+      impactoDesde({ total: 1, con_valor: 1, sin_valor: 0, por_opcion: {}, fuera_de_rango: 51 })
+        .fueraDeRango,
+    ).toBe(51)
+  })
+
+  it('bajar el máximo con uno fuera avisa en singular y no bloquea', () => {
+    expect(resumenDeImpacto(PUNTAJE, { maximo: 5 }, fuera(1), LEAD)).toEqual({
+      bloquea: false,
+      avisos: [
+        '1 lead tiene un valor fuera de este rango. Lo conserva; el rango rige cuando alguien cambie ese dato.',
+      ],
+    })
+  })
+
+  it('con varios, en plural; con el tope de la base, «más de 50»', () => {
+    expect(resumenDeImpacto(PUNTAJE, { minimo: 3 }, fuera(7), LEAD).avisos[0]).toBe(
+      '7 leads tienen un valor fuera de este rango. Lo conservan; el rango rige cuando alguien cambie ese dato.',
+    )
+    const tope = resumenDeImpacto(PUNTAJE, { maximo: 5 }, fuera(51), LEAD)
+    expect(tope.avisos[0]).toMatch(/^Más de 50 leads tienen un valor fuera de este rango\./)
+    expect(tope.bloquea).toBe(false)
+  })
+
+  it('sin nadie fuera, o si el rango no se acota, no dice nada', () => {
+    expect(resumenDeImpacto(PUNTAJE, { maximo: 5 }, fuera(0), LEAD).avisos).toEqual([])
+    expect(resumenDeImpacto(PUNTAJE, { maximo: 5 }, fuera(null), LEAD).avisos).toEqual([])
+    expect(resumenDeImpacto(PUNTAJE, { maximo: 20 }, fuera(3), LEAD).avisos).toEqual([])
+  })
+})
+
 describe('resumenDeEliminacion', () => {
   it('con datos bloquea y manda a desactivar', () => {
     const resumen = resumenDeEliminacion(
       CAMPO,
-      { total: 5, conValor: 1, sinValor: 4, porOpcion: {} },
+      { total: 5, conValor: 1, sinValor: 4, porOpcion: {}, fueraDeRango: null },
       LEAD,
     )
     expect(resumen.bloquea).toBe(true)
@@ -88,7 +141,7 @@ describe('resumenDeEliminacion', () => {
   it('sin datos avisa que no se deshace', () => {
     const resumen = resumenDeEliminacion(
       CAMPO,
-      { total: 5, conValor: 0, sinValor: 5, porOpcion: {} },
+      { total: 5, conValor: 0, sinValor: 5, porOpcion: {}, fueraDeRango: null },
       LEAD,
     )
     expect(resumen.bloquea).toBe(false)
