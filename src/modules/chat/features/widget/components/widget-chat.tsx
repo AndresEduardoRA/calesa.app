@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import { useRef, useState } from 'react'
+import { useVueltaDeLaRed } from '@/shared/ui/use-vuelta-de-la-red'
 import { useAlDescansar } from '../hooks/use-al-descansar'
 import { useNoLeidos } from '../hooks/use-no-leidos'
 import { BurbujaDelWidget } from './burbuja-del-widget'
@@ -21,6 +22,9 @@ type Props = {
 export function WidgetChat({ usuarioId, zona, puedeModerar }: Props) {
   const ruta = usePathname()
   const descansa = useAlDescansar()
+  // Pedida sin red, la suscripción queda en «Sin conexión», con su aviso fijo encima de la pantalla: al volver la red se monta
+  // de nuevo y se suscribe sola, como la campana.
+  const vuelta = useVueltaDeLaRed()
   const noLeidos = useNoLeidos()
   const [abierto, setAbierto] = useState(false)
   const burbuja = useRef<HTMLButtonElement>(null)
@@ -34,7 +38,7 @@ export function WidgetChat({ usuarioId, zona, puedeModerar }: Props) {
   return (
     <>
       {/* También en `/chat`: la barra lateral lee el mismo contador. */}
-      {descansa ? <SuscripcionDeNoLeidosDiferida usuarioId={usuarioId} /> : null}
+      {descansa ? <SuscripcionDeNoLeidosDiferida key={vuelta} usuarioId={usuarioId} /> : null}
       {enChat ? null : (
         <>
           <BurbujaDelWidget

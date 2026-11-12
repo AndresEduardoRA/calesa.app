@@ -63,6 +63,16 @@ export const REGISTRO: Record<string, ConfirmarConUrl> = {
     abre: 'src/modules/repuestos/features/catalogos/hooks/use-eliminar-valor-por-url.ts',
     senal: 'PANEL_ELIMINAR_VALOR',
   },
+  // `?panel=aceptar-cotizacion` (8.12-4).
+  'src/modules/repuestos/features/cotizador/components/confirmar-aceptar.tsx': {
+    abre: 'src/modules/repuestos/features/cotizador/hooks/use-confirmacion-de-cotizacion-por-url.ts',
+    senal: 'PANEL_ACEPTAR_COTIZACION',
+  },
+  // `?panel=anular-cotizacion` (8.12-4).
+  'src/modules/repuestos/features/cotizador/components/confirmar-anular.tsx': {
+    abre: 'src/modules/repuestos/features/cotizador/hooks/use-confirmacion-de-cotizacion-por-url.ts',
+    senal: 'PANEL_ANULAR_COTIZACION',
+  },
   // `?panel=eliminar-item&item=<id>` (8.09-2).
   'src/modules/repuestos/features/items/components/confirmar-eliminar-item.tsx': {
     abre: 'src/modules/repuestos/features/items/hooks/use-eliminar-item-por-url.ts',

@@ -44,6 +44,23 @@ Proyectos de repuestos por vehículo (o externos), ítems que recorren el flujo 
   con tope 20 y tramos y cajas con tope 200) y las monedas activas, y dibuja `<ConfiguracionDelCotizador>` (por `pantallas/cotizador-configuracion.ts`). Las
   actions `publicarConfiguracion`, `guardarTramo` y `guardarCaja` (`repuestos.configurar` con `puede()` antes) no salen por los barriles. Los modales de tramo y
   caja van en la URL (`?panel=tramo&tramo=<id|nuevo>&moneda=`, ídem `caja`).
+- **Cotizaciones de un proyecto** (8.12-3, área `cotizador`): la pestaña «Cotizaciones» de `/repuestos/[id]` (`?pestana=cotizaciones`) sólo existe con
+  `repuestos.cotizar` (quien sólo tiene `repuestos.costos.ver` no la ve, D30). La lee `seccion-cotizaciones.tsx` al abrirla con `leerCotizacionesDelProyecto`
+  (tope 50, por `repuestos_cotizaciones_proyecto_id_idx`) y dibuja `<CotizacionesDelProyecto>` (por `pantallas/cotizador.ts`): «Nueva cotización» con la moneda en
+  la misma barra (la action `crearCotizacion`, `repuestos.cotizar` y `repuestos.ver` con `puede()` antes, no sale por los barriles; el id se renueva al crear y al
+  cambiar la moneda) y la lista. La hoja es `/repuestos/[id]/cotizaciones/[cotizacion]` con `leerCotizacion(proyectoId, id)` y `<HojaDeLectura>` (por
+  `pantallas/cotizador-cotizacion.ts`): sólo lectura, los montos que guardó la base (nada se recalcula).
+- **La hoja editable** (8.12-4): una borrador con el proyecto abierto y el snapshot válido dibuja `<HojaEditable key={actualizadoEn}>` (por
+  `pantallas/cotizador-cotizacion.ts`); los ítems para «Agregar desde un ítem» los lee la página con `leerItemsDelProyecto` (el área `cotizador` no importa
+  `items`) y los pasa como `ItemParaCotizar[]`. Lo puro es `entities/cotizador/hoja-editable.ts`: lo que emite una `XCell` pasa a texto exacto
+  (`montoDeCelda`, `cantidadDeCelda`) antes de entrar al estado, el total en vivo es `calcularHoja` (la fórmula de la base; sólo informa) y `pedidoDeGuardar`
+  nunca manda totales ni sugerencias (↺ de la logística = `null`). Una línea nueva nace sin caja; la caja es un `<select>` «Caja N» con la elegida en
+  `<Monto>` al lado. Las actions `guardarCotizacion`, `aceptarCotizacion` (pide además `repuestos.editar`) y `anularCotizacion` (`puede()` antes) no salen
+  por los barriles; el error de una línea llega a su celda por `details` + `hint` (`entities/cotizador/errores.ts`).
+- **Aceptar y anular** (8.12-4): `<AccionesDeCotizacion>` (por `pantallas/cotizador-cotizacion.ts`) abre `?panel=aceptar-cotizacion` y
+  `?panel=anular-cotizacion` (`entities/cotizador/paneles.ts`, `use-confirmacion-de-cotizacion-por-url.ts`), cada uno con su `<Confirmar>` que nombra el número
+  (y, al aceptar, el total **guardado**). «Aceptar» sólo en la hoja editable y apagado con su motivo (`motivoParaNoAceptar`: sin `repuestos.editar`, con
+  cambios sin guardar o sin total); «Anular» en borrador y en aceptada con el proyecto abierto. Tras la acción la página se relee en sólo lectura.
 - Depende de: `vehiculos`, `flujos`, `leads`.
 
 ## Áreas
@@ -76,6 +93,9 @@ El módulo se parte por **área** (8.08-2, igual que `logistica`) para que los p
   texto exacto con enteros a escala fija), `decimalCanonico` (lo que valida la action), `validarFormula`/`validarTramo`/`validarCaja` y el recargo en % ↔
   fracción con el mismo entero. `filas-de-configuracion.ts` (las filas leídas con `::text` y `agruparPorMoneda`), `errores-de-configuracion.ts` (el error de la
   base en su campo: 23P01 en «Desde», los `check` por nombre, 23505 en «Monto») y `repositorio.ts`; `infra/cotizador/{configuracion,escribir-configuracion}.ts`.
+- `entities/cotizador/{cotizacion,hoja-de-lectura,errores-de-cotizacion}.ts` (8.12-3) — la fila de la lista y la cotización con sus líneas, con los montos como
+  texto (`::text`) y nulo nunca 0; `falta` de una línea sin total sale de `calcularLinea` con su snapshot (o `desconocida`); `rechazoAlCrear` (el `hint`
+  `config` o `moneda` en su campo). `infra/cotizador/{cotizaciones,crear-cotizacion}.ts` leen y llaman `repuestos_cotizacion_crear`.
 - `entities/stock/` (8.10-1) — `motivos.ts` (los cinco motivos, su sentido y su texto; `MOTIVOS_POR_MOVER`, `MOTIVOS_CON_BOTON`), `reglas.ts` (espejo de las RPC del stock:
   `disponibleParaStock`, `validarMovimiento`, `validarReasignacion`, `enStockTras`; los textos son los de la base y un test lo compara con la migración) y `listado.ts`
   (la fila de `repuestos_stock_listar` y su cursor `(en_stock_desde, id)` con `codificarCursor` de `shared`, sin «Anterior»).
@@ -150,4 +170,5 @@ El módulo se parte por **área** (8.08-2, igual que `logistica`) para que los p
 - Las esperas vehículo↔repuestos (`fases_requisitos.espera_fase_id`) cumplen cuando ningún ítem vivo está pendiente; los que terminaron sin llegar no frenan y se muestran.
   La regla vive en `_repuesto_ante_espera` (`llego` / `sin_llegar` / `pendiente`) y `evaluar_requisitos` —de `flujos`— la usa en su rama `hijos`, con
   `detalle = {hijos, llegaron, sin_llegar}` (8.08-1). Si `flujos` recrea `evaluar_requisitos`, conserva esa rama.
-- Por encima del último tramo de logística no hay sugerencia: la celda pide el monto (`emptyLabel`), no asume 0.
+- Por encima del último tramo de logística no hay sugerencia: la celda de logística queda vacía y el total dice «Sin total · Falta la logística»; no
+  asume 0 (`XCell` no tiene `emptyLabel`, D43 de 8.12-4).
