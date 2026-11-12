@@ -15,7 +15,10 @@ Mensajería interna: conversaciones directas (deduplicadas), grupos y canal glob
 - `infra/consultas.ts` — la RPC de la lista y la lectura de una conversación (sólo si es mía: fila propia de `conversaciones_miembros`); sus pares
   `conversaciones*.ts` (servidor) y `*.client.ts` (navegador). `infra/realtime.client.ts` — dos señales (`mensajes` ajenos y mis filas de miembro,
   sin `DELETE`); la fila es señal, se rehidrata por la RPC.
-- `features/conversaciones/` (lista), `features/mensajes/` (hilo), `features/widget/`; la pantalla sale por `pantallas/chat.ts`.
+- `entities/{personas,grupos,escritura}.ts` — búsqueda de personas (3 letras, tope 20), límites de un grupo (1 a 49 más quien lo crea), respuesta de las RPC y `puedeSalirDe`; puros.
+  `infra/conversaciones-escritura.ts` (las cinco RPC de escritura; el campo del rechazo es el `hint`) y `infra/personas.client.ts`.
+- `features/conversaciones/` (lista, `actions/`, el menú «Nueva conversación» con sus modales de directa y de grupo y `confirmar-salir`), `features/mensajes/` (hilo, con el «⋯»
+  de silenciar y salir), `features/widget/`; la pantalla sale por `pantallas/chat.ts`. `?panel=nueva|grupo|salir` no toca `?c=`.
 - `?c=<id>` ilegible = sin selección; sin fila propia = «ya no es mía» (nunca un 404).
 
 ## Tablas
