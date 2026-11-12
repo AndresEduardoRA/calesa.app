@@ -8791,6 +8791,7 @@ export type Database = {
         Args: { p_repuestos: string[]; p_vehiculos: string[] }
         Returns: undefined
       }
+      _transporte_grupos_filtros: { Args: { p_filtros: Json }; Returns: Record<string, unknown> }
       _transporte_unidad: {
         Args: { p_bloquear: boolean; p_repuesto: string; p_vehiculo: string }
         Returns: Record<string, unknown>
@@ -10491,6 +10492,10 @@ export type Database = {
       transporte_grupo: { Args: { p_clave: string; p_tipo: string }; Returns: Json }
       transporte_grupo_aplicar: {
         Args: { p_cambios: Json; p_clave: string; p_esperadas: Json; p_tipo: string }
+        Returns: Json
+      }
+      transporte_grupos: {
+        Args: { p_desde: string; p_filtros: Json; p_tipo: string; p_tope: number }
         Returns: Json
       }
       transporte_guardar: {

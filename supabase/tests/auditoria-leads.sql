@@ -207,6 +207,9 @@ declare
     -- La unidad y «dónde está» (6.02-3): miran `vehiculos.lead_id` sólo para el alcance «propios» (`en_cartera`), como la cadena; no devuelven el lead.
     ('logistica_unidad(uuid)', 'L'),
     ('logistica_donde_esta(text,integer)', 'L'),
+    -- Transporte (6.07-3): mira `vehiculos.lead_id` sólo para el alcance «propios» (`en_cartera`), como `puede_vehiculo`; no devuelve el lead
+    -- (`areas/transporte/grupos.sql`).
+    ('transporte_grupos(text,text,integer,jsonb)', 'L'),
     -- El chat (7.08-2): una ficha o mención de lead se pide visible (`puede_lead`, `trg_lead_visible`); no toca la cartera ni devuelve el lead.
     -- Responden {resultado, id, …} (`areas/chat/mensajes.sql`, `mensajes-editar.sql`, `fichas.sql`).
     ('mensaje_enviar(uuid,uuid,text,jsonb,uuid,jsonb)', 'X'),
