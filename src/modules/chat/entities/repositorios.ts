@@ -1,7 +1,9 @@
 // Lo que `features/` necesita de la base, como interfaces: las implementa `infra/` y las une `composicion.ts`.
 import type { Resultado } from '@/shared/lib/errores'
+import type { Cursor } from '@/shared/lib/paginacion'
 import type { Conversacion, CursorDeConversaciones, PaginaDeConversaciones } from './conversaciones'
-import type { RespuestaDeEscritura } from './escritura'
+import type { FalloDeEscritura, RespuestaDeEscritura } from './escritura'
+import type { PaginaDeMensajes } from './mensajes'
 import type { PersonasEncontradas } from './personas'
 
 export type PedidoDePaginaDeConversaciones = {
@@ -40,3 +42,30 @@ export type LectorDePersonas = (
   texto: string,
   yo: string,
 ) => Promise<Resultado<PersonasEncontradas>>
+
+export type PedidoDePaginaDeMensajes = {
+  conversacion: string
+  // «Ver anteriores»: lo que viene antes de este mensaje.
+  antes?: Cursor
+  // «Ir a una fecha»: lo anterior a este instante (exclusivo).
+  hasta?: string
+  tamano: number
+}
+
+// El hilo de una conversación, de a una página, los más nuevos primero (desde el navegador, bajo la RLS de `mensajes`).
+export type LectorDeMensajes = (
+  pedido: PedidoDePaginaDeMensajes,
+) => Promise<Resultado<PaginaDeMensajes>>
+
+// Escribir mensajes (7.09-3): `mensaje_enviar` y `chat_leer` con la sesión de quien actúa.
+export type RepositorioDeMensajes = {
+  // `id` es el del navegador: reenviarlo es `repetido`, nunca un segundo mensaje.
+  enviar: (pedido: {
+    id: string
+    conversacion: string
+    cuerpo: string
+    respondeA?: string
+  }) => Promise<{ ok: true; data: { id: string; creadoEn: string } } | FalloDeEscritura>
+  // Marca leído hasta ese instante (sólo avanza).
+  leer: (pedido: { conversacion: string; hasta: string }) => RespuestaDeEscritura
+}
