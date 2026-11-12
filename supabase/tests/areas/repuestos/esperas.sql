@@ -13,6 +13,8 @@
 --   E6. `repuestos_pendientes_de_vehiculo`: con `logistica.ver` del origen (sin `repuestos.ver`), sólo i2 en «tránsito», con espera «recibido» y destino
 --       «listo»; sólo con `repuestos.ver`, la misma fila con los nombres de las fases del vehículo nulos; sin ninguno, nada; desde una fase sin
 --       transición hacia una espera, nada; `authenticated` no ejecuta `_repuesto_ante_espera` (42501).
+--   E7. (8.10-1, D8) Con stock real: pasar a stock 1 unidad de un ítem pendiente de 3 ya lo saca entero de la espera (cumple con {0, 0, 0}); al
+--       venderla y vaciar el stock, vuelve a contar.
 
 create or replace function pg_temp.rp_sin_duena() returns void language plpgsql as $f$
 begin
@@ -234,5 +236,22 @@ begin
   if pg_temp.rp_corre(log, q) <> '[]'::jsonb then raise exception 'E6: desde una fase sin transición a una espera trajo filas'; end if;
   perform pg_temp.rp_es('E6 _repuesto_ante_espera', pg_temp.rp_corre(log, format('select to_jsonb(public._repuesto_ante_espera(%L, %L))', i2, t ->> 'recibido')),
     '42501', null);
+end $$;
+rollback;
+
+-- @test repuestos: pasar a stock una unidad saca el ítem de la espera y vaciar el stock lo devuelve (E7)
+begin;
+do $$
+declare
+  t jsonb := pg_temp.rpe_terreno(); i uuid;
+  ed uuid := pg_temp.rp_persona(array['repuestos.ver', 'repuestos.editar']);
+begin
+  i := pg_temp.rpe_item(t, (t ->> 'transito')::uuid);
+  update public.repuestos_items set cantidad = 3 where id = i;
+  perform pg_temp.rpe_es('E7 pendiente', t, false, '{"hijos": 1, "llegaron": 0, "sin_llegar": 0}');
+  perform pg_temp.rp_ok('E7 sobrante 1 de 3', pg_temp.rp_corre(ed, format('select public.repuesto_stock_mover(%L, 1, %L, 0)', i, 'sobrante')));
+  perform pg_temp.rpe_es('E7 con stock', t, true, '{"hijos": 0, "llegaron": 0, "sin_llegar": 0}');
+  perform pg_temp.rp_ok('E7 vender 1', pg_temp.rp_corre(ed, format('select public.repuesto_stock_mover(%L, 1, %L, 1)', i, 'vendido')));
+  perform pg_temp.rpe_es('E7 sin stock', t, false, '{"hijos": 1, "llegaron": 0, "sin_llegar": 0}');
 end $$;
 rollback;
