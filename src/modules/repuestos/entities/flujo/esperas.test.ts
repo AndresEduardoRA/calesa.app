@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { esperasDesde, TOPE_DE_ESPERAS } from './esperas'
+import {
+  encabezadoDeLasEsperas,
+  esperasDesde,
+  fraseDeUnaEspera,
+  TOPE_DE_ESPERAS,
+  type EsperaDeItem,
+} from './esperas'
 
 const guid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
 
@@ -60,5 +66,45 @@ describe('esperasDesde', () => {
   it('cero filas es una lista vacía válida; algo que no es una lista, no', () => {
     expect(esperasDesde([])).toEqual({ ok: true, data: { items: [], hayMas: false } })
     expect(esperasDesde(null).ok).toBe(false)
+  })
+})
+
+describe('lo que dice el hueco del vehículo', () => {
+  const item = (n: number): EsperaDeItem => ({
+    itemId: guid(n),
+    descripcion: `Pieza ${String(n)}`,
+    proyectoId: guid(900),
+    proyectoNumero: 7,
+    faseId: guid(800),
+    faseNombre: 'En tránsito',
+    esperas: [],
+  })
+
+  it('cuenta sin dar un total: 1, N y «más de N»', () => {
+    expect(encabezadoDeLasEsperas({ items: [], hayMas: false })).toBe(
+      'Este vehículo no espera ningún repuesto.',
+    )
+    expect(encabezadoDeLasEsperas({ items: [item(1)], hayMas: false })).toBe('Espera 1 repuesto')
+    expect(encabezadoDeLasEsperas({ items: [item(1), item(2)], hayMas: false })).toBe(
+      'Espera 2 repuestos',
+    )
+    const cincuenta = Array.from({ length: TOPE_DE_ESPERAS }, (_, i) => item(i + 1))
+    expect(encabezadoDeLasEsperas({ items: cincuenta, hayMas: true })).toBe(
+      'Espera más de 50 repuestos',
+    )
+  })
+
+  it('dice la fase que espera, y calla si no se ven los nombres', () => {
+    const base = {
+      requisitoId: guid(1),
+      faseDestinoId: guid(2),
+      esperaFaseId: guid(3),
+    }
+    expect(
+      fraseDeUnaEspera({ ...base, faseDestinoNombre: 'Listo', esperaFaseNombre: 'Recibido' }),
+    ).toBe('Para pasar a «Listo» espera que llegue a «Recibido».')
+    expect(
+      fraseDeUnaEspera({ ...base, faseDestinoNombre: null, esperaFaseNombre: 'Recibido' }),
+    ).toBeNull()
   })
 })

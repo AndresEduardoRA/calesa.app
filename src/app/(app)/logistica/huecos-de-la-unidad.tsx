@@ -3,16 +3,19 @@ import { HUECOS_DE_DINERO_EN_LA_UNIDAD } from '@/modules/logistica/pantallas/din
 import { HUECOS_DE_DOCUMENTOS_EN_LA_UNIDAD } from '@/modules/logistica/pantallas/documentos-unidad'
 import { HUECOS_DE_MOVER_EN_LA_UNIDAD } from '@/modules/logistica/pantallas/mover-unidad'
 import { HUECOS_DE_TRANSPORTE_EN_LA_UNIDAD } from '@/modules/logistica/pantallas/transporte-unidad'
+import { HUECOS_DE_ESPERAS_EN_LA_UNIDAD } from '@/modules/repuestos/pantallas/flujo-esperas'
 import { huecosVisibles, type HuecoDeLaUnidad, type Unidad } from '@/modules/logistica'
 import type { Resultado } from '@/shared/lib/errores'
 import type { Permisos } from '@/shared/lib/permisos'
 
-// Lo que las áreas `mover`, `documentos`, `transporte`, `aduana` y `dinero` llenan en el panel de la unidad (6.01). Cada una declara los suyos en su archivo de `pantallas/`
+// Lo que las áreas `mover`, `documentos`, `transporte`, `aduana` y `dinero`, y `repuestos` (el hueco «Repuestos», 8.13-3) llenan en el panel de la unidad (6.01). Cada una declara los suyos en su archivo de `pantallas/`
 // (hoy vacíos). El orden en el panel lo da `ORDEN_DE_HUECOS`, no esta lista.
 export const HUECOS_DE_LA_UNIDAD: readonly HuecoDeLaUnidad[] = [
   ...HUECOS_DE_MOVER_EN_LA_UNIDAD,
   ...HUECOS_DE_DOCUMENTOS_EN_LA_UNIDAD,
   ...HUECOS_DE_TRANSPORTE_EN_LA_UNIDAD,
+  // El de `repuestos` declara su propio tipo (un módulo no importa a otro) y su componente pide menos de la unidad; `ComponentType` no lo admite por `defaultProps`: el cast va aquí (D9, 8.13-3).
+  ...(HUECOS_DE_ESPERAS_EN_LA_UNIDAD as readonly HuecoDeLaUnidad[]),
   ...HUECOS_DE_ADUANA_EN_LA_UNIDAD,
   ...HUECOS_DE_DINERO_EN_LA_UNIDAD,
 ]

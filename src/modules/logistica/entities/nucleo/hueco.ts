@@ -27,6 +27,7 @@ export const ORDEN_DE_HUECOS = [
   'que-falta',
   'documentos',
   'transporte',
+  'repuestos',
   'aduana',
   'gastos',
   'pagos',

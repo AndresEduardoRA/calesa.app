@@ -29,6 +29,11 @@ describe('huecosVisibles', () => {
     )
   })
 
+  it('el hueco «repuestos» va entre «transporte» y «aduana»', () => {
+    const lista = ['aduana', 'repuestos', 'transporte'].map((c) => hueco(c))
+    expect(claves(huecosVisibles(lista, ctx()))).toEqual(['transporte', 'repuestos', 'aduana'])
+  })
+
   it('una lista vacía no dibuja nada', () => {
     expect(huecosVisibles([], ctx())).toEqual([])
   })

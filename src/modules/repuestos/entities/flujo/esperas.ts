@@ -1,7 +1,7 @@
 // Las esperas que destraban a un vehículo (8.13-1): los ítems de repuesto que un requisito de tipo «espera» del vehículo aguarda, tal como los da
 // `repuestos_pendientes_de_vehiculo` (8.08). La base devuelve una fila por pareja ítem × requisito; acá se agrupa por ítem. Puro: valida y agrupa; nunca un total.
 import { z } from 'zod'
-import { cortarAlTope } from '@/shared/lib/conteo'
+import { conteoEnFrase, cortarAlTope } from '@/shared/lib/conteo'
 import { fallo, MENSAJE_INESPERADO, ok, type Resultado } from '@/shared/lib/errores'
 
 /** Lo que se pide a la base (`p_tope`, el defecto de la RPC): ella devuelve hasta una fila de más y `hayMas` lo dice. */
@@ -73,4 +73,18 @@ export function esperasDesde(filas: unknown): Resultado<EsperasDelVehiculo> {
       })
   }
   return ok({ items: [...porItem.values()], hayMas })
+}
+
+/** El encabezado del hueco «Repuestos» del vehículo (8.13-3): «Espera 1 repuesto», «Espera 3 repuestos», «Espera más de 50 repuestos»; sin ítems, «Este vehículo no espera ningún repuesto.». Nunca un total. */
+export function encabezadoDeLasEsperas(esperas: EsperasDelVehiculo): string {
+  const n = esperas.items.length
+  if (n === 0) return 'Este vehículo no espera ningún repuesto.'
+  if (!esperas.hayMas && n === 1) return 'Espera 1 repuesto'
+  return `Espera ${conteoEnFrase({ n, hayMas: esperas.hayMas })} repuestos`
+}
+
+/** Lo que espera un requisito: «Para pasar a «Listo» espera que llegue a «Recibido».»; nulo si quien mira no ve los nombres de fase (la base los oculta sin `logistica.ver`). */
+export function fraseDeUnaEspera(espera: EsperaDelRequisito): string | null {
+  if (espera.faseDestinoNombre === null || espera.esperaFaseNombre === null) return null
+  return `Para pasar a «${espera.faseDestinoNombre}» espera que llegue a «${espera.esperaFaseNombre}».`
 }
