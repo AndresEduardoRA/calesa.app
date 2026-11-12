@@ -33,8 +33,10 @@ Proyectos de repuestos por vehículo (o externos), ítems que recorren el flujo 
   `proyectos`). Las actions `reasignarStock` y `buscarProyectosAbiertos` (las dos con `repuestos.editar` antes) no salen por los barriles.
 - **Compras** (8.11-2, área `compras`): la pestaña «Compras» de `/repuestos/[id]` (`?pestana=compras`) sólo existe con `repuestos.costos.ver` (`pestanasLlenas(permisos)` en
   `src/app/(app)/repuestos/[id]/pestanas.ts`; sin él la URL abre «Ítems» y no se lee nada de compras). La lee `seccion-compras.tsx` al abrirla con
-  `leerComprasDelProyecto` (tope 200) y `leerMargenDelProyecto` (por `areas/compras/index.ts`) y dibuja `<MargenDelProyecto>` y `<ListaDeCompras>` (por
-  `pantallas/compras.ts`). Registrar, editar, eliminar y el comprobante llegan con 8.11-3.
+  `leerComprasDelProyecto` (tope 200) y `leerMargenDelProyecto` (por `areas/compras/index.ts`) y dibuja `<MargenDelProyecto>` y `<ComprasDelProyecto>` (por
+  `pantallas/compras.ts`). En 8.11-3: un solo «Registrar compra» arriba de la lista (apagado con su motivo sin `repuestos.costos.editar` o con el proyecto cerrado;
+  la página calcula `puedeEditarCostos` con `puede()`), el Drawer `?panel=compra&compra=<id|nueva>` (con `diferido()`, montado al abrirse; ítems y monedas los pasa
+  la página, sin otra lectura) y «Editar» y «Eliminar» en la fila. Tras escribir, la action revalida la página: la lista y el margen se vuelven a leer en el servidor.
 - Depende de: `vehiculos`, `flujos`, `leads`.
 
 ## Áreas
