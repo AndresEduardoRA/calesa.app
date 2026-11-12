@@ -7917,6 +7917,25 @@ export type Database = {
         Returns: string
       }
       _limpieza_ventana_de_aviso: { Args: Record<PropertyKey, never>; Returns: number }
+      _logistica_alcance: {
+        Args: { p_origen: string }
+        Returns: Database['public']['Enums']['alcance_permiso']
+      }
+      _logistica_columna: {
+        Args: {
+          p_desde: string
+          p_dias: number
+          p_f: Json
+          p_fase: string
+          p_id: string
+          p_n: number
+          p_origen: string
+          p_todos: boolean
+        }
+        Returns: Json
+      }
+      _logistica_dias: { Args: { p_fase: string }; Returns: number }
+      _logistica_filtros: { Args: { p: Json }; Returns: Json }
       _lote_papelera_tocar: { Args: { p_lote: string }; Returns: string }
       _motor_borde_entre: { Args: { a: number; b: number }; Returns: number }
       _motor_borde_mas: { Args: { a: number; b: number }; Returns: number }
@@ -9236,6 +9255,21 @@ export type Database = {
         Returns: string
       }
       limpieza_ultima: { Args: Record<PropertyKey, never>; Returns: Json }
+      logistica_cadena: {
+        Args: { p_filtros?: Json; p_origen: string; p_tope?: number }
+        Returns: Json
+      }
+      logistica_cadena_columna: {
+        Args: {
+          p_desde?: string
+          p_fase: string
+          p_filtros?: Json
+          p_id?: string
+          p_origen: string
+          p_tope?: number
+        }
+        Returns: Json
+      }
       margen_vehiculo: { Args: { p_vehiculo: string }; Returns: Json }
       mensaje_editar: {
         Args: {
