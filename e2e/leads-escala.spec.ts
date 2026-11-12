@@ -20,6 +20,7 @@ import {
   verEtapa,
 } from './soporte/leads-oportunidades'
 import { esMovil } from './soporte/inventario'
+import { esDelMarco } from './soporte/pedidos-del-marco'
 import { vistasDelHtml } from './soporte/listas-por-pagina'
 import { capturar, sinScrollHorizontal } from './soporte/recorrido'
 import {
@@ -178,7 +179,10 @@ test('girar el celular o redimensionar cambia de vista sin red, sin recargar y c
     ancho >= 768 ? { si: tabla, no: tarjetas } : { si: tarjetas, no: tabla }
   const documentos: string[] = []
   page.on('request', (pedido) => {
-    if (pedido.resourceType() === 'document' || A_LA_BASE.test(pedido.url())) {
+    if (
+      pedido.resourceType() === 'document' ||
+      (A_LA_BASE.test(pedido.url()) && !esDelMarco(pedido.url()))
+    ) {
       documentos.push(pedido.url())
     }
   })
