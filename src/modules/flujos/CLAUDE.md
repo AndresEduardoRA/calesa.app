@@ -49,6 +49,13 @@ El módulo se parte por área, como `cotizaciones` (`scripts/guardas/areas-de-fl
 
 - **Bloqueante y fuera de regla (5.08-3):** `leerImpactoDeRequisito` (action de lectura: permiso por ámbito y `requisito_impacto`) alimenta `useBloqueanteDeRequisito`; el aviso va en línea (`<ConfirmarBloqueo>`), con estado local. `leerFueraDeRegla` (`flujo_fuera_de_regla`, `tope + 1`) sale por `areas/requisitos/index.ts` y lo lee `src/app/(app)/configuracion/flujos/requisitos/fuera-de-regla.tsx`, que resuelve los títulos con `leerTitulosDeVehiculos` de `vehiculos` (`flujos` no lo importa) y arma `href` por fase con `FILTRO_FASE`. Lo entrega a `PantallaDelFlujo` por `sobreLaLista`, una **prop de servidor** (función del flujo leído, tras su `<Suspense fallback={null}>`), no un hueco de cliente. URL `?panel=fuera-de-regla` (`PANEL_FUERA_DE_REGLA`); el panel está registrado `sinFormulario` en `scripts/guardas/areas-c/drawers-con-salida.ts` y las dos RPC en `areas-c/paginas-en-la-base.ts` (`p_tope` por constante, defecto 50 en la base).
 
+## Reglas (5.11)
+
+- Pestaña `?seccion=reglas` de `/configuracion/flujos` (área `reglas`; `pantallas/reglas.ts` da `<PantallaDeReglas>` y `<EsqueletoDeReglas>`): las reglas del ámbito del flujo elegido, cada una con su interruptor, y, con «Transporte» encendida, la oferta de transporte (puertos de origen, de destino y navieras activos). La ve quien configura un flujo (`flujos.configurar` o `repuestos.configurar`); la base decide cada escritura.
+- Archivos: `entities/reglas/{catalogo,impacto,oferta,permiso,repositorios}.ts` (las 10 claves con su texto, comparadas en un test con el check de la base y con `_flujo_regla_admitida`; la frase de «no se puede apagar» y el enlace `?fase=`; vacío = se ofrecen todos y la firma del borrador), `infra/reglas/{oferta,escribir-reglas}.ts` (`flujo_oferta`, puertos y navieras activos con `limit 201`, y las RPC `flujo_regla_impacto|cambiar` y `flujo_oferta_guardar`), `features/reglas/{actions,schemas,hooks,components}`, `areas/reglas/`.
+- **Apagar pregunta antes de escribir:** `cambiarRegla` llama `flujo_regla_impacto`; con uso responde `en_uso` y no escribe. Los interruptores siguen a lo que lee el servidor; «Deshacer» y las escrituras usan la **última versión conocida** del flujo (`useEscrituraDeReglas`), no la del toast. El borrador de la oferta lleva `key` por la firma de lo guardado, no por la versión.
+- Puertos y navieras sólo se **leen**: su gestión es de `logistica` (Fase 6, `logistica.catalogos.gestionar`); `navieras` nace vacía y la pantalla lo dice.
+
 ## Tablas
 
 `flujos`, `flujos_reglas`, `fases`, `fases_transiciones`, `fases_roles`, `fases_transiciones_roles`, `tipos_documento`, `fases_requisitos`, `historial_fases`, `flujos_transporte_oferta`.
