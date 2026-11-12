@@ -74,7 +74,10 @@ async function Listado({
     return (
       <div className="grid gap-4">
         <VistasDeRepuestos vista="stock" />
-        <ListadoDeStock parametros={parametros} />
+        <ListadoDeStock
+          parametros={parametros}
+          puedeEditar={puede(sesion.permisos, 'repuestos.editar')}
+        />
       </div>
     )
   }

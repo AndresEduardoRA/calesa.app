@@ -3,13 +3,13 @@
 import { Badge } from '@/shared/ui/badge'
 import { formatearFecha } from '@/shared/lib/fechas'
 import { formatearNumero } from '@/shared/lib/formato'
-import { AbrirResumen, TarjetaDeLista } from '@/shared/ui/lista'
+import { AbrirResumen, MasAcciones, TarjetaDeLista } from '@/shared/ui/lista'
 import { useRegional } from '@/shared/ui/regional'
 import { vehiculoDelStock } from '../../../entities/stock/vista'
 import type { PropsDeLaListaDeStock } from './tabla-de-stock'
 
 // Lo que está en stock en el celular (8.10-3, C9): una tarjeta por ítem con lo mismo que la fila de la tabla. Un toque abre su panel de stock.
-export function TarjetasDeStock({ filas, alAbrir }: PropsDeLaListaDeStock) {
+export function TarjetasDeStock({ filas, alAbrir, menu }: PropsDeLaListaDeStock) {
   const { zonaHoraria } = useRegional()
   return (
     <ul className="grid grid-cols-[minmax(0,1fr)] gap-2">
@@ -19,6 +19,11 @@ export function TarjetasDeStock({ filas, alAbrir }: PropsDeLaListaDeStock) {
           alAbrir={() => {
             alAbrir(fila)
           }}
+          acciones={
+            menu ? (
+              <MasAcciones nombre={fila.descripcion} id={fila.id} acciones={menu(fila)} />
+            ) : null
+          }
         >
           <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
             <AbrirResumen

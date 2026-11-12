@@ -10,10 +10,16 @@ import { UnaSolaVista } from '@/shared/ui/lista'
 import { Paginacion } from '@/shared/ui/paginacion'
 import type { FilaDeStock, PaginaDeStock } from '../../../entities/stock/listado'
 import { rutaDelStockDelItem } from '../../../entities/stock/vista'
+import { useAccionesDeStockPorUrl } from '../hooks/use-acciones-de-stock-por-url'
+import { AccionesDeStock, menuDeStock } from './acciones-de-stock'
 import { TablaDeStock } from './tabla-de-stock'
 import { TarjetasDeStock } from './tarjetas-de-stock'
 
-type Props = { pagina: PaginaDeStock }
+type Props = {
+  pagina: PaginaDeStock
+  // `repuestos.editar`: dibuja el «⋯» de cada fila (vale con el proyecto de origen cerrado, D3 de 8.10-1).
+  puedeEditar: boolean
+}
 
 // Con cursor se ofrece volver al principio (la base sólo camina hacia adelante, sin «Anterior»).
 function VolverAlPrincipio() {
@@ -35,11 +41,13 @@ function VolverAlPrincipio() {
 
 // La vista «Stock» de `/repuestos` (`?vista=stock`, 8.10-3, C8): lo que sobró de los ítems, lo más nuevo primero, de a una página por cursor y sin filtros (D4). La fila abre el
 // ítem en la hoja de su proyecto con su panel de stock (D5). Ningún total: la base no cuenta.
-export function VistaDeStock({ pagina }: Props) {
+export function VistaDeStock({ pagina, puedeEditar }: Props) {
   const router = useRouter()
+  const url = useAccionesDeStockPorUrl()
   const hayCursor = useSearchParams().has(CLAVE_DE_CURSOR)
+  const paneles = <AccionesDeStock url={url} filas={pagina.filas} />
   if (pagina.filas.length === 0) {
-    return hayCursor ? (
+    const estado = hayCursor ? (
       <EstadoPaginaSinFilas />
     ) : (
       <EstadoVacio
@@ -47,18 +55,26 @@ export function VistaDeStock({ pagina }: Props) {
         descripcion="Lo que sobra de un ítem se pasa a stock desde la hoja de su proyecto."
       />
     )
+    return (
+      <>
+        {estado}
+        {paneles}
+      </>
+    )
   }
   const abrir = (fila: FilaDeStock) => {
     router.push(rutaDelStockDelItem(fila) as Route)
   }
+  const menu = puedeEditar ? (fila: FilaDeStock) => menuDeStock(fila, url) : null
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
       {hayCursor ? <VolverAlPrincipio /> : null}
       <UnaSolaVista
-        tabla={() => <TablaDeStock filas={pagina.filas} alAbrir={abrir} />}
-        tarjetas={() => <TarjetasDeStock filas={pagina.filas} alAbrir={abrir} />}
+        tabla={() => <TablaDeStock filas={pagina.filas} alAbrir={abrir} menu={menu} />}
+        tarjetas={() => <TarjetasDeStock filas={pagina.filas} alAbrir={abrir} menu={menu} />}
       />
       <Paginacion siguiente={pagina.siguiente} anterior={null} />
+      {paneles}
     </div>
   )
 }

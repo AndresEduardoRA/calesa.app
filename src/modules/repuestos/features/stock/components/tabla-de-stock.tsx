@@ -8,7 +8,9 @@ import {
   CabeceraPegada,
   CeldaPegada,
   FilaDeLista,
+  MasAcciones,
   TablaDeLista,
+  type AccionDeMenu,
 } from '@/shared/ui/lista'
 import { useRegional } from '@/shared/ui/regional'
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table'
@@ -18,10 +20,12 @@ import { vehiculoDelStock } from '../../../entities/stock/vista'
 export type PropsDeLaListaDeStock = {
   filas: readonly FilaDeStock[]
   alAbrir: (fila: FilaDeStock) => void
+  // El «⋯» de cada fila, sólo con `repuestos.editar` (nulo: no se dibuja).
+  menu: ((fila: FilaDeStock) => readonly AccionDeMenu[]) | null
 }
 
 // Lo que está en stock en escritorio, con el patrón de lista (8.10-3, C9): el ítem es el botón de la fila y abre su panel de stock en la hoja del proyecto.
-export function TablaDeStock({ filas, alAbrir }: PropsDeLaListaDeStock) {
+export function TablaDeStock({ filas, alAbrir, menu }: PropsDeLaListaDeStock) {
   const { zonaHoraria } = useRegional()
   return (
     <TablaDeLista>
@@ -31,6 +35,11 @@ export function TablaDeStock({ filas, alAbrir }: PropsDeLaListaDeStock) {
           <TableHead>Proyecto</TableHead>
           <TableHead className="text-right">En stock</TableHead>
           <TableHead>Desde</TableHead>
+          {menu ? (
+            <CabeceraPegada lado="acciones">
+              <span className="sr-only">Acciones</span>
+            </CabeceraPegada>
+          ) : null}
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -64,6 +73,11 @@ export function TablaDeStock({ filas, alAbrir }: PropsDeLaListaDeStock) {
             <TableCell className="whitespace-nowrap">
               {formatearFecha(fila.enStockDesde, { zona: zonaHoraria })}
             </TableCell>
+            {menu ? (
+              <CeldaPegada lado="acciones">
+                <MasAcciones nombre={fila.descripcion} id={fila.id} acciones={menu(fila)} />
+              </CeldaPegada>
+            ) : null}
           </FilaDeLista>
         ))}
       </TableBody>
