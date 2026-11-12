@@ -14,6 +14,7 @@ export const AREAS_DE_WEB = ['sitio', 'contenido', 'cola', 'turnos', 'portal'] a
 // Las pantallas cuyo nombre no empieza por su área. Una nueva así se suma aquí; las demás se reconocen por `<área>` o `<área>-…`.
 export const PANTALLAS_DE_AREA: Readonly<Record<string, (typeof AREAS_DE_WEB)[number]>> = {
   perfil: 'turnos',
+  'sitio-legales': 'contenido',
   'sitio-guias': 'contenido',
   'sitio-faqs': 'contenido',
   'sitio-testimonios': 'contenido',

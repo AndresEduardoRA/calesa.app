@@ -106,6 +106,7 @@ describe('áreas de web', () => {
     ])
     const deContenido = "export { G } from '../features/contenido/components/g'\n"
     expect(problemasDeAreasDeWeb(con(f('pantallas/sitio-guias.ts', deContenido)))).toEqual([])
+    expect(problemasDeAreasDeWeb(con(f('pantallas/sitio-legales.ts', deContenido)))).toEqual([])
     expect(problemasDeAreasDeWeb(con(f('pantallas/sitio-ajustes.ts', deContenido)))).toEqual([
       expect.stringContaining('el área sitio importa'),
     ])
