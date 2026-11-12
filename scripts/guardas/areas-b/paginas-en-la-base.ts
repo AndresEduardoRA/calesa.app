@@ -1,7 +1,11 @@
-// Las RPC con tamaño de página del carril B: «Tareas sin fecha» de la agenda (7.07-3), las secciones del buscador (7.12-2) y los grupos de transporte (6.08-3). Es un pedazo de `RPC_PAGINADAS`
+// Las RPC con tamaño de página del carril B: «Tareas sin fecha» de la agenda (7.07-3), las secciones del buscador (7.12-2) los grupos de transporte (6.08-3) y el tablero de la cola web (8.04-2). Es un pedazo de `RPC_PAGINADAS`
 // (`paginas-en-la-base.ts`, del A) que la guarda suma con `import.meta.glob('./areas-*/paginas-en-la-base.ts')` (`registros-de-carriles.ts`).
 import { POR_SECCION } from '../../../src/modules/buscador/entities/ranking'
-import { TAMANO_DE_PAGINA_POR_DEFECTO, TAMANO_DE_VER_MAS } from '../../../src/shared/lib/paginacion'
+import {
+  TAMANO_DE_PAGINA_POR_DEFECTO,
+  TAMANO_DE_VER_MAS,
+  TOPE_DEL_EQUIPO,
+} from '../../../src/shared/lib/paginacion'
 import type { RpcPaginada } from '../paginas-en-la-base'
 
 export const REGISTRO: readonly RpcPaginada[] = [
@@ -37,5 +41,19 @@ export const REGISTRO: readonly RpcPaginada[] = [
     parametro: 'p_tope',
     pideElCodigo: TAMANO_DE_PAGINA_POR_DEFECTO,
     lista: 'embarques y contenedores de /logistica/embarques',
+  },
+  // Las habilitadas de la cola web (8.04-2): tabla de configuración, a lo sumo el equipo; la base acota con `_acotar_pagina(p_tope, 100, 200)`.
+  {
+    rpc: 'cola_web_tablero',
+    parametro: 'p_tope',
+    pideElCodigo: TOPE_DEL_EQUIPO,
+    lista: 'tablero de la cola web (/configuracion/cola-web)',
+  },
+  // «Sin asignar» de la cola web (8.04-2), de a `TAMANO_DE_VER_MAS` por cursor `(creado_en, id)` hasta `TOPE_DE_LO_CARGADO`; `_acotar_pagina(p_tamano, 20, 50)`.
+  {
+    rpc: 'cola_web_solicitudes',
+    parametro: 'p_tamano',
+    pideElCodigo: TAMANO_DE_VER_MAS,
+    lista: 'sin asignar de la cola web, «Ver más»',
   },
 ]
