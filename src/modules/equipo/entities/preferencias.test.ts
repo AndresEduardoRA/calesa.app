@@ -9,12 +9,14 @@ describe('preferenciasDesde', () => {
       densidad: 'comoda',
       tema: 'dark',
       porPagina: 25,
+      widgetsDelTablero: null,
     })
   })
 
   it('sin elección, todo queda en automático', () => {
-    expect(preferenciasDesde({})).toEqual({ densidad: null, tema: null, porPagina: null })
-    expect(preferenciasDesde(null)).toEqual({ densidad: null, tema: null, porPagina: null })
+    const sinElegir = { densidad: null, tema: null, porPagina: null, widgetsDelTablero: null }
+    expect(preferenciasDesde({})).toEqual(sinElegir)
+    expect(preferenciasDesde(null)).toEqual(sinElegir)
   })
 
   it('un valor desconocido no rompe: esa preferencia queda sin elegir', () => {
@@ -22,7 +24,31 @@ describe('preferenciasDesde', () => {
       densidad: null,
       tema: 'dark',
       porPagina: null,
+      widgetsDelTablero: null,
     })
+  })
+
+  it('«tablero.widgets» se lee si tiene la forma y, si no, queda sin elegir sin dañar lo demás', () => {
+    const valida = { orden: ['a', 'b'], ocultos: ['b'] }
+    expect(preferenciasDesde({ 'tablero.widgets': valida }).widgetsDelTablero).toEqual(valida)
+    // Las claves de más dentro del objeto se descartan.
+    expect(
+      preferenciasDesde({ 'tablero.widgets': { ...valida, otra: 1 } }).widgetsDelTablero,
+    ).toEqual(valida)
+    const malos = [
+      null,
+      'texto',
+      7,
+      { orden: 'a' },
+      { orden: ['a'] },
+      { orden: Array(61).fill('a'), ocultos: [] },
+    ]
+    for (const malo of malos) {
+      const leidas = preferenciasDesde({ tema: 'dark', 'tablero.widgets': malo })
+      expect(leidas.widgetsDelTablero).toBeNull()
+      expect(leidas.tema).toBe('dark')
+    }
+    expect(preferenciasDesde({ tema: 'dark' }).widgetsDelTablero).toBeNull()
   })
 
   it('«ítems por página» sólo vale con uno de los cuatro tamaños, como número', () => {
@@ -65,5 +91,28 @@ describe('esquemaPreferencia', () => {
   it('rechaza un valor de otra clave o una clave que no existe', () => {
     expect(esquemaPreferencia.safeParse({ clave: 'densidad', valor: 'dark' }).success).toBe(false)
     expect(esquemaPreferencia.safeParse({ clave: 'idioma', valor: 'es' }).success).toBe(false)
+  })
+})
+
+describe('esquemaPreferencia de «tablero.widgets»', () => {
+  it('acepta una disposición válida y null para restablecerla', () => {
+    const valor = { orden: ['a', 'b'], ocultos: ['a'] }
+    expect(esquemaPreferencia.safeParse({ clave: 'tablero.widgets', valor }).success).toBe(true)
+    expect(esquemaPreferencia.safeParse({ clave: 'tablero.widgets', valor: null }).success).toBe(
+      true,
+    )
+  })
+
+  it('rechaza lo malformado antes de llegar a la base', () => {
+    const malos = [
+      { orden: [1], ocultos: [] },
+      { orden: ['x'.repeat(61)], ocultos: [] },
+      { orden: [], ocultos: Array(61).fill('a') },
+      { orden: [] },
+      'texto',
+    ]
+    for (const valor of malos) {
+      expect(esquemaPreferencia.safeParse({ clave: 'tablero.widgets', valor }).success).toBe(false)
+    }
   })
 })

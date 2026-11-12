@@ -127,7 +127,7 @@ export const NAVEGACION = [
     Icono: ChartColumnIcon,
     zona: 'usuario',
     permisos: ['tablero.metricas.ver'],
-    disponible: false,
+    disponible: true,
   },
   {
     clave: 'configuracion',
