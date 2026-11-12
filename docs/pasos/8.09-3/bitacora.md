@@ -2,7 +2,7 @@
 
 ### Hecho
 
-- Base (`20261112084323_repuestos_imagenes.sql`): `repuestos_items_imagenes` sólo se escribe por insert y delete; índice único `(item_id, ruta)`; trigger `before insert` (`security definer`: ítem vivo, proyecto abierto, ruta de la carpeta del ítem,
+- Base (`20261112111909_repuestos_imagenes.sql`): `repuestos_items_imagenes` sólo se escribe por insert y delete; índice único `(item_id, ruta)`; trigger `before insert` (`security definer`: ítem vivo, proyecto abierto, ruta de la carpeta del ítem,
   tope 8 bajo candado, rescate de la cola, el objeto existe, `orden`) y `after delete` (encola la ruta por refcount).
 - Servidor: `entities/items/imagenes.ts` (tope, ruta, plan de agregado, avisos), `RepositorioDeImagenes`, `infra/items/imagenes.ts`, esquemas y tres actions (`leerImagenesDeItem`, `agregarImagenes`, `quitarImagen`).
 - Interfaz: `?panel=imagenes&item=<id>` (drawer con «3 de 8 imágenes», zona para subir, galería con «Quitar» y «Deshacer», estados) y el botón «Imágenes» en cada fila de la tabla y de las tarjetas.
