@@ -8515,6 +8515,7 @@ export type Database = {
       _portal_clave_validar: { Args: { p_clave: string }; Returns: undefined }
       _portal_codigo_normal: { Args: { p_codigo: string }; Returns: string }
       _portal_hash_falso: { Args: Record<PropertyKey, never>; Returns: string }
+      _portal_mensaje_normalizar: { Args: { p_texto: string }; Returns: string }
       _portal_persona: { Args: { p_id: string }; Returns: Json }
       _portal_vigente: {
         Args: { p_lead: string; p_otorgado_en: string }
@@ -10276,6 +10277,10 @@ export type Database = {
       }
       portal_desbloquear: { Args: { p_lead: string }; Returns: undefined }
       portal_estado: { Args: { p_lead: string }; Returns: Json }
+      portal_mensaje_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_texto: string }
+        Returns: string
+      }
       previsualizar_cambio_fase: {
         Args: { p_fase_destino: string; p_repuesto: string; p_vehiculo: string }
         Returns: Json

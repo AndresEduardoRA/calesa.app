@@ -274,3 +274,15 @@ begin
   if r <> 'P0001' then raise exception 'sin versión: %', r; end if;
 end $$;
 rollback;
+
+-- @test plantillas: un mensaje del portal sin {codigo} se rechaza (22023, hint texto) y no se guarda
+begin;
+select pg_temp.pla_preparar();
+do $$
+declare gala uuid := '00000000-0000-4000-8000-00000009940f'; r text;
+begin
+  r := pg_temp.pla_codigo(gala, format('select public.portal_mensaje_guardar(%L, %L)', 'Hola {cliente}, tu clave es {clave}', pg_temp.pla_version_portal()));
+  if r <> '22023/texto' then raise exception 'sin {codigo}: %', r; end if;
+  if (select portal_mensaje from public.ajustes_leads where id = 1) is not null then raise exception 'sin {codigo} se guardó'; end if;
+end $$;
+rollback;
