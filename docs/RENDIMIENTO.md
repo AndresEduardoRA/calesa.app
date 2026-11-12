@@ -233,6 +233,9 @@ Cada sección por su RPC, de a `_acotar_pagina(p_tamano, 5, 20)` + 1, con el mí
   `repuestos_cotizaciones_proyecto_id_idx` (ordena sólo las de un proyecto, decenas; no crece con la tabla) con tope 50 y `<AvisoDeTope>`, leída sólo con la
   pestaña abierta; la hoja lee la cotización por su PK y proyecto (`limit 1`) y sus líneas por `repuestos_cotizaciones_lineas_cotizacion_id_idx` con el tope de la
   base (200). Sin cursor ni volumen sembrado (D35); sin `diferido()` nuevo (no hay modal).
+- Hoja editable de una cotización de repuestos (8.12-4): además de la cotización y sus líneas (arriba), lee los ítems del proyecto sólo en borrador
+  (`repuestos_items_proyecto_id_idx`, `limit 201`, tope 200 por `armarHoja`). El total en vivo es O(líneas) ≤ 200 por cambio; las líneas y las `XCell` van en
+  `memo` con callbacks estables. Tablas acotadas por proyecto: sin volumen sembrado.
 
 ## Tablero: métricas (9.07)
 
