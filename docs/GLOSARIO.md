@@ -297,6 +297,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Ítem de repuesto** — `repuestos_items`: el repuesto que recorre el flujo de repuestos.
 - **Stock** — `repuestos_items.stock_cantidad`, `_stock_movimientos`: sobrantes disponibles.
 - **Compra** — `repuestos_compras`: costo de un repuesto (permiso aparte).
+- **Catálogo de repuestos** — `repuestos_catalogos.catalogo` (`CATALOGOS_DE_REPUESTOS`): tipo de pieza, condición, vía de transporte o país de origen. Cada fila es un **valor** (`ValorDeCatalogo`); un valor en uso no se borra, se desactiva. La clave `modo_transporte` se muestra como «Vía de transporte».
 - **Cotizador de repuestos** — `repuestos_cotizador_config`, `_tramos_logistica`, `_cajas`, `repuestos_cotizaciones`: fórmula propia importado/local con tramos y cajas.
 - **Evento** — `eventos`, `eventos_destinatarios`: cita con visibilidad privada/pública/seleccionados.
 - **Destinatario** — `eventos_destinatarios`: persona que ve un evento «seleccionados» (de 1 a 50); en la pantalla, «Destinatarios» y «¿Con quién?». Sólo lo ve quien creó el evento.
