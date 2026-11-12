@@ -12,18 +12,19 @@ import { alternarOculto, aPreferencia, moverFila } from '../../../entities/perso
 import type { WidgetOfrecido } from './tipos'
 
 // Las filas del panel y cómo se guardan: cada cambio guarda en el acto, con una sola petición en vuelo (así dos clics seguidos no se
-// pisan). Si falla, la lista queda como estaba y se avisa. Al volver bien, `router.refresh()` redibuja el tablero.
+// pisan). Si falla, la lista queda como estaba y se avisa. Al volver bien, `router.refresh()` redibuja el tablero
+// y los controles siguen apagados hasta que termina.
 export function useGuardarDisposicion(
   ofrecidos: readonly WidgetOfrecido[],
   hayPreferencia: boolean,
   ordenDeFabrica: readonly string[],
 ) {
   const router = useRouter()
-  const [, redibujar] = useTransition()
+  const [redibujando, redibujar] = useTransition()
   const { executeAsync } = useAction(guardarPreferencia)
   const [filas, fijarFilas] = useState(ofrecidos)
   const [conPreferencia, fijarConPreferencia] = useState(hayPreferencia)
-  const [guardando, fijarGuardando] = useState(false)
+  const [enviando, fijarEnviando] = useState(false)
   const [aviso, fijarAviso] = useState('')
   const [movimiento, fijarMovimiento] = useState<Movimiento | null>(null)
 
@@ -32,7 +33,7 @@ export function useGuardarDisposicion(
     siguientes: readonly WidgetOfrecido[],
     movido?: { id: string; direccion: Direccion },
   ) {
-    fijarGuardando(true)
+    fijarEnviando(true)
     fijarAviso('')
     const envio = await enviarAccion(
       executeAsync({
@@ -41,7 +42,7 @@ export function useGuardarDisposicion(
       }),
       'No se pudo guardar tu preferencia.',
     )
-    fijarGuardando(false)
+    fijarEnviando(false)
     if (!envio.ok) {
       avisarError(envio.error)
       return
@@ -60,7 +61,8 @@ export function useGuardarDisposicion(
   return {
     filas,
     conPreferencia,
-    guardando,
+    // Hasta que el tablero se redibuja con lo guardado: cerrar el panel antes cambia la URL y el redibujo en vuelo se pierde.
+    guardando: enviando || redibujando,
     aviso,
     movimiento,
     mover(clave: string, direccion: Direccion) {
