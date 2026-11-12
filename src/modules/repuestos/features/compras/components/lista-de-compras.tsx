@@ -3,11 +3,13 @@
 import { formatearFecha } from '@/shared/lib/fechas'
 import { textoDelTope } from '@/shared/lib/conteo'
 import { AvisoDeTope } from '@/shared/ui/aviso-de-tope'
+import { Button } from '@/shared/ui/button'
 import { EstadoVacio } from '@/shared/ui/estados'
 import { TarjetaDeLista } from '@/shared/ui/lista'
 import { Monto } from '@/shared/ui/monto'
 import { useRegional } from '@/shared/ui/regional'
 import { TOPE_DE_COMPRAS, type FilaDeCompra } from '../../../entities/compras/compra'
+import { verComprobante } from './ver-comprobante'
 
 type Props = {
   filas: readonly FilaDeCompra[]
@@ -16,7 +18,7 @@ type Props = {
 
 // Las compras de un proyecto (8.11-2, C7), de la más reciente a la más vieja: proveedor, ítem, el monto en su moneda y, si no es la base, el
 // equivalente que guardó la base (`monto_base`: acá nunca se calcula), y la fecha. Sin suma: el resultado del proyecto es el margen, que da la base.
-// Una columna `minmax(0, 1fr)`: con el texto al 200 % nada ensancha la página. Registrar, editar, eliminar y el comprobante llegan con 8.11-3.
+// Una columna `minmax(0, 1fr)`: con el texto al 200 % nada ensancha la página. «Ver comprobante» pide la URL al tocarlo, nunca al leer la lista (8.11-3, C9).
 export function ListaDeCompras({ filas, hayMas }: Props) {
   const { monedaBase, zonaHoraria } = useRegional()
   if (filas.length === 0) {
@@ -46,6 +48,18 @@ export function ListaDeCompras({ filas, hayMas }: Props) {
                 </span>
               ) : null}
             </p>
+            {compra.comprobanteRuta ? (
+              <div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  data-no-abre=""
+                  onClick={() => void verComprobante(compra.comprobanteRuta ?? '')}
+                >
+                  Ver comprobante
+                </Button>
+              </div>
+            ) : null}
           </TarjetaDeLista>
         ))}
       </ul>
