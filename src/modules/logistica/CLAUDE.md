@@ -79,6 +79,9 @@ el bucket `comprobantes` lo abre `comprobante_puede` (la fila que nombra el obje
 pasado `fases.alerta_cada_horas` (nulo = 72 h).
 `documentos_vencimientos()` (job `documentos-vencimientos`, 11:15 UTC) avisa `documento_por_vencer` a quien tiene `logistica.documentos.subir` del origen
 (mismo menor alcance), una vez por persona y documento desde `vence_el - aviso_dias`; el texto cambia con `modo_vencimiento`.
+`logistica_bandeja(p_tope)` (definer, `authenticated`; 5, máximo 20) da `{ demoradas, trabados, por_aprobar }`, cada una `{ filas, hay_mas }`, sólo de
+los orígenes que quien mira ve (por aprobar, además con `logistica.documentos.aprobar`); trabado = demorada a la que le falta un requisito bloqueante para
+su fase siguiente (GLOSARIO). La lee la bandeja de Inicio (6.12-2).
 
 ## No se rompe
 

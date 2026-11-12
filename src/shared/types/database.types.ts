@@ -7279,6 +7279,21 @@ export type Database = {
       }
       _baja_terminar: { Args: { p_usuario: string }; Returns: boolean }
       _bajas_en_curso: { Args: Record<PropertyKey, never>; Returns: string[] }
+      _bandeja_demoradas: {
+        Args: { p_n: number }
+        Returns: {
+          dias: number
+          fase: string
+          fase_desde: string
+          fase_id: string
+          id: string
+          origen_id: string
+          titulo: string
+          vence: string
+        }[]
+      }
+      _bandeja_por_aprobar: { Args: { p_n: number }; Returns: Json }
+      _bandeja_trabados: { Args: { p_demoradas: Json; p_n: number }; Returns: Json }
       _borrador_formula_empezado_por: { Args: { p_creado_por: string }; Returns: string }
       _buscador_interpretar: { Args: { p_texto: string }; Returns: Record<string, unknown> }
       _campo_impacto: {
@@ -9847,6 +9862,7 @@ export type Database = {
         Returns: string
       }
       limpieza_ultima: { Args: Record<PropertyKey, never>; Returns: Json }
+      logistica_bandeja: { Args: { p_tope?: number }; Returns: Json }
       logistica_cadena: {
         Args: { p_filtros?: Json; p_origen: string; p_tope?: number }
         Returns: Json
