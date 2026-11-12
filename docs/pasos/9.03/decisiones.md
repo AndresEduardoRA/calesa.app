@@ -1,0 +1,12 @@
+## 2026-11-11 — Paso 9.03-1: dominancia sobre la persona, la base (9-1)
+
+- **Desbloquear también exige dominar** (recomendada del PLAN): es la misma RPC con `p_bloquear = false`, y desbloquear a quien tiene más permisos que tú es devolverle el acceso.
+- **Quitar un rol que dominas a alguien que no dominas, tampoco** (recomendada del PLAN): la regla del 2026-10-21 es sobre la persona, no sobre el rol.
+- **`dominada` no entra en `equipo_lista()`; se lee con `personas_dominadas(p_ids uuid[])`** (≤ 101 ids, exige `equipo.usuarios.ver` o `.gestionar`). `equipo_lista()` devuelve `setof uuid` desde tres rutas de SQL dinámico: cambiarle el retorno obligaba a `drop function`, a reescribir `equipo-lista.sql` y `medir-equipo.sql` y a tocar el registro de páginas. La lectura aparte deja intacto el plan medido de la lista y sirve igual a la página de una persona.
+- **Orden de las comprobaciones:** permiso → cuenta propia → perfil `for update` (PT409 si no está) → dominancia (42501) → estado (PT409). Quien no domina a la persona no se entera de su estado.
+- **Candados:** además del perfil, los roles de la persona `for share` (un `rbac_otorgar()` sobre un rol que ya tiene no se cuela) y, al asignar y quitar, `p_rol` `for share` antes de `rol_dominado` (auditoría del plan). La comprobación va en una función `volatile` y en una sentencia aparte del candado: en READ COMMITTED así ve lo que el otro acaba de confirmar.
+- **«El dueño domina a todos» = quien llama tiene el rol de clave `dueno`** (activo y sin bloqueo), aunque a ese rol le falte algún permiso (`nivel_crear(…, p_conceder = false)` o un permiso nuevo de una migración futura).
+- **Asignar o quitar un rol a una persona sin perfil es PT409** «Esa persona ya no está en el equipo.» (antes, 23503 de la FK al asignar y nada al quitar).
+- **El mensaje:** `No puedes <bloquear a | desbloquear a | dar de baja a | cambiar los roles de> <nombre>: tiene permisos que tú no tienes.` (42501).
+- **`humo.sql`:** los dos tramos donde Gabriela bloqueaba o daba de baja a la dueña los hace ahora Pablo (rol `dueno`, invitación sin aceptar): Gabriela ya no domina a la dueña y caería por eso antes que por el guardián; el guardián sigue sin contar a Pablo.
+- **Un commit para la regla y su lectura** (el plan decía dos): `personas_dominadas()` es la cara pública de `_personas_dominadas()`, va en la misma migración y así la base se resetea una vez por commit.
