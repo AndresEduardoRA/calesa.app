@@ -14,7 +14,8 @@ Bandeja de inicio por rol y tablero de métricas con widgets personalizables por
 - `features/bandeja/bloques/<clave>.tsx` — **un archivo por bloque**, un Server Component que dibuja sólo su cuerpo (recibe `{ bloque, zona }`: `bloques/tipos.ts`); `bloques/registro.ts` los une con un `Record<ClaveDeBloque, …>` (el compilador pide las diez claves). **Quien llena un hueco edita sólo su archivo**: `vehiculos-trabados`, `documentos-por-aprobar` y `alertas-demora` (Fase 6), `tareas` (7), `turnos-web`, `repuestos-por-mover` y `esperas-repuestos` (8). Llenos hoy: `recordatorios`, `leads-sin-seguimiento` y `equipo-sin-rol`. Un bloque lee por la entrada pública del módulo dueño, devuelve `<ErrorDeBloque/>` si falla y `<VacioDeBloque/>` si no hay nada.
 - `features/bandeja/components/bandeja.tsx` — `<Bandeja nombre permisos sinRol zona>`: el Inicio. Dibuja el marco de cada bloque (`marco-de-bloque.tsx`: `<section>` y `<h2>`; el título no se toca desde el bloque) y su cuerpo tras un `<Suspense>` con `await connection()` (`montaje-de-bloque.tsx`): uno lento o caído no frena a los demás. `lista-de-bloque.tsx`, `esqueleto-de-bloque.tsx` y `error-de-bloque.tsx` («Reintentar» = `router.refresh()`). Sin rol muestra «Aún no tienes un rol, avisa al dueño».
 - Pendiente: `entities/widgets.ts` — catálogo tipado de widgets: clave, permiso que exige, consulta que usa, tamaño.
-- `infra/queries/metricas.ts` — RPC agregadas (una por tablero), nunca N consultas desde el cliente.
+- `infra/queries/metricas.ts` — RPC agregadas, nunca N consultas desde el cliente: `tablero_leads` y `tablero_cotizaciones` (9.07; una por grupo de
+  widgets, piden `tablero.metricas.ver`, ventana ≤ 366 días). «Convertidos» sale de `leads.cliente_desde` (sin grant: sólo la leen esas RPC).
 - Pendiente: `features/metricas/` (dataviz con los tokens de `design/tokens.css`).
 
 ## Tablas
