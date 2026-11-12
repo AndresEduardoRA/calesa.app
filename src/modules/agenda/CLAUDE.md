@@ -2,6 +2,8 @@
 
 Calendario de eventos, tareas con responsable, recordatorios de leads y subastas del inventario, con visibilidad y vínculos a lead, vehículo y cotización.
 
+**Fase 7 cerrada el 2026-11-12** (7.14): R1 de `e2e/fase-7-recorrido.spec.ts` (la tarea dada con `/tarea` en el chat). Abierto que la toca: **7-4** (`tarea_crear` y `agenda_quienes_reciben` con el canal global; `docs/PLAN.md` › «Fase 7»).
+
 ## Entra y sale
 
 - Entra: alta desde la agenda, desde el chat (`/tarea`, `/evento`) y desde la ficha del lead (recordatorios); fechas de subasta de `vehiculos`.
