@@ -16,7 +16,7 @@ declare
     ('_origen_vehiculos_con_valor', 'impacto de cambiar un campo de un origen (administración)'),
     ('_lead_campo_con_valor', 'impacto de cambiar un campo de los leads (administración)'),
     ('_campo_impacto', 'cuenta los valores de un campo de un origen, ya acotados por origen (administración)'),
-    ('revisar_flujo', 'revisión de coherencia de un flujo (administración)'),
+    ('revisar_flujo', 'revisión de coherencia de un flujo (administración; cuenta iniciales y órdenes repetidos entre decenas de fases)'),
     ('evaluar_requisitos', 'requisitos de una fase de UN vehículo o repuesto (sus documentos)'),
     ('rbac_eliminar_rol', 'eliminar un rol cuenta sus personas y concesiones (decenas)'),
     ('alcance_de', 'los roles de UNA persona (unos pocos)'),
