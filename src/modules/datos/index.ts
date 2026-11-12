@@ -10,3 +10,5 @@ export {
   type Pedido,
   type SalidaDeExportacionTotal,
 } from './entities/exportacion'
+// La pantalla `/datos` (9.05-3): qué sección abre `?seccion=`.
+export { seccionDeDatos } from './entities/secciones'
