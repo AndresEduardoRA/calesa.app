@@ -11016,6 +11016,7 @@ export type Database = {
         Args: { p_documento: string; p_lead: string; p_otorgado_en: string }
         Returns: string
       }
+      portal_intento: { Args: { p_ip: string }; Returns: boolean }
       portal_login: {
         Args: { p_clave: string; p_codigo: string }
         Returns: {
