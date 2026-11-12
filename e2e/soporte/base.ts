@@ -108,7 +108,8 @@ export async function borrarPersonasDePrueba(): Promise<void> {
   soltarComprobantesDePrueba()
   const dePrueba = (await cuentas())
     .filter((cuenta) => cuenta.email?.endsWith(`@${DOMINIO_E2E}`))
-    .sort((a, b) => a.created_at.localeCompare(b.created_at))
+    // Como fechas, no como texto: GoTrue escribe «…:23Z» sin fracción cuando cae justo en el segundo, y «.» va antes que «Z» (5.13-1).
+    .sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at))
   const [masVieja, ...otras] = dePrueba
   const borrar = async (cuenta: { id: string; email?: string }) => {
     const { error } = await admin().auth.admin.deleteUser(cuenta.id)
