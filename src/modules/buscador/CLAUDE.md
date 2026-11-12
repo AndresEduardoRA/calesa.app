@@ -29,7 +29,9 @@ Paleta global (Ctrl/Cmd+K) que busca leads, vehículos, cotizaciones y acciones 
 - `features/paleta/` (7.13-1): `actions/registrar-visita.ts` (Server Action sobre `visita_registrar`; esquema en `schemas/visita.ts`, repositorio `RepositorioDeVisitas` →
   `infra/visitas.ts` → `composicion.ts`) y `components/registrar-visita.tsx`, `<RegistrarVisita tipo id />`, sin DOM, una vez por (tipo, id) y sin avisar si falla;
   sale por `pantallas/visita.ts` y lo montan las tres fichas (`/leads/[id]`, `/vehiculos/[id]`, `/cotizaciones/[id]`) **después** de sus salidas «no disponible».
-  La paleta (`<Buscador>`, 7.13-2 y 7.13-3) falta.
+  La lógica de la paleta (7.13-2, sin UI): `entities/acciones-de-la-paleta.ts` (`filtrarAcciones`, datos simples sin permisos), `entities/telefono-en-la-busqueda.ts`
+  (`pareceTelefono`), `entities/estado-de-la-paleta.ts` (los estados y `estadoDeError`), `composicion.client.ts` y `features/paleta/hooks/` (`useBusquedaDeLaPaleta`,
+  `useUltimosAbiertos`; reciben `abierta` y no consultan hasta que sea verdadero). `<Buscador>` (7.13-3) falta.
 
 ## Tablas
 
@@ -58,4 +60,5 @@ RPC (todas de `authenticated`, ninguna de `anon`; tamaño por `_acotar_pagina(p_
 - Registrar la visita es una escritura: va por Server Action (`<RegistrarVisita>`, hecho en 7.13-1), no desde `infra/*.client.ts` (D16).
 
 - Debounce de 250 ms y mínimo 3 caracteres: el buscador fue una fuente de peticiones innecesarias en `ip`.
+- `pareceTelefono` omite la sección de leads (≥ 7 dígitos sin `#`); «sin conexión» = `navigator.onLine` falso o `MENSAJE_SIN_CONEXION` (no hay un código propio).
 - Con `SOLO=` la primera cuenta creada es la dueña: `buscador.sql` crea una de relleno antes de sus personas.
