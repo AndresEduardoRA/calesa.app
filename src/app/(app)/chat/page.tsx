@@ -48,7 +48,13 @@ async function Conversaciones({ parametros }: { parametros: PageProps<'/chat'>['
         />
       </aside>
       <div className={`min-h-0 flex-col md:flex ${abierta ? 'flex' : 'hidden'}`}>
-        <ZonaDelHilo key={abierta ?? 'ninguna'} idSolicitado={abierta} lectura={conversacion} />
+        <ZonaDelHilo
+          key={abierta ?? 'ninguna'}
+          idSolicitado={abierta}
+          lectura={conversacion}
+          usuarioId={sesion.usuarioId}
+          zona={zona}
+        />
       </div>
     </div>
   )

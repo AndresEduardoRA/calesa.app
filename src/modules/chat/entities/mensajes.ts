@@ -190,6 +190,33 @@ export function mensajeLocal(datos: {
   }
 }
 
+export type ResultadoDelEnvio =
+  | { estado: 'enviando' }
+  | { estado: 'enviado'; creadoEn: string }
+  | { estado: 'fallido'; motivo: string }
+
+// Lo que pasó con un mensaje local: llegó (con el instante del servidor), falló (con su motivo) o se reintenta. Un mensaje que la señal ya trajo
+// como enviado no vuelve a fallido (el servidor lo tiene: reintentar sólo responde `repetido`).
+export function aplicarResultado(
+  mensajes: readonly Mensaje[],
+  id: string,
+  resultado: ResultadoDelEnvio,
+): Mensaje[] {
+  return mensajes.map((m) => {
+    if (m.id !== id || (m.estado === 'enviado' && resultado.estado !== 'enviado')) {
+      return m
+    }
+    const { motivoDelFallo: _anterior, ...sinMotivo } = m
+    if (resultado.estado === 'fallido') {
+      return { ...sinMotivo, estado: 'fallido', motivoDelFallo: resultado.motivo }
+    }
+    if (resultado.estado === 'enviado') {
+      return { ...sinMotivo, estado: 'enviado', creadoEn: resultado.creadoEn }
+    }
+    return { ...sinMotivo, estado: 'enviando' }
+  })
+}
+
 // El más nuevo mensaje enviado de otra persona y no eliminado: hasta ahí se marca leído.
 export function ultimoDeOtro(mensajes: readonly Mensaje[], yo: string): Mensaje | null {
   let ultimo: Mensaje | null = null

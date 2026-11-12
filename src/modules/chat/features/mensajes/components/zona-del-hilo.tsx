@@ -7,6 +7,7 @@ import { useEffect, useRef } from 'react'
 import type { Resultado } from '@/shared/lib/errores'
 import { EstadoError, EstadoVacio } from '@/shared/ui/estados'
 import { tituloDe, type Conversacion } from '../../../entities/conversaciones'
+import { Hilo } from './hilo'
 import { EstadoSinConversacion } from './estado-sin-conversacion'
 import { MenuDeConversacion } from './menu-de-conversacion'
 
@@ -15,11 +16,14 @@ type Props = {
   idSolicitado: string | null
   // Lo que dijo la lectura de esa conversación: `null` = no es mía.
   lectura: Resultado<Conversacion | null> | null
+  usuarioId: string
+  // La zona horaria de la empresa, para la hora de cada mensaje y «Ir a una fecha».
+  zona: string
 }
 
-// El lado derecho de `/chat`: el hilo de la conversación abierta. En esta parte sólo dibuja el encabezado; los mensajes
-// llegan con la siguiente. El `key` de quien lo usa lo reinicia al cambiar de conversación y el foco pasa al encabezado.
-export function ZonaDelHilo({ idSolicitado, lectura }: Props) {
+// El lado derecho de `/chat`: el encabezado y el hilo de la conversación abierta. El `key` de quien lo usa lo reinicia al cambiar de
+// conversación y el foco pasa al encabezado.
+export function ZonaDelHilo({ idSolicitado, lectura, usuarioId, zona }: Props) {
   const router = useRouter()
   const encabezado = useRef<HTMLHeadingElement>(null)
   const hayHilo = lectura?.ok === true && lectura.data !== null
@@ -71,9 +75,7 @@ export function ZonaDelHilo({ idSolicitado, lectura }: Props) {
         </h2>
         <MenuDeConversacion conversacion={lectura.data} />
       </header>
-      <p className="p-4 text-(length:--text-sm) text-(--color-ink-soft)">
-        Los mensajes llegan con la siguiente parte.
-      </p>
+      <Hilo conversacion={lectura.data} usuarioId={usuarioId} zona={zona} />
     </section>
   )
 }

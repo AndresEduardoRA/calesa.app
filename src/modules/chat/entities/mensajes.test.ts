@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  aplicarResultado,
   bordeDelDia,
   cursorDeMensaje,
   fundirCabeza,
@@ -237,5 +238,40 @@ describe('leerResultadoDeEnvio', () => {
   it('rechaza otro resultado', () => {
     const lectura = leerResultadoDeEnvio({ resultado: 'quien-sabe', id: id(1), creado_en: 'x' })
     expect(lectura.ok).toBe(false)
+  })
+})
+
+describe('aplicarResultado', () => {
+  const pendiente = mensaje(1, { autorId: YO, estado: 'enviando' })
+
+  it('enviado toma el instante del servidor', () => {
+    const [m] = aplicarResultado([pendiente], id(1), {
+      estado: 'enviado',
+      creadoEn: '2026-11-12T10:30:00+00:00',
+    })
+    expect(m).toMatchObject({ estado: 'enviado', creadoEn: '2026-11-12T10:30:00+00:00' })
+  })
+
+  it('fallido guarda el motivo y reintentar lo borra', () => {
+    const fallido = aplicarResultado([pendiente], id(1), { estado: 'fallido', motivo: 'Sin red' })
+    expect(fallido[0]).toMatchObject({ estado: 'fallido', motivoDelFallo: 'Sin red' })
+    const otraVez = aplicarResultado(fallido, id(1), { estado: 'enviando' })
+    expect(otraVez[0]?.estado).toBe('enviando')
+    expect(otraVez[0]?.motivoDelFallo).toBeUndefined()
+  })
+
+  it('un mensaje que la señal ya trajo como enviado no vuelve a fallido', () => {
+    const enviado = mensaje(1, { autorId: YO })
+    const [m] = aplicarResultado([enviado], id(1), { estado: 'fallido', motivo: 'Sin red' })
+    expect(m?.estado).toBe('enviado')
+  })
+
+  it('no toca los demás', () => {
+    const otros = aplicarResultado([mensaje(2), pendiente], id(1), {
+      estado: 'fallido',
+      motivo: 'x',
+    })
+    expect(otros[0]?.id).toBe(id(2))
+    expect(otros[0]?.estado).toBe('enviado')
   })
 })
