@@ -11,7 +11,6 @@ import {
   leerItemsDelProyecto,
   leerProyecto,
 } from '@/modules/repuestos'
-import { HojaDeItems } from '@/modules/repuestos/pantallas/items'
 import { CabeceraDeProyecto } from '@/modules/repuestos/pantallas/proyectos'
 import { leerMonedasYTiposCambio } from '@/modules/empresa'
 import { leerVehiculo } from '@/modules/vehiculos'
@@ -20,6 +19,7 @@ import { RUTAS } from '@/shared/lib/rutas'
 import { buttonVariants } from '@/shared/ui/button'
 import { EstadoSinPermiso, EstadoVacio } from '@/shared/ui/estados'
 import { EsqueletoListado } from '@/shared/ui/esqueletos'
+import { HojaConStock } from './hoja-con-stock'
 import { pestanasLlenas } from './pestanas'
 import { PestanasDelProyecto } from './pestanas-del-proyecto'
 
@@ -81,7 +81,7 @@ async function Proyecto({ params }: { params: PageProps<'/repuestos/[id]'>['para
       sinItems={hoja.filas.length === 0}
     >
       {llenas.length > 1 ? <PestanasDelProyecto pestanas={llenas} /> : null}
-      <HojaDeItems
+      <HojaConStock
         proyectoId={proyecto.id}
         filas={hoja.filas}
         hayMas={hoja.hayMas}

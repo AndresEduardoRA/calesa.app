@@ -20,6 +20,7 @@ import {
   HojaVacia,
 } from './avisos-de-la-hoja'
 import type { ContextoDeLaHoja } from './contexto-de-la-hoja'
+import type { ApiDelHueco, HuecoDeLaHoja } from './hueco-de-la-hoja'
 import { ConfirmarEliminarItemDiferido, DrawerDeImagenesDiferido } from './diferidos'
 import { FilaNueva } from './fila-nueva'
 import { TablaDeItems } from './tabla-de-items'
@@ -35,6 +36,8 @@ export type PropsDeLaHoja = {
   // `puede(permisos, 'repuestos.editar')`, calculado en el servidor.
   puedeEditar: boolean
   cerrado: boolean
+  // Lo que otra área pone en cada fila y su panel (8.10-2); lo llena `src/app`.
+  hueco?: HuecoDeLaHoja
 }
 
 const primeraMoneda = (monedas: readonly MonedaDeLaHoja[]) => monedas[0]?.codigo ?? null
@@ -86,6 +89,7 @@ export function HojaDeItems(props: PropsDeLaHoja) {
     alReiniciar: hoja.alReiniciar,
     alPedirEliminar: eliminacion.abrir,
     alPedirImagenes: imagenes.abrir,
+    accionDeFila: accionDelHueco(props.hueco),
   }
   const filaNueva = cabeOtro(editable, hoja.filas, props.hayMas) ? (
     <FilaNueva alAgregar={hoja.agregar} />
@@ -124,9 +128,19 @@ export function HojaDeItems(props: PropsDeLaHoja) {
           focoAlCerrar={() => focoDeImagenes(deImagenes)}
         />
       ) : null}
+      {panelDelHueco(props.hueco, {
+        filas: hoja.filas,
+        puedeEditar: props.puedeEditar,
+        cerrado: props.cerrado,
+        cambiarFila: hoja.cambiarFila,
+      })}
     </section>
   )
 }
+
+const accionDelHueco = (hueco: HuecoDeLaHoja | undefined) => hueco?.accionDeFila
+const panelDelHueco = (hueco: HuecoDeLaHoja | undefined, api: ApiDelHueco) =>
+  hueco ? hueco.panel(api) : null
 
 // Al cerrar el diálogo el foco vuelve al botón «Eliminar» de esa fila (la URL lo abrió y el botón pudo redibujarse).
 function focoDeEliminar(item: FilaDeItem | null): HTMLElement | true {
