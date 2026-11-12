@@ -52,7 +52,7 @@ El módulo se parte por área, como `cotizaciones` (`scripts/guardas/areas-de-fl
 ## Tablas
 
 `flujos`, `flujos_reglas`, `fases`, `fases_transiciones`, `fases_roles`, `fases_transiciones_roles`, `tipos_documento`, `fases_requisitos`, `historial_fases`, `flujos_transporte_oferta`.
-RPC: `cambiar_fase`, `cambiar_fase_lote`, `previsualizar_cambio_fase`, `previsualizar_cambio_fase_lote`, `revisar_flujo`, `fase_crear`, `fase_guardar`, `fase_mover`, `fase_impacto`, `fase_eliminar`, `fase_reactivar`, `requisito_crear`, `requisito_guardar`, `requisito_mover`, `requisito_eliminar`, `requisito_impacto`, `flujo_fuera_de_regla`, `claves_dato_requisito`, `flujo_regla_impacto`, `flujo_regla_cambiar`, `flujo_oferta_guardar`, `flujo_oferta`, `logistica_cadena`, `logistica_cadena_columna`.
+RPC: `cambiar_fase`, `cambiar_fase_lote`, `previsualizar_cambio_fase`, `previsualizar_cambio_fase_lote`, `revisar_flujo`, `fase_crear`, `fase_guardar`, `fase_mover`, `fase_impacto`, `fase_eliminar`, `fase_reactivar`, `requisito_crear`, `requisito_guardar`, `requisito_mover`, `requisito_eliminar`, `requisito_impacto`, `flujo_fuera_de_regla`, `claves_dato_requisito`, `flujo_regla_impacto`, `flujo_regla_cambiar`, `flujo_oferta_guardar`, `flujo_oferta`, `logistica_cadena`, `logistica_cadena_columna`, `logistica_unidad`, `logistica_donde_esta`.
 
 ## No se rompe
 
@@ -71,6 +71,10 @@ RPC: `cambiar_fase`, `cambiar_fase_lote`, `previsualizar_cambio_fase`, `previsua
   (`_logistica_alcance`, una vez; sin él 42501 hint `acceso`) y toda consulta empieza por `origen_id` y fuera de la papelera. Cuatro consultas fijas en
   `_logistica_columna` sobre `vehiculos_cadena_idx (origen_id, fase_id, fase_desde, id)`; «Sin fase» es `fase_id` nulo (check `vehiculos_fase_desde_coherente`:
   `fase_desde` existe si y sólo si hay fase; el trigger `trg_0_fase_desde_coherente` lo completa). Se miden en `supabase/tests/medir-escala.sql` › «La cadena».
+- La unidad y «dónde está» (6.02-3), `security definer` con el mismo acceso que la cadena: `logistica_unidad(p_vehiculo)` da `demorada`, `fuera_de_regla`
+  con `faltan` (los bloqueantes sin cumplir de su fase) y `movida` (la última fila de `historial_fases`, sin la nota); inexistente, papelera o sin acceso, un
+  solo 42501 hint `acceso`. `logistica_donde_esta(p_buscar, p_tope)` busca hasta 10 por título, VIN o lote (trigramas, hasta 1.000 candidatas y las propias por
+  `vehiculos_creador_idx`) sólo en orígenes con la regla `logistica` activa; corto o sin orígenes, vacío. `notas_vehiculo_vivas_idx` sostiene la lista de notas (6.04).
 - Una fase con historial no se elimina: se jubila (`activa = false`) y sale de los destinos. `fase_eliminar(p_fase, p_actualizado_en_esperado)` (5.01-2) toma la fase `for update` antes de contar (espera al cambio de fase en curso que entra o sale) y aplica `_fase_uso()`, la misma regla que lee `fase_impacto(p_fase)`: con unidades (también en la papelera) o historial jubila; sin ellos borra; con esperas → `23503`; la única inicial activa → `23514` (hint `es_inicial`); ya jubilada con uso → `22023`. Devuelve `{accion: jubilada|eliminada, version}`. Los conteos de `_fase_uso` llegan como tope + 1 (50 → 51): la app los pasa por `conteoAcotado(n, 50)`. Un cambio de fase hacia una fase que se está borrando recibe el `23503` de la FK.
 - `fase_mover(p_fase, p_actualizado_en_esperado, p_despues_de)` renumera todas las fases del flujo (también las jubiladas) de 10 en 10, sin `orden` repetido, y sólo escribe `orden`. `fase_reactivar(p_fase, p_actualizado_en_esperado)` valida las reglas del flujo sobre la fila (`23514` con el campo en `hint`) y sólo escribe `activa`.
 - Un requisito nace informativo; volverlo bloqueante muestra cuántas unidades quedan «fuera de regla» y pide confirmación.
