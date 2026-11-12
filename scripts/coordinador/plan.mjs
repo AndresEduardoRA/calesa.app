@@ -426,9 +426,22 @@ export function siguiente(
   const haceEste = (p) => (estado.pasos[p.id]?.carril ?? p.carril) === carril
   // La rama de un paso es la que quedó anotada al asignarlo (un arreglo prestado sigue en la del PR de otro carril, `b/4.26`).
   const ramaDe = (p) => estado.pasos[p.id]?.rama ?? rama(carril, p.id)
-  const enCurso = plan.pasos.find((p) => estado.pasos[p.id]?.estado === 'asignado' && haceEste(p))
-  if (enCurso) return { accion: 'paso', paso: enCurso, rama: ramaDe(enCurso), retomar: true }
-  // Un PR propio con el CI rojo o en conflicto con main va antes que un paso nuevo: bloquea a los que dependen de él.
+  const asignados = plan.pasos.filter(
+    (p) => estado.pasos[p.id]?.estado === 'asignado' && haceEste(p),
+  )
+  // Un arreglo que ya se empezó (un PR devuelto que se volvió a asignar) se termina antes que nada.
+  const enArreglo = asignados.find((p) => estado.pasos[p.id].arreglar)
+  if (enArreglo)
+    return {
+      accion: 'paso',
+      paso: enArreglo,
+      rama: ramaDe(enArreglo),
+      retomar: true,
+      arreglar: estado.pasos[enArreglo.id].arreglar,
+    }
+  // Un PR propio con el CI rojo o en conflicto con main va antes que un paso nuevo y que la parte siguiente del paso en curso: está a un
+  // remiendo de integrarse y bloquea a los que dependen de él. El 11-11-2026 el 7.02, el 5.11 y el 6.05 esperaron de 3 a 5 h devueltos
+  // mientras su carril hacía, parte por parte, otro paso. El carril sólo pregunta entre sesiones, así que no se corta nada a medias.
   const roto = plan.pasos.find(
     (p) =>
       estado.pasos[p.id]?.estado === 'publicado' && estado.pasos[p.id]?.arreglar && haceEste(p),
@@ -441,6 +454,8 @@ export function siguiente(
       retomar: true,
       arreglar: estado.pasos[roto.id].arreglar,
     }
+  const enCurso = asignados[0]
+  if (enCurso) return { accion: 'paso', paso: enCurso, rama: ramaDe(enCurso), retomar: true }
   const integrado = (id) => estado.pasos[id]?.estado === 'integrado'
   const largo = caminoCritico(plan)
   if (plan.pasos.every((p) => integrado(p.id))) return { accion: 'terminado' }

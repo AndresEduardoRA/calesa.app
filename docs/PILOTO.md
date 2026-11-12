@@ -302,6 +302,13 @@ final; lo leído son las vueltas por el tamaño del contexto): lo que baja el ga
   (`pr.mjs` › `integrarSueltos`, `COORD_SUELTOS`; nunca un fork ni un borrador). Y lee `piloto.config` de `origin/main` en cada vuelta
   (`sincronizar.sh`): un cambio integrado le llega sin relanzarlo.
 
+**FLUJO-4 (2026-11-11, noche).** A 13,5 h de lanzar, 20 de 69 pasos; tres pérdidas que no eran de ningún paso (`docs/DECISIONES.md` › «FLUJO-4»):
+
+- **Con carriles, ni la base en rojo ni la cuenta de rojos frenan publicar** (`ci.sh`): sin empujar no corre otro CI y el rojo viejo no se
+  iba (el B, 3 h). El rojo se anota igual; el PR en rojo lo devuelve el coordinador.
+- **Un PR devuelto (`arreglar`) va antes que la parte siguiente del paso en curso**, y un arreglo empezado se termina primero (`plan.mjs`).
+- **El commit de renumerar sobre un CI en verde se integra sin esperar su CI** (`renumerado_verde`; `COORD_RENUMERAR_SIN_CI=0` lo apaga).
+
 ## El ensayo en seco (2026-10-26)
 
 `bash scripts/piloto/arrancar.sh --en-seco --nota .piloto/contexto/3a.md` («el 3a está en curso en otra sesión: planear el 4.13-3b sobre su contrato»), con `PILOTO_TOPE_USD_PASO=15`:
