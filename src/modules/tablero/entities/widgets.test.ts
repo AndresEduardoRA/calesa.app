@@ -6,7 +6,7 @@ const CON_PERMISO: Permisos = [{ clave: 'tablero.metricas.ver', origenId: null, 
 const SIN_PERMISO: Permisos = [{ clave: 'leads.ver', origenId: null, alcance: 'todos' }]
 
 describe('widgetsVisibles', () => {
-  it('con el permiso salen los cinco disponibles y ningún hueco', () => {
+  it('con el permiso salen los diez disponibles y ningún hueco', () => {
     const claves = widgetsVisibles(CON_PERMISO).map((w) => w.clave)
     expect(claves).toEqual([
       'leads-creados',
@@ -14,6 +14,11 @@ describe('widgetsVisibles', () => {
       'tasa-de-conversion',
       'cotizaciones-creadas',
       'cotizaciones-finales',
+      'leads-por-dia',
+      'cotizaciones-por-dia',
+      'leads-por-origen',
+      'leads-por-persona',
+      'cotizaciones-por-origen',
     ])
     expect(claves).not.toContain('margen-del-mes')
     expect(claves).not.toContain('cola-web')
@@ -50,6 +55,11 @@ describe('aplicarPreferencia', () => {
       'convertidos',
       'tasa-de-conversion',
       'cotizaciones-creadas',
+      'leads-por-dia',
+      'cotizaciones-por-dia',
+      'leads-por-origen',
+      'leads-por-persona',
+      'cotizaciones-por-origen',
     ])
     expect(claves(ocultos)).toEqual(['leads-creados'])
   })
@@ -75,6 +85,11 @@ describe('aplicarPreferencia', () => {
       'convertidos',
       'tasa-de-conversion',
       'cotizaciones-finales',
+      'leads-por-dia',
+      'cotizaciones-por-dia',
+      'leads-por-origen',
+      'leads-por-persona',
+      'cotizaciones-por-origen',
     ])
   })
 

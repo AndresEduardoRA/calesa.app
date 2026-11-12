@@ -3,7 +3,12 @@ import type { Permisos } from '@/shared/lib/permisos'
 import { CuerpoDeConvertidos } from './convertidos'
 import { CuerpoDeCotizacionesCreadas } from './cotizaciones-creadas'
 import { CuerpoDeCotizacionesFinales } from './cotizaciones-finales'
+import { CuerpoDeCotizacionesPorDia } from './cotizaciones-por-dia'
+import { CuerpoDeCotizacionesPorOrigen } from './cotizaciones-por-origen'
 import { CuerpoDeLeadsCreados } from './leads-creados'
+import { CuerpoDeLeadsPorDia } from './leads-por-dia'
+import { CuerpoDeLeadsPorOrigen } from './leads-por-origen'
+import { CuerpoDeLeadsPorPersona } from './leads-por-persona'
 import { CuerpoDeTasaDeConversion } from './tasa-de-conversion'
 import type { CuerpoDeWidget } from './tipos'
 
@@ -17,6 +22,11 @@ const CUERPOS: Record<ClaveDeWidget, CuerpoDeWidget> = {
   'tasa-de-conversion': CuerpoDeTasaDeConversion,
   'cotizaciones-creadas': CuerpoDeCotizacionesCreadas,
   'cotizaciones-finales': CuerpoDeCotizacionesFinales,
+  'leads-por-dia': CuerpoDeLeadsPorDia,
+  'cotizaciones-por-dia': CuerpoDeCotizacionesPorDia,
+  'leads-por-origen': CuerpoDeLeadsPorOrigen,
+  'leads-por-persona': CuerpoDeLeadsPorPersona,
+  'cotizaciones-por-origen': CuerpoDeCotizacionesPorOrigen,
   'margen-del-mes': HUECO,
   'cola-web': HUECO,
 }

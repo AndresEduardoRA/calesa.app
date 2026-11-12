@@ -56,6 +56,47 @@ export const WIDGETS_TABLERO = [
     tamano: 'cifra',
     disponible: true,
   },
+  // Gráficas (9.08-2): anchas, con su tabla equivalente.
+  {
+    clave: 'leads-por-dia',
+    titulo: 'Leads por día',
+    permisos: ['tablero.metricas.ver'],
+    grupo: 'leads',
+    tamano: 'ancho',
+    disponible: true,
+  },
+  {
+    clave: 'cotizaciones-por-dia',
+    titulo: 'Cotizaciones por día',
+    permisos: ['tablero.metricas.ver'],
+    grupo: 'cotizaciones',
+    tamano: 'ancho',
+    disponible: true,
+  },
+  {
+    clave: 'leads-por-origen',
+    titulo: 'Leads por origen',
+    permisos: ['tablero.metricas.ver'],
+    grupo: 'leads',
+    tamano: 'ancho',
+    disponible: true,
+  },
+  {
+    clave: 'leads-por-persona',
+    titulo: 'Leads por persona',
+    permisos: ['tablero.metricas.ver'],
+    grupo: 'leads',
+    tamano: 'ancho',
+    disponible: true,
+  },
+  {
+    clave: 'cotizaciones-por-origen',
+    titulo: 'Cotizaciones por origen',
+    permisos: ['tablero.metricas.ver'],
+    grupo: 'cotizaciones',
+    tamano: 'ancho',
+    disponible: true,
+  },
   // Huecos del 9.11: su permiso se afina allá (el del margen es otro).
   {
     clave: 'margen-del-mes',

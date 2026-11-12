@@ -97,3 +97,27 @@ test('T4 la dueña llega al tablero desde Inicio', async ({ page }) => {
   await expect(page).toHaveURL(/\/tablero$/)
   await expect(cifra(page, 'Leads creados')).toBeVisible()
 })
+
+test('T5 la dueña ve las cinco gráficas y «Ver como tabla» abre los números', async ({ page }) => {
+  // Un lead y una cotización de hoy: así las gráficas de este mes tienen movimiento sin depender de otros specs.
+  await sembrarParaMarcar(t, 'T5')
+  await page.context().clearCookies()
+  await entrar(page, t.duena, { fresco: true })
+  await page.goto('/tablero')
+  for (const titulo of [
+    'Leads por día',
+    'Cotizaciones por día',
+    'Leads por origen',
+    'Leads por persona',
+    'Cotizaciones por origen',
+  ]) {
+    await expect(page.getByRole('heading', { name: titulo, level: 2 })).toBeVisible()
+  }
+  const seccion = page.getByRole('region', { name: 'Leads por día' })
+  await expect(seccion.getByRole('img', { name: /^Leads por día: / })).toBeVisible()
+  await expect(seccion.getByRole('columnheader', { name: 'Día' })).toBeHidden()
+
+  await seccion.getByText('Ver como tabla').click()
+  await expect(seccion.getByRole('columnheader', { name: 'Día' })).toBeVisible()
+  await expect(seccion.getByRole('columnheader', { name: 'Creados' })).toBeVisible()
+})
