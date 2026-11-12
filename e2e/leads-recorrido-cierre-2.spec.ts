@@ -20,6 +20,7 @@ import {
 import { nuevoLead } from './soporte/leads-ficha'
 import { completoCon, nacional } from './soporte/leads-ficha-telefonos'
 import {
+  aLaVistaAlAcomodarse,
   capturar,
   limpiarRecorrido,
   prepararRecorrido,
@@ -207,6 +208,8 @@ test('Ana · la ficha: la barra de secciones del celular, «Portal» a la vista'
   await variantes(page, info, 'ana-ficha-barra', true)
   await irAFicha(page, r.uno.id, '?seccion=portal')
   await expect(page.getByRole('link', { name: 'Portal' })).toHaveAttribute('aria-current', 'page')
+  // La barra de secciones se desplaza hasta la abierta recién al hidratar: se captura con «Portal» ya a la vista.
+  await aLaVistaAlAcomodarse(page.getByRole('link', { name: 'Portal' }), 'la sección «Portal»')
   await variantes(page, info, 'ana-ficha-portal')
 })
 
