@@ -5,9 +5,9 @@
 --   B1. Quien no ve el origen (sin logistica.ver o sin vehiculos.ver de ese origen, aunque los tenga de otro) recibe las tres listas vacías con
 --       demoradas, trabados y por aprobar sembrados allí; quien sí lo ve, los recibe.
 --   B2. Demoradas: la más pasada de su límite primero; p_tope 1 da una con hay_mas; p_tope 999 corta en 20; no salen la papelera ni una fase que no
---       alerta; propios ve sólo lo suyo. La fila trae sus claves exactas.
---   B3. Por aprobar: con logistica.documentos.aprobar del origen sale el subido y no el aprobado; sin la clave, vacía aunque vea el origen; con la clave
---       en propios, sólo el de su unidad.
+--       alerta; propios ve lo suyo y lo de su cartera (no un lead ajeno), también con logistica.ver propios. La fila trae sus claves exactas.
+--   B3. Por aprobar: con logistica.documentos.aprobar del origen sale el subido y no el aprobado ni el de la papelera; sin la clave, vacía aunque vea el
+--       origen; con la clave en propios, o con logistica.ver en propios, sólo el de su unidad.
 --   B4. Trabados: una demorada con un requisito bloqueante incumplido para su fase siguiente (la activa de menor orden) sale con el motivo del primero por
 --       orden; con el requisito no bloqueante o sin transición de salida, no.
 --   B5. anon no ejecuta logistica_bandeja; authenticated sí, y no sus ayudantes.
@@ -129,7 +129,9 @@ declare
   f3 uuid := pg_temp.ab_fase(a, 10, 3); f10 uuid := pg_temp.ab_fase(a, 20, 10); f0 uuid := pg_temp.ab_fase(a, 30, 0);
   u uuid := pg_temp.ab_persona(array['logistica.ver@' || o, 'vehiculos.ver@' || o]);
   prop uuid := pg_temp.ab_persona(array['logistica.ver@' || o, 'vehiculos.ver@' || o || '#propios']);
+  mix_l uuid := pg_temp.ab_persona(array['logistica.ver@' || o || '#propios', 'vehiculos.ver@' || o]);
   v_a uuid; v_b uuid; v_c uuid; v_papelera uuid; r jsonb;
+  v_lead uuid; v_lead_ajeno uuid; v_cartera uuid; v_ajena uuid; v_mix_l uuid;
 begin
   v_a := pg_temp.ab_vehiculo(o, f3, 5, prop);     -- 2 días pasada
   v_b := pg_temp.ab_vehiculo(o, f10, 20);         -- 10 días pasada
@@ -153,6 +155,18 @@ begin
   r := pg_temp.ab_bandeja(u, 999);
   perform pg_temp.ab_igual('B2 p_tope 999 corta en 20', jsonb_array_length(r -> 'demoradas' -> 'filas'), 20);
   perform pg_temp.ab_igual('B2 p_tope 999, hay_mas', r -> 'demoradas' -> 'hay_mas', 'true'::jsonb);
+  -- Propios también ve la unidad de un lead de su cartera, no la de un lead ajeno; logistica.ver propios con vehiculos.ver todos, sólo lo suyo.
+  insert into public.leads (nombre, telefono_principal, creado_por)
+  values ('AB lead', '59' || lpad((('x' || substr(md5(gen_random_uuid()::text), 1, 7))::bit(28)::int % 100000000)::text, 8, '0'), prop) returning id into v_lead;
+  insert into public.leads (nombre, telefono_principal, creado_por)
+  values ('AB ajeno', '59' || lpad((('x' || substr(md5(gen_random_uuid()::text), 1, 7))::bit(28)::int % 100000000)::text, 8, '0'), u) returning id into v_lead_ajeno;
+  v_cartera := pg_temp.ab_vehiculo(o, f3, 4.5);   -- 1,5 días pasada
+  update public.vehiculos set lead_id = v_lead where id = v_cartera;
+  v_ajena := pg_temp.ab_vehiculo(o, f3, 4.6);
+  update public.vehiculos set lead_id = v_lead_ajeno where id = v_ajena;
+  v_mix_l := pg_temp.ab_vehiculo(o, f3, 4.7, mix_l);
+  perform pg_temp.ab_igual('B2 propios con cartera', pg_temp.ab_ids(pg_temp.ab_bandeja(prop), 'demoradas'), array[v_a, v_cartera]);
+  perform pg_temp.ab_igual('B2 logistica.ver propios', pg_temp.ab_ids(pg_temp.ab_bandeja(mix_l), 'demoradas'), array[v_mix_l]);
 end $$;
 rollback;
 
@@ -164,15 +178,23 @@ declare
   apr uuid := pg_temp.ab_persona(array['logistica.ver@' || o, 'vehiculos.ver@' || o, 'logistica.documentos.aprobar@' || o]);
   sin uuid := pg_temp.ab_persona(array['logistica.ver@' || o, 'vehiculos.ver@' || o]);
   prop uuid := pg_temp.ab_persona(array['logistica.ver@' || o, 'vehiculos.ver@' || o, 'logistica.documentos.aprobar@' || o || '#propios']);
+  mix_l uuid := pg_temp.ab_persona(array['logistica.ver@' || o || '#propios', 'vehiculos.ver@' || o, 'logistica.documentos.aprobar@' || o]);
   v uuid := pg_temp.ab_vehiculo(o, f, 1); v_prop uuid := pg_temp.ab_vehiculo(o, f, 1, prop, 'ab propio');
-  d uuid; d_prop uuid; r jsonb;
+  v_mix_l uuid := pg_temp.ab_vehiculo(o, f, 1, mix_l); v_papelera uuid := pg_temp.ab_vehiculo(o, f, 1);
+  d uuid; d_prop uuid; d_mix_l uuid; r jsonb;
 begin
   d := pg_temp.ab_documento(v, t);
   perform pg_temp.ab_documento(v, t, 'aprobado');
   d_prop := pg_temp.ab_documento(v_prop, t);
-  update public.documentos set creado_en = now() - interval '1 hour' where id = d;  -- el más viejo primero
+  d_mix_l := pg_temp.ab_documento(v_mix_l, t);
+  perform pg_temp.ab_documento(v_papelera, t);
+  update public.vehiculos set eliminado_en = now() where id = v_papelera;
+  -- El más viejo primero.
+  update public.documentos set creado_en = now() - interval '1 hour' where id = d;
+  update public.documentos set creado_en = now() - interval '30 minutes' where id = d_prop;
   r := pg_temp.ab_bandeja(apr);
-  perform pg_temp.ab_igual('B3 con la clave', pg_temp.ab_ids(r, 'por_aprobar'), array[d, d_prop]);
+  perform pg_temp.ab_igual('B3 con la clave (sin el aprobado ni la papelera)', pg_temp.ab_ids(r, 'por_aprobar'), array[d, d_prop, d_mix_l]);
+  perform pg_temp.ab_igual('B3 aprobar todos con logistica.ver propios', pg_temp.ab_ids(pg_temp.ab_bandeja(mix_l), 'por_aprobar'), array[d_mix_l]);
   perform pg_temp.ab_igual('B3 claves de la fila', (select array_agg(k order by k) from jsonb_object_keys(r -> 'por_aprobar' -> 'filas' -> 0) k),
                            array['creado_en', 'id', 'tipo', 'titulo', 'vehiculo_id']);
   perform pg_temp.ab_igual('B3 vehículo de la fila', r #>> '{por_aprobar,filas,1,vehiculo_id}', v_prop::text);
