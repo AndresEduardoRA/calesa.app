@@ -29,4 +29,9 @@ export const REGISTRO: Record<string, ConfirmarConUrl> = {
     abre: 'src/modules/logistica/features/documentos/hooks/use-eliminar-documento-por-url.ts',
     senal: 'PANEL_ELIMINAR_DOCUMENTO',
   },
+  // `?panel=eliminar-faq&faq=<id>` (8.02-1): eliminar una pregunta frecuente, desde el «⋯» de la lista.
+  'src/modules/web/features/contenido/faqs/components/confirmar-eliminar-faq.tsx': {
+    abre: 'src/modules/web/features/contenido/faqs/hooks/use-eliminar-faq-por-url.ts',
+    senal: 'PANEL_ELIMINAR_FAQ',
+  },
 }
