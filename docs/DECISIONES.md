@@ -6651,3 +6651,75 @@ entero al reloj: con 40 min por PR, ≈ 14 h; con 75, ≈ 17.
   la sesión de arreglo los resuelve en ≈ 5 min, lo caro es la vuelta de CI. Y un carril que choca consigo mismo (8.02, 8.03 y 8.04 en
   `configuracion/web`): encadenar la rama del paso nuevo sobre la del PR propio sin integrar pide cambiar cómo se cortan las ramas con
   el piloto en marcha; queda anotado.
+
+<!-- paso:8.04-3 -->
+
+## 2026-11-12 · Decisiones del paso 8.04-3 (las escrituras de la cola web)
+
+- **D22** · **Sin migración.** Las dos RPC ya existen y exigen `web.cola.gestionar`: `cola_web_configurar` (habilitar, quitar, cupo, prioridad, orden) y
+  `web_ajustes_guardar` (la política). «Quedó habilitada sin el permiso» se sabe releyendo `puede_estar_en_la_rueda(p_usuario)` en la misma escritura,
+  después de configurar. Cambiar el `returns void` de `cola_web_configurar` sería `drop`/`create` de un `security definer` para ahorrar un pedido: más riesgo
+  que valor. El `terminado` de base (`tablero.sql` T1–T5, el caso de `jobs.sql`) ya lo cumplió la 8.04-1.
+- **D23** · **T6 en `supabase/tests/areas/cola/tablero.sql`**: `cola_web_configurar` no tenía prueba SQL. Sin `web.cola.gestionar` da 42501 y la fila no
+  cambia; habilitar no toca `disponible` y deja fuera de la rueda a quien su rol no participa; quitar con sus valores y «Deshacer» la dejan igual.
+- **D24** · **«Agregar a la rueda» busca con la lista del equipo** (la recomendada de la fila): `src/app` lee `leerEquipo(filtroDelEquipoDesde({ q }))`
+  sólo con el panel abierto y si quien mira tiene `equipo.usuarios.ver` o `.gestionar`; `web` no importa `equipo` (recibe `PersonaParaLaRueda`, armada por
+  `personasParaLaRueda()` con tipado estructural). Sin esas claves, el botón va apagado con «Tu rol no ve el equipo.». El mínimo de 3 letras es un espejo
+  comentado de `MINIMO_DE_BUSQUEDA_DEL_EQUIPO`, que no sale de `equipo`: la base decide.
+- **D25** · **Quién se elige:** dada de baja no figura; bloqueada sale apagada («Cuenta bloqueada»); activa e invitación pendiente se eligen (la rueda mira
+  sólo `activo` y `bloqueado`). Así, si al guardar no quedó en la rueda, la causa es el rol.
+- **D26** · **Quien ya está habilitada** figura con «Ya está en la rueda» y elegirla precarga su cupo, prioridad y orden (el botón dice «Guardar»): nunca se
+  pisan con los de fábrica. Si el tablero llegó al tope, el panel avisa que puede haber habilitadas que no se leyeron (O4 de la auditoría).
+- **D27** · **Rangos de la interfaz:** cupo vacío (hereda la política) o 1–50 (el `check` de la tabla); prioridad 0–10; orden 0–999. La base acepta todo
+  `smallint`: lo angosto es lo conservador y se ensancha sin migrar. Sólo el formulario: quitar y «Deshacer» devuelven lo que la fila ya tenía y aceptan
+  todo `smallint` (una fila escrita por fuera de la pantalla se puede quitar igual; auditoría del informe).
+- **D28** · **El aviso al habilitar sin el permiso** es un toast neutro con «Abrir Roles» (`sale: true`) sólo si quien mira ve Roles; con el permiso,
+  «<nombre> está en la rueda.». Si la relectura falla, el guardado ya ocurrió: sólo se dice que se guardó.
+- **D29** · **«Quitar» = hacer + «Deshacer»** (reversible, sin `<Confirmar>`): `cola_web_configurar(…, false, …)` con los valores que tenía; «Deshacer»
+  la vuelve a habilitar igual. Sin versión: la última escritura gana (D8).
+- **D30** · **La política** va plegada al final de la pantalla, con la versión como `key` y su código diferido. Manda siempre las cinco claves de la cola
+  (`cambiosDePolitica`, con test) y nunca `whatsapp_respaldo`, que es del sitio y con sólo `web.cola.gestionar` haría fallar todo con 42501. `PT409` →
+  `<AvisoDeConflicto>`. Cinco campos: sin borrador.
+- **D31** · **Cada búsqueda del panel vuelve a correr la página** (`shallow: false`, con transición y 300 ms de pausa al tipear): son las tres lecturas del
+  tablero y una página de `equipo_lista`, todas acotadas. Reversible: leer el equipo desde el navegador sería otra entrada de `equipo`.
+
+<!-- paso:8.11-3 -->
+
+# 8.11-3 · Compras y margen: escribir (2026-11-12)
+
+- **D1 · Tipo de esta parte.** Datos y dinero (pantalla sobre las RPC de 8.11-1 y la policy de comprobantes de 6.10-2, sin migración): se verificó que la base trae
+  guardar, eliminar, restaurar, la lista cerrada, el comprobante en la carpeta del proyecto y `storage_refcount`. El informe se audita: lo de riesgo es qué viaja y
+  quién escribe (el esquema estricto y las actions) y que `monto_base` lo pone la base.
+- **D2 · La URL del Drawer.** `?panel=compra&compra=<id|nueva>`, el patrón de `?panel=gasto&gasto=<id|nuevo>`, con `nueva` en femenino. Convive con `?pestana=compras`.
+- **D3 · Refrescar tras escribir.** La action hace `revalidatePath` de `/repuestos/<id>` (`.claude/rules/datos.md`), no `router.refresh()` como decía el plan de
+  8.11-2. La ruta se arma con `RUTAS.repuestos` porque `rutaDelProyecto` es del área `proyectos` y un área no importa otra. `router.refresh()` queda sólo para
+  «Recargar» tras un conflicto.
+- **D4 · Las opciones de «Ítem».** Los ítems vivos de la hoja que ya leyó la página (≤ 200, sin otra lectura) más «Sin ítem». Si la compra que se edita tiene un ítem
+  fuera de esa lista, se suma con su descripción para no perderlo; si se elige otro, la base mira que sea del proyecto.
+- **D5 · Las opciones de «Moneda».** Las activas y, al editar, también la de la compra aunque se haya desactivado: si no se cambia, no viaja y la base conserva la
+  tasa. Sin selector de tipo de cambio: lo pone la base con el por defecto vigente (D1 de 8.11-1), y el Drawer lo dice en su descripción.
+- **D6 · Un solo «Registrar compra».** Arriba de la lista, también cuando está vacía; el estado vacío no lleva botón. Sin `repuestos.costos.editar` o con el
+  proyecto cerrado, se ve apagado con su motivo escrito al lado, y la fila no ofrece «⋯». El pie del Drawer repite «Registrar compra» a propósito (está dentro del
+  diálogo).
+- **D7 · Eliminar no pregunta.** Se hace y deja un toast con «Deshacer» (`ui.md`: lo reversible se hace y ofrece «Deshacer»). Gastos usa `<Confirmar>`, pero allí
+  no hay restaurar. Si el ítem se eliminó entretanto, «Deshacer» dice el texto de la base.
+- **D8 · El e2e no sube un comprobante.** Subir es la copia del flujo de logística (su storage se probó en 6.11) y la ruta la valida la base. El caso clave es el
+  dinero: registrar suma al margen y `monto_base` lo pone la base.
+
+<!-- paso:7.14-2 -->
+
+# Paso 7.14-2 — El cierre de la Fase 7 (parte 2 de 2): el Nivel 3 y los docs de cierre
+
+Fecha: 2026-11-12 (`TZ=America/La_Paz date +%F`). Sin compuertas ni preguntas abiertas. El plan: `.piloto/planes/7.14-2.md`.
+
+- **D1** El Nivel 3 corre sobre la rama unida a `main` al empezar (`941663d6`, con el 8.04 del carril b), antes de los docs: los docs no cambian lo que
+  prueba el e2e y así el completo no espera a que se escriban.
+- **D2** El 6.14-2 sigue en su PR: no se une `origin/a/6.14` a esta rama (acoplaría los dos PR y el coordinador integra cada uno con su CI). ESTADO sólo
+  cambia lo de la Fase 7 y dice que la 6 cierra con el 6.14-2; PLAN sólo la sección de la Fase 7, para que la unión posterior choque lo menos posible.
+- **D3** GLOSARIO suma «Campana» y «Widget del chat». El widget es el nombre del código (`<WidgetChat>`); «la burbuja», como le dicen los docs y las
+  pruebas, queda dicha en su entrada y separada de la burbuja de un mensaje del hilo (que ya usa «Cita»), en vez de abrir un término aparte.
+- **D4** 7-3, 7-4 y 7-5 quedan para la persona: tocan un dato de catálogo (una migración), una función `security definer` y otra pantalla, fuera de un
+  paso de docs y de lo que pide la fila.
+- **D5** Lo que no corre en el completo (`push-de-verdad.sh`, la unidad) va en la tabla con el resultado de su última corrida y dónde se corrió, no como
+  verde del Nivel 3.
+- **D6** UX tenía duplicadas las filas de Chat, Notificaciones y Perfil (una corta y otra al día): quedan las completas.

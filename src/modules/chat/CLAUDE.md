@@ -2,6 +2,8 @@
 
 Mensajería interna: conversaciones directas (deduplicadas), grupos y canal global por permiso, menciones `#` de vehículos/leads/cotizaciones/personas, tareas y eventos desde el mensaje, realtime.
 
+**Fase 7 cerrada el 2026-11-12** (7.14): R1 (`/tarea` en el chat) y R2 (el placeholder de la mención) de `e2e/fase-7-recorrido.spec.ts`. Abiertos que lo tocan: **7-3** (el `aplicado_en` de `chat.participar` y `chat.moderar`) y **7-5** (la burbuja no se reintenta al volver la red); `docs/PLAN.md` › «Fase 7».
+
 ## Entra y sale
 
 - Entra: mensajes del usuario, comandos `/tarea` y `/evento`, menciones; señales realtime de Supabase.
