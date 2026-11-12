@@ -20,12 +20,14 @@ Campana in-app con «requiere acción», realtime, web push (VAPID) y preferenci
   «Ver más», «Marcar todas», **la fila `FilaDeNotificacion` que usan la campana y la página**, `actions/`). `features/preferencias/` llega con 7.04.
 - **La acción propia de un tipo** («Contacté» de un turno web) la dibuja `app/`: el registro `ACCIONES_DE_NOTIFICACIONES` de
   `src/app/(app)/_shell/huecos/acciones-de-notificaciones.ts` llega por props (una función no cruza de servidor a cliente). La Fase 8 suma su entrada.
-  `infra/push.ts` y `supabase/functions/push` llegan con 7.03.
+- `supabase/functions/push` (7.03-2) canjea el pase de `push_disparar` y envía (RFC 8291/8292 con Web Crypto).
 
 ## Tablas
 
-`notificaciones`, `suscripciones_push`, `limpieza_avisos` (la marca de «ya avisado» de la limpieza, sólo `service_role`); purga `visitados`. RPC/trigger:
-`notificar`, `notificaciones_puerta`, `tarea_notificar`, `recordatorios_notificar`, `notificaciones_purgar`, `limpieza_avisar`, `alertas_demora`.
+`notificaciones`, `suscripciones_push`, `push_pases` (el pase de un uso del push, sólo `service_role`), `limpieza_avisos` (la marca de «ya avisado» de la
+limpieza, sólo `service_role`); purga `visitados`. RPC/trigger: `notificar`, `notificaciones_puerta`, `tarea_notificar`, `recordatorios_notificar`,
+`notificaciones_purgar`, `limpieza_avisar`, `alertas_demora`; push (7.03): `push_suscribir`, `push_desuscribir`, `push_abrir` y `push_resultado` (sólo
+`service_role`) y `trg_notificaciones_push` → `push_disparar`.
 
 ## No se rompe
 
@@ -49,8 +51,15 @@ Campana in-app con «requiere acción», realtime, web push (VAPID) y preferenci
 
 ## Ojo
 
-- El push (7.03, todavía no está): el plan es que el webhook se autentique con `PUSH_WEBHOOK_SECRET` (header) y la función use el cliente admin **sólo**
-  para leer suscripciones.
+- **Push web** (7.03-1, la base): `suscripciones_push` se escribe sólo por `push_suscribir` (exige `notificaciones.push`; endpoint `https` de un servicio
+  de push, `_push_endpoint_valido()`, para que la función no sea un proxy abierto; un endpoint que existe pasa a quien suscribe; tope de 10, se va la menos
+  reciente) y `push_desuscribir` (sin el permiso). Cada notificación que entra dispara (`after insert`) si `push_web` está activa, el destinatario tiene
+  el permiso, no apagó el tipo en la preferencia `notificaciones.push` (`{ "<tipo>": false }`; sin fila, todo encendido), tiene suscripción y hay
+  `url_proyecto`: crea un **pase** (`push_pases`, un uso, 10 min) y llama a `/functions/v1/push` por `pg_net`. Sin secretos en la base y sin cola de
+  reintentos (la campana es el registro). **El push nunca rompe la operación que avisa** (bloque de excepción; sólo el `sqlstate` al log). `push_abrir`
+  devuelve título, cuerpo, `ruta` y las suscripciones válidas del destinatario, nada más; `push_resultado` anota una vez por pase (404/410 borran).
+  La función `push` (7.03-2) canjea antes de mirar las claves (sin ellas, `sin_claves`), vuelve a validar el host, no sigue redirecciones y sólo
+  da por caducada una suscripción con 404/410 (un 403 o un 5xx es `fallo`). Contrato: `supabase/tests/push-contrato.test.ts` y `push-funcion.test.ts`.
 - `requiere_accion` muestra el botón en la campana (p. ej. «Contacté» de un turno web); al resolverse se marca leída por la acción, no por abrir la campana.
 - La campana pide su contador y su canal cuando el navegador descansa (`useAlDescansar`), no al hidratar: el cliente de Supabase evaluado durante la hidratación retrasa ≈ 320 ms el primer clic que vale en toda pantalla. Sus pedidos a `notificaciones` no cuentan en un spec que mide pedidos a la base (`esDelMarco` de `e2e/soporte/pedidos-del-marco.ts`), y su parada de Tab sí cuenta en las tareas de oro.
 - `suscribirseACambios` avisa (`alReconectar`) en **cada** unión del canal, la primera incluida: lo anterior a la unión no llegó como señal.

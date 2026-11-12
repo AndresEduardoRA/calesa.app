@@ -4,13 +4,13 @@ Trabajo que no debe vivir en una Server Action que el usuario espera. Cada una s
 fase que la necesita (`docs/PLAN.md`); hasta entonces sólo existe su contrato. Deno, `supabase
 functions new <nombre>`, secretos con `supabase secrets set`, nunca en el código.
 
-| Función               | Fase         | La dispara                                                               | Hace                                                                                                                                                                                                                   | Secretos                                              |
-| --------------------- | ------------ | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| `apibara`             | 2 (parte 5)  | El navegador de quien da de alta o refresca un vehículo, con su sesión   | Consulta la API de Copart e IAAI: la ficha por enlace, VIN o lote, una foto y el uso de la cuenta. Ver «`apibara`» más abajo.                                                                                          | la clave de apibara, de Vault (`integracion_secreto`) |
-| `push`                | 7            | Database Webhook en `notificaciones` (INSERT) con header `x-push-secret` | Lee `suscripciones_push` del destinatario con el cliente admin y envía con `web-push`; borra suscripciones 404/410.                                                                                                    | `VAPID_PRIVATE_KEY`, `PUSH_WEBHOOK_SECRET`            |
-| `storage-gc`          | 2 (parte 4)  | `pg_cron` cada hora → `storage_gc_disparar(url)` → `pg_net`              | Canjea el pase que trae el pedido; si vale, reclama, borra por la API de Storage y confirma. Nunca recuenta ni decide por su cuenta. Ver «`storage-gc`» más abajo.                                                     | ninguno propio: la service key que inyecta el runtime |
-| `avatares-miniaturas` | 3 (cierre 1) | `pg_cron` cada hora → `avatares_miniaturas_disparar(url)` → `pg_net`     | Canjea el pase (los de `storage-gc`); hace la miniatura de 96 px de hasta 20 avatares que no la tienen y la guarda si el avatar no cambió; una imagen que no lee queda marcada. Ver «`avatares-miniaturas`» más abajo. | ninguno propio: la service key que inyecta el runtime |
-| `importar-csv`        | 9            | Server Action de `datos` tras subir el archivo al bucket `importaciones` | Parsea, valida por fila contra la plantilla, llama `crear_lead` (misma regla de limbo/duplicados) o inserta vehículos; escribe el informe en `importaciones`.                                                          | ninguno                                               |
+| Función               | Fase         | La dispara                                                               | Hace                                                                                                                                                                                                                   | Secretos                                                             |
+| --------------------- | ------------ | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `apibara`             | 2 (parte 5)  | El navegador de quien da de alta o refresca un vehículo, con su sesión   | Consulta la API de Copart e IAAI: la ficha por enlace, VIN o lote, una foto y el uso de la cuenta. Ver «`apibara`» más abajo.                                                                                          | la clave de apibara, de Vault (`integracion_secreto`)                |
+| `push`                | 7            | `trg_notificaciones_push` → `push_disparar()` → `pg_net` con un pase     | Canjea el pase con `push_abrir`, cifra (RFC 8291) y firma (RFC 8292) con Web Crypto, envía a cada suscripción del destinatario y anota con `push_resultado` (404/410 borran). Ver «`push`» más abajo.                  | `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` |
+| `storage-gc`          | 2 (parte 4)  | `pg_cron` cada hora → `storage_gc_disparar(url)` → `pg_net`              | Canjea el pase que trae el pedido; si vale, reclama, borra por la API de Storage y confirma. Nunca recuenta ni decide por su cuenta. Ver «`storage-gc`» más abajo.                                                     | ninguno propio: la service key que inyecta el runtime                |
+| `avatares-miniaturas` | 3 (cierre 1) | `pg_cron` cada hora → `avatares_miniaturas_disparar(url)` → `pg_net`     | Canjea el pase (los de `storage-gc`); hace la miniatura de 96 px de hasta 20 avatares que no la tienen y la guarda si el avatar no cambió; una imagen que no lee queda marcada. Ver «`avatares-miniaturas`» más abajo. | ninguno propio: la service key que inyecta el runtime                |
+| `importar-csv`        | 9            | Server Action de `datos` tras subir el archivo al bucket `importaciones` | Parsea, valida por fila contra la plantilla, llama `crear_lead` (misma regla de limbo/duplicados) o inserta vehículos; escribe el informe en `importaciones`.                                                          | ninguno                                                              |
 
 ## `apibara`
 
@@ -138,3 +138,27 @@ Una miniatura que se reemplaza o se quita la encola un trigger de `perfiles` y l
 false` (la llama la base). En la nube: `supabase functions deploy avatares-miniaturas` y `select
 public.avatares_miniaturas_programar('https://<ref>.supabase.co/functions/v1/avatares-miniaturas');`. La cubre
 `e2e/perfil-avatar.spec.ts` (con `pnpm funciones`).
+
+## `push`
+
+Manda el push web de cada notificación (7.03). La dispara la base: `trg_notificaciones_push` (`after insert` en `notificaciones`) llama
+`push_disparar()`, que sólo con `push_web` activa, el permiso `notificaciones.push`, el tipo encendido, una suscripción y `url_proyecto` crea un pase
+de un uso (`push_pases`, 10 min) y lo manda por `pg_net` (`{"pase": "<uuid>"}`). `verify_jwt = false`, como `storage-gc`. La función:
+
+- lo que no tiene forma de uuid da 401 `sin_pase` sin llegar a la base; canjea con `push_abrir` (service key) y, si no vale, 401 `sin_pase`;
+- **después** del canje lee las claves (por pedido): sin alguna de las tres, 200 `{ ok: false, error: { codigo: 'sin_claves' } }`; con un formato
+  malo, `claves_invalidas`. En los dos casos no manda nada y el pase queda usado. Un anónimo no puede saber si el push está configurado;
+- arma la carga `{ titulo, cuerpo, ruta }` (≤ 3000 bytes, recorta el cuerpo; `ruta` sólo si es interna), y envía **en paralelo** a cada
+  suscripción (≤ 10, 10 s cada una): `POST` con `Authorization: vapid t=<jwt ES256>, k=<pública>`, `TTL: 86400`, `Content-Encoding: aes128gcm`,
+  sin seguir redirecciones;
+- vuelve a validar el host del endpoint con la misma lista que `_push_host_permitido()` (`enviar.ts`): la segunda defensa contra el proxy abierto;
+- clasifica: 2xx enviada, 404/410 caducada (la base la borra), lo demás (3xx, 403, 429, 5xx, sin red) fallo; anota con `push_resultado` y responde
+  `{ ok: true, data: { enviadas, caducadas, fallos } }`. Sin reintentos: la campana es el registro.
+
+`vapid.ts`, `cifrar.ts` y `enviar.ts` no usan `Deno` ni `npm:` (`web-push` hace su propio pedido `https` de Node y no admite el `fetch` inyectado):
+la prueba de contrato los carga en Node. `supabase/tests/push-contrato.test.ts` compara el cifrado byte a byte con `http_ece` (el que trae
+`web-push`) y verifica la firma con `node:crypto`; `push-funcion.test.ts` cubre el pase, las claves y el resultado.
+
+En la nube: `supabase functions deploy push` (la demo la despliega `demo.yml`) y `supabase secrets set NEXT_PUBLIC_VAPID_PUBLIC_KEY=… VAPID_PRIVATE_KEY=…
+VAPID_SUBJECT=mailto:…` (las genera `pnpm exec web-push generate-vapid-keys`, sin red; la pública es la misma en Vercel). `url_proyecto` en Vault ya lo
+ponen el seed y `resetear.sh`. En local, sin `.env` de funciones, responde `sin_claves`.

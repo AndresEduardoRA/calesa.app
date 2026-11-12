@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { camposDesde, claveDeCampo, type CampoDeLayout } from './campo'
+import { campoPrincipalDesde, camposDesde, claveDeCampo, type CampoDeLayout } from './campo'
 
 const ORIGEN = '00000000-0000-0000-0000-0000000000aa'
 
@@ -19,6 +19,7 @@ function fila(n: number, extra: Record<string, unknown> = {}) {
     filtrable: false,
     publico_web: false,
     clave_apibara: null,
+    principal: false,
     es_sistema: false,
     activo: true,
     actualizado_en: '2026-10-12T20:00:00+00:00',
@@ -61,5 +62,28 @@ describe('claveDeCampo', () => {
     expect(claveDeCampo('VIN', [])).toBe('vin_2')
     expect(claveDeCampo('Color', ['color'])).toBe('color_2')
     expect(claveDeCampo('Color', ['color', 'color_2'])).toBe('color_3')
+  })
+})
+
+describe('campoPrincipalDesde', () => {
+  it('sin fila no hay principal', () => {
+    expect(campoPrincipalDesde(null)).toBeNull()
+    expect(campoPrincipalDesde(undefined)).toBeNull()
+  })
+
+  it('una fila trae lo que hace falta para mostrar la identidad', () => {
+    expect(
+      campoPrincipalDesde({
+        clave: 'lote_interno',
+        etiqueta: 'Lote interno',
+        tipo: 'opcion',
+        opciones: [{ clave: 'a', etiqueta: 'A' }],
+      }),
+    ).toEqual({
+      clave: 'lote_interno',
+      etiqueta: 'Lote interno',
+      tipo: 'opcion',
+      opciones: [{ clave: 'a', etiqueta: 'A' }],
+    })
   })
 })

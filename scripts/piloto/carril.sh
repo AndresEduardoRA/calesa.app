@@ -250,32 +250,60 @@ traer_main_merge() {
   return 0
 }
 
-# unir_docs: en un merge a medias, cada choque de `docs/*.md` se resuelve con las líneas de los dos lados (git merge-file --union): son
-# notas que los carriles agregan, y la sesión las ordena en su commit de docs. 0 si no queda ningún choque (también en código).
+# unir_docs: en un merge a medias, cada choque de `docs/*.md` o de la ficha `CLAUDE.md` de una unidad se resuelve con las líneas de los dos
+# lados (git merge-file --union): son notas que los carriles agregan, y la sesión las ordena en su commit de docs. 0 si no queda ningún
+# choque (también en código).
+#
+# Los registros (REGISTROS_QUE_SE_UNEN: listas de código donde cada carril agrega su línea) también, pero sólo con puros agregados de los
+# dos lados; si alguno cambió una línea que ya existía, o el `.mjs` unido no pasa `node --check`, el choque queda para la sesión. El
+# 8 al 11-11-2026 `scripts/carreras.mjs`, `e2e/soporte/presupuestos.ts`, tres pruebas SQL compartidas, los registros de las guardas y
+# las fichas de módulo chocaron una y otra vez, y cada choque costó una sesión y otro CI. Lo que la unión deje mal lo dice el CI del PR.
+# PILOTO_UNIR_REGISTROS (patrones separados por espacios) cambia la lista; vacía, no une ninguno.
+REGISTROS_QUE_SE_UNEN="${PILOTO_UNIR_REGISTROS-scripts/carreras.mjs e2e/soporte/presupuestos.ts supabase/tests/auditoria-leads.sql supabase/tests/permisos-enforcement.sql supabase/tests/escala.sql scripts/guardas/*.ts}"
+es_registro() { # <ruta>
+  local p
+  for p in $REGISTROS_QUE_SE_UNEN; do
+    # shellcheck disable=SC2053 # el patrón va sin comillas a propósito: es un glob
+    [[ "$1" == $p ]] && [[ "$1" != *.test.ts ]] && return 0
+  done
+  return 1
+}
+# 0 si en algún choque los dos lados cambiaron líneas que ya existían (la unión las dejaría dos veces: las filas de docs/UX.md en el
+# 4.26); si sólo agregaron, la unión es la respuesta. (merge-file sale con el número de choques: con pipefail, sin el `|| :` la tubería
+# fallaba aunque awk acertara.)
+union_dudosa() { # <carpeta con nuestro, base y suyo>
+  { git merge-file --diff3 -p "$1/nuestro" "$1/base" "$1/suyo" 2>/dev/null || :; } |
+    awk '/^\|\|\|\|\|\|\|/{b=1;n=0;next} /^=======/{if(b&&n)d=1;b=0;next} b{n++} END{exit !d}'
+}
 unir_docs() {
   local f quedan=0 tmp
   tmp=$(mktemp -d)
   while IFS= read -r f; do
     [ -n "$f" ] || continue
+    if [ "$f" = "$ARCHIVO_DE_TIPOS" ]; then
+      # Generado: el de main ahora, y se regenera con el merge hecho (regenerar_tipos).
+      if git show ":3:$f" >"$f" 2>/dev/null && git add -- "$f"; then REGENERAR_TIPOS=1; else quedan=1; fi
+      continue
+    fi
     case "$f" in
-      docs/*.md)
-        git show ":2:$f" >"$tmp/nuestro" 2>/dev/null || { quedan=1; continue; }
-        git show ":3:$f" >"$tmp/suyo" 2>/dev/null || { quedan=1; continue; }
-        git show ":1:$f" >"$tmp/base" 2>/dev/null || : >"$tmp/base"
-        # Dudosa si en algún choque los dos lados cambiaron líneas que ya existían (la unión las deja dos veces: las filas de
-        # docs/UX.md en el 4.26); si sólo agregaron, la unión es la respuesta. Una dudosa no se publica sin sesión.
-        # (merge-file sale con el número de choques: con pipefail, sin el `|| :` la tubería fallaba aunque awk acertara.)
-        { git merge-file --diff3 -p "$tmp/nuestro" "$tmp/base" "$tmp/suyo" 2>/dev/null || :; } |
-          awk '/^\|\|\|\|\|\|\|/{b=1;n=0;next} /^=======/{if(b&&n)d=1;b=0;next} b{n++} END{exit !d}' && UNION_DUDOSA=1
-        git merge-file --union -p "$tmp/nuestro" "$tmp/base" "$tmp/suyo" >"$f" 2>/dev/null
-        git add -- "$f" || quedan=1
-        ;;
-      "$ARCHIVO_DE_TIPOS")
-        # Generado: el de main ahora, y se regenera con el merge hecho (regenerar_tipos).
-        if git show ":3:$f" >"$f" 2>/dev/null && git add -- "$f"; then REGENERAR_TIPOS=1; else quedan=1; fi
-        ;;
-      *) quedan=1 ;;
+      docs/*.md | src/*/CLAUDE.md) ;;
+      *) es_registro "$f" || { quedan=1; continue; } ;;
     esac
+    git show ":2:$f" >"$tmp/nuestro" 2>/dev/null || { quedan=1; continue; }
+    git show ":3:$f" >"$tmp/suyo" 2>/dev/null || { quedan=1; continue; }
+    git show ":1:$f" >"$tmp/base" 2>/dev/null || : >"$tmp/base"
+    if union_dudosa "$tmp"; then
+      # Unas notas dudosas se unen igual y no se publican sin sesión; un registro dudoso ni se une.
+      es_registro "$f" && { quedan=1; continue; }
+      UNION_DUDOSA=1
+    fi
+    git merge-file --union -p "$tmp/nuestro" "$tmp/base" "$tmp/suyo" >"$tmp/unido" 2>/dev/null
+    if [[ "$f" == *.mjs ]] && ! { cp "$tmp/unido" "$tmp/unido.mjs" && node --check "$tmp/unido.mjs" >/dev/null 2>&1; }; then
+      quedan=1
+      continue
+    fi
+    cat "$tmp/unido" >"$f"
+    git add -- "$f" || quedan=1
   done < <(git diff --name-only --diff-filter=U)
   rm -rf "$tmp"
   return "$quedan"

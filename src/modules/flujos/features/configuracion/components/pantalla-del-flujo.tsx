@@ -1,7 +1,9 @@
 import { WorkflowIcon } from 'lucide-react'
+import { Suspense, type ReactNode } from 'react'
 import { datosO, type Resultado } from '@/shared/lib/errores'
 import type { Permisos } from '@/shared/lib/permisos'
 import { EstadoVacio } from '@/shared/ui/estados'
+import type { FlujoParaConfigurar } from '../../../entities/flujo'
 import { leerFlujoParaConfigurar, leerFlujosConfigurables } from '../../../areas/nucleo/composicion'
 import {
   armarSelector,
@@ -22,6 +24,9 @@ type Props = {
   origenPedido: string | undefined
   ambitoPedido: string | undefined
   huecos: HuecosDelFlujo
+  // Lo que va sobre la lista de fases del flujo abierto (5.08: el aviso de «fuera de regla»). Una función de servidor, no un hueco de cliente: se llama con el
+  // flujo ya leído y puede leer lo suyo; va detrás de su propio `<Suspense>` sin esqueleto (lo común es que no haya nada que mostrar).
+  sobreLaLista?: (flujo: FlujoParaConfigurar) => ReactNode
 }
 
 // La pestaña «Fases» de Configuración › Flujos (5.02), leída en el servidor con la sesión de quien mira y detrás de `<Suspense>`: los flujos que puede configurar,
@@ -33,6 +38,7 @@ export async function PantallaDelFlujo({
   origenPedido,
   ambitoPedido,
   huecos,
+  sobreLaLista,
 }: Props) {
   const [flujos, listaDeOrigenes, rolesLeidos] = await Promise.all([
     leerFlujosConfigurables(permisos),
@@ -58,6 +64,7 @@ export async function PantallaDelFlujo({
         entradas={entradas.map(({ clave, titulo }) => ({ clave, titulo }))}
         valor={entrada.clave}
       />
+      {flujo && sobreLaLista ? <Suspense fallback={null}>{sobreLaLista(flujo)}</Suspense> : null}
       {flujo ? (
         <FlujoAbierto
           flujo={flujo}

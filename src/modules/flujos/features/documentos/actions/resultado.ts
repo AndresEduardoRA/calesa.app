@@ -2,11 +2,13 @@ import type { ResultadoDeAccion } from '@/shared/lib/enviar-accion'
 import { fallo } from '@/shared/lib/errores'
 import { puede, type Permisos } from '@/shared/lib/permisos'
 import type { ResultadoDeTipo } from '../../../entities/documentos/repositorios'
+import {
+  MOTIVO_SOLO_LECTURA_DE_EMPRESA,
+  MOTIVO_SOLO_LECTURA_DEL_FLUJO,
+} from '../../../entities/documentos/vista-de-grupo'
 
-export const MOTIVO_SIN_PERMISO_TIPOS_DE_EMPRESA =
-  'Los tipos de documento de toda la empresa los cambia quien gestiona los catálogos de logística.'
-export const MOTIVO_SIN_PERMISO_TIPOS_DEL_FLUJO =
-  'No puedes configurar los tipos de documento de este flujo.'
+export const MOTIVO_SIN_PERMISO_TIPOS_DE_EMPRESA = MOTIVO_SOLO_LECTURA_DE_EMPRESA
+export const MOTIVO_SIN_PERMISO_TIPOS_DEL_FLUJO = MOTIVO_SOLO_LECTURA_DEL_FLUJO
 
 // Quién cambia un grupo: los de toda la empresa (`flujoId` nulo), quien gestiona los catálogos de logística; los de un flujo, quien lo configura
 // (`flujos.configurar`, o `repuestos.configurar` para el de repuestos; el permiso por origen lo decide la base). Es la primera llave: la base vuelve a exigirlo.

@@ -39,7 +39,8 @@ beforeEach(() => {
     `#!/usr/bin/env bash
 echo "$*" >> "${raiz}/gh.log"
 case "$1 $2" in
-  "run list") printf '[]' ;;
+  "run list") printf '%s' "\${FAKE_GH_LISTA:-[]}" ;;
+  "run view") printf '%s' "\${FAKE_GH_JOBS:-{\"jobs\":[]\}}" ;;
   "pr create") touch "${raiz}/pr-abierto" ;;
   "pr list") [ -e "${raiz}/pr-abierto" ] && printf '[{"number":31}]' || printf '[]' ;;
 esac
@@ -57,7 +58,12 @@ afterAll(() => {
   for (const r of raices) rmSync(r, { recursive: true, force: true })
 })
 
-function publicar(rama: string, carril = 'formula', paso = '4.20') {
+function publicar(
+  rama: string,
+  carril = 'formula',
+  paso = '4.20',
+  extra: Record<string, string> = {},
+) {
   git(repo, 'checkout', '-q', base)
   git(repo, 'checkout', '-q', '-b', rama)
   writeFileSync(join(repo, 'a.ts'), `${rama}\n`)
@@ -74,6 +80,7 @@ function publicar(rama: string, carril = 'formula', paso = '4.20') {
       PILOTO_DIR: join(raiz, 'estado'),
       PILOTO_COORDINADOR: join(raiz, 'coordinador.mjs'),
       PILOTO_CARRIL: carril,
+      ...extra,
     },
   })
   return { estado: r.status, salida: r.stdout + r.stderr }
@@ -87,6 +94,18 @@ const leer = (f: string) => {
 }
 
 describe('publicar.sh › un PR por paso del carril', () => {
+  it('con la base en rojo en el CI anterior de la rama, el carril publica igual: sin empujar no habría otro CI', () => {
+    mkdirSync(join(raiz, 'estado'), { recursive: true })
+    const r = publicar('formula/4.20', 'formula', '4.20', {
+      FAKE_GH_LISTA: '[{"databaseId":1,"status":"completed","conclusion":"failure","headSha":"x"}]',
+      FAKE_GH_JOBS:
+        '{"jobs":[{"name":"Base · reset, tipos, probar, lint y advisors","conclusion":"failure"}]}',
+    })
+    expect(r.estado, r.salida).toBe(0)
+    expect(leer('coord.log')).toContain('publicado 4.20 31')
+    expect(leer('estado/ci-rojos.md')).toContain('Base ·')
+  })
+
   it('abre el PR del paso y el coordinador lo anota como publicado con su número', () => {
     mkdirSync(join(raiz, 'estado'), { recursive: true })
     const r = publicar('formula/4.20')
