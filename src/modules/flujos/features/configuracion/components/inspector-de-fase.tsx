@@ -44,8 +44,11 @@ export function InspectorDeFase({
           {Datos ? <Datos flujo={flujo} fase={fase} /> : <LecturaDeDatos fase={fase} />}
         </Bloque>
         <Bloque titulo="Salidas y quién mueve">
-          <LecturaDeSalidas flujo={flujo} fase={fase} roles={roles} />
-          {Salidas ? <Salidas flujo={flujo} fase={fase} /> : null}
+          {Salidas ? (
+            <Salidas flujo={flujo} fase={fase} roles={roles} />
+          ) : (
+            <LecturaDeSalidas flujo={flujo} fase={fase} roles={roles} />
+          )}
         </Bloque>
         <Bloque titulo="Requisitos para entrar">
           <LecturaDeRequisitos flujo={flujo} fase={fase} />

@@ -1,3 +1,5 @@
-// API pública del módulo `notificaciones`. Lo único que `app/` u otro módulo puede importar.
-// Se llena en su fase de docs/PLAN.md; la ficha CLAUDE.md de esta carpeta dice qué entra y qué sale.
-export {}
+// API pública del módulo `notificaciones` para Server Components: la primera página de `/notificaciones` y el filtro
+// de su URL. Los componentes salen por `pantallas/` (la pantalla) y `shell.client.ts` (la campana del marco).
+export { leerPaginaDeNotificaciones } from './composicion'
+export { filtroDeLista } from './entities/notificacion'
+export type { FiltroDeLista } from './entities/notificacion'

@@ -35,7 +35,8 @@ el número del paso y, opcionales, `continuar` (retomas esta sesión tras una co
    adaptador y su prueba de contrato, y dilo en el resumen.
    **Si existe `.piloto/conflicto-con-main.md`, eso va primero:** tu rama choca con `origin/main` en código (los choques de `docs/` el bucle ya los unió) y
    el PR no se integra hasta resolverlo. `git merge origin/main`, resuelve lo que lista, commit de merge con el mensaje por omisión (no va en `commits` de
-   `ultimo.json`), y sigue con el paso. Si la nota dice que falta **regenerar los tipos de la base**, main ya está unido: haz lo que dice
+   `ultimo.json`), y sigue con el paso. **No renumeres migraciones** (ni al unir main ni después): si una quedó atrás de la última de main, la
+   renumeran el bucle y el coordinador con fecha y hora reales; sumando a mano se llega a una hora que no existe y el Nivel 1 cae. Si la nota dice que falta **regenerar los tipos de la base**, main ya está unido: haz lo que dice
    (`pnpm db:reset`, `pnpm db:types` y su commit) y bórrala.
 2. **Planificar.** Si es una parte que sigue (`<paso>-2`, `-3`…), dale al planificador la ruta del plan y del informe de la parte anterior: parte de ahí y no se orienta
    de cero. Invoca al subagente `planificador`: orienta, parte si hace falta y escribe `.piloto/planes/<paso>.md` con

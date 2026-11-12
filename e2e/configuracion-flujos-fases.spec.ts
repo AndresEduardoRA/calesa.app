@@ -158,7 +158,7 @@ test('la dueña edita los datos de una fase en el inspector', async ({ page }) =
   }
   await inspector.getByText('En el flujo', { exact: true }).click()
   await inspector.getByRole('switch', { name: 'Es final' }).click()
-  await inspector.getByRole('button', { name: 'Guardar' }).click()
+  await inspector.getByRole('button', { name: 'Guardar', exact: true }).click()
   await expect(inspector.getByText('Una fase no puede ser inicial y final a la vez.')).toBeVisible()
   await expect(inspector.getByRole('switch', { name: 'Es final' })).toBeFocused()
   await inspector.getByRole('switch', { name: 'Es final' }).click()
@@ -172,7 +172,7 @@ test('la dueña edita los datos de una fase en el inspector', async ({ page }) =
     inspector.getByText('Ya es inicial «E2E 5.04 Compra»', { exact: false }),
   ).toBeVisible()
   await inspector.getByLabel('Descripción', { exact: true }).fill('Donde espera el vehículo')
-  await inspector.getByRole('button', { name: 'Guardar' }).click()
+  await inspector.getByRole('button', { name: 'Guardar', exact: true }).click()
   await expect(page.getByText('Fase «E2E 5.04 Puerto» guardada.')).toBeVisible()
   await page.reload()
   inspector = page.getByRole('dialog')
@@ -187,14 +187,14 @@ test('la dueña edita los datos de una fase en el inspector', async ({ page }) =
   inspector = await abrirInspector(page, 'E2E 5.04 Cierre')
   await inspector.getByText('Web y portal', { exact: true }).click()
   await inspector.getByRole('switch', { name: 'Visible en el portal' }).click()
-  await inspector.getByRole('button', { name: 'Guardar' }).click()
+  await inspector.getByRole('button', { name: 'Guardar', exact: true }).click()
   await expect(
     inspector.getByText('Para mostrarla en el portal escribe su nombre para el cliente.'),
   ).toBeVisible()
   const alias = inspector.getByLabel('Nombre para el cliente', { exact: false })
   await expect(alias).toBeFocused()
   await alias.fill('Cierre del trámite')
-  await inspector.getByRole('button', { name: 'Guardar' }).click()
+  await inspector.getByRole('button', { name: 'Guardar', exact: true }).click()
   await expect(page.getByText('Fase «E2E 5.04 Cierre» guardada.')).toBeVisible()
   await page.reload()
   inspector = page.getByRole('dialog')

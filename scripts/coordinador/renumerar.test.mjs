@@ -7,6 +7,14 @@ import { join } from 'node:path'
 import { test } from 'node:test'
 import { renumerarMigraciones } from './renumerar.mjs'
 
+// commit-tree no pasa por `-c`: en un runner sin identidad global, la da el entorno.
+Object.assign(process.env, {
+  GIT_AUTHOR_NAME: 't',
+  GIT_AUTHOR_EMAIL: 'a@b',
+  GIT_COMMITTER_NAME: 't',
+  GIT_COMMITTER_EMAIL: 'a@b',
+})
+
 function escenario() {
   const remoto = mkdtempSync(join(tmpdir(), 'renum-remoto-'))
   const dir = mkdtempSync(join(tmpdir(), 'renum-'))
@@ -67,4 +75,39 @@ test('si la rama cambió desde que la miró el CI no empuja nada', () => {
   assert.match(r.motivo, /la rama cambió/)
   g('fetch', '-q', 'origin')
   assert.match(g('ls-tree', '-r', '--name-only', 'origin/c/5.03'), /20261111120000_tipos/)
+})
+
+test('una migración posterior a main pero con una hora que no existe (…60 s, renumerada a mano) también se renumera', () => {
+  const { dir, g } = escenario()
+  g('checkout', '-q', 'c/5.03')
+  g(
+    'mv',
+    'supabase/migrations/20261111120000_tipos.sql',
+    'supabase/migrations/20261111135960_tipos.sql',
+  )
+  g('commit', '-qm', 'a mano')
+  g('push', '-q', 'origin', 'c/5.03')
+  const oid = g('rev-parse', 'HEAD')
+  const ahora = Date.UTC(2026, 10, 11, 14, 30, 0)
+  const r = renumerarMigraciones('c/5.03', oid, { cwd: dir, ahora })
+  assert.equal(r.hecho, true, r.motivo)
+  assert.deepEqual(r.pares, ['20261111135960:20261111143000'])
+})
+
+test('una migración posterior a main y con fecha real no se toca', () => {
+  const { dir, g } = escenario()
+  g('checkout', '-q', 'c/5.03')
+  g(
+    'mv',
+    'supabase/migrations/20261111120000_tipos.sql',
+    'supabase/migrations/20261111135900_tipos.sql',
+  )
+  g('commit', '-qm', 'al día')
+  g('push', '-q', 'origin', 'c/5.03')
+  const r = renumerarMigraciones('c/5.03', g('rev-parse', 'HEAD'), {
+    cwd: dir,
+    ahora: Date.UTC(2026, 10, 11, 14, 30, 0),
+  })
+  assert.equal(r.hecho, false)
+  assert.match(r.motivo, /no hay migraciones atrasadas/)
 })

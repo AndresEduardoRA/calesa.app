@@ -7482,6 +7482,68 @@ export type Database = {
         }
         Returns: undefined
       }
+      _documento_fecha: { Args: { p_cambios: Json; p_clave: string }; Returns: string }
+      _documento_puede_tocar: {
+        Args: {
+          p_estado: Database['public']['Enums']['estado_documento']
+          p_repuesto: string
+          p_subido_por: string
+          p_vehiculo: string
+        }
+        Returns: boolean
+      }
+      _documento_tipo_de: {
+        Args: { p_repuesto: string; p_tipo: string; p_vehiculos: string[] }
+        Returns: {
+          activo: boolean
+          actualizado_en: string
+          aviso_dias: number | null
+          creado_en: string
+          descripcion: string | null
+          flujo_id: string | null
+          formatos: string[]
+          id: string
+          modo_vencimiento: Database['public']['Enums']['modo_vencimiento']
+          nombre: string
+          orden: number
+          proposito: string | null
+          vigencia_dias: number | null
+          visible_portal_permitido: boolean
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'tipos_documento'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _documento_validar_archivo: {
+        Args: {
+          p_bytes: number
+          p_formatos: string[]
+          p_mime: string
+          p_nombre: string
+          p_ruta: string
+          p_unidades: string[]
+        }
+        Returns: Record<string, unknown>
+      }
+      _documento_validar_unidades: {
+        Args: { p_repuesto: string; p_vehiculos: string[] }
+        Returns: string[]
+      }
+      _documento_vence: {
+        Args: {
+          p_emitido: string
+          p_modo: Database['public']['Enums']['modo_vencimiento']
+          p_subido: string
+          p_vence: string
+          p_vigencia: number
+        }
+        Returns: string
+      }
+      _documento_ya_registrado: { Args: { p_ids: string[]; p_ruta: string }; Returns: Json }
+      _documentos_de: { Args: { p_ids: string[] }; Returns: Json }
       _embudo_conflicto: { Args: { p_cuando: string }; Returns: undefined }
       _embudo_defecto_de: { Args: { p_usuario: string }; Returns: string }
       _embudo_insertar: {
@@ -7563,6 +7625,10 @@ export type Database = {
           >
           p_esperado: string
         }
+        Returns: undefined
+      }
+      _exigir_persona_dominada: {
+        Args: { p_accion: string; p_usuario: string }
         Returns: undefined
       }
       _exigir_version: {
@@ -8270,6 +8336,7 @@ export type Database = {
         Args: { p_tipo: Database['public']['Enums']['tipo_lote_papelera'] }
         Returns: undefined
       }
+      _personas_dominadas: { Args: { p_ids: string[] }; Returns: string[] }
       _plantilla_borrador_ausente: {
         Args: { p_esperada: string; p_origen: string }
         Returns: undefined
@@ -8371,6 +8438,37 @@ export type Database = {
         }
       }
       _recordatorio_titulo: { Args: { p_hint: string; p_valor: string }; Returns: string }
+      _repuesto_ante_espera: { Args: { p_fase: string; p_item: string }; Returns: string }
+      _repuesto_catalogo: {
+        Args: { p_catalogo: string; p_clave: string; p_datos: Json }
+        Returns: string
+      }
+      _repuesto_fase_de_entrada: { Args: { p_item: string }; Returns: string }
+      _repuesto_proyecto_tomar: {
+        Args: { p_esperado: string; p_proyecto: string }
+        Returns: {
+          actualizado_en: string
+          cerrado_en: string | null
+          cliente_nombre: string | null
+          cliente_telefono: string | null
+          creado_en: string
+          creado_por: string | null
+          eliminado_en: string | null
+          id: string
+          lead_id: string | null
+          notas: string | null
+          numero: number
+          vehiculo_etiqueta: string | null
+          vehiculo_id: string | null
+          vin: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'repuestos_proyectos'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       _requisito_aplicar: {
         Args: {
           p_datos: Json
@@ -9078,6 +9176,39 @@ export type Database = {
       }
       crear_lead: {
         Args: { p_id: string; p_lead: Json; p_recordatorio?: Json; p_seguimiento?: Json }
+        Returns: Json
+      }
+      documento_editar: {
+        Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_id: string }
+        Returns: Json
+      }
+      documento_eliminar: {
+        Args: { p_actualizado_en_esperado: string; p_id: string }
+        Returns: Json
+      }
+      documento_registrar: {
+        Args: {
+          p_bytes: number
+          p_emitido_el: string
+          p_id: string
+          p_mime: string
+          p_nombre: string
+          p_nota: string
+          p_repuesto: string
+          p_ruta: string
+          p_tipo: string
+          p_vehiculos: string[]
+          p_vence_el: string
+        }
+        Returns: Json
+      }
+      documento_revisar: {
+        Args: {
+          p_actualizado_en_esperado: string
+          p_estado: Database['public']['Enums']['estado_documento']
+          p_id: string
+          p_motivo: string
+        }
         Returns: Json
       }
       embudo_crear: { Args: { p_id: string; p_nombre: string }; Returns: Json }
@@ -9827,6 +9958,8 @@ export type Database = {
           origen_id: string
         }[]
       }
+      persona_dominada: { Args: { p_usuario: string }; Returns: boolean }
+      personas_dominadas: { Args: { p_ids: string[] }; Returns: string[] }
       plantilla_descartar_borrador: {
         Args: { p_actualizado_en_esperado: string; p_origen: string }
         Returns: undefined
@@ -9942,6 +10075,66 @@ export type Database = {
           p_tabla: string
         }
         Returns: undefined
+      }
+      repuesto_item_crear: {
+        Args: { p_datos: Json; p_id: string; p_proyecto: string }
+        Returns: Json
+      }
+      repuesto_item_eliminar: {
+        Args: { p_actualizado_en_esperado: string; p_item: string }
+        Returns: Json
+      }
+      repuesto_proyecto_cerrar: {
+        Args: { p_actualizado_en_esperado: string; p_proyecto: string }
+        Returns: Json
+      }
+      repuesto_proyecto_crear: { Args: { p_datos: Json; p_id: string }; Returns: Json }
+      repuesto_proyecto_eliminar: {
+        Args: { p_actualizado_en_esperado: string; p_proyecto: string }
+        Returns: Json
+      }
+      repuesto_proyecto_reabrir: {
+        Args: { p_actualizado_en_esperado: string; p_proyecto: string }
+        Returns: Json
+      }
+      repuesto_proyecto_restaurar: {
+        Args: { p_eliminado_en_esperado: string; p_proyecto: string }
+        Returns: Json
+      }
+      repuestos_pendientes_de_vehiculo: {
+        Args: { p_tope?: number; p_vehiculo: string }
+        Returns: {
+          descripcion: string
+          espera_fase_id: string
+          espera_fase_nombre: string
+          fase_destino_id: string
+          fase_destino_nombre: string
+          fase_id: string
+          fase_nombre: string
+          item_id: string
+          proyecto_id: string
+          proyecto_numero: number
+          requisito_id: string
+        }[]
+      }
+      repuestos_proyectos_listar: {
+        Args: { p_cursor: number; p_estado: string; p_q: string; p_tamano: number }
+        Returns: {
+          actualizado_en: string
+          cerrado_en: string
+          cliente_nombre: string
+          en_stock: number
+          id: string
+          items: number
+          numero: number
+          pendientes: number
+          terminados: number
+          ultima_actividad: string
+          vehiculo_etiqueta: string
+          vehiculo_id: string
+          vehiculo_titulo: string
+          vin: string
+        }[]
       }
       requisito_crear: {
         Args: {

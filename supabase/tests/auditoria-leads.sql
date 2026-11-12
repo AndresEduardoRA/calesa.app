@@ -217,6 +217,20 @@ declare
     -- El chat (7.08-3): lecturas de lo propio; no reciben ni devuelven un lead; cuentan mensajes sin leer el cuerpo (`areas/chat/lista.sql`).
     ('chat_conversaciones(integer,timestamp with time zone,uuid)', 'X'),
     ('chat_no_leidos()', 'X'),
+    -- El ciclo de vida de un proyecto de repuestos (8.08-1): el lead lo exige `trg_lead_visible`; responden ids y versión, sin el lead
+    -- (`areas/repuestos/proyectos.sql`).
+    ('repuesto_proyecto_crear(uuid,jsonb)', 'X'),
+    ('repuesto_proyecto_cerrar(uuid,timestamp with time zone)', 'X'),
+    ('repuesto_proyecto_reabrir(uuid,timestamp with time zone)', 'X'),
+    ('repuesto_proyecto_eliminar(uuid,timestamp with time zone)', 'X'),
+    ('repuesto_proyecto_restaurar(uuid,timestamp with time zone)', 'X'),
+    -- Los ítems (8.08-1): toman el proyecto para ver si está vivo y abierto; no tocan el lead (`areas/repuestos/base.sql`).
+    ('repuesto_item_crear(uuid,uuid,jsonb)', 'X'),
+    ('repuesto_item_eliminar(uuid,timestamp with time zone)', 'X'),
+    -- La lista de proyectos (8.08-1): no devuelve el vínculo ni el teléfono del cliente (`areas/repuestos/listar.sql`).
+    ('repuestos_proyectos_listar(bigint,integer,text,text)', 'L'),
+    -- Lo que la espera de un vehículo aguarda (8.08-1): ítems y fases, sin el vínculo del proyecto (`areas/repuestos/esperas.sql`).
+    ('repuestos_pendientes_de_vehiculo(uuid,integer)', 'L'),
     ('storage_refcount(text,text)', 'X')
   ) t (f, c));
   r record; v_fallas text := '';

@@ -13,11 +13,11 @@ Motor único de flujos: fases, transiciones, requisitos (documento | dato | espe
 ## Archivos clave
 
 - `entities/fase.ts` — `FaseResumen`, `fasesDesde()`. `infra/queries/fases.ts` — `getFasesDeOrigen()`. `areas/nucleo/composicion.ts`.
-- Todavía no existen (fases 5 y 6 del plan): `entities/transiciones.ts` — máquina de estados pura (espejo de `_puede_mover`), sólo para UX; la RPC es el candado.
+- `entities/transiciones/quien-mueve.ts` (5.06) — `quienMueve()`: espejo de `_puede_mover` sin su parte de permisos, sólo para UX; la RPC `cambiar_fase` es el candado.
 - `entities/revisar.ts` — tipos de los avisos de `revisar_flujo()` (sin salida, inalcanzable, esperas cruzadas, roles que nadie tiene).
 - `features/configuracion/` (núcleo, 5.02: `<PantallaDelFlujo>` —Server Component async, por `pantallas/configuracion.ts`—, el selector, la lista de fases y el inspector por fase; sólo la lista, sin «camino» ni «historial», D2). `entities/selector-de-flujos.ts` y `lectura-de-fase.ts` son los textos puros.
 - La pantalla `/configuracion/flujos` (`src/app/(app)/configuracion/flujos/`) recibe de `src/app` los orígenes (`getOrigenes(true)`) y los roles (`leerRolesParaElegir()`): `flujos` no importa `origenes` ni `equipo`. `?fase=` lo lee `useFaseAbierta()`: un id que no es de una fase del flujo se ignora. `useVersionDelFlujo()` (dentro de `<ProveedorDelFlujo>`) entrega la `version` y `avisarConflicto()`; no sale por `client.ts` (D20).
-- **Huecos** (`HuecosDelFlujo`, 5.02): `franjaDeRevisar`, `accionesDeLaLista`, `accionesDeFila`, `salidasDeFila` y `bloques.datos|salidas|requisitos` del inspector. Son **componentes de cliente** opcionales; cada área suma su línea en `src/app/(app)/configuracion/flujos/huecos.ts` al llenarlos. El inspector está registrado en `drawers-con-salida.ts` con el formulario de «Datos» (`formulario-de-datos-de-la-fase.tsx`, mecanismo `contexto`).
+- **Huecos** (`HuecosDelFlujo`, 5.02): `franjaDeRevisar`, `accionesDeLaLista`, `accionesDeFila`, `salidasDeFila` y `bloques.datos|salidas|requisitos` del inspector (`salidasDeFila` y `bloques.salidas` ya están llenos, 5.06; `salidas` recibe también `roles`). Son **componentes de cliente** opcionales; cada área suma su línea en `src/app/(app)/configuracion/flujos/huecos.ts` al llenarlos. El inspector está registrado en `drawers-con-salida.ts` con el formulario de «Datos» (`formulario-de-datos-de-la-fase.tsx`, mecanismo `contexto`).
 
 ## Áreas (5.02)
 
@@ -28,6 +28,15 @@ El módulo se parte por área, como `cotizaciones` (`scripts/guardas/areas-de-fl
 - `index.ts`, `client.ts` y `composicion.ts` de la raíz sólo hacen `export *` del núcleo y de cada área. Lo nuevo va en `areas/<su área>/`, nunca en la raíz.
 - Un área importa lo suyo y el núcleo, nunca otra área; el núcleo no importa ningún área; adentro nadie importa la raíz. Lo que dos áreas comparten va al núcleo (lo decide el A).
 - Un nombre exportado repetido entre dos áreas es un error de `tsc`.
+
+## Transiciones y quién mueve (5.06)
+
+- Bloque «Salidas y quién mueve» del inspector (hueco `bloques.salidas`) y chips de la fila (hueco `salidasDeFila`): `pantallas/transiciones.ts` da `<BloqueDeSalidas>` y `<SalidasDeLaFila>`, que `src/app/(app)/configuracion/flujos/huecos.ts` registra. Lo llena el área `transiciones` en dos partes, ambas hechas: 5.06-1 ver, agregar y quitar una salida; 5.06-2 editar acción y nota y limitar a roles (`transicion_guardar` con `accion` y `nota_obligatoria`, `fase_roles_poner` y `transicion_roles_poner`; el campo del `hint` es `accion` o `roles`).
+- **El hueco `salidas` recibe `{flujo, fase, roles}`**: los nombres de rol vienen de `src/app` (`flujos` no importa `equipo`); con el hueco lleno el inspector ya no dibuja `LecturaDeSalidas`.
+- Archivos: `entities/transiciones/{quien-mueve,formulario-de-salida,roles-de-lista,vista-de-salidas,respuestas,repositorios}.ts`, `infra/transiciones/escribir.ts` (las cinco RPC con el campo del `hint`), `features/transiciones/{actions,schemas,hooks,components}`, `areas/transiciones/`. Cinco actions (`crearTransicion`, `guardarTransicion`, `eliminarTransicion`, `ponerRolesDeFase`, `ponerRolesDeTransicion`); cada una comprueba `flujos.configurar` o `repuestos.configurar` antes de la RPC y revalida la ruta (la lista se relee, la versión cruza como texto).
+- **Alta en línea con estado local; sólo quitar vive en la URL:** `?eliminar=salida&salida=<id>` (constantes en `entities/transiciones/vista-de-salidas.ts`; registrado en `scripts/guardas/areas-b/confirmar-con-url.ts`). La clave `eliminar` la comparten requisitos (`quitar=`) y agenda: conviven porque cada hook abre sólo con su valor.
+- **Editar y limitar (5.06-2):** componentes `selector-de-roles` (una casilla por rol; `alternarRol` toca sólo ese id y conserva los que no se muestran), `campos-de-salida` (alta y edición comparten «Acción» y «Pide nota»), `formulario-de-edicion-de-salida` (en el lugar de la fila; un solo «Guardar» manda primero la acción y la nota que cambiaron y luego los roles, **el segundo pedido con la versión que devolvió el primero**) y `quien-mueve-a-la-fase` (selector y «Guardar quién mueve»; el borrador se reinicia con `key` por la firma de lo guardado). Todo lo que escribe cuelga de `useSalidasDeLaFase`: una sola escritura a la vez en el bloque, para que no se pisen la versión. Limitar a un rol que quien configura no tiene no avisa (acota, no otorga).
+- `quienMueve(flujo, de, a)`: la lista de la salida manda sobre la de la fase destino; sin listas, cualquiera con el permiso. El id del intento de «Agregar salida» se reutiliza al reintentar: «ya existe» sobre `id` se toma por hecho.
 
 ## Documentos (5.03 y 5.09)
 
