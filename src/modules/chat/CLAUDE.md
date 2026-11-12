@@ -13,11 +13,13 @@ Mensajería interna: conversaciones directas (deduplicadas), grupos y canal glob
 - `entities/conversaciones.ts` — la fila de `chat_conversaciones` validada, cursor, fusión de páginas, `textoDeNoLeidos` («99+») y `?c=`; puro.
 - `entities/menciones.ts` — parser de `#` y `/comando`, puro; `entities/visibilidad.ts` — quién ve qué (membresía es el eje). Llegan con 7.10.
 - `infra/consultas.ts` — la RPC de la lista y la lectura de una conversación (sólo si es mía: fila propia de `conversaciones_miembros`); sus pares
-  `conversaciones*.ts` (servidor) y `*.client.ts` (navegador). `infra/realtime.client.ts` — dos señales (`mensajes` ajenos y mis filas de miembro,
-  sin `DELETE`); la fila es señal, se rehidrata por la RPC.
+  `conversaciones*.ts` (servidor) y `*.client.ts` (navegador). `infra/realtime.client.ts` — tres señales (`mensajes` sin filtro y mis filas de miembro para la lista; `mensajes` de la conversación abierta
+  para el hilo; sin `DELETE`); la fila es señal, se rehidrata por la RPC.
 - `entities/{personas,grupos,escritura}.ts` — búsqueda de personas (3 letras, tope 20), límites de un grupo (1 a 49 más quien lo crea), respuesta de las RPC y `puedeSalirDe`; puros.
   `infra/conversaciones-escritura.ts` (las cinco RPC de escritura; el campo del rechazo es el `hint`) y `infra/personas.client.ts`.
-- `features/conversaciones/` (lista, `actions/`, el menú «Nueva conversación» con sus modales de directa y de grupo y `confirmar-salir`), `features/mensajes/` (hilo, con el «⋯»
+- `entities/mensajes.ts` — el mensaje del hilo, fusión por `id` (lo `enviando` y lo `fallido` al final), cabeza con hueco, texto válido (4.000), borde del día de «Ir a una fecha»; puro.
+  `infra/mensajes.client.ts` (el hilo se lee en el navegador), `infra/mensajes-escritura.ts` (`mensaje_enviar`, `chat_leer`) y `suscribirseAlHilo`.
+- `features/conversaciones/` (lista, `actions/`, el menú «Nueva conversación» con sus modales de directa y de grupo y `confirmar-salir`), `features/mensajes/` (hilo, redactor con envío optimista del mismo `id`, «Ver anteriores» hasta el tope, el «⋯»
   de silenciar y salir), `features/widget/`; la pantalla sale por `pantallas/chat.ts`. `?panel=nueva|grupo|salir` no toca `?c=`.
 - `?c=<id>` ilegible = sin selección; sin fila propia = «ya no es mía» (nunca un 404).
 
@@ -56,6 +58,7 @@ RPC (`security definer`, desde 7.08-1): `chat_directa`, `chat_global_entrar`, `c
 
 ## Ojo
 
+- La señal de `mensajes` de la lista incluye lo propio (mueve mi fila); el hilo relee los 20 más nuevos y funde por `id`. «No enviado · Reintentar» reusa el `id`: la base responde `repetido`.
 - El canal global exige `chat.global`; participar en cualquier chat exige `chat.participar`.
 - No leídos = mensajes de otros entre las 100 entradas más nuevas posteriores a tu lectura; 100 se muestra «99+». Enviar no mueve tu lectura:
   la pantalla llama `chat_leer`.
