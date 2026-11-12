@@ -942,6 +942,69 @@ end $papelera_cot$;
 deallocate medir_pc_sin;
 deallocate medir_pc_cursor;
 
+-- La cadena de logística (6.02-2). Terreno, sin RLS y revertido con la transacción: todos los vehículos vivos de `medir.origen` a su primera fase activa de
+-- logística (con `fase_desde` = su alta); los de otro origen quedan sin fase. La consulta de adentro de `_logistica_columna`, escrita igual y preparada
+-- (plan genérico, como plpgsql): por `vehiculos_cadena_idx`, sin recorrer `vehiculos` ni descartar. Sin filtros, como llegan a la RPC (false y nulo).
+prepare medir_cadena_fase(uuid, uuid, timestamptz, boolean, uuid, boolean, boolean, text, int) as select v.id from public.vehiculos v
+  where v.origen_id = $1 and v.eliminado_en is null and v.fase_id = $2 and v.fase_desde < $3
+    and ($4 or v.creado_por = $5 or (v.lead_id is not null and public.en_cartera(v.lead_id)))
+    and (not $6 or exists (select 1 from public.transportes t where t.vehiculo_id = v.id))
+    and (not $7 or exists (select 1 from public.documentos d where d.vehiculo_id = v.id and d.estado = 'subido' and d.eliminado_en is null))
+    and ($8 is null or v.titulo ilike $8 or v.vin ilike $8 or v.lote ilike $8)
+  order by v.fase_id, v.fase_desde, v.id limit $9;
+prepare medir_cadena_cursor(uuid, uuid, timestamptz, uuid, boolean, uuid, int) as select v.id from public.vehiculos v
+  where v.origen_id = $1 and v.eliminado_en is null and v.fase_id = $2 and v.fase_desde < 'infinity' and (v.fase_desde, v.id) > ($3, $4)
+    and ($5 or v.creado_por = $6 or (v.lead_id is not null and public.en_cartera(v.lead_id)))
+  order by v.fase_id, v.fase_desde, v.id limit $7;
+prepare medir_cadena_sin_fase(uuid, uuid, boolean, uuid, int) as select v.id from public.vehiculos v
+  where v.origen_id = $1 and v.eliminado_en is null and v.fase_id is null and v.fase_desde is null and v.id > $2
+    and ($3 or v.creado_por = $4 or (v.lead_id is not null and public.en_cartera(v.lead_id)))
+  order by v.fase_id, v.fase_desde, v.id limit $5;
+do $cadena$
+declare
+  duena constant uuid := '00000000-0000-0000-0000-0000000000d1';
+  o constant uuid := current_setting('medir.origen')::uuid;
+  n constant int := current_setting('medir.tam_columna')::int;
+  v_fase uuid; v_otro uuid; v_desde timestamptz; v_id uuid; v_sf uuid;
+begin
+  select f.id into v_fase from public.fases f join public.flujos fl on fl.id = f.flujo_id
+   where fl.ambito = 'vehiculos' and fl.origen_id = o and f.activa and f.es_logistica order by f.orden, f.id limit 1;
+  if v_fase is null then raise exception 'La cadena: el origen medido (%) no tiene una fase activa de logística.', o; end if;
+  select v.origen_id into v_otro from public.vehiculos v where v.origen_id <> o and v.eliminado_en is null group by v.origen_id order by v.origen_id limit 1;
+  set local session_replication_role = replica;
+  update public.vehiculos set fase_id = v_fase, fase_desde = creado_en where origen_id = o and eliminado_en is null;
+  update public.vehiculos set fase_id = null, fase_desde = null where origen_id = v_otro;
+  set local session_replication_role = origin;
+  analyze public.vehiculos;
+  -- Los cursores de la página 10: la fila 450 de la columna y de «Sin fase» (sólo para elegir el punto de partida).
+  select v.fase_desde, v.id into v_desde, v_id from public.vehiculos v where v.origen_id = o and v.fase_id = v_fase and v.eliminado_en is null
+   order by v.fase_desde, v.id offset 449 limit 1;
+  select v.id into v_sf from public.vehiculos v where v.origen_id = v_otro and v.fase_id is null and v.eliminado_en is null order by v.id offset 449 limit 1;
+  if v_id is null or v_sf is null then raise exception 'La cadena: hacen falta 450 vehículos en la columna y en «Sin fase».'; end if;
+
+  perform pg_temp.escala('cadena: la columna, primera página (la consulta)', 'duena',
+    format('execute medir_cadena_fase(%L, %L, %L, true, %L, false, false, null, %s)', o, v_fase, 'infinity', duena, n + 1),
+    25, 'vehiculos_cadena_idx', '{vehiculos}', 0, 'postgres');
+  perform pg_temp.escala('cadena: la columna por cursor, página 10 (la consulta)', 'duena',
+    format('execute medir_cadena_cursor(%L, %L, %L, %L, true, %L, %s)', o, v_fase, v_desde, v_id, duena, n + 1),
+    25, 'vehiculos_cadena_idx', '{vehiculos}', 0, 'postgres');
+  perform pg_temp.escala('cadena: «Sin fase» por cursor, página 10 (la consulta)', 'duena',
+    format('execute medir_cadena_sin_fase(%L, %L, true, %L, %s)', v_otro, v_sf, duena, n + 1),
+    25, 'vehiculos_cadena_idx', '{vehiculos}', 0, 'postgres');
+  -- Las RPC, como cada persona: el tablero, «Ver más» y buscar sin resultados (recorre la columna entera: lo peor de un filtro de fila). Medido el 2026-11-11
+  -- con 3.333 vehículos en la columna: 3,3 / 1,6 / 10,7 ms y Ana 3,2 ms; las consultas, < 0,1 ms.
+  perform pg_temp.escala('cadena: el tablero del origen', 'duena', format('select public.logistica_cadena(%L, %s)', o, n), 30);
+  perform pg_temp.escala('cadena: «Ver más» de la columna, página 10', 'duena',
+    format('select public.logistica_cadena_columna(%L, %L, %L, %L, %s)', o, v_fase, v_desde, v_id, n), 15);
+  perform pg_temp.escala('cadena: buscar sin resultados en la columna', 'duena',
+    format('select public.logistica_cadena_columna(%L, %L, null, null, %s, %L)', o, v_fase, n, '{"q": "zzzz nada"}'), 50);
+  -- Ana («propios»: ningún vehículo sembrado es suyo) recorre la columna entera sin juntar una tarjeta: el peor caso del filtro de fila.
+  perform pg_temp.escala('cadena: el tablero del origen', 'ana', format('select public.logistica_cadena(%L, %s)', o, n), 30);
+end $cadena$;
+deallocate medir_cadena_fase;
+deallocate medir_cadena_cursor;
+deallocate medir_cadena_sin_fase;
+
 -- Las aserciones que no se cumplieron, todas juntas.
 do $violaciones$ declare v_texto text; v_n int;
 begin
