@@ -11,7 +11,11 @@ Mensajería interna: conversaciones directas (deduplicadas), grupos y canal glob
 ## Archivos clave
 
 - `entities/conversaciones.ts` — la fila de `chat_conversaciones` validada, cursor, fusión de páginas, `textoDeNoLeidos` («99+») y `?c=`; puro.
-- `entities/menciones.ts` — parser de `#` y `/comando`, puro; `entities/visibilidad.ts` — quién ve qué (membresía es el eje). Llegan con 7.10.
+- `entities/menciones.ts` — el parser del cuerpo (`#[<tipo>:<uuid>]` → texto y menciones, referencias únicas hasta 20, `?mencion=`), puro; `/comando` y el selector llegan con 7.10-2 y 7.10-3.
+  `entities/referencias.ts` — lo que apunta una mención o una ficha ya validado (`visible`, `sin_acceso`, `eliminado`; lo no leído no está en el mapa) y `Mensaje.ficha`; puro.
+- Menciones (7.10-1): `infra/referencias.client.ts` lee, con la sesión de quien mira, **una lectura por clase y por tanda de 100** (`leads_vista_por_ids`, `vehiculos`, `cotizaciones`, `perfiles`; sin teléfono, privados ni montos).
+  `features/menciones/`: `useReferenciasDelHilo` (sólo lo no resuelto; un fallo deja «No se pudo cargar · Reintentar» en el chip), `ChipDeMencion` (botón si se ve; «No tienes acceso a este lead», «Eliminado»; la persona no abre nada),
+  `useMencionPorUrl` (`?mencion=<clase>:<id>`: suma al historial, no toca `?c=` ni `?panel=`; un valor ilegible se limpia) y `DrawerDeMencion` (propio del chat: lo ya leído y «Abrir en Leads|Vehículos|Cotizaciones»; sin acceso, ni datos ni enlace).
 - `infra/consultas.ts` — la RPC de la lista y la lectura de una conversación (sólo si es mía: fila propia de `conversaciones_miembros`); sus pares
   `conversaciones*.ts` (servidor) y `*.client.ts` (navegador). `infra/realtime.client.ts` — tres señales (`mensajes` sin filtro y mis filas de miembro para la lista; `mensajes` de la conversación abierta
   para el hilo; sin `DELETE`); la fila es señal, se rehidrata por la RPC.
@@ -42,7 +46,7 @@ RPC (`security definer`, desde 7.08-1): `chat_directa`, `chat_global_entrar`, `c
 ## No se rompe
 
 - Toda la RLS del chat gira sobre `conversaciones_miembros`; el dueño **no** ve conversaciones donde no es miembro (deliberado).
-- Una mención no otorga acceso: si no puedo ver el lead, veo un placeholder.
+- Una mención no otorga acceso: si no puedo ver el lead, veo un placeholder. Un lead purgado se lee igual que uno que no veo («No tienes acceso…»): distinguirlos filtraría existencia; «Eliminado» sólo si la fila trae `eliminado_en` o la FK de la ficha quedó nula.
 - Directa = exactamente 2 miembros, una por par: `chat_directa` y el índice único de `par_directo` (A→B y B→A son la misma). Una directa no se deja.
 - `es_miembro()` es la puerta: fila de miembro y, en el canal global, `chat.global` vigente. Toda función definer decide la membresía de quien
   llama con `es_miembro()`, nunca con la fila suelta de `conversaciones_miembros` (si no, el global se reabre a quien perdió el permiso), salvo
@@ -60,6 +64,7 @@ RPC (`security definer`, desde 7.08-1): `chat_directa`, `chat_global_entrar`, `c
 
 ## Ojo
 
+- `?mencion=` no es `?panel=`: se lee con `useQueryState` y no cierra ni cambia la conversación abierta. Editar un mensaje con tokens los muestra tal cual en el editor (7.10-2 lo resuelve al mandar `menciones` también al editar).
 - La señal de `mensajes` de la lista incluye lo propio (mueve mi fila); el hilo relee los 20 más nuevos y funde por `id`. «No enviado · Reintentar» reusa el `id`: la base responde `repetido`.
 - Editar y borrar esperan a la base y la señal `UPDATE` los refleja; un mensaje más viejo que los 20 más nuevos no se refresca en la otra sesión. `mensajes → mensajes` no se embebe en PostgREST (400 o arreglo): la cita se lee aparte.
 - El canal global exige `chat.global`; participar en cualquier chat exige `chat.participar`.

@@ -324,6 +324,11 @@ como los de `docs/`; `PILOTO_UNIR_REGISTROS=` lo apaga. Y `gh` se vuelve a pedir
 - **Si GitHub no sabe si un PR choca** (`UNKNOWN`, la primera consulta tras cada integración), el coordinador pregunta otra vez a los
   2,5 s en vez de perder la vuelta (`COORD_SIN_SABER_VECES`, `COORD_SIN_SABER_ESPERA`).
 
+**FLUJO-7 (2026-11-12).** A 23 h de lanzar, 39 de 69 pasos. El rojo que más se repetía no era de ningún paso
+(`docs/pasos/flujo-7/decisiones.md`): la tarea de oro 2 entera exigía la cuenta exacta de teclas, y cada entrada nueva de la navegación
+la rompía en el PR de otro carril (cinco pasos; el 8.09, 7 h). Ahora la anota y exige KLM ≤ 90 s. Un spec nuevo no exige un número que
+dependa del marco (paradas de Tab, nodos o bytes de la navegación): pone un tope o lo mide dentro de `main`.
+
 ## El ensayo en seco (2026-10-26)
 
 `bash scripts/piloto/arrancar.sh --en-seco --nota .piloto/contexto/3a.md` («el 3a está en curso en otra sesión: planear el 4.13-3b sobre su contrato»), con `PILOTO_TOPE_USD_PASO=15`:

@@ -2530,6 +2530,7 @@ export type Database = {
           atributos: NonNullable<Json>
           atributos_publicos: NonNullable<Json>
           cartera: string[]
+          cliente_desde: string | null
           creado_en: string
           creado_por: string | null
           eliminado_en: string | null
@@ -2552,6 +2553,7 @@ export type Database = {
           atributos?: NonNullable<Json>
           atributos_publicos?: NonNullable<Json>
           cartera?: string[]
+          cliente_desde?: string | null
           creado_en?: string
           creado_por?: string | null
           eliminado_en?: string | null
@@ -2572,6 +2574,7 @@ export type Database = {
           atributos?: NonNullable<Json>
           atributos_publicos?: NonNullable<Json>
           cartera?: string[]
+          cliente_desde?: string | null
           creado_en?: string
           creado_por?: string | null
           eliminado_en?: string | null
@@ -8017,6 +8020,7 @@ export type Database = {
           atributos: NonNullable<Json>
           atributos_publicos: NonNullable<Json>
           cartera: string[]
+          cliente_desde: string | null
           creado_en: string
           creado_por: string | null
           eliminado_en: string | null
@@ -8078,6 +8082,7 @@ export type Database = {
           atributos: NonNullable<Json>
           atributos_publicos: NonNullable<Json>
           cartera: string[]
+          cliente_desde: string | null
           creado_en: string
           creado_por: string | null
           eliminado_en: string | null
@@ -8689,6 +8694,15 @@ export type Database = {
         Returns: {
           formula_id: string
           origen_id: string
+        }[]
+      }
+      _tablero_conversion_desde: { Args: Record<PropertyKey, never>; Returns: string }
+      _tablero_ventana: {
+        Args: { p_desde: string; p_hasta: string }
+        Returns: {
+          fin: string
+          ini: string
+          zona: string
         }[]
       }
       _tarjeta_grupos: { Args: { p_def: Json; p_plantilla: Json; p_tonos: Json }; Returns: Json }
@@ -10436,6 +10450,8 @@ export type Database = {
         Args: { p_filas: Json; p_nota: string; p_tabla: string; p_version_esperada: number }
         Returns: Json
       }
+      tablero_cotizaciones: { Args: { p_desde: string; p_hasta: string }; Returns: Json }
+      tablero_leads: { Args: { p_desde: string; p_hasta: string }; Returns: Json }
       tarea_completar: {
         Args: { p_actualizado_en_esperado: string; p_completada: boolean; p_tarea: string }
         Returns: Json

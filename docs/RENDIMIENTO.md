@@ -212,6 +212,14 @@ Cada sección por su RPC, de a `_acotar_pagina(p_tamano, 5, 20)` + 1, con el mí
 - Catálogos de Configuración (8.08-2): 4 × `limit 201` por PostgREST, sin índice por `orden` (tabla de configuración, decenas de filas); tope 200 por
   catálogo, con `<AvisoDeTope>` en la 8.08-3.
 
+## Tablero: métricas (9.07)
+
+- `tablero_leads()` y `tablero_cotizaciones()` (definer): agregados de un período de hasta 366 días (fechas en la zona de la empresa). `tablero_leads`
+  recorre `leads_listado_idx` por el rango de `creado_en` y `leads_cliente_desde_idx` (parcial: vivos con fecha) por el de `cliente_desde`; el dueño de
+  cada lead del período, por `leads_asesores_dueno_unico` (una sonda por lead). `tablero_cotizaciones` recorre `cotizaciones_listado_idx`. Costo lineal en
+  lo **del período**, no en la tabla; rankings cortados con `row_number()` (10 orígenes, 20 personas) y un día por fecha con `generate_series`.
+- Sin presupuesto medido ni `EXPLAIN` en `db:medir:volumen`: no es una lista; si la pantalla (9.08) lo pide, se mide con el período de 366 días.
+
 ## JS en frío (con gzip, lo que el documento nombra)
 
 - `/leads` ≤ 530 KB (medido 503,5), `/perfil` ≤ 440 KB (413,5), `/vehiculos` ≤ 500 KB (468,6). `/cotizaciones/nuevo` con la subasta (`?origen=`) ≤ 460 KB (medido **459,0** en 27 chunks en el 4.18-3b, tras «Vista previa» del 4.18-2, el runtime de react-pdf del 4.18-3a y el enlace del PDF del 3b; 432 en 27 chunks desde el 4.14-2a, con la barra del vehículo en frío y su panel diferido; 429,5 en 25 antes; 428,1 en el 4.13-4b3, 426,8 antes y 423,8 antes del 4.13-4a), desde el 4.13-4d en `e2e/presupuesto-js.spec.ts`.

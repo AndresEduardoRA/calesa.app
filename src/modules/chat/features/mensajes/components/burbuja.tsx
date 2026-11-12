@@ -4,6 +4,7 @@ import { formatearHora } from '@/shared/lib/fechas'
 import { Button } from '@/shared/ui/button'
 import { cn } from 'cn'
 import type { Mensaje } from '../../../entities/mensajes'
+import { CuerpoConMenciones } from '../../menciones/components/cuerpo-con-menciones'
 import type { AccionesDelMensaje } from '../acciones-del-hilo'
 import { CitaEnLaBurbuja } from './cita-de-respuesta'
 import { EditarEnLinea } from './editar-en-linea'
@@ -73,7 +74,7 @@ function TextoDeLaBurbuja({
       {acciones.editandoId === mensaje.id ? (
         <EditarEnLinea mensaje={mensaje} acciones={acciones} />
       ) : (
-        <p className="whitespace-pre-wrap">{mensaje.cuerpo}</p>
+        <CuerpoConMenciones mensaje={mensaje} menciones={acciones.menciones} />
       )}
     </>
   )

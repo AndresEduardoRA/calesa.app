@@ -32,4 +32,9 @@ export const REGISTRO: Record<string, RegistroDeDrawer> = {
     formulario: 'src/modules/logistica/features/aduana/components/drawer-de-declaracion.tsx',
     mecanismo: 'contexto',
   },
+  // La mención abierta en el chat (7.10-1): `?mencion=<clase>:<id>`. Sólo muestra lo que el hilo ya leyó y enlaza a la pantalla del módulo.
+  'src/modules/chat/features/menciones/components/drawer-de-mencion.tsx': {
+    sinFormulario:
+      'sólo muestra lo ya leído bajo la sesión de quien mira y enlaza al módulo: no guarda nada tipeado',
+  },
 }
