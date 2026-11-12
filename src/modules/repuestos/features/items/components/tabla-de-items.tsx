@@ -1,72 +1,68 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import { TablaDeLista } from '@/shared/ui/lista'
-import { Monto } from '@/shared/ui/monto'
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table'
-import { nombreDelValor, type CatalogosDeLaHoja } from '../../../entities/items/hoja'
 import type { FilaDeItem } from '../../../entities/nucleo/item'
-import { FaseDelItemInsignia } from './fase-del-item'
+import type { ContextoDeLaHoja } from './contexto-de-la-hoja'
+import { controlesDeItem } from './controles-de-item'
 
-type Props = { filas: readonly FilaDeItem[]; catalogos: CatalogosDeLaHoja }
+type Props = {
+  filas: readonly FilaDeItem[]
+  contexto: ContextoDeLaHoja
+  // La fila de «Nuevo ítem», al final (sólo con `repuestos.editar`, proyecto abierto y menos de 200).
+  filaNueva: ReactNode
+}
 
-const Vacio = () => <span className="text-(--color-ink-faint)">—</span>
-
-// La hoja en escritorio (8.09-2, C8), de sólo lectura por ahora: una fila por ítem con sus diez columnas. Los números a la derecha, con `tabular-nums`; el precio, siempre por `<Monto>`.
-export function TablaDeItems({ filas, catalogos }: Props) {
+// La hoja en escritorio (8.09-2, C8): una fila por ítem con sus columnas, editable celda a celda. Los números a la derecha; el precio, por `<Monto>` o `XCell`. La fase es sólo lectura. La fila nueva va al
+// final con la descripción: el resto de las columnas se llena después, con el teclado.
+export function TablaDeItems({ filas, contexto, filaNueva }: Props) {
   return (
     <TablaDeLista>
       <TableHeader>
         <TableRow>
-          <TableHead>Descripción</TableHead>
+          <TableHead className="min-w-64">Descripción</TableHead>
           <TableHead>Tipo de pieza</TableHead>
           <TableHead>Condición</TableHead>
           <TableHead>País</TableHead>
           <TableHead>Vía</TableHead>
           <TableHead className="text-right">Cant.</TableHead>
           <TableHead className="text-right">Precio al cliente</TableHead>
+          <TableHead>Moneda</TableHead>
           <TableHead>Tracking</TableHead>
           <TableHead>Notas</TableHead>
           <TableHead>Fase</TableHead>
+          {contexto.editable ? <TableHead>Acciones</TableHead> : null}
         </TableRow>
       </TableHeader>
       <TableBody>
-        {filas.map((fila) => (
-          <TableRow key={fila.id}>
-            <TableCell className="max-w-64 [overflow-wrap:anywhere]">{fila.descripcion}</TableCell>
-            <TableCell>
-              {nombreDelValor(catalogos, 'tipo_pieza', fila.tipoPiezaId) ?? <Vacio />}
-            </TableCell>
-            <TableCell>
-              {nombreDelValor(catalogos, 'condicion', fila.condicionId) ?? <Vacio />}
-            </TableCell>
-            <TableCell>
-              {nombreDelValor(catalogos, 'pais_origen', fila.paisOrigenId) ?? <Vacio />}
-            </TableCell>
-            <TableCell>
-              {nombreDelValor(catalogos, 'modo_transporte', fila.modoTransporteId) ?? <Vacio />}
-            </TableCell>
-            <TableCell className="text-right tabular-nums">{fila.cantidad}</TableCell>
-            <TableCell className="text-right">
-              {fila.precioCliente === null ? (
-                <Vacio />
-              ) : (
-                <Monto
-                  valor={fila.precioCliente}
-                  {...(fila.moneda ? { moneda: fila.moneda } : {})}
-                />
-              )}
-            </TableCell>
-            <TableCell className="max-w-40 [overflow-wrap:anywhere]">
-              {fila.tracking ?? <Vacio />}
-            </TableCell>
-            <TableCell className="max-w-56 [overflow-wrap:anywhere]">
-              {fila.notas ?? <Vacio />}
-            </TableCell>
-            <TableCell>
-              <FaseDelItemInsignia fase={fila.fase} />
-            </TableCell>
+        {filas.map((fila) => {
+          const c = controlesDeItem(fila, contexto)
+          return (
+            <TableRow key={fila.id} data-fila-de-item={fila.id}>
+              <TableCell className="min-w-64 align-top">{c.descripcion}</TableCell>
+              <TableCell className="align-top">{c.tipoDePieza}</TableCell>
+              <TableCell className="align-top">{c.condicion}</TableCell>
+              <TableCell className="align-top">{c.pais}</TableCell>
+              <TableCell className="align-top">{c.via}</TableCell>
+              <TableCell className="min-w-28 text-right align-top tabular-nums">
+                {c.cantidad}
+              </TableCell>
+              <TableCell className="min-w-40 text-right align-top">{c.precio}</TableCell>
+              <TableCell className="align-top">{c.moneda}</TableCell>
+              <TableCell className="min-w-36 align-top">{c.tracking}</TableCell>
+              <TableCell className="min-w-48 align-top">{c.notas}</TableCell>
+              <TableCell className="align-top">{c.fase}</TableCell>
+              {contexto.editable ? <TableCell className="align-top">{c.eliminar}</TableCell> : null}
+            </TableRow>
+          )
+        })}
+        {filaNueva ? (
+          <TableRow data-fila-de-item="nueva">
+            <TableCell className="min-w-64 align-top">{filaNueva}</TableCell>
+            <TableCell colSpan={contexto.editable ? 11 : 10} />
           </TableRow>
-        ))}
+        ) : null}
       </TableBody>
     </TablaDeLista>
   )

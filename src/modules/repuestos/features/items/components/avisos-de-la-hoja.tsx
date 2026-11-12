@@ -1,4 +1,8 @@
+'use client'
+
+import { useRouter } from 'next/navigation'
 import { Aviso } from '@/shared/ui/aviso'
+import { AvisoDeConflicto } from '@/shared/ui/aviso-de-conflicto'
 import { AvisoDeTope } from '@/shared/ui/aviso-de-tope'
 import { EstadoVacio } from '@/shared/ui/estados'
 import {
@@ -22,4 +26,24 @@ export function AvisoDeTopeDeLaHoja() {
 
 export function HojaVacia() {
   return <EstadoVacio compacto titulo={TEXTO_DE_HOJA_VACIA} />
+}
+
+// Otra persona cambió el ítem (`PT409`): la hoja no pisa nada. «Recargar» trae lo nuevo (se renuevan las filas desde el servidor) y descarta lo escrito.
+export function AvisoDeConflictoDeLaHoja({
+  mensaje,
+  alRecargar,
+}: {
+  mensaje: string
+  alRecargar: () => void
+}) {
+  const router = useRouter()
+  return (
+    <AvisoDeConflicto
+      mensaje={mensaje}
+      alRecargar={() => {
+        alRecargar()
+        router.refresh()
+      }}
+    />
+  )
 }

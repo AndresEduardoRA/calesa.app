@@ -8,6 +8,8 @@ import {
   rechazoDeCelda,
 } from '../../entities/items/errores'
 import type { RepositorioDeItems } from '../../entities/items/repositorio'
+import { crearItemSupabase } from './crear'
+import { eliminarItemSupabase } from './eliminar'
 import { leerItem } from './leer'
 
 // Guardar una celda es un `update` directo por columna (la tabla da UPDATE por columna a `repuestos.editar`: el grant y la policy son el límite) y la tabla NO revisa la versión: la revisa
@@ -46,4 +48,8 @@ async function guardar({
   return actual.data === null ? elItemYaNoExiste() : elItemCambio()
 }
 
-export const itemsSupabase: RepositorioDeItems = { guardar }
+export const itemsSupabase: RepositorioDeItems = {
+  guardar,
+  crear: crearItemSupabase,
+  eliminar: eliminarItemSupabase,
+}

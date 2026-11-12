@@ -63,4 +63,9 @@ export const REGISTRO: Record<string, ConfirmarConUrl> = {
     abre: 'src/modules/repuestos/features/catalogos/hooks/use-eliminar-valor-por-url.ts',
     senal: 'PANEL_ELIMINAR_VALOR',
   },
+  // `?panel=eliminar-item&item=<id>` (8.09-2).
+  'src/modules/repuestos/features/items/components/confirmar-eliminar-item.tsx': {
+    abre: 'src/modules/repuestos/features/items/hooks/use-eliminar-item-por-url.ts',
+    senal: 'PANEL_ELIMINAR_ITEM',
+  },
 }
