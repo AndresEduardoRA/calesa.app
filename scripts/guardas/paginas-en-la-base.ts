@@ -103,6 +103,26 @@ export const RPC_PAGINADAS_DEL_NUCLEO: readonly RpcPaginada[] = [
     pideElCodigo: TAMANO_DE_COLUMNA,
     lista: 'kanban, «Ver más»',
   },
+  // La cadena de logística (6.03): cada columna lee `TAMANO_DE_COLUMNA` y «Ver más» pide lo mismo por cursor `(fase_desde, id)`; la base acota con `_acotar_pagina(…, 50, 100)`.
+  {
+    rpc: 'logistica_cadena',
+    parametro: 'p_tope',
+    pideElCodigo: TAMANO_DE_COLUMNA,
+    lista: 'cadena de logística, cada columna',
+  },
+  {
+    rpc: 'logistica_cadena_columna',
+    parametro: 'p_tope',
+    pideElCodigo: TAMANO_DE_COLUMNA,
+    lista: 'cadena de logística, «Ver más» de una columna',
+  },
+  // «Dónde está» pide 10 (`TOPE_DE_DONDE_ESTA`, un literal de la infra); su máximo en la base lo acota `_acotar_pagina`.
+  {
+    rpc: 'logistica_donde_esta',
+    parametro: 'p_tope',
+    pideElCodigo: 10,
+    lista: 'dónde está, de logística',
+  },
   // El listado `/cotizaciones` (4.16-1): el selector de tamaño llega hasta su máximo medido, y sin pedido la base da ese.
   {
     rpc: 'cotizaciones_listado',
