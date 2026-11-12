@@ -90,8 +90,33 @@ test('une los choques de notas y de un registro con las líneas de los dos lados
   const archivos = g('ls-tree', '-r', '--name-only', r.commit)
   assert.match(archivos, /src\/app\/propio\.ts/)
   assert.match(archivos, /src\/app\/ajeno\.ts/)
-  // Y ya no choca: main entra limpio.
-  assert.equal(unirMain('b/5.04', r.commit, { cwd: dir }).motivo, 'main entra sin choques')
+  // Y con main ya dentro no empuja otro merge.
+  assert.equal(unirMain('b/5.04', r.commit, { cwd: dir }).motivo, 'main ya está en la rama')
+  g('fetch', '-q', 'origin')
+  assert.equal(g('rev-parse', 'origin/b/5.04'), r.commit)
+})
+
+test('si git une main sin choques (GitHub da el PR por chocado igual), empuja ese merge y el CI decide', () => {
+  const { dir, g, oid, main } = escenario(
+    { 'src/app/propio.ts': 'export const B = 1\n' },
+    {
+      'src/app/ajeno.ts': 'export const C = 1\n',
+      'docs/UX.md': BASE['docs/UX.md'] + '\n## Chat\n',
+    },
+  )
+  const r = unirMain('b/5.04', oid, { cwd: dir })
+  assert.equal(r.hecho, true, r.motivo)
+  assert.deepEqual(r.unidos, [])
+  // Trae código de main: nunca hereda el verde del CI anterior.
+  assert.equal(r.soloNotas, false)
+  g('fetch', '-q', 'origin')
+  assert.equal(g('rev-parse', 'origin/b/5.04'), r.commit)
+  assert.equal(g('rev-parse', `${r.commit}^1`), oid)
+  assert.equal(g('rev-parse', `${r.commit}^2`), main)
+  const archivos = g('ls-tree', '-r', '--name-only', r.commit)
+  assert.match(archivos, /src\/app\/propio\.ts/)
+  assert.match(archivos, /src\/app\/ajeno\.ts/)
+  assert.match(g('show', `${r.commit}:docs/UX.md`), /## Chat/)
 })
 
 test('con choques sólo de notas lo dice (soloNotas): ese merge no cambia lo que el CI ya probó', () => {
