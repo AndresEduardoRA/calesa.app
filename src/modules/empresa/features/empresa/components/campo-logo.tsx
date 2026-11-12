@@ -1,5 +1,6 @@
 'use client'
 
+import { cn } from 'cn'
 import Image from 'next/image'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/shared/ui/button'
@@ -45,7 +46,10 @@ function VistaPrevia({ url, variante }: { url: string | null; variante: Variante
   return (
     // El del tema oscuro se ve sobre el fondo oscuro: `dark` resuelve ahí los tokens de ese tema.
     <span
-      className={`${variante === 'oscuro' ? 'dark' : ''}flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-(--radius-md) border border-(--color-line) bg-(--color-surface-2) text-(length:--text-xs) text-(--color-ink-faint)`}
+      className={cn(
+        variante === 'oscuro' && 'dark',
+        'flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-(--radius-md) border border-(--color-line) bg-(--color-surface-2) text-(length:--text-xs) text-(--color-ink-faint)',
+      )}
     >
       {url ? (
         <Image
