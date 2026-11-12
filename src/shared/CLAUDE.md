@@ -48,6 +48,7 @@ Ficha completa (cada componente con su historia y sus trampas): `docs/archivo/mo
 - Todo número pasa por `formato.ts` y toda fecha por `fechas.ts`; `toFixed` está prohibido por lint.
 - `<Monto>` manda al DOM el valor y su reemplazo; el CSS elige con la clase `live` de `<html>`. Nunca una cifra a la vista antes de hidratar.
 - `cssDeMarca()` sólo recibe colores que pasaron por `tokensDeMarca()`: a un `<style>` nunca llega texto libre.
+- `<Marca>` con `logoOscuroUrl` dibuja los dos logos y el tema elige por CSS (`dark:hidden` / `hidden dark:block`, cada `<img>` con `data-logo`): nunca por JS, que parpadearía al hidratar. Sin él, igual que antes.
 - Cada `<Confirmar>` vive en su URL (`usePanelPorUrl()`) y se registra en `scripts/guardas/confirmar-con-url.ts`; cada `<Drawer>` en `drawers-con-salida.ts`; cada `<Modal>` con algo escrito en `modales-con-salida.ts`. Sus tests fallan si hay uno sin registrar.
 - Cada `history: 'push'` de `src/` marca la vuelta del foco: importa `abrirConVuelta()` y `useVueltaDelFoco()` (lo vigila `scripts/guardas/paneles-con-vuelta.test.ts`).
 - Nada anima `font-size` ni el alto: sin `transition-all` (`scripts/guardas/sin-transition-all.test.ts`).

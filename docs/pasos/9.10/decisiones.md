@@ -14,3 +14,14 @@
 - **D5 · `id: '/'`**, igual que el `start_url`: cambiarlo después reinstalaría la app a todos.
 - **La oferta se decide con el evento guardado al evaluarse el módulo**, no en un efecto del menú (el evento no se repite). En el e2e el aviso
   puede llegar antes de hidratar: el caso lo repite hasta que la entrada aparece.
+
+# 9.10 · el logo oscuro (parte 2)
+
+- **D1 · La base no valida la forma de `logo_oscuro_ruta`**, igual que `logo_ruta`: la valida Zod en la action (`RUTA_DE_LOGO`) y el permiso
+  `empresa.ajustes.gestionar` es el filtro. Ninguna regla nueva que el logo normal no tenga.
+- **D2 · Un solo «Guardar», una sola versión:** los dos logos viajan en la misma llamada de `empresa_guardar_ajustes()`; dos llamadas darían
+  `PT409` a la segunda.
+- **D3 · Con logo oscuro y sin normal**, el tema claro dibuja el glifo neutro. Sin logo oscuro, `<Marca>` queda como antes.
+- **D4 · Los íconos de la app, la tarjeta y el PDF de una cotización salen del logo normal:** la pantalla de instalación y el papel son claros.
+- **D5 · Dos imágenes y el tema elige por CSS**, no por JS: `next-themes` pone `.dark` antes de pintar, así el servidor y el cliente dibujan lo
+  mismo y no hay parpadeo. La vista previa del oscuro en el formulario lleva `dark` para verse sobre el fondo de ese tema.
