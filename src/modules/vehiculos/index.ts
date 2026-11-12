@@ -35,7 +35,7 @@ export { editablesDe, eliminablesDe } from './features/permisos/editables'
 
 // Los filtros de un origen, desde su layout: el esquema que dibuja FilterShell y las condiciones
 // que entiende `buscarVehiculos()`
-export { condicionesDe, esquemaDeFiltros } from './entities/filtros'
+export { FILTRO_FASE, condicionesDe, esquemaDeFiltros } from './entities/filtros'
 
 // La vitrina: qué se ve en la web pública y quién publica. Las dos lecturas no tumban la pantalla
 export { vistaPreviaDe, vitrinaDelOrigen } from './features/vitrina/lecturas'
