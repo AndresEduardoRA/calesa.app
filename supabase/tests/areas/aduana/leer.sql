@@ -6,6 +6,8 @@
 --       ninguno, la cabecera con vehiculos = []; sin las claves, 42501; un vehículo quitado no sale; pagada, faltan y tributo por vehículo siguen al
 --       tributo del último (el assert de la fila, también en la lectura).
 --   R2. El actualizado_en que devuelve sirve de esperada para declaracion_guardar; tras guardar, el viejo da PT409.
+--   R3. La policy de leer (D41): con logistica.ver en un origen y sin gestionar, un select directo de declaraciones_aduana devuelve la que tiene v1 y no
+--       la que sólo tiene w2 ni la que tuvo a v2 ya quitado; con gestionar, las tres.
 
 -- La primera cuenta de una base vacía queda dueña (con `SOLO=`): una de relleno antes, para que ninguna de la prueba lo sea.
 create or replace function pg_temp.adu_persona(p_concesiones text[]) returns uuid language plpgsql as $f$
@@ -154,5 +156,24 @@ begin
   end if;
   r := pg_temp.adu_corre(p, format('select public.declaracion_guardar(%L, %L, %L)', d, v_ver, '{"deposito": "Otro"}'));
   perform pg_temp.adu_es('R2 la vieja', r, 'PT409');
+end $$;
+rollback;
+
+-- @test aduana: un select directo de la cabecera sólo devuelve la declaración con un vehículo vivo que ves, o todas con gestionar (R3, D41)
+begin;
+do $$
+declare t jsonb := pg_temp.adu_terreno(); uno uuid; gestor uuid; d1 uuid; d_w uuid; d_q uuid; ids uuid[]; r jsonb;
+begin
+  uno := pg_temp.adu_persona(array['logistica.ver@' || (t ->> 'o')]);
+  gestor := pg_temp.adu_persona(array['logistica.aduana.gestionar']);
+  d1 := pg_temp.adu_decl('RPOL-' || (t ->> 's') || '-1', array[(t ->> 'v1')::uuid]);
+  d_w := pg_temp.adu_decl('RPOL-' || (t ->> 's') || '-2', array[(t ->> 'w2')::uuid]);
+  d_q := pg_temp.adu_decl('RPOL-' || (t ->> 's') || '-3', array[(t ->> 'v2')::uuid]);
+  update public.declaraciones_vehiculos set removido_en = now() where declaracion_id = d_q;
+  ids := array[d1, d_w, d_q];
+  r := pg_temp.adu_corre(uno, format('select coalesce(jsonb_agg(id order by numero), ''[]'') from public.declaraciones_aduana where id = any (%L)', ids));
+  if r is distinct from jsonb_build_array(d1) then raise exception 'R3: con un origen debía leer sólo la de v1 y leyó %', r; end if;
+  r := pg_temp.adu_corre(gestor, format('select coalesce(jsonb_agg(id order by numero), ''[]'') from public.declaraciones_aduana where id = any (%L)', ids));
+  if r is distinct from jsonb_build_array(d1, d_w, d_q) then raise exception 'R3: con gestionar debía leer las tres y leyó %', r; end if;
 end $$;
 rollback;
