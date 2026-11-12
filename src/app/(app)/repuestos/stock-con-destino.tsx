@@ -1,7 +1,6 @@
 'use client'
 
-import type { PaginaDeStock } from '@/modules/repuestos'
-import { VistaDeStock } from '@/modules/repuestos/pantallas/stock-vista'
+import { VistaDeStock, type PaginaDeStock } from '@/modules/repuestos/pantallas/stock-vista'
 import { BuscadorDeProyectoDestino } from './buscador-de-proyecto-destino'
 
 type Props = { pagina: PaginaDeStock; puedeEditar: boolean }

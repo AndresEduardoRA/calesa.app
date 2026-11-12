@@ -2,3 +2,4 @@
 // reexporta lo que esa vista dibuja y nada más.
 export { VistaDeStock } from '../features/stock/components/vista-de-stock'
 export type { CampoDeProyectoDestino } from '../features/stock/components/drawer-de-reasignar'
+export type { PaginaDeStock } from '../entities/stock/listado'
