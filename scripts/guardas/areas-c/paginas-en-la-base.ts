@@ -58,6 +58,7 @@ export const REGISTRO: readonly RpcPaginada[] = [
     parametro: 'p_tamano',
     pideElCodigo: TAMANO_DE_PAGINA_POR_DEFECTO,
     lista: 'proyectos de /repuestos',
+  },
   // `/logistica/aduana` (6.09-1): una página de `TAMANO_DE_PAGINA_POR_DEFECTO` por cursor `(creado_en, id)`, sin selector `?por=`.
   {
     rpc: 'declaraciones_listar',
