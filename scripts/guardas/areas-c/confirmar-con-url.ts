@@ -33,4 +33,19 @@ export const REGISTRO: Record<string, ConfirmarConUrl> = {
     abre: 'src/modules/flujos/features/requisitos/hooks/use-eliminar-requisito-por-url.ts',
     senal: 'PANEL_ELIMINAR_REQUISITO',
   },
+  // `?panel=eliminar-gasto&gasto=<id>` (6.11-1).
+  'src/modules/logistica/features/dinero/components/confirmar-eliminar-gasto.tsx': {
+    abre: 'src/modules/logistica/features/dinero/hooks/use-eliminar-gasto-por-url.ts',
+    senal: 'PANEL_ELIMINAR_GASTO',
+  },
+  // `?panel=eliminar-pago&pago=<id>` (6.11-2).
+  'src/modules/logistica/features/dinero/components/confirmar-eliminar-pago.tsx': {
+    abre: 'src/modules/logistica/features/dinero/hooks/use-eliminar-pago-por-url.ts',
+    senal: 'PANEL_ELIMINAR_PAGO',
+  },
+  // `?panel=confirmar-pago&pago=<id>` (6.11-2).
+  'src/modules/logistica/features/dinero/components/confirmar-pago.tsx': {
+    abre: 'src/modules/logistica/features/dinero/hooks/use-confirmar-pago-por-url.ts',
+    senal: 'PANEL_CONFIRMAR_PAGO',
+  },
 }
