@@ -3703,3 +3703,14 @@ Medido a 13,5 h de lanzar: 20 de 69 pasos integrados; los carriles estuvieron vi
 - **Renumerar con el CI en verde no paga otro CI** (`coordinador.mjs`, `renumerado_verde`): el commit de renumerar tiene el mismo contenido;
   se integra en la vuelta siguiente si sigue siendo la punta, no choca con main y su CI nuevo no cayó. Cada PR con migraciones pagaba de 2 a
   6 corridas (el 6.10: cinco renumeradas, 7 h abierto). `COORD_RENUMERAR_SIN_CI=0` vuelve a esperar.
+
+## 2026-11-11 — FLUJO-5: los registros se unen sin sesión y GitHub se vuelve a pedir
+
+- **Los registros donde cada carril agrega su línea se unen solos al traer main** (`carril.sh` › `unir_docs`, `REGISTROS_QUE_SE_UNEN`):
+  `scripts/carreras.mjs`, `e2e/soporte/presupuestos.ts`, `auditoria-leads.sql`, `permisos-enforcement.sql`, `escala.sql`, los registros de
+  `scripts/guardas/` y la ficha `CLAUDE.md` de una unidad chocaban una y otra vez, y cada choque era una sesión y otro CI. Sólo con puros
+  agregados de los dos lados; si alguno cambió una línea que ya existía, o el `.mjs` unido no pasa `node --check`, va a la sesión como
+  antes. Lo que la unión deje mal lo dice el CI del PR. Se descartó partir cada registro por carril: cinco refactors sobre archivos que
+  los tres carriles tienen abiertos. `PILOTO_UNIR_REGISTROS=` (vacía) lo apaga.
+- **GitHub se vuelve a pedir** (`pr.mjs` › `gh`, `publicar.sh` › `gh_insistente`): lo que sólo lee, hasta dos veces más; abrir o comentar
+  el PR, hasta tres. Un HTTP 499 era un aviso y 5 min de espera, o una vuelta del coordinador perdida. Integrar no se repite a ciegas.
