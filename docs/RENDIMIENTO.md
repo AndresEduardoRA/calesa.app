@@ -79,6 +79,7 @@ Sección «Seguimientos» de la ficha y pestaña del drawer.
 
 - Tres lecturas en el servidor, cada una `limit 6` y cada una tras el `<Suspense>` de su bloque (un bloque lento no frena a los demás): `recordatorios_vista` por `recordatorios_usuario_idx`; `leads_cartera_vista` por `leads_asesores_listado_idx` (cuesta lo que pesa la cartera de quien mira, no la tabla); `perfiles` por `perfiles_vigentes_orden_idx`.
 - Sin `count`, sin `offset`, sin N+1. No se sembró volumen: ninguna recorre `leads` entera.
+- **Turnos de la web (8.05-1):** el bloque `turnos-web` suma dos lecturas `limit 6` de `solicitudes_contacto_web` (`usuario_id = yo`, por `solicitudes_contacto_web_usuario_id_idx`; las `asignada`, por `solicitudes_web_asesor_abiertas_idx`) y, si hay vehículos, una de `web.vehiculos` por ids (`limit` = los ids). Acotadas por la cola (`max_abiertas`) y por las `vencida` de mi fila; sin `count`, `offset` ni N+1; no se sembró volumen. JS en frío de `/`: `e2e/presupuesto-js.spec.ts` sigue en verde (la tarjeta sólo se monta con turnos; el panel de vincular viaja con `diferido()`).
 
 ## Inventario de escala (9e)
 
