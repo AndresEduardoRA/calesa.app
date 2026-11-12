@@ -413,7 +413,10 @@ function sincronizar(plan, estado) {
       if (e.arreglar !== pr.arreglar)
         informe.push(`${paso.id}: no pude renumerar #${e.pr} (${r.motivo})`)
     }
-    if (pr.arreglar !== (e.arreglar ?? null)) {
+    // Un «conflicto con main» no se borra mientras GitHub no sepa: tras cada integración contesta UNKNOWN un rato, la marca se iba y
+    // el carril que preguntaba justo entonces tomaba un paso nuevo (el 7.02 estuvo así más de 4 h el 11-11-2026).
+    const sigueSinSaber = pr.sinSaber && !pr.arreglar && e.arreglar === 'conflicto con main'
+    if (pr.arreglar !== (e.arreglar ?? null) && !sigueSinSaber) {
       estado = {
         ...estado,
         pasos: { ...estado.pasos, [paso.id]: { ...estado.pasos[paso.id], arreglar: pr.arreglar } },

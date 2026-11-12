@@ -9,13 +9,29 @@ import { guardasEn } from './plan.mjs'
 
 const GH = process.env.COORD_GH || 'gh'
 
+// Lo que sólo lee se vuelve a pedir si GitHub falla (HTTP 499 y 5xx el 11-11-2026: «no se pudo mirar el PR» cuatro veces en una
+// tarde, y cada una era otra vuelta de 3 min con el PR sin integrar): hasta COORD_GH_REINTENTOS (2) veces más, con COORD_GH_ESPERA ms
+// (2000) entre una y otra. Lo que escribe (merge, rerun, api) no se repite a ciegas: lo vuelve a decidir la vuelta siguiente.
+const LEE = /^(pr (view|list)|run (list|view))$/
+const GH_REINTENTOS = Number(process.env.COORD_GH_REINTENTOS ?? 2)
+const GH_ESPERA = Number(process.env.COORD_GH_ESPERA ?? 2000)
+const pausa = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms)
+
 export function gh(...args) {
-  // Con tope: `sincronizar` llama con el candado del coordinador tomado, y un `gh` colgado dejaba a los carriles sin poder pedir paso.
-  return execFileSync(GH, args, {
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-    timeout: Number(process.env.COORD_GH_TIMEOUT ?? 90) * 1000,
-  })
+  const veces = LEE.test(`${args[0]} ${args[1]}`) ? GH_REINTENTOS : 0
+  for (let n = 0; ; n += 1) {
+    try {
+      // Con tope: `sincronizar` llama con el candado del coordinador tomado, y un `gh` colgado dejaba a los carriles sin poder pedir paso.
+      return execFileSync(GH, args, {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+        timeout: Number(process.env.COORD_GH_TIMEOUT ?? 90) * 1000,
+      })
+    } catch (err) {
+      if (n >= veces) throw err
+      if (GH_ESPERA > 0) pausa(GH_ESPERA)
+    }
+  }
 }
 
 const CHECK_BIEN = new Set(['SUCCESS', 'SKIPPED', 'NEUTRAL'])
@@ -115,6 +131,8 @@ export function mirarPr(numero) {
     verde: !pendiente && !rojo && checks.length > 0 && pr.mergeable === 'MERGEABLE',
     rojo,
     integrable: pr.mergeable === 'MERGEABLE',
+    // GitHub todavía no calculó si choca con main (unos segundos tras cada integración): no dice que el choque de antes se fue.
+    sinSaber: pr.state === 'OPEN' && pr.mergeable !== 'MERGEABLE' && pr.mergeable !== 'CONFLICTING',
     firme,
     colgado,
     oid: pr.headRefOid ?? null,
