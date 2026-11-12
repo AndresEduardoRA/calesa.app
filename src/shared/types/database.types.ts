@@ -6662,6 +6662,7 @@ export type Database = {
           categoria_id: string | null
           creado_en: string
           creado_por: string | null
+          cuerpo_doc: Json | null
           cuerpo_html: string
           id: string
           minutos_lectura: number | null
@@ -6681,6 +6682,7 @@ export type Database = {
           categoria_id?: string | null
           creado_en?: string
           creado_por?: string | null
+          cuerpo_doc?: Json | null
           cuerpo_html?: string
           id?: string
           minutos_lectura?: number | null
@@ -6699,6 +6701,7 @@ export type Database = {
           categoria_id?: string | null
           creado_en?: string
           creado_por?: string | null
+          cuerpo_doc?: Json | null
           cuerpo_html?: string
           id?: string
           minutos_lectura?: number | null
@@ -9013,6 +9016,22 @@ export type Database = {
         Returns: Json
       }
       _version_publicada_por: { Args: { p_formula: string }; Returns: string }
+      _web_ajustes_objeto: {
+        Args: { p_actual: Json; p_clave: string; p_valor: Json }
+        Returns: Json
+      }
+      _web_ajustes_valor: { Args: { p_clave: string; p_valor: Json }; Returns: Json }
+      _web_doc_html: { Args: { p_doc: Json }; Returns: string }
+      _web_doc_imagen: { Args: { p_nodo: Json }; Returns: string }
+      _web_doc_marcas: { Args: { p_html: string; p_marcas: Json }; Returns: string }
+      _web_doc_minutos: { Args: { p_doc: Json }; Returns: number }
+      _web_doc_nodo: {
+        Args: { p_nodo: Json; p_padre: string; p_profundidad: number }
+        Returns: string
+      }
+      _web_doc_ruta_valida: { Args: { p_ruta: string }; Returns: boolean }
+      _web_html_escapar: { Args: { p_texto: string }; Returns: string }
+      _web_legales_validar: { Args: { p_anterior: Json; p_legales: Json }; Returns: Json }
       actividad_purgar: { Args: Record<PropertyKey, never>; Returns: number }
       agenda_quienes_reciben: { Args: { p_conversacion?: string; p_texto: string }; Returns: Json }
       agenda_rango: {
@@ -10748,10 +10767,29 @@ export type Database = {
       }
       visita_registrar: { Args: { p_id: string; p_tipo: string }; Returns: undefined }
       vitrina_del_origen: { Args: { p_origen: string }; Returns: Json }
+      web_ajustes_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_cambios: Json }
+        Returns: string
+      }
       web_confirmar_contacto: { Args: { p_lead?: string; p_solicitud: string }; Returns: undefined }
       web_expirar_solicitudes: { Args: { p_limite?: number }; Returns: number }
       web_publica_vehiculos_que_cambian: { Args: Record<PropertyKey, never>; Returns: number }
       web_revalidar_correr: { Args: Record<PropertyKey, never>; Returns: number }
+      web_testimonio_consentir: {
+        Args: {
+          p_actualizado_en_esperado: string
+          p_canal: string
+          p_ciudad: boolean
+          p_foto: boolean
+          p_testimonio: string
+          p_vehiculo: boolean
+        }
+        Returns: string
+      }
+      web_testimonio_retirar: {
+        Args: { p_actualizado_en_esperado: string; p_testimonio: string }
+        Returns: string
+      }
     }
     Enums: {
       alcance_permiso: 'propios' | 'todos'

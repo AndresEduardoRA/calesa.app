@@ -235,6 +235,10 @@ declare
     ('repuestos_proyectos_listar(bigint,integer,text,text)', 'L'),
     -- Lo que la espera de un vehículo aguarda (8.08-1): ítems y fases, sin el vínculo del proyecto (`areas/repuestos/esperas.sql`).
     ('repuestos_pendientes_de_vehiculo(uuid,integer)', 'L'),
+    -- El consentimiento de un testimonio (8.01-1): toman el testimonio; `lead_id` no se lee ni se escribe (lo cuida `trg_lead_visible`)
+    -- (`areas/web/testimonios-consentimiento.sql`).
+    ('web_testimonio_consentir(uuid,timestamp with time zone,text,boolean,boolean,boolean)', 'X'),
+    ('web_testimonio_retirar(uuid,timestamp with time zone)', 'X'),
     ('storage_refcount(text,text)', 'X')
   ) t (f, c));
   r record; v_fallas text := '';
