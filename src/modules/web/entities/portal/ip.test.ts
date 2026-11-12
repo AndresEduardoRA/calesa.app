@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { agruparIp } from './ip'
+import { agruparIp, ipDelPedido } from './ip'
+
+function cabeceras(valores: Record<string, string>) {
+  return { get: (nombre: string) => valores[nombre] ?? null }
+}
 
 describe('agruparIp: la clave del límite por IP del portal', () => {
   it('K6 · una IPv6 cuenta por su /64, escrita como se escriba', () => {
@@ -42,5 +46,35 @@ describe('agruparIp: la clave del límite por IP del portal', () => {
       '203.0.113.7, 10.0.0.1',
     ]
     for (const b of basura) expect(agruparIp(b), String(b)).toBeNull()
+  })
+})
+
+describe('ipDelPedido: qué IP cuenta el límite del portal', () => {
+  it('K1 · la primera entrada de x-forwarded-for, sin espacios', () => {
+    expect(ipDelPedido(cabeceras({ 'x-forwarded-for': '203.0.113.7, 10.0.0.1' }))).toBe(
+      '203.0.113.7',
+    )
+    expect(ipDelPedido(cabeceras({ 'x-forwarded-for': '  203.0.113.7  ,10.0.0.1' }))).toBe(
+      '203.0.113.7',
+    )
+    expect(
+      ipDelPedido(cabeceras({ 'x-forwarded-for': '2001:db8::1', 'x-real-ip': '198.51.100.2' })),
+    ).toBe('2001:db8::1')
+  })
+
+  it('K1 · sin x-forwarded-for, o vacía, cae a x-real-ip', () => {
+    expect(ipDelPedido(cabeceras({ 'x-real-ip': ' 198.51.100.2 ' }))).toBe('198.51.100.2')
+    expect(ipDelPedido(cabeceras({ 'x-forwarded-for': '', 'x-real-ip': '198.51.100.2' }))).toBe(
+      '198.51.100.2',
+    )
+    expect(ipDelPedido(cabeceras({ 'x-forwarded-for': ' , ', 'x-real-ip': '198.51.100.2' }))).toBe(
+      '198.51.100.2',
+    )
+  })
+
+  it('K1 · sin ninguna da null; lo que no es una IP pasa tal cual (la agrupa contarIntento)', () => {
+    expect(ipDelPedido(cabeceras({}))).toBeNull()
+    expect(ipDelPedido(cabeceras({ 'x-forwarded-for': ' ', 'x-real-ip': '  ' }))).toBeNull()
+    expect(ipDelPedido(cabeceras({ 'x-forwarded-for': 'basura, 10.0.0.1' }))).toBe('basura')
   })
 })

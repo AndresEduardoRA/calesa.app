@@ -17,4 +17,5 @@ export {
   opcionesDeLaCookieDelPortal,
   type SesionDelPortal,
 } from '../../entities/portal/sesion'
+export { ipDelPedido } from '../../entities/portal/ip'
 export type { IngresoDelPortal } from '../../entities/portal/repositorios'

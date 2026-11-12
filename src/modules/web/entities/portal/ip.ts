@@ -70,3 +70,14 @@ export function agruparIp(ip: string | null | undefined): string | null {
   const g = ipv6(texto)
   return g ? claveDeIpv6(g) : null
 }
+
+// Qué IP cuenta el límite: la primera entrada de `x-forwarded-for` y, si falta, `x-real-ip`. Supone Vercel (o un proxy que **pise**
+// `x-forwarded-for` con la IP de quien se conecta): con un `next start` sin proxy, o un proxy que agrega en vez de pisar, esa entrada
+// queda en manos del cliente. Detrás de la reescritura del sitio podría llegar la IP del sitio: está por medirse cuando el sitio
+// publique el portal (D1 de la 8.07-3). Devuelve el texto crudo: lo agrupa `agruparIp` en `contarIntento`.
+export function ipDelPedido(cabeceras: { get(nombre: string): string | null }): string | null {
+  const primera = cabeceras.get('x-forwarded-for')?.split(',')[0]?.trim()
+  if (primera) return primera
+  const real = cabeceras.get('x-real-ip')?.trim()
+  return real || null
+}
