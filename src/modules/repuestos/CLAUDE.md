@@ -6,6 +6,9 @@ Proyectos de repuestos por vehículo (o externos), ítems que recorren el flujo 
 
 - Entra: proyectos desde la ficha del vehículo o sueltos, hoja de ítems editable celda a celda (XCell compacta), compras, movimientos de stock, cotizaciones de repuestos.
 - Sale: `proyectoDe(vehiculoId)`, `esperasQueDestraban(vehiculoId)` (para `flujos`/`logistica`), `<ResumenRepuestos>`. Lo consumen `vehiculos`, `logistica`, `tablero`, `buscador`.
+- Sale por `index.ts` (área `catalogos`, 8.08-2): `leerCatalogosDeRepuestos()` (los cuatro, con los desactivados, tope 200 cada uno) y `CATALOGOS_DE_REPUESTOS`; por
+  `client.ts`, lo puro del formulario de un valor (`validarValor`, `cambiosDeValor`, `ordenSiguiente`…). Las actions `crearValor`, `guardarValor` y
+  `eliminarValor` (`features/catalogos/actions/`, `repuestos.configurar`) no salen por los barriles: las importan en relativo los componentes de la 8.08-3.
 - Depende de: `vehiculos`, `flujos`, `leads`.
 
 ## Áreas
@@ -50,6 +53,8 @@ El módulo se parte por **área** (8.08-2, igual que `logistica`) para que los p
   `stock_cantidad` no tienen grant de UPDATE). Toda RPC que escribe pide `repuestos.editar`. Un proyecto sólo se elimina vacío.
 - El ítem nace en la única fase inicial activa del flujo de repuestos con su fila de historial; si hay cero o varias, o algo que decidir, nace sin fase.
 - Un valor de catálogo en uso (por un ítem, aun eliminado, o una línea de cotización) no se borra: se desactiva.
+- Los valores de catálogo se escriben directo bajo la RLS de `repuestos.configurar` (sin RPC: no otorgan permisos); guardar nunca manda `catalogo`
+  (el grant de UPDATE es de toda la tabla: lo acota la 8.10, H1). Cero filas al escribir nunca es éxito.
 
 ## Ojo
 
