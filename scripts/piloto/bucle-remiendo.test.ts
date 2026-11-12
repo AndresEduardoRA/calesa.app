@@ -129,6 +129,30 @@ describe('carril.sh › remendar sin sesión', () => {
   })
 })
 
+describe('carril.sh › renumerar una migración sin fecha real', () => {
+  it('una migración con una hora que no existe (renumerada a mano hasta el segundo 60) se renumera aunque main no la dejó atrás', () => {
+    const f = plan(paso('4.99'))
+    publicadoYDevuelto(
+      f,
+      'formula/4.99',
+      'supabase/migrations/20261108125960_formula_tope.sql',
+      'CI en rojo',
+    )
+    // La última de main es anterior a la de la rama: no la dejó atrás.
+    integrarEnMain('supabase/migrations/20261108120000_comprobantes_serie.sql', 'select 1;\n')
+    const r = a.correr(['--una-vuelta'], entorno(f))
+    expect(r.estado, r.salida).toBe(0)
+    expect(a.estado('registro.md')).toContain('renumeré las migraciones de la rama tras main')
+    expect(a.estado('registro.md')).toContain('4.99 remendado sin sesión (CI en rojo)')
+    expect(a.llamadas('paso')).toHaveLength(0)
+    const nuevas = readdirSync(join(a.repo, 'supabase/migrations')).filter((m) =>
+      m.endsWith('_formula_tope.sql'),
+    )
+    expect(nuevas).toHaveLength(1)
+    expect(nuevas[0]!.slice(0, 14)).not.toBe('20261108125960')
+  })
+})
+
 describe('carril.sh › arreglo prestado', () => {
   it('el carril libre toma la rama del PR de un carril ocupado y la publica ahí', () => {
     const f = plan(paso('4.99'), paso('5.01'))

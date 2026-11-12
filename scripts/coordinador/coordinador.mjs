@@ -40,6 +40,7 @@ import { join } from 'node:path'
 import { limpiarRamas, ramasProtegidas } from './limpiar-ramas.mjs'
 import { atenderColgado, gh, integrar, integrarSueltos, mirarPr, reintentarUnaVez } from './pr.mjs'
 import { renumerarMigraciones } from './renumerar.mjs'
+import { unirMain } from './unir-main.mjs'
 import {
   aparcar,
   estadoInicial,
@@ -337,8 +338,22 @@ function sincronizarPedidos(estado, informe) {
   return estado
 }
 
+// El verde que un commit del propio coordinador hereda del CI del commit anterior (lo renumeró o le unió main sobre un CI en verde): vale
+// mientras la punta sea ese commit y su CI nuevo no haya dicho ya que no.
+const heredaVerde = (e, pr) =>
+  Boolean(pr.oid) && (e.renumerado_verde === pr.oid || e.unido_verde === pr.oid) && !pr.rojo
+
 function sincronizar(plan, estado) {
   const informe = []
+  const anotar = (id, datos) => {
+    estado = { ...estado, pasos: { ...estado.pasos, [id]: { ...estado.pasos[id], ...datos } } }
+  }
+  let main = ''
+  try {
+    main = git('rev-parse', '--verify', '--quiet', 'origin/main')
+  } catch {
+    // Sin origin/main (las pruebas, un repo sin remoto) no se une nada.
+  }
   estado = sincronizarParciales(plan, estado, informe)
   estado = sincronizarPedidos(estado, informe)
   for (const paso of plan.pasos) {
@@ -393,7 +408,11 @@ function sincronizar(plan, estado) {
         // Con el CI ya en verde, el commit de renumerar (mismo contenido, otra versión) se integra sin esperar otra corrida: el
         // 11-11-2026 cada PR con migraciones pagó de 2 a 6 CI de ≈ 17 min (el 6.10, cinco renumeradas y 7 h abierto), porque mientras
         // corría el segundo entraba otra migración a main. COORD_RENUMERAR_SIN_CI=0 vuelve a esperar al CI.
-        const sinCi = pr.verde && r.commit && process.env.COORD_RENUMERAR_SIN_CI !== '0'
+        // Vale también el verde que ya traía un commit del propio coordinador (renumerado o unido) cuyo CI todavía corre.
+        const sinCi =
+          (pr.verde || (heredaVerde(e, pr) && pr.integrable)) &&
+          r.commit &&
+          process.env.COORD_RENUMERAR_SIN_CI !== '0'
         estado = {
           ...estado,
           pasos: {
@@ -413,6 +432,30 @@ function sincronizar(plan, estado) {
       if (e.arreglar !== pr.arreglar)
         informe.push(`${paso.id}: no pude renumerar #${e.pr} (${r.motivo})`)
     }
+    // Choca con main: si los choques son sólo de notas o de registros con puros agregados, el coordinador une main en la rama del PR sin
+    // esperar a su carril (unir-main.mjs). Una vez por punta y por main: lo que no se pudo unir no cambia hasta que cambie alguno.
+    if (pr.arreglar === 'conflicto con main' && main && process.env.COORD_UNIR !== '0') {
+      const clave = `${pr.oid}:${main}`
+      if (e.no_unible !== clave) {
+        const r = unirMain(pr.rama, pr.oid)
+        if (r.hecho) {
+          // Sólo notas sobre un CI en verde: el merge no cambia nada de lo que el CI probó y se integra sin esperar otra corrida (con
+          // un CI de ≈ 20 min y main moviéndose cada 20, el PR volvía a chocar antes de terminar). Con un registro unido, el CI decide.
+          // COORD_UNIR_SIN_CI=0 vuelve a esperar al CI siempre.
+          const sinCi =
+            r.soloNotas &&
+            (pr.ciVerde || heredaVerde(e, pr)) &&
+            process.env.COORD_UNIR_SIN_CI !== '0'
+          anotar(paso.id, { arreglar: null, unido_verde: sinCi ? r.commit : null })
+          informe.push(
+            `${paso.id}: uní main a #${e.pr} (${r.unidos.join(' ')}): ${sinCi ? 'sólo notas y su CI ya estaba en verde, se integra sin esperar otro' : 'su CI corre otra vez'}`,
+          )
+          continue
+        }
+        anotar(paso.id, { no_unible: clave })
+        informe.push(`${paso.id}: no pude unir main a #${e.pr} (${r.motivo})`)
+      }
+    }
     // Un «conflicto con main» no se borra mientras GitHub no sepa: tras cada integración contesta UNKNOWN un rato, la marca se iba y
     // el carril que preguntaba justo entonces tomaba un paso nuevo (el 7.02 estuvo así más de 4 h el 11-11-2026).
     const sigueSinSaber = pr.sinSaber && !pr.arreglar && e.arreglar === 'conflicto con main'
@@ -423,14 +466,9 @@ function sincronizar(plan, estado) {
       }
       if (pr.arreglar) informe.push(`${paso.id}: ${pr.arreglar} (#${e.pr}): vuelve a su carril`)
     }
-    // El commit que el coordinador renumeró sobre un CI en verde: vale ese verde mientras la punta sea ese commit, no choque con main,
-    // no le falte renumerar otra vez y su CI nuevo no haya dicho ya que no.
-    const yaVerde =
-      e.renumerado_verde &&
-      e.renumerado_verde === pr.oid &&
-      !pr.arreglar &&
-      !pr.rojo &&
-      pr.integrable
+    // El commit que el coordinador renumeró, o al que le unió main, sobre un CI en verde: vale ese verde mientras la punta sea ese
+    // commit, no choque con main, no le falte renumerar otra vez y su CI nuevo no haya dicho ya que no.
+    const yaVerde = heredaVerde(e, pr) && !pr.arreglar && pr.integrable
     if (!pr.listo && !yaVerde) continue
     if (!integraSolo(paso, MERGE_AUTO)) {
       informe.push(`${paso.id}: CI en verde; es ${paso.riesgo}: lo integra la persona (#${e.pr})`)
