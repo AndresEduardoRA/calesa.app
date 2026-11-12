@@ -11,13 +11,14 @@ import { SECCIONES, seccionesVisibles } from './secciones'
 const APP = path.join(process.cwd(), 'src/app/(app)')
 
 describe('secciones de configuración', () => {
-  it('son las siete de hoy, en su orden, y Cotización viene de la carpeta del carril B', () => {
+  it('son las ocho de hoy, en su orden, y Cotización viene de la carpeta del carril B', () => {
     expect(SECCIONES.map((seccion) => seccion.clave)).toEqual([
       'empresa',
       'origenes',
       'leads',
       'cotizacion',
       'flujos',
+      'logistica',
       'equipo',
       'roles',
     ])

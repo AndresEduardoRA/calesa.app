@@ -15,3 +15,8 @@ export const HuecoDePagosDiferido = diferido(() =>
 export const HuecoDeMargenDiferido = diferido(() =>
   import('./hueco-de-margen').then((modulo) => modulo.HuecoDeMargen),
 )
+
+// El hueco de prorrateo del resumen de un grupo (6.11-4): también se pide al abrir su bloque.
+export const HuecoDeProrrateoDiferido = diferido(() =>
+  import('./hueco-de-prorrateo').then((modulo) => modulo.HuecoDeProrrateo),
+)

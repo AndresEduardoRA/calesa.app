@@ -3,8 +3,10 @@ import type { ResultadoDeAccion } from '@/shared/lib/enviar-accion'
 import { createClient } from '@/shared/lib/supabase/server'
 import { falloDeLaBase, inesperado, nuloParaLaBase } from './rpc'
 import { esquemaDeGastoGuardado } from '../../entities/dinero/gasto'
+import { z } from 'zod'
 import type {
   GastoGuardado,
+  GastoProrrateado,
   RepositorioDeGastos,
 } from '../../entities/dinero/repositorio-de-gastos'
 
@@ -28,6 +30,22 @@ function guardadoDesde(datos: unknown): GastoGuardado | null {
 function respuesta(datos: unknown): ResultadoDeAccion<GastoGuardado> {
   const guardado = guardadoDesde(datos)
   return guardado ? { ok: true, data: guardado } : inesperado()
+}
+
+const esquemaDeProrrateo = z.object({
+  lote: z.guid(),
+  ya_existia: z.boolean(),
+  ids: z.array(z.guid()),
+})
+
+function prorrateadoDesde(datos: unknown): ResultadoDeAccion<GastoProrrateado> {
+  const leido = esquemaDeProrrateo.safeParse(datos)
+  return leido.success
+    ? {
+        ok: true,
+        data: { lote: leido.data.lote, yaExistia: leido.data.ya_existia, ids: leido.data.ids },
+      }
+    : inesperado()
 }
 
 export const gastosSupabase: RepositorioDeGastos = {
@@ -68,5 +86,22 @@ export const gastosSupabase: RepositorioDeGastos = {
     }
     const guardado = guardadoDesde(data)
     return guardado ? { ok: true, data: { id: guardado.id } } : inesperado()
+  },
+  prorratear: async (p) => {
+    const supabase = await createClient()
+    const { data, error } = await supabase.rpc('gastos_prorratear', {
+      p_lote: p.lote,
+      p_vehiculos: p.unidades,
+      p_categoria: p.categoriaId,
+      p_moneda: p.moneda,
+      p_monto: p.monto,
+      p_tipo_cambio: nuloParaLaBase(p.tipoCambioId),
+      p_fecha: p.fecha,
+      p_proveedor: nuloParaLaBase(p.proveedor),
+      // Sin comprobante: cargarlo una vez y repetirlo en N filas rompería el refcount del bucket (D4).
+      p_comprobante_ruta: nuloParaLaBase(null),
+      p_notas: nuloParaLaBase(p.notas),
+    })
+    return error ? falloDeLaBase(error) : prorrateadoDesde(data)
   },
 }
