@@ -1,7 +1,8 @@
 import { UserRoundXIcon } from 'lucide-react'
+import Link from 'next/link'
 import { Suspense } from 'react'
 import { ZONA_POR_DEFECTO } from '@/shared/lib/fechas'
-import type { Permisos } from '@/shared/lib/permisos'
+import { puede, type Permisos } from '@/shared/lib/permisos'
 import { EstadoVacio } from '@/shared/ui/estados'
 import { bloquesParaMontar } from '../bloques/registro'
 import { EsqueletoDeBloque } from './esqueleto-de-bloque'
@@ -31,6 +32,14 @@ export function Bandeja({ nombre, permisos, sinRol, zona = ZONA_POR_DEFECTO }: P
           <p className="text-(length:--text-sm) text-(--color-ink-soft)">
             Lo que hay para hacer hoy, según lo que tu rol te permite.
           </p>
+        ) : null}
+        {puede(permisos, 'tablero.metricas.ver') ? (
+          <Link
+            href="/tablero"
+            className="w-fit text-(length:--text-sm) text-(--color-primario) underline underline-offset-2"
+          >
+            Ver el tablero
+          </Link>
         ) : null}
       </header>
 
