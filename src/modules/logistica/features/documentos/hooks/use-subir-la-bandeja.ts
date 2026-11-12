@@ -4,14 +4,14 @@ import { useRouter } from 'next/navigation'
 import { useRef, useState } from 'react'
 import { avisarExito } from '@/shared/ui/toasts'
 import { erroresDeLaBandeja } from '../../../entities/documentos/admision'
+import type { DestinoDeDocumentos } from '../../../entities/documentos/destino'
 import type { TipoDeDocumento } from '../../../entities/documentos/documento'
-import type { Unidad } from '../../../entities/nucleo/unidad'
 import { avisarCambioDeLaUnidad } from '../../nucleo/hooks/eventos-de-la-unidad'
 import { subirYRegistrar } from './subir-y-registrar'
 import type { EntradaDeLaBandeja, ValoresDeLaBandeja } from './use-bandeja'
 
 type Args = {
-  unidad: Unidad
+  destino: DestinoDeDocumentos
   tipo: TipoDeDocumento | null
   valores: ValoresDeLaBandeja
   // Lo que la bandeja sube con el tipo elegido.
@@ -23,7 +23,7 @@ type Args = {
 // «Subir N documentos» (6.06-2): por cada archivo, primero el objeto al bucket y recién entonces `documento_registrar` (commit diferido). El `id` del intento es de cada archivo y se
 // conserva mientras no cambie lo escrito: reintentar no duplica. Los registrados salen de la bandeja; los que fallan quedan con su motivo y el botón dice «Reintentar los N que
 // faltan». Un solo envío a la vez: una referencia, no el estado, porque un doble clic llega antes de que el estado cambie.
-export function useSubirLaBandeja({ unidad, tipo, valores, entran, alRegistrar }: Args) {
+export function useSubirLaBandeja({ destino, tipo, valores, entran, alRegistrar }: Args) {
   const router = useRouter()
   const [enCurso, setEnCurso] = useState(false)
   const [avance, setAvance] = useState<{ actual: number; total: number } | null>(null)
@@ -63,7 +63,7 @@ export function useSubirLaBandeja({ unidad, tipo, valores, entran, alRegistrar }
     for (const [i, entrada] of pendientes.entries()) {
       setAvance({ actual: i + 1, total: pendientes.length })
       const resultado = await subirYRegistrar({
-        unidad,
+        destino,
         entrada,
         valores,
         tipo,
@@ -81,7 +81,7 @@ export function useSubirLaBandeja({ unidad, tipo, valores, entran, alRegistrar }
     setAvance(null)
     if (registrados.length > 0) {
       alRegistrar(registrados)
-      avisarCambioDeLaUnidad(unidad.id)
+      if (destino.unidadParaAvisar) avisarCambioDeLaUnidad(destino.unidadParaAvisar)
       router.refresh()
       if (Object.keys(nuevosFallos).length === 0) {
         avisarExito(

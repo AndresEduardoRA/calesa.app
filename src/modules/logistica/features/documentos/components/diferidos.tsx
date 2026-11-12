@@ -6,3 +6,8 @@ import { diferido } from '@/shared/ui/diferido'
 export const HuecoDeDocumentosDiferido = diferido(() =>
   import('./hueco-de-documentos').then((modulo) => modulo.HuecoDeDocumentos),
 )
+
+// El hueco de subir un documento a las unidades de un grupo (6.06-3): también se pide al abrir su bloque. Recibe sólo `{ grupo }`.
+export const HuecoDeDocumentosDelGrupoDiferido = diferido(() =>
+  import('./hueco-de-documentos-del-grupo').then((modulo) => modulo.HuecoDeDocumentosDelGrupo),
+)

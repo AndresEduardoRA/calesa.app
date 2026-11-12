@@ -288,6 +288,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Mover** — `cambiar_fase()` / `previsualizar_cambio_fase()`: cambiar de fase, con vista previa de qué falta.
 - **Alerta por demora** — `fases.demora_dias` / `alertas_demora()`: aviso cuando una unidad lleva más días de lo esperado en una fase.
 - **Documento** — `documentos`, `tipos_documento`: archivo del ciclo con estado pendiente/subido/aprobado/rechazado y vencimiento.
+- **Visible en el portal** — `documentos.visible_portal`: un documento que la persona compradora ve en el portal. Sólo lo enciende quien aprueba documentos y sólo si el tipo lo admite (`tipos_documento.visible_portal_permitido`); apagarlo siempre se puede. No: «público», «compartido».
 - **Tipo de documento** — `tipos_documento` / `tipo_documento_crear()`: qué documento pide el ciclo (Título, BL…); de toda la empresa (`flujo_id` nulo) o de un flujo; formatos aceptados y vencimiento (`ninguno`, `solicitar`, `renovar`, con `aviso_dias`). En uso no se borra: se desactiva. No: «clase de documento».
 - **Transporte** — `transportes`: naviera, puertos, contenedor, booking y fechas de UNA unidad.
 - **Embarque / Contenedor** — grupo por `transportes.booking` / `contenedor`: agrupación, no entidad.
@@ -307,6 +308,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Tarea** — `tareas` / `reasignar_tarea`: pendiente con responsable y vencimiento.
 - **Tareas sin fecha** — `agenda_tareas_sin_fecha()`: mis tareas sin vencimiento, en una sección plegable bajo el calendario de `/agenda`; el calendario no las dibuja.
 - **Conversación / Mensaje** — `conversaciones`, `mensajes`: directa, grupo o canal global; mensajes de texto o fichas.
+- **Cita (de un mensaje)** — `mensajes.responde_a_id`: el mensaje al que responde otro; en pantalla, «Respondiendo a…» y, dentro de la burbuja, el autor y las primeras palabras del original. Tipo `CitaDeMensaje`.
 - **Mención** — `mensajes_menciones`: `#` a vehículo, lead, cotización o persona; no otorga acceso.
 - **No leídos** — `chat_conversaciones().no_leidos`, `chat_no_leidos()`: mensajes de otras personas posteriores a tu última lectura de una conversación (`conversaciones_miembros.ultimo_leido_en`), contados entre las 100 entradas más nuevas (las propias ocupan lugar y no suman); 100 se muestra «99+». El total no suma las silenciadas.
 - **Notificación** — `notificaciones` / `notificar()`: aviso en la campana; `requiere_accion` para lo que pide clic.
