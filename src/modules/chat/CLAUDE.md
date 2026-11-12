@@ -10,9 +10,13 @@ Mensajería interna: conversaciones directas (deduplicadas), grupos y canal glob
 
 ## Archivos clave
 
-- `entities/menciones.ts` — parser de `#` y `/comando`, puro; `entities/visibilidad.ts` — quién ve qué (membresía es el eje).
-- `infra/realtime.client.ts` — canal por conversación; la fila es señal, se rehidrata por fetch.
-- `features/conversaciones/`, `features/mensajes/`, `features/widget/`.
+- `entities/conversaciones.ts` — la fila de `chat_conversaciones` validada, cursor, fusión de páginas, `textoDeNoLeidos` («99+») y `?c=`; puro.
+- `entities/menciones.ts` — parser de `#` y `/comando`, puro; `entities/visibilidad.ts` — quién ve qué (membresía es el eje). Llegan con 7.10.
+- `infra/consultas.ts` — la RPC de la lista y la lectura de una conversación (sólo si es mía: fila propia de `conversaciones_miembros`); sus pares
+  `conversaciones*.ts` (servidor) y `*.client.ts` (navegador). `infra/realtime.client.ts` — dos señales (`mensajes` ajenos y mis filas de miembro,
+  sin `DELETE`); la fila es señal, se rehidrata por la RPC.
+- `features/conversaciones/` (lista), `features/mensajes/` (hilo), `features/widget/`; la pantalla sale por `pantallas/chat.ts`.
+- `?c=<id>` ilegible = sin selección; sin fila propia = «ya no es mía» (nunca un 404).
 
 ## Tablas
 
