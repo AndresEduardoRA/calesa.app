@@ -229,6 +229,10 @@ Cada sección por su RPC, de a `_acotar_pagina(p_tamano, 5, 20)` + 1, con el mí
   `repuestos.cotizar` o `repuestos.configurar`: la configuración por su PK (`order by id desc`, la primera es la vigente) con tope 20 + 1, los tramos por
   `repuestos_tramos_logistica_moneda_idx` con tope 200 + 1 y las cajas por `repuestos_cajas_moneda_monto_key` con tope 200 + 1, cada una con `<AvisoDeTope>`.
   Tablas de configuración (decenas de filas): sin medición. Los modales de tramo y caja se piden al abrirse (`diferido()`).
+- Cotizaciones de un proyecto de repuestos (8.12-3, pestaña «Cotizaciones» de `/repuestos/[id]` y su hoja): la lista es `limit 51` por
+  `repuestos_cotizaciones_proyecto_id_idx` (ordena sólo las de un proyecto, decenas; no crece con la tabla) con tope 50 y `<AvisoDeTope>`, leída sólo con la
+  pestaña abierta; la hoja lee la cotización por su PK y proyecto (`limit 1`) y sus líneas por `repuestos_cotizaciones_lineas_cotizacion_id_idx` con el tope de la
+  base (200). Sin cursor ni volumen sembrado (D35); sin `diferido()` nuevo (no hay modal).
 
 ## Tablero: métricas (9.07)
 
