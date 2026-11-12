@@ -2,7 +2,8 @@
 import { z } from 'zod'
 
 export type CambioDeFase = {
-  id: string
+  // El `bigint` de la base; también es lo que desempata el cursor.
+  id: number
   de: string | null
   a: string | null
   quien: string | null
@@ -23,7 +24,7 @@ export function quienHizoElCambio(cambio: Pick<CambioDeFase, 'quien'>): string {
 
 const esquemaDelNombre = z.object({ nombre: z.string().nullable() }).nullable()
 const esquemaDeLaFilaDelCambio = z.object({
-  id: z.guid(),
+  id: z.number().int(),
   creado_en: z.string().min(10),
   nota: z.string().nullable(),
   de: esquemaDelNombre,

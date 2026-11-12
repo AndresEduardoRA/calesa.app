@@ -8,7 +8,7 @@ import { Skeleton } from '@/shared/ui/skeleton'
 import type { ListaDeLaUnidad } from '../hooks/use-lista-de-la-unidad'
 import { DesdeLaFecha, PieDeLaLista } from './pie-de-la-lista'
 
-type Props<Fila extends { id: string }> = {
+type Props<Fila extends { id: string | number }> = {
   lista: ListaDeLaUnidad<Fila>
   zona: string
   // «Cargando las notas»: lo que lee un lector de pantalla mientras llega la primera página.
@@ -21,7 +21,7 @@ type Props<Fila extends { id: string }> = {
 
 // El cuerpo de una lista de un hueco (6.04-2): esqueleto, error con «Reintentar» (el del hueco, no el del panel), vacío, la lista (`<ul role="list">`, nada que abrir) y su pie. Lo comparten
 // «Notas» e «Historial».
-export function CuerpoDeLaLista<Fila extends { id: string }>({
+export function CuerpoDeLaLista<Fila extends { id: string | number }>({
   lista,
   zona,
   cargando,

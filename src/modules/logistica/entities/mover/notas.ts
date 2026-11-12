@@ -54,7 +54,8 @@ export const esquemaDeLaFilaDeNota = z.object({
   id: z.guid(),
   cuerpo: z.string(),
   autor_id: z.guid(),
-  historial_fase_id: z.guid().nullable(),
+  // `historial_fases.id` es un `bigint`, no un guid.
+  historial_fase_id: z.number().int().nullable(),
   creado_en: z.string().min(10),
   actualizado_en: z.string().min(10),
   autor: esquemaDelNombre,

@@ -51,10 +51,7 @@ describe('notasDesde', () => {
     expect(nota?.mia).toBe(true)
     expect(nota?.autor).toBe('Ana')
     const [cambio] =
-      notasDesde(
-        [{ ...fila, historial_fase_id: fila.id, historial: { a: { nombre: 'B' } } }],
-        null,
-      ) ?? []
+      notasDesde([{ ...fila, historial_fase_id: 7, historial: { a: { nombre: 'B' } } }], null) ?? []
     expect(cambio?.mia).toBe(false)
     expect(cambio?.deCambioDeFase).toEqual({ haciaFase: 'B' })
   })

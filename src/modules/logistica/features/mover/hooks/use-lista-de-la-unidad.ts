@@ -13,7 +13,7 @@ type Ventana = { dia: string; hasta: string }
 type Pedido = { cursor: string | null; ventana: Ventana | null }
 
 // Sin cursor la página reemplaza lo leído; con cursor se suma sin repetir.
-function juntar<Fila extends { id: string }>(
+function juntar<Fila extends { id: string | number }>(
   previas: Fila[] | null,
   nuevas: Fila[],
   cursor: string | null,
@@ -42,7 +42,7 @@ export type ListaDeLaUnidad<Fila> = {
 // La lista paginada de un hueco del panel (6.04-2, D21, D23, D24): «Notas» e «Historial» la comparten. Lee la primera página al montarse y la relee, sin soltar lo que se ve, cuando cambia la
 // fase de la unidad (pasó algo) o cuando otro hueco avisa. «Ver más» suma la página siguiente por cursor hasta `TOPE_DE_LO_CARGADO`; «Ir a una fecha» reemplaza lo leído. Un pedido a la vez:
 // una respuesta que llega tarde se descarta. Releer conserva la ventana de «Ir a una fecha»; la fase cambia cuando la pantalla se repinta tras mover.
-export function useListaDeLaUnidad<Fila extends { id: string }>(
+export function useListaDeLaUnidad<Fila extends { id: string | number }>(
   unidad: Pick<Unidad, 'id' | 'faseId'>,
   leer: (pedido: PedidoDeLaLista) => Promise<Resultado<PaginaDeLaUnidad<Fila>>>,
   mensajeDeFallo: string,

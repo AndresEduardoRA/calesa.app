@@ -16,7 +16,7 @@ describe('lineaDelCambio', () => {
 describe('cambiosDesde', () => {
   it('lee las filas y rechaza una forma mala', () => {
     const fila = {
-      id: '11111111-1111-4111-8111-111111111111',
+      id: 41,
       creado_en: '2026-11-12T10:00:00+00:00',
       nota: 'Yo primero.',
       de: null,
@@ -33,6 +33,6 @@ describe('cambiosDesde', () => {
         quien: 'Rosa Mamani',
       },
     ])
-    expect(cambiosDesde([{ id: 'x' }])).toBeNull()
+    expect(cambiosDesde([{ id: '11111111-1111-4111-8111-111111111111' }])).toBeNull()
   })
 })
