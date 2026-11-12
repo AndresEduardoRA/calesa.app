@@ -15,7 +15,7 @@ Bandeja de inicio por rol y tablero de métricas con widgets personalizables por
 - `features/bandeja/components/bandeja.tsx` — `<Bandeja nombre permisos sinRol zona>`: el Inicio. Dibuja el marco de cada bloque (`marco-de-bloque.tsx`: `<section>` y `<h2>`; el título no se toca desde el bloque) y su cuerpo tras un `<Suspense>` con `await connection()` (`montaje-de-bloque.tsx`): uno lento o caído no frena a los demás. `lista-de-bloque.tsx`, `esqueleto-de-bloque.tsx` y `error-de-bloque.tsx` («Reintentar» = `router.refresh()`). Sin rol muestra «Aún no tienes un rol, avisa al dueño».
 - Pendiente: `entities/widgets.ts` — catálogo tipado de widgets: clave, permiso que exige, consulta que usa, tamaño.
 - `infra/queries/metricas.ts` — RPC agregadas, nunca N consultas desde el cliente: `tablero_leads` y `tablero_cotizaciones` (9.07; una por grupo de
-  widgets, piden `tablero.metricas.ver`, ventana ≤ 366 días). «Convertidos» sale de `leads.cliente_desde` (sin grant: sólo la leen esas RPC).
+  widgets, piden `tablero.metricas.ver`, ventana ≤ 366 días). «Convertidos» sale de `leads.cliente_desde` (sin grant: la leen esas RPC y queda en la foto de `actividad`, D12).
 - Pendiente: `features/metricas/` (dataviz con los tokens de `design/tokens.css`).
 
 ## Tablas

@@ -10,9 +10,10 @@
 alter table public.leads add column cliente_desde timestamptz;
 
 comment on column public.leads.cliente_desde is
-  'Cuándo pasó de un tipo de clase prospecto a uno de clase cliente (9.07). La pone trg_lead_z_cliente_desde; nula en un alta directa como cliente y en los clientes anteriores a la migración. Sin grant: sólo la leen las RPC tablero_*.';
+  'Cuándo pasó de un tipo de clase prospecto a uno de clase cliente (9.07). La pone trg_lead_z_cliente_desde; nula en un alta directa como cliente y en los clientes anteriores a la migración. Sin grant: la leen las RPC tablero_* y queda en la foto de actividad que guarda lead_auditar (D12).';
 
--- `leads` se lee por grants de columna: la columna nueva nace sin grant para `authenticated` y así queda.
+-- `leads` se lee por grants de columna: la columna nueva nace sin grant para `authenticated` y así queda. Sí aparece en la foto de `actividad`
+-- (`lead_auditar`), como el cambio de tipo que la produce (D12).
 
 create function public.lead_cliente_desde() returns trigger
   language plpgsql security definer
