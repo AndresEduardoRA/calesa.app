@@ -117,7 +117,7 @@ test('con un rol que no recibe turnos, el interruptor queda apagado y dice por q
   const interruptor = page.getByRole('switch', { name: INTERRUPTOR })
   await expect(interruptor).not.toBeChecked()
   await expect(interruptor).toBeDisabled()
-  await expect(page.getByText('Tu rol no recibe turnos de la web.').first()).toBeVisible()
+  await expect(page.getByText('Tu rol no recibe turnos de la web.')).toBeVisible()
 })
 
 test('«Tu ficha en la web» guarda el WhatsApp, el identificador y aparecer en la web', async ({
