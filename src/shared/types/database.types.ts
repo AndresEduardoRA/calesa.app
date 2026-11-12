@@ -7183,6 +7183,30 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      _alcance_de_usuario: {
+        Args: { p_clave: string; p_origen: string; p_usuario: string }
+        Returns: Database['public']['Enums']['alcance_permiso']
+      }
+      _alerta_demora_avisar: {
+        Args: {
+          p_dias: number
+          p_fase: string
+          p_fase_desde: string
+          p_fase_nombre: string
+          p_horas: number
+          p_titulo: string
+          p_usuario: string
+          p_vehiculo: string
+        }
+        Returns: number
+      }
+      _alertas_destinatarios: {
+        Args: { p_clave: string; p_origen: string }
+        Returns: {
+          todos: boolean
+          usuario_id: string
+        }[]
+      }
       _apibara_catalogo: {
         Args: Record<PropertyKey, never>
         Returns: {

@@ -74,6 +74,9 @@ por `flujo_oferta()`. Gastos y pagos se escriben sólo por RPC (6.10): `gasto_re
 el bucket `comprobantes` lo abre `comprobante_puede` (la fila que nombra el objeto).
 **Alertas (6.12-1, la base):** `trg_alertas_cerrar_al_mover` (en `historial_fases`) acciona los `demora_fase` abiertos de la unidad al moverla, por
 `notificaciones_referencia_idx`.
+`alertas_demora()` (job `alertas-demora`, cada hora en el minuto 12) recorre por lotes los pares (origen, fase) que alertan, avisa a quien tiene
+`flujos.mover`, `logistica.ver` y `vehiculos.ver` del origen (el menor alcance: con `propios`, la unidad que creó o la de su cartera) y reabre el mismo aviso
+pasado `fases.alerta_cada_horas` (nulo = 72 h).
 
 ## No se rompe
 

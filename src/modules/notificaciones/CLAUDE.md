@@ -32,10 +32,11 @@ limpieza, sólo `service_role`); purga `visitados`. RPC/trigger: `notificar`, `n
 ## No se rompe
 
 - **Toda fila pasa por la puerta** (`trg_notificaciones_puerta`, `before insert`, 7.01): a quien está de baja, bloqueado o sin perfil no le llega nada, sin
-  error para quien avisa. Cubre a `notificar()` y a los inserts directos de otras fases (`alertas_demora`, turnos web). La app no inserta (`authenticated` sin
+  error para quien avisa. Cubre a `notificar()` y a los inserts directos de otras fases (turnos web; `alertas_demora` usa `notificar()` desde 6.12). La app no inserta (`authenticated` sin
   `insert` ni `execute` de `notificar()`): avisa la base. Quien avisa elige a quién (por permiso o por relación, nunca por nombre de rol).
 - Las preferencias no apagan la campana: la campana es el registro; las preferencias gobiernan sólo el push (7.03).
-- Anti-spam: una alerta de demora por unidad cada 72 h; recordatorios una sola vez por hora fijada (cambiar la hora reemplaza el aviso abierto).
+- Anti-spam: una alerta de demora abierta por persona y unidad; se reabre la misma pasado `fases.alerta_cada_horas` (nulo = 72 h) y mover la cierra
+  (`trg_alertas_cerrar_al_mover`, 6.12); recordatorios una sola vez por hora fijada (cambiar la hora reemplaza el aviso abierto).
 - Jobs (7.01): `recordatorios-notificar` cada minuto (`recordatorios_notificar()`, 200 por corrida) y `notificaciones-purgar` a las 03:45 UTC
   (`notificaciones_purgar()`: leídas o accionadas de más de 90 días y `visitados` de más de 30, por lotes). Una no leída y no accionada nunca se purga.
   `actividad_purgar()` no se programa (Fase 9).
