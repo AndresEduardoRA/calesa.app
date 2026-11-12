@@ -1,6 +1,7 @@
 'use client'
 
-import { PANEL_ANULAR_PAGO } from '../../../entities/dinero/paneles-de-pago'
+import { usePanelPorUrl } from '@/shared/ui/use-panel-por-url'
+import { CLAVE_DE_PAGO, PANEL_ANULAR_PAGO } from '../../../entities/dinero/paneles-de-pago'
 import type { Pago } from '../../../entities/dinero/pago'
 import { usePagoPorUrl } from './use-pago-por-url'
 
@@ -9,5 +10,6 @@ export function useAnularPagoPorUrl(
   pagos: readonly Pago[] | null,
   permisos: { puedeEditar: boolean | null; puedeConfirmar: boolean | null },
 ) {
-  return usePagoPorUrl(PANEL_ANULAR_PAGO, pagos, permisos)
+  const url = usePanelPorUrl(PANEL_ANULAR_PAGO, [CLAVE_DE_PAGO])
+  return usePagoPorUrl(PANEL_ANULAR_PAGO, url, pagos, permisos)
 }

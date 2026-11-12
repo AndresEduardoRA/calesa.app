@@ -5,28 +5,14 @@ import { formatearFecha } from '@/shared/lib/fechas'
 import { AbrirResumen, MasAcciones, TarjetaDeLista, type AccionDeMenu } from '@/shared/ui/lista'
 import { Monto } from '@/shared/ui/monto'
 import { useRegional } from '@/shared/ui/regional'
-import { avisarError } from '@/shared/ui/toasts'
-import { urlDelComprobante } from '../../../areas/dinero/composicion.client'
 import type { Gasto } from '../../../entities/dinero/gasto'
+import { verComprobante } from './ver-comprobante'
 
 type Props = {
   gasto: Gasto
   // Sin permiso de editar la fila no abre ni ofrece «⋯».
   alEditar: (() => void) | null
   alEliminar: (() => void) | null
-}
-
-async function verComprobante(ruta: string) {
-  const resultado = await urlDelComprobante(ruta).catch(() => null)
-  if (resultado?.ok) {
-    window.open(resultado.data, '_blank', 'noopener,noreferrer')
-  } else {
-    avisarError(
-      resultado?.ok === false
-        ? resultado.error
-        : { codigo: 'inesperado', mensaje: 'No se pudo abrir el comprobante. Prueba de nuevo.' },
-    )
-  }
 }
 
 function accionesDe({ alEditar, alEliminar }: Omit<Props, 'gasto'>): AccionDeMenu[] {
