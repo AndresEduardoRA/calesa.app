@@ -3,8 +3,10 @@ import type { Resultado } from '@/shared/lib/errores'
 import type { Cursor } from '@/shared/lib/paginacion'
 import type { Conversacion, CursorDeConversaciones, PaginaDeConversaciones } from './conversaciones'
 import type { FalloDeEscritura, RespuestaDeEscritura } from './escritura'
+import type { Referencia } from './menciones'
 import type { PaginaDeMensajes } from './mensajes'
 import type { PersonasEncontradas } from './personas'
+import type { EstadoDeReferencia } from './referencias'
 import type { ResultadoDeEdicion } from './reglas-del-mensaje'
 
 export type PedidoDePaginaDeConversaciones = {
@@ -78,3 +80,9 @@ export type RepositorioDeMensajes = {
   // El autor o quien tiene `chat.moderar`; vacía el texto y deja «Mensaje eliminado».
   eliminar: (mensaje: string) => RespuestaDeEscritura
 }
+
+// Lo mencionado en el hilo, leído con la sesión de quien mira (7.10-1): una lectura por clase y por tanda, nunca una por mención. Lo que no se ve no
+// llega: el mapa lo dice `sin_acceso`. La clave es `<clase>:<id>` (`claveDeReferencia`).
+export type LectorDeReferencias = (
+  referencias: readonly Referencia[],
+) => Promise<Resultado<Map<string, EstadoDeReferencia>>>

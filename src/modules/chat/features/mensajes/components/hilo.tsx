@@ -1,15 +1,16 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
 import type { Conversacion } from '../../../entities/conversaciones'
-import type { Mensaje } from '../../../entities/mensajes'
 import { citaDe } from '../../../entities/reglas-del-mensaje'
 import type { AccionesDelMensaje } from '../acciones-del-hilo'
+import { MencionAbierta } from '../../menciones/components/mencion-abierta'
+import { useMencionesDelHilo } from '../../menciones/hooks/use-menciones-del-hilo'
 import { useBorradoPorUrl } from '../hooks/use-borrado-por-url'
 import { useEdicion } from '../hooks/use-edicion'
 import { useEnvio } from '../hooks/use-envio'
 import { useHilo } from '../hooks/use-hilo'
 import { useMarcarLeido } from '../hooks/use-marcar-leido'
+import { useRespuesta } from '../hooks/use-respuesta'
 import { useScrollDelHilo } from '../hooks/use-scroll-del-hilo'
 import { ConfirmarBorrado } from './confirmar-borrado'
 import { CuerpoDelHilo } from './cuerpo-del-hilo'
@@ -26,14 +27,7 @@ type Props = {
 export function Hilo({ conversacion, usuarioId, zona, puedeModerar }: Props) {
   const hilo = useHilo({ conversacion: conversacion.id, zona })
   const contenedor = useScrollDelHilo(hilo.mensajes, usuarioId)
-  // El mensaje al que se está respondiendo: su cita va sobre el redactor y el foco pasa al campo.
-  const [respondiendoA, setRespondiendoA] = useState<Mensaje | null>(null)
-  const campo = useRef<HTMLTextAreaElement>(null)
-  useEffect(() => {
-    if (respondiendoA !== null) {
-      campo.current?.focus()
-    }
-  }, [respondiendoA])
+  const { respondiendoA, setRespondiendoA, campo } = useRespuesta()
   const edicion = useEdicion({ reemplazar: hilo.reemplazar })
   const borrado = useBorradoPorUrl({
     mensajes: hilo.mensajes,
@@ -41,6 +35,7 @@ export function Hilo({ conversacion, usuarioId, zona, puedeModerar }: Props) {
     puedeModerar,
     cargada: hilo.lectura === 'listo',
   })
+  const mencion = useMencionesDelHilo(hilo.mensajes)
   const acciones: AccionesDelMensaje = {
     usuarioId,
     puedeModerar,
@@ -50,6 +45,7 @@ export function Hilo({ conversacion, usuarioId, zona, puedeModerar }: Props) {
     cancelarEdicion: edicion.cancelar,
     pedirBorrado: borrado.abrir,
     guardarEdicion: edicion.guardar,
+    menciones: mencion.menciones,
   }
   const envio = useEnvio({
     conversacion: conversacion.id,
@@ -94,6 +90,7 @@ export function Hilo({ conversacion, usuarioId, zona, puedeModerar }: Props) {
           }}
         />
       )}
+      <MencionAbierta mencion={mencion} />
       <ConfirmarBorrado
         objetivo={borrado.mensaje}
         usuarioId={usuarioId}
