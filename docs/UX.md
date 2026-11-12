@@ -420,6 +420,7 @@ Un número que se muestra nunca es el total exacto: se cuenta hasta un tope y se
 - **Sólo lectura:** sin `repuestos.editar` o con el proyecto cerrado (aviso arriba: «El proyecto está cerrado: reábrelo para editar los ítems.»), texto plano, sin fila nueva ni «Eliminar».
 - **Conflicto:** «Otra persona cambió este ítem. Recarga para ver lo nuevo.» con «Recargar»; lo escrito no se guarda. **Eliminar:** `<Confirmar>` con URL que nombra el ítem; uno con historial, documentos, compras, gastos o stock dice por qué y no se elimina.
 - **Cerrar:** sin confirmación; toast «Proyecto #N cerrado.» con «Deshacer».
+- **Imágenes del ítem** (8.09-3): «Imágenes» en la columna de acciones de cada fila (tabla y tarjeta), también sin `repuestos.editar`; abre `?panel=imagenes&item=<id>` (se recarga; «atrás» lo cierra y el foco vuelve al botón). **Cargando:** tres esqueletos. **Error:** el mensaje con «Reintentar». **Vacío:** «Este ítem aún no tiene imágenes» y, con permiso, la zona. **Con imágenes:** «3 de 8 imágenes» (exacto: el tope es duro), rejilla de 2 a 4 columnas, cada una enlaza al original, «Quitar» de 44 px y toast «Imagen quitada» con «Deshacer». **Lleno:** zona deshabilitada con «Este ítem ya tiene 8 imágenes. Quita alguna para subir otra.». **Sólo lectura:** «Sólo puedes ver las imágenes de este ítem.» (o el motivo del proyecto cerrado), sin zona ni «Quitar». **Sin conexión:** aviso y zona deshabilitada. Elegir sube al momento; lo repetido dice «ya estaba».
 
 ### Equipo y roles (estados propios)
 

@@ -19,6 +19,7 @@ Proyectos de repuestos por vehículo (o externos), ítems que recorren el flujo 
 - **La hoja** (`features/items/`): sólo cantidad y precio son `XCell` (es numérica); el resto son celdas propias. Guardar una celda es un `update` directo por columna que **versiona el repositorio**
   (`infra/items/guardar.ts`, `.eq('actualizado_en', …)`): cero filas nunca es éxito. Una cola por fila (`colaPorClave`) evita que dos celdas del mismo ítem choquen. Las funciones que bajan a las
   `XCell` son estables (`memo`). Sin `repuestos.editar` o con el proyecto cerrado, texto plano. La base **no** frena el `update` de un ítem de un proyecto cerrado (hueco para 8.10).
+- **Imágenes del ítem** (8.09-3, `features/items/`): panel `?panel=imagenes&item=<id>` (`pantallas/items.ts` lo trae con la hoja), objetos `<item_id>/<sha-256>.webp` en el bucket `repuestos`, **tope 8 en la base** (`repuestos_imagen_integridad`, candado por ítem) y el mismo 8 en `entities/items/imagenes.ts`. La tabla sólo se escribe por insert y delete (sin UPDATE). La app **no borra objetos**: borrar la fila encola la ruta (`repuestos_imagen_encolar`, por refcount) y «Deshacer» la rescata. Las actions `leerImagenesDeItem`, `agregarImagenes` y `quitarImagen` no salen por los barriles. La subida usa `subirPorHash` de `shared` desde el hook (D73). La base no frena borrar una imagen de un proyecto cerrado (hueco para 8.10).
 - Depende de: `vehiculos`, `flujos`, `leads`.
 
 ## Áreas
@@ -46,7 +47,7 @@ El módulo se parte por **área** (8.08-2, igual que `logistica`) para que los p
 - `entities/stock.ts` — reglas de sobrante (reasignar / vender suelto / devolver) y movimientos.
 - `features/proyectos/`, `features/items/` (hoja), `features/compras/`, `features/stock/`, `features/cotizador/`, `features/catalogos/`.
 - La base (8.08-1): `repuesto_proyecto_crear` / `_cerrar` / `_reabrir` / `_eliminar` / `_restaurar`, `repuesto_item_crear` / `_eliminar`,
-  `repuestos_proyectos_listar`, `repuestos_pendientes_de_vehiculo`, `_repuesto_ante_espera` y el trigger `repuestos_catalogo_sin_uso`. Sus pruebas, en
+  `repuestos_proyectos_listar`, `repuestos_pendientes_de_vehiculo`, `_repuesto_ante_espera` y el trigger `repuestos_catalogo_sin_uso`. De 8.09-3: los triggers `repuestos_imagen_integridad` y `repuestos_imagen_encolar` (prueba `areas/repuestos/imagenes.sql`). Sus pruebas, en
   `supabase/tests/areas/repuestos/` (`proyectos`, `base`, `listar`, `esperas`, `catalogos`).
 
 ## Tablas
