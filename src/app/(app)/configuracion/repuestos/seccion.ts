@@ -7,8 +7,7 @@ import type { SeccionDeConfiguracion } from '../secciones'
 export const SECCION_DE_REPUESTOS = {
   clave: 'repuestos',
   titulo: 'Repuestos',
-  descripcion:
-    'Los catálogos de los ítems: tipo de pieza, condición, vía de transporte y país de origen.',
+  descripcion: 'Los catálogos de los ítems y la configuración del cotizador.',
   ruta: RUTAS.configuracionDeRepuestos,
   Icono: WrenchIcon,
   permisos: ['repuestos.configurar'],

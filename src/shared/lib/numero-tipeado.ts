@@ -12,7 +12,7 @@ export type NumeroTipeado =
 type Separadores = { decimal: ',' | '.'; miles: ',' | '.' }
 
 // El decimal del locale (el de `formatearParaEditar`, que cae al de fábrica con un locale inválido); si no es la coma ni el punto, la coma.
-function separadoresDe(locale: string): Separadores {
+export function separadoresDelLocale(locale: string): Separadores {
   const decimal = formatearParaEditar(1.5, { locale }).charAt(1) === '.' ? '.' : ','
   return { decimal, miles: decimal === ',' ? '.' : ',' }
 }
@@ -64,7 +64,7 @@ export function leerNumeroTipeado(texto: string, locale: string): NumeroTipeado 
   if (limpio === '') {
     return { ok: true, valor: null, decimales: 0 }
   }
-  const separadores = separadoresDe(locale)
+  const separadores = separadoresDelLocale(locale)
   const signo = limpio.startsWith('-') ? '-' : ''
   const cuerpo = /^[+-]/.test(limpio) ? limpio.slice(1) : limpio
   return comoNumero(cuerpo, signo, separadores) ?? motivoDe(cuerpo, separadores)
@@ -75,7 +75,7 @@ const NOMBRE = { ',': 'coma', '.': 'punto' } as const
 // El aviso de lo que no se leyó. `separador`: con un solo separador de miles y ningún decimal, lo tipeado con el decimal («Usa coma para
 // los decimales: 1,5.»); si no, el ejemplo de P4 del 4.13-3c. `no_es_numero`: el texto de siempre, con el ejemplo escrito en el locale.
 export function avisoDeNumero(texto: string, motivo: MotivoDeNumero, locale: string): string {
-  const { decimal, miles } = separadoresDe(locale)
+  const { decimal, miles } = separadoresDelLocale(locale)
   if (motivo === 'no_es_numero') {
     return `Escribe un número, por ejemplo ${formatearParaEditar(1234.5, { locale })}.`
   }

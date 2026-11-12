@@ -1,5 +1,5 @@
-// Las pestañas de Configuración › Repuestos (8.08-3). Cuál está abierta vive en la URL (`?seccion=`). Hoy hay una, «Catálogos»: con una sola la barra no se
-// dibuja. El 8.12 suma «Cotizador» en esta lista y entonces la barra (D28).
+// Las pestañas de Configuración › Repuestos (8.08-3; «Cotizador», 8.12-2). Cuál está abierta vive en la URL (`?seccion=`); con dos o más visibles se dibuja
+// la barra (D28).
 import { puede, type ClavePermiso, type Permisos } from '@/shared/lib/permisos'
 import type { AlMenosUna } from '../empresa/pestanas'
 
@@ -11,6 +11,7 @@ type PestanaDeRepuestos = {
 
 export const PESTANAS = [
   { clave: 'catalogos', titulo: 'Catálogos', permisos: ['repuestos.configurar'] },
+  { clave: 'cotizador', titulo: 'Cotizador', permisos: ['repuestos.configurar'] },
 ] as const satisfies readonly PestanaDeRepuestos[]
 
 export type Pestana = (typeof PESTANAS)[number]['clave']
