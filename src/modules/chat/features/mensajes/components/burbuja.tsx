@@ -4,6 +4,9 @@ import { formatearHora } from '@/shared/lib/fechas'
 import { Button } from '@/shared/ui/button'
 import { cn } from 'cn'
 import type { Mensaje } from '../../../entities/mensajes'
+import type { AccionesDelMensaje } from '../acciones-del-hilo'
+import { CitaEnLaBurbuja } from './cita-de-respuesta'
+import { MenuDelMensaje } from './menu-del-mensaje'
 
 type Props = {
   mensaje: Mensaje
@@ -12,6 +15,7 @@ type Props = {
   mostrarAutor: boolean
   zona: string
   alReintentar: (id: string) => void
+  acciones: AccionesDelMensaje
 }
 
 // «editado» y la hora; mientras se envía, «Enviando…»; si no llegó, la hora no se dice (el aviso de abajo).
@@ -53,29 +57,37 @@ function AvisoDeFallo({
 
 // Un mensaje del hilo: el propio a la derecha, el ajeno a la izquierda. El texto es siempre texto (nunca HTML) y respeta los saltos de línea. El
 // estado de un envío va en palabras, no sólo en color.
-export function Burbuja({ mensaje, propio, mostrarAutor, zona, alReintentar }: Props) {
+export function Burbuja({ mensaje, propio, mostrarAutor, zona, alReintentar, acciones }: Props) {
   const eliminado = mensaje.eliminadoEn !== null
+  const menu = <MenuDelMensaje mensaje={mensaje} acciones={acciones} />
   return (
     <li className={cn('flex min-w-0 flex-col', propio ? 'items-end' : 'items-start')}>
-      <div
-        className={cn(
-          'max-w-[85%] min-w-0 rounded-(--radius-card) px-3 py-2 text-(length:--text-base) break-words',
-          propio
-            ? 'bg-(--color-primario-soft) text-(--color-ink)'
-            : 'bg-(--color-surface-3) text-(--color-ink)',
-        )}
-      >
-        {mostrarAutor && !propio ? (
-          <p className="text-(length:--text-xs) font-semibold text-(--color-ink-soft)">
-            {mensaje.autorNombre ?? 'Alguien del equipo'}
-          </p>
-        ) : null}
-        {eliminado ? (
-          <p className="text-(--color-ink-soft) italic">Mensaje eliminado</p>
-        ) : (
-          <p className="whitespace-pre-wrap">{mensaje.cuerpo}</p>
-        )}
-        <PieDeLaBurbuja mensaje={mensaje} zona={zona} />
+      <div className="flex w-full min-w-0 items-start gap-1">
+        {propio ? <div className="ml-auto">{menu}</div> : null}
+        <div
+          className={cn(
+            'max-w-[85%] min-w-0 rounded-(--radius-card) px-3 py-2 text-(length:--text-base) break-words',
+            propio
+              ? 'bg-(--color-primario-soft) text-(--color-ink)'
+              : 'bg-(--color-surface-3) text-(--color-ink)',
+          )}
+        >
+          {mostrarAutor && !propio ? (
+            <p className="text-(length:--text-xs) font-semibold text-(--color-ink-soft)">
+              {mensaje.autorNombre ?? 'Alguien del equipo'}
+            </p>
+          ) : null}
+          {mensaje.respondeAId !== null && !eliminado ? (
+            <CitaEnLaBurbuja cita={mensaje.responde} />
+          ) : null}
+          {eliminado ? (
+            <p className="text-(--color-ink-soft) italic">Mensaje eliminado</p>
+          ) : (
+            <p className="whitespace-pre-wrap">{mensaje.cuerpo}</p>
+          )}
+          <PieDeLaBurbuja mensaje={mensaje} zona={zona} />
+        </div>
+        {propio ? null : menu}
       </div>
       {mensaje.estado === 'fallido' ? (
         <AvisoDeFallo mensaje={mensaje} alReintentar={alReintentar} />

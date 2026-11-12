@@ -5,6 +5,7 @@ import type { Conversacion } from '../../../entities/conversaciones'
 import { EstadoError, EstadoVacio } from '@/shared/ui/estados'
 import { Skeleton } from '@/shared/ui/skeleton'
 import type { RefObject } from 'react'
+import type { AccionesDelMensaje } from '../acciones-del-hilo'
 import type { useHilo } from '../hooks/use-hilo'
 import { ListaDelHilo } from './lista-del-hilo'
 
@@ -15,6 +16,7 @@ type Props = {
   hilo: ReturnType<typeof useHilo>
   contenedor: RefObject<HTMLDivElement | null>
   alReintentarEnvio: (id: string) => void
+  acciones: AccionesDelMensaje
 }
 
 // Los mensajes de la conversación abierta, con su scroll propio. Cargando reserva el alto con un esqueleto; si falla dice «Reintentar»; sin
@@ -26,6 +28,7 @@ export function CuerpoDelHilo({
   hilo,
   contenedor,
   alReintentarEnvio,
+  acciones,
 }: Props) {
   if (hilo.lectura === 'cargando') {
     return (
@@ -76,6 +79,7 @@ export function CuerpoDelHilo({
             void hilo.volverALoReciente()
           }}
           alReintentar={alReintentarEnvio}
+          acciones={acciones}
         />
       )}
     </div>

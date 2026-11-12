@@ -1,6 +1,10 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
 import type { Conversacion } from '../../../entities/conversaciones'
+import type { Mensaje } from '../../../entities/mensajes'
+import { citaDe } from '../../../entities/reglas-del-mensaje'
+import type { AccionesDelMensaje } from '../acciones-del-hilo'
 import { useEnvio } from '../hooks/use-envio'
 import { useHilo } from '../hooks/use-hilo'
 import { useMarcarLeido } from '../hooks/use-marcar-leido'
@@ -18,6 +22,15 @@ type Props = {
 export function Hilo({ conversacion, usuarioId, zona }: Props) {
   const hilo = useHilo({ conversacion: conversacion.id, zona })
   const contenedor = useScrollDelHilo(hilo.mensajes, usuarioId)
+  // El mensaje al que se está respondiendo: su cita va sobre el redactor y el foco pasa al campo.
+  const [respondiendoA, setRespondiendoA] = useState<Mensaje | null>(null)
+  const campo = useRef<HTMLTextAreaElement>(null)
+  useEffect(() => {
+    if (respondiendoA !== null) {
+      campo.current?.focus()
+    }
+  }, [respondiendoA])
+  const acciones: AccionesDelMensaje = { responder: setRespondiendoA }
   const envio = useEnvio({
     conversacion: conversacion.id,
     usuarioId,
@@ -40,13 +53,22 @@ export function Hilo({ conversacion, usuarioId, zona }: Props) {
         hilo={hilo}
         contenedor={contenedor}
         alReintentarEnvio={envio.reintentar}
+        acciones={acciones}
       />
       {hilo.lectura === 'error' ? null : (
         <Redactor
+          campo={campo}
+          respondiendoA={respondiendoA ? citaDe(respondiendoA) : null}
+          alQuitarRespuesta={() => {
+            setRespondiendoA(null)
+          }}
           alEnviar={(texto) => {
-            const enviado = envio.enviar(texto)
-            if (enviado.ok && hilo.desde !== null) {
-              void hilo.volverALoReciente()
+            const enviado = envio.enviar(texto, respondiendoA ?? undefined)
+            if (enviado.ok) {
+              setRespondiendoA(null)
+              if (hilo.desde !== null) {
+                void hilo.volverALoReciente()
+              }
             }
             return enviado
           }}

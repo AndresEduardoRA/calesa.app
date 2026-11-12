@@ -18,5 +18,16 @@ export function useLocalesDelHilo(setHilo: Dispatch<SetStateAction<Hilo>>) {
     },
     [setHilo],
   )
-  return { agregarLocal, resolver }
+  // Un cambio local sobre un mensaje enviado (editar o borrar, que esperan a la base): por `id`, sin mover el orden. La señal `UPDATE` trae la fila
+  // verdadera y la reemplaza. Un `id` que ya no está no hace nada.
+  const reemplazar = useCallback(
+    (id: string, cambios: Partial<Mensaje>) => {
+      setHilo((antes) => ({
+        ...antes,
+        mensajes: antes.mensajes.map((m) => (m.id === id ? { ...m, ...cambios } : m)),
+      }))
+    },
+    [setHilo],
+  )
+  return { agregarLocal, resolver, reemplazar }
 }

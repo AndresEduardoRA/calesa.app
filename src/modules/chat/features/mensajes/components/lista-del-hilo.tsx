@@ -6,6 +6,7 @@ import { TOPE_DE_LO_CARGADO } from '@/shared/lib/paginacion'
 import { AvisoDeTope } from '@/shared/ui/aviso-de-tope'
 import { Button } from '@/shared/ui/button'
 import type { Mensaje } from '../../../entities/mensajes'
+import type { AccionesDelMensaje } from '../acciones-del-hilo'
 import { Burbuja } from './burbuja'
 import { DesdeUnaFechaDiferido, IrAUnaFechaDiferido } from './diferidos'
 
@@ -23,6 +24,7 @@ type Props = {
   irAUnaFecha: (dia: string) => void
   volverALoReciente: () => void
   alReintentar: (id: string) => void
+  acciones: AccionesDelMensaje
 }
 
 // Los mensajes, lo nuevo abajo. Arriba: «Ver anteriores» (o su error con «Reintentar»); al llegar al tope lo dice y ofrece «Ir a una fecha», el camino
@@ -41,6 +43,7 @@ export function ListaDelHilo({
   irAUnaFecha,
   volverALoReciente,
   alReintentar,
+  acciones,
 }: Props) {
   return (
     <div className="grid gap-3">
@@ -96,6 +99,7 @@ export function ListaDelHilo({
             mostrarAutor={mostrarAutor}
             zona={zona}
             alReintentar={alReintentar}
+            acciones={acciones}
           />
         ))}
       </ol>

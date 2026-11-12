@@ -1,21 +1,25 @@
 'use client'
 
 import { SendIcon } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useState, type RefObject } from 'react'
 import { Button } from '@/shared/ui/button'
 import { Textarea } from '@/shared/ui/textarea'
-import type { TextoValido } from '../../../entities/mensajes'
+import type { CitaDeMensaje, TextoValido } from '../../../entities/mensajes'
+import { CitaSobreElRedactor } from './cita-de-respuesta'
 
 type Props = {
   alEnviar: (texto: string) => TextoValido
+  // El campo es de quien lo monta: para llevarle el foco al responder.
+  campo: RefObject<HTMLTextAreaElement | null>
+  respondiendoA: CitaDeMensaje | null
+  alQuitarRespuesta: () => void
 }
 
 // Donde se escribe: Enter envía, Mayús+Enter salta de línea (y no envía mientras se compone con un teclado de IME). Después de enviar se limpia y
 // el foco se queda. Pasado el largo máximo dice el motivo y no envía. Sin borrador persistente.
-export function Redactor({ alEnviar }: Props) {
+export function Redactor({ alEnviar, campo, respondiendoA, alQuitarRespuesta }: Props) {
   const [texto, setTexto] = useState('')
   const [aviso, setAviso] = useState<string | null>(null)
-  const campo = useRef<HTMLTextAreaElement>(null)
 
   function enviar() {
     const valido = alEnviar(texto)
@@ -36,6 +40,15 @@ export function Redactor({ alEnviar }: Props) {
         enviar()
       }}
     >
+      {respondiendoA ? (
+        <CitaSobreElRedactor
+          cita={respondiendoA}
+          alQuitar={() => {
+            alQuitarRespuesta()
+            campo.current?.focus()
+          }}
+        />
+      ) : null}
       <div className="flex items-end gap-2">
         <Textarea
           ref={campo}

@@ -91,7 +91,7 @@ export function useHilo({ conversacion, zona }: Props) {
     },
   })
 
-  const { agregarLocal, resolver } = useLocalesDelHilo(setHilo)
+  const { agregarLocal, resolver, reemplazar } = useLocalesDelHilo(setHilo)
 
   return {
     ...recorrido,
@@ -105,5 +105,6 @@ export function useHilo({ conversacion, zona }: Props) {
     },
     agregarLocal,
     resolver,
+    reemplazar,
   }
 }
