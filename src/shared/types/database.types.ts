@@ -8602,6 +8602,60 @@ export type Database = {
         Args: { p_a: string; p_de: string; p_restriccion: string }
         Returns: undefined
       }
+      _transporte_cambios: {
+        Args: {
+          o: Omit<
+            Database['public']['Tables']['transportes']['Row'],
+            Database['public']['Tables']['transportes']['ComputedFields']
+          >
+          p_cambios: Json
+          p_claves: string[]
+        }
+        Returns: {
+          actualizado_en: string
+          actualizado_por: string | null
+          arribo_el: string | null
+          booking: string | null
+          contenedor: string | null
+          creado_en: string
+          eta_el: string | null
+          id: string
+          naviera_id: string | null
+          notas: string | null
+          puerto_destino_id: string | null
+          puerto_origen_id: string | null
+          repuesto_id: string | null
+          sigue_al_vehiculo: boolean
+          vehiculo_id: string | null
+          zarpe_el: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'transportes'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _transporte_unidad: {
+        Args: { p_bloquear: boolean; p_repuesto: string; p_vehiculo: string }
+        Returns: Record<string, unknown>
+      }
+      _transporte_validar: {
+        Args: {
+          n: Omit<
+            Database['public']['Tables']['transportes']['Row'],
+            Database['public']['Tables']['transportes']['ComputedFields']
+          >
+          o: Omit<
+            Database['public']['Tables']['transportes']['Row'],
+            Database['public']['Tables']['transportes']['ComputedFields']
+          >
+          p_fase: string
+          p_flujo: string
+          p_titulo: string
+        }
+        Returns: undefined
+      }
       _unidad_sin_acceso: { Args: { p_vehiculo: string }; Returns: string }
       _url_del_proyecto: { Args: Record<PropertyKey, never>; Returns: string }
       _uuid_de: { Args: { p_hint: string; p_valor: Json }; Returns: string }
@@ -10147,6 +10201,15 @@ export type Database = {
       transicion_roles_poner: {
         Args: { p_actualizado_en_esperado: string; p_roles: string[]; p_transicion: string }
         Returns: string
+      }
+      transporte_guardar: {
+        Args: {
+          p_actualizado_en_esperado: string
+          p_cambios: Json
+          p_repuesto: string
+          p_vehiculo: string
+        }
+        Returns: Json
       }
       unidad_llego_a_fase: {
         Args: { p_fase: string; p_repuesto: string; p_vehiculo: string }
