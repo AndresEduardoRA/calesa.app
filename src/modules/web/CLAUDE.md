@@ -4,12 +4,13 @@ Lo que el CRM configura para la web pública y el portal del cliente: ajustes de
 
 ## Entra y sale
 
-- Entra: Configuración › Sitio web, editor de guías (Tiptap saneado), «Contacté» desde la campana, disponibilidad desde el perfil; desde afuera, el repo del sitio llama `web.solicitar_asesor`, `web.portal_login`, `web.portal_snapshot`.
+- Entra: Configuración › Sitio web, editor de guías y legales (un documento de ProseMirror con lista blanca: el HTML lo deriva la base, nunca se guarda HTML escrito), «Contacté» desde la campana, disponibilidad desde el perfil; desde afuera, el repo del sitio llama `web.solicitar_asesor`, `web.portal_login`, `web.portal_snapshot`.
 - Sale: `leerDireccionPublica()` (`ajustes_web.direccion_publica`, nula si nadie la configuró: la compone la página del lead para el texto de WhatsApp del portal; la columna no tiene pantalla hasta Configuración › Sitio web). Pendiente: `estadoColaWeb()`, `confirmarContacto(ref)`, `<TarjetaTurno>`. Lo consumirán `tablero`, `notificaciones`, `leads` (vincular turno a lead).
 - Depende de: `vehiculos`, `leads`, `equipo`.
 
 ## Archivos clave
 
+- `entities/contenido/doc.ts` (+ `doc-nodos.ts`): `htmlDelDocumento()`, espejo de `_web_doc_html()` (la lista blanca del documento del sitio y su HTML); `doc.casos.ts` corre contra los dos en `doc.test.ts` (PGlite). Imagen = `{ruta, alt}` relativa al bucket `web`: sale `<img data-ruta alt>` y el sitio arma la URL.
 - Existe: `entities/repositorios.ts`, `entities/rueda.ts` (`puedeEstarEnLaRueda`, los dos textos), `features/rueda/components/estado-en-la-rueda.tsx` (la sección «Turnos de la web» de `/perfil`, por `pantallas/perfil.ts`), `infra/queries/sitio.ts` (`getDireccionPublica`), `composicion.ts`. Lo demás llega con la Fase 8.
 - `entities/cola.ts` — **todavía no existe** (Fase 8): reglas de la rueda (orden, cupo, pegajoso, prioridad) documentadas y testeadas como espejo de `web.solicitar_asesor` (la base decide). Lo que sí existe es `entities/rueda.ts`, el espejo de «¿el rol recibe turnos?».
 - Revalidar: lo hace la base (cola `interno.web_revalidar_pendiente`, triggers `web_revalidar`, job `web-revalidar`); no hay `infra/revalidar.ts` ni variables de entorno. Dirección (`integraciones.config.revalidar_url`) y secreto (Vault `integracion:web_publica`) se cargan en Configuración › Empresa › Integraciones › Web pública (módulo `empresa`, que también hace «Probar»). `app/api/portal/*` firma la cookie del portal.
