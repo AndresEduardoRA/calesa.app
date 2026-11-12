@@ -2,7 +2,7 @@
 
 Mensajería interna: conversaciones directas (deduplicadas), grupos y canal global por permiso, menciones `#` de vehículos/leads/cotizaciones/personas, tareas y eventos desde el mensaje, realtime.
 
-**Fase 7 cerrada el 2026-11-12** (7.14): R1 (`/tarea` en el chat) y R2 (el placeholder de la mención) de `e2e/fase-7-recorrido.spec.ts`. Abiertos que lo tocan: **7-3** (el `aplicado_en` de `chat.participar` y `chat.moderar`) y **7-5** (la burbuja no se reintenta al volver la red); `docs/PLAN.md` › «Fase 7».
+**Fase 7 cerrada el 2026-11-12** (7.14): R1 (`/tarea` en el chat) y R2 (el placeholder de la mención) de `e2e/fase-7-recorrido.spec.ts`. Abiertos que lo tocan: **7-3** (el `aplicado_en` de `chat.participar` y `chat.moderar`) y **7-5** (la burbuja ya se reintenta al volver la red, 8.12; queda que una suscripción de fondo no avise); `docs/PLAN.md` › «Fase 7».
 
 ## Entra y sale
 
@@ -39,7 +39,7 @@ Mensajería interna: conversaciones directas (deduplicadas), grupos y canal glob
   de silenciar y salir; responder con cita, editar en línea, borrar por URL y el «⋯» de cada burbuja), `features/widget/` (7.11-1, abajo); la pantalla sale por `pantallas/chat.ts`. `?panel=nueva|grupo|salir|borrar-mensaje` (éste con `mensaje=<id>`) no toca `?c=`.
 - Widget flotante (7.11-1): `shell.client.ts` exporta `WidgetChat` (la burbuja, fuera de `/chat`; el layout lo monta por `HuecoChat`, sólo con `chat.participar`) y `NoLeidosDeLaBarra`.
   `features/widget/no-leidos-store.ts` es el contador de la pestaña (valor, `suscribir`, `poner`; sin importar Supabase: viaja en el JS de todas las pantallas) y lo escribe `SuscripcionDeNoLeidos` (diferida; `chat_no_leidos`
-  por `infra/no-leidos.client.ts` al descansar el navegador, tras cada señal de `suscribirseALaLista` con 250 ms de espera y al reconectar; un fallo deja el último valor). La burbuja es un botón desde 768 px y un enlace a `/chat` debajo; `z-40`.
+  por `infra/no-leidos.client.ts` al descansar el navegador, tras cada señal de `suscribirseALaLista` con 250 ms de espera y al reconectar; un fallo deja el último valor; pedida sin red, se remonta con cada `online` por `useVueltaDeLaRed` de `shared/ui`, como la campana). La burbuja es un botón desde 768 px y un enlace a `/chat` debajo; `z-40`.
   El panel (`PanelDelWidgetDiferido`) se monta sólo abierto: lee la primera página de la lista, elige la conversación por estado local (**el widget no usa la URL**) y compone el hilo sin `?panel=`, `?mencion=` ni borrado por URL
   (`HiloDelWidget`: `useHilo`, `useEnvio`, `useMarcarLeido`, fichas y menciones; `AccionesDelMensaje.sinMenu` quita el «⋯»). Sólo leer y responder: editar, borrar, `/tarea` y `/evento` y menciones llevan a `/chat`.
 - `?c=<id>` ilegible = sin selección; sin fila propia = «ya no es mía» (nunca un 404).
