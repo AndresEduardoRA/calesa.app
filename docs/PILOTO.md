@@ -329,6 +329,17 @@ como los de `docs/`; `PILOTO_UNIR_REGISTROS=` lo apaga. Y `gh` se vuelve a pedir
 la rompía en el PR de otro carril (cinco pasos; el 8.09, 7 h). Ahora la anota y exige KLM ≤ 90 s. Un spec nuevo no exige un número que
 dependa del marco (paradas de Tab, nodos o bytes de la navegación): pone un tope o lo mide dentro de `main`.
 
+**FLUJO-8 (2026-11-12, tarde).** A 28,7 h de lanzar, 49 de 69 pasos; lo que queda termina en serie (los cierres y la Fase 9), así
+que pesa cada espera del camino de un PR a `main` y de la puerta de fase (`docs/pasos/flujo-8/decisiones.md`):
+
+- **La puerta de fase con carriles mira el último veredicto del workflow `ci` en `main`** (`ci.sh` › `ci_veredicto`), no su última
+  corrida: no espera a la que la integración siguiente va a cancelar y ya no pasa por una corrida de `demo`. Un rojo de `main` se
+  vuelve a correr una vez (`.piloto/puertas/rerun-<id>`) antes de mandar un `ci-fix`, y el de la base va al `ci-fix` como cualquiera.
+- **Un check con veredicto está terminado** aunque GitHub lo deje en `IN_PROGRESS` (`pr.mjs`): el #181 quedó «pendiente» con todo en verde.
+- **Sólo «Carriles» en rojo y con migraciones atrasadas: renumera el coordinador**, sin esperar a que el carril quede libre.
+- **Si git une `main` sin choques, el coordinador empuja ese merge** aunque GitHub dé el PR por chocado (`unir-main.mjs`; el #186).
+- **`pnpm test` corre en 3 jobs** (`vitest --shard`, `ci.yml` › `pruebas`): el Nivel 1 baja de 15–18 min a lo que tarde la parte más larga.
+
 ## El ensayo en seco (2026-10-26)
 
 `bash scripts/piloto/arrancar.sh --en-seco --nota .piloto/contexto/3a.md` («el 3a está en curso en otra sesión: planear el 4.13-3b sobre su contrato»), con `PILOTO_TOPE_USD_PASO=15`:

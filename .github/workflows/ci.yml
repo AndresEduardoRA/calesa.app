@@ -55,16 +55,31 @@ env:
 jobs:
   # Siempre: algunas guardas de `pnpm test` leen docs/, así que un cambio sólo de documentación también lo corre.
   nivel-1:
-    name: Nivel 1 · lint, tipos, tests y mapa
+    name: Nivel 1 · lint, tipos y mapa
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/acciones/preparar
       - run: pnpm lint
       - run: pnpm typecheck # corre `next typegen` antes de tsc
-      - run: pnpm test
       - run: bash scripts/mapa.sh --check
+
+  # `pnpm test` en 3 partes (`vitest --shard`), cada una en su runner. En un solo job eran 14 de los 15 a 18 min del Nivel 1 (962
+  # archivos, 2026-11-12): el job más largo de un PR con e2e dirigidos, y el veredicto de main llegaba después de que la integración
+  # siguiente lo cancelara. El nombre empieza con «Nivel 1»: su rojo es del código y no se vuelve a correr (COORD_ROJO_FIRME).
+  pruebas:
+    name: Nivel 1 · tests, parte ${{ matrix.parte }} de 3
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        parte: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/acciones/preparar
+      - run: pnpm test --shard=${{ matrix.parte }}/3
 
   # Lo que un PR puede tocar según su carril (scripts/guardas/carriles.mjs, docs/ORCA.md): un carril que no es base (docs/plan.yaml, el de la
   # base del PR) no edita ESTADO, PLAN, DECISIONES ni BITACORA ni crea migraciones de otro dominio; ninguna migración se intercala ni se edita.

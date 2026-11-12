@@ -5,6 +5,7 @@
 // Sólo se borra una rama cuyo PR está MERGED, sin otro abierto y cuya punta es la que se integró (o un ancestro de ella): nada que no
 // esté en main se pierde. Nunca `main`, una rama protegida (la de un paso asignado o publicado, o la de un pedido abierto) ni una que
 // tenga un worktree en ella.
+import { execFileSync } from 'node:child_process'
 import { rama } from './plan.mjs'
 
 /** Las ramas del paso o pedido vivo, que no se borran aunque su PR anterior (una parte) ya se integró. */
@@ -77,9 +78,11 @@ export function limpiarRamas({ gh, git, protegidas }) {
       .filter((l) => l.startsWith('branch refs/heads/'))
       .map((l) => l.slice('branch refs/heads/'.length)),
   )
+  // Callado: la punta de un PR que empujó el propio coordinador (unir, renumerar) no está en este repo, y `git` lo decía por stderr en
+  // cada vuelta («fatal: Not a valid commit name», 84 líneas del registro en una mañana, el 2026-11-12). Sin ese commit no es ancestro.
   const esAncestro = (a, b) => {
     try {
-      git('merge-base', '--is-ancestor', a, b)
+      execFileSync('git', ['merge-base', '--is-ancestor', a, b], { stdio: 'ignore' })
       return true
     } catch {
       return false

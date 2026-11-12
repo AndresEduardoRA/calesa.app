@@ -340,6 +340,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Respaldo** — `ajustes_web.whatsapp_respaldo`: número que recibe cuando nadie está disponible.
 - **Sin asignar** — `solicitudes_contacto_web.estado = 'sin_asignar'` / `cola_web_solicitudes`: un turno web que no encontró asesor (al visitante se lo mandó al respaldo). Se ve arriba de Configuración › Cola web.
 - **Guía / FAQ / Testimonio** — `web_guias`, `web_faqs`, `web_testimonios`: contenido de la web pública; nace despublicado.
+- **Programada** — guía con `web_guias.publicada_en` futura: ya tiene fecha pero aún no se ve en la web (`estadoDeGuia()`: «Borrador», «Programada» o «Publicada»).
 - **Consentimiento (de un testimonio)** — `web_testimonio_consentir` / `web_testimonio_retirar`: lo que da el cliente para que su testimonio se publique: quién lo registró, cuándo y por qué canal, y si se muestran su ciudad, su vehículo y su foto. Cambiar el nombre, el texto o la foto lo anula.
 - **Superficie pública** — esquema `web`: vistas y RPC que consume el repo de la web.
 - **Bandeja** — `/` / `<Bandeja>`: pantalla de inicio; lo que hay que hacer ahora.

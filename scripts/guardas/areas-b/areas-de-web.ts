@@ -18,6 +18,7 @@ export const PANTALLAS_DE_AREA: Readonly<Record<string, (typeof AREAS_DE_WEB)[nu
   'sitio-guias': 'contenido',
   'sitio-faqs': 'contenido',
   'sitio-testimonios': 'contenido',
+  guia: 'contenido',
 }
 export const ENTRADAS = ['index', 'client', 'composicion'] as const
 export type Archivo = { ruta: string; texto: string }

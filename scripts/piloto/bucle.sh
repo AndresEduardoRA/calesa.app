@@ -409,12 +409,23 @@ anotar_ci_fix() { [ "$1" = ci-fix ] && git rev-parse HEAD >"$ESTADO/ci-fix-head"
 # curso se espera; uno rojo se manda a arreglar (paso ci-fix, hasta CI_FIX_MAX veces) y la puerta se vuelve a mirar. Ya no la decide la
 # persona: la decide el CI. Devuelve 0 si pasa, 1 si hay que volver a rutear (va un ci-fix o la persona dijo «reintentar»).
 puerta_de_fase() { # <paso>
-  local paso="$1" inicio=$SECONDS n rc rama_ci
+  local paso="$1" inicio=$SECONDS n rc rama_ci modo=""
   # Con carriles, lo que tiene que andar es main, donde se integra todo; la rama del paso es nueva y no tiene CI (el 4.18 paró por «sin»).
+  # Y de main se mira el último veredicto del workflow `ci`, sin esperar a la corrida que la integración siguiente va a cancelar (ci.sh).
   rama_ci=$(hecho .rama)
-  modo_carril && rama_ci=main
+  modo_carril && rama_ci=main modo=veredicto
   while :; do
-    ci_resolver "$rama_ci" || { parada "$CI_MOTIVO" "$paso"; rc=$?; [ "$rc" = 2 ] && return 0; return 1; }
+    ci_resolver "$rama_ci" $modo || { parada "$CI_MOTIVO" "$paso"; rc=$?; [ "$rc" = 2 ] && return 0; return 1; }
+    # Con carriles, un rojo de main se vuelve a correr una vez (sólo lo que cayó) antes de gastar una sesión en él: los rojos de main del
+    # 11 y 12-11-2026 con un job caído a la vista fueron del runner (apt, y Docker Hub con «toomanyrequests»). Y el de la base
+    # (`rojo-base`) no entraba en ningún caso de abajo: terminaba en «no encuentra un CI completo» en vez de ir al ci-fix.
+    if [ -n "$modo" ] && [[ "$CI_ESTADO" == rojo* ]] && [ ! -f "$ESTADO/puertas/rerun-$CI_ID" ] &&
+      timeout 60 gh run rerun "$CI_ID" --failed >/dev/null 2>&1; then
+      mkdir -p "$ESTADO/puertas" && touch "$ESTADO/puertas/rerun-$CI_ID"
+      registro "puerta de fase ($paso): el CI $CI_ID de $rama_ci está en rojo ($CI_FALLO): vuelvo a correr lo que cayó, una vez."
+      CI_ESTADO=corriendo
+    fi
+    [ -n "$modo" ] && [ "$CI_ESTADO" = rojo-base ] && CI_ESTADO=rojo
     case "$CI_ESTADO" in
       verde)
         registro "puerta de fase ($paso): el CI $CI_ID está en verde."
