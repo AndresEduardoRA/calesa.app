@@ -14,9 +14,10 @@ describe('enlaces de la sub-navegación de logística', () => {
     expect(enlacesDeLogistica([concede('vehiculos.ver')])).toEqual([])
   })
 
-  it('con logistica.ver (aunque sea en un origen) están Cadena y Aduana; con sólo ése, ningún otro enlace de las áreas', () => {
+  it('con logistica.ver (aunque sea en un origen) están Cadena, Embarques y Aduana; con sólo ése, ningún otro enlace de las áreas', () => {
     expect(enlacesDeLogistica([concede('logistica.ver', 'o1')])).toEqual([
       { titulo: 'Cadena', ruta: '/logistica' },
+      { titulo: 'Embarques', ruta: '/logistica/embarques' },
       { titulo: 'Aduana', ruta: '/logistica/aduana' },
     ])
   })
@@ -26,6 +27,7 @@ describe('enlaces de la sub-navegación de logística', () => {
       enlacesDeLogistica([concede('logistica.ver', 'o1'), concede('logistica.gastos.ver', 'o1')]),
     ).toEqual([
       { titulo: 'Cadena', ruta: '/logistica' },
+      { titulo: 'Embarques', ruta: '/logistica/embarques' },
       { titulo: 'Aduana', ruta: '/logistica/aduana' },
       { titulo: 'Gastos', ruta: '/logistica/gastos' },
     ])
@@ -33,6 +35,7 @@ describe('enlaces de la sub-navegación de logística', () => {
       enlacesDeLogistica([concede('logistica.ver', 'o1'), concede('logistica.pagos.ver', 'o1')]),
     ).toEqual([
       { titulo: 'Cadena', ruta: '/logistica' },
+      { titulo: 'Embarques', ruta: '/logistica/embarques' },
       { titulo: 'Aduana', ruta: '/logistica/aduana' },
     ])
   })

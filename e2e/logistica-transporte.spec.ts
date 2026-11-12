@@ -1,4 +1,4 @@
-// @sin-celular-archivo: el hueco «Transporte» es un formulario del panel de la unidad y la fila 6.08 pide escritorio; en el celular es el mismo panel (6.01).
+// @sin-celular-archivo: la fila 6.08 pide escritorio: el hueco es un formulario del panel de la unidad (el mismo en el celular, 6.01) y /logistica/embarques suma una lista con el patrón de aduana.
 import type { Page } from '@playwright/test'
 import { expect, test } from './soporte/prueba'
 import { CONTRASENA, entrar } from './soporte/alta'
@@ -11,6 +11,7 @@ import {
 import {
   borrarTransporte,
   crearTransporteDe,
+  ponerEnElContenedorDe,
   sembrarTransporte,
   transporteDe,
   type TerrenoDeTransporte,
@@ -114,4 +115,42 @@ test('E2E quien sólo ve la logística lee el transporte sin poder editarlo', as
     hueco.getByText('No tienes permiso para editar el transporte de este origen.'),
   ).toBeVisible()
   await expect(hueco.getByRole('button', { name: 'Guardar' })).toHaveCount(0)
+})
+
+test('E2E ver el contenedor con sus dos unidades en /logistica/embarques y buscarlo', async ({
+  page,
+}) => {
+  // La segunda unidad entra al mismo contenedor y con la misma naviera y ETA (la primera ya los tiene por el primer test).
+  await ponerEnElContenedorDe(terreno.sinFase.id, {
+    contenedor: 'ECMU123456',
+    naviera_id: terreno.naviera.id,
+    eta_el: '2026-12-15',
+  })
+  await entrar(page, terreno.conTransporte, { fresco: true })
+  await page.goto('/logistica/embarques?grupo=contenedores')
+  const fila = page.getByRole('row').filter({ hasText: 'ECMU123456' })
+  await expect(fila).toContainText(terreno.naviera.nombre)
+  await expect(fila).toContainText('15 dic 2026')
+  await expect(fila).toContainText('2 unidades')
+
+  await fila.getByRole('button', { name: 'Abrir el contenedor ECMU123456' }).click()
+  await expect(page).toHaveURL(/contenedor=ECMU123456/)
+  const panel = page.getByRole('dialog', { name: 'Contenedor' })
+  await expect(panel.getByRole('heading', { name: 'Contenedor ECMU123456' })).toBeVisible()
+  await expect(panel.getByText(terreno.enFase.titulo)).toBeVisible()
+  await expect(panel.getByText(terreno.sinFase.titulo)).toBeVisible()
+  // No tiene `flujos.mover`: el hueco de mover el grupo no se dibuja.
+  await expect(panel.getByText('Mover el grupo')).toHaveCount(0)
+
+  // La búsqueda por el comienzo de la clave la sigue mostrando; otra que no coincide lo dice.
+  await page.goto('/logistica/embarques?grupo=contenedores&q=ecm')
+  await expect(page.getByRole('row').filter({ hasText: 'ECMU123456' })).toBeVisible()
+  await page.goto('/logistica/embarques?grupo=contenedores&q=zzz')
+  await expect(page.getByText('Ningún contenedor coincide con los filtros.')).toBeVisible()
+})
+
+test('E2E quien no ve la logística no entra a /logistica/embarques', async ({ page }) => {
+  await entrar(page, terreno.sinLogistica, { fresco: true })
+  await page.goto('/logistica/embarques')
+  await expect(page.getByText('No tienes permiso para ver esto')).toBeVisible()
 })

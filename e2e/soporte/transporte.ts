@@ -89,6 +89,26 @@ export async function transporteDe(vehiculoId: string) {
   return data?.[0] ?? null
 }
 
+// Pone a una unidad en un contenedor como lo haría la base de otra persona (por la API de administración, sin pasar por la regla de la fase): crea su transporte o corrige el que ya tiene.
+export async function ponerEnElContenedorDe(
+  vehiculoId: string,
+  datos: { contenedor: string; naviera_id: string; eta_el: string },
+): Promise<void> {
+  const cliente = admin()
+  const { data, error } = await cliente
+    .from('transportes')
+    .update(datos)
+    .eq('vehiculo_id', vehiculoId)
+    .select('id')
+  exigir(error, 'poner la unidad en el contenedor')
+  if ((data ?? []).length === 0) {
+    const { error: errorAlCrear } = await cliente
+      .from('transportes')
+      .insert({ vehiculo_id: vehiculoId, ...datos })
+    exigir(errorAlCrear, 'crear el transporte con contenedor')
+  }
+}
+
 // Quita lo que el spec creó: los transportes de los vehículos del terreno y las navieras de prueba (antes del terreno: la FK), y luego el terreno. Las personas y los roles los limpia el spec.
 export async function borrarTransporte(proyecto: string): Promise<void> {
   const cliente = admin()
