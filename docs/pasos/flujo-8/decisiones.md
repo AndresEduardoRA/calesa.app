@@ -29,6 +29,10 @@ entero al reloj: con 40 min por PR, ≈ 14 h; con 75, ≈ 17.
   terminaba a los 5 min y la base a los 8) y la causa de que el veredicto de `main` llegara tarde. Son dos jobs más por corrida; el
   repo es público y el promedio medido es de ≈ 2,4 corridas a la vez. No se tocaron los bloques del e2e (18 a 22 min con el completo):
   cada bloque comparte una base entre sus specs, y repartirlos de otro modo a esta altura puede destapar dependencias de orden.
+- **Si git une `main` sin choques, el coordinador empuja ese merge** (`unir-main.mjs`), aunque GitHub dé el PR por chocado. El #186
+  (el cierre 6.14) nació `CONFLICTING` para GitHub y `git merge-tree` lo unía limpio: el coordinador contestaba «main entra sin
+  choques», lo devolvía a su carril y el carril, recién empezado el 7.14, lo iba a remendar sin sesión al terminar. Les va a pasar a
+  los demás cierres, que mueven las notas por paso. Con `main` ya dentro de la rama no empuja nada (GitHub tarda en enterarse).
 - **`limpiar-ramas` ya no escribe en el registro** «fatal: Not a valid commit name» en cada vuelta (84 líneas en una mañana): la punta
   de un PR que empujó el propio coordinador no está en el repo local, y `git` lo decía por stderr.
 - **Medido y no cambiado:** el reintento a ciegas de un CI rojo (de 10 de ese día, 3 terminaron en verde: sigue valiendo lo que
