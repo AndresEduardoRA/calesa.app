@@ -3689,3 +3689,17 @@ contra lo que la base ya tiene; aquí se unieron (`docs/PLAN.md` › «Carriles 
 - **Qué:** el coordinador arma el commit de la renumeración con un índice aparte sobre la punta del PR y lo empuja a su rama
   (`scripts/coordinador/renumerar.mjs`). No pasa por los hooks (no hay árbol), pero sólo renombra y cambia la versión en los archivos del PR, y
   se integra con el CI de ese commit en verde. Si el carril empujó entre medio, no hace nada y vuelve a intentar. `COORD_RENUMERAR=0` lo apaga.
+
+## 2026-11-11 — FLUJO-4: sin candado por la base en rojo, lo devuelto primero y renumerar sin otro CI
+
+Medido a 13,5 h de lanzar: 20 de 69 pasos integrados; los carriles estuvieron vivos 11,1 (A), 10,0 (B) y 12,4 h (C), y el CI tarda ≈ 17 min.
+
+- **La base en rojo ya no frena a un carril** (`scripts/piloto/ci.sh`): el B estuvo 3 h y el A 70 min sin poder publicar porque el último CI
+  de su rama tenía «Base» en rojo, y sin publicar no corre otro CI. El rojo era una prueba inestable de main (arreglada en el #130) y el PR
+  del B además chocaba con main, donde GitHub ni corre el CI. Con carriles nada se arrastra: cada paso sale de `origin/main` y el coordinador
+  no integra un PR en rojo. Sin carril, la regla de antes.
+- **Un PR devuelto va antes que la parte siguiente del paso en curso** (`plan.mjs` › `siguiente`): el 7.02, el 5.11 y el 6.05 esperaron de 3
+  a 5 h devueltos (casi siempre un remiendo sin sesión) mientras su carril seguía, parte por parte, con otro paso, y con ellos lo que depende.
+- **Renumerar con el CI en verde no paga otro CI** (`coordinador.mjs`, `renumerado_verde`): el commit de renumerar tiene el mismo contenido;
+  se integra en la vuelta siguiente si sigue siendo la punta, no choca con main y su CI nuevo no cayó. Cada PR con migraciones pagaba de 2 a
+  6 corridas (el 6.10: cinco renumeradas, 7 h abierto). `COORD_RENUMERAR_SIN_CI=0` vuelve a esperar.
