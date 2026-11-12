@@ -8,6 +8,12 @@ export {
   TOPE_DEL_LOTE,
 } from '../../entities/mover/para-mover'
 export type { DestinoConVista, DestinoDeMover, ParaMover } from '../../entities/mover/para-mover'
+export {
+  MOTIVO_DE_NOTA_OBLIGATORIA,
+  estadoDelBoton,
+  textoDelBoton,
+} from '../../entities/mover/boton-de-mover'
+export type { EstadoDelBoton } from '../../entities/mover/boton-de-mover'
 export { motivoLegible, textoDeLoQueFalta } from '../../entities/mover/motivos'
 export {
   anclaDeRequisito,

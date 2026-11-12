@@ -48,7 +48,12 @@ export function PanelDeLaUnidad({ unidad, origen, fase, huecos, aviso = null }: 
       {huecos.length > 0 ? (
         <div className="grid gap-3">
           {huecos.map((hueco) => (
-            <BloqueDelHueco key={hueco.clave} titulo={hueco.titulo}>
+            <BloqueDelHueco
+              key={hueco.clave}
+              clave={hueco.clave}
+              titulo={hueco.titulo}
+              abiertoAlInicio={hueco.abiertoAlInicio}
+            >
               <hueco.componente unidad={unidad} />
             </BloqueDelHueco>
           ))}
