@@ -37,3 +37,18 @@ export function suscribirseALaLista(
     desdeMiembros()
   }
 }
+
+// Las señales del hilo abierto: `INSERT` (un mensaje nuevo, mío o de otra persona) y `UPDATE` (editar o borrar) de `mensajes` de esa conversación.
+// Nunca `DELETE`. La fila no se pinta: el hilo relee sus más nuevos por la consulta bajo RLS y los funde por `id`.
+export function suscribirseAlHilo(
+  conversacion: string,
+  { alCambiar, alReconectar }: SenalesDeLaLista,
+): () => void {
+  return suscribirseACambios({
+    tabla: 'mensajes',
+    filtro: `conversacion_id=eq.${conversacion}`,
+    eventos: ['INSERT', 'UPDATE'],
+    alCambiar,
+    alReconectar,
+  })
+}
