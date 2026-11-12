@@ -10,9 +10,11 @@ import {
   sembrarOrigen,
 } from './soporte/origenes-de-lead'
 import {
+  aLaVistaAlAcomodarse,
   capturar,
   limpiarRecorrido,
   prepararRecorrido,
+  quieto,
   textoGrandeAlCargar,
   type TerrenoDelRecorrido,
 } from './soporte/recorrido'
@@ -67,6 +69,8 @@ async function selectorDeIconos(page: Page, info: Info, zoom: string) {
   await page.getByRole('button', { name: 'Nuevo tipo' }).first().click()
   const modal = page.getByRole('dialog', { name: 'Nuevo tipo de seguimiento' })
   await expect(modal).toBeVisible()
+  // El modal entra con animación: se captura quieto.
+  await quieto(modal)
   await capturar(page, info, `selector-de-iconos-arriba-${zoom}`)
   await modal.evaluate((m) => {
     const cuerpo = [...m.querySelectorAll<HTMLElement>('*')].find(
@@ -74,6 +78,7 @@ async function selectorDeIconos(page: Page, info: Info, zoom: string) {
     )
     if (cuerpo) cuerpo.scrollTop = cuerpo.scrollHeight
   })
+  await quieto(modal)
   await capturar(page, info, `selector-de-iconos-abajo-${zoom}`)
   await page.keyboard.press('Escape')
   await expect(modal).toBeHidden()
@@ -111,6 +116,10 @@ for (const zoom of ['100', '200'] as const) {
       .getByRole('switch', { name: 'Activa' })
     await expect(activaDeApibara).toBeVisible()
     await activaDeApibara.scrollIntoViewIfNeeded()
+    await aLaVistaAlAcomodarse(
+      page.getByRole('tab', { selected: true }).first(),
+      'la pestaña abierta de Integraciones',
+    )
     await capturar(page, info, `integraciones-activa-${zoom}`)
 
     // Las pestañas del origen, una por una, con su barra a la vista (queda bajo el título largo).
@@ -123,6 +132,7 @@ for (const zoom of ['100', '200'] as const) {
       const barra = page.getByRole('tab', { name: pestana })
       await expect(barra).toBeVisible()
       await barra.scrollIntoViewIfNeeded()
+      await aLaVistaAlAcomodarse(page.getByRole('tab', { selected: true }), `la pestaña ${pestana}`)
       await capturar(page, info, `origen-${clave}-${zoom}`)
     }
 

@@ -6,8 +6,9 @@ import {
   modalDeOrigen,
 } from './soporte/origenes-de-lead'
 import { descartarAviso } from './soporte/inventario'
+import { conRespuesta, esRpc } from './soporte/esperas'
 import { capturar } from './soporte/recorrido'
-import { expect, test, type Page, type Route } from './soporte/prueba'
+import { expect, test, type Page, type Response, type Route } from './soporte/prueba'
 import { sql } from './soporte/sql'
 
 // 5b-3: «Nuevo lead» lee lo que necesita (los orígenes, los tipos de lead y de seguimiento, el último origen de quien lo abre y el layout
@@ -58,6 +59,23 @@ async function demorar(page: Page, ms: number) {
   }
   await page.route(CONTEXTO, con)
   await page.route(CAMPOS, con)
+}
+
+// «Nuevo lead» y, con el clic, sus dos pedidos: se espera la respuesta de cada uno (con su tope), no los 5 s de un `expect`.
+const esCampos = (r: Response) => r.url().includes('/rest/v1/leads_campos')
+async function abrirYEsperarLoQueLee(page: Page): Promise<void> {
+  await conRespuesta(
+    page,
+    esCampos,
+    () =>
+      conRespuesta(
+        page,
+        esRpc('lead_alta_contexto'),
+        () => botonNuevo(page).click(),
+        'el contexto del alta',
+      ),
+    'los campos del alta',
+  )
 }
 
 async function aLeads(page: Page) {
@@ -220,7 +238,7 @@ test('lo que se lee al abrir: dos pedidos, con la semilla y con 100 orígenes, 1
   const leer = async () => {
     for (const k of Object.keys(pesos)) delete pesos[k]
     await aLeads(page)
-    await botonNuevo(page).click()
+    await abrirYEsperarLoQueLee(page)
     await expect(telefono(page)).toBeVisible()
     await expect.poll(() => Object.keys(pesos).length).toBe(2)
     return { ...pesos }
@@ -251,4 +269,14 @@ test('lo que se lee al abrir: dos pedidos, con la semilla y con 100 orígenes, 1
       delete from public.tipos_seguimiento where clave like '${PREFIJO_DEL_CATALOGO}%';
     `)
   }
+})
+
+test('«Nuevo lead» con sus dos pedidos demorados 6 s: el formulario llega con la respuesta', async ({
+  page,
+}) => {
+  await aLeads(page)
+  await demorar(page, 6_000)
+  await abrirYEsperarLoQueLee(page)
+  await expect(telefono(page)).toBeVisible()
+  await expect(dialogo(page).getByLabel('Cargando el formulario')).toBeHidden()
 })

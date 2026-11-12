@@ -257,7 +257,10 @@ declare
     -- El margen del mes (9.11-1): no recibe lead; lee pagos (sin su `lead_id`) y el total de la final, pide `logistica.margen.ver` y sólo sus
     -- orígenes, y devuelve sumas en moneda base que el panel de la unidad ya muestra (`areas/tablero/margen-y-cola.sql`).
     ('tablero_margen(date,date)', 'X'),
-    ('storage_refcount(text,text)', 'X')
+    ('storage_refcount(text,text)', 'X'),
+    -- La lectura de exportar todo (9.05-1): invocadora sobre `leads_vista`; entra por sus columnas de salida (`tipo_lead_id`, `origen_lead_id`),
+    -- no recibe un lead, y la RLS y las funciones de la vista recortan teléfono y campos de sólo cartera (`areas/datos/exportar.sql`).
+    ('datos_exportar_leads()', 'L')
   ) t (f, c));
   r record; v_fallas text := '';
 begin

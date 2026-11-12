@@ -1,6 +1,7 @@
 import type { Locator, Page, Request } from '@playwright/test'
 import { expect, test } from './soporte/prueba'
 import { entrar } from './soporte/alta'
+import { conRespuesta, demorarPedido, esAccionDelServidor, esRpc } from './soporte/esperas'
 import { idDePersona } from './soporte/leads-alta'
 import { nuevoLead } from './soporte/leads-ficha'
 import { completoCon, nacional } from './soporte/leads-ficha-telefonos'
@@ -102,12 +103,22 @@ test('«Seguimientos»: una página al abrir, «Ver más» hasta el tope, la red
   // Que no llegó: es la conexión, no «algo falló de nuestro lado» (9d-3).
   await expect(page.getByText(/No pudimos llegar al servidor. Revisa tu conexión/)).toBeVisible()
   await expect(itemsDe(linea)).toHaveCount(TAMANO_DE_VER_MAS)
-  await linea.getByRole('button', { name: 'Ver más' }).click()
+  await conRespuesta(
+    page,
+    esRpc('lead_seguimientos'),
+    () => linea.getByRole('button', { name: 'Ver más' }).click(),
+    '«Ver más» de seguimientos',
+  )
   await expect(itemsDe(linea)).toHaveCount(40)
 
   // El doble clic pide una sola página.
   const antes = pedidos.length
-  await linea.getByRole('button', { name: 'Ver más' }).dblclick()
+  await conRespuesta(
+    page,
+    esRpc('lead_seguimientos'),
+    () => linea.getByRole('button', { name: 'Ver más' }).dblclick(),
+    'doble clic en «Ver más»',
+  )
   await expect(itemsDe(linea)).toHaveCount(60)
   expect(pedidos.length - antes).toBe(1)
 
@@ -120,7 +131,12 @@ test('«Seguimientos»: una página al abrir, «Ver más» hasta el tope, la red
       break
     }
     const cuantos = await itemsDe(linea).count()
-    await verMas.click()
+    await conRespuesta(
+      page,
+      esRpc('lead_seguimientos'),
+      () => verMas.click(),
+      `«Ver más» nº ${String(clics)}`,
+    )
     await expect(itemsDe(linea)).not.toHaveCount(cuantos)
     if (clics === 5) {
       nodosTras5 = await drawerDe(page).locator('*').count()
@@ -148,12 +164,22 @@ test('«Ir a una fecha» siembra el cursor de ese día y «Volver» trae lo más
   const dia = new Date(Date.now() - 200 * 86_400_000).toISOString().slice(0, 10)
   const pedidos = contarPedidos(page, 'lead_seguimientos')
   await linea.getByLabel('Ir a una fecha').fill(dia)
-  await linea.getByRole('button', { name: 'Ir', exact: true }).click()
+  await conRespuesta(
+    page,
+    esRpc('lead_seguimientos'),
+    () => linea.getByRole('button', { name: 'Ir', exact: true }).click(),
+    '«Ir a una fecha»',
+  )
   await expect(linea.getByText(/^Desde el /)).toBeVisible()
   await expect(itemsDe(linea).first()).toContainText(primeroHasta(lead.id, dia))
   await expect(itemsDe(linea)).toHaveCount(TAMANO_DE_VER_MAS)
   expect(pedidos).toHaveLength(1)
-  await linea.getByRole('button', { name: 'Volver a los más recientes' }).click()
+  await conRespuesta(
+    page,
+    esRpc('lead_seguimientos'),
+    () => linea.getByRole('button', { name: 'Volver a los más recientes' }).click(),
+    '«Volver a los más recientes»',
+  )
   await expect(linea.getByText(/^Desde el /)).toHaveCount(0)
   await expect(itemsDe(linea).first()).toContainText('Volumen 1')
 })
@@ -168,7 +194,12 @@ test('«Recargar» tras un conflicto con 500 cargados: dos pedidos, lo escrito q
   await expect(itemsDe(linea)).toHaveCount(TAMANO_DE_VER_MAS)
   while ((await linea.getByRole('button', { name: 'Ver más' }).count()) > 0) {
     const cuantos = await itemsDe(linea).count()
-    await linea.getByRole('button', { name: 'Ver más' }).click()
+    await conRespuesta(
+      page,
+      esRpc('lead_seguimientos'),
+      () => linea.getByRole('button', { name: 'Ver más' }).click(),
+      '«Ver más» hasta el tope',
+    )
     await expect(itemsDe(linea)).not.toHaveCount(cuantos)
   }
   await expect(itemsDe(linea)).toHaveCount(TOPE_DE_LO_CARGADO)
@@ -180,18 +211,39 @@ test('«Recargar» tras un conflicto con 500 cargados: dos pedidos, lo escrito q
   await expect(modal).toBeVisible()
   await modal.getByLabel('Resumen').fill('Escrito con 500 cargados')
   cambiarEnOtraVentana(lejano, lead.id)
-  await modal.getByRole('button', { name: 'Guardar' }).click()
+  await conRespuesta(
+    page,
+    esAccionDelServidor,
+    () => modal.getByRole('button', { name: 'Guardar' }).click(),
+    '«Guardar» con el seguimiento cambiado',
+  )
   await expect(modal.getByRole('button', { name: 'Recargar' })).toBeVisible()
 
   // La primera página y, como el que se edita no vino en ella, ése por su id: dos pedidos.
   const pagina = contarPedidos(page, 'lead_seguimientos')
   const porId = contarPedidos(page, 'lead_seguimiento')
-  await modal.getByRole('button', { name: 'Recargar' }).click()
+  await conRespuesta(
+    page,
+    esRpc('lead_seguimientos'),
+    () =>
+      conRespuesta(
+        page,
+        esRpc('lead_seguimiento'),
+        () => modal.getByRole('button', { name: 'Recargar' }).click(),
+        '«Recargar»: el seguimiento por su id',
+      ),
+    '«Recargar»: la primera página',
+  )
   await expect(modal.getByRole('button', { name: 'Recargar' })).toHaveCount(0)
   expect(pagina).toHaveLength(1)
   expect(porId).toHaveLength(1)
   await expect(modal.getByLabel('Resumen')).toHaveValue('Escrito con 500 cargados')
-  await modal.getByRole('button', { name: 'Guardar' }).click()
+  await conRespuesta(
+    page,
+    esAccionDelServidor,
+    () => modal.getByRole('button', { name: 'Guardar' }).click(),
+    '«Guardar» tras recargar',
+  )
   await expect(modal).toHaveCount(0)
   // Lo cargado más allá de la primera página volvió a «Ver más».
   await expect(itemsDe(linea)).toHaveCount(TAMANO_DE_VER_MAS)
@@ -223,11 +275,21 @@ test('«Recordatorios»: una página de pendientes, los completados sólo al abr
   // «Completados» sin número, y sin leer hasta abrirlo.
   await expect(bloque.getByText('Completados', { exact: true })).toBeVisible()
   expect(pedidos).toHaveLength(1)
-  await bloque.getByText('Completados', { exact: true }).click()
+  await conRespuesta(
+    page,
+    esRpc('lead_recordatorios'),
+    () => bloque.getByText('Completados', { exact: true }).click(),
+    'abrir «Completados»',
+  )
   const completados = bloque.locator('details ul > li')
   await expect(completados).toHaveCount(TAMANO_DE_VER_MAS)
   expect(pedidos).toHaveLength(2)
-  await bloque.locator('details').getByRole('button', { name: 'Ver más' }).click()
+  await conRespuesta(
+    page,
+    esRpc('lead_recordatorios'),
+    () => bloque.locator('details').getByRole('button', { name: 'Ver más' }).click(),
+    '«Ver más» de completados',
+  )
   await expect(completados).toHaveCount(40)
 
   // El aviso de vencidos no cuenta todo: hay 1.000, dice «más de 20».
@@ -235,4 +297,25 @@ test('«Recordatorios»: una página de pendientes, los completados sólo al abr
   await expect(
     page.getByText('Tienes más de 20 recordatorios vencidos sobre este lead.'),
   ).toBeVisible()
+})
+
+test('«Seguimientos»: «Ver más» con el pedido demorado 6 s', async ({ page }) => {
+  await entrar(page, t.personas.berta)
+  await irAlDrawer(page, '&pestana=seguimientos')
+  const linea = drawerDe(page).getByRole('region', { name: 'Seguimientos' })
+  await expect(itemsDe(linea)).toHaveCount(TAMANO_DE_VER_MAS)
+  // Con la primera página ya leída: sólo el pedido de «Ver más» sale tarde.
+  const demorados = await demorarPedido(
+    page,
+    (pedido) => pedido.method() === 'POST' && pedido.url().endsWith('/rpc/lead_seguimientos'),
+    6_000,
+  )
+  await conRespuesta(
+    page,
+    esRpc('lead_seguimientos'),
+    () => linea.getByRole('button', { name: 'Ver más' }).click(),
+    '«Ver más» demorado 6 s',
+  )
+  expect(demorados).toHaveLength(1)
+  await expect(itemsDe(linea)).toHaveCount(TAMANO_DE_VER_MAS * 2)
 })

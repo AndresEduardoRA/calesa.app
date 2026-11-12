@@ -1,7 +1,7 @@
 # Entornos
 
 Toda la configuración, dónde vive y quién la pone. Ningún valor secreto entra en git ni en un log: los archivos `.env*` están
-ignorados y negados a las sesiones de IA (`.claude/settings.json`). `pnpm env:check` dice qué falta en `.env.local` y `.env.demo`
+ignorados y negados a las sesiones de IA (`.claude/settings.json`). `pnpm env:check` dice qué falta en `.env.local` y `.env.demo` y, con `produccion`, en Vercel y Supabase
 sin imprimir valores; la app cae al compilar si falta una pública y al arrancar si falta una del servidor (`src/shared/config/`).
 
 ## Los entornos
@@ -16,35 +16,36 @@ sin imprimir valores; la app cae al compilar si falta una pública y al arrancar
 
 ## Variables y ajustes
 
-| Variable o ajuste                                                | Para qué                                               | Dónde vive                                  | Secreta           | Quién la pone                                            |
-| ---------------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------- | ----------------- | -------------------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`                                       | La API de Supabase                                     | `.env.local`; Vercel prod y preview         | no                | `preparar.sh` en local; la persona en Vercel             |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`                           | Clave publicable                                       | ídem                                        | no                | ídem                                                     |
-| `SUPABASE_SECRET_KEY`                                            | API de admin de Auth (invitar)                         | ídem                                        | **sí**            | ídem                                                     |
-| `NEXT_PUBLIC_VAPID_PUBLIC_KEY`                                   | Push web (Fase 7)                                      | `.env.local`; Vercel; función `push`        | no                | la persona                                               |
-| `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`                             | Push web (Fase 7)                                      | función `push` (secreto)                    | la privada **sí** | la persona                                               |
-| `PORTAL_COOKIE_SECRETO`                                          | Firma la cookie del portal (8.07)                      | `.env.local`; Vercel prod y preview         | **sí**            | la persona; cambiarla cierra sesiones                    |
-| `EMAIL_PROVEEDOR`                                                | `ninguno`, `mailpit`, `resend` o `cloudflare`          | `.env.local`; Vercel                        | no                | la persona                                               |
-| `EMAIL_REMITENTE`, `…_NOMBRE`                                    | Remitente de la app y de Auth                          | `.env.local`; Vercel; `.env.demo`           | no                | la persona                                               |
-| `MAILPIT_URL`                                                    | Correo local (`http://127.0.0.1:54624`)                | `.env.local`                                | no                | `preparar.sh`                                            |
-| `RESEND_API_KEY`                                                 | Clave de Resend (con `EMAIL_PROVEEDOR=resend`)         | `.env.local`; Vercel                        | **sí**            | la persona                                               |
-| `CLOUDFLARE_ACCOUNT_ID`                                          | ID de cuenta de Cloudflare (32 hexadecimales)          | `.env.local`; Vercel                        | no                | la persona                                               |
-| `CLOUDFLARE_API_TOKEN`                                           | Token con **Email Sending: Edit** (con `cloudflare`)   | `.env.local`; Vercel                        | **sí**            | la persona                                               |
-| `SUPABASE_PROJECT_ID`, `SUPABASE_*_PORT`, `PUERTO_APP`, `E2E_*`  | El stack, la app y el e2e de un carril de Orca         | `.env.carril` (sólo en un carril)           | no                | `preparar.sh`                                            |
-| `SMTP_HOST`, `SMTP_USUARIO`, `SMTP_CLAVE`                        | SMTP de los correos de Auth                            | `.env.demo` → Supabase Auth                 | la clave **sí**   | la persona                                               |
-| `SUPABASE_AUTH_EXTERNAL_GOOGLE_*`                                | Google OAuth                                           | `.env.demo` → panel de Auth                 | el secret **sí**  | la persona                                               |
-| Site URL y Redirect URLs                                         | Enlaces de los correos y OAuth                         | `config.toml` › `[auth]` y `[remotes.demo]` | no                | `restaurar.sh`                                           |
-| `otp_expiry`                                                     | Vida de una invitación                                 | ídem (local 3600, demo 86400)               | no                | `restaurar.sh`                                           |
-| Plantillas de correo                                             | Los 6 correos de Auth en español                       | `supabase/templates/`                       | no                | `restaurar.sh`                                           |
-| `url_proyecto` (Vault)                                           | La URL que usan los jobs                               | Vault                                       | no                | el seed (local), `resetear.sh` (demo)                    |
-| `cotizacion:abierta` (Vault)                                     | Firma de la hoja abierta                               | Vault                                       | **sí**            | la base, al azar                                         |
-| `portal:sal` (Vault)                                             | Huella del límite por IP del portal (no guarda la IP)  | Vault                                       | **sí**            | la base, al azar                                         |
-| `integracion:apibara` (Vault)                                    | Clave de apibara                                       | Vault                                       | **sí**            | la persona en Empresa › Integraciones, o `APIBARA_CLAVE` |
-| `integracion:web_publica` (Vault)                                | Secreto para revalidar la web pública                  | Vault; la dirección, en `integraciones`     | **sí**            | la persona en Empresa › Integraciones                    |
-| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY` | Las funciones edge                                     | runtime de Supabase                         | la service **sí** | Supabase (las inyecta)                                   |
-| URLs de las funciones                                            | `apibara`, `storage-gc`, `avatares-miniaturas`, `push` | `<API>/functions/v1/<nombre>`               | no                | —                                                        |
-| `DEMO_*`                                                         | Resetear y sembrar la demo                             | `.env.demo`                                 | las claves **sí** | la persona                                               |
-| `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`                  | Migrar la demo desde CI                                | secretos de GitHub                          | **sí**            | la persona (etapa 6)                                     |
+| Variable o ajuste                                                | Para qué                                               | Dónde vive                                  | Secreta           | Quién la pone                                                                    |
+| ---------------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------- | ----------------- | -------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`                                       | La API de Supabase                                     | `.env.local`; Vercel prod y preview         | no                | `preparar.sh` en local; la persona en Vercel                                     |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`                           | Clave publicable                                       | ídem                                        | no                | ídem                                                                             |
+| `SUPABASE_SECRET_KEY`                                            | API de admin de Auth (invitar)                         | ídem                                        | **sí**            | ídem                                                                             |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY`                                   | Push web (Fase 7)                                      | `.env.local`; Vercel; función `push`        | no                | la persona                                                                       |
+| `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`                             | Push web (Fase 7)                                      | función `push` (secreto)                    | la privada **sí** | la persona                                                                       |
+| `PORTAL_COOKIE_SECRETO`                                          | Firma la cookie del portal (8.07)                      | `.env.local`; Vercel prod y preview         | **sí**            | la persona; cambiarla cierra sesiones                                            |
+| `EMAIL_PROVEEDOR`                                                | `ninguno`, `mailpit`, `resend` o `cloudflare`          | `.env.local`; Vercel                        | no                | la persona                                                                       |
+| `EMAIL_REMITENTE`, `…_NOMBRE`                                    | Remitente de la app y de Auth                          | `.env.local`; Vercel; `.env.demo`           | no                | la persona                                                                       |
+| `MAILPIT_URL`                                                    | Correo local (`http://127.0.0.1:54624`)                | `.env.local`                                | no                | `preparar.sh`                                                                    |
+| `RESEND_API_KEY`                                                 | Clave de Resend (con `EMAIL_PROVEEDOR=resend`)         | `.env.local`; Vercel                        | **sí**            | la persona                                                                       |
+| `CLOUDFLARE_ACCOUNT_ID`                                          | ID de cuenta de Cloudflare (32 hexadecimales)          | `.env.local`; Vercel                        | no                | la persona                                                                       |
+| `CLOUDFLARE_API_TOKEN`                                           | Token con **Email Sending: Edit** (con `cloudflare`)   | `.env.local`; Vercel                        | **sí**            | la persona                                                                       |
+| `SUPABASE_PROJECT_ID`, `SUPABASE_*_PORT`, `PUERTO_APP`, `E2E_*`  | El stack, la app y el e2e de un carril de Orca         | `.env.carril` (sólo en un carril)           | no                | `preparar.sh`                                                                    |
+| `SMTP_HOST`, `SMTP_USUARIO`, `SMTP_CLAVE`                        | SMTP de los correos de Auth                            | `.env.demo` → Supabase Auth                 | la clave **sí**   | la persona                                                                       |
+| `SUPABASE_AUTH_EXTERNAL_GOOGLE_*`                                | Google OAuth                                           | `.env.demo` → panel de Auth                 | el secret **sí**  | la persona                                                                       |
+| Site URL y Redirect URLs                                         | Enlaces de los correos y OAuth                         | `config.toml` › `[auth]` y `[remotes.demo]` | no                | `restaurar.sh`                                                                   |
+| `otp_expiry`                                                     | Vida de una invitación                                 | ídem (local 3600, demo 86400)               | no                | `restaurar.sh`                                                                   |
+| Plantillas de correo                                             | Los 6 correos de Auth en español                       | `supabase/templates/`                       | no                | `restaurar.sh`                                                                   |
+| `url_proyecto` (Vault)                                           | La URL que usan los jobs                               | Vault                                       | no                | el seed (local), `resetear.sh` (demo)                                            |
+| `cotizacion:abierta` (Vault)                                     | Firma de la hoja abierta                               | Vault                                       | **sí**            | la base, al azar                                                                 |
+| `portal:sal` (Vault)                                             | Huella del límite por IP del portal (no guarda la IP)  | Vault                                       | **sí**            | la base, al azar                                                                 |
+| `integracion:apibara` (Vault)                                    | Clave de apibara                                       | Vault                                       | **sí**            | la persona en Empresa › Integraciones, o `APIBARA_CLAVE`                         |
+| `integracion:web_publica` (Vault)                                | Secreto para revalidar la web pública                  | Vault; la dirección, en `integraciones`     | **sí**            | la persona en Empresa › Integraciones                                            |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY` | Las funciones edge                                     | runtime de Supabase                         | la service **sí** | Supabase (las inyecta)                                                           |
+| URLs de las funciones                                            | `apibara`, `storage-gc`, `avatares-miniaturas`, `push` | `<API>/functions/v1/<nombre>`               | no                | —                                                                                |
+| `DEMO_*`                                                         | Resetear y sembrar la demo                             | `.env.demo`                                 | las claves **sí** | la persona                                                                       |
+| `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`                  | Migrar la demo desde CI                                | secretos de GitHub                          | **sí**            | la persona (etapa 6)                                                             |
+| `VERCEL_TOKEN`, `VERCEL_PROJECT_ID`, `VERCEL_TEAM_ID`            | `env:check produccion` (leer nombres por API)          | el entorno de tu terminal, nunca un archivo | el token **sí**   | la persona; `SUPABASE_ACCESS_TOKEN` y `SUPABASE_PROJECT_REF` también sirven aquí |
 
 La clave pública VAPID (`NEXT_PUBLIC_VAPID_PUBLIC_KEY`) también la lee el servidor de la app para dibujar el interruptor de `/perfil` (7.04): sin ella dice «Falta la clave pública…» y no deja encender; el e2e usa una de prueba, sin privada (`playwright.config.ts`).
 
@@ -70,6 +71,26 @@ SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID=   # opcional
 SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET=      # opcional
 APIBARA_CLAVE=               # opcional
 ```
+
+## `env:check produccion`
+
+`pnpm env:check produccion` lee por API **los nombres, nunca los valores**, y dice qué falta en cuatro lugares: **Vercel · producción** (las tres
+públicas de Supabase, la secreta del servidor, `PORTAL_COOKIE_SECRETO`, la VAPID pública, `EMAIL_PROVEEDOR`, el remitente y su nombre, y la clave de
+un proveedor de correo real: Resend, o Cloudflare con cuenta y token), **Vercel · preview** (sólo las cuatro que arrancan la app: ni correo ni
+push), **Funciones de Supabase · secretos** (`VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` y la VAPID pública; las `SUPABASE_*` las inyecta Supabase) y
+**Auth de Supabase** (SMTP, las seis plantillas, Site URL, Redirect URLs y la vida de la invitación en 86400). Qué pide cada uno:
+`src/shared/config/esquemas.ts` (`esquemaDeProduccion`, `esquemaDePreview`, `esquemaDeLasFunciones`, `esquemaDeAuth`); los lectores, con `fetch`
+inyectado, están en `scripts/lib/entornos/`.
+
+- **Entradas** (sólo del entorno de tu terminal): `VERCEL_TOKEN`, `VERCEL_PROJECT_ID` y `VERCEL_TEAM_ID` (opcional), `SUPABASE_ACCESS_TOKEN`. El
+  ref de Supabase sale de `SUPABASE_PROJECT_REF` o de `[remotes.demo] project_id` de `supabase/config.toml`.
+- **Salida:** `0` todo completo; `1` falta algo y todo se leyó; `2` algún lugar no se pudo leer (falta un token o un dato, HTTP distinto de 2xx,
+  sin red), aunque otro lugar tenga faltas. Un lugar sin leer dice «no se pudo leer: falta VERCEL_TOKEN» y no llama a la red. Un fallo de la
+  API dice sólo «HTTP n» o «sin respuesta»: ni el cuerpo ni la URL.
+- **Sin argumento**, `pnpm env:check` sigue siendo `local` y `demo`, sin red.
+- **Sin verificar con la nube:** los contratos de las dos API (Vercel `GET /v10/projects/{id}/env`; Supabase `GET /v1/projects/{ref}/secrets` y
+  `…/config/auth`) salen de su documentación pública y de respuestas simuladas, no de una real. Si el primer corrido real de la persona da «respuesta con
+  otra forma», se ajusta el lector.
 
 ## Auth en la nube
 

@@ -13,8 +13,7 @@ $$;
 do $$
 declare
   r record; v_sin text[] := '{}'; v_sobran text[] := '{}';
-  v_excepciones constant jsonb := jsonb_build_object(
-    'datos.exportar.todo', 'UI + queries: la exportación de los datos de todos llega con la Fase 9 (Datos)');
+  v_excepciones constant jsonb := '{}'::jsonb;
 begin
   -- El autotest: una clave inventada no tiene enforcement y una real sí; si no, el detector no detecta.
   if pg_temp.con_enforcement('inventada.clave_que_nadie_consulta') then raise exception 'el detector da por enforzada una clave inventada'; end if;

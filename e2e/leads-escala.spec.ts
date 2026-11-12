@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test'
 import { expect, test } from './soporte/prueba'
 import { entrar } from './soporte/alta'
+import { conRespuesta, esRpc } from './soporte/esperas'
 import { admin } from './soporte/base'
 import { idDe } from './soporte/leads'
 import { completoCon, nacional } from './soporte/leads-ficha-telefonos'
@@ -227,7 +228,12 @@ test('una columna del kanban con más de 500: «500+», «Ver más» hasta el to
   await expect(columna.getByRole('article')).toHaveCount(TAMANO_DE_COLUMNA)
   // De 50 en 50 hasta 500 (nueve veces): sin número, porque pasó el tope.
   for (let i = 1; i < 10; i += 1) {
-    await columna.getByRole('button', { name: 'Ver más' }).click()
+    await conRespuesta(
+      page,
+      esRpc('embudo_etapa_pagina'),
+      () => columna.getByRole('button', { name: 'Ver más' }).click(),
+      `«Ver más» nº ${String(i)} del kanban`,
+    )
     await expect(columna.getByRole('article')).toHaveCount(50 * (i + 1))
   }
   await expect(columna.getByRole('button', { name: /Ver más/ })).toHaveCount(0)
