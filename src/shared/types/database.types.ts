@@ -7437,6 +7437,42 @@ export type Database = {
         }
         Returns: Json
       }
+      _declaracion_datos: {
+        Args: {
+          o: Omit<
+            Database['public']['Tables']['declaraciones_aduana']['Row'],
+            Database['public']['Tables']['declaraciones_aduana']['ComputedFields']
+          >
+          p_datos: Json
+        }
+        Returns: {
+          aceptada_el: string | null
+          actualizado_en: string
+          canal: Database['public']['Enums']['canal_aforo'] | null
+          creado_en: string
+          creado_por: string | null
+          deposito: string | null
+          despachante: string | null
+          id: string
+          notas: string | null
+          numero: string
+          vence_tributos_el: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'declaraciones_aduana'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _declaracion_vehiculos_listas: {
+        Args: { p_agregar: string[]; p_quitar: string[] }
+        Returns: Record<string, unknown>
+      }
+      _declaracion_vehiculos_validar: {
+        Args: { p_agregar: string[]; p_declaracion: string; p_todos: string[] }
+        Returns: undefined
+      }
       _dinero_filtros: {
         Args: { p_claves: string[]; p_filtros: Json }
         Returns: Record<string, unknown>
@@ -9235,6 +9271,23 @@ export type Database = {
       }
       crear_lead: {
         Args: { p_id: string; p_lead: Json; p_recordatorio?: Json; p_seguimiento?: Json }
+        Returns: Json
+      }
+      declaracion_canal: {
+        Args: { p_actualizado_en_esperado: string; p_canal: string; p_id: string }
+        Returns: Json
+      }
+      declaracion_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_datos: Json; p_id: string }
+        Returns: Json
+      }
+      declaracion_vehiculos_poner: {
+        Args: {
+          p_actualizado_en_esperado: string
+          p_agregar: string[]
+          p_declaracion: string
+          p_quitar: string[]
+        }
         Returns: Json
       }
       documento_editar: {

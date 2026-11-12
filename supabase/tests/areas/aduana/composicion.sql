@@ -181,3 +181,42 @@ begin
   perform pg_temp.adu_es('P3 regla apagada', r, '23514', 'aduana');
 end $$;
 rollback;
+
+create or replace function pg_temp.adu_canal(p_quien uuid, p_id uuid, p_esperada timestamptz, p_canal text) returns jsonb language sql as $f$
+  select pg_temp.adu_corre(p_quien, format('select public.declaracion_canal(%L, %L, %L)', p_id, p_esperada, p_canal));
+$f$;
+
+-- @test aduana: el canal no va a una declaración vacía, congela la composición, no vuelve a nulo y lleva la versión (P4)
+begin;
+do $$
+declare t jsonb := pg_temp.adu_terreno(); p uuid; sin uuid; d jsonb; id uuid; v timestamptz; v2 timestamptz; r jsonb;
+  x1 uuid := (t ->> 'v1')::uuid; x2 uuid := (t ->> 'v2')::uuid;
+begin
+  p := pg_temp.adu_persona(array['logistica.ver', 'logistica.aduana.gestionar']);
+  sin := pg_temp.adu_persona(array['logistica.ver']);
+  d := pg_temp.adu_crear(p, 'DUI-P4'); id := (d ->> 'id')::uuid; v := (d ->> 'actualizado_en')::timestamptz;
+  r := pg_temp.adu_canal(p, id, v, 'verde');
+  perform pg_temp.adu_es('P4 vacía', r, '23514', 'canal');
+  v := pg_temp.adu_pasa('P4 agregar', pg_temp.adu_poner(p, id, v, array[x1]));
+  v2 := pg_temp.adu_pasa('P4 verde', pg_temp.adu_canal(p, id, v, 'verde'));
+  r := pg_temp.adu_poner(p, id, v2, array[x2]);
+  perform pg_temp.adu_es('P4 agregar con canal', r, '23514', 'canal');
+  r := pg_temp.adu_poner(p, id, v2, '{}', array[x1]);
+  perform pg_temp.adu_es('P4 quitar con canal', r, '23514', 'canal');
+  if pg_temp.adu_vivos(id) <> array[x1] then raise exception 'P4: la composición debía quedar igual'; end if;
+  r := pg_temp.adu_poner(p, id, v, array[x2]);
+  perform pg_temp.adu_es('P4 la versión antes que el canal', r, 'PT409');
+  r := pg_temp.adu_canal(p, id, v2, null);
+  perform pg_temp.adu_es('P4 a nulo', r, '22023', 'canal');
+  r := pg_temp.adu_canal(p, id, v2, 'azul');
+  perform pg_temp.adu_es('P4 azul', r, '22023', 'canal');
+  r := pg_temp.adu_canal(sin, id, v2, 'rojo');
+  perform pg_temp.adu_es('P4 sin la clave', r, '42501');
+  r := pg_temp.adu_canal(p, id, v, 'rojo');
+  perform pg_temp.adu_es('P4 versión vieja', r, 'PT409');
+  perform pg_temp.adu_pasa('P4 rojo', pg_temp.adu_canal(p, id, v2, 'rojo'));
+  if (select canal from public.declaraciones_aduana where declaraciones_aduana.id = (d ->> 'id')::uuid) is distinct from 'rojo' then
+    raise exception 'P4: debía quedar en rojo';
+  end if;
+end $$;
+rollback;
