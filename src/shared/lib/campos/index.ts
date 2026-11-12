@@ -43,6 +43,7 @@ export {
   esquemaClave,
   esquemaEtiqueta,
   esquemaGrupo,
+  esquemaLimite,
   esquemaOpciones,
   esquemaTextoOpcional,
   esquemaValorDefecto,

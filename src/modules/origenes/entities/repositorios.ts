@@ -59,6 +59,8 @@ export type RepositorioCampos = {
     valorDefecto: ValorDefecto | null
     // Marcarlo desmarca el principal anterior del origen (en la misma llamada).
     principal: boolean
+    minimo: number | null
+    maximo: number | null
   }) => Promise<Resultado<Creado>>
   guardar: (pedido: {
     id: string

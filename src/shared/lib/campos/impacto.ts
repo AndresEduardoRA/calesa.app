@@ -2,7 +2,7 @@
 import { z } from 'zod'
 import { conteoAcotado, conteoEnFrase } from '../conteo'
 import { opcionesQuitadas, type CambiosComunes } from './cambios'
-import { rangoDe, rangoSeAcota, type Rango } from './rango'
+import { rangoSeAcota, type Rango } from './rango'
 import type { CampoBase, OpcionDeCampo } from './tipos'
 
 export type ImpactoDeCampo = {
@@ -58,12 +58,12 @@ type DelCampo = Pick<CampoBase, 'tipo' | 'requerido' | 'etiqueta'> & {
 // Un rango que se acota con valores ya cargados fuera: avisa y no bloquea (el dato se conserva; la base sólo valida lo que cambia).
 function avisoDeRango(
   campo: DelCampo,
-  cambios: object,
+  cambios: CambiosComunes,
   impacto: ImpactoDeCampo,
   sustantivo: Sustantivo,
 ): string | null {
   const vigente = { minimo: campo.minimo ?? null, maximo: campo.maximo ?? null }
-  if (!rangoSeAcota(vigente, rangoDe(cambios)) || !impacto.fueraDeRango) {
+  if (!rangoSeAcota(vigente, cambios) || !impacto.fueraDeRango) {
     return null
   }
   const conteo = conteoAcotado(impacto.fueraDeRango, TOPE_FUERA_DE_RANGO)
@@ -77,7 +77,7 @@ function avisoDeRango(
 // Dice, con los números, qué le pasa a lo ya cargado si se hace este cambio.
 export function resumenDeImpacto(
   campo: DelCampo,
-  cambios: CambiosComunes & Partial<Rango>,
+  cambios: CambiosComunes,
   impacto: ImpactoDeCampo,
   sustantivo: Sustantivo,
 ): ResumenDeImpacto {

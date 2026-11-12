@@ -5,6 +5,7 @@ import {
   esquemaClave,
   esquemaEtiqueta,
   esquemaGrupo,
+  esquemaLimite,
   esquemaOpciones,
   esquemaValorDefecto,
   esquemaVersion,
@@ -26,6 +27,8 @@ export const esquemaCrearCampo = conReglasDeCampo(
     soloCartera: z.boolean(),
     valorDefecto: esquemaValorDefecto,
     valorDefectoEmpresa: datoDeLaEmpresa,
+    minimo: esquemaLimite,
+    maximo: esquemaLimite,
   }),
 )
   .refine((campo) => campo.valorDefectoEmpresa === null || campo.tipo === 'texto', {
@@ -54,6 +57,8 @@ export const esquemaGuardarCampo = z.object({
       soloCartera: z.boolean().optional(),
       activo: z.boolean().optional(),
       valorDefecto: esquemaValorDefecto.optional(),
+      minimo: esquemaLimite.optional(),
+      maximo: esquemaLimite.optional(),
       valorDefectoEmpresa: datoDeLaEmpresa.optional(),
     })
     .refine((cambios) => Object.values<unknown>(cambios).some((valor) => valor !== undefined), {

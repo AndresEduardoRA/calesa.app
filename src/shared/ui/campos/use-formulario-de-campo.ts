@@ -1,7 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { valorDefectoPara, type CampoBase, type ResumenDeImpacto } from '@/shared/lib/campos'
+import {
+  problemaDelRango,
+  tieneRango,
+  valorDefectoPara,
+  type CampoBase,
+  type ResumenDeImpacto,
+} from '@/shared/lib/campos'
 import type {
   ConfiguracionDeCampos,
   EdicionesDeCampos,
@@ -19,11 +25,15 @@ type Args<Campo extends CampoBase, Cambios extends object, Nuevo> = {
   alTerminar: () => void
 }
 
-// Un valor por defecto que deja de servir (cambió el tipo, se sacó su opción) se va solo.
+// Un valor por defecto que deja de servir (cambió el tipo, se sacó su opción) se va solo; el rango, si el tipo ya no es un número
+// ni un monto (como la base).
 function conDefectoVigente(valores: ValoresDeCampo): ValoresDeCampo {
+  const conRango = tieneRango(valores.tipo)
   return {
     ...valores,
     valorDefecto: valorDefectoPara(valores.tipo, valores.opciones, valores.valorDefecto),
+    minimo: conRango ? valores.minimo : null,
+    maximo: conRango ? valores.maximo : null,
   }
 }
 
@@ -166,7 +176,15 @@ export function useFormularioDeCampo<Campo extends CampoBase, Cambios extends ob
     ...cambios,
     aviso,
     errores,
-    enviar: () => (campo === null ? crear() : guardar(campo)),
+    enviar: async () => {
+      // El rango se revisa antes de enviar, con los textos de la base, y se dice junto al dato.
+      const problema = problemaDelRango(valores)
+      if (problema) {
+        setErrores({ [problema.campo]: problema.mensaje })
+        return false
+      }
+      return campo === null ? crear() : guardar(campo)
+    },
     pedirEliminar,
     confirmarEliminar,
   }

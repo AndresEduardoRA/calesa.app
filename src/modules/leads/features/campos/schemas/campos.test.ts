@@ -13,6 +13,8 @@ const BASE = {
   soloCartera: false,
   valorDefecto: null,
   valorDefectoEmpresa: null,
+  minimo: null,
+  maximo: null,
 }
 
 describe('esquemaCrearCampo', () => {

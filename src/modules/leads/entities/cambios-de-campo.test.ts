@@ -39,6 +39,8 @@ const IGUAL = {
   activo: CAMPO.activo,
   valorDefecto: CAMPO.valorDefecto,
   valorDefectoEmpresa: CAMPO.valorDefectoEmpresa,
+  minimo: CAMPO.minimo,
+  maximo: CAMPO.maximo,
 }
 
 describe('cambiosRespectoDe', () => {

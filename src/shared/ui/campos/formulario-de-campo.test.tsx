@@ -55,6 +55,8 @@ const configuracion: ConfiguracionDeCampos<CampoBase, Cambios, Nuevo> = {
     grupo: campo?.grupo ?? '',
     activo: true,
     valorDefecto: null,
+    minimo: null,
+    maximo: null,
     banderas: {},
     textos: { nota: 'Una nota' },
   }),

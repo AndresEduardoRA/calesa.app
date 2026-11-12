@@ -25,6 +25,8 @@ const crear: RepositorioCamposDeLead['crear'] = async (nuevo) => {
     p_solo_cartera: nuevo.soloCartera,
     p_valor_defecto: nuevo.valorDefecto ?? undefined,
     p_valor_defecto_empresa: nuevo.valorDefectoEmpresa ?? undefined,
+    p_minimo: nuevo.minimo ?? undefined,
+    p_maximo: nuevo.maximo ?? undefined,
   })
   if (error) {
     return { ok: false, error: errorDePostgrest(error) }

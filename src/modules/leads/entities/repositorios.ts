@@ -52,6 +52,8 @@ export type RepositorioCamposDeLead = {
     soloCartera: boolean
     valorDefecto: ValorDefecto | null
     valorDefectoEmpresa: DatoDeLaEmpresa | null
+    minimo: number | null
+    maximo: number | null
   }) => Promise<Resultado<Creado>>
   guardar: (pedido: {
     id: string

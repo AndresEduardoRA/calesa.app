@@ -3,13 +3,15 @@
 // ofrece, cómo arma lo que viaja) y sus operaciones (las Server Actions por detrás).
 import type { ReactNode } from 'react'
 import type { Resultado } from '@/shared/lib/errores'
-import type {
-  CampoBase,
-  ImpactoDeCampo,
-  OpcionDeCampo,
-  ResumenDeImpacto,
-  TipoDeCampo,
-  ValorDefecto,
+import {
+  tieneRango,
+  type CampoBase,
+  type ImpactoDeCampo,
+  type OpcionDeCampo,
+  type Rango,
+  type ResumenDeImpacto,
+  type TipoDeCampo,
+  type ValorDefecto,
 } from '@/shared/lib/campos'
 
 // Un sí o no del campo que el módulo ofrece (en tarjeta, filtrable, solo la cartera…). `clave` es
@@ -36,12 +38,22 @@ export type ValoresDeCampo = {
   grupo: string
   activo: boolean
   valorDefecto: ValorDefecto | null
+  // El rango de un número o un monto (9-2); null = sin límite.
+  minimo: number | null
+  maximo: number | null
   banderas: Record<string, boolean>
   textos: Record<string, string>
 }
 
+// El rango que viaja desde el formulario: el escrito en un número o un monto; en otro tipo, sin límites (como la base).
+export function rangoDelFormulario(valores: ValoresDeCampo): Rango {
+  return tieneRango(valores.tipo)
+    ? { minimo: valores.minimo, maximo: valores.maximo }
+    : { minimo: null, maximo: null }
+}
+
 export type ErroresDeCampo = Partial<
-  Record<'etiqueta' | 'clave' | 'opciones' | 'grupo' | 'valorDefecto', string>
+  Record<'etiqueta' | 'clave' | 'opciones' | 'grupo' | 'valorDefecto' | 'minimo' | 'maximo', string>
 >
 
 export type DeLaFila = Pick<CampoBase, 'id' | 'etiqueta' | 'actualizadoEn'>

@@ -10,6 +10,7 @@ export { edicionesDeCampos } from './ediciones'
 export { ValorMostrado } from './valor-mostrado'
 export {
   banderaDe,
+  rangoDelFormulario,
   type BanderaDeCampo,
   type ConfiguracionDeCampos,
   type ContextoDelHueco,

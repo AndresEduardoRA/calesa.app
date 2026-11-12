@@ -8,12 +8,13 @@ import {
 } from '@/shared/lib/campos'
 import { RUTAS } from '@/shared/lib/rutas'
 import { CampoSeleccion } from '@/shared/ui/campo-seleccion'
-import type {
-  BanderaDeCampo,
-  ConfiguracionDeCampos,
-  ContextoDelHueco,
-  TextosDelEditor,
-  ValoresDeCampo,
+import {
+  rangoDelFormulario,
+  type BanderaDeCampo,
+  type ConfiguracionDeCampos,
+  type ContextoDelHueco,
+  type TextosDelEditor,
+  type ValoresDeCampo,
 } from '@/shared/ui/campos'
 import {
   cambiosRespectoDe,
@@ -91,6 +92,8 @@ function valoresIniciales(campo: CampoDeLead | null): ValoresDeCampo {
       grupo: '',
       activo: true,
       valorDefecto: null,
+      minimo: null,
+      maximo: null,
       banderas: { requerido: false, enTabla: false, filtrable: false, soloCartera: false },
       textos: { [EMPRESA]: '' },
     }
@@ -103,6 +106,8 @@ function valoresIniciales(campo: CampoDeLead | null): ValoresDeCampo {
     grupo: campo.grupo ?? '',
     activo: campo.activo,
     valorDefecto: campo.valorDefecto,
+    minimo: campo.minimo,
+    maximo: campo.maximo,
     banderas: {
       requerido: campo.requerido,
       enTabla: campo.enTabla,
@@ -140,6 +145,7 @@ function cambiosDe(campo: CampoDeLead, valores: ValoresDeCampo): CambiosDeCampoD
     activo: valores.activo,
     valorDefecto: empresa === null ? valores.valorDefecto : null,
     valorDefectoEmpresa: empresa,
+    ...rangoDelFormulario(valores),
   })
 }
 
@@ -235,6 +241,7 @@ export function configuracionDeLeads({
         soloCartera: (valores.banderas['soloCartera'] ?? false) || soloCarteraPorTipo(tipo),
         valorDefecto: dato === null ? valores.valorDefecto : null,
         valorDefectoEmpresa: dato,
+        ...rangoDelFormulario(valores),
       }
     },
     cambiosDe,

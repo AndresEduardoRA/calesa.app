@@ -25,6 +25,8 @@ const crear: RepositorioCampos['crear'] = async (nuevo) => {
     p_clave_apibara: nuevo.claveApibara ?? undefined,
     p_valor_defecto: nuevo.valorDefecto ?? undefined,
     p_principal: nuevo.principal,
+    p_minimo: nuevo.minimo ?? undefined,
+    p_maximo: nuevo.maximo ?? undefined,
   })
   if (error) {
     return { ok: false, error: errorDePostgrest(error) }
