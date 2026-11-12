@@ -46,12 +46,33 @@ const COLGADO_ESPERA = Number(process.env.COORD_COLGADO_ESPERA ?? 600) * 1000
 const MIGRACION = /^supabase\/migrations\/(\d{14})_[^/]+\.sql$/
 const nombreDe = (c) => String(c.name ?? c.context ?? '')
 
+// ¿El prefijo `AAAAMMDDhhmmss` de una migración es una fecha y hora que existe y no es del futuro (con una hora de margen)? Es la regla de
+// `scripts/guardas/orden-de-migraciones.test.ts`. Una sesión que renumera a mano sumando uno llega a `…1260` (el segundo 60 no existe;
+// el 6.05 del 2026-11-11): el Nivel 1 caía y el paso volvía a su carril por algo que renumerar arregla sin sesión.
+export function fechaReal(prefijo, ahora = Date.now()) {
+  const m = /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/.exec(prefijo)
+  if (!m) return false
+  const [a, mes, d, h, min, s] = m.slice(1).map(Number)
+  const ms = Date.UTC(a, mes - 1, d, h, min, s)
+  const f = new Date(ms)
+  return (
+    f.getUTCMonth() === mes - 1 &&
+    f.getUTCDate() === d &&
+    f.getUTCHours() === h &&
+    f.getUTCMinutes() === min &&
+    f.getUTCSeconds() === s &&
+    ms <= ahora + 3_600_000
+  )
+}
+
 // Las migraciones que el PR agrega y que quedaron atrás de la última de origin/main: su CI pasó contra un main más viejo, y al
 // integrarlas el orden queda invertido (el #10 entró después del #11 con una versión anterior, 2026-11-06): `db push` a la demo lo
 // rechaza. Vuelve a su carril, que las renumera sin sesión (carril.sh › renumerar_migraciones). Sin origin/main no se mira.
+// También las que no llevan una fecha y hora reales (`fechaReal`): se arreglan igual, renumerando.
 function migracionesAtrasadas(archivos) {
   const nuevas = archivos.map((a) => MIGRACION.exec(a)).filter(Boolean)
-  if (nuevas.length === 0) return []
+  const sinFecha = nuevas.filter((m) => !fechaReal(m[1])).map((m) => m[0])
+  if (nuevas.length === 0) return { atrasadas: [], sinFecha }
   let enMain
   try {
     enMain = new Set(
@@ -63,14 +84,17 @@ function migracionesAtrasadas(archivos) {
         .filter((r) => MIGRACION.test(r)),
     )
   } catch {
-    return []
+    return { atrasadas: [], sinFecha }
   }
   const ultima =
     [...enMain]
       .map((r) => MIGRACION.exec(r)[1])
       .sort()
       .at(-1) ?? ''
-  return nuevas.filter((m) => !enMain.has(m[0]) && m[1] <= ultima).map((m) => m[0])
+  return {
+    atrasadas: nuevas.filter((m) => !enMain.has(m[0]) && m[1] <= ultima).map((m) => m[0]),
+    sinFecha: sinFecha.filter((r) => !enMain.has(r)),
+  }
 }
 
 // Lo que dice GitHub de un PR: su estado y, si está abierto, si hay que arreglarlo, si su CI sigue y si se puede integrar.
@@ -109,17 +133,21 @@ export function mirarPr(numero) {
     checks.some((c) => c.conclusion === 'CANCELLED') &&
     !checks.some((c) => c.conclusion !== 'CANCELLED' && estadoDe(c) !== 'COMPLETED')
   const archivos = (pr.files ?? []).map((f) => f.path)
-  const atrasadas = pr.state === 'OPEN' ? migracionesAtrasadas(archivos) : []
+  const { atrasadas, sinFecha } =
+    pr.state === 'OPEN' ? migracionesAtrasadas(archivos) : { atrasadas: [], sinFecha: [] }
   // Rojo es con el CI terminado: con un job todavía corriendo, el reintento de los caídos no se puede pedir (reintentarUnaVez). Salvo el
-  // rojo firme, que no se reintenta ni espera.
+  // rojo firme, que no se reintenta ni espera. Una migración sin fecha real va antes que el rojo: ella sola pone el Nivel 1 en rojo
+  // (orden-de-migraciones.test.ts) y se arregla renumerando, sin sesión.
   const arreglar =
     pr.mergeable === 'CONFLICTING'
       ? 'conflicto con main'
-      : rojo && (!pendiente || firme)
-        ? 'CI en rojo'
-        : atrasadas.length
-          ? 'migración anterior a la última de main'
-          : null
+      : sinFecha.length
+        ? 'migración anterior a la última de main'
+        : rojo && (!pendiente || firme)
+          ? 'CI en rojo'
+          : atrasadas.length
+            ? 'migración anterior a la última de main'
+            : null
   const listo = !arreglar && !pendiente && checks.length > 0 && pr.mergeable === 'MERGEABLE'
   const guardas = GUARDAS_SOLAS ? [] : guardasEn(archivos)
   return {
@@ -129,6 +157,8 @@ export function mirarPr(numero) {
     listo,
     // El CI terminó en verde y no choca con main, falte o no renumerar: lo que `renumerar` necesita saber para no pagar otro CI.
     verde: !pendiente && !rojo && checks.length > 0 && pr.mergeable === 'MERGEABLE',
+    // El CI de la punta terminó en verde, choque o no con main: lo que `unirMain` necesita saber (unir-main.mjs).
+    ciVerde: !pendiente && !rojo && checks.length > 0,
     rojo,
     integrable: pr.mergeable === 'MERGEABLE',
     // GitHub todavía no calculó si choca con main (unos segundos tras cada integración): no dice que el choque de antes se fue.

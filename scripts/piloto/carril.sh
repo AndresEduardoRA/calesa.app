@@ -181,14 +181,30 @@ tipos_para_la_sesion() {
 # orden, a versiones nuevas: el mismo contenido, otra versión, y la versión vieja reemplazada en los archivos que la rama cambió. Es lo
 # que la sesión hacía a mano con `supabase migration new` (el 4.22 volvió en rojo por eso, 2026-11-08). Un commit que no pasa sus hooks se
 # deshace y queda para la sesión.
+#
+# También si alguna no lleva una fecha y hora reales (`fecha_real`): una sesión que renumera a mano sumando uno llega al segundo 60, la
+# guarda de orden pone el Nivel 1 en rojo y el PR volvía a su carril (el 6.05 del 2026-11-11).
+#
+# El commit va con PILOTO=1, como los de un paso: sin él, el hook del commit corría `probar-schema` sobre las migraciones renombradas
+# (≈ 4 min 30 s cada vez, medido el 2026-11-11 en los tres carriles: «traje origin/main» 18:20:09, «renumeré» 18:24:55), con el carril
+# parado y para un cambio que no toca el SQL. El job «Base» del CI lo corre igual.
+fecha_real() { # <AAAAMMDDhhmmss>: existe (date la devuelve igual) y no es de más de una hora en el futuro
+  local v="$1" vuelve
+  vuelve=$(date -u -d "${v:0:8} ${v:8:2}:${v:10:2}:${v:12:2}" +%Y%m%d%H%M%S 2>/dev/null) || return 1
+  [ "$vuelve" = "$v" ] && [ "$v" -le "$(date -u -d '+1 hour' +%Y%m%d%H%M%S)" ]
+}
 renumerar_migraciones() {
-  local tope propias f v nuevo seg ahora pares=() par otros
+  local tope propias f v nuevo seg ahora pares=() par otros atras=0
   tope=$(git ls-tree --name-only origin/main supabase/migrations/ 2>/dev/null |
     sed -n 's#^supabase/migrations/\([0-9]\{14\}\)_.*\.sql$#\1#p' | sort | tail -n 1)
   [ -n "$tope" ] || return 0
   propias=$(git diff --name-only --diff-filter=A origin/main HEAD -- supabase/migrations/ | grep -E '/[0-9]{14}_[^/]*\.sql$' | sort)
   [ -n "$propias" ] || return 0
-  [ "$(basename "$(head -n 1 <<<"$propias")" | cut -c1-14)" -le "$tope" ] || return 0
+  [ "$(basename "$(head -n 1 <<<"$propias")" | cut -c1-14)" -le "$tope" ] && atras=1
+  while IFS= read -r f; do
+    fecha_real "$(basename "$f" | cut -c1-14)" || atras=1
+  done <<<"$propias"
+  [ "$atras" = 1 ] || return 0
   seg=$(date -u -d "${tope:0:8} ${tope:8:2}:${tope:10:2}:${tope:12:2}" +%s) || return 0
   ahora=$(date -u +%s)
   [ "$ahora" -gt "$seg" ] && seg=$((ahora - 1))
@@ -206,7 +222,7 @@ renumerar_migraciones() {
     done <<<"$otros"
   done
   bash scripts/mapa.sh >/dev/null 2>&1
-  if git commit --quiet -m "fix(db): renumerar las migraciones que main dejó atrás" >>"$ESTADO/traer-main.log" 2>&1 8>&-; then
+  if PILOTO=1 git commit --quiet -m "fix(db): renumerar las migraciones que main dejó atrás" >>"$ESTADO/traer-main.log" 2>&1 8>&-; then
     RENUMERADAS=1
     registro "carril ${PILOTO_CARRIL:-}: renumeré las migraciones de la rama tras main (${pares[*]})."
   else

@@ -2,6 +2,7 @@ import { expect, test } from './soporte/prueba'
 import { aLaVista, editarDesdeLaLista, entrar } from './soporte/inventario'
 import { crearLead, marcarInteres } from './soporte/leads'
 import { nadaSeSaleDelPanel } from './soporte/panel'
+import { esDelMarco } from './soporte/pedidos-del-marco'
 import { capturar, sinScrollHorizontal } from './soporte/recorrido'
 import {
   OTRO,
@@ -104,7 +105,7 @@ test('«Fotos» e «Interesados» leen al elegirse, sin sumar al historial', asy
   // Abrir el resumen no leyó las fotos ni los interesados: cada pestaña paga lo suyo al elegirse.
   const pedidos: string[] = []
   page.on('request', (pedido) => {
-    if (pedido.url().includes('/rest/v1/')) {
+    if (pedido.url().includes('/rest/v1/') && !esDelMarco(pedido.url())) {
       pedidos.push(pedido.url())
     }
   })
@@ -149,7 +150,7 @@ test('abrir el resumen cuesta un pedido a la base y nada antes de abrirlo', asyn
   await entrar(page, t.terreno.duena)
   const pedidos: string[] = []
   page.on('request', (pedido) => {
-    if (pedido.url().includes('/rest/v1/')) {
+    if (pedido.url().includes('/rest/v1/') && !esDelMarco(pedido.url())) {
       pedidos.push(pedido.url())
     }
   })

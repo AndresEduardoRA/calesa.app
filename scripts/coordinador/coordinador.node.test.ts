@@ -13,6 +13,8 @@ describe('scripts/coordinador', () => {
         'scripts/coordinador/plan.test.mjs',
         'scripts/coordinador/coordinador.test.mjs',
         'scripts/coordinador/limpiar-ramas.test.mjs',
+        'scripts/coordinador/renumerar.test.mjs',
+        'scripts/coordinador/unir-main.test.mjs',
       ],
       { encoding: 'utf8' },
     )
