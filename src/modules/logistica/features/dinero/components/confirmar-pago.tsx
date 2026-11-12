@@ -6,6 +6,7 @@ import { Aviso } from '@/shared/ui/aviso'
 import { Confirmar } from '@/shared/ui/confirmar'
 import { Monto } from '@/shared/ui/monto'
 import { tituloDeConfirmarPago, type Pago } from '../../../entities/dinero/pago'
+import { useAmbitoDePago } from '../hooks/ambito-de-pago'
 
 type Props = {
   // El que se confirma; el último que se vio mientras el diálogo se va.
@@ -21,6 +22,8 @@ type Props = {
 export function ConfirmarPago({ pago, abierto, confirmar, alCerrar }: Props) {
   const [error, setError] = useState<ErrorApp | null>(null)
   const [enCurso, setEnCurso] = useState(false)
+  // Un pago de proyecto todavía no se anula (8-13d): confirmarlo lo deja sellado del todo.
+  const proyecto = useAmbitoDePago() === 'proyecto'
 
   function cerrar() {
     setError(null)
@@ -48,7 +51,11 @@ export function ConfirmarPago({ pago, abierto, confirmar, alCerrar }: Props) {
       alCerrar={cerrar}
       alConfirmar={alConfirmar}
       titulo={pago ? tituloDeConfirmarPago(pago) : 'Confirmar el pago'}
-      descripcion="Queda sellado: no se podrá editar. Si te equivocas, se anula con un motivo."
+      descripcion={
+        proyecto
+          ? 'Queda sellado: no se podrá editar, eliminar ni anular por ahora.'
+          : 'Queda sellado: no se podrá editar. Si te equivocas, se anula con un motivo.'
+      }
       etiquetaConfirmar="Confirmar pago"
       enCurso={enCurso}
     >

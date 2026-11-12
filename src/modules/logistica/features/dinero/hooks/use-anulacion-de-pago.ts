@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { enviarAccion } from '@/shared/lib/enviar-accion'
 import { avisar, avisarExito } from '@/shared/ui/toasts'
-import { validarMotivoDeAnulacion, type Pago } from '../../../entities/dinero/pago'
+import { validarMotivoDeAnulacion } from '../../../entities/dinero/anulacion-de-pago'
+import type { Pago } from '../../../entities/dinero/pago'
 import { anularPago } from '../actions/anular-pago'
 import { avisarCambioDeDinero } from './eventos-de-dinero'
 

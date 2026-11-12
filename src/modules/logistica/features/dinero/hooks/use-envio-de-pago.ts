@@ -8,6 +8,7 @@ import { cambiosDePago, type DatosDePago, type Pago } from '../../../entities/di
 import type { PagoGuardado } from '../../../entities/dinero/repositorio-de-pagos'
 import { guardarPago } from '../actions/guardar-pago'
 import { registrarPago } from '../actions/registrar-pago'
+import { useAmbitoDePago } from './ambito-de-pago'
 import { avisarCambioDeDinero } from './eventos-de-dinero'
 
 type Args = {
@@ -41,6 +42,7 @@ export function useEnvioDePago({
   const [conflicto, setConflicto] = useState<string | null>(null)
   const [pendiente, setPendiente] = useState<DatosDePago | null>(null)
   const [enCurso, setEnCurso] = useState(false)
+  const ambito = useAmbitoDePago()
 
   function alRechazar(envio: Extract<Envio<PagoGuardado>, { ok: false }>) {
     setPendiente(null)
@@ -56,7 +58,11 @@ export function useEnvioDePago({
   async function pedir(datos: DatosDePago): Promise<Envio<PagoGuardado> | null> {
     if (!original) {
       return enviarAccion(
-        registrarPago({ id: intento, vehiculoId: unidadId, ...datos }),
+        registrarPago({
+          id: intento,
+          ...(ambito === 'proyecto' ? { proyectoId: unidadId } : { vehiculoId: unidadId }),
+          ...datos,
+        }),
         MENSAJE_DE_VALIDACION,
       )
     }

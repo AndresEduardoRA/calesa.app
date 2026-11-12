@@ -20,3 +20,8 @@ export const HuecoDeMargenDiferido = diferido(() =>
 export const HuecoDeProrrateoDiferido = diferido(() =>
   import('./hueco-de-prorrateo').then((modulo) => modulo.HuecoDeProrrateo),
 )
+
+// La pestaña «Pagos» de un proyecto de repuestos (8.13-5): se pide al abrirla.
+export const PagosDelProyectoDiferido = diferido(() =>
+  import('./pagos-del-proyecto').then((modulo) => modulo.PagosDelProyecto),
+)

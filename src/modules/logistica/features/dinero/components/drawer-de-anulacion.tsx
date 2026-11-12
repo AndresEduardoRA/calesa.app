@@ -10,7 +10,8 @@ import { Label } from '@/shared/ui/label'
 import { Monto } from '@/shared/ui/monto'
 import { PieDelPanel } from '@/shared/ui/pie-del-panel'
 import { Textarea } from '@/shared/ui/textarea'
-import { MOTIVO_MAXIMO, tituloDeAnularPago, type Pago } from '../../../entities/dinero/pago'
+import { MOTIVO_MAXIMO } from '../../../entities/dinero/anulacion-de-pago'
+import { tituloDeAnularPago, type Pago } from '../../../entities/dinero/pago'
 import { useAnulacionDePago } from '../hooks/use-anulacion-de-pago'
 
 type Props = {

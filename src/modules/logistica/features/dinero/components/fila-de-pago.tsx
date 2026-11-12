@@ -5,7 +5,8 @@ import { formatearFecha } from '@/shared/lib/fechas'
 import { AbrirResumen, MasAcciones, TarjetaDeLista, type AccionDeMenu } from '@/shared/ui/lista'
 import { Monto } from '@/shared/ui/monto'
 import { useRegional } from '@/shared/ui/regional'
-import { textoDelSello, type AccionesDelPago, type Pago } from '../../../entities/dinero/pago'
+import type { AccionesDelPago } from '../../../entities/dinero/acciones-del-pago'
+import { textoDelSello, type Pago } from '../../../entities/dinero/pago'
 import { verComprobante } from './ver-comprobante'
 
 type Props = {
