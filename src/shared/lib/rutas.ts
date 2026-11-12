@@ -19,6 +19,7 @@ export const RUTAS = {
   configuracionDeCotizacion: '/configuracion/cotizacion',
   configuracionDeFlujos: '/configuracion/flujos',
   configuracionDeLogistica: '/configuracion/logistica',
+  configuracionDeRepuestos: '/configuracion/repuestos',
   leads: '/leads',
   papeleraDeLeads: '/leads/papelera',
   importarLeads: '/leads/importar',
@@ -28,6 +29,7 @@ export const RUTAS = {
   embarques: '/logistica/embarques',
   aduana: '/logistica/aduana',
   gastosDeLogistica: '/logistica/gastos',
+  repuestos: '/repuestos',
 } as const
 
 // La unidad de logística (6.01) tiene su propia página: a ella apuntan las notificaciones de demora. `RUTAS` es un objeto fijo; la que lleva un id es una función.
