@@ -6142,3 +6142,224 @@ Fecha: 2026-11-12 (`TZ=America/La_Paz date +%F`). Sin compuertas ni preguntas ab
   `/logistica/embarques` dibuja tarjetas. Es del spec, no un defecto.
 - **D10** (Para el 6.14-2) 6-4 no lo tomó ningún paso y arreglarlo es código de producto: queda en «los decide la persona», con las dos opciones de su fila.
 - **D11** (Para el 6.14-2) El 6-3 de «borrar una nota propia por RPC» (6.04, D22) pasa a **6-7**: el número 6-3 ya era `pago_anular`, cerrado en el 6.10-2.
+
+<!-- paso:8.02-1 -->
+
+- **D1 · La categoría de una pregunta frecuente es texto libre con sugerencias** (8.02-1): la columna `web_faqs.categoria` es `text` y `web.faqs` la expone tal cual; el campo lleva un `<datalist>` con las categorías ya usadas. Reversible: un catálogo sería una migración.
+- **D2 · La respuesta es texto plano:** la vista la entrega como está escrita y el sitio la escapa; guardar HTML o Markdown sería un contrato nuevo con el repo del sitio. El campo dice «Se muestra tal como la escribes, sin formato.». Reversible: sale del esquema de la action.
+- **D3 · Se escribe directo, con el cliente de quien pide y la RLS como límite** (como las categorías de gasto y los catálogos de repuestos): una pregunta no otorga permisos, así que no hay RPC ni migración. La versión se compara con `.eq('actualizado_en', esperado)`; 0 filas se relee por id y se dice «ya no existe», conflicto (otra versión) o sin permiso (misma versión: la RLS la dejó en cero). `supabase/tests/areas/web/faqs-permisos.sql` demuestra el límite.
+- **D4 · No se edita `ListaDeCatalogo`** (`src/shared`: Nivel 2 y regresión en sus otros usos): la fila lleva `activo: true` y el estado se dice con la insignia «Publicada» / «Sin publicar». Costo: la columna «Estado» y la tarjeta del celular dicen «Activo» en todas las filas. **Pulido para la Fase 9:** una `etiquetaDeEstado` opcional en `FilaDeCatalogo` (sirve también a los testimonios de la 8.02-2).
+- **D5 · La sección viaja diferida** (`diferido()` en `features/contenido/faqs/components/diferidos.tsx`) porque `pantallas/sitio-faqs.ts` lo importa `pestanas.ts` y, por él, el hub de Configuración. El panel y el diálogo de eliminar se piden al abrirse (`useAbiertoAlgunaVez`).
+- **D6 · Mover se calcula en el servidor sobre la lista releída** (`reordenar()` de `entities/contenido/faqs.ts`): renumera 0…n−1 en el orden mostrado y escribe sólo las filas que cambian, cada una con su versión (los `orden` iguales, como el 0 por defecto, no se pueden intercambiar sin renumerar). No es atómico; si una versión cambió, dice «Alguien cambió el orden mientras lo veías. Recarga para seguir.». Con la lista cortada por el tope, mover se apaga con su motivo (y el repositorio lo rechaza). Reversible: una RPC `web_faqs_reordenar` sería una migración.
+- **D7 · Eliminar sólo desde el «⋯» de la lista** (`?panel=eliminar-faq&faq=<id>`): así `?panel=` tiene un solo dueño a la vez; el panel de edición no lleva botón de eliminar.
+- **D8 · Dos paneles en la URL:** `?panel=nueva-faq` y `?panel=faq&faq=<id>` (un `<Drawer>` con `<CambiosSinGuardar>` y borrador por `useBorradorDeEstado`); una pregunta que no está en lo leído no abre (se avisa una vez y la URL se limpia); si desaparece con el panel abierto, el panel lo dice y no deja guardar. «Recargar» tras un conflicto descarta lo escrito (como en la tarea).
+- **D9 · Sin vista previa ni columna de «última edición»:** la publicación revalida el sitio por el trigger `web_revalidar` que ya existe (etiqueta `faqs`).
+- **D10 · «Sitio web» aparece en el hub con sólo `web.contenido.gestionar`:** al llenarse la pestaña de FAQs, quien tiene esa clave sin `web.ajustes.gestionar` ve la tarjeta (antes ninguna pestaña llena le correspondía). `pestanas.test.ts` pasó de «sólo Ajustes está llena» a «Ajustes y Preguntas frecuentes».
+
+<!-- paso:8.02-2 -->
+
+- **D1 · Crear, editar y eliminar un testimonio es directo bajo la RLS con versión** (como las FAQs, D3 del 8.02-1); el consentimiento, por las RPC `web_testimonio_consentir` y `web_testimonio_retirar` que ya existen (8.01-1). Sin migración. `supabase/tests/areas/web/testimonios-permisos.sql` demuestra el límite de la escritura directa; el del consentimiento ya lo cubría `testimonios-consentimiento.sql`.
+- **D2 · Registrar y retirar el consentimiento son paneles por URL distintos del de edición** (`?panel=consentimiento-testimonio&testimonio=<id>`, `?panel=retirar-consentimiento&testimonio=<id>`): `?panel=` tiene un solo dueño a la vez y el trigger anula el consentimiento al cambiar nombre, texto o foto, así que mezclarlos en un formulario lo escondería.
+- **D3 · Sin orden manual de testimonios en esta parte:** nacen al final (`orden` = máximo + 1) y se leen por `orden` y luego el más reciente primero. Los botones de orden de `ListaDeCatalogo` salen apagados con su motivo «Los testimonios se muestran en el orden en que se crearon.». Reversible: copiar `reordenar()` de las FAQs.
+- **D4 · Aviso en vivo, no un diálogo extra**, antes de guardar un cambio que anula el consentimiento («Cambiar esto borra el consentimiento y lo despublica.»; ciudad o vehículo, «…apaga el permiso para mostrarla/o»). En un cambio que lo anula no se manda `publicado`: el trigger lo apaga. Reversible: un `<Confirmar>` por URL.
+- **D5 · La foto se sube desde el navegador al guardar**, no al elegirla, y se limpia con `quitarSiHuerfano('web', ruta)` si el guardado falla, si la reemplaza o la quita y al eliminar el testimonio (`web_testimonios` no tiene trigger de limpieza; el nombre es el hash, así que un objeto compartido no se borra). Un huérfano por un corte entre subir y guardar es posible y barato. Carpeta `testimonios/`.
+- **D6 · Las tres casillas del consentimiento empiezan apagadas** (consentir de menos es lo conservador) y sólo se pueden encender si el testimonio tiene ese dato; con un consentimiento vigente, el panel empieza con lo registrado. El nombre y el texto quedan autorizados siempre (el panel lo dice).
+- **D7 · Un testimonio retirado se puede volver a consentir** desde el mismo «⋯» (la base lo reactiva); no hay «deshacer retiro». Con uno vigente, la línea dice «Cambiar consentimiento».
+- **D8 · La lista dice «Consentimiento registrado el <fecha>», no quién lo registró:** resolver `consent_por` pide leer personas; el dato está en la base. Reversible: un join de lectura.
+- **D9 · La sección viaja diferida** (`diferido()`), como Ajustes y las FAQs, y los dos paneles y los dos diálogos se piden al abrirse.
+- **D10 · `lead_id` queda nulo** (fila del PLAN) y no hay vista previa con el diseño del sitio.
+- **D11 · La subida de la foto la ofrece `areas/contenido/client.ts`** (la puerta de cliente del área) a los hooks de `features`; la guarda de áreas lo aceptó, no hubo que reubicarla.
+- **D12 · Los errores `22022` y `P0002` de las RPC se dicen con su mensaje:** `errorDePostgrest` no los conocía (caían en «Algo falló…»); `rechazoDeTestimonio()` los mapea en `entities/contenido/errores.ts`, con el `hint = 'canal'` junto al campo. `rechazoDeEscritura()` y `sinFilas()` toman sus textos por parámetro (con los de las preguntas por omisión: la parte 1 no cambia).
+- **D13 · Los tres paneles de «un testimonio por id» comparten un hook** (`use-testimonio-de-url.ts`) y cada uno tiene su hook fino con su `usePanelPorUrl(<su constante>)`, porque la guarda de `<Confirmar>` pide el nombre del panel y el estado en la URL en el archivo registrado.
+- **Pulido para la Fase 9 (ya anotado en 8.02-1, D4):** la columna «Estado» de `ListaDeCatalogo` dice «Activo» en todos los testimonios; una `etiquetaDeEstado` opcional lo resolvería para FAQs y testimonios.
+
+<!-- paso:8.07-2 -->
+
+# 8.07-2: decisiones (2026-11-12)
+
+- **D1 · `acciones.md` sin `jose` entra aquí y no en el 8.07-3.** La cookie con `node:crypto` llega en esta parte y la regla no puede contradecir el código.
+- **D2 · `ipDelPedido(headers)` queda entero en el 8.07-3.** Qué cabecera es de fiar depende de la medición D6 del 8.07-1. `contarIntentoDelPortal`
+  aplica `agruparIp` adentro: ningún handler puede olvidarla.
+- **D3 · IPv6 por su /64.** Es lo mínimo que se asigna a un cliente: recorrerlo no salta el límite ni llena la tabla. Una IPv4 mapeada cuenta como su
+  IPv4; lo que no es IP va como `''` y la base lo cuenta como `'desconocida'`, un solo balde.
+- **D4 · La firma se compara como texto base64url.** 32 bytes en base64url dejan dos bits sueltos en el último carácter: comparar los bytes
+  decodificados aceptaría ese carácter cambiado. Antes, las dos partes tienen que ser del alfabeto base64url, así `timingSafeEqual` nunca lanza.
+- **D5 · `urlDeDocumentoDelPortal` une `portal_documento_ruta` y `createSignedUrl` de 60 s.** La ruta privada no llega a `src/app` como dato: lo
+  garantiza la forma, no la disciplina del handler. Sí viaja dentro de la URL firmada (así la arma Supabase), que sin el token no abre nada.
+- **D6 · Toda respuesta de RPC que se interpreta pasa por Zod** y acepta nulo donde la base puede darlo, aunque el tipo generado diga `string`. El
+  snapshot va tal cual (`unknown`): lo interpreta el sitio.
+- **D7 · Los nombres públicos llevan «DelPortal»:** `web/index.ts` hace `export *` de todas las áreas y `sitio` ya exporta `leerDireccionPublica`.
+- **D8 · Sin prueba unitaria para el esquema del entorno ni para `rpc.ts`:** son envoltorios; `rpc.ts` lo recorre el e2e del 8.07-3 contra la base.
+- **D9 · `leerSesion` descarta un valor de más de 1024 caracteres** antes de calcular nada (una cookie válida ronda los 170).
+- **D10 · `cookie.ts` es puro:** recibe el secreto y la hora, y se prueba sin mocks del entorno. El secreto se lee en `secreto.ts` (`server-only`).
+- **D11 · Un cliente admin nuevo por llamada,** creado dentro de cada función de `rpc.ts` (nunca global).
+- **D12 · Lo que entra a `rpc.ts` lo validan los handlers** con Zod en la frontera HTTP (8.07-3); `rpc.ts` valida lo que vuelve de la base.
+- **D13 · El secreto no sale del área:** `composicion.ts` lo ata a la firma y a la lectura; `src/app` sólo ve `portalDisponible()`.
+
+<!-- paso:8.07-3 -->
+
+# 8.07-3: decisiones (2026-11-12)
+
+## El contrato con el sitio
+
+El sitio (repo `sitio-marketing`) reescribe `/api/portal/*` hacia el CRM, así la cookie `portal` es de primera parte (`HttpOnly`, `Secure`,
+`SameSite=Lax`, `Path=/api/portal`, 7 días). Los POST llevan el `Origin` del sitio, que debe ser el de `ajustes_web.direccion_publica`
+(Configuración › Sitio web). Toda respuesta lleva `Cache-Control: no-store`. Sin `PORTAL_COOKIE_SECRETO`, toda ruta responde 503.
+
+| Ruta                  | Pide                                  | Responde                                                                                                                             |
+| --------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `POST ingresar`       | `{ codigo, clave }`, `Origin`         | 200 `{ nombre, debe_cambiar_clave }` + cookie · 401 `{ error }` (todo fallo, el mismo cuerpo) · 403 · 429 + `Retry-After: 900` · 503 |
+| `GET estado`          | cookie                                | 200 con el snapshot de `portal_snapshot` · 401 y la cookie borrada · 500 · 503                                                       |
+| `GET documentos/[id]` | cookie                                | 302 a una URL firmada de 60 s · 401 y la cookie borrada · 404 (id inválido o ajeno, el mismo) · 500 · 503                            |
+| `POST clave`          | `{ actual, nueva }`, cookie, `Origin` | 200 `{ ok: true }` · 400 `{ error }` · 401 · 403 · 500 · 503                                                                         |
+| `POST salir`          | `Origin`                              | 204 y la cookie borrada · 403 · 503                                                                                                  |
+
+La ruta del documento no sale en el cuerpo ni en un error; sí viaja dentro de la URL firmada de 60 s, como la arma Supabase.
+
+## Decisiones
+
+- **D1 · La IP del límite** (D6 de la 8.07-1). `ipDelPedido` toma la primera entrada de `x-forwarded-for` y, si falta, `x-real-ip`. En Vercel la
+  plataforma pisa `x-forwarded-for` con la IP de quien se conecta; Next 16.4.3 conserva la que llega (`base-server.js`, `??=`). **El límite supone
+  Vercel** (o un proxy que pise la cabecera): con `next start` sin proxy, o un proxy que agrega en vez de pisar, el cliente elige esa entrada y el
+  límite se salta; sólo queda el bloqueo por código (5 fallos), que no frena probar una clave contra muchos códigos. Otro alojamiento cambia
+  `ipDelPedido`. Qué IP ve el CRM detrás de la reescritura no se puede medir sin producción: si fuera la del sitio para todos, el límite (10 por
+  15 min) frenaría el portal entero. Hoy el portal no tiene pantallas publicadas. **Abierto:** al publicarlo, mirar en los registros de Vercel la IP
+  de `/api/portal/ingresar`; si es la del sitio, una cabecera propia firmada por el sitio con un secreto compartido (un solo archivo puro y una variable).
+- **D2 · IPv6 al azar en el e2e.** Cada prueba usa un /64 al azar: `agruparIp` cuenta por /64 y una segunda corrida local no hereda la cuenta.
+- **D3 · `Origin` obligatorio en los POST**, comparado por `URL.origin` contra el del pedido o la dirección pública del sitio (que se lee sólo si no
+  es el propio). Más estricto que `leads/exportar`, que acepta un POST sin `Origin`: aquí no hay sesión de Supabase detrás.
+- **D4 · Todo fallo de `ingresar` da el mismo 401**, también un error de la base (contador o login) y un cuerpo de más de 2 KB: falla cerrado y sin
+  oráculo. Sólo 403, 429 y 503 se distinguen.
+- **D5 · Una cookie inválida, vencida o revocada** responde 401 y la borra: el sitio sólo sabe «volver a ingresar».
+- **D6 · El e2e manda la cookie a mano** en `Cookie`, con un contexto de `request` nuevo por pedido: no depende de si el almacén guarda una `Secure`
+  sobre `http://localhost`.
+- **D7 · La comparación del `Origin` es una función pura** (`mismoOrigenDelPortal`) con su prueba: es la puerta contra CSRF de un endpoint sin sesión.
+- **D8 · Sin Vitest de los handlers** (envoltorios de HTTP sobre `rpc.ts`): los recorre el e2e contra la base real. El 503 no se prueba por e2e.
+- **D9 · El secreto de prueba** va en `playwright.config.ts` con `||` (una variable vacía daría 503) y no en `.env.example`.
+- **D10 · `salir` no revoca en la base:** la sesión es una cookie firmada sin estado; el corte del lado del CRM es «Volver a otorgar» o revocar.
+- **D11 · `documentos/[id]` mira la cookie antes que el id:** sin sesión no se sondea qué ids existen.
+- **D12 · `POST clave` no pasa por el límite por IP:** exige la cookie y la base bloquea a los 5 fallos de la clave actual.
+- **D13 · Cada handler llama `await connection()` antes que nada.** Con `cacheComponents`, `next build` prerenderizaría un GET que sale por el 503 (el
+  CI compila sin el secreto) y lo serviría estático aun con el secreto cargado (auditoría del plan). El build los marca `ƒ`.
+- **D14 · `POST clave` con `false` responde 400 sin borrar la cookie**, aunque la causa sea una sesión que ya no vale (la RPC no las distingue): el
+  sitio lo ve en el siguiente `estado`. Separarlo pide cambiar la base; no vale el costo.
+
+<!-- paso:8.10-3 -->
+
+## 2026-11-12 · Decisiones del paso 8.10-3 (reasignar, la vista «Stock» y el e2e del assert)
+
+- **D1** · **Sin SQL nuevo.** La base de 8.10-1 ya da `repuesto_stock_reasignar`, `repuesto_stock_mover` y `repuestos_stock_listar` con sus pruebas y la carrera (V1, V23); la parte es
+  servidor de app y pantalla. Sin `db:*` ni `database.types.ts`.
+- **D2** · **El buscador de destino vive en el área `proyectos` y lo compone `src/app`**: la lectura de proyectos es de esa área (`leerProyectosDelListado`, V16) y el área `stock` no la
+  importa (V27). La vista recibe el campo por render prop desde un Client Component de `A:` (como `hoja-con-stock.tsx`, D4 de 8.10-2), que usa `BuscadorConLista` (V14).
+- **D3** · **La vista es `?vista=stock`** con dos enlaces arriba, «Proyectos» y «Stock» (`aria-current`, como `?ver=` de logística, V12); «Proyectos» sigue siendo la de por defecto;
+  un `?vista=` desconocido es «Proyectos»; cambiar de vista no conserva filtros ni cursor. «Nuevo proyecto» (botón, `N` y drawer) sólo en «Proyectos».
+- **D4** · **«Stock» sin filtros, búsqueda ni selector de tamaño** (la fila no los pide; `.piloto/planes/8.10.md:82`): una página de `TAMANO_DE_PAGINA_POR_DEFECTO` por cursor
+  `(en_stock_desde, id)` con «Siguiente» y, con cursor, «Volver al principio»; el camino a lo antiguo es «Siguiente».
+- **D5** · **El clic en la fila** (y `<AbrirResumen>` con el teclado) abre el ítem en la hoja de su proyecto con su panel de stock, `/repuestos/<proyecto>?panel=stock&item=<id>`
+  (8.10-2): allí están el historial y «Pasar a stock»; no se duplica un resumen.
+- **D6** · **Las acciones de la fila van en «⋯»** (`<MasAcciones>`), sólo con `repuestos.editar`: «Reasignar a un proyecto», «Vender suelto», «Devolver al proveedor», en ese orden.
+  Sin el permiso no se dibuja «⋯». «Ajuste» no se ofrece (D6 de 8.10-1). Valen con el proyecto de origen cerrado (D3 de 8.10-1).
+- **D7** · **Cada acción es un `<Drawer>` con URL**: `?vista=stock&panel=reasignar-stock|vender-stock|devolver-stock&item=<id>`. El ítem se busca en la página vigente; si no está (ya
+  salió del stock, o es de otra página) → `useRevisionAlAbrir` con «Ese ítem ya no está en stock.» y la URL se limpia, una vez (V20).
+- **D8** · **Vender suelto y Devolver al proveedor** comparten un drawer con el motivo: «Cantidad» (entero desde 1 hasta lo que hay, `validarMovimiento` de salida) y «Nota» opcional
+  (hasta 500); `moverStock` con `stockEsperado` = el stock de la fila (V5): si cambió, PT409 → toast con «Recargar». Vender suelto no pide precio (D1 de 8.10-1).
+- **D9** · **Reasignar**: «Proyecto destino» (buscador: sólo abiertos, sin el proyecto de origen) y «Cantidad» (1 hasta lo que hay, `validarReasignacion` con `mismoProyecto` falso y
+  `destinoCerrado` falso: el buscador ya los excluye, la base vuelve a mirar). El `id` del ítem nuevo sale de `crypto.randomUUID()` al abrir el drawer, se conserva en cada
+  reintento y se renueva tras el éxito o al reabrir, atado a la `apertura` de `useApertura` (C10; el drawer no se remonta con `useAbiertoAlgunaVez`) (idempotencia de la
+  RPC, D10 de 8.10-1). Sin stock esperado (D10 de 8.10-1).
+- **D10** · **Tras el éxito** el drawer se cierra, un toast lo dice («Vendiste N.», «Devolviste N al proveedor.», «Reasignaste N al proyecto #M.» con la acción «Ver proyecto» que va a
+  `/repuestos/<destino>`) y `router.refresh()` relee la página: la lista es del servidor. Sin `revalidatePath` (como D8 de 8.10-2). Una fila que llega a 0 sale de la lista.
+- **D11** · `buscarProyectosAbiertos` pide `repuestos.editar` con `puede()` antes de leer (sólo la usa reasignar; no abre una lectura nueva a quien sólo ve) y lee bajo la RLS: con
+  `estado: 'abiertos'`, `cursor: null`, `tamano: TAMANO_DE_VER_MAS` y el texto sólo si cumple `MINIMO_DE_BUSQUEDA_DE_PROYECTOS` (si no, lista vacía sin llamar a la base).
+- **D12** · Las actions no llevan test de Vitest (D11 de 8.10-2): el permiso de reasignar lo prueba la base (`stock-reasignar.sql`) y la action mira `puede()` antes. Lo clave con
+  test: el esquema (lo que cruza a la base) y la respuesta de reasignar.
+- **D13** · La columna «Proyecto» dice `#N` y el vehículo (título, si no la etiqueta, si no «Externo»), y un `<Badge>` «Cerrado» si el proyecto está cerrado; «Desde» con
+  `formatearFecha` (fecha sin hora, `fechas.ts`); «En stock» a la derecha con `tabular-nums` y `formato.ts`.
+- **D14** · Estados de la vista: **cargando**, el `<EsqueletoListado>` del `<Suspense>` de la página (V9); **vacío por primera vez**, «No hay repuestos en stock.» con «Lo que sobra de un
+  ítem se pasa a stock desde la hoja de su proyecto.»; **cursor fuera de rango**, `EstadoPaginaSinFilas`; **error**, el de `(app)` con «Reintentar» (`datosO`, como proyectos);
+  **sin permiso**, el de la página. Sin «vacío por filtro» (no hay filtros).
+- **D15** · El e2e **extiende** `repuestos-stock.spec.ts` con un segundo test del mismo `describe` serial (usa el proyecto y el stock del primero, V22); el proyecto destino se crea por
+  la interfaz con la etiqueta `Destino stock e2e <proyecto>` (no empieza con «E2E», D12 de 8.10-2; no contiene la de origen, así la búsqueda no la confunde) y la limpieza borra
+  las dos etiquetas. Al final, «Vender suelto» de lo que queda → la fila sale (cubre el otro drawer sin un test aparte). `escritorio` y `movil` (interfaz, D13 de 8.10-2).
+- **D16** · El GLOSARIO suma «Devolver al proveedor» (V24): término nuevo en la interfaz.
+- **D17** · Lo que sumó la auditoría del plan: `buscarProyectosAbiertos` lee por `repositorioDeProyectos.listar` (`features` no importa `infra`) y arma las opciones
+  en el servidor (no viaja la fila entera); el `id` del ítem nuevo nace con el formulario, cuya `key` es la `apertura`, así reabrir da uno nuevo.
+
+<!-- paso:9.04-1 -->
+
+## 2026-11-12 — Paso 9.04-1: `leads.campos.gestionar` (9-3)
+
+- **Nombre y orden de la clave:** «Gestionar los campos de los leads», orden 215 (justo después de «Configurar leads», 210). «Gestionar» es el verbo de las claves hermanas (`equipo.usuarios.gestionar`, `leads.portal.gestionar`).
+- **«Mismo alcance» = «todos» y sin origen:** `leads.configurar` no va por origen ni por alcance, así que toda concesión suya es ésa; copiar filas podría duplicar por origen. La reciben el dueño y todo rol con alguna fila de `leads.configurar` (precedente: `cotizaciones.papelera.purgar`, 4.15-7). Nadie pierde nada.
+- **La pestaña que no puedes abrir se ve apagada con su motivo** en una línea visible bajo la barra (no sólo un `title`), y las que comparten motivo van en una línea. La URL que pide una apagada abre la primera habilitada, en vez de un «sin permiso» dentro de la página. La lectura del motivo con lector de pantalla (un `TabsTrigger` deshabilitado no recibe foco) queda para el pulido de la Fase 9.
+- **El enlace «Configurar los campos» del listado y el editor de campos siguen a la clave nueva**, y también `vista-previa-de-campo` (llama a `lead_campo_impacto`).
+- **No se editan `permisos-enforcement.sql` ni `humo.sql`:** la clave nueva entra por el caso genérico, y el bloque de `…0030` sólo espera `insufficient_privilege`.
+- **La prueba de la concesión vuelve a ejecutar la migración** sobre roles propios, como el precedente: en la base reseteada no hay más rol con `leads.configurar` que el dueño, y la concesión no se pondría a prueba.
+- **Las dudas del PLAN, con la recomendada:** (1) un valor que ya estaba fuera del rango no impide guardar → 9.04-2; (2) las plantillas con `leads.configurar`, sin clave nueva → 9.04-4; (3) el 6.13 ya está en `main`, así que no choca con el panel del campo; (4) el paso se parte en cinco partes (9.04-1 a 9.04-5).
+- **El nombre del permiso en los motivos va escrito en el código** (`MOTIVO_SIN_PERMISO_CAMPOS`, `pestanas.ts`), como el `MOTIVO_SIN_PERMISO_LEADS` de antes: `permisos.ts` no tiene un mapa de etiquetas y el nombre del catálogo sale de `permisos.nombre`.
+
+<!-- paso:9.04-2 -->
+
+## 2026-11-12 — Paso 9.04-2: el rango de un campo numérico en la base (9-2)
+
+- **Un valor que ya estaba fuera del rango no impide guardar** (duda 1 del PLAN, la recomendada): se valida un campo sólo si su valor cambió respecto del anterior. Cambiar el rango no revalida lo cargado; el impacto avisa cuántos quedan fuera.
+- **`*_campo_crear` también recibe el rango** (`p_minimo`/`p_maximo` al final, con default): el alta de un campo numérico con límites es una sola llamada, y la 9.04-3 no necesita otra migración.
+- **El impacto recibe `p_cambios jsonb`** (las claves `minimo`/`maximo`, como guardar) y no dos `numeric`: con dos `numeric` no se puede proponer «quitar un límite». Sin `p_cambios`, mide el rango vigente.
+- **`fuera_de_rango` acotado a 51** (tope 50 y uno de más, `conteoAcotado(n, 50)`), como `fase_impacto`; null cuando el campo no es numérico o no tiene límites.
+- **En vehículos rige para toda escritura que cambie el valor**, también la importación de la subasta (escribe con sesión): es el mismo trigger que ya valida el tipo. Si cambia el origen se valida todo, porque los campos son otros.
+- **La base escribe los números del motivo sin separadores** (`trim_scale`): «"Edad" va de 18 a 99.». El formulario de la 9.04-3 los muestra con el locale.
+- **Un límite en un campo que no es numérico se rechaza** (22023, `hint minimo`); si el tipo deja de ser numérico, el rango se va solo, como las opciones.
+- **Un valor por defecto fuera del rango se rechaza** (`hint valor_defecto`): precargaría un valor que no se puede guardar.
+- **Tres migraciones y tres commits** (validación, RPC de leads, RPC de orígenes), para no pasar de 300 líneas por archivo.
+- **`lead_campo_guardar` y `lead_campo_impacto` figuran en `numero-global.sql` sin número de lead:** nombran el tipo `numero` (por el rango) y caen en el inventario por texto, pero devuelven una versión y conteos.
+
+<!-- paso:9.04-3 -->
+
+## 2026-11-12 — Paso 9.04-3: el rango de un campo numérico en `shared` y el panel (9-2)
+
+- **El rango no rechaza un valor igual a lo guardado** (como la base, 9.04-2): abrir un lead viejo y guardar otro dato no choca con un rango nuevo. Para eso la edición de lead pasa `guardado` a `esquemaDeValor()`, como ya hacía el vehículo; de paso, una opción que se sacó del campo y el lead conserva sigue valiendo al editar otro dato, que es lo que `ContextoDeEsquema.guardado` documenta.
+- **En vehículos, si cambia el origen** la base valida todo (los campos son otros), pero el cliente deja pasar el valor igual a lo guardado: en ese caso raro el rechazo de la base cae junto al campo por su `hint`.
+- **«Mínimo» y «Máximo» usan el control de «Valor por defecto»** (`type="number"`, `valueAsNumber`), no el lector con locale de `numero()`: es el patrón del panel. Reversible si el panel pasa al lector.
+- **El motivo del formulario dice lo mismo que la base** con los números en el locale de la empresa (hasta 6 decimales); la base usa `trim_scale`.
+- **Se cuenta antes de guardar sólo si el rango se acota** (aparece o sube el mínimo, aparece o baja el máximo); quitar o ensanchar no deja a nadie fuera. La vista previa manda sólo el rango propuesto en `p_cambios`.
+- **El aviso de fuera de rango no bloquea** y dice «más de 50» con el tope de la base (51, `conteoAcotado`).
+- **El panel valida el rango antes de enviar** con los textos de la base y lo dice junto a «Mínimo», «Máximo» o «Valor por defecto»; la base sigue siendo la última línea. El esquema de crear lo vuelve a mirar (`conReglasDeCampo`).
+- **Cambiar a un tipo sin rango vacía «Mínimo» y «Máximo»** en el formulario, como las opciones; la base hace lo mismo.
+- **`CampoDeVehiculo` suma el rango como opcional**: `vehiculos` no importa `origenes` y declara la forma; opcional, como `principal`.
+- **`NUMERO_MAXIMO` pasa a `tipos.ts`** (lo reexporta `esquema-de-valor.ts`): `rango.ts` lo necesita y así no hay un ciclo de imports.
+- **No se partió en 3a/3b:** el corte natural no compila sin código de relleno (`cambiosRespectoDe(…, Required<…>)` obliga al formulario a dar el rango apenas los cambios lo llevan).
+
+<!-- paso:9.04-4 -->
+
+## 2026-11-12 — Paso 9.04-4: las plantillas por empresa en la base
+
+- **Sin permiso nuevo:** las plantillas las edita quien tiene `leads.configurar` (duda 2 del PLAN, la recomendada). Su descripción y su `aplicado_en` las nombran, en la migración y en `seed.sql`.
+- **Dos versiones, no una:** `embudo_actualizado_en` y `portal_actualizado_en` en vez del `actualizado_en` único del PLAN. Son dos secciones de pantalla independientes; con una sola, guardar una daría PT409 en la otra sin que nadie la tocara. Reversible.
+- **Null restablece la de fábrica** (el «Restablecer» de 9.04-5); un mensaje en blanco cuenta como null.
+- **Las seis etapas de fábrica pasan a `_embudo_etapas_de_fabrica()`** y `ajustes_leads_leer()` las entrega: la pantalla no las copia en TS. El texto de fábrica del portal sigue en `textoParaWhatsApp()`, como dice el PLAN.
+- **El mensaje:** tope de 1000 caracteres; una variable desconocida `{x}` se rechaza (que una errata no salga literal al cliente); toda `{…}` cuenta como variable (`{Codigo}` o `{ codigo }` se rechazan); `{codigo}` y `{clave}` obligatorias, `{direccion}` opcional (sin dirección, 9.04-5 pone «la web de <empresa>»).
+- **La plantilla no guarda ids de etapa** (cada embudo nuevo crea los suyos), descarta las claves que sobran y los booleanos son estrictos (22023, no 22P02); un `null` de JSON cuenta como ausente (`false`), como en `_embudo_insertar`.
+- **Orden:** permiso → validación → candado y versión → sin cambios. Sin cambios devuelve la versión vigente sin moverla, como `web_ajustes_guardar`.
+- **Sin carrera nueva:** la fila se bloquea con `for update` y la versión da PT409, y eso lo cubre el SQL. `pnpm db:carreras` corrió entero por regresión de `_embudo_defecto_de`.
+- **La lectura es de toda cuenta activa**, como `ajustes_web`: no hay secretos y el texto lo necesita quien otorga el portal sin `leads.configurar`.
+- **Sin `actualizado_por`:** `trg_auditar` ya guarda quién y qué en `actividad`.
+- **`_embudo_plantilla_normalizar` y `_embudo_etapas_de_fabrica` son STABLE, no IMMUTABLE:** `jsonb_build_object` es STABLE y `db:lint` lo avisa (`_portal_mensaje_normalizar` sigue IMMUTABLE).
+- **`embudo_plantilla_guardar` entra a la matriz de leads** (la guarda por nombre `^(oportunidad|embudo)_` de `auditoria-leads.sql`): las 8 personas dan 42501 o «cuenta»; el camino que pasa está en `areas/plantillas/plantillas.sql`. No se renombró la RPC (el PLAN la nombra así).
+
+<!-- paso:9.04-5 -->
+
+## 2026-11-12 — Paso 9.04-5: las plantillas por empresa en pantalla
+
+- **Las pestañas se llaman como el glosario**, «Plantilla del embudo» y «Mensaje del portal»; van tras «Tipos de seguimiento», en `?seccion=embudo|portal`, y piden `leads.configurar` (duda 2 del PLAN). Las actions repiten el `puede` y la RPC lo exige otra vez.
+- **«Restablecer» confirma en la URL** (`?panel=restablecer-embudo`, `?panel=restablecer-portal`, registrados en `scripts/guardas/confirmar-con-url.ts`) y se apaga si ya está lo de fábrica; escrita a mano en ese caso, se avisa y se limpia. El del portal envía `''`, que la base toma como nulo, porque el tipo generado de `p_texto` no admite `null`. El del embudo envía `null`. Un conflicto al restablecer se dice dentro del diálogo, con «Recargar».
+- **El editor de la plantilla vive en la página, no en un drawer,** y reusa `ListaDeEtapas` con un tipo más angosto (`EtapasEnEdicion`). Las etapas llevan un id local sólo para la `key` y no viaja: la infra lo quita antes de llamar a la RPC.
+- **Sin aviso de cambios sin guardar en la página:** `useCambiosSinGuardar()` sólo pregunta dentro de un `<Drawer>`. «Guardar» se apaga sin cambios, como en las demás pantallas de Configuración.
+- **El textarea del portal parte del texto de fábrica con sus variables**, para editar sobre lo de hoy. Guardar ese texto tal cual envía `null`, para que la empresa no fije el de fábrica como propio y un cambio futuro del de fábrica le llegue. En blanco no se guarda: «Para volver al texto de fábrica, usa «Restablecer».», que confirma.
+- **La vista previa usa un cliente, un código y una clave de ejemplo fijos** (nunca una clave real), con la empresa y la dirección reales. La compone `src/app`: `leads` no importa `empresa` ni `web`.
+- **`{cliente}` de un lead sin nombre queda vacío.** No se reescribe la puntuación de la plantilla; el de fábrica sí saluda «Hola.» sin nombre.
+- **La validación del mensaje en TS es espejo de `_portal_mensaje_normalizar`:** el orden, los textos, el largo en code points y el recorte sólo de ` \t\n\r`. Se dice junto al campo antes de enviar; la base decide.
+- **Si la ficha no puede leer los ajustes, la sección «Portal» cae al `error.tsx` con «Reintentar»**, como cuando no puede leer el acceso: no se manda un texto que la empresa no eligió.
+- **Las variables se reemplazan en una sola pasada:** un nombre con `{clave}` o `$&` sale literal.
+- **El e2e deja `ajustes_leads` en lo de fábrica** con service_role, antes y después, porque Playwright corre con un solo worker. `leads-portal` y `leads-embudo` siguen viendo lo de fábrica.
+- **Sin e2e en celular, capturas ni volumen** (pruebas sólo en lo clave); `configuracion-200.spec.ts` no suma las dos pestañas, pero corre dirigido por la barra.
