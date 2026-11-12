@@ -42,6 +42,12 @@ Sección «Seguimientos» de la ficha y pestaña del drawer.
 - «¿A quién?»: `agenda_quienes_reciben()`, ≥ 3 letras o dígitos, tope 20, sobre `perfiles` (el equipo, no crece).
 - Sin siembra de volumen ni `medir-*.sql`: `eventos` y `tareas` no son tablas que crecen (7.06-2, D29).
 
+## Embarques y contenedores (6.08-3)
+
+- `/logistica/embarques`: `transporte_grupos()` (`security definer`) por cursor opaco = el id de una fila de la clave siguiente, de a `TAMANO_DE_PAGINA_POR_DEFECTO` (50; la base acota con `_acotar_pagina(p_tope, 50, 100)`), sin selector `?por=`, sin total y sin `offset`. Índices: `transportes_booking_idx` y `transportes_contenedor_idx` (parciales, por la clave). La llamada recorre **a lo sumo 2.000 filas**: si no llena la página devuelve `cortada` y la pantalla ofrece «Seguir buscando». Registrada en `scripts/guardas/areas-b/paginas-en-la-base.ts`.
+- El resumen lee `transporte_grupo()` (≤ 200 unidades, una llamada, sin N+1: por eso no trae «días en la fase») y los catálogos de navieras y puertos se leen una vez por pedido (`cache()`, `.limit(201)`: decenas de filas).
+- **Sin medir con volumen:** no hay un `medir-*.sql` de transporte (sólo la prueba SQL de 6.07-3, `supabase/tests/areas/transporte/grupos.sql`, que fija el comportamiento); igual que Gastos, hasta medirlo no hay presupuesto de tiempo. Sin presupuesto de JS nuevo: el drawer sólo se monta con la clave en la URL y los huecos viajan con `diferido()`.
+
 ## Gastos y pagos (6.11-3)
 
 - `/logistica/gastos`: `gastos_listar()` y `pagos_listar()` (invocadoras con `security definer` que filtran por origen y alcance), por cursor `(fecha desc, id desc)`, de a `TAMANO_DE_PAGINA_POR_DEFECTO` (50, más una), sin selector `?por=` (D9), sin total y sin `offset`. Índices: `gastos_fecha_idx` y `pagos_fecha_idx` (parciales `where eliminado_en is null`). Registradas en `scripts/guardas/areas-c/paginas-en-la-base.ts`.
@@ -203,6 +209,8 @@ Cada sección por su RPC, de a `_acotar_pagina(p_tamano, 5, 20)` + 1, con el mí
 - `repuestos_pendientes_de_vehiculo()` (definer): un proyecto vivo por vehículo (`repuestos_proyecto_por_vehiculo`), sus ítems por
   `repuestos_items_proyecto_id_idx` y las esperas de las fases siguientes del vehículo; de a 50 (máximo 200) más uno.
 - Sin siembra de volumen ni `EXPLAIN` en `db:medir:volumen` (`repuestos_proyectos` no está entre las tablas que crecen de `escala.md`; regla del 2026-11-08).
+- Imágenes de un ítem (8.09-3): `limit 9` por `repuestos_items_imagenes_item_id_idx`, sólo al abrir el panel (nunca con la hoja); el trigger cuenta con `limit 8` bajo un candado por ítem. **Excepción a «nunca el original»:** sin miniatura y con `unoptimized`, cada imagen baja el WebP de ≤ 1600 px, pero son ≤ 8 por panel abierto (D65 de 8.09-3; sin medición).
+- Pestaña «Repuestos» de la ficha del vehículo (8.09-4): `proyectoDe` es `limit 1` por `repuestos_proyecto_por_vehiculo` y el recuento por fase lee como mucho 201 ítems por `repuestos_items_proyecto_id_idx`; sólo al abrir la pestaña (nunca con la ficha); componentes de servidor, sin JS de cliente nuevo.
 - Catálogos de Configuración (8.08-2): 4 × `limit 201` por PostgREST, sin índice por `orden` (tabla de configuración, decenas de filas); tope 200 por
   catálogo, con `<AvisoDeTope>` en la 8.08-3.
 

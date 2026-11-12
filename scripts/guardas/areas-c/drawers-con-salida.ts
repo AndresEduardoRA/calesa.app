@@ -22,6 +22,15 @@ export const REGISTRO: Record<string, RegistroDeDrawer> = {
     formulario: 'src/modules/logistica/features/dinero/components/drawer-de-anulacion.tsx',
     mecanismo: 'contexto',
   },
+  // «Nuevo proyecto» de `/repuestos` (8.09-1): `?panel=nuevo-proyecto`. Dice que tiene algo escrito con `useCambiosSinGuardar` en el mismo archivo.
+  'src/modules/repuestos/features/proyectos/components/drawer-de-nuevo-proyecto.tsx': {
+    formulario: 'src/modules/repuestos/features/proyectos/components/drawer-de-nuevo-proyecto.tsx',
+    mecanismo: 'contexto',
+  },
+  // Las imágenes de un ítem de repuestos (8.09-3): `?panel=imagenes&item=<id>`.
+  'src/modules/repuestos/features/items/components/drawer-de-imagenes.tsx': {
+    sinFormulario: 'sube y quita imágenes al instante: no guarda nada tipeado',
+  },
   // El resumen de una declaración aduanera (6.09-1): `?declaracion=<id>`. Sólo muestra; el formulario de editar y alta es otro panel (`drawer-de-declaracion.tsx`).
   'src/modules/logistica/features/aduana/components/drawer-de-la-declaracion.tsx': {
     sinFormulario:

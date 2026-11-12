@@ -130,7 +130,13 @@ test('E2E la dueña: en «Ficha» no se lee nada; al elegir «Cotizaciones» lle
 }) => {
   await entrar(page, duena, { fresco: true })
   await page.goto(`/vehiculos/${vehiculos.veintidos}`)
-  await expect(pestanas(page)).toHaveText(['Ficha', 'Fotos', 'Documentos', 'Cotizaciones'])
+  await expect(pestanas(page)).toHaveText([
+    'Ficha',
+    'Fotos',
+    'Documentos',
+    'Cotizaciones',
+    'Repuestos',
+  ])
   const lecturas = vigilarLecturas(page)
   await expect(pestanas(page).first()).toHaveAttribute('aria-selected', 'true')
   expect(lecturas).toEqual([])

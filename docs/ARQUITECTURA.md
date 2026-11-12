@@ -30,6 +30,7 @@ flowchart LR
   chat --> vehiculos
   chat --> leads
   chat --> cotizaciones
+  chat --> buscador
   notificaciones --> equipo
   actividad --> equipo
   web --> vehiculos

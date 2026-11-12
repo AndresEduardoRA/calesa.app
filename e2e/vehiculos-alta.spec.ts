@@ -119,6 +119,7 @@ test('dar de alta un vehículo en Corea, con los valores por defecto y los atajo
     'Fotos',
     'Documentos',
     'Cotizaciones',
+    'Repuestos',
   ])
 })
 

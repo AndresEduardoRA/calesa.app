@@ -6,3 +6,8 @@ import { diferido } from '@/shared/ui/diferido'
 export const DrawerDeMencionDiferido = diferido(() =>
   import('./drawer-de-mencion').then((modulo) => modulo.DrawerDeMencion),
 )
+
+// El selector del `#` se pide con el primer `#`: el chat no paga el buscador ni las lecturas hasta entonces.
+export const SelectorDeMencionesDiferido = diferido(() =>
+  import('./selector-de-menciones').then((modulo) => modulo.SelectorDeMenciones),
+)

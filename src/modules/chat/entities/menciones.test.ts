@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
+  aCuerpoConTokens,
   claveDeReferencia,
+  consultaAbierta,
+  etiquetaDeMencion,
+  etiquetaLibre,
   MAXIMO_DE_MENCIONES,
   mencionesDelCuerpo,
   partirCuerpo,
@@ -84,4 +88,110 @@ describe('referenciaDeUrl', () => {
       expect(referenciaDeUrl(valor)).toBeNull()
     },
   )
+})
+
+describe('consultaAbierta', () => {
+  it.each([
+    ['#', 1, { inicio: 0, texto: '' }],
+    ['Mira #Man', 9, { inicio: 5, texto: 'Man' }],
+    ['hola\n#Ana', 9, { inicio: 5, texto: 'Ana' }],
+    ['#124', 4, { inicio: 0, texto: '124' }],
+  ])('abre con %j', (texto, cursor, esperado) => {
+    expect(consultaAbierta(texto, cursor)).toEqual(esperado)
+  })
+
+  it.each([
+    ['mi#x', 4],
+    ['#una dos', 8],
+    [`#[lead:${LEAD}`, 14],
+    ['Mira #Man', 3],
+    ['#[x', 3],
+  ])('no abre con %j', (texto, cursor) => {
+    expect(consultaAbierta(texto, cursor)).toBeNull()
+  })
+
+  it('mira sólo lo que hay antes del cursor', () => {
+    expect(consultaAbierta('#Ana López', 4)).toEqual({ inicio: 0, texto: 'Ana' })
+  })
+
+  it('corta en 60 caracteres', () => {
+    expect(consultaAbierta(`#${'a'.repeat(60)}`, 61)?.texto).toHaveLength(60)
+    expect(consultaAbierta(`#${'a'.repeat(61)}`, 62)).toBeNull()
+  })
+})
+
+describe('etiquetas de mención', () => {
+  it('colapsa blancos, corta en 60 y usa la alternativa si el nombre viene vacío', () => {
+    expect(etiquetaDeMencion('  Ana \n  López ', 'Lead 1')).toBe('#Ana López')
+    expect(etiquetaDeMencion('x'.repeat(80), 'Lead 1')).toBe(`#${'x'.repeat(60)}`)
+    expect(etiquetaDeMencion('   ', 'Lead 124')).toBe('#Lead 124')
+  })
+
+  it('la misma referencia conserva su etiqueta y otra con el mismo nombre toma un sufijo', () => {
+    const a = { clase: 'lead' as const, id: LEAD, etiqueta: '#Ana' }
+    const otra = { clase: 'lead' as const, id: VEHICULO }
+    expect(etiquetaLibre('#Ana', { clase: 'lead', id: LEAD }, [a])).toBe('#Ana')
+    expect(etiquetaLibre('#Ana', otra, [a])).toBe('#Ana (2)')
+    const b = { ...otra, etiqueta: '#Ana (2)' }
+    expect(etiquetaLibre('#Ana', { clase: 'lead', id: uuid(3) }, [a, b])).toBe('#Ana (3)')
+  })
+})
+
+describe('aCuerpoConTokens', () => {
+  const lead = { clase: 'lead' as const, id: LEAD.toUpperCase(), etiqueta: '#Ana' }
+
+  it('vuelve token la etiqueta elegida, con el id en minúsculas, y la cuenta una vez', () => {
+    const r = aCuerpoConTokens('Mira #Ana y #Ana otra vez', [lead])
+    expect(r.cuerpo).toBe(`Mira #[lead:${LEAD}] y #[lead:${LEAD}] otra vez`)
+    expect(r.menciones).toEqual([{ clase: 'lead', id: LEAD }])
+    expect(r.demasiadas).toBe(false)
+  })
+
+  it('la etiqueta más larga gana y #Anabel no se come por #Ana', () => {
+    const larga = { clase: 'vehiculo' as const, id: VEHICULO, etiqueta: '#Ana López' }
+    const r = aCuerpoConTokens('#Ana López, #Ana y #Anabel', [lead, larga])
+    expect(r.cuerpo).toBe(`#[vehiculo:${VEHICULO}], #[lead:${LEAD}] y #Anabel`)
+    expect(r.menciones).toEqual([
+      { clase: 'vehiculo', id: VEHICULO },
+      { clase: 'lead', id: LEAD },
+    ])
+  })
+
+  it('una etiqueta editada queda como texto y no menciona', () => {
+    const r = aCuerpoConTokens('Mira #An', [lead])
+    expect(r).toEqual({ cuerpo: 'Mira #An', menciones: [], demasiadas: false })
+  })
+
+  it('un # pegado a una palabra no se convierte', () => {
+    expect(aCuerpoConTokens('mi#Ana', [lead]).menciones).toEqual([])
+  })
+
+  it('un token pegado a mano también entra en menciones', () => {
+    const r = aCuerpoConTokens(`ver #[vehiculo:${VEHICULO}]`, [])
+    expect(r.menciones).toEqual([{ clase: 'vehiculo', id: VEHICULO }])
+  })
+
+  it('sin elegidas el texto sale igual', () => {
+    expect(aCuerpoConTokens('hola #1', [])).toEqual({
+      cuerpo: 'hola #1',
+      menciones: [],
+      demasiadas: false,
+    })
+  })
+
+  it('el nombre con caracteres de expresión regular se escapa', () => {
+    const raro = { clase: 'lead' as const, id: LEAD, etiqueta: '#A.* (b)' }
+    expect(aCuerpoConTokens('#A.* (b) y #Axx', [raro]).cuerpo).toBe(`#[lead:${LEAD}] y #Axx`)
+  })
+
+  it('más de 20 distintas son demasiadas', () => {
+    const elegidas = Array.from({ length: 21 }, (_, i) => ({
+      clase: 'lead' as const,
+      id: uuid(i),
+      etiqueta: `#L${String.fromCharCode(97 + i)}`,
+    }))
+    const texto = elegidas.map((e) => e.etiqueta).join(' ')
+    expect(aCuerpoConTokens(texto, elegidas).demasiadas).toBe(true)
+    expect(aCuerpoConTokens(texto, elegidas.slice(0, 20)).demasiadas).toBe(false)
+  })
 })

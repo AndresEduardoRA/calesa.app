@@ -4,6 +4,7 @@ import { useAction } from 'next-safe-action/hooks'
 import { useCallback, useRef } from 'react'
 import { enviarAccion } from '@/shared/lib/enviar-accion'
 import { citaDe } from '../../../entities/reglas-del-mensaje'
+import type { Referencia } from '../../../entities/menciones'
 import {
   mensajeLocal,
   textoValido,
@@ -21,10 +22,10 @@ type Props = {
   resolver: (id: string, resultado: ResultadoDelEnvio) => void
 }
 
-type Pendiente = { cuerpo: string; respondeA?: string }
+type Pendiente = { cuerpo: string; respondeA?: string; menciones: readonly Referencia[] }
 
 // El envío optimista: el mensaje se ve apenas se escribe, con el `id` del navegador. Si no llega, queda «No enviado» y reintentar reusa **el mismo
-// `id`, el mismo cuerpo y el mismo mensaje respondido** (la base responde `repetido`: nunca se duplica). Los envíos van de a uno, en el orden en que se escribieron.
+// `id`, el mismo cuerpo, el mismo mensaje respondido y las mismas menciones** (la base responde `repetido`: nunca se duplica). Los envíos van de a uno, en el orden en que se escribieron.
 export function useEnvio({ conversacion, usuarioId, agregarLocal, resolver }: Props) {
   const accion = useAction(enviarMensaje)
   const cuerpos = useRef(new Map<string, Pendiente>())
@@ -32,9 +33,17 @@ export function useEnvio({ conversacion, usuarioId, agregarLocal, resolver }: Pr
   const cola = useRef<Promise<void>>(Promise.resolve())
 
   const ejecutar = useCallback(
-    async (id: string, { cuerpo, respondeA }: Pendiente) => {
+    async (id: string, { cuerpo, respondeA, menciones }: Pendiente) => {
       const envio = await enviarAccion(
-        accion.executeAsync({ id, conversacion, cuerpo, ...(respondeA ? { respondeA } : {}) }),
+        accion.executeAsync({
+          id,
+          conversacion,
+          cuerpo,
+          ...(respondeA ? { respondeA } : {}),
+          ...(menciones.length > 0
+            ? { menciones: menciones.map((m) => ({ tipo: m.clase, id: m.id })) }
+            : {}),
+        }),
         MENSAJE_DE_VALIDACION,
       )
       enCurso.current.delete(id)
@@ -56,9 +65,9 @@ export function useEnvio({ conversacion, usuarioId, agregarLocal, resolver }: Pr
     [ejecutar],
   )
 
-  // Vacío no envía; demasiado largo lo dice quien dibuja el redactor. `responde` es el mensaje al que se contesta.
+  // Vacío no envía; demasiado largo lo dice quien dibuja el redactor. `responde` es el mensaje al que se contesta; `menciones`, las del cuerpo.
   const enviar = useCallback(
-    (texto: string, responde?: Mensaje): TextoValido => {
+    (texto: string, responde?: Mensaje, menciones: readonly Referencia[] = []): TextoValido => {
       const valido = textoValido(texto)
       if (!valido.ok) {
         return valido
@@ -67,6 +76,7 @@ export function useEnvio({ conversacion, usuarioId, agregarLocal, resolver }: Pr
       const pendiente: Pendiente = {
         cuerpo: valido.cuerpo,
         ...(responde ? { respondeA: responde.id } : {}),
+        menciones,
       }
       cuerpos.current.set(id, pendiente)
       agregarLocal(
