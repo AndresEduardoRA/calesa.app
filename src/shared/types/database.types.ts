@@ -4507,6 +4507,7 @@ export type Database = {
           proveedor: string | null
           proyecto_id: string
           tipo_cambio_aplicado: number | null
+          tipo_cambio_id: string | null
         }
         ComputedFields: never
         Insert: {
@@ -4525,6 +4526,7 @@ export type Database = {
           proveedor?: string | null
           proyecto_id: string
           tipo_cambio_aplicado?: number | null
+          tipo_cambio_id?: string | null
         }
         Update: {
           actualizado_en?: string
@@ -4542,6 +4544,7 @@ export type Database = {
           proveedor?: string | null
           proyecto_id?: string
           tipo_cambio_aplicado?: number | null
+          tipo_cambio_id?: string | null
         }
         Relationships: [
           {
@@ -4570,6 +4573,13 @@ export type Database = {
             columns: ['proyecto_id']
             isOneToOne: false
             referencedRelation: 'repuestos_proyectos'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'repuestos_compras_tipo_cambio_id_fkey'
+            columns: ['tipo_cambio_id']
+            isOneToOne: false
+            referencedRelation: 'tipos_cambio'
             referencedColumns: ['id']
           },
         ]
@@ -8613,6 +8623,76 @@ export type Database = {
         Args: { p_catalogo: string; p_clave: string; p_datos: Json }
         Returns: string
       }
+      _repuesto_compra_de_datos: {
+        Args: {
+          o: Omit<
+            Database['public']['Tables']['repuestos_compras']['Row'],
+            Database['public']['Tables']['repuestos_compras']['ComputedFields']
+          >
+          p_crear: boolean
+          p_datos: Json
+        }
+        Returns: {
+          actualizado_en: string
+          comprobante_ruta: string | null
+          creado_en: string
+          creado_por: string | null
+          eliminado_en: string | null
+          fecha: string
+          id: string
+          item_id: string | null
+          moneda: string
+          monto: number
+          monto_base: number | null
+          notas: string | null
+          proveedor: string | null
+          proyecto_id: string
+          tipo_cambio_aplicado: number | null
+          tipo_cambio_id: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'repuestos_compras'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _repuesto_compra_proyecto: {
+        Args: { p_proyecto: string }
+        Returns: {
+          actualizado_en: string
+          cerrado_en: string | null
+          cliente_nombre: string | null
+          cliente_telefono: string | null
+          creado_en: string
+          creado_por: string | null
+          eliminado_en: string | null
+          id: string
+          lead_id: string | null
+          notas: string | null
+          numero: number
+          vehiculo_etiqueta: string | null
+          vehiculo_id: string | null
+          vin: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'repuestos_proyectos'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _repuesto_compra_respuesta: {
+        Args: {
+          c: Omit<
+            Database['public']['Tables']['repuestos_compras']['Row'],
+            Database['public']['Tables']['repuestos_compras']['ComputedFields']
+          >
+          p_extra: Json
+        }
+        Returns: Json
+      }
+      _repuesto_compra_tc_vigente: { Args: { p_moneda: string }; Returns: string }
       _repuesto_fase_de_entrada: { Args: { p_item: string }; Returns: string }
       _repuesto_proyecto_tomar: {
         Args: { p_esperado: string; p_proyecto: string }
@@ -10429,6 +10509,18 @@ export type Database = {
           p_tabla: string
         }
         Returns: undefined
+      }
+      repuesto_compra_eliminar: {
+        Args: { p_actualizado_en_esperado: string; p_id: string }
+        Returns: Json
+      }
+      repuesto_compra_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_datos: Json; p_id: string }
+        Returns: Json
+      }
+      repuesto_compra_restaurar: {
+        Args: { p_actualizado_en_esperado: string; p_id: string }
+        Returns: Json
       }
       repuesto_item_crear: {
         Args: { p_datos: Json; p_id: string; p_proyecto: string }

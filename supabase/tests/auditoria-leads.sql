@@ -239,6 +239,11 @@ declare
     -- devuelve el número, la etiqueta y el título del vehículo (sólo a quien lo ve), sin el vínculo ni el teléfono (`areas/repuestos/stock-*.sql`).
     ('repuesto_stock_reasignar(uuid,uuid,integer,uuid)', 'X'),
     ('repuestos_stock_listar(timestamp with time zone,uuid,integer)', 'L'),
+    -- Las compras de un proyecto (8.11-1): toman el proyecto para ver si está vivo y abierto; no tocan el lead ni el vínculo del cliente
+    -- (`areas/repuestos/compras.sql`).
+    ('repuesto_compra_guardar(uuid,jsonb,timestamp with time zone)', 'X'),
+    ('repuesto_compra_eliminar(uuid,timestamp with time zone)', 'X'),
+    ('repuesto_compra_restaurar(uuid,timestamp with time zone)', 'X'),
     -- El consentimiento de un testimonio (8.01-1): toman el testimonio; `lead_id` no se lee ni se escribe (lo cuida `trg_lead_visible`)
     -- (`areas/web/testimonios-consentimiento.sql`).
     ('web_testimonio_consentir(uuid,timestamp with time zone,text,boolean,boolean,boolean)', 'X'),

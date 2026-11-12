@@ -66,7 +66,8 @@ El módulo se parte por **área** (8.08-2, igual que `logistica`) para que los p
 - La base (8.08-1): `repuesto_proyecto_crear` / `_cerrar` / `_reabrir` / `_eliminar` / `_restaurar`, `repuesto_item_crear` / `_eliminar`,
   `repuestos_proyectos_listar`, `repuestos_pendientes_de_vehiculo`, `_repuesto_ante_espera` y el trigger `repuestos_catalogo_sin_uso`. De 8.09-3: los triggers `repuestos_imagen_integridad` y `repuestos_imagen_encolar` (prueba `areas/repuestos/imagenes.sql`). De 8.10-1: `repuesto_stock_mover`,
   `repuesto_stock_reasignar` (con `_repuesto_stock_item` y `_repuesto_stock_aplicar`, privadas) y `repuestos_stock_listar` (pruebas `stock.sql`, `stock-reasignar.sql`,
-  `stock-listar.sql` y E7 de `esperas.sql`; carreras `scripts/carreras/repuestos-stock.mjs`). Sus pruebas, en
+  `stock-listar.sql` y E7 de `esperas.sql`; carreras `scripts/carreras/repuestos-stock.mjs`). De 8.11-1: `repuesto_compra_guardar` / `_eliminar` / `_restaurar`
+  (con `_repuesto_compra_tc_vigente`, `_repuesto_compra_proyecto` y `_repuesto_compra_de_datos`, privadas; prueba `compras.sql`). Sus pruebas, en
   `supabase/tests/areas/repuestos/` (`proyectos`, `base`, `listar`, `esperas`, `catalogos`).
 
 ## Tablas
@@ -89,6 +90,11 @@ El módulo se parte por **área** (8.08-2, igual que `logistica`) para que los p
   de la cantidad menos lo ya entrado. `en_stock_desde` lo fija la base al pasar de 0 y lo limpia al volver a 0: con algo en stock, el ítem no cuenta para la
   espera de su vehículo (una sola unidad basta). Valen en un proyecto cerrado; el destino cerrado no recibe. El parámetro es `p_unidades` (`escala.sql` toma
   `p_cantidad` por un tamaño de página).
+- **Las compras se escriben sólo por RPC** (8.11-1): `repuesto_compra_guardar` (la esperada nula crea, idempotente por id; puesta, edita con `PT409`),
+  `repuesto_compra_eliminar` y `repuesto_compra_restaurar`, con `repuestos.costos.editar` y `repuestos.ver`; sin INSERT, UPDATE ni DELETE directos. `monto_base`,
+  `tipo_cambio_aplicado` y `tipo_cambio_id` los pone la base con el tipo de cambio **por defecto vigente** al crear o al cambiar la moneda, y quedan congelados al
+  editar el monto (como `pagos`); mandarlos en `p_datos` da 22023. Un proyecto cerrado no recibe ni cambia compras (23514); restaurar una compra cuyo ítem se
+  eliminó, tampoco. Se leen sólo con `repuestos.costos.ver` (RLS).
 - Los valores de catálogo se escriben directo bajo la RLS de `repuestos.configurar` (sin RPC: no otorgan permisos); el UPDATE es sólo de `nombre`, `activo` y
   `orden` (8.10-1): `catalogo`, `id` y `datos` dan 42501. Cero filas al escribir nunca es éxito.
 
