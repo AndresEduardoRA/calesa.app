@@ -8,6 +8,25 @@ Proyectos de repuestos por vehículo (o externos), ítems que recorren el flujo 
 - Sale: `proyectoDe(vehiculoId)`, `esperasQueDestraban(vehiculoId)` (para `flujos`/`logistica`), `<ResumenRepuestos>`. Lo consumen `vehiculos`, `logistica`, `tablero`, `buscador`.
 - Depende de: `vehiculos`, `flujos`, `leads`.
 
+## Áreas
+
+El módulo se parte por **área** (8.08-2, igual que `logistica`) para que los pasos 8.09–8.13 agreguen archivos propios y no editen los compartidos. Un área vive en
+`features/<área>/`, `entities/<área>/`, `infra/<área>/`, `areas/<área>/{index,client,composicion}.ts` y `pantallas/<área>.ts` (y `pantallas/<área>-<pantalla>.ts`). El
+**núcleo** es la carpeta `nucleo` de cada capa. `index.ts`, `client.ts` y `composicion.ts` de la raíz sólo hacen `export *` del núcleo y de cada área: nadie los edita.
+
+| Área        | La llena | Qué es                                                          |
+| ----------- | -------- | --------------------------------------------------------------- |
+| `nucleo`    | —        | lo compartido entre áreas (hoy vacío)                           |
+| `proyectos` | 8.09     | `/repuestos`: el listado de proyectos, crear, cerrar, eliminar  |
+| `items`     | 8.09     | `/repuestos/[id]`: la hoja de ítems                             |
+| `stock`     | 8.10     | movimientos de stock y sobrantes                                |
+| `compras`   | 8.11     | compras y pagos (con `repuestos.costos.*`)                      |
+| `cotizador` | 8.12     | la configuración versionada y las cotizaciones de repuestos     |
+| `catalogos` | 8.08     | los cuatro catálogos: leer, crear, guardar y borrar valores     |
+| `flujo`     | 8.13     | el panel de pendientes para `logistica` y los bloques de Inicio |
+
+**Un área no importa otra** (lo vigila `scripts/guardas/areas-c/areas-de-repuestos.test.ts`): lo compartido va al núcleo.
+
 ## Archivos clave
 
 - `entities/cotizador.ts` — fórmula importado (costo × factor + logística + caja) / local ((costo + logística + caja) × (1 + recargo)) con redondeo del snapshot; tests.
