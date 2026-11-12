@@ -9,6 +9,9 @@ import {
   quedaToken,
   rangoDelPedido,
   registroDesde,
+  etiquetaDeArchivo,
+  TOPE_DE_FILAS,
+  TOPE_POR_ENTIDAD,
 } from './exportacion'
 
 const ZONA = 'America/La_Paz'
@@ -111,5 +114,38 @@ describe('nombreDelArchivo', () => {
     expect(nombreDelArchivo('leads', '2026-11-13T02:00:00.000Z', ZONA)).toBe(
       'leads-todos-2026-11-12.csv',
     )
+  })
+
+  it('con etiqueta, la lleva después de la entidad', () => {
+    expect(nombreDelArchivo('leads', '2026-11-12T20:00:00.000Z', ZONA, 'subasta-usa')).toBe(
+      'leads-subasta-usa-todos-2026-11-12.csv',
+    )
+  })
+})
+
+describe('etiquetaDeArchivo', () => {
+  const ID = '3f0c9a43-6a2e-4c43-9b1a-0b6d1c2e8f10'
+  it.each([
+    ['Subasta USA', 'subasta-usa'],
+    ['Ñandú — Importados', 'nandu-importados'],
+    ['  "Oficina" / Bolivia ', 'oficina-bolivia'],
+    ['¿?', '3f0c9a43'],
+    ['', '3f0c9a43'],
+  ])('%j da %j', (nombre, etiqueta) => {
+    expect(etiquetaDeArchivo(nombre, ID)).toBe(etiqueta)
+  })
+
+  it('no pasa de 40 caracteres ni termina en guion', () => {
+    const etiqueta = etiquetaDeArchivo(`${'a'.repeat(39)} bbbb`, ID)
+    expect(etiqueta).toBe('a'.repeat(39))
+  })
+})
+
+describe('TOPE_POR_ENTIDAD', () => {
+  it('ninguna entidad pasa el techo de la base', () => {
+    for (const tope of Object.values(TOPE_POR_ENTIDAD)) {
+      expect(tope).toBeGreaterThan(0)
+      expect(tope).toBeLessThanOrEqual(TOPE_DE_FILAS)
+    }
   })
 })

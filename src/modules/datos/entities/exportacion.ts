@@ -20,6 +20,12 @@ export const MARGEN_DEL_TOKEN_MS = 30_000
 export const ENTIDADES_DISPONIBLES = ['leads'] as const
 export type Entidad = (typeof ENTIDADES_DISPONIBLES)[number]
 
+// El tope de filas por archivo de cada entidad: nunca más que el de la base (`TOPE_DE_FILAS`). Si la medición de una entidad dice que su lectura
+// entera no entra en la vida del token, baja sólo el suyo (vehículos: `supabase/tests/medir-datos-exportar-vehiculos.sql`, 9.05-2b).
+export const TOPE_POR_ENTIDAD: Record<Entidad, number> = {
+  leads: TOPE_DE_FILAS,
+}
+
 export const esquemaDelPedido = z
   .object({
     entidad: z.enum(ENTIDADES_DISPONIBLES),
@@ -92,9 +98,31 @@ export function quedaToken(venceEnSeg: number, ahoraMs: number): boolean {
   return venceEnSeg * 1000 - ahoraMs >= MARGEN_DEL_TOKEN_MS
 }
 
-// `leads-todos-AAAA-MM-DD.csv`, con el día en la zona de la empresa.
-export function nombreDelArchivo(entidad: Entidad, ahoraIso: string, zona: string): string {
-  return `${entidad}-todos-${diaEnZona(ahoraIso, { zona })}.csv`
+const LARGO_DE_LA_ETIQUETA = 40
+
+// Lo que distingue el archivo de un origen (`subasta-usa`): el nombre en ASCII, en minúsculas y con guiones, de hasta 40 caracteres; si no queda
+// nada, el comienzo del id. Así a `Content-Disposition` no llega ninguna comilla ni ningún carácter fuera de ASCII.
+export function etiquetaDeArchivo(nombre: string, id: string): string {
+  const etiqueta = nombre
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, LARGO_DE_LA_ETIQUETA)
+    .replace(/-+$/, '')
+  return etiqueta === '' ? id.slice(0, 8) : etiqueta
+}
+
+// `leads-todos-AAAA-MM-DD.csv` (o `vehiculos-<etiqueta>-todos-…`), con el día en la zona de la empresa.
+export function nombreDelArchivo(
+  entidad: Entidad,
+  ahoraIso: string,
+  zona: string,
+  etiqueta?: string,
+): string {
+  const distintivo = etiqueta === undefined ? '' : `-${etiqueta}`
+  return `${entidad}${distintivo}-todos-${diaEnZona(ahoraIso, { zona })}.csv`
 }
 
 // La fila de `datos_exportar_leads()` que lee el flujo (las 11 columnas del archivo), en camelCase. El teléfono ya viene enmascarado si el
@@ -111,6 +139,31 @@ export type FilaDeLeadAExportar = {
   duenoId: string | null
   creadoEn: string
   ultimoSeguimientoEn: string | null
+}
+
+// La fila de la tabla `vehiculos` que lee el flujo (las columnas del archivo), en camelCase: los datos comunes con el nombre de su `ClaveComun`
+// (`features/exportar/columnas-de-vehiculos.ts` lo ata), la fase y los atributos del layout. Sin vitrina, lead, creador, portada ni limpieza.
+export type FilaDeVehiculoAExportar = {
+  id: string
+  numero: number
+  titulo: string
+  marca: string | null
+  modelo: string | null
+  anio: number | null
+  vin: string | null
+  categoriaId: string | null
+  kilometraje: number | null
+  placado: boolean | null
+  lote: string | null
+  plataforma: string | null
+  urlOrigen: string | null
+  precio: number | null
+  precioNegociable: boolean | null
+  aceptaPermuta: boolean | null
+  faseId: string | null
+  atributos: Record<string, unknown>
+  creadoEn: string
+  actualizadoEn: string
 }
 
 // Lo que lee una entidad: contar hasta el tope y leer una página por cursor desde el corte. Lo da `composicion.ts` con la sesión de quien exporta.
