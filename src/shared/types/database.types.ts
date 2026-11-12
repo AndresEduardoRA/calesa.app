@@ -9999,6 +9999,22 @@ export type Database = {
         Args: { p_eliminado_en_esperado: string; p_proyecto: string }
         Returns: Json
       }
+      repuestos_pendientes_de_vehiculo: {
+        Args: { p_tope?: number; p_vehiculo: string }
+        Returns: {
+          descripcion: string
+          espera_fase_id: string
+          espera_fase_nombre: string
+          fase_destino_id: string
+          fase_destino_nombre: string
+          fase_id: string
+          fase_nombre: string
+          item_id: string
+          proyecto_id: string
+          proyecto_numero: number
+          requisito_id: string
+        }[]
+      }
       repuestos_proyectos_listar: {
         Args: { p_cursor: number; p_estado: string; p_q: string; p_tamano: number }
         Returns: {

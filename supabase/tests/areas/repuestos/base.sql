@@ -8,7 +8,7 @@
 --       sin `repuestos.editar`, crear y eliminar dan 42501 y no escriben.
 --   B3. Eliminar con compras → 23514 «Tiene compras. Pásalo a stock o márcalo perdido.»; con otra fase, «Ya pasó por otra fase. …»; recién nacido, se
 --       elimina; versión vieja, PT409.
---   B4. Sin `repuestos.ver` (ni `logistica.ver`) no se lee nada: ni las tablas ni las RPC de lectura.
+--   B4. Sin `repuestos.ver` (ni `logistica.ver`) no se lee nada: ni las tablas ni las RPC de lectura (la lista y los pendientes de un vehículo).
 --   B5. Ninguna lectura de ítems o proyectos trae un costo: ni las columnas que `authenticated` lee ni las salidas de las RPC de lectura.
 
 create or replace function pg_temp.rp_sin_duena() returns void language plpgsql as $f$
@@ -222,6 +222,11 @@ begin
     end if;
   end loop;
   -- Las RPC de lectura: ninguna fila, cuando ya existen.
+  update public.repuestos_proyectos set vehiculo_etiqueta = null, vehiculo_id = pg_temp.rp_vehiculo(pg_temp.rp_origen()) where id = p;
+  if pg_temp.rp_corre(nadie, format('select to_jsonb(count(*)) from public.repuestos_pendientes_de_vehiculo(%L)',
+       (select vehiculo_id from public.repuestos_proyectos where id = p))) <> '0'::jsonb then
+    raise exception 'B4: sin repuestos.ver ni logistica.ver los pendientes de un vehículo traen filas';
+  end if;
   if pg_temp.rp_corre(nadie, 'select to_jsonb(count(*)) from public.repuestos_proyectos_listar(null, 10, null, null)') <> '0'::jsonb then
     raise exception 'B4: sin repuestos.ver la lista de proyectos trae filas';
   end if;
@@ -250,5 +255,6 @@ begin
     and a.modo = 't' and a.nombre ~ '(costo|monto|margen|tipo_cambio|compra)';
   if v_cols is not null then raise exception 'B5: una lectura devuelve columnas de costo: %', v_cols; end if;
   if not exists (select 1 from pg_proc where proname = 'repuestos_proyectos_listar') then raise exception 'B5: falta la lista de proyectos'; end if;
+  if not exists (select 1 from pg_proc where proname = 'repuestos_pendientes_de_vehiculo') then raise exception 'B5: faltan los pendientes'; end if;
 end $$;
 rollback;

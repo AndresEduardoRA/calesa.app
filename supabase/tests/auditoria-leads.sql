@@ -229,6 +229,8 @@ declare
     ('repuesto_item_eliminar(uuid,timestamp with time zone)', 'X'),
     -- La lista de proyectos (8.08-1): no devuelve el vínculo ni el teléfono del cliente (`areas/repuestos/listar.sql`).
     ('repuestos_proyectos_listar(bigint,integer,text,text)', 'L'),
+    -- Lo que la espera de un vehículo aguarda (8.08-1): ítems y fases, sin el vínculo del proyecto (`areas/repuestos/esperas.sql`).
+    ('repuestos_pendientes_de_vehiculo(uuid,integer)', 'L'),
     ('storage_refcount(text,text)', 'X')
   ) t (f, c));
   r record; v_fallas text := '';

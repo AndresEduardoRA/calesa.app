@@ -10,6 +10,9 @@
 --   E3. i2 queda «perdido» (final, sin llegar): cumple con {2, 1, 1}. Contra la versión del 6.02-1 cae (frenaba para siempre).
 --   E4. Un i3 en stock, en «tránsito», no cuenta.
 --   E5. El único ítem «perdido»: cumple con {1, 0, 1}.
+--   E6. `repuestos_pendientes_de_vehiculo`: con `logistica.ver` del origen (sin `repuestos.ver`), sólo i2 en «tránsito», con espera «recibido» y destino
+--       «listo»; sólo con `repuestos.ver`, la misma fila con los nombres de las fases del vehículo nulos; sin ninguno, nada; desde una fase sin
+--       transición hacia una espera, nada; `authenticated` no ejecuta `_repuesto_ante_espera` (42501).
 
 create or replace function pg_temp.rp_sin_duena() returns void language plpgsql as $f$
 begin
@@ -193,5 +196,43 @@ declare t jsonb := pg_temp.rpe_terreno();
 begin
   perform pg_temp.rpe_item(t, (t ->> 'perdido')::uuid);
   perform pg_temp.rpe_es('E5', t, true, '{"hijos": 1, "llegaron": 0, "sin_llegar": 1}');
+end $$;
+rollback;
+
+-- @test repuestos: los ítems que la espera de un vehículo aguarda, según quién pregunta y desde qué fase (E6)
+begin;
+do $$
+declare
+  t jsonb := pg_temp.rpe_terreno(); i2 uuid; r jsonb; e jsonb; otra uuid;
+  log uuid := pg_temp.rp_persona(array['logistica.ver@' || (t ->> 'origen')]);
+  rep uuid := pg_temp.rp_persona(array['repuestos.ver']);
+  nadie uuid := pg_temp.rp_persona(array['vehiculos.ver']);
+  q text := format('select coalesce(jsonb_agg(to_jsonb(x)), ''[]'') from public.repuestos_pendientes_de_vehiculo(%L) x', t ->> 'v');
+begin
+  perform pg_temp.rpe_item(t, (t ->> 'recibido')::uuid);
+  i2 := pg_temp.rpe_item(t, (t ->> 'transito')::uuid);
+  perform pg_temp.rpe_item(t, (t ->> 'perdido')::uuid);
+  perform pg_temp.rpe_item(t, (t ->> 'transito')::uuid, true);
+  r := pg_temp.rp_corre(log, q);
+  if jsonb_array_length(r) <> 1 then raise exception 'E6: con logistica.ver debía traer sólo i2 y trajo %', r; end if;
+  e := r -> 0;
+  if (e ->> 'item_id')::uuid <> i2 or e ->> 'requisito_id' <> t ->> 'req' or e ->> 'fase_destino_id' <> t ->> 'listo'
+     or e ->> 'espera_fase_id' <> t ->> 'recibido' or e ->> 'fase_nombre' <> 'rpe tránsito'
+     or e ->> 'fase_destino_nombre' <> 'rpe listo' or e ->> 'espera_fase_nombre' <> 'rpe recibido' then
+    raise exception 'E6: la fila de i2 no es la esperada: %', e;
+  end if;
+  r := pg_temp.rp_corre(rep, q);
+  if jsonb_array_length(r) <> 1 or (r -> 0 ->> 'item_id')::uuid <> i2 or r -> 0 ->> 'fase_destino_nombre' is not null
+     or r -> 0 ->> 'espera_fase_nombre' is not null or r -> 0 ->> 'fase_nombre' <> 'rpe tránsito' then
+    raise exception 'E6: sólo con repuestos.ver debía traer i2 sin los nombres de las fases del vehículo: %', r;
+  end if;
+  if pg_temp.rp_corre(nadie, q) <> '[]'::jsonb then raise exception 'E6: sin repuestos.ver ni logistica.ver trajo filas'; end if;
+  -- Desde una fase sin transición hacia una espera: nada.
+  insert into public.fases (flujo_id, nombre, orden) values ((select flujo_id from public.fases where id = (t ->> 'taller')::uuid), 'rpe sin salida', 30)
+  returning id into otra;
+  update public.vehiculos set fase_id = otra where id = (t ->> 'v')::uuid;
+  if pg_temp.rp_corre(log, q) <> '[]'::jsonb then raise exception 'E6: desde una fase sin transición a una espera trajo filas'; end if;
+  perform pg_temp.rp_es('E6 _repuesto_ante_espera', pg_temp.rp_corre(log, format('select to_jsonb(public._repuesto_ante_espera(%L, %L))', i2, t ->> 'recibido')),
+    '42501', null);
 end $$;
 rollback;
