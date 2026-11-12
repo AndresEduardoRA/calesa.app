@@ -26,6 +26,11 @@ Proyectos de repuestos por vehículo (o externos), ítems que recorren el flujo 
   área `items` no importa `stock`. Panel `?panel=stock&item=<id>` con «Pasar a stock» y el historial con «Ver más». Tras mover, la fila toma `stock_cantidad`,
   `en_stock_desde` y `actualizado_en` de la respuesta de la RPC, sin releer (D3 de 8.10-2). La fila de la hoja lee `stock_cantidad` (núcleo). Las actions `moverStock`
   (`repuestos.editar` con `puede()` antes; `sobrante`, `vendido`, `devuelto`) y `leerMovimientosDeItem` (RLS de `repuestos.ver`) no salen por los barriles.
+- **Vista «Stock»** (8.10-3): `/repuestos?vista=stock` la arma `src/app/(app)/repuestos/` (`listado-de-stock.tsx`, `stock-con-destino.tsx`) con `leerStock`,
+  `leerCursorDeStock`, `esVistaDeStock` y `CLAVE_DE_VISTA_DE_REPUESTOS` (por `areas/stock/index.ts`) y `<VistaDeStock>` (por `pantallas/stock-vista.ts`). El «⋯» abre
+  reasignar, vender suelto y devolver (`?panel=reasignar-stock|vender-stock|devolver-stock&item=<id>`). El campo «Proyecto destino» lo compone
+  `src/app/(app)/repuestos/buscador-de-proyecto-destino.tsx` con `buscarProyectoAbierto` de `pantallas/proyectos.ts` (render prop: el área `stock` no importa
+  `proyectos`). Las actions `reasignarStock` y `buscarProyectosAbiertos` (las dos con `repuestos.editar` antes) no salen por los barriles.
 - Depende de: `vehiculos`, `flujos`, `leads`.
 
 ## Áreas
@@ -56,6 +61,7 @@ El módulo se parte por **área** (8.08-2, igual que `logistica`) para que los p
 - `infra/stock/listar.ts` (8.10-1) — `leerStock(cursor)`: `repuestos_stock_listar` con `TAMANO_DE_PAGINA_POR_DEFECTO` (la lee la vista «Stock» de 8.10-3).
 - `entities/stock/{errores,mover,movimientos,paneles,repositorio}.ts` (8.10-2) — el rechazo de la base por campo (`rechazoDeStock`), la respuesta de mover y la fila tras
   moverlo (`filaTrasMover`), la página del historial (cursor `id`) y el panel. `infra/stock/{mover,movimientos}.ts` los leen y escriben; `areas/stock/composicion.ts` los une.
+- `entities/stock/{reasignar,vista}.ts` (8.10-3) — la respuesta de reasignar y las claves y rutas de la vista «Stock»; `infra/stock/reasignar.ts` la llama.
 - `features/proyectos/`, `features/items/` (hoja), `features/compras/`, `features/stock/`, `features/cotizador/`, `features/catalogos/`.
 - La base (8.08-1): `repuesto_proyecto_crear` / `_cerrar` / `_reabrir` / `_eliminar` / `_restaurar`, `repuesto_item_crear` / `_eliminar`,
   `repuestos_proyectos_listar`, `repuestos_pendientes_de_vehiculo`, `_repuesto_ante_espera` y el trigger `repuestos_catalogo_sin_uso`. De 8.09-3: los triggers `repuestos_imagen_integridad` y `repuestos_imagen_encolar` (prueba `areas/repuestos/imagenes.sql`). De 8.10-1: `repuesto_stock_mover`,
