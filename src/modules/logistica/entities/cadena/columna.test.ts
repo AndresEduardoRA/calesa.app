@@ -84,13 +84,19 @@ describe('agregarTarjetas', () => {
 })
 
 describe('cursorDeLaColumna', () => {
-  it('es (fase_desde, id) de la última tarjeta cargada', () => {
+  it('en una fase es (fase_desde, id) de la última tarjeta cargada', () => {
     const c = columna(3, true)
     expect(cursorDeLaColumna(c)).toEqual({ desde: c.tarjetas[2]?.faseDesde, id: id(3) })
   })
-  it('sin tarjetas o sin fecha, no hay cursor', () => {
+  it('«Sin fase» no tiene fecha: el cursor va sólo por id', () => {
+    const c = columna(3, true, null)
+    expect(cursorDeLaColumna(c)).toEqual({ desde: null, id: id(3) })
+  })
+  it('sin tarjetas, o sin fecha en una fase, no hay cursor', () => {
     expect(cursorDeLaColumna(columna(0, false))).toBeNull()
-    expect(cursorDeLaColumna({ tarjetas: [tarjeta(1, { faseDesde: null })] })).toBeNull()
+    expect(
+      cursorDeLaColumna({ faseId: id(1), tarjetas: [tarjeta(1, { faseDesde: null })] }),
+    ).toBeNull()
   })
 })
 

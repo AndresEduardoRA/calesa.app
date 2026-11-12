@@ -59,10 +59,17 @@ export function agregarTarjetas(
   return { ...columna, tarjetas, hayMas }
 }
 
-/** El cursor del siguiente pedido: la última tarjeta cargada, `(fase_desde, id)`. Nulo si no hay tarjetas o la última no tiene fecha (la base lo exige junto con el id). */
+export type CursorDeLaColumna = { desde: string | null; id: string }
+
+/**
+ * El cursor del siguiente pedido: la última tarjeta cargada. En una fase es `(fase_desde, id)` y la base exige los dos; «Sin fase» no tiene `fase_desde` (la restricción
+ * `vehiculos_fase_desde_coherente`) y va sólo por `id`. Nulo si no hay tarjetas o a la última de una fase le falta la fecha.
+ */
 export function cursorDeLaColumna(
-  columna: Pick<ColumnaDeLaCadena, 'tarjetas'>,
-): { desde: string; id: string } | null {
+  columna: Pick<ColumnaDeLaCadena, 'faseId' | 'tarjetas'>,
+): CursorDeLaColumna | null {
   const ultima = columna.tarjetas.at(-1)
-  return ultima?.faseDesde ? { desde: ultima.faseDesde, id: ultima.id } : null
+  if (!ultima) return null
+  if (columna.faseId === null) return { desde: null, id: ultima.id }
+  return ultima.faseDesde ? { desde: ultima.faseDesde, id: ultima.id } : null
 }
