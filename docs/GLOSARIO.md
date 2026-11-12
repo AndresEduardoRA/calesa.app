@@ -306,6 +306,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Tarea** — `tareas` / `reasignar_tarea`: pendiente con responsable y vencimiento.
 - **Tareas sin fecha** — `agenda_tareas_sin_fecha()`: mis tareas sin vencimiento, en una sección plegable bajo el calendario de `/agenda`; el calendario no las dibuja.
 - **Conversación / Mensaje** — `conversaciones`, `mensajes`: directa, grupo o canal global; mensajes de texto o fichas.
+- **Cita (de un mensaje)** — `mensajes.responde_a_id`: el mensaje al que responde otro; en pantalla, «Respondiendo a…» y, dentro de la burbuja, el autor y las primeras palabras del original. Tipo `CitaDeMensaje`.
 - **Mención** — `mensajes_menciones`: `#` a vehículo, lead, cotización o persona; no otorga acceso.
 - **No leídos** — `chat_conversaciones().no_leidos`, `chat_no_leidos()`: mensajes de otras personas posteriores a tu última lectura de una conversación (`conversaciones_miembros.ultimo_leido_en`), contados entre las 100 entradas más nuevas (las propias ocupan lugar y no suman); 100 se muestra «99+». El total no suma las silenciadas.
 - **Notificación** — `notificaciones` / `notificar()`: aviso en la campana; `requiere_accion` para lo que pide clic.

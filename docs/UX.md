@@ -82,7 +82,7 @@ Navegación de primer nivel (hasta 7, filtrada por permisos): Inicio · Leads ·
 - **Logística** — `/logistica` (`logistica.ver` en algún origen): cadena (kanban por fase, 6.03) + panel de la unidad en un `<Drawer>` por URL (`?vehiculo=<id>`, que abre el clic en una tarjeta); en la URL: `?origen=` (pestañas de los orígenes con la logística encendida), `?fase=` (celular: una fase a la vez), `q` (nombre, VIN o lote; 3 letras o números), `demoradas`, `por_aprobar`, `contenedor`, `booking` y `naviera`; `/logistica/vehiculo/[id]` (el mismo panel en su página: a ella apunta la notificación de demora), `/embarques`, `/aduana`, `/gastos` (6.11-3: `?ver=gastos|pagos`; los enlaces de la sub-navegación aparecen cuando cada página existe). Ver «Logística: estados propios».
 - **Repuestos** — `/repuestos` (`repuestos.*`): proyectos + detalle con ítems; stock, compras, cotizador propio.
 - **Agenda** — `/agenda` (todos): calendario mes/semana/día + drawer; eventos, tareas, recordatorios, subastas.
-- **Chat** — `/chat` (`chat.participar`): maestro-detalle; menciones `#` de vehículo/lead/cotización, `/tarea`, `/evento`; widget flotante fuera de `/chat`.
+- **Chat** — `/chat` (`chat.participar`; `?c=<conversación>`, `?panel=nueva|grupo|salir|borrar-mensaje&mensaje=<id>`; estados en «Chat (estados propios)»): maestro-detalle; menciones `#` de vehículo/lead/cotización, `/tarea`, `/evento`; widget flotante fuera de `/chat`.
 - **Notificaciones** — `/notificaciones` (todos): lista; la campana trae las que piden acción.
 - **Perfil** — `/perfil` (todos): nombre, foto, preferencias (tema, densidad, ítems por página) y «Turnos de la web» en sólo lectura («Tu rol no recibe turnos de la web.»). El interruptor de disponibilidad (Fase 8) nace ahí.
 - **Actividad** — `/actividad` (`actividad.ver`): tabla agrupada por día + drawer de diff; 14 días.
@@ -129,6 +129,16 @@ Navegación de primer nivel (hasta 7, filtrada por permisos): Inicio · Leads ·
 - **Barra superior:** tipo de cambio por defecto a la vista y, al abrirlo, los vigentes con su último cambio (Modo Live lo oculta). En el celular menú, Live y avatar miden 44 px y la barra cabe al 200 %; el tipo de cambio sólo se dibuja con 24 rem o más. El buscador (icono «Buscar» de 44 px) está deshabilitado hasta la Fase 7.
 - **Permisos en UI:** ocultar lo que nunca va a usar; deshabilitar con motivo lo que espera poder hacer (**dominancia**: lo que no puede dar nunca se esconde). RLS es la seguridad. **«Ver como»:** banner fijo «Viendo como <rol> · Salir»; cambia lo que se ve, no lo que se puede.
 - **Conflictos:** todo formulario de edición manda `actualizado_en` esperado; `PT409` → «X cambió esto hace N min · ver / recargar». Barras que se desplazan: degradado en el borde por donde siguen. Transiciones con View Transitions y `prefers-reduced-motion`.
+
+### Chat (estados propios)
+
+- **Entrar:** `chat.participar`; sin él, «sin permiso» y no se lee nada. `?c=` ilegible = «Elige una conversación»; una conversación que ya no es mía (salí, la borraron, perdí `chat.global`) dice «Esta conversación ya no es tuya», nunca un 404. En el celular, lista y hilo son dos pantallas y «Volver a la lista» regresa.
+- **Lista:** esqueleto con la forma de las filas; vacía de primera vez invita a iniciar una conversación; error con «Reintentar»; «Ver más» hasta el tope. No leídos «99+».
+- **Hilo:** cargando reserva el alto con un esqueleto; error con «Reintentar» (el redactor no se dibuja); sin mensajes, «Escribe el primero». «Ver anteriores» por cursor y, al llegar al tope de lo cargado, `<AvisoDeTope>` con «Ir a una fecha» (mirando desde una fecha el hilo no sigue lo nuevo y arriba dice cómo volver).
+- **Enviar:** Enter envía, Mayús+Enter salta de línea; el mensaje se ve al instante («Enviando…»). Sin red o rechazado queda «No enviado · Reintentar» con el motivo; reintentar reusa el mismo `id` y nunca duplica. Pasado el largo máximo, el motivo va bajo el campo.
+- **Responder:** «Responder» en el «⋯» del mensaje (siempre visible, 44 px en celular) pone sobre el redactor «Respondiendo a {nombre}» con las primeras palabras y «Quitar respuesta». En la burbuja la cita va arriba del texto, sin clic; sin original legible dice «Mensaje no disponible», y un original borrado, «Mensaje eliminado».
+- **Editar:** sólo lo propio, hasta 15 minutos después de escribirlo (se mide al abrir el «⋯»; la base manda). El editor reemplaza el texto en la burbuja: Enter guarda, Mayús+Enter salta de línea, Esc cancela; «Guardar» se apaga con el texto vacío, sin cambios o mientras guarda. Un rechazo (más de 15 minutos, el mensaje cambió, permiso) se dice dentro y conserva el texto. Lo editado dice «editado».
+- **Borrar:** el autor, o quien tiene `chat.moderar`, desde el «⋯»: diálogo «Borrar tu mensaje» / «Borrar el mensaje de {nombre}» con URL (`?panel=borrar-mensaje&mensaje=<id>`; una URL con un mensaje que no está cargado o que ya no se puede borrar avisa y se limpia). No se deshace: queda «Mensaje eliminado» sin el texto, para todas las personas. Un rechazo se dice dentro del diálogo.
 
 ### Empresa (estados propios)
 
