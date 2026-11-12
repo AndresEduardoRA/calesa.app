@@ -40,3 +40,7 @@ export function useEtapasEditables(inicial: readonly Etapa[], alCambiar: () => v
     },
   }
 }
+
+// Lo que el editor de etapas (`ListaDeEtapas` y sus filas) necesita: las etapas, sus cambios y si hay un envío en curso. Lo cumplen el
+// panel de un embudo y la plantilla del embudo de Configuración.
+export type EtapasEnEdicion = ReturnType<typeof useEtapasEditables> & { enCurso: boolean }

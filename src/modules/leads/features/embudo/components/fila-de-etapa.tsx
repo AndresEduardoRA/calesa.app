@@ -3,7 +3,7 @@
 import { Input } from '@/shared/ui/input'
 import { LARGO_MAXIMO_DE_ETAPA, type Etapa } from '../../../entities/embudo'
 import { SelectorDeColor } from '../../etiquetas/components/selector-de-color'
-import type { PanelDeEtapas } from '../hooks/use-panel-de-etapas'
+import type { EtapasEnEdicion } from '../hooks/use-etapas-editables'
 import { MarcasDeEtapa } from './marcas-de-etapa'
 import { OrdenDeEtapa } from './orden-de-etapa'
 
@@ -11,7 +11,7 @@ type Props = {
   etapa: Etapa
   indice: number
   total: number
-  panel: PanelDeEtapas
+  panel: EtapasEnEdicion
   // El nombre del grupo de radios de «inicial» (uno por panel).
   grupo: string
 }
