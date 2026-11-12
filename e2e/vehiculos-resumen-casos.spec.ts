@@ -131,9 +131,11 @@ test('sin red al abrir el resumen lo dice con «Reintentar», y sin red al elegi
   // El código del resumen no se pidió todavía: sin red, no llega.
   await context.setOffline(true)
   await filaDe(page, TITULO).click({ position: { x: 6, y: 6 } })
-  await expect(page.getByText('Sin conexión. No se pudo abrir esto.')).toBeVisible()
+  // En el contenido: la suscripción de la campana del marco, si se pide sin red, dice lo mismo en el encabezado.
+  const contenido = page.locator('#contenido')
+  await expect(contenido.getByText('Sin conexión. No se pudo abrir esto.')).toBeVisible()
   await context.setOffline(false)
-  await page.getByRole('button', { name: 'Reintentar' }).click()
+  await contenido.getByRole('button', { name: 'Reintentar' }).click()
   const resumen = resumenDe(page, TITULO)
   await expect(resumen).toBeVisible()
   // Lo mismo con una pestaña cuyo código no se pidió.

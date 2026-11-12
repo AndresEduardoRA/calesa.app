@@ -78,4 +78,9 @@ export const REGISTRO: Record<string, ConfirmarConUrl> = {
     abre: 'src/modules/chat/features/mensajes/hooks/use-borrado-por-url.ts',
     senal: 'PANEL_BORRAR_MENSAJE',
   },
+  // `?panel=canal` sobre el resumen de la declaración que ya ocupa `?declaracion=` (6.09-2).
+  'src/modules/logistica/features/aduana/components/confirmar-asignar-canal.tsx': {
+    abre: 'src/modules/logistica/features/aduana/hooks/use-canal-por-url.ts',
+    senal: 'PANEL_CANAL',
+  },
 }
