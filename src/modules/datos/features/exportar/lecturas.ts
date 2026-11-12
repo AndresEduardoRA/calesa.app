@@ -11,6 +11,7 @@ import {
   type SalidaDeExportacionTotal,
 } from '../../entities/exportacion'
 import { armarFlujo } from './flujo'
+import { fuenteDeCotizaciones } from './fuente-de-cotizaciones'
 import { fuenteDeLeads, type Fuente } from './fuente-de-leads'
 import { fuenteDeVehiculos } from './fuente-de-vehiculos'
 
@@ -20,6 +21,8 @@ type Entrada = {
   permisos: Permisos
   zona: string
   codigoDePais: string | null
+  // La de los ajustes de la empresa (el encabezado del total de las cotizaciones); nula si no se pudieron leer.
+  monedaBase: string | null
   ahora?: () => number
 }
 
@@ -32,7 +35,7 @@ const NO_SE_PUDO = 'No pudimos preparar la exportación. Vuelve a intentarlo.'
 // y 3 por hora) y recién después el flujo. Ningún byte del archivo sale antes de la constancia, nunca se registra dos veces y el archivo no pasa
 // las filas registradas. El orden está escrito una sola vez (`seguirCon`): cada entidad sólo trae su fuente.
 export async function exportarTodo(entrada: Entrada): Promise<SalidaDeExportacionTotal> {
-  const { pedido, permisos, zona, codigoDePais, ahora = Date.now } = entrada
+  const { pedido, permisos, zona, codigoDePais, monedaBase, ahora = Date.now } = entrada
   if (!puede(permisos, 'datos.exportar.todo')) {
     return { tipo: 'sin_permiso' }
   }
@@ -59,6 +62,17 @@ export async function exportarTodo(entrada: Entrada): Promise<SalidaDeExportacio
         zona,
         ahora,
       })
+    case 'cotizaciones':
+      return seguirCon(
+        await fuenteDeCotizaciones({
+          cliente,
+          origenId: pedido.origen ?? null,
+          zona,
+          monedaBase,
+          conClientes: puede(permisos, 'leads.ver'),
+        }),
+        { pedido, sesion: sesion.data, zona, ahora },
+      )
   }
 }
 

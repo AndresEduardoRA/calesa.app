@@ -193,11 +193,11 @@ describe('POST /datos/exportar: vehículos de un origen', () => {
     expect(pagina).not.toHaveBeenCalled()
   })
 
-  it('T16 · sin origen, leads con origen o cotizaciones: 400 sin llamar nada', async () => {
+  it('T16 · sin origen, leads con origen o cotizaciones con un origen que no es guid: 400 sin llamar nada', async () => {
     for (const cuerpo of [
       { entidad: 'vehiculos', delimitador: ';' },
       { entidad: 'leads', delimitador: ';', origen: ORIGEN },
-      { entidad: 'cotizaciones', delimitador: ';', origen: ORIGEN },
+      { entidad: 'cotizaciones', delimitador: ';', origen: 'x' },
     ]) {
       expect((await pedir(cuerpo)).status).toBe(400)
     }

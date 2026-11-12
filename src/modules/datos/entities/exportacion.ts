@@ -20,16 +20,18 @@ export const VIDA_MINIMA_DEL_TOKEN_MS = 5 * 60_000
 // El flujo no pide una página si al token le queda menos que esto: corta con error antes que mandar un pedido que va a dar 401.
 export const MARGEN_DEL_TOKEN_MS = 30_000
 
-// Lo que se puede exportar hoy. La 9.05-2c suma cotizaciones.
-export const ENTIDADES_DISPONIBLES = ['leads', 'vehiculos'] as const
+// Lo que se puede exportar.
+export const ENTIDADES_DISPONIBLES = ['leads', 'vehiculos', 'cotizaciones'] as const
 export type Entidad = (typeof ENTIDADES_DISPONIBLES)[number]
 
 // El tope de filas por archivo de cada entidad: nunca más que el de la base (`TOPE_DE_FILAS`). Si la medición de una entidad dice que su lectura
 // entera no entra en la vida del token, baja sólo el suyo. Vehículos: con 250.000 de un origen, conteo 0,3 s y lectura 0,4 s
-// (`supabase/tests/medir-datos-exportar-vehiculos.sql`, 9.05-2b).
+// (`supabase/tests/medir-datos-exportar-vehiculos.sql`, 9.05-2b). Cotizaciones: con ≈ 250.000, conteo 0,4 s, lectura 0,44 s y los nombres de una
+// página ≈ 6 ms (`supabase/tests/medir-datos-exportar-cotizaciones.sql`, 9.05-2c).
 export const TOPE_POR_ENTIDAD: Record<Entidad, number> = {
   leads: TOPE_DE_FILAS,
   vehiculos: TOPE_DE_FILAS,
+  cotizaciones: TOPE_DE_FILAS,
 }
 
 const comunesDelPedido = {
@@ -38,8 +40,8 @@ const comunesDelPedido = {
   hasta: z.iso.date().optional(),
 }
 
-// Espejo de la base: en leads el origen no es un filtro (`strict` lo rechaza); en vehículos es obligatorio (un archivo por origen). La base lo
-// vuelve a exigir.
+// Espejo de la base: en leads el origen no es un filtro (`strict` lo rechaza); en vehículos es obligatorio (un archivo por origen); en
+// cotizaciones, optativo (sin él, todas las que se ven). La base lo vuelve a exigir.
 export const esquemaDelPedido = z
   .discriminatedUnion('entidad', [
     z.object({ entidad: z.literal('leads'), ...comunesDelPedido }).strict(),
@@ -48,6 +50,13 @@ export const esquemaDelPedido = z
         entidad: z.literal('vehiculos'),
         ...comunesDelPedido,
         origen: z.guid({ error: 'Elige el origen de los vehículos.' }),
+      })
+      .strict(),
+    z
+      .object({
+        entidad: z.literal('cotizaciones'),
+        ...comunesDelPedido,
+        origen: z.guid({ error: 'Ese origen no es válido.' }).optional(),
       })
       .strict(),
   ])
@@ -65,7 +74,7 @@ export function filtrosDelPedido(pedido: Pedido): FiltrosDelPedido {
   return {
     ...(pedido.desde === undefined ? {} : { desde: pedido.desde }),
     ...(pedido.hasta === undefined ? {} : { hasta: pedido.hasta }),
-    ...(pedido.entidad === 'vehiculos' ? { origen: pedido.origen } : {}),
+    ...(pedido.entidad !== 'leads' && pedido.origen !== undefined ? { origen: pedido.origen } : {}),
   }
 }
 
@@ -124,7 +133,7 @@ export function etiquetaDeArchivo(nombre: string, id: string): string {
   return etiqueta === '' ? id.slice(0, 8) : etiqueta
 }
 
-// `leads-todos-AAAA-MM-DD.csv` (o `vehiculos-<etiqueta>-todos-…`), con el día en la zona de la empresa.
+// `leads-todos-AAAA-MM-DD.csv` (o `vehiculos-<etiqueta>-todos-…`, `cotizaciones[-<etiqueta>]-todos-…`), con el día en la zona de la empresa.
 export function nombreDelArchivo(
   entidad: Entidad,
   ahoraIso: string,

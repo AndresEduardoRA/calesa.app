@@ -188,7 +188,7 @@ describe('POST /datos/exportar: el flujo', () => {
     expect((await pedir(undefined, 'https://otra.app')).status).toBe(403)
     for (const cuerpo of [
       { entidad: 'vehiculos', delimitador: ';' },
-      { entidad: 'cotizaciones', delimitador: ';' },
+      { entidad: 'cotizaciones', delimitador: ';', origen: 'x' },
       { entidad: 'leads', delimitador: ';', origen: '00000000-0000-4000-8000-000000000001' },
       { entidad: 'leads', delimitador: ';', desde: '2026-11-10', hasta: '2026-11-01' },
     ]) {

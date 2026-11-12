@@ -40,7 +40,14 @@ describe('esquemaDelPedido', () => {
       'vehículos con un origen que no es guid',
       { entidad: 'vehiculos', delimitador: ';', origen: 'x' },
     ],
-    ['cotizaciones (todavía no)', { entidad: 'cotizaciones', delimitador: ';' }],
+    [
+      'cotizaciones con un origen que no es guid',
+      { entidad: 'cotizaciones', delimitador: ';', origen: 'x' },
+    ],
+    [
+      'cotizaciones con una clave de más',
+      { entidad: 'cotizaciones', delimitador: ';', lead: ORIGEN },
+    ],
     ['una fecha imposible', { entidad: 'leads', delimitador: ';', desde: '2026-02-30' }],
     ['un origen que no es guid', { entidad: 'leads', delimitador: ';', origen: 'x' }],
     ['otro separador', { entidad: 'leads', delimitador: '|' }],
@@ -84,6 +91,43 @@ describe('filtrosDelPedido', () => {
     expect(filtrosDelPedido({ entidad: 'leads', delimitador: ',', hasta: '2026-03-01' })).toEqual({
       hasta: '2026-03-01',
     })
+  })
+})
+
+describe('T25 · cotizaciones: origen optativo', () => {
+  it('pasa sin origen y con un origen guid', () => {
+    expect(esquemaDelPedido.safeParse({ entidad: 'cotizaciones', delimitador: ';' }).success).toBe(
+      true,
+    )
+    expect(
+      esquemaDelPedido.safeParse({ entidad: 'cotizaciones', delimitador: ',', origen: ORIGEN })
+        .success,
+    ).toBe(true)
+  })
+
+  it('los filtros traen el origen sólo si vino', () => {
+    expect(filtrosDelPedido({ entidad: 'cotizaciones', delimitador: ';' })).toEqual({})
+    expect(
+      filtrosDelPedido({
+        entidad: 'cotizaciones',
+        delimitador: ';',
+        origen: ORIGEN,
+        hasta: '2026-03-01',
+      }),
+    ).toEqual({ hasta: '2026-03-01', origen: ORIGEN })
+  })
+
+  it('el nombre del archivo, con y sin la etiqueta del origen', () => {
+    const ahora = '2026-11-12T20:00:00Z'
+    expect(nombreDelArchivo('cotizaciones', ahora, ZONA)).toBe('cotizaciones-todos-2026-11-12.csv')
+    expect(nombreDelArchivo('cotizaciones', ahora, ZONA, 'subasta-usa')).toBe(
+      'cotizaciones-subasta-usa-todos-2026-11-12.csv',
+    )
+  })
+
+  it('las tres entidades están disponibles', () => {
+    expect([...ENTIDADES_DISPONIBLES]).toEqual(['leads', 'vehiculos', 'cotizaciones'])
+    expect(TOPE_POR_ENTIDAD.cotizaciones).toBe(TOPE_DE_FILAS)
   })
 })
 

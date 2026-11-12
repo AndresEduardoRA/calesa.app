@@ -5,7 +5,7 @@ Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista pre
 ## Entra y sale
 
 - Entra: archivo CSV subido desde el navegador, mapeo de columnas, confirmación.
-- Sale: `/datos` y `POST /datos/exportar` (9.05-2: el archivo de «exportar todo» por un flujo; `index.ts` da `exportarTodo`, `esquemaDelPedido`, `TOPE_DE_FILAS` y `TOPE_POR_ENTIDAD`). Entidades: `leads` y, desde la 9.05-2b, `vehiculos` (con `origen` obligatorio: un archivo por origen).
+- Sale: `/datos` y `POST /datos/exportar` (9.05-2: el archivo de «exportar todo» por un flujo; `index.ts` da `exportarTodo`, `esquemaDelPedido`, `TOPE_DE_FILAS` y `TOPE_POR_ENTIDAD`). Entidades: `leads`, `vehiculos` (9.05-2b, con `origen` obligatorio: un archivo por origen) y `cotizaciones` (9.05-2c, con `origen` optativo).
 - Depende de: `leads` (las celdas de su exportación propia y sus catálogos, por su entrada), `vehiculos` (`camposComunes`), `origenes` (`getOrigenes(true)`, `leerLayout`) y `flujos` (`leerFasesDeOrigen`), por sus entradas; el route handler compone `equipo` (`getPermisos`) y `empresa` (`leerAjustes`). **Los listados no dependen de `datos`:** el CSV de lo propio de `leads` (exportar «lo que ves» e importar con vista previa) vive en `leads` (Fase 3, parte 8) y `datos` lo consume por su entrada y reutiliza `shared/lib/csv` (`escribir`, `leer`, `descargar`). Lo que es de `datos` es el **todo del dueño** con `datos.exportar.todo` e `importar-csv`.
 
 ## Archivos clave
@@ -14,7 +14,7 @@ Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista pre
 - `infra/importar.ts` — llama a `supabase/functions/importar-csv` (fuera de la Server Action: es trabajo en segundo plano).
 - `entities/exportacion.ts` — exportar todo: el pedido (Zod), `TOPE_DE_FILAS` (250.000, medido), `FILAS_POR_PEDIDO` (el `max_rows`), el rango por fechas con el instante de corte, lo que contesta el registrar y los tipos `LectorDeExportacion`, `ColumnasDeExportacion` y `Registrador`.
 - `infra/cliente-del-flujo.ts` — `prepararSesion()`: la sesión de quien exporta con su token **fijo** (`accessToken` de supabase-js: nunca refresca). `infra/exportacion.ts` — el conteo y las páginas de `datos_exportar_leads()` por cursor, el registrar y los nombres de los dueños. `infra/paginas.ts` — lo común de leer por páginas (`enElRango`, `siguienteDe`, `contarHasta`). `infra/vehiculos.ts` (9.05-2b) — los vehículos de un origen de la tabla `vehiculos`, de a 1.000, bajo la RLS de quien exporta (no `vehiculos_inventario()`). `infra/cotizaciones.ts` (9.05-2c) — las cotizaciones de la tabla `cotizaciones` (todas o de un origen), de a 1.000, bajo la RLS de quien exporta (no `cotizaciones_listado()`), y los nombres de una página: clientes por `leads_vista_por_ids` y títulos de `vehiculos` de a `IDS_POR_CONSULTA_DE_NOMBRES` (100).
-- `features/exportar/lecturas.ts` (`exportarTodo`: el orden), `flujo.ts` (el `ReadableStream`), `fuente-de-<entidad>.ts` y `columnas-de-<entidad>.ts` (leads y vehículos; la 9.05-2c suma cotizaciones con un `case` en `lecturas.ts`, sin tocar el flujo ni el route); `features/importar/` (mapeo, vista previa, resultado).
+- `features/exportar/lecturas.ts` (`exportarTodo`: el orden), `flujo.ts` (el `ReadableStream`), `fuente-de-<entidad>.ts` y `columnas-de-<entidad>.ts` (leads, vehículos y cotizaciones, cada una con su `case` en `lecturas.ts`; el route sólo pasa `monedaBase` de los ajustes); `features/importar/` (mapeo, vista previa, resultado).
 
 ## Tablas
 
@@ -44,6 +44,10 @@ Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista pre
 - Vehículos (9.05-2b): se leen de la tabla `vehiculos` bajo la RLS de quien exporta (la policy decide filas y papelera; ninguna función nueva). Un
   origen que no está da 404 `vacia` sin contar ni registrar (no dice si existe); uno inactivo exporta. El precio sale tal como lo da la base. Lo
   prueba `route-vehiculos.test.ts` y, con tres cuentas, `supabase/tests/areas/datos/exportar-vehiculos.sql`.
+- Cotizaciones (9.05-2c): se leen de la tabla `cotizaciones` bajo la RLS de quien exporta (las policies deciden filas y papelera; sólo columnas
+  con `grant select`). El total sale en moneda base tal como se guarda. Los nombres se traen por página y sólo de lo que se ve: clientes sólo
+  con `leads.ver` (y aun así decide la RLS de `leads`), títulos bajo «vehiculos: leer»; lo que no llega va vacío. Un origen que no está, 404.
+  Lo prueba `route-cotizaciones.test.ts` y, con tres cuentas, `supabase/tests/areas/datos/exportar-cotizaciones.sql`.
 - Un fallo a mitad del flujo, o un token a menos de 30 s de vencer, lo corta con error: una descarga fallida, nunca un CSV que parezca entero.
 
 ## Ojo

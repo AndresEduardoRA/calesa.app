@@ -8,8 +8,8 @@ import { ZONA_POR_DEFECTO } from '@/shared/lib/fechas'
 // lo abre. Autentica por la cookie de sesión y comprueba que el pedido salga de esta misma dirección. La constancia
 // (`datos_exportacion_registrar`: el permiso real y 3 por hora) se deja **antes** del primer byte: sin ella, 403 o 429 y ningún dato.
 //
-//   POST { entidad: "leads" | "vehiculos", delimitador: ";" | ",", desde?: "AAAA-MM-DD", hasta?: "AAAA-MM-DD", origen?: uuid }
-//   (vehículos: `origen` obligatorio, un archivo por origen; leads: sin `origen`)
+//   POST { entidad: "leads" | "vehiculos" | "cotizaciones", delimitador: ";" | ",", desde?: "AAAA-MM-DD", hasta?: "AAAA-MM-DD", origen?: uuid }
+//   (vehículos: `origen` obligatorio, un archivo por origen; cotizaciones: `origen` optativo; leads: sin `origen`)
 //   200 text/csv (con BOM, por un flujo) | 400 {pedido} | 401 {sesion} | 403 {origen|sin_permiso} | 404 {vacia} | 409 {demasiadas, tope}
 //   | 429 {limite, libreEn} | 500 {error}
 
@@ -86,6 +86,7 @@ export async function POST(peticion: Request) {
       permisos,
       zona: ajustes?.zonaHoraria ?? ZONA_POR_DEFECTO,
       codigoDePais: ajustes?.telefonoCc ?? null,
+      monedaBase: ajustes?.monedaBase ?? null,
     }),
   )
 }
