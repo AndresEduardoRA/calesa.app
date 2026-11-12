@@ -1,5 +1,6 @@
-// Publicar una configuración y guardar tramos y cajas del cotizador, dicho como interfaz (8.12-2, C5–C7). La implementación (Supabase, escritura
-// directa bajo la RLS de `repuestos.configurar`, D28) vive en `infra/cotizador/escribir-configuracion.ts` y se la entrega `areas/cotizador/composicion.ts`.
+// Publicar una configuración y guardar tramos y cajas del cotizador (8.12-2, C5–C7) y crear una cotización (8.12-3, C5), dicho como interfaz. La implementación (Supabase, escritura
+// directa bajo la RLS de `repuestos.configurar`, D28) vive en `infra/cotizador/escribir-configuracion.ts`; la de crear (por RPC), en
+// `infra/cotizador/crear-cotizacion.ts`. Las entrega `areas/cotizador/composicion.ts`.
 import type { ResultadoDeAccion } from '@/shared/lib/enviar-accion'
 import type { DatosDeTramo } from './configuracion'
 import type {
@@ -26,4 +27,12 @@ export type RepositorioDeConfiguracion = {
   publicar: (pedido: PedidoDePublicar) => Promise<ResultadoDeAccion<ConfiguracionDelCotizador>>
   guardarTramo: (pedido: PedidoDeTramo) => Promise<ResultadoDeAccion<TramoConfigurado>>
   guardarCaja: (pedido: PedidoDeCaja) => Promise<ResultadoDeAccion<CajaConfigurada>>
+}
+
+/** El id lo trae el cliente: la RPC es idempotente por id, así un reintento no duplica (D32). */
+export type PedidoDeCrearCotizacion = { id: string; proyectoId: string; moneda: string }
+export type CotizacionCreada = { id: string; numero: number }
+
+export type RepositorioDeCotizaciones = {
+  crear: (pedido: PedidoDeCrearCotizacion) => Promise<ResultadoDeAccion<CotizacionCreada>>
 }
