@@ -13,6 +13,7 @@ const fila = (): FilaDeItem =>
     pais_origen_id: null,
     modo_transporte_id: null,
     cantidad: 1,
+    stock_cantidad: 0,
     precio_cliente: null,
     moneda: null,
     tracking: null,

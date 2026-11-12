@@ -21,6 +21,11 @@ Proyectos de repuestos por vehículo (o externos), ítems que recorren el flujo 
   `XCell` son estables (`memo`). Sin `repuestos.editar` o con el proyecto cerrado, texto plano. La base **no** frena el `update` de un ítem de un proyecto cerrado (hueco para 8.10).
 - **Resumen en la ficha y eliminar** (8.09-4, `features/proyectos/`): la pestaña «Repuestos» (`repuestos.ver` global; la lee `src/app/(app)/vehiculos/[id]/seccion-repuestos.tsx` al abrirla) dibuja `<ResumenRepuestos>`: sin proyecto, «Crear proyecto de repuestos» (sólo con `repuestos.editar`) que abre `/repuestos?panel=nuevo-proyecto&vehiculo=<id>`; con él, el enlace, el estado y los ítems por fase (≤ 201 leídos; «más de 200»). Un archivo `pantallas/<x>.ts` sin prefijo de área es del núcleo y no importa un área (D76). «Eliminar proyecto» (cabecera, `repuestos.editar` y hoja sin ítems) va sin confirmación y con «Deshacer» (`eliminarProyecto` y `restaurarProyecto`, que no salen por los barriles).
 - **Imágenes del ítem** (8.09-3, `features/items/`): panel `?panel=imagenes&item=<id>` (`pantallas/items.ts` lo trae con la hoja), objetos `<item_id>/<sha-256>.webp` en el bucket `repuestos`, **tope 8 en la base** (`repuestos_imagen_integridad`, candado por ítem) y el mismo 8 en `entities/items/imagenes.ts`. La tabla sólo se escribe por insert y delete (sin UPDATE). La app **no borra objetos**: borrar la fila encola la ruta (`repuestos_imagen_encolar`, por refcount) y «Deshacer» la rescata. Las actions `leerImagenesDeItem`, `agregarImagenes` y `quitarImagen` no salen por los barriles. La subida usa `subirPorHash` de `shared` desde el hook (D73). La base no frena borrar una imagen de un proyecto cerrado (hueco para 8.10).
+- **Stock del ítem** (8.10-2, área `stock`): la hoja tiene un hueco (`HuecoDeLaHoja`: `accionDeFila(fila)` y `panel(api)` con `cambiarFila` sobre la fila vigente; tipos por
+  `pantallas/items.ts`) que llena `src/app/(app)/repuestos/[id]/hoja-con-stock.tsx` con lo de `pantallas/stock.ts` (`BotonDeStock`, `PanelDeStock`, `useStockPorUrl`): el
+  área `items` no importa `stock`. Panel `?panel=stock&item=<id>` con «Pasar a stock» y el historial con «Ver más». Tras mover, la fila toma `stock_cantidad`,
+  `en_stock_desde` y `actualizado_en` de la respuesta de la RPC, sin releer (D3 de 8.10-2). La fila de la hoja lee `stock_cantidad` (núcleo). Las actions `moverStock`
+  (`repuestos.editar` con `puede()` antes; `sobrante`, `vendido`, `devuelto`) y `leerMovimientosDeItem` (RLS de `repuestos.ver`) no salen por los barriles.
 - Depende de: `vehiculos`, `flujos`, `leads`.
 
 ## Áreas
@@ -49,6 +54,8 @@ El módulo se parte por **área** (8.08-2, igual que `logistica`) para que los p
   `disponibleParaStock`, `validarMovimiento`, `validarReasignacion`, `enStockTras`; los textos son los de la base y un test lo compara con la migración) y `listado.ts`
   (la fila de `repuestos_stock_listar` y su cursor `(en_stock_desde, id)` con `codificarCursor` de `shared`, sin «Anterior»).
 - `infra/stock/listar.ts` (8.10-1) — `leerStock(cursor)`: `repuestos_stock_listar` con `TAMANO_DE_PAGINA_POR_DEFECTO` (la lee la vista «Stock» de 8.10-3).
+- `entities/stock/{errores,mover,movimientos,paneles,repositorio}.ts` (8.10-2) — el rechazo de la base por campo (`rechazoDeStock`), la respuesta de mover y la fila tras
+  moverlo (`filaTrasMover`), la página del historial (cursor `id`) y el panel. `infra/stock/{mover,movimientos}.ts` los leen y escriben; `areas/stock/composicion.ts` los une.
 - `features/proyectos/`, `features/items/` (hoja), `features/compras/`, `features/stock/`, `features/cotizador/`, `features/catalogos/`.
 - La base (8.08-1): `repuesto_proyecto_crear` / `_cerrar` / `_reabrir` / `_eliminar` / `_restaurar`, `repuesto_item_crear` / `_eliminar`,
   `repuestos_proyectos_listar`, `repuestos_pendientes_de_vehiculo`, `_repuesto_ante_espera` y el trigger `repuestos_catalogo_sin_uso`. De 8.09-3: los triggers `repuestos_imagen_integridad` y `repuestos_imagen_encolar` (prueba `areas/repuestos/imagenes.sql`). De 8.10-1: `repuesto_stock_mover`,

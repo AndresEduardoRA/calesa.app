@@ -56,6 +56,7 @@ export function TablaDeItems({ filas, contexto, filaNueva }: Props) {
               <TableCell className="align-top">
                 <div className="flex flex-wrap gap-1">
                   {c.imagenes}
+                  {c.hueco}
                   {c.eliminar}
                 </div>
               </TableCell>

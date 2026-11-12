@@ -42,6 +42,7 @@ const filaDeLaBase = {
   pais_origen_id: null,
   modo_transporte_id: null,
   cantidad: 1,
+  stock_cantidad: 0,
   precio_cliente: 10,
   moneda: 'USD',
   tracking: null,

@@ -48,6 +48,7 @@ export function TarjetasDeItems({ filas, contexto, filaNueva }: Props) {
               {c.fase}
               <div className="flex flex-wrap gap-1">
                 {c.imagenes}
+                {c.hueco}
                 {c.eliminar}
               </div>
             </div>
