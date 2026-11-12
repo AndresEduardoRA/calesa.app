@@ -1,14 +1,19 @@
 'use client'
 
 import { SendIcon } from 'lucide-react'
-import { useState, type RefObject } from 'react'
+import type { RefObject } from 'react'
 import { Button } from '@/shared/ui/button'
 import { Textarea } from '@/shared/ui/textarea'
+import type { Referencia } from '../../../entities/menciones'
 import type { CitaDeMensaje, TextoValido } from '../../../entities/mensajes'
+import { SelectorDeMencionesDiferido } from '../../menciones/components/diferidos'
+import { useRedactor } from '../hooks/use-redactor'
 import { CitaSobreElRedactor } from './cita-de-respuesta'
 
 type Props = {
-  alEnviar: (texto: string) => TextoValido
+  // Recibe el cuerpo ya con los tokens de las menciones y esas menciones; el largo se mide con los tokens (D5).
+  alEnviar: (cuerpo: string, menciones: readonly Referencia[]) => TextoValido
+  usuarioId: string
   // El campo es de quien lo monta: para llevarle el foco al responder.
   campo: RefObject<HTMLTextAreaElement | null>
   respondiendoA: CitaDeMensaje | null
@@ -16,21 +21,13 @@ type Props = {
 }
 
 // Donde se escribe: Enter envía, Mayús+Enter salta de línea (y no envía mientras se compone con un teclado de IME). Después de enviar se limpia y
-// el foco se queda. Pasado el largo máximo dice el motivo y no envía. Sin borrador persistente.
-export function Redactor({ alEnviar, campo, respondiendoA, alQuitarRespuesta }: Props) {
-  const [texto, setTexto] = useState('')
-  const [aviso, setAviso] = useState<string | null>(null)
-
-  function enviar() {
-    const valido = alEnviar(texto)
-    if (valido.ok) {
-      setTexto('')
-      setAviso(null)
-    } else if (valido.motivo === 'largo') {
-      setAviso(valido.mensaje ?? null)
-    }
-    campo.current?.focus()
-  }
+// el foco se queda. Pasado el largo máximo dice el motivo y no envía. Un `#` abre el selector de menciones (7.10-2). Sin borrador persistente.
+export function Redactor({ alEnviar, usuarioId, campo, respondiendoA, alQuitarRespuesta }: Props) {
+  const { texto, aviso, menciones, selectorMontado, alCambiar, alSeleccionar, alTeclear, enviar } =
+    useRedactor({
+      alEnviar,
+      campo,
+    })
 
   return (
     <form
@@ -49,6 +46,17 @@ export function Redactor({ alEnviar, campo, respondiendoA, alQuitarRespuesta }: 
           }}
         />
       ) : null}
+      {selectorMontado ? (
+        <SelectorDeMencionesDiferido
+          consulta={menciones.consulta}
+          yo={usuarioId}
+          id={menciones.idDelSelector}
+          idDeOpcion={menciones.idDeOpcion}
+          activa={menciones.activa}
+          alElegir={menciones.elegir}
+          alCambiarOpciones={menciones.informarOpciones}
+        />
+      ) : null}
       <div className="flex items-end gap-2">
         <Textarea
           ref={campo}
@@ -57,17 +65,20 @@ export function Redactor({ alEnviar, campo, respondiendoA, alQuitarRespuesta }: 
           rows={1}
           value={texto}
           aria-invalid={aviso ? true : undefined}
+          aria-controls={menciones.abierto ? menciones.idDelSelector : undefined}
+          aria-activedescendant={
+            menciones.abierto && menciones.hayOpciones
+              ? menciones.idDeOpcion(menciones.activa)
+              : undefined
+          }
           className="max-h-40 min-h-11 resize-none"
           onChange={(evento) => {
-            setTexto(evento.target.value)
-            setAviso(null)
+            alCambiar(evento.target.value, evento.target.selectionStart)
           }}
-          onKeyDown={(evento) => {
-            if (evento.key === 'Enter' && !evento.shiftKey && !evento.nativeEvent.isComposing) {
-              evento.preventDefault()
-              enviar()
-            }
+          onSelect={(evento) => {
+            alSeleccionar(evento.currentTarget.selectionStart)
           }}
+          onKeyDown={alTeclear}
         />
         <Button
           type="submit"

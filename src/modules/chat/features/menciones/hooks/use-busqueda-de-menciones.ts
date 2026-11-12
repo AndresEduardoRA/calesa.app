@@ -33,6 +33,8 @@ export type EstadoDelSelector =
   | { tipo: 'error'; mensaje: string }
   | { tipo: 'lista'; grupos: GrupoDeOpciones[]; parcial: boolean }
 
+const ESTADO_MINIMO: EstadoDelSelector = { tipo: 'minimo' }
+const ESTADO_CARGANDO: EstadoDelSelector = { tipo: 'cargando' }
 const RETRASO_EN_MS = 250
 const POR_CLASE = 5
 const TITULOS: Record<ClaseDeMencion, string> = {
@@ -179,11 +181,12 @@ export function useBusquedaDeMenciones(consulta: string | null, yo: string) {
     }
   }, [buscado, clave, yo])
 
+  // Constantes y no objetos nuevos: quien las mira (el selector) depende de su identidad.
   const estado: EstadoDelSelector = minimo
-    ? { tipo: 'minimo' }
+    ? ESTADO_MINIMO
     : respuesta?.clave === clave
       ? respuesta.estado
-      : { tipo: 'cargando' }
+      : ESTADO_CARGANDO
   return {
     estado,
     reintentar: () => {

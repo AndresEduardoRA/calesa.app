@@ -74,12 +74,13 @@ export function Hilo({ conversacion, usuarioId, zona, puedeModerar }: Props) {
       {hilo.lectura === 'error' ? null : (
         <Redactor
           campo={campo}
+          usuarioId={usuarioId}
           respondiendoA={respondiendoA ? citaDe(respondiendoA) : null}
           alQuitarRespuesta={() => {
             setRespondiendoA(null)
           }}
-          alEnviar={(texto) => {
-            const enviado = envio.enviar(texto, respondiendoA ?? undefined)
+          alEnviar={(cuerpo, menciones) => {
+            const enviado = envio.enviar(cuerpo, respondiendoA ?? undefined, menciones)
             if (enviado.ok) {
               setRespondiendoA(null)
               if (hilo.desde !== null) {
