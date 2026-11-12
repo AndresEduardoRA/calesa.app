@@ -9,6 +9,7 @@ import {
   crearDuenaDePrueba,
 } from './soporte/base'
 import {
+  agregarUnidadAlContenedor,
   borrarTransporte,
   crearTransporteDe,
   ponerEnElContenedorDe,
@@ -147,6 +148,47 @@ test('E2E ver el contenedor con sus dos unidades en /logistica/embarques y busca
   await expect(page.getByRole('row').filter({ hasText: 'ECMU123456' })).toBeVisible()
   await page.goto('/logistica/embarques?grupo=contenedores&q=zzz')
   await expect(page.getByText('Ningún contenedor coincide con los filtros.')).toBeVisible()
+})
+
+test('E2E «Editar grupo» cambia la ETA de las tres unidades de un contenedor', async ({ page }) => {
+  // Una tercera unidad en el mismo contenedor, con otra ETA: la ETA del grupo será «Varios».
+  const tercera = await agregarUnidadAlContenedor(terreno, 'E2E Tercera del contenedor', {
+    contenedor: 'ECMU123456',
+    naviera_id: terreno.naviera.id,
+    eta_el: '2026-12-20',
+  })
+  await entrar(page, terreno.conTransporte, { fresco: true })
+  await page.goto('/logistica/embarques?grupo=contenedores&contenedor=ECMU123456')
+  const resumen = page.getByRole('dialog', { name: 'Contenedor' })
+  await expect(resumen.getByText('3 unidades')).toBeVisible()
+  await resumen.getByRole('button', { name: 'Editar grupo' }).click()
+  await expect(page).toHaveURL(/panel=editar-grupo/)
+  await expect(page).toHaveURL(/contenedor=ECMU123456/)
+
+  const panel = page.getByRole('dialog', { name: 'Editar el contenedor ECMU123456' })
+  // La ETA y el zarpe difieren entre las tres (sólo la primera tiene zarpe): dicen «Varios»; lo demás sale con su valor común.
+  await expect(panel.getByText('Varios: cada unidad tiene el suyo.', { exact: false })).toHaveCount(
+    2,
+  )
+  await expect(panel.getByLabel('Zarpe')).toHaveValue('')
+  await expect(panel.getByLabel('Naviera')).toHaveValue(terreno.naviera.id)
+  await expect(panel.getByLabel('Contenedor')).toHaveValue('ECMU123456')
+  await expect(panel.getByText('Se aplicará a las 3 unidades.')).toBeVisible()
+  await panel.getByLabel('ETA').fill('2026-12-30')
+  await panel.getByRole('button', { name: 'Guardar' }).click()
+  await expect(page.getByText('Se aplicó a las 3 unidades.')).toBeVisible()
+
+  // Vuelve al resumen del mismo contenedor, sin el panel de edición.
+  await expect(page).not.toHaveURL(/panel=editar-grupo/)
+  await expect(page).toHaveURL(/contenedor=ECMU123456/)
+  await expect(page.getByRole('heading', { name: 'Contenedor ECMU123456' })).toBeVisible()
+  for (const id of [terreno.enFase.id, terreno.sinFase.id, tercera]) {
+    const t = await transporteDe(id)
+    expect(t?.eta_el).toBe('2026-12-30')
+    expect(t?.contenedor).toBe('ECMU123456')
+  }
+  await page.goto('/logistica/embarques?grupo=contenedores')
+  await expect(page.getByRole('row').filter({ hasText: 'ECMU123456' })).toContainText('30 dic 2026')
 })
 
 test('E2E quien no ve la logística no entra a /logistica/embarques', async ({ page }) => {

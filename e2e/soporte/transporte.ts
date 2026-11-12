@@ -109,6 +109,24 @@ export async function ponerEnElContenedorDe(
   }
 }
 
+// Suma una tercera unidad (un vehículo del origen, sin fase) a un contenedor, con su propia ETA: el grupo de «Editar grupo» con una ETA distinta (6.08-4). Devuelve el id del vehículo; el
+// terreno lo borra al quitar los vehículos del origen.
+export async function agregarUnidadAlContenedor(
+  terreno: TerrenoDeTransporte,
+  titulo: string,
+  datos: { contenedor: string; naviera_id: string; eta_el: string },
+): Promise<string> {
+  const { data, error } = await admin()
+    .from('vehiculos')
+    .insert({ origen_id: terreno.origen.id, titulo })
+    .select('id')
+    .single<{ id: string }>()
+  exigir(error, 'crear la tercera unidad')
+  const id = data?.id ?? ''
+  await ponerEnElContenedorDe(id, datos)
+  return id
+}
+
 // Quita lo que el spec creó: los transportes de los vehículos del terreno y las navieras de prueba (antes del terreno: la FK), y luego el terreno. Las personas y los roles los limpia el spec.
 export async function borrarTransporte(proyecto: string): Promise<void> {
   const cliente = admin()
