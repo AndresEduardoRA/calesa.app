@@ -3,15 +3,17 @@
 // Los números van como texto: un `float` de JSON perdería cifras.
 import { z } from 'zod'
 
-const decimal = z.string().regex(/^\d+(\.\d+)?$/)
+// La escala de la columna: un factor con más de 4 decimales o un monto con más de 2 no es un snapshot de la base (la fórmula los perdería).
+const factor = z.string().regex(/^\d+(\.\d{1,4})?$/)
+const decimal = z.string().regex(/^\d+(\.\d{1,2})?$/)
 
 export const esquemaDelSnapshot = z.object({
   version: z.literal(1),
   moneda: z.string().min(1),
   config: z.object({
     id: z.number().int(),
-    factor_importado: decimal,
-    recargo_local: decimal,
+    factor_importado: factor,
+    recargo_local: factor,
     redondeo: decimal,
     vigente_desde: z.string(),
   }),

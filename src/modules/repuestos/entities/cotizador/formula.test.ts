@@ -84,6 +84,12 @@ describe('decimales y snapshot', () => {
       false,
     )
     expect(leerSnapshot({ ...base, version: 2 }).ok).toBe(false)
+    expect(leerSnapshot({ ...base, config: { ...base.config, recargo_local: '0.10001' } }).ok).toBe(
+      false,
+    )
+    expect(leerSnapshot({ ...base, cajas: [{ id: base.cajas[0]?.id, monto: '10.001' }] }).ok).toBe(
+      false,
+    )
     expect(leerSnapshot(base).ok).toBe(true)
   })
 })
