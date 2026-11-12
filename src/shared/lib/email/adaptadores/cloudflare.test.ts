@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
+import type { Resultado } from '../../errores'
+import type { MensajeDeEmail } from '../tipos'
 import { crearAdaptadorCloudflare } from './cloudflare'
 import { pedidoSimulado } from './pedido-simulado.soporte'
 
 const CUENTA = '0123456789abcdef0123456789abcdef'
 const TOKEN = 'cf_token_secreto_456'
 const remitente = { email: 'avisos@correo.ejemplo.com', nombre: 'Importadora' }
-const mensaje = {
+const mensaje: MensajeDeEmail = {
   para: 'ana@ejemplo.com',
   asunto: 'Hola',
   html: '<p>Hola</p>',
@@ -25,8 +27,7 @@ const enviar = (respuesta: Response | Error, m = mensaje) => {
   const { pedir, llamadas } = pedidoSimulado(respuesta)
   return crearAdaptadorCloudflare(CUENTA, TOKEN, pedir)(m, remitente).then((r) => ({ r, llamadas }))
 }
-const mensajeDe = (r: { ok: boolean }) =>
-  r.ok ? '' : (r as { error: { mensaje: string } }).error.mensaje
+const mensajeDe = (r: Resultado<unknown>) => (r.ok ? '' : r.error.mensaje)
 
 describe('el adaptador de Cloudflare (contrato con su API)', () => {
   it('manda POST .../email/sending/send con el token, `from` {address,name} y `to` como arreglo, sin etiquetas', async () => {

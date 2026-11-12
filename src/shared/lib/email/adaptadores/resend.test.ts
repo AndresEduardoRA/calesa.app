@@ -1,19 +1,20 @@
 import { describe, expect, it } from 'vitest'
 
+import type { Resultado } from '../../errores'
+import type { MensajeDeEmail } from '../tipos'
 import { pedidoSimulado } from './pedido-simulado.soporte'
 import { crearAdaptadorResend } from './resend-rest'
 
 const CLAVE = 're_clave_secreta_123'
 const remitente = { email: 'avisos@correo.ejemplo.com', nombre: 'Importadora' }
-const mensaje = {
+const mensaje: MensajeDeEmail = {
   para: 'ana@ejemplo.com',
   asunto: 'Hola',
   html: '<p>Hola</p>',
   texto: 'Hola',
   etiquetas: { tipo: 'prueba', version: 'v1.2' },
 }
-const mensajeDe = (r: { ok: boolean }) =>
-  r.ok ? '' : (r as { error: { mensaje: string } }).error.mensaje
+const mensajeDe = (r: Resultado<unknown>) => (r.ok ? '' : r.error.mensaje)
 
 describe('el adaptador de Resend (contrato con su API)', () => {
   it('manda POST /emails con la clave, el remitente, los destinatarios y las etiquetas, y devuelve el id', async () => {
