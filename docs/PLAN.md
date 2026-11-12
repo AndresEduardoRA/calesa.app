@@ -1586,11 +1586,28 @@ muestra placeholder; el buscador nunca devuelve algo que la RLS esconde ni busca
   lo de producción: los adaptadores `resend` y `cloudflare` por su API REST (mismo contrato, con su prueba de contrato con `fetch` simulado),
   su variable de clave en `src/shared/config/esquemas.ts`, `pnpm email:probar <destino>` (un correo real con el proveedor configurado), y el
   mismo contrato en `supabase/functions/` si una función edge manda correo. Assert: cambiar `EMAIL_PROVEEDOR` de `resend` a `cloudflare`
-  no cambia código (docs/ENTORNOS.md › «Cambiar de Resend a Cloudflare»).
+  no cambia código (docs/ENTORNOS.md › «Cambiar de Resend a Cloudflare»). **Cerrado en el 7.05** (2026-11-11).
 - **7-2** (Fase 7; salió del 5.13-1): la suscripción de la campana va con `diferido()` y el aviso `aqui`
   (`notificaciones/features/campana/components/campana.tsx:34-40`); pedida sin red, deja «Sin conexión» con «Reintentar» en el encabezado y
   el contador no se suscribe hasta reintentar o recargar. Assert: con la red de vuelta, la campana se suscribe sola (o el aviso del
-  encabezado no aparece). Lo toma el próximo paso de `notificaciones` o el 7.14.
+  encabezado no aparece). Lo toma el próximo paso de `notificaciones` o el 7.14. **Cerrado en el 7.14-1** (2026-11-12): la campana se vuelve a
+  suscribir con cada `online` (`campana.test.tsx`).
+
+#### Los decide la persona
+
+- **7-3** (salió del 7.08-1 y el 7.08-3): el `aplicado_en` de `chat.participar` y `chat.moderar` en el catálogo dice «policy …» y no nombra las RPC
+  que lo exigen (`supabase/seed.sql:94, :96`; `docs/pasos/7.08-3/bitacora.md:30-32`). Es dato de catálogo: va en una migración. Paso de datos.
+- **7-4** (salió del 7.08-2, D14): con `p_conversacion` del canal global, `tarea_crear` y `agenda_quienes_reciben` miran la fila suelta de
+  `conversaciones_miembros` y un responsable sin `chat.global` pasa; `mensaje_tarea_crear` sí lo vuelve a mirar con `_chat_miembro_vigente`
+  (`docs/pasos/7.08-2/bitacora.md:36-37`). Hoy no se llega desde la interfaz sin pasar por el chat. Paso de datos (`security definer`).
+- **7-5** (salió del 7.14-1, D6): la suscripción de la burbuja del chat (`SuscripcionDeNoLeidosDiferida`,
+  `src/modules/chat/features/widget/components/diferidos.tsx:6`) no se reintenta al volver la red, como sí la campana desde el 7.14-1; el
+  arreglo es el mismo hook y una `key`. Y la suscripción de la campana, pedida sin red, pone su barra fija «Sin conexión. No se pudo abrir
+  esto.» aunque nadie abrió nada (se va sola al volver la red; el completo del 7.14-2 la vio sobre la del modal en `leads-escala`): una suscripción de fondo
+  no debería avisar. Lugar: `chat/features/widget` y `notificaciones/features/campana`. Pantalla, Nivel 1.
+
+Cerrados en la fase: **7-1** (7.05), **7-2** (7.14-1), notificar al compartir, transferir y limpiar (7.01-2), `recordatorios_notificar()` con su
+cron (7.01-1), «Escribirle por chat» (7.11), el buscador de leads sin privados (7.12) y el atajo `?` (7.13).
 
 ### Lo que ya existe y lo que falta (leído el 2026-11-09)
 
@@ -1620,11 +1637,50 @@ muestra placeholder; el buscador nunca devuelve algo que la RLS esconde ni busca
 6. `actividad_purgar()` (base:8031) purga notificaciones y `visitados` pero no tiene job.
 7. PLAN › Fase 8 lista como arrastrados «Escribirle por chat», la notificación de la limpieza, el buscador de leads sin privados, el atajo `?` y `recordatorios_notificar()`: acá quedan en la 7 (7.01, 7.11, 7.12, 7.13).
 
+### Tabla de criterios
+
+Cada criterio del «Terminado cuando» y del párrafo de la fase con la prueba que lo mide y su resultado en el Nivel 3 del 7.14-2 («base» = `db:probar` o
+`db:carreras`, que corren en el CI de cada PR; «unidad» = Vitest; «stack local» = `push-de-verdad.sh` con las funciones servidas; rutas `areas/…` de
+`supabase/tests/`).
+
+| Criterio                                                                                  | Prueba                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Proyectos                              | Resultado                                      |
+| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- | ---------------------------------------------- |
+| Una tarea dada con `/tarea` en el chat le llega al responsable en la campana sin recargar | `fase-7-recorrido.spec.ts` › «E2E R1 la tarea dada con /tarea en el chat le llega a Luis en la campana sin recargar»; `chat-menciones.spec.ts` › «E2E: /tarea a la otra persona abre el formulario, deja su ficha, avisa a Luis y él la completa»; `notificaciones-campana.spec.ts` › «una notificación nueva aparece en la campana sin recargar»; `areas/chat/fichas.sql`, `areas/agenda/tareas-conversacion.sql`, `areas/notificaciones/puerta.sql`                                                                                                                                                                           | escritorio, movil y base               | verde                                          |
+| … y como push                                                                             | `supabase/tests/push-de-verdad.sh` (de la base a la función servida, con el pase canjeado); `supabase/tests/push-contrato.test.ts` y `push-funcion.test.ts` (firma, cifrado, clasificación, la lista de hosts); `areas/push/{disparo,push}.sql`; `perfil-notificaciones.spec.ts` › «E2E escritorio · encender los avisos de este navegador crea su fila y apagarlos la quita»                                                                                                                                                                                                                                                   | stack local, unidad, escritorio y base | verde; `push-de-verdad.sh` 2 de 2 en el 7.14-1 |
+| El push a un teléfono real                                                                | nadie hasta las claves VAPID (`docs/ENTORNOS.md`); la firma y el cifrado, `push-contrato.test.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | —                                      | sin probar (falta lo de afuera)                |
+| La mención a un lead que no veo muestra el placeholder                                    | `fase-7-recorrido.spec.ts` › «E2E R2 Luis lee el placeholder de la mención a un lead que no ve y el nombre no está en el DOM»; `chat-menciones.spec.ts` › «E2E: quien no ve el lead lee el placeholder y el drawer no abre datos» y «E2E: Ana menciona su lead desde el redactor; la dueña lo ve y Luis, sin acceso, lee el placeholder»; `areas/chat/{fichas,membresia}.sql`                                                                                                                                                                                                                                                   | escritorio, movil y base               | verde                                          |
+| El buscador no devuelve lo que la RLS esconde                                             | `fase-7-recorrido.spec.ts` › «E2E R3 el buscador no trae lo que la RLS esconde ni busca por teléfono»; `buscador.spec.ts` › «Ctrl+K, el nombre de un lead y Enter abren su ficha, que sale en «Últimos abiertos»; el lead ajeno no aparece» y «abrir una ficha registra la visita, una sola vez, y lo que no se ve no deja marca»; `areas/buscador/{buscador,visitados,forma}.sql`; `cotizaciones-visibilidad.sql`                                                                                                                                                                                                              | escritorio, movil y base               | verde                                          |
+| … ni busca por teléfono                                                                   | la misma R3; `areas/buscador/buscador.sql`; `src/modules/buscador/entities/telefono-en-la-busqueda.test.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | escritorio, movil, unidad y base       | verde                                          |
+| Agenda: mes, semana y día; visibilidad, tareas y recordatorios                            | `agenda.spec.ts` › «la asesora ve el evento y su tarea en el día; un tercero no ve el evento», «la dueña ve la tarea de la asesora con «Ver la de todos» y lo elegido queda en la URL», «E2E la dueña crea, ve, edita y elimina un evento y le da una tarea a la asesora», «E2E la asesora ve sus tareas sin fecha y completa un recordatorio»; `areas/agenda/*.sql` (10 archivos)                                                                                                                                                                                                                                              | escritorio, movil y base               | verde                                          |
+| Chat: directas sin duplicar, grupos, canal global por permiso, editar y borrar, realtime  | `chat.spec.ts` › «un mensaje nuevo llega a la lista sin recargar, con su no leído, y la fila sube», «iniciar una directa buscando a la persona: aparece en la lista de la otra y la que ya existe no se duplica», «un grupo nuevo se puede silenciar y dejar», «Ana escribe a Marta: Marta lo ve sin recargar con su no leído, que se limpia al abrir, y la respuesta le llega a Ana», «sin red el mensaje queda «No enviado» y al reintentar llega una sola vez», «Ana responde a Luis, edita lo suyo y lo borra; Luis lo ve sin recargar»; `areas/chat/{directas,grupos,global,mensajes,mensajes-editar,lista,membresia}.sql` | escritorio, movil y base               | verde                                          |
+| Widget, no leídos y «Escribirle por chat»                                                 | `chat-widget.spec.ts` › «en /leads llega un mensaje: la burbuja dice «1», se abre y se responde sin salir», «en el celular la burbuja es un enlace a /chat», «sin chat.participar no hay burbuja ni entrada «Chat»», ««Escribirle por chat» desde el alta abre la directa con quien tiene el lead», «/chat?con= con alguien que no puede usar el chat lo dice y deja la lista»                                                                                                                                                                                                                                                  | escritorio y movil                     | verde                                          |
+| Notificaciones: campana, lista, puerta, purga y el cron de recordatorios                  | `notificaciones-campana.spec.ts` (7 pruebas); `areas/notificaciones/{puerta,avisos-de-cartera,purgar,recordatorios-job}.sql`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | escritorio, movil y base               | verde                                          |
+| Preferencias y activar el push                                                            | `perfil-notificaciones.spec.ts` (6 pruebas; `// @sin-celular-archivo`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | escritorio                             | verde                                          |
+| Correo de producción (7-1)                                                                | `src/shared/lib/email/adaptadores/{resend,cloudflare}.test.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | unidad                                 | verde (unidad)                                 |
+| Paleta, últimos abiertos y `?`                                                            | `buscador.spec.ts` › «? lista los atajos y no se dispara mientras se escribe», «Nueva cotización lleva a la hoja, Nuevo lead abre el alta y Ver todos va al listado», «sin conexión la paleta lo dice y Reintentar vuelve a buscar»; `src/modules/buscador/entities/*.test.ts`                                                                                                                                                                                                                                                                                                                                                  | escritorio, movil y unidad             | verde                                          |
+| La campana se suscribe sola al volver la red (7-2)                                        | `src/modules/notificaciones/features/campana/components/campana.test.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | unidad                                 | verde (unidad, 7.14-1)                         |
+
+### Cierre de la Fase 7
+
+**Fase 7 cerrada el 2026-11-12** con el Nivel 3 del 7.14-2, corrido por proyecto (cada uno desde `db:reset` y `db:carreras`, 17,3 s y 17,9 s):
+escritorio, sobre `941663d6`, 1.207 en verde, 17 saltadas y 1 caída en 53,5 min (55,7 de reloj); celular, sobre `d24a019a`, 839 en verde, 29 saltadas, 1
+caída y 3 sin correr (el resto de su serial) en 34,6 min (35,8 de reloj). Ninguna caída era de la fase ni del producto, y las dos se repetían 3 de 3 solas:
+en `leads-escala` › «sin red, abrir un modal…» la suscripción de la campana, pedida al descansar, ponía su propia barra «Sin conexión» junto a la del
+modal (la prueba la busca en `#contenido`, `d24a019a`, como `83c0dada`); en `configuracion-leads-origenes-recorrido` › «B · con 12 orígenes…» la burbuja
+del chat tapaba en el celular el «⋯» que la prueba dejaba al borde de abajo (la prueba centra el botón, `30ce6ffb`; la burbuja va sobre el marco a
+propósito, D15 del 7.11-3). Las dos son de Nivel 1: verdes 2 de 2 en sus proyectos, sin repetir el completo. 5a-4b: los dos proyectos suman 91,5 min
+de reloj (90,3 en el 6.14-2). `db:probar` 1.366 en verde, `db:lint` sin errores (59 avisos y 69 «extra»), las guardas 1.128 en verde y `mapa.sh
+--check` en verde. El recorrido (`e2e/fase-7-recorrido.spec.ts`, 7.14-1): R1, la tarea dada con `/tarea` le llega a Luis en la campana sin recargar;
+R2, el placeholder de la mención sin el nombre en el DOM; R3, el buscador no trae lo escondido ni busca por teléfono; el push llega de la base a la
+función con el pase canjeado (`push-de-verdad.sh`). El JS del marco con la campana, la burbuja y la paleta, todas las rutas bajo su tope
+(`docs/RENDIMIENTO.md` › «Cierre de la Fase 7»). Lo que deja: **7-3**, **7-4** y **7-5** (los decide la persona), **9-13** (Fase 9) y el push a un
+teléfono real hasta las claves VAPID. La «Partición» sigue aquí hasta que una sesión con permiso la pase a `docs/archivo/PLAN.md`.
+
 ### Partición
 
 Un paso, su verificación y su PR; quién lo hace y de qué depende lo dice `docs/plan.yaml` (la tabla de «Carriles de las fases 5 a 9»). Cada fila dice qué entra, su assert y el lugar. Sus «Dudas» ya traen la opción recomendada: sin compuertas, **esa es la decisión**, y quien haga el paso la anota en `docs/DECISIONES.md` (el carril base) o en `docs/pasos/<paso>/decisiones.md`.
 
-- **7.01** — Notificaciones: la base. Parte 1: una puerta para toda fila de `notificaciones` sin tocar las funciones de otras fases: trigger
+- **7.01** (hecho el 2026-11-11; `docs/pasos/7.01-1/`, `7.01-2/`) — Notificaciones: la base. Parte 1: una puerta para toda fila de `notificaciones` sin tocar las funciones de otras fases: trigger
   `before insert` que descarta si el destinatario está de baja o bloqueado (`perfiles.activo`, `bloqueado`); `notificar()` conserva su firma
   (base:14653: 7.06 y 7.08 la llaman tal cual). Índices `notificaciones_usuario_fecha_idx (usuario_id, creado_en desc, id desc)` y
   `notificaciones_por_accionar_idx (… ) where requiere_accion and accionada_en is null`. `alter publication supabase_realtime add table
@@ -1644,7 +1700,7 @@ public.notificaciones`. Job `recordatorios-notificar` cada minuto (`recordatorio
   índices). Tipo: datos y dinero. Partes estimadas: 2.
   Dudas, con la recomendada: (1) ¿Las preferencias apagan también la campana? Recomiendo que no: la campana es el registro y las preferencias sólo gobiernan el push (7.03); así las filas que insertan otras fases no cambian. (2) ¿A quién avisa la limpieza? Al creador del vehículo, 3 días antes (es quien tiene «Conservar»). (3) ¿Programar `actividad_purgar()`? No: borra auditoría; una función propia para lo de esta fase.
 
-- **7.02** — La campana y `/notificaciones`. Deja la base del módulo: `entities/tipos.ts` (catálogo por `tipo`: icono, si pide acción, texto
+- **7.02** (hecho el 2026-11-12; `docs/pasos/7.02/`) — La campana y `/notificaciones`. Deja la base del módulo: `entities/tipos.ts` (catálogo por `tipo`: icono, si pide acción, texto
   de la acción; un tipo desconocido se dibuja genérico) y `entities/destino.ts` (una `ruta` cuya pantalla no existe todavía, `/agenda` o
   `/logistica/…`, no se enlaza: se compara con `NAVEGACION.disponible`), `infra/queries/notificaciones.ts`, `infra/notificaciones.client.ts`,
   `infra/realtime.client.ts`, `features/{campana,lista}/`, `index.ts`, `shell.ts` + `shell.client.ts`, `pantallas/notificaciones.ts`. Crea
@@ -1664,7 +1720,7 @@ public.notificaciones`. Job `recordatorios-notificar` cada minuto (`recordatorio
   `src/shared`). Tipo: pantalla. Partes estimadas: 3.
   Dudas, con la recomendada: (1) ¿Abrir una notificación la da por accionada? Sí para los tipos sin acción propia (`tarea_asignada`, `recordatorio`, `demora_fase`, los de 7.01); `turno_web` sólo por `web_confirmar_contacto`. (2) Realtime: `postgres_changes` bajo RLS (recomendado: anda en el stack local y no pide policies en `realtime.messages`) frente a Broadcast desde la base.
 
-- **7.03** — Push web: suscribir, disparar y `supabase/functions/push`. Parte 1 (base): `push_suscribir(p_endpoint, p_claves, p_user_agent)`
+- **7.03** (hecho el 2026-11-11; `docs/pasos/7.03-1/`, `7.03-2/`) — Push web: suscribir, disparar y `supabase/functions/push`. Parte 1 (base): `push_suscribir(p_endpoint, p_claves, p_user_agent)`
   y `push_desuscribir(p_endpoint)` (`security definer`; exigen `notificaciones.push`; endpoint `https` de una lista de hosts de servicios de
   push, para que la función no sea un proxy abierto; un endpoint que era de otra persona pasa a quien suscribe; tope 10 por persona);
   se quita el `insert`/`update` directo de `suscripciones_push` (base:31979) y `notificaciones.push` gana enforcement (`permisos.aplicado_en`;
@@ -1683,7 +1739,7 @@ public.notificaciones`. Job `recordatorios-notificar` cada minuto (`recordatorio
   estimadas: 2.
   Dudas, con la recomendada: (1) ¿Secreto `PUSH_WEBHOOK_SECRET` o pase? Pase: la base no guarda secretos (DECISIONES:275). (2) ¿`web-push` (ya en `package.json`) dentro de Deno? Se verifica ese día (`npm:web-push`); si no corre en el runtime local, RFC 8291/8292 con Web Crypto en un archivo propio: el contrato es el mismo. (3) ¿Qué lleva el push? Título, cuerpo y `ruta` de la fila, nada más.
 
-- **7.04** — Preferencias de notificaciones y activar el push. En `/perfil`, sección «Notificaciones»: «Recibir avisos en este navegador»
+- **7.04** (hecho el 2026-11-12; `docs/pasos/7.04/`) — Preferencias de notificaciones y activar el push. En `/perfil`, sección «Notificaciones»: «Recibir avisos en este navegador»
   (`usePush()`, `infra/push.client.ts` con `NEXT_PUBLIC_VAPID_PUBLIC_KEY`; estados: navegador sin soporte, permiso negado, integración
   `push_web` apagada, sin clave pública y rol sin `notificaciones.push`, cada uno deshabilitado con su motivo, nunca escondido), un
   interruptor de push por tipo del catálogo de 7.02 y «Tus navegadores» (las suscripciones propias, con «Quitar»). `public/sw.js` suma
@@ -1695,7 +1751,7 @@ public.notificaciones`. Job `recordatorios-notificar` cada minuto (`recordatorio
   `src/modules/empresa/features/integraciones/`. Nivel **1**. Tipo: pantalla. Partes estimadas: 2.
   Dudas, con la recomendada: ¿Dónde viven las preferencias? En `/perfil` (ya tiene las de interfaz), con un enlace desde `/notificaciones`.
 
-- **7.05** — Correo de la app: adaptadores `resend` y `cloudflare` (7-1). `src/shared/lib/email/adaptadores/{resend,cloudflare}.ts` por su
+- **7.05** (hecho el 2026-11-11; `docs/pasos/7.05/`) — Correo de la app: adaptadores `resend` y `cloudflare` (7-1). `src/shared/lib/email/adaptadores/{resend,cloudflare}.ts` por su
   API REST con el contrato de `tipos.ts`; sus claves en `src/shared/config/esquemas.ts` (obligatorias sólo con ese proveedor; se va el
   «todavía no tiene adaptador» de `esquemas.ts:56-60` e `index.ts:35`); `pnpm email:probar <destino>` (`scripts/email-probar.mjs`);
   `docs/ENTORNOS.md` y `.env.example`. NO entra: correo desde una función edge (ninguna manda) ni correos nuevos del producto. Cierra
@@ -1705,7 +1761,7 @@ public.notificaciones`. Job `recordatorios-notificar` cada minuto (`recordatorio
   sin datos ni permisos: sin auditor). Partes estimadas: 1.
   Dudas, con la recomendada: la forma exacta de la API de Cloudflare Email Sending se verifica ese día; si no es pública, el adaptador queda con su contrato y `email:probar` lo dice.
 
-- **7.06** — Agenda: la base. Todo se escribe por RPC `security definer` con el `id` del navegador al crear y `p_actualizado_en_esperado`
+- **7.06** (hecho el 2026-11-11; `docs/pasos/7.06-1/`, `7.06-2/`) — Agenda: la base. Todo se escribe por RPC `security definer` con el `id` del navegador al crear y `p_actualizado_en_esperado`
   (`_exigir_version()`, `PT409`) al editar: `evento_crear`, `evento_guardar` (con sus destinatarios, todo o nada, tope 50), `evento_eliminar`,
   `tarea_crear`, `tarea_guardar`, `tarea_completar`, `tarea_eliminar`, y `reasignar_tarea` (base:16487) con versión y sin dejar reasignar a
   alguien de baja o bloqueado. Reglas: `publico` y `seleccionados` exigen `agenda.eventos.publicar` también al editar (hoy no, base:26316);
@@ -1725,7 +1781,7 @@ p_hasta, p_de_todos)` (hasta 45 días; eventos por `eventos_inicio_idx`, tareas 
     Partes estimadas: 3.
     Dudas, con la recomendada: (1) ¿Evento con cotización? Sí, se suma la columna (PLAN pide el vínculo y las tareas ya lo tienen). (2) ¿Quién edita una tarea? El creador todo; el responsable sólo completar y reabrir. (3) Reasignar una tarea nacida en el chat: sólo a un miembro de esa conversación (si no, quien la recibe no ve su contexto).
 
-- **7.07** — La agenda: `/agenda`. Deja la base del módulo (`index.ts` con `leerAgenda(rango)`, `client.ts` con `<ChipEvento>`,
+- **7.07** (hecho el 2026-11-11; `docs/pasos/7.07-1/`, `7.07-2/`, `7.07-3/`, `7.07-4/`) — La agenda: `/agenda`. Deja la base del módulo (`index.ts` con `leerAgenda(rango)`, `client.ts` con `<ChipEvento>`,
   `composicion.ts`, `pantallas/agenda.ts`) y prende `agenda` en `_shell/navegacion.ts`. Calendario mes, semana y día con `?vista=` y
   `?fecha=` en la URL (en el celular abre en «día»), las cuatro clases con texto y color (eventos, tareas, recordatorios, subastas),
   `?ver=` para filtrarlas y `?de=todos` sólo con `agenda.ver_todo`; fechas en la zona de la empresa (`fechas.ts`, `date-fns-tz` ya
@@ -1741,7 +1797,7 @@ p_hasta, p_de_todos)` (hasta 45 días; eventos por `eventos_inicio_idx`, tareas 
   `src/modules/tablero/features/bandeja/`. Nivel **2** (`_shell`). Tipo: pantalla. Partes estimadas: 4.
   Dudas, con la recomendada: (1) ¿Calendario propio o librería? Propio, con CSS grid y `date-fns` (regla «versiones nuevas sin verificarlas hoy»). (2) ¿El mes en el celular? Una lista por día, no la grilla.
 
-- **7.08** — Chat: la base. Estructura: `conversaciones.par_directo` (único parcial: una directa por par), `conversaciones.ultimo_mensaje_en`
+- **7.08** (hecho el 2026-11-11; `docs/pasos/7.08-1/`, `7.08-2/`, `7.08-3/`) — Chat: la base. Estructura: `conversaciones.par_directo` (único parcial: una directa por par), `conversaciones.ultimo_mensaje_en`
   con su índice, `mensajes (conversacion_id, creado_en desc, id desc)`; la fila del canal global sembrada en la migración; `mensajes` y
   `conversaciones_miembros` a la publicación de realtime. RPC `security definer`: `chat_directa(p_usuario)` (devuelve la que existe),
   `chat_grupo_crear`, `chat_grupo_miembros`, `chat_salir`, `chat_global_entrar`, `chat_leer` (mueve `ultimo_leido_en`), `chat_silenciar`,
@@ -1761,7 +1817,7 @@ p_hasta, p_de_todos)` (hasta 45 días; eventos por `eventos_inicio_idx`, tareas 
   `scripts/guardas/areas-<carril>/paginas-en-la-base.ts`. Nivel **2** (RLS y estructura). Tipo: datos y dinero. Partes estimadas: 3.
   Dudas, con la recomendada: (1) Ventana para editar: 15 minutos, constante en la RPC (la ficha la nombra y no existe). (2) Borrar: queda «Mensaje eliminado» y el cuerpo se vacía (RLS no esconde columnas). (3) Un grupo lo administra quien lo creó (la policy de hoy). (4) Sin prueba de carreras: la directa la cuida el índice único, no un candado.
 
-- **7.09** — El chat: `/chat`. Deja la base del módulo (`index.ts`, `client.ts`, `composicion.ts`, `pantallas/chat.ts`, áreas
+- **7.09** (hecho el 2026-11-12; `docs/pasos/7.09-1/`, `7.09-2/`, `7.09-3/`, `7.09-4/`) — El chat: `/chat`. Deja la base del módulo (`index.ts`, `client.ts`, `composicion.ts`, `pantallas/chat.ts`, áreas
   `conversaciones` y `mensajes` en `features/`, `infra/realtime.client.ts` sobre `canal.client.ts` de 7.02) y prende `chat` en
   `_shell/navegacion.ts`. Maestro-detalle con `?c=<conversación>` (en el celular, dos pantallas y «atrás» vuelve a la lista). Lista:
   conversaciones por cursor con «Ver más» y tope, no leídos «99+», iniciar una directa buscando a una persona (mínimo 3 letras), crear
@@ -1775,7 +1831,7 @@ p_hasta, p_de_todos)` (hasta 45 días; eventos por `eventos_inicio_idx`, tareas 
   `src/app/(app)/chat/`, `src/app/(app)/_shell/navegacion.ts`. Nivel **2** (`_shell`). Tipo: pantalla. Partes estimadas: 4.
   Dudas, con la recomendada: ¿Presencia y «escribiendo…»? No entran (PLAN no los nombra).
 
-- **7.10** — Menciones `#`, fichas, `/tarea` y `/evento`. `entities/menciones.ts`: parser puro de `#` y `/comando` (texto ↔ referencias)
+- **7.10** (hecho el 2026-11-12; `docs/pasos/7.10-1/`, `7.10-2/`, `7.10-3/`) — Menciones `#`, fichas, `/tarea` y `/evento`. `entities/menciones.ts`: parser puro de `#` y `/comando` (texto ↔ referencias)
   con su test. En el redactor, `#` abre un selector de vehículo, lead, cotización o persona que busca con las lecturas de 7.12 (mínimo 3;
   leads sin teléfono ni campos privados). En el hilo la mención se hidrata bajo la RLS de quien lee, una lectura por clase y por página
   (sin N+1): si no la ve, placeholder «No tienes acceso a este lead» sin nombre; si se purgó, «Eliminado». Un clic abre el drawer de la
@@ -1789,7 +1845,7 @@ p_hasta, p_de_todos)` (hasta 45 días; eventos por `eventos_inicio_idx`, tareas 
   falta. Nivel **1**. Tipo: pantalla. Partes estimadas: 3.
   Dudas, con la recomendada: ¿Mencionar a una persona la avisa aunque tenga la conversación silenciada? Sí: silenciar apaga los no leídos, no una mención.
 
-- **7.11** — Widget flotante, no leídos y «Escribirle por chat». `<WidgetChat>` fuera de `/chat` en el hueco `_shell/huecos/chat.tsx`
+- **7.11** (hecho el 2026-11-12; `docs/pasos/7.11-1/`, `7.11-2/`, `7.11-3/`) — Widget flotante, no leídos y «Escribirle por chat». `<WidgetChat>` fuera de `/chat` en el hueco `_shell/huecos/chat.tsx`
   (`chat/shell.client.ts`): en el shell viaja sólo la burbuja con el contador; el panel reusa lista e hilo de 7.09 con `diferido()`; sólo
   con `chat.participar`; no tapa el pie de un panel ni los avisos; en el celular la burbuja lleva a `/chat`. No leídos también en la
   entrada «Chat» de la barra lateral. «Escribirle por chat» en el aviso «Lo tiene <persona>» del teléfono (alta y cambio de principal;
@@ -1802,7 +1858,7 @@ p_hasta, p_de_todos)` (hasta 45 días; eventos por `eventos_inicio_idx`, tareas 
   estimadas: 2.
   Dudas, con la recomendada: ¿El widget flota en el celular? No: tapa el pie; la burbuja abre `/chat`.
 
-- **7.12** — Buscador: la base. Una búsqueda por sección, cada una en su módulo y llamada desde el navegador (cancelable), que 7.10 reusa:
+- **7.12** (hecho el 2026-11-11; `docs/pasos/7.12-1/`, `7.12-2/`) — Buscador: la base. Una búsqueda por sección, cada una en su módulo y llamada desde el navegador (cancelable), que 7.10 reusa:
   leads por nombre y `#n` (`leads_candidatos` + `leads_vista_por_ids` y `leads_ids_del_numero`, sobre `leerClientesDelPanel`; nunca
   teléfono ni campos privados), vehículos por título, VIN o lote (`leerListaDelPanel` / `buscarVehiculos`), y cotizaciones con la RPC nueva
   `buscador_cotizaciones(p_texto, p_tamano)`: número exacto o título por `cotizaciones_titulo_trgm`, `security definer` que vuelve a aplicar
@@ -1819,7 +1875,7 @@ ranking.ts` (orden y agrupación) con su test. NO entra: la paleta, buscar repue
   Partes estimadas: 2.
   Dudas, con la recomendada: (1) ¿Por qué se busca una cotización? Número y título; por el nombre del lead no (el lead sale en su sección). (2) ¿Personas en el buscador? No en esta fase.
 
-- **7.13** — La paleta `Ctrl/Cmd+K` y la lista de atajos `?`. `<Buscador>` reemplaza a `<BuscadorPendiente>` en
+- **7.13** (hecho el 2026-11-12; `docs/pasos/7.13-1/`, `7.13-2/`, `7.13-3/`) — La paleta `Ctrl/Cmd+K` y la lista de atajos `?`. `<Buscador>` reemplaza a `<BuscadorPendiente>` en
   `_shell/huecos/buscador.tsx` (`buscador/shell.client.ts`) y hereda su regla de ancho (icono de 44 px bajo 24 rem;
   `e2e/barra-superior-celular.spec.ts` se pone al día); `useAtajo('buscar')`; la paleta (`shared/ui/command.tsx`) viaja con `diferido()`.
   Sin texto: «Últimos abiertos» y acciones; con texto: 250 ms de espera, mínimo 3 («Escribe al menos 3 letras»), una llamada por sección
@@ -1835,7 +1891,7 @@ ranking.ts` (orden y agrupación) con su test. NO entra: la paleta, buscar repue
   ficha. Nivel **2** (`_shell` y `src/shared`). Tipo: pantalla. Partes estimadas: 3.
   Dudas, con la recomendada: ¿Un texto que parece teléfono? La sección de leads dice «No se busca por teléfono» y no pide nada.
 
-- **7.14** — Cierre de la Fase 7. Recorrido de la IA del «Terminado cuando»: (1) una tarea dada con `/tarea` en el chat le llega al
+- **7.14** (hecho el 2026-11-12; `docs/pasos/7.14-1/`, `7.14-2/`) — Cierre de la Fase 7. Recorrido de la IA del «Terminado cuando»: (1) una tarea dada con `/tarea` en el chat le llega al
   responsable en la campana sin recargar y como push (el push, contra un endpoint simulado: `supabase/tests/push-de-verdad.sh` con las
   funciones servidas, al modo de `jobs-de-verdad.sh`; si el runtime local no alcanza al anfitrión, se dice y vale el contrato de 7.03);
   (2) la mención a un lead que no veo muestra el placeholder; (3) el buscador no devuelve lo que la RLS esconde ni busca por teléfono.
@@ -1845,28 +1901,36 @@ ranking.ts` (orden y agrupación) con su test. NO entra: la paleta, buscar repue
   **Assert:** `e2e/fase-7-recorrido.spec.ts` en verde y `pnpm test:e2e:completo` con los dos proyectos. Lugar: `e2e/`, `docs/`. Nivel **3**
   (cierre). Tipo: pantalla. Partes estimadas: 2.
   Dudas, con la recomendada: ninguna. **Paralelo.** Pueden arrancar a la vez 7.01, 7.05, 7.06 y 7.12 (no comparten archivos fuera de `supabase/migrations/` y `database.types.ts`). Después: 7.02 ∥ 7.03 ∥ 7.08 ∥ 7.07; 7.04 ∥ 7.09 ∥ 7.13; 7.10 ∥ 7.11. No en paralelo: 7.07 con 7.09 (la misma `navegacion.ts` y su test; una línea cada uno, se unen, pero mejor en serie) y 7.11 con 7.13 sólo si 7.02 no dejó los huecos.
-  **7.14-1** (hecho el 2026-11-12; `docs/pasos/7.14-1/`): el recorrido del «Terminado cuando» (`e2e/fase-7-recorrido.spec.ts`, los dos proyectos), `supabase/tests/push-de-verdad.sh` (de la base a la función servida, con el pase canjeado), 7-2 y el JS del marco. Queda el **7.14-2**: el Nivel 3 y los docs de cierre.
+  Hecho en dos: el **7.14-1** (el recorrido del «Terminado cuando» en los dos proyectos, `supabase/tests/push-de-verdad.sh`, 7-2 y el JS del marco) y el **7.14-2** (el Nivel 3 y los docs de cierre).
+
+Total de la fase: 14 pasos y 34 partes, todos hechos (la fase cerró con el 7.14, el 2026-11-12).
 
 ### Riesgos y huecos
 
 - **Claves VAPID reales:** no hacen falta. 7.03 prueba con claves generadas en la prueba y 7.04 simula `PushManager.subscribe`; sin
   claves la función responde `sin_claves` y `/perfil` lo dice. La persona las pone en Vercel y en los secretos de la función
   (`docs/ENTORNOS.md:24-25`). El push de verdad a un teléfono no lo prueba nadie hasta entonces: queda dicho en la tabla de criterios.
+  (El cierre lo dice en la tabla de criterios del 7.14-2.)
 - **Push en un e2e:** Chromium sin servicio de push no entrega nada; por eso el cierre usa un endpoint simulado. No pude comprobar
-  leyendo que el runtime local de funciones alcance al anfitrión.
+  leyendo que el runtime local de funciones alcance al anfitrión. (Resuelto en el 7.14-1: `push-de-verdad.sh` llega de la base a la
+  función por el gateway, `url_proyecto`, sin endpoint simulado; la última milla, `push-contrato.test.ts`.)
 - **`web-push` en Deno** y **la API REST de Cloudflare Email Sending:** no verificables sin red; cada paso las verifica el día que corre
-  y tiene su plan B escrito (Web Crypto; contrato sin envío real).
+  y tiene su plan B escrito (Web Crypto; contrato sin envío real). (Resuelto en el 7.03-2 con Web Crypto propio y en el 7.05 con el
+  contrato con `fetch` simulado.)
 - **Realtime:** ningún código lo usa hoy y la publicación está vacía; no pude probar que `postgres_changes` filtre por RLS en este stack
   ni cuánto pesa el cliente de realtime en el JS del shell (la campana y la burbuja van en todas las pantallas: se mide en 7.02 y 7.11).
+  (Resuelto en el 7.02 y el 7.11-1: se suscriben diferidas; el JS del marco, `docs/RENDIMIENTO.md` › «Cierre de la Fase 7».)
 - **Proveedor de correo, dominio y proyecto de producción:** fuera del repo; 7.05 deja adaptador, variables y `email:probar`.
 - **Agujeros de seguridad ya presentes** que los pasos rojos cierran y conviene no olvidar si se recorta: evento privado → público sin
-  permiso (7.06), des-borrar un mensaje y leer el canal global sin el permiso (7.08), suscripción con endpoint libre (7.03).
+  permiso (7.06), des-borrar un mensaje y leer el canal global sin el permiso (7.08), suscripción con endpoint libre (7.03). (Cerrados
+  en el 7.06, el 7.08-1/2 y el 7.03-1.)
 - **No determinado:** las reglas de «reasignar tarea de chat vs suelta» y la ventana de edición no están escritas en ningún doc que pude
   leer (van como dudas con recomendación); qué exporta hoy cada módulo para abrir su resumen en un drawer ajeno (7.10 lo suma si falta);
-  si `docs/archivo/` guarda decisiones de la Fase 7.
+  si `docs/archivo/` guarda decisiones de la Fase 7. (Las dudas se decidieron con su recomendada en cada paso, `docs/pasos/7.*/decisiones.md`.)
 - **Tamaño:** 7.07 y 7.09 son los más grandes (4 partes); si el planificador no los cabe, se parten por vista (calendario / paneles) y
-  por lado (lista / hilo), sin tocar las dependencias.
+  por lado (lista / hilo), sin tocar las dependencias. (7.07 y 7.09 se hicieron en 4 partes cada uno.)
 - **Dependencia floja 7.10 → 7.07:** sólo por el e2e que mira la tarea en la agenda; si 7.07 se atrasa, el e2e mira la campana y sigue.
+  (No hizo falta: 7.07 entró antes.)
 
 ## Fase 8 — Web pública (contenido, cola y portal) y repuestos
 

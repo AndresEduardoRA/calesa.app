@@ -99,8 +99,11 @@ async function lasAcciones(page: Page) {
     .getByRole('button', { name: /^(Subir|Bajar|Más acciones de) / })
     .all()) {
     if (await boton.isEnabled()) {
-      // Fuera de la pantalla no hay nada que recibir el clic: se baja hasta el botón.
-      await boton.scrollIntoViewIfNeeded()
+      // Fuera de la pantalla no hay nada que recibir el clic: se baja hasta el botón y se lo centra. Al borde de abajo, en el
+      // celular, lo taparía la burbuja del chat, que flota sobre el marco a propósito (D15 del 7.11-3).
+      await boton.evaluate((e) => {
+        e.scrollIntoView({ block: 'center' })
+      })
       await recibeElClic(boton)
       await tactil(page, boton)
     }
