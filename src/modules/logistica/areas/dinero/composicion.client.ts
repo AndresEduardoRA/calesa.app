@@ -20,3 +20,8 @@ export {
   type OpcionesDeGasto,
 } from '../../infra/dinero/opciones.client'
 export { subirComprobante, urlDelComprobante } from '../../infra/dinero/comprobante.client'
+export {
+  leerUnidadesDelGrupo,
+  NO_SE_CARGARON_LAS_UNIDADES,
+  type UnidadesDelGrupo,
+} from '../../infra/dinero/grupo.client'
