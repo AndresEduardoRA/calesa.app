@@ -24,3 +24,16 @@ export {
   MENSAJE_VEHICULO_QUE_NO_SE_VE,
   PANEL_NUEVO_PROYECTO,
 } from '../../entities/proyectos/paneles'
+export {
+  leerResumenDeVehiculo,
+  proyectoDe,
+  type ResumenDeVehiculo,
+} from '../../infra/proyectos/resumen'
+export {
+  NOMBRE_SIN_FASE,
+  ofertaDelResumen,
+  type GrupoDelResumen,
+  type OfertaDelResumen,
+  type ProyectoDeVehiculo,
+  type ResumenDeItems,
+} from '../../entities/proyectos/resumen'
