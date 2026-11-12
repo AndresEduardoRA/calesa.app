@@ -31,6 +31,11 @@ export const REGISTRO: Record<string, RegistroDeDrawer> = {
   'src/modules/repuestos/features/items/components/drawer-de-imagenes.tsx': {
     sinFormulario: 'sube y quita imágenes al instante: no guarda nada tipeado',
   },
+  // El stock de un ítem de repuestos (8.10-2): `?panel=stock&item=<id>`. El formulario «Pasar a stock» dice que tiene algo escrito con `useCambiosSinGuardar`.
+  'src/modules/repuestos/features/stock/components/drawer-de-stock.tsx': {
+    formulario: 'src/modules/repuestos/features/stock/components/formulario-pasar-a-stock.tsx',
+    mecanismo: 'contexto',
+  },
   // El resumen de una declaración aduanera (6.09-1): `?declaracion=<id>`. Sólo muestra; el formulario de editar y alta es otro panel (`drawer-de-declaracion.tsx`).
   'src/modules/logistica/features/aduana/components/drawer-de-la-declaracion.tsx': {
     sinFormulario:
