@@ -11,7 +11,11 @@ async function MarcaDeLaEmpresa() {
   return (
     <>
       <EstiloDeMarca color={ajustes.colorAcento} />
-      <Marca nombre={ajustes.nombre} logoUrl={urlPublicaONull('marca', ajustes.logoRuta)} />
+      <Marca
+        nombre={ajustes.nombre}
+        logoUrl={urlPublicaONull('marca', ajustes.logoRuta)}
+        logoOscuroUrl={urlPublicaONull('marca', ajustes.logoOscuroRuta)}
+      />
     </>
   )
 }
