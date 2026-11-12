@@ -7,3 +7,11 @@ export {
   NO_SE_CARGARON_LOS_PUERTOS,
   type CatalogoLeido,
 } from '../../infra/transporte/catalogos.client'
+
+// Lo que lee el hueco «Transporte» de la unidad (6.08-2): su transporte, la oferta del flujo, los catálogos y los permisos de quien mira.
+export {
+  leerTransporteDeLaUnidad,
+  NO_SE_CARGO_EL_TRANSPORTE,
+  type TransporteDeLaUnidad,
+} from '../../infra/transporte/unidad.client'
+export { leerMisPermisos } from '../../infra/transporte/permisos.client'

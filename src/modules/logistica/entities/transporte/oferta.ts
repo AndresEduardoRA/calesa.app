@@ -32,6 +32,12 @@ export function ofertaDesde(crudo: unknown): OfertaDeTransporte | null {
     : null
 }
 
+/** Las filas de `puertos` o `navieras` (`id, nombre, activo`); nulo si alguna no tiene la forma esperada. */
+export function elementosDesde(datos: unknown): ElementoDeOferta[] | null {
+  const r = z.array(elemento).safeParse(datos)
+  return r.success ? r.data : null
+}
+
 export type OpcionDeTransporte = { valor: string; etiqueta: string }
 
 /**
