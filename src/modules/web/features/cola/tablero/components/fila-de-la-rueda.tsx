@@ -1,7 +1,9 @@
 import { fechaRelativa } from '@/shared/lib/fechas'
 import { formatearNumero, formatearPorcentaje } from '@/shared/lib/formato'
 import { Badge } from '@/shared/ui/badge'
+import { configuracionDe } from '../../../../entities/cola/rueda'
 import type { FilaDelTablero } from '../../../../entities/cola/tablero'
+import { QuitarDeLaRueda } from '../../rueda/components/quitar-de-la-rueda'
 
 type Props = {
   fila: FilaDelTablero
@@ -12,7 +14,7 @@ type Props = {
 }
 
 // Una persona habilitada en la cola: lo que pesa en la ruleta (disponible, abiertas de su cupo, prioridad) y cómo le fue (tasa de contacto, vencidas,
-// última asignación). Recibe la fila entera: la 8.04-3 suma aquí «Quitar de la rueda».
+// última asignación), con «Quitar» (8.04-3).
 export function FilaDeLaRueda({ fila, puesto, motivo }: Props) {
   const tasa =
     fila.tasaContactoPct === null
@@ -34,6 +36,7 @@ export function FilaDeLaRueda({ fila, puesto, motivo }: Props) {
         {fila.faltaWhatsapp && !motivo ? (
           <Badge variant="destructive">Le falta el WhatsApp</Badge>
         ) : null}
+        <QuitarDeLaRueda configuracion={configuracionDe(fila)} nombre={fila.nombre} />
       </div>
       {motivo ? <p className="text-(length:--text-sm) text-(--color-ink-soft)">{motivo}</p> : null}
       <p className="flex flex-wrap gap-x-3 gap-y-0.5 text-(length:--text-sm) text-(--color-ink-soft)">
