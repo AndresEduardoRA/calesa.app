@@ -188,6 +188,7 @@ Cada sección por su RPC, de a `_acotar_pagina(p_tamano, 5, 20)` + 1, con el mí
   `repuestos_items_proyecto_id_idx` y las esperas de las fases siguientes del vehículo; de a 50 (máximo 200) más uno.
 - Sin siembra de volumen ni `EXPLAIN` en `db:medir:volumen` (`repuestos_proyectos` no está entre las tablas que crecen de `escala.md`; regla del 2026-11-08).
 - Imágenes de un ítem (8.09-3): `limit 9` por `repuestos_items_imagenes_item_id_idx`, sólo al abrir el panel (nunca con la hoja); el trigger cuenta con `limit 8` bajo un candado por ítem. **Excepción a «nunca el original»:** sin miniatura y con `unoptimized`, cada imagen baja el WebP de ≤ 1600 px, pero son ≤ 8 por panel abierto (D65 de 8.09-3; sin medición).
+- Pestaña «Repuestos» de la ficha del vehículo (8.09-4): `proyectoDe` es `limit 1` por `repuestos_proyecto_por_vehiculo` y el recuento por fase lee como mucho 201 ítems por `repuestos_items_proyecto_id_idx`; sólo al abrir la pestaña (nunca con la ficha); componentes de servidor, sin JS de cliente nuevo.
 - Catálogos de Configuración (8.08-2): 4 × `limit 201` por PostgREST, sin índice por `orden` (tabla de configuración, decenas de filas); tope 200 por
   catálogo, con `<AvisoDeTope>` en la 8.08-3.
 
