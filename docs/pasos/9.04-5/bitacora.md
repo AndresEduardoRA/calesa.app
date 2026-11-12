@@ -16,3 +16,4 @@ Pruebas:
 
 - **9.04 queda completo** (`parcial: false`). Para que el coordinador los cierre en PLAN y ESTADO: cierra **9-2** (el rango de un campo numérico), **9-3** (`leads.campos.gestionar`), los arrastrados «plantilla de etapas de embudos por empresa» y «plantilla del texto del portal por empresa», y el de ESTADO «Portal: su texto por empresa».
 - e2e completo: no (9.04-5, Nivel 2: lo prueba el CI del PR; dirigidos: configuracion-leads-plantillas, configuracion-leads, configuracion-200, leads-portal, leads-portal-acceso, leads-embudo)
+- Al retomar (unión con main, 2026-11-12): se resolvió el choque de la ficha de `leads` (las dos intenciones) y se regeneraron los tipos de la base (`db:probar` 1.335 ✓). El completo del CI cayó en `configuracion-leads-seguimientos` porque esperaba cuatro pestañas: ahora espera las seis (6/6 ✓ en escritorio, `.piloto/salidas/9.04/e2e-seguimientos.log`).
