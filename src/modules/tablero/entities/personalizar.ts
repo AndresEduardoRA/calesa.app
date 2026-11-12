@@ -6,11 +6,11 @@ export type Fila = { clave: string; oculto: boolean }
 export type DireccionDeMovimiento = 'subir' | 'bajar'
 
 // Cambia de lugar con la vecina. En un extremo, o con una clave que no está, devuelve la misma lista.
-export function moverFila(
-  filas: readonly Fila[],
+export function moverFila<F extends Fila>(
+  filas: readonly F[],
   clave: string,
   direccion: DireccionDeMovimiento,
-): readonly Fila[] {
+): readonly F[] {
   const indice = filas.findIndex((fila) => fila.clave === clave)
   const destino = direccion === 'subir' ? indice - 1 : indice + 1
   const actual = filas[indice]
@@ -24,12 +24,12 @@ export function moverFila(
   return nuevas
 }
 
-export function alternarOculto(filas: readonly Fila[], clave: string): readonly Fila[] {
+export function alternarOculto<F extends Fila>(filas: readonly F[], clave: string): readonly F[] {
   return filas.map((fila) => (fila.clave === clave ? { ...fila, oculto: !fila.oculto } : fila))
 }
 
 // Lo que se guarda como `tablero.widgets`: todas las claves en orden y cuáles están ocultas.
-export function aPreferencia(filas: readonly Fila[]): PreferenciaDeWidgets {
+export function aPreferencia(filas: readonly Fila[]): { orden: string[]; ocultos: string[] } {
   return {
     orden: filas.map((fila) => fila.clave),
     ocultos: filas.filter((fila) => fila.oculto).map((fila) => fila.clave),

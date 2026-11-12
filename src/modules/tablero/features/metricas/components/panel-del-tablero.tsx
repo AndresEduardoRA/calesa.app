@@ -3,7 +3,9 @@ import { ZONA_POR_DEFECTO, diaEnZona, formatearDiaYMes } from '@/shared/lib/fech
 import type { Permisos } from '@/shared/lib/permisos'
 import { EstadoSinPermiso, EstadoVacio } from '@/shared/ui/estados'
 import { periodoDesde, ventanaDelPeriodo } from '../../../entities/periodo'
-import type { PreferenciaDeWidgets } from '../../../entities/widgets'
+import { filasDesde } from '../../../entities/personalizar'
+import { widgetsVisibles, type PreferenciaDeWidgets } from '../../../entities/widgets'
+import { BotonPersonalizar } from '../personalizar/boton-personalizar'
 import { widgetsParaMontar } from '../widgets/registro'
 import { EsqueletoDeWidget } from './esqueleto-de-widget'
 import { MarcoDeWidget } from './marco-de-widget'
@@ -32,6 +34,13 @@ export function PanelDelTablero({
   if (montajes.length === 0 && ocultos.length === 0) {
     return <EstadoSinPermiso />
   }
+  const visibles = widgetsVisibles(permisos)
+  const titulos = new Map<string, string>(visibles.map((widget) => [widget.clave, widget.titulo]))
+  // Sólo se ofrece lo que la persona puede ver (los mismos `visibles` que arman el tablero).
+  const ofrecidos = filasDesde(visibles, preferencia).map((fila) => ({
+    ...fila,
+    titulo: titulos.get(fila.clave) ?? fila.clave,
+  }))
   const activo = periodoDesde(periodo)
   const ventana = ventanaDelPeriodo(activo, diaEnZona(new Date().toISOString(), { zona }))
 
@@ -39,7 +48,14 @@ export function PanelDelTablero({
     <div className="grid gap-5">
       <header className="grid gap-3">
         <h1 className="text-(length:--text-xl) font-semibold text-(--color-ink)">Tablero</h1>
-        <SelectorDePeriodo activo={activo} />
+        <div className="flex flex-wrap items-center gap-3">
+          <SelectorDePeriodo activo={activo} />
+          <BotonPersonalizar
+            ofrecidos={ofrecidos}
+            hayPreferencia={preferencia !== null}
+            ordenDeFabrica={visibles.map((widget) => widget.clave)}
+          />
+        </div>
         <p className="text-(length:--text-sm) text-(--color-ink-soft)">
           {ventana.etiqueta}: del {formatearDiaYMes(ventana.desde)} al{' '}
           {formatearDiaYMes(ventana.hasta)}
