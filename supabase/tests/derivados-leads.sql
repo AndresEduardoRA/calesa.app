@@ -42,7 +42,7 @@ exception when others then
   raise;
 end $$;
 
--- Cambiar la privacidad de un campo como la pantalla (la dueña de la semilla, con `leads.configurar`).
+-- Cambiar la privacidad de un campo como la pantalla (la dueña de la semilla, con `leads.campos.gestionar`).
 create or replace function pg_temp.privacidad(p_clave text, p_privado boolean) returns void language sql as $$
   select pg_temp.como_d('00000000-0000-0000-0000-000000000001', format(
     'select to_jsonb(public.lead_campo_guardar(%L, %L, %L::jsonb))',

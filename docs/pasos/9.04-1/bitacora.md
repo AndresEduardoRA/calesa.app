@@ -15,4 +15,4 @@ Pruebas: tres bloques nuevos en `supabase/tests/configuracion-de-leads.sql`. El 
 
 - `docs/UX.md` › «Leads (config)» dice ahora las dos claves y la pestaña apagada con su motivo.
 - Abierto para el pulido de la Fase 9: un `TabsTrigger` deshabilitado no recibe foco, así que el lector de pantalla no anuncia su motivo. La línea visible sí lo dice.
-- e2e completo: no (9.04-1, Nivel 2: lo prueba el CI del PR; dirigidos: configuracion-leads, -seguimientos, -seguimientos-casos, -tipos, -tipos-casos, -tipos-recorrido, -origenes, -origenes-casos, -origenes-recorrido, -origen-por-defecto, configuracion-200, interruptor-200, modal-desborde-200)
+- e2e completo: no (9.04-1, Nivel 2: lo prueba el CI del PR; dirigidos: configuracion-leads, -seguimientos, -seguimientos-casos, -tipos, -tipos-casos, -tipos-recorrido, -origenes, -origenes-casos, -origenes-recorrido, -origen-por-defecto, configuracion-200, interruptor-200, modal-desborde-200; tras la auditoría del informe, leads-alta, -alta-contexto, -ficha-edicion, -ficha-origen-inactivo-200, -importar-origen, -importar-tipo y -tipos-pantallas)

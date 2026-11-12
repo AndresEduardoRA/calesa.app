@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
-import { puede, requerirSesion } from '@/modules/equipo'
+import { requerirSesion } from '@/modules/equipo'
 import { unParametro } from '@/shared/lib/rutas'
 import { EstadoSinPermiso } from '@/shared/ui/estados'
 import { alMenosUna } from '../empresa/pestanas'
-import { PERMISOS_DE_LEADS, pestanaDe, pestanasPara } from './pestanas'
+import { pestanaDe, pestanasPara } from './pestanas'
 import { PestanasDeLeads } from './pestanas-de-leads'
 import { SeccionCampos } from './seccion-campos'
 import { SeccionOrigenes } from './seccion-origenes'
@@ -30,7 +30,8 @@ export default async function PaginaDeLeads({ searchParams }: PageProps<'/config
   const [sesion, parametros] = await Promise.all([requerirSesion(), searchParams])
   const pestanas = pestanasPara(sesion.permisos)
   const habilitadas = alMenosUna(pestanas.filter((p) => !p.motivo))
-  if (!habilitadas || !PERMISOS_DE_LEADS.some((clave) => puede(sesion.permisos, clave))) {
+  // Sin ninguna habilitada es que no tiene ninguno de `PERMISOS_DE_LEADS`.
+  if (!habilitadas) {
     return <EstadoSinPermiso />
   }
   const pestana = pestanaDe(unParametro(parametros['seccion']), habilitadas)

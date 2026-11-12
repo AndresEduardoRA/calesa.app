@@ -11,6 +11,7 @@ import { RUTAS } from '@/shared/lib/rutas'
 import { SECCION_DE_COTIZACION } from './cotizacion/seccion'
 import { PERMISOS_DE_EMPRESA } from './empresa/pestanas'
 import { SECCION_DE_FLUJOS } from './flujos/seccion'
+import { PERMISOS_DE_LEADS } from './leads/pestanas'
 import { SECCIONES_DE_LOGISTICA } from './logistica/seccion'
 import { PERMISOS_DE_ORIGENES } from './origenes/acceso'
 import { SECCION_DE_REPUESTOS } from './repuestos/seccion'
@@ -51,7 +52,7 @@ export const SECCIONES = [
       'Los campos de los leads, quién los ve, de dónde llegan, qué es cada lead y cómo se contactó.',
     ruta: RUTAS.configuracionDeLeads,
     Icono: ContactRoundIcon,
-    permisos: ['leads.campos.gestionar', 'leads.configurar'],
+    permisos: PERMISOS_DE_LEADS,
   },
   SECCION_DE_COTIZACION,
   SECCION_DE_FLUJOS,
