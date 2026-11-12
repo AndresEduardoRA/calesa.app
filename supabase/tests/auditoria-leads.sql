@@ -486,7 +486,7 @@ declare
   v_columnas constant jsonb := '{
     "nombre": "version", "tipo": "version", "tipo_lead_id": "version", "origen_lead_id": "version", "atributos": "version",
     "telefono_principal": "version", "telefono_cc": "version", "eliminado_en": "version", "lote_papelera_id": "version",
-    "eliminado_por": "derivada", "ultimo_seguimiento_en": "derivada", "cartera": "derivada", "atributos_publicos": "derivada",
+    "eliminado_por": "derivada", "ultimo_seguimiento_en": "derivada", "cartera": "derivada", "atributos_publicos": "derivada", "cliente_desde": "derivada",
     "id": "fija", "numero": "fija", "numero_propio": "fija", "creado_por": "fija", "creado_en": "fija", "actualizado_en": "fija"}';
   v_motivo text := pg_get_functiondef('public._lead_motivo_para_deshacer(uuid,uuid)'::regprocedure);
   v_version text := (select p.prosrc from pg_proc p where p.oid = 'public.lead_version()'::regprocedure);

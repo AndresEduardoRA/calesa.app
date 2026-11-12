@@ -2530,6 +2530,7 @@ export type Database = {
           atributos: NonNullable<Json>
           atributos_publicos: NonNullable<Json>
           cartera: string[]
+          cliente_desde: string | null
           creado_en: string
           creado_por: string | null
           eliminado_en: string | null
@@ -2552,6 +2553,7 @@ export type Database = {
           atributos?: NonNullable<Json>
           atributos_publicos?: NonNullable<Json>
           cartera?: string[]
+          cliente_desde?: string | null
           creado_en?: string
           creado_por?: string | null
           eliminado_en?: string | null
@@ -2572,6 +2574,7 @@ export type Database = {
           atributos?: NonNullable<Json>
           atributos_publicos?: NonNullable<Json>
           cartera?: string[]
+          cliente_desde?: string | null
           creado_en?: string
           creado_por?: string | null
           eliminado_en?: string | null
@@ -7967,6 +7970,7 @@ export type Database = {
           atributos: NonNullable<Json>
           atributos_publicos: NonNullable<Json>
           cartera: string[]
+          cliente_desde: string | null
           creado_en: string
           creado_por: string | null
           eliminado_en: string | null
@@ -8028,6 +8032,7 @@ export type Database = {
           atributos: NonNullable<Json>
           atributos_publicos: NonNullable<Json>
           cartera: string[]
+          cliente_desde: string | null
           creado_en: string
           creado_por: string | null
           eliminado_en: string | null
