@@ -6,9 +6,10 @@ import type { FilaDelTablero } from './tablero'
 
 export type MotivoFuera = 'falta_whatsapp' | 'no_disponible'
 
+// Completan «Hoy no recibe turnos nuevos: …».
 export const MOTIVO_FUERA: Record<MotivoFuera, string> = {
-  falta_whatsapp: 'Le falta el WhatsApp',
-  no_disponible: 'No disponible',
+  falta_whatsapp: 'le falta el WhatsApp',
+  no_disponible: 'no está disponible',
 }
 
 export type OrdenDeLaRueda = {
