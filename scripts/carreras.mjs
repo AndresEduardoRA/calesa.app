@@ -40,6 +40,7 @@ import {
 } from '../supabase/tests/areas/comprobantes/carreras.mjs'
 import { carrerasDeDinero, limpiarDinero } from '../supabase/tests/areas/dinero/carreras.mjs'
 import { carrerasDeFases } from '../supabase/tests/areas/flujos/carreras.mjs'
+import { carrerasDeMover } from '../supabase/tests/areas/mover/carreras.mjs'
 import { carrerasDelPrincipal } from '../supabase/tests/areas/origenes/carreras.mjs'
 
 // La base de ESTE worktree (la principal o un carril: scripts/lib/stack-local.mjs).
@@ -362,6 +363,7 @@ try {
   await carrerasDeComprobantes({ orquesta, espero, conectar, esperarBloqueo })
   await carrerasDeDinero({ orquesta, espero, conectar, esperarBloqueo })
   await carrerasDeFases({ orquesta, carrera, espero, conectar })
+  await carrerasDeMover({ orquesta, carrera, espero, conectar })
   await carrerasDelPrincipal({ orquesta, carrera, espero })
 } finally {
   await limpiarDinero(orquesta).catch((e) => fallas.push(`limpiar los gastos: ${e.message}`))

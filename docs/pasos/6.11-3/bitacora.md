@@ -1,0 +1,24 @@
+## 2026-11-11 — Paso 6.11-3: `/logistica/gastos` (parte 3 de 4 del 6.11)
+
+- **Hecho:**
+  - `entities/dinero/listas.ts`: las filas de `gastos_listar` y `pagos_listar`, la vista de `?ver=`, el esquema de filtros (origen, categoría, confirmación, fecha), el pedido que sólo manda las claves de cada RPC y el cursor de fecha.
+  - `infra/dinero/listas.ts`: las dos lecturas por cursor con la sesión de quien mira y las categorías; las dos RPC entran al registro de `scripts/guardas/areas-c/paginas-en-la-base.ts`.
+  - Lista de gastos y de pagos (tabla y tarjetas, vistas, estados, la fila que abre el panel de su unidad) y la página `/logistica/gastos` con su `loading.tsx`.
+  - El enlace «Gastos» de la sub-navegación y «Ver todos en Gastos» en el tope de los huecos de la unidad.
+- **Commits:**
+  - `312f1980`: entidad de las listas.
+  - `eb8783f7`: lectura por cursor y registro de la guarda.
+  - `88f4c8c1`: la lista con filtros y vistas.
+  - `46887d50`: la página, el enlace y «Ver todos en Gastos» (y la prueba de huecos que estaba en rojo).
+  - `41426d74`: e2e del tramo 3.
+  - docs de la parte.
+- **Verificación** (`.piloto/salidas/6.11-3/`):
+  - `e2e/logistica-gastos-y-pagos.spec.ts` (escritorio): 5 ✓ (`e2e-gastos.txt`).
+  - Dirigidos `e2e/logistica-unidad.spec.ts` y `e2e/configuracion-logistica.spec.ts` (escritorio y celular): 18 ✓ (`e2e-dirigidos.txt`).
+  - `vitest` de `src/modules/logistica`, `src/app/(app)/logistica` y `scripts/guardas`: 50 archivos, 1.193 ✓.
+- **No se hizo:** la medición con volumen de `gastos_listar` y `pagos_listar` (**abierto 6-5**, abajo).
+- **Para PLAN (coordinador):**
+  - Fila 6.11: «**6.11-3** hecho: `/logistica/gastos` (`?ver=gastos|pagos`), «Ver todos en Gastos», enlace «Gastos». Queda 6.11-4 (prorratear y categorías de gasto).»
+  - **Abierto 6-5:** medir `gastos_listar` y `pagos_listar` con volumen (`supabase/tests/medir-gastos-pagos-listar.sql`: ≈ 50.000 filas en dos orígenes, como la dueña con «todos» y como una persona con «propios»; `Index Scan` por `gastos_fecha_idx` y `pagos_fecha_idx`, sin `Sort`, sin filas descartadas que crezcan con la profundidad, página profunda ≤ 1,2 × la primera + 20 buffers por relación). Con «propios» el filtro `en_cartera` por fila puede descartar filas al profundizar: es lo que la medición debe decir.
+  - Abierto nuevo: filtro por vehículo o por proveedor en la lista (D13).
+- e2e completo: no (6.11-3, pantalla de Nivel 1: lo prueba el CI del PR; los dirigidos en verde)

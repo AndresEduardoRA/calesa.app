@@ -7,19 +7,21 @@ const con = (clave: ClavePermiso, origenId: string | null = null): Permisos => [
 ]
 
 describe('pestañas de Flujos', () => {
-  it('«Fases» y «Documentos» las ve quien configura el flujo de algún origen o el de repuestos', () => {
+  it('«Fases», «Documentos» y «Reglas» las ve quien configura el flujo de algún origen o el de repuestos', () => {
     expect(pestanasVisibles(con('flujos.configurar')).map((p) => p.clave)).toEqual([
       'fases',
       'documentos',
+      'reglas',
     ])
     expect(
       pestanasVisibles(con('flujos.configurar', '00000000-0000-4000-8000-000000000001')).map(
         (p) => p.clave,
       ),
-    ).toEqual(['fases', 'documentos'])
+    ).toEqual(['fases', 'documentos', 'reglas'])
     expect(pestanasVisibles(con('repuestos.configurar')).map((p) => p.clave)).toEqual([
       'fases',
       'documentos',
+      'reglas',
     ])
   })
 

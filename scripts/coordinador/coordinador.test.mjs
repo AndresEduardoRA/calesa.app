@@ -41,7 +41,7 @@ function repo() {
     gh,
     `#!/usr/bin/env bash
 case "$1 $2" in
-  "pr view") cat "${respuestas}/$3.json" ;;
+  "pr view") if [ -e "${respuestas}/caidas" ] && [ "$(cat "${respuestas}/caidas")" -gt 0 ]; then echo $(( $(cat "${respuestas}/caidas") - 1 )) > "${respuestas}/caidas"; echo "HTTP 499" >&2; exit 1; fi; cat "${respuestas}/$3.json" ;;
   "pr merge") echo "$3" >> "${respuestas}/merges"; echo "$*" >> "${respuestas}/merges-args"; echo '{"state":"MERGED"}' > "${respuestas}/$3.json" ;;
   "api -X") echo "$*" >> "${respuestas}/api" ;;
   "pr list") cat "${respuestas}/prs.json" 2>/dev/null || echo '[]' ;;
@@ -58,14 +58,27 @@ esac
       cwd: dir,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
-      env: { ...process.env, COORD_GH: gh, COORD_USD_VENTANA: '', COORD_LIMPIAR: '0', ...extra },
+      env: {
+        ...process.env,
+        COORD_GH: gh,
+        COORD_USD_VENTANA: '',
+        COORD_LIMPIAR: '0',
+        COORD_GH_ESPERA: '0',
+        ...extra,
+      },
     })
   const correr = (...args) => con({}, ...args)
   correr.con = con
   const correrAsync = (...args) =>
     promisify(execFile)('node', [CLI, ...args], {
       cwd: dir,
-      env: { ...process.env, COORD_GH: gh, COORD_USD_VENTANA: '', COORD_LIMPIAR: '0' },
+      env: {
+        ...process.env,
+        COORD_GH: gh,
+        COORD_USD_VENTANA: '',
+        COORD_LIMPIAR: '0',
+        COORD_GH_ESPERA: '0',
+      },
     })
   const pr = (n, datos) => writeFileSync(join(respuestas, `${n}.json`), JSON.stringify(datos))
   return { dir, correr, correrAsync, pr, respuestas }
@@ -179,6 +192,30 @@ test('el commit que el coordinador renumeró sobre un CI en verde se integra sin
   })
   assert.match(correr('sincronizar'), /P02: integrado por el coordinador \(#8/)
   assert.match(readFileSync(join(respuestas, 'merges-args'), 'utf8'), /--match-head-commit abc123/)
+})
+
+test('GitHub falla dos veces al mirar un PR: se vuelve a pedir y se integra en la misma vuelta; a la tercera, se dice', () => {
+  const { correr, pr, respuestas } = repo()
+  correr('siguiente', 'ui')
+  correr('publicado', 'P02', '8')
+  pr(8, { state: 'OPEN', mergeable: 'MERGEABLE', statusCheckRollup: verde })
+  writeFileSync(join(respuestas, 'caidas'), '3')
+  assert.match(correr('sincronizar'), /P02: no se pudo mirar el PR #8/)
+  writeFileSync(join(respuestas, 'caidas'), '2')
+  assert.match(correr('sincronizar'), /P02: integrado por el coordinador \(#8/)
+})
+
+test('mientras GitHub no sabe si choca (UNKNOWN), el conflicto con main anotado sigue: el carril lo arregla antes que un paso nuevo', () => {
+  const { correr, pr } = repo()
+  correr('siguiente', 'ui')
+  correr('publicado', 'P02', '8')
+  pr(8, { state: 'OPEN', mergeable: 'CONFLICTING', statusCheckRollup: verde })
+  assert.match(correr('sincronizar'), /P02: conflicto con main/)
+  pr(8, { state: 'OPEN', mergeable: 'UNKNOWN', statusCheckRollup: verde })
+  assert.equal(correr('sincronizar').trim(), '')
+  const r = JSON.parse(correr('siguiente', 'ui'))
+  assert.equal(r.paso, 'P02')
+  assert.equal(r.arreglar, 'conflicto con main')
 })
 
 test('un estado de commit pendiente (otro servicio) no es un CI en rojo: espera; en ERROR, sí', () => {

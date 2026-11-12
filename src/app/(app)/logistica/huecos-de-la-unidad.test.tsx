@@ -36,10 +36,9 @@ const conReglas = (...reglas: string[]) => ({ ok: true as const, data: { reglasA
 const claves = (r: { huecos: readonly { clave: string }[] }) => r.huecos.map((h) => h.clave)
 
 describe('huecos del panel de la unidad', () => {
-  it('hoy las cinco áreas no traen ninguno: el panel no gana ni un bloque', () => {
-    expect(HUECOS_DE_LA_UNIDAD).toEqual([])
+  it('sin ningún permiso, las áreas que ya declararon huecos no ganan ni un bloque', () => {
     const r = huecosDeLaUnidad(HUECOS_DE_LA_UNIDAD, { unidad, permisos: [], flujo: sinFlujo })
-    expect(r).toEqual({ huecos: [], aviso: null })
+    expect(r.huecos).toEqual([])
   })
 
   it('se dibujan en el orden del panel, sea cual sea el de la lista', () => {
