@@ -4,17 +4,20 @@ import { partirCuerpo, type Referencia } from '../../../entities/menciones'
 import type { Mensaje } from '../../../entities/mensajes'
 import { ELIMINADO, referenciaDeFicha } from '../../../entities/referencias'
 import type { ContextoDeMenciones } from '../contexto-de-menciones'
+import type { ContextoDeFichas } from '../../fichas/contexto-de-fichas'
+import { FichaDelMensaje as FichaDeTareaOEvento } from '../../fichas/components/ficha-del-mensaje'
 import { ChipDeMencion } from './chip-de-mencion'
-
-// La ficha de tarea o de evento la dibuja el 7.10-3: mientras tanto sólo dice qué es.
-const NOMBRE_DE_FICHA = { tarea: 'Tarea', evento: 'Evento' } as const
 
 function FichaDelMensaje({
   mensaje,
   menciones,
+  fichas,
+  usuarioId,
 }: {
   mensaje: Mensaje
   menciones: ContextoDeMenciones
+  fichas: ContextoDeFichas
+  usuarioId: string
 }) {
   const ficha = mensaje.ficha
   if (ficha === null) {
@@ -22,9 +25,7 @@ function FichaDelMensaje({
   }
   if (ficha.tipo === 'tarea' || ficha.tipo === 'evento') {
     return (
-      <p className="text-(--color-ink-soft)">
-        {NOMBRE_DE_FICHA[ficha.tipo]} · {ficha.id === null ? 'Eliminada' : 'Cargando…'}
-      </p>
+      <FichaDeTareaOEvento clase={ficha.tipo} id={ficha.id} usuarioId={usuarioId} fichas={fichas} />
     )
   }
   const referencia = referenciaDeFicha(ficha)
@@ -49,13 +50,17 @@ function FichaDelMensaje({
 }
 
 // El cuerpo de un mensaje: el texto va como texto (nunca HTML, con sus saltos de línea) y cada mención, como su chip o su aviso. Una ficha de lead,
-// vehículo o cotización se dibuja como una mención.
+// vehículo o cotización se dibuja como una mención; una de tarea o de evento, como su ficha (7.10-3).
 export function CuerpoConMenciones({
   mensaje,
   menciones,
+  fichas,
+  usuarioId,
 }: {
   mensaje: Mensaje
   menciones: ContextoDeMenciones
+  fichas: ContextoDeFichas
+  usuarioId: string
 }) {
   const trozos = mensaje.cuerpo === null ? [] : partirCuerpo(mensaje.cuerpo)
   return (
@@ -78,7 +83,12 @@ export function CuerpoConMenciones({
           })}
         </p>
       )}
-      <FichaDelMensaje mensaje={mensaje} menciones={menciones} />
+      <FichaDelMensaje
+        mensaje={mensaje}
+        menciones={menciones}
+        fichas={fichas}
+        usuarioId={usuarioId}
+      />
     </>
   )
 }

@@ -21,6 +21,8 @@ import { BarraLateral } from './_shell/barra-lateral'
 import { EsqueletoShell } from './_shell/esqueleto-shell'
 import { Marco } from './_shell/marco'
 import { MenuUsuario } from './_shell/menu-usuario'
+import { accionesDeLaPaleta } from './_shell/acciones-de-la-paleta'
+import { HuecoBuscador } from './_shell/huecos/buscador'
 import { HuecoCampana } from './_shell/huecos/campana'
 import { HuecoChat } from './_shell/huecos/chat'
 import { entradasVisibles } from './_shell/navegacion'
@@ -81,6 +83,7 @@ async function Shell({ children }: { children: ReactNode }) {
               // el documento de la pantalla no lleva los catálogos del alta.
               nuevoLead={puede(sesion.permisos, 'leads.crear') ? <AltaDeLead /> : undefined}
               aviso={<BannerPerspectiva />}
+              buscador={<HuecoBuscador acciones={accionesDeLaPaleta(sesion.permisos)} />}
               campana={
                 <HuecoCampana usuarioId={sesion.usuarioId} disponibles={RUTAS_CON_PANTALLA} />
               }

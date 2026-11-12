@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  PANEL_NUEVO_DE_VEHICULOS,
+  RUTAS,
   decidirAcceso,
   destinoTrasIngresar,
   esRutaPublica,
@@ -147,5 +149,15 @@ describe('unidadDeLogistica', () => {
 
   it('un id con caracteres de ruta no sale de ella', () => {
     expect(unidadDeLogistica('../x?y#z')).toBe('/logistica/vehiculo/..%2Fx%3Fy%23z')
+  })
+})
+
+describe('rutas de crear', () => {
+  it('«Nuevo vehículo» abre el panel con el valor compartido', () => {
+    expect(RUTAS.nuevoVehiculo).toBe(`/vehiculos?panel=${PANEL_NUEVO_DE_VEHICULOS}`)
+  })
+
+  it('la hoja de cotizar y el listado cuelgan de /cotizaciones', () => {
+    expect(RUTAS.nuevaCotizacion).toBe(`${RUTAS.cotizaciones}/nuevo`)
   })
 })

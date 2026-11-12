@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { atajoDe, combinacionDe, valeMientrasSeEscribe, type Tecla } from './atajos'
+import {
+  ATAJOS,
+  atajoDe,
+  combinacionDe,
+  esMac,
+  teclasDelAtajo,
+  valeMientrasSeEscribe,
+  type ClaveAtajo,
+  type Tecla,
+} from './atajos'
 
 function tecla(key: string, extra: Partial<Tecla> = {}): Tecla {
   return { key, ctrlKey: false, metaKey: false, altKey: false, ...extra }
@@ -42,5 +51,33 @@ describe('valeMientrasSeEscribe', () => {
   it('frena los de una sola tecla', () => {
     expect(valeMientrasSeEscribe('nuevo')).toBe(false)
     expect(valeMientrasSeEscribe('ayuda')).toBe(false)
+  })
+})
+
+describe('esMac', () => {
+  it('reconoce las plataformas de Apple', () => {
+    expect(esMac('MacIntel')).toBe(true)
+    expect(esMac('iPhone')).toBe(true)
+    expect(esMac('Linux x86_64')).toBe(false)
+    expect(esMac('Win32')).toBe(false)
+  })
+})
+
+describe('teclasDelAtajo', () => {
+  it('nombra las teclas de los atajos del catálogo', () => {
+    expect(teclasDelAtajo('buscar', { mac: false })).toEqual(['Ctrl', 'K'])
+    expect(teclasDelAtajo('buscar', { mac: true })).toEqual(['⌘', 'K'])
+    expect(teclasDelAtajo('guardarYSeguir', { mac: false })).toEqual(['Ctrl', 'Intro'])
+    expect(teclasDelAtajo('cerrar', { mac: false })).toEqual(['Esc'])
+    expect(teclasDelAtajo('nuevo', { mac: false })).toEqual(['N'])
+    expect(teclasDelAtajo('ayuda', { mac: false })).toEqual(['?'])
+  })
+
+  it('todo atajo del catálogo tiene teclas que mostrar', () => {
+    for (const clave of Object.keys(ATAJOS) as ClaveAtajo[]) {
+      const teclas = teclasDelAtajo(clave, { mac: false })
+      expect(teclas.length).toBeGreaterThan(0)
+      expect(teclas.every((t) => t.length > 0)).toBe(true)
+    }
   })
 })

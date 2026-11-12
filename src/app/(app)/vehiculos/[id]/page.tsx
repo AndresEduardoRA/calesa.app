@@ -3,6 +3,7 @@ import type { Metadata, Route } from 'next'
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { z } from 'zod'
+import { RegistrarVisita } from '@/modules/buscador/pantallas/visita'
 import { puede, requerirSesion } from '@/modules/equipo'
 import { leerFasesDeOrigen } from '@/modules/flujos'
 import { getOrigenes, leerLayout } from '@/modules/origenes'
@@ -85,6 +86,7 @@ export default async function PaginaVehiculo({
   const pestana = pestanaDeVehiculo(unParametro(parametros[CLAVE_DE_PESTANA]), pestanas)
   return (
     <div className="grid max-w-4xl gap-4">
+      <RegistrarVisita tipo="vehiculo" id={encontrado.id} />
       <Link
         href={`${RUTAS.vehiculos}?origen=${origen.id}` as Route}
         className="inline-flex min-h-11 w-fit items-center gap-1.5 text-(length:--text-sm) text-(--color-ink-soft) underline-offset-2 hover:text-(--color-ink) hover:underline md:min-h-8"

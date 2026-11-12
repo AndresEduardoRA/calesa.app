@@ -91,7 +91,7 @@ export function useHilo({ conversacion, zona }: Props) {
     },
   })
 
-  const { agregarLocal, resolver, reemplazar } = useLocalesDelHilo(setHilo)
+  const locales = useLocalesDelHilo(setHilo)
 
   return {
     ...recorrido,
@@ -103,8 +103,7 @@ export function useHilo({ conversacion, zona }: Props) {
       setLectura('cargando')
       setIntento((n) => n + 1)
     },
-    agregarLocal,
-    resolver,
-    reemplazar,
+    ...locales,
+    releer: releerCabeza,
   }
 }
