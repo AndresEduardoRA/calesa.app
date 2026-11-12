@@ -7,6 +7,7 @@ import { useRegional } from '@/shared/ui/regional'
 import { textoDelCanal, type DeclaracionLeida } from '../../../entities/aduana/declaracion'
 import { usePanelDeDeclaracion } from '../hooks/use-panel-de-declaracion'
 import { EstadoDeTributos } from './estado-de-tributos'
+import { VehiculosDeLaDeclaracion } from './vehiculos-de-la-declaracion'
 import { VehiculosDelResumen } from './vehiculos-del-resumen'
 
 type Props = {
@@ -72,7 +73,11 @@ export function ResumenDeLaDeclaracion({ declaracion, puedeGestionar }: Props) {
           <Dato etiqueta="Notas" valor={declaracion.notas} />
         </div>
       </dl>
-      <VehiculosDelResumen declaracion={declaracion} />
+      {puedeGestionar ? (
+        <VehiculosDeLaDeclaracion declaracion={declaracion} />
+      ) : (
+        <VehiculosDelResumen declaracion={declaracion} />
+      )}
     </div>
   )
 }
