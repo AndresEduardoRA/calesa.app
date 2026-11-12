@@ -60,6 +60,7 @@ export function leerSesion(
   secreto: string,
   ahora: Date,
 ): SesionDelPortal | null {
+  if (!Number.isFinite(ahora.getTime())) return null
   const cuerpo = cuerpoFirmado(valor, secreto)
   if (cuerpo === null) return null
   let datos: unknown

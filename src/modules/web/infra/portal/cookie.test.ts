@@ -50,7 +50,18 @@ describe('la cookie del portal', () => {
     const valor = firmarSesion(SESION, SECRETO, AHORA)
     expect(leerSesion(valor, `${SECRETO}-otro`, AHORA)).toBeNull()
     expect(() => firmarSesion(SESION, 'corto', AHORA)).toThrow()
-    expect(leerSesion(valor, 'corto', AHORA)).toBeNull()
+    // Firmado con el mismo secreto corto: sólo la guarda del largo lo rechaza.
+    const e = Math.floor(AHORA.getTime() / 1000) + 3600
+    const conCorto = firmadoA(
+      JSON.stringify({ l: SESION.lead_id, o: SESION.otorgado_en, e }),
+      'corto',
+    )
+    expect(leerSesion(conCorto, 'corto', AHORA)).toBeNull()
+  })
+
+  it('K4 · sin una hora válida no lee', () => {
+    const valor = firmarSesion(SESION, SECRETO, AHORA)
+    expect(leerSesion(valor, SECRETO, new Date(Number.NaN))).toBeNull()
   })
 
   it('K5 · lo que no es una cookie bien formada da null', () => {
@@ -69,6 +80,9 @@ describe('la cookie del portal', () => {
       // Mismo largo en caracteres, no ASCII: no puede lanzar.
       `${cuerpo}.é${firma.slice(1)}`,
       `${cuerpo} .${firma}`,
+      // Firma ASCII de otro largo: no puede lanzar.
+      `${cuerpo}.${firma.slice(0, -1)}`,
+      `${cuerpo}.${firma}A`,
       firmadoA('{no es json'),
       firmadoA(JSON.stringify({ l: 'no-es-guid', o: SESION.otorgado_en, e })),
       firmadoA(JSON.stringify({ l: SESION.lead_id, o: 'ayer', e })),
