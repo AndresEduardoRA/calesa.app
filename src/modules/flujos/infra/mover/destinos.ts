@@ -16,12 +16,12 @@ function acotar(destinos: DestinoDeMover[], tope: number): Lectura {
 }
 
 export async function leerDestinosDeBase(pedido: {
-  origenId: string
+  ambito: { tipo: 'vehiculo'; origenId: string } | { tipo: 'repuesto' }
   faseId: string | null
   tope: number
 }): Promise<Lectura> {
   const supabase = await createClient()
-  const { origenId, faseId, tope } = pedido
+  const { ambito, faseId, tope } = pedido
   if (faseId !== null) {
     const { data, error } = await supabase
       .from('fases_transiciones')
@@ -35,11 +35,14 @@ export async function leerDestinosDeBase(pedido: {
     const leidas = destinosDeSalidas(data)
     return leidas.ok ? acotar(leidas.data, tope) : leidas
   }
-  const { data, error } = await supabase
+  // Un vehículo entra por el flujo de su origen; un ítem de repuesto, por el único flujo `repuestos` (no tiene origen).
+  const consulta = supabase
     .from('fases')
     .select('id, nombre, color, orden, flujo:flujos!fases_flujo_id_fkey!inner(origen_id, ambito)')
-    .eq('flujo.origen_id', origenId)
-    .eq('flujo.ambito', 'vehiculos')
+    .eq('flujo.ambito', ambito.tipo === 'vehiculo' ? 'vehiculos' : 'repuestos')
+  const { data, error } = await (
+    ambito.tipo === 'vehiculo' ? consulta.eq('flujo.origen_id', ambito.origenId) : consulta
+  )
     .eq('es_inicial', true)
     .eq('activa', true)
     .order('orden')

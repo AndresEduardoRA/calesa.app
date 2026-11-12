@@ -3,6 +3,7 @@
 import { z } from 'zod'
 import { fallo, MENSAJE_INESPERADO, ok, type Resultado } from '@/shared/lib/errores'
 import { puede, type Permisos } from '@/shared/lib/permisos'
+import type { UnidadAMover } from './unidad-a-mover'
 import type { RequisitoVista, VistaPrevia } from './vista-previa'
 
 /** Cuántos destinos se muestran como máximo: son salidas de una fase (configuración, no una lista que crece). La lectura pide uno más para saber si hay más. */
@@ -37,7 +38,9 @@ export type MovidaPorUltimaVez = {
 }
 
 export type UnidadParaMover = {
-  vehiculoId: string
+  // El id de la unidad y su tipo (un vehículo o un ítem de repuesto, 8.13-1).
+  tipo: UnidadAMover['tipo']
+  unidadId: string
   faseId: string | null
   fueraDeRegla: boolean
   // Los bloqueantes sin cumplir de la fase actual (sólo si está fuera de regla).
@@ -80,7 +83,8 @@ export function unidadParaMoverDesde(dato: unknown): Resultado<UnidadParaMover> 
   if (!leida.success) return fallo('inesperado', MENSAJE_INESPERADO)
   const u = leida.data
   return ok({
-    vehiculoId: u.vehiculo_id,
+    tipo: 'vehiculo',
+    unidadId: u.vehiculo_id,
     faseId: u.fase_id,
     fueraDeRegla: u.fuera_de_regla,
     faltanEnSuFase: u.faltan.map((f) => ({
@@ -95,6 +99,29 @@ export function unidadParaMoverDesde(dato: unknown): Resultado<UnidadParaMover> 
     movida: u.movida
       ? { historialId: u.movida.historial_id, nombre: u.movida.nombre, en: u.movida.en }
       : null,
+  })
+}
+
+const esquemaDeItem = z.object({ id: z.guid(), fase_id: z.guid().nullable() })
+
+export const MENSAJE_REPUESTO_SIN_ACCESO =
+  'Este repuesto ya no está disponible: no existe o ya no tienes acceso.'
+
+/**
+ * Un ítem de repuesto leído de `repuestos_items` bajo la RLS (`null` = no hay fila: no existe, está en la papelera o no se ve). `logistica_unidad` es sólo de vehículo (D3 de 8.13),
+ * así que el ítem no trae «fuera de regla» ni «quién lo movió»: la franja no se dibuja y lo que sí se ve es la vista previa de cada destino.
+ */
+export function unidadDeRepuestoParaMover(fila: unknown): Resultado<UnidadParaMover> {
+  if (fila === null) return fallo('no_encontrado', MENSAJE_REPUESTO_SIN_ACCESO)
+  const leida = esquemaDeItem.safeParse(fila)
+  if (!leida.success) return fallo('inesperado', MENSAJE_INESPERADO)
+  return ok({
+    tipo: 'repuesto',
+    unidadId: leida.data.id,
+    faseId: leida.data.fase_id,
+    fueraDeRegla: false,
+    faltanEnSuFase: [],
+    movida: null,
   })
 }
 
@@ -155,4 +182,9 @@ export function puedeMoverEn(permisos: Permisos, origenId: string): boolean {
     puede(permisos, 'flujos.mover', origenId) ||
     puede(permisos, 'flujos.mover.cualquiera', origenId)
   )
+}
+
+/** ¿Puede mover ítems de repuesto? Se mueven con `repuestos.mover` (global, no por origen) y nunca con `flujos.mover`; la base vuelve a decidir con los roles de la fase y de la transición. */
+export function puedeMoverUnRepuesto(permisos: Permisos): boolean {
+  return puede(permisos, 'repuestos.mover')
 }
