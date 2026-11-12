@@ -3,6 +3,8 @@
 import type { Resultado } from '@/shared/lib/errores'
 import type { PaginaDeConversaciones } from '../../../entities/conversaciones'
 import { useListaDeConversaciones } from '../hooks/use-lista-de-conversaciones'
+import { MenuDeNuevaConversacion } from './menu-de-nueva-conversacion'
+import { PanelesDeChat } from './paneles-de-chat'
 import { ErrorDeLaLista } from './error-de-la-lista'
 import { FilaDeConversacion } from './fila-de-conversacion'
 import { PieDeLaLista } from './pie-de-la-lista'
@@ -15,14 +17,19 @@ type Props = {
   abierta: string | null
   // Zona horaria de la empresa, para la hora de lo último.
   zona: string
+  // Con `chat.global`, «Entrar al canal del equipo» (la base lo vuelve a exigir).
+  puedeGlobal: boolean
 }
 
 // La lista de `/chat`: mis conversaciones, la del mensaje más reciente primero, con «Ver más» y las señales de Realtime.
-export function ListaDeConversaciones({ usuarioId, inicial, abierta, zona }: Props) {
+export function ListaDeConversaciones({ usuarioId, inicial, abierta, zona, puedeGlobal }: Props) {
   const lista = useListaDeConversaciones({ usuarioId, inicial })
   return (
     <nav aria-label="Conversaciones" className="flex min-h-0 flex-1 flex-col">
-      <h1 className="px-3 py-3 text-(length:--text-xl) font-semibold text-(--color-ink)">Chat</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-3">
+        <h1 className="text-(length:--text-xl) font-semibold text-(--color-ink)">Chat</h1>
+        <MenuDeNuevaConversacion puedeGlobal={puedeGlobal} recargar={lista.recargar} />
+      </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
         {lista.errorDeLista && lista.filas.length === 0 ? (
           <ErrorDeLaLista alReintentar={() => void lista.recargar()} />
@@ -51,6 +58,7 @@ export function ListaDeConversaciones({ usuarioId, inicial, abierta, zona }: Pro
           </>
         )}
       </div>
+      <PanelesDeChat usuarioId={usuarioId} recargar={lista.recargar} />
     </nav>
   )
 }

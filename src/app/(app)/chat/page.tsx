@@ -44,6 +44,7 @@ async function Conversaciones({ parametros }: { parametros: PageProps<'/chat'>['
           inicial={lista}
           abierta={abierta}
           zona={zona}
+          puedeGlobal={puede(sesion.permisos, 'chat.global')}
         />
       </aside>
       <div className={`min-h-0 flex-col md:flex ${abierta ? 'flex' : 'hidden'}`}>
