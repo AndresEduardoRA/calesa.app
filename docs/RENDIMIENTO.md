@@ -42,6 +42,12 @@ Sección «Seguimientos» de la ficha y pestaña del drawer.
 - «¿A quién?»: `agenda_quienes_reciben()`, ≥ 3 letras o dígitos, tope 20, sobre `perfiles` (el equipo, no crece).
 - Sin siembra de volumen ni `medir-*.sql`: `eventos` y `tareas` no son tablas que crecen (7.06-2, D29).
 
+## Embarques y contenedores (6.08-3)
+
+- `/logistica/embarques`: `transporte_grupos()` (`security definer`) por cursor opaco = el id de una fila de la clave siguiente, de a `TAMANO_DE_PAGINA_POR_DEFECTO` (50; la base acota con `_acotar_pagina(p_tope, 50, 100)`), sin selector `?por=`, sin total y sin `offset`. Índices: `transportes_booking_idx` y `transportes_contenedor_idx` (parciales, por la clave). La llamada recorre **a lo sumo 2.000 filas**: si no llena la página devuelve `cortada` y la pantalla ofrece «Seguir buscando». Registrada en `scripts/guardas/areas-b/paginas-en-la-base.ts`.
+- El resumen lee `transporte_grupo()` (≤ 200 unidades, una llamada, sin N+1: por eso no trae «días en la fase») y los catálogos de navieras y puertos se leen una vez por pedido (`cache()`, `.limit(201)`: decenas de filas).
+- **Sin medir con volumen:** no hay un `medir-*.sql` de transporte (sólo la prueba SQL de 6.07-3, `supabase/tests/areas/transporte/grupos.sql`, que fija el comportamiento); igual que Gastos, hasta medirlo no hay presupuesto de tiempo. Sin presupuesto de JS nuevo: el drawer sólo se monta con la clave en la URL y los huecos viajan con `diferido()`.
+
 ## Gastos y pagos (6.11-3)
 
 - `/logistica/gastos`: `gastos_listar()` y `pagos_listar()` (invocadoras con `security definer` que filtran por origen y alcance), por cursor `(fecha desc, id desc)`, de a `TAMANO_DE_PAGINA_POR_DEFECTO` (50, más una), sin selector `?por=` (D9), sin total y sin `offset`. Índices: `gastos_fecha_idx` y `pagos_fecha_idx` (parciales `where eliminado_en is null`). Registradas en `scripts/guardas/areas-c/paginas-en-la-base.ts`.

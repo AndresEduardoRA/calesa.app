@@ -296,6 +296,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Puerto** — `puertos`: origen o destino de un transporte; nombre, país y código opcionales, `orden` y `activo`. Catálogo de la empresa en Configuración › Logística › Puertos; no se elimina, se desactiva. No: «terminal», «destino».
 - **Naviera** — `navieras`: la empresa que lleva el contenedor; nombre y `activo`. Catálogo de la empresa en Configuración › Logística › Navieras; no se elimina, se desactiva; cada flujo ofrece las suyas (`flujos_transporte_oferta`). No: «línea marítima», «carrier».
 - **Embarque / Contenedor** — grupo por `transportes.booking` / `contenedor`: agrupación, no entidad.
+- **Grupo (de transporte)** — el conjunto de unidades que comparten `booking` o `contenedor`; no es una entidad: `transporte_grupos()` lo cuenta y `transporte_grupo()` lo lista (las que quien mira ve, hasta 200). No: «lote», «carga».
 - **Declaración aduanera** — `declaraciones_aduana`, `declaraciones_vehiculos`: DUI: número, canal de aforo, vencimiento de tributos; N:M.
 - **Gasto** — `gastos`, `categorias_gasto`: costo real imputado a una unidad, en su moneda y en base.
 - **Pago** — `pagos`: pago del cliente; confirmar es un acto sellado.
