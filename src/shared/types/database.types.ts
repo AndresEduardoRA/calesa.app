@@ -3769,6 +3769,7 @@ export type Database = {
           opciones: NonNullable<Json>
           orden: number
           origen_id: string
+          principal: boolean
           publico_web: boolean
           requerido: boolean
           tipo: Database['public']['Enums']['tipo_campo']
@@ -3789,6 +3790,7 @@ export type Database = {
           opciones?: NonNullable<Json>
           orden?: number
           origen_id: string
+          principal?: boolean
           publico_web?: boolean
           requerido?: boolean
           tipo: Database['public']['Enums']['tipo_campo']
@@ -3808,6 +3810,7 @@ export type Database = {
           opciones?: NonNullable<Json>
           orden?: number
           origen_id?: string
+          principal?: boolean
           publico_web?: boolean
           requerido?: boolean
           tipo?: Database['public']['Enums']['tipo_campo']
@@ -8116,6 +8119,10 @@ export type Database = {
       _oportunidad_motivo: { Args: { p_motivo: string }; Returns: string }
       _oportunidad_notas: { Args: { p_valor: Json }; Returns: string }
       _oportunidad_titulo: { Args: { p_valor: Json }; Returns: string }
+      _origen_campos_desmarcar_principal: {
+        Args: { p_origen: string; p_salvo: string }
+        Returns: string
+      }
       _origen_campos_renumerar: { Args: { p_origen: string }; Returns: undefined }
       _origen_clave_reservada: { Args: { p_clave: string }; Returns: boolean }
       _origen_lead_clave: { Args: { p_nombre: string }; Returns: string }
@@ -9617,6 +9624,7 @@ export type Database = {
           p_grupo?: string
           p_opciones?: Json
           p_origen: string
+          p_principal?: boolean
           p_publico_web?: boolean
           p_requerido?: boolean
           p_tipo: Database['public']['Enums']['tipo_campo']

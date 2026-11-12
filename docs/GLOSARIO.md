@@ -52,6 +52,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Clave del origen** — `origenes.clave` / `claveDeNombre()`: identificador estable que sale del nombre al crearlo y no cambia.
 - **Campo de fábrica** — `origenes_campos.es_sistema`, `leads_campos.es_sistema`: campo preconfigurado; no se elimina ni cambia de tipo o clave. «Sistema» nombra otra cosa (rol dueño).
 - **Campo desactivado** — `origenes_campos.activo = false`: sale del formulario y filtros; sus datos siguen en `vehiculos.atributos`.
+- **Campo principal** — `origenes_campos.principal`: el campo que identifica al vehículo en la lista, el resumen y logística; uno por origen como mucho, activo y no de monto; sin él, el título.
 - **Valor por defecto de un campo** — `valor_defecto` / `valorDefectoPara()`, `valorDefectoVigente()`: lo que el alta trae puesto; sólo precarga.
 - **Origen inactivo** — `origenes.activo = false`: origen que ya no recibe vehículos ni cotizaciones nuevos; sus fichas se siguen viendo. Reversible.
 - **Origen sin uso** — `motivoParaNoEliminar()` / `origen_eliminar()`: sin vehículos (papelera incluida), cotizaciones ni fórmula publicada.

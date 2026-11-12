@@ -40,7 +40,13 @@ const VALORES_DE_UN_CAMPO_NUEVO: ValoresDeCampo = {
   grupo: '',
   activo: true,
   valorDefecto: null,
-  banderas: { requerido: false, enTarjeta: false, filtrable: false, publicoWeb: false },
+  banderas: {
+    requerido: false,
+    enTarjeta: false,
+    filtrable: false,
+    publicoWeb: false,
+    principal: false,
+  },
   textos: { [CLAVE_APIBARA]: '' },
 }
 
@@ -61,6 +67,7 @@ function valoresIniciales(campo: CampoDeLayout | null): ValoresDeCampo {
       enTarjeta: campo.enTarjeta,
       filtrable: campo.filtrable,
       publicoWeb: campo.publicoWeb,
+      principal: campo.principal,
     },
     textos: { [CLAVE_APIBARA]: campo.claveApibara ?? '' },
   }
@@ -80,6 +87,7 @@ function cambiosDe(campo: CampoDeLayout, valores: ValoresDeCampo): CambiosDeCamp
     publicoWeb: banderas['publicoWeb'] ?? false,
     claveApibara: vacioANulo(valores.textos[CLAVE_APIBARA] ?? ''),
     activo: valores.activo,
+    principal: banderas['principal'] ?? false,
     valorDefecto: valores.valorDefecto,
   })
 }
@@ -122,6 +130,12 @@ const BANDERAS: readonly BanderaDeCampo[] = [
     ayuda: 'La web pública puede mostrarlo.',
     enFila: true,
   },
+  {
+    clave: 'principal',
+    etiqueta: 'Principal',
+    ayuda: 'Identifica al vehículo en la lista, el resumen y logística. Uno por origen.',
+    enFila: false,
+  },
 ]
 
 // El campo de apibara: de qué dato del scraper se llena al dar de alta por enlace.
@@ -144,12 +158,55 @@ function HuecoDeApibara({ valores, cambiarTexto, deshabilitado }: ContextoDelHue
   )
 }
 
-type Contenedor = { origenId: string; tipoDeOrigen: TipoDeOrigen }
+// El campo que hoy es el principal del origen (ninguno: `null` o ausente).
+type PrincipalActual = { clave: string; etiqueta: string }
+
+// Con la bandera «Principal» encendida, la primera ayuda que aplica: los dos rechazos de la
+// base (los mismos textos) y, si otro campo lo era, cuál deja de serlo. No bloquea: decide la RPC.
+export function avisoDelPrincipal(
+  valores: ValoresDeCampo,
+  principal: PrincipalActual | null,
+): string | null {
+  if (valores.banderas['principal'] !== true) {
+    return null
+  }
+  if (valores.tipo === 'moneda') {
+    return 'Un monto no identifica a un vehículo: elige otro campo como principal.'
+  }
+  if (!valores.activo) {
+    return 'Un campo desactivado no puede ser el principal. Actívalo primero.'
+  }
+  if (principal !== null && principal.clave !== valores.clave) {
+    return `«${principal.etiqueta}» deja de ser el principal.`
+  }
+  return null
+}
+
+function huecoDelOrigen(tipoDeOrigen: TipoDeOrigen, principal: PrincipalActual | null) {
+  return function hueco(contexto: ContextoDelHueco) {
+    const aviso = avisoDelPrincipal(contexto.valores, principal)
+    return (
+      <>
+        {aviso === null ? null : (
+          <p className="text-(length:--text-sm) text-(--color-ink-soft)">{aviso}</p>
+        )}
+        {tipoDeOrigen === 'subasta' ? <HuecoDeApibara {...contexto} /> : null}
+      </>
+    )
+  }
+}
+
+type Contenedor = {
+  origenId: string
+  tipoDeOrigen: TipoDeOrigen
+  principal?: PrincipalActual | null
+}
 
 // Cómo el editor compartido arma, guarda y dice el layout de campos de un origen.
 export function configuracionDeOrigen({
   origenId,
   tipoDeOrigen,
+  principal = null,
 }: Contenedor): ConfiguracionDeCampos<CampoDeLayout, CambiosDeCampo, NuevoCampo> {
   return {
     textos: TEXTOS,
@@ -172,6 +229,7 @@ export function configuracionDeOrigen({
       publicoWeb: valores.banderas['publicoWeb'] ?? false,
       claveApibara: tipoDeOrigen === 'subasta' ? (valores.textos[CLAVE_APIBARA] ?? '') : null,
       valorDefecto: valores.valorDefecto,
+      principal: valores.banderas['principal'] ?? false,
     }),
     cambiosDe,
     conBandera: (clave, valor) => ({ [clave]: valor }),
@@ -180,6 +238,7 @@ export function configuracionDeOrigen({
       resumenDeImpacto(campo, cambios, impacto),
     resumenDeEliminacion: (campo, impacto: ImpactoDeCampo): ResumenDeImpacto =>
       resumenDeEliminacion(campo, impacto),
-    hueco: tipoDeOrigen === 'subasta' ? HuecoDeApibara : undefined,
+    hueco: huecoDelOrigen(tipoDeOrigen, principal),
+    insignias: (campo) => (campo.principal ? ['Principal'] : []),
   }
 }

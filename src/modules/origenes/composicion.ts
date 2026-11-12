@@ -3,6 +3,7 @@
 // `infra/` (lo verifica eslint-plugin-boundaries).
 import 'server-only'
 import type {
+  LectorDeCampoPrincipal,
   LectorDeDatosNuevos,
   LectorDeLayout,
   LectorDeOrigenes,
@@ -14,7 +15,7 @@ import { camposSupabase } from './infra/campos'
 import { categoriasSupabase } from './infra/categorias'
 import { origenesSupabase } from './infra/origenes'
 import { getDatosNuevos } from './infra/queries/datos-nuevos'
-import { getLayout } from './infra/queries/layout'
+import { getCampoPrincipal, getLayout } from './infra/queries/layout'
 import { getOrigenes, getOrigenesConUso } from './infra/queries/origenes'
 
 export const repositorioOrigenes: RepositorioOrigenes = origenesSupabase
@@ -23,6 +24,7 @@ export const repositorioCategorias: RepositorioCategorias = categoriasSupabase
 
 export const leerOrigenes: LectorDeOrigenes = getOrigenesConUso
 export const leerLayout: LectorDeLayout = getLayout
+export const leerCampoPrincipal: LectorDeCampoPrincipal = getCampoPrincipal
 export const leerDatosNuevosDeApibara: LectorDeDatosNuevos = getDatosNuevos
 
 export { getOrigenes }
