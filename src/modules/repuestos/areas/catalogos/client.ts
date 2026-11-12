@@ -1,2 +1,20 @@
-// La API de cliente de el área `catalogos` de `repuestos`: la llena el paso 8.08-2. Sale por el `client.ts` de la raíz.
-export {}
+// La API de cliente del área `catalogos` de `repuestos` (8.08-2): lo puro del formulario de un valor. Sale por el `client.ts` de la raíz.
+export {
+  BORRADOR_NUEVO_DE_VALOR,
+  CATALOGOS_DE_REPUESTOS,
+  LARGO_MAXIMO_DE_NOMBRE_DE_VALOR,
+  ORDEN_MAXIMO_DE_VALOR,
+  TOPE_DE_VALORES_DE_CATALOGO,
+  borradorDeValor,
+  cambiosDeValor,
+  esClaveDeCatalogo,
+  ordenSiguiente,
+  ordenarValores,
+  validarValor,
+  type BorradorDeValor,
+  type CatalogosDeRepuestos,
+  type ClaveDeCatalogo,
+  type DatosDeValor,
+  type ValidacionDeValor,
+  type ValorDeCatalogo,
+} from '../../entities/catalogos/catalogo'

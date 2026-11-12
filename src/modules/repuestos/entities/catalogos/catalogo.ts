@@ -103,3 +103,11 @@ export function cambiosDeValor(
   if (nuevo.orden !== original.orden) cambios.orden = nuevo.orden
   return Object.keys(cambios).length === 0 ? null : cambios
 }
+
+// Lo que Configuración dibuja por catálogo (D22, como las categorías de gasto): la lectura pide uno de más y avisa con `<AvisoDeTope>`.
+export const TOPE_DE_VALORES_DE_CATALOGO = 200
+
+export type CatalogosDeRepuestos = Record<
+  ClaveDeCatalogo,
+  { valores: ValorDeCatalogo[]; hayMas: boolean }
+>
