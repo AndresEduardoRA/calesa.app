@@ -25,6 +25,22 @@ export function huellaDelSecretoDeApibara(): string {
   )
 }
 
+// Para un spec que escribe la clave por la interfaz (`empresa.spec.ts`): `huellaDelSecretoDeApibara()` al empezar, `''` si no había clave.
+// Si había una (la real de quien usa la app local), el spec no debe escribir: `postgres` sólo puede leer y borrar `vault.secrets`
+// (renombrarla con `vault.update_secret()` movería `updated_at`), y una clave borrada no vuelve con el mismo id.
+export function huellaDeVaultAlEmpezar(): string {
+  return huellaDelSecretoDeApibara()
+}
+
+// Al terminar el spec: si no había clave al empezar, quita la que dejó la prueba; si la había, no toca nada. Devuelve la huella de
+// Vault tal como queda, para que el spec afirme que es la de antes (la comparación no imprime ni el hash ni la clave).
+export function dejarVaultDeApibaraComoEstaba(huellaAntes: string): string {
+  if (huellaAntes === '') {
+    sql(`delete from vault.secrets where name = ${literal(NOMBRE_DEL_SECRETO)}`)
+  }
+  return huellaDelSecretoDeApibara()
+}
+
 // Deja `CLAVE_DE_RELLENO` si no hay ninguna clave y devuelve cómo quitarla. Si ya hay una, no la toca y lo que devuelve no hace nada.
 // Se guarda por la vía de la app, `integracion_guardar_secreto()` con la sesión de `persona` (que necesita `empresa.ajustes.gestionar`:
 // la función pide el permiso y con la clave de servicio no hay quien lo tenga). Quitarla borra ese secreto por su id y devuelve la
