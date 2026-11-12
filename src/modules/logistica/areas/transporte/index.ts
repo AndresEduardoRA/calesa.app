@@ -21,6 +21,7 @@ export {
 } from '../../entities/transporte/grupos'
 export {
   CLAVE_DE_GRUPO,
+  PANEL_EDITAR_GRUPO,
   claveDelResumenDe,
   tipoDeGrupoDeLaVista,
   tipoDeLaBaseDe,

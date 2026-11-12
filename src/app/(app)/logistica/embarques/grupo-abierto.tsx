@@ -7,7 +7,7 @@ import {
 import { ResumenDelGrupo } from '@/modules/logistica/pantallas/transporte'
 import { datosO } from '@/shared/lib/errores'
 import type { Permisos } from '@/shared/lib/permisos'
-import { HUECOS_DEL_GRUPO, huecosDelGrupo } from './huecos-del-grupo'
+import { HUECOS_DEL_GRUPO, huecosDelGrupo, puedeEditarTransporte } from './huecos-del-grupo'
 
 // El resumen del grupo con esa clave: sus unidades y los huecos que la persona puede usar. Una clave que no existe y una que no se ve dan el mismo grupo sin unidades (la base no distingue); un
 // error de lectura sube al `error.tsx` de `(app)`, que ofrece «Reintentar».
@@ -15,10 +15,12 @@ export async function GrupoAbierto({
   clave,
   vista,
   permisos,
+  claveDeUrl,
 }: {
   clave: string
   vista: VistaDeGrupos
   permisos: Permisos
+  claveDeUrl: string
 }) {
   const [grupo, catalogos] = await Promise.all([
     leerGrupo(tipoDeLaBaseDe(vista), clave),
@@ -30,6 +32,8 @@ export async function GrupoAbierto({
       vista={vista}
       catalogos={datosO(catalogos)}
       huecos={huecosDelGrupo(HUECOS_DEL_GRUPO, permisos)}
+      puedeEditar={puedeEditarTransporte(permisos)}
+      claveDeUrl={claveDeUrl}
     />
   )
 }

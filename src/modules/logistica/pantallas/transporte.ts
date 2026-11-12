@@ -3,3 +3,4 @@
 export { DrawerDelGrupo } from '../features/transporte/components/drawer-del-grupo'
 export { ListadoDeEmbarques } from '../features/transporte/components/listado-de-embarques'
 export { ResumenDelGrupo } from '../features/transporte/components/resumen-del-grupo'
+export { DrawerDeEdicionDelGrupoDiferido as DrawerDeEdicionDelGrupo } from '../features/transporte/components/diferidos-de-edicion'

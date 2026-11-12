@@ -8,16 +8,19 @@ import {
   esquemaDeFiltrosDeGrupos,
   leerCatalogosDeTransporte,
   leerGrupos,
+  PANEL_EDITAR_GRUPO,
   pedidoDeGrupos,
   vistaDeGrupos,
 } from '@/modules/logistica'
 import { DrawerDelGrupo, ListadoDeEmbarques } from '@/modules/logistica/pantallas/transporte'
 import { datosO } from '@/shared/lib/errores'
-import { CLAVE_DE_CURSOR, leerFiltros } from '@/shared/lib/filtros'
+import { CLAVE_DE_CURSOR, CLAVE_DE_PANEL, leerFiltros } from '@/shared/lib/filtros'
 import { RUTAS, unParametro } from '@/shared/lib/rutas'
 import { EstadoSinPermiso } from '@/shared/ui/estados'
 import { EsqueletoDetalle, EsqueletoListado } from '@/shared/ui/esqueletos'
 import { GrupoAbierto } from './grupo-abierto'
+import { GrupoEnEdicion } from './grupo-en-edicion'
+import { puedeEditarTransporte } from './huecos-del-grupo'
 
 export const metadata: Metadata = { title: 'Embarques' }
 
@@ -52,6 +55,10 @@ async function Listado({
   const pagina = datosO(await leerGrupos(pedido))
   const clave = claveDelResumenDe(vista)
   const abierto = unParametro(parametros[clave])
+  // El formulario de «Editar grupo» tapa al resumen (D36); sin permiso, `?panel=editar-grupo` se ignora (D37).
+  const editando =
+    unParametro(parametros[CLAVE_DE_PANEL]) === PANEL_EDITAR_GRUPO &&
+    puedeEditarTransporte(sesion.permisos)
   return (
     <>
       <ListadoDeEmbarques
@@ -65,10 +72,19 @@ async function Listado({
         ruta={RUTAS.embarques}
         claveDelResumen={clave}
       />
-      {abierto ? (
+      {abierto && editando ? (
+        <Suspense key={`editar-${vista}-${abierto}`} fallback={<EsqueletoDetalle />}>
+          <GrupoEnEdicion clave={abierto} vista={vista} claveDeUrl={clave} />
+        </Suspense>
+      ) : abierto ? (
         <DrawerDelGrupo clave={clave} vista={vista}>
           <Suspense key={`${vista}-${abierto}`} fallback={<EsqueletoDetalle />}>
-            <GrupoAbierto clave={abierto} vista={vista} permisos={sesion.permisos} />
+            <GrupoAbierto
+              clave={abierto}
+              vista={vista}
+              permisos={sesion.permisos}
+              claveDeUrl={clave}
+            />
           </Suspense>
         </DrawerDelGrupo>
       ) : null}
