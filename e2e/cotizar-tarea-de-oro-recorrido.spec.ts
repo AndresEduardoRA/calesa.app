@@ -5,6 +5,7 @@ import {
   fallo,
   ficha,
   fijarApibara,
+  fotosConOrigen,
   leerApibara,
   otroCopart,
   restaurarApibara,
@@ -191,10 +192,11 @@ test('E2E R1 la asesora, la tarea de oro 2 entera con un enlace de Copart: del l
   info.annotations.push({ type: 'meta de 90 s, la asesora', description: resumen })
   expect(robot).toBeLessThan(45)
   expect(klm).toBeLessThanOrEqual(90)
-  // Las fotos de la subasta se traen después de crear: se espera a que terminen antes de borrar el vehículo.
-  await expect(page.getByText(/Se guardaron las 2 fotos de la subasta/)).toBeVisible({
-    timeout: 90_000,
-  })
+  // Las fotos de la subasta se traen después de crear: se espera a que estén en la base antes de borrar el vehículo. No se espera su aviso: se cierra solo a
+  // los pocos segundos y, si las fotos terminan antes que el recorrido, ya no está (caía con el spec corriendo solo, FLUJO-7).
+  await expect
+    .poll(async () => (await fotosConOrigen(vehiculo)).length, { timeout: 90_000 })
+    .toBe(2)
 })
 
 test('E2E R2 la dueña, la misma tarea con un vehículo del inventario: del listado al PDF, sólo con el teclado y en ≤ 90 s', async ({

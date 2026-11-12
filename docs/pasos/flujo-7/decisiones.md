@@ -11,6 +11,9 @@ del entorno, el que más se repitió no era de ningún paso.
   y 9 les faltan más entradas. Se descartó descontar las paradas del marco para conservar la cuenta: pedía medirlas en cada pantalla del
   recorrido y volver a contarlas con el completo local. `cotizar-tarea-de-oro-enlace` conserva su cuenta exacta: arranca en la hoja con
   «Saltar al contenido» y no cruza la navegación.
+- **El mismo spec espera las dos fotos de la subasta en la base** (`fotosConOrigen`) y no su aviso, que se cierra solo a los pocos
+  segundos: si las fotos terminaban antes que el recorrido, el aviso ya no estaba (así cayó el spec corriendo solo, como dirigido, en
+  el PR de este arreglo; en el completo pasaba por tiempos).
 - **`e2e/configuracion-flujos-requisitos.spec.ts` espera el orden de la lista tras «Subir»** (`expect.poll`) en vez de leerla una vez: la
   base ya había cambiado y la lista se volvía a dibujar un instante después (el 9.04-1, rojo en los dos intentos del CI).
 - **Medido y no cambiado:** el reintento a ciegas de un CI rojo. Desde el arreglo de chromium, de 31 reintentos 11 terminaron en verde
