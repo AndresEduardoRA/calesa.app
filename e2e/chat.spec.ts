@@ -20,6 +20,7 @@ import { sql } from './soporte/sql'
 // silencia y se deja.
 // 7.09-3: el hilo y el envío. Ana escribe a Marta y Marta lo ve sin recargar con su no leído, que se limpia al abrir; sin red el mensaje queda
 // «No enviado» y al reintentar llega una sola vez.
+// 7.09-4: Ana responde a Luis, edita lo suyo y lo borra; Luis lo ve todo sin recargar.
 test.describe.configure({ mode: 'serial' })
 
 let t: TerrenoDelChat
@@ -261,4 +262,67 @@ test('sin red el mensaje queda «No enviado» y al reintentar llega una sola vez
   await expect(reintentar).toBeHidden()
   await expect(hilo(page).getByText(texto)).toHaveCount(1)
   expect(sql(`select count(*) from public.mensajes where cuerpo = '${texto}'`)).toBe('1')
+})
+
+test('Ana responde a Luis, edita lo suyo y lo borra; Luis lo ve sin recargar', async ({
+  browser,
+  page,
+}) => {
+  const original = 'Hola Ana, ¿viste el contenedor?'
+  await entrar(page, t.ana.email)
+  await page.goto(`/chat?c=${t.conLuis}`)
+  const luis = await otraPersona(browser, page)
+  await entrar(luis, t.luis.email)
+  await luis.goto(`/chat?c=${t.conLuis}`)
+  await expect(hilo(luis).getByText(original)).toBeVisible()
+
+  // Lo de Luis no es de Ana ni ella modera: sólo puede responder.
+  const deLuis = hilo(page).getByRole('listitem').filter({ hasText: original })
+  await deLuis.getByRole('button', { name: 'Más acciones del mensaje' }).click()
+  await expect(page.getByRole('menuitem', { name: 'Responder' })).toBeVisible()
+  await expect(page.getByRole('menuitem', { name: 'Editar' })).toHaveCount(0)
+  await expect(page.getByRole('menuitem', { name: 'Borrar' })).toHaveCount(0)
+  await page.getByRole('menuitem', { name: 'Responder' }).click()
+  await expect(page.getByText('Respondiendo a Luis Chat')).toBeVisible()
+
+  const texto = 'Sí, lo vi en el puerto'
+  await escribirEnElHilo(page, texto)
+  await expect(page.getByText('Respondiendo a Luis Chat')).toHaveCount(0)
+  const suyo = (p: Page, cuerpo: string) =>
+    hilo(p).getByRole('listitem').filter({ hasText: cuerpo })
+  await expect(suyo(page, texto).getByRole('blockquote')).toContainText(original)
+  // Luis lo ve sin recargar, con la cita.
+  await expect(suyo(luis, texto).getByRole('blockquote')).toContainText(original, {
+    timeout: 20_000,
+  })
+
+  // Editar lo suyo: Enter guarda y dice «editado», también en la pantalla de Luis.
+  const editado = 'Sí, lo vi en el puerto de Arica'
+  await suyo(page, texto).getByRole('button', { name: 'Más acciones del mensaje' }).click()
+  await page.getByRole('menuitem', { name: 'Editar' }).click()
+  const editor = page.getByRole('textbox', { name: 'Editar mensaje' })
+  await editor.fill(editado)
+  await editor.press('Enter')
+  await expect(suyo(page, editado)).toContainText('editado')
+  await expect(suyo(luis, editado)).toContainText('editado', { timeout: 20_000 })
+  expect(sql(`select cuerpo from public.mensajes where cuerpo = '${editado}'`)).toBe(editado)
+
+  // Borrar: un diálogo con su URL; confirmarlo deja «Mensaje eliminado» sin el texto, y Luis lo ve.
+  await suyo(page, editado).getByRole('button', { name: 'Más acciones del mensaje' }).click()
+  await page.getByRole('menuitem', { name: 'Borrar' }).click()
+  const dialogo = page.getByRole('dialog', { name: 'Borrar tu mensaje' })
+  await expect(dialogo).toBeVisible()
+  await expect(page).toHaveURL(/panel=borrar-mensaje/)
+  await dialogo.getByRole('button', { name: 'Borrar' }).click()
+  await expect(dialogo).toBeHidden()
+  await expect(hilo(page).getByText(editado)).toHaveCount(0)
+  await expect(hilo(page).getByText('Mensaje eliminado')).toHaveCount(1)
+  await expect(hilo(luis).getByText('Mensaje eliminado')).toHaveCount(1, { timeout: 20_000 })
+  await expect(hilo(luis).getByText(editado)).toHaveCount(0)
+  expect(
+    sql(
+      `select cuerpo is null and eliminado_en is not null from public.mensajes where autor_id = '${t.ana.id}' and responde_a_id is not null`,
+    ),
+  ).toBe('t')
+  await luis.context().close()
 })
