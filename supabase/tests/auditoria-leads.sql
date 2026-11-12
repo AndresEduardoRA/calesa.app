@@ -217,6 +217,13 @@ declare
     -- El chat (7.08-3): lecturas de lo propio; no reciben ni devuelven un lead; cuentan mensajes sin leer el cuerpo (`areas/chat/lista.sql`).
     ('chat_conversaciones(integer,timestamp with time zone,uuid)', 'X'),
     ('chat_no_leidos()', 'X'),
+    -- El ciclo de vida de un proyecto de repuestos (8.08-1): el lead lo exige `trg_lead_visible`; responden ids y versión, sin el lead
+    -- (`areas/repuestos/proyectos.sql`).
+    ('repuesto_proyecto_crear(uuid,jsonb)', 'X'),
+    ('repuesto_proyecto_cerrar(uuid,timestamp with time zone)', 'X'),
+    ('repuesto_proyecto_reabrir(uuid,timestamp with time zone)', 'X'),
+    ('repuesto_proyecto_eliminar(uuid,timestamp with time zone)', 'X'),
+    ('repuesto_proyecto_restaurar(uuid,timestamp with time zone)', 'X'),
     ('storage_refcount(text,text)', 'X')
   ) t (f, c));
   r record; v_fallas text := '';

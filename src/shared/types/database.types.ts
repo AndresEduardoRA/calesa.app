@@ -8371,6 +8371,31 @@ export type Database = {
         }
       }
       _recordatorio_titulo: { Args: { p_hint: string; p_valor: string }; Returns: string }
+      _repuesto_proyecto_tomar: {
+        Args: { p_esperado: string; p_proyecto: string }
+        Returns: {
+          actualizado_en: string
+          cerrado_en: string | null
+          cliente_nombre: string | null
+          cliente_telefono: string | null
+          creado_en: string
+          creado_por: string | null
+          eliminado_en: string | null
+          id: string
+          lead_id: string | null
+          notas: string | null
+          numero: number
+          vehiculo_etiqueta: string | null
+          vehiculo_id: string | null
+          vin: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'repuestos_proyectos'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       _requisito_aplicar: {
         Args: {
           p_datos: Json
@@ -9942,6 +9967,23 @@ export type Database = {
           p_tabla: string
         }
         Returns: undefined
+      }
+      repuesto_proyecto_cerrar: {
+        Args: { p_actualizado_en_esperado: string; p_proyecto: string }
+        Returns: Json
+      }
+      repuesto_proyecto_crear: { Args: { p_datos: Json; p_id: string }; Returns: Json }
+      repuesto_proyecto_eliminar: {
+        Args: { p_actualizado_en_esperado: string; p_proyecto: string }
+        Returns: Json
+      }
+      repuesto_proyecto_reabrir: {
+        Args: { p_actualizado_en_esperado: string; p_proyecto: string }
+        Returns: Json
+      }
+      repuesto_proyecto_restaurar: {
+        Args: { p_eliminado_en_esperado: string; p_proyecto: string }
+        Returns: Json
       }
       requisito_crear: {
         Args: {
