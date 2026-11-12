@@ -14,6 +14,11 @@ Proyectos de repuestos por vehículo (o externos), ítems que recorren el flujo 
   pedido del listado (`esquemaDelListado`, `pedidoDelListado`, `leerCursorDeProyectos`), `leerProyectosDelListado` y el estado derivado (`estadoDelProyecto`). La action
   `crearProyecto` no sale por los barriles: la importa el hook del drawer. El cursor del listado es el `numero` y no tiene «Anterior»; los buscadores de vehículo y de lead los
   compone `src/app/(app)/repuestos/` (este módulo no importa `buscador`).
+- Sale por `pantallas/items.ts` (8.09-2): `<HojaDeItems>` (la hoja de `/repuestos/[id]`); por `pantallas/proyectos.ts`, además, `<CabeceraDeProyecto>`. Por el `index.ts`: `leerProyecto`, `leerItemsDelProyecto`,
+  `leerItem`, `cuentasDeLaHoja` y `FilaDeItem` (núcleo). Las actions `guardarCelda`, `crearItem`, `eliminarItem`, `cerrarProyecto` y `reabrirProyecto` no salen por los barriles.
+- **La hoja** (`features/items/`): sólo cantidad y precio son `XCell` (es numérica); el resto son celdas propias. Guardar una celda es un `update` directo por columna que **versiona el repositorio**
+  (`infra/items/guardar.ts`, `.eq('actualizado_en', …)`): cero filas nunca es éxito. Una cola por fila (`colaPorClave`) evita que dos celdas del mismo ítem choquen. Las funciones que bajan a las
+  `XCell` son estables (`memo`). Sin `repuestos.editar` o con el proyecto cerrado, texto plano. La base **no** frena el `update` de un ítem de un proyecto cerrado (hueco para 8.10).
 - Depende de: `vehiculos`, `flujos`, `leads`.
 
 ## Áreas
