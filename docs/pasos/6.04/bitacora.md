@@ -27,3 +27,11 @@ Pruebas: Vitest de `entities/mover/` (notas, historial, hasta-de-un-dia); `db:pr
 Sigue **6.04-3** (el lote), servida en `.piloto/planes/6.04.md` › «Lo que sigue».
 
 - e2e completo: no (6.04-2, Nivel 1: lo corre el CI del PR; dirigidos en verde)
+
+## 6.04-3 · El lote (2026-11-12)
+
+Parte 3 de 3: **6.04 queda completo**. Entró: `logistica/entities/nucleo/seleccion.ts` y `entities/mover/{grupo-del-lote,claves-del-lote}.ts` (con test), `features/mover/lote/{vista-del-lote,resultado-del-lote}.ts` (con test), el contexto de selección del núcleo, la casilla y «Elegir los de esta columna» en la columna de la cadena, el proveedor y la barra, el drawer del lote (`?panel=lote`, destino, vista previa por unidad, nota común, «Mover los N que pueden», resultado entero y «Reintentar»), el lote de un grupo (`?contenedor=` / `?booking=`) y el hueco «Mover el grupo» con «Marcar que llegó» (`pantallas/mover-grupo.ts`, con prueba de componente); en `flujos`, la action `destinosDeLaFase`. Sin migración, policy ni permiso nuevo.
+
+Pruebas: Vitest de `entities/nucleo/seleccion`, `entities/mover/grupo-del-lote` y `features/mover/lote/` (con la frase de cada plural) y del hueco del grupo; `e2e/logistica-lote.spec.ts` (un contenedor de 8, 7 con el BL: «Se movieron 7 de 8.», aprobar y «Reintentar el 1»; y elegir por casilla, mover y limpiar), en escritorio y celular; dirigidos en verde (`logistica-cadena`, `-mover`, `-unidad`, `-gastos-y-pagos`: 38 pasaron, 5 saltadas por diseño); `presupuesto-js` de `/logistica`: 397,4 de 410 KB. Salidas en `.piloto/salidas/6.04/`.
+
+- e2e completo: no (6.04-3, Nivel 1: lo corre el CI del PR; dirigidos en verde)

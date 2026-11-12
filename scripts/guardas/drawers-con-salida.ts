@@ -139,6 +139,10 @@ export const DRAWERS_DEL_NUCLEO: Record<string, RegistroDeDrawer> = {
       'de sólo lectura: las revisiones de una cotización guardada; «Ir a una fecha» es una posición, no algo que se guarde',
   },
   // --- logistica
+  'src/modules/logistica/features/mover/components/drawer-del-lote.tsx': {
+    formulario: 'src/modules/logistica/features/mover/components/cuerpo-del-lote.tsx',
+    mecanismo: 'contexto',
+  },
   'src/app/(app)/logistica/drawer-de-la-unidad.tsx': {
     sinFormulario:
       'sólo es el marco del panel de la unidad (6.01): no guarda nada tipeado; lo que cada área escriba en sus huecos va en modales que preguntan por sí solos',

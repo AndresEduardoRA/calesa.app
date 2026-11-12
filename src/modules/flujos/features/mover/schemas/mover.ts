@@ -42,3 +42,5 @@ export const esquemaCambiarFaseLote = z.object({
   nota,
   unidades,
 })
+
+export const esquemaDestinosDeLaFase = z.object({ origenId: z.guid(), faseId: z.guid() })
