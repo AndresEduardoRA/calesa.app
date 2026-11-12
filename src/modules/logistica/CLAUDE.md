@@ -36,13 +36,15 @@ El panel exige `logistica.ver` en el origen de la unidad **y** que la RLS de `ve
 - `entities/documentos.ts` — estados pendiente/subido/aprobado/rechazado y qué cuenta para un requisito (aprobado y vivo, mime admitido, entre min y max).
 - `entities/grupos.ts` — agrupar `transportes` por booking / contenedor (vistas, no entidades) y la edición «todo o nada».
 - `features/cadena/`, `features/unidad/` (panel con «qué falta»), `features/documentos/`, `features/transporte/`, `features/aduana/`, `features/gastos/`, `features/pagos/`, `features/donde-esta/`.
-- **Área `dinero`** (6.11-1: los huecos «Gastos» y «Margen»; «Pagos», `/logistica/gastos`, prorratear y las categorías de gasto llegan con 6.11-2 a 6.11-4). `pantallas/dinero-unidad.ts` los declara con `diferido()`
+- **Área `dinero`** (6.11-1 y 6.11-2: los huecos «Gastos», «Pagos» y «Margen»; `/logistica/gastos`, prorratear y las categorías de gasto llegan con 6.11-3 y 6.11-4). `pantallas/dinero-unidad.ts` los declara con `diferido()`
   (`features/dinero/components/diferidos.tsx`). `entities/dinero/`: `margen.ts` (`textosDelMargen`: un `null` de la base se escribe «Sin cotización final» o «Sin venta registrada», nunca 0, y un 0
-  verdadero es un monto), `gasto.ts` (`validarGasto`, `cambiosDeGasto` con el tipo de cambio sólo si cambió la moneda o el tipo, D19), `tipo-de-cambio.ts`, `categoria.ts`, `paneles.ts`. El navegador lee con la
+  verdadero es un monto), `gasto.ts` (`validarGasto`, `cambiosDeGasto` con el tipo de cambio sólo si cambió la moneda o el tipo, D19), `pago.ts` (`accionesDelPago`: un confirmado nunca se edita ni se elimina; `textoDelSello`; `validarPago` con monto > 0; `validarMotivoDeAnulacion`), `tipo-de-cambio.ts`, `categoria.ts`, `paneles.ts` y `paneles-de-pago.ts`. El navegador lee con la
   sesión de quien mira (`infra/dinero/*.client.ts`: los gastos de la unidad con tope 50 por `gastos_vehiculo_idx`, `margen_vehiculo`, `mis_permisos`, los catálogos y el comprobante en el bucket
   `comprobantes`); escribir va por las Server Actions de `features/dinero/actions/`. **El equivalente en base lo devuelve la base** (`monto_base`): ningún componente multiplica por una tasa. Un hueco recibe
   sólo `{ unidad }`, así que decide «Registrar gasto» con `puede()` sobre `mis_permisos`; lo que protege es la base. `?panel=gasto&gasto=<id|nuevo>` y `?panel=eliminar-gasto&gasto=<id>`; el hueco
-  «Gastos» avisa al «Margen» por un evento del navegador (`eventos-de-dinero.ts`), no por la URL.
+  «Gastos» avisa al «Margen» por un evento del navegador (`eventos-de-dinero.ts`), no por la URL. **Pagos:** `?panel=pago|confirmar-pago|eliminar-pago|anular-pago&pago=<id>` (una URL escrita a mano no abre lo que el
+  estado o el permiso no dejan); «Confirmar pago» y «Anular pago» piden `logistica.pagos.confirmar` (global) y avisan al «Margen» por el mismo evento; el sello «Confirmado por <nombre> el <fecha>» lo pone la base y
+  el nombre sale de `perfiles`; anular es un drawer con motivo (el `<Confirmar>` no tiene campo de texto); el lead no se elige (se manda nulo, D3 de 6.11-2).
 
 ## Tablas
 
