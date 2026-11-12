@@ -68,7 +68,7 @@ insert into public.permisos (clave, modulo, nombre, descripcion, por_origen, con
   ('logistica.ver', 'logistica', 'Ver logística', 'Ver documentos, transporte, historial y notas (por origen y alcance)', true, true, 'puede_unidad', 320),
   ('logistica.documentos.subir', 'logistica', 'Subir documentos', 'Subir documentos de un vehículo (por origen)', true, true, 'policy documentos', 330),
   ('logistica.documentos.aprobar', 'logistica', 'Aprobar documentos', 'Aprobar o rechazar documentos (por origen)', true, true, 'policy documentos', 340),
-  ('logistica.transporte.editar', 'logistica', 'Editar transporte', 'Naviera, puertos, contenedor, booking y fechas (por origen)', true, true, 'policy transportes', 350),
+  ('logistica.transporte.editar', 'logistica', 'Editar transporte', 'Naviera, puertos, contenedor, booking y fechas (por origen)', true, true, 'transporte_guardar', 350),
   ('logistica.aduana.gestionar', 'logistica', 'Gestionar aduana', 'Declaraciones y su composición', false, false, 'policy declaraciones_*', 360),
   ('logistica.gastos.ver', 'logistica', 'Ver gastos', 'Ver los gastos reales (por origen)', true, true, 'policy gastos, comprobante_puede, gastos_listar', 370),
   ('logistica.gastos.editar', 'logistica', 'Registrar gastos', 'Cargar y editar gastos (por origen)', true, true, 'gasto_registrar, gasto_guardar, gasto_eliminar, gastos_prorratear', 380),
