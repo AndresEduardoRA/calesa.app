@@ -81,16 +81,6 @@ export function elegirLaColumna(
   return { fase: elegidos.size === 0 ? null : fase, elegidos, aviso, recortada }
 }
 
-/** Todas las de la columna ya están elegidas (el botón pasa a «Quitar los de esta columna»). */
-export function columnaElegidaEntera(
-  estado: EstadoDeLaSeleccion,
-  faseId: string,
-  ids: readonly string[],
-): boolean {
-  if (estado.fase?.id !== faseId || ids.length === 0) return false
-  return ids.every((id) => estado.elegidos.has(id))
-}
-
 export function vaciar(): EstadoDeLaSeleccion {
   return SELECCION_VACIA
 }

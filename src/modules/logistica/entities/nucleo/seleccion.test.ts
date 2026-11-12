@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import {
   alternar,
   AVISO_DE_OTRA_FASE,
-  columnaElegidaEntera,
   elegirLaColumna,
   idsElegidos,
   SELECCION_VACIA,
@@ -56,9 +55,6 @@ describe('selección de una sola fase', () => {
     const uno = alternar(SELECCION_VACIA, B, unidad(1))
     const todas = elegirLaColumna(uno, B, [unidad(1), unidad(2), unidad(3)])
     expect(idsElegidos(todas)).toEqual(['u1', 'u2', 'u3'])
-    expect(columnaElegidaEntera(todas, B.id, ['u1', 'u2', 'u3'])).toBe(true)
-    expect(columnaElegidaEntera(todas, B.id, ['u1', 'u4'])).toBe(false)
-    expect(columnaElegidaEntera(todas, C.id, ['u1'])).toBe(false)
   })
 
   it('vaciar deja la selección sin nada', () => {

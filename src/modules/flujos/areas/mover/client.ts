@@ -29,6 +29,7 @@ export type {
 } from '../../entities/mover/vista-previa'
 export { cambiarFase } from '../../features/mover/actions/cambiar-fase'
 export { cambiarFaseLote } from '../../features/mover/actions/cambiar-fase-lote'
+export { destinosDeLaFase } from '../../features/mover/actions/destinos-de-la-fase'
 export { leerParaMover } from '../../features/mover/actions/leer-para-mover'
 export { previsualizarCambio } from '../../features/mover/actions/previsualizar-cambio'
 export { previsualizarCambioLote } from '../../features/mover/actions/previsualizar-cambio-lote'

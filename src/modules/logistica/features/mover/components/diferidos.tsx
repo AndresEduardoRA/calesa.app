@@ -15,3 +15,8 @@ export const HuecoDeNotasDiferido = diferido(() =>
 export const HuecoDeHistorialDiferido = diferido(() =>
   import('./hueco-de-historial').then((modulo) => modulo.HuecoDeHistorial),
 )
+
+// La barra del lote aparece con el primer elegido: su código se pide entonces y no pesa en el JS en frío de la cadena (6.04-3).
+export const BarraDelLoteDiferida = diferido(() =>
+  import('./barra-del-lote').then((modulo) => modulo.BarraDelLote),
+)

@@ -18,6 +18,7 @@ import {
   EstadoDeLaCadena,
   PestanasDeOrigen,
 } from '@/modules/logistica/pantallas/cadena'
+import { BarraDelLote, ProveedorDeLaSeleccion } from '@/modules/logistica/pantallas/mover'
 import { leerFiltros } from '@/shared/lib/filtros'
 import { unParametro } from '@/shared/lib/rutas'
 import { EstadoSinPermiso } from '@/shared/ui/estados'
@@ -93,6 +94,11 @@ async function Cadena({ searchParams }: { searchParams: PageProps<'/logistica'>[
         origenId={origen.id}
         parametros={parametros}
         puedeConfigurarFlujos={puede(permisos, 'flujos.configurar')}
+        // Las casillas y la barra del lote sólo salen con `flujos.mover` en el origen; la base vuelve a decidir al mover.
+        puedeMover={
+          puede(permisos, 'flujos.mover', origen.id) ||
+          puede(permisos, 'flujos.mover.cualquiera', origen.id)
+        }
       />
       {panel}
     </div>
@@ -104,10 +110,12 @@ async function CadenaDelOrigen({
   origenId,
   parametros,
   puedeConfigurarFlujos,
+  puedeMover,
 }: {
   origenId: string
   parametros: Record<string, string | string[] | undefined>
   puedeConfigurarFlujos: boolean
+  puedeMover: boolean
 }) {
   const ahora = new Date().toISOString()
   const navieras = await leerNavieras()
@@ -121,7 +129,7 @@ async function CadenaDelOrigen({
   if (!cadena.ok) {
     return <EstadoDeLaCadena tipo="error" />
   }
-  return (
+  const tablero = (
     <CadenaDeLogistica
       cadena={cadena.data}
       origenId={origenId}
@@ -134,5 +142,12 @@ async function CadenaDelOrigen({
       claveDeUnidad={CLAVE_DE_UNIDAD}
       enlaceAFlujos={puedeConfigurarFlujos}
     />
+  )
+  if (!puedeMover) return tablero
+  return (
+    <ProveedorDeLaSeleccion origenId={origenId} firmaDelPedido={JSON.stringify(filtros)}>
+      {tablero}
+      <BarraDelLote />
+    </ProveedorDeLaSeleccion>
   )
 }
