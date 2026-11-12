@@ -37,6 +37,11 @@ Proyectos de repuestos por vehículo (o externos), ítems que recorren el flujo 
   `pantallas/compras.ts`). En 8.11-3: un solo «Registrar compra» arriba de la lista (apagado con su motivo sin `repuestos.costos.editar` o con el proyecto cerrado;
   la página calcula `puedeEditarCostos` con `puede()`), el Drawer `?panel=compra&compra=<id|nueva>` (con `diferido()`, montado al abrirse; ítems y monedas los pasa
   la página, sin otra lectura) y «Editar» y «Eliminar» en la fila. Tras escribir, la action revalida la página: la lista y el margen se vuelven a leer en el servidor.
+- **Configuración del cotizador** (8.12-2, área `cotizador`): la pestaña «Cotizador» de `/configuracion/repuestos` (`?seccion=cotizador`) la lee
+  `src/app/(app)/configuracion/repuestos/seccion-cotizador.tsx` con `leerConfiguracionDelCotizador()` (por `areas/cotizador/index.ts`: la vigente, el historial
+  con tope 20 y tramos y cajas con tope 200) y las monedas activas, y dibuja `<ConfiguracionDelCotizador>` (por `pantallas/cotizador-configuracion.ts`). Las
+  actions `publicarConfiguracion`, `guardarTramo` y `guardarCaja` (`repuestos.configurar` con `puede()` antes) no salen por los barriles. Los modales de tramo y
+  caja van en la URL (`?panel=tramo&tramo=<id|nuevo>&moneda=`, ídem `caja`).
 - Depende de: `vehiculos`, `flujos`, `leads`.
 
 ## Áreas
@@ -65,6 +70,10 @@ El módulo se parte por **área** (8.08-2, igual que `logistica`) para que los p
   (enteros a escala fija, nunca `float`). `snapshot.ts` (`leerSnapshot`: el `config_snapshot` v1, números como texto). `casos-del-cotizador.json` son los casos que
   corren los dos lados: `formula.test.ts` y `supabase/tests/areas/repuestos/cotizador.sql` (copia literal; `casos.test.ts` cae si difieren). La fórmula de la base es
   `_repuesto_cotizacion_linea`: cambiar una exige cambiar la otra y el JSON.
+- `entities/cotizador/configuracion.ts` (8.12-2) — lo que se tipea en Configuración: `leerDecimal` (con `leerNumeroTipeado` de `shared` y el locale, y el
+  texto exacto con enteros a escala fija), `decimalCanonico` (lo que valida la action), `validarFormula`/`validarTramo`/`validarCaja` y el recargo en % ↔
+  fracción con el mismo entero. `filas-de-configuracion.ts` (las filas leídas con `::text` y `agruparPorMoneda`), `errores-de-configuracion.ts` (el error de la
+  base en su campo: 23P01 en «Desde», los `check` por nombre, 23505 en «Monto») y `repositorio.ts`; `infra/cotizador/{configuracion,escribir-configuracion}.ts`.
 - `entities/stock/` (8.10-1) — `motivos.ts` (los cinco motivos, su sentido y su texto; `MOTIVOS_POR_MOVER`, `MOTIVOS_CON_BOTON`), `reglas.ts` (espejo de las RPC del stock:
   `disponibleParaStock`, `validarMovimiento`, `validarReasignacion`, `enStockTras`; los textos son los de la base y un test lo compara con la migración) y `listado.ts`
   (la fila de `repuestos_stock_listar` y su cursor `(en_stock_desde, id)` con `codificarCursor` de `shared`, sin «Anterior»).
@@ -105,6 +114,10 @@ El módulo se parte por **área** (8.08-2, igual que `logistica`) para que los p
   una línea dice «Línea N», con `hint` = campo y `detail` = id), `_aceptar` (pide además `repuestos.editar`: copia el unitario y la moneda a cada ítem vivo y anula
   la aceptada anterior; **una sola aceptada por proyecto**, índice parcial) y `_anular` (no revierte precios). Todas piden `repuestos.cotizar` y `repuestos.ver` y el
   proyecto vivo y abierto. Aceptada o anulada no se edita. Sin INSERT, UPDATE ni DELETE directos en cotizaciones y líneas.
+- **La configuración, los tramos y las cajas se escriben directo bajo la RLS de `repuestos.configurar`** (8.12-2, sin RPC: no otorgan permisos). Publicar agrega
+  una fila (append-only, `creado_por` = quien pide, lo exige la policy) y sólo cambia las cotizaciones que se creen después. Tramos y cajas se desactivan, no
+  se borran desde la pantalla; un tramo no tiene montos negativos (`repuestos_tramos_logistica_signo_check`). Los decimales viajan como texto canónico, nunca
+  como `float` tipeado: el formulario los lee con el locale de la empresa («2.000» es 2000 en es-BO).
 - Dos tramos activos de logística de una misma moneda no se cruzan (`trg_tramo_sin_solape`, 23P01 hint `costo_min`); contiguos sí.
 - Un ítem con historial, documentos, compras, gastos o stock no se borra: pasa a stock o se marca perdido (fase final sin llegar).
 - Proyectos e ítems se crean, cierran, eliminan y restauran **sólo por RPC** (sin INSERT directo; `eliminado_en`, `cerrado_en`, `vehiculo_id`, `fase_id` y
