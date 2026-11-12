@@ -9,7 +9,7 @@ import { COLUMNAS_DE_VALOR } from './leer'
 
 // Los valores de los catálogos de repuestos se escriben directo, con el cliente de quien pide, y el límite es la RLS (`repuestos.configurar`): un valor no
 // otorga permisos, así que no hay RPC (8.08-2, D23, como las categorías de gasto). Una escritura que la RLS deja en cero filas nunca es éxito: se relee la
-// fila por id para decir «sin permiso» o «ya no existe» (D24). Nunca se manda `catalogo` al guardar (H1: el grant de UPDATE es de toda la tabla).
+// fila por id para decir «sin permiso» o «ya no existe» (D24). Guardar manda sólo `nombre`, `activo` y `orden`: el UPDATE es por esas columnas (8.10-1).
 const NO_SE_LEYO = 'No pudimos leer la respuesta. Recarga para ver cómo quedó.'
 
 type Cliente = Awaited<ReturnType<typeof createClient>>
