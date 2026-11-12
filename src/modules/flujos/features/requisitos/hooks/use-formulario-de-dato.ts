@@ -51,7 +51,7 @@ export function useFormularioDeDato({ requisitos, ambito, alCerrar }: Args) {
       return false
     }
     setAviso(null)
-    const envio = await requisitos.agregarDato(intento, validado.datos)
+    const envio = await requisitos.agregar(intento, { tipo: 'dato', datos: validado.datos })
     if (envio === null) {
       return false
     }

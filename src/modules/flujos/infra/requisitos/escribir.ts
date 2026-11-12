@@ -9,7 +9,7 @@ import type {
 } from '../../entities/requisitos/repositorios'
 import { versionNuevaDesde } from '../../entities/requisitos/respuestas'
 
-// Las escrituras de un requisito (`…2026111122224{1,3,4}_requisitos_*.sql`): el permiso del flujo (`42501`), la versión (`PT409`) y las reglas del dato
+// Las escrituras de un requisito (`…2026111122224{1,2,3,4}_requisitos_*.sql`): el permiso del flujo (`42501`), la versión (`PT409`) y las reglas del dato
 // con el campo en el `hint` (`22023`). Ninguna devuelve la lista: devuelven la versión nueva del flujo y la pantalla relee.
 const NO_SE_LEYO = 'No pudimos leer la respuesta. Recarga para ver cómo quedó.'
 
@@ -28,15 +28,25 @@ function comoResultado(salida: SalidaDeRpc): ResultadoDeRequisito<{ actualizadoE
 }
 
 export const requisitosSupabase: RepositorioDeRequisitos = {
-  crearDato: async ({ id, faseId, actualizadoEnEsperado, datos }) => {
+  crear: async ({ id, faseId, actualizadoEnEsperado, tipo, datos }) => {
     const supabase = await createClient()
     return comoResultado(
       await supabase.rpc('requisito_crear', {
         p_id: id,
         p_fase: faseId,
         p_actualizado_en_esperado: actualizadoEnEsperado,
-        p_tipo: 'dato',
+        p_tipo: tipo,
         p_datos: datos as Json,
+      }),
+    )
+  },
+  guardar: async ({ id, actualizadoEnEsperado, cambios }) => {
+    const supabase = await createClient()
+    return comoResultado(
+      await supabase.rpc('requisito_guardar', {
+        p_requisito: id,
+        p_actualizado_en_esperado: actualizadoEnEsperado,
+        p_cambios: cambios as Json,
       }),
     )
   },

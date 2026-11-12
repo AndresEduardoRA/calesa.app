@@ -6,7 +6,8 @@ import type { Movimiento } from '@/shared/ui/lista-de-catalogo/use-foco-tras-mov
 import { avisarExito } from '@/shared/ui/toasts'
 import type { FaseParaConfigurar, FlujoParaConfigurar } from '../../../entities/flujo'
 import { descripcionDeRequisito } from '../../../entities/requisitos/descripcion'
-import type { DatosDeDato } from '../../../entities/requisitos/formulario-de-dato'
+import type { CambiosDeRequisito } from '../../../entities/requisitos/formulario-de-edicion'
+import type { ContenidoDeRequisito } from '../../../entities/requisitos/repositorios'
 import type { VersionNueva } from '../../../entities/requisitos/respuestas'
 import {
   destinoDeRequisito,
@@ -20,7 +21,7 @@ import { pedidosDeRequisitos } from './pedidos-de-requisitos'
 import { useEscrituraDeRequisitos } from './use-escritura-de-requisitos'
 import { useOpcionesDeRequisitos } from './use-opciones-de-requisitos'
 
-// Los requisitos de una fase y lo que se les hace: ordenar, quitar y agregar uno de dato. Una escritura a la vez; cada una manda la versión del flujo que se
+// Los requisitos de una fase y lo que se les hace: ordenar, quitar, agregar y guardar. Una escritura a la vez; cada una manda la versión del flujo que se
 // tiene en pantalla. La lista no viene en la respuesta: la action revalida y la página trae el flujo releído. Tras mover, el foco vuelve al botón cuando la
 // lista ya está en el orden nuevo (no antes: mover la fila lo quitaría).
 export function useRequisitosDeLaFase(flujo: FlujoParaConfigurar, fase: FaseParaConfigurar) {
@@ -73,9 +74,19 @@ export function useRequisitosDeLaFase(flujo: FlujoParaConfigurar, fase: FasePara
     return true
   }
 
-  // El del formulario: devuelve el envío entero, para que el formulario diga el motivo junto a su campo.
-  function agregarDato(id: string, datos: DatosDeDato): Promise<Envio<VersionNueva> | null> {
-    return escritura.mandar(() => pedir.crearDato(id, fase.id, datos))
+  // Los de los formularios: devuelven el envío entero, para que el formulario diga el motivo junto a su campo.
+  function agregar(
+    id: string,
+    contenido: ContenidoDeRequisito,
+  ): Promise<Envio<VersionNueva> | null> {
+    return escritura.mandar(() => pedir.crear(id, fase.id, contenido))
+  }
+
+  function guardar(
+    requisitoId: string,
+    cambios: CambiosDeRequisito,
+  ): Promise<Envio<VersionNueva> | null> {
+    return escritura.mandar(() => pedir.guardar(requisitoId, cambios))
   }
 
   return {
@@ -87,7 +98,8 @@ export function useRequisitosDeLaFase(flujo: FlujoParaConfigurar, fase: FasePara
     enCurso: escritura.enCurso,
     mover,
     quitar,
-    agregarDato,
+    agregar,
+    guardar,
     rechazar: escritura.rechazar,
     releer: escritura.releer,
   }

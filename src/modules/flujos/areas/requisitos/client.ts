@@ -12,8 +12,13 @@ export {
   notasDeRequisito,
   textoDeBloqueo,
 } from '../../entities/requisitos/descripcion'
-export type { OpcionesDeRequisitos, TipoParaRequisito } from '../../entities/requisitos/opciones'
-export { crearRequisitoDeDato } from '../../features/requisitos/actions/crear-requisito-de-dato'
+export type {
+  FaseDelOtroFlujo,
+  OpcionesDeRequisitos,
+  TipoParaRequisito,
+} from '../../entities/requisitos/opciones'
+export { crearRequisito } from '../../features/requisitos/actions/crear-requisito'
 export { eliminarRequisito } from '../../features/requisitos/actions/eliminar-requisito'
+export { guardarRequisito } from '../../features/requisitos/actions/guardar-requisito'
 export { leerOpcionesDeRequisitos } from '../../features/requisitos/actions/leer-opciones'
 export { moverRequisito } from '../../features/requisitos/actions/mover-requisito'

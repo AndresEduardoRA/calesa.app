@@ -2,7 +2,10 @@
 // `areas/requisitos/composicion.ts`.
 import type { AmbitoDeFlujo } from '../flujo'
 import type { ErrorApp, Resultado } from '@/shared/lib/errores'
+import type { CambiosDeRequisito } from './formulario-de-edicion'
 import type { DatosDeDato } from './formulario-de-dato'
+import type { DatosDeDocumento } from './formulario-de-documento'
+import type { DatosDeEspera } from './formulario-de-espera'
 import type { OpcionesDeRequisitos } from './opciones'
 import type { VersionNueva } from './respuestas'
 
@@ -17,14 +20,27 @@ export type LectorDeOpcionesDeRequisitos = (pedido: {
 export type FalloDeRequisito = { ok: false; error: ErrorApp; campo?: string }
 export type ResultadoDeRequisito<T> = { ok: true; data: T } | FalloDeRequisito
 
-// Las tres RPC de esta parte. Ninguna devuelve la lista: la pantalla la relee. Todas llevan la versión del flujo que se tenía en pantalla (`PT409` si cambió).
+// Lo que se pide al crear un requisito: su tipo y los datos que ese tipo admite (`p_tipo` y `p_datos` de `requisito_crear`).
+export type ContenidoDeRequisito =
+  | { tipo: 'dato'; datos: DatosDeDato }
+  | { tipo: 'documento'; datos: DatosDeDocumento }
+  | { tipo: 'espera'; datos: DatosDeEspera }
+
+// Las cuatro RPC de escritura. Ninguna devuelve la lista: la pantalla la relee. Todas llevan la versión del flujo que se tenía en pantalla (`PT409` si cambió).
 export type RepositorioDeRequisitos = {
   // Con el id del intento: repetirlo da «Ese requisito ya existe» (`23505`). Nace informativo y al final de la fase.
-  crearDato: (pedido: {
+  crear: (
+    pedido: {
+      id: string
+      faseId: string
+      actualizadoEnEsperado: string
+    } & ContenidoDeRequisito,
+  ) => Promise<ResultadoDeRequisito<VersionNueva>>
+  // Sólo lo que cambió; `null` vacía el campo.
+  guardar: (pedido: {
     id: string
-    faseId: string
     actualizadoEnEsperado: string
-    datos: DatosDeDato
+    cambios: CambiosDeRequisito
   }) => Promise<ResultadoDeRequisito<VersionNueva>>
   // «Después de X»; nulo = primero.
   mover: (pedido: {
