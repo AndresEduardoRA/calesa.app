@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import type { BloqueDeCotizacion } from '../../../entities/cotizador/formula'
 import {
   cantidadDeCelda,
@@ -76,15 +76,11 @@ export function useLineasEditables(iniciales: readonly LineaEditable[]) {
     setLineas((antes) => [...antes, lineaNueva(crypto.randomUUID(), bloque, item)])
   }, [])
 
-  return {
-    lineas,
-    setLineas,
-    errores,
-    setErrores,
-    alConfirmarNumero,
-    alReiniciar,
-    alCambiarTexto,
-    quitar,
-    agregar,
-  }
+  // Un solo objeto estable para todas las líneas (`memo` de la línea).
+  const acciones = useMemo(
+    () => ({ alConfirmarNumero, alReiniciar, alCambiarTexto, quitar, agregar }),
+    [alConfirmarNumero, alReiniciar, alCambiarTexto, quitar, agregar],
+  )
+
+  return { lineas, setLineas, errores, setErrores, acciones }
 }

@@ -10,7 +10,11 @@ import {
   type CotizacionConLineas,
   type ItemParaCotizar,
 } from '@/modules/repuestos'
-import { HojaDeLectura, HojaEditable } from '@/modules/repuestos/pantallas/cotizador-cotizacion'
+import {
+  AccionesDeCotizacion,
+  HojaDeLectura,
+  HojaEditable,
+} from '@/modules/repuestos/pantallas/cotizador-cotizacion'
 import { datosO } from '@/shared/lib/errores'
 import { RUTAS } from '@/shared/lib/rutas'
 import { buttonVariants } from '@/shared/ui/button'
@@ -81,11 +85,21 @@ async function Cotizacion({
         lineas={leida.lineas}
         proyecto={datos}
         items={await itemsParaCotizar(proyecto.id)}
+        puedeEditarItems={puede(sesion.permisos, 'repuestos.editar')}
       />
     )
   }
+  // «Anular» vale en borrador y en aceptada con el proyecto abierto (D48); una anulada no muestra acciones.
+  const anulable = c.estado !== 'anulada' && proyecto.cerradoEn === null
   return (
-    <HojaDeLectura {...leida} proyecto={datos} nota={notaDeLectura(leida, proyecto.cerradoEn)} />
+    <HojaDeLectura
+      {...leida}
+      proyecto={datos}
+      nota={notaDeLectura(leida, proyecto.cerradoEn)}
+      acciones={
+        anulable ? <AccionesDeCotizacion cotizacion={c} proyectoId={proyecto.id} /> : undefined
+      }
+    />
   )
 }
 

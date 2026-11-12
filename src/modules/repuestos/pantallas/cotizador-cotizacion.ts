@@ -2,3 +2,4 @@
 // archivo (`.claude/rules/modulos.md`): reexporta lo que esa pantalla dibuja y nada más.
 export { HojaDeLectura } from '../features/cotizador/components/hoja-de-lectura'
 export { HojaEditable } from '../features/cotizador/components/hoja-editable'
+export { AccionesDeCotizacion } from '../features/cotizador/components/acciones-de-cotizacion'

@@ -1,14 +1,18 @@
 'use client'
 
 import { useMemo } from 'react'
-import { Aviso } from '@/shared/ui/aviso'
-import { AvisoDeConflicto } from '@/shared/ui/aviso-de-conflicto'
 import { SimbolosDeXCell } from '@/shared/ui/xcell'
 import { TOPE_DE_LINEAS } from '../../../entities/cotizador/formula'
 import type { CotizacionLeida, LineaDeLectura } from '../../../entities/cotizador/hoja-de-lectura'
-import { itemsDisponibles, type ItemParaCotizar } from '../../../entities/cotizador/hoja-editable'
+import {
+  itemsDisponibles,
+  motivoParaNoAceptar,
+  type ItemParaCotizar,
+} from '../../../entities/cotizador/hoja-editable'
 import type { SnapshotDelCotizador } from '../../../entities/cotizador/snapshot'
 import { useHojaDeCotizacion } from '../hooks/use-hoja-de-cotizacion'
+import { AccionesDeCotizacion } from './acciones-de-cotizacion'
+import { AvisoDeLaHoja } from './aviso-de-la-hoja'
 import { BloqueEditable } from './bloque-editable'
 import { CabeceraDeCotizacion } from './cabecera-de-cotizacion'
 import { ConfiguracionUsada } from './configuracion-usada'
@@ -20,19 +24,23 @@ type Props = {
   lineas: readonly LineaDeLectura[]
   proyecto: { id: string; numero: number }
   items: readonly ItemParaCotizar[]
+  // `repuestos.editar`: aceptar fija el precio de los ítems (D13 de 8.12-1).
+  puedeEditarItems: boolean
 }
 
 const EN_EL_TOPE = 'Una cotización lleva como mucho 200 líneas.'
 
 // La hoja editable de una cotización de repuestos en borrador (8.12-4, C10–C12). Quien la monta le da `key` = la versión de la cotización: tras guardar,
 // la página se relee y la hoja nace de lo guardado (D45). El total en vivo sólo informa; el que vale es el que guarda la base.
-export function HojaEditable({ cotizacion, snapshot, lineas: leidas, proyecto, items }: Props) {
+export function HojaEditable({
+  cotizacion,
+  snapshot,
+  lineas: leidas,
+  proyecto,
+  items,
+  puedeEditarItems,
+}: Props) {
   const h = useHojaDeCotizacion({ cotizacion, snapshot, lineas: leidas, proyectoId: proyecto.id })
-  const { alConfirmarNumero, alReiniciar, alCambiarTexto, quitar, agregar } = h
-  const acciones = useMemo(
-    () => ({ alConfirmarNumero, alReiniciar, alCambiarTexto, quitar, agregar }),
-    [alConfirmarNumero, alReiniciar, alCambiarTexto, quitar, agregar],
-  )
   const cajas = useMemo(() => snapshot.cajas.map((c) => c.monto), [snapshot])
   const disponibles = itemsDisponibles(items, h.lineas)
   const bloqueada = h.enCurso ? 'Guardando…' : undefined
@@ -46,7 +54,7 @@ export function HojaEditable({ cotizacion, snapshot, lineas: leidas, proyecto, i
     errores: h.errores,
     bloqueada,
     motivoParaNoAgregar,
-    acciones,
+    acciones: h.acciones,
   }
   return (
     <form
@@ -58,13 +66,24 @@ export function HojaEditable({ cotizacion, snapshot, lineas: leidas, proyecto, i
       }}
     >
       <SimbolosDeXCell />
-      <CabeceraDeCotizacion cotizacion={cotizacion} proyecto={proyecto} />
+      <CabeceraDeCotizacion
+        cotizacion={cotizacion}
+        proyecto={proyecto}
+        acciones={
+          <AccionesDeCotizacion
+            cotizacion={cotizacion}
+            proyectoId={proyecto.id}
+            motivoParaNoAceptar={motivoParaNoAceptar({
+              puedeEditarItems,
+              sinGuardar: h.sinGuardar,
+              totalGuardado: cotizacion.total,
+            })}
+            sinGuardar={h.sinGuardar}
+          />
+        }
+      />
       <ConfiguracionUsada cotizacion={cotizacion} />
-      {h.aviso?.codigo === 'conflicto' ? (
-        <AvisoDeConflicto mensaje={h.aviso.mensaje} alRecargar={h.recargar} />
-      ) : h.aviso ? (
-        <Aviso tono="peligro">{h.aviso.mensaje}</Aviso>
-      ) : null}
+      <AvisoDeLaHoja aviso={h.aviso} alRecargar={h.recargar} />
       <BloqueEditable
         bloque="importado"
         titulo="Importado"

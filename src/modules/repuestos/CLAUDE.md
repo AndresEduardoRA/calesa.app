@@ -55,6 +55,10 @@ Proyectos de repuestos por vehículo (o externos), ítems que recorren el flujo 
   nunca manda totales ni sugerencias (↺ de la logística = `null`). Una línea nueva nace sin caja; la caja es un `<select>` «Caja N» con la elegida en
   `<Monto>` al lado. Las actions `guardarCotizacion`, `aceptarCotizacion` (pide además `repuestos.editar`) y `anularCotizacion` (`puede()` antes) no salen
   por los barriles; el error de una línea llega a su celda por `details` + `hint` (`entities/cotizador/errores.ts`).
+- **Aceptar y anular** (8.12-4): `<AccionesDeCotizacion>` (por `pantallas/cotizador-cotizacion.ts`) abre `?panel=aceptar-cotizacion` y
+  `?panel=anular-cotizacion` (`entities/cotizador/paneles.ts`, `use-confirmacion-de-cotizacion-por-url.ts`), cada uno con su `<Confirmar>` que nombra el número
+  (y, al aceptar, el total **guardado**). «Aceptar» sólo en la hoja editable y apagado con su motivo (`motivoParaNoAceptar`: sin `repuestos.editar`, con
+  cambios sin guardar o sin total); «Anular» en borrador y en aceptada con el proyecto abierto. Tras la acción la página se relee en sólo lectura.
 - Depende de: `vehiculos`, `flujos`, `leads`.
 
 ## Áreas

@@ -34,7 +34,7 @@ export function useHojaDeCotizacion({ cotizacion, snapshot, lineas: leidas, proy
   const iniciales = useMemo(() => leidas.map(lineaEditableDesde), [leidas])
   const notasIniciales = cotizacion.notas ?? ''
   const [notas, setNotas] = useState(notasIniciales)
-  const { lineas, setLineas, errores, setErrores, ...celdas } = useLineasEditables(iniciales)
+  const { lineas, setLineas, errores, setErrores, acciones } = useLineasEditables(iniciales)
   const [aviso, setAviso] = useState<ErrorApp | null>(null)
   const { mandar, enCurso } = useUnEnvioALaVez()
 
@@ -83,7 +83,7 @@ export function useHojaDeCotizacion({ cotizacion, snapshot, lineas: leidas, proy
     enCurso,
     calculo,
     sinGuardar: hayCambios(iniciales, lineas, notasIniciales, notas),
-    ...celdas,
+    acciones,
     guardar,
     recargar,
   }
