@@ -4,7 +4,7 @@ import { SendIcon } from 'lucide-react'
 import type { RefObject } from 'react'
 import { Button } from '@/shared/ui/button'
 import { Textarea } from '@/shared/ui/textarea'
-import type { Referencia } from '../../../entities/menciones'
+import type { ComandoDelChat, Referencia } from '../../../entities/menciones'
 import type { CitaDeMensaje, TextoValido } from '../../../entities/mensajes'
 import { SelectorDeMencionesDiferido } from '../../menciones/components/diferidos'
 import { useRedactor } from '../hooks/use-redactor'
@@ -18,16 +18,80 @@ type Props = {
   campo: RefObject<HTMLTextAreaElement | null>
   respondiendoA: CitaDeMensaje | null
   alQuitarRespuesta: () => void
+  // 7.10-3: `/tarea` y `/evento` abren su formulario en vez de enviarse.
+  alComando?: (comando: ComandoDelChat, resto: string) => void
+}
+
+// Lo que se dice bajo el campo: que Enter abre el formulario de un comando, o por qué no se envió.
+function AvisosDelRedactor({
+  comando,
+  aviso,
+}: {
+  comando: ComandoDelChat | null
+  aviso: string | null
+}) {
+  return (
+    <>
+      {comando !== null ? (
+        <p role="status" className="text-(length:--text-sm) text-(--color-ink-soft)">
+          Enter abre el formulario de{comando === 'tarea' ? ' la tarea' : 'l evento'}.
+        </p>
+      ) : null}
+      {aviso ? (
+        <p role="alert" className="text-(length:--text-sm) text-(--color-peligro-ink)">
+          {aviso}
+        </p>
+      ) : null}
+    </>
+  )
+}
+
+// El selector de menciones sobre el campo (diferido: el chat no paga el buscador hasta el primer `#`).
+function SelectorDelRedactor({
+  menciones,
+  usuarioId,
+}: {
+  menciones: ReturnType<typeof useRedactor>['menciones']
+  usuarioId: string
+}) {
+  return (
+    <SelectorDeMencionesDiferido
+      consulta={menciones.consulta}
+      yo={usuarioId}
+      id={menciones.idDelSelector}
+      idDeOpcion={menciones.idDeOpcion}
+      activa={menciones.activa}
+      alElegir={menciones.elegir}
+      alCambiarOpciones={menciones.informarOpciones}
+    />
+  )
 }
 
 // Donde se escribe: Enter envía, Mayús+Enter salta de línea (y no envía mientras se compone con un teclado de IME). Después de enviar se limpia y
 // el foco se queda. Pasado el largo máximo dice el motivo y no envía. Un `#` abre el selector de menciones (7.10-2). Sin borrador persistente.
-export function Redactor({ alEnviar, usuarioId, campo, respondiendoA, alQuitarRespuesta }: Props) {
-  const { texto, aviso, menciones, selectorMontado, alCambiar, alSeleccionar, alTeclear, enviar } =
-    useRedactor({
-      alEnviar,
-      campo,
-    })
+export function Redactor({
+  alEnviar,
+  usuarioId,
+  campo,
+  respondiendoA,
+  alQuitarRespuesta,
+  alComando,
+}: Props) {
+  const {
+    texto,
+    aviso,
+    comando,
+    menciones,
+    selectorMontado,
+    alCambiar,
+    alSeleccionar,
+    alTeclear,
+    enviar,
+  } = useRedactor({
+    alEnviar,
+    campo,
+    ...(alComando ? { alComando } : {}),
+  })
 
   return (
     <form
@@ -46,17 +110,7 @@ export function Redactor({ alEnviar, usuarioId, campo, respondiendoA, alQuitarRe
           }}
         />
       ) : null}
-      {selectorMontado ? (
-        <SelectorDeMencionesDiferido
-          consulta={menciones.consulta}
-          yo={usuarioId}
-          id={menciones.idDelSelector}
-          idDeOpcion={menciones.idDeOpcion}
-          activa={menciones.activa}
-          alElegir={menciones.elegir}
-          alCambiarOpciones={menciones.informarOpciones}
-        />
-      ) : null}
+      {selectorMontado ? <SelectorDelRedactor menciones={menciones} usuarioId={usuarioId} /> : null}
       <div className="flex items-end gap-2">
         <Textarea
           ref={campo}
@@ -89,11 +143,7 @@ export function Redactor({ alEnviar, usuarioId, campo, respondiendoA, alQuitarRe
           <SendIcon aria-hidden className="size-4" />
         </Button>
       </div>
-      {aviso ? (
-        <p role="alert" className="text-(length:--text-sm) text-(--color-peligro-ink)">
-          {aviso}
-        </p>
-      ) : null}
+      <AvisosDelRedactor comando={comando} aviso={aviso} />
     </form>
   )
 }

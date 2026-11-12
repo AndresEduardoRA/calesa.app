@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   aCuerpoConTokens,
   claveDeReferencia,
+  comandoDelTexto,
   consultaAbierta,
   etiquetaDeMencion,
   etiquetaLibre,
@@ -193,5 +194,40 @@ describe('aCuerpoConTokens', () => {
     const texto = elegidas.map((e) => e.etiqueta).join(' ')
     expect(aCuerpoConTokens(texto, elegidas).demasiadas).toBe(true)
     expect(aCuerpoConTokens(texto, elegidas.slice(0, 20)).demasiadas).toBe(false)
+  })
+})
+
+describe('comandoDelTexto', () => {
+  it('reconoce /tarea y /evento al principio, con o sin resto, sin distinguir mayúsculas', () => {
+    expect(comandoDelTexto('/tarea', 120)).toEqual({ comando: 'tarea', resto: '' })
+    expect(comandoDelTexto('/tarea Revisar el contenedor', 120)).toEqual({
+      comando: 'tarea',
+      resto: 'Revisar el contenedor',
+    })
+    expect(comandoDelTexto('  /evento reunión ', 120)).toEqual({
+      comando: 'evento',
+      resto: 'reunión',
+    })
+    expect(comandoDelTexto('/TAREA algo', 120)).toEqual({ comando: 'tarea', resto: 'algo' })
+    expect(comandoDelTexto('/tarea\nlínea', 120)).toEqual({ comando: 'tarea', resto: 'línea' })
+  })
+
+  it('no es comando si no empieza el texto con él o si sigue una letra', () => {
+    for (const texto of [
+      '/tareas',
+      'mi /tarea',
+      '/otra',
+      `#[lead:${LEAD}] /tarea`,
+      '',
+      '   ',
+      '/',
+    ]) {
+      expect(comandoDelTexto(texto, 120)).toBeNull()
+    }
+  })
+
+  it('corta el resto en el largo máximo', () => {
+    const r = comandoDelTexto(`/tarea ${'a'.repeat(300)}`, 120)
+    expect(r?.resto).toHaveLength(120)
   })
 })
