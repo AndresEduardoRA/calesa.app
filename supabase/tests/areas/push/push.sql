@@ -165,6 +165,9 @@ begin
   for i in 1..11 loop
     r := pg_temp.ps_corre(a, pg_temp.ps_suscribir('https://fcm.googleapis.com/fcm/send/a' || i));
     if r ? 'error' then raise exception 'la suscripción % falló: %', i, r; end if;
+    -- En una transacción now() es el mismo para las once: sin esto, la «más vieja» salía al azar por el id (rojo intermitente, 2026-11-11).
+    update public.suscripciones_push set creado_en = now() - (12 - i) * interval '1 minute'
+     where endpoint = 'https://fcm.googleapis.com/fcm/send/a' || i;
   end loop;
   if (select count(*) from public.suscripciones_push where usuario_id = a) <> 10 then raise exception 'el tope no dejó 10'; end if;
   if exists (select 1 from public.suscripciones_push where endpoint = 'https://fcm.googleapis.com/fcm/send/a1') then raise exception 'no se fue la más vieja'; end if;
