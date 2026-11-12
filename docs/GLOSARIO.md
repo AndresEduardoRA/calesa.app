@@ -115,6 +115,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Limbo** — `lead_en_limbo()` / `_leads_al_limbo_de()`: lead sin asesores vigentes; invisible hasta que alguien lo toma al registrar su teléfono.
 - **Adoptar** — `crear_lead()` con `adoptar` / «Tomar lead»: tomar un lead del limbo al registrar su teléfono.
 - **Alta rápida** — `crear_lead()` / `<AltaDeLead>`: alta con primer seguimiento y recordatorio opcional desde cualquier pantalla («Nuevo lead» o `N`), en una transacción.
+- **Widget** — `WIDGETS_TABLERO` / `widgetsVisibles()`: una tarjeta de `/tablero` con su clave, sus permisos y su grupo de RPC. La persona los oculta y los ordena en «Personalizar» y se guarda como su preferencia `tablero.widgets`. No existe en Inicio: ahí se llama «bloque».
 - **Más datos** — `camposDelAlta()` / `<BloqueDeCampos>`: bloque plegado del alta con los campos no requeridos, ya precargados.
 - **Primer seguimiento** — `crear_lead()` (`p_seguimiento`): el que se anota al dar de alta: tipo, resumen y recordatorio opcional.
 - **En cartera** — `leads_vista.en_cartera` (de `leads.cartera`) / `en_cartera()`: el lead está en la cartera de quien mira; da el teléfono completo y los privados.

@@ -8,3 +8,8 @@ export type { Perspectiva, RolParaVerComo } from './entities/perspectiva'
 // Vistas guardadas de un listado: el menú que las aplica, las guarda y las elimina.
 export { MenuDeVistas } from './features/vistas/components/menu-de-vistas'
 export type { ParamsDeVista, VistaGuardada } from './entities/vista'
+
+// Las preferencias de la persona (`tablero.widgets` por ahora): la acción valida con `esquemaPreferencia` y escribe sólo en la fila de quien
+// actúa (la RLS lo repite); aquí sólo se reexporta, como `completarRecordatorio` en `leads/client.ts`.
+export { guardarPreferencia } from './features/perfil/actions/guardar-preferencia'
+export { CLAVE_WIDGETS_DEL_TABLERO, type WidgetsDelTablero } from './entities/preferencias'

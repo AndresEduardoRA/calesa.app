@@ -76,13 +76,21 @@ test('abrir una ficha registra la visita, una sola vez, y lo que no se ve no dej
 
 const paleta = (page: Page) => page.getByRole('dialog', { name: 'Buscar' })
 
+// `Ctrl+K` abre la paleta recién cuando el marco terminó de hidratar (lo escucha `useAtajo`): se insiste hasta que abre. Con la
+// paleta abierta otro `Ctrl+K` no la cierra, así que insistir nunca la alterna; la primera vez su código llega diferido.
+async function abrirPaleta(page: Page): Promise<void> {
+  await expect(async () => {
+    await page.keyboard.press('Control+k')
+    await expect(paleta(page)).toBeVisible({ timeout: 1000 })
+  }).toPass()
+}
+
 test('Ctrl+K, el nombre de un lead y Enter abren su ficha, que sale en «Últimos abiertos»; el lead ajeno no aparece', async ({
   page,
 }) => {
   await entrar(page, r.ana.email)
   await irALeads(page)
-  await page.keyboard.press('Control+k')
-  await expect(paleta(page)).toBeVisible()
+  await abrirPaleta(page)
   await expect(paleta(page).getByRole('option', { name: 'Nueva cotización' })).toBeVisible()
 
   const cuadro = paleta(page).getByRole('combobox', { name: 'Buscar' })
@@ -95,7 +103,7 @@ test('Ctrl+K, el nombre de un lead y Enter abren su ficha, que sale en «Último
   await expect(page.getByRole('heading', { level: 1 })).toContainText(r.uno.nombre)
   await expect.poll(() => visitasDe(r.uno.id), { timeout: 20_000 }).toBe(1)
 
-  await page.keyboard.press('Control+k')
+  await abrirPaleta(page)
   const ultimos = paleta(page).getByRole('group', { name: 'Últimos abiertos' })
   await expect(ultimos.getByRole('option', { name: new RegExp(r.uno.nombre) })).toBeVisible()
 
@@ -110,12 +118,12 @@ test('Nueva cotización lleva a la hoja, Nuevo lead abre el alta y Ver todos va 
   await entrar(page, r.ana.email)
   await irALeads(page)
 
-  await page.keyboard.press('Control+k')
+  await abrirPaleta(page)
   await paleta(page).getByRole('option', { name: 'Nueva cotización' }).click()
   await expect(page).toHaveURL(/\/cotizaciones\/nuevo/)
 
   await irALeads(page)
-  await page.keyboard.press('Control+k')
+  await abrirPaleta(page)
   await paleta(page).getByRole('combobox', { name: 'Buscar' }).fill('nuevo lead')
   await expect(paleta(page).getByRole('option', { name: 'Nuevo lead' })).toBeVisible()
   await page.keyboard.press('Enter')
@@ -126,7 +134,7 @@ test('Nueva cotización lleva a la hoja, Nuevo lead abre el alta y Ver todos va 
   await page.keyboard.press('Escape')
   await expect(alta).toBeHidden()
 
-  await page.keyboard.press('Control+k')
+  await abrirPaleta(page)
   await paleta(page).getByRole('combobox', { name: 'Buscar' }).fill(r.uno.nombre)
   await paleta(page).getByRole('option', { name: 'Ver todos en Leads' }).click()
   await expect(page).toHaveURL(/\/leads\?.*q=/)
@@ -135,7 +143,7 @@ test('Nueva cotización lleva a la hoja, Nuevo lead abre el alta y Ver todos va 
 test('sin conexión la paleta lo dice y Reintentar vuelve a buscar', async ({ page, context }) => {
   await entrar(page, r.ana.email)
   await irALeads(page)
-  await page.keyboard.press('Control+k')
+  await abrirPaleta(page)
   await expect(paleta(page).getByRole('option', { name: 'Nueva cotización' })).toBeVisible()
   await context.setOffline(true)
   await paleta(page).getByRole('combobox', { name: 'Buscar' }).fill(r.uno.nombre)
