@@ -1005,6 +1005,36 @@ deallocate medir_cadena_fase;
 deallocate medir_cadena_cursor;
 deallocate medir_cadena_sin_fase;
 
+-- «Dónde está» (6.02-3). Terreno revertido con la transacción: la regla `logistica` activa en todo flujo de vehículos (ya viene así de
+-- `origen_crear_flujo`; el `insert` es sólo un seguro). La consulta de las candidatas, escrita igual que en `logistica_donde_esta` y preparada (plan
+-- genérico): por los trigramas, con a lo sumo 1.000 filas. La siembra no tiene `lead_id`: la rama «propios» de Ana no paga `en_cartera` por candidata.
+prepare medir_donde_candidatas(text, uuid[]) as select v.id from public.vehiculos v
+  where (v.titulo ilike $1 or v.vin ilike $1 or v.lote ilike $1) and v.eliminado_en is null and v.origen_id = any ($2)
+  limit 1000;
+do $donde$
+declare
+  v_origenes uuid[];
+begin
+  insert into public.flujos_reglas (flujo_id, regla, activa)
+  select fl.id, 'logistica', true from public.flujos fl where fl.ambito = 'vehiculos'
+  on conflict (flujo_id, regla) do update set activa = true;
+  perform gin_clean_pending_list('public.vehiculos_titulo_trgm');
+  perform gin_clean_pending_list('public.vehiculos_vin_trgm');
+  perform gin_clean_pending_list('public.vehiculos_lote_trgm');
+  analyze public.vehiculos;
+  v_origenes := array(select o.id from public.origenes o);
+
+  perform pg_temp.escala('dónde está: candidatas por un VIN (la consulta)', 'duena',
+    format('execute medir_donde_candidatas(%L, %L)', '%V0000000000004321%', v_origenes),
+    25, 'vehiculos_vin_trgm', '{vehiculos}', 10, 'postgres');
+  -- Medido el 2026-11-11 con la siembra de volumen: la consulta 0,2 ms; la RPC 6,6 (VIN) / 10,4 (título común) / 6,4 (sin resultados) y Ana 10,8 ms.
+  perform pg_temp.escala('dónde está: un VIN', 'duena', 'select public.logistica_donde_esta(''V0000000000004321'')', 30);
+  perform pg_temp.escala('dónde está: un título común', 'duena', 'select public.logistica_donde_esta(''Toyota'')', 50);
+  perform pg_temp.escala('dónde está: sin resultados', 'duena', 'select public.logistica_donde_esta(''zzzz nada'')', 30);
+  perform pg_temp.escala('dónde está: un título común', 'ana', 'select public.logistica_donde_esta(''Toyota'')', 50);
+end $donde$;
+deallocate medir_donde_candidatas;
+
 -- Las aserciones que no se cumplieron, todas juntas.
 do $violaciones$ declare v_texto text; v_n int;
 begin
