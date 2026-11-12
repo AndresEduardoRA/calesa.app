@@ -10,6 +10,8 @@
 --   T4. Cursor: 3 sin_asignar y 1 asignada, de a 2 → 2 en orden (creado_en desc, id desc) con hay_mas; con el cursor de la 2.ª → 1 sin
 --       hay_mas; la asignada nunca; cursor a medias y estado nulo → 22023 con su hint; claves exactas; sin vehículo, vehiculo_titulo nulo.
 --   T5. Dos con el mismo creado_en, de a una: el cursor desempata por id desc, sin repetir ni saltar.
+--   T6. cola_web_configurar (8.04-3; devuelve void: se llama en el from): sin web.cola.gestionar → 42501 y la fila no cambia; con el permiso, habilitar a alguien cuyo rol no
+--       participa deja sus valores, no toca disponible y puede_estar_en_la_rueda da falso; quitar con sus valores y «Deshacer» la dejan igual.
 
 create or replace function pg_temp.ct_persona(p_concesiones text[]) returns uuid language plpgsql as $f$
 declare v_id uuid := gen_random_uuid(); v_rol uuid; c text;
@@ -204,5 +206,53 @@ begin
                                        v_primera ->> 'creado_en', v_primera ->> 'id')) -> 'v';
   v_vistas := jsonb_path_query_array(v_r, '$.filas[*].id');
   if v_vistas <> jsonb_build_array(least(v_x, v_y)) or v_r -> 'hay_mas' <> 'false'::jsonb then raise exception 'segunda de a una: %', v_r; end if;
+end $$;
+rollback;
+
+-- @test T6 · cola_web_configurar pide gestionar, no toca disponible, y quitar y deshacer conservan los valores
+begin;
+do $$
+declare
+  v_g uuid := pg_temp.ct_persona(array['web.cola.gestionar']);
+  v_p uuid := pg_temp.ct_persona(array['web.cola.participar']);
+  v_b uuid := pg_temp.ct_persona(array[]::text[]);
+  v_antes public.cola_web_asesores; v_fila public.cola_web_asesores; v_habilitada public.cola_web_asesores;
+  v_r jsonb;
+begin
+  insert into public.cola_web_asesores (usuario_id, habilitado, max_abiertas, prioridad, orden, disponible) values (v_b, false, null, 0, 0, true)
+  on conflict (usuario_id) do update set habilitado = false, max_abiertas = null, prioridad = 0, orden = 0, disponible = true;
+  select * into v_antes from public.cola_web_asesores where usuario_id = v_b;
+
+  -- (a) sin gestionar: 42501 y nada cambia.
+  perform pg_temp.ct_es('configurar sin gestionar',
+    pg_temp.ct_corre(v_p, format('select ''0'' from public.cola_web_configurar(%L, true, 7, 2::smallint, 3::smallint)', v_b)), '42501');
+  select * into v_fila from public.cola_web_asesores where usuario_id = v_b;
+  if v_fila is distinct from v_antes then raise exception 'sin gestionar cambió la fila: % → %', v_antes, v_fila; end if;
+
+  -- (b) con gestionar: habilitada con sus valores, disponible intacto y fuera de la rueda (su rol no participa).
+  v_r := pg_temp.ct_corre(v_g, format('select ''0'' from public.cola_web_configurar(%L, true, 7, 2::smallint, 3::smallint)', v_b));
+  if v_r ? 'error' then raise exception 'configurar con gestionar: %', v_r; end if;
+  select * into v_habilitada from public.cola_web_asesores where usuario_id = v_b;
+  if v_habilitada.habilitado is distinct from true or v_habilitada.max_abiertas is distinct from 7 or v_habilitada.prioridad is distinct from 2::smallint
+     or v_habilitada.orden is distinct from 3::smallint or v_habilitada.disponible is distinct from v_antes.disponible then
+    raise exception 'habilitar: %', v_habilitada;
+  end if;
+  v_r := pg_temp.ct_corre(v_g, format('select public.puede_estar_en_la_rueda(%L)::text', v_b));
+  if v_r -> 'v' is distinct from 'false'::jsonb then raise exception 'habilitada sin el permiso entra en la rueda: %', v_r; end if;
+
+  -- (c) quitar con sus valores: sólo cambia habilitado.
+  v_r := pg_temp.ct_corre(v_g, format('select ''0'' from public.cola_web_configurar(%L, false, 7, 2::smallint, 3::smallint)', v_b));
+  if v_r ? 'error' then raise exception 'quitar: %', v_r; end if;
+  select * into v_fila from public.cola_web_asesores where usuario_id = v_b;
+  if v_fila.habilitado is distinct from false or v_fila.max_abiertas is distinct from 7 or v_fila.prioridad is distinct from 2::smallint
+     or v_fila.orden is distinct from 3::smallint or v_fila.disponible is distinct from v_antes.disponible then
+    raise exception 'quitar: %', v_fila;
+  end if;
+
+  -- (d) «Deshacer»: la fila vuelve a como quedó al habilitar.
+  v_r := pg_temp.ct_corre(v_g, format('select ''0'' from public.cola_web_configurar(%L, true, 7, 2::smallint, 3::smallint)', v_b));
+  if v_r ? 'error' then raise exception 'deshacer: %', v_r; end if;
+  select * into v_fila from public.cola_web_asesores where usuario_id = v_b;
+  if v_fila is distinct from v_habilitada then raise exception 'deshacer: % → %', v_habilitada, v_fila; end if;
 end $$;
 rollback;
