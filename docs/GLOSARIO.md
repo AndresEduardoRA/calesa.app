@@ -333,6 +333,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Pegajoso** — `ajustes_web.dias_pegajoso`: un visitante vuelve al mismo asesor dentro del plazo.
 - **Respaldo** — `ajustes_web.whatsapp_respaldo`: número que recibe cuando nadie está disponible.
 - **Guía / FAQ / Testimonio** — `web_guias`, `web_faqs`, `web_testimonios`: contenido de la web pública; nace despublicado.
+- **Consentimiento (de un testimonio)** — `web_testimonio_consentir` / `web_testimonio_retirar`: lo que da el cliente para que su testimonio se publique: quién lo registró, cuándo y por qué canal, y si se muestran su ciudad, su vehículo y su foto. Cambiar el nombre, el texto o la foto lo anula.
 - **Superficie pública** — esquema `web`: vistas y RPC que consume el repo de la web.
 - **Bandeja** — `/` / `<Bandeja>`: pantalla de inicio; lo que hay que hacer ahora.
 - **Bloque de la bandeja** — `BLOQUES_BANDEJA` / `bloquesVisibles()`: una lista de pendientes del Inicio; se muestra según los permisos de la persona.
