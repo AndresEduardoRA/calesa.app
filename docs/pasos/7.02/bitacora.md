@@ -38,3 +38,9 @@ Tercera y última parte. El paso queda completo:
 Cuatro bloques de e2e en rojo (escritorio). Causas, medidas y reproducidas en local: (1) la campana pedía `notificaciones` al montar y los specs que cuentan pedidos a la base lo veían (`vehiculos-resumen`, `cotizaciones-listado-resumen`, `leads-escala`); (2) +1 parada de Tab (`cotizar-tarea-de-oro-recorrido`, `leads-portal-acceso`); (3) el JS del cliente de Supabase evaluado al hidratar retrasaba ≈ 320 ms el primer clic que vale (`leads-oportunidades-ver-todas`, `leads-confirmar-por-url`, `vehiculos-alta` y `cotizaciones-listado` con la tecla N); (4) un aviso insertado antes de que el canal se uniera se perdía (`notificaciones-campana`). Ver D13 a D15 en `decisiones.md`. Los 11 specs afectados, en verde en escritorio y celular (115 + 3 pruebas), `canal.client.test.ts` en verde.
 
 - e2e completo: no (arreglo del 7.02, sólo specs dirigidos: lo prueba el CI del PR)
+
+## 7.02 · unión con main (2026-11-11)
+
+Choques en dos tareas de oro y la ficha del módulo. `cotizar-tarea-de-oro-recorrido`: la entrada de Agenda (7.07) y la campana suman una parada cada una en escritorio (59 y 55) y sólo la campana en el celular (54 y 50). `leads-portal-acceso`: manda el 16 de main (6.10 espera la sección antes de tabular y ya no recorre la barra). `notificaciones-campana` usaba `/agenda` como ruta sin pantalla y 7.07 la volvió pantalla: ahora usa `/e2e-sin-pantalla`. Los tres specs en verde en escritorio y celular (`.piloto/salidas/7.02/merge-e2e*.txt`); `typecheck` y `scripts/guardas` en verde.
+
+- e2e completo: no (unión del 7.02 con main, sólo specs dirigidos: lo prueba el CI del PR)
