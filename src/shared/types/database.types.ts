@@ -7038,6 +7038,17 @@ export type Database = {
         Args: { p_defecto: number; p_maximo: number; p_pedido: number }
         Returns: number
       }
+      _aduana_vehiculo_visible: {
+        Args: {
+          p_algun: string[]
+          p_creado_por: string
+          p_lead: string
+          p_origen: string
+          p_todos: string[]
+          p_yo: string
+        }
+        Returns: boolean
+      }
       _agenda_cotizacion: { Args: { p_cot: string; p_hint?: string }; Returns: string }
       _agenda_destinatarios_aplicar: {
         Args: { p_dest: string[]; p_evento: string; p_titulo: string }
@@ -7437,6 +7448,47 @@ export type Database = {
         }
         Returns: Json
       }
+      _declaracion_datos: {
+        Args: {
+          o: Omit<
+            Database['public']['Tables']['declaraciones_aduana']['Row'],
+            Database['public']['Tables']['declaraciones_aduana']['ComputedFields']
+          >
+          p_datos: Json
+        }
+        Returns: {
+          aceptada_el: string | null
+          actualizado_en: string
+          canal: Database['public']['Enums']['canal_aforo'] | null
+          creado_en: string
+          creado_por: string | null
+          deposito: string | null
+          despachante: string | null
+          id: string
+          notas: string | null
+          numero: string
+          vence_tributos_el: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'declaraciones_aduana'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _declaracion_resumen: {
+        Args: { p_algun: string[]; p_id: string; p_todos: string[]; p_yo: string }
+        Returns: Record<string, unknown>
+      }
+      _declaracion_vehiculos_listas: {
+        Args: { p_agregar: string[]; p_quitar: string[] }
+        Returns: Record<string, unknown>
+      }
+      _declaracion_vehiculos_validar: {
+        Args: { p_agregar: string[]; p_declaracion: string; p_todos: string[] }
+        Returns: undefined
+      }
+      _declaraciones_filtros: { Args: { p_filtros: Json }; Returns: Record<string, unknown> }
       _dinero_filtros: {
         Args: { p_claves: string[]; p_filtros: Json }
         Returns: Record<string, unknown>
@@ -8700,6 +8752,66 @@ export type Database = {
         Args: { p_a: string; p_de: string; p_restriccion: string }
         Returns: undefined
       }
+      _transporte_cambios: {
+        Args: {
+          o: Omit<
+            Database['public']['Tables']['transportes']['Row'],
+            Database['public']['Tables']['transportes']['ComputedFields']
+          >
+          p_cambios: Json
+          p_claves: string[]
+        }
+        Returns: {
+          actualizado_en: string
+          actualizado_por: string | null
+          arribo_el: string | null
+          booking: string | null
+          contenedor: string | null
+          creado_en: string
+          eta_el: string | null
+          id: string
+          naviera_id: string | null
+          notas: string | null
+          puerto_destino_id: string | null
+          puerto_origen_id: string | null
+          repuesto_id: string | null
+          sigue_al_vehiculo: boolean
+          vehiculo_id: string | null
+          zarpe_el: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'transportes'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _transporte_clave: { Args: { p_clave: string; p_tipo: string }; Returns: string }
+      _transporte_grupo_bloquear: {
+        Args: { p_repuestos: string[]; p_vehiculos: string[] }
+        Returns: undefined
+      }
+      _transporte_grupos_filtros: { Args: { p_filtros: Json }; Returns: Record<string, unknown> }
+      _transporte_unidad: {
+        Args: { p_bloquear: boolean; p_repuesto: string; p_vehiculo: string }
+        Returns: Record<string, unknown>
+      }
+      _transporte_validar: {
+        Args: {
+          n: Omit<
+            Database['public']['Tables']['transportes']['Row'],
+            Database['public']['Tables']['transportes']['ComputedFields']
+          >
+          o: Omit<
+            Database['public']['Tables']['transportes']['Row'],
+            Database['public']['Tables']['transportes']['ComputedFields']
+          >
+          p_fase: string
+          p_flujo: string
+          p_titulo: string
+        }
+        Returns: undefined
+      }
       _unidad_sin_acceso: { Args: { p_vehiculo: string }; Returns: string }
       _url_del_proyecto: { Args: Record<PropertyKey, never>; Returns: string }
       _uuid_de: { Args: { p_hint: string; p_valor: Json }; Returns: string }
@@ -9177,6 +9289,42 @@ export type Database = {
       crear_lead: {
         Args: { p_id: string; p_lead: Json; p_recordatorio?: Json; p_seguimiento?: Json }
         Returns: Json
+      }
+      declaracion_canal: {
+        Args: { p_actualizado_en_esperado: string; p_canal: string; p_id: string }
+        Returns: Json
+      }
+      declaracion_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_datos: Json; p_id: string }
+        Returns: Json
+      }
+      declaracion_leer: { Args: { p_id: string }; Returns: Json }
+      declaracion_vehiculos_poner: {
+        Args: {
+          p_actualizado_en_esperado: string
+          p_agregar: string[]
+          p_declaracion: string
+          p_quitar: string[]
+        }
+        Returns: Json
+      }
+      declaraciones_listar: {
+        Args: { p_desde: string; p_filtros: Json; p_id: string; p_tope: number }
+        Returns: {
+          aceptada_el: string
+          actualizado_en: string
+          canal: string
+          creado_en: string
+          deposito: string
+          despachante: string
+          faltan: number
+          hay_ocultos: boolean
+          id: string
+          numero: string
+          pagada: boolean
+          vehiculos: number
+          vence_tributos_el: string
+        }[]
       }
       documento_editar: {
         Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_id: string }
@@ -10340,6 +10488,24 @@ export type Database = {
       transicion_roles_poner: {
         Args: { p_actualizado_en_esperado: string; p_roles: string[]; p_transicion: string }
         Returns: string
+      }
+      transporte_grupo: { Args: { p_clave: string; p_tipo: string }; Returns: Json }
+      transporte_grupo_aplicar: {
+        Args: { p_cambios: Json; p_clave: string; p_esperadas: Json; p_tipo: string }
+        Returns: Json
+      }
+      transporte_grupos: {
+        Args: { p_desde: string; p_filtros: Json; p_tipo: string; p_tope: number }
+        Returns: Json
+      }
+      transporte_guardar: {
+        Args: {
+          p_actualizado_en_esperado: string
+          p_cambios: Json
+          p_repuesto: string
+          p_vehiculo: string
+        }
+        Returns: Json
       }
       unidad_llego_a_fase: {
         Args: { p_fase: string; p_repuesto: string; p_vehiculo: string }
