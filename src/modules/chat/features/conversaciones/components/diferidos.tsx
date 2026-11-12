@@ -9,3 +9,6 @@ export const ModalDeDirectaDiferido = diferido(() =>
 export const ModalDeGrupoDiferido = diferido(() =>
   import('./modal-de-grupo').then((modulo) => modulo.ModalDeGrupo),
 )
+export const ConfirmarSalirDiferido = diferido(() =>
+  import('./confirmar-salir').then((modulo) => modulo.ConfirmarSalir),
+)

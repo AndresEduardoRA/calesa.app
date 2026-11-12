@@ -34,6 +34,32 @@ async function leer(
   }
 }
 
+// Cada señal de Realtime (con una ráfaga unida en una) relee la primera página.
+function useSenalesDeLaLista(usuarioId: string, recargar: () => Promise<void>) {
+  useEffect(() => {
+    let espera: ReturnType<typeof setTimeout> | null = null
+    const programar = () => {
+      if (espera) {
+        clearTimeout(espera)
+      }
+      espera = setTimeout(() => {
+        espera = null
+        void recargar()
+      }, ESPERA_DE_LA_SENAL_MS)
+    }
+    const desuscribir = suscribirseALaLista(usuarioId, {
+      alCambiar: programar,
+      alReconectar: programar,
+    })
+    return () => {
+      desuscribir()
+      if (espera) {
+        clearTimeout(espera)
+      }
+    }
+  }, [usuarioId, recargar])
+}
+
 // El estado de la lista de `/chat`: lo cargado, «Ver más» por cursor hasta el tope y la fusión de la primera página cada
 // vez que Realtime avisa (la fila del canal es sólo señal: se relee por la RPC). `recargar()` lo usan las acciones que
 // crean o dejan una conversación.
@@ -67,28 +93,12 @@ export function useListaDeConversaciones({ usuarioId, inicial }: Props) {
     }
   }, [])
 
-  useEffect(() => {
-    let espera: ReturnType<typeof setTimeout> | null = null
-    const programar = () => {
-      if (espera) {
-        clearTimeout(espera)
-      }
-      espera = setTimeout(() => {
-        espera = null
-        void recargar()
-      }, ESPERA_DE_LA_SENAL_MS)
-    }
-    const desuscribir = suscribirseALaLista(usuarioId, {
-      alCambiar: programar,
-      alReconectar: programar,
-    })
-    return () => {
-      desuscribir()
-      if (espera) {
-        clearTimeout(espera)
-      }
-    }
-  }, [usuarioId, recargar])
+  useSenalesDeLaLista(usuarioId, recargar)
+
+  // Dejar una conversación no genera señal (Realtime no avisa de un DELETE): la fila se quita a mano.
+  const quitar = useCallback((id: string) => {
+    setFilas((antes) => antes.filter((c) => c.id !== id))
+  }, [])
 
   const ultima = filas.at(-1)
   const cargarMas = async () => {
@@ -119,6 +129,7 @@ export function useListaDeConversaciones({ usuarioId, inicial }: Props) {
     errorAlCargarMas,
     cargarMas,
     recargar,
+    quitar,
     enElTope: filas.length >= TOPE_DE_LO_CARGADO,
   }
 }

@@ -8,6 +8,7 @@ import type { Resultado } from '@/shared/lib/errores'
 import { EstadoError, EstadoVacio } from '@/shared/ui/estados'
 import { tituloDe, type Conversacion } from '../../../entities/conversaciones'
 import { EstadoSinConversacion } from './estado-sin-conversacion'
+import { MenuDeConversacion } from './menu-de-conversacion'
 
 type Props = {
   // La `?c=` ya validada como GUID, o `null` si no hay selección (o era ilegible).
@@ -68,6 +69,7 @@ export function ZonaDelHilo({ idSolicitado, lectura }: Props) {
         >
           {tituloDe(lectura.data)}
         </h2>
+        <MenuDeConversacion conversacion={lectura.data} />
       </header>
       <p className="p-4 text-(length:--text-sm) text-(--color-ink-soft)">
         Los mensajes llegan con la siguiente parte.

@@ -58,7 +58,13 @@ export function ListaDeConversaciones({ usuarioId, inicial, abierta, zona, puede
           </>
         )}
       </div>
-      <PanelesDeChat usuarioId={usuarioId} recargar={lista.recargar} />
+      <PanelesDeChat
+        usuarioId={usuarioId}
+        abierta={abierta}
+        filas={lista.filas}
+        recargar={lista.recargar}
+        quitar={lista.quitar}
+      />
     </nav>
   )
 }

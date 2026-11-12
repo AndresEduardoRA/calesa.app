@@ -63,4 +63,9 @@ export const REGISTRO: Record<string, ConfirmarConUrl> = {
     abre: 'src/modules/repuestos/features/catalogos/hooks/use-eliminar-valor-por-url.ts',
     senal: 'PANEL_ELIMINAR_VALOR',
   },
+  // `?panel=salir` sobre la conversación abierta (7.09-2); no toca `?c=`.
+  'src/modules/chat/features/conversaciones/components/confirmar-salir.tsx': {
+    abre: 'src/modules/chat/features/conversaciones/hooks/use-salir-por-url.ts',
+    senal: 'PANEL_SALIR_DE_LA_CONVERSACION',
+  },
 }
