@@ -43,3 +43,19 @@ export function valeMientrasSeEscribe(clave: ClaveAtajo): boolean {
   const { combinacion } = ATAJOS[clave]
   return combinacion.startsWith('mod+') || combinacion === 'escape'
 }
+
+export function esMac(plataforma: string): boolean {
+  return /mac|iphone|ipad/i.test(plataforma)
+}
+
+const NOMBRE_DE_TECLA: Record<string, string> = { enter: 'Intro', escape: 'Esc' }
+
+// Las teclas de un atajo como se muestran: `mod` es Ctrl, o ⌘ en macOS; una letra va en mayúscula.
+export function teclasDelAtajo(clave: ClaveAtajo, { mac }: { mac: boolean }): string[] {
+  return ATAJOS[clave].combinacion.split('+').map((parte) => {
+    if (parte === 'mod') {
+      return mac ? '⌘' : 'Ctrl'
+    }
+    return NOMBRE_DE_TECLA[parte] ?? parte.toUpperCase()
+  })
+}
