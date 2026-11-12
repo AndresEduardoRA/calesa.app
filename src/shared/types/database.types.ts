@@ -10577,6 +10577,7 @@ export type Database = {
           requisito_id: string
         }[]
       }
+      repuestos_proyecto_margen: { Args: { p_proyecto: string }; Returns: Json }
       repuestos_proyectos_listar: {
         Args: { p_cursor: number; p_estado: string; p_q: string; p_tamano: number }
         Returns: {

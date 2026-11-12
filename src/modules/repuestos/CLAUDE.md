@@ -67,7 +67,8 @@ El módulo se parte por **área** (8.08-2, igual que `logistica`) para que los p
   `repuestos_proyectos_listar`, `repuestos_pendientes_de_vehiculo`, `_repuesto_ante_espera` y el trigger `repuestos_catalogo_sin_uso`. De 8.09-3: los triggers `repuestos_imagen_integridad` y `repuestos_imagen_encolar` (prueba `areas/repuestos/imagenes.sql`). De 8.10-1: `repuesto_stock_mover`,
   `repuesto_stock_reasignar` (con `_repuesto_stock_item` y `_repuesto_stock_aplicar`, privadas) y `repuestos_stock_listar` (pruebas `stock.sql`, `stock-reasignar.sql`,
   `stock-listar.sql` y E7 de `esperas.sql`; carreras `scripts/carreras/repuestos-stock.mjs`). De 8.11-1: `repuesto_compra_guardar` / `_eliminar` / `_restaurar`
-  (con `_repuesto_compra_tc_vigente`, `_repuesto_compra_proyecto` y `_repuesto_compra_de_datos`, privadas; prueba `compras.sql`). Sus pruebas, en
+  (con `_repuesto_compra_tc_vigente`, `_repuesto_compra_proyecto` y `_repuesto_compra_de_datos`, privadas; prueba `compras.sql`) y
+  `repuestos_proyecto_margen` (prueba `compras-margen.sql`). Sus pruebas, en
   `supabase/tests/areas/repuestos/` (`proyectos`, `base`, `listar`, `esperas`, `catalogos`).
 
 ## Tablas
@@ -95,6 +96,9 @@ El módulo se parte por **área** (8.08-2, igual que `logistica`) para que los p
   `tipo_cambio_aplicado` y `tipo_cambio_id` los pone la base con el tipo de cambio **por defecto vigente** al crear o al cambiar la moneda, y quedan congelados al
   editar el monto (como `pagos`); mandarlos en `p_datos` da 22023. Un proyecto cerrado no recibe ni cambia compras (23514); restaurar una compra cuyo ítem se
   eliminó, tampoco. Se leen sólo con `repuestos.costos.ver` (RLS).
+- **El margen del proyecto** (`repuestos_proyecto_margen`, 8.11-1) lo calcula la base por moneda: Σ cantidad × `precio_cliente` (unitario) de los ítems vivos − Σ
+  compras vivas. Con algún ítem vivo sin precio **o con precio y sin moneda**, el margen es nulo en todas las monedas (nulo no es 0); `sin_precio` corta en 201. Pide
+  `repuestos.costos.ver` y `repuestos.ver`. Usa la cantidad pedida: lo que pasó a stock o se reasignó no la descuenta.
 - Los valores de catálogo se escriben directo bajo la RLS de `repuestos.configurar` (sin RPC: no otorgan permisos); el UPDATE es sólo de `nombre`, `activo` y
   `orden` (8.10-1): `catalogo`, `id` y `datos` dan 42501. Cero filas al escribir nunca es éxito.
 

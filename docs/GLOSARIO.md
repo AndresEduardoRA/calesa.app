@@ -310,6 +310,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Gasto** — `gastos`, `categorias_gasto`: costo real imputado a una unidad, en su moneda y en base.
 - **Pago** — `pagos`: pago del cliente; confirmar es un acto sellado.
 - **Desviación / Margen** — `margen_vehiculo()`: cotizado − real / venta − real (null si no hay venta); `por_categoria` reparte el real por categoría de gasto (6.10-2).
+- **Margen del proyecto** — `repuestos_proyecto_margen()`: por moneda, Σ precios de los ítems − Σ compras; nulo si falta un precio (8.11-1).
 - **Nota** — `notas`: bloc de notas de una unidad; la del cambio de fase apunta a su historial.
 - **Proyecto de repuestos** — `repuestos_proyectos`: un proyecto por vehículo (o externo).
 - **Ítem de repuesto** — `repuestos_items`: el repuesto que recorre el flujo de repuestos.

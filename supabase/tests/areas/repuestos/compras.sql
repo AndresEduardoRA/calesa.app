@@ -426,3 +426,15 @@ begin
     (select actualizado_en from public.repuestos_proyectos where id = p))));
 end $$;
 rollback;
+
+-- @test repuestos: sin repuestos.costos.ver el margen del proyecto da 42501 (B8)
+begin;
+do $$
+declare
+  ed uuid := pg_temp.rp_persona(pg_temp.rpc_todos()); sin_costos uuid := pg_temp.rp_persona(array['repuestos.ver', 'repuestos.costos.editar']);
+  p uuid := pg_temp.rp_proyecto(ed);
+begin
+  perform pg_temp.rp_ok('B8 con costos.ver', pg_temp.rp_corre(ed, format('select public.repuestos_proyecto_margen(%L::uuid)', p)));
+  perform pg_temp.rp_es('B8 sin costos.ver', pg_temp.rp_corre(sin_costos, format('select public.repuestos_proyecto_margen(%L::uuid)', p)), '42501', null);
+end $$;
+rollback;
