@@ -107,9 +107,9 @@ describe('enviarEmail()', () => {
     expect(llamadas).toEqual([])
   })
 
-  it('resend y cloudflare todavía no tienen adaptador (Fase 7)', async () => {
+  it('un proveedor sin adaptador o sin su clave no manda nada y lo dice', async () => {
     const r = await enviarEmail(mensaje, { entorno: entorno({ EMAIL_PROVEEDOR: 'resend' }) })
     expect(r).toMatchObject({ ok: false, error: { codigo: 'regla' } })
-    expect(r.ok ? '' : r.error.mensaje).toContain('Fase 7')
+    expect(r.ok ? '' : r.error.mensaje).toContain('Falta la configuración de resend')
   })
 })
