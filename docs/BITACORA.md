@@ -5117,3 +5117,49 @@ Pruebas:
 - **9.04 queda completo** (`parcial: false`). Para que el coordinador los cierre en PLAN y ESTADO: cierra **9-2** (el rango de un campo numérico), **9-3** (`leads.campos.gestionar`), los arrastrados «plantilla de etapas de embudos por empresa» y «plantilla del texto del portal por empresa», y el de ESTADO «Portal: su texto por empresa».
 - e2e completo: no (9.04-5, Nivel 2: lo prueba el CI del PR; dirigidos: configuracion-leads-plantillas, configuracion-leads, configuracion-200, leads-portal, leads-portal-acceso, leads-embudo)
 - Al retomar (unión con main, 2026-11-12): se resolvió el choque de la ficha de `leads` (las dos intenciones) y se regeneraron los tipos de la base (`db:probar` 1.335 ✓). El completo del CI cayó en `configuracion-leads-seguimientos` porque esperaba cuatro pestañas: ahora espera las seis (6/6 ✓ en escritorio, `.piloto/salidas/9.04/e2e-seguimientos.log`).
+
+<!-- paso:8.04-3 -->
+
+## 2026-11-12 · Paso 8.04-3: las escrituras de la cola web (parte 3 de 3; cierra 8-1)
+
+### Hecho
+
+- **T6** en `supabase/tests/areas/cola/tablero.sql`: `cola_web_configurar` pide `web.cola.gestionar` (42501 y nada cambia), no toca `disponible`, y quitar y
+  «Deshacer» conservan cupo, prioridad y orden.
+- «Agregar a la rueda» en `/configuracion/cola-web`: drawer en `?panel=agregar-a-la-rueda&q=` que busca en el equipo (lo lee `src/app` sólo con el panel
+  abierto y si quien mira ve el equipo), precarga a quien ya está habilitada y, si su rol no recibe turnos, avisa «Quedó habilitada, pero su rol no recibe
+  turnos de la web.» con «Abrir Roles» (8-1).
+- «Quitar» en cada fila del tablero, con «Deshacer».
+- La política de la cola en un bloque plegado, por `web_ajustes_guardar` con sus cinco claves (`cambiosDePolitica`, con test); conflicto con «Recargar».
+- E3 en `e2e/cola-web-tablero.spec.ts`. Sin migración (D22). El 8.04 queda completo (3 de 3).
+
+Commits: `c2ca75a7`, `5a8defb9`, `c9ba2ff9`, `1fe330e3`, `55d6e00f`, `20e90bca`, los de la auditoría del informe (`978f01d2`: quitar y «Deshacer» aceptan
+todo `smallint`; `221d4352`: T6 siembra `disponible = true`) y el de docs.
+
+### Verificación
+
+- `SOLO=areas/cola/tablero.sql pnpm db:probar`: T1–T6 ✓.
+- Vitest `rueda.test.ts` 4 de 4, `politica.test.ts` 2 de 2; guardas y `entities/cola`: 40 archivos, 1141 pruebas.
+- Typecheck sin errores; lint en el hook de cada commit; `mapa.sh --check` exit 0.
+- e2e dirigidos en escritorio: `cola-web-tablero` (3 de 3) y `configuracion-200`: 29 de 29.
+- e2e completo: no (8.04-3, Nivel 1: lo prueba el CI del PR; dirigidos: cola-web-tablero, configuracion-200)
+
+<!-- paso:8.11-3 -->
+
+## 2026-11-12 · Paso 8.11-3: registrar, editar y eliminar compras, con el comprobante (parte 3 de 3)
+
+- **Hecho:** en la pestaña «Compras» de `/repuestos/[id]`, un solo «Registrar compra» arriba de la lista (apagado con su motivo sin `repuestos.costos.editar` o con
+  el proyecto cerrado), el Drawer `?panel=compra&compra=<id|nueva>` (con `diferido()`, borrador en `sessionStorage`, `PT409` con «Recargar»), «Editar» y «Eliminar»
+  en la fila (eliminar sin confirmación, con «Deshacer» que llama a `repuesto_compra_restaurar`), y el comprobante (bucket `comprobantes`, `<proyecto>/<sha-256>.<ext>`,
+  sin comprimir, «Ver comprobante» con URL de 60 s, también desde la fila). Las actions `guardarCompra`, `eliminarCompra` y `restaurarCompra` piden
+  `repuestos.costos.editar` con `puede()` antes de la base y revalidan la página; `z.strictObject` deja afuera `monto_base`, la tasa y `proyecto_id`. Sin migración:
+  la base de 8.11-1 ya lo traía todo.
+- **Verificación** (salidas en `.piloto/salidas/8.11-3/`): `vitest related` 6 archivos, 28 ✓ (`formulario`, `errores`, `acciones`, el esquema, `compra`, `margen`);
+  `scripts/guardas` 1125 ✓ (el Drawer registrado en `drawers-con-salida.ts`); `pnpm lint` y `pnpm typecheck` salida 0; `mapa.sh --check` salida 0; e2e dirigidos
+  `repuestos-compras` (caso 3 nuevo: registrar 15 lleva el margen de 40 a 25 con `monto_base` de la base, eliminar lo vuelve a 40 y «Deshacer» a 25),
+  `repuestos-proyecto` y `repuestos-stock`, escritorio y movil: 22 de 22.
+- **Para copiar a `docs/PLAN.md`:** «8.11 hecha (3 partes): la base (8.11-1), la pestaña «Compras» con la lista y el margen (8.11-2) y, en 8.11-3, registrar y editar
+  en `<Drawer>` (`?panel=compra&compra=<id|nueva>`, `repuestos.costos.editar`; sin él o con el proyecto cerrado, «Registrar compra» se apaga con su motivo), el
+  comprobante (bucket `comprobantes`, `<proyecto>/<sha-256>.<ext>`, sin comprimir, «Ver comprobante» con una URL de 60 s) y eliminar con «Deshacer»».
+- **Abierto:** el e2e no sube un comprobante (D8). «Ver comprobante» queda en dos copias (`ver-comprobante.ts` y `useComprobante.ver`), como en logística.
+- e2e completo: no (8.11-3, Nivel 1 con interfaz: lo corre el CI del PR; dirigidos repuestos-compras, repuestos-proyecto, repuestos-stock en escritorio y movil)
