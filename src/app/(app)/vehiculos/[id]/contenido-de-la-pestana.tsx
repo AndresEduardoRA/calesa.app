@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import type { LayoutDeOrigen, OrigenResumen } from '@/modules/origenes'
 import { type Vehiculo } from '@/modules/vehiculos'
+import { EsqueletoDeResumen } from '@/modules/repuestos/pantallas/proyectos-vehiculo'
 import { EsqueletoDeFotos } from '@/modules/vehiculos/pantallas/ficha'
 import { BloqueSubasta } from './bloque-subasta'
 import { BloqueVinculo } from './bloque-vinculo'
@@ -10,6 +11,7 @@ import { SeccionDocumentos } from './seccion-documentos'
 import { EsqueletoDeDocumentos } from './esqueleto-de-documentos'
 import { SeccionFicha } from './seccion-ficha'
 import { SeccionFotos } from './seccion-fotos'
+import { SeccionRepuestos } from './seccion-repuestos'
 
 type Props = {
   pestana: PestanaDeVehiculo
@@ -54,6 +56,14 @@ export function ContenidoDeLaPestana({
   }
   if (pestana === 'cotizaciones') {
     return <SeccionCotizaciones vehiculoId={vehiculo.id} />
+  }
+  if (pestana === 'repuestos') {
+    return (
+      // El proyecto y sus ítems por fase se leen en el servidor al abrir la pestaña.
+      <Suspense fallback={<EsqueletoDeResumen />}>
+        <SeccionRepuestos vehiculoId={vehiculo.id} />
+      </Suspense>
+    )
   }
   return (
     <>
