@@ -3,6 +3,7 @@
 import type { MinimoDeBusqueda } from '@/shared/lib/filtros'
 import { RUTAS } from '@/shared/lib/rutas'
 import { htmlDelDocumento } from './doc'
+import { esObjeto } from './doc-nodos'
 
 export type EstadoDeGuia = 'borrador' | 'programada' | 'publicada'
 
@@ -137,3 +138,41 @@ export function rutaDeGuia(id: string): string {
 }
 
 export const RUTA_DE_LA_LISTA_DE_GUIAS = `${RUTAS.configuracionDeWeb}?seccion=guias`
+
+// Las rutas de las imágenes del primer nivel de un documento (la base no las admite más adentro), sin repetir: lo que ya no está tras guardar se
+// quita del bucket si ninguna fila lo usa (`quitarSiHuerfano`).
+export function rutasDeImagenes(documento: unknown): string[] {
+  const contenido = esObjeto(documento) ? documento['content'] : undefined
+  const rutas = (Array.isArray(contenido) ? contenido : []).flatMap((nodo): string[] => {
+    const attrs = esObjeto(nodo) && nodo['type'] === 'image' ? nodo['attrs'] : undefined
+    const ruta = esObjeto(attrs) ? attrs['ruta'] : undefined
+    return typeof ruta === 'string' ? [ruta] : []
+  })
+  return [...new Set(rutas)]
+}
+
+// Qué botones de publicación tiene cada estado: borrador → Publicar y Programar; programada → Publicar ahora y Despublicar; publicada → Despublicar.
+export function accionesDePublicacion(estado: EstadoDeGuia): {
+  publicar: 'Publicar' | 'Publicar ahora' | null
+  programar: boolean
+  despublicar: boolean
+} {
+  return {
+    publicar:
+      estado === 'borrador' ? 'Publicar' : estado === 'programada' ? 'Publicar ahora' : null,
+    programar: estado === 'borrador',
+    despublicar: estado !== 'borrador',
+  }
+}
+
+// El motivo a la vista bajo los botones: el de Publicar y Programar (permiso, texto, red) cuando el estado los ofrece; si no, el de Despublicar (sólo permiso).
+export function motivoDePublicacion(
+  estado: EstadoDeGuia,
+  situacion: { permitido: boolean; conCuerpo: boolean; enLinea: boolean },
+): string | null {
+  if (estado === 'publicada') {
+    return situacion.permitido ? null : MOTIVO_SIN_PERMISO_PARA_PUBLICAR
+  }
+  const puede = puedePublicar(situacion)
+  return puede.ok ? null : puede.motivo
+}

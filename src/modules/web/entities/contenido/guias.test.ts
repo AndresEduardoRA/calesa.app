@@ -3,12 +3,15 @@ import {
   MOTIVO_SIN_CONEXION_PARA_PUBLICAR,
   MOTIVO_SIN_PERMISO_PARA_PUBLICAR,
   MOTIVO_SIN_TEXTO_PARA_PUBLICAR,
+  accionesDePublicacion,
   esFechaDeProgramar,
   esSlugValido,
   estadoDeGuia,
   fechaDePublicarYa,
+  motivoDePublicacion,
   puedePublicar,
   rutaDeGuia,
+  rutasDeImagenes,
   slugDe,
   tieneCuerpo,
 } from './guias'
@@ -102,5 +105,61 @@ describe('fechas', () => {
 describe('rutaDeGuia', () => {
   it('es la página de la guía bajo Sitio web', () => {
     expect(rutaDeGuia('abc')).toBe('/configuracion/web/guias/abc')
+  })
+})
+
+describe('rutasDeImagenes', () => {
+  it('lee las imágenes del primer nivel, sin repetir, e ignora lo demás', () => {
+    const imagen = (ruta: string) => ({ type: 'image', attrs: { ruta, alt: '' } })
+    expect(
+      rutasDeImagenes({
+        type: 'doc',
+        content: [
+          imagen('guias/a.webp'),
+          { type: 'paragraph' },
+          imagen('guias/b.webp'),
+          imagen('guias/a.webp'),
+          { type: 'blockquote', content: [imagen('guias/c.webp')] },
+        ],
+      }),
+    ).toEqual(['guias/a.webp', 'guias/b.webp'])
+    expect(rutasDeImagenes(null)).toEqual([])
+    expect(rutasDeImagenes({ type: 'doc' })).toEqual([])
+  })
+})
+
+describe('accionesDePublicacion y motivoDePublicacion', () => {
+  it('cada estado ofrece lo suyo', () => {
+    expect(accionesDePublicacion('borrador')).toEqual({
+      publicar: 'Publicar',
+      programar: true,
+      despublicar: false,
+    })
+    expect(accionesDePublicacion('programada')).toEqual({
+      publicar: 'Publicar ahora',
+      programar: false,
+      despublicar: true,
+    })
+    expect(accionesDePublicacion('publicada')).toEqual({
+      publicar: null,
+      programar: false,
+      despublicar: true,
+    })
+  })
+  it('el motivo sale del permiso, del texto o de la red según lo que el estado ofrece', () => {
+    const todo = { permitido: true, conCuerpo: true, enLinea: true }
+    expect(motivoDePublicacion('borrador', { ...todo, permitido: false })).toBe(
+      MOTIVO_SIN_PERMISO_PARA_PUBLICAR,
+    )
+    expect(motivoDePublicacion('borrador', { ...todo, conCuerpo: false })).toBe(
+      MOTIVO_SIN_TEXTO_PARA_PUBLICAR,
+    )
+    // Despublicar una guía publicada sólo pide el permiso: sin texto ni red no hay motivo.
+    expect(
+      motivoDePublicacion('publicada', { ...todo, conCuerpo: false, enLinea: false }),
+    ).toBeNull()
+    expect(motivoDePublicacion('publicada', { ...todo, permitido: false })).toBe(
+      MOTIVO_SIN_PERMISO_PARA_PUBLICAR,
+    )
   })
 })
