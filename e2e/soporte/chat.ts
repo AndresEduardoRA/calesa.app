@@ -1,7 +1,8 @@
 // El terreno de los e2e del chat: la dueña, dos personas que pueden conversar (Ana, de ventas, y Luis, de logística) y una que
 // no (Sofía), más conversaciones sembradas por SQL. Sembrar por SQL no es un atajo: la lista y su señal de Realtime es lo que
-// prueba `chat.spec.ts`; abrir una directa y escribir por la interfaz es de los pasos que siguen.
+// prueba `chat.spec.ts`; abrir una directa y escribir va por la interfaz (`abrirDirectaYEscribir`).
 import { randomUUID } from 'node:crypto'
+import type { Page } from '@playwright/test'
 import {
   DOMINIO_E2E,
   PREFIJO_ROL_E2E,
@@ -108,4 +109,27 @@ export async function limpiarChat(): Promise<void> {
   borrarChatDePrueba()
   await borrarPersonasDePrueba()
   await borrarRolesDePrueba()
+}
+
+// Escribe en el hilo abierto con Enter (Enter envía; Mayús+Enter salta de línea).
+export async function escribirEnElHilo(page: Page, texto: string): Promise<void> {
+  const redactor = page.getByRole('textbox', { name: 'Mensaje' })
+  await redactor.fill(texto)
+  await redactor.press('Enter')
+}
+
+// El mismo camino de la persona: «Nueva conversación» › «Mensaje directo» › buscar › elegir (si ya hay una directa, abre esa) y escribir.
+export async function abrirDirectaYEscribir(
+  page: Page,
+  nombre: string,
+  texto: string,
+): Promise<void> {
+  await page.goto('/chat')
+  await page.getByRole('button', { name: 'Nueva conversación' }).click()
+  await page.getByRole('menuitem', { name: 'Mensaje directo' }).click()
+  const dialogo = page.getByRole('dialog', { name: 'Nueva conversación' })
+  await dialogo.getByRole('searchbox').fill(nombre)
+  await dialogo.getByRole('button', { name: nombre }).click()
+  await page.waitForURL(/\/chat\?c=[0-9a-f-]{36}$/)
+  await escribirEnElHilo(page, texto)
 }

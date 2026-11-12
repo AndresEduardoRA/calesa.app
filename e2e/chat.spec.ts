@@ -2,7 +2,14 @@ import type { Page } from '@playwright/test'
 import { expect, test } from './soporte/prueba'
 import { entrar } from './soporte/alta'
 import { esMovil, otraPersona } from './soporte/inventario'
-import { limpiarChat, prepararChat, sembrarMensaje, type TerrenoDelChat } from './soporte/chat'
+import {
+  abrirDirectaYEscribir,
+  escribirEnElHilo,
+  limpiarChat,
+  prepararChat,
+  sembrarMensaje,
+  type TerrenoDelChat,
+} from './soporte/chat'
 import { sql } from './soporte/sql'
 
 // El chat (7.09-1): la lista de conversaciones. Las directas se siembran por SQL (la lista y su señal son lo que se prueba): Ana ve
@@ -11,6 +18,8 @@ import { sql } from './soporte/sql'
 // y el hilo son dos pantallas y «Volver a la lista» regresa. Sin `chat.participar` la pantalla lo dice.
 // 7.09-2: iniciar una directa buscando a la persona (la otra la ve sin recargar, la que ya existe no se duplica) y un grupo que se
 // silencia y se deja.
+// 7.09-3: el hilo y el envío. Ana escribe a Marta y Marta lo ve sin recargar con su no leído, que se limpia al abrir; sin red el mensaje queda
+// «No enviado» y al reintentar llega una sola vez.
 test.describe.configure({ mode: 'serial' })
 
 let t: TerrenoDelChat
@@ -191,4 +200,65 @@ test('un grupo nuevo se puede silenciar y dejar', async ({ page }) => {
       `select usuario_id from public.conversaciones_miembros where conversacion_id = '${idDelGrupo}'`,
     ),
   ).toBe(t.luis.id)
+})
+
+const hilo = (page: Page) => page.getByRole('log', { name: 'Mensajes' })
+
+test('Ana escribe a Marta: Marta lo ve sin recargar con su no leído, que se limpia al abrir, y la respuesta le llega a Ana', async ({
+  browser,
+  page,
+}) => {
+  await entrar(page, t.ana.email)
+  const marta = await otraPersona(browser, page)
+  await entrar(marta, t.marta.email)
+  await marta.goto('/chat')
+  await expect(fila(marta, t.ana.nombre)).toBeVisible()
+  await expect(fila(marta, t.ana.nombre).getByRole('img', { name: /sin leer/ })).toHaveCount(0)
+
+  await abrirDirectaYEscribir(page, t.marta.nombre, 'Hola Marta, ¿llegó la factura?')
+  await expect(hilo(page).getByText('Hola Marta, ¿llegó la factura?')).toBeVisible()
+  await expect(page.getByText('Enviando…')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /Reintentar/ })).toHaveCount(0)
+
+  // Sin recargar: la lista de Marta trae la fila de Ana con su «1 sin leer».
+  await expect(fila(marta, t.ana.nombre).getByRole('img', { name: '1 sin leer' })).toBeVisible({
+    timeout: 20_000,
+  })
+  await fila(marta, t.ana.nombre).click()
+  await expect(hilo(marta).getByText('Hola Marta, ¿llegó la factura?')).toBeVisible()
+  // Abrirla la marca leída: la base lo anota y la insignia se va.
+  await expect
+    .poll(
+      () =>
+        sql(
+          `select ultimo_leido_en is not null from public.conversaciones_miembros where usuario_id = '${t.marta.id}' and conversacion_id in (select conversacion_id from public.mensajes where cuerpo = 'Hola Marta, ¿llegó la factura?')`,
+        ),
+      { timeout: 20_000 },
+    )
+    .toBe('t')
+  await expect(fila(marta, t.ana.nombre).getByRole('img', { name: /sin leer/ })).toHaveCount(0)
+
+  await escribirEnElHilo(marta, 'Sí, ya está en tu correo')
+  await expect(hilo(page).getByText('Sí, ya está en tu correo')).toBeVisible({ timeout: 20_000 })
+  await marta.context().close()
+})
+
+test('sin red el mensaje queda «No enviado» y al reintentar llega una sola vez', async ({
+  context,
+  page,
+}) => {
+  await entrar(page, t.ana.email)
+  await page.goto(`/chat?c=${t.conLuis}`)
+  await expect(hilo(page).getByText('Hola Ana, ¿viste el contenedor?')).toBeVisible()
+
+  const texto = 'Mensaje que sale sin red'
+  await context.setOffline(true)
+  await escribirEnElHilo(page, texto)
+  const reintentar = page.getByRole('button', { name: 'No enviado · Reintentar' })
+  await expect(reintentar).toBeVisible()
+  await context.setOffline(false)
+  await reintentar.click()
+  await expect(reintentar).toBeHidden()
+  await expect(hilo(page).getByText(texto)).toHaveCount(1)
+  expect(sql(`select count(*) from public.mensajes where cuerpo = '${texto}'`)).toBe('1')
 })
