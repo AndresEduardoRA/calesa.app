@@ -8,12 +8,13 @@ import {
 } from '@/shared/lib/campos'
 import { RUTAS } from '@/shared/lib/rutas'
 import { CampoSeleccion } from '@/shared/ui/campo-seleccion'
-import type {
-  BanderaDeCampo,
-  ConfiguracionDeCampos,
-  ContextoDelHueco,
-  TextosDelEditor,
-  ValoresDeCampo,
+import {
+  rangoDelFormulario,
+  type BanderaDeCampo,
+  type ConfiguracionDeCampos,
+  type ContextoDelHueco,
+  type TextosDelEditor,
+  type ValoresDeCampo,
 } from '@/shared/ui/campos'
 import {
   cambiosRespectoDe,
@@ -31,7 +32,7 @@ import {
   type DatosDeLaEmpresa,
 } from '../../entities/campo'
 import { resumenDeEliminacion, resumenDeImpacto } from '../../entities/impacto'
-import { MOTIVO_SIN_PERMISO_LEADS } from '../../entities/motivos'
+import { MOTIVO_SIN_PERMISO_CAMPOS } from '../../entities/motivos'
 import type { esquemaCrearCampo } from './schemas/campos'
 import type { z } from 'zod'
 
@@ -44,7 +45,7 @@ const TEXTOS: TextosDelEditor = {
   vacioTitulo: 'Los leads no tienen campos activos',
   vacioDescripcion:
     'Un lead sólo llevará su nombre, su teléfono, su tipo y su origen. Agrega los datos que tu equipo necesita.',
-  motivoSinPermiso: MOTIVO_SIN_PERMISO_LEADS,
+  motivoSinPermiso: MOTIVO_SIN_PERMISO_CAMPOS,
   panelNuevo: 'Campo nuevo',
   panelDescripcionNuevo: 'Un dato propio de tus leads: prospectos y clientes llevan los mismos.',
   panelDescripcionExistente: 'Cómo se ve y se usa este dato en los leads, y quién lo recibe.',
@@ -91,6 +92,8 @@ function valoresIniciales(campo: CampoDeLead | null): ValoresDeCampo {
       grupo: '',
       activo: true,
       valorDefecto: null,
+      minimo: null,
+      maximo: null,
       banderas: { requerido: false, enTabla: false, filtrable: false, soloCartera: false },
       textos: { [EMPRESA]: '' },
     }
@@ -103,6 +106,8 @@ function valoresIniciales(campo: CampoDeLead | null): ValoresDeCampo {
     grupo: campo.grupo ?? '',
     activo: campo.activo,
     valorDefecto: campo.valorDefecto,
+    minimo: campo.minimo,
+    maximo: campo.maximo,
     banderas: {
       requerido: campo.requerido,
       enTabla: campo.enTabla,
@@ -140,6 +145,7 @@ function cambiosDe(campo: CampoDeLead, valores: ValoresDeCampo): CambiosDeCampoD
     activo: valores.activo,
     valorDefecto: empresa === null ? valores.valorDefecto : null,
     valorDefectoEmpresa: empresa,
+    ...rangoDelFormulario(valores),
   })
 }
 
@@ -235,6 +241,7 @@ export function configuracionDeLeads({
         soloCartera: (valores.banderas['soloCartera'] ?? false) || soloCarteraPorTipo(tipo),
         valorDefecto: dato === null ? valores.valorDefecto : null,
         valorDefectoEmpresa: dato,
+        ...rangoDelFormulario(valores),
       }
     },
     cambiosDe,

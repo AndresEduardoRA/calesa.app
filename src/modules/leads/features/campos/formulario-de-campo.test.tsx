@@ -20,7 +20,8 @@ const ediciones: EdicionesDeCampos<CambiosDeCampoDeLead, z.input<typeof esquemaC
   cambiarActivo: listo,
   mover: listo,
   eliminar: listo,
-  vistaPrevia: () => Promise.resolve(ok({ total: 0, conValor: 0, sinValor: 0, porOpcion: {} })),
+  vistaPrevia: () =>
+    Promise.resolve(ok({ total: 0, conValor: 0, sinValor: 0, porOpcion: {}, fueraDeRango: null })),
   enCurso: false,
   errores: { crear: undefined },
 }
@@ -33,6 +34,8 @@ const CAMPO: CampoDeLead = {
   opciones: [],
   requerido: false,
   valorDefecto: null,
+  minimo: null,
+  maximo: null,
   grupo: 'Obra',
   orden: 1,
   esSistema: false,

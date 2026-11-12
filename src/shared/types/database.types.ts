@@ -219,6 +219,31 @@ export type Database = {
         }
         Relationships: []
       }
+      ajustes_leads: {
+        Row: {
+          embudo_actualizado_en: string
+          embudo_etapas: Json | null
+          id: number
+          portal_actualizado_en: string
+          portal_mensaje: string | null
+        }
+        ComputedFields: never
+        Insert: {
+          embudo_actualizado_en?: string
+          embudo_etapas?: Json | null
+          id?: number
+          portal_actualizado_en?: string
+          portal_mensaje?: string | null
+        }
+        Update: {
+          embudo_actualizado_en?: string
+          embudo_etapas?: Json | null
+          id?: number
+          portal_actualizado_en?: string
+          portal_mensaje?: string | null
+        }
+        Relationships: []
+      }
       ajustes_web: {
         Row: {
           actualizado_en: string
@@ -2719,6 +2744,8 @@ export type Database = {
           filtrable: boolean
           grupo: string | null
           id: string
+          maximo: number | null
+          minimo: number | null
           opciones: NonNullable<Json>
           orden: number
           requerido: boolean
@@ -2739,6 +2766,8 @@ export type Database = {
           filtrable?: boolean
           grupo?: string | null
           id?: string
+          maximo?: number | null
+          minimo?: number | null
           opciones?: NonNullable<Json>
           orden?: number
           requerido?: boolean
@@ -2758,6 +2787,8 @@ export type Database = {
           filtrable?: boolean
           grupo?: string | null
           id?: string
+          maximo?: number | null
+          minimo?: number | null
           opciones?: NonNullable<Json>
           orden?: number
           requerido?: boolean
@@ -3769,6 +3800,8 @@ export type Database = {
           filtrable: boolean
           grupo: string | null
           id: string
+          maximo: number | null
+          minimo: number | null
           opciones: NonNullable<Json>
           orden: number
           origen_id: string
@@ -3790,6 +3823,8 @@ export type Database = {
           filtrable?: boolean
           grupo?: string | null
           id?: string
+          maximo?: number | null
+          minimo?: number | null
           opciones?: NonNullable<Json>
           orden?: number
           origen_id: string
@@ -3810,6 +3845,8 @@ export type Database = {
           filtrable?: boolean
           grupo?: string | null
           id?: string
+          maximo?: number | null
+          minimo?: number | null
           opciones?: NonNullable<Json>
           orden?: number
           origen_id?: string
@@ -7277,6 +7314,10 @@ export type Database = {
         }
         Returns: Json
       }
+      _atributos_rango: {
+        Args: { p_anteriores: Json; p_campos: Json; p_nuevos: Json }
+        Returns: undefined
+      }
       _atributos_validar: {
         Args: { p_atributos: Json; p_campos: Json; p_msg_objeto: string }
         Returns: undefined
@@ -7309,11 +7350,24 @@ export type Database = {
         Args: { p_tipo: Database['public']['Enums']['tipo_campo']; p_valores: Json[] }
         Returns: Json
       }
+      _campo_limite: {
+        Args: { p_cambios: Json; p_clave: string; p_vigente: number }
+        Returns: number
+      }
       _campo_nombre_valido: {
         Args: { p_largo: number; p_que: string; p_texto: string }
         Returns: string
       }
       _campo_opciones_validas: { Args: { p_opciones: Json }; Returns: undefined }
+      _campo_rango: {
+        Args: {
+          p_defecto: Json
+          p_maximo: number
+          p_minimo: number
+          p_tipo: Database['public']['Enums']['tipo_campo']
+        }
+        Returns: undefined
+      }
       _campo_tiene_valor: { Args: { p_valor: Json }; Returns: boolean }
       _campo_valor_defecto: {
         Args: { p_opciones: Json; p_tipo: Database['public']['Enums']['tipo_campo']; p_valor: Json }
@@ -7657,6 +7711,7 @@ export type Database = {
       _documentos_de: { Args: { p_ids: string[] }; Returns: Json }
       _embudo_conflicto: { Args: { p_cuando: string }; Returns: undefined }
       _embudo_defecto_de: { Args: { p_usuario: string }; Returns: string }
+      _embudo_etapas_de_fabrica: { Args: Record<PropertyKey, never>; Returns: Json }
       _embudo_insertar: {
         Args: {
           p_default: boolean
@@ -7691,6 +7746,7 @@ export type Database = {
         Returns: undefined
       }
       _embudo_patron: { Args: { p_texto: string }; Returns: string }
+      _embudo_plantilla_normalizar: { Args: { p_etapas: Json }; Returns: Json }
       _embudos_candado: { Args: { p_usuario: string }; Returns: undefined }
       _embudos_puedo: { Args: Record<PropertyKey, never>; Returns: string }
       _encolar_para_limpiar: {
@@ -8462,6 +8518,7 @@ export type Database = {
       _portal_clave_validar: { Args: { p_clave: string }; Returns: undefined }
       _portal_codigo_normal: { Args: { p_codigo: string }; Returns: string }
       _portal_hash_falso: { Args: Record<PropertyKey, never>; Returns: string }
+      _portal_mensaje_normalizar: { Args: { p_texto: string }; Returns: string }
       _portal_persona: { Args: { p_id: string }; Returns: Json }
       _portal_vigente: {
         Args: { p_lead: string; p_otorgado_en: string }
@@ -8928,6 +8985,10 @@ export type Database = {
       _unidad_sin_acceso: { Args: { p_vehiculo: string }; Returns: string }
       _url_del_proyecto: { Args: Record<PropertyKey, never>; Returns: string }
       _uuid_de: { Args: { p_hint: string; p_valor: Json }; Returns: string }
+      _valor_fuera_de_rango: {
+        Args: { p_maximo: number; p_minimo: number; p_valor: Json }
+        Returns: boolean
+      }
       _vehiculo_a_lote: {
         Args: {
           p_lote: string
@@ -9102,6 +9163,7 @@ export type Database = {
         Args: { p_antes_en?: string; p_antes_id?: string; p_tamano?: number }
         Returns: Json
       }
+      ajustes_leads_leer: { Args: Record<PropertyKey, never>; Returns: Json }
       alcance_de: {
         Args: { p_clave: string; p_origen?: string }
         Returns: Database['public']['Enums']['alcance_permiso']
@@ -9509,6 +9571,10 @@ export type Database = {
         Args: { p_actualizado_en_esperado: string; p_id: string; p_nombre: string }
         Returns: Json
       }
+      embudo_plantilla_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_etapas: Json }
+        Returns: string
+      }
       embudo_por_defecto: { Args: Record<PropertyKey, never>; Returns: Json }
       embudo_tablero: {
         Args: { p_buscar?: string; p_embudo: string; p_tope?: number; p_tope_total?: number }
@@ -9757,6 +9823,8 @@ export type Database = {
           p_etiqueta: string
           p_filtrable?: boolean
           p_grupo?: string
+          p_maximo?: number
+          p_minimo?: number
           p_opciones?: Json
           p_requerido?: boolean
           p_solo_cartera?: boolean
@@ -9774,7 +9842,7 @@ export type Database = {
         Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_campo: string }
         Returns: string
       }
-      lead_campo_impacto: { Args: { p_campo: string }; Returns: Json }
+      lead_campo_impacto: { Args: { p_cambios?: Json; p_campo: string }; Returns: Json }
       lead_campo_mover: {
         Args: { p_actualizado_en_esperado: string; p_campo: string; p_despues_de?: string }
         Returns: string
@@ -10073,6 +10141,8 @@ export type Database = {
           p_etiqueta: string
           p_filtrable?: boolean
           p_grupo?: string
+          p_maximo?: number
+          p_minimo?: number
           p_opciones?: Json
           p_origen: string
           p_principal?: boolean
@@ -10091,7 +10161,7 @@ export type Database = {
         Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_campo: string }
         Returns: string
       }
-      origen_campo_impacto: { Args: { p_campo: string }; Returns: Json }
+      origen_campo_impacto: { Args: { p_cambios?: Json; p_campo: string }; Returns: Json }
       origen_campo_mover: {
         Args: { p_actualizado_en_esperado: string; p_campo: string; p_despues_de?: string }
         Returns: string
@@ -10254,6 +10324,10 @@ export type Database = {
       portal_desbloquear: { Args: { p_lead: string }; Returns: undefined }
       portal_estado: { Args: { p_lead: string }; Returns: Json }
       portal_intentos_purgar: { Args: Record<PropertyKey, never>; Returns: number }
+      portal_mensaje_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_texto: string }
+        Returns: string
+      }
       previsualizar_cambio_fase: {
         Args: { p_fase_destino: string; p_repuesto: string; p_vehiculo: string }
         Returns: Json

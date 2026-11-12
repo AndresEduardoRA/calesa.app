@@ -36,6 +36,8 @@ function erroresDelFormulario(
     opciones: propios.opciones ?? delServidor('opciones'),
     grupo: propios.grupo ?? delServidor('grupo'),
     valorDefecto: propios.valorDefecto ?? delServidor('valorDefecto'),
+    minimo: propios.minimo ?? delServidor('minimo'),
+    maximo: propios.maximo ?? delServidor('maximo'),
   }
 }
 

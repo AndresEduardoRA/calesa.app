@@ -23,7 +23,8 @@ const ediciones: Ediciones = {
   cambiarActivo: listo,
   mover: listo,
   eliminar: listo,
-  vistaPrevia: () => Promise.resolve(ok({ total: 0, conValor: 0, sinValor: 0, porOpcion: {} })),
+  vistaPrevia: () =>
+    Promise.resolve(ok({ total: 0, conValor: 0, sinValor: 0, porOpcion: {}, fueraDeRango: null })),
   enCurso: false,
   errores: { crear: undefined },
 }
@@ -37,6 +38,8 @@ const CAMPO: CampoDeLayout = {
   opciones: [],
   requerido: false,
   valorDefecto: null,
+  minimo: null,
+  maximo: null,
   grupo: 'Motor',
   orden: 1,
   esSistema: false,

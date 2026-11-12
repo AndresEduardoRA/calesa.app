@@ -58,19 +58,19 @@ const SOLO_EL_AYUDANTE_DE_DIFERIDOS = {
     'El código diferido pasa por diferido() de @/shared/ui/diferido: carga con reintento y, sin red, avisa en su lugar en vez de tumbar la pantalla.',
 }
 
-// El cliente admin salta la RLS. Fuera de `src/shared/lib/supabase` lo crean dos archivos, que
-// comprueban el permiso antes con el cliente de quien pide: invitar (sólo expone `auth.admin`) y
-// probar la revalidación de la web pública (sólo llama `integracion_secreto('web_publica')`)
-// (.claude/rules/datos.md). Los route handlers del portal, los webhooks y los crons se suman a esa
-// lista cuando existan.
+// El cliente admin salta la RLS. Fuera de `src/shared/lib/supabase` lo crean tres archivos: invitar (sólo expone `auth.admin`) y
+// probar la revalidación de la web pública (sólo llama `integracion_secreto('web_publica')`), los dos tras comprobar el permiso con el
+// cliente de quien pide, y las RPC del portal (sólo `web.portal_*` y la URL firmada de `documentos`; la puerta es la cookie firmada y
+// `_portal_vigente` en la base) (.claude/rules/datos.md). Los webhooks y los crons se suman cuando existan.
 const SOLO_DONDE_SE_PERMITE_EL_ADMIN = {
   name: '@/shared/lib/supabase/admin',
   message:
-    'El cliente admin sólo se crea en src/modules/equipo/infra/invitaciones.ts y src/modules/empresa/infra/revalidacion-prueba.ts (.claude/rules/datos.md).',
+    'El cliente admin sólo se crea en src/modules/equipo/infra/invitaciones.ts, src/modules/empresa/infra/revalidacion-prueba.ts y src/modules/web/infra/portal/rpc.ts (.claude/rules/datos.md).',
 }
 const DONDE_SE_PERMITE_EL_ADMIN = [
   'src/modules/equipo/infra/invitaciones.ts',
   'src/modules/empresa/infra/revalidacion-prueba.ts',
+  'src/modules/web/infra/portal/rpc.ts',
 ]
 
 // El correo sale por un solo módulo, `src/shared/lib/email/` (`enviarEmail()`), con un adaptador por proveedor por su API REST: cambiar de

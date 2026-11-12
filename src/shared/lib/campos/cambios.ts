@@ -1,5 +1,6 @@
 // Lo que cambia una edición de un campo: sólo viaja lo que la persona tocó, y algunos cambios
 // pueden tocar datos ya cargados. Cada módulo suma a esto sus propias banderas.
+import { rangoSeAcota, type Rango } from './rango'
 import type { CampoBase, OpcionDeCampo, TipoDeCampo, ValorDefecto } from './tipos'
 
 export type CambiosComunes = Partial<{
@@ -10,6 +11,9 @@ export type CambiosComunes = Partial<{
   grupo: string | null
   activo: boolean
   valorDefecto: ValorDefecto | null
+  // El rango (9-2); null quita el límite.
+  minimo: number | null
+  maximo: number | null
 }>
 
 export function mismasOpciones(a: readonly OpcionDeCampo[], b: readonly OpcionDeCampo[]): boolean {
@@ -41,10 +45,12 @@ export function opcionesQuitadas(
   return campo.opciones.filter((opcion) => !quedan.has(opcion.clave))
 }
 
-// ¿Hace falta contar lo ya cargado antes de guardar? Cambiar el tipo, volver requerido o sacar una
-// opción pueden tocar datos que ya existen. Desactivar no: el dato se conserva y se deshace.
+// ¿Hace falta contar lo ya cargado antes de guardar? Cambiar el tipo, volver requerido, sacar una
+// opción o acotar el rango pueden tocar datos que ya existen. Desactivar no: el dato se conserva y se deshace.
 export function necesitaVistaPrevia(
-  campo: Pick<CampoBase, 'tipo' | 'requerido'> & { opciones: readonly OpcionDeCampo[] },
+  campo: Pick<CampoBase, 'tipo' | 'requerido'> & {
+    opciones: readonly OpcionDeCampo[]
+  } & Partial<Rango>,
   cambios: CambiosComunes,
 ): boolean {
   if (cambios.tipo !== undefined && cambios.tipo !== campo.tipo) {
@@ -53,5 +59,6 @@ export function necesitaVistaPrevia(
   if (cambios.requerido === true && !campo.requerido) {
     return true
   }
-  return opcionesQuitadas(campo, cambios).length > 0
+  const vigente = { minimo: campo.minimo ?? null, maximo: campo.maximo ?? null }
+  return opcionesQuitadas(campo, cambios).length > 0 || rangoSeAcota(vigente, cambios)
 }

@@ -53,9 +53,15 @@ const SOLO_SIN_SESION: readonly string[] = [RUTAS.ingreso, RUTAS.registro]
 // que decide por su cuenta qué mostrar si la sesión de recuperación no llegó.
 const PUBLICAS: readonly string[] = [RUTAS.ingreso, RUTAS.registro, RUTAS.recuperar]
 const PREFIJO_PUBLICO = '/auth/'
+// El portal del cliente no tiene sesión de Supabase: su cookie firmada la valida cada handler de `api/portal/*`.
+const PREFIJO_DEL_PORTAL = '/api/portal/'
 
 export function esRutaPublica(ruta: string): boolean {
-  return PUBLICAS.includes(ruta) || ruta.startsWith(PREFIJO_PUBLICO)
+  return (
+    PUBLICAS.includes(ruta) ||
+    ruta.startsWith(PREFIJO_PUBLICO) ||
+    ruta.startsWith(PREFIJO_DEL_PORTAL)
+  )
 }
 
 // Un `returnTo` viene de la URL: lo puede escribir cualquiera. Sólo vale una ruta interna

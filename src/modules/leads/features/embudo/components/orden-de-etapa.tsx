@@ -2,9 +2,9 @@
 
 import { ArrowDownIcon, ArrowUpIcon, Trash2Icon } from 'lucide-react'
 import { Button } from '@/shared/ui/button'
-import type { PanelDeEtapas } from '../hooks/use-panel-de-etapas'
+import type { EtapasEnEdicion } from '../hooks/use-etapas-editables'
 
-type Props = { de: string; indice: number; total: number; panel: PanelDeEtapas }
+type Props = { de: string; indice: number; total: number; panel: EtapasEnEdicion }
 
 const BOTON = 'size-11 md:size-8'
 

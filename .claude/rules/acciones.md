@@ -17,8 +17,9 @@ paths:
 - Después de mutar: `revalidatePath()` de la pantalla afectada (y `revalidateTag('x', 'max')`
   si hay caché por etiqueta). Nada de `redirect()` dentro de un `try`.
 - Route handlers públicos (portal, webhooks, revalidación de la web): validan el secreto o la
-  cookie firmada con `jose` antes de cualquier lectura, usan el cliente admin sólo para la RPC
-  `web.portal_*`, y nunca devuelven `ruta` de storage: generan `createSignedUrl` de 60 s.
+  cookie firmada (HMAC-SHA256 de `node:crypto`, `src/modules/web/infra/portal/cookie.ts`) antes de
+  cualquier lectura, llegan a la base sólo por `@/modules/web` (el admin vive en
+  `infra/portal/rpc.ts`), y nunca devuelven `ruta` de storage: reciben una `createSignedUrl` de 60 s.
 - Nada de trabajo largo en una action (importación CSV, envío de push masivo): encolar y procesar en
   `supabase/functions/`. **apibara** es la excepción razonada: la llamada vive en la edge function
   `apibara` (tiene la clave) y la hace el navegador con su sesión (`functions.invoke`), de a pocas

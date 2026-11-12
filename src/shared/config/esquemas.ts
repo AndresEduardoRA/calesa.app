@@ -51,6 +51,8 @@ export const esquemaDelServidor = z
       }),
     ),
     CLOUDFLARE_API_TOKEN: opcional(texto),
+    // Fase 8 (portal): firma la cookie de sesión del portal; sin ella, api/portal/* responde 503 (8.07-3).
+    PORTAL_COOKIE_SECRETO: opcional(z.string().min(32, { error: 'al menos 32 caracteres' })),
   })
   .superRefine((e, ctx) => {
     if (e.EMAIL_PROVEEDOR === 'ninguno') return

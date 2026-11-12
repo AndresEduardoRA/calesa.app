@@ -35,6 +35,7 @@ import type {
   RepositorioDeOportunidades,
 } from './entities/repositorios-de-oportunidades'
 import type { RepositorioDeImportacion } from './entities/repositorios-de-importacion'
+import type { EscritorDeAjustesDeLeads, LectorDeAjustesDeLeads } from './entities/ajustes-de-leads'
 import type {
   LectorDeOrigenesDeLeadConUso,
   RepositorioDeOrigenesDeLead,
@@ -87,6 +88,8 @@ import { getPapeleraDeLeads } from './infra/queries/papelera'
 import { getTiposDeLeadConUso } from './infra/queries/tipos'
 import { getTiposDeSeguimientoConUso } from './infra/queries/tipos-de-seguimiento'
 import { getAccesoDelCliente } from './infra/queries/portal'
+import { getAjustesDeLeads } from './infra/queries/ajustes-de-leads'
+import { ajustesDeLeadsSupabase } from './infra/ajustes-de-leads'
 import { portalSupabase } from './infra/portal'
 import { papeleraDeLeadsSupabase } from './infra/papelera'
 import { recordatoriosSupabase } from './infra/recordatorios'
@@ -175,6 +178,11 @@ export const leerOportunidadesDelLead: LectorDeOportunidadesDelLead = getOportun
 export const leerAccesoDelCliente: LectorDeAccesoDelCliente = getAccesoDelCliente
 
 export const repositorioDelPortal: RepositorioDelPortal = portalSupabase
+
+// Las plantillas de la empresa (9.04): la del embudo y el mensaje del portal. Las lee toda cuenta activa.
+export const leerAjustesDeLeads: LectorDeAjustesDeLeads = getAjustesDeLeads
+
+export const repositorioDeAjustesDeLeads: EscritorDeAjustesDeLeads = ajustesDeLeadsSupabase
 
 // Exportar a CSV (parte 8): la constancia y el límite por hora. Las filas salen de `buscarLeads`.
 export const repositorioDeExportacion: RepositorioDeExportacion = exportacionSupabase
