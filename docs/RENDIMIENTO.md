@@ -161,6 +161,8 @@ Elige 10, 25, 50 o 100 (`listas.por_pagina`, `?por=`); cada lista declara su má
 - `documentos_vencimientos()` (job `documentos-vencimientos`, 11:15 UTC): hasta 2.000 documentos por corrida por `documentos_vencen_idx (vence_el)`; el
   cursor `(vence_el, id)` agrega un ordenamiento parcial y recorre también los documentos de repuestos (cuentan para el tope).
 - Cada aviso nuevo pasa por `trg_notificaciones_push` (7.03): con `push_web` activa, un `pg_net` por insert; reabrir (update) no empuja.
+- Inicio (6.12-2): los tres bloques de logística leen `bandejaLogistica(TOPE_DE_BLOQUE)`, memorizada con `cache()`: una sola llamada a
+  `logistica_bandeja(5)` por pantalla, no tres. Cada bloque dice «N» o «más de 5» con `cantidadAcotada` (la base pide `n + 1`).
 
 ## La cadena de logística (6.03)
 
