@@ -29,6 +29,16 @@ export const REGISTRO: Record<string, ConfirmarConUrl> = {
     abre: 'src/modules/logistica/features/documentos/hooks/use-eliminar-documento-por-url.ts',
     senal: 'PANEL_ELIMINAR_DOCUMENTO',
   },
+  // `?eliminar=guia` (8.03-1): eliminar una guía del sitio desde su página.
+  'src/modules/web/features/contenido/guias/components/confirmar-eliminar-guia.tsx': {
+    abre: 'src/modules/web/features/contenido/guias/hooks/use-eliminar-guia-por-url.ts',
+    senal: 'PANEL_ELIMINAR_GUIA',
+  },
+  // `?eliminar=categoria&categoria=<id>` (8.03-2): eliminar una categoría desde su panel, que ya ocupa `?panel=categorias`.
+  'src/modules/web/features/contenido/categorias/components/confirmar-eliminar-categoria.tsx': {
+    abre: 'src/modules/web/features/contenido/categorias/hooks/use-eliminar-categoria-por-url.ts',
+    senal: 'PANEL_ELIMINAR_CATEGORIA',
+  },
   // `?panel=eliminar-faq&faq=<id>` (8.02-1): eliminar una pregunta frecuente, desde el «⋯» de la lista.
   'src/modules/web/features/contenido/faqs/components/confirmar-eliminar-faq.tsx': {
     abre: 'src/modules/web/features/contenido/faqs/hooks/use-eliminar-faq-por-url.ts',
