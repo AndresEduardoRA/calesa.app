@@ -7,6 +7,8 @@ import {
   extensionDelDocumento,
   formatosLegibles,
   nombreParaGuardar,
+  ordenarTiposParaElegir,
+  repartirLaBandeja,
   PESO_MAXIMO_DEL_DOCUMENTO,
   veredictoDelArchivo,
   type ArchivoElegido,
@@ -166,5 +168,26 @@ describe('fechas y errores de la bandeja', () => {
 
   it('la nota tiene tope', () => {
     expect(erroresDeLaBandeja({ ...base, nota: 'x'.repeat(2001) })['nota']).toBeDefined()
+  })
+})
+
+describe('repartirLaBandeja y ordenarTiposParaElegir', () => {
+  const entrada = (hash: string, mime: string) => ({ datos: archivo({ hash, mime }) })
+
+  it('con otro tipo, lo que no admite sale y lo que sí vuelve a entrar', () => {
+    const entradas = [entrada('a', PDF), entrada('b', JPG)]
+    const soloPdf = repartirLaBandeja(entradas, tipo({ formatos: [PDF] }))
+    expect(soloPdf.entran).toHaveLength(1)
+    expect(soloPdf.fuera[0]?.motivo).toBe('Este tipo de documento no admite JPG.')
+    expect(repartirLaBandeja(entradas, tipo({ formatos: [PDF, JPG] })).fuera).toEqual([])
+  })
+
+  it('los tipos que pide una fase van primero y cada bloque por su orden', () => {
+    const tipos = [
+      tipo({ id: 'a', nombre: 'A', orden: 1 }),
+      tipo({ id: 'b', nombre: 'B', orden: 3 }),
+      tipo({ id: 'c', nombre: 'C', orden: 2 }),
+    ]
+    expect(ordenarTiposParaElegir(tipos, new Set(['b'])).map((t) => t.id)).toEqual(['b', 'a', 'c'])
   })
 })

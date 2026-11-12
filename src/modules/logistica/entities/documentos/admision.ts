@@ -171,3 +171,37 @@ export function erroresDeLaBandeja(datos: DatosDeLaBandeja): Record<string, stri
   }
   return errores
 }
+
+/**
+ * Qué de la bandeja se puede subir con el tipo elegido y qué no (el formato, el peso: lo de elegir otro tipo después). Un archivo que sale por el tipo vuelve a entrar si se elige uno
+ * que lo admite; lo repetido ya se descartó al elegirlo.
+ */
+export function repartirLaBandeja<T extends { datos: ArchivoElegido }>(
+  entradas: readonly T[],
+  tipo: Pick<TipoDeDocumento, 'formatos'> | null,
+): { entran: T[]; fuera: { entrada: T; motivo: string }[] } {
+  const entran: T[] = []
+  const fuera: { entrada: T; motivo: string }[] = []
+  for (const entrada of entradas) {
+    const veredicto = veredictoDelArchivo(entrada.datos, tipo, new Set())
+    if (veredicto.entra) {
+      entran.push(entrada)
+    } else {
+      fuera.push({ entrada, motivo: veredicto.motivo })
+    }
+  }
+  return { entran, fuera }
+}
+
+/** Los tipos para elegir: primero los que pide una fase (por su orden) y luego los demás (por el suyo). */
+export function ordenarTiposParaElegir(
+  tipos: readonly TipoDeDocumento[],
+  idsPedidos: ReadonlySet<string>,
+): TipoDeDocumento[] {
+  return [...tipos].sort(
+    (a, b) =>
+      Number(idsPedidos.has(b.id)) - Number(idsPedidos.has(a.id)) ||
+      a.orden - b.orden ||
+      a.nombre.localeCompare(b.nombre, 'es'),
+  )
+}

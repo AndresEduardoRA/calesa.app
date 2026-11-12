@@ -11,6 +11,7 @@ import { agruparPorTipo } from '../../../entities/documentos/agrupar'
 import type { Unidad } from '../../../entities/nucleo/unidad'
 import { useDocumentosDeLaUnidad } from '../hooks/use-documentos-de-la-unidad'
 import { GrupoDeTipoDeDocumento } from './grupo-de-tipo'
+import { ZonaParaSubirDeLaUnidad } from './zona-para-subir-de-la-unidad'
 
 function Cargando() {
   return (
@@ -21,8 +22,8 @@ function Cargando() {
   )
 }
 
-// El hueco «Documentos» del panel de la unidad y la pestaña «Documentos» de la ficha: un solo componente (D2). Hoy lee y muestra (6.06-1); subir, aprobar y rechazar llegan en 6.06-2 y
-// 6.06-3. Se dibuja con `logistica.ver` del origen; la base decide lo demás.
+// El hueco «Documentos» del panel de la unidad y la pestaña «Documentos» de la ficha: un solo componente (D2). Lee y muestra (6.06-1) y sube con una bandeja (6.06-2); aprobar y
+// rechazar llegan en 6.06-3. Se dibuja con `logistica.ver` del origen; la base decide lo demás.
 export function HuecoDeDocumentos({ unidad }: { unidad: Unidad }) {
   const { lectura, reintentar } = useDocumentosDeLaUnidad(unidad)
   const dato = lectura.tipo === 'listo' ? lectura.dato : null
@@ -42,6 +43,7 @@ export function HuecoDeDocumentos({ unidad }: { unidad: Unidad }) {
           </div>
         </div>
       ) : null}
+      {dato ? <ZonaParaSubirDeLaUnidad unidad={unidad} dato={dato} /> : null}
       {dato && grupos.length === 0 ? (
         <EstadoVacio compacto titulo="Esta unidad no tiene documentos." />
       ) : null}
