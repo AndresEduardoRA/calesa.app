@@ -112,9 +112,18 @@ function soltarAjustesDeLaWebDePrueba(): void {
       where actualizado_por in (select id from auth.users where email like ${literal(`%@${DOMINIO_E2E}`)})`)
 }
 
+// La configuración del cotizador de repuestos nombra a quien la publicó (`creado_por`, FK sin `on delete`, 8.12-2) y es append-only para la app: lo
+// que publicó una cuenta de prueba se borra (ninguna cotización la referencia: congela su snapshot).
+function borrarConfiguracionDelCotizadorDePrueba(): void {
+  sql(`
+    delete from public.repuestos_cotizador_config
+      where creado_por in (select id from auth.users where email like ${literal(`%@${DOMINIO_E2E}`)})`)
+}
+
 export async function borrarPersonasDePrueba(): Promise<void> {
   soltarComprobantesDePrueba()
   soltarAjustesDeLaWebDePrueba()
+  borrarConfiguracionDelCotizadorDePrueba()
   const dePrueba = (await cuentas())
     .filter((cuenta) => cuenta.email?.endsWith(`@${DOMINIO_E2E}`))
     // Como fechas, no como texto: GoTrue escribe «…:23Z» sin fracción cuando cae justo en el segundo, y «.» va antes que «Z» (5.13-1).

@@ -16,7 +16,7 @@ import {
 import { crearAsesoraDeLaSemilla } from './soporte/recorrido'
 import { literal, sql } from './soporte/sql'
 
-// Configuración › Repuestos (8.08-3): quien tiene `repuestos.configurar` entra a los cuatro catálogos (una sola pestaña: sin barra) y la sección figura en el
+// Configuración › Repuestos (8.08-3): quien tiene `repuestos.configurar` entra a los cuatro catálogos (la pestaña por defecto de las dos) y la sección figura en el
 // hub; la asesora de la semilla no tiene la clave y no entra. Se agrega, renombra, desactiva y elimina un tipo de pieza propio; el de la prueba se limpia por
 // su nombre. Que uno en uso no se elimine lo prueba `supabase/tests/areas/repuestos/catalogos.sql` (K1, D31).
 test.describe.configure({ mode: 'serial' })
@@ -53,7 +53,7 @@ test('quien configura repuestos entra a los cuatro catálogos y el hub lista Rep
   for (const catalogo of ['Tipo de pieza', 'Condición', 'Vía de transporte', 'País de origen']) {
     await expect(page.getByRole('heading', { name: catalogo, level: 2 })).toBeVisible()
   }
-  await expect(page.getByRole('tab')).toHaveCount(0)
+  await expect(page.getByRole('tab')).toHaveCount(2)
   // Una pestaña escrita a mano en la URL abre la misma.
   await page.goto('/configuracion/repuestos?seccion=basura')
   await expect(page.getByRole('heading', { name: 'Tipo de pieza', level: 2 })).toBeVisible()

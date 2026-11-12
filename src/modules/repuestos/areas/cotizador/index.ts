@@ -1,2 +1,9 @@
-// La API de servidor de el área `cotizador` de `repuestos`: la llena el paso 8.12. Sale por el `index.ts` de la raíz.
-export {}
+// La API de servidor del área `cotizador` de `repuestos` (8.12-2): la configuración del cotizador para Configuración › Repuestos. Sale por el
+// `index.ts` de la raíz.
+export { leerConfiguracionDelCotizador } from '../../infra/cotizador/configuracion'
+export {
+  type CajaConfigurada,
+  type ConfiguracionDelCotizador,
+  type LecturaDeLaConfiguracion,
+  type TramoConfigurado,
+} from '../../entities/cotizador/filas-de-configuracion'
