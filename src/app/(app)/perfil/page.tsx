@@ -1,8 +1,11 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import { requerirSesion } from '@/modules/equipo'
 import { FormularioPerfil, PreferenciasPerfil } from '@/modules/equipo/pantallas/perfil'
 import { EstadoEnLaRueda } from '@/modules/web/pantallas/perfil'
 import { urlPublicaONull } from '@/shared/lib/almacen'
+import { EsqueletoFormulario } from '@/shared/ui/esqueletos'
+import { NotificacionesSeccion } from './notificaciones-seccion'
 
 export const metadata: Metadata = { title: 'Mi perfil' }
 
@@ -22,6 +25,9 @@ export default async function PaginaPerfil() {
       />
       <EstadoEnLaRueda permisos={sesion.permisos} />
       <PreferenciasPerfil />
+      <Suspense fallback={<EsqueletoFormulario bloques={1} campos={3} />}>
+        <NotificacionesSeccion usuarioId={sesion.usuarioId} permisos={sesion.permisos} />
+      </Suspense>
     </div>
   )
 }
