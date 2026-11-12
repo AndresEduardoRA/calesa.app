@@ -7,9 +7,10 @@ import { POR_ALTA } from '@/shared/lib/paginacion'
 import { leerMensajes } from '../entities/mensajes'
 import type { LectorDeMensajes } from '../entities/repositorios'
 
-// Sin el embed `responde`: la cita de un mensaje respondido la suma 7.09-4 aquí mismo.
+// El embed `responde` trae la cita del mensaje respondido (a lo sumo 21 búsquedas por `mensajes_pkey` por página); bajo la misma RLS, uno que no
+// se puede leer llega nulo.
 const COLUMNAS_DEL_HILO =
-  'id, conversacion_id, autor_id, tipo, cuerpo, creado_en, editado_en, eliminado_en, responde_a_id, autor:perfiles!mensajes_autor_id_fkey(nombre)'
+  'id, conversacion_id, autor_id, tipo, cuerpo, creado_en, editado_en, eliminado_en, responde_a_id, autor:perfiles!mensajes_autor_id_fkey(nombre), responde:mensajes!mensajes_responde_a_id_fkey(id, cuerpo, eliminado_en, autor:perfiles!mensajes_autor_id_fkey(nombre))'
 
 // Índice: `mensajes_hilo_idx (conversacion_id, creado_en desc, id desc)`. Se pide una fila de más (`tamano + 1`) para saber si hay más atrás.
 export const leerPaginaDeMensajes: LectorDeMensajes = async ({

@@ -5,6 +5,7 @@ import type { Conversacion, CursorDeConversaciones, PaginaDeConversaciones } fro
 import type { FalloDeEscritura, RespuestaDeEscritura } from './escritura'
 import type { PaginaDeMensajes } from './mensajes'
 import type { PersonasEncontradas } from './personas'
+import type { ResultadoDeEdicion } from './reglas-del-mensaje'
 
 export type PedidoDePaginaDeConversaciones = {
   desde?: CursorDeConversaciones
@@ -68,4 +69,12 @@ export type RepositorioDeMensajes = {
   }) => Promise<{ ok: true; data: { id: string; creadoEn: string } } | FalloDeEscritura>
   // Marca leído hasta ese instante (sólo avanza).
   leer: (pedido: { conversacion: string; hasta: string }) => RespuestaDeEscritura
+  // 7.09-4: `esperado` es la versión que se leyó (`editadoEn ?? creadoEn`); la base exige autor, 15 minutos y esa versión.
+  editar: (pedido: {
+    mensaje: string
+    esperado: string
+    cuerpo: string
+  }) => Promise<{ ok: true; data: ResultadoDeEdicion } | FalloDeEscritura>
+  // El autor o quien tiene `chat.moderar`; vacía el texto y deja «Mensaje eliminado».
+  eliminar: (mensaje: string) => RespuestaDeEscritura
 }
