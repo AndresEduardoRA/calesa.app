@@ -94,7 +94,7 @@ export const esAccionDelServidor = (r: Response) =>
   r.request().method() === 'POST' && r.request().headers()['next-action'] !== undefined
 
 // Arma la espera ANTES de la acción (sin carrera con la respuesta), la deja correr y devuelve la respuesta. Si vence el tope el error dice
-// qué pedido faltó y cuánto se esperó, no «el test superó los 30 s». Anota lo que tardó. `espera` es la etiqueta (tope de 30 s) o
+// qué pedido faltó y cuánto se esperó, no «el test superó los 30 s». Anota lo que tardó si fue 1 s o más. `espera` es la etiqueta (tope de 30 s) o
 // `{ etiqueta, tope }`. No lee el cuerpo ni las cabeceras.
 export async function conRespuesta(
   page: Page,
@@ -111,7 +111,8 @@ export async function conRespuesta(
   await accion()
   try {
     const r = await llega
-    console.warn(`[espera] ${etiqueta}: ${Math.round(performance.now() - inicio)} ms`)
+    const ms = Math.round(performance.now() - inicio)
+    if (ms >= 1_000) console.warn(`[espera] ${etiqueta}: ${String(ms)} ms`)
     return r
   } catch {
     throw new Error(`«${etiqueta}»: no llegó la respuesta en ${tope} ms`)
