@@ -19,10 +19,15 @@ export type PagoConfirmado = {
   confirmadoEn: string | null
 }
 
+// De quién es un pago: de un vehículo o de un proyecto de repuestos (8.13-5), nunca de los dos.
+export type DuenoDelPago =
+  { vehiculoId: string; proyectoId?: undefined } | { proyectoId: string; vehiculoId?: undefined }
+
 export type RepositorioDePagos = {
-  // `pago_registrar`: el id lo manda el cliente, así que un reintento no duplica. Sin lead: no se elige en esta parte (D3).
+  // `pago_registrar` (vehículo) o `pago_registrar_proyecto` (8.13-5): el id lo manda el cliente, así que un reintento no duplica. Sin lead: no se
+  // elige en esta parte (D3).
   registrar: (
-    pedido: { id: string; vehiculoId: string } & DatosDePago,
+    pedido: { id: string } & DuenoDelPago & DatosDePago,
   ) => Promise<ResultadoDeAccion<PagoGuardado>>
   // `pago_guardar`: con la versión que se tenía en pantalla; `cambios` es sólo lo que cambió (`cambiosDePago`).
   guardar: (pedido: {

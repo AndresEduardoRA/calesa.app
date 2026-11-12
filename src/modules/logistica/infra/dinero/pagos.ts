@@ -9,7 +9,7 @@ import type {
 } from '../../entities/dinero/repositorio-de-pagos'
 import { falloDeLaBase, inesperado, nuloParaLaBase } from './rpc'
 
-// Los pagos se escriben sólo por RPC (6.10: `pago_registrar`, `pago_guardar`, `pago_eliminar`, `pago_confirmar` y `pago_anular`), con el cliente de quien pide. El sello de un pago confirmado
+// Los pagos se escriben sólo por RPC (6.10: `pago_registrar` y, de un proyecto, `pago_registrar_proyecto` del 8.13-5, `pago_guardar`, `pago_eliminar`, `pago_confirmar` y `pago_anular`), con el cliente de quien pide. El sello de un pago confirmado
 // (quién y cuándo) lo pone el disparador de la base, nunca esto. Lo que la base rechaza vuelve con su mensaje ya escrito.
 
 function guardadoDesde(datos: unknown): PagoGuardado | null {
@@ -47,11 +47,8 @@ function respuesta<T>(dato: T | null): ResultadoDeAccion<T> {
 export const pagosSupabase: RepositorioDePagos = {
   registrar: async (p) => {
     const supabase = await createClient()
-    const { data, error } = await supabase.rpc('pago_registrar', {
+    const datos = {
       p_id: p.id,
-      p_vehiculo: p.vehiculoId,
-      // El lead no se elige en esta parte (D3): el pago va sin lead.
-      p_lead: nuloParaLaBase(null),
       p_concepto: p.concepto,
       p_moneda: p.moneda,
       p_monto: p.monto,
@@ -60,7 +57,17 @@ export const pagosSupabase: RepositorioDePagos = {
       p_fecha: p.fecha,
       p_comprobante_ruta: nuloParaLaBase(p.comprobanteRuta),
       p_notas: nuloParaLaBase(p.notas),
-    })
+    }
+    // Un pago de proyecto va por su gemela (8.13-5, D1), sin lead (D2).
+    const { data, error } =
+      p.proyectoId !== undefined
+        ? await supabase.rpc('pago_registrar_proyecto', { ...datos, p_proyecto: p.proyectoId })
+        : await supabase.rpc('pago_registrar', {
+            ...datos,
+            p_vehiculo: p.vehiculoId,
+            // El lead no se elige en esta parte (D3): el pago va sin lead.
+            p_lead: nuloParaLaBase(null),
+          })
     return error ? falloDeLaBase(error) : respuesta(guardadoDesde(data))
   },
   guardar: async (p) => {

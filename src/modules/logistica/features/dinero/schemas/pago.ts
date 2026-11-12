@@ -6,9 +6,8 @@ const monto = z.number().gt(0)
 const textoOpcional = z.string().trim().max(1000).nullable()
 const version = z.string().min(1)
 
-export const esquemaRegistrarPago = z.object({
+const datosDeRegistrar = z.object({
   id: z.guid(),
-  vehiculoId: z.guid(),
   concepto: z.string().trim().min(1).max(200),
   moneda: z.string().regex(/^[A-Z]{3}$/),
   monto,
@@ -18,6 +17,12 @@ export const esquemaRegistrarPago = z.object({
   notas: textoOpcional,
   comprobanteRuta: z.string().max(300).nullable(),
 })
+
+// De un vehículo o de un proyecto de repuestos (8.13-5), nunca de los dos.
+export const esquemaRegistrarPago = z.union([
+  datosDeRegistrar.extend({ vehiculoId: z.guid(), proyectoId: z.undefined().optional() }),
+  datosDeRegistrar.extend({ proyectoId: z.guid(), vehiculoId: z.undefined().optional() }),
+])
 
 // Sólo lo que `pago_guardar` admite y esta interfaz manda: las claves de `p_cambios` sin `lead_id` (D3).
 const esquemaDeCambios = z.strictObject({
