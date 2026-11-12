@@ -68,6 +68,7 @@ describe('los workflows del repo cumplen', () => {
   it('lee los jobs de ci.yml', () => {
     expect(jobsDe(ci).map((j) => j.nombre)).toEqual([
       'nivel-1',
+      'pruebas',
       'carriles',
       'cambios',
       'base',
@@ -103,6 +104,16 @@ describe('ci.yml por niveles y carriles', () => {
     for (const nombre of ['e2e', 'e2e-build']) {
       expect(job(nombre)).toContain("needs.cambios.outputs.e2e_modo != 'ninguno'")
     }
+  })
+
+  it('`pnpm test` corre en 3 partes, cada una en su job, y su nombre sigue siendo del Nivel 1 (rojo firme del coordinador)', () => {
+    const pruebas = job('pruebas')
+    expect(pruebas).toMatch(/name: Nivel 1 · tests, parte \$\{\{ matrix\.parte \}\} de 3/)
+    expect(pruebas).toMatch(/parte: \[1, 2, 3\]/)
+    expect(pruebas).toContain('pnpm test --shard=${{ matrix.parte }}/3')
+    expect(pruebas).toMatch(/fail-fast: false/)
+    // Una sola vez: el job de lint y tipos ya no la repite entera.
+    expect(job('nivel-1')).not.toMatch(/^\s*- run: pnpm test/m)
   })
 
   it('cada noche corre el completo (schedule), sólo si hubo commits', () => {
