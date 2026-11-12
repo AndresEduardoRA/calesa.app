@@ -22,4 +22,9 @@ export const REGISTRO: Record<string, RegistroDeDrawer> = {
     formulario: 'src/modules/logistica/features/dinero/components/drawer-de-anulacion.tsx',
     mecanismo: 'contexto',
   },
+  // «Nuevo proyecto» de `/repuestos` (8.09-1): `?panel=nuevo-proyecto`. Dice que tiene algo escrito con `useCambiosSinGuardar` en el mismo archivo.
+  'src/modules/repuestos/features/proyectos/components/drawer-de-nuevo-proyecto.tsx': {
+    formulario: 'src/modules/repuestos/features/proyectos/components/drawer-de-nuevo-proyecto.tsx',
+    mecanismo: 'contexto',
+  },
 }
