@@ -128,8 +128,10 @@ test('la dueña agrega dos datos, sube uno y quita el otro', async ({ page }) =>
   await expect
     .poll(() => requisitosEnLaBase(fase.id))
     .toEqual([...antes, 'pagos.umbral_pct:false:50', 'vehiculo.vin:false:'])
-  const vistos = await descripcionesDeLaLista(inspector)
-  expect(vistos.slice(-2)).toEqual([pagos, 'VIN del vehículo'])
+  // La base ya cambió; la lista se vuelve a dibujar un instante después: se espera el orden, no se lee una vez (caía en CI: el 9.04, dos veces).
+  await expect
+    .poll(async () => (await descripcionesDeLaLista(inspector)).slice(-2))
+    .toEqual([pagos, 'VIN del vehículo'])
 
   // Quitar: lo pide el «⋯», confirma el diálogo (en la URL) y el requisito se va.
   await masAccionesDe(page, 'VIN del vehículo').click()
