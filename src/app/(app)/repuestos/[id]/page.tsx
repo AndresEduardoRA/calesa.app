@@ -12,6 +12,7 @@ import {
   leerProyecto,
 } from '@/modules/repuestos'
 import { CabeceraDeProyecto } from '@/modules/repuestos/pantallas/proyectos'
+import { PagosDelProyectoDiferido } from '@/modules/logistica/pantallas/dinero-proyecto'
 import { leerMonedasYTiposCambio } from '@/modules/empresa'
 import { leerVehiculo } from '@/modules/vehiculos'
 import { datosO } from '@/shared/lib/errores'
@@ -29,7 +30,8 @@ import { SeccionDeCotizaciones } from './seccion-cotizaciones'
 
 export const metadata: Metadata = { title: 'Proyecto de repuestos' }
 
-// Un proyecto de repuestos (`docs/UX.md` › «Repuestos»): su cabecera y la hoja de ítems o, con `repuestos.costos.ver` y `?pestana=compras`, sus compras y el margen, o, con
+// Un proyecto de repuestos (`docs/UX.md` › «Repuestos»): su cabecera y la hoja de ítems o, con `repuestos.costos.ver` y `?pestana=compras`, sus compras y el margen
+// (`?pestana=pagos`, los pagos del cliente, 8.13-5), o, con
 // `repuestos.cotizar` y `?pestana=cotizaciones`, sus cotizaciones. Lo que no existe, está eliminado o quien mira no ve se dicen igual (D49), con un enlace al listado.
 export default function PaginaDeUnProyecto({ params, searchParams }: PageProps<'/repuestos/[id]'>) {
   return (
@@ -127,6 +129,19 @@ function seccionAbierta(abierta: string, datos: DatosDeLaSeccion): ReactNode {
           monedas={monedas}
           puedeEditarCostos={puede(permisos, 'repuestos.costos.editar')}
           cerrado={cerrado}
+        />
+      </Suspense>
+    )
+  }
+  if (abierta === 'pagos') {
+    // El código del hueco de pagos (de `logistica`) se pide al abrir la pestaña; lee los pagos desde el navegador, bajo la policy.
+    return (
+      <Suspense fallback={<EsqueletoListado filas={4} columnas={4} />}>
+        <PagosDelProyectoDiferido
+          proyectoId={proyectoId}
+          cerrado={cerrado}
+          puedeEditar={puede(permisos, 'repuestos.costos.editar')}
+          puedeConfirmar={puede(permisos, 'logistica.pagos.confirmar')}
         />
       </Suspense>
     )
