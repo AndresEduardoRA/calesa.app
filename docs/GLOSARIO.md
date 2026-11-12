@@ -322,6 +322,12 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Compra** — `repuestos_compras`: costo de un repuesto (permiso aparte).
 - **Catálogo de repuestos** — `repuestos_catalogos.catalogo` (`CATALOGOS_DE_REPUESTOS`): tipo de pieza, condición, vía de transporte o país de origen. Cada fila es un **valor** (`ValorDeCatalogo`); un valor en uso no se borra, se desactiva. La clave `modo_transporte` se muestra como «Vía de transporte».
 - **Cotizador de repuestos** — `repuestos_cotizador_config`, `_tramos_logistica`, `_cajas`, `repuestos_cotizaciones`: fórmula propia importado/local con tramos y cajas.
+  - **Tramo de logística** — `repuestos_tramos_logistica` (`TramoDeLogistica`): por moneda, el monto de logística para un costo con `costo_min ≤ costo < costo_max`
+    (`costo_max` nulo: en adelante). Dos activos de una moneda no se cruzan.
+  - **Logística sugerida** — `logistica_sugerida`: el monto del tramo que contiene el costo; sin tramo, no hay (nunca 0). La logística escrita la reemplaza.
+  - **Caja** — `repuestos_cajas`: monto fijo de embalaje por moneda que se elige por línea («Sin caja» = 0).
+  - **Snapshot de configuración** — `repuestos_cotizaciones.config_snapshot` (`SnapshotDelCotizador`): la configuración vigente, los tramos y las cajas activos de la
+    moneda congelados al crear la cotización; todo total se calcula con él.
 - **Evento** — `eventos`, `eventos_destinatarios`: cita con visibilidad privada/pública/seleccionados.
 - **Destinatario** — `eventos_destinatarios`: persona que ve un evento «seleccionados» (de 1 a 50); en la pantalla, «Destinatarios» y «¿Con quién?». Sólo lo ve quien creó el evento.
 - **Tarea** — `tareas` / `reasignar_tarea`: pendiente con responsable y vencimiento.
