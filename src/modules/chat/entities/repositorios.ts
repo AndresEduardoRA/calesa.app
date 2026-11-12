@@ -88,3 +88,19 @@ export type RepositorioDeMensajes = {
 export type LectorDeReferencias = (
   referencias: readonly Referencia[],
 ) => Promise<Resultado<Map<string, EstadoDeReferencia>>>
+
+// Crear una tarea o un evento desde un mensaje del chat (7.10-3): `mensaje_tarea_crear` y `mensaje_evento_crear` crean la cosa y su ficha en una transacción.
+// `id` es el del mensaje, el del formulario al abrirse: reintentar es `repetido`, nunca dos tareas. Quién puede lo dice la base (42501, 23514); el `hint` es el campo.
+export type RepositorioDeFichas = {
+  crearTarea: (pedido: {
+    id: string
+    conversacion: string
+    datos: { titulo: string; vence_en?: string; responsable_id?: string }
+  }) => RespuestaDeEscritura
+  crearEvento: (pedido: {
+    id: string
+    conversacion: string
+    datos: { titulo: string; inicia_en: string; visibilidad: 'privado' | 'seleccionados' }
+    destinatarios: readonly string[]
+  }) => RespuestaDeEscritura
+}

@@ -6,10 +6,11 @@ import type {
   LectorDeUnaConversacion,
 } from './entities/repositorios'
 import { repositorioDeConversaciones } from './infra/conversaciones-escritura'
+import { repositorioDeFichas } from './infra/fichas-escritura'
 import { repositorioDeMensajes } from './infra/mensajes-escritura'
 import { getConversacion } from './infra/conversacion'
 import { getPaginaDeConversaciones } from './infra/conversaciones'
 
 export const leerPaginaDeConversaciones: LectorDePaginaDeConversaciones = getPaginaDeConversaciones
 export const leerConversacion: LectorDeUnaConversacion = getConversacion
-export { repositorioDeConversaciones, repositorioDeMensajes }
+export { repositorioDeConversaciones, repositorioDeFichas, repositorioDeMensajes }
