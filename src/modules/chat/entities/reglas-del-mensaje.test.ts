@@ -30,6 +30,7 @@ function mensaje(extra: Partial<Mensaje> = {}): Mensaje {
     editadoEn: null,
     eliminadoEn: null,
     respondeAId: null,
+    ficha: null,
     responde: null,
     estado: 'enviado',
     ...extra,

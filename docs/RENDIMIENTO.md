@@ -148,6 +148,22 @@ Elige 10, 25, 50 o 100 (`listas.por_pagina`, `?por=`); cada lista declara su má
 - Nodos del DOM de una columna en el tope (500 tarjetas): ≤ 10.250; el «⋯» de cada tarjeta cuesta exactamente 3 nodos (`<use>` a un símbolo de `src/shared/ui/lista/simbolos-de-lista.tsx`; `e2e/mas-acciones-icono.spec.ts`). El servidor dibuja una sola distribución (columnas o pestañas) según el ancho de la petición.
 - Oportunidades de la ficha: 10 en el servidor (las abiertas primero) y «Ver más» de a `TAMANO_DE_VER_MAS` desde el navegador, hasta `TOPE_DE_LO_CARGADO` con aviso y el camino «Buscarlas en tu embudo». Documento de la ficha ≤ 66 KB con la sección abierta, con 10 o con 1.000 (62,7 y 61,7 KB). Cada «Ver más», una página de 20 de ≈ 15,5 KB que no crece con la profundidad (≈ 3 ms en la base, `medir-lead-oportunidades.sql`); nodos lineales hasta 500 (238 con 10 y 11.509 con 500). `e2e/leads-oportunidades-ver-todas.spec.ts`.
 
+## Alertas y bandeja de logística (6.12)
+
+- `logistica_bandeja(5)` (definer, máximo 20): demoradas = por par (origen visible, fase que alerta) un rango de `vehiculos_cadena_idx` con `limit 50`;
+  cuesta los pares que ve quien mira (decenas), no las unidades. Trabados: hasta 50 llamadas a `evaluar_requisitos` (los requisitos de una fase son
+  configuración). Por aprobar: `documentos_por_revisar_idx` con `limit n + 1` (cola corta). Sin `count`, sin `offset`, sin volumen sembrado (no es una
+  lista nueva sobre una tabla que crece: lee rangos acotados de índices ya medidos en 6.02).
+- `alertas_demora()` (job `alertas-demora`, cada hora en el minuto 12): hasta 2.000 unidades por corrida, de a 200 por cursor `(fase_desde, id)` sobre
+  `vehiculos_cadena_idx`; destinatarios una vez por origen. «Ya avisé», «abierto» y el cierre al mover (`trg_alertas_cerrar_al_mover`, también en un
+  `cambiar_fase_lote` de 200) van por `notificaciones_referencia_idx (referencia_id, tipo, usuario_id, creado_en desc)`. **Límite aceptado:** con más de
+  2.000 demoradas a la vez, las más nuevas esperan a que se muevan las viejas.
+- `documentos_vencimientos()` (job `documentos-vencimientos`, 11:15 UTC): hasta 2.000 documentos por corrida por `documentos_vencen_idx (vence_el)`; el
+  cursor `(vence_el, id)` agrega un ordenamiento parcial y recorre también los documentos de repuestos (cuentan para el tope).
+- Cada aviso nuevo pasa por `trg_notificaciones_push` (7.03): con `push_web` activa, un `pg_net` por insert; reabrir (update) no empuja.
+- Inicio (6.12-2): los tres bloques de logística leen `bandejaLogistica(TOPE_DE_BLOQUE)`, memorizada con `cache()`: una sola llamada a
+  `logistica_bandeja(5)` por pantalla, no tres. Cada bloque dice «N» o «más de 5» con `cantidadAcotada` (la base pide `n + 1`).
+
 ## La cadena de logística (6.03)
 
 - `/logistica`: `logistica_cadena()` trae la primera página de cada columna (`TAMANO_DE_COLUMNA`, 50), «Ver más» pide de a 50 por `verMasDeLaColumna` hasta `TOPE_DE_LO_CARGADO` (500) por columna con `<AvisoDeTope>`; el número de la columna es `50+`, nunca un total (`limit n + 1`). Índice `vehiculos_cadena_idx (origen_id, fase_id, fase_desde, id)` de 6.02 (plan medido allí). Nada por tarjeta: los atributos para el nombre van en tandas de 100 ids por clave primaria, una vez por lectura. Sin foto ni menú «⋯»: el nodo de cada tarjeta es corto (12 columnas × 50 = 600 tarjetas). Una sola vista en el DOM (escritorio o celular, la elige el ancho de la petición).
@@ -191,6 +207,14 @@ Cada sección por su RPC, de a `_acotar_pagina(p_tamano, 5, 20)` + 1, con el mí
 - Pestaña «Repuestos» de la ficha del vehículo (8.09-4): `proyectoDe` es `limit 1` por `repuestos_proyecto_por_vehiculo` y el recuento por fase lee como mucho 201 ítems por `repuestos_items_proyecto_id_idx`; sólo al abrir la pestaña (nunca con la ficha); componentes de servidor, sin JS de cliente nuevo.
 - Catálogos de Configuración (8.08-2): 4 × `limit 201` por PostgREST, sin índice por `orden` (tabla de configuración, decenas de filas); tope 200 por
   catálogo, con `<AvisoDeTope>` en la 8.08-3.
+
+## Tablero: métricas (9.07)
+
+- `tablero_leads()` y `tablero_cotizaciones()` (definer): agregados de un período de hasta 366 días (fechas en la zona de la empresa). `tablero_leads`
+  recorre `leads_listado_idx` por el rango de `creado_en` y `leads_cliente_desde_idx` (parcial: vivos con fecha) por el de `cliente_desde`; el dueño de
+  cada lead del período, por `leads_asesores_dueno_unico` (una sonda por lead). `tablero_cotizaciones` recorre `cotizaciones_listado_idx`. Costo lineal en
+  lo **del período**, no en la tabla; rankings cortados con `row_number()` (10 orígenes, 20 personas) y un día por fecha con `generate_series`.
+- Sin presupuesto medido ni `EXPLAIN` en `db:medir:volumen`: no es una lista; si la pantalla (9.08) lo pide, se mide con el período de 366 días.
 
 ## JS en frío (con gzip, lo que el documento nombra)
 

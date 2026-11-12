@@ -288,7 +288,9 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Revisar** — `revisar_flujo()`: avisos de coherencia del flujo (sin salida, inalcanzable, esperas cruzadas…); cada fila es un aviso de nivel error, aviso o información (`AvisoDeRevision`), y la franja sobre el flujo los resume.
 - **Cadena** — `/logistica`: kanban de unidades por fase.
 - **Mover** — `cambiar_fase()` / `previsualizar_cambio_fase()`: cambiar de fase, con vista previa de qué falta.
-- **Alerta por demora** — `fases.demora_dias` / `alertas_demora()`: aviso cuando una unidad lleva más días de lo esperado en una fase.
+- **Alerta por demora** — `fases.demora_dias` / `alertas_demora()`: aviso cuando una unidad lleva más días de lo esperado en una fase. Job `alertas-demora` cada hora; se reabre el mismo aviso pasado `fases.alerta_cada_horas` (nulo = 72 h) y mover la cierra.
+- **Trabado** — `logistica_bandeja().trabados`: unidad demorada a la que le falta al menos un requisito bloqueante para entrar a su fase siguiente (la activa de menor orden entre las que tienen transición desde la suya); se miran las primeras 50 demoradas. No: «bloqueado», «atascado».
+- **Documento por vencer** — aviso `documento_por_vencer` / `documentos_vencimientos()`: un documento aprobado de una unidad entró en su ventana de aviso (`vence_el - tipos_documento.aviso_dias`); se avisa una vez por persona y documento.
 - **Documento** — `documentos`, `tipos_documento`: archivo del ciclo con estado pendiente/subido/aprobado/rechazado y vencimiento.
 - **Visible en el portal** — `documentos.visible_portal`: un documento que la persona compradora ve en el portal. Sólo lo enciende quien aprueba documentos y sólo si el tipo lo admite (`tipos_documento.visible_portal_permitido`); apagarlo siempre se puede. No: «público», «compartido».
 - **Tipo de documento** — `tipos_documento` / `tipo_documento_crear()`: qué documento pide el ciclo (Título, BL…); de toda la empresa (`flujo_id` nulo) o de un flujo; formatos aceptados y vencimiento (`ninguno`, `solicitar`, `renovar`, con `aviso_dias`). En uso no se borra: se desactiva. No: «clase de documento».

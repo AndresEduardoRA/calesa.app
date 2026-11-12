@@ -2530,6 +2530,7 @@ export type Database = {
           atributos: NonNullable<Json>
           atributos_publicos: NonNullable<Json>
           cartera: string[]
+          cliente_desde: string | null
           creado_en: string
           creado_por: string | null
           eliminado_en: string | null
@@ -2552,6 +2553,7 @@ export type Database = {
           atributos?: NonNullable<Json>
           atributos_publicos?: NonNullable<Json>
           cartera?: string[]
+          cliente_desde?: string | null
           creado_en?: string
           creado_por?: string | null
           eliminado_en?: string | null
@@ -2572,6 +2574,7 @@ export type Database = {
           atributos?: NonNullable<Json>
           atributos_publicos?: NonNullable<Json>
           cartera?: string[]
+          cliente_desde?: string | null
           creado_en?: string
           creado_por?: string | null
           eliminado_en?: string | null
@@ -7186,6 +7189,30 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      _alcance_de_usuario: {
+        Args: { p_clave: string; p_origen: string; p_usuario: string }
+        Returns: Database['public']['Enums']['alcance_permiso']
+      }
+      _alerta_demora_avisar: {
+        Args: {
+          p_dias: number
+          p_fase: string
+          p_fase_desde: string
+          p_fase_nombre: string
+          p_horas: number
+          p_titulo: string
+          p_usuario: string
+          p_vehiculo: string
+        }
+        Returns: number
+      }
+      _alertas_destinatarios: {
+        Args: { p_clave: string; p_origen: string }
+        Returns: {
+          todos: boolean
+          usuario_id: string
+        }[]
+      }
       _apibara_catalogo: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -7258,6 +7285,21 @@ export type Database = {
       }
       _baja_terminar: { Args: { p_usuario: string }; Returns: boolean }
       _bajas_en_curso: { Args: Record<PropertyKey, never>; Returns: string[] }
+      _bandeja_demoradas: {
+        Args: { p_n: number }
+        Returns: {
+          dias: number
+          fase: string
+          fase_desde: string
+          fase_id: string
+          id: string
+          origen_id: string
+          titulo: string
+          vence: string
+        }[]
+      }
+      _bandeja_por_aprobar: { Args: { p_n: number }; Returns: Json }
+      _bandeja_trabados: { Args: { p_demoradas: Json; p_n: number }; Returns: Json }
       _borrador_formula_empezado_por: { Args: { p_creado_por: string }; Returns: string }
       _buscador_interpretar: { Args: { p_texto: string }; Returns: Record<string, unknown> }
       _campo_impacto: {
@@ -7596,6 +7638,17 @@ export type Database = {
           p_vigencia: number
         }
         Returns: string
+      }
+      _documento_vencimiento_avisar: {
+        Args: {
+          p_cuerpo: string
+          p_desde: string
+          p_documento: string
+          p_titulo: string
+          p_usuario: string
+          p_vehiculo: string
+        }
+        Returns: number
       }
       _documento_ya_registrado: { Args: { p_ids: string[]; p_ruta: string }; Returns: Json }
       _documentos_de: { Args: { p_ids: string[] }; Returns: Json }
@@ -7967,6 +8020,7 @@ export type Database = {
           atributos: NonNullable<Json>
           atributos_publicos: NonNullable<Json>
           cartera: string[]
+          cliente_desde: string | null
           creado_en: string
           creado_por: string | null
           eliminado_en: string | null
@@ -8028,6 +8082,7 @@ export type Database = {
           atributos: NonNullable<Json>
           atributos_publicos: NonNullable<Json>
           cartera: string[]
+          cliente_desde: string | null
           creado_en: string
           creado_por: string | null
           eliminado_en: string | null
@@ -8639,6 +8694,15 @@ export type Database = {
         Returns: {
           formula_id: string
           origen_id: string
+        }[]
+      }
+      _tablero_conversion_desde: { Args: Record<PropertyKey, never>; Returns: string }
+      _tablero_ventana: {
+        Args: { p_desde: string; p_hasta: string }
+        Returns: {
+          fin: string
+          ini: string
+          zona: string
         }[]
       }
       _tarjeta_grupos: { Args: { p_def: Json; p_plantilla: Json; p_tonos: Json }; Returns: Json }
@@ -9378,6 +9442,7 @@ export type Database = {
         }
         Returns: Json
       }
+      documentos_vencimientos: { Args: Record<PropertyKey, never>; Returns: number }
       embudo_crear: { Args: { p_id: string; p_nombre: string }; Returns: Json }
       embudo_eliminar: { Args: { p_actualizado_en_esperado: string; p_id: string }; Returns: Json }
       embudo_etapa_pagina: {
@@ -9830,6 +9895,7 @@ export type Database = {
         Returns: string
       }
       limpieza_ultima: { Args: Record<PropertyKey, never>; Returns: Json }
+      logistica_bandeja: { Args: { p_tope?: number }; Returns: Json }
       logistica_cadena: {
         Args: { p_filtros?: Json; p_origen: string; p_tope?: number }
         Returns: Json
@@ -10384,6 +10450,8 @@ export type Database = {
         Args: { p_filas: Json; p_nota: string; p_tabla: string; p_version_esperada: number }
         Returns: Json
       }
+      tablero_cotizaciones: { Args: { p_desde: string; p_hasta: string }; Returns: Json }
+      tablero_leads: { Args: { p_desde: string; p_hasta: string }; Returns: Json }
       tarea_completar: {
         Args: { p_actualizado_en_esperado: string; p_completada: boolean; p_tarea: string }
         Returns: Json

@@ -7,6 +7,7 @@ import { diaSiguiente, inicioDelDia } from '@/shared/lib/fechas'
 import { formatearNumero } from '@/shared/lib/formato'
 import type { Cursor } from '@/shared/lib/paginacion'
 import type { FalloDeEscritura } from './escritura'
+import { fichaDeFila, type Ficha } from './referencias'
 
 export const LARGO_MAXIMO = 4000
 
@@ -33,6 +34,8 @@ export type Mensaje = {
   editadoEn: string | null
   eliminadoEn: string | null
   respondeAId: string | null
+  // Nula en un mensaje de texto; `id` nulo si lo que apuntaba ya no existe (`on delete set null`).
+  ficha: Ficha | null
   // Nulo si no responde a nadie o si el original ya no se puede leer (la burbuja dice «Mensaje no disponible»).
   responde: CitaDeMensaje | null
   estado: EstadoDeEnvio
@@ -56,6 +59,11 @@ const esquemaDeFila = z.object({
   editado_en: z.string().nullable(),
   eliminado_en: z.string().nullable(),
   responde_a_id: z.guid().nullable(),
+  vehiculo_id: z.guid().nullish(),
+  lead_id: z.guid().nullish(),
+  cotizacion_id: z.guid().nullish(),
+  tarea_id: z.guid().nullish(),
+  evento_id: z.guid().nullish(),
   autor: z.object({ nombre: z.string().nullable() }).nullish(),
   responde: z
     .object({
@@ -91,6 +99,7 @@ export function leerMensajes(filas: unknown, tamano: number): Resultado<PaginaDe
         editadoEn: f.editado_en,
         eliminadoEn: f.eliminado_en,
         respondeAId: f.responde_a_id,
+        ficha: fichaDeFila(f.tipo, f),
         responde: f.responde
           ? {
               id: f.responde.id,
@@ -213,6 +222,7 @@ export function mensajeLocal(datos: {
     editadoEn: null,
     eliminadoEn: null,
     respondeAId: datos.responde?.id ?? null,
+    ficha: null,
     responde: datos.responde ?? null,
     estado: 'enviando',
   }
