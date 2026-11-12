@@ -11,11 +11,13 @@ import {
   darRolDePrueba,
 } from './soporte/base'
 import { masAccionesDe, menuDe } from './soporte/lista-de-catalogo'
+import { origenDeLaSubasta } from './soporte/tipos-de-documento'
 import {
   PREFIJO_DE_REQUISITO_E2E,
   abrirForma,
   abrirInspector,
   borrarRequisitosDePrueba,
+  borrarVehiculosDePrueba,
   borrarTiposDeRequisitoDePrueba,
   descripcionesDeLaLista,
   estadoDeLaRegla,
@@ -24,7 +26,10 @@ import {
   filaDeRequisito,
   fijarRegla,
   requisitosEnLaBase,
+  sembrarDatoInformativo,
   sembrarTipoActivo,
+  sembrarVehiculosEnLaFase,
+  vehiculosSinVinEnLaFase,
 } from './soporte/requisitos'
 
 // Configuración › Flujos › inspector de una fase › «Requisitos para entrar» (5.08-1, `docs/UX.md` › «Flujos: requisitos para entrar (estados propios)»): la
@@ -42,6 +47,7 @@ const notas = (resto: string) => `${PREFIJO_DE_REQUISITO_E2E} ${resto} ${proyect
 
 test.beforeAll(async ({}, info) => {
   proyecto = info.project.name
+  borrarVehiculosDePrueba()
   borrarRequisitosDePrueba()
   borrarTiposDeRequisitoDePrueba()
   await borrarPersonasDePrueba()
@@ -71,6 +77,7 @@ test.beforeAll(async ({}, info) => {
 
 test.afterAll(async () => {
   fijarRegla('esperas', esperasAntes)
+  borrarVehiculosDePrueba()
   borrarRequisitosDePrueba()
   borrarTiposDeRequisitoDePrueba()
   await borrarPersonasDePrueba()
@@ -236,4 +243,63 @@ test('la dueña edita un documento, un porcentaje y no guarda sin cambios', asyn
   await expect(
     inspector.getByText('Pagos confirmados: 60 % del precio', { exact: true }),
   ).toBeVisible()
+})
+
+test('la dueña vuelve bloqueante un dato, ve el impacto y las unidades fuera de regla', async ({
+  page,
+}) => {
+  const titulos = [
+    `${PREFIJO_DE_REQUISITO_E2E} Auto A ${proyecto}`,
+    `${PREFIJO_DE_REQUISITO_E2E} Auto B ${proyecto}`,
+  ]
+  sembrarVehiculosEnLaFase(fase.id, titulos)
+  sembrarDatoInformativo(fase.id, 'vehiculo.vin', notas('vin bloqueante'))
+  const n = vehiculosSinVinEnLaFase(fase.id)
+  expect(n).toBeGreaterThanOrEqual(2)
+  await entrar(page, duena, { fresco: true })
+  const inspector = await abrirInspector(page, fase.id)
+  const interruptor = inspector.getByRole('switch', { name: 'Bloqueante: VIN del vehículo' })
+  const confirmar = inspector.getByRole('group', { name: 'Volver bloqueante el requisito' })
+
+  // Encender: antes de guardar dice cuántas unidades quedan fuera de regla; cancelar no cambia nada.
+  await interruptor.click()
+  await expect(
+    confirmar.getByText(
+      `${String(n)} vehículos que ya están en «${fase.nombre}» quedarán fuera de regla. No se mueven: quedan marcados.`,
+    ),
+  ).toBeVisible()
+  expect(requisitosEnLaBase(fase.id)).toContain('vehiculo.vin:false:')
+  await confirmar.getByRole('button', { name: 'Cancelar' }).click()
+  await expect(confirmar).toBeHidden()
+  expect(requisitosEnLaBase(fase.id)).toContain('vehiculo.vin:false:')
+
+  // Confirmar: queda bloqueante.
+  await interruptor.click()
+  await confirmar.getByRole('button', { name: 'Volver bloqueante' }).click()
+  await expect(confirmar).toBeHidden()
+  await expect.poll(() => requisitosEnLaBase(fase.id)).toContain('vehiculo.vin:true:')
+  await expect(interruptor).toBeChecked()
+
+  // El aviso sobre la lista de fases, con su panel: los dos títulos, la fase y el camino al inventario.
+  await page.goto(`/configuracion/flujos?origen=${origenDeLaSubasta()}`)
+  await expect(page.getByText(/unidades? fuera de regla/).first()).toBeVisible()
+  await page.getByRole('button', { name: 'Ver cuáles' }).click()
+  await expect(page).toHaveURL(/panel=fuera-de-regla/)
+  const panel = page.getByRole('dialog', { name: 'Unidades fuera de regla' })
+  await expect(panel).toBeVisible()
+  for (const titulo of titulos) {
+    await expect(panel.getByText(titulo, { exact: true })).toBeVisible()
+  }
+  await expect(panel.getByText('Le falta 1 requisito').first()).toBeVisible()
+  await expect(
+    panel.getByRole('link', { name: 'Verlas en el inventario' }).first(),
+  ).toHaveAttribute('href', new RegExp(`fase=${fase.id}`))
+  await page.keyboard.press('Escape')
+  await expect(panel).toBeHidden()
+  await expect(page).not.toHaveURL(/panel=fuera-de-regla/)
+
+  // Apagar guarda sin preguntar.
+  const otra = await abrirInspector(page, fase.id)
+  await otra.getByRole('switch', { name: 'Bloqueante: VIN del vehículo' }).click()
+  await expect.poll(() => requisitosEnLaBase(fase.id)).toContain('vehiculo.vin:false:')
 })

@@ -122,3 +122,33 @@ export async function abrirForma(
     .getByRole('button', { name: forma, exact: true })
     .click()
 }
+
+// Vehículos sembrados en una fase, sin VIN y sin fase de origen dudosa: el origen es el de la subasta. Todos llevan el prefijo en el título (es lo único que borra la limpieza).
+export function sembrarVehiculosEnLaFase(faseId: string, titulos: string[]): void {
+  const filas = titulos
+    .map((t) => `('${origenDeLaSubasta()}'::uuid, ${literal(t)}, '${faseId}'::uuid)`)
+    .join(', ')
+  sql(`insert into public.vehiculos (origen_id, titulo, fase_id) values ${filas}`)
+}
+
+// Cuántas unidades vivas de la fase no tienen VIN: lo que `requisito_impacto` cuenta al volver bloqueante `vehiculo.vin` (otros specs pueden dejar vehículos en la fase).
+export function vehiculosSinVinEnLaFase(faseId: string): number {
+  return Number(
+    sql(
+      `select count(*) from public.vehiculos where fase_id = '${faseId}' and eliminado_en is null and vin is null`,
+    ),
+  )
+}
+
+// Un dato informativo al final de la fase, por el camino de la base (con el prefijo en sus notas, para que la limpieza lo borre).
+export function sembrarDatoInformativo(faseId: string, clave: string, notas: string): void {
+  sql(
+    `insert into public.fases_requisitos (fase_id, tipo, bloqueante, clave_dato, notas, orden)
+       select '${faseId}', 'dato', false, ${literal(clave)}, ${literal(notas)}, coalesce(max(orden), 0) + 1
+         from public.fases_requisitos where fase_id = '${faseId}'`,
+  )
+}
+
+export function borrarVehiculosDePrueba(): void {
+  sql(`delete from public.vehiculos where titulo like ${literal(`${PREFIJO_DE_REQUISITO_E2E}%`)}`)
+}
