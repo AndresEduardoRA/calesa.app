@@ -2,7 +2,7 @@ import 'server-only'
 
 import { entornoDelServidor, type EntornoDelServidor } from '../../config/servidor'
 import { fallo, type Resultado } from '../errores'
-import { crearAdaptadorMailpit } from './adaptadores/mailpit'
+import { adaptadorDe, remitenteDe } from './proveedor'
 import { esquemaDeMensaje, type EnvioDeEmail, type MensajeDeEmail } from './tipos'
 
 export type { EnvioDeEmail, MensajeDeEmail } from './tipos'
@@ -22,16 +22,12 @@ export async function enviarEmail(
   if (entorno.EMAIL_PROVEEDOR === 'ninguno') {
     return fallo('regla', 'El envío de correos está apagado (EMAIL_PROVEEDOR=ninguno).')
   }
-  // El esquema del entorno ya exige el remitente cuando hay un proveedor.
-  const remitente = {
-    email: entorno.EMAIL_REMITENTE ?? '',
-    nombre: entorno.EMAIL_REMITENTE_NOMBRE ?? '',
+  const adaptador = adaptadorDe(entorno, dependencias.pedir)
+  if (!adaptador) {
+    return fallo(
+      'regla',
+      `Falta la configuración de ${entorno.EMAIL_PROVEEDOR} (docs/ENTORNOS.md › Correo).`,
+    )
   }
-  if (entorno.EMAIL_PROVEEDOR === 'mailpit' && entorno.MAILPIT_URL) {
-    return crearAdaptadorMailpit(entorno.MAILPIT_URL, dependencias.pedir)(valido.data, remitente)
-  }
-  return fallo(
-    'regla',
-    `${entorno.EMAIL_PROVEEDOR} todavía no tiene adaptador (Fase 7, docs/PLAN.md).`,
-  )
+  return adaptador(valido.data, remitenteDe(entorno))
 }
