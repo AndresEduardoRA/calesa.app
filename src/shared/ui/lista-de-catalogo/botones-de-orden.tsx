@@ -12,11 +12,21 @@ type Props = {
   puedeSubir: boolean
   puedeBajar: boolean
   alMover: (direccion: Direccion) => void
+  // Sólo lectura: el motivo de los dos botones apagados, que no son «primero» ni «último».
+  motivoSinOrden?: string
 }
 
 // «Subir X» y «Bajar X»: ordenar sin arrastrar, con el teclado. Apagados en los extremos, con el motivo. Son botones propios de la fila:
 // su clic no abre la fila. El `id` de cada botón es de donde el foco los encuentra después de mover (`useFocoTrasMover`).
-export function BotonesDeOrden({ prefijo, id, nombre, puedeSubir, puedeBajar, alMover }: Props) {
+export function BotonesDeOrden({
+  prefijo,
+  id,
+  nombre,
+  puedeSubir,
+  puedeBajar,
+  alMover,
+  motivoSinOrden,
+}: Props) {
   return (
     <span className="flex shrink-0">
       <Button
@@ -25,7 +35,7 @@ export function BotonesDeOrden({ prefijo, id, nombre, puedeSubir, puedeBajar, al
         size="icon"
         className="size-11 md:size-8"
         aria-label={`Subir ${nombre}`}
-        title={puedeSubir ? undefined : 'Ya es el primero de la lista.'}
+        title={puedeSubir ? undefined : (motivoSinOrden ?? 'Ya es el primero de la lista.')}
         disabled={!puedeSubir}
         onClick={() => {
           alMover('subir')
@@ -39,7 +49,7 @@ export function BotonesDeOrden({ prefijo, id, nombre, puedeSubir, puedeBajar, al
         size="icon"
         className="size-11 md:size-8"
         aria-label={`Bajar ${nombre}`}
-        title={puedeBajar ? undefined : 'Ya es el último de la lista.'}
+        title={puedeBajar ? undefined : (motivoSinOrden ?? 'Ya es el último de la lista.')}
         disabled={!puedeBajar}
         onClick={() => {
           alMover('bajar')

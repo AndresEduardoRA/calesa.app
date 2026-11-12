@@ -42,6 +42,7 @@ export type {
   BorradorDeTipo,
   CampoDeTipo,
   DatosDeTipo,
+  DatosParaCrear,
 } from '../../entities/documentos/formulario-de-tipo'
 export { crearTipoDeDocumento } from '../../features/documentos/actions/crear-tipo-de-documento'
 export { eliminarTipoDeDocumento } from '../../features/documentos/actions/eliminar-tipo-de-documento'

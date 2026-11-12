@@ -18,11 +18,13 @@ type Props = {
 // operaciones de los vehículos.
 export function EditorDeCampos({ origenId, tipoDeOrigen, campos, puedeGestionar }: Props) {
   const ediciones = useCampos()
+  const actual = campos.find((campo) => campo.principal)
+  const principal = actual === undefined ? null : { clave: actual.clave, etiqueta: actual.etiqueta }
   return (
     <EditorCompartido
       campos={campos}
       puedeGestionar={puedeGestionar}
-      configuracion={configuracionDeOrigen({ origenId, tipoDeOrigen })}
+      configuracion={configuracionDeOrigen({ origenId, tipoDeOrigen, principal })}
       ediciones={ediciones}
     />
   )

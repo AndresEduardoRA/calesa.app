@@ -943,18 +943,26 @@ do $$ declare
   v_veh uuid := (select id from public.vehiculos where eliminado_en is null order by numero limit 1);
   r jsonb;
 begin
-  -- El lead propio entra; uno ajeno o inexistente da lo mismo, sin decir si existe.
-  r := pg_temp.como(u50, format('insert into public.pagos (vehiculo_id, lead_id, concepto, moneda, monto, monto_base) values (%L, %L, %L, %L, 1, 1) returning to_jsonb(pagos)', v_veh, lp, 'Seña', 'USD'));
-  if r ->> 'ok' = 'true' then null;
-  elsif r ->> 'estado' <> '42501' or r ->> 'mensaje' like 'No encontramos%' then
-    raise exception 'el pago de un lead propio: %', r;
-  end if;
-  r := pg_temp.como(u50, format('insert into public.pagos (vehiculo_id, lead_id, concepto, moneda, monto, monto_base) values (%L, %L, %L, %L, 1, 1)', v_veh, la, 'Seña', 'USD'));
-  if (r ->> 'ok')::boolean or r ->> 'mensaje' <> 'No encontramos este lead o no tienes acceso.' then
-    raise exception 'el pago de un lead ajeno no dio el mensaje de siempre: %', r; end if;
-  r := pg_temp.como(u50, format('insert into public.pagos (vehiculo_id, lead_id, concepto, moneda, monto, monto_base) values (%L, %L, %L, %L, 1, 1)', v_veh, gen_random_uuid(), 'Seña', 'USD'));
-  if (r ->> 'ok')::boolean or r ->> 'mensaje' <> 'No encontramos este lead o no tienes acceso.' then
-    raise exception 'el pago de un lead inexistente dio otro mensaje: %', r; end if;
+  -- El lead propio entra; uno ajeno o inexistente da lo mismo, sin decir si existe. Como dueño de la base con la sesión de u50: desde el 6.10-1 los pagos
+  -- se escriben sólo por las RPC pago_* (el insert directo de authenticated se cerró, abajo) y lo que se prueba es trg_lead_visible, que lee auth.uid().
+  perform set_config('request.jwt.claim.sub', u50, true);
+  insert into public.pagos (vehiculo_id, lead_id, concepto, moneda, monto, monto_base) values (v_veh, lp, 'Seña', 'USD', 1, 1);
+  begin
+    insert into public.pagos (vehiculo_id, lead_id, concepto, moneda, monto, monto_base) values (v_veh, la, 'Seña', 'USD', 1, 1);
+    raise exception 'el pago de un lead ajeno entró';
+  exception when insufficient_privilege then
+    if sqlerrm <> 'No encontramos este lead o no tienes acceso.' then raise exception 'el pago de un lead ajeno no dio el mensaje de siempre: %', sqlerrm; end if;
+  end;
+  begin
+    insert into public.pagos (vehiculo_id, lead_id, concepto, moneda, monto, monto_base) values (v_veh, gen_random_uuid(), 'Seña', 'USD', 1, 1);
+    raise exception 'el pago de un lead inexistente entró';
+  exception when insufficient_privilege then
+    if sqlerrm <> 'No encontramos este lead o no tienes acceso.' then raise exception 'el pago de un lead inexistente dio otro mensaje: %', sqlerrm; end if;
+  end;
+  -- Y como u50 (authenticated), el insert directo ya no tiene grant.
+  r := pg_temp.como(u50, format('insert into public.pagos (vehiculo_id, lead_id, concepto, moneda, monto, monto_base) values (%L, %L, %L, %L, 1, 1)', v_veh, lp, 'Seña', 'USD'));
+  if (r ->> 'ok')::boolean or r ->> 'estado' <> '42501' or r ->> 'mensaje' not like 'permission denied%' then
+    raise exception 'el insert directo de un pago como authenticated debía dar permission denied: %', r; end if;
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
 

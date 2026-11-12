@@ -40,8 +40,8 @@ function tieneValor(valor: unknown) {
   return valor !== undefined && valor !== null && valor !== ''
 }
 
-// Lo de arriba, en todas las pestañas: la portada, lo que identifica al vehículo —su número, el VIN o el lote y los datos que el
-// layout de su origen pone «en tarjeta», los mismos que lo reconocen en la lista—, su estado (la fase, la vitrina y la limpieza) y lo
+// Lo de arriba, en todas las pestañas: la portada, sus datos —su número, el VIN o el lote y los que el layout de su origen pone
+// «en tarjeta»; lo que lo nombra es su campo principal o su título, en el título del drawer—, su estado (la fase, la vitrina y la limpieza) y lo
 // que se puede hacer: «Editar» (sólo con permiso), «Cotizar» (sólo con permiso para cotizar en el origen) y «Abrir ficha».
 export function CabeceraDelResumen(props: Props) {
   const { vehiculo, campos, fases, origen, vitrina, limpiezaHoy, editable } = props

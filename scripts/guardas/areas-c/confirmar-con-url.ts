@@ -23,4 +23,14 @@ export const REGISTRO: Record<string, ConfirmarConUrl> = {
     abre: 'src/modules/cotizaciones/features/comprobantes/components/boton-emitir-comprobante.tsx',
     senal: 'PANEL_EMITIR_COMPROBANTE',
   },
+  // `?panel=eliminar-tipo&tipo=<id>` (5.09).
+  'src/modules/flujos/features/documentos/components/eliminar-tipo.tsx': {
+    abre: 'src/modules/flujos/features/documentos/hooks/use-eliminar-tipo-por-url.ts',
+    senal: 'PANEL_ELIMINAR_TIPO',
+  },
+  // `?eliminar=requisito&quitar=<id>` (5.08): el diálogo de un inspector que ya ocupa `?fase=`.
+  'src/modules/flujos/features/requisitos/components/eliminar-requisito.tsx': {
+    abre: 'src/modules/flujos/features/requisitos/hooks/use-eliminar-requisito-por-url.ts',
+    senal: 'PANEL_ELIMINAR_REQUISITO',
+  },
 }

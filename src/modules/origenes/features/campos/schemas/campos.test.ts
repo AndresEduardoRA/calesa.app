@@ -16,6 +16,7 @@ const NUEVO = {
   publicoWeb: false,
   claveApibara: '',
   valorDefecto: null,
+  principal: false,
 }
 
 describe('esquemaCrearCampo', () => {

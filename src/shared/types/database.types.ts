@@ -2189,6 +2189,7 @@ export type Database = {
           eliminado_en: string | null
           fecha: string
           id: string
+          lote_id: string | null
           moneda: string
           monto: number
           monto_base: number
@@ -2196,9 +2197,11 @@ export type Database = {
           proveedor: string | null
           repuesto_id: string | null
           tipo_cambio_aplicado: number | null
+          tipo_cambio_id: string | null
           vehiculo_id: string | null
+          _gasto_bloquear: undefined | null
         }
-        ComputedFields: never
+        ComputedFields: '_gasto_bloquear'
         Insert: {
           actualizado_en?: string
           categoria_id: string
@@ -2208,6 +2211,7 @@ export type Database = {
           eliminado_en?: string | null
           fecha?: string
           id?: string
+          lote_id?: string | null
           moneda: string
           monto: number
           monto_base: number
@@ -2215,6 +2219,7 @@ export type Database = {
           proveedor?: string | null
           repuesto_id?: string | null
           tipo_cambio_aplicado?: number | null
+          tipo_cambio_id?: string | null
           vehiculo_id?: string | null
         }
         Update: {
@@ -2226,6 +2231,7 @@ export type Database = {
           eliminado_en?: string | null
           fecha?: string
           id?: string
+          lote_id?: string | null
           moneda?: string
           monto?: number
           monto_base?: number
@@ -2233,6 +2239,7 @@ export type Database = {
           proveedor?: string | null
           repuesto_id?: string | null
           tipo_cambio_aplicado?: number | null
+          tipo_cambio_id?: string | null
           vehiculo_id?: string | null
         }
         Relationships: [
@@ -2262,6 +2269,13 @@ export type Database = {
             columns: ['repuesto_id']
             isOneToOne: false
             referencedRelation: 'repuestos_items'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'gastos_tipo_cambio_id_fkey'
+            columns: ['tipo_cambio_id']
+            isOneToOne: false
+            referencedRelation: 'tipos_cambio'
             referencedColumns: ['id']
           },
           {
@@ -3755,6 +3769,7 @@ export type Database = {
           opciones: NonNullable<Json>
           orden: number
           origen_id: string
+          principal: boolean
           publico_web: boolean
           requerido: boolean
           tipo: Database['public']['Enums']['tipo_campo']
@@ -3775,6 +3790,7 @@ export type Database = {
           opciones?: NonNullable<Json>
           orden?: number
           origen_id: string
+          principal?: boolean
           publico_web?: boolean
           requerido?: boolean
           tipo: Database['public']['Enums']['tipo_campo']
@@ -3794,6 +3810,7 @@ export type Database = {
           opciones?: NonNullable<Json>
           orden?: number
           origen_id?: string
+          principal?: boolean
           publico_web?: boolean
           requerido?: boolean
           tipo?: Database['public']['Enums']['tipo_campo']
@@ -3867,9 +3884,11 @@ export type Database = {
           notas: string | null
           proyecto_repuestos_id: string | null
           tipo_cambio_aplicado: number | null
+          tipo_cambio_id: string | null
           vehiculo_id: string | null
+          _pago_exigir_edicion: undefined | null
         }
-        ComputedFields: never
+        ComputedFields: '_pago_exigir_edicion'
         Insert: {
           actualizado_en?: string
           comprobante_ruta?: string | null
@@ -3890,6 +3909,7 @@ export type Database = {
           notas?: string | null
           proyecto_repuestos_id?: string | null
           tipo_cambio_aplicado?: number | null
+          tipo_cambio_id?: string | null
           vehiculo_id?: string | null
         }
         Update: {
@@ -3912,6 +3932,7 @@ export type Database = {
           notas?: string | null
           proyecto_repuestos_id?: string | null
           tipo_cambio_aplicado?: number | null
+          tipo_cambio_id?: string | null
           vehiculo_id?: string | null
         }
         Relationships: [
@@ -3962,6 +3983,13 @@ export type Database = {
             columns: ['proyecto_repuestos_id']
             isOneToOne: false
             referencedRelation: 'repuestos_proyectos'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'pagos_tipo_cambio_id_fkey'
+            columns: ['tipo_cambio_id']
+            isOneToOne: false
+            referencedRelation: 'tipos_cambio'
             referencedColumns: ['id']
           },
           {
@@ -7273,6 +7301,8 @@ export type Database = {
         Returns: Json
       }
       _compilar_visibilidad: { Args: { p_def: Json; p_diseno: Json }; Returns: Json }
+      _comprobante_ruta_valida: { Args: { p_ruta: string; p_unidad: string }; Returns: boolean }
+      _comprobante_unidad: { Args: { p_nombre: string }; Returns: string }
       _conflicto_de_edicion: {
         Args: { p_cuando: string; p_registro: string; p_sujeto: string; p_tabla: string }
         Returns: undefined
@@ -7406,6 +7436,14 @@ export type Database = {
           p_yo: string
         }
         Returns: Json
+      }
+      _dinero_filtros: {
+        Args: { p_claves: string[]; p_filtros: Json }
+        Returns: Record<string, unknown>
+      }
+      _dinero_regla_activa: {
+        Args: { p_regla: string; p_repuesto: string; p_vehiculo: string }
+        Returns: boolean
       }
       _diseno_auxiliares: { Args: { p_def: Json }; Returns: Json }
       _diseno_forma: { Args: { p_diseno: Json }; Returns: undefined }
@@ -7718,6 +7756,80 @@ export type Database = {
         Args: { p_actual: string; p_esperado: string; p_vehiculo: string }
         Returns: undefined
       }
+      _gasto_bloquear: {
+        Args: {
+          o: Omit<
+            Database['public']['Tables']['gastos']['Row'],
+            Database['public']['Tables']['gastos']['ComputedFields']
+          >
+        }
+        Returns: undefined
+      }
+      _gasto_de_cambios: {
+        Args: {
+          o: Omit<
+            Database['public']['Tables']['gastos']['Row'],
+            Database['public']['Tables']['gastos']['ComputedFields']
+          >
+          p_cambios: Json
+        }
+        Returns: {
+          actualizado_en: string
+          categoria_id: string
+          comprobante_ruta: string | null
+          creado_en: string
+          creado_por: string | null
+          eliminado_en: string | null
+          fecha: string
+          id: string
+          lote_id: string | null
+          moneda: string
+          monto: number
+          monto_base: number
+          notas: string | null
+          proveedor: string | null
+          repuesto_id: string | null
+          tipo_cambio_aplicado: number | null
+          tipo_cambio_id: string | null
+          vehiculo_id: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'gastos'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _gasto_respuesta: {
+        Args: {
+          g: Omit<
+            Database['public']['Tables']['gastos']['Row'],
+            Database['public']['Tables']['gastos']['ComputedFields']
+          >
+          p_extra: Json
+        }
+        Returns: Json
+      }
+      _gasto_tributo_protegido: {
+        Args: {
+          o: Omit<
+            Database['public']['Tables']['gastos']['Row'],
+            Database['public']['Tables']['gastos']['ComputedFields']
+          >
+          p_categoria_nueva: string
+        }
+        Returns: undefined
+      }
+      _gasto_validar: {
+        Args: {
+          p_categoria: string
+          p_monto: number
+          p_repuesto: string
+          p_ruta: string
+          p_vehiculo: string
+        }
+        Returns: undefined
+      }
       _gracia_de_storage: { Args: Record<PropertyKey, never>; Returns: string }
       _hace: { Args: { p_cuando: string }; Returns: string }
       _hoja_chips: {
@@ -7976,6 +8088,10 @@ export type Database = {
       }
       _limpieza_ventana_de_aviso: { Args: Record<PropertyKey, never>; Returns: number }
       _lote_papelera_tocar: { Args: { p_lote: string }; Returns: string }
+      _monto_en_base: {
+        Args: { p_moneda: string; p_monto: number; p_tipo_cambio: string; p_valor?: number }
+        Returns: Record<string, unknown>
+      }
       _motor_borde_entre: { Args: { a: number; b: number }; Returns: number }
       _motor_borde_mas: { Args: { a: number; b: number }; Returns: number }
       _motor_borde_menos: { Args: { a: number; b: number }; Returns: number }
@@ -8065,6 +8181,10 @@ export type Database = {
       _oportunidad_motivo: { Args: { p_motivo: string }; Returns: string }
       _oportunidad_notas: { Args: { p_valor: Json }; Returns: string }
       _oportunidad_titulo: { Args: { p_valor: Json }; Returns: string }
+      _origen_campos_desmarcar_principal: {
+        Args: { p_origen: string; p_salvo: string }
+        Returns: string
+      }
       _origen_campos_renumerar: { Args: { p_origen: string }; Returns: undefined }
       _origen_clave_reservada: { Args: { p_clave: string }; Returns: boolean }
       _origen_lead_clave: { Args: { p_nombre: string }; Returns: string }
@@ -8081,6 +8201,106 @@ export type Database = {
       _origen_vehiculos_con_valor: { Args: { p_clave: string; p_origen: string }; Returns: number }
       _origenes_lead_json: { Args: Record<PropertyKey, never>; Returns: Json }
       _origenes_lead_tope: { Args: Record<PropertyKey, never>; Returns: number }
+      _pago_de_cambios: {
+        Args: {
+          o: Omit<
+            Database['public']['Tables']['pagos']['Row'],
+            Database['public']['Tables']['pagos']['ComputedFields']
+          >
+          p_cambios: Json
+        }
+        Returns: {
+          actualizado_en: string
+          comprobante_ruta: string | null
+          concepto: string
+          confirmado: boolean
+          confirmado_en: string | null
+          confirmado_por: string | null
+          creado_en: string
+          creado_por: string | null
+          eliminado_en: string | null
+          fecha: string
+          id: string
+          lead_id: string | null
+          metodo: string | null
+          moneda: string
+          monto: number
+          monto_base: number
+          notas: string | null
+          proyecto_repuestos_id: string | null
+          tipo_cambio_aplicado: number | null
+          tipo_cambio_id: string | null
+          vehiculo_id: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'pagos'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _pago_exigir_edicion: {
+        Args: {
+          p: Omit<
+            Database['public']['Tables']['pagos']['Row'],
+            Database['public']['Tables']['pagos']['ComputedFields']
+          >
+        }
+        Returns: undefined
+      }
+      _pago_respuesta: {
+        Args: {
+          p: Omit<
+            Database['public']['Tables']['pagos']['Row'],
+            Database['public']['Tables']['pagos']['ComputedFields']
+          >
+          p_extra: Json
+        }
+        Returns: Json
+      }
+      _pago_tomar: {
+        Args: { p_id: string }
+        Returns: {
+          actualizado_en: string
+          comprobante_ruta: string | null
+          concepto: string
+          confirmado: boolean
+          confirmado_en: string | null
+          confirmado_por: string | null
+          creado_en: string
+          creado_por: string | null
+          eliminado_en: string | null
+          fecha: string
+          id: string
+          lead_id: string | null
+          metodo: string | null
+          moneda: string
+          monto: number
+          monto_base: number
+          notas: string | null
+          proyecto_repuestos_id: string | null
+          tipo_cambio_aplicado: number | null
+          tipo_cambio_id: string | null
+          vehiculo_id: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'pagos'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _pago_validar: {
+        Args: {
+          p_concepto: string
+          p_metodo: string
+          p_monto: number
+          p_ruta: string
+          p_unidad: string
+        }
+        Returns: undefined
+      }
+      _pagos_requisitos_de_fase: { Args: { p_vehiculo: string }; Returns: Json }
       _papelera_purgar_cotizaciones: { Args: { p_ids: string[]; p_lote: string }; Returns: Json }
       _papelera_purgar_leads: { Args: { p_leads: string[]; p_lote: string }; Returns: Json }
       _papelera_purgar_vehiculos: { Args: { p_lote: string; p_vehiculos: string[] }; Returns: Json }
@@ -8190,9 +8410,58 @@ export type Database = {
         }
       }
       _recordatorio_titulo: { Args: { p_hint: string; p_valor: string }; Returns: string }
+      _requisito_aplicar: {
+        Args: {
+          p_datos: Json
+          p_fila: Omit<
+            Database['public']['Tables']['fases_requisitos']['Row'],
+            Database['public']['Tables']['fases_requisitos']['ComputedFields']
+          >
+        }
+        Returns: {
+          bloqueante: boolean
+          clave_dato: string | null
+          config: NonNullable<Json>
+          espera_ambito: Database['public']['Enums']['ambito_espera'] | null
+          espera_fase_id: string | null
+          fase_id: string
+          formatos: string[] | null
+          id: string
+          max_archivos: number | null
+          min_archivos: number | null
+          notas: string | null
+          orden: number
+          tipo: Database['public']['Enums']['tipo_requisito']
+          tipo_documento_id: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'fases_requisitos'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       _requisito_dato_cumplido: {
         Args: { p_clave: string; p_config: Json; p_repuesto: string; p_vehiculo: string }
         Returns: boolean
+      }
+      _requisito_forma: {
+        Args: {
+          p_crear: boolean
+          p_datos: Json
+          p_tipo: Database['public']['Enums']['tipo_requisito']
+        }
+        Returns: undefined
+      }
+      _requisito_validar: {
+        Args: {
+          p_claves: string[]
+          p_fila: Omit<
+            Database['public']['Tables']['fases_requisitos']['Row'],
+            Database['public']['Tables']['fases_requisitos']['ComputedFields']
+          >
+        }
+        Returns: undefined
       }
       _revision_etiquetas: { Args: { p_def: Json; p_filas: Json }; Returns: Json }
       _rol_para_editar: { Args: { p_esperado: string; p_rol: string }; Returns: undefined }
@@ -8673,6 +8942,7 @@ export type Database = {
         Args: { p_cotizacion: string; p_cotizacion_esperada: string }
         Returns: Json
       }
+      comprobante_puede: { Args: { p_accion: string; p_nombre: string }; Returns: boolean }
       comprobantes_serie_cambiar: {
         Args: { p_actualizado_en_esperado: string; p_serie: string }
         Returns: Json
@@ -9004,6 +9274,15 @@ export type Database = {
         Returns: string
       }
       flujo_de_fase: { Args: { p_fase: string }; Returns: string }
+      flujo_fuera_de_regla: {
+        Args: { p_flujo: string; p_tope?: number }
+        Returns: {
+          faltan: number
+          fase_id: string
+          repuesto_id: string
+          vehiculo_id: string
+        }[]
+      }
       flujo_oferta: { Args: { p_flujo: string }; Returns: Json }
       flujo_oferta_guardar: {
         Args: {
@@ -9061,14 +9340,61 @@ export type Database = {
         Returns: string
       }
       formula_tipo_cambio_del_nodo: { Args: { p_formula: string; p_nodo: string }; Returns: Json }
-      fuera_de_regla: {
-        Args: { p_flujo: string }
+      gasto_eliminar: { Args: { p_actualizado_en_esperado: string; p_id: string }; Returns: Json }
+      gasto_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_id: string }
+        Returns: Json
+      }
+      gasto_registrar: {
+        Args: {
+          p_categoria: string
+          p_comprobante_ruta: string
+          p_fecha: string
+          p_id: string
+          p_moneda: string
+          p_monto: number
+          p_notas: string
+          p_proveedor: string
+          p_repuesto: string
+          p_tipo_cambio: string
+          p_vehiculo: string
+        }
+        Returns: Json
+      }
+      gastos_listar: {
+        Args: { p_cursor_fecha: string; p_cursor_id: string; p_filtros: Json; p_tope: number }
         Returns: {
-          faltan: number
-          fase_id: string
-          repuesto_id: string
+          actualizado_en: string
+          categoria_id: string
+          categoria_nombre: string
+          comprobante_ruta: string
+          fecha: string
+          id: string
+          lote_id: string
+          moneda: string
+          monto: number
+          monto_base: number
+          origen_id: string
+          proveedor: string
+          tipo_cambio_aplicado: number
           vehiculo_id: string
+          vehiculo_titulo: string
         }[]
+      }
+      gastos_prorratear: {
+        Args: {
+          p_categoria: string
+          p_comprobante_ruta: string
+          p_fecha: string
+          p_lote: string
+          p_moneda: string
+          p_monto: number
+          p_notas: string
+          p_proveedor: string
+          p_tipo_cambio: string
+          p_vehiculos: string[]
+        }
+        Returns: Json
       }
       importaciones_vinculos_purgar: { Args: Record<PropertyKey, never>; Returns: number }
       integracion_guardar: {
@@ -9393,6 +9719,7 @@ export type Database = {
           p_grupo?: string
           p_opciones?: Json
           p_origen: string
+          p_principal?: boolean
           p_publico_web?: boolean
           p_requerido?: boolean
           p_tipo: Database['public']['Enums']['tipo_campo']
@@ -9480,6 +9807,53 @@ export type Database = {
       otorgar_portal: {
         Args: { p_clave: string; p_lead: string; p_otorgado_en_esperado: string }
         Returns: Json
+      }
+      pago_anular: {
+        Args: { p_actualizado_en_esperado: string; p_id: string; p_motivo: string }
+        Returns: Json
+      }
+      pago_confirmar: { Args: { p_actualizado_en_esperado: string; p_id: string }; Returns: Json }
+      pago_eliminar: { Args: { p_actualizado_en_esperado: string; p_id: string }; Returns: Json }
+      pago_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_id: string }
+        Returns: Json
+      }
+      pago_registrar: {
+        Args: {
+          p_comprobante_ruta: string
+          p_concepto: string
+          p_fecha: string
+          p_id: string
+          p_lead: string
+          p_metodo: string
+          p_moneda: string
+          p_monto: number
+          p_notas: string
+          p_tipo_cambio: string
+          p_vehiculo: string
+        }
+        Returns: Json
+      }
+      pagos_listar: {
+        Args: { p_cursor_fecha: string; p_cursor_id: string; p_filtros: Json; p_tope: number }
+        Returns: {
+          actualizado_en: string
+          comprobante_ruta: string
+          concepto: string
+          confirmado: boolean
+          confirmado_en: string
+          confirmado_por: string
+          fecha: string
+          id: string
+          metodo: string
+          moneda: string
+          monto: number
+          monto_base: number
+          origen_id: string
+          tipo_cambio_aplicado: number
+          vehiculo_id: string
+          vehiculo_titulo: string
+        }[]
       }
       papelera_enviar: {
         Args: { p_ids: string[]; p_tipo: Database['public']['Enums']['tipo_lote_papelera'] }
@@ -9618,6 +9992,29 @@ export type Database = {
           p_tabla: string
         }
         Returns: undefined
+      }
+      requisito_crear: {
+        Args: {
+          p_actualizado_en_esperado: string
+          p_datos: Json
+          p_fase: string
+          p_id: string
+          p_tipo: Database['public']['Enums']['tipo_requisito']
+        }
+        Returns: string
+      }
+      requisito_eliminar: {
+        Args: { p_actualizado_en_esperado: string; p_requisito: string }
+        Returns: string
+      }
+      requisito_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_requisito: string }
+        Returns: string
+      }
+      requisito_impacto: { Args: { p_requisito: string; p_tope?: number }; Returns: Json }
+      requisito_mover: {
+        Args: { p_actualizado_en_esperado: string; p_despues_de?: string; p_requisito: string }
+        Returns: string
       }
       revisar_flujo: {
         Args: { p_flujo: string }

@@ -32,8 +32,11 @@ describe('NAVEGACION', () => {
 })
 
 describe('entradasVisibles', () => {
-  it('sin ningún permiso se ve Inicio y nada roto', () => {
-    expect(entradasVisibles([], 'principal').map((entrada) => entrada.clave)).toEqual(['inicio'])
+  it('sin ningún permiso se ven Inicio y Agenda (la de todos) y nada roto', () => {
+    expect(entradasVisibles([], 'principal').map((entrada) => entrada.clave)).toEqual([
+      'inicio',
+      'agenda',
+    ])
     expect(entradasVisibles([], 'usuario').map((entrada) => entrada.clave)).toEqual(['perfil'])
   })
 

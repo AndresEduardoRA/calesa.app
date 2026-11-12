@@ -46,6 +46,7 @@ const CAMPO: CampoDeLayout = {
   filtrable: false,
   publicoWeb: false,
   claveApibara: 'odometer',
+  principal: false,
 }
 
 beforeEach(() => {

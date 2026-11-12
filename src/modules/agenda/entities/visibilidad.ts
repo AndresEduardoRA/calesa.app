@@ -50,7 +50,12 @@ export function exigePublicar(antes: Visibilidad | null, despues: Visibilidad): 
 
 // Si quien edita puede elegir esa visibilidad (las otras se muestran deshabilitadas con motivo).
 export function puedeElegirVisibilidad(visibilidad: Visibilidad, permisos: Permisos): boolean {
-  return visibilidad === 'privado' || puede(permisos, 'agenda.eventos.publicar')
+  return visibilidadElegible(visibilidad, puede(permisos, 'agenda.eventos.publicar'))
+}
+
+// Lo mismo con el permiso ya resuelto: lo usa el formulario del navegador, que recibe un booleano y no los permisos.
+export function visibilidadElegible(visibilidad: Visibilidad, puedePublicar: boolean): boolean {
+  return visibilidad === 'privado' || puedePublicar
 }
 
 // Editar y eliminar un evento (D16): sólo su creador y, si está publicado, con agenda.eventos.publicar.

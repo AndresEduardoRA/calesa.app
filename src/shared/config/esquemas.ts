@@ -11,6 +11,17 @@ const opcional = <T extends z.ZodType>(esquema: T) =>
 export const PROVEEDORES_DE_EMAIL = ['ninguno', 'mailpit', 'resend', 'cloudflare'] as const
 export type ProveedorDeEmail = (typeof PROVEEDORES_DE_EMAIL)[number]
 
+// Lo que pide cada proveedor además del remitente; las claves de otro proveedor no se piden ni se rechazan.
+const CLAVES_DEL_PROVEEDOR = {
+  ninguno: [],
+  mailpit: ['MAILPIT_URL'],
+  resend: ['RESEND_API_KEY'],
+  cloudflare: ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_API_TOKEN'],
+} as const satisfies Record<
+  ProveedorDeEmail,
+  readonly ('MAILPIT_URL' | 'RESEND_API_KEY' | 'CLOUDFLARE_ACCOUNT_ID' | 'CLOUDFLARE_API_TOKEN')[]
+>
+
 // Viajan al navegador: el nombre literal `NEXT_PUBLIC_*` (Next sólo incrusta las que se escriben así).
 export const esquemaPublico = z.object({
   NEXT_PUBLIC_SUPABASE_URL: url,
@@ -33,6 +44,13 @@ export const esquemaDelServidor = z
     EMAIL_REMITENTE: opcional(z.email({ error: 'no es un correo' })),
     EMAIL_REMITENTE_NOMBRE: opcional(texto),
     MAILPIT_URL: opcional(url),
+    RESEND_API_KEY: opcional(texto),
+    CLOUDFLARE_ACCOUNT_ID: opcional(
+      z.string().regex(/^[0-9a-f]{32}$/, {
+        error: 'son 32 caracteres hexadecimales (el ID de cuenta de Cloudflare)',
+      }),
+    ),
+    CLOUDFLARE_API_TOKEN: opcional(texto),
   })
   .superRefine((e, ctx) => {
     if (e.EMAIL_PROVEEDOR === 'ninguno') return
@@ -44,19 +62,13 @@ export const esquemaDelServidor = z
           message: `falta (EMAIL_PROVEEDOR=${e.EMAIL_PROVEEDOR})`,
         })
     }
-    if (e.EMAIL_PROVEEDOR === 'mailpit' && !e.MAILPIT_URL) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['MAILPIT_URL'],
-        message: 'falta (EMAIL_PROVEEDOR=mailpit)',
-      })
-    }
-    if (e.EMAIL_PROVEEDOR === 'resend' || e.EMAIL_PROVEEDOR === 'cloudflare') {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['EMAIL_PROVEEDOR'],
-        message: `${e.EMAIL_PROVEEDOR} todavía no tiene adaptador (Fase 7, docs/PLAN.md); hoy: ninguno o mailpit`,
-      })
+    for (const clave of CLAVES_DEL_PROVEEDOR[e.EMAIL_PROVEEDOR]) {
+      if (!e[clave])
+        ctx.addIssue({
+          code: 'custom',
+          path: [clave],
+          message: `falta (EMAIL_PROVEEDOR=${e.EMAIL_PROVEEDOR})`,
+        })
     }
   })
 

@@ -10,21 +10,33 @@ const fila = {
   titulo: 'Toyota Hilux 2019',
   fase_id: FASE,
   fase_desde: '2026-11-08T12:00:00+00:00',
+  atributos: { lote_interno: 'L-4471' },
 }
 
 describe('unidadDeVehiculo', () => {
-  it('la fila válida sale como unidad de vehículo en camelCase', () => {
+  it('la fila válida sale como unidad de vehículo en camelCase, con sus atributos', () => {
     expect(unidadDeVehiculo(fila)).toEqual({
       ok: true,
       data: {
-        tipo: 'vehiculo',
-        id: ID,
-        origenId: ORIGEN,
-        titulo: 'Toyota Hilux 2019',
-        faseId: FASE,
-        faseDesde: '2026-11-08T12:00:00+00:00',
+        unidad: {
+          tipo: 'vehiculo',
+          id: ID,
+          origenId: ORIGEN,
+          titulo: 'Toyota Hilux 2019',
+          faseId: FASE,
+          faseDesde: '2026-11-08T12:00:00+00:00',
+        },
+        atributos: { lote_interno: 'L-4471' },
       },
     })
+  })
+
+  it.each([
+    ['sin atributos', undefined],
+    ['atributos que no son un objeto', 'x'],
+  ])('%s, la unidad sale con atributos vacíos', (_caso, atributos) => {
+    const r = unidadDeVehiculo({ ...fila, atributos })
+    expect(r.ok && r.data?.atributos).toEqual({})
   })
 
   it('sin fila no hay unidad, y no es un error', () => {
@@ -33,7 +45,7 @@ describe('unidadDeVehiculo', () => {
 
   it('un vehículo sin fase es una unidad sin fase ni fecha', () => {
     const r = unidadDeVehiculo({ ...fila, fase_id: null, fase_desde: null })
-    expect(r.ok && r.data).toMatchObject({ faseId: null, faseDesde: null })
+    expect(r.ok && r.data?.unidad).toMatchObject({ faseId: null, faseDesde: null })
   })
 
   it.each([

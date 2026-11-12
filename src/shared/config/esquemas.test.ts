@@ -65,15 +65,39 @@ describe('el entorno: el servidor', () => {
     ).toEqual([])
   })
 
-  it('resend y cloudflare todavía no tienen adaptador: lo dice en vez de fallar al primer correo', () => {
+  it('resend y cloudflare piden sus claves con su proveedor y no las del otro', () => {
+    const remitente = { EMAIL_REMITENTE: 'a@b.co', EMAIL_REMITENTE_NOMBRE: 'X' }
+    const falta = (extra: Record<string, string>) =>
+      problemasDe(esquemaDelServidor, { ...base, ...remitente, ...extra }).map((p) => p.variable)
+    expect(falta({ EMAIL_PROVEEDOR: 'resend' })).toEqual(['RESEND_API_KEY'])
+    expect(falta({ EMAIL_PROVEEDOR: 'resend', RESEND_API_KEY: 're_x' })).toEqual([])
+    expect(falta({ EMAIL_PROVEEDOR: 'cloudflare' })).toEqual([
+      'CLOUDFLARE_ACCOUNT_ID',
+      'CLOUDFLARE_API_TOKEN',
+    ])
+    const cuenta = '0123456789abcdef0123456789abcdef'
+    expect(
+      falta({
+        EMAIL_PROVEEDOR: 'cloudflare',
+        CLOUDFLARE_ACCOUNT_ID: cuenta,
+        CLOUDFLARE_API_TOKEN: 't',
+        RESEND_API_KEY: 'sobra',
+      }),
+    ).toEqual([])
+  })
+
+  it('un ID de cuenta de Cloudflare que no son 32 hexadecimales se rechaza', () => {
     const p = problemasDe(esquemaDelServidor, {
       ...base,
-      EMAIL_PROVEEDOR: 'resend',
+      EMAIL_PROVEEDOR: 'cloudflare',
       EMAIL_REMITENTE: 'a@b.co',
       EMAIL_REMITENTE_NOMBRE: 'X',
+      CLOUDFLARE_ACCOUNT_ID: 'mi-cuenta',
+      CLOUDFLARE_API_TOKEN: 't',
     })
-    expect(p).toHaveLength(1)
-    expect(p[0]?.motivo).toContain('Fase 7')
+    expect(p).toEqual([
+      { variable: 'CLOUDFLARE_ACCOUNT_ID', motivo: expect.stringContaining('32') as string },
+    ])
   })
 
   it('un proveedor que no existe se nombra con los que hay', () => {
