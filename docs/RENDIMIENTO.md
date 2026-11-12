@@ -214,6 +214,9 @@ Cada sección por su RPC, de a `_acotar_pagina(p_tamano, 5, 20)` + 1, con el mí
   destino de «Reasignar» lee una página de `TAMANO_DE_VER_MAS` de abiertos por `repuestos_proyectos_listar()`. El historial de un ítem va por `repuestos_stock_movimientos_item_id_idx` (pocos por ítem): por la action
   `leerMovimientosDeItem` (8.10-2), `id desc` con el `id` como cursor, de a `TAMANO_DE_VER_MAS` más uno, tope `TOPE_DE_LO_CARGADO` con `<AvisoDeTope>`. **Excepción a
   «siempre hay un camino a lo antiguo»:** más allá de 500 movimientos de un ítem no hay «Ir a una fecha»; un ítem tiene pocos (D9 de 8.10-2).
+- Compras de un proyecto (8.11-2): PostgREST bajo la RLS de `repuestos.costos.ver`, por `repuestos_compras_proyecto_id_idx`, tope 200 más uno con `<AvisoDeTope>`
+  (sin camino: compras no crece, D10 de 8.11-2), orden `fecha desc, creado_en desc, id desc` sobre las de un proyecto; se lee sólo al abrir la pestaña. El margen,
+  `repuestos_proyecto_margen()` (definer), un proyecto, `sin_precio` hasta 201. Sin medición (no es una tabla que crece).
 - `repuestos_pendientes_de_vehiculo()` (definer): un proyecto vivo por vehículo (`repuestos_proyecto_por_vehiculo`), sus ítems por
   `repuestos_items_proyecto_id_idx` y las esperas de las fases siguientes del vehículo; de a 50 (máximo 200) más uno.
 - Sin siembra de volumen ni `EXPLAIN` en `db:medir:volumen` (`repuestos_proyectos` no está entre las tablas que crecen de `escala.md`; regla del 2026-11-08).
