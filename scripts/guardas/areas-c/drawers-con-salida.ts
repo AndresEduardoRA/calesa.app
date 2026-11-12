@@ -22,4 +22,14 @@ export const REGISTRO: Record<string, RegistroDeDrawer> = {
     formulario: 'src/modules/logistica/features/dinero/components/drawer-de-anulacion.tsx',
     mecanismo: 'contexto',
   },
+  // El resumen de una declaración aduanera (6.09-1): `?declaracion=<id>`. Sólo muestra; el formulario de editar y alta es otro panel (`drawer-de-declaracion.tsx`).
+  'src/modules/logistica/features/aduana/components/drawer-de-la-declaracion.tsx': {
+    sinFormulario:
+      'sólo muestra los datos y los vehículos de la declaración: no guarda nada tipeado; escribir es del formulario de la declaración',
+  },
+  // El formulario de una declaración (6.09-2): `?panel=nueva-declaracion` o `?panel=editar-declaracion&declaracion=<id>`.
+  'src/modules/logistica/features/aduana/components/drawer-de-declaracion.tsx': {
+    formulario: 'src/modules/logistica/features/aduana/components/drawer-de-declaracion.tsx',
+    mecanismo: 'contexto',
+  },
 }

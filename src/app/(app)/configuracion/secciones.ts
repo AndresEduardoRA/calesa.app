@@ -15,6 +15,7 @@ import { PERMISOS_DE_LEADS } from './leads/pestanas'
 import { SECCIONES_DE_LOGISTICA } from './logistica/seccion'
 import { PERMISOS_DE_ORIGENES } from './origenes/acceso'
 import { SECCION_DE_REPUESTOS } from './repuestos/seccion'
+import { SECCIONES_DE_WEB } from './web/seccion'
 
 // Las secciones de Configuración que ya tienen pantalla. Cada una se abre con cualquiera de sus
 // permisos (ver o gestionar): el hub muestra sólo las que esta persona puede abrir.
@@ -58,6 +59,7 @@ export const SECCIONES = [
   SECCION_DE_FLUJOS,
   ...SECCIONES_DE_LOGISTICA,
   SECCION_DE_REPUESTOS,
+  ...SECCIONES_DE_WEB,
   {
     clave: 'equipo',
     titulo: 'Equipo',
