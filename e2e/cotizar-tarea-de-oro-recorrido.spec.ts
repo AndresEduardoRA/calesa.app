@@ -5,6 +5,7 @@ import {
   fallo,
   ficha,
   fijarApibara,
+  fotosConOrigen,
   leerApibara,
   otroCopart,
   restaurarApibara,
@@ -44,13 +45,15 @@ import { formatearNumero } from '../src/shared/lib/formato'
 // en la página (la clave real no se lee ni se llama).
 test.describe.configure({ mode: 'serial' })
 
-// Las teclas de control, contadas en la primera corrida verde (2026-11-08); en el celular, 3 menos (el listado tiene menos paradas antes de «Nueva»). La asesora: Tab y Enter a «Saltar al contenido», los Tab
-// hasta «Nueva cotización» y su Enter; los Tab hasta la barra del vehículo y su Enter, Enter para traer el enlace, Ctrl+S («Crear y elegir»), Enter en la barra, los
-// Tab hasta el tipo y su Enter; los Tab hasta la barra del cliente y su Enter, los Tab hasta su lead y su Enter; los Tab hasta `remate` y su Enter, hasta `grua` y su
-// Enter, Ctrl+S, los Tab hasta «Descargar PDF» y su Enter. La dueña: lo mismo con el vehículo buscado por nombre (los Tab hasta su tarjeta y su Enter) en vez del
-// enlace y el tipo. KLM: 56,7 s y 41,1 s en escritorio; 54,5 s y 37,5 s en el celular. Deterministas: una parada nueva en el camino las rompe a propósito (6.01-4: con la entrada de Logística en la navegación, +1 en escritorio: 57 la asesora y 53 la dueña; 7.07: con la de Agenda, otra más: 58 y 54; 7.02: la campana de la barra, +1 en los dos: 59 y 55 en escritorio, 54 y 50 en el celular; 7.09: con la de Chat, otra más en escritorio: 60 y 56; 8.09: con la de Repuestos, otra más sólo para la dueña, la única de las dos con `repuestos.ver`: 57 en escritorio y la asesora sigue en 60; el menú del celular no suma paradas antes del contenido).
-const CONTROLES_DE_LA_ASESORA: Record<string, number> = { escritorio: 60, movil: 54 }
-const CONTROLES_DE_LA_DUENA: Record<string, number> = { escritorio: 57, movil: 50 }
+// Las teclas de control se anotan y no se exigen (FLUJO-7, 2026-11-12). La meta de `docs/UX.md` es la hora de una persona, KLM ≤ 90 s, y eso es lo que se exige. La
+// cuenta exacta era una trampa entre carriles: tras abrir la hoja el foco recorre el marco, así que cada entrada nueva de la navegación (o la campana) sumaba una
+// parada y el spec caía en el PR de otro paso, que no la había tocado (6.01, 7.07, 7.02, 7.09 y 8.09: de 1 a 3 h y una sesión cada vez). El camino de la asesora: Tab
+// y Enter a «Saltar al contenido», los Tab hasta «Nueva cotización» y su Enter; los Tab hasta la barra del vehículo y su Enter, Enter para traer el enlace, Ctrl+S
+// («Crear y elegir»), Enter en la barra, los Tab hasta el tipo y su Enter; los Tab hasta la barra del cliente y su Enter, los Tab hasta su lead y su Enter; los Tab
+// hasta `remate` y su Enter, hasta `grua` y su Enter, Ctrl+S, los Tab hasta «Descargar PDF» y su Enter. La dueña: lo mismo con el vehículo buscado por nombre (los
+// Tab hasta su tarjeta y su Enter) en vez del enlace y el tipo. Lo medido el 2026-11-12 con la navegación de entonces: 60 teclas la asesora y 56 la dueña en
+// escritorio (54 y 50 en el celular, donde el menú no suma paradas antes del contenido), KLM ≈ 57 s y 41 s; cada parada más son 0,28 s. La cuenta sale en la anotación
+// «meta de 90 s» de cada corrida.
 
 let duena = ''
 let asesora = ''
@@ -187,13 +190,13 @@ test('E2E R1 la asesora, la tarea de oro 2 entera con un enlace de Copart: del l
   const resumen = `${seg(robot)} el robot · ${String(controles)} teclas de control · KLM ${seg(klm)} · 0 clics`
   console.warn(`[tarea de oro 2 entera, la asesora] ${info.project.name}: ${resumen}`)
   info.annotations.push({ type: 'meta de 90 s, la asesora', description: resumen })
-  expect(controles).toBe(CONTROLES_DE_LA_ASESORA[info.project.name])
   expect(robot).toBeLessThan(45)
   expect(klm).toBeLessThanOrEqual(90)
-  // Las fotos de la subasta se traen después de crear: se espera a que terminen antes de borrar el vehículo.
-  await expect(page.getByText(/Se guardaron las 2 fotos de la subasta/)).toBeVisible({
-    timeout: 90_000,
-  })
+  // Las fotos de la subasta se traen después de crear: se espera a que estén en la base antes de borrar el vehículo. No se espera su aviso: se cierra solo a
+  // los pocos segundos y, si las fotos terminan antes que el recorrido, ya no está (caía con el spec corriendo solo, FLUJO-7).
+  await expect
+    .poll(async () => (await fotosConOrigen(vehiculo)).length, { timeout: 90_000 })
+    .toBe(2)
 })
 
 test('E2E R2 la dueña, la misma tarea con un vehículo del inventario: del listado al PDF, sólo con el teclado y en ≤ 90 s', async ({
@@ -240,7 +243,6 @@ test('E2E R2 la dueña, la misma tarea con un vehículo del inventario: del list
   const resumen = `${seg(robot)} el robot · ${String(controles)} teclas de control · KLM ${seg(klm)} · 0 clics`
   console.warn(`[tarea de oro 2 entera, la dueña] ${info.project.name}: ${resumen}`)
   info.annotations.push({ type: 'meta de 90 s, la dueña', description: resumen })
-  expect(controles).toBe(CONTROLES_DE_LA_DUENA[info.project.name])
   expect(robot).toBeLessThan(45)
   expect(klm).toBeLessThanOrEqual(90)
 })
