@@ -49,4 +49,8 @@
   `supabase/tests/auditoria-leads.sql` (las RPC de pagos junto a las de la agenda; sale `reasignar_tarea(uuid,uuid)`, que main cambió de
   firma). Las 11 migraciones de gastos y pagos se renumeraron tras `20261111190411` (las fases de main), sin tocar su contenido.
   `db:reset`, `db:types` (sin cambios), `db:probar` 939 ✓ 0 ✗, guardas 1.058 ✓ y `db:carreras` en verde.
+- **CI del PR (2.ª retoma):** la corrida 43120704680 cayó en el bloque 3 de e2e por `leads-portal-acceso` › tarea de oro 4: 33 teclas
+  de tope 32, también en `a/6.02` y `c/6.13` (main se salta el e2e). Causa medida con el foco de cada Tab: el Tab salía mientras llegaba la
+  sección «Portal», el foco caía al `body` y el recorrido volvía a pasar por la navegación, que desde el 7.07 tiene «Agenda» (+1). El spec
+  espera la sección y el foco en la pestaña antes de tabular (16 teclas en escritorio y celular, tope 16); 10 de 10 con `--repeat-each=5`.
 - e2e completo: no (6.10-2, Nivel 2 por rls y estructura: lo corre el CI del PR; sin interfaz)
