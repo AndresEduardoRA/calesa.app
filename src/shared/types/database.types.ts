@@ -8636,6 +8636,11 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      _transporte_clave: { Args: { p_clave: string; p_tipo: string }; Returns: string }
+      _transporte_grupo_bloquear: {
+        Args: { p_repuestos: string[]; p_vehiculos: string[] }
+        Returns: undefined
+      }
       _transporte_unidad: {
         Args: { p_bloquear: boolean; p_repuesto: string; p_vehiculo: string }
         Returns: Record<string, unknown>
@@ -10201,6 +10206,11 @@ export type Database = {
       transicion_roles_poner: {
         Args: { p_actualizado_en_esperado: string; p_roles: string[]; p_transicion: string }
         Returns: string
+      }
+      transporte_grupo: { Args: { p_clave: string; p_tipo: string }; Returns: Json }
+      transporte_grupo_aplicar: {
+        Args: { p_cambios: Json; p_clave: string; p_esperadas: Json; p_tipo: string }
+        Returns: Json
       }
       transporte_guardar: {
         Args: {

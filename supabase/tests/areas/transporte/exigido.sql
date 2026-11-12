@@ -4,6 +4,7 @@
 -- Qué asegura:
 --   X1. Con `transporte.contenedor` bloqueante en la fase: vaciar el contenedor por la RPC da 23514 hint contenedor y sigue; cambiarlo por otro pasa; con
 --       el requisito no bloqueante, vaciar pasa.
+--   X2. Aplicar «vaciar contenedor» al grupo de 3 con una unidad (la última por id) cuya fase lo exige: 23514 y las 3 siguen con su contenedor y versión.
 --   X3. Un update directo como superusuario también da 23514.
 --   X4. Borrar una naviera que usa una unidad cuya fase exige `transporte.naviera` bloqueante da 23514 y la fila sigue (D17).
 
@@ -133,5 +134,32 @@ begin
   r := pg_temp.trn_directo(format('delete from public.navieras where id = %L', nav));
   perform pg_temp.trn_es('X4 borrar la naviera', r, '23514', 'naviera_id');
   if (select naviera_id from public.transportes where vehiculo_id = (t ->> 'v')::uuid) is distinct from nav then raise exception 'X4: la fila debía seguir'; end if;
+end $$;
+rollback;
+
+-- @test transporte: aplicar «vaciar contenedor» a un grupo con una unidad que lo exige no cambia ninguna (X2)
+begin;
+do $$
+declare t jsonb := pg_temp.trn_terreno(); p uuid; g jsonb; e jsonb; antes jsonb; r jsonb; fx uuid; v_ult uuid; v uuid; i int;
+begin
+  p := pg_temp.trn_persona(array['logistica.ver', 'logistica.transporte.editar']);
+  for i in 1..3 loop
+    insert into public.vehiculos (origen_id, titulo, fase_id) values ((t ->> 'o')::uuid, 'tr x2 ' || i, (t ->> 'fase')::uuid) returning id into v;
+    perform pg_temp.trn_pasa('X2 ' || i, pg_temp.trn_guardar(p, v, null, '{"booking": "BKX2", "contenedor": "CONTX2"}'));
+  end loop;
+  -- La última por id de transporte: las otras dos ya se escribieron cuando cae.
+  select vehiculo_id into v_ult from public.transportes where contenedor = 'CONTX2' order by id desc limit 1;
+  insert into public.fases (flujo_id, nombre, orden) values ((t ->> 'flujo')::uuid, 'tr pide contenedor', 2) returning id into fx;
+  perform pg_temp.trn_requisito(fx, 'transporte.contenedor');
+  update public.vehiculos set fase_id = fx where id = v_ult;
+  g := pg_temp.trn_corre(p, 'select public.transporte_grupo(''contenedor'', ''CONTX2'')');
+  e := (select jsonb_object_agg(u ->> 'transporte_id', u ->> 'actualizado_en') from jsonb_array_elements(g -> 'unidades') u);
+  antes := (select jsonb_agg(jsonb_build_object('c', contenedor, 'v', actualizado_en) order by id) from public.transportes where booking = 'BKX2');
+  r := pg_temp.trn_corre(p, format('select public.transporte_grupo_aplicar(''contenedor'', ''CONTX2'', %L, ''{"contenedor": null}'')', e));
+  perform pg_temp.trn_es('X2 vaciar el grupo', r, '23514', 'contenedor');
+  if (select jsonb_agg(jsonb_build_object('c', contenedor, 'v', actualizado_en) order by id) from public.transportes where booking = 'BKX2')
+     is distinct from antes then
+    raise exception 'X2: las 3 debían seguir con su contenedor y su versión';
+  end if;
 end $$;
 rollback;
