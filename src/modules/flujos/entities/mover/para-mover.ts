@@ -175,6 +175,7 @@ export function destinosIniciales(filas: unknown): Resultado<DestinoDeMover[]> {
 }
 
 export const MOTIVO_SIN_PERMISO_DE_MOVER = 'No tienes permiso para mover unidades de este origen.'
+export const MOTIVO_SIN_PERMISO_DE_MOVER_UN_REPUESTO = 'No tienes permiso para mover repuestos.'
 
 /** ¿Puede mover unidades de ese origen? La primera llave, por comodidad: la base vuelve a decidir (acceso, rol de la fase, requisitos). */
 export function puedeMoverEn(permisos: Permisos, origenId: string): boolean {

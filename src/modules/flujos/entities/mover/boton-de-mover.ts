@@ -1,7 +1,11 @@
 // El botón de mover a un destino (6.04): su texto y, si está apagado, el motivo escrito. Un botón apagado nunca calla por qué: el motivo va debajo, no sólo en un `title`. Puro: la
 // base es la que decide (`cambiar_fase`), esto sólo anticipa lo que la vista previa ya dice.
 import { motivoLegible } from './motivos'
-import { LARGO_MAXIMO_DE_LA_NOTA, MOTIVO_SIN_PERMISO_DE_MOVER } from './para-mover'
+import {
+  LARGO_MAXIMO_DE_LA_NOTA,
+  MOTIVO_SIN_PERMISO_DE_MOVER,
+  MOTIVO_SIN_PERMISO_DE_MOVER_UN_REPUESTO,
+} from './para-mover'
 import type { VistaPrevia } from './vista-previa'
 
 export const MOTIVO_DE_NOTA_OBLIGATORIA = 'Esta fase pide una nota interna.'
@@ -43,9 +47,16 @@ export function estadoDelBoton(entrada: {
   puedeMover: boolean
   vista: VistaPrevia | null
   nota: string
+  /** Qué se mueve: sin él, un vehículo (el motivo de siempre). */
+  tipo?: 'vehiculo' | 'repuesto'
 }): EstadoDelBoton {
-  const { puedeMover, vista, nota } = entrada
-  if (!puedeMover) return { habilitado: false, motivo: MOTIVO_SIN_PERMISO_DE_MOVER }
+  const { puedeMover, vista, nota, tipo } = entrada
+  if (!puedeMover)
+    return {
+      habilitado: false,
+      motivo:
+        tipo === 'repuesto' ? MOTIVO_SIN_PERMISO_DE_MOVER_UN_REPUESTO : MOTIVO_SIN_PERMISO_DE_MOVER,
+    }
   if (vista === null) return { habilitado: false, motivo: MOTIVO_SIN_VISTA }
   const rechazo = primerRechazo(vista)
   if (rechazo !== null) return { habilitado: false, motivo: rechazo }

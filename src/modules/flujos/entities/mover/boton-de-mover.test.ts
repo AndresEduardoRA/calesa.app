@@ -6,7 +6,7 @@ import {
   estadoDelBoton,
   textoDelBoton,
 } from './boton-de-mover'
-import { MOTIVO_SIN_PERMISO_DE_MOVER } from './para-mover'
+import { MOTIVO_SIN_PERMISO_DE_MOVER, MOTIVO_SIN_PERMISO_DE_MOVER_UN_REPUESTO } from './para-mover'
 import type { RequisitoVista, VistaPrevia } from './vista-previa'
 
 const bl: RequisitoVista = {
@@ -52,6 +52,15 @@ describe('el botón de mover', () => {
     expect(estadoDelBoton({ puedeMover: true, vista: null, nota: '' }).motivo).toBe(
       MOTIVO_SIN_VISTA,
     )
+  })
+
+  it('sin permiso para mover un repuesto, dice el motivo del repuesto; un vehículo, el de siempre', () => {
+    expect(
+      estadoDelBoton({ puedeMover: false, vista: libre, nota: '', tipo: 'repuesto' }).motivo,
+    ).toBe(MOTIVO_SIN_PERMISO_DE_MOVER_UN_REPUESTO)
+    expect(
+      estadoDelBoton({ puedeMover: false, vista: libre, nota: '', tipo: 'vehiculo' }).motivo,
+    ).toBe(MOTIVO_SIN_PERMISO_DE_MOVER)
   })
 
   it('se apaga por un bloqueante sin cumplir y dice cuál falta', () => {
