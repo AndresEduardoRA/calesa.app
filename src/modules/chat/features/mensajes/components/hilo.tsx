@@ -2,19 +2,15 @@
 
 import type { Conversacion } from '../../../entities/conversaciones'
 import { citaDe } from '../../../entities/reglas-del-mensaje'
-import type { AccionesDelMensaje } from '../acciones-del-hilo'
-import { MencionAbierta } from '../../menciones/components/mencion-abierta'
-import { useFichasDelHilo } from '../../fichas/hooks/use-fichas-del-hilo'
-import { useMencionesDelHilo } from '../../menciones/hooks/use-menciones-del-hilo'
-import { useBorradoPorUrl } from '../hooks/use-borrado-por-url'
-import { useEdicion } from '../hooks/use-edicion'
+import { usePanelesDeFicha } from '../../fichas/hooks/use-paneles-de-ficha'
+import { useAccionesDelHilo } from '../hooks/use-acciones-del-hilo'
 import { useEnvio } from '../hooks/use-envio'
 import { useHilo } from '../hooks/use-hilo'
 import { useMarcarLeido } from '../hooks/use-marcar-leido'
 import { useRespuesta } from '../hooks/use-respuesta'
 import { useScrollDelHilo } from '../hooks/use-scroll-del-hilo'
-import { ConfirmarBorrado } from './confirmar-borrado'
 import { CuerpoDelHilo } from './cuerpo-del-hilo'
+import { PanelesDelHilo } from './paneles-del-hilo'
 import { Redactor } from './redactor'
 
 type Props = {
@@ -22,34 +18,32 @@ type Props = {
   usuarioId: string
   zona: string
   puedeModerar: boolean
+  // `agenda.tareas.asignar` y `agenda.eventos.publicar`: sólo deciden qué ofrecen los formularios de `/tarea` y `/evento`; la base los vuelve a exigir.
+  puedeAsignar: boolean
+  puedePublicar: boolean
 }
 
 // El hilo de la conversación abierta: los mensajes y, abajo, donde se escribe. Enviar estando mirando desde una fecha vuelve a lo más reciente.
-export function Hilo({ conversacion, usuarioId, zona, puedeModerar }: Props) {
+export function Hilo({
+  conversacion,
+  usuarioId,
+  zona,
+  puedeModerar,
+  puedeAsignar,
+  puedePublicar,
+}: Props) {
   const hilo = useHilo({ conversacion: conversacion.id, zona })
   const contenedor = useScrollDelHilo(hilo.mensajes, usuarioId)
   const { respondiendoA, setRespondiendoA, campo } = useRespuesta()
-  const edicion = useEdicion({ reemplazar: hilo.reemplazar })
-  const borrado = useBorradoPorUrl({
+  const paneles = usePanelesDeFicha()
+  const { acciones, borrado, mencion } = useAccionesDelHilo({
     mensajes: hilo.mensajes,
-    usuarioId,
-    puedeModerar,
+    reemplazar: hilo.reemplazar,
     cargada: hilo.lectura === 'listo',
-  })
-  const mencion = useMencionesDelHilo(hilo.mensajes)
-  const fichas = useFichasDelHilo(hilo.mensajes)
-  const acciones: AccionesDelMensaje = {
     usuarioId,
     puedeModerar,
     responder: setRespondiendoA,
-    editandoId: edicion.editandoId,
-    empezarAEditar: edicion.empezar,
-    cancelarEdicion: edicion.cancelar,
-    pedirBorrado: borrado.abrir,
-    guardarEdicion: edicion.guardar,
-    menciones: mencion.menciones,
-    fichas,
-  }
+  })
   const envio = useEnvio({
     conversacion: conversacion.id,
     usuarioId,
@@ -82,6 +76,7 @@ export function Hilo({ conversacion, usuarioId, zona, puedeModerar }: Props) {
           alQuitarRespuesta={() => {
             setRespondiendoA(null)
           }}
+          alComando={paneles.alComando}
           alEnviar={(cuerpo, menciones) => {
             const enviado = envio.enviar(cuerpo, respondiendoA ?? undefined, menciones)
             if (enviado.ok) {
@@ -94,12 +89,17 @@ export function Hilo({ conversacion, usuarioId, zona, puedeModerar }: Props) {
           }}
         />
       )}
-      <MencionAbierta mencion={mencion} />
-      <ConfirmarBorrado
-        objetivo={borrado.mensaje}
+      <PanelesDelHilo
+        conversacion={conversacion}
         usuarioId={usuarioId}
-        alBorrar={hilo.reemplazar}
-        alCerrar={borrado.cerrar}
+        zona={zona}
+        paneles={paneles}
+        mencion={mencion}
+        borrado={borrado}
+        puedeAsignar={puedeAsignar}
+        puedePublicar={puedePublicar}
+        hilo={hilo}
+        campo={campo}
       />
     </div>
   )

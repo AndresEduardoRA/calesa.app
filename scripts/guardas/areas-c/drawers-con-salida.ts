@@ -37,4 +37,13 @@ export const REGISTRO: Record<string, RegistroDeDrawer> = {
     sinFormulario:
       'sólo muestra lo ya leído bajo la sesión de quien mira y enlaza al módulo: no guarda nada tipeado',
   },
+  // «Nueva tarea» y «Nuevo evento» desde el chat (7.10-3): `?panel=tarea` y `?panel=evento`. Dicen que hay algo escrito con `<CambiosSinGuardar>` en el mismo archivo.
+  'src/modules/chat/features/fichas/components/panel-de-tarea.tsx': {
+    formulario: 'src/modules/chat/features/fichas/components/panel-de-tarea.tsx',
+    mecanismo: 'contexto',
+  },
+  'src/modules/chat/features/fichas/components/panel-de-evento.tsx': {
+    formulario: 'src/modules/chat/features/fichas/components/panel-de-evento.tsx',
+    mecanismo: 'contexto',
+  },
 }
