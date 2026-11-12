@@ -113,6 +113,7 @@ export function ListaEquipo(props: Props) {
       />
       <PanelRolesPersona
         persona={puedeGestionar ? props.personaDelPanel : null}
+        yoId={yoId}
         roles={props.roles}
         misPermisos={props.misPermisos}
         enCurso={enCurso}

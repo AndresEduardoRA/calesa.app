@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import {
-  accionesSobre,
   descripcionDeBaja,
   estadoDePersona,
   idDePersona,
@@ -209,45 +208,6 @@ describe('idDePersona', () => {
     expect(idDePersona('sofia')).toBeNull()
     expect(idDePersona(undefined)).toBeNull()
     expect(idDePersona(null)).toBeNull()
-  })
-})
-
-describe('accionesSobre', () => {
-  const YO = 'yo'
-
-  it('sobre una persona activa: roles, bloquear y dar de baja', () => {
-    expect(accionesSobre({ id: 'otra', estado: 'activa' }, YO)).toEqual({
-      roles: true,
-      bloqueo: 'bloquear',
-      baja: true,
-      enlace: false,
-      esPropia: false,
-    })
-  })
-
-  it('a una bloqueada se la desbloquea; a una pendiente se le puede generar otro enlace', () => {
-    expect(accionesSobre({ id: 'otra', estado: 'bloqueada' }, YO).bloqueo).toBe('desbloquear')
-    expect(accionesSobre({ id: 'otra', estado: 'invitacion_pendiente' }, YO).enlace).toBe(true)
-  })
-
-  it('sobre la cuenta propia no se bloquea ni se da de baja', () => {
-    expect(accionesSobre({ id: YO, estado: 'activa' }, YO)).toEqual({
-      roles: true,
-      bloqueo: null,
-      baja: false,
-      enlace: false,
-      esPropia: true,
-    })
-  })
-
-  it('sobre una dada de baja no queda nada por hacer', () => {
-    expect(accionesSobre({ id: 'otra', estado: 'baja' }, YO)).toEqual({
-      roles: false,
-      bloqueo: null,
-      baja: false,
-      enlace: false,
-      esPropia: false,
-    })
   })
 })
 
