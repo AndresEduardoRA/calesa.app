@@ -6635,3 +6635,36 @@ begin
   reset role;
   delete from public.roles_permisos where rol_id = v_rol and permiso_clave = 'empresa.ajustes.gestionar';
 end $$;
+
+-- @test documentos: la dueña registra por documento_registrar(), lee el objeto y su escritura directa da 42501 (policies de documentos y de storage, 6.05)
+do $$
+declare v_veh uuid := (select id from public.vehiculos where eliminado_en is null order by id limit 1); v_tipo uuid; v_ruta text; v_j jsonb; v_codigo text;
+begin
+  if v_veh is null then raise exception 'la prueba necesita un vehículo de la semilla'; end if;
+  insert into public.tipos_documento (flujo_id, nombre) values (null, 'Humo documentos') returning id into v_tipo;
+  v_ruta := v_veh || '/' || repeat('d', 64) || '.pdf';
+  insert into storage.objects (bucket_id, name, metadata) values ('documentos', v_ruta, '{"mimetype": "application/pdf", "size": 10}');
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
+  set local role authenticated;
+  v_j := public.documento_registrar(gen_random_uuid(), array[v_veh], null, v_tipo, v_ruta, 'humo.pdf', 'application/pdf', 10, null, null, null);
+  if jsonb_array_length(v_j) <> 1 then raise exception 'la dueña no registró: %', v_j; end if;
+  begin
+    insert into public.documentos (vehiculo_id, tipo_documento_id) values (v_veh, v_tipo);
+    v_codigo := 'sin error';
+  exception when others then v_codigo := sqlstate;
+  end;
+  if v_codigo <> '42501' then raise exception 'la dueña insertó un documento por PostgREST (%)', v_codigo; end if;
+  begin
+    update public.documentos set nota = 'directo' where id = (v_j -> 0 ->> 'id')::uuid;
+    v_codigo := 'sin error';
+  exception when others then v_codigo := sqlstate;
+  end;
+  if v_codigo <> '42501' then raise exception 'la dueña editó un documento por PostgREST (%)', v_codigo; end if;
+  if (select count(*) from storage.objects where bucket_id = 'documentos' and name = v_ruta) <> 1 then
+    raise exception 'la dueña no lee el objeto que registró (policy «documentos: leer» de storage)';
+  end if;
+  reset role;
+  delete from public.documentos where tipo_documento_id = v_tipo;
+  delete from public.tipos_documento where id = v_tipo;
+  delete from storage.objects where bucket_id = 'documentos' and name = v_ruta;
+end $$;
