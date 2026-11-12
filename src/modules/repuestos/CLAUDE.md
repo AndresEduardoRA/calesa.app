@@ -10,6 +10,10 @@ Proyectos de repuestos por vehículo (o externos), ítems que recorren el flujo 
   `client.ts`, lo puro del formulario de un valor (`validarValor`, `cambiosDeValor`, `ordenSiguiente`…). Las actions `crearValor`, `guardarValor` y
   `eliminarValor` (`features/catalogos/actions/`, `repuestos.configurar`) no salen por los barriles: las importan en relativo los componentes de la 8.08-3.
 - Sale por `pantallas/catalogos.ts` (8.08-3): `<CatalogosDeRepuestos>`, la pestaña «Catálogos» de `/configuracion/repuestos`; la lee `src/app/(app)/configuracion/repuestos/seccion-catalogos.tsx`.
+- Sale por `pantallas/proyectos.ts` (8.09-1): `<ListadoDeProyectos>`, `<BotonNuevoProyecto>`, `<DrawerDeNuevoProyectoDiferido>` y `useNuevoProyectoPorUrl`; por el `index.ts` del área, el
+  pedido del listado (`esquemaDelListado`, `pedidoDelListado`, `leerCursorDeProyectos`), `leerProyectosDelListado` y el estado derivado (`estadoDelProyecto`). La action
+  `crearProyecto` no sale por los barriles: la importa el hook del drawer. El cursor del listado es el `numero` y no tiene «Anterior»; los buscadores de vehículo y de lead los
+  compone `src/app/(app)/repuestos/` (este módulo no importa `buscador`).
 - Depende de: `vehiculos`, `flujos`, `leads`.
 
 ## Áreas

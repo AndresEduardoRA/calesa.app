@@ -80,7 +80,7 @@ Navegación de primer nivel (hasta 7, filtrada por permisos): Inicio · Leads ·
 - **Cotizar** — `/cotizaciones/nuevo` (`cotizaciones.crear`): formulario hoja (XCell); `?origen=&lead=&vehiculo=&returnTo=` (se validan y se llevan; el vehículo va al recálculo); sin entrada en la navegación. Ver Flujo 2.
 - **Cotización guardada** — `/cotizaciones/[id]` (`cotizaciones.ver`; edita quien la puede guardar, `puede_guardar` de la base; P8 y P13 del 4.15): la hoja de SU versión; quien sólo ve, en sólo lectura. Se llega desde el historial del vehículo y la tarjeta de lo guardado; su cabecera trae «Revisiones», la cadena, si no está al día, «Cotizar encima», «Marcar final» (4.25-2: lo ve, en una preventa, quien tiene `cotizaciones.final.gestionar` del origen; confirma en `?panel=marcar-final`), «Emitir comprobante» (4.26-2: en una final activa sin comprobante vigente, con `cotizaciones.comprobantes.emitir`; confirma en `?panel=emitir-comprobante` y el aviso nombra el número «S-N») y «Enviar a la papelera» (4.24-3: lo ve quien puede guardarla, o en una preventa quien tiene `cotizaciones.moderar`; lleva al listado con «Deshacer»). Bajo la hoja, «Comprobantes» (en una final, o en una que ya tiene alguno): del más nuevo, «Vigente» o «Anulado» con quién, cuándo y el motivo, hasta 20 con su aviso de tope; «Anular» en el vigente abre un modal con motivo en `?panel=anular-comprobante` (sin id: hay a lo sumo uno); estados: esqueleto, error con «Reintentar», «Todavía no tiene comprobantes.».
 - **Logística** — `/logistica` (`logistica.ver` en algún origen): cadena (kanban por fase, 6.03) + panel de la unidad en un `<Drawer>` por URL (`?vehiculo=<id>`, que abre el clic en una tarjeta); en la URL: `?origen=` (pestañas de los orígenes con la logística encendida), `?fase=` (celular: una fase a la vez), `q` (nombre, VIN o lote; 3 letras o números), `demoradas`, `por_aprobar`, `contenedor`, `booking` y `naviera`; `/logistica/vehiculo/[id]` (el mismo panel en su página: a ella apunta la notificación de demora), `/embarques`, `/aduana`, `/gastos` (6.11-3: `?ver=gastos|pagos`; los enlaces de la sub-navegación aparecen cuando cada página existe). Ver «Logística: estados propios».
-- **Repuestos** — `/repuestos` (`repuestos.*`): proyectos + detalle con ítems; stock, compras, cotizador propio.
+- **Repuestos** — `/repuestos` (`repuestos.ver`; 8.09-1): el listado de proyectos por cursor `numero` (`?q=` de 3 letras o un número, `?estado=abiertos|cerrados|todos`, `?por=`, `?cursor=`) con número, vehículo o «Externo», cliente, estado derivado, ítems («200+») y última actividad; «Nuevo proyecto» (`repuestos.editar`, `N`, `?panel=nuevo-proyecto`, `&vehiculo=<id>` lo abre vinculado). Detalle con ítems, stock, compras y cotizador propio llegan con 8.09-2 a 8.12. Ver «Repuestos: listado (estados propios)».
 - **Agenda** — `/agenda` (todos): calendario mes/semana/día + drawer; eventos, tareas, recordatorios, subastas.
 - **Chat** — `/chat` (`chat.participar`): maestro-detalle; menciones `#` de vehículo/lead/cotización, `/tarea`, `/evento`; widget flotante fuera de `/chat`.
 - **Notificaciones** — `/notificaciones` (todos): lista; la campana trae las que piden acción.
@@ -400,6 +400,15 @@ Un número que se muestra nunca es el total exacto: se cuenta hasta un tope y se
 - **Vehículos y ficha:** los bloques de vínculos, interesados y «Agregar vehículo» dicen su tope al pie con `<AvisoDeTope>`; «Oportunidades» muestra las 10 más recientes (abiertas primero) con «Ver más» de a 20 desde el navegador, hasta 500 (en el tope, «Buscarlas en tu embudo»).
 - **Papeleras:** de a 5 lotes por página (`?cursor=`); un lote trae hasta 200 y muestra 20 con «Mostrar los 200». Sin «Ítems por página»: su unidad es el lote.
 - **Sin red:** abrir un modal, panel o pestaña nunca pedidos dice «Sin conexión. No se pudo abrir esto.» con «Reintentar»; paginar sin red no navega y lo dice.
+
+### Repuestos: listado (estados propios)
+
+- **Cargando:** esqueleto de lista (8 filas, 6 columnas).
+- **Vacío por primera vez:** «Todavía no hay proyectos de repuestos.» con «Nuevo proyecto» si hay `repuestos.editar`; con el filtro «Abiertos» aclara que los cerrados no se muestran.
+- **Vacío por filtro:** «Nada coincide con los filtros» con «Limpiar filtros». **Cursor fuera de rango:** «No hay más en esta página» con «Volver al principio».
+- **Error:** el de `(app)` con «Reintentar». **Sin permiso:** «No tienes permiso» (sin `repuestos.ver`).
+- **Sin «Anterior»:** «Siguiente» y, con cursor, «Volver al principio». Un número que se muestra nunca es un total exacto: más de 200 ítems se escribe «200+».
+- **Nuevo proyecto:** origen «De un vehículo» (buscador del inventario) o «Externo» (vehículo, VIN, cliente, teléfono y, con `leads.ver`, lead); un `?vehiculo=` que no se ve abre como «Externo» con un aviso.
 
 ### Equipo y roles (estados propios)
 
