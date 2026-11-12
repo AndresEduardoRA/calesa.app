@@ -6,3 +6,12 @@ import { diferido } from '@/shared/ui/diferido'
 export const HuecoQueFaltaDiferido = diferido(() =>
   import('./hueco-que-falta').then((modulo) => modulo.HuecoQueFalta),
 )
+
+// «Notas» e «Historial» nacen plegados: su código se pide al abrir el bloque (`BloqueDelHueco` monta el hijo al abrir) y la lista se lee entonces.
+export const HuecoDeNotasDiferido = diferido(() =>
+  import('./hueco-de-notas').then((modulo) => modulo.HuecoDeNotas),
+)
+
+export const HuecoDeHistorialDiferido = diferido(() =>
+  import('./hueco-de-historial').then((modulo) => modulo.HuecoDeHistorial),
+)
