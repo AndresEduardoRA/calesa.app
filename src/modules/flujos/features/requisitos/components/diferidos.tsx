@@ -15,6 +15,10 @@ export const FormularioDeEsperaDiferido = diferido(() =>
   import('./formulario-de-espera').then((modulo) => modulo.FormularioDeEspera),
 )
 
+export const FormularioDeEdicionDiferido = diferido(() =>
+  import('./formulario-de-edicion').then((modulo) => modulo.FormularioDeEdicion),
+)
+
 export const EliminarRequisitoDiferido = diferido(() =>
   import('./eliminar-requisito').then((modulo) => modulo.EliminarRequisito),
 )

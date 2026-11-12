@@ -8,20 +8,23 @@ import { useAbiertoAlgunaVez } from '@/shared/ui/use-abierto-alguna-vez'
 import type { FaseParaConfigurar, FlujoParaConfigurar } from '../../../entities/flujo'
 import { destinoDeRequisito, firmaDelOrden } from '../../../entities/requisitos/vista-de-fase'
 import { useAgregarRequisito } from '../hooks/use-agregar-requisito'
+import { useEditarRequisitoPorUrl } from '../hooks/use-editar-requisito-por-url'
 import { useEliminarRequisitoPorUrl } from '../hooks/use-eliminar-requisito-por-url'
 import { useRequisitosDeLaFase } from '../hooks/use-requisitos-de-la-fase'
 import { AgregarRequisito } from './agregar-requisito'
 import { EliminarRequisitoDiferido } from './diferidos'
+import { EdicionDeRequisito } from './edicion-de-requisito'
 import { FilaDeRequisito } from './fila-de-requisito'
 
 type Props = { flujo: FlujoParaConfigurar; fase: FaseParaConfigurar }
 
 // El hueco `bloques.requisitos` del inspector (5.08), bajo el resumen de lo leído: los requisitos de la fase en su orden (descripción, «Bloqueante» o
-// «Informativo»), ordenarlos con botones, quitarlos con confirmación en la URL y «Agregar requisito» (dato, documento o espera). Una escritura a la vez; la lista la trae
+// «Informativo»), ordenarlos con botones, editarlos, quitarlos con confirmación en la URL y «Agregar requisito» (dato, documento o espera). Una escritura a la vez; la lista la trae
 // la página releída. Quien llega aquí configura el flujo; la base lo vuelve a exigir en cada escritura.
 export function BloqueDeRequisitos({ flujo, fase }: Props) {
   const r = useRequisitosDeLaFase(flujo, fase)
   const agregar = useAgregarRequisito()
+  const editar = useEditarRequisitoPorUrl(r.requisitos)
   const quitar = useEliminarRequisitoPorUrl(r.requisitos)
   const quitarVisto = useAbiertoAlgunaVez(quitar.abierto)
   const prefijo = `requisito-${fase.id}`
@@ -56,6 +59,13 @@ export function BloqueDeRequisitos({ flujo, fase }: Props) {
               puedeSubir={destinoDeRequisito(r.requisitos, requisito.id, 'subir') !== null}
               puedeBajar={destinoDeRequisito(r.requisitos, requisito.id, 'bajar') !== null}
               alMover={(direccion) => void r.mover(requisito, direccion)}
+              alEditar={() => {
+                // Sólo una forma abierta a la vez: la de agregar se cierra.
+                if (agregar.forma !== null) {
+                  agregar.cerrar()
+                }
+                editar.abrir(requisito.id)
+              }}
               alPedirQuitar={() => {
                 quitar.abrir(requisito.id)
               }}
@@ -66,7 +76,16 @@ export function BloqueDeRequisitos({ flujo, fase }: Props) {
       <p role="status" className="sr-only">
         {r.anuncio}
       </p>
-      <AgregarRequisito flujo={flujo} requisitos={r} agregar={agregar} prefijo={prefijo} />
+      {editar.requisito === null ? (
+        <AgregarRequisito flujo={flujo} requisitos={r} agregar={agregar} prefijo={prefijo} />
+      ) : (
+        <EdicionDeRequisito
+          requisitos={r}
+          requisito={editar.requisito}
+          prefijo={prefijo}
+          cerrar={editar.cerrar}
+        />
+      )}
       {quitarVisto ? (
         <EliminarRequisitoDiferido
           abierto={quitar.abierto}

@@ -16,11 +16,12 @@ type Props = {
   puedeSubir: boolean
   puedeBajar: boolean
   alMover: (direccion: Direccion) => void
+  alEditar: () => void
   alPedirQuitar: () => void
 }
 
 // Un requisito de la fase: su descripción en una línea (con las notas debajo, en gris), «Bloqueante» o «Informativo» con texto (nunca sólo color), el orden
-// por botones y el «⋯» con «Quitar». Los botones de orden se apagan en los extremos con su motivo.
+// por botones y el «⋯» con «Editar» y «Quitar». Los botones de orden se apagan en los extremos con su motivo.
 export function FilaDeRequisito({
   requisito,
   descripcion,
@@ -28,6 +29,7 @@ export function FilaDeRequisito({
   puedeSubir,
   puedeBajar,
   alMover,
+  alEditar,
   alPedirQuitar,
 }: Props) {
   const notas = notasDeRequisito(requisito)
@@ -54,6 +56,13 @@ export function FilaDeRequisito({
         nombre={descripcion}
         id={`${prefijo}-${requisito.id}`}
         acciones={[
+          {
+            tipo: 'accion',
+            clave: 'editar',
+            etiqueta: 'Editar',
+            despuesDeCerrar: true,
+            alElegir: alEditar,
+          },
           {
             tipo: 'accion',
             clave: 'quitar',
