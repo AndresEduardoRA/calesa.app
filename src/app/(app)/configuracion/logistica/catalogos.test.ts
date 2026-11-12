@@ -30,8 +30,10 @@ const lista: readonly CatalogoDeLogistica[] = [
 ]
 
 describe('catálogos de Configuración › Logística', () => {
-  it('el área dinero llena «Categorías de gasto»: la ve quien gestiona los catálogos y sólo ella', () => {
+  it('transporte llena «Puertos» y «Navieras» y dinero «Categorías de gasto»: los ve quien gestiona los catálogos, en ese orden', () => {
     expect(catalogosVisibles(con('logistica.catalogos.gestionar')).map((c) => c.titulo)).toEqual([
+      'Puertos',
+      'Navieras',
       'Categorías de gasto',
     ])
   })
