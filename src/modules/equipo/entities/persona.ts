@@ -33,6 +33,9 @@ export type PersonaDelEquipo = {
   bloqueoMotivo: string | null
   // Dada de baja y con sus leads todavía pasándose por lotes (`equipo_bajas.terminada_en` nulo).
   bajaEnCurso: boolean
+  // Si quien mira la domina (tiene todo lo que ella tiene), según `personas_dominadas()`. null = no se pudo saber, y entonces
+  // nada de lo que exige dominarla se habilita.
+  dominada: boolean | null
   roles: RolDeLaPersona[]
 }
 
@@ -88,8 +91,12 @@ const esquemaPersonas = z.array(
   }),
 )
 
-// Las filas de `perfiles` con sus roles (así las lee infra). El rol principal va primero.
-export function personasDesde(filas: unknown): PersonaDelEquipo[] {
+// Las filas de `perfiles` con sus roles (así las lee infra), y a quiénes de ellas domina quien mira (null = no se sabe). El rol
+// principal va primero.
+export function personasDesde(
+  filas: unknown,
+  dominadas: ReadonlySet<string> | null,
+): PersonaDelEquipo[] {
   return esquemaPersonas.parse(filas).map((fila) => ({
     id: fila.id,
     nombre: fila.nombre,
@@ -105,6 +112,7 @@ export function personasDesde(filas: unknown): PersonaDelEquipo[] {
     bloqueoMotivo: fila.bloqueo_motivo,
     bajaEnCurso:
       !fila.activo && fila.equipo_bajas != null && fila.equipo_bajas.terminada_en === null,
+    dominada: dominadas === null ? null : dominadas.has(fila.id),
     roles: fila.usuarios_roles
       .flatMap(({ es_principal, roles }) =>
         roles ? [{ ...roles, esPrincipal: es_principal }] : [],

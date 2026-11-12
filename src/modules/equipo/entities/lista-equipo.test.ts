@@ -69,22 +69,22 @@ describe('listaDelEquipoDesde', () => {
   const filas = (cuantas: number) => Array.from({ length: cuantas }, (_, n) => fila(n + 1))
 
   it('con una de más corta en el tope y dice que hay más', () => {
-    const lista = listaDelEquipoDesde(filas(101), 100)
+    const lista = listaDelEquipoDesde(filas(101), null, 100)
     expect(lista.personas).toHaveLength(100)
     expect(lista.hayMas).toBe(true)
     expect(lista.personas.at(-1)?.nombre).toBe('Persona 100')
   })
 
   it('con justo el tope, o menos, no hay más', () => {
-    expect(listaDelEquipoDesde(filas(100), 100)).toMatchObject({ hayMas: false })
-    expect(listaDelEquipoDesde(filas(100), 100).personas).toHaveLength(100)
-    expect(listaDelEquipoDesde(filas(3), 100)).toMatchObject({ hayMas: false })
-    expect(listaDelEquipoDesde([], 100)).toEqual({ personas: [], hayMas: false })
+    expect(listaDelEquipoDesde(filas(100), null, 100)).toMatchObject({ hayMas: false })
+    expect(listaDelEquipoDesde(filas(100), null, 100).personas).toHaveLength(100)
+    expect(listaDelEquipoDesde(filas(3), null, 100)).toMatchObject({ hayMas: false })
+    expect(listaDelEquipoDesde([], null, 100)).toEqual({ personas: [], hayMas: false })
   })
 
   it('el tope por defecto es el de la lista del equipo (100)', () => {
-    expect(listaDelEquipoDesde(filas(101)).personas).toHaveLength(100)
-    expect(listaDelEquipoDesde(filas(101)).hayMas).toBe(true)
+    expect(listaDelEquipoDesde(filas(101), null).personas).toHaveLength(100)
+    expect(listaDelEquipoDesde(filas(101), null).hayMas).toBe(true)
   })
 })
 

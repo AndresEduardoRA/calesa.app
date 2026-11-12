@@ -69,7 +69,7 @@ const fila = {
 
 describe('personasDesde', () => {
   it('da forma a la persona y pone primero su rol principal', () => {
-    expect(personasDesde([fila])).toEqual([
+    expect(personasDesde([fila], new Set([fila.id]))).toEqual([
       {
         id: fila.id,
         nombre: 'Sofía Ramos',
@@ -79,6 +79,7 @@ describe('personasDesde', () => {
         estado: 'activa',
         bloqueoMotivo: null,
         bajaEnCurso: false,
+        dominada: true,
         roles: [
           {
             id: '00000000-0000-0000-0000-0000000000aa',
@@ -101,22 +102,28 @@ describe('personasDesde', () => {
 
   it('una baja en curso: dada de baja y con su fila de equipo_bajas sin terminar', () => {
     const baja = { ...fila, activo: false }
-    expect(personasDesde([{ ...baja, equipo_bajas: { terminada_en: null } }])[0]?.bajaEnCurso).toBe(
-      true,
-    )
     expect(
-      personasDesde([{ ...baja, equipo_bajas: { terminada_en: '2026-10-17T12:00:00Z' } }])[0]
+      personasDesde([{ ...baja, equipo_bajas: { terminada_en: null } }], null)[0]?.bajaEnCurso,
+    ).toBe(true)
+    expect(
+      personasDesde([{ ...baja, equipo_bajas: { terminada_en: '2026-10-17T12:00:00Z' } }], null)[0]
         ?.bajaEnCurso,
     ).toBe(false)
     // Sin la fila (una baja anterior al cierre 1) o sin `equipo.usuarios.ver`: no se dice nada.
-    expect(personasDesde([{ ...baja, equipo_bajas: null }])[0]?.bajaEnCurso).toBe(false)
-    expect(personasDesde([fila])[0]?.bajaEnCurso).toBe(false)
+    expect(personasDesde([{ ...baja, equipo_bajas: null }], null)[0]?.bajaEnCurso).toBe(false)
+    expect(personasDesde([fila], null)[0]?.bajaEnCurso).toBe(false)
   })
 
   it('una persona sin roles ni correo no rompe la lista', () => {
-    const [persona] = personasDesde([{ ...fila, email: null, usuarios_roles: [] }])
+    const [persona] = personasDesde([{ ...fila, email: null, usuarios_roles: [] }], null)
     expect(persona?.roles).toEqual([])
     expect(persona?.email).toBe('')
+  })
+
+  it('dominada: si quien mira la domina, según personas_dominadas(); null si no se pudo saber', () => {
+    expect(personasDesde([fila], new Set([fila.id]))[0]?.dominada).toBe(true)
+    expect(personasDesde([fila], new Set())[0]?.dominada).toBe(false)
+    expect(personasDesde([fila], null)[0]?.dominada).toBeNull()
   })
 })
 
