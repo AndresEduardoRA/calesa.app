@@ -1,4 +1,10 @@
-import { widgetsVisibles, type ClaveDeWidget, type WidgetConClave } from '../../../entities/widgets'
+import {
+  aplicarPreferencia,
+  widgetsVisibles,
+  type ClaveDeWidget,
+  type PreferenciaDeWidgets,
+  type WidgetConClave,
+} from '../../../entities/widgets'
 import type { Permisos } from '@/shared/lib/permisos'
 import { CuerpoDeConvertidos } from './convertidos'
 import { CuerpoDeCotizacionesCreadas } from './cotizaciones-creadas'
@@ -33,10 +39,16 @@ const CUERPOS: Record<ClaveDeWidget, CuerpoDeWidget> = {
 
 export type WidgetParaMontar = { widget: WidgetConClave; cuerpo: CuerpoDeWidget }
 
-// Los widgets de esta persona con su cuerpo, en el orden del catálogo.
-export function widgetsParaMontar(permisos: Permisos): readonly WidgetParaMontar[] {
-  return widgetsVisibles(permisos).map((widget) => ({
+// Los widgets de esta persona con su cuerpo: los que muestra, en el orden que eligió (el del catálogo si no eligió), y los
+// que ocultó. Sólo salen los que sus permisos dejan ver: una clave de la preferencia que no ve se ignora.
+export function widgetsParaMontar(
+  permisos: Permisos,
+  preferencia: PreferenciaDeWidgets | null = null,
+): { mostrados: readonly WidgetParaMontar[]; ocultos: readonly WidgetParaMontar[] } {
+  const montar = (widget: WidgetConClave): WidgetParaMontar => ({
     widget,
     cuerpo: CUERPOS[widget.clave],
-  }))
+  })
+  const { mostrados, ocultos } = aplicarPreferencia(widgetsVisibles(permisos), preferencia)
+  return { mostrados: mostrados.map(montar), ocultos: ocultos.map(montar) }
 }

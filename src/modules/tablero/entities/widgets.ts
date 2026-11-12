@@ -132,24 +132,24 @@ export type PreferenciaDeWidgets = {
   ocultos: readonly string[]
 }
 
-export type WidgetsAplicados = {
-  mostrados: readonly WidgetDelCatalogo[]
-  ocultos: readonly WidgetDelCatalogo[]
+export type WidgetsAplicados<W extends WidgetDelCatalogo = WidgetDelCatalogo> = {
+  mostrados: readonly W[]
+  ocultos: readonly W[]
 }
 
 // Aplica la preferencia a lo que la persona puede ver. Una clave que ya no existe (o que no puede ver) se ignora; un
 // widget que la preferencia no nombra queda al final de su lista, en el orden del catálogo; una clave repetida cuenta
 // una vez; un oculto lo es aunque no esté en `orden`. Sin preferencia, todos mostrados en el orden del catálogo.
-export function aplicarPreferencia(
-  visibles: readonly WidgetDelCatalogo[],
+export function aplicarPreferencia<W extends WidgetDelCatalogo>(
+  visibles: readonly W[],
   preferencia: PreferenciaDeWidgets | null,
-): WidgetsAplicados {
+): WidgetsAplicados<W> {
   if (!preferencia) {
     return { mostrados: visibles, ocultos: [] }
   }
-  const porClave = new Map(visibles.map((widget) => [widget.clave, widget]))
+  const porClave = new Map(visibles.map((widget) => [widget.clave, widget] as const))
   const ocultosPorClave = new Set(preferencia.ocultos.filter((clave) => porClave.has(clave)))
-  const ordenados: WidgetDelCatalogo[] = []
+  const ordenados: W[] = []
   const vistos = new Set<string>()
   for (const clave of preferencia.orden) {
     const widget = porClave.get(clave)
