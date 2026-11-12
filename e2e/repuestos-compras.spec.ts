@@ -14,12 +14,14 @@ import { formatearMonto } from '../src/shared/lib/formato'
 
 // La pestaña «Compras» de `/repuestos/[id]` (8.11-2): la dueña (con `repuestos.costos.ver`) abre «Compras» desde la barra, ve la compra sembrada y el margen por moneda
 // (precios 2 × 50, compras 60, margen 40); al quitarle la moneda al ítem, el margen ya no es un monto sino «Sin precio en 1 ítem» (nulo no es 0). Quien sólo tiene
-// `repuestos.ver` no ve la pestaña y `?pestana=compras` le abre la hoja. Registrar en el Drawer lo suma 8.11-3.
+// `repuestos.ver` no ve la pestaña y `?pestana=compras` le abre la hoja. Con costos (8.11-3): registrar una compra en el Drawer la suma al margen con el `monto_base`
+// que pone la base; eliminarla la saca y «Deshacer» la devuelve.
 // La etiqueta no empieza con «E2E»: la limpieza de `repuestos-proyecto.spec.ts` borra esas. Borrar el proyecto borra sus ítems y compras en cascada.
 test.describe.configure({ mode: 'serial' })
 
 const BOMBA = 'Bomba de agua'
 const PROVEEDOR = 'Repuestos Andinos'
+const OTRO_PROVEEDOR = 'Frenos del Sur'
 // La moneda base del seed (`ajustes_empresa.moneda_base`, `DEFAULT 'USD'`): la compra va en la base para que `monto_base = monto`.
 const BASE = 'USD'
 const monto = (valor: number) => formatearMonto(valor, { moneda: BASE, locale: 'es-BO' })
@@ -119,4 +121,49 @@ test('sin costos: no hay pestaña «Compras» y su URL abre la hoja', async ({ p
   await expect(page.getByRole('tab', { name: 'Compras' })).toHaveCount(0)
   await expect(page.getByText(PROVEEDOR)).toHaveCount(0)
   await expect(page.getByRole('region', { name: 'Margen del proyecto' })).toHaveCount(0)
+})
+
+test('con costos: registrar una compra en el Drawer suma al margen; eliminarla y deshacer', async ({
+  page,
+}) => {
+  // El caso 1 le quitó la moneda al ítem: vuelve a la base para que el margen sea un monto.
+  sql(`update repuestos_items set moneda = '${BASE}' where proyecto_id = '${proyecto}'`)
+  await entrar(page, duena, { fresco: true })
+  await page.goto(`/repuestos/${proyecto}?pestana=compras`)
+  const margen = page.getByRole('region', { name: 'Margen del proyecto' })
+  const valorDe = (titulo: string) =>
+    margen.getByText(titulo, { exact: true }).locator('xpath=following-sibling::dd')
+  await expect(valorDe('Margen')).toContainText(monto(40))
+
+  // Abrir va fuera del diálogo; guardar, dentro (el pie repite «Registrar compra», D6).
+  await page.getByRole('button', { name: 'Registrar compra' }).click()
+  const dialogo = page.getByRole('dialog', { name: 'Registrar compra' })
+  await dialogo.getByLabel('Ítem').selectOption({ label: BOMBA })
+  await dialogo.getByLabel('Proveedor').fill(OTRO_PROVEEDOR)
+  await dialogo.getByLabel('Monto').fill('15')
+  await dialogo.getByRole('button', { name: 'Registrar compra' }).click()
+  await expect(dialogo).toBeHidden()
+
+  const compras = page.getByRole('list', { name: 'Compras del proyecto' })
+  const fila = compras.getByRole('listitem').filter({ hasText: OTRO_PROVEEDOR })
+  await expect(fila).toContainText(monto(15))
+  await expect(valorDe('Compras')).toContainText(monto(75))
+  await expect(valorDe('Margen')).toContainText(monto(25))
+  // El equivalente en la base lo puso la base (en la moneda base, sin tipo de cambio).
+  expect(
+    sql(
+      `select monto_base || '|' || coalesce(tipo_cambio_id::text, 'nulo') from repuestos_compras where proyecto_id = '${proyecto}' and proveedor = '${OTRO_PROVEEDOR}'`,
+    ).trim(),
+  ).toBe('15.00|nulo')
+
+  await fila.getByRole('button', { name: /^Más acciones de / }).click()
+  await page.getByRole('menuitem', { name: 'Eliminar' }).click()
+  await expect(page.getByText('Compra eliminada.')).toBeVisible()
+  await expect(fila).toHaveCount(0)
+  await expect(valorDe('Margen')).toContainText(monto(40))
+
+  await page.getByRole('button', { name: 'Deshacer' }).click()
+  await expect(page.getByText('Compra restituida.')).toBeVisible()
+  await expect(fila).toContainText(monto(15))
+  await expect(valorDe('Margen')).toContainText(monto(25))
 })
