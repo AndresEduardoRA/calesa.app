@@ -1,7 +1,7 @@
 // Esperar el estado final antes de medir (`recorrido.ts` las reexporta: los specs las importan de allí). Medir una caja o preguntar quién
 // recibe el clic una sola vez, apenas aparece un aviso o termina una acción, depende de la velocidad de la máquina: en un runner lento
 // (CI-2) el pie de un panel seguía en «Guardando…». Se espera el estado, nunca un tiempo.
-import { expect, type Locator } from '@playwright/test'
+import { expect, type Locator, type Page, type Request, type Response } from '@playwright/test'
 
 // Un panel que entra con animación (zoom, deslizamiento) mide menos mientras entra: se espera a que
 // termine antes de medir cajas.
@@ -78,4 +78,59 @@ export async function recibeElClic(lugar: Locator): Promise<void> {
   })
   expect(lo.quieta, 'la caja del elemento no se aquietó en 2 s').toBe(true)
   expect(lo.recibe, `el clic lo recibe ${lo.quien}`).toBe(true)
+}
+
+// --- Los pedidos -------------------------------------------------------------------------------------
+// Leer un texto o contar filas tras un clic que dispara un pedido es esperar un tiempo: los 5 s de fábrica de un `expect` no alcanzan si
+// el pedido se demora (la CPU lenta, la base cargada) y sobran si no. Se espera la respuesta, con un tope propio que dice qué faltó.
+
+export const esRpc = (nombre: string) => (r: Response) =>
+  r.request().method() === 'POST' && new URL(r.url()).pathname.endsWith(`/rpc/${nombre}`)
+
+export const esRuta = (ruta: string) => (r: Response) =>
+  r.request().method() === 'POST' && new URL(r.url()).pathname === ruta
+
+export const esAccionDelServidor = (r: Response) =>
+  r.request().method() === 'POST' && r.request().headers()['next-action'] !== undefined
+
+// Arma la espera ANTES de la acción (sin carrera con la respuesta), la deja correr y devuelve la respuesta. Si vence el tope el error dice
+// qué pedido faltó y cuánto se esperó, no «el test superó los 30 s». Anota lo que tardó. `espera` es la etiqueta (tope de 30 s) o
+// `{ etiqueta, tope }`. No lee el cuerpo ni las cabeceras.
+export async function conRespuesta(
+  page: Page,
+  coincide: (r: Response) => boolean,
+  accion: () => Promise<unknown>,
+  espera: string | { etiqueta: string; tope: number },
+): Promise<Response> {
+  const { etiqueta, tope } =
+    typeof espera === 'string' ? { etiqueta: espera, tope: 30_000 } : espera
+  const inicio = performance.now()
+  const llega = page.waitForResponse(coincide, { timeout: tope })
+  // Si la acción falla, la espera armada no debe quedar colgada sin que nadie la atienda.
+  llega.catch(() => undefined)
+  await accion()
+  try {
+    const r = await llega
+    console.warn(`[espera] ${etiqueta}: ${Math.round(performance.now() - inicio)} ms`)
+    return r
+  } catch {
+    throw new Error(`«${etiqueta}»: no llegó la respuesta en ${tope} ms`)
+  }
+}
+
+// Cada pedido que coincide tarda `ms` más en salir; la respuesta es la real. Devuelve los pedidos demorados.
+export async function demorarPedido(
+  page: Page,
+  coincide: (pedido: Request) => boolean,
+  ms: number,
+): Promise<Request[]> {
+  const demorados: Request[] = []
+  await page.route('**/*', async (ruta) => {
+    if (coincide(ruta.request())) {
+      demorados.push(ruta.request())
+      await new Promise((listo) => setTimeout(listo, ms))
+    }
+    await ruta.fallback()
+  })
+  return demorados
 }
