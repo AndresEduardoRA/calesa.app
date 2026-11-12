@@ -88,11 +88,11 @@ function TextoDeLaBurbuja({
 // Un mensaje del hilo: el propio a la derecha, el ajeno a la izquierda. El texto es siempre texto (nunca HTML) y respeta los saltos de línea. El
 // estado de un envío va en palabras, no sólo en color.
 export function Burbuja({ mensaje, propio, mostrarAutor, zona, alReintentar, acciones }: Props) {
-  const menu = <MenuDelMensaje mensaje={mensaje} acciones={acciones} />
+  const menu = acciones.sinMenu ? null : <MenuDelMensaje mensaje={mensaje} acciones={acciones} />
   return (
     <li className={cn('flex min-w-0 flex-col', propio ? 'items-end' : 'items-start')}>
       <div className="flex w-full min-w-0 items-start gap-1">
-        {propio ? <div className="ml-auto">{menu}</div> : null}
+        {propio && menu ? <div className="ml-auto">{menu}</div> : null}
         <div
           className={cn(
             'max-w-[85%] min-w-0 rounded-(--radius-card) px-3 py-2 text-(length:--text-base) break-words',

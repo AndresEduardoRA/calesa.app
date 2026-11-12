@@ -213,8 +213,8 @@ test('el de otra persona dice de quién es y nada más del lead', async ({ page 
   // Ni el nombre del lead ni su número aparecen en ningún lado.
   expect(await page.content()).not.toContain(secreto)
   expect(await page.content()).not.toMatch(/Ya existe/)
-  // Escribirle por chat llega con el chat: acá no hay ninguna acción.
-  await expect(panel.getByRole('button', { name: /chat/i })).toHaveCount(0)
+  // Carlos no tiene `chat.participar`: no se le ofrece «Escribirle por chat» (con chat, `chat-widget.spec.ts`).
+  await expect(panel.getByRole('link', { name: 'Escribirle por chat' })).toHaveCount(0)
 
   await panel.getByLabel('Nombre', { exact: true }).fill(`E2E Intruso ${info.project.name}`)
   await page.keyboard.press('Control+Enter')
