@@ -9996,6 +9996,8 @@ export type Database = {
           p_etiqueta: string
           p_filtrable?: boolean
           p_grupo?: string
+          p_maximo?: number
+          p_minimo?: number
           p_opciones?: Json
           p_origen: string
           p_principal?: boolean
@@ -10014,7 +10016,7 @@ export type Database = {
         Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_campo: string }
         Returns: string
       }
-      origen_campo_impacto: { Args: { p_campo: string }; Returns: Json }
+      origen_campo_impacto: { Args: { p_cambios?: Json; p_campo: string }; Returns: Json }
       origen_campo_mover: {
         Args: { p_actualizado_en_esperado: string; p_campo: string; p_despues_de?: string }
         Returns: string
