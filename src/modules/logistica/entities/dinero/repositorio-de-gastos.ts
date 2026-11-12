@@ -11,6 +11,21 @@ export type GastoGuardado = {
   montoBase: number | null
 }
 
+// Lo que devolvió `gastos_prorratear`: el lote, si ya estaba repartido y los ids de las filas creadas.
+export type GastoProrrateado = { lote: string; yaExistia: boolean; ids: string[] }
+
+export type PedidoDeProrrateo = {
+  lote: string
+  unidades: string[]
+  categoriaId: string
+  moneda: string
+  monto: number
+  tipoCambioId: string | null
+  fecha: string
+  proveedor: string | null
+  notas: string | null
+}
+
 export type RepositorioDeGastos = {
   // `gasto_registrar`: el id lo manda el cliente, así que un reintento no duplica.
   registrar: (
@@ -27,4 +42,6 @@ export type RepositorioDeGastos = {
     id: string
     actualizadoEnEsperado: string
   }) => Promise<ResultadoDeAccion<{ id: string }>>
+  // `gastos_prorratear`: un gasto por unidad, en partes iguales, todo o nada; el mismo lote con las mismas unidades devuelve lo ya repartido.
+  prorratear: (pedido: PedidoDeProrrateo) => Promise<ResultadoDeAccion<GastoProrrateado>>
 }

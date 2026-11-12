@@ -43,3 +43,16 @@ export const esquemaEliminarGasto = z.object({
   id: z.guid(),
   actualizadoEnEsperado: z.string().min(1),
 })
+
+// Prorratear un gasto entre las unidades de un grupo (6.11-4): `gastos_prorratear` admite de 1 a 200 unidades, sin repetir; el lote hace de id del intento. Sin comprobante (D4).
+export const esquemaProrratearGasto = z.object({
+  lote: z.guid(),
+  unidades: z.array(z.guid()).min(1).max(200),
+  categoriaId: z.guid(),
+  moneda: z.string().regex(/^[A-Z]{3}$/),
+  monto,
+  tipoCambioId: z.guid().nullable(),
+  fecha,
+  proveedor: texto,
+  notas: texto,
+})
