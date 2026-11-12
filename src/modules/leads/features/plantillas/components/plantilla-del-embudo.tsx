@@ -8,6 +8,7 @@ import type { AjustesDeLeads } from '../../../entities/ajustes-de-leads'
 import { ListaDeEtapas } from '../../embudo/components/lista-de-etapas'
 import { usePlantillaDelEmbudo } from '../hooks/use-plantilla-del-embudo'
 import { useRestablecerPlantillaDelEmbudo } from '../hooks/use-restablecer-plantilla-del-embudo'
+import { RechazoAlRestablecer } from './rechazo-al-restablecer'
 
 // Configuración › Leads › «Plantilla del embudo» (`?seccion=embudo`): las etapas con que nace el embudo de cada persona. Quien la monta
 // le da la versión como `key`: lo guardado, acá o por otra persona, vuelve a montarla desde la base.
@@ -65,18 +66,10 @@ export function PlantillaDelEmbudo({ embudo }: { embudo: AjustesDeLeads['embudo'
         etiquetaConfirmar="Restablecer"
         enCurso={restablecimiento.enCurso}
       >
-        {restablecimiento.rechazo?.codigo === 'conflicto' ? (
-          <AvisoDeConflicto
-            mensaje={restablecimiento.rechazo.mensaje}
-            alRecargar={restablecimiento.recargar}
-            detalle="No se restableció nada. Recargar trae su versión."
-          />
-        ) : null}
-        {restablecimiento.rechazo && restablecimiento.rechazo.codigo !== 'conflicto' ? (
-          <Aviso tono="peligro">
-            <p>{restablecimiento.rechazo.mensaje}</p>
-          </Aviso>
-        ) : null}
+        <RechazoAlRestablecer
+          rechazo={restablecimiento.rechazo}
+          alRecargar={restablecimiento.recargar}
+        />
       </Confirmar>
     </section>
   )

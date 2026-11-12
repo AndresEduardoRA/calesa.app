@@ -34,6 +34,12 @@ export const PESTANAS = [
     permiso: 'leads.configurar',
     nombreDelPermiso: 'Configurar leads',
   },
+  {
+    clave: 'portal',
+    titulo: 'Mensaje del portal',
+    permiso: 'leads.configurar',
+    nombreDelPermiso: 'Configurar leads',
+  },
 ] as const satisfies readonly {
   clave: string
   titulo: string

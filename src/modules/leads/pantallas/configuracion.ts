@@ -7,3 +7,4 @@ export { EsqueletoDeTipos } from '../features/tipos/components/esqueleto-de-tipo
 export { TiposDeSeguimiento } from '../features/tipos-de-seguimiento/components/tipos-de-seguimiento'
 export { EsqueletoDeTiposDeSeguimiento } from '../features/tipos-de-seguimiento/components/esqueleto-de-tipos-de-seguimiento'
 export { PlantillaDelEmbudo } from '../features/plantillas/components/plantilla-del-embudo'
+export { MensajeDelPortal } from '../features/plantillas/components/mensaje-del-portal'

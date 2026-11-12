@@ -10,13 +10,14 @@ const MOTIVO_CAMPOS = 'Te falta el permiso «Gestionar los campos de los leads»
 const MOTIVO_LEADS = 'Te falta el permiso «Configurar leads».'
 
 describe('las pestañas', () => {
-  it('los tipos de seguimiento siguen a los tipos de lead; después, la plantilla del embudo', () => {
+  it('los tipos de seguimiento siguen a los tipos de lead; después, las dos plantillas', () => {
     expect([...CLAVES_DE_PESTANA]).toEqual([
       'campos',
       'origenes',
       'tipos',
       'seguimientos',
       'embudo',
+      'portal',
     ])
   })
 
@@ -34,6 +35,7 @@ describe('pestanasPara', () => {
       undefined,
       undefined,
       undefined,
+      undefined,
     ])
   })
 
@@ -45,6 +47,7 @@ describe('pestanasPara', () => {
       ['tipos', undefined],
       ['seguimientos', undefined],
       ['embudo', undefined],
+      ['portal', undefined],
     ])
   })
 
@@ -56,6 +59,7 @@ describe('pestanasPara', () => {
       ['tipos', MOTIVO_LEADS],
       ['seguimientos', MOTIVO_LEADS],
       ['embudo', MOTIVO_LEADS],
+      ['portal', MOTIVO_LEADS],
     ])
   })
 })

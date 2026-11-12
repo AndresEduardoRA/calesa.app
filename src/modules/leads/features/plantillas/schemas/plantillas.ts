@@ -23,3 +23,9 @@ export const esquemaGuardarPlantillaDelEmbudo = z.object({
     .max(MAXIMO_DE_ETAPAS)
     .nullable(),
 })
+
+export const esquemaGuardarMensajeDelPortal = z.object({
+  actualizadoEnEsperado: version,
+  // Nulo: vuelve el de fábrica. El largo fino (1000 caracteres) y las variables los dice la base; esto sólo pone un techo.
+  texto: z.string().max(4000).nullable(),
+})

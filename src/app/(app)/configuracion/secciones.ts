@@ -50,7 +50,7 @@ export const SECCIONES = [
     clave: 'leads',
     titulo: 'Leads',
     descripcion:
-      'Los campos de los leads, quién los ve, de dónde llegan, qué es cada lead y cómo se contactó.',
+      'Los campos de los leads, quién los ve, de dónde llegan, qué es cada lead, cómo se contactó y las plantillas del embudo y del mensaje del portal.',
     ruta: RUTAS.configuracionDeLeads,
     Icono: ContactRoundIcon,
     permisos: PERMISOS_DE_LEADS,

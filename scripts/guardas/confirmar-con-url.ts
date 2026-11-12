@@ -46,6 +46,10 @@ export const CONFIRMAR_CON_URL_DEL_NUCLEO: Record<string, ConfirmarConUrl> = {
     abre: 'src/modules/leads/features/plantillas/hooks/use-restablecer-plantilla-del-embudo.ts',
     senal: 'PANEL_RESTABLECER_EMBUDO',
   },
+  'src/modules/leads/features/plantillas/components/mensaje-del-portal.tsx': {
+    abre: 'src/modules/leads/features/plantillas/hooks/use-restablecer-mensaje-del-portal.ts',
+    senal: 'PANEL_RESTABLECER_PORTAL',
+  },
   'src/modules/cotizaciones/features/plantilla/components/descartar-la-plantilla.tsx': {
     abre: 'src/modules/cotizaciones/features/plantilla/hooks/use-panel-de-la-tarjeta.ts',
     senal: 'PANEL_DESCARTAR_PLANTILLA',
