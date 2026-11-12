@@ -14,10 +14,10 @@ Motor único de flujos: fases, transiciones, requisitos (documento | dato | espe
 
 - `entities/fase.ts` — `FaseResumen`, `fasesDesde()`. `infra/queries/fases.ts` — `getFasesDeOrigen()`. `areas/nucleo/composicion.ts`.
 - `entities/transiciones/quien-mueve.ts` (5.06) — `quienMueve()`: espejo de `_puede_mover` sin su parte de permisos, sólo para UX; la RPC `cambiar_fase` es el candado.
-- `entities/revisar/avisos.ts` (5.12-2) — tipos y orden de los avisos de `revisar_flujo()` (sin salida, inalcanzable, esperas cruzadas, roles que nadie tiene).
+- `entities/revisar/avisos.ts` (5.12) — lectura, orden y resumen de los avisos de `revisar_flujo()` (sin salida, inalcanzable, esperas cruzadas, roles que nadie tiene).
 - `features/configuracion/` (núcleo, 5.02: `<PantallaDelFlujo>` —Server Component async, por `pantallas/configuracion.ts`—, el selector, la lista de fases y el inspector por fase; sólo la lista, sin «camino» ni «historial», D2). `entities/selector-de-flujos.ts` y `lectura-de-fase.ts` son los textos puros.
 - La pantalla `/configuracion/flujos` (`src/app/(app)/configuracion/flujos/`) recibe de `src/app` los orígenes (`getOrigenes(true)`) y los roles (`leerRolesParaElegir()`): `flujos` no importa `origenes` ni `equipo`. `?fase=` lo lee `useFaseAbierta()`: un id que no es de una fase del flujo se ignora. `useVersionDelFlujo()` (dentro de `<ProveedorDelFlujo>`) entrega la `version` y `avisarConflicto()`; no sale por `client.ts` (D20).
-- **Huecos** (`HuecosDelFlujo`, 5.02): `franjaDeRevisar`, `accionesDeLaLista`, `accionesDeFila`, `salidasDeFila` y `bloques.datos|salidas|requisitos` del inspector (`salidasDeFila` y `bloques.salidas` ya están llenos, 5.06; `salidas` recibe también `roles`). Son **componentes de cliente** opcionales; cada área suma su línea en `src/app/(app)/configuracion/flujos/huecos.ts` al llenarlos. El inspector está registrado en `drawers-con-salida.ts` con el formulario de «Datos» (`formulario-de-datos-de-la-fase.tsx`, mecanismo `contexto`).
+- **Huecos** (`HuecosDelFlujo`, 5.02): `franjaDeRevisar`, `accionesDeLaLista`, `accionesDeFila`, `salidasDeFila` y `bloques.datos|salidas|requisitos` del inspector (`salidasDeFila` y `bloques.salidas` ya están llenos, 5.06; `salidas` recibe también `roles`; `bloques.requisitos`, 5.08; `franjaDeRevisar`, 5.12). Son **componentes de cliente** opcionales; cada área suma su línea en `src/app/(app)/configuracion/flujos/huecos.ts` al llenarlos. El inspector está registrado en `drawers-con-salida.ts` con el formulario de «Datos» (`formulario-de-datos-de-la-fase.tsx`, mecanismo `contexto`).
 
 ## Áreas (5.02)
 
@@ -80,6 +80,19 @@ El módulo se parte por área, como `cotizaciones` (`scripts/guardas/areas-de-fl
 - URL: `?agregar=nuevo&forma=elegir|dato|documento|espera`, `?editar=requisito&requisito=<id>` y `?eliminar=requisito&quitar=<id>` (constantes en `entities/requisitos/vista-de-fase.ts`); el diálogo de quitar está registrado en `scripts/guardas/areas-c/confirmar-con-url.ts`. Un área no importa otra: los tipos de documento se leen aparte, no de `documentos`.
 
 - **Bloqueante y fuera de regla (5.08-3):** `leerImpactoDeRequisito` (action de lectura: permiso por ámbito y `requisito_impacto`) alimenta `useBloqueanteDeRequisito`; el aviso va en línea (`<ConfirmarBloqueo>`), con estado local. `leerFueraDeRegla` (`flujo_fuera_de_regla`, `tope + 1`) sale por `areas/requisitos/index.ts` y lo lee `src/app/(app)/configuracion/flujos/requisitos/fuera-de-regla.tsx`, que resuelve los títulos con `leerTitulosDeVehiculos` de `vehiculos` (`flujos` no lo importa) y arma `href` por fase con `FILTRO_FASE`. Lo entrega a `PantallaDelFlujo` por `sobreLaLista`, una **prop de servidor** (función del flujo leído, tras su `<Suspense fallback={null}>`), no un hueco de cliente. URL `?panel=fuera-de-regla` (`PANEL_FUERA_DE_REGLA`); el panel está registrado `sinFormulario` en `scripts/guardas/areas-c/drawers-con-salida.ts` y las dos RPC en `areas-c/paginas-en-la-base.ts` (`p_tope` por constante, defecto 50 en la base).
+
+## Revisar (5.12)
+
+- La franja sobre el selector de la pestaña «Fases» (hueco `franjaDeRevisar`; `pantallas/revisar.ts` da `<FranjaDeRevisar>`, que registra `src/app/(app)/configuracion/flujos/huecos.ts`).
+  Cerrada, el resumen («Todo en orden», «1 error y 3 avisos»; las de información no cuentan); abierta, la lista ordenada error › aviso › información con icono,
+  palabra y el texto de la base. **Nace cerrada siempre**; abrir es estado local. Cambiar de flujo la vuelve a cerrar (`key` por `flujo.id` adentro).
+- Archivos: `entities/revisar/{avisos,repositorios}.ts`, `infra/revisar/leer-avisos.ts` (`revisar_flujo` con `limit 201`, tope 200 y `<AvisoDeTope>`),
+  `features/revisar/{schemas,actions,hooks,components}`, `areas/revisar/composicion.ts`. La action `leerAvisosDeRevisar({flujoId, ambito})` exige
+  `flujos.configurar` o `repuestos.configurar` antes de la RPC; el origen lo decide la base (cero filas a quien no configura).
+- **Se relee por `flujo.version`** (cada guardado revalida la ruta): `useAvisosDeRevisar` conserva lo último leído mientras relee, y descarta la respuesta de
+  un pedido viejo. Va fuera de `<ProveedorDelFlujo>`: no usa `useVersionDelFlujo()`.
+- Un aviso de una fase leída abre su inspector con un botón «Abrir la fase» (`useFaseAbierta().abrir()`). Ni `<AbrirResumen>` ni `<Link>`: los specs vecinos
+  buscan `[data-abre-resumen]` y enlaces por nombre sin acotar a una región. «Revisar» no frena nada.
 
 ## Reglas (5.11)
 

@@ -164,6 +164,15 @@ Navegación de primer nivel (hasta 7, filtrada por permisos): Inicio · Leads ·
 - **Conflicto:** «Otra persona cambió este flujo · Recargar» arriba de la pantalla cuando una escritura choca (`PT409`); se va cuando llega la versión nueva. Hoy ninguna acción lo dispara.
 - **Estados:** esqueleto (`loading.tsx` y el del `Suspense`), error con «Reintentar» (el de `(app)`), sin permiso.
 
+### Flujos: revisar (estados propios)
+
+- **Lugar:** una franja sobre el selector, sólo en la pestaña «Fases» y sólo con un flujo leído (quien la ve configura ese flujo).
+- **Cerrada (siempre al entrar):** el resumen con su icono y su color, «Revisar: Todo en orden», «Revisar: 1 error y 3 avisos»; las de información no cuentan. Con más de 200: «Más de 200 avisos» (nunca un total). Sin ninguna fila no hay nada que abrir: el resumen es texto, no botón.
+- **Abierta:** cada aviso con icono y la **palabra** del nivel («Error», «Aviso», «Información»; nunca sólo color) y el texto tal cual viene de la base, que nombra la fase; error › aviso › información. Un aviso de una fase lleva «Abrir la fase», que abre su inspector (suma al historial). Con 200: «Mostrando los primeros 200 avisos.»
+- **Tras guardar:** se relee sola con la versión nueva del flujo, sin volver al esqueleto y sin cerrarse. Cambiar de flujo la vuelve a cerrar.
+- **Estados:** primera lectura «Revisando el flujo…» (una línea, no ocupa más que cerrada); falla «No pudimos revisar el flujo.» con «Reintentar» (si ya había algo leído, se queda y la línea va debajo del resumen).
+- **No frena:** «Revisar» avisa y abre; nunca impide guardar (un flujo se arma por pasos y a medio armar siempre tiene avisos). No arregla solo.
+
 ### Flujos: tipos de documento (estados propios)
 
 Configuración › Flujos › Documentos (`?seccion=documentos`, 5.09). Hermana de «Tipos de seguimiento» (patrón de `shared/ui/lista`, «Subir»/«Bajar» con teclado, «⋯», modal por URL), con lo propio de **dos grupos en una pantalla**, **sólo lectura con motivo** y **una lista que se relee** (ninguna RPC devuelve la lista).
