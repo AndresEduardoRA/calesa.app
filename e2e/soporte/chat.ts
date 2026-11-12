@@ -20,6 +20,8 @@ export type PersonaDelChat = { email: string; nombre: string; id: string }
 export type TerrenoDelChat = {
   ana: PersonaDelChat
   luis: PersonaDelChat
+  // Puede conversar y no tiene ninguna conversación sembrada: con ella se abre una directa nueva.
+  marta: PersonaDelChat
   sofia: PersonaDelChat
   duena: PersonaDelChat
   // La directa de Ana con Luis (la más vieja) y la de Ana con la dueña (la más nueva).
@@ -87,9 +89,10 @@ export async function prepararChat(proyecto: string): Promise<TerrenoDelChat> {
     nombre: 'Dalia Chat',
     id: sql(`select id from auth.users where email = '${emailDeLaDuena}'`),
   }
-  const [ana, luis, sofia] = await Promise.all([
+  const [ana, luis, marta, sofia] = await Promise.all([
     crearConRol(proyecto, 'ana', 'Ana Chat', ['chat.participar']),
     crearConRol(proyecto, 'luis', 'Luis Chat', ['chat.participar']),
+    crearConRol(proyecto, 'marta', 'Marta Chat', ['chat.participar']),
     // Sin `chat.participar`: tiene otro permiso cualquiera para que el rol exista.
     crearConRol(proyecto, 'sofia', 'Sofía Chat', ['agenda.tareas.recibir']),
   ])
@@ -98,7 +101,7 @@ export async function prepararChat(proyecto: string): Promise<TerrenoDelChat> {
   sembrarMensaje(conLuis, luis.id, 'Hola Ana, ¿viste el contenedor?', 120)
   const conLaDuena = sembrarDirecta(ana.id, duena.id, duena.id)
   sembrarMensaje(conLaDuena, duena.id, 'Ana, revisa la cotización', 60)
-  return { ana, luis, sofia, duena, conLuis, conLaDuena }
+  return { ana, luis, marta, sofia, duena, conLuis, conLaDuena }
 }
 
 export async function limpiarChat(): Promise<void> {
