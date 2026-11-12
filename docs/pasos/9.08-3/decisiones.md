@@ -9,3 +9,4 @@
 - **D32 · El `<Drawer>` va con `diferido()` y figura en la guarda de drawers como `sinFormulario`** (interruptores y botones que guardan en el acto: no hay nada tipeado).
 - **D33 · `BotonesDeOrden` y `useFocoTrasMover` se importan por su ruta**, sin ampliar el barril de `src/shared/ui/lista-de-catalogo/`. `aplicarPreferencia` pasó a ser genérica en el tipo del widget para conservar `WidgetConClave` sin tocar su regla.
 - **D34 · El e2e cierra el panel antes de mirar el tablero:** con el `<Drawer>` abierto lo de atrás queda fuera del árbol de accesibilidad, así que un `toHaveCount(0)` con el panel abierto sería un falso verde.
+- **D35 · Los controles de «Personalizar» siguen apagados hasta que el tablero se redibuja** (`enviando || redibujando`): cerrar el panel cambia la URL y un `router.refresh()` en vuelo se perdía, así que bajo la carga del CI el tablero seguía con lo anterior (T6 cayó en el PR del 9.08-3). Ahora «habilitado» en el e2e significa «ya redibujado».
