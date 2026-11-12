@@ -94,7 +94,7 @@ for (const quien of ['supervision', 'duena'] as const) {
 // Tarea de oro 4 (`docs/UX.md`): otorgar el portal desde la ficha del lead en ≤ 30 s. Sólo con el teclado y sin un clic: de la ficha del lead
 // a la sección «Portal», «Dar acceso», «Generar clave y dar acceso» y el texto para WhatsApp copiado. Lo que no cambia de una máquina a
 // otra es lo pulsado; el reloj del robot es un tope generoso; la hora de una persona se estima con KLM (`Teclado.klm`).
-const CONTROLES_MAXIMOS = 32
+const CONTROLES_MAXIMOS = 16
 
 test('tarea de oro 4: de la ficha al texto para WhatsApp copiado, sólo con el teclado', async ({
   page,
@@ -119,9 +119,14 @@ test('tarea de oro 4: de la ficha al texto para WhatsApp copiado, sólo con el t
   await teclado.tabularHasta(pestanaPortal(page))
   await teclado.pulsar('Enter')
   await expect(page).toHaveURL(/seccion=portal/)
+  // Antes del Tab, la sección dibujada y el foco donde quedó: tabular mientras llegaba la sección dejaba el foco en el `body`
+  // y el recorrido volvía a pasar por toda la navegación, que suma un Tab por cada módulo que se habilita (6.10).
+  const darAcceso = seccionPortal(page).getByRole('button', { name: 'Dar acceso' })
+  await expect(darAcceso).toBeVisible()
+  await expect(pestanaPortal(page)).toBeFocused()
 
   // «Dar acceso» abre el diálogo con el foco en la clave; vacía, el Enter genera una.
-  await teclado.tabularHasta(seccionPortal(page).getByRole('button', { name: 'Dar acceso' }))
+  await teclado.tabularHasta(darAcceso)
   await teclado.pulsar('Enter')
   await expect(dialogoDeOtorgar(page).getByLabel('Clave temporal')).toBeFocused()
   await teclado.pulsar('Enter')
