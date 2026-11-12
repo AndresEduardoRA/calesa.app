@@ -11,6 +11,8 @@ import {
 import { CLAVE, entrar, limpiarInventario, prepararInventario } from './soporte/inventario'
 import { literal, sql } from './soporte/sql'
 
+// Categorías de las guías (8.03-2): agregar, subir, desactivar y eliminar (no una con guías) desde `?panel=categorias`; sus categorías llevan el
+// prefijo `e2e-cat-`.
 // Guías con el editor (8.03-1): la dueña arma una guía con un título, una lista y un enlace, la guarda, la publica y la lee un visitante (`web.guias`
 // como `anon`); quien gestiona el contenido pero no publica ve «Publicar» apagado con su motivo y sí guarda. La lista blanca y los permisos de la
 // base los prueban `supabase/tests/areas/web/guias-publicar.sql` y `doc.test.ts`. Las guías de este spec llevan el prefijo `e2e-guia-` en su dirección.
@@ -25,6 +27,7 @@ let soloGestiona = ''
 
 const borrarGuiasDePrueba = () => {
   sql("delete from public.web_guias where slug like 'e2e-guia-%'")
+  sql("delete from public.web_categorias_guias where slug like 'e2e-cat-%'")
 }
 
 test.beforeAll(async ({}, info) => {
@@ -158,4 +161,63 @@ test('quien gestiona el contenido sin publicar ve «Publicar» apagado con su mo
       `select (cuerpo_doc::text like '%y más texto%') || '|' || (publicada_en is null) from public.web_guias where slug = ${literal(slug)}`,
     ),
   ).toBe('true|true')
+})
+
+test('la dueña arma categorías: agrega, sube, desactiva y no elimina una con guías', async ({
+  page,
+}) => {
+  await entrar(page, duena)
+  await page.goto('/configuracion/web?seccion=guias')
+  await page.getByRole('button', { name: 'Categorías', exact: true }).click()
+  const panel = page.getByRole('dialog', { name: 'Categorías de las guías' })
+  await expect(panel).toBeVisible()
+
+  for (const nombre of ['E2E Cat uno', 'E2E Cat dos']) {
+    await panel.getByLabel('Nombre', { exact: true }).fill(nombre)
+    await panel.getByRole('button', { name: 'Agregar', exact: true }).click()
+    await expect(panel.getByRole('button', { name: `Más acciones de ${nombre}` })).toBeVisible()
+  }
+  const ordenDeLasNuestras = () =>
+    sql(
+      "select string_agg(slug, ',' order by orden, nombre) from public.web_categorias_guias where slug like 'e2e-cat-%'",
+    )
+  expect(ordenDeLasNuestras()).toBe('e2e-cat-uno,e2e-cat-dos')
+
+  // Subir la segunda: el orden de todas se reescribe 0..n−1 (lo único que prueba el `upsert`).
+  await panel.getByRole('button', { name: 'Subir E2E Cat dos', exact: true }).click()
+  await expect.poll(ordenDeLasNuestras).toBe('e2e-cat-dos,e2e-cat-uno')
+  expect(
+    sql(
+      'select (select count(distinct orden) from public.web_categorias_guias) = (select count(*) from public.web_categorias_guias)',
+    ),
+  ).toBe('t')
+
+  await panel.getByRole('button', { name: 'Más acciones de E2E Cat uno' }).click()
+  await page.getByRole('menuitem', { name: 'Desactivar', exact: true }).click()
+  await expect(page.getByText('Categoría desactivada')).toBeVisible()
+  expect(sql("select activa from public.web_categorias_guias where slug = 'e2e-cat-uno'")).toBe('f')
+
+  // Una categoría con guías no se elimina: «Eliminar» sale apagado con su motivo.
+  sql(
+    "insert into public.web_guias (titulo, slug, categoria_id) select 'E2E Guía con categoría', 'e2e-guia-con-categoria', id from public.web_categorias_guias where slug = 'e2e-cat-dos'",
+  )
+  await page.reload()
+  await expect(panel).toBeVisible()
+  await panel.getByRole('button', { name: 'Más acciones de E2E Cat dos' }).click()
+  await expect(page.getByRole('menuitem', { name: 'Eliminar', exact: true })).toBeDisabled()
+  await expect(page.getByText('Tiene guías: desactívala.')).toBeVisible()
+  await page.keyboard.press('Escape')
+
+  // Sin guías, sí: pide confirmar y la fila sale.
+  sql("update public.web_guias set categoria_id = null where slug = 'e2e-guia-con-categoria'")
+  await page.reload()
+  await expect(panel).toBeVisible()
+  await panel.getByRole('button', { name: 'Más acciones de E2E Cat dos' }).click()
+  await page.getByRole('menuitem', { name: 'Eliminar', exact: true }).click()
+  await page.getByRole('button', { name: 'Eliminar categoría', exact: true }).click()
+  await expect(page.getByText('Categoría eliminada')).toBeVisible()
+  await expect(panel.getByRole('button', { name: 'Más acciones de E2E Cat dos' })).toHaveCount(0)
+  expect(sql("select count(*) from public.web_categorias_guias where slug = 'e2e-cat-dos'")).toBe(
+    '0',
+  )
 })
