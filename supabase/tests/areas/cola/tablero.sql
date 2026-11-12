@@ -9,6 +9,7 @@
 --   T3. Quien no gestiona no lee solicitudes ajenas: por select directo ve sólo la suya; la RPC le da 42501.
 --   T4. Cursor: 3 sin_asignar y 1 asignada, de a 2 → 2 en orden (creado_en desc, id desc) con hay_mas; con el cursor de la 2.ª → 1 sin
 --       hay_mas; la asignada nunca; cursor a medias y estado nulo → 22023 con su hint; claves exactas; sin vehículo, vehiculo_titulo nulo.
+--   T5. Dos con el mismo creado_en, de a una: el cursor desempata por id desc, sin repetir ni saltar.
 
 create or replace function pg_temp.ct_persona(p_concesiones text[]) returns uuid language plpgsql as $f$
 declare v_id uuid := gen_random_uuid(); v_rol uuid; c text;
@@ -183,5 +184,25 @@ begin
     pg_temp.ct_corre(v_g, format('select public.cola_web_solicitudes(%L, %L, null, 2)::text', 'sin_asignar', v_ult ->> 'creado_en')),
     '22023', 'cursor');
   perform pg_temp.ct_es('estado nulo', pg_temp.ct_corre(v_g, 'select public.cola_web_solicitudes(null)::text'), '22023', 'estado');
+end $$;
+rollback;
+
+-- @test T5 · con el mismo creado_en, el cursor desempata por id (desc) sin repetir ni saltar
+begin;
+do $$
+declare
+  v_g uuid := pg_temp.ct_persona(array['web.cola.gestionar']);
+  v_x uuid := pg_temp.ct_solicitud('sin_asignar', null, '2026-02-01T10:00:00Z');
+  v_y uuid := pg_temp.ct_solicitud('sin_asignar', null, '2026-02-01T10:00:00Z');
+  v_r jsonb; v_primera jsonb; v_vistas jsonb;
+begin
+  update public.solicitudes_contacto_web set estado = 'cancelada' where estado = 'sin_asignar' and id not in (v_x, v_y);
+  v_r := pg_temp.ct_corre(v_g, $q$select public.cola_web_solicitudes('sin_asignar', null, null, 1)::text$q$) -> 'v';
+  v_primera := v_r -> 'filas' -> 0;
+  if v_r -> 'hay_mas' <> 'true'::jsonb or v_primera ->> 'id' <> greatest(v_x, v_y)::text then raise exception 'primera de a una: %', v_r; end if;
+  v_r := pg_temp.ct_corre(v_g, format('select public.cola_web_solicitudes(%L, %L, %L, 1)::text', 'sin_asignar',
+                                       v_primera ->> 'creado_en', v_primera ->> 'id')) -> 'v';
+  v_vistas := jsonb_path_query_array(v_r, '$.filas[*].id');
+  if v_vistas <> jsonb_build_array(least(v_x, v_y)) or v_r -> 'hay_mas' <> 'false'::jsonb then raise exception 'segunda de a una: %', v_r; end if;
 end $$;
 rollback;
