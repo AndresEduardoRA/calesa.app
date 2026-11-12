@@ -1,8 +1,8 @@
 import { leerCursorDeStock, leerStock } from '@/modules/repuestos'
-import { VistaDeStock } from '@/modules/repuestos/pantallas/stock-vista'
 import { datosO } from '@/shared/lib/errores'
 import { CLAVE_DE_CURSOR } from '@/shared/lib/filtros'
 import { unParametro } from '@/shared/lib/rutas'
+import { StockConDestino } from './stock-con-destino'
 
 type Props = { parametros: Record<string, string | string[] | undefined>; puedeEditar: boolean }
 
@@ -11,5 +11,5 @@ export async function ListadoDeStock({ parametros, puedeEditar }: Props) {
   const pagina = datosO(
     await leerStock(leerCursorDeStock(unParametro(parametros[CLAVE_DE_CURSOR]))),
   )
-  return <VistaDeStock pagina={pagina} puedeEditar={puedeEditar} />
+  return <StockConDestino pagina={pagina} puedeEditar={puedeEditar} />
 }

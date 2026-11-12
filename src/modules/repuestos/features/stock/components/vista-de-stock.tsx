@@ -12,6 +12,7 @@ import type { FilaDeStock, PaginaDeStock } from '../../../entities/stock/listado
 import { rutaDelStockDelItem } from '../../../entities/stock/vista'
 import { useAccionesDeStockPorUrl } from '../hooks/use-acciones-de-stock-por-url'
 import { AccionesDeStock, menuDeStock } from './acciones-de-stock'
+import type { CampoDeProyectoDestino } from './drawer-de-reasignar'
 import { TablaDeStock } from './tabla-de-stock'
 import { TarjetasDeStock } from './tarjetas-de-stock'
 
@@ -19,6 +20,8 @@ type Props = {
   pagina: PaginaDeStock
   // `repuestos.editar`: dibuja el «⋯» de cada fila (vale con el proyecto de origen cerrado, D3 de 8.10-1).
   puedeEditar: boolean
+  // «Proyecto destino» de reasignar, compuesto por `src/app` (D2).
+  campoDeProyecto: CampoDeProyectoDestino
 }
 
 // Con cursor se ofrece volver al principio (la base sólo camina hacia adelante, sin «Anterior»).
@@ -41,11 +44,13 @@ function VolverAlPrincipio() {
 
 // La vista «Stock» de `/repuestos` (`?vista=stock`, 8.10-3, C8): lo que sobró de los ítems, lo más nuevo primero, de a una página por cursor y sin filtros (D4). La fila abre el
 // ítem en la hoja de su proyecto con su panel de stock (D5). Ningún total: la base no cuenta.
-export function VistaDeStock({ pagina, puedeEditar }: Props) {
+export function VistaDeStock({ pagina, puedeEditar, campoDeProyecto }: Props) {
   const router = useRouter()
   const url = useAccionesDeStockPorUrl()
   const hayCursor = useSearchParams().has(CLAVE_DE_CURSOR)
-  const paneles = <AccionesDeStock url={url} filas={pagina.filas} />
+  const paneles = (
+    <AccionesDeStock url={url} filas={pagina.filas} campoDeProyecto={campoDeProyecto} />
+  )
   if (pagina.filas.length === 0) {
     const estado = hayCursor ? (
       <EstadoPaginaSinFilas />

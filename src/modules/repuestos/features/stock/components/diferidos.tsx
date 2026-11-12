@@ -11,3 +11,8 @@ export const DrawerDeStockDiferido = diferido(() =>
 export const DrawerDeSalidaDiferido = diferido(() =>
   import('./drawer-de-salida').then((modulo) => modulo.DrawerDeSalida),
 )
+
+// «Reasignar a un proyecto» de la vista «Stock» (8.10-3, C13).
+export const DrawerDeReasignarDiferido = diferido(() =>
+  import('./drawer-de-reasignar').then((modulo) => modulo.DrawerDeReasignar),
+)

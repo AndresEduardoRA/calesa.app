@@ -41,6 +41,11 @@ export const REGISTRO: Record<string, RegistroDeDrawer> = {
     formulario: 'src/modules/repuestos/features/stock/components/drawer-de-salida.tsx',
     mecanismo: 'contexto',
   },
+  // Vista «Stock» de `/repuestos` (8.10-3): `?panel=reasignar-stock&item=<id>`. Dice que tiene algo escrito con `useCambiosSinGuardar` en el mismo archivo.
+  'src/modules/repuestos/features/stock/components/drawer-de-reasignar.tsx': {
+    formulario: 'src/modules/repuestos/features/stock/components/drawer-de-reasignar.tsx',
+    mecanismo: 'contexto',
+  },
   // El resumen de una declaración aduanera (6.09-1): `?declaracion=<id>`. Sólo muestra; el formulario de editar y alta es otro panel (`drawer-de-declaracion.tsx`).
   'src/modules/logistica/features/aduana/components/drawer-de-la-declaracion.tsx': {
     sinFormulario:

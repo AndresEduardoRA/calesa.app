@@ -12,7 +12,8 @@ import type {
   PanelDeStockPorUrl,
 } from '../hooks/use-acciones-de-stock-por-url'
 import type { MotivoDeSalida } from '../hooks/use-salida-de-stock'
-import { DrawerDeSalidaDiferido } from './diferidos'
+import { DrawerDeReasignarDiferido, DrawerDeSalidaDiferido } from './diferidos'
+import type { CampoDeProyectoDestino } from './drawer-de-reasignar'
 
 // El panel busca su ítem en la página vigente: uno que ya no está (salió del stock, o es de otra página) no abre; se avisa y la URL se limpia, una vez (D7). Mientras se
 // va, conserva la última fila que vio. Se monta la primera vez que se abre.
@@ -57,16 +58,38 @@ function PanelDeSalida({
   )
 }
 
-// Los paneles de las acciones de la vista «Stock» (8.10-3, C11): a lo sumo uno abierto, por la URL.
-export function AccionesDeStock({
-  url,
-  filas,
-}: {
+type PropsDeReasignar = {
+  url: PanelDeStockPorUrl
+  filas: readonly FilaDeStock[]
+  campoDeProyecto: CampoDeProyectoDestino
+}
+
+function PanelDeReasignar({ url, filas, campoDeProyecto }: PropsDeReasignar) {
+  const { abierto, fila, montar } = useFilaDelPanel(url, filas)
+  if (!montar) return null
+  return (
+    <DrawerDeReasignarDiferido
+      abierto={abierto}
+      alCerrar={url.cerrar}
+      apertura={url.apertura}
+      fila={fila}
+      campoDeProyecto={campoDeProyecto}
+      focoAlCerrar={() => focoDelMenu(fila)}
+    />
+  )
+}
+
+type Props = {
   url: AccionesDeStockPorUrl
   filas: readonly FilaDeStock[]
-}) {
+  campoDeProyecto: CampoDeProyectoDestino
+}
+
+// Los paneles de las acciones de la vista «Stock» (8.10-3, C11): a lo sumo uno abierto, por la URL.
+export function AccionesDeStock({ url, filas, campoDeProyecto }: Props) {
   return (
     <>
+      <PanelDeReasignar url={url.reasignar} filas={filas} campoDeProyecto={campoDeProyecto} />
       <PanelDeSalida url={url.vender} motivo="vendido" filas={filas} />
       <PanelDeSalida url={url.devolver} motivo="devuelto" filas={filas} />
     </>
@@ -76,6 +99,15 @@ export function AccionesDeStock({
 /** El «⋯» de una fila (D6), en su orden; cada línea abre su panel cuando el menú terminó de cerrarse. */
 export function menuDeStock(fila: FilaDeStock, url: AccionesDeStockPorUrl): AccionDeMenu[] {
   return [
+    {
+      tipo: 'accion',
+      clave: 'reasignar',
+      etiqueta: 'Reasignar a un proyecto',
+      despuesDeCerrar: true,
+      alElegir: () => {
+        url.reasignar.abrir(fila.id)
+      },
+    },
     {
       tipo: 'accion',
       clave: 'vender',

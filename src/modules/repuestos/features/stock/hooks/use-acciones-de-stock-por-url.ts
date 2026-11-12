@@ -3,7 +3,11 @@
 import { useApertura } from '@/shared/ui/use-apertura'
 import { usePanelPorUrl } from '@/shared/ui/use-panel-por-url'
 import { CLAVE_DE_ITEM_DE_STOCK } from '../../../entities/stock/paneles'
-import { PANEL_DEVOLVER_STOCK, PANEL_VENDER_STOCK } from '../../../entities/stock/vista'
+import {
+  PANEL_DEVOLVER_STOCK,
+  PANEL_REASIGNAR_STOCK,
+  PANEL_VENDER_STOCK,
+} from '../../../entities/stock/vista'
 
 export type PanelDeStockPorUrl = ReturnType<typeof usePanelDeStock>
 
@@ -23,9 +27,10 @@ function usePanelDeStock(panel: string) {
   }
 }
 
-// Las acciones de una fila de la vista «Stock» (8.10-3, C10): «Vender suelto» y «Devolver al proveedor», cada una con su URL.
+// Las acciones de una fila de la vista «Stock» (8.10-3, C10): «Reasignar a un proyecto», «Vender suelto» y «Devolver al proveedor», cada una con su URL.
 export function useAccionesDeStockPorUrl() {
   return {
+    reasignar: usePanelDeStock(PANEL_REASIGNAR_STOCK),
     vender: usePanelDeStock(PANEL_VENDER_STOCK),
     devolver: usePanelDeStock(PANEL_DEVOLVER_STOCK),
   }
