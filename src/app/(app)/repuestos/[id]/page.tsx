@@ -11,17 +11,15 @@ import {
   leerItemsDelProyecto,
   leerProyecto,
 } from '@/modules/repuestos'
-import { DrawerDelItem } from '@/modules/repuestos/pantallas/flujo'
 import { CabeceraDeProyecto } from '@/modules/repuestos/pantallas/proyectos'
 import { leerMonedasYTiposCambio } from '@/modules/empresa'
 import { leerVehiculo } from '@/modules/vehiculos'
 import { datosO } from '@/shared/lib/errores'
-import type { Permisos } from '@/shared/lib/permisos'
 import { RUTAS, unParametro } from '@/shared/lib/rutas'
 import { buttonVariants } from '@/shared/ui/button'
 import { EstadoSinPermiso, EstadoVacio } from '@/shared/ui/estados'
 import { EsqueletoListado } from '@/shared/ui/esqueletos'
-import { ItemAbierto } from '../item-abierto'
+import { PanelDelItem } from '../panel-del-item'
 import { HojaConStock } from './hoja-con-stock'
 import { pestanaDe, pestanasLlenas } from './pestanas'
 import { PestanasDelProyecto } from './pestanas-del-proyecto'
@@ -48,18 +46,6 @@ function NoDisponible() {
         </Link>
       }
     />
-  )
-}
-
-// El panel del ítem de `?item=<id>` (8.13-2): sólo en la hoja, y sólo sin `?panel=`. Una URL con el id de otro proyecto abre igual (se lee por id, bajo la RLS).
-function PanelDelItem({ itemId, permisos }: { itemId: string | null; permisos: Permisos }) {
-  if (itemId === null) return null
-  return (
-    <DrawerDelItem>
-      <Suspense fallback={<EsqueletoListado filas={4} columnas={2} />}>
-        <ItemAbierto id={itemId} permisos={permisos} />
-      </Suspense>
-    </DrawerDelItem>
   )
 }
 

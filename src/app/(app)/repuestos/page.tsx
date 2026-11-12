@@ -5,8 +5,10 @@ import { puede, requerirSesion } from '@/modules/equipo'
 import {
   MAXIMO_DE_PAGINA_DE_REPUESTOS,
   CLAVE_DE_VEHICULO,
+  CLAVE_DE_VISTA_DE_LA_CADENA,
   CLAVE_DE_VISTA_DE_REPUESTOS,
   PANEL_NUEVO_PROYECTO,
+  esVistaDeLaCadena,
   esVistaDeStock,
   esquemaDelListado,
   estadoDelListadoDe,
@@ -28,13 +30,14 @@ import { unParametro } from '@/shared/lib/rutas'
 import { EstadoSinPermiso } from '@/shared/ui/estados'
 import { EsqueletoListado } from '@/shared/ui/esqueletos'
 import { z } from 'zod'
+import { ListadoDeLaCadena } from './listado-de-la-cadena'
 import { ListadoDeStock } from './listado-de-stock'
 import { NuevoProyecto, type VehiculoDeLaUrl } from './nuevo-proyecto'
 import { VistasDeRepuestos } from './vistas-de-repuestos'
 
 export const metadata: Metadata = { title: 'Repuestos' }
 
-// Los proyectos de repuestos (`docs/UX.md` › «Repuestos»): una página por cursor `numero` con sus filtros en la URL; con `?vista=stock`, lo que está en stock (8.10-3). Lo que se ve lo decide la base (`repuestos_proyectos_listar()`
+// Los proyectos de repuestos (`docs/UX.md` › «Repuestos»): una página por cursor `numero` con sus filtros en la URL; con `?vista=cadena`, la cadena de ítems por fase (8.13-3); con `?vista=stock`, lo que está en stock (8.10-3). Lo que se ve lo decide la base (`repuestos_proyectos_listar()`
 // devuelve vacío sin `repuestos.ver`); acá sólo se arma el pedido y se dibuja. Cada fila trae las cuentas de sus ítems: no hay una lectura por proyecto.
 export default function PaginaDeRepuestos({ searchParams }: PageProps<'/repuestos'>) {
   return (
@@ -68,6 +71,15 @@ async function Listado({
   const [sesion, parametros] = await Promise.all([requerirSesion(), searchParams])
   if (!puede(sesion.permisos, 'repuestos.ver')) {
     return <EstadoSinPermiso />
+  }
+  // La vista «Cadena» (`?vista=cadena`, 8.13-3): los ítems por fase del flujo de repuestos; con `?item=` abre el panel del ítem.
+  if (esVistaDeLaCadena(unParametro(parametros[CLAVE_DE_VISTA_DE_LA_CADENA]))) {
+    return (
+      <div className="grid gap-4">
+        <VistasDeRepuestos vista="cadena" />
+        <ListadoDeLaCadena parametros={parametros} permisos={sesion.permisos} />
+      </div>
+    )
   }
   // La vista «Stock» (`?vista=stock`, 8.10-3) no lee proyectos ni ofrece «Nuevo proyecto».
   if (esVistaDeStock(unParametro(parametros[CLAVE_DE_VISTA_DE_REPUESTOS]))) {
