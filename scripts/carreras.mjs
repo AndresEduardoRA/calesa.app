@@ -32,6 +32,7 @@ import { carrerasDeNumeros } from './carreras/numeros.mjs'
 import { carrerasDeLaRueda } from './carreras/rueda.mjs'
 import { stackLocal } from './lib/stack-local.mjs'
 import { carrerasDeLaCartera, carrerasDePrivacidad } from './carreras/cartera.mjs'
+import { carrerasDeDominancia, limpiarDominancia } from './carreras/dominancia.mjs'
 import { carrerasDeLoReciente } from './carreras/cartera-reciente.mjs'
 import {
   carrerasDeComprobantes,
@@ -127,6 +128,7 @@ const inicio = Date.now()
 try {
   // Un comprobante frena el borrado de su cotización: lo de comprobantes (4.26-1) se limpia antes que el terreno.
   await limpiarComprobantes(orquesta)
+  await limpiarDominancia(orquesta)
   await limpiar(orquesta)
   await sembrar(orquesta)
 
@@ -352,6 +354,7 @@ try {
   await carrerasDeConfiguracionDeLeads({ orquesta, carrera, espero })
   await carrerasDeMarcas({ orquesta, carrera, espero })
   await carrerasDeNumeros({ orquesta, carrera, espero, conectar, esperarBloqueo })
+  await carrerasDeDominancia({ orquesta, carrera, espero })
   await carrerasDeLaCartera({ orquesta, carrera, espero, conectar, esperarBloqueo })
   await carrerasDePrivacidad({ orquesta, carrera, espero })
   await carrerasDeLoReciente({ orquesta, carrera, espero })
@@ -365,6 +368,7 @@ try {
   await limpiarComprobantes(orquesta).catch((e) =>
     fallas.push(`limpiar los comprobantes: ${e.message}`),
   )
+  await limpiarDominancia(orquesta).catch((e) => fallas.push(`limpiar la dominancia: ${e.message}`))
   await limpiar(orquesta).catch((e) => fallas.push(`limpiar: ${e.message}`))
   await orquesta.end()
 }
