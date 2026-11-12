@@ -21,7 +21,7 @@ export const AVISO_SIN_REGLAS =
   'No pudimos leer el flujo de este origen: algunas secciones no se muestran. Recarga la página.'
 
 type Contexto = {
-  unidad: Pick<Unidad, 'origenId'>
+  unidad: Pick<Unidad, 'origenId'> & { tipo?: Unidad['tipo'] }
   permisos: Permisos
   // El flujo del origen de la unidad: sólo importan las reglas activas. `null`: el origen no tiene flujo.
   flujo: Resultado<{ reglasActivas: readonly string[] } | null>
@@ -37,7 +37,12 @@ export function huecosDeLaUnidad(
 ): { huecos: HuecoDeLaUnidad[]; aviso: string | null } {
   const reglasActivas = flujo.ok ? (flujo.data?.reglasActivas ?? []) : []
   return {
-    huecos: huecosVisibles(lista, { permisos, origenId: unidad.origenId, reglasActivas }),
+    huecos: huecosVisibles(lista, {
+      permisos,
+      origenId: unidad.origenId,
+      reglasActivas,
+      tipo: unidad.tipo,
+    }),
     aviso: flujo.ok ? null : AVISO_SIN_REGLAS,
   }
 }

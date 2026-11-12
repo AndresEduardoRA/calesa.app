@@ -12,6 +12,7 @@ import { enviarAccion } from '@/shared/lib/enviar-accion'
 import { avisarError, avisarExito } from '@/shared/ui/toasts'
 import type { Unidad } from '../../../entities/nucleo/unidad'
 import { enfocarElTituloDeLaUnidad } from '../../nucleo/hooks/eventos-de-la-unidad'
+import { unidadAMover } from './unidad-a-mover'
 import type { BorradorDeMover } from './use-borrador-de-mover'
 
 const NO_SE_MOVIO = 'No pudimos mover la unidad.'
@@ -30,7 +31,12 @@ export function useMoverLaUnidad(args: {
   const [enCurso, setEnCurso] = useState(false)
   const [rechazo, setRechazo] = useState<string | null>(null)
   const [fallo, setFallo] = useState<string | null>(null)
-  const estado = estadoDelBoton({ puedeMover, vista: destino.vista, nota: borrador.nota })
+  const estado = estadoDelBoton({
+    puedeMover,
+    vista: destino.vista,
+    nota: borrador.nota,
+    tipo: unidad.tipo,
+  })
 
   const enviar = async () => {
     if (!estado.habilitado || enCurso) return
@@ -39,8 +45,7 @@ export function useMoverLaUnidad(args: {
     setFallo(null)
     const envio = await enviarAccion(
       cambiarFase({
-        vehiculo: unidad.id,
-        origenId: unidad.origenId,
+        ...unidadAMover(unidad),
         faseDestino: destino.faseId,
         faseEsperada: unidad.faseId,
         nota: borrador.nota,

@@ -20,6 +20,20 @@ type Props = {
   aviso?: string | null
 }
 
+// «Abrir ficha» para un vehículo; «Abrir proyecto» para un ítem (sin su proyecto, ningún enlace).
+function EnlaceDeLaUnidad({ unidad }: { unidad: Unidad }) {
+  const esItem = unidad.tipo === 'repuesto'
+  if (esItem && unidad.proyecto === undefined) return null
+  const href = esItem
+    ? `${RUTAS.repuestos}/${unidad.proyecto?.id ?? ''}`
+    : `${RUTAS.vehiculos}/${unidad.id}`
+  return (
+    <Link href={href as Route} className={buttonVariants({ variant: 'outline' })}>
+      {esItem ? 'Abrir proyecto' : 'Abrir ficha'}
+    </Link>
+  )
+}
+
 // El panel de la unidad (6.01): la cabecera con el título, el origen, la fase y los días en ella, y debajo un bloque plegado por hueco. No lee nada: recibe lo que se dibuja. Sirve
 // igual en la página de la unidad y dentro del drawer de la cadena. Un hueco recibe sólo `{ unidad }` (datos serializables) y carga lo suyo al abrirse.
 export function PanelDeLaUnidad({ unidad, origen, fase, huecos, aviso = null }: Props) {
@@ -34,12 +48,7 @@ export function PanelDeLaUnidad({ unidad, origen, fase, huecos, aviso = null }: 
           >
             {unidad.titulo}
           </h2>
-          <Link
-            href={`${RUTAS.vehiculos}/${unidad.id}` as Route}
-            className={buttonVariants({ variant: 'outline' })}
-          >
-            Abrir ficha
-          </Link>
+          <EnlaceDeLaUnidad unidad={unidad} />
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-(length:--text-sm) text-(--color-ink-soft)">
           <span>{origen}</span>

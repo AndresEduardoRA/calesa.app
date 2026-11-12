@@ -15,6 +15,8 @@ export type HuecoDeLaUnidad = {
   permisos: readonly ClavePermiso[]
   // La regla de `flujos_reglas` que lo enciende (`transporte`, `aduana`, `gastos`, `pagos`…). Nula: no depende de una regla.
   regla: string | null
+  // La variante para un ítem de repuesto (8.13-2): sin ella, el hueco no se dibuja para un ítem. Con ella, se filtra por estos permisos (sin origen: el flujo de repuestos no tiene) y esta regla.
+  repuesto?: { permisos: readonly ClavePermiso[]; regla: string | null }
   componente: ComponentType<{ unidad: Unidad }>
   // El bloque nace abierto (y su contenido se pide al hidratar el panel). Los demás nacen plegados. Lo usa «Qué falta» (6.04), que es lo primero que se mira para mover.
   abiertoAlInicio?: boolean
@@ -33,7 +35,7 @@ export const ORDEN_DE_HUECOS = [
   'historial',
 ] as const
 
-type ParaFiltrar = Pick<HuecoDeLaUnidad, 'clave' | 'permisos' | 'regla'>
+type ParaFiltrar = Pick<HuecoDeLaUnidad, 'clave' | 'permisos' | 'regla' | 'repuesto'>
 
 /**
  * Los huecos que se dibujan, en el orden del panel: sin los de clave desconocida (o repetida: queda la primera), sin los que piden un permiso
@@ -41,15 +43,25 @@ type ParaFiltrar = Pick<HuecoDeLaUnidad, 'clave' | 'permisos' | 'regla'>
  */
 export function huecosVisibles<H extends ParaFiltrar>(
   huecos: readonly H[],
-  contexto: { permisos: Permisos; origenId: string; reglasActivas: readonly string[] },
+  contexto: {
+    permisos: Permisos
+    origenId: string | null
+    reglasActivas: readonly string[]
+    // Qué unidad se abre: sin él, un vehículo (todo lo de antes). Un ítem sólo ve los huecos con variante `repuesto`.
+    tipo?: Unidad['tipo']
+  },
 ): H[] {
-  const { permisos, origenId, reglasActivas } = contexto
+  const { permisos, origenId, reglasActivas, tipo = 'vehiculo' } = contexto
   const visibles = new Map<string, H>()
   for (const h of huecos) {
+    // El filtro de tipo va antes de descartar repetidos: un hueco de vehículo no tapa al de repuesto de la misma clave.
+    const reglas = tipo === 'repuesto' ? h.repuesto : h
+    if (reglas === undefined) continue
     if (visibles.has(h.clave)) continue
     if (!(ORDEN_DE_HUECOS as readonly string[]).includes(h.clave)) continue
-    if (h.permisos.length > 0 && !h.permisos.some((c) => puede(permisos, c, origenId))) continue
-    if (h.regla !== null && !reglasActivas.includes(h.regla)) continue
+    if (reglas.permisos.length > 0 && !reglas.permisos.some((c) => puede(permisos, c, origenId)))
+      continue
+    if (reglas.regla !== null && !reglasActivas.includes(reglas.regla)) continue
     visibles.set(h.clave, h)
   }
   return ORDEN_DE_HUECOS.flatMap((c) => {

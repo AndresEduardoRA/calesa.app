@@ -17,7 +17,9 @@ export type LecturaDelTransporte =
 
 // El transporte de una unidad (6.08-2): se lee al montarse el bloque y de nuevo cuando otro hueco avisa que cambió algo de la unidad o tras guardar (`releer`). Mientras vuelve a leer, lo que
 // había se sigue viendo; «Reintentar» pasa por «cargando».
-export function useTransporteDeLaUnidad(unidad: Pick<Unidad, 'tipo' | 'id' | 'origenId'>) {
+export function useTransporteDeLaUnidad(
+  unidad: Pick<Unidad, 'tipo' | 'id'> & { origenId: string },
+) {
   const [lectura, setLectura] = useState<LecturaDelTransporte>({ tipo: 'cargando' })
   const [pedido, setPedido] = useState(0)
   const { tipo, id, origenId } = unidad

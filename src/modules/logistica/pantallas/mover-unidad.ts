@@ -13,6 +13,7 @@ export const HUECOS_DE_MOVER_EN_LA_UNIDAD: readonly HuecoDeLaUnidad[] = [
     // Ver el panel basta para ver lo que falta; mover lo decide cada botón con `flujos.mover` y la base.
     permisos: ['logistica.ver'],
     regla: null,
+    repuesto: { permisos: ['repuestos.ver'], regla: null },
     abiertoAlInicio: true,
     componente: HuecoQueFaltaDiferido,
   },
@@ -22,6 +23,7 @@ export const HUECOS_DE_MOVER_EN_LA_UNIDAD: readonly HuecoDeLaUnidad[] = [
     // Quien ve la unidad escribe; la policy de `notas` pide lo mismo.
     permisos: ['logistica.ver'],
     regla: null,
+    repuesto: { permisos: ['repuestos.ver'], regla: null },
     componente: HuecoDeNotasDiferido,
   },
   {
@@ -29,6 +31,7 @@ export const HUECOS_DE_MOVER_EN_LA_UNIDAD: readonly HuecoDeLaUnidad[] = [
     titulo: 'Historial',
     permisos: ['logistica.ver'],
     regla: null,
+    repuesto: { permisos: ['repuestos.ver'], regla: null },
     componente: HuecoDeHistorialDiferido,
   },
 ]

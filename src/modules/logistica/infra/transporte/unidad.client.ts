@@ -29,7 +29,7 @@ export type TransporteDeLaUnidad = {
   puertos: ElementoDeOferta[]
 }
 
-type UnidadLeida = Pick<Unidad, 'tipo' | 'id' | 'origenId'>
+type UnidadLeida = Pick<Unidad, 'tipo' | 'id'> & { origenId: string }
 
 async function leerLoDeLaUnidad(unidad: UnidadLeida) {
   const supabase = createClient()

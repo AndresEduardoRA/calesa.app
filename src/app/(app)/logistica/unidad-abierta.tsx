@@ -35,7 +35,8 @@ export async function UnidadAbierta({ id, permisos }: { id: string; permisos: Pe
   if (!unidad) {
     return <UnidadNoDisponible />
   }
-  if (!puede(permisos, 'logistica.ver', unidad.origenId)) {
+  // Esta pantalla es de vehículos: un ítem no tiene origen y no llega por aquí (su panel es `repuestos/item-abierto`).
+  if (unidad.origenId === null || !puede(permisos, 'logistica.ver', unidad.origenId)) {
     return <EstadoSinPermiso />
   }
   const [origenes, fases, flujo] = await Promise.all([

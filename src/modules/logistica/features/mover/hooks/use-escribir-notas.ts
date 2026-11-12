@@ -19,7 +19,7 @@ export function useEscribirNotas(
       crearNota(
         unidad.tipo === 'repuesto'
           ? { repuesto: unidad.id, cuerpo }
-          : { vehiculo: unidad.id, origenId: unidad.origenId, cuerpo },
+          : { vehiculo: unidad.id, origenId: unidad.origenId ?? undefined, cuerpo },
       ),
       NO_SE_GUARDO,
     )

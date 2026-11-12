@@ -10,6 +10,7 @@ export const HUECOS_DE_DOCUMENTOS_EN_LA_UNIDAD: readonly HuecoDeLaUnidad[] = [
     titulo: 'Documentos',
     permisos: ['logistica.ver'],
     regla: null,
+    repuesto: { permisos: ['repuestos.ver'], regla: null },
     componente: HuecoDeDocumentosDiferido,
   },
 ]

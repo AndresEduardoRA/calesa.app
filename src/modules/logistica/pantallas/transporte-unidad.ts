@@ -9,6 +9,8 @@ export const HUECOS_DE_TRANSPORTE_EN_LA_UNIDAD: readonly HuecoDeLaUnidad[] = [
     permisos: ['logistica.ver'],
     // Se enciende sólo en los flujos que tienen la regla `transporte` activa.
     regla: 'transporte',
+    // Un ítem no tiene origen ni flujo con reglas: ve el texto «Sigue al vehículo» con `repuestos.ver` (8.13-2).
+    repuesto: { permisos: ['repuestos.ver'], regla: null },
     componente: HuecoDeTransporteDiferido,
   },
 ]
