@@ -79,9 +79,10 @@ describe('decimales y snapshot', () => {
     expect(aTexto(123456n, 4)).toBe('12.3456')
   })
   it('leerSnapshot rechaza un número JSON donde va un decimal como texto, y otra versión', () => {
-    const base = (casos.configs as Record<string, Record<string, unknown>>).A ?? {}
-    const config = base.config as Record<string, unknown>
-    expect(leerSnapshot({ ...base, config: { ...config, factor_importado: 1.35 } }).ok).toBe(false)
+    const base = casos.configs.A
+    expect(leerSnapshot({ ...base, config: { ...base.config, factor_importado: 1.35 } }).ok).toBe(
+      false,
+    )
     expect(leerSnapshot({ ...base, version: 2 }).ok).toBe(false)
     expect(leerSnapshot(base).ok).toBe(true)
   })
