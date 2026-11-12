@@ -86,6 +86,11 @@ export const MEDICIONES_CON_VOLUMEN = [
     MEDIANA,
   ],
   [
+    'supabase/tests/medir-datos-exportar-cotizaciones.sql',
+    'Exportar todo de cotizaciones (9.05-2c): la consulta del route handler a la tabla cotizaciones con ≈ 250.000 vivas, como authenticated y con el plan genérico: la primera página, una profunda por cursor (cotizaciones_listado_idx) y la de un origen (cotizaciones_origen_creado_idx) de la dueña, sin Seq Scan; el conteo entero y la lectura entera por páginas (s); los nombres de una página (leads_vista_por_ids y vehiculos de a 100); y Pía («propios») sin assert, con su página más cara',
+    MEDIANA,
+  ],
+  [
     'supabase/tests/medir-escala.sql',
     'Escala de toda la app, 50.000 leads y 50.000 cotizaciones sembradas (dueña «todos» y Ana «propios»)',
     MEDIANA,

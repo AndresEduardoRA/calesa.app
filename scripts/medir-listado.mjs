@@ -70,6 +70,11 @@ const VARIABLES_DE_PAGINA = {
   // Exportar todo (9.05-2): de a cuántas filas lee el flujo y su tope; `medir-datos-exportar.sql` los usa.
   filas_exportar: constante('src/modules/datos/entities/exportacion.ts', 'FILAS_POR_PEDIDO'),
   tope_exportar_todo: constante('src/modules/datos/entities/exportacion.ts', 'TOPE_DE_FILAS'),
+  // De a cuántos ids pide los títulos de los vehículos (9.05-2c); `medir-datos-exportar-cotizaciones.sql` lo usa.
+  ids_nombres_exportar: constante(
+    'src/modules/datos/entities/exportacion.ts',
+    'IDS_POR_CONSULTA_DE_NOMBRES',
+  ),
 }
 const ARGUMENTOS_DE_PSQL = Object.entries(VARIABLES_DE_PAGINA).flatMap(([nombre, valor]) => [
   '-v',
