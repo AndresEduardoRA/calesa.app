@@ -131,6 +131,8 @@ export function mirarPr(numero) {
     verde: !pendiente && !rojo && checks.length > 0 && pr.mergeable === 'MERGEABLE',
     rojo,
     integrable: pr.mergeable === 'MERGEABLE',
+    // GitHub todavía no calculó si choca con main (unos segundos tras cada integración): no dice que el choque de antes se fue.
+    sinSaber: pr.state === 'OPEN' && pr.mergeable !== 'MERGEABLE' && pr.mergeable !== 'CONFLICTING',
     firme,
     colgado,
     oid: pr.headRefOid ?? null,

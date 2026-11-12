@@ -205,6 +205,19 @@ test('GitHub falla dos veces al mirar un PR: se vuelve a pedir y se integra en l
   assert.match(correr('sincronizar'), /P02: integrado por el coordinador \(#8/)
 })
 
+test('mientras GitHub no sabe si choca (UNKNOWN), el conflicto con main anotado sigue: el carril lo arregla antes que un paso nuevo', () => {
+  const { correr, pr } = repo()
+  correr('siguiente', 'ui')
+  correr('publicado', 'P02', '8')
+  pr(8, { state: 'OPEN', mergeable: 'CONFLICTING', statusCheckRollup: verde })
+  assert.match(correr('sincronizar'), /P02: conflicto con main/)
+  pr(8, { state: 'OPEN', mergeable: 'UNKNOWN', statusCheckRollup: verde })
+  assert.equal(correr('sincronizar').trim(), '')
+  const r = JSON.parse(correr('siguiente', 'ui'))
+  assert.equal(r.paso, 'P02')
+  assert.equal(r.arreglar, 'conflicto con main')
+})
+
 test('un estado de commit pendiente (otro servicio) no es un CI en rojo: espera; en ERROR, sí', () => {
   const { correr, pr } = repo()
   correr('siguiente', 'ui')

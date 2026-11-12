@@ -3714,3 +3714,6 @@ Medido a 13,5 h de lanzar: 20 de 69 pasos integrados; los carriles estuvieron vi
   los tres carriles tienen abiertos. `PILOTO_UNIR_REGISTROS=` (vacía) lo apaga.
 - **GitHub se vuelve a pedir** (`pr.mjs` › `gh`, `publicar.sh` › `gh_insistente`): lo que sólo lee, hasta dos veces más; abrir o comentar
   el PR, hasta tres. Un HTTP 499 era un aviso y 5 min de espera, o una vuelta del coordinador perdida. Integrar no se repite a ciegas.
+- **Un «conflicto con main» no se borra mientras GitHub no sabe** (`pr.mjs` › `sinSaber`, `coordinador.mjs`): tras cada integración
+  GitHub contesta `UNKNOWN` unos segundos, la marca de devuelto se iba y el carril que preguntaba en ese rato tomaba un paso nuevo. El 7.02
+  estuvo así más de 4 h, con cinco pasos colgando de él.
