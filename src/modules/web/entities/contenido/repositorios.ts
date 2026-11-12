@@ -1,8 +1,10 @@
 // Las interfaces del área `contenido` de `web`: lo que la composición le da a quien lee o escribe las guías.
 import type { ResultadoDeAccion } from '@/shared/lib/enviar-accion'
 import type { Resultado } from '@/shared/lib/errores'
+import type { DireccionDeOrden, ListaDeCategorias } from './categorias'
 import type { DocumentoDelSitio } from './documento-limpio'
 import type { GuiaCompleta, GuiaDeLista, OpcionesDeGuia } from './guias'
+import type { CambiosDeLegales, LegalesDelSitio } from './legales'
 
 // La lista de guías, de la más reciente a la más antigua, con un tope + 1 leído (`hayMas`). `buscar` filtra por título si alcanza el mínimo.
 export type LectorDeGuias = (pedido: {
@@ -54,3 +56,25 @@ export type EscritorDeGuias = {
     actualizadoEnEsperado: string
   }) => Promise<ResultadoDeAccion<null>>
 }
+
+// Las categorías por orden y nombre (tope + 1) con su uso («Con guías» / «Sin guías»), leído en una sola consulta acotada.
+export type LectorDeCategorias = () => Promise<Resultado<ListaDeCategorias>>
+
+// Lo guardado en `ajustes_web.legales` con la versión de la fila; si falla, falla (nunca un vacío que se guarde encima).
+export type LectorDeLegales = () => Promise<Resultado<LegalesDelSitio>>
+
+// La tabla de categorías no tiene versión: la última escritura gana. Una fila que ya no está es `no_encontrado`.
+export type EscritorDeCategorias = {
+  crear: (entrada: { nombre: string }) => Promise<ResultadoDeAccion<{ id: string }>>
+  renombrar: (entrada: { id: string; nombre: string }) => Promise<ResultadoDeAccion<null>>
+  activar: (entrada: { id: string; activa: boolean }) => Promise<ResultadoDeAccion<null>>
+  mover: (entrada: { id: string; direccion: DireccionDeOrden }) => Promise<ResultadoDeAccion<null>>
+  // Sólo sin guías: si alguna la usa, es una `regla`.
+  eliminar: (entrada: { id: string }) => Promise<ResultadoDeAccion<null>>
+}
+
+// Guarda sólo la clave `legales` de `ajustes_web` por `web_ajustes_guardar` y devuelve la versión nueva de la fila.
+export type EscritorDeLegales = (pedido: {
+  cambios: CambiosDeLegales
+  actualizadoEnEsperado: string
+}) => Promise<ResultadoDeAccion<{ actualizadoEn: string }>>
