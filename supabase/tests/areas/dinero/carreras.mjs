@@ -32,7 +32,7 @@ export async function limpiarDinero(db) {
 }
 
 // A y B, cada una con su persona.
-function armarCarrera({ orquesta, conectar, esperarBloqueo }) {
+export function armarCarrera({ orquesta, conectar, esperarBloqueo }) {
   return async function carrera({ a, b, quienA = duena, quienB = supervision }) {
     const [ca, cb] = [await conectar(), await conectar()]
     try {
