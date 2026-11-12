@@ -271,6 +271,8 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Visibilidad (de un nodo)** — `formulas.visibilidad` / `_compilar_visibilidad()`: `{nodo: {ver, editar}}` por nivel, compilado al publicar.
 - **Flujo** — `flujos`: la configuración de fases de un origen (o del de repuestos).
 - **Fase** — `fases`: estado del ciclo; inicial, final, jubilada, logística.
+- **Fase jubilada** — `fases.activa = false`: sigue en el historial y en las unidades que ya tiene, pero deja de ser destino. Una fase con uso se jubila; sin uso se elimina (`fase_eliminar`, `fase_impacto`).
+- **Reactivar una fase** — `fase_reactivar`: una fase jubilada vuelve a ser destino; valida las reglas del flujo sobre la fila y no toca el resto.
 - **Fase inicial** — `fases.es_inicial` / `_vehiculo_fase_de_entrada()`: por donde un vehículo entra al flujo.
 - **Transición** — `fases_transiciones`: paso permitido entre dos fases, con acción y nota obligatoria.
 - **Salida de una fase** — en la interfaz, una transición vista desde la fase de la que parte («Salidas y quién mueve»); la que llega a una fase es una **entrada**. En tipos, tablas y RPC sigue siendo `transicion`.
@@ -297,6 +299,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Ítem de repuesto** — `repuestos_items`: el repuesto que recorre el flujo de repuestos.
 - **Stock** — `repuestos_items.stock_cantidad`, `_stock_movimientos`: sobrantes disponibles.
 - **Compra** — `repuestos_compras`: costo de un repuesto (permiso aparte).
+- **Catálogo de repuestos** — `repuestos_catalogos.catalogo` (`CATALOGOS_DE_REPUESTOS`): tipo de pieza, condición, vía de transporte o país de origen. Cada fila es un **valor** (`ValorDeCatalogo`); un valor en uso no se borra, se desactiva. La clave `modo_transporte` se muestra como «Vía de transporte».
 - **Cotizador de repuestos** — `repuestos_cotizador_config`, `_tramos_logistica`, `_cajas`, `repuestos_cotizaciones`: fórmula propia importado/local con tramos y cajas.
 - **Evento** — `eventos`, `eventos_destinatarios`: cita con visibilidad privada/pública/seleccionados.
 - **Destinatario** — `eventos_destinatarios`: persona que ve un evento «seleccionados» (de 1 a 50); en la pantalla, «Destinatarios» y «¿Con quién?». Sólo lo ve quien creó el evento.

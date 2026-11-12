@@ -121,8 +121,8 @@ export const DRAWERS_DEL_NUCLEO: Record<string, RegistroDeDrawer> = {
   },
   // --- flujos
   'src/modules/flujos/features/configuracion/components/inspector-de-fase.tsx': {
-    sinFormulario:
-      'de sólo lectura por ahora: lo que dice la fase en tres bloques; al sumarle un formulario (5.04) pasa a `formulario` con `contexto`',
+    formulario: 'src/modules/flujos/features/fases/components/formulario-de-datos-de-la-fase.tsx',
+    mecanismo: 'contexto',
   },
   // --- cotizaciones
   'src/modules/cotizaciones/features/hoja/components/ayuda-de-celda.tsx': {
