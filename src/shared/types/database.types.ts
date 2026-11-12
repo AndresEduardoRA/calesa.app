@@ -7280,11 +7280,24 @@ export type Database = {
         Args: { p_tipo: Database['public']['Enums']['tipo_campo']; p_valores: Json[] }
         Returns: Json
       }
+      _campo_limite: {
+        Args: { p_cambios: Json; p_clave: string; p_vigente: number }
+        Returns: number
+      }
       _campo_nombre_valido: {
         Args: { p_largo: number; p_que: string; p_texto: string }
         Returns: string
       }
       _campo_opciones_validas: { Args: { p_opciones: Json }; Returns: undefined }
+      _campo_rango: {
+        Args: {
+          p_defecto: Json
+          p_maximo: number
+          p_minimo: number
+          p_tipo: Database['public']['Enums']['tipo_campo']
+        }
+        Returns: undefined
+      }
       _campo_tiene_valor: { Args: { p_valor: Json }; Returns: boolean }
       _campo_valor_defecto: {
         Args: { p_opciones: Json; p_tipo: Database['public']['Enums']['tipo_campo']; p_valor: Json }
@@ -9666,6 +9679,8 @@ export type Database = {
           p_etiqueta: string
           p_filtrable?: boolean
           p_grupo?: string
+          p_maximo?: number
+          p_minimo?: number
           p_opciones?: Json
           p_requerido?: boolean
           p_solo_cartera?: boolean
@@ -9683,7 +9698,7 @@ export type Database = {
         Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_campo: string }
         Returns: string
       }
-      lead_campo_impacto: { Args: { p_campo: string }; Returns: Json }
+      lead_campo_impacto: { Args: { p_cambios?: Json; p_campo: string }; Returns: Json }
       lead_campo_mover: {
         Args: { p_actualizado_en_esperado: string; p_campo: string; p_despues_de?: string }
         Returns: string
