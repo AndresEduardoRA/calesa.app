@@ -41,6 +41,12 @@ export const TIPOS_DE_NOTIFICACION: Readonly<Record<string, TipoDeNotificacion>>
     etiqueta: 'Demoras',
     descripcion: 'Cuando una unidad lleva demasiado tiempo en una fase.',
   },
+  documento_por_vencer: {
+    icono: 'FileClock',
+    accionAlAbrir: true,
+    etiqueta: 'Vencimientos',
+    descripcion: 'Cuando un documento de una unidad está por vencer.',
+  },
   lead_compartido: {
     icono: 'Share2',
     accionAlAbrir: false,
