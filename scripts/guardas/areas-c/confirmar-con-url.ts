@@ -53,4 +53,9 @@ export const REGISTRO: Record<string, ConfirmarConUrl> = {
     abre: 'src/modules/logistica/features/dinero/hooks/use-prorrateo.ts',
     senal: 'PANEL_PRORRATEAR',
   },
+  // `?panel=eliminar-categoria&categoria=<id>` (6.11-4).
+  'src/modules/logistica/features/dinero/components/eliminar-categoria.tsx': {
+    abre: 'src/modules/logistica/features/dinero/hooks/use-eliminar-categoria-por-url.ts',
+    senal: 'PANEL_ELIMINAR_CATEGORIA',
+  },
 }

@@ -30,8 +30,15 @@ const lista: readonly CatalogoDeLogistica[] = [
 ]
 
 describe('catálogos de Configuración › Logística', () => {
-  it('hoy ningún área llena un catálogo: no hay pestañas ni con la clave de gestionar', () => {
-    expect(catalogosVisibles(con('logistica.catalogos.gestionar'))).toEqual([])
+  it('el área dinero llena «Categorías de gasto»: la ve quien gestiona los catálogos y sólo ella', () => {
+    expect(catalogosVisibles(con('logistica.catalogos.gestionar')).map((c) => c.titulo)).toEqual([
+      'Categorías de gasto',
+    ])
+  })
+
+  it('sin la clave de gestionar los catálogos no se ve ninguno', () => {
+    expect(catalogosVisibles([])).toEqual([])
+    expect(catalogosVisibles(con('logistica.gastos.editar'))).toEqual([])
   })
 
   it('cada catálogo lo ve quien tiene su permiso, en el orden de la lista', () => {
