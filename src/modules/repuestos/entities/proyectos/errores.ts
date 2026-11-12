@@ -5,6 +5,8 @@ import { errorDePostgrest } from '@/shared/lib/errores'
 
 export const SIN_PERMISO_PARA_CREAR_PROYECTOS =
   'No tienes permiso para crear proyectos de repuestos.'
+export const SIN_PERMISO_PARA_CERRAR_PROYECTOS =
+  'No tienes permiso para cerrar ni reabrir proyectos de repuestos.'
 export const NO_SE_LEYO_EL_PROYECTO = 'No pudimos leer la respuesta. Recarga para ver cómo quedó.'
 
 const CAMPO_DEL_FORMULARIO: Record<string, string> = {

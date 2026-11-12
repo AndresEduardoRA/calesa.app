@@ -8,6 +8,7 @@ import type {
   ProyectoCreado,
   RepositorioDeProyectos,
 } from '../../entities/proyectos/repositorio'
+import { cerrarProyecto, reabrirProyecto } from './cierre'
 import { leerProyectosDelListado } from './listar'
 
 // Crear un proyecto es sólo por RPC (`repuesto_proyecto_crear`, 8.08-1): idempotente por `id`, pide `repuestos.editar` antes de tocar nada y mide si quien crea ve el vehículo o el lead.
@@ -63,4 +64,6 @@ async function crear({
 export const proyectosSupabase: RepositorioDeProyectos = {
   listar: leerProyectosDelListado,
   crear,
+  cerrar: cerrarProyecto,
+  reabrir: reabrirProyecto,
 }
