@@ -239,6 +239,10 @@ declare
     -- (`areas/web/testimonios-consentimiento.sql`).
     ('web_testimonio_consentir(uuid,timestamp with time zone,text,boolean,boolean,boolean)', 'X'),
     ('web_testimonio_retirar(uuid,timestamp with time zone)', 'X'),
+    -- Las métricas del tablero (9.07): no reciben lead ni cotización, piden `tablero.metricas.ver` y devuelven sólo cuentas de toda la empresa
+    -- (D9), sin contenido de ningún lead ni monto (`areas/tablero/metricas.sql`).
+    ('tablero_leads(date,date)', 'X'),
+    ('tablero_cotizaciones(date,date)', 'X'),
     ('storage_refcount(text,text)', 'X')
   ) t (f, c));
   r record; v_fallas text := '';
