@@ -81,6 +81,11 @@ export const MEDICIONES_CON_VOLUMEN = [
     MEDIANA,
   ],
   [
+    'supabase/tests/medir-datos-exportar-vehiculos.sql',
+    'Exportar todo de vehículos (9.05-2b): la consulta del route handler a la tabla vehiculos con 250.000 de un origen, como authenticated y con el plan genérico: la primera página y una profunda por cursor de la dueña («todos», por vehiculos_origen_listado_idx, sin Seq Scan); el conteo entero hasta el tope y la lectura entera por páginas (s), y Pía («propios») sin assert',
+    MEDIANA,
+  ],
+  [
     'supabase/tests/medir-escala.sql',
     'Escala de toda la app, 50.000 leads y 50.000 cotizaciones sembradas (dueña «todos» y Ana «propios»)',
     MEDIANA,
