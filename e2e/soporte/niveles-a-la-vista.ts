@@ -40,6 +40,10 @@ function medirTextos(selector: string): Texto[] {
     const y = caja.top + caja.height / 2
     for (const x of [caja.left + caja.width / 2, caja.right - 2]) {
       const arriba = document.elementFromPoint(x, y)
+      // La burbuja del chat flota sobre el marco de toda pantalla (`position: fixed`, abajo a la derecha) y, al final de una página, cae sobre lo último: no es de la lista.
+      if (arriba?.closest('[aria-label^="Chat"]')) {
+        continue
+      }
       if (!arriba || !(e.contains(arriba) || arriba.contains(e))) {
         return `${arriba ? describir(arriba) : 'nada'} en x ${String(Math.round(x))}`
       }

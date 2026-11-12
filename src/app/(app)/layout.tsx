@@ -9,7 +9,7 @@ import {
   puede,
   requerirSesion,
 } from '@/modules/equipo/shell'
-import { AltaDeLead } from '@/modules/leads/shell'
+import { AltaDeLead, ProveedorDeEscribirPorChat } from '@/modules/leads/shell'
 import { urlPublicaONull } from '@/shared/lib/almacen'
 import { anchoDeEstaPeticion } from '@/shared/lib/ancho.server'
 import { ProveedorDeAncho } from '@/shared/ui/ancho-de-pantalla'
@@ -61,48 +61,50 @@ async function Shell({ children }: { children: ReactNode }) {
         <ProveedorPreferencias {...sesion.preferencias}>
           {/* La perspectiva «ver como» de esta sesión, para el menú, el banner y quien la pida. */}
           <ProveedorPerspectiva perspectiva={sesion.perspectiva}>
-            <Marco
-              nombreEmpresa={ajustes.nombre}
-              marca={
-                <Marca
-                  nombre={ajustes.nombre}
-                  logoUrl={urlPublicaONull('marca', ajustes.logoRuta)}
-                />
-              }
-              navegacion={<BarraLateral permisos={sesion.permisos} />}
-              // Sin tipos de cambio vigentes el hueco no ocupa lugar.
-              tipoCambio={
-                tiposCambio.length > 0 ? (
-                  <TiposCambioVigentes
-                    tipos={tiposCambio}
-                    puedeGestionar={puede(sesion.permisos, 'empresa.tipos_cambio.gestionar')}
+            <ProveedorDeEscribirPorChat habilitado={puede(sesion.permisos, 'chat.participar')}>
+              <Marco
+                nombreEmpresa={ajustes.nombre}
+                marca={
+                  <Marca
+                    nombre={ajustes.nombre}
+                    logoUrl={urlPublicaONull('marca', ajustes.logoRuta)}
                   />
-                ) : undefined
-              }
-              // Sin `leads.crear` no se monta nada: ni botón, ni atajo, ni una URL que lo abra. El drawer lee lo que necesita al abrirse:
-              // el documento de la pantalla no lleva los catálogos del alta.
-              nuevoLead={puede(sesion.permisos, 'leads.crear') ? <AltaDeLead /> : undefined}
-              aviso={<BannerPerspectiva />}
-              buscador={<HuecoBuscador acciones={accionesDeLaPaleta(sesion.permisos)} />}
-              campana={
-                <HuecoCampana usuarioId={sesion.usuarioId} disponibles={RUTAS_CON_PANTALLA} />
-              }
-              flotante={<HuecoChat />}
-              menuUsuario={
-                <MenuUsuario
-                  persona={{
-                    nombre,
-                    email: sesion.email,
-                    avatarUrl: urlPublicaONull('avatares', sesion.avatarRuta),
-                    rol: sesion.roles[0]?.nombre ?? null,
-                  }}
-                  entradas={delUsuario}
-                  alCerrarSesion={cerrarSesion}
-                />
-              }
-            >
-              {children}
-            </Marco>
+                }
+                navegacion={<BarraLateral permisos={sesion.permisos} />}
+                // Sin tipos de cambio vigentes el hueco no ocupa lugar.
+                tipoCambio={
+                  tiposCambio.length > 0 ? (
+                    <TiposCambioVigentes
+                      tipos={tiposCambio}
+                      puedeGestionar={puede(sesion.permisos, 'empresa.tipos_cambio.gestionar')}
+                    />
+                  ) : undefined
+                }
+                // Sin `leads.crear` no se monta nada: ni botón, ni atajo, ni una URL que lo abra. El drawer lee lo que necesita al abrirse:
+                // el documento de la pantalla no lleva los catálogos del alta.
+                nuevoLead={puede(sesion.permisos, 'leads.crear') ? <AltaDeLead /> : undefined}
+                aviso={<BannerPerspectiva />}
+                buscador={<HuecoBuscador acciones={accionesDeLaPaleta(sesion.permisos)} />}
+                campana={
+                  <HuecoCampana usuarioId={sesion.usuarioId} disponibles={RUTAS_CON_PANTALLA} />
+                }
+                flotante={<HuecoChat sesion={sesion} zona={ajustes.zonaHoraria} />}
+                menuUsuario={
+                  <MenuUsuario
+                    persona={{
+                      nombre,
+                      email: sesion.email,
+                      avatarUrl: urlPublicaONull('avatares', sesion.avatarRuta),
+                      rol: sesion.roles[0]?.nombre ?? null,
+                    }}
+                    entradas={delUsuario}
+                    alCerrarSesion={cerrarSesion}
+                  />
+                }
+              >
+                {children}
+              </Marco>
+            </ProveedorDeEscribirPorChat>
           </ProveedorPerspectiva>
         </ProveedorPreferencias>
       </ProveedorDeAncho>
