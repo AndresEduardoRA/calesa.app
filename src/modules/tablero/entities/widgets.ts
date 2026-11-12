@@ -75,10 +75,11 @@ export const WIDGETS_TABLERO = [
   },
 ] as const satisfies readonly WidgetDelCatalogo[]
 
-export type ClaveDeWidget = (typeof WIDGETS_TABLERO)[number]['clave']
+export type WidgetConClave = (typeof WIDGETS_TABLERO)[number]
+export type ClaveDeWidget = WidgetConClave['clave']
 
 // Los widgets que esta persona puede ver, en el orden del catálogo. Los huecos no salen.
-export function widgetsVisibles(permisos: Permisos): readonly WidgetDelCatalogo[] {
+export function widgetsVisibles(permisos: Permisos): readonly WidgetConClave[] {
   return WIDGETS_TABLERO.filter(
     (widget) => widget.disponible && widget.permisos.some((clave) => puede(permisos, clave)),
   )
