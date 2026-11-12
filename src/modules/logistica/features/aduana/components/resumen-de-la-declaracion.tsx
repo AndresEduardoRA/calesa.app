@@ -4,9 +4,16 @@ import { formatearFecha } from '@/shared/lib/fechas'
 import { Badge } from '@/shared/ui/badge'
 import { useRegional } from '@/shared/ui/regional'
 import { textoDelCanal, type DeclaracionLeida } from '../../../entities/aduana/declaracion'
+import { AccionesDeLaDeclaracion } from './acciones-de-la-declaracion'
 import { EstadoDeTributos } from './estado-de-tributos'
+import { VehiculosDeLaDeclaracion } from './vehiculos-de-la-declaracion'
+import { VehiculosDelResumen } from './vehiculos-del-resumen'
 
-type Props = { declaracion: DeclaracionLeida }
+type Props = {
+  declaracion: DeclaracionLeida
+  // Con `logistica.aduana.gestionar` (la base lo vuelve a exigir): enciende los botones de escribir.
+  puedeGestionar: boolean
+}
 
 function Dato({ etiqueta, valor }: { etiqueta: string; valor: string | null }) {
   return (
@@ -19,9 +26,9 @@ function Dato({ etiqueta, valor }: { etiqueta: string; valor: string | null }) {
   )
 }
 
-// El resumen de una declaración: su número y canal, los datos, si está pagada y los vehículos con su tributo dicho en texto («Tiene el tributo» / «Falta el tributo»). Sólo muestra: en
-// 6.09-1 no hay botones de escritura. Ningún monto: la aduana sólo dice sí o no por unidad.
-export function ResumenDeLaDeclaracion({ declaracion }: Props) {
+// El resumen de una declaración: su número y canal, los datos, si está pagada y los vehículos con su tributo dicho en texto («Tiene el tributo» / «Falta el tributo»). Con
+// `logistica.aduana.gestionar` ofrece «Editar» y «Asignar canal». Ningún monto: la aduana sólo dice sí o no por unidad.
+export function ResumenDeLaDeclaracion({ declaracion, puedeGestionar }: Props) {
   const { zonaHoraria } = useRegional()
   const dia = (valor: string | null) =>
     valor === null ? null : formatearFecha(valor, { zona: zonaHoraria })
@@ -41,6 +48,7 @@ export function ResumenDeLaDeclaracion({ declaracion }: Props) {
             hayOcultos={declaracion.hayOcultos}
           />
         </div>
+        {puedeGestionar ? <AccionesDeLaDeclaracion declaracion={declaracion} /> : null}
       </header>
       <dl className="grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2">
         <Dato etiqueta="Aceptada el" valor={dia(declaracion.aceptadaEl)} />
@@ -51,48 +59,11 @@ export function ResumenDeLaDeclaracion({ declaracion }: Props) {
           <Dato etiqueta="Notas" valor={declaracion.notas} />
         </div>
       </dl>
-      <section aria-labelledby="vehiculos-de-la-declaracion" className="grid min-w-0 gap-2">
-        <h3
-          id="vehiculos-de-la-declaracion"
-          className="text-(length:--text-base) font-medium text-(--color-ink)"
-        >
-          Vehículos de la declaración
-        </h3>
-        {declaracion.vehiculos.length === 0 ? (
-          <p className="text-(length:--text-sm) text-(--color-ink-soft)">
-            {declaracion.hayOcultos ? 'No ves ninguno de sus vehículos.' : 'Sin vehículos.'}
-          </p>
-        ) : (
-          <ul className="grid grid-cols-[minmax(0,1fr)] gap-2">
-            {declaracion.vehiculos.map((vehiculo) => (
-              <li
-                key={vehiculo.vehiculoId}
-                className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-1 rounded-(--radius-card) border border-(--color-line) px-3 py-2"
-              >
-                <span className="min-w-0 font-medium [overflow-wrap:anywhere] text-(--color-ink)">
-                  {vehiculo.titulo}
-                </span>
-                <span className="flex flex-wrap items-center gap-2 text-(length:--text-sm) text-(--color-ink-soft)">
-                  {vehiculo.fase ? <span>{vehiculo.fase}</span> : null}
-                  <Badge variant={vehiculo.tributo ? 'secondary' : 'outline'}>
-                    {vehiculo.tributo ? 'Tiene el tributo' : 'Falta el tributo'}
-                  </Badge>
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-        {declaracion.hayMas ? (
-          <p className="text-(length:--text-sm) text-(--color-ink-soft)">
-            Hay más vehículos de los que se muestran.
-          </p>
-        ) : null}
-        {declaracion.hayOcultos && declaracion.vehiculos.length > 0 ? (
-          <p className="text-(length:--text-sm) text-(--color-ink-soft)">
-            Hay vehículos que no ves.
-          </p>
-        ) : null}
-      </section>
+      {puedeGestionar ? (
+        <VehiculosDeLaDeclaracion declaracion={declaracion} />
+      ) : (
+        <VehiculosDelResumen declaracion={declaracion} />
+      )}
     </div>
   )
 }
