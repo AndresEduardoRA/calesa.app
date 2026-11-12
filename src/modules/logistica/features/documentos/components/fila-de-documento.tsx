@@ -5,9 +5,11 @@ import { formatearFecha } from '@/shared/lib/fechas'
 import { TarjetaDeLista } from '@/shared/ui/lista'
 import { Badge } from '@/shared/ui/badge'
 import { useRegional } from '@/shared/ui/regional'
-import type { DocumentoDeLaUnidad } from '../../../entities/documentos/documento'
+import type { DocumentoDeLaUnidad, TipoDeDocumento } from '../../../entities/documentos/documento'
 import { formatearBytes } from '../../../entities/documentos/tamano'
 import { textoDelVencimiento } from '../../../entities/documentos/vencimiento'
+import { AccionesDelDocumento } from './acciones-del-documento'
+import type { ContextoDeLaFila } from './contexto-de-la-fila'
 import { EstadoDelDocumento } from './estado-del-documento'
 import { abrirDocumento } from './ver-documento'
 
@@ -15,6 +17,9 @@ const OTRA_PERSONA = 'otra persona'
 
 type Props = {
   documento: DocumentoDeLaUnidad
+  // El tipo del documento: `null` en «Otro tipo» (el que ya no está entre los activos).
+  tipo: TipoDeDocumento | null
+  contexto: ContextoDeLaFila
   nombres: Readonly<Record<string, string>>
   hoy: string
 }
@@ -76,8 +81,9 @@ function Archivo({ ruta, nombre }: { ruta: string; nombre: string }) {
   )
 }
 
-// Un documento de la unidad: su archivo, su estado en texto, el motivo del rechazo, el vencimiento, quién lo subió y quién lo revisó. «Ver» y «Descargar» piden una URL firmada al tocar.
-export function FilaDeDocumento({ documento, nombres, hoy }: Props) {
+// Un documento de la unidad: su archivo, su estado en texto, el motivo del rechazo, el vencimiento, quién lo subió y quién lo revisó. «Ver» y «Descargar» piden una URL firmada al tocar;
+// «Aprobar» y «Rechazar» (6.06-3) revisan la fila.
+export function FilaDeDocumento({ documento, tipo, contexto, nombres, hoy }: Props) {
   const nombre = documento.nombre ?? 'Documento sin nombre'
   return (
     <TarjetaDeLista>
@@ -97,6 +103,7 @@ export function FilaDeDocumento({ documento, nombres, hoy }: Props) {
         <p className="min-w-0 text-(length:--text-sm) break-words">{documento.nota}</p>
       ) : null}
       {documento.ruta ? <Archivo ruta={documento.ruta} nombre={nombre} /> : null}
+      <AccionesDelDocumento documento={documento} tipo={tipo} contexto={contexto} />
     </TarjetaDeLista>
   )
 }
