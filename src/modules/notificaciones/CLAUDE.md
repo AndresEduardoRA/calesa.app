@@ -2,6 +2,8 @@
 
 Campana in-app con «requiere acción», realtime, web push (VAPID) y preferencias por usuario; todo lo que avisa pasa por la puerta de la tabla.
 
+**Fase 7 cerrada el 2026-11-12** (7.14): R1 de `e2e/fase-7-recorrido.spec.ts` (la campana sin recargar), `supabase/tests/push-de-verdad.sh` (de la base a la función servida, con el pase canjeado) y el reintento al volver la red (7-2, `hooks/use-vuelta-de-la-red.ts`). El push a un teléfono real espera las claves VAPID. Abierto que la toca: **7-5** (pedida sin red, la suscripción de fondo pone su barra «Sin conexión»; `docs/PLAN.md` › «Fase 7»).
+
 ## Entra y sale
 
 - Entra: `notificar()` desde RPC y triggers (tareas, turnos web, alertas de demora, recordatorios, menciones; la cartera con `lead_compartir` y
