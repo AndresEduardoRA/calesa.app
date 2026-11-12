@@ -1,7 +1,9 @@
 import { AvisoDeTope } from '@/shared/ui/aviso-de-tope'
 import { EstadoVacio } from '@/shared/ui/estados'
 import { textoDelTope } from '@/shared/lib/conteo'
+import type { ListaDeCategorias } from '../../../../entities/contenido/categorias'
 import { TOPE_DE_GUIAS, type GuiaDeLista } from '../../../../entities/contenido/guias'
+import { DrawerDeCategorias } from '../../categorias/components/drawer-de-categorias'
 import { BuscadorDeGuias } from './buscador-de-guias'
 import { DrawerNuevaGuia } from './drawer-nueva-guia'
 import { ListaDeGuias } from './lista-de-guias'
@@ -13,10 +15,18 @@ export type PropsDeLaPestanaDeGuias = {
   buscar: string | null
   // El instante de la lectura (ISO).
   ahora: string
+  // Las categorías del panel «Categorías» (8.03-2).
+  categorias: ListaDeCategorias
 }
 
 // Configuración › Sitio web › Guías: la lista con su búsqueda por título y «Nueva guía». Escribir se hace en la página de cada guía.
-export function PestanaDeGuias({ filas, hayMas, buscar, ahora }: PropsDeLaPestanaDeGuias) {
+export function PestanaDeGuias({
+  filas,
+  hayMas,
+  buscar,
+  ahora,
+  categorias,
+}: PropsDeLaPestanaDeGuias) {
   return (
     <section aria-labelledby="titulo-de-guias" className="grid gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -26,7 +36,10 @@ export function PestanaDeGuias({ filas, hayMas, buscar, ahora }: PropsDeLaPestan
         >
           Guías
         </h2>
-        <DrawerNuevaGuia />
+        <div className="flex flex-wrap items-center gap-2">
+          <DrawerDeCategorias lista={categorias} />
+          <DrawerNuevaGuia />
+        </div>
       </div>
       <BuscadorDeGuias />
       {filas.length === 0 ? (

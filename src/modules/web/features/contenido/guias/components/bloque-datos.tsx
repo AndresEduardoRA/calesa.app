@@ -31,7 +31,11 @@ export function BloqueDatos({ valores, cambiar, errores, opciones, deshabilitado
             etiqueta: c.activa ? c.nombre : `${c.nombre} (desactivada)`,
           })),
         ]}
-        ayuda={opciones.categorias.length === 0 ? 'Todavía no hay categorías.' : undefined}
+        ayuda={
+          opciones.categorias.length === 0
+            ? 'Todavía no hay categorías. Se crean desde «Categorías» en Guías.'
+            : undefined
+        }
         value={valores.categoriaId}
         onChange={(evento) => {
           cambiar({ categoriaId: evento.target.value })

@@ -37,4 +37,10 @@ export const REGISTRO: Record<string, RegistroDeDrawer> = {
     formulario: 'src/modules/web/features/contenido/guias/components/formulario-de-nueva-guia.tsx',
     mecanismo: 'contexto',
   },
+  // «Categorías» de Configuración › Sitio web › Guías (8.03-2): `?panel=categorias`; el nombre que se escribe dice que hay algo escrito. El pie es «Listo».
+  'src/modules/web/features/contenido/categorias/components/drawer-de-categorias.tsx': {
+    formulario:
+      'src/modules/web/features/contenido/categorias/components/formulario-de-categoria.tsx',
+    mecanismo: 'contexto',
+  },
 }
