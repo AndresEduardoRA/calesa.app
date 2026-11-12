@@ -7,7 +7,13 @@ import { errorDePostgrest } from '@/shared/lib/errores'
 export const SIN_PERMISO_PARA_COTIZAR = 'No tienes permiso para cotizar repuestos.'
 export const NO_SE_LEYO_LA_RESPUESTA = 'No pudimos leer la respuesta. Recarga para ver cómo quedó.'
 
-export type ErrorDeCotizacion = { code?: string | null; message: string; hint?: string | null }
+// `details` es como lo trae PostgREST (no `detail`): en guardar, el id de la línea que falló (8.12-4).
+export type ErrorDeCotizacion = {
+  code?: string | null
+  message: string
+  hint?: string | null
+  details?: string | null
+}
 
 const CAMPOS_AL_CREAR: ReadonlySet<string> = new Set(['config', 'moneda'])
 

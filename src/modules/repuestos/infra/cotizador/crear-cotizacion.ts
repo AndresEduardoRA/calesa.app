@@ -12,7 +12,7 @@ import type { RepositorioDeCotizaciones } from '../../entities/cotizador/reposit
 // `repuestos.cotizar` y `repuestos.ver`, el proyecto vivo y abierto, y congela el snapshot de la configuración vigente. Acá no hay aritmética.
 const esquemaCreada = z.object({ id: z.guid(), numero: z.number().int() })
 
-export const cotizacionesSupabase: RepositorioDeCotizaciones = {
+export const cotizacionesSupabase: Pick<RepositorioDeCotizaciones, 'crear'> = {
   crear: async ({ id, proyectoId, moneda }) => {
     const supabase = await createClient()
     const { data, error } = await supabase.rpc('repuestos_cotizacion_crear', {
