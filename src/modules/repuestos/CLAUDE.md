@@ -69,7 +69,7 @@ El módulo se parte por **área** (8.08-2, igual que `logistica`) para que los p
   `repuestos_proyectos_listar`, `repuestos_pendientes_de_vehiculo`, `_repuesto_ante_espera` y el trigger `repuestos_catalogo_sin_uso`. De 8.09-3: los triggers `repuestos_imagen_integridad` y `repuestos_imagen_encolar` (prueba `areas/repuestos/imagenes.sql`). De 8.10-1: `repuesto_stock_mover`,
   `repuesto_stock_reasignar` (con `_repuesto_stock_item` y `_repuesto_stock_aplicar`, privadas) y `repuestos_stock_listar` (pruebas `stock.sql`, `stock-reasignar.sql`,
   `stock-listar.sql` y E7 de `esperas.sql`; carreras `scripts/carreras/repuestos-stock.mjs`). De 8.11-1: `repuesto_compra_guardar` / `_eliminar` / `_restaurar`
-  (con `_repuesto_compra_tc_vigente`, `_repuesto_compra_proyecto` y `_repuesto_compra_de_datos`, privadas; prueba `compras.sql`) y
+  (con `_repuesto_compra_tc_vigente`, `_repuesto_compra_proyecto` y `_repuesto_compra_de_datos`, privadas; pruebas `compras.sql` y `compras-version.sql`) y
   `repuestos_proyecto_margen` (prueba `compras-margen.sql`). Sus pruebas, en
   `supabase/tests/areas/repuestos/` (`proyectos`, `base`, `listar`, `esperas`, `catalogos`).
 
