@@ -9547,6 +9547,7 @@ export type Database = {
         }
         Returns: Json
       }
+      logistica_donde_esta: { Args: { p_buscar: string; p_tope?: number }; Returns: Json }
       logistica_unidad: { Args: { p_vehiculo: string }; Returns: Json }
       margen_vehiculo: { Args: { p_vehiculo: string }; Returns: Json }
       mensaje_editar: {
