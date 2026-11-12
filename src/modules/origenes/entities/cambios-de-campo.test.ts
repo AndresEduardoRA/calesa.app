@@ -24,6 +24,7 @@ function layout(extra: Record<string, unknown>): CampoDeLayout[] {
       filtrable: false,
       publico_web: false,
       clave_apibara: null,
+      principal: false,
       es_sistema: false,
       activo: true,
       actualizado_en: '2026-10-12T20:00:00+00:00',
@@ -54,6 +55,7 @@ describe('cambios', () => {
     publicoWeb: campo.publicoWeb,
     claveApibara: campo.claveApibara,
     activo: campo.activo,
+    principal: campo.principal,
     valorDefecto: campo.valorDefecto,
   }
 

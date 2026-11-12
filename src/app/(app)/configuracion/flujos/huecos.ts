@@ -1,5 +1,6 @@
 import { AccionesDeFila, AccionesDeLaLista, DatosDeLaFase } from '@/modules/flujos/pantallas/fases'
 import type { HuecosDelFlujo } from '@/modules/flujos/pantallas/configuracion'
+import { BloqueDeRequisitos } from '@/modules/flujos/pantallas/requisitos'
 
 // Lo que cada área de `flujos` pone en la pantalla de flujos: la lista de acciones, el «⋯» y las salidas de cada fila, la franja de «Revisar» y los tres bloques
 // del inspector (`HuecosDelFlujo`). Son componentes de cliente. Cada paso suma su línea acá al llenar su hueco: 5.04 (acciones y «Datos»), 5.06 (salidas),
@@ -7,5 +8,5 @@ import type { HuecosDelFlujo } from '@/modules/flujos/pantallas/configuracion'
 export const HUECOS_DE_FLUJOS: HuecosDelFlujo = {
   accionesDeLaLista: AccionesDeLaLista,
   accionesDeFila: AccionesDeFila,
-  bloques: { datos: DatosDeLaFase },
+  bloques: { datos: DatosDeLaFase, requisitos: BloqueDeRequisitos },
 }

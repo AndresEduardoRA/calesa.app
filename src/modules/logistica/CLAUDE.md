@@ -5,8 +5,8 @@ Operación diaria sobre el flujo: cadena por fase, mover con vista previa, docum
 ## Entra y sale
 
 - Entra: acciones de logística en `/logistica/*`, subida de documentos (también desde cámara), confirmación de pagos, cron de alertas.
-- Sale: `leerUnidad(id)` (la unidad de vehículo bajo la RLS de quien mira; nula si no existe, está en la papelera o no la ve), `huecosVisibles`, `ORDEN_DE_HUECOS`, `refDeUnidad` y los tipos de la unidad y de los huecos; por `pantallas/unidad.ts`, `<PanelDeLaUnidad>` (6.01). Saldrá `bandejaLogistica()` (para `tablero`), `margenDe(vehiculoId)`, `<LineaTiempoUnidad>`, `dondeEsta(busqueda)`. Lo consumirán `tablero`, `vehiculos` (ficha), `web` (portal: fases y documentos visibles).
-- Depende de: `vehiculos`, `flujos`, `cotizaciones`.
+- Sale: `leerUnidad(id)` (la unidad de vehículo bajo la RLS de quien mira; nula si no existe, está en la papelera o no la ve; su `titulo` es «<principal> · <título>» si el origen tiene campo principal, 6.13: `features/nucleo/unidad-con-identidad.ts`, y si el principal no se puede leer queda el título), `huecosVisibles`, `ORDEN_DE_HUECOS`, `refDeUnidad` y los tipos de la unidad y de los huecos; por `pantallas/unidad.ts`, `<PanelDeLaUnidad>` (6.01). Saldrá `bandejaLogistica()` (para `tablero`), `margenDe(vehiculoId)`, `<LineaTiempoUnidad>`, `dondeEsta(busqueda)`. Lo consumirán `tablero`, `vehiculos` (ficha), `web` (portal: fases y documentos visibles).
+- Depende de: `vehiculos`, `origenes`, `empresa`, `flujos`, `cotizaciones`.
 
 ## Áreas
 
@@ -36,11 +36,24 @@ El panel exige `logistica.ver` en el origen de la unidad **y** que la RLS de `ve
 - `entities/documentos.ts` — estados pendiente/subido/aprobado/rechazado y qué cuenta para un requisito (aprobado y vivo, mime admitido, entre min y max).
 - `entities/grupos.ts` — agrupar `transportes` por booking / contenedor (vistas, no entidades) y la edición «todo o nada».
 - `features/cadena/`, `features/unidad/` (panel con «qué falta»), `features/documentos/`, `features/transporte/`, `features/aduana/`, `features/gastos/`, `features/pagos/`, `features/donde-esta/`.
+- **Área `dinero`** (6.11-1 a 6.11-3: los huecos «Gastos», «Pagos» y «Margen» y `/logistica/gastos`; prorratear y las categorías de gasto llegan con 6.11-4). `pantallas/dinero-unidad.ts` los declara con `diferido()`
+  (`features/dinero/components/diferidos.tsx`). `entities/dinero/`: `margen.ts` (`textosDelMargen`: un `null` de la base se escribe «Sin cotización final» o «Sin venta registrada», nunca 0, y un 0
+  verdadero es un monto), `gasto.ts` (`validarGasto`, `cambiosDeGasto` con el tipo de cambio sólo si cambió la moneda o el tipo, D19), `pago.ts` (`accionesDelPago`: un confirmado nunca se edita ni se elimina; `textoDelSello`; `validarPago` con monto > 0; `validarMotivoDeAnulacion`), `tipo-de-cambio.ts`, `categoria.ts`, `paneles.ts` y `paneles-de-pago.ts`. El navegador lee con la
+  sesión de quien mira (`infra/dinero/*.client.ts`: los gastos de la unidad con tope 50 por `gastos_vehiculo_idx`, `margen_vehiculo`, `mis_permisos`, los catálogos y el comprobante en el bucket
+  `comprobantes`); escribir va por las Server Actions de `features/dinero/actions/`. **El equivalente en base lo devuelve la base** (`monto_base`): ningún componente multiplica por una tasa. Un hueco recibe
+  sólo `{ unidad }`, así que decide «Registrar gasto» con `puede()` sobre `mis_permisos`; lo que protege es la base. `?panel=gasto&gasto=<id|nuevo>` y `?panel=eliminar-gasto&gasto=<id>`; el hueco
+  «Gastos» avisa al «Margen» por un evento del navegador (`eventos-de-dinero.ts`), no por la URL. **Pagos:** `?panel=pago|confirmar-pago|eliminar-pago|anular-pago&pago=<id>` (una URL escrita a mano no abre lo que el
+  estado o el permiso no dejan); «Confirmar pago» y «Anular pago» piden `logistica.pagos.confirmar` (global) y avisan al «Margen» por el mismo evento; el sello «Confirmado por <nombre> el <fecha>» lo pone la base y
+  el nombre sale de `perfiles`; anular es un drawer con motivo (el `<Confirmar>` no tiene campo de texto); el lead no se elige (se manda nulo, D3 de 6.11-2).
+  **Lista (6.11-3):** `/logistica/gastos?ver=gastos|pagos` (`pantallas/dinero.ts`, `ListadoDeDinero`; `ENLACE_DE_DINERO` pide `logistica.gastos.ver`). `entities/dinero/listas.ts` arma el pedido con sólo las claves que cada RPC acepta (una de más da 22023), el cursor `(fecha, id)` viaja como instante a medianoche y no hay «Anterior». La fila abre el panel `?vehiculo=` de `/logistica` y no hay ninguna suma. `infra/dinero/listas.ts` llama `gastos_listar` y `pagos_listar` con `p_tope: TAMANO_DE_PAGINA_POR_DEFECTO` (registradas en la guarda de páginas).
 
 ## Tablas
 
 `documentos`, `puertos`, `navieras`, `transportes` (1:1 con la unidad), `declaraciones_aduana`, `declaraciones_vehiculos`, `categorias_gasto`, `gastos`, `pagos`, `notas`.
-RPC: `margen_vehiculo`, `alertas_demora` (cron), `storage_refcount`; mover vía `flujos`. La oferta de transporte es de `flujos`: la leerá en la Fase 6 por `flujo_oferta()`.
+RPC: `margen_vehiculo`, `alertas_demora` (cron), `storage_refcount`; mover vía `flujos`. La oferta de transporte es de `flujos`: la leerá en la Fase 6
+por `flujo_oferta()`. Gastos y pagos se escriben sólo por RPC (6.10): `gasto_registrar`, `gasto_guardar`, `gasto_eliminar`, `gastos_prorratear`,
+`pago_registrar`, `pago_guardar`, `pago_eliminar`, `pago_confirmar` y `pago_anular`. Se leen por cursor con `gastos_listar` y `pagos_listar` (6.10-2);
+el bucket `comprobantes` lo abre `comprobante_puede` (la fila que nombra el objeto).
 
 ## No se rompe
 

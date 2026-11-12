@@ -1,9 +1,10 @@
 import 'server-only'
+import { cache } from 'react'
 import { errorDePostgrest, ok } from '@/shared/lib/errores'
 import { createClient } from '@/shared/lib/supabase/server'
-import { camposDesde } from '../../entities/campo'
+import { campoPrincipalDesde, camposDesde } from '../../entities/campo'
 import { categoriasDesde } from '../../entities/categoria'
-import type { LectorDeLayout } from '../../entities/repositorios'
+import type { LectorDeCampoPrincipal, LectorDeLayout } from '../../entities/repositorios'
 
 // El layout de un origen: todos sus campos (también los desactivados) y sus categorías. Cualquier
 // cuenta lo lee (las fichas lo necesitan); contar vehículos por categoría pide
@@ -29,3 +30,21 @@ export const getLayout: LectorDeLayout = async (origenId, { conUso }) => {
     categorias: categoriasDesde(categorias.data, usos?.data ?? null),
   })
 }
+
+// El campo principal activo de un origen (una fila como mucho: índice `origenes_campos_principal_unico`, parcial por `principal`).
+// Una vez por request: lo piden el panel de logística y quien nombre a un vehículo fuera del listado.
+export const getCampoPrincipal: LectorDeCampoPrincipal = cache(async (origenId: string) => {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('origenes_campos')
+    .select('clave, etiqueta, tipo, opciones')
+    .eq('origen_id', origenId)
+    .eq('principal', true)
+    .eq('activo', true)
+    .limit(1)
+    .maybeSingle()
+  if (error) {
+    return { ok: false, error: errorDePostgrest(error) }
+  }
+  return ok(campoPrincipalDesde(data))
+})
