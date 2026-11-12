@@ -273,6 +273,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Fase** — `fases`: estado del ciclo; inicial, final, jubilada, logística.
 - **Fase inicial** — `fases.es_inicial` / `_vehiculo_fase_de_entrada()`: por donde un vehículo entra al flujo.
 - **Transición** — `fases_transiciones`: paso permitido entre dos fases, con acción y nota obligatoria.
+- **Salida de una fase** — en la interfaz, una transición vista desde la fase de la que parte («Salidas y quién mueve»); la que llega a una fase es una **entrada**. En tipos, tablas y RPC sigue siendo `transicion`.
 - **Requisito** — `fases_requisitos` (documento | dato | espera): qué pide una fase para entrar; bloqueante o informativo.
 - **Espera** — requisito `espera`: un vehículo espera a sus repuestos / un repuesto a su vehículo.
 - **Regla del flujo** — `flujos_reglas`: capacidad encendida/apagada (vitrina, portal, aduana, esperas…).
