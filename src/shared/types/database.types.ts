@@ -7743,6 +7743,7 @@ export type Database = {
         Returns: undefined
       }
       _embudo_patron: { Args: { p_texto: string }; Returns: string }
+      _embudo_plantilla_normalizar: { Args: { p_etapas: Json }; Returns: Json }
       _embudos_candado: { Args: { p_usuario: string }; Returns: undefined }
       _embudos_puedo: { Args: Record<PropertyKey, never>; Returns: string }
       _encolar_para_limpiar: {
@@ -9522,6 +9523,10 @@ export type Database = {
       embudo_guardar: {
         Args: { p_actualizado_en_esperado: string; p_id: string; p_nombre: string }
         Returns: Json
+      }
+      embudo_plantilla_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_etapas: Json }
+        Returns: string
       }
       embudo_por_defecto: { Args: Record<PropertyKey, never>; Returns: Json }
       embudo_tablero: {

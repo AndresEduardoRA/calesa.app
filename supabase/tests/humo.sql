@@ -6786,3 +6786,27 @@ begin
   reset role;
 end $$;
 rollback;
+
+-- @test leads: con leads.configurar, la plantilla del embudo se guarda por embudo_plantilla_guardar() y la fila lo refleja (9.04-4)
+begin;
+do $$
+declare v_rol uuid; v_quien uuid := '00000000-0000-4000-8000-000000090402';
+  v_etapas constant jsonb := '[{"nombre": "A", "color": "gris", "es_inicial": true, "es_ganada": false, "es_perdida": false},
+    {"nombre": "B", "color": "verde", "es_inicial": false, "es_ganada": true, "es_perdida": false},
+    {"nombre": "C", "color": "rojo", "es_inicial": false, "es_ganada": false, "es_perdida": true}]';
+begin
+  insert into auth.users (id, email, raw_app_meta_data) values (v_quien, 'humo.plantillas.rpc@ejemplo.com', '{"invitado": true}');
+  delete from public.usuarios_roles where usuario_id = v_quien;
+  insert into public.roles (clave, nombre) values ('humo_plantillas_rpc', 'Humo plantillas rpc') returning id into v_rol;
+  insert into public.usuarios_roles (usuario_id, rol_id, es_principal) values (v_quien, v_rol, true);
+  insert into public.roles_permisos (rol_id, permiso_clave, alcance) values (v_rol, 'leads.configurar', 'todos');
+  perform set_config('request.jwt.claim.sub', v_quien::text, true);
+  perform set_config('request.jwt.claim.role', 'authenticated', true);
+  set local role authenticated;
+  perform public.embudo_plantilla_guardar(v_etapas, (select embudo_actualizado_en from public.ajustes_leads where id = 1));
+  if (select embudo_etapas from public.ajustes_leads where id = 1) is distinct from v_etapas then
+    raise exception 'embudo_plantilla_guardar no guardó la plantilla';
+  end if;
+  reset role;
+end $$;
+rollback;

@@ -160,3 +160,117 @@ begin
   end if;
   if v_fallas <> '' then raise exception 'Las funciones de las plantillas tienen un hueco:%', v_fallas; end if;
 end $$;
+
+-- @test plantillas: embudo_plantilla_guardar() es «definer», con search_path vacío; su validador no lo llama la app
+do $$
+declare r record; v_fallas text := '';
+begin
+  for r in select p.oid, p.proname, p.prosecdef, p.proconfig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+            where n.nspname = 'public' and p.proname in ('embudo_plantilla_guardar', '_embudo_plantilla_normalizar') loop
+    if not ('search_path=""' = any (coalesce(r.proconfig, '{}'))) then v_fallas := v_fallas || E'\n  sin search_path vacío: ' || r.proname; end if;
+    if has_function_privilege('anon', r.oid, 'execute') then v_fallas := v_fallas || E'\n  anon ejecuta: ' || r.proname; end if;
+    if r.proname = 'embudo_plantilla_guardar' then
+      if not r.prosecdef then v_fallas := v_fallas || E'\n  no es definer: ' || r.proname; end if;
+      if not has_function_privilege('authenticated', r.oid, 'execute') then v_fallas := v_fallas || E'\n  authenticated no la llama'; end if;
+    elsif has_function_privilege('authenticated', r.oid, 'execute') then
+      v_fallas := v_fallas || E'\n  la app llama un ayudante: ' || r.proname;
+    end if;
+  end loop;
+  if (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+       where n.nspname = 'public' and p.proname in ('embudo_plantilla_guardar', '_embudo_plantilla_normalizar')) <> 2 then
+    v_fallas := v_fallas || E'\n  una firma de más o de menos';
+  end if;
+  if v_fallas <> '' then raise exception 'La plantilla del embudo tiene un hueco:%', v_fallas; end if;
+end $$;
+
+-- @test plantillas: sin leads.configurar, guardar la plantilla da 42501 (también con versión vieja); con ella, guarda
+begin;
+select pg_temp.pla_preparar();
+do $$
+declare gala uuid := '00000000-0000-4000-8000-00000009940f'; cora uuid := '00000000-0000-4000-8000-00000009940c';
+        a uuid := '00000000-0000-4000-8000-0000000994a1'; r text;
+begin
+  r := pg_temp.pla_guardar(cora, pg_temp.pla_cuatro());
+  if r <> '42501' then raise exception 'con sólo leads.campos.gestionar: %', r; end if;
+  r := pg_temp.pla_codigo(cora, format('select public.embudo_plantilla_guardar(%L, %L)', pg_temp.pla_cuatro(), '2000-01-01'));
+  if r <> '42501' then raise exception 'sin permiso y con versión vieja, el permiso va primero: %', r; end if;
+  r := pg_temp.pla_guardar(a, pg_temp.pla_cuatro());
+  if r <> '42501' then raise exception 'con sólo leads.ver: %', r; end if;
+  if (select embudo_etapas from public.ajustes_leads where id = 1) is not null then raise exception 'sin permiso se guardó algo'; end if;
+  r := pg_temp.pla_guardar(gala, pg_temp.pla_cuatro());
+  if r <> 'sin error' or (select embudo_etapas from public.ajustes_leads where id = 1) <> pg_temp.pla_cuatro() then
+    raise exception 'Gala no guardó: % / %', r, (select embudo_etapas from public.ajustes_leads where id = 1);
+  end if;
+  -- Guardada por la RPC, el embudo que nace después la toma.
+  if pg_temp.pla_etapas(a) <> pg_temp.pla_cuatro() then raise exception 'tras guardar por la RPC, A no nació con la plantilla: %', pg_temp.pla_etapas(a); end if;
+end $$;
+rollback;
+
+-- @test plantillas: cada regla del embudo da 22023 con hint etapas; lo válido queda normalizado, repetirlo no mueve la versión y null restablece
+begin;
+select pg_temp.pla_preparar();
+do $$
+declare gala uuid := '00000000-0000-4000-8000-00000009940f'; r text; v_caso text; v_etapas jsonb; v_antes timestamptz;
+  i constant jsonb := '{"nombre": "I", "color": "gris", "es_inicial": true}';
+  g constant jsonb := '{"nombre": "G", "color": "verde", "es_ganada": true}';
+  p constant jsonb := '{"nombre": "P", "color": "rojo", "es_perdida": true}';
+begin
+  for v_caso, v_etapas in select * from (values
+    ('sin inicial', jsonb_build_array('{"nombre": "A", "color": "gris"}'::jsonb, g, p)),
+    ('dos etapas', jsonb_build_array(i, g)),
+    ('trece etapas', (select jsonb_build_array(i, g, p) || jsonb_agg(jsonb_build_object('nombre', 'E' || n, 'color', 'azul')) from generate_series(1, 10) n)),
+    ('no es lista', '{"nombre": "I"}'::jsonb),
+    ('una etapa que no es objeto', jsonb_build_array(i, g, p, '"x"'::jsonb)),
+    ('color fuera de la paleta', jsonb_build_array(i, g, p, '{"nombre": "X", "color": "fucsia"}'::jsonb)),
+    ('nombre vacío', jsonb_build_array(i, g, p, '{"nombre": "  ", "color": "azul"}'::jsonb)),
+    ('nombre de 31', jsonb_build_array(i, g, p, jsonb_build_object('nombre', repeat('x', 31), 'color', 'azul'))),
+    ('Uno y uno', jsonb_build_array(i, g, p, '{"nombre": "Uno", "color": "azul"}'::jsonb, '{"nombre": "uno ", "color": "azul"}'::jsonb)),
+    ('inicial ganada', jsonb_build_array('{"nombre": "I", "color": "gris", "es_inicial": true, "es_ganada": true}'::jsonb, g, p)),
+    ('dos iniciales', jsonb_build_array(i, g, p, '{"nombre": "J", "color": "gris", "es_inicial": true}'::jsonb)),
+    ('sin ganada', jsonb_build_array(i, p, '{"nombre": "X", "color": "azul"}'::jsonb)),
+    ('sin perdida', jsonb_build_array(i, g, '{"nombre": "X", "color": "azul"}'::jsonb)),
+    ('ganada y perdida', jsonb_build_array(i, g, p, '{"nombre": "X", "color": "azul", "es_ganada": true, "es_perdida": true}'::jsonb)),
+    ('es_inicial «si»', jsonb_build_array('{"nombre": "I", "color": "gris", "es_inicial": "si"}'::jsonb, g, p))
+  ) t (caso, etapas) loop
+    r := pg_temp.pla_guardar(gala, v_etapas);
+    if r <> '22023/etapas' then raise exception '% dio %', v_caso, r; end if;
+  end loop;
+  if (select embudo_etapas from public.ajustes_leads where id = 1) is not null then raise exception 'una inválida dejó algo guardado'; end if;
+
+  -- Ids, claves de más, espacios y un null de JSON: se descartan, se recortan y cuentan como false.
+  r := pg_temp.pla_guardar(gala, jsonb_build_array(
+    jsonb_build_object('id', gen_random_uuid(), 'nombre', '  Entra ', 'color', 'azul', 'es_inicial', true, 'orden', 3),
+    '{"nombre": "Prueba", "color": "naranja", "es_ganada": null}'::jsonb,
+    '{"nombre": "Compra", "color": "verde", "es_ganada": true}'::jsonb,
+    '{"nombre": "Se fue", "color": "rojo", "es_perdida": true, "es_inicial": false}'::jsonb));
+  if r <> 'sin error' or (select embudo_etapas from public.ajustes_leads where id = 1) <> pg_temp.pla_cuatro() then
+    raise exception 'la válida no quedó normalizada: % / %', r, (select embudo_etapas from public.ajustes_leads where id = 1);
+  end if;
+  v_antes := pg_temp.pla_version_embudo();
+  r := pg_temp.pla_guardar(gala, pg_temp.pla_cuatro());
+  if r <> 'sin error' or pg_temp.pla_version_embudo() <> v_antes then raise exception 'repetirla movió la versión: %', r; end if;
+  r := pg_temp.pla_guardar(gala, null);
+  if r <> 'sin error' or (select embudo_etapas from public.ajustes_leads where id = 1) is not null or pg_temp.pla_version_embudo() <= v_antes then
+    raise exception 'null no restableció: %', r;
+  end if;
+end $$;
+rollback;
+
+-- @test plantillas: con versión vieja, PT409; sin versión, P0001; guardar la plantilla no mueve la versión del mensaje
+begin;
+select pg_temp.pla_preparar();
+do $$
+declare gala uuid := '00000000-0000-4000-8000-00000009940f'; r text; v_vieja timestamptz := pg_temp.pla_version_embudo();
+        v_portal timestamptz := pg_temp.pla_version_portal(); v_devuelta jsonb;
+begin
+  v_devuelta := pg_temp.pla_json(gala, format('select to_jsonb(public.embudo_plantilla_guardar(%L, %L))', pg_temp.pla_cuatro(), v_vieja));
+  if (v_devuelta #>> '{}')::timestamptz <> pg_temp.pla_version_embudo() or pg_temp.pla_version_embudo() <= v_vieja then
+    raise exception 'la versión devuelta: % / %', v_devuelta, pg_temp.pla_version_embudo();
+  end if;
+  if pg_temp.pla_version_portal() <> v_portal then raise exception 'guardar la plantilla movió la versión del mensaje'; end if;
+  r := pg_temp.pla_codigo(gala, format('select public.embudo_plantilla_guardar(%L, %L)', null, v_vieja));
+  if r <> 'PT409' then raise exception 'con versión vieja: %', r; end if;
+  r := pg_temp.pla_codigo(gala, format('select public.embudo_plantilla_guardar(%L, null)', pg_temp.pla_cuatro()));
+  if r <> 'P0001' then raise exception 'sin versión: %', r; end if;
+end $$;
+rollback;
