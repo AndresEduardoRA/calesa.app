@@ -13,6 +13,7 @@ export { leerDatosNuevosDeApibara, leerLayout } from './composicion'
 export { agruparCampos, tieneOpciones } from './entities/campo'
 export type {
   CampoDeLayout,
+  CampoPrincipal,
   GrupoDeCampos,
   OpcionDeCampo,
   TipoDeCampo,
@@ -20,6 +21,9 @@ export type {
 } from './entities/campo'
 export type { Categoria } from './entities/categoria'
 export type { LayoutDeOrigen } from './entities/repositorios'
+
+// El campo principal activo de un origen (6.13): con qué se nombra a un vehículo fuera del listado (logística).
+export { leerCampoPrincipal } from './composicion'
 
 // Configuración › Orígenes: lo que lee la lista y el detalle de un origen
 export { leerOrigenes } from './composicion'

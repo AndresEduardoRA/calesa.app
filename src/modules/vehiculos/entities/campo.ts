@@ -21,6 +21,8 @@ export type CampoDeVehiculo = {
   // Un campo desactivado no se muestra, no se filtra y no se escribe; su dato se conserva.
   activo: boolean
   valorDefecto: string | number | boolean | string[] | null
+  // El que nombra al vehículo en la lista, el resumen y logística (uno por origen, o ninguno).
+  principal?: boolean
 }
 
 // Las claves de los campos del layout van con este prefijo en la URL (filtros) y en el estado del

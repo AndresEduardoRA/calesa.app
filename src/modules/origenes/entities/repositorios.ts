@@ -2,7 +2,13 @@
 // implementación (Supabase) vive en `infra/` y se la entrega `composicion.ts`.
 import type { Resultado } from '@/shared/lib/errores'
 import type { CambiosDeCampo } from './cambios-de-campo'
-import type { CampoDeLayout, OpcionDeCampo, TipoDeCampo, ValorDefecto } from './campo'
+import type {
+  CampoDeLayout,
+  CampoPrincipal,
+  OpcionDeCampo,
+  TipoDeCampo,
+  ValorDefecto,
+} from './campo'
 import type { DatoNuevoDeApibara } from './datos-nuevos-de-apibara'
 import type { Categoria } from './categoria'
 import type { ImpactoDeCampo } from './impacto'
@@ -51,6 +57,8 @@ export type RepositorioCampos = {
     publicoWeb: boolean
     claveApibara: string | null
     valorDefecto: ValorDefecto | null
+    // Marcarlo desmarca el principal anterior del origen (en la misma llamada).
+    principal: boolean
   }) => Promise<Resultado<Creado>>
   guardar: (pedido: {
     id: string
@@ -104,3 +112,6 @@ export type LectorDeLayout = (
 
 // Lo que apibara trajo para los vehículos de un origen de subasta y el origen no tiene como campo.
 export type LectorDeDatosNuevos = (origenId: string) => Promise<Resultado<DatoNuevoDeApibara[]>>
+
+// El campo principal activo de un origen, o null si no tiene: con qué se nombra a sus vehículos (6.13).
+export type LectorDeCampoPrincipal = (origenId: string) => Promise<Resultado<CampoPrincipal | null>>
