@@ -1,3 +1,4 @@
-// Pantalla del área `transiciones` de `flujos` (5.02): la llena el paso 5.05. Sólo `src/app` importa este archivo (`.claude/rules/modulos.md`):
+// Pantalla del área `transiciones` de `flujos` (5.02, la llena el 5.06). Sólo `src/app` importa este archivo (`.claude/rules/modulos.md`):
 // reexporta lo que esa pantalla dibuja y nada más. Una segunda pantalla del área va en `pantallas/transiciones-<pantalla>.ts`.
-export {}
+export { BloqueDeSalidas } from '../features/transiciones/components/bloque-de-salidas'
+export { SalidasDeLaFila } from '../features/transiciones/components/salidas-de-la-fila'
