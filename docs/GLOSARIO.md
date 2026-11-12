@@ -291,6 +291,8 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Visible en el portal** — `documentos.visible_portal`: un documento que la persona compradora ve en el portal. Sólo lo enciende quien aprueba documentos y sólo si el tipo lo admite (`tipos_documento.visible_portal_permitido`); apagarlo siempre se puede. No: «público», «compartido».
 - **Tipo de documento** — `tipos_documento` / `tipo_documento_crear()`: qué documento pide el ciclo (Título, BL…); de toda la empresa (`flujo_id` nulo) o de un flujo; formatos aceptados y vencimiento (`ninguno`, `solicitar`, `renovar`, con `aviso_dias`). En uso no se borra: se desactiva. No: «clase de documento».
 - **Transporte** — `transportes`: naviera, puertos, contenedor, booking y fechas de UNA unidad.
+- **Puerto** — `puertos`: origen o destino de un transporte; nombre, país y código opcionales, `orden` y `activo`. Catálogo de la empresa en Configuración › Logística › Puertos; no se elimina, se desactiva. No: «terminal», «destino».
+- **Naviera** — `navieras`: la empresa que lleva el contenedor; nombre y `activo`. Catálogo de la empresa en Configuración › Logística › Navieras; no se elimina, se desactiva; cada flujo ofrece las suyas (`flujos_transporte_oferta`). No: «línea marítima», «carrier».
 - **Embarque / Contenedor** — grupo por `transportes.booking` / `contenedor`: agrupación, no entidad.
 - **Declaración aduanera** — `declaraciones_aduana`, `declaraciones_vehiculos`: DUI: número, canal de aforo, vencimiento de tributos; N:M.
 - **Gasto** — `gastos`, `categorias_gasto`: costo real imputado a una unidad, en su moneda y en base.
