@@ -41,8 +41,8 @@ export const parametrosDe = (page: Page): URLSearchParams => new URL(page.url())
 
 // La lista llega pintada por el servidor antes de que React enganche sus controles: un cambio hecho en ese instante se
 // pierde (sin ningún pedido). El selector lleva `data-hidratado`, que React pone recién cuando lo enganchó.
-export async function esperarHidratado(page: Page): Promise<void> {
-  await expect(selectorDeTamano(page)).toHaveAttribute('data-hidratado', 'true')
+export async function esperarHidratado(page: Page, tope = 5_000): Promise<void> {
+  await expect(selectorDeTamano(page)).toHaveAttribute('data-hidratado', 'true', { timeout: tope })
 }
 
 // Elige un tamaño con el mouse o el dedo, ya hidratada la página.
