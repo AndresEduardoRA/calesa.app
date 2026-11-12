@@ -42,6 +42,8 @@ const IGNORAR_CHECKS = new RegExp(process.env.COORD_IGNORAR_CHECKS || '^Vercel',
 // Los jobs cuyo rojo es del código y no del runner (COORD_ROJO_FIRME): no se vuelven a correr y no se espera al resto del CI para
 // devolver el paso. El 8-11 la guarda de carriles caía en 26 s y el carril se enteraba 52 min después, tras un reintento que caía igual.
 const ROJO_FIRME = new RegExp(process.env.COORD_ROJO_FIRME || '^(Nivel 1|Carriles)')
+// El job que mira el orden de las migraciones (scripts/guardas/carriles.mjs): su rojo, con migraciones atrasadas, se arregla renumerando.
+const GUARDA_DEL_ORDEN = /^Carriles/
 const COLGADO_ESPERA = Number(process.env.COORD_COLGADO_ESPERA ?? 600) * 1000
 const MIGRACION = /^supabase\/migrations\/(\d{14})_[^/]+\.sql$/
 const nombreDe = (c) => String(c.name ?? c.context ?? '')
@@ -161,11 +163,15 @@ export function mirarPr(numero) {
     pr.state === 'OPEN' ? migracionesAtrasadas(archivos) : { atrasadas: [], sinFecha: [] }
   // Rojo es con el CI terminado: con un job todavía corriendo, el reintento de los caídos no se puede pedir (reintentarUnaVez). Salvo el
   // rojo firme, que no se reintenta ni espera. Una migración sin fecha real va antes que el rojo: ella sola pone el Nivel 1 en rojo
-  // (orden-de-migraciones.test.ts) y se arregla renumerando, sin sesión.
+  // (orden-de-migraciones.test.ts) y se arregla renumerando, sin sesión. Lo mismo si lo único rojo es «Carriles» y hay migraciones
+  // atrasadas: es lo que esa guarda dice cuando el CI corre después de que otra migración entró a main (el 9.04 del 2026-11-12 esperó
+  // 33 min a su carril para un remiendo sin sesión). Si «Carriles» caía además por otra cosa, lo dice el CI del commit renumerado.
+  const soloElOrden =
+    atrasadas.length > 0 && rojo && rojos.every((c) => GUARDA_DEL_ORDEN.test(nombreDe(c)))
   const arreglar =
     pr.mergeable === 'CONFLICTING'
       ? 'conflicto con main'
-      : sinFecha.length
+      : sinFecha.length || soloElOrden
         ? 'migración anterior a la última de main'
         : rojo && (!pendiente || firme)
           ? 'CI en rojo'

@@ -891,3 +891,53 @@ test('un check con veredicto está terminado aunque GitHub lo deje IN_PROGRESS: 
   })
   assert.match(correr('sincronizar'), /P02: integrado por el coordinador \(#8/)
 })
+
+test('sólo «Carriles» en rojo y con migraciones atrasadas: el coordinador renumera en vez de devolver el paso', () => {
+  const { dir, correr, pr } = repo()
+  const { g, escribir } = conRemoto(dir)
+  escribir('supabase/migrations/20261111100000_base.sql', 'select 1;\n')
+  g('commit', '-qm', 'la base')
+  g('push', '-q', 'origin', 'main')
+  g('checkout', '-qb', 'datos/P01')
+  // Anterior a la última de main: otra migración entró mientras el PR esperaba.
+  escribir('supabase/migrations/20261111090000_tabla.sql', 'create table t();\n')
+  g('commit', '-qm', 'el paso')
+  g('push', '-q', 'origin', 'datos/P01')
+  const oid = g('rev-parse', 'HEAD')
+  g('checkout', '-q', 'main')
+  correr('siguiente', 'datos')
+  correr('publicado', 'P01', '9')
+  const abierto = {
+    state: 'OPEN',
+    mergeable: 'MERGEABLE',
+    headRefOid: oid,
+    headRefName: 'datos/P01',
+    files: [{ path: 'supabase/migrations/20261111090000_tabla.sql' }],
+  }
+  const carriles = {
+    name: 'Carriles · lo que el PR puede tocar',
+    status: 'COMPLETED',
+    conclusion: 'FAILURE',
+  }
+  // Con otro job en rojo no es sólo el orden: vuelve a su carril, como siempre.
+  pr(9, {
+    ...abierto,
+    statusCheckRollup: [
+      carriles,
+      { name: 'Nivel 1 · lint', status: 'COMPLETED', conclusion: 'FAILURE' },
+    ],
+  })
+  assert.match(correr.con(IDENTIDAD, 'sincronizar'), /P01: CI en rojo \(#9\): vuelve a su carril/)
+  pr(9, {
+    ...abierto,
+    statusCheckRollup: [carriles, { name: 'e2e · bloque 1 de 4', status: 'IN_PROGRESS' }],
+  })
+  const salida = correr.con(IDENTIDAD, 'sincronizar')
+  assert.match(
+    salida,
+    /P01: renumeré las migraciones de #9 \(20261111090000:\d{14}\): su CI corre otra vez/,
+  )
+  assert.doesNotMatch(salida, /vuelve a su carril/)
+  g('fetch', '-q', 'origin')
+  assert.doesNotMatch(g('ls-tree', '-r', '--name-only', 'origin/datos/P01'), /20261111090000/)
+})
