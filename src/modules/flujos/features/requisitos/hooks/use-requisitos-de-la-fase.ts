@@ -6,6 +6,7 @@ import type { Movimiento } from '@/shared/ui/lista-de-catalogo/use-foco-tras-mov
 import { avisarExito } from '@/shared/ui/toasts'
 import type { FaseParaConfigurar, FlujoParaConfigurar } from '../../../entities/flujo'
 import { descripcionDeRequisito } from '../../../entities/requisitos/descripcion'
+import type { ImpactoDeRequisito } from '../../../entities/requisitos/impacto'
 import type { CambiosDeRequisito } from '../../../entities/requisitos/formulario-de-edicion'
 import type { ContenidoDeRequisito } from '../../../entities/requisitos/repositorios'
 import type { VersionNueva } from '../../../entities/requisitos/respuestas'
@@ -89,6 +90,11 @@ export function useRequisitosDeLaFase(flujo: FlujoParaConfigurar, fase: FasePara
     return escritura.mandar(() => pedir.guardar(requisitoId, cambios))
   }
 
+  // Cuántas unidades de la fase quedarían fuera de regla si el requisito fuera bloqueante (una lectura que va por la misma fila de envíos: una a la vez).
+  function leerImpacto(requisitoId: string): Promise<Envio<ImpactoDeRequisito> | null> {
+    return escritura.mandar(() => pedir.impacto(requisitoId))
+  }
+
   return {
     requisitos,
     opciones,
@@ -100,6 +106,7 @@ export function useRequisitosDeLaFase(flujo: FlujoParaConfigurar, fase: FasePara
     quitar,
     agregar,
     guardar,
+    leerImpacto,
     rechazar: escritura.rechazar,
     releer: escritura.releer,
   }
