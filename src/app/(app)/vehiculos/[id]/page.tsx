@@ -101,6 +101,7 @@ export default async function PaginaVehiculo({
         previa={previa}
         publicar={publicar}
         editable={editable}
+        verEnLogistica={puede(sesion.permisos, 'logistica.ver', origen.id)}
         papelera={permisoDePapelera(
           eliminables.has(encontrado.id),
           motivoParaNoEnviar(encontrado, fase),
