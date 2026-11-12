@@ -219,6 +219,31 @@ export type Database = {
         }
         Relationships: []
       }
+      ajustes_leads: {
+        Row: {
+          embudo_actualizado_en: string
+          embudo_etapas: Json | null
+          id: number
+          portal_actualizado_en: string
+          portal_mensaje: string | null
+        }
+        ComputedFields: never
+        Insert: {
+          embudo_actualizado_en?: string
+          embudo_etapas?: Json | null
+          id?: number
+          portal_actualizado_en?: string
+          portal_mensaje?: string | null
+        }
+        Update: {
+          embudo_actualizado_en?: string
+          embudo_etapas?: Json | null
+          id?: number
+          portal_actualizado_en?: string
+          portal_mensaje?: string | null
+        }
+        Relationships: []
+      }
       ajustes_web: {
         Row: {
           actualizado_en: string
@@ -7683,6 +7708,7 @@ export type Database = {
       _documentos_de: { Args: { p_ids: string[] }; Returns: Json }
       _embudo_conflicto: { Args: { p_cuando: string }; Returns: undefined }
       _embudo_defecto_de: { Args: { p_usuario: string }; Returns: string }
+      _embudo_etapas_de_fabrica: { Args: Record<PropertyKey, never>; Returns: Json }
       _embudo_insertar: {
         Args: {
           p_default: boolean
@@ -9089,6 +9115,7 @@ export type Database = {
         Args: { p_antes_en?: string; p_antes_id?: string; p_tamano?: number }
         Returns: Json
       }
+      ajustes_leads_leer: { Args: Record<PropertyKey, never>; Returns: Json }
       alcance_de: {
         Args: { p_clave: string; p_origen?: string }
         Returns: Database['public']['Enums']['alcance_permiso']

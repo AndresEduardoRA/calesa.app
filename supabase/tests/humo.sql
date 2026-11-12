@@ -6740,3 +6740,49 @@ begin
   reset role;
 end $$;
 rollback;
+
+-- @test leads: ajustes_leads se lee y no se escribe directo (sólo select y la policy «leer»; las plantillas van por RPC, 9.04-4)
+begin;
+do $$
+declare v_rol uuid; v_codigo text; v_n int;
+  v_quien uuid := '00000000-0000-4000-8000-000000090401';
+begin
+  insert into auth.users (id, email, raw_app_meta_data) values (v_quien, 'humo.plantillas@ejemplo.com', '{"invitado": true}');
+  delete from public.usuarios_roles where usuario_id = v_quien;
+  insert into public.roles (clave, nombre) values ('humo_plantillas', 'Humo plantillas') returning id into v_rol;
+  insert into public.usuarios_roles (usuario_id, rol_id, es_principal) values (v_quien, v_rol, true);
+  insert into public.roles_permisos (rol_id, permiso_clave, alcance) values (v_rol, 'leads.configurar', 'todos');
+  perform set_config('request.jwt.claim.sub', v_quien::text, true);
+  perform set_config('request.jwt.claim.role', 'authenticated', true);
+  set local role authenticated;
+  select count(*) into v_n from (select 1 from public.ajustes_leads limit 2) x;
+  if v_n <> 1 then raise exception 'con leads.configurar, ajustes_leads se leyó con % filas', v_n; end if;
+  begin
+    update public.ajustes_leads set portal_mensaje = 'directo {codigo} {clave}' where id = 1;
+    v_codigo := 'sin error';
+  exception when others then v_codigo := sqlstate;
+  end;
+  if v_codigo <> '42501' then raise exception 'el update directo de ajustes_leads dio %', v_codigo; end if;
+  begin
+    insert into public.ajustes_leads (id) values (1) on conflict do nothing;
+    v_codigo := 'sin error';
+  exception when others then v_codigo := sqlstate;
+  end;
+  if v_codigo <> '42501' then raise exception 'el insert directo en ajustes_leads dio %', v_codigo; end if;
+  begin
+    delete from public.ajustes_leads where id = 1;
+    v_codigo := 'sin error';
+  exception when others then v_codigo := sqlstate;
+  end;
+  if v_codigo <> '42501' then raise exception 'el delete directo de ajustes_leads dio %', v_codigo; end if;
+  reset role;
+  set local role anon;
+  begin
+    perform 1 from public.ajustes_leads limit 1;
+    v_codigo := 'sin error';
+  exception when others then v_codigo := sqlstate;
+  end;
+  if v_codigo <> '42501' then raise exception 'anon leyó ajustes_leads (%)', v_codigo; end if;
+  reset role;
+end $$;
+rollback;
