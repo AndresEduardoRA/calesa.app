@@ -31,3 +31,28 @@ export async function faqsPublicas(prefijo: string): Promise<FaqPublica[]> {
   }
   return data
 }
+
+export type TestimonioPublico = {
+  cliente: string
+  ciudad: string | null
+  texto: string
+  vehiculo: string | null
+  foto: string | null
+  orden: number
+}
+
+// Lo que `web.testimonios` le devuelve a un anónimo, de los que empiezan por `prefijo`: la vista decide qué sale (ciudad, vehículo y foto sólo con su permiso
+// de consentimiento; nada sin el trío o con el retiro).
+export async function testimoniosPublicos(prefijo: string): Promise<TestimonioPublico[]> {
+  const { data, error } = await visitante()
+    .schema('web')
+    .from('testimonios')
+    .select('cliente, ciudad, texto, vehiculo, foto, orden')
+    .like('cliente', `${prefijo}%`)
+    .order('orden')
+    .limit(50)
+  if (error) {
+    throw new Error(`web.testimonios como anónimo: ${error.message}`)
+  }
+  return data
+}
