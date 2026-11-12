@@ -2,10 +2,9 @@
 
 import { formatearFecha } from '@/shared/lib/fechas'
 import { Badge } from '@/shared/ui/badge'
-import { Button } from '@/shared/ui/button'
 import { useRegional } from '@/shared/ui/regional'
 import { textoDelCanal, type DeclaracionLeida } from '../../../entities/aduana/declaracion'
-import { usePanelDeDeclaracion } from '../hooks/use-panel-de-declaracion'
+import { AccionesDeLaDeclaracion } from './acciones-de-la-declaracion'
 import { EstadoDeTributos } from './estado-de-tributos'
 import { VehiculosDeLaDeclaracion } from './vehiculos-de-la-declaracion'
 import { VehiculosDelResumen } from './vehiculos-del-resumen'
@@ -28,10 +27,9 @@ function Dato({ etiqueta, valor }: { etiqueta: string; valor: string | null }) {
 }
 
 // El resumen de una declaración: su número y canal, los datos, si está pagada y los vehículos con su tributo dicho en texto («Tiene el tributo» / «Falta el tributo»). Con
-// `logistica.aduana.gestionar` ofrece «Editar». Ningún monto: la aduana sólo dice sí o no por unidad.
+// `logistica.aduana.gestionar` ofrece «Editar» y «Asignar canal». Ningún monto: la aduana sólo dice sí o no por unidad.
 export function ResumenDeLaDeclaracion({ declaracion, puedeGestionar }: Props) {
   const { zonaHoraria } = useRegional()
-  const panel = usePanelDeDeclaracion()
   const dia = (valor: string | null) =>
     valor === null ? null : formatearFecha(valor, { zona: zonaHoraria })
   return (
@@ -50,19 +48,7 @@ export function ResumenDeLaDeclaracion({ declaracion, puedeGestionar }: Props) {
             hayOcultos={declaracion.hayOcultos}
           />
         </div>
-        {puedeGestionar ? (
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              className="h-11 md:h-9"
-              onClick={() => {
-                panel.abrirEdicion(declaracion.id)
-              }}
-            >
-              Editar
-            </Button>
-          </div>
-        ) : null}
+        {puedeGestionar ? <AccionesDeLaDeclaracion declaracion={declaracion} /> : null}
       </header>
       <dl className="grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2">
         <Dato etiqueta="Aceptada el" valor={dia(declaracion.aceptadaEl)} />

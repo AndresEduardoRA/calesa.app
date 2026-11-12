@@ -16,3 +16,8 @@ export const DrawerDeDeclaracionDiferido = diferido(
   () => import('./drawer-de-declaracion').then((modulo) => modulo.DrawerDeDeclaracion),
   { aviso: 'pantalla' },
 )
+
+export const ConfirmarAsignarCanalDiferido = diferido(
+  () => import('./confirmar-asignar-canal').then((modulo) => modulo.ConfirmarAsignarCanal),
+  { aviso: 'pantalla' },
+)
