@@ -18,7 +18,7 @@ Los roles son libres (el dueño los crea); la interfaz se arma por **permisos**,
 
 - **1. Registrar lead y anotar un seguimiento** (asesor, ~30/día). Meta: ≤ 25 s desde `N` hasta lead guardado (seguimiento opcional); duplicado detectado al terminar de tipear el teléfono. Nunca: crear un lead con teléfono ajeno; perder lo tipeado.
 - **2. Cotizar un vehículo para un lead** (asesor, ~15/día). Meta: ≤ 90 s con link de subasta o vehículo del inventario; cada celda editable con teclado; PDF en 1 clic (el tramo de la hoja, `e2e/cotizar-tarea-de-oro.spec.ts`; con un enlace de subasta, `e2e/cotizar-tarea-de-oro-enlace.spec.ts`, 4.14-2c3; el cliente de la hoja, elegido o creado con el «+» del panel, `e2e/cotizar-tarea-de-oro-cliente.spec.ts`, 4.14-3c; el tramo de la hoja llega al PDF con «Descargar PDF» de la tarjeta de lo guardado, 29 teclas de control, 4.18-3b; la tarea entera, del listado al PDF y con dos cuentas, `e2e/cotizar-tarea-de-oro-recorrido.spec.ts`, 4.28). Nunca: guardar con una constante vencida sin saberlo; un total que no cuadre con las líneas.
-- **3. Mover vehículos de fase con documentos** (logística, ~40/día). Meta: mover 1 en ≤ 15 s; marcar llegada de un contenedor de 8 en ≤ 60 s; ver _antes_ de confirmar qué falta en cada uno. Nunca: mover sin el documento bloqueante; perder un archivo subido; pisar el cambio de otro.
+- **3. Mover vehículos de fase con documentos** (logística, ~40/día). Meta: mover 1 en ≤ 15 s; marcar llegada de un contenedor de 8 en ≤ 60 s; ver _antes_ de confirmar qué falta en cada uno. La tarea entera, con logística y la dueña y en los dos proyectos, `e2e/logistica-tarea-de-oro.spec.ts` (6.14): mover 1 desde la cadena, KLM 11,3 s; el contenedor de 8 desde `/logistica/embarques`, KLM 14,6 s. Nunca: mover sin el documento bloqueante; perder un archivo subido; pisar el cambio de otro.
 - **4. Atender un turno de la web y dar acceso al portal** (asesor, ~5/día). Meta: «contacté» en 2 toques desde el celular; otorgar portal desde la ficha en ≤ 30 s con sólo el teclado (`e2e/leads-portal-acceso.spec.ts`). Nunca: dejar vencer un turno sin aviso; un código que no se pueda dictar.
 
 ### Flujo 1 — Registrar lead y seguimiento
@@ -57,8 +57,8 @@ Estados propios:
 1. `/logistica` abre la **cadena**: columnas por fase del flujo del origen, tarjetas con alerta por demora, filtros en URL.
 2. Clic en un vehículo → panel lateral «Qué falta para pasar a …» (documentos aprobados/faltantes, datos, esperas de repuestos, en vivo).
 3. Subir documento desde el panel (arrastrar o cámara); se sube al confirmar, nunca antes; queda «subido» hasta que alguien con permiso lo aprueba.
-4. «Mover a <fase>» pide nota interna (obligatoria si la fase lo exige) → RPC con `fase_esperada`; conflicto: «Lo movió Rosa hace 1 min · Recargar».
-5. Lote: seleccionar N por filtro → «Marcar llegó» → vista previa por unidad (ok / falta X) → confirmar → resultado parcial explícito con reintento de los fallidos.
+4. «Mover a <fase>» pide nota interna (obligatoria si la fase lo exige) → RPC con `fase_esperada`; conflicto: «Rosa Mamani la movió a «<fase>» hace 1 min.», «No se movió nada.» y «Recargar», que conserva la nota escrita (nunca pisa).
+5. Lote: en la cadena, elegir unidades de una fase (su casilla o «Elegir los de esta columna»), o desde el resumen de un contenedor en `/logistica/embarques`, «Marcar que llegó» (abre el lote con ese contenedor) → destino → vista previa por unidad («Lista» / «Falta: <documento> aprobado.») → «Mover los N que pueden» → resultado parcial explícito («Se movieron 7 de 8.») con «Reintentar» de los que no.
 
 ### Flujo 4 — Turno de la web
 
