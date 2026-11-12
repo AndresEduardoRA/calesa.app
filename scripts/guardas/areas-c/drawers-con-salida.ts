@@ -27,4 +27,8 @@ export const REGISTRO: Record<string, RegistroDeDrawer> = {
     formulario: 'src/modules/repuestos/features/proyectos/components/drawer-de-nuevo-proyecto.tsx',
     mecanismo: 'contexto',
   },
+  // Las imágenes de un ítem de repuestos (8.09-3): `?panel=imagenes&item=<id>`.
+  'src/modules/repuestos/features/items/components/drawer-de-imagenes.tsx': {
+    sinFormulario: 'sube y quita imágenes al instante: no guarda nada tipeado',
+  },
 }
