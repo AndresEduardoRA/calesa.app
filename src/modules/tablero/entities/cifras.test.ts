@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { formatearNumero, formatearPorcentaje } from '@/shared/lib/formato'
-import { textoDeConteo, textoDeSinVenta, textoDeTasa, textoDeVehiculosDelMargen } from './cifras'
+import {
+  textoDeConteo,
+  textoDeMinutos,
+  textoDeSinVenta,
+  textoDeTasa,
+  textoDeVehiculosDelMargen,
+} from './cifras'
 
 describe('textoDeTasa', () => {
   it('una tasa nula es «Sin datos», nunca «0 %»', () => {
@@ -38,5 +44,13 @@ describe('textoDeVehiculosDelMargen', () => {
   it('dice que cada vehículo cuenta por su último pago confirmado', () => {
     expect(textoDeVehiculosDelMargen(1)).toBe('1 vehículo por su último pago confirmado')
     expect(textoDeVehiculosDelMargen(3)).toBe('3 vehículos por su último pago confirmado')
+  })
+})
+
+describe('textoDeMinutos', () => {
+  it('una mediana nula es «Sin datos»; si no, minutos con un decimal a lo sumo', () => {
+    expect(textoDeMinutos(null)).toBe('Sin datos')
+    expect(textoDeMinutos(20)).toBe('20 min')
+    expect(textoDeMinutos(7.5)).toBe(`${formatearNumero(7.5, { decimales: 1 })} min`)
   })
 })

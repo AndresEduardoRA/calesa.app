@@ -39,6 +39,18 @@ describe('widgetsVisibles', () => {
     expect(claves).toHaveLength(11)
   })
 
+  it('con `web.cola.gestionar` sale la cola de la web; con sólo `logistica.margen.ver` no', () => {
+    const conCola: Permisos = [
+      ...CON_PERMISO,
+      { clave: 'web.cola.gestionar', origenId: null, alcance: 'todos' },
+    ]
+    expect(widgetsVisibles(conCola).map((w) => w.clave)).toContain('cola-web')
+    const soloMargen: Permisos = [
+      { clave: 'logistica.margen.ver', origenId: null, alcance: 'todos' },
+    ]
+    expect(widgetsVisibles(soloMargen).map((w) => w.clave)).toEqual(['margen-del-mes'])
+  })
+
   it('sin el permiso no sale ninguno, y un permiso de otra clave no basta', () => {
     expect(widgetsVisibles([])).toEqual([])
     expect(widgetsVisibles(SIN_PERMISO)).toEqual([])

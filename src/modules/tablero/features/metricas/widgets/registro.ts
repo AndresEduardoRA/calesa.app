@@ -6,6 +6,7 @@ import {
   type WidgetConClave,
 } from '../../../entities/widgets'
 import type { Permisos } from '@/shared/lib/permisos'
+import { CuerpoDeColaWeb } from './cola-web'
 import { CuerpoDeConvertidos } from './convertidos'
 import { CuerpoDeCotizacionesCreadas } from './cotizaciones-creadas'
 import { CuerpoDeCotizacionesFinales } from './cotizaciones-finales'
@@ -18,9 +19,6 @@ import { CuerpoDeLeadsPorPersona } from './leads-por-persona'
 import { CuerpoDeMargenDelMes } from './margen-del-mes'
 import { CuerpoDeTasaDeConversion } from './tasa-de-conversion'
 import type { CuerpoDeWidget } from './tipos'
-
-// Un hueco (`disponible: false` en el catálogo) nunca se monta: lo llena el paso que lo trae (9.11).
-const HUECO: CuerpoDeWidget = () => null
 
 // Todas las claves del catálogo: el compilador pide una por cada una.
 const CUERPOS: Record<ClaveDeWidget, CuerpoDeWidget> = {
@@ -35,7 +33,7 @@ const CUERPOS: Record<ClaveDeWidget, CuerpoDeWidget> = {
   'leads-por-persona': CuerpoDeLeadsPorPersona,
   'cotizaciones-por-origen': CuerpoDeCotizacionesPorOrigen,
   'margen-del-mes': CuerpoDeMargenDelMes,
-  'cola-web': HUECO,
+  'cola-web': CuerpoDeColaWeb,
 }
 
 export type WidgetParaMontar = { widget: WidgetConClave; cuerpo: CuerpoDeWidget }
