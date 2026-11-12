@@ -18,7 +18,18 @@ describe('pestañas del proyecto', () => {
     expect(pestanaDe('compras', llenas)).toBe('compras')
   })
 
-  it('un hueco o una clave desconocida caen en «Ítems», con o sin permiso', () => {
+  it('con `repuestos.cotizar` aparece «Cotizaciones» y se puede abrir', () => {
+    const llenas = pestanasLlenas(con('repuestos.ver', 'repuestos.cotizar'))
+    expect(llenas.map((p) => p.clave)).toEqual(['items', 'cotizaciones'])
+    expect(pestanaDe('cotizaciones', llenas)).toBe('cotizaciones')
+  })
+
+  it('con las dos claves, las tres en su orden', () => {
+    const llenas = pestanasLlenas(con('repuestos.ver', 'repuestos.costos.ver', 'repuestos.cotizar'))
+    expect(llenas.map((p) => p.clave)).toEqual(['items', 'compras', 'cotizaciones'])
+  })
+
+  it('sin `repuestos.cotizar` (aun con `repuestos.costos.ver`) la URL de cotizaciones abre «Ítems»', () => {
     expect(PESTANAS.map((p) => p.clave)).toEqual(['items', 'compras', 'cotizaciones'])
     for (const permisos of [con(), con('repuestos.costos.ver')]) {
       const llenas = pestanasLlenas(permisos)

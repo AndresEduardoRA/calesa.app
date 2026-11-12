@@ -120,9 +120,18 @@ function borrarConfiguracionDelCotizadorDePrueba(): void {
       where creado_por in (select id from auth.users where email like ${literal(`%@${DOMINIO_E2E}`)})`)
 }
 
+// Las cotizaciones de repuestos nombran a quien las creó (`creado_por`, FK sin `on delete`, 8.12-1): si una corrida se cortó antes de borrar su proyecto,
+// la cuenta de prueba no se podría borrar. Se borran las suyas (sus líneas van en cascada); ninguna otra fila las referencia.
+function borrarCotizacionesDeRepuestosDePrueba(): void {
+  sql(`
+    delete from public.repuestos_cotizaciones
+      where creado_por in (select id from auth.users where email like ${literal(`%@${DOMINIO_E2E}`)})`)
+}
+
 export async function borrarPersonasDePrueba(): Promise<void> {
   soltarComprobantesDePrueba()
   soltarAjustesDeLaWebDePrueba()
+  borrarCotizacionesDeRepuestosDePrueba()
   borrarConfiguracionDelCotizadorDePrueba()
   const dePrueba = (await cuentas())
     .filter((cuenta) => cuenta.email?.endsWith(`@${DOMINIO_E2E}`))
