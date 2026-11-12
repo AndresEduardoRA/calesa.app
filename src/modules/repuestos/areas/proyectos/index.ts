@@ -1,5 +1,8 @@
 // La API de servidor del área `proyectos` de `repuestos` (8.09-1): el listado de `/repuestos`. Sale por el `index.ts` de la raíz.
 export { leerProyectosDelListado } from '../../infra/proyectos/listar'
+export { leerProyecto } from '../../infra/proyectos/leer'
+export { PROYECTO_YA_NO_ESTA, type ProyectoDetallado } from '../../entities/proyectos/detalle'
+export { rutaDelProyecto } from '../../entities/proyectos/rutas'
 export {
   CLAVE_DE_BUSQUEDA_DE_PROYECTOS,
   CLAVE_DE_ESTADO_DE_PROYECTOS,
