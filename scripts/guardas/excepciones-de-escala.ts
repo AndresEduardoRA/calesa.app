@@ -28,6 +28,11 @@ export const TABLAS_ACOTADAS: Readonly<Record<string, TablaAcotada>> = {
     motivo: 'Catálogo de la empresa, con un tope en la base (`_tipos_seguimiento_tope()`).',
     tope: '100 filas (lo impone la base)',
   },
+  web_categorias_guias: {
+    motivo:
+      'Catálogo de las guías: la action no crea la 101.ª (`TOPE_DE_CATEGORIAS`) y se lee con `limit` + 1.',
+    tope: '100 filas (lo impone la action)',
+  },
   leads_campos: { motivo: 'El layout de campos de los leads.', tope: 'decenas' },
   preferencias_usuario: { motivo: 'Una fila por persona (la propia).', tope: '1 fila' },
   embudos: { motivo: 'Los embudos de quien mira, con un tope en la base.', tope: '10 por persona' },

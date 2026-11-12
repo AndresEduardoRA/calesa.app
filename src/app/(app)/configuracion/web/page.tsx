@@ -36,6 +36,7 @@ export default async function PaginaDeConfiguracionDeWeb({
         <Abierta
           visibles={visibles}
           seccion={unParametro(parametros['seccion'])}
+          buscar={unParametro(parametros['q'])?.trim() || null}
           permisos={sesion.permisos}
         />
       ) : (
@@ -49,10 +50,12 @@ export default async function PaginaDeConfiguracionDeWeb({
 function Abierta({
   visibles,
   seccion,
+  buscar,
   permisos,
 }: {
   visibles: AlMenosUna<PestanaDeWeb>
   seccion: string | undefined
+  buscar: string | null
   permisos: Permisos
 }) {
   const abierta = pestanaDe(seccion, visibles)
@@ -64,7 +67,7 @@ function Abierta({
         <PestanasDeWeb pestanas={[sinHueco(primera), ...resto.map(sinHueco)]} />
       ) : null}
       <Suspense key={abierta} fallback={<EsqueletoFormulario bloques={2} campos={4} />}>
-        <SeccionAbierta pestana={abierta} permisos={permisos} />
+        <SeccionAbierta pestana={abierta} permisos={permisos} buscar={buscar} />
       </Suspense>
     </>
   )
