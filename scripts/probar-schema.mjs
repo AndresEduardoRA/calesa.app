@@ -188,7 +188,7 @@ const DATOS_DE_PRUEBA = {
   },
   'configuracion-de-leads.sql': {
     _migracion_lcg: {
-      ruta: path.join(base, 'migrations', '20261112102408_leads_campos_gestionar.sql'),
+      ruta: path.join(base, 'migrations', '20261112122902_leads_campos_gestionar.sql'),
       texto: true,
     },
   },
