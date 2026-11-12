@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { MENSAJE_DE_CANTIDAD_DE_STOCK, MENSAJE_DE_NOTA_LARGA } from '../../../entities/stock/reglas'
-import { esquemaMoverStock } from './stock'
+import { esquemaLeerMovimientos, esquemaMoverStock } from './stock'
 
 const ITEM = '7f9c1d2e-3a4b-4c5d-8e6f-0123456789ab'
 const valido = { itemId: ITEM, motivo: 'sobrante', unidades: 2, stockEsperado: 0, nota: null }
@@ -41,5 +41,14 @@ describe('mover stock: lo que cruza al servidor', () => {
 
   it('el ítem es un uuid', () => {
     expect(esquemaMoverStock.safeParse({ ...valido, itemId: 'no' }).success).toBe(false)
+  })
+})
+
+describe('leer movimientos: lo que cruza al servidor', () => {
+  it('el cursor es un id positivo o nulo', () => {
+    expect(esquemaLeerMovimientos.safeParse({ itemId: ITEM, cursor: null }).success).toBe(true)
+    expect(esquemaLeerMovimientos.safeParse({ itemId: ITEM, cursor: 81 }).success).toBe(true)
+    expect(esquemaLeerMovimientos.safeParse({ itemId: ITEM, cursor: 0 }).success).toBe(false)
+    expect(esquemaLeerMovimientos.safeParse({ itemId: 'no', cursor: null }).success).toBe(false)
   })
 })

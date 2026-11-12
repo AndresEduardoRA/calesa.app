@@ -27,3 +27,9 @@ export const esquemaMoverStock = z.object({
 })
 
 export type EntradaDeMoverStock = z.input<typeof esquemaMoverStock>
+
+// El historial de un ítem: sin cursor, la primera página; con él, los anteriores a ese id.
+export const esquemaLeerMovimientos = z.object({
+  itemId: z.guid(),
+  cursor: z.int().positive().nullable(),
+})
