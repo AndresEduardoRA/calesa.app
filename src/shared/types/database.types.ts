@@ -7618,6 +7618,17 @@ export type Database = {
         }
         Returns: string
       }
+      _documento_vencimiento_avisar: {
+        Args: {
+          p_cuerpo: string
+          p_desde: string
+          p_documento: string
+          p_titulo: string
+          p_usuario: string
+          p_vehiculo: string
+        }
+        Returns: number
+      }
       _documento_ya_registrado: { Args: { p_ids: string[]; p_ruta: string }; Returns: Json }
       _documentos_de: { Args: { p_ids: string[] }; Returns: Json }
       _embudo_conflicto: { Args: { p_cuando: string }; Returns: undefined }
@@ -9383,6 +9394,7 @@ export type Database = {
         }
         Returns: Json
       }
+      documentos_vencimientos: { Args: Record<PropertyKey, never>; Returns: number }
       embudo_crear: { Args: { p_id: string; p_nombre: string }; Returns: Json }
       embudo_eliminar: { Args: { p_actualizado_en_esperado: string; p_id: string }; Returns: Json }
       embudo_etapa_pagina: {

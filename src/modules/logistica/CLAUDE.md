@@ -77,6 +77,8 @@ el bucket `comprobantes` lo abre `comprobante_puede` (la fila que nombra el obje
 `alertas_demora()` (job `alertas-demora`, cada hora en el minuto 12) recorre por lotes los pares (origen, fase) que alertan, avisa a quien tiene
 `flujos.mover`, `logistica.ver` y `vehiculos.ver` del origen (el menor alcance: con `propios`, la unidad que creó o la de su cartera) y reabre el mismo aviso
 pasado `fases.alerta_cada_horas` (nulo = 72 h).
+`documentos_vencimientos()` (job `documentos-vencimientos`, 11:15 UTC) avisa `documento_por_vencer` a quien tiene `logistica.documentos.subir` del origen
+(mismo menor alcance), una vez por persona y documento desde `vence_el - aviso_dias`; el texto cambia con `modo_vencimiento`.
 
 ## No se rompe
 

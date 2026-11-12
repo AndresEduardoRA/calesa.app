@@ -26,7 +26,8 @@ Campana in-app con «requiere acción», realtime, web push (VAPID) y preferenci
 
 `notificaciones`, `suscripciones_push`, `push_pases` (el pase de un uso del push, sólo `service_role`), `limpieza_avisos` (la marca de «ya avisado» de la
 limpieza, sólo `service_role`); purga `visitados`. RPC/trigger: `notificar`, `notificaciones_puerta`, `tarea_notificar`, `recordatorios_notificar`,
-`notificaciones_purgar`, `limpieza_avisar`, `alertas_demora`; push (7.03): `push_suscribir`, `push_desuscribir`, `push_abrir` y `push_resultado` (sólo
+`notificaciones_purgar`, `limpieza_avisar`, `alertas_demora`, `documentos_vencimientos` (6.12: `documento_por_vencer`, una vez por persona y
+documento desde su ventana de aviso); push (7.03): `push_suscribir`, `push_desuscribir`, `push_abrir` y `push_resultado` (sólo
 `service_role`) y `trg_notificaciones_push` → `push_disparar`.
 
 ## No se rompe
