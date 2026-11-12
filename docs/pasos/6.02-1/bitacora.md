@@ -5,7 +5,7 @@
   `previsualizar_cambio_fase` suma `codigos`, exige `repuestos.ver` para un ítem y cuenta la nota obligatoria de la transición. `cambiar_fase_lote(p_unidades
 jsonb, …)` reemplaza la de `uuid[]`, con la esperada por unidad y un resultado por unidad; nace `previsualizar_cambio_fase_lote`. `evaluar_requisitos` y
   `unidad_llego_a_fase` dejan de ser de `authenticated` y el `detalle` trae `tipo_documento_id` y `clave_dato`. Mover no mueve la versión de la ficha ni
-  audita `vehiculos.update`. Un vehículo con documentos vivos no va a la papelera. Migraciones `20261111231325_fases_mover_candado`,
+  audita `vehiculos.update`. Un vehículo con documentos vivos no va a la papelera. Migraciones `20261112023125_fases_mover_candado`,
   `231804_fases_mover_lote`, `232006_fases_requisitos_sin_execute`, `232044_fases_mover_sin_version`, `232107_fases_papelera_con_documentos`; pruebas
   `supabase/tests/areas/mover/{mover,permisos,lote,version}.sql` y la carrera `supabase/tests/areas/mover/carreras.mjs` (K1, K2).
 - **Auditoría:** plan con observaciones (atendidas); informe bloqueado por una edición posterior a las corridas: se volvieron a correr `db:reset`,

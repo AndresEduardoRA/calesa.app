@@ -3,7 +3,7 @@
 - **Hecho:** `logistica_unidad(p_vehiculo)` (demorada, fuera de regla con lo que le falta a su fase actual, quién la movió) y `logistica_donde_esta(p_buscar,
 p_tope)` (hasta 10 unidades de los orígenes cuya logística veo, con la regla `logistica` activa, por título, VIN o lote), las dos `security definer` con el
   acceso de la cadena. Índice `notas_vehiculo_vivas_idx (vehiculo_id, creado_en desc, id desc) where eliminado_en is null`. Migraciones
-  `20261112020400_fases_notas_indice`, `020500_fases_unidad`, `020600_fases_donde_esta`; pruebas `supabase/tests/areas/mover/unidad.sql` (U1, U2) y
+  `20261112023134_fases_notas_indice`, `020500_fases_unidad`, `020600_fases_donde_esta`; pruebas `supabase/tests/areas/mover/unidad.sql` (U1, U2) y
   `donde-esta.sql` (DE1, DE2); dos entradas `L` en `supabase/tests/auditoria-leads.sql`; medición en `supabase/tests/medir-escala.sql` › «Dónde está».
 - **Antes:** se unió `origin/main` (choque en `scripts/carreras.mjs`, quedan las dos carreras). Los rojos del CI de la parte 1 los arregló main.
 - **Auditoría:** plan e informe con observaciones, atendidas (sin bloqueo).

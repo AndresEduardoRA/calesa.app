@@ -5,7 +5,7 @@
   `(fase_desde, id)`, las dos `security definer` con el alcance resuelto una vez por origen (el menor de `logistica.ver` y `vehiculos.ver`; sin él, 42501 hint
   `acceso`). Filtros `q`, `demoradas`, `por_aprobar`, `contenedor`, `booking`, `naviera`; `demorada` con el criterio de `alertas_demora`. Índice
   `vehiculos_cadena_idx (origen_id, fase_id, fase_desde, id)` en lugar de `vehiculos_origen_fase_idx`; check y trigger `vehiculos_fase_desde_coherente`
-  (`fase_desde` existe si y sólo si hay fase). Migraciones `20261112000350_fases_cadena_indice`, `002914_fases_desde_coherente`, `002928_fases_cadena_columna`,
+  (`fase_desde` existe si y sólo si hay fase). Migraciones `20261112023130_fases_cadena_indice`, `002914_fases_desde_coherente`, `002928_fases_cadena_columna`,
   `002931_fases_cadena`; pruebas `supabase/tests/areas/mover/cadena.sql` (CA1–CA5) y `fase-desde.sql` (CA6); medición en `supabase/tests/medir-escala.sql` › «La cadena».
 - **Auditoría:** el plan bloqueó una vez («Sin fase» sin origen ni papelera en una definer); corregido en el plan antes de escribir (las cuatro consultas
   empiezan por el origen y fuera de la papelera; CA2 lo prueba con otro origen y la papelera, en fase y sin fase).
