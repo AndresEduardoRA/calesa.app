@@ -138,7 +138,9 @@ test('cambiar la clave deja la sesión; salir borra la cookie', async ({ playwri
     cookie,
   })
   expect(salir.status).toBe(204)
-  expect(cookieDelPortal(salir)?.atributos).toContain('max-age=0')
+  expect(cookieDelPortal(salir)?.atributos).toEqual(
+    expect.arrayContaining(['max-age=0', 'path=/api/portal']),
+  )
 })
 
 test('«Volver a otorgar» deja la cookie vieja en 401 y la borra', async ({
@@ -148,7 +150,9 @@ test('«Volver a otorgar» deja la cookie vieja en 401 y la borra', async ({
   await otorgarComo(tr().t.pia.email, tr().leadId, CLAVE_3)
   const vieja = await pedir(playwright, baseURL ?? '', '/api/portal/estado', { cookie })
   expect(vieja.status).toBe(401)
-  expect(cookieDelPortal(vieja)?.atributos).toContain('max-age=0')
+  expect(cookieDelPortal(vieja)?.atributos).toEqual(
+    expect.arrayContaining(['max-age=0', 'path=/api/portal']),
+  )
 })
 
 test('el límite por IP: diez intentos dan 401 y el once, 429 con Retry-After', async ({
