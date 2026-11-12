@@ -5,6 +5,7 @@ import { unParametro } from '@/shared/lib/rutas'
 import { EstadoSinPermiso } from '@/shared/ui/estados'
 import { EsqueletoFormulario } from '@/shared/ui/esqueletos'
 import { alMenosUna } from '../empresa/pestanas'
+import { EnlaceAlFlujo } from './enlace-al-flujo'
 import { pestanaDe, pestanasVisibles } from './pestanas'
 import { PestanasDeRepuestos } from './pestanas-de-repuestos'
 import { SeccionCatalogos } from './seccion-catalogos'
@@ -32,6 +33,7 @@ export default async function PaginaDeConfiguracionDeRepuestos({
           y cajas.
         </p>
       </div>
+      <EnlaceAlFlujo />
       {visibles.length > 1 ? <PestanasDeRepuestos pestanas={visibles} /> : null}
       {abierta === 'cotizador' ? (
         <Suspense key={abierta} fallback={<EsqueletoFormulario bloques={3} campos={3} />}>

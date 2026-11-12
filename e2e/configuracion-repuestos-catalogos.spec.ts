@@ -63,6 +63,15 @@ test('quien configura repuestos entra a los cuatro catálogos y el hub lista Rep
   await expect(page.getByRole('main').getByRole('link', { name: /^Repuestos/ })).toBeVisible()
 })
 
+test('el enlace de Configuración › Repuestos lleva al flujo de repuestos', async ({ page }) => {
+  await entrar(page, duena, { fresco: true })
+  await page.goto('/configuracion/repuestos')
+  await page.getByRole('link', { name: 'Configurar el flujo de repuestos' }).click()
+  await expect(page).toHaveURL(/\/configuracion\/flujos\?ambito=repuestos/)
+  await expect(page.getByRole('heading', { name: 'Flujos', level: 1 })).toBeVisible()
+  await expect(page.getByRole('tab', { name: 'Repuestos', selected: true })).toBeVisible()
+})
+
 test('agregar, renombrar, desactivar y eliminar un tipo de pieza', async ({ page }) => {
   await entrar(page, duena, { fresco: true })
   await page.goto('/configuracion/repuestos')
