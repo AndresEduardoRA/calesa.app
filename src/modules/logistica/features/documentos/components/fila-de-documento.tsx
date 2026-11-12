@@ -3,14 +3,15 @@
 import { Button } from '@/shared/ui/button'
 import { formatearFecha } from '@/shared/lib/fechas'
 import { TarjetaDeLista } from '@/shared/ui/lista'
-import { Badge } from '@/shared/ui/badge'
 import { useRegional } from '@/shared/ui/regional'
 import type { DocumentoDeLaUnidad, TipoDeDocumento } from '../../../entities/documentos/documento'
 import { formatearBytes } from '../../../entities/documentos/tamano'
 import { textoDelVencimiento } from '../../../entities/documentos/vencimiento'
 import { AccionesDelDocumento } from './acciones-del-documento'
 import type { ContextoDeLaFila } from './contexto-de-la-fila'
+import { EditorDelDocumento } from './editor-del-documento'
 import { EstadoDelDocumento } from './estado-del-documento'
+import { InterruptorDelPortal } from './interruptor-del-portal'
 import { abrirDocumento } from './ver-documento'
 
 const OTRA_PERSONA = 'otra persona'
@@ -90,7 +91,6 @@ export function FilaDeDocumento({ documento, tipo, contexto, nombres, hoy }: Pro
       <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
         <span className="min-w-0 font-medium break-words">{nombre}</span>
         <EstadoDelDocumento estado={documento.estado} />
-        {documento.visiblePortal ? <Badge variant="outline">Visible en el portal</Badge> : null}
       </div>
       {documento.estado === 'rechazado' && documento.motivoDeRechazo ? (
         <p className="text-destructive min-w-0 text-(length:--text-sm) break-words">
@@ -104,6 +104,8 @@ export function FilaDeDocumento({ documento, tipo, contexto, nombres, hoy }: Pro
       ) : null}
       {documento.ruta ? <Archivo ruta={documento.ruta} nombre={nombre} /> : null}
       <AccionesDelDocumento documento={documento} tipo={tipo} contexto={contexto} />
+      <InterruptorDelPortal documento={documento} tipo={tipo} contexto={contexto} />
+      <EditorDelDocumento documento={documento} tipo={tipo} contexto={contexto} />
     </TarjetaDeLista>
   )
 }
