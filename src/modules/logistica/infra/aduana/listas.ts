@@ -10,7 +10,7 @@ import {
   type FilaDeDeclaracion,
 } from '../../entities/aduana/declaracion'
 import { paginaDeAduana, type PedidoDeAduana } from '../../entities/aduana/filtros'
-import type { RepositorioDeAduana } from '../../entities/aduana/repositorio'
+import type { LecturasDeAduana } from '../../entities/aduana/repositorio'
 
 // La lista de `/logistica/aduana` se lee con `declaraciones_listar()` y el resumen con `declaracion_leer()`, con la sesión de quien mira: la base decide qué declaraciones ve
 // (`logistica.aduana.gestionar`, o `logistica.ver` con un vehículo que ve) y de dónde sale «pagada» (6.07). Por cursor `(creado_en desc, id desc)` sobre `declaraciones_aduana_creado_idx`;
@@ -52,7 +52,7 @@ export async function leerDeclaracion(id: string): Promise<Resultado<Declaracion
   return declaracion === null ? inesperado() : ok(declaracion)
 }
 
-export const aduanaSupabase: RepositorioDeAduana = {
+export const aduanaSupabase: LecturasDeAduana = {
   listar: leerDeclaraciones,
   leer: leerDeclaracion,
 }
