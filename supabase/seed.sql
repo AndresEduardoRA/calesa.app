@@ -69,7 +69,7 @@ insert into public.permisos (clave, modulo, nombre, descripcion, por_origen, con
   ('logistica.documentos.subir', 'logistica', 'Subir documentos', 'Subir documentos de un vehículo (por origen)', true, true, 'documento_registrar, documento_editar, documento_eliminar; policy storage documentos', 330),
   ('logistica.documentos.aprobar', 'logistica', 'Aprobar documentos', 'Aprobar o rechazar documentos (por origen)', true, true, 'documento_revisar, documento_editar (visible_portal), documento_eliminar', 340),
   ('logistica.transporte.editar', 'logistica', 'Editar transporte', 'Naviera, puertos, contenedor, booking y fechas (por origen)', true, true, 'transporte_guardar, transporte_grupo_aplicar', 350),
-  ('logistica.aduana.gestionar', 'logistica', 'Gestionar aduana', 'Declaraciones y su composición', false, false, 'policy declaraciones_*', 360),
+  ('logistica.aduana.gestionar', 'logistica', 'Gestionar aduana', 'Declaraciones y su composición', false, false, 'declaracion_guardar, declaracion_vehiculos_poner, declaracion_canal', 360),
   ('logistica.gastos.ver', 'logistica', 'Ver gastos', 'Ver los gastos reales (por origen)', true, true, 'policy gastos, comprobante_puede, gastos_listar', 370),
   ('logistica.gastos.editar', 'logistica', 'Registrar gastos', 'Cargar y editar gastos (por origen)', true, true, 'gasto_registrar, gasto_guardar, gasto_eliminar, gastos_prorratear', 380),
   ('logistica.pagos.ver', 'logistica', 'Ver pagos', 'Ver pagos del cliente (por origen)', true, true, 'policy pagos, comprobante_puede, pagos_listar', 390),
