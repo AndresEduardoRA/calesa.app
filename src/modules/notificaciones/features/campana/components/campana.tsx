@@ -6,6 +6,7 @@ import { conteoCorto, conteoEnFrase, type ConteoAcotado } from '@/shared/lib/con
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover'
 import { ContenidoDeLaCampanaDiferido, SuscripcionDeLaCampanaDiferida } from './diferidos'
 import { useAlDescansar } from '../hooks/use-al-descansar'
+import { useVueltaDeLaRed } from '../hooks/use-vuelta-de-la-red'
 import type { AccionesPorTipo } from '../../lista/components/fila-de-notificacion'
 
 type Props = {
@@ -27,12 +28,15 @@ export function Campana({ usuarioId, disponibles, acciones }: Props) {
   }, [])
   const [abierta, setAbierta] = useState(false)
   const descansa = useAlDescansar()
+  // Pedida sin red, la suscripción queda en «Sin conexión»: al volver la red se monta de nuevo y se suscribe sola.
+  const vuelta = useVueltaDeLaRed()
   const sinLeer = conteo !== null && conteo.n > 0 ? conteo : null
 
   return (
     <>
       {descansa ? (
         <SuscripcionDeLaCampanaDiferida
+          key={vuelta}
           usuarioId={usuarioId}
           alConteo={setConteo}
           alSenal={alSenal}
