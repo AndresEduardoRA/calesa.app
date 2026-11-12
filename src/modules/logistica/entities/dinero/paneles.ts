@@ -2,6 +2,8 @@
 // confirmación de eliminar. Van aparte del `?vehiculo=` del panel de la unidad.
 export const PANEL_GASTO = 'gasto'
 export const PANEL_ELIMINAR_GASTO = 'eliminar-gasto'
+// El diálogo de «Prorratear» del resumen de un grupo (`?panel=prorratear`, 6.11-4): nombra el reparto antes de escribir nada.
+export const PANEL_PRORRATEAR = 'prorratear'
 export const CLAVE_DE_GASTO = 'gasto'
 export const GASTO_NUEVO = 'nuevo'
 
