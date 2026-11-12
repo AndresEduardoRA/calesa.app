@@ -32,6 +32,17 @@ export const REGISTRO: Record<string, RegistroDeDrawer> = {
     formulario: 'src/modules/logistica/features/transporte/components/formulario-del-grupo.tsx',
     mecanismo: 'contexto',
   },
+  // «Nueva guía» de Configuración › Sitio web › Guías (8.03-1): `?panel=guia-nueva`; el formulario dice que tiene algo escrito.
+  'src/modules/web/features/contenido/guias/components/drawer-nueva-guia.tsx': {
+    formulario: 'src/modules/web/features/contenido/guias/components/formulario-de-nueva-guia.tsx',
+    mecanismo: 'contexto',
+  },
+  // «Categorías» de Configuración › Sitio web › Guías (8.03-2): `?panel=categorias`; el nombre que se escribe dice que hay algo escrito. El pie es «Listo».
+  'src/modules/web/features/contenido/categorias/components/drawer-de-categorias.tsx': {
+    formulario:
+      'src/modules/web/features/contenido/categorias/components/formulario-de-categoria.tsx',
+    mecanismo: 'contexto',
+  },
   // El alta y la edición de una pregunta frecuente de Configuración › Sitio web (8.02-1): lo escrito queda en su borrador y pregunta al salir.
   'src/modules/web/features/contenido/faqs/components/panel-de-faq.tsx': {
     formulario: 'src/modules/web/features/contenido/faqs/components/panel-de-faq.tsx',

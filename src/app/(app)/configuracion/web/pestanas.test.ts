@@ -20,10 +20,16 @@ const CON_DOS_LLENAS: readonly PestanaDeWeb[] = PESTANAS.map((pestana) => ({
 }))
 
 describe('pestañas de Configuración › Sitio web', () => {
-  it('son las cinco de la fila, en su orden, y hoy «Ajustes», «Preguntas frecuentes» y «Testimonios» están llenas', () => {
+  it('son las cinco de la fila, en su orden, y hoy «Ajustes», «Legales», «Guías», «Preguntas frecuentes» y «Testimonios» están llenas', () => {
     expect(claves(PESTANAS)).toEqual(['ajustes', 'legales', 'guias', 'faqs', 'testimonios'])
     const todas = con('web.ajustes.gestionar', 'web.contenido.gestionar')
-    expect(claves(pestanasVisibles(todas))).toEqual(['ajustes', 'faqs', 'testimonios'])
+    expect(claves(pestanasVisibles(todas))).toEqual([
+      'ajustes',
+      'legales',
+      'guias',
+      'faqs',
+      'testimonios',
+    ])
     expect(permisosDeLasLlenas()).toEqual(['web.ajustes.gestionar', 'web.contenido.gestionar'])
   })
 
