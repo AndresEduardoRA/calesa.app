@@ -281,7 +281,8 @@ declare
     'comprobante_emitir', 'devuelve id, serie, número del comprobante y emitido_en (4.26-1); en datos congela el número de cotización y del lead sólo lead_id, nunca su número',
     'buscador_leads', 'devuelve ids de leads (7.12-1): los de leads_ids_del_numero y leads_candidatos que quien llama ve en leads_vista_por_ids, nunca un número',
     'buscador_cotizaciones', 'devuelve cotizaciones del buscador (7.12-1): su número de cotización, título, clase y estado; del lead sólo mira en_cartera, nunca su número',
-    'repuesto_proyecto_crear', 'devuelve id, número del proyecto de repuestos y actualizado_en (8.08-1): del lead sólo guarda el id, que trg_lead_visible exige visible; nunca su número');
+    'repuesto_proyecto_crear', 'devuelve id, número del proyecto de repuestos y actualizado_en (8.08-1): del lead sólo guarda el id, que trg_lead_visible exige visible; nunca su número',
+    'declaracion_leer', 'devuelve una declaración de aduana (6.07-3): su número de declaración y los vehículos que quien llama ve; del lead sólo mira lead_id para el alcance propios (en_cartera), nunca su número');
   r record; v_fallas text := '';
 begin
   if to_regclass('pg_temp.matriz_cubiertas') is null then
