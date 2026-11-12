@@ -104,8 +104,17 @@ function soltarComprobantesDePrueba(): void {
     delete from public.comprobantes_contadores where serie like 'E2E-%'`)
 }
 
+// Los ajustes de la web nombran a quien los guardó por última vez (`web_ajustes_guardar`, FK sin `on delete`, 8.01-4): si una corrida que guardó por la
+// pantalla se cortó antes de restaurarlos, el autor de prueba frenaría el borrado. Se suelta antes, sin tocar lo demás de la fila.
+function soltarAjustesDeLaWebDePrueba(): void {
+  sql(`
+    update public.ajustes_web set actualizado_por = null
+      where actualizado_por in (select id from auth.users where email like ${literal(`%@${DOMINIO_E2E}`)})`)
+}
+
 export async function borrarPersonasDePrueba(): Promise<void> {
   soltarComprobantesDePrueba()
+  soltarAjustesDeLaWebDePrueba()
   const dePrueba = (await cuentas())
     .filter((cuenta) => cuenta.email?.endsWith(`@${DOMINIO_E2E}`))
     .sort((a, b) => a.created_at.localeCompare(b.created_at))
