@@ -55,6 +55,10 @@ export const DRAWERS_DEL_NUCLEO: Record<string, RegistroDeDrawer> = {
   'src/modules/leads/features/panel-para-cotizar/components/panel-del-cliente.tsx': {
     sinFormulario: 'elige un lead; no guarda nada tipeado (la búsqueda vive en la URL)',
   },
+  // «Vincular a un lead» de un turno de la web (8.05-1): elige un lead con el buscador del panel del cliente; la búsqueda vive en la URL.
+  'src/modules/leads/features/vincular-turno/components/panel-para-vincular.tsx': {
+    sinFormulario: 'elige un lead; no guarda nada tipeado (la búsqueda vive en la URL)',
+  },
   // --- vehiculos
   'src/modules/vehiculos/features/alta/components/panel-de-vehiculo.tsx': {
     formulario: 'src/modules/vehiculos/features/alta/components/panel-de-vehiculo.tsx',
