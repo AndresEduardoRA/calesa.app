@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
+  borradorNuevoDeGasto,
   cambiosDeGasto,
+  tituloDeEliminarGasto,
   validarGasto,
   type BorradorDeGasto,
   type DatosDeGasto,
@@ -123,6 +125,26 @@ describe('cambiosDeGasto', () => {
     expect(cambiosDeGasto(con, { ...iguales, proveedor: null })).toEqual({
       proveedor: null,
       comprobante_ruta: null,
+    })
+  })
+})
+
+describe('tituloDeEliminarGasto', () => {
+  it('nombra la categoría y la fecha, sin el monto', () => {
+    expect(tituloDeEliminarGasto(original, '10 nov 2026')).toBe(
+      'Eliminar el gasto de Flete del 10 nov 2026',
+    )
+  })
+})
+
+describe('borradorNuevoDeGasto', () => {
+  it('empieza en la moneda base y la fecha de hoy, sin monto ni tipo de cambio', () => {
+    expect(borradorNuevoDeGasto('USD', '2026-11-12')).toMatchObject({
+      moneda: 'USD',
+      fecha: '2026-11-12',
+      monto: '',
+      tipoCambioId: '',
+      categoriaId: '',
     })
   })
 })

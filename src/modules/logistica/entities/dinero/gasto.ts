@@ -106,6 +106,20 @@ export function borradorDeGasto(
   }
 }
 
+/** El formulario vacío de «Registrar gasto»: en la moneda base y con la fecha de hoy (`YYYY-MM-DD`, en la zona de la empresa). */
+export function borradorNuevoDeGasto(monedaBase: string, hoy: string): BorradorDeGasto {
+  return {
+    categoriaId: '',
+    moneda: monedaBase,
+    monto: '',
+    tipoCambioId: '',
+    fecha: hoy,
+    proveedor: '',
+    notas: '',
+    comprobanteRuta: '',
+  }
+}
+
 /** Lo validado, listo para mandar. */
 export type DatosDeGasto = {
   categoriaId: string
@@ -209,35 +223,43 @@ export function validarGasto(
   }
 }
 
+/** Las claves cerradas de `p_cambios` de `gasto_guardar`. */
+export type CambiosDeGasto = {
+  categoria_id?: string
+  moneda?: string
+  monto?: number
+  tipo_cambio_id?: string | null
+  fecha?: string
+  proveedor?: string | null
+  notas?: string | null
+  comprobante_ruta?: string | null
+}
+
 /**
  * Los cambios de `gasto_guardar` (`p_cambios`): sólo lo que cambió. El tipo de cambio viaja únicamente si cambió la moneda o el tipo (D19): con sólo otro
  * monto, la base usa la tasa guardada. Nulo si no cambió nada.
  */
-export function cambiosDeGasto(
-  original: Gasto,
-  nuevo: DatosDeGasto,
-): Record<string, unknown> | null {
-  const cambios: Record<string, unknown> = {}
-  if (nuevo.categoriaId !== original.categoriaId) cambios['categoria_id'] = nuevo.categoriaId
-  if (nuevo.moneda !== original.moneda) cambios['moneda'] = nuevo.moneda
-  if (nuevo.monto !== original.monto) cambios['monto'] = nuevo.monto
+export function cambiosDeGasto(original: Gasto, nuevo: DatosDeGasto): CambiosDeGasto | null {
+  const cambios: CambiosDeGasto = {}
+  if (nuevo.categoriaId !== original.categoriaId) cambios.categoria_id = nuevo.categoriaId
+  if (nuevo.moneda !== original.moneda) cambios.moneda = nuevo.moneda
+  if (nuevo.monto !== original.monto) cambios.monto = nuevo.monto
   if (nuevo.moneda !== original.moneda || nuevo.tipoCambioId !== original.tipoCambioId) {
-    cambios['tipo_cambio_id'] = nuevo.tipoCambioId
+    cambios.tipo_cambio_id = nuevo.tipoCambioId
   }
-  if (nuevo.fecha !== original.fecha) cambios['fecha'] = nuevo.fecha
-  if (nuevo.proveedor !== original.proveedor) cambios['proveedor'] = nuevo.proveedor
-  if (nuevo.notas !== original.notas) cambios['notas'] = nuevo.notas
+  if (nuevo.fecha !== original.fecha) cambios.fecha = nuevo.fecha
+  if (nuevo.proveedor !== original.proveedor) cambios.proveedor = nuevo.proveedor
+  if (nuevo.notas !== original.notas) cambios.notas = nuevo.notas
   if (nuevo.comprobanteRuta !== original.comprobanteRuta) {
-    cambios['comprobante_ruta'] = nuevo.comprobanteRuta
+    cambios.comprobante_ruta = nuevo.comprobanteRuta
   }
   return Object.keys(cambios).length === 0 ? null : cambios
 }
 
-/** La pregunta de eliminar nombra el gasto: «el gasto de Flete por 150,00 USD del 10 nov 2026». */
-export function nombreDelGasto(
+/** El título de la confirmación de eliminar nombra el gasto: «Eliminar el gasto de Flete del 10 nov 2026». El monto va aparte, con `<Monto>`. */
+export function tituloDeEliminarGasto(
   gasto: Pick<Gasto, 'categoriaNombre'>,
-  monto: string,
-  fecha: string,
+  fechaEscrita: string,
 ): string {
-  return `el gasto de ${gasto.categoriaNombre} por ${monto} del ${fecha}`
+  return `Eliminar el gasto de ${gasto.categoriaNombre} del ${fechaEscrita}`
 }
