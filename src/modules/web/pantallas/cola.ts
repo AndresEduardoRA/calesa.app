@@ -3,6 +3,7 @@
 export { AgregarALaRueda } from '../features/cola/rueda/components/agregar-a-la-rueda'
 export { ActualizarTablero } from '../features/cola/tablero/components/actualizar-tablero'
 export { AvisosDeLaPolitica } from '../features/cola/tablero/components/avisos-de-la-politica'
+export { FormularioDeLaPolitica } from '../features/cola/politica/components/diferidos'
 export { ErrorDeLectura } from '../features/cola/tablero/components/error-de-lectura'
 export { RuedaDeLaCola } from '../features/cola/tablero/components/rueda-de-la-cola'
 export { SinAsignar } from '../features/cola/tablero/components/sin-asignar'

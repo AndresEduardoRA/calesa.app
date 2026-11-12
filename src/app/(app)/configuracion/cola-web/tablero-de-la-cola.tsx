@@ -11,11 +11,13 @@ import {
   AgregarALaRueda,
   AvisosDeLaPolitica,
   ErrorDeLectura,
+  FormularioDeLaPolitica,
   RuedaDeLaCola,
   SinAsignar,
 } from '@/modules/web/pantallas/cola'
 import type { Resultado } from '@/shared/lib/errores'
 import { puede, type Permisos } from '@/shared/lib/permisos'
+import { Bloque } from '@/shared/ui/bloque'
 
 type Props = {
   permisos: Permisos
@@ -26,7 +28,7 @@ type Props = {
 
 // El cuerpo de Configuración › Cola web (8.04-2): tres lecturas en paralelo —la política, la primera página de «Sin asignar» y el tablero— y cada parte
 // con su error si no llegó, sin tapar las otras. «Actualizar» y volver a la pestaña repiten las tres (`router.refresh()`). Con «Agregar a la rueda» abierto
-// (8.04-3), una cuarta: la página del equipo que cumple la búsqueda (sólo si quien mira ve el equipo).
+// (8.04-3), una cuarta: la página del equipo que cumple la búsqueda (sólo si quien mira ve el equipo). Al final, la política plegada.
 export async function TableroDeLaCola({ permisos, panel, busqueda }: Props) {
   const puedeVerEquipo =
     puede(permisos, 'equipo.usuarios.ver') || puede(permisos, 'equipo.usuarios.gestionar')
@@ -70,6 +72,15 @@ export async function TableroDeLaCola({ permisos, panel, busqueda }: Props) {
       ) : (
         <ErrorDeLectura titulo="No pudimos leer la rueda" mensaje={tablero.error.mensaje} />
       )}
+      {politica.ok ? (
+        <Bloque
+          titulo="Política de la cola"
+          descripcion="Cuánto tiene cada asesor para contactar y cuántas abiertas recibe."
+          plegado
+        >
+          <FormularioDeLaPolitica key={politica.data.actualizadoEn} politica={politica.data} />
+        </Bloque>
+      ) : null}
     </div>
   )
 }

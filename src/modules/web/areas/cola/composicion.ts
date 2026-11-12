@@ -3,11 +3,13 @@
 import 'server-only'
 import type {
   EscritorDeLaRueda,
+  EscritorDePoliticaDeLaCola,
   LectorDePoliticaDeLaCola,
   LectorDelTablero,
   LectorDeSinAsignar,
 } from '../../entities/cola/repositorios'
 import { configurarEnLaRueda as configurarEnLaRuedaSupabase } from '../../infra/cola/configurar'
+import { guardarPolitica } from '../../infra/cola/guardar-politica'
 import { leerPolitica } from '../../infra/cola/politica'
 import { leerSinAsignar as leerSinAsignarSupabase } from '../../infra/cola/solicitudes'
 import { leerTablero } from '../../infra/cola/tablero'
@@ -17,3 +19,4 @@ export const leerSinAsignar: LectorDeSinAsignar = leerSinAsignarSupabase
 export const leerPoliticaDeLaCola: LectorDePoliticaDeLaCola = leerPolitica
 // La base repite el permiso en cada escritura (`assert_permiso('web.cola.gestionar')`).
 export const configurarEnLaRueda: EscritorDeLaRueda = configurarEnLaRuedaSupabase
+export const guardarPoliticaDeLaCola: EscritorDePoliticaDeLaCola = guardarPolitica
