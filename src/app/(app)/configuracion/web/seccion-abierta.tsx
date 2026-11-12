@@ -3,6 +3,7 @@ import type { Permisos } from '@/shared/lib/permisos'
 import type { Pestana } from './pestanas'
 import { SeccionAjustes } from './seccion-ajustes'
 import { SeccionFaqs } from './seccion-faqs'
+import { SeccionTestimonios } from './seccion-testimonios'
 
 type Pedido = {
   permisos: Permisos
@@ -13,6 +14,7 @@ type Pedido = {
 const SECCIONES: Partial<Record<Pestana, (pedido: Pedido) => ReactNode>> = {
   ajustes: () => <SeccionAjustes />,
   faqs: () => <SeccionFaqs />,
+  testimonios: () => <SeccionTestimonios />,
 }
 
 export function SeccionAbierta({ pestana, ...pedido }: Pedido & { pestana: Pestana }) {
