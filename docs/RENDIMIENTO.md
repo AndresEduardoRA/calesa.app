@@ -165,6 +165,16 @@ Cada sección por su RPC, de a `_acotar_pagina(p_tamano, 5, 20)` + 1, con el mí
 - Una búsqueda: hasta 4 pedidos en paralelo (leads hace dos), cada uno ≤ 6 filas; la espera de 250 ms entre teclas es de la paleta (7.13).
 - `visitados`: ≤ 50 por persona (`visita_registrar()` recorta), por la PK y `visitados_usuario_visto_idx (usuario_id, visto_en desc)`.
 
+## Repuestos (8.08)
+
+- `repuestos_proyectos_listar()` (definer): por cursor sobre `repuestos_proyectos_numero_key` (`numero desc`), de a 50 (máximo 100) más uno; con cursor y sin
+  cursor son dos consultas. Las cuentas de ítems de cada fila leen como mucho 201 ítems vivos por `repuestos_items_proyecto_id_idx` (un número que se muestra
+  nunca es un total exacto), y el título del vehículo (`puede_vehiculo`) se calcula sólo para la página. El texto (≥ 3 o sólo dígitos) es filtro, no índice:
+  con un texto que no coincide recorre los proyectos vivos por el índice del número (**límite sin assert**; la tabla crece por decenas al día).
+- `repuestos_pendientes_de_vehiculo()` (definer): un proyecto vivo por vehículo (`repuestos_proyecto_por_vehiculo`), sus ítems por
+  `repuestos_items_proyecto_id_idx` y las esperas de las fases siguientes del vehículo; de a 50 (máximo 200) más uno.
+- Sin siembra de volumen ni `EXPLAIN` en `db:medir:volumen` (`repuestos_proyectos` no está entre las tablas que crecen de `escala.md`; regla del 2026-11-08).
+
 ## JS en frío (con gzip, lo que el documento nombra)
 
 - `/leads` ≤ 530 KB (medido 503,5), `/perfil` ≤ 440 KB (413,5), `/vehiculos` ≤ 500 KB (468,6). `/cotizaciones/nuevo` con la subasta (`?origen=`) ≤ 460 KB (medido **459,0** en 27 chunks en el 4.18-3b, tras «Vista previa» del 4.18-2, el runtime de react-pdf del 4.18-3a y el enlace del PDF del 3b; 432 en 27 chunks desde el 4.14-2a, con la barra del vehículo en frío y su panel diferido; 429,5 en 25 antes; 428,1 en el 4.13-4b3, 426,8 antes y 423,8 antes del 4.13-4a), desde el 4.13-4d en `e2e/presupuesto-js.spec.ts`.

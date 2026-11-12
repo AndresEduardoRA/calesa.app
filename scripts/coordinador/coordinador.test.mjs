@@ -41,7 +41,7 @@ function repo() {
     gh,
     `#!/usr/bin/env bash
 case "$1 $2" in
-  "pr view") if [ -e "${respuestas}/caidas" ] && [ "$(cat "${respuestas}/caidas")" -gt 0 ]; then echo $(( $(cat "${respuestas}/caidas") - 1 )) > "${respuestas}/caidas"; echo "HTTP 499" >&2; exit 1; fi; cat "${respuestas}/$3.json" ;;
+  "pr view") if [ -e "${respuestas}/caidas" ] && [ "$(cat "${respuestas}/caidas")" -gt 0 ]; then echo $(( $(cat "${respuestas}/caidas") - 1 )) > "${respuestas}/caidas"; echo "HTTP 499" >&2; exit 1; fi; if [ -e "${respuestas}/$3.primero.json" ]; then cat "${respuestas}/$3.primero.json"; rm "${respuestas}/$3.primero.json"; else cat "${respuestas}/$3.json"; fi ;;
   "pr merge") echo "$3" >> "${respuestas}/merges"; echo "$*" >> "${respuestas}/merges-args"; echo '{"state":"MERGED"}' > "${respuestas}/$3.json" ;;
   "api -X") echo "$*" >> "${respuestas}/api" ;;
   "pr list") cat "${respuestas}/prs.json" 2>/dev/null || echo '[]' ;;
@@ -64,6 +64,7 @@ esac
         COORD_USD_VENTANA: '',
         COORD_LIMPIAR: '0',
         COORD_GH_ESPERA: '0',
+        COORD_SIN_SABER_ESPERA: '0',
         ...extra,
       },
     })
@@ -78,6 +79,7 @@ esac
         COORD_USD_VENTANA: '',
         COORD_LIMPIAR: '0',
         COORD_GH_ESPERA: '0',
+        COORD_SIN_SABER_ESPERA: '0',
       },
     })
   const pr = (n, datos) => writeFileSync(join(respuestas, `${n}.json`), JSON.stringify(datos))
@@ -855,4 +857,16 @@ test('una migración con una hora que no existe pone el Nivel 1 en rojo: el coor
   assert.doesNotMatch(salida, /vuelve a su carril/)
   g('fetch', '-q', 'origin')
   assert.doesNotMatch(g('ls-tree', '-r', '--name-only', 'origin/datos/P01'), /20261111135960/)
+})
+
+test('GitHub contesta UNKNOWN la primera vez que se le pregunta tras una integración: se vuelve a preguntar y se integra en la misma vuelta', () => {
+  const { correr, pr, respuestas } = repo()
+  correr('siguiente', 'ui')
+  correr('publicado', 'P02', '8')
+  writeFileSync(
+    join(respuestas, '8.primero.json'),
+    JSON.stringify({ state: 'OPEN', mergeable: 'UNKNOWN', statusCheckRollup: verde }),
+  )
+  pr(8, { state: 'OPEN', mergeable: 'MERGEABLE', statusCheckRollup: verde })
+  assert.match(correr('sincronizar'), /P02: integrado por el coordinador \(#8/)
 })
