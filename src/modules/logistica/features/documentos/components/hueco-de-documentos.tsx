@@ -12,9 +12,13 @@ import type { Unidad } from '../../../entities/nucleo/unidad'
 import {
   useDocumentosDeLaUnidad,
   type DatoDeDocumentos,
+  type LecturaDeDocumentos,
 } from '../hooks/use-documentos-de-la-unidad'
+import { useEliminarDocumentoPorUrl } from '../hooks/use-eliminar-documento-por-url'
+import { useEliminarElDocumento } from '../hooks/use-eliminar-el-documento'
 import { useClavesDeDocumentos } from '../hooks/use-claves-de-documentos'
 import type { ContextoDeLaFila } from './contexto-de-la-fila'
+import { ConfirmarEliminarDocumento } from './confirmar-eliminar-documento'
 import { GrupoDeTipoDeDocumento } from './grupo-de-tipo'
 import { ZonaParaSubirDeLaUnidad } from './zona-para-subir-de-la-unidad'
 
@@ -31,6 +35,20 @@ function ErrorDeLectura({ mensaje, reintentar }: { mensaje: string; reintentar: 
       </div>
     </div>
   )
+}
+
+function EstadoDeLaLectura({
+  lectura,
+  reintentar,
+}: {
+  lectura: LecturaDeDocumentos
+  reintentar: () => void
+}) {
+  if (lectura.tipo === 'cargando') return <Cargando />
+  if (lectura.tipo === 'error') {
+    return <ErrorDeLectura mensaje={lectura.error.mensaje} reintentar={reintentar} />
+  }
+  return null
 }
 
 function Cargando() {
@@ -78,23 +96,29 @@ export function HuecoDeDocumentos({ unidad }: { unidad: Unidad }) {
   const claves = useClavesDeDocumentos(unidad)
   const dato = lectura.tipo === 'listo' ? lectura.dato : null
   const grupos = dato ? agruparPorTipo(dato.documentos, dato.tipos, dato.requisitos, dato.hoy) : []
+  const eliminando = useEliminarDocumentoPorUrl(dato?.documentos ?? null, claves)
+  const eliminar = useEliminarElDocumento(unidad.id)
   const contexto: ContextoDeLaFila = {
     unidadId: unidad.id,
     claves,
     tipos: dato?.tipos ?? [],
     releer,
+    alEliminar: eliminando.abrir,
   }
   return (
     <div className="grid gap-3" data-hueco="documentos">
-      {lectura.tipo === 'cargando' ? <Cargando /> : null}
-      {lectura.tipo === 'error' ? (
-        <ErrorDeLectura mensaje={lectura.error.mensaje} reintentar={reintentar} />
-      ) : null}
+      <EstadoDeLaLectura lectura={lectura} reintentar={reintentar} />
       {dato ? <ZonaParaSubirDeLaUnidad unidad={unidad} dato={dato} /> : null}
       {dato && grupos.length === 0 ? (
         <EstadoVacio compacto titulo="Esta unidad no tiene documentos." />
       ) : null}
       {dato ? <ListaDeGrupos dato={dato} grupos={grupos} contexto={contexto} /> : null}
+      <ConfirmarEliminarDocumento
+        documento={eliminando.documento}
+        abierto={eliminando.abierto}
+        eliminar={eliminar}
+        alCerrar={eliminando.cerrar}
+      />
     </div>
   )
 }

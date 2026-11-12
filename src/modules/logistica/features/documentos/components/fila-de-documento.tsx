@@ -8,6 +8,7 @@ import type { DocumentoDeLaUnidad, TipoDeDocumento } from '../../../entities/doc
 import { formatearBytes } from '../../../entities/documentos/tamano'
 import { textoDelVencimiento } from '../../../entities/documentos/vencimiento'
 import { AccionesDelDocumento } from './acciones-del-documento'
+import { BotonEliminarDocumento } from './boton-eliminar-documento'
 import type { ContextoDeLaFila } from './contexto-de-la-fila'
 import { EditorDelDocumento } from './editor-del-documento'
 import { EstadoDelDocumento } from './estado-del-documento'
@@ -106,6 +107,7 @@ export function FilaDeDocumento({ documento, tipo, contexto, nombres, hoy }: Pro
       <AccionesDelDocumento documento={documento} tipo={tipo} contexto={contexto} />
       <InterruptorDelPortal documento={documento} tipo={tipo} contexto={contexto} />
       <EditorDelDocumento documento={documento} tipo={tipo} contexto={contexto} />
+      <BotonEliminarDocumento documento={documento} tipo={tipo} contexto={contexto} />
     </TarjetaDeLista>
   )
 }
