@@ -3,6 +3,7 @@
 import { Button } from '@/shared/ui/button'
 import type { FilaDeCompra } from '../../../entities/compras/compra'
 import { motivoParaNoEscribirCompras } from '../../../entities/compras/acciones'
+import { useEliminarCompra } from '../hooks/use-eliminar-compra'
 import { usePanelDeCompra } from '../hooks/use-panel-de-compra'
 import type { ItemParaCompra, MonedaParaCompra } from './campos-de-compra'
 import { ListaDeCompras } from './lista-de-compras'
@@ -22,7 +23,7 @@ type Props = {
 const ID_DEL_MOTIVO = 'compras-motivo-apagado'
 
 // Las compras de un proyecto con sus acciones (8.11-3, C13): un solo «Registrar compra» arriba de la lista (también vacía, D6), apagado con su motivo escrito al lado
-// si no se puede escribir; «Editar» en la fila sólo si se puede. El formulario vive en la URL y su código se pide al abrirlo.
+// si no se puede escribir; «Editar» y «Eliminar» (con «Deshacer») en la fila sólo si se puede. El formulario vive en la URL y su código se pide al abrirlo.
 export function ComprasDelProyecto({
   filas,
   hayMas,
@@ -34,6 +35,7 @@ export function ComprasDelProyecto({
 }: Props) {
   const motivo = motivoParaNoEscribirCompras({ puedeEditarCostos, cerrado })
   const panel = usePanelDeCompra(filas, motivo)
+  const borrado = useEliminarCompra(proyectoId)
   const puede = motivo === null
   return (
     <div className="grid gap-3">
@@ -58,6 +60,13 @@ export function ComprasDelProyecto({
           puede
             ? (compra) => {
                 panel.abrirEdicion(compra.id)
+              }
+            : null
+        }
+        alEliminar={
+          puede
+            ? (compra) => {
+                void borrado.eliminar(compra)
               }
             : null
         }
