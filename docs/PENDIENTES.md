@@ -58,7 +58,8 @@ Al cerrar una, se borra su línea (el PR lo cuenta). Lo nuevo que aparezca al tr
 ## Seguridad y dinero
 
 - **[—]** Un gasto en la moneda base acepta `NaN` como monto: `_gasto_validar` mira `< 0` y `_monto_en_base` no lo ataja sin conversión — el corte de `_pago_validar`; migración.
-- **[—]** Seguridad de los pagos de un proyecto de repuestos: quedó anotada para revisar sin detalle.
+- **[—]** `pago_registrar_proyecto` no mira la regla `pagos` del flujo de repuestos (el del vehículo sí, con `_dinero_regla_activa`) y la pestaña «Pagos» del proyecto no la lee — decidir si se esconde o se apaga con su motivo, y frenarlo en la base.
+- **[—]** Corregir o eliminar un pago sin confirmar de un proyecto cerrado pasa (una compra no: 23514) — decidir si el cierre congela los pagos sin confirmar; confirmar y anular no lo miran a propósito.
 - **[—]** Repuestos: la policy de UPDATE de `repuestos_proyectos` pide `repuestos.editar` sin `repuestos.ver` (un `update` sin `where` no pasa por la de leer) y no mira proyecto cerrado ni eliminado — como el trigger `repuestos_item_escritura` de los ítems.
 - **[7-4]** Con `p_conversacion` del canal global, `tarea_crear` y `agenda_quienes_reciben` miran la fila suelta de `conversaciones_miembros` y pasa un responsable sin `chat.global` — revalidar con `_chat_miembro_vigente` como `mensaje_tarea_crear`.
 - **[—]** `lead_campo_impacto` lee los valores públicos de todos los leads aunque quien llama tenga `leads.ver` con alcance «propios»: acotando el rango se hallan los extremos de leads que no ve — contar con `_lead_visible_para` sin perder los de la papelera.
