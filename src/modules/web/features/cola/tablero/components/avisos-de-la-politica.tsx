@@ -25,7 +25,10 @@ export function AvisosDeLaPolitica({ politica, puedeEditarElSitio }: Props) {
         <Aviso tono="aviso">
           Falta el WhatsApp de respaldo: quien no reciba un asesor no tendrá a quién escribir.{' '}
           {puedeEditarElSitio ? (
-            <Link href={RUTAS.configuracionDeWeb as Route} className="underline">
+            <Link
+              href={RUTAS.configuracionDeWeb as Route}
+              className="inline-flex min-h-11 items-center underline md:min-h-0"
+            >
               Cargarlo en Sitio web
             </Link>
           ) : null}

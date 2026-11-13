@@ -28,7 +28,10 @@ function EnlaceDeLaUnidad({ unidad }: { unidad: UnidadAbierta }) {
     ? `${RUTAS.repuestos}/${unidad.proyecto?.id ?? ''}`
     : `${RUTAS.vehiculos}/${unidad.id}`
   return (
-    <Link href={href as Route} className={buttonVariants({ variant: 'outline' })}>
+    <Link
+      href={href as Route}
+      className={buttonVariants({ variant: 'outline', className: 'h-11 md:h-8' })}
+    >
       {esItem ? 'Abrir proyecto' : 'Abrir ficha'}
     </Link>
   )

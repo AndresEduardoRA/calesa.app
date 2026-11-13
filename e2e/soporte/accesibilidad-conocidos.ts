@@ -13,3 +13,34 @@ export type Conocido = {
 }
 
 export const CONOCIDOS: Conocido[] = []
+
+// R7, los blancos táctiles de 44 px (9.12-5): dura en el celular en las pantallas de las fases 5 a 9. Lo que se arregló en sus módulos no puede
+// volver; lo que queda es de `shared/ui` (el marco, las pestañas, el interruptor, la casilla, «Abrir» de las listas) y su tamaño es de la persona
+// (`docs/PLAN.md` › «Pulido para la Fase 9»: WCAG 2.5.8 AA pide 24 px; los 44 px son la regla del proyecto). Cada uno vale en toda ruta de
+// esas pantallas con a lo más `max` apariciones, para que un segundo blanco chico del mismo descriptor no se esconda tras él.
+export const RUTAS_DE_LAS_FASES_5_A_9 = [
+  /^\/(actividad|agenda|chat|datos|notificaciones|tablero)$/,
+  /^\/repuestos(\/|$)/,
+  /^\/logistica(\/|$)/,
+  /^\/configuracion\/(web|cola-web)(\/|$)/,
+]
+
+export const esDeLasFases5a9 = (ruta: string) => RUTAS_DE_LAS_FASES_5_A_9.some((r) => r.test(ruta))
+
+export const BLANCOS_CONOCIDOS: { descriptor: string; max: number; de: string }[] = [
+  { descriptor: 'a href=#contenido', max: 1, de: 'el salto al contenido del marco (`_shell`)' },
+  { descriptor: 'button[data-slot=button][type=button]', max: 1, de: '«Nuevo lead» del marco' },
+  { descriptor: 'button[data-slot=tabs-trigger][type=button][role=tab]', max: 6, de: '`Tabs`' },
+  { descriptor: 'span[data-slot=switch][role=switch]', max: 4, de: '`Switch`' },
+  { descriptor: 'span[data-slot=checkbox][role=checkbox]', max: 2, de: '`Checkbox`' },
+  { descriptor: 'button[type=button]', max: 25, de: '«Abrir» de las listas (`AbrirResumen`)' },
+  {
+    descriptor: 'button[data-slot=button][type=submit]',
+    max: 1,
+    de: 'el envío apagado de la barra de filtros',
+  },
+]
+
+export const esBlancoConocido = (ruta: string, h: { descriptor: string; n: number }) =>
+  esDeLasFases5a9(ruta) &&
+  BLANCOS_CONOCIDOS.some((c) => c.descriptor === h.descriptor && h.n <= c.max)

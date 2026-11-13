@@ -23,7 +23,7 @@ export function CabeceraDeCotizacion({ cotizacion, proyecto, acciones }: Props) 
     <header className="grid gap-2">
       <Link
         href={volver as Route}
-        className="w-fit text-(length:--text-sm) underline-offset-2 hover:underline"
+        className="inline-flex min-h-11 w-fit items-center text-(length:--text-sm) underline-offset-2 hover:underline md:min-h-0"
       >
         Volver al proyecto
       </Link>

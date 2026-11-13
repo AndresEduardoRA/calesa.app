@@ -62,12 +62,17 @@ export function AccionesDeCotizacion({
               {motivoParaNoAceptar}
             </span>
           ) : null}
-          <Button type="button" disabled={motivoParaNoAceptar !== null} onClick={aceptar.abrir}>
+          <Button
+            type="button"
+            className="h-11 md:h-8"
+            disabled={motivoParaNoAceptar !== null}
+            onClick={aceptar.abrir}
+          >
             Aceptar
           </Button>
         </div>
       )}
-      <Button type="button" variant="outline" onClick={anular.abrir}>
+      <Button type="button" variant="outline" className="h-11 md:h-8" onClick={anular.abrir}>
         Anular
       </Button>
       <ConfirmarAceptar

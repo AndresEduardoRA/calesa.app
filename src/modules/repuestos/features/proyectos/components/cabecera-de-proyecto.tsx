@@ -58,7 +58,7 @@ export function CabeceraDeProyecto({
                 ) : (
                   <Link
                     href={`${RUTAS.vehiculos}/${proyecto.vehiculoId ?? ''}` as Route}
-                    className="underline underline-offset-2"
+                    className="inline-flex min-h-11 items-center underline underline-offset-2 md:min-h-0"
                   >
                     {tituloDelVehiculo}
                   </Link>

@@ -17,7 +17,10 @@ export function TarjetaMisLeads({ tarjeta, href }: { tarjeta: Tarjeta; href: Rou
         Los leads de tu cartera, con los filtros del listado.
       </p>
       {tarjeta.habilitada ? (
-        <Link href={href} className={buttonVariants({ variant: 'outline' })}>
+        <Link
+          href={href}
+          className={buttonVariants({ variant: 'outline', className: 'h-11 md:h-8' })}
+        >
           Ir a Leads
         </Link>
       ) : (

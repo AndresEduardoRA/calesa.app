@@ -59,7 +59,7 @@ async function Guia({ params }: { params: PageProps<'/configuracion/web/guias/[i
     <div className="grid max-w-3xl gap-4">
       <Link
         href={VOLVER}
-        className="w-fit text-(length:--text-sm) text-(--color-ink-soft) underline-offset-2 hover:underline"
+        className="inline-flex min-h-11 w-fit items-center text-(length:--text-sm) text-(--color-ink-soft) underline-offset-2 hover:underline md:min-h-0"
       >
         ← Guías
       </Link>

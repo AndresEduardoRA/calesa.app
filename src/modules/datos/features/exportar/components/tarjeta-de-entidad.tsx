@@ -81,7 +81,7 @@ export function TarjetaDeEntidad({ entidad, titulo, tarjeta }: Props) {
           />
           <Button
             type="submit"
-            className="justify-self-start"
+            className="h-11 justify-self-start md:h-8"
             disabled={!tarjeta.habilitada || preparando || estado.tipo === 'sin_permiso'}
           >
             {preparando ? 'Preparando el archivo…' : 'Descargar'}

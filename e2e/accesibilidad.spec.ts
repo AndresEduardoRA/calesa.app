@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { CONTRASENA } from './soporte/alta'
 import { barrer, focoVisible, REGLAS_DURAS, type Hallazgo } from './soporte/accesibilidad'
-import { CONOCIDOS } from './soporte/accesibilidad-conocidos'
+import { CONOCIDOS, esBlancoConocido, esDeLasFases5a9 } from './soporte/accesibilidad-conocidos'
 import {
   DINAMICAS,
   esDinamica,
@@ -19,8 +19,8 @@ import { expect, test, type Page } from './soporte/prueba'
 
 // La auditoría AA (9.12-1, `docs/PLAN.md` › 9.12): un barrido de todas las páginas de `src/app` que comprueba lo que una máquina puede.
 // Caen la prueba un control sin nombre accesible y un `aria-describedby`/`aria-labelledby` roto que no estén en los conocidos
-// (`soporte/accesibilidad-conocidos.ts`, cada uno con la parte que lo arregla); el `h1`, el título, el orden de foco, el foco visible y
-// los blancos táctiles sólo informan. Cada página se mira en tema claro y su foco visible otra vez en oscuro (el contraste de los
+// (`soporte/accesibilidad-conocidos.ts`, cada uno con la parte que lo arregla), también el `h1` y, en el celular y en las pantallas de las
+// fases 5 a 9, un blanco táctil de menos de 44 px que no es de `shared/ui`; el orden de foco y el foco visible sólo informan. Cada página se mira en tema claro y su foco visible otra vez en oscuro (el contraste de los
 // colores lo mide `design/tokens.test.ts`). Con `E2E_HALLAZGOS=<carpeta>` deja `<carpeta>/<proyecto>.json` para la tabla de hallazgos.
 test.describe.configure({ mode: 'serial' })
 
@@ -133,7 +133,11 @@ NOMBRES.forEach((nombre, i) => {
     const nuevos = registros
       .slice(desde)
       .flatMap((r) => r.hallazgos.map((h) => ({ ruta: r.ruta, ...h })))
-      .filter((h) => REGLAS_DURAS.includes(h.regla) && !esConocido(h.ruta, h))
+      .filter((h) =>
+        h.regla === 'blanco'
+          ? esDeLasFases5a9(h.ruta) && !esBlancoConocido(h.ruta, h)
+          : REGLAS_DURAS.includes(h.regla) && !esConocido(h.ruta, h),
+      )
       .map((h) => `${h.ruta} · ${h.regla} · ${h.descriptor} (×${String(h.n)})`)
     // Un conocido que esta corrida no vio no la hace caer (lo dibujado cambia con el proyecto y el estado): queda anotado.
     const vistos = registros.slice(desde)
@@ -151,7 +155,7 @@ NOMBRES.forEach((nombre, i) => {
     }
     expect(
       nuevos,
-      'controles sin nombre o referencias rotas que no están en los conocidos',
+      'controles sin nombre, referencias rotas o blancos táctiles que no están en los conocidos',
     ).toEqual([])
   })
 })
