@@ -7,7 +7,7 @@
 --   R7. La genérica: la N+1 que choca y la final sin vehículo dan PT409 con texto y no restauran nada; un lote sano vuelve con su resumen y su versión;
 --       uno ya restaurado devuelve 0 sin volver a sellarlo ni registrar otra actividad.
 --   R8. Privilegios: el ayudante, de nadie; las dos RPC, `security definer`, `search_path` vacío, de authenticated y no de anon ni PUBLIC.
---   R9. El orden: quién se mira antes de tomar el lote; los vehículos y los leads del lote se toman, por id, antes que cualquier cotización.
+--   R9. El orden: quién se mira antes de tomar el lote; los leads y después los vehículos del lote se toman, por id, antes que cualquier cotización.
 
 create or replace function pg_temp.rg_persona(p_concesiones text[]) returns uuid language plpgsql as $f$
 declare v_id uuid := gen_random_uuid(); v_rol uuid; c text;
@@ -172,7 +172,7 @@ begin
   end loop;
 end $$;
 
--- @test papelera de cotizaciones: restaurar mira quién antes de tomar el lote, y toma vehículos y leads por id antes que cualquier cotización (R9)
+-- @test papelera de cotizaciones: restaurar mira quién antes de tomar el lote, y toma leads y después vehículos por id antes que cualquier cotización (R9)
 do $$
 declare v_src text; f text; v_quien int; v_toma int; v_veh int; v_lea int;
 begin
@@ -189,5 +189,6 @@ begin
   v_toma := position('for no key update' in v_src);
   if v_veh = 0 or v_lea = 0 then raise exception 'el ayudante no toma vehículos y leads for key share en orden'; end if;
   if v_toma = 0 or v_veh > v_toma or v_lea > v_toma then raise exception 'el ayudante toma una cotización antes que sus vehículos o leads'; end if;
-  if v_veh > v_lea then raise exception 'el ayudante toma los leads antes que los vehículos'; end if;
+  -- El orden lead → vehículo de vincular: al revés, restaurar y vincular se esperan en círculo (40P01).
+  if v_lea > v_veh then raise exception 'el ayudante toma los vehículos antes que los leads'; end if;
 end $$;

@@ -541,9 +541,11 @@ papelera no cuenta). Sin `p_abierta` (no sale de una hoja vista).
 
 - **El orden y los errores:** `assert_activo`; ver la anterior (lo que no existe, está en la papelera o no se ve: el 42501 de
   `cotizacion_leer`, antes que todo lo demás); `cotizaciones.crear` y `ver` del origen; su lead (nulo: 22023 `lead`; no visible: 42501);
-  el intento (el candado de `cotizacion_crear`: repetido devuelve la misma; mío con otra anterior: 22023 `intento_reusado`); la anterior
-  `for share` y otra vez visible; ya tiene una nueva viva: PT409 `ya_tiene_encima` (el id en el hint sólo a quien la ve); el lead `for key
-share`, el vehículo (o 22023 `vehiculo` si es obligatorio); la publicada `for share`; el total (22023 `total_sin_valor`: no se crea).
+  el intento (el candado de `cotizacion_crear`: repetido devuelve la misma; mío con otra anterior: 22023 `intento_reusado`); el lead y el
+  vehículo de la anterior `for key share` y después la anterior `for share` (lead → vehículo → cotización; si su lead o su vehículo cambió
+  mientras esperaba, se vuelven a tomar), otra vez visible; ya tiene una nueva viva: PT409 `ya_tiene_encima` (el id en el hint sólo a quien
+  la ve); el lead y el vehículo otra vez visibles (o 22023 `vehiculo` si es obligatorio); la publicada `for share`; el total (22023
+  `total_sin_valor`: no se crea).
 - **Lo que se lleva** (`_cotizacion_lo_que_se_lleva`): lo tipeado de cada nodo que sigue en la versión de hoy con un tipo que lo acepta,
   **también lo que quien llama no ve** (se guarda y no se le devuelve); la variante sólo si es opción de hoy; el modo si sigue (si no, el
   primero de hoy); «Ver total Bs» si hoy se ofrece; título y notas.

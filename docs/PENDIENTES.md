@@ -65,7 +65,6 @@ Al cerrar una, se borra su línea (el PR lo cuenta). Lo nuevo que aparezca al tr
 - **[7-4]** Con `p_conversacion` del canal global, `tarea_crear` y `agenda_quienes_reciben` miran la fila suelta de `conversaciones_miembros` y pasa un responsable sin `chat.global` — revalidar con `_chat_miembro_vigente` como `mensaje_tarea_crear`.
 - **[—]** `lead_campo_impacto` lee los valores de todos los leads, también `solo_cartera` ajenos: con `leads.campos.gestionar`, acotando el rango, se hallan los extremos de un campo privado.
 - **[—]** Dominancia: no se cubre que la de quien llama cambie mientras actúa, y `nivel_crear` suma concesiones al rol `dueno` sin tomar `roles … for update`.
-- **[—]** Ciclos de candados abiertos: `cotizacion_encima` (anterior → vehículo) contra la papelera de vehículos (vehículo → cotizaciones), y restaurar cotizaciones (vehículo → lead) contra vincular (lead → vehículo) — salida: tomar lead → vehículo primero.
 - **[—]** `comprobante_emitir` contra la papelera de vehículos: `_vehiculo_motivo_de_bloqueo` mira los comprobantes sin tomar las cotizaciones — que emitir tome el vehículo `for key share` antes.
 - **[—]** `_vehiculo_motivo_de_bloqueo` no frena mandar a la papelera un vehículo con una final sin lead.
 - **[—]** Purgar un vehículo o un lead no se bloquea mientras una cotización de la papelera lo nombra, y una final en la papelera hace caer con `23514` la purga entera del lote del vehículo.
@@ -144,6 +143,8 @@ Al cerrar una, se borra su línea (el PR lo cuenta). Lo nuevo que aparezca al tr
 - **[5a-43]** `medir-importacion-volumen.sql` falla si la segunda pasada es más rápida (banda 0,8–1,2) — tope de razón sólo por arriba y el mismo trabajo por fila en las dos pasadas.
 - **[—]** `supabase/tests/medir-jobs.sql` corre la limpieza con `now() + 12 h`: entre las 12:00 y las 15:00 de La Paz no mide nada.
 - **[—]** `fase_mover` con `orden` repetido previo y ancla compartida deja la movida detrás de la otra fase — desempatar si molesta.
+- **[—]** `logistica/entities/dinero/reparto.test.ts` («para cualquier monto…», ~2700 casos) pasa de los 5 s de Vitest con la máquina cargada (`pnpm test` junto a `db:probar`) — menos casos o un `timeout` propio.
+- **[—]** `e2e/cotizaciones-listado.spec.ts` E6 y E8 fallan a veces en el CI y pasan en local: la tecla N abre `panel=nuevo-lead` en vez de la hoja, y «Ver todas» pierde `clase=preventa` — esperar la hidratación o el `href` ya filtrado antes de actuar.
 
 ### Límites aceptados
 
