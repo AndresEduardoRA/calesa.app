@@ -61,6 +61,11 @@ Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista pre
   función `importar-csv` sólo valida su forma, sigue la marca `procesadas` que devuelve la base (nunca su cuenta) y borra el CSV al llegar a `terminada`
   o `fallida`. `plantillas.ts` y `shared/lib/csv/leer.ts` tienen copia exacta en `supabase/functions/importar-csv/`: se edita el de `src/` y se copia
   (la guarda `scripts/guardas/areas-c/importar-csv-copias.test.ts` cae si se separan).
+- Importación total, la pantalla (9.06-4): una fila normalizada por cada fila de datos de la persona, también la rechazada (D32: la fila `n` del
+  archivo es la `n + 1` de la persona); cada fila pasa por los validadores de `plantillas.ts` antes de escribirse (D34), así la vista previa y la
+  función no se separan; la ruta la arma el servidor con quien llama; subir → crear → quitar el objeto propio sólo ante un rechazo seguro. Los
+  motivos de la conversión pueden repetir la celda (como la vista previa de `/leads`), a sabiendas del comentario de `plantillas.ts` («un motivo
+  nunca repite la celda», que vale para la función): quedan en `importaciones_filas`, bajo su RLS, 30 días, y nunca en un log (D33).
 - Exportar todo: el permiso (efectivo) → la sesión → layout y catálogos → el conteo hasta `TOPE_POR_ENTIDAD[entidad] + 1` → **el registrar** → el flujo. Con más del
   tope o ninguna fila, no se registra; con 42501 o el cupo gastado, 403 o 429 sin leer filas; nunca se registra dos veces; el archivo nunca lleva más
   filas que las registradas (el conteo y la lectura usan el mismo instante de corte y la lectura corta en `filas`). Lo prueba `route.test.ts`.
