@@ -151,6 +151,11 @@ console.log(`✓ ${ok} archivos aplicados`)
 // Los datos que una prueba lee del repo, por archivo (las clases de dato, en `scripts/lib/datos-de-prueba.mjs`). Si una migración que se lee
 // como texto se recrea con otra fecha, se corrige su ruta.
 const DATOS_DE_PRUEBA = {
+  // splinter sobre el esquema de la prueba, con los esquemas que expone la API, y la lista de avisos aceptados con su motivo (9.13-1).
+  'advisors.sql': {
+    _avisos: { consulta: 'scripts/splinter.sql', schemasDe: configToml },
+    _avisos_con_motivo: path.join(base, 'tests', 'advisors-con-motivo.json'),
+  },
   'validar-formula.sql': {
     _juego_de_formula: 'src/modules/cotizaciones/entities/casos-de-formula.json',
     _corpus_de_formula: path.join(base, 'tests', 'corpus-de-formula.json'),
@@ -200,6 +205,8 @@ const DATOS_DE_PRUEBA = {
 // orden. Después de esta lista corren las de `supabase/tests/areas/**` (`pruebasEnOrden`): ahí suma las suyas un carril que no es base.
 const SOLO = process.env['SOLO']?.split(',')
 const LISTA_FIJA = [
+  // Antes que todo: splinter mira el catálogo antes de que una prueba deje funciones en `pg_temp` (`function_search_path_mutable` no las excluye).
+  'advisors.sql',
   // Primero: mira el seed tal como queda, antes de que el humo publique la v2 de una fórmula o cambie un tipo de cambio.
   'rls-en-todo.sql',
   'privilegios-de-anon.sql',

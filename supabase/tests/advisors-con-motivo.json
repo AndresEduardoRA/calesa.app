@@ -1,0 +1,310 @@
+{
+  "avisos": [
+    {
+      "lint": "anon_security_definer_function_executable",
+      "clave": "anon_security_definer_function_executable_web_ajustes_acceso_",
+      "motivo": "Las pantallas de acceso, sin sesión, leen la marca de la empresa (nombre, logo, color, idioma, zona), si el registro está abierto y si aún no hay ninguna cuenta (src/modules/empresa/infra/queries/ajustes.ts): definer porque anon no lee ajustes_empresa; una fila fija, sin datos de personas."
+    },
+    {
+      "lint": "anon_security_definer_function_executable",
+      "clave": "anon_security_definer_function_executable_web_registrar_evento_p_token text, p_evento text, p_ruta text, p_referencia_id uuid, p_utm jsonb",
+      "motivo": "Entrada pública de eventos de la web: definer porque anon no escribe eventos_web; rechaza un token fuera de ^[A-Za-z0-9_-]{16,64}$ o un evento fuera de su lista, corta la ruta a 300 y no devuelve nada."
+    },
+    {
+      "lint": "anon_security_definer_function_executable",
+      "clave": "anon_security_definer_function_executable_web_solicitar_asesor_p_token text, p_fuente text, p_ruta text, p_vehiculo_id uuid, p_handle text, p_utm jsonb",
+      "motivo": "La solicitud de asesor de la web pública (la cola web): anon con token del sitio (rechaza uno fuera de su forma); definer porque asigna por la rueda sobre tablas que anon no ve; devuelve el código y lo público del asesor asignado (perfil publico_web y su WhatsApp de la web)."
+    },
+    {
+      "lint": "authenticated_security_definer_function_executable",
+      "clave": "authenticated_security_definer_function_executable_public_limpieza_el_v public.vehiculos",
+      "motivo": "Columna calculada de `vehiculos` (filtro, insignia, banner): definer porque llama a `_limpieza_fecha`, `_limpieza_proxima` y `_limpieza_ancla`, que sólo ejecuta service_role. Con una fila armada a mano revela un bit por id de vehículo conocido (anclado por conservado, documentos, gastos, pagos, cotización final o bloqueo); los ids son uuid y hay que conocerlos. Acotarla relee la fila bajo RLS por fila listada, ya descartado (docs/DECISIONES.md, «P-limpieza: no releer la fila»)."
+    },
+    {
+      "lint": "authenticated_security_definer_function_executable",
+      "clave": "authenticated_security_definer_function_executable_public_storage_refcount_p_bucket text, p_ruta text",
+      "motivo": "La llama `quitarSiHuerfano()` desde el navegador (src/shared/lib/supabase/almacen.client.ts) para borrar un objeto que ya nadie usa (logo, avatar, guías, testimonios). La ruta es el hash del contenido: saber si está en uso exige tener el archivo. Cerrarla es mover ese borrado a una Server Action; hasta entonces se queda abierta."
+    },
+    {
+      "lint": "function_search_path_mutable",
+      "clave": "function_search_path_mutable_public__lead_visible_para_9f4ad99ee8b5d534a174da75aea979a3",
+      "motivo": "Función SQL de una sola consulta, sin definer ni SET, que Postgres inlinea (EXPLAIN de 9.13-1: el cuerpo aparece en el plan de quien la llama); fijarle search_path lo impide y cambia el plan del llamador. Todo nombre de su cuerpo va calificado con `public.`. La usa una policy (`puede_lead`/`_leads_candidatos_sql`): inlinearla por fila es lo que mantiene el plan."
+    },
+    {
+      "lint": "function_search_path_mutable",
+      "clave": "function_search_path_mutable_public__motor_entre_75574d5b8badecdaf3887c591812a6f5",
+      "motivo": "Función SQL de una sola consulta, sin definer ni SET, que Postgres inlinea (EXPLAIN de 9.13-1: el cuerpo aparece en el plan de quien la llama); fijarle search_path lo impide y cambia el plan del llamador. Todo nombre de su cuerpo va calificado con `public.`. Es el camino rápido del motor de la fórmula (`evaluar_formula`), por operación."
+    },
+    {
+      "lint": "function_search_path_mutable",
+      "clave": "function_search_path_mutable_public__motor_mas_071bb869d3a3a2dac42bb767a45d30c6",
+      "motivo": "Función SQL de una sola consulta, sin definer ni SET, que Postgres inlinea (EXPLAIN de 9.13-1: el cuerpo aparece en el plan de quien la llama); fijarle search_path lo impide y cambia el plan del llamador. Todo nombre de su cuerpo va calificado con `public.`. Es el camino rápido del motor de la fórmula (`evaluar_formula`), por operación."
+    },
+    {
+      "lint": "function_search_path_mutable",
+      "clave": "function_search_path_mutable_public__motor_menos_7206fc025337da59d00b0abe49015438",
+      "motivo": "Función SQL de una sola consulta, sin definer ni SET, que Postgres inlinea (EXPLAIN de 9.13-1: el cuerpo aparece en el plan de quien la llama); fijarle search_path lo impide y cambia el plan del llamador. Todo nombre de su cuerpo va calificado con `public.`. Es el camino rápido del motor de la fórmula (`evaluar_formula`), por operación."
+    },
+    {
+      "lint": "function_search_path_mutable",
+      "clave": "function_search_path_mutable_public__motor_numero_a588bc04a354ce5c54cee21f0c372d33",
+      "motivo": "Función SQL de una sola consulta, sin definer ni SET, que Postgres inlinea (EXPLAIN de 9.13-1: el cuerpo aparece en el plan de quien la llama); fijarle search_path lo impide y cambia el plan del llamador. Todo nombre de su cuerpo va calificado con `public.`. Es el camino rápido del motor de la fórmula (`evaluar_formula`), por operación."
+    },
+    {
+      "lint": "function_search_path_mutable",
+      "clave": "function_search_path_mutable_public__motor_por_814b36abb8a26db11739378af628fa13",
+      "motivo": "Función SQL de una sola consulta, sin definer ni SET, que Postgres inlinea (EXPLAIN de 9.13-1: el cuerpo aparece en el plan de quien la llama); fijarle search_path lo impide y cambia el plan del llamador. Todo nombre de su cuerpo va calificado con `public.`. Es el camino rápido del motor de la fórmula (`evaluar_formula`), por operación."
+    },
+    {
+      "lint": "function_search_path_mutable",
+      "clave": "function_search_path_mutable_public_datos_exportar_leads_1a70a6f7f0c2dc923c73656992b0b513",
+      "motivo": "Función SQL de una sola consulta, sin definer ni SET, que Postgres inlinea (EXPLAIN de 9.13-1: el cuerpo aparece en el plan de quien la llama); fijarle search_path lo impide y cambia el plan del llamador. Todo nombre de su cuerpo va calificado con `public.`. Devuelve filas de `leads_vista` (security_invoker): inlineada, el filtro y el límite de quien la llama bajan a la vista."
+    },
+    {
+      "lint": "function_search_path_mutable",
+      "clave": "function_search_path_mutable_public_leads_vista_por_ids_598f89509c8eae9a5b47e3e5e4522c57",
+      "motivo": "Función SQL de una sola consulta, sin definer ni SET, que Postgres inlinea (EXPLAIN de 9.13-1: el cuerpo aparece en el plan de quien la llama); fijarle search_path lo impide y cambia el plan del llamador. Todo nombre de su cuerpo va calificado con `public.`. Devuelve filas de `leads_vista` (security_invoker): inlineada, el filtro y el límite de quien la llama bajan a la vista."
+    },
+    {
+      "lint": "security_definer_view",
+      "clave": "security_definer_view_web_ajustes",
+      "motivo": "Vista de `web` con security_invoker = false a propósito: es la frontera pública (`src/modules/web/CLAUDE.md` › «No se rompe»: el WHERE y las columnas de la vista son la frontera, sin costos, teléfono, VIN ni rutas privadas); `anon` no lee las tablas de debajo."
+    },
+    {
+      "lint": "security_definer_view",
+      "clave": "security_definer_view_web_asesores",
+      "motivo": "Vista de `web` con security_invoker = false a propósito: es la frontera pública (`src/modules/web/CLAUDE.md` › «No se rompe»: el WHERE y las columnas de la vista son la frontera, sin costos, teléfono, VIN ni rutas privadas); `anon` no lee las tablas de debajo."
+    },
+    {
+      "lint": "security_definer_view",
+      "clave": "security_definer_view_web_faqs",
+      "motivo": "Vista de `web` con security_invoker = false a propósito: es la frontera pública (`src/modules/web/CLAUDE.md` › «No se rompe»: el WHERE y las columnas de la vista son la frontera, sin costos, teléfono, VIN ni rutas privadas); `anon` no lee las tablas de debajo."
+    },
+    {
+      "lint": "security_definer_view",
+      "clave": "security_definer_view_web_guias",
+      "motivo": "Vista de `web` con security_invoker = false a propósito: es la frontera pública (`src/modules/web/CLAUDE.md` › «No se rompe»: el WHERE y las columnas de la vista son la frontera, sin costos, teléfono, VIN ni rutas privadas); `anon` no lee las tablas de debajo."
+    },
+    {
+      "lint": "security_definer_view",
+      "clave": "security_definer_view_web_testimonios",
+      "motivo": "Vista de `web` con security_invoker = false a propósito: es la frontera pública (`src/modules/web/CLAUDE.md` › «No se rompe»: el WHERE y las columnas de la vista son la frontera, sin costos, teléfono, VIN ni rutas privadas); `anon` no lee las tablas de debajo."
+    },
+    {
+      "lint": "security_definer_view",
+      "clave": "security_definer_view_web_vehiculos",
+      "motivo": "Vista de `web` con security_invoker = false a propósito: es la frontera pública (`src/modules/web/CLAUDE.md` › «No se rompe»: el WHERE y las columnas de la vista son la frontera, sin costos, teléfono, VIN ni rutas privadas); `anon` no lee las tablas de debajo."
+    }
+  ],
+  "comodines": [
+    {
+      "lint": "authenticated_security_definer_function_executable",
+      "motivo": "Toda RPC de la app es security definer con set search_path = '' y su grant a authenticated es explícito por función (.claude/rules/migraciones.md › «Privilegios»); lo que cada una deja hacer lo cuidan las pruebas de permisos de su área en supabase/tests/ (privilegios-de-anon.sql sólo mira a anon). Anotar cientos por nombre no agrega revisión."
+    },
+    {
+      "lint": "pg_graphql_authenticated_table_exposed",
+      "motivo": "authenticated ve en la introspección de GraphQL los nombres de lo que puede leer; las filas las cuida RLS, que rls-en-todo.sql exige en toda tabla de public. Desactivar pg_graphql es opción de la persona (guía)."
+    }
+  ],
+  "fuera": [
+    {
+      "lint": "extension_versions_outdated",
+      "motivo": "Depende de la versión de la imagen de Supabase (la local o la del proyecto), no del repo: lo mira la persona en el panel al actualizar."
+    },
+    {
+      "lint": "table_bloat",
+      "motivo": "Lee pg_stats: depende de las estadísticas y del volumen de la base, no del esquema; en PGlite o recién reseteada no dice nada."
+    },
+    {
+      "lint": "unused_index",
+      "motivo": "Lee pg_stat_user_indexes: en una base recién reseteada todo índice está sin usar; depende del uso, no del esquema (y es INFO)."
+    }
+  ],
+  "db_lint": [
+    {
+      "patron": "public._atributos_fusionar",
+      "avisos": 2,
+      "motivo": "Marcada IMMUTABLE sobre una expresión STABLE (una conversión de texto a fecha o número, o un raise con format): deuda de la base; sólo cambia el resultado si la entrada no trae zona o formato fijo, y se revisa función por función (9.13-2)."
+    },
+    {
+      "patron": "public._atributos_rango",
+      "avisos": 4,
+      "motivo": "Marcada IMMUTABLE sobre una expresión STABLE (una conversión de texto a fecha o número, o un raise con format): deuda de la base; sólo cambia el resultado si la entrada no trae zona o formato fijo, y se revisa función por función (9.13-2)."
+    },
+    {
+      "patron": "public._atributos_validar",
+      "avisos": 1,
+      "motivo": "Marcada IMMUTABLE sobre una expresión STABLE (una conversión de texto a fecha o número, o un raise con format): deuda de la base; sólo cambia el resultado si la entrada no trae zona o formato fijo, y se revisa función por función (9.13-2)."
+    },
+    {
+      "patron": "public._campo_impacto",
+      "avisos": 1,
+      "motivo": "Marcada IMMUTABLE sobre una expresión STABLE (una conversión de texto a fecha o número, o un raise con format): deuda de la base; sólo cambia el resultado si la entrada no trae zona o formato fijo, y se revisa función por función (9.13-2)."
+    },
+    {
+      "patron": "public._campo_opciones_validas",
+      "avisos": 1,
+      "motivo": "Una asignación con conversión implícita entre tipos (jsonb, text, numeric, un enum), la buscada; la cubren las pruebas de su área."
+    },
+    {
+      "patron": "public._chat_menciones_guardar",
+      "avisos": 1,
+      "motivo": "Una asignación con conversión implícita entre tipos (jsonb, text, numeric, un enum), la buscada; la cubren las pruebas de su área."
+    },
+    {
+      "patron": "public._diseno_auxiliares",
+      "avisos": 1,
+      "motivo": "Una asignación con conversión implícita entre tipos (jsonb, text, numeric, un enum), la buscada; la cubren las pruebas de su área."
+    },
+    {
+      "patron": "public._formula_cambio_y_grupos",
+      "avisos": 11,
+      "motivo": "Una asignación con conversión implícita entre tipos (jsonb, text, numeric, un enum), la buscada; la cubren las pruebas de su área; variables de un FOR (i, k, g) que plpgsql_check ve como sombra de otra o sin uso: cosmético, no cambia el resultado."
+    },
+    {
+      "patron": "public._formula_forma",
+      "avisos": 3,
+      "motivo": "Variables de un FOR (i, k, g) que plpgsql_check ve como sombra de otra o sin uso: cosmético, no cambia el resultado."
+    },
+    {
+      "patron": "public._formula_forma_nodo",
+      "avisos": 4,
+      "motivo": "Variables de un FOR (i, k, g) que plpgsql_check ve como sombra de otra o sin uso: cosmético, no cambia el resultado."
+    },
+    {
+      "patron": "public._formula_variante",
+      "avisos": 5,
+      "motivo": "Variables de un FOR (i, k, g) que plpgsql_check ve como sombra de otra o sin uso: cosmético, no cambia el resultado."
+    },
+    {
+      "patron": "public._lead_atributos_formato",
+      "avisos": 5,
+      "motivo": "Marcada IMMUTABLE sobre una expresión STABLE (una conversión de texto a fecha o número, o un raise con format): deuda de la base; sólo cambia el resultado si la entrada no trae zona o formato fijo, y se revisa función por función (9.13-2)."
+    },
+    {
+      "patron": "public._lead_campo_privacidad_lote",
+      "avisos": 1,
+      "motivo": "Una variable declarada o asignada que no se lee: cosmético."
+    },
+    {
+      "patron": "public._seguimiento_marcas",
+      "avisos": 1,
+      "motivo": "Una asignación con conversión implícita entre tipos (jsonb, text, numeric, un enum), la buscada; la cubren las pruebas de su área."
+    },
+    {
+      "patron": "public._seguimiento_nodo",
+      "avisos": 3,
+      "motivo": "Una asignación con conversión implícita entre tipos (jsonb, text, numeric, un enum), la buscada; la cubren las pruebas de su área; marcada IMMUTABLE sobre una expresión STABLE (una conversión de texto a fecha o número, o un raise con format): deuda de la base; sólo cambia el resultado si la entrada no trae zona o formato fijo, y se revisa función por función (9.13-2)."
+    },
+    {
+      "patron": "public._seguimiento_visibilidad",
+      "avisos": 1,
+      "motivo": "Marcada IMMUTABLE sobre una expresión STABLE (una conversión de texto a fecha o número, o un raise con format): deuda de la base; sólo cambia el resultado si la entrada no trae zona o formato fijo, y se revisa función por función (9.13-2)."
+    },
+    {
+      "patron": "public._vehiculo_subasta_desde",
+      "avisos": 3,
+      "motivo": "Marcada IMMUTABLE sobre una expresión STABLE (una conversión de texto a fecha o número, o un raise con format): deuda de la base; sólo cambia el resultado si la entrada no trae zona o formato fijo, y se revisa función por función (9.13-2)."
+    },
+    {
+      "patron": "public._web_ajustes_objeto",
+      "avisos": 1,
+      "motivo": "Una asignación con conversión implícita entre tipos (jsonb, text, numeric, un enum), la buscada; la cubren las pruebas de su área."
+    },
+    {
+      "patron": "public._web_doc_marcas",
+      "avisos": 1,
+      "motivo": "Una asignación con conversión implícita entre tipos (jsonb, text, numeric, un enum), la buscada; la cubren las pruebas de su área."
+    },
+    {
+      "patron": "public._web_doc_nodo",
+      "avisos": 3,
+      "motivo": "Una asignación con conversión implícita entre tipos (jsonb, text, numeric, un enum), la buscada; la cubren las pruebas de su área; marcada IMMUTABLE sobre una expresión STABLE (una conversión de texto a fecha o número, o un raise con format): deuda de la base; sólo cambia el resultado si la entrada no trae zona o formato fijo, y se revisa función por función (9.13-2)."
+    },
+    {
+      "patron": "public.apibara_consultas_purgar",
+      "avisos": 2,
+      "motivo": "Variables de un FOR (i, k, g) que plpgsql_check ve como sombra de otra o sin uso: cosmético, no cambia el resultado."
+    },
+    {
+      "patron": "public.evaluar_formula",
+      "avisos": 15,
+      "motivo": "Una asignación con conversión implícita entre tipos (jsonb, text, numeric, un enum), la buscada; la cubren las pruebas de su área; variables de un FOR (i, k, g) que plpgsql_check ve como sombra de otra o sin uso: cosmético, no cambia el resultado."
+    },
+    {
+      "patron": "public.fase_eliminar",
+      "avisos": 1,
+      "motivo": "Una variable declarada o asignada que no se lee: cosmético."
+    },
+    {
+      "patron": "public.fase_mover",
+      "avisos": 1,
+      "motivo": "Una variable declarada o asignada que no se lee: cosmético."
+    },
+    {
+      "patron": "public.importacion_procesar_lote",
+      "avisos": 2,
+      "motivo": "Una asignación con conversión implícita entre tipos (jsonb, text, numeric, un enum), la buscada; la cubren las pruebas de su área."
+    },
+    {
+      "patron": "public.importaciones_filas_purgar",
+      "avisos": 3,
+      "motivo": "Variables de un FOR (i, k, g) que plpgsql_check ve como sombra de otra o sin uso: cosmético, no cambia el resultado."
+    },
+    {
+      "patron": "public.importaciones_vinculos_purgar",
+      "avisos": 2,
+      "motivo": "Variables de un FOR (i, k, g) que plpgsql_check ve como sombra de otra o sin uso: cosmético, no cambia el resultado."
+    },
+    {
+      "patron": "public.leads_candidatos",
+      "avisos": 4,
+      "motivo": "Una variable declarada o asignada que no se lee: cosmético."
+    },
+    {
+      "patron": "public.leads_importar_lote",
+      "avisos": 2,
+      "motivo": "Una asignación con conversión implícita entre tipos (jsonb, text, numeric, un enum), la buscada; la cubren las pruebas de su área."
+    },
+    {
+      "patron": "public.logistica_bandeja",
+      "avisos": 1,
+      "motivo": "Una asignación con conversión implícita entre tipos (jsonb, text, numeric, un enum), la buscada; la cubren las pruebas de su área."
+    },
+    {
+      "patron": "public.origen_eliminar",
+      "avisos": 1,
+      "motivo": "Una asignación con conversión implícita entre tipos (jsonb, text, numeric, un enum), la buscada; la cubren las pruebas de su área."
+    },
+    {
+      "patron": "public.seguimiento_crear",
+      "avisos": 1,
+      "motivo": "Una asignación con conversión implícita entre tipos (jsonb, text, numeric, un enum), la buscada; la cubren las pruebas de su área."
+    },
+    {
+      "patron": "public.transporte_grupo",
+      "avisos": 1,
+      "motivo": "SQL dinámico con todo valor por using (.claude/rules/escala.md): plpgsql_check no puede analizarlo."
+    },
+    {
+      "patron": "public.validar_formula",
+      "avisos": 9,
+      "motivo": "Una asignación con conversión implícita entre tipos (jsonb, text, numeric, un enum), la buscada; la cubren las pruebas de su área; variables de un FOR (i, k, g) que plpgsql_check ve como sombra de otra o sin uso: cosmético, no cambia el resultado."
+    },
+    {
+      "patron": "public.vehiculo_fotos_agregar",
+      "avisos": 3,
+      "motivo": "Una asignación con conversión implícita entre tipos (jsonb, text, numeric, un enum), la buscada; la cubren las pruebas de su área."
+    },
+    {
+      "patron": "public.vehiculos_inventario",
+      "avisos": 30,
+      "motivo": "RETURN QUERY llena las columnas OUT y plpgsql_check no lo sigue."
+    },
+    {
+      "patron": "web.solicitar_asesor",
+      "avisos": 2,
+      "motivo": "Una variable declarada o asignada que no se lee: cosmético."
+    }
+  ]
+}
