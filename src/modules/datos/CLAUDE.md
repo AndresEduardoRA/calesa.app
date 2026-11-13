@@ -87,6 +87,11 @@ Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista pre
   leads lo visto de teléfonos cruza los tramos), y la conversión completa usa la misma entrada que la vista previa (D45, D47). Reintentar manda el
   mismo intento: el id se reusa sólo con el mismo texto, entidad, mapeo, destino y origen (D46), así nunca nacen dos importaciones del mismo
   archivo. `puede()` sólo dibuja (pestaña, entidad, botón); el destino no se filtra por `leads.crear` y lo rechaza `importacion_crear` (D44).
+- Importación total, el avance y la lista (9.06-5): todo se lee en el navegador con la sesión de quien mira (la policy decide; `todas` sólo elige
+  el filtro) y sin `mapeo` ni `archivo_ruta`. Las rechazadas nunca nombran a la dueña de un lead que ya existía (la base no lo guarda) y las celdas
+  salen sólo del archivo que la persona tiene en memoria; desde la lista, sólo fila, resultado, campo y motivo (D54). «En pausa» se mira antes que
+  «Esperando» (D52). `crearImportacion` no lleva `revalidatePath` porque ningún Server Component lee las importaciones totales (D56): si la lista
+  pasa al servidor, se suma.
 - Exportar todo: el permiso (efectivo) → la sesión → layout y catálogos → el conteo hasta `TOPE_POR_ENTIDAD[entidad] + 1` → **el registrar** → el flujo. Con más del
   tope o ninguna fila, no se registra; con 42501 o el cupo gastado, 403 o 429 sin leer filas; nunca se registra dos veces; el archivo nunca lleva más
   filas que las registradas (el conteo y la lectura usan el mismo instante de corte y la lectura corta en `filas`). Lo prueba `route.test.ts`.
