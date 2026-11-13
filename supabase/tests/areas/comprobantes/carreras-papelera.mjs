@@ -4,10 +4,21 @@
 // así la papelera, que toma el vehículo `for update` y mira sus comprobantes, ve el que se acaba de emitir. Nunca queda un comprobante sobre una
 // cotización en la papelera y el que pierde no consume número. Las llama `carreras.mjs` con su `carrera()`, después de K1–K5.
 import { insertaCotizacion, terreno } from '../../../../scripts/carreras/cotizaciones.mjs'
-import { emitir, fila, nuevoId, sinHuecos, sinInterbloqueo, SERIE } from './carreras-comun.mjs'
+import { comoPersona } from '../../../../scripts/carreras/terreno.mjs'
+import {
+  comoValor,
+  duena,
+  emitir,
+  fila,
+  nuevoId,
+  sinHuecos,
+  sinInterbloqueo,
+  SERIE,
+} from './carreras-comun.mjs'
 
 const ACCESO = 'No tienes acceso a esta cotización.'
 const CON_COMPROBANTE = 'Tiene un comprobante emitido.'
+const CON_FINAL = 'Tiene una cotización final. Mándala a la papelera antes.'
 const VIGENTE = 'La final actual tiene un comprobante vigente: anúlalo antes de marcar otra final.'
 
 const enviar = (c) => ({
@@ -114,7 +125,9 @@ export async function carrerasDePapelera({ orquesta, espero, carrera }) {
     )
   }
 
-  console.log('Emitir contra mandar su vehículo a la papelera (K8, en los dos órdenes)')
+  console.log(
+    'Emitir contra mandar su vehículo a la papelera (K8: emitir primero; enviar primero, sin carrera)',
+  )
   {
     // Emitir no toca el vehículo: si no lo toma antes que la cotización, la papelera toma el vehículo, no ve el comprobante sin confirmar, espera la
     // cotización y, al confirmar emitir, se la lleva a la papelera con su comprobante.
@@ -134,22 +147,27 @@ export async function carrerasDePapelera({ orquesta, espero, carrera }) {
         e1.comprobantes === 1,
       { r1, e1, vivo1 },
     )
+    // Enviar primero no llega a carrera: la final activa frena el vehículo en el acto (`_vehiculo_motivo_de_bloqueo`) y su candado se suelta con el
+    // rechazo, así que emitir no lo espera.
     const [f2, , v2] = await finalYPreventa('k8b')
     const antes = await ultimo(orquesta)
-    const r2 = await carrera({ a: enviarVehiculo(v2), b: emitir(f2) })
+    const env = enviarVehiculo(v2)
+    await comoPersona(orquesta, duena)
+    const r2 = await comoValor(orquesta.query(`select ${env.sql} as r`, env.args))
+    await orquesta.query('reset role')
     const e2 = await estado(orquesta, f2)
     const vivo2 = await vehiculoVivo(orquesta, v2)
     espero(
-      'envía primero: el vehículo se lleva la final y emitir da el 42501 de lo inexistente, sin comprobante ni número',
-      r2.a.ok &&
-        r2.a.valor.enviados?.length === 1 &&
-        r2.b.codigo === '42501' &&
-        r2.b.mensaje === ACCESO &&
-        !vivo2 &&
-        !e2.viva &&
+      'envía primero: la final frena el vehículo (23514) y el vehículo y la final siguen vivos, sin comprobante ni número',
+      r2.ok &&
+        r2.valor.enviados?.length === 0 &&
+        r2.valor.rechazados?.[0]?.codigo === '23514' &&
+        r2.valor.rechazados[0].motivo === CON_FINAL &&
+        vivo2 &&
+        e2.viva &&
         e2.comprobantes === 0 &&
         (await ultimo(orquesta)) === antes &&
-        sinInterbloqueo(r1.a, r1.b, r2.a, r2.b) &&
+        sinInterbloqueo(r1.a, r1.b) &&
         (await sinHuecos(orquesta)),
       { r2, e2, vivo2 },
     )
