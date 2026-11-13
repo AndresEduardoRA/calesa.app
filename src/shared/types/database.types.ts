@@ -2409,6 +2409,9 @@ export type Database = {
       importaciones: {
         Row: {
           archivo_ruta: string | null
+          asignar_a: string | null
+          avance_en: string | null
+          con_destino: boolean
           creado_en: string
           deshecha_en: string | null
           deshecha_lote: string | null
@@ -2421,13 +2424,20 @@ export type Database = {
           id: string
           iniciada_en: string | null
           mapeo: NonNullable<Json>
+          origen_id: string | null
+          procesadas: number
+          rechazadas: number
           terminada_en: string | null
           usuario_id: string
+          ya_existian: number
           _importacion_vence_en: string | null
         }
         ComputedFields: '_importacion_vence_en'
         Insert: {
           archivo_ruta?: string | null
+          asignar_a?: string | null
+          avance_en?: string | null
+          con_destino?: boolean
           creado_en?: string
           deshecha_en?: string | null
           deshecha_lote?: string | null
@@ -2440,11 +2450,18 @@ export type Database = {
           id?: string
           iniciada_en?: string | null
           mapeo?: NonNullable<Json>
+          origen_id?: string | null
+          procesadas?: number
+          rechazadas?: number
           terminada_en?: string | null
           usuario_id: string
+          ya_existian?: number
         }
         Update: {
           archivo_ruta?: string | null
+          asignar_a?: string | null
+          avance_en?: string | null
+          con_destino?: boolean
           creado_en?: string
           deshecha_en?: string | null
           deshecha_lote?: string | null
@@ -2457,15 +2474,69 @@ export type Database = {
           id?: string
           iniciada_en?: string | null
           mapeo?: NonNullable<Json>
+          origen_id?: string | null
+          procesadas?: number
+          rechazadas?: number
           terminada_en?: string | null
           usuario_id?: string
+          ya_existian?: number
         }
         Relationships: [
+          {
+            foreignKeyName: 'importaciones_asignar_a_fkey'
+            columns: ['asignar_a']
+            isOneToOne: false
+            referencedRelation: 'perfiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'importaciones_origen_id_fkey'
+            columns: ['origen_id']
+            isOneToOne: false
+            referencedRelation: 'origenes'
+            referencedColumns: ['id']
+          },
           {
             foreignKeyName: 'importaciones_usuario_id_fkey'
             columns: ['usuario_id']
             isOneToOne: false
             referencedRelation: 'perfiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      importaciones_filas: {
+        Row: {
+          campo: string | null
+          creado_en: string
+          fila: number
+          importacion_id: string
+          motivo: string | null
+          resultado: string
+        }
+        ComputedFields: never
+        Insert: {
+          campo?: string | null
+          creado_en?: string
+          fila: number
+          importacion_id: string
+          motivo?: string | null
+          resultado: string
+        }
+        Update: {
+          campo?: string | null
+          creado_en?: string
+          fila?: number
+          importacion_id?: string
+          motivo?: string | null
+          resultado?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'importaciones_filas_importacion_id_fkey'
+            columns: ['importacion_id']
+            isOneToOne: false
+            referencedRelation: 'importaciones'
             referencedColumns: ['id']
           },
         ]
@@ -9986,6 +10057,17 @@ export type Database = {
           p_proveedor: string
           p_tipo_cambio: string
           p_vehiculos: string[]
+        }
+        Returns: Json
+      }
+      importacion_crear: {
+        Args: {
+          p_archivo_ruta: string
+          p_asignar_a?: string
+          p_entidad: string
+          p_id: string
+          p_mapeo: Json
+          p_origen?: string
         }
         Returns: Json
       }

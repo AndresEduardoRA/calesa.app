@@ -103,7 +103,7 @@ insert into public.permisos (clave, modulo, nombre, descripcion, por_origen, con
   ('web.cola.participar', 'web', 'Recibir turnos de la web', 'Estar en la rueda de turnos de la web. Sin este permiso no reciben turnos, aunque estén habilitadas', false, false, 'puede_estar_en_la_rueda: web.solicitar_asesor, web_expirar_solicitudes, estado_cola_web', 655),
   ('tablero.metricas.ver', 'tablero', 'Ver métricas', 'Tablero con métricas y gráficas', false, false, 'tablero_leads, tablero_cotizaciones', 660),
   ('datos.exportar.todo', 'datos', 'Exportar todo', 'Exportar los datos de todos', false, false, 'datos_exportacion_registrar', 670),
-  ('datos.importar.todo', 'datos', 'Importar para todos', 'Importar datos asignándolos a cualquiera', false, false, 'policy importaciones', 680)
+  ('datos.importar.todo', 'datos', 'Importar para todos', 'Importar datos asignándolos a cualquiera', false, false, 'importacion_crear, _importacion_autorizar, policy importaciones', 680)
 on conflict (clave) do update set nombre = excluded.nombre, descripcion = excluded.descripcion, por_origen = excluded.por_origen, con_alcance = excluded.con_alcance, aplicado_en = excluded.aplicado_en, modulo = excluded.modulo, orden = excluded.orden;
 
 -- ---------------------------------------------------------------------------
