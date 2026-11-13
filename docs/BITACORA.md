@@ -6325,3 +6325,295 @@ Parte 2 de 2: cierra el 8.14 y la Fase 8. Plan: `.piloto/planes/8.14-2.md`; la p
   de la deuda, fuera `datos.exportar.todo` (ya sin excepciones en `permisos-enforcement.sql`) y el logo oscuro (lo hizo el 9.10).
 - **Consolidados** antes de esta parte: los docs de paso del 9.06 (1 a 5 y 4b), que llegaron con la unión.
 - e2e completo: sí (8.14-2, cierre, Nivel 3: escritorio 1.265 en verde, 17 saltadas, 0 caídas, 52,7 min; movil 879 en verde, 31 saltadas, 1 caída, 37,2 min; la caída, inestable: 3 de 3 verdes sola)
+
+<!-- paso:9.12-1 -->
+
+## Paso 9.12-1 · Auditoría AA, parte 1 de 5: el barrido, el contraste de los tokens y la guarda de esqueletos (2026-11-13)
+
+- **Contraste de los tokens** (`design/tokens.test.ts`, 135 casos): texto ≥ 4,5:1 (tintas y `-ink` semánticos sobre las seis superficies, sobre su
+  `-soft`, `sobre-primario` y la tinta sobre las celdas del cotizador) y ≥ 3:1 del borde de control (`line-strong` = `--input`) y del foco, en claro y
+  oscuro, con el alfa compuesto sobre el fondo. Cayeron 19 y se corrigieron sólo en `design/tokens.css`: `ink-faint`, `line-strong` y `--shadow-focus`
+  (antes → después en `decisiones.md`). `vitest.config.mts` suma `design/**/*.test.ts`. Siguen el valor nuevo de `line-strong` el espejo del PDF
+  (`estilos-del-documento.ts`) y `e2e/xcell-geometria.spec.ts`.
+- **Guarda de esqueletos** (`scripts/guardas/estados-de-ruta.test.ts`): toda página de `(app)` tiene `loading.tsx` propio o heredado. Hoy pasa; heredan
+  `leads/importar` y `repuestos/[id]/cotizaciones/[cotizacion]`.
+- **Barrido** (`e2e/accesibilidad.spec.ts`, `e2e/soporte/accesibilidad{,-rutas,-conocidos}.ts`): las rutas salen de cada `page.tsx` de `src/app` (45
+  páginas: 42 se visitan y 3 dinámicas quedan pendientes con su parte); cada una en tema claro y su foco visible otra vez en oscuro, en `escritorio` y
+  `movil`. Reglas duras, por CDP: **cero controles sin nombre y cero `aria-describedby`/`aria-labelledby` rotos** en los dos proyectos (la lista de
+  conocidos quedó vacía). Las de informe (h1, título, orden de foco, foco visible, blancos de 44 px) van a la tabla de `decisiones.md`. Las reglas se
+  comprobaron contra una página con un defecto de cada una (botón, campo y enlace sin nombre, `aria-describedby` roto, `tabindex` > 0, enfocable en
+  `aria-hidden`, foco sin estilo, blancos chicos): las siete salieron.
+- **Pruebas:** `design/tokens.test.ts` + `app.test.ts` + `etiqueta.test.ts` 160 ✓ (`.piloto/salidas/9.12/tokens.txt`); `scripts/guardas` + `design` 1.289 ✓
+  (`guardas.txt`); `vitest related` 28 ✓ (`related.txt`); e2e `accesibilidad` y `xcell-geometria` en `escritorio` y `movil`, 28 ✓ en 1,3 min
+  (`e2e-final.txt`).
+- **Partición (parte 1 de 5, `parcial: true`):** 9.12-2, leads, vehículos y cotizaciones (4-61, 4-62, 4-63, 9-7, 4-50, «Copiar texto» de 4.18-3b, la
+  pestaña «Cotizaciones» de 4.17-3 y la ruta pendiente `/cotizaciones/[id]`); 9.12-3, Configuración y `shared/ui` (5a-28, 5a-29, 5a-30, 5a-33, 4-19,
+  4-20, 4-102, el anillo `ring-ring/50` y `--ring` en oscuro); 9.12-4, los `loading.tsx` propios de las dos páginas que heredan, la guarda a «propio»,
+  los cinco estados y `prefers-reduced-motion`; 9.12-5, los hallazgos de las fases 5 a 9, las rutas pendientes y el cierre del paso.
+- **Cómo se anota en `docs/PLAN.md`:** la 9.12-1 queda hecha (`9.12-1 ✓` en la «Partición» de la Fase 9); ningún abierto se cierra en esta parte. La
+  tabla «Auditoría AA (9.12)» de `decisiones.md` va a DECISIONES bajo ese título.
+- e2e completo: no (9.12-1, Nivel 1: lo prueba el CI del PR; dirigidos: accesibilidad, xcell-geometria en escritorio y movil)
+
+<!-- paso:9.12-2 -->
+
+## Paso 9.12-2 · Auditoría AA, parte 2 de 5: leads, vehículos y cotizaciones (2026-11-13)
+
+- **«Copiar texto» sin tarjeta** (4.18-3b): mientras carga, con error o sin permiso, el botón apagado ya no apunta con `aria-describedby` a un aviso
+  que no está dibujado (el «Total desactualizado.» y el «Falta el total…» viven con la tarjeta). Un caso nuevo en `copiar-texto-de-la-tarjeta.test.tsx`.
+- **Un solo esqueleto en la pestaña «Cotizaciones»** (4.17-3): `ListaDelHistorial` recibe `esperarEsqueleto`; la pestaña del vehículo y la sección del
+  lead, que llegan tras el esqueleto del `diferido()` (misma forma: tres filas `h-9`), pasan `false` y las filas pintan en el acto, sin los 300 ms de
+  blanco. El historial plegable de la hoja no cambia. Sin prueba nueva (PLAN).
+- **El resumen al pie se pliega** (4-50): «Ver el detalle» / «Ocultar el detalle» (`aria-expanded`, `aria-controls`) esconde el total en moneda local,
+  los secundarios y el modo; quedan el total, sus avisos, lo guardado, la región viva y el pie. Nace plegado con la fuente raíz ≥ 24 px
+  (`useResumenPlegado`, `useSyncExternalStore`); al costado (`@4xl/hoja`) no hay botón y todo se ve. El botón no lleva ícono (la hoja más grande queda
+  en 493 de 500 nodos) y mide 44 px fijos, como Live. Assert en la rama del 200 % de `e2e/cotizar-hoja-resumen.spec.ts`: nace plegado, sin el modo a la
+  vista, con el total y «Guardar»; «Ver el detalle» lo abre; al 100 % nace abierto; al costado no hay botón.
+- **El aviso de guardado sale cuando terminó el envío** (9-7): `useTrasElEnvio()` + `useSoltarTrasElEnvio(tras, enCurso)` (uno en `leads` y otro igual en
+  `vehiculos`) encolan el aviso, y cerrar el panel tras él, y lo sueltan con `isPending` en falso, o al desmontarse. En el alta de lead (con y sin
+  `?elegir=`), el panel de etapas del embudo y el panel de vehículo (edición y alta). Prueba de hook: espera con el envío en curso, sale una vez al
+  terminar, sale en el render siguiente si no había envío, en orden, y al desmontarse con algo en la cola.
+- **Barrido:** `/cotizaciones` y `/vehiculos` dan su `h1` (`sr-only`, como `/leads`). El `h1` pasa a **regla dura** de `e2e/accesibilidad.spec.ts`: las
+  siete rutas de la 9.12-5 sin `h1` (`/actividad`, `/logistica`, `/logistica/aduana`, `/logistica/embarques`, `/logistica/gastos`,
+  `/logistica/vehiculo/[id]`, `/repuestos`) quedan en `CONOCIDOS`. `/cotizaciones/[id]` se barre: el terreno siembra una cotización en la subasta de
+  la semilla (con fórmula publicada) y la limpia al final. La guardada no dio hallazgos duros.
+- **4-63** ya estaba cerrado: lo cerró el pedido-2 el 2026-11-07 (`2c75a250`, `aad3bfeb` y `e1284c0f`); esta parte no lo toca.
+- **Pruebas:** `copiar-texto-de-la-tarjeta.test.tsx` 7 ✓ (`.piloto/salidas/9.12-2/c1-vitest.txt`); prueba de hook 10 ✓ (`c5-hook.txt`);
+  `vitest related` de lo tocado 244 ✓ (`related.txt`); `scripts/guardas` 1.154 ✓ (`guardas.txt`); typecheck limpio. e2e en `escritorio` y `movil`:
+  cotizar-hoja-resumen 18 ✓ (`c3b-e2e.txt`); alta de lead, casos, panel de nuevo lead, embudo, alta de vehículo, recorrido de esperas y accesibilidad
+  79 ✓ (`c5b-e2e.txt`); vista previa, acciones, historial, pestaña del vehículo y sección del lead, 111 ✓ (`c123-e2e.txt`, la misma corrida en la que
+  cayó el tope del 30 %: D4); presupuesto-js, cotizar-hoja-200, avisos-sobre-el-pie, modales-celular-200 y cotizar-guardada 49 ✓ y 11 saltadas por
+  proyecto (`final-e2e.txt`).
+- **Partición (parte 2 de 5, `parcial: true`):** 4-61 y 4-62 pasan a la 9.12-3 (su arreglo está en `src/shared/ui/vuelta-del-foco.ts`, Nivel 2), con la
+  casilla de `/vehiculos` (`Checkbox` de `shared/ui`) y, si conviene, unir los dos `useTrasElEnvio` en `src/shared/lib`. El R7 de `/leads` (tres
+  botones sin `data-slot`) y los enlaces sueltos de `/vehiculos/«id»` pasan a la 9.12-5, que además borra de `CONOCIDOS` las siete entradas `h1` al
+  darles su `h1`. La 9.12-4 no cambia.
+- **Cómo se anota en `docs/PLAN.md`:** `9.12-2 ✓` en la «Partición» de la Fase 9; se cierran **4-50**, **9-7** y **4-63** (ya cerrado el 2026-11-07),
+  y las líneas sueltas de 4.18-3b («Copiar texto») y 4.17-3 (el esqueleto) de «Pulido para la Fase 9». La fila del 9.12 pasa 4-61 y 4-62 de la parte 2
+  a la 3.
+- e2e completo: no (9.12-2, Nivel 1: lo prueba el CI del PR; dirigidos: accesibilidad, cotizar-hoja-resumen, cotizar-hoja-200, avisos-sobre-el-pie,
+  modales-celular-200, cotizar-guardada, cotizar-vista-previa, cotizar-vista-previa-acciones, vehiculos-cotizaciones, leads-cotizaciones,
+  cotizar-historial-del-vehiculo, leads-alta, leads-alta-casos, cotizar-panel-nuevo-lead, leads-embudo, vehiculos-alta, recorrido-esperas y
+  presupuesto-js, en escritorio y movil)
+
+<!-- paso:9.12-3 -->
+
+## Paso 9.12-3 · Auditoría AA, parte 3 de 5: Configuración y `shared/ui` (2026-11-13)
+
+- **4-102, los botones de `<Confirmar>`** (`9f73afa2`): el arreglo (`min-h-11 md:min-h-9`) ya estaba en `confirmar.tsx`; los «42 px» eran la animación de
+  apertura del diálogo (escala ≈ 0,96 de 44 px: 42,3 medidos a mitad de camino; el alto calculado era 44). E9 de
+  `configuracion-cotizacion-tarjeta-descartar.spec.ts` espera el diálogo quieto (`quieto()`) y exige 44 px a «Cancelar» y «Descartar borrador» en el celular.
+- **4-61 y 4-62, el foco tras recargar y «atrás»** (`292f8d4c`): anotar y agendar del «⋯» de la ficha llegan por `router.push`; ahora abren con
+  `abrirConVuelta` y `alLlegarA(url)` (nuevo, en `vuelta-del-foco.ts`) cumple cuando la URL ya es la del panel, que es cuando la ficha puede guardarse con
+  ella. Y la ficha guardada compara la URL sin `panel`, `eliminar` ni `pestana` (la sonda mostró que la de `lead` se guardaba con `?lead=` y tras recargar
+  en `&pestana=seguimientos&panel=anotar-seguimiento` ya no coincidía). Asserts: `leads-menu-orden.spec.ts` (con y sin recargar, «⋯» enfocado) y
+  `leads-rapido-seguimientos.spec.ts` (el segundo «atrás» devuelve el foco al nombre de la fila); dos casos en `vuelta-del-foco.guardada.test.ts` (se toma si
+  sólo cambian esas claves, no si cambia el lead). Ficha de `shared` al día.
+- **5a-29 y 5a-30, la ficha de un origen al 200 %** (`489066a8`): la clave interna lleva `min-w-0 break-all` (con una clave de 28 caracteres llegaba a 400 de 380,5 en
+  412 px); el texto de un paso pide `min-w-[min(12rem,100%)]` y «Abrir» pasa debajo si no cabe. Un caso nuevo en `configuracion-200.spec.ts`.
+- **5a-28, 5a-33 y 4-19** (`fb2f711b`): el `fieldset` de apibara con `grid-cols-[minmax(0,1fr)]` y el botón que parte su texto (`min-h-[44px]`, `h-auto`,
+  `whitespace-normal`), con el assert en `configuracion-200.spec.ts` (nada del formulario pasa del relleno del cuerpo de su tarjeta; antes, 380 de 347).
+  Roles: «Permiso» pasa de `min-w-52` a `min-w-44` y la tabla lleva `scroll-pl-44` (`<Table contenedor>`, prop nueva de `shared/ui/table.tsx`): con 13 rem la
+  columna fija dejaba 270 px y la de un rol mide 320, así que ningún desplazamiento la dejaba entera; el assert de `roles-conteo-acotado.spec.ts` exige que el
+  conteo de «más de 1.000 personas» y de «3 personas» empiece a la derecha de «Permiso» (antes 744 contra 961). Niveles: el «·» va pegado al estado con espacio
+  duro; `lineasQueEmpiezanPorSeparador()` en `e2e/soporte/niveles-a-la-vista.ts` y su assert (cayó en el celular con 4 filas).
+- **El anillo de foco** (`55feadc8`): `ring-ring/50` pasa a `ring-ring` en `shared/ui` y los dos editores, y `.dark` pone `--ring` en `primario-ink`.
+  Sin prueba nueva (D7 del plan); lo cubre el barrido de `accesibilidad.spec.ts` (en verde en los dos proyectos).
+- **4-20 queda abierto** (D1): `--ancho-del-aviso` a 22 rem pasa `avisos-con-descripcion` (≤ 6 líneas, 22 rem, foco no tapado; hubo que seguir con la columna
+  de `avisos-sobre-el-pie.ts`) pero **tapa texto de la última fila de una lista** al 200 % en escritorio (`configuracion-cotizacion-niveles-200`, `quePisaElAviso`:
+  el assert de 4-15). Se revirtió todo (13,5 rem, sin cambio) y el abierto sigue: elegir entre ancho de aviso y alto de lista es de la persona.
+- **No entra, a la 9.12-5:** el R7 de Configuración (interruptores, pestañas, popovers de Roles, botón del marco, salto al contenido, casilla de `/vehiculos`).
+- **Pruebas:** vitest related de lo tocado, 562 ✓ (vuelta del foco) y 107 ✓ (componentes); `scripts/guardas` 39 archivos, 1.154 ✓ (`.piloto/salidas/9.12-3/guardas.txt`);
+  typecheck limpio; `mapa.sh --check` 0. e2e en `escritorio` y `movil` (`.piloto/salidas/9.12-3/`): C2 6 ✓, C3 y C4 67 ✓ + 30 ✓, C5–C6 54 ✓ + 14 ✓, C7–C9 67 ✓,
+  anillo 35 ✓.
+- **Partición (parte 3 de 5, `parcial: true`):** siguen 9.12-4 (esqueletos y transiciones) y 9.12-5 (fases 5 a 9 y cierre, más el R7 y 4-20).
+- **Cómo se anota en `docs/PLAN.md`:** `9.12-3 ✓`; se cierran **4-19**, **4-61**, **4-62**, **4-102**, **5a-28**, **5a-29**, **5a-30** y **5a-33**. **4-20 NO se
+  cierra**: queda con su medida (22 rem tapa texto de una lista al 200 %).
+- e2e completo: no (9.12-3, Nivel 2: lo prueba el CI del PR; dirigidos: configuracion-cotizacion-tarjeta-descartar, leads-menu-orden, leads-rapido-seguimientos,
+  leads-ficha-extras, leads-acciones-de-fila, leads-confirmar-por-url, leads-recordatorios-modal, leads-seguimientos, leads-seguimientos-modal, configuracion-200,
+  interruptor-200, roles-conteo-acotado, roles-niveles, equipo, equipo-200, origenes, configuracion-flujos, configuracion-flujos-recorrido,
+  configuracion-cotizacion-niveles-200, configuracion-cotizacion-niveles, accesibilidad y leads-alta, en escritorio y movil)
+
+<!-- paso:9.12-4 -->
+
+## Paso 9.12-4 · Auditoría AA, parte 4 de 5: esqueletos y transiciones (2026-11-13)
+
+- **Esqueletos propios** (`a8dd7a7e`): `(app)` tiene 41 páginas y 39 `loading.tsx` (el «21 y 20» de PLAN era viejo). Sólo dos heredaban:
+  `leads/importar` (hereda el de `leads`) y `repuestos/[id]/cotizaciones/[cotizacion]` (heredaba la cabecera de un proyecto, que esa hoja no dibuja). Cada una tiene
+  ahora su `loading.tsx` con la forma del `<Suspense>` de su página (título + formulario + tabla; listado 6×6), sin importar barriles de módulo.
+- **La guarda** (`44efcca6`, `scripts/guardas/estados-de-ruta.test.ts`): pasa de «propio o heredado» a «propio». Casos nuevos: todo `loading.tsx` exporta su pantalla y
+  dibuja un `Esqueleto…`/`Skeleton`, y ninguno queda sin su `page.tsx`. Se vio en rojo con las dos páginas de arriba antes de crear los archivos. Además fija el
+  contrato de la transición: `template.tsx` usa `TransicionPagina`, `globals.css` apaga `::view-transition-old/new(*)` con `animation: none` bajo
+  `prefers-reduced-motion: reduce` y `tokens.css` pone `--dur-pagina` y `--dur-rapida` en 0 ms.
+- **La transición, en el navegador** (`534586c4`, `e2e/transicion-de-pagina.spec.ts`, escritorio y movil): con movimiento normal, una navegación de cliente
+  (`window.next.router.push`, sin `goto`) corre animaciones `pagina-*` (**sí se dispara `startViewTransition`**: D3 del plan no hizo falta) y los tokens valen 280 y
+  120 ms; con `reduce` valen 0 y no corre ninguna. La mitad «reduce» no es vacía porque la otra demuestra que sin reduce sí corren.
+- **Los cinco estados**: tabla en `decisiones.md`; no hubo hueco mecánico, así que no hay commit `fix`.
+- **Pruebas:** `scripts/guardas` 39 archivos, 1.159 ✓ (`.piloto/salidas/9.12-4/guardas.txt`); typecheck exit 0; `mapa.sh --check` 0; e2e `transicion-de-pagina` 4 ✓
+  (`c3.txt`); e2e `accesibilidad`, `leads-importar`, `leads-importar-vista-previa`, `repuestos-cotizar`, `repuestos-cotizaciones` 32 ✓ y 1 saltada de antes
+  (`@sin-celular`) en los dos proyectos (`dirigidos.txt`).
+- **Partición (parte 4 de 5, `parcial: true`):** sigue 9.12-5 (hallazgos del barrido en las fases 5 a 9, el R7 de Configuración, 4-20 y el cierre).
+- **Cómo se anota en `docs/PLAN.md`:** `9.12-4 ✓`. No se cierra ningún abierto: «transiciones y esqueletos revisados» se cierra con la 9.12-5.
+- e2e completo: no (9.12-4, Nivel 1: lo prueba el CI del PR; dirigidos: transicion-de-pagina, accesibilidad, leads-importar, leads-importar-vista-previa,
+  repuestos-cotizar y repuestos-cotizaciones, en escritorio y movil)
+
+<!-- paso:9.12-5 -->
+
+## Paso 9.12-5 · Auditoría AA, parte 5 de 5: los hallazgos de las fases 5 a 9 y el cierre (2026-11-13)
+
+- **El barrido cubre las 45 rutas** (`7faec9b3`): la cotización de repuestos (aceptada, con una línea de cada bloque) y la guía de la web (borrador) se siembran por SQL
+  y se quitan en `limpiarTerreno`; `pendientes` queda vacío en los dos proyectos. Lo nuevo que dio: `/configuracion/web/guias/[id]` no tenía `h1`.
+- **`h1` y título propios** (`6cefce39`): `<h1 className="sr-only">` fuera del `Suspense` en `/actividad`, `/logistica`, `/logistica/{aduana,embarques,gastos}`,
+  `/logistica/vehiculo/[id]`, `/repuestos` y la guía; `CONOCIDOS` queda vacío. Cinco títulos repetían el de otra página y ahora son únicos
+  (`Unidad de logística`, `Configurar leads|logística|repuestos|cotizaciones`). Prueba nueva **A9**: un título por página, salvo `/auth/nueva-contrasena` y `/recuperar`.
+- **Blancos de 44 px** (`92bb5e25`): 12 controles propios de repuestos, logística, datos, notificaciones y la cola web (`h-11 md:h-8` o `min-h-11 md:min-h-0`).
+  R7 cae en el celular y sólo en las pantallas de las fases 5 a 9 (`RUTAS_DE_LAS_FASES_5_A_9`) si el descriptor no está en `BLANCOS_CONOCIDOS` (7 descriptores de
+  `shared/ui`, cada uno con un `max` por ruta para que un segundo blanco chico no se esconda).
+- **`role="status"` en los esqueletos** (`22bde8f4`, D4 de la 9.12-4): los cinco de `shared/ui/esqueletos/` y el de acceso; guarda en `estados-de-ruta.test.ts`
+  (rojo antes). Los 21 specs que miran `role=status` (84 pruebas, escritorio) pasaron **sin tocar ninguno**: D2 del plan (escopar o revertir) no hizo falta.
+- **Foco visible, dura** (`3c3dd597`): los seis campos de fecha de `/datos` «sin foco» eran un error de la medición (un `input type=date` conserva el foco en el campo del
+  mes y un `blur()` no lo suelta: se comparaba consigo mismo). Corregida, R6 da 0 en los dos proyectos y los dos temas y pasa a regla dura.
+- **Pruebas:** `scripts/guardas` 39 archivos, 1.161 ✓ (`.piloto/salidas/9.12-5/guardas.txt`); typecheck exit 0; `mapa.sh --check` 0; barrido final 18 ✓
+  (`c5.txt`; antes del arreglo `c1-antes.txt`); dirigidos de C2 142 ✓ en escritorio (`c2d.txt`), de C3 76 ✓ en los dos proyectos (`c3.txt`), de C4 84 ✓ (`c4.txt`) y 56 ✓ (`c4b.txt`).
+- **Se cierra:** R3, R4, R6, el barrido de las 45 rutas, y con las partes 1 a 4: **4-19, 4-50, 4-61, 4-62, 4-63, 4-102, 5a-28, 5a-29, 5a-30, 5a-33, 9-7**,
+  «transiciones y esqueletos revisados» y «auditoría AA». **Queda con dueño** (el coordinador lo escribe en `docs/PLAN.md` › «Pulido para la Fase 9»; cuentas en
+  `decisiones.md`): **4-20** (la persona), el R7 de `shared/ui` y del marco (la persona, con la lista del 9.13) y **9-12** (9.13, ya estaba).
+- **Cómo se anota en `docs/PLAN.md`:** `9.12-5 ✓` y la fila del 9.12 entera (`parcial: false`).
+- e2e completo: no (9.12-5, Nivel 2: lo prueba el CI del PR; dirigidos: accesibilidad, datos-exportar, notificaciones-campana, cola-web-tablero, configuracion-web-guias,
+  configuracion-repuestos-cotizador, logistica-unidad, repuestos-cotizar, repuestos-cotizaciones, repuestos-item-panel, avisos-sobre-el-pie, leads-alta-contexto,
+  leads-alta-un-drawer, transicion-de-pagina, los 21 de `role=status` y los 40 de actividad, logística, repuestos y Configuración)
+
+<!-- paso:9.13-1 -->
+
+## Paso 9.13-1 · Despliegue en seco: la base limpia, splinter y advisors con su motivo (2026-11-13)
+
+- **Medido antes (C0)**, splinter sobre la base del carril con `pgrst.db_schemas = public,graphql_public,web` (lo que expone `[api]`): 6 ERROR
+  `security_definer_view` (las vistas `web.*`, la frontera pública por diseño), 4 WARN `duplicate_index`, 8 `function_search_path_mutable`, 3
+  `anon_security_definer_function_executable`, 360 `authenticated_security_definer_function_executable`; INFO: 14 `rls_enabled_no_policy`, 1
+  `no_primary_key`, 305 `unused_index`. **Ni una FK sin índice, ni `auth_rls_initplan`, ni `multiple_permissive_policies`.** PGlite da los mismos
+  avisos (sólo cambia `unused_index`). El CI no veía los 6 ERROR: corre splinter sin `pgrst.db_schemas` y así sólo mira `public`.
+- **Arreglado:** los 4 índices duplicados (migración `advisors_indices_duplicados`; se queda el que nombran las consultas y las mediciones).
+- **Con motivo** en `supabase/tests/advisors-con-motivo.json`: las 6 vistas de `web`; las 3 RPC de `anon` (`web.ajustes_acceso`,
+  `web.registrar_evento`, `web.solicitar_asesor`); las 8 funciones SQL que Postgres inlinea (`_motor_*`, `_lead_visible_para`,
+  `leads_vista_por_ids`, `datos_exportar_leads`: EXPLAIN en `.piloto/salidas/9.13/inlinea.txt`); `storage_refcount()` y `limpieza_el` con su
+  entrada exacta; comodín para las RPC definer de `authenticated` y la introspección de GraphQL; fuera de la comparación `table_bloat`,
+  `unused_index` y `extension_versions_outdated`. Los 133 avisos de `db:lint` en 37 funciones, cada función con su motivo (`db_lint`).
+- **La prueba:** `db:probar` corre splinter en PGlite (clase de dato `consulta` en `scripts/lib/datos-de-prueba.mjs`) y `supabase/tests/advisors.sql`
+  cae ante un ERROR (salvo las vistas de `web` con su clave), un WARN o una FK sin índice sin motivo, un comodín o un excluido fuera de la regla, una
+  entrada repetida o un lint inventado; un bloque con avisos sintéticos demuestra que cae.
+- **Cómo se anota en `docs/PLAN.md`:** la fila 9.13 se parte; la 9.13-1 queda hecha con «splinter con cero avisos sin motivo en `db:probar`».
+- **Lo que sigue: 9.13-2** — el guion en seco (alcance, archivos y precondiciones en `.piloto/planes/9.13.md` › «Partición»); trae además llevar el
+  splinter del CI a `pgrst.db_schemas` con la misma regla, comparar `db_lint` contra la salida de `db:lint`, y lo que dejó la auditoría del
+  informe: fijar el `md5(prosrc)` de las 3 RPC de `anon` (su clave de splinter no lleva el cuerpo y un cambio no vuelve a pedir el motivo); confirmar
+  sobre la base real el comodín `pg_graphql_authenticated_table_exposed` (ni PGlite ni la base local lo dan) o quitarlo; revisar una por una las 9
+  funciones «IMMUTABLE sobre STABLE» de `db_lint`. Para la guía (9.13-3): `web.registrar_evento` no acota `p_utm` ni la frecuencia, y
+  `web.solicitar_asesor` devuelve el WhatsApp de la web de quien tenga una solicitud abierta aunque ya no pueda estar en la rueda.
+- e2e completo: no (9.13-1, Nivel 2: un índice borrado, sin policies ni interfaz; lo prueba el CI del PR; dirigidos: ninguno)
+
+<!-- paso:9.13-2 -->
+
+## Paso 9.13-2 · Despliegue en seco: el guion, el revisor de la base y la guarda (2026-11-13)
+
+- **`pnpm despliegue:en-seco`** (`scripts/despliegue/en-seco.sh`) corre dentro de un solo candado, en este orden: la base desde cero (con un reintento),
+  `db:probar`, `db:lint`, la base contra el repo, `env:check produccion` sin entorno y `next build` en `.next-e2e`. Un paso que cae no corta los demás.
+  Termina con «Para la persona» y `listo`, o con `falta:` y la lista. La corrida de la sesión terminó en `listo`: base 31 s, `db:probar` 278 s,
+  `db:lint` 2 s, revisor < 1 s, variables 1 s, build 79 s en frío y 10 s con caché (`.piloto/salidas/9.13/en-seco.txt`). Para la persona deja: crear
+  `url_proyecto` en Vault (en local lo pone la semilla), los `integracion:*` los crea la app, los tres secretos VAPID de `push`, la URL de
+  `web_revalidar_correr()` en Integraciones, y correr `env:check` de producción con las credenciales.
+- **El revisor** (`scripts/despliegue/revisar-base.mjs`, con `pg`, sólo base local) corre `supabase/tests/advisors.sql` contra la base real con
+  splinter y los schemas de `[api]` (690 avisos, también `web`). Además mira el sentido inverso de la lista (un motivo de un aviso que ya no existe),
+  `db:lint` contra `db_lint` (37 funciones) y el inventario: 19 jobs, 9 buckets, 3 nombres de Vault, 5 funciones con sus secretos y `[functions.*]`,
+  las 4 funciones edge que llama la base y el webhook `trg_notificaciones_push → push`. La lógica es pura y probada (`en-seco.test.ts`, 10 pruebas
+  con una base simulada; cada extractor cuenta lo que no entiende).
+- **El CI** (job `base`) deja el `grep '|ERROR|'` sobre `public` y corre el revisor: arregla el hallazgo de la 9.13-1 (el CI no veía los 6 ERROR de las
+  vistas `web`) con la misma regla que `db:probar`. La línea `- run: pnpm db:lint` queda, porque es el ancla de tres mutaciones de `workflows.test.ts`.
+- **La guarda** `scripts/guardas/despliegue-sin-remoto.test.ts`: ninguna línea de `scripts/despliegue/` (comentarios incluidos; los `*.test.ts` no)
+  tiene una orden contra el proyecto remoto, una API de gestión, una credencial nombrada, un `fetch(`, la CLI directa o una URL de Postgres no
+  local, y `env:check produccion` corre con `env -i`. Cada regla tiene un caso que cae y uno parecido que no.
+- **La lista de avisos:** las 3 RPC de `anon` llevan `funcion` y `huella` (`md5(prosrc)`) y `advisors.sql` cae si un cuerpo cambia (con su caso
+  sintético). El comodín de GraphQL se queda: `pg_graphql` no está en la base local (medido), y el sentido inverso lo exime sólo sin la extensión.
+  Los motivos de las 9 funciones «IMMUTABLE sobre STABLE» están reescritos una por una (`.piloto/salidas/9.13-2/c16-cuerpos.txt`). Ninguna sostiene
+  un índice, un default ni un check, y ninguna cambia con la sesión en un camino real. No propongo ningún abierto.
+- **Objeción 6 de la auditoría de la 9.13-1:** los EXPLAIN de las funciones sql que se inlinean ahora están guardados con su consulta
+  (`.piloto/salidas/9.13-2/inlinea-con-consulta.txt`). Las cuatro consultas (`_motor_*`, `_lead_visible_para`, `leads_vista_por_ids`,
+  `datos_exportar_leads`) dan «inlineada».
+- **Una prueba inestable de `db:probar`, arreglada:** la primera corrida del guion cayó en `importar-lotes` (el lote de vehículos daba
+  `rechazadas: 2`). Sola pasaba, y `db:probar` entero otra vez dio 1.484 en verde con el mismo código. Causa: el test tomaba el primer origen activo
+  por id (un uuid al azar), y a veces tocaba uno que otro archivo había dejado creado. `importar-lotes.sql` e `importar-crear.sql` ahora toman el más
+  antiguo (`creado_en, clave`), que es de la base.
+- **Medido en el paso 0:** H1, `pg_graphql` no está instalado en la base del carril. H2, `pg` devuelve una lista para varias sentencias. H3,
+  `env -i … pnpm env:check produccion` sale con 2 y los cuatro lugares dan «no se pudo leer». H4, `SUPABASE_DB_LOCAL` del CI es `127.0.0.1`.
+- e2e completo: no (9.13-2, Nivel 1: guion y revisor de la base, sin interfaz; lo prueba el CI del PR; dirigidos: ninguno)
+- **Lo que sigue: 9.13-3** — la guía (un `DESPLIEGUE.md` nuevo en `docs/` y `docs/ENTORNOS.md`; alcance, archivos y precondiciones en `.piloto/planes/9.13.md` ›
+  «Partición» › «9.13-3, servida»). Cita las líneas «Para la persona» de `.piloto/salidas/9.13/en-seco.txt`.
+
+<!-- paso:9.13-3 -->
+
+## Paso 9.13-3 · Despliegue en seco: la guía y la lista de la persona (2026-11-13)
+
+- **`docs/DESPLIEGUE.md`** (nuevo): la lista de la persona en el orden en que se ejecuta, con la orden de cada paso y qué mirar en su salida.
+  El ensayo en seco, `env:check produccion` (primera pasada), el respaldo, las migraciones (el `--dry-run` y recién después aplicarlas),
+  Vault (`url_proyecto`), VAPID, las funciones edge, Auth, el correo y el dominio, Integraciones dentro de la app y la pasada final. Siguen
+  «Volver atrás», «La instalación de un cliente» (con sus tres pasos de más), «Lo que sólo una persona comprueba» (9-12, las fotos en
+  iPhone, los dos dispatch de 9-6 y el de 9-11, 5a-4b) y «Lo que el panel de advisors muestra y está bien». Recoge las cinco líneas «Para
+  la persona» del guion. Cita `docs/ENTORNOS.md` por secciones y no lo copia.
+- **La auditoría del plan bloqueó una vez** y sus objeciones se corrigieron en el plan (`.piloto/planes/9.13-3.respuestas.md`). La de fondo
+  era el proyecto enlazado: `resetear.sh` toma el ref de `supabase/.temp/project-ref`, igual que toda orden con `--linked`. Si enlazabas un
+  cliente y después «restaurabas la demo» desde el mismo checkout, borrabas al cliente. Por eso la guía abre con dos advertencias en negrita
+  y manda instalar un cliente desde un clon aparte. Además, `env:check produccion` sin `SUPABASE_PROJECT_REF` revisa la demo y en un cliente
+  da un verde falso: ahora es una entrada obligatoria.
+- **`scripts/despliegue/guia.test.ts`** (4 pruebas) arma el mismo inventario que el guion. Cae si la guía no nombra, entre comillas de
+  código, cada función edge, cada secreto propio de una función y cada nombre de Vault que crea la persona o la app. También cae si falta
+  algo de una lista fija: el ensayo, `--dry-run`, `env:check produccion`, `SUPABASE_PROJECT_REF`, `demo.yml`, `DEMO_PROJECT_REF`,
+  `web_revalidar_correr`, Integraciones y los cuatro abiertos. Comprobado: sin las comillas de `importar-csv`, cae la de funciones.
+- **`docs/ENTORNOS.md`** enlaza la guía. La fila de `url_proyecto` dice quién la crea en un proyecto nuevo, y `DEMO_PROJECT_REF` entra en la
+  tabla junto a los secretos de GitHub. «El job de CI de la etapa 6» pasa a llamarse `demo.yml`, que también despliega las funciones. Suma
+  una línea: el ensayo corre `env:check produccion` sin entorno. **`docs/GLOSARIO.md`**: la entrada «Despliegue en seco» apunta a la guía,
+  sin término nuevo.
+
+### Para el coordinador
+
+1. **PLAN:** la fila **9.13** queda hecha (`docs/pasos/9.13-1/`, `9.13-2/`, `9.13-3/`). En **9-6**, **9-11**, **9-12** y **5a-4b** se suma
+   «en la lista de la persona: `docs/DESPLIEGUE.md` › «Lo que sólo una persona comprueba»». Siguen abiertos: sólo la persona los cierra.
+2. **ESTADO:** «Despliegue: el ensayo en seco en `listo` y la lista de la persona en `docs/DESPLIEGUE.md` (lo cierra el 9.14 como “listo
+   para desplegar”)». En «Deuda aceptada», la línea que dejó la 9.13-1 (`docs/pasos/9.13-1/decisiones.md`), y «falta probar fotos en
+   iPhone» pasa a «fotos en iPhone: en la lista de la persona».
+3. **«Terminado cuando» de la Fase 9:** queda cerrado «splinter y los advisors en cero errores», salvo los 6 ERROR esperados de las vistas
+   `web.*` (D15). «Desplegada apuntando al proyecto Pro» es un paso de la persona, con todo verificado.
+
+### Arreglo del CI del PR (2026-11-13)
+
+El job «Base» cayó en «la base contra el repo»: `db:lint contra su lista` no encontraba la línea `{"results":…}`. La CLI de Supabase
+(2.120.0, la misma en local y en CI) cambia de formato según quién la corre: con un agente (`AI_AGENT`, `CLAUDECODE`) imprime esa línea;
+sin él, el arreglo con sangría. Se reprodujo en local quitando esas variables. `leerDbLint()` (`scripts/despliegue/avisos.ts`) lee las dos
+formas y `en-seco.test.ts` lo prueba; el revisor da `✓ db:lint contra su lista (37 funciones con avisos)` con las dos salidas reales
+(`.piloto/salidas/9.13/revisar-db-lint.txt`).
+
+- e2e completo: no (9.13-3, Nivel 1: sólo docs y una prueba de la guía; lo prueba el CI del PR; dirigidos: ninguno)
+
+<!-- paso:9.14-1 -->
+
+## Paso 9.14-1 · El cierre de la Fase 9, parte 1 de 3: las cuatro tareas de oro en escritorio y celular (2026-11-13)
+
+- **La tabla de las cuatro tareas** está en `docs/PLAN.md` › «Fase 9» › «Las cuatro tareas de oro»: tarea, meta de `docs/UX.md`, spec y
+  prueba con su título, proyectos, lo medido en cada uno y el «nunca» con la prueba que lo afirma. Ninguna celda vacía. Las cuatro cumplen
+  su meta en `escritorio` **y** en `movil`, con teclas o toques contados y KLM (no un cronómetro: D2).
+- **Lo que faltaba eran dos cosas, y son los dos commits de código.** (1) La prueba de la meta de la tarea 1 llevaba `@sin-celular` desde el
+  5a-fix-3 y nunca se había medido en el celular: se le quitó la marca y pasa con **KLM 16,9 s** (meta ≤ 25 s). (2) El «nunca» de la tarea 4,
+  «dejar vencer un turno sin aviso», no tenía ninguna prueba (ni e2e ni SQL): la nueva de `e2e/web-turno.spec.ts` adelanta el `vence_en`,
+  corre `web_expirar_solicitudes()` —lo que hace el job de cron cada 5 min— y afirma el estado `vencida`, la fila de `notificaciones` de la
+  asesora, el `Vencido` de la tarjeta en Inicio y el aviso en `/notificaciones`, en los dos proyectos. Las otras diez metas y «nunca» ya
+  estaban cubiertos y corriendo donde corresponde; se verificó uno por uno, no se dio ninguno por bueno de memoria.
+- **Lo medido** (`.piloto/salidas/9.14-1/cuatro-escritorio.log` y `cuatro-movil.log`), escritorio / movil: tarea 1, KLM 18,3 / 16,9 s (4
+  teclas de control + 47 / 42 caracteres, 0 clics); tarea 2, la asesora con enlace 58,1 / 55,3 s y la dueña con el inventario 42,8 / 38,3 s
+  (meta ≤ 90); tarea 3, mover 1 en 11,3 s y el contenedor de 8 en 14,6 s, iguales en los dos (metas ≤ 15 y ≤ 60); tarea 4, «Contacté» en
+  **1 toque** (la meta son 2) y el portal en KLM 8,5 s con 16 teclas de control (meta ≤ 30). Ninguna meta se bajó y ningún spec se marcó
+  para esquivar un rojo.
+- **Un inestable, no un rojo del producto.** En la primera corrida de escritorio cayó `leads-alta.spec.ts` › «el de otra persona dice de
+  quién es y nada más del lead» (el `toHaveURL('/')` del ingreso se quedó en `/ingreso`) y en la segunda, «lo que no es un teléfono se dice
+  junto al campo, al salir de él» (el drawer no abrió en 30 s); las dos son del archivo `serial` y ninguna de las dos es la prueba que se
+  tocó. Repetido el archivo solo, **3 de 3 en verde** (`leads-alta-escritorio-triaje-{1,2,3}.log`), y las dos pruebas tocadas dos veces
+  seguidas en verde en cada proyecto. Se anota como inestable del ingreso bajo carga; no se arregló nada aquí.
+- **Lo que queda del 9.14:** la parte 2 (el recorrido de la IA con dos cuentas, `e2e/fase-9-recorrido.spec.ts`) y la parte 3 (la tabla de
+  criterios del «Terminado cuando», «lista para desplegar», el Nivel 3 con los dos proyectos, ESTADO y la reconciliación de los «No entra»).
+  Esta parte no corre el completo a propósito: lo corre la 9.14-3 sobre el SHA que ya tenga todo.
+- e2e completo: no (9.14-1, Nivel 1: las cuatro tareas de oro en escritorio y movil; el completo lo corre el 9.14-3; dirigidos: leads-alta, web-turno, cotizar-tarea-de-oro-recorrido, logistica-tarea-de-oro, leads-portal-acceso, leads-portal, fase-8-recorrido)

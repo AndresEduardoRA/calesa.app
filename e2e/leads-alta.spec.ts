@@ -50,7 +50,6 @@ const nuevoNumero = () => {
   return { nacional, normalizado: `${codigo}${nacional}` }
 }
 
-// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('tarea de oro 1: de N al lead guardado con seguimiento, sólo con el teclado', async ({
   page,
 }, info) => {

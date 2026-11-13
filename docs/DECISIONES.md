@@ -7630,3 +7630,328 @@ Fecha: 2026-11-13 (`TZ=America/La_Paz date +%F`). Sin compuertas ni preguntas ab
   `turno_web` y ninguna migración de noviembre cambió esa `ruta`.
 - **D9** En «Riesgos y huecos» sólo se marca «Resuelto» lo que un doc de paso o un archivo comprueba; el Realtime, las escrituras directas, el volumen y
   «sin determinar» quedan como estaban.
+
+<!-- paso:9.12-1 -->
+
+# 9.12-1 · Auditoría AA, parte 1 de 5: el barrido, el contraste de los tokens y la guarda de esqueletos (2026-11-13)
+
+- **D1 · Barrido por CDP y reglas propias, sin `@axe-core/playwright`** (la recomendada del PLAN): `Accessibility.getFullAXTree` da el nombre que
+  calcula Chrome; `ariaSnapshot` lee el DOM. Sin dependencia nueva.
+- **D2 · Las rutas salen de `src/app/**/page.tsx`, no de `docs/MAPA.md`:** el mapa no se versiona y en CI no existe; se lee del mismo árbol del que lo
+  genera `mapa.sh`. Una página dinámica nueva sin resolver hace caer la prueba de cobertura (A0).
+- **D3 · El tema oscuro sólo repite el foco visible:** el nombre, las referencias, el `h1`, el título y el orden no cambian con el tema, y el contraste lo
+  mide `design/tokens.test.ts`.
+- **D4 · `--shadow-focus` pasa a `0 0 0 2px var(--color-primario-ink)`:** el `-ink` ya está garantizado ≥ 4,5:1 sobre la superficie en los dos temas y
+  con cualquier marca (`tokensDeMarca`); el `-soft` con 12 % o 22 % de alfa daba 1,2:1. 2 px por la misma razón de tamaño visual. Es `box-shadow`: no
+  mueve el layout. Se revierte en una línea.
+- **D5 · Los bordes de las celdas del cotizador (`celda-*-borde`) no entran en el 3:1:** la celda se reconoce por la grilla y su relleno. El borde de la
+  celda neutra sí cambia, porque es `line-strong`.
+- **D6 · El anillo `ring-ring/50` de `src/shared/ui` (7 usos) y `--ring` (= `primario`, 2,5:1 sobre la superficie oscura) quedan para la 9.12-3:** son
+  componentes y `src/app/globals.css` (Nivel 2), no tokens. `--shadow-focus`, que usan 9 clases de `shared/ui`, ya llega.
+- **D7 · Un conocido que una corrida no ve no la hace caer:** lo dibujado cambia con el proyecto y el estado; queda como anotación `conocido-sin-ver`. Las
+  partes 2, 3 y 5 borran sus entradas al arreglarlas.
+- **D8 · Los tokens se corrigen hacia la tinta en los dos temas** (no hacia el `paper` en oscuro, como decía el plan: acercar al fondo baja el
+  contraste), con el primer valor que pasa todos sus pares. `line-strong` es también el borde de varias tarjetas (`cotizaciones`, `diseno`): se ven más
+  marcadas. Es lo que pide 1.4.11 para el borde de un control y se revierte en dos líneas.
+- **D9 · `/cotizaciones/[id]` queda pendiente para la 9.12-2** (el origen sembrado no tiene fórmula publicada) y **`/repuestos/[id]/cotizaciones/[cotizacion]`
+  y `/configuracion/web/guias/[id]` para la 9.12-5**: no se visitan ni se saltan (un `test.skip` cuenta como error en el completo).
+
+## Auditoría AA (9.12)
+
+**Tokens corregidos** (el mínimo de sus pares, antes → después):
+
+| Token                               | Tema   | Antes                      | Después            | Mínimo antes → después          |
+| ----------------------------------- | ------ | -------------------------- | ------------------ | ------------------------------- |
+| `--color-ink-faint`                 | claro  | `#76809a`                  | `#646d85`          | 3,46 → 4,52 (sobre `paper-dim`) |
+| `--color-ink-faint`                 | oscuro | `#8d97ab`                  | `#929caf`          | 4,24 → 4,51 (sobre `surface-3`) |
+| `--color-line-strong` (= `--input`) | claro  | `#cfd4de`                  | `#8a8f9b`          | 1,39 → 3,02                     |
+| `--color-line-strong` (= `--input`) | oscuro | `#3b4457`                  | `#6c7482`          | 1,45 → 3,01                     |
+| `--shadow-focus`                    | claro  | 3px `primario-soft` (12 %) | 2px `primario-ink` | 1,18 → 6,76                     |
+| `--shadow-focus`                    | oscuro | 3px `primario-soft` (22 %) | 2px `primario-ink` | 1,20 → 7,05                     |
+
+**Barrido** (45 páginas de `src/app`; 42 visitadas en `escritorio` y `movil`, 3 pendientes por D9):
+
+| Regla                                          | Escritorio          | Móvil             | Resultado                    |
+| ---------------------------------------------- | ------------------- | ----------------- | ---------------------------- |
+| R1 · control sin nombre                        | 0                   | 0                 | dura: en cero, sin conocidos |
+| R2 · `aria-describedby`/`aria-labelledby` roto | 0                   | 0                 | dura: en cero, sin conocidos |
+| R3 · un `h1` visible                           | 9 rutas sin         | 9 rutas sin       | informe                      |
+| R4 · título                                    | 4 títulos repetidos | ídem              | informe                      |
+| R5 · orden de foco                             | 0                   | 0                 | informe                      |
+| R6 · foco visible (10 Tab)                     | 0                   | 6, sólo en oscuro | informe                      |
+| R7 · blancos < 44 px                           | — (puntero fino)    | 264 en 42 rutas   | informe                      |
+
+| Regla | Dónde                                                                                                                                                        | Proyecto      | Cuántos | Ejemplo                                 | La arregla                                                                  |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------- | ------- | --------------------------------------- | --------------------------------------------------------------------------- |
+| R3    | `/cotizaciones`, `/vehiculos`                                                                                                                                | los dos       | 2       | sin `h1` visible                        | 9.12-2                                                                      |
+| R3    | `/logistica`, `/logistica/aduana`, `/logistica/embarques`, `/logistica/gastos`, `/logistica/vehiculo/[id]`, `/repuestos`, `/actividad`                       | los dos       | 7       | sin `h1` visible                        | 9.12-5                                                                      |
+| R4    | `/auth/nueva-contrasena` y `/recuperar`                                                                                                                      | los dos       | 1       | «Recuperar la contraseña»               | se acepta: sin sesión de enlace, la primera redirige a la segunda           |
+| R4    | `/leads` y `/configuracion/leads`; `/logistica`, `/logistica/vehiculo/[id]` y `/configuracion/logistica`; `/repuestos` y `/configuracion/repuestos`          | los dos       | 3       | «Leads · Mi importadora»                | 9.12-3 (el título de Configuración) y 9.12-5 (el del vehículo en logística) |
+| R6    | `/datos`, los seis campos de fecha                                                                                                                           | movil, oscuro | 6       | `input[data-slot=input][type=date]`     | 9.12-5                                                                      |
+| R7    | el botón del marco en todas las rutas, también acceso                                                                                                        | movil         | 43      | `button[data-slot=button][type=button]` | 9.12-3                                                                      |
+| R7    | el salto al contenido (`#contenido`, `_shell/marco.tsx`)                                                                                                     | movil         | 38      | `a href=#contenido`                     | 9.12-3 (sólo se ve al enfocarlo)                                            |
+| R7    | los interruptores (`switch`) de Configuración › Leads, Roles, Orígenes, Agenda y Perfil                                                                      | movil         | 67      | `span[data-slot=switch]`                | 9.12-3                                                                      |
+| R7    | las pestañas (`tabs-trigger`) de 13 rutas                                                                                                                    | movil         | 54      | `button[data-slot=tabs-trigger]`        | 9.12-3                                                                      |
+| R7    | botones sin `data-slot` (`/actividad` 20, `/configuracion/repuestos` 6, `/leads` 3, `/configuracion/flujos` 2, `/repuestos` y `/configuracion/cotizacion` 1) | movil         | 33      | `button[type=button]`                   | 9.12-2 (leads), 9.12-3 (Configuración), 9.12-5 (actividad, repuestos)       |
+| R7    | los disparadores de popover de Roles                                                                                                                         | movil         | 11      | `button[data-slot=popover-trigger]`     | 9.12-3                                                                      |
+| R7    | enviar en `/configuracion/origenes/[id]`, `/actividad` y `/datos`                                                                                            | movil         | 5       | `button[data-slot=button][type=submit]` | 9.12-3 y 9.12-5                                                             |
+| R7    | enlaces sueltos (volver a `/configuracion/*`, `/vehiculos/«id»`, `/leads`, `/tablero`, `tel:`, `/perfil#notificaciones`)                                     | movil         | 12      | `a href=/configuracion/origenes`        | la parte de su ruta                                                         |
+| R7    | casillas de `/vehiculos` y `/logistica`                                                                                                                      | movil         | 2       | `span[data-slot=checkbox]`              | 9.12-2 y 9.12-5                                                             |
+
+<!-- paso:9.12-2 -->
+
+# 9.12-2 · Auditoría AA, parte 2 de 5: leads, vehículos y cotizaciones (2026-11-13)
+
+- **D1 · 4-61 y 4-62 van a la 9.12-3:** lo que recuerda la ficha tras recargar vive en `src/shared/ui/vuelta-del-foco.ts`; tocarlo es Nivel 2 y es la
+  parte de `shared/ui`. Así esta parte queda en Nivel 1 y entra en seis commits.
+- **D2 · El R7 de `/leads` y los enlaces de `/vehiculos/«id»` van a la 9.12-5, y la casilla de `/vehiculos` a la 9.12-3:** R7 es una regla de informe sin
+  assert en la fila; la casilla es el `Checkbox` de `src/shared/ui`.
+- **D3 · `useTrasElEnvio` va uno por módulo (`leads` y `vehiculos`), no en `src/shared/lib`:** compartirlo subía la parte a Nivel 2 por 40 líneas. Son
+  el mismo contrato con la misma prueba; la 9.12-3, que ya es Nivel 2, puede unirlos. Se revierte borrando uno.
+- **D4 · 4-50: el resumen nace plegado al 200 % y el tope de alto sigue en el 40 %:** el plan buscaba un 30 %, pero plegado mide 33,6 % en escritorio, y en
+  el celular el pie solo (Guardar, Vista previa, Live) ya pasa del 30 %: el resumen sigue llegando al 40 % con scroll adentro. Esconder «Guardar»
+  quedaba descartado, así que el assert es el que PLAN admite («no pasa de un alto que se decida, **o** nace plegado»): nace plegado, el alto se
+  informa y el tope de 40 % no cambia. Para ganar alto, el botón mide 44 px fijos, como Live, y no lleva ícono: la hoja más grande está en 493 de 500
+  nodos. Los 107 px bajo el borde con la página arriba de todo siguen sólo informados.
+- **D5 · El `h1` de los listados es `sr-only`, como el de `/leads`:** la barra de filtros ya ocupa la cabecera y el título de la pestaña nombra la página;
+  un título visible cambiaba el diseño de dos pantallas sin que nadie lo pidiera. Se revierte quitando la clase.
+- **D6 · El resumen nace plegado según la fuente raíz (≥ 24 px) y no según el ancho:** lo cambia el texto al 200 %, del navegador o de la prueba; a
+  100 % en un celular angosto el resumen ya cabe. No va a la URL porque es un estado de presentación, no una vista.
+- **D7 · Lo encolado tras guardar sale también al desmontarse** (el plan decía que no corría): el panel de un vehículo y el de etapas del embudo se
+  vuelven a montar con la versión nueva que trae el refresco, antes de que `isPending` vuelva a falso, y el aviso se perdía (`leads-embudo` y
+  `vehiculos-alta` cayeron así). Sólo se encola tras un guardado que entró, así que avisarlo al desmontarse dice la verdad. Por la misma razón, en el
+  alta de vehículo cerrar el panel (`alCrear`) va en la cola junto con «… creado»: si cerrara antes, desmontaría el aviso.
+
+## Auditoría AA (9.12)
+
+Lo que esta parte cierra o reasigna de la tabla de la 9.12-1:
+
+| Regla | Dónde                                                   | Antes     | Ahora                                                     |
+| ----- | ------------------------------------------------------- | --------- | --------------------------------------------------------- |
+| R3    | `/cotizaciones`, `/vehiculos`                           | 9.12-2    | cerrado: `h1` `sr-only`; R3 es dura desde esta parte      |
+| R3    | las siete rutas de logística, repuestos y actividad     | 9.12-5    | siguen en la 9.12-5, ahora como `CONOCIDOS` de regla dura |
+| R7    | botones sin `data-slot` de `/leads` (3)                 | 9.12-2    | 9.12-5 (D2)                                               |
+| R7    | la casilla de `/vehiculos` (`span[data-slot=checkbox]`) | —         | 9.12-3 (D2)                                               |
+| —     | `/cotizaciones/[id]`                                    | pendiente | barrida: sin hallazgos duros                              |
+
+<!-- paso:9.12-3 -->
+
+# 9.12-3 · Auditoría AA, parte 3 de 5: Configuración y `shared/ui` (2026-11-13)
+
+- **D1 · 4-20 queda abierto, con su medida:** `--ancho-del-aviso` a 22 rem en escritorio (la recomendada del PLAN) arregla la descripción (≤ 6 líneas al 100 %, el foco
+  no queda tapado), pero el aviso, que sale abajo a la izquierda desde el borde de la ventana, cubre 232 px del contenido al 200 % y **tapa texto de la última fila de
+  una lista** (`configuracion-cotizacion-niveles-200`, `quePisaElAviso`: el assert de 4-15). No se baja ese assert: se revirtió todo y el aviso sigue en
+  `calc(var(--sidebar) - 2rem)`. La salida es de la persona (aviso ancho con lista tapada, aviso angosto con descripción de 9 líneas, o un aviso que se aparta de lo
+  que tapa). Si 4-20 se reabre, la columna que calcula `avisosAbajo()` en `avisos-sobre-el-pie.ts` tiene que cambiar con el ancho.
+- **D2 · 4-102 ya estaba arreglado:** `TACTIL` (`min-h-11 md:min-h-9`) estaba en los dos botones; lo que medía 42 px era el diálogo escalándose al abrirse. Se agregó el
+  assert esperando el diálogo quieto, no un cambio de clases.
+- **D3 · 4-61 se guarda al llegar la URL, no al devolver `router.push`:** `escribir()` de `abrirConVuelta` guarda la ficha con la URL del momento en que resuelve,
+  y `router.push` vuelve antes de que cambie. `alLlegarA(url)` espera, cuadro a cuadro y con el tope de la vuelta (3 s), a que `location` sea la de destino; si no llega,
+  falla y el panel no toma la ficha.
+- **D4 · 4-62: la ficha guardada ignora `panel`, `eliminar` y `pestana`:** la sonda mostró que `guardada.donde` era el hash de `?lead=<id>` y que, tras recargar con anotar
+  abierto desde la pestaña, la URL era otra. Lo que cuenta sigue siendo la ruta y lo demás (`lead`, `alcance`…): dos fichas de dos leads no se confunden (prueba de
+  unidad). Efecto aceptado: dos paneles de la misma clave en la misma pantalla comparten ficha guardada; la marca de la entrada anterior decide si el foco vuelve.
+- **D5 · «Permiso» de la matriz de roles baja de 13 rem a 11 (`min-w-44`) y la tabla lleva `scroll-pl-44`:** con 13 rem, la columna fija se comía 416 de 686 px al
+  200 % y una de rol (320 px) no cabía al lado; con 11 rem sí. Cuesta 2 rem de ancho a los nombres de permiso al 100 % (se parten antes, `whitespace-normal`). `<Table>`
+  de `shared/ui` recibe `contenedor` para las clases del que se desplaza.
+- **D6 · El separador de «Estado · Uso» va con espacio duro (` ·`) dentro del primer `span`:** no hay corte posible entre el estado y el «·»; el uso queda en su
+  propio `span` y la línea se parte antes que él. Un lector de pantalla no lo lee (`aria-hidden`), como hasta ahora.
+- **D7 · El anillo de foco se sube sin prueba nueva** (token, no conducta): `ring-ring` y `--ring` en `.dark` = `primario-ink`. El barrido de `accesibilidad.spec.ts`
+  corre en verde con él. Se revierte volviendo a `ring-ring/50` y quitando la línea de `.dark`.
+- **D8 · El R7 de Configuración va a la 9.12-5 y no se unen los dos `useTrasElEnvio`** (D1 y D2 del plan): rediseños de `Switch`, `Tabs` y `Checkbox` sin assert en
+  la fila; 40 líneas sin prueba que lo pida.
+
+## Auditoría AA (9.12): lo de esta parte
+
+| Abierto             | Estado              | Dónde                                                                                                    |
+| ------------------- | ------------------- | -------------------------------------------------------------------------------------------------------- |
+| 4-19                | cerrado             | `lista-de-niveles.tsx`, `configuracion-cotizacion-niveles-200.spec.ts`                                   |
+| 4-20                | **abierto** (D1)    | PLAN, con la medida                                                                                      |
+| 4-61                | cerrado             | `vuelta-del-foco.ts`, `acciones-de-la-ficha.tsx`, `leads-menu-orden.spec.ts`                             |
+| 4-62                | cerrado             | `vuelta-del-foco.ts`, `leads-rapido-seguimientos.spec.ts`                                                |
+| 4-102               | cerrado (ya estaba) | `configuracion-cotizacion-tarjeta-descartar.spec.ts`                                                     |
+| 5a-28               | cerrado             | `config-apibara.tsx`, `configuracion-200.spec.ts`                                                        |
+| 5a-29, 5a-30        | cerrados            | `datos-del-origen.tsx`, `siguientes-pasos.tsx`, `configuracion-200.spec.ts`                              |
+| 5a-33               | cerrado             | `tabla-de-roles.tsx`, `grupo-matriz.tsx`, `roles-conteo-acotado.spec.ts`                                 |
+| Anillo de foco      | cerrado             | `shared/ui`, `globals.css`                                                                               |
+| R7 de Configuración | → 9.12-5            | interruptores, pestañas, popovers de Roles, botón del marco, salto al contenido, casilla de `/vehiculos` |
+
+<!-- paso:9.12-4 -->
+
+# 9.12-4 · Auditoría AA, parte 4 de 5: esqueletos y transiciones (2026-11-13)
+
+- **D1 · Los dos `loading.tsx` nuevos repiten la forma del `<Suspense>` de su página**, no la de otro patrón: al pasar del esqueleto de la ruta al de la página nada
+  salta. En `repuestos/[id]/cotizaciones/[cotizacion]` además deja de heredar la cabecera de un proyecto, que esa hoja no tiene. Se borra el archivo y vuelve a heredar.
+- **D2 · La guarda es «propio», sin lista de excepciones.** Una página nueva sin `loading.tsx` en su carpeta hace caer `scripts/guardas`.
+- **D3 · La transición de página no se rediseñó.** Ya existía (`template.tsx`, `TransicionPagina`, `globals.css`, tokens). Se midió que `<ViewTransition>` sí dispara
+  animaciones `pagina-*` en una navegación de cliente en Next 16.4.3 sin tocar `next.config.ts`; el e2e lo fija y la guarda de texto fija el apagado con `reduce`.
+- **D4 · Sin `role="status"` en los esqueletos (hallazgo para 9.12-5 / PLAN).** Su `aria-label` sobre un `div` sin rol no se expone a un lector de pantalla; el cambio
+  pide `role="status"` en los seis esqueletos (`shared/ui/esqueletos/*`, `(acceso)/esqueleto-acceso.tsx`) y que ~20 specs que usan `getByRole('status')` sin filtro
+  pasen a filtrar por contenedor (hoy fallarían con «strict mode violation» mientras uno carga). Es Nivel 2 y la fila del 9.12 no tiene assert para él.
+- **D5 · Los cinco estados se auditaron, no se rehicieron.** No hay hueco que se cierre sólo importando un componente de `shared/ui/estados`: no hay commit `fix`.
+
+## Los cinco estados por página de `(app)` (41)
+
+Cargando = `loading.tsx` propio (los 41; patrón por pantalla, abajo). Error = el borde de `(app)/error.tsx` con «Reintentar» (`EstadoError`); no hay `error.tsx` más
+abajo. Vacío = `EstadoVacio`/`EstadoSinResultados`/`EstadoPaginaSinFilas`, que viven en la lista del módulo (`resultado-*.tsx`), no en la página.
+
+| Pantallas                                                                                              | Esqueleto                                                                                                       | Sin permiso                                                                                                                                                                   |
+| ------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `leads`, `vehiculos`, `cotizaciones`, `actividad`, `repuestos`, `logistica/{aduana,embarques,gastos}`  | `EsqueletoListado`                                                                                              | `EstadoSinPermiso` en la página                                                                                                                                               |
+| `leads/papelera`, `vehiculos/papelera`, `cotizaciones/papelera`, `configuracion` (inicio)              | `EsqueletoBandeja`                                                                                              | `EstadoSinPermiso`                                                                                                                                                            |
+| `leads/[id]`, `vehiculos/[id]`, `logistica/vehiculo/[id]`                                              | `EsqueletoDetalle`                                                                                              | `EstadoSinPermiso` (el de `vehiculos/[id]` y `cotizaciones/[id]` dice «ya no está» con `EstadoVacio`: no confirma que exista)                                                 |
+| `cotizaciones/nuevo`, `cotizaciones/[id]`                                                              | `EsqueletoDeHoja`                                                                                               | `EstadoSinPermiso` en `nuevo`; el detalle usa `EstadoVacio`                                                                                                                   |
+| `leads/importar` (nuevo), `repuestos/[id]/cotizaciones/[cotizacion]` (nuevo), `repuestos/[id]`         | formulario+tabla / listado / listado con cabecera                                                               | `EstadoSinPermiso`                                                                                                                                                            |
+| `configuracion/{cotizacion,empresa,flujos,leads,logistica,repuestos,origenes/[id],web,web/guias/[id]}` | `EsqueletoFormulario`                                                                                           | `EstadoSinPermiso`; vacío propio en flujos, logística, web y guías                                                                                                            |
+| `configuracion/{equipo,origenes,roles}`                                                                | `EsqueletoTabla`                                                                                                | `EstadoSinPermiso`                                                                                                                                                            |
+| `configuracion/cola-web`                                                                               | `EsqueletoListado`                                                                                              | `EstadoSinPermiso`                                                                                                                                                            |
+| `chat`, `agenda`, `logistica` (cadena), `notificaciones`                                               | `EsqueletoDeChat`, `EsqueletoDeCalendario`, `EsqueletoDeTablero`, `EsqueletoDeNotificaciones` (de `pantallas/`) | chat y cadena, `EstadoSinPermiso`; agenda y notificaciones son de todos                                                                                                       |
+| Inicio, `perfil`, `tablero`, `datos`                                                                   | `EsqueletoBandeja` / `EsqueletoFormulario` / `EsqueletoBandeja` / `EsqueletoBandeja`                            | «para todos»: sin permiso no aplica a la pantalla; el tablero muestra `ErrorSinPermisoDeWidget` por widget y `datos` arma sus secciones con los permisos (`seccionesDeDatos`) |
+
+Sin huecos que cerrar con un import. Lo que queda para la 9.12-5 o PLAN: nada nuevo de estados; sólo D4 (`role="status"`).
+
+<!-- paso:9.12-5 -->
+
+# 9.12-5 · Auditoría AA, parte 5 de 5: los hallazgos de las fases 5 a 9 y el cierre (2026-11-13)
+
+- **D1 · Se midió antes de arreglar.** El «antes» de la 9.12-1 era anterior a la 9.12-3 y además la corrida cortaba en A6 (el grupo «el resto» no corría). El cuaderno
+  fue `E2E_HALLAZGOS=.piloto/salidas/9.12-5/antes`, y un barrido suelto de los blancos de las 45 rutas con el HTML de cada uno. Resultado: R6 y los blancos de
+  `/actividad`, `/datos` y las otras de «el resto» sólo se vieron en ese barrido suelto, no en el «antes».
+- **D2 · `role="status"` sin tocar specs.** Los 21 archivos con `getByRole('status')` o `[role=status]` pasaron en escritorio. El tope de 8 archivos tocados y la
+  salida de emergencia (D4 de la 9.12-4 a PLAN) no se usaron.
+- **D3 · El `h1` es `sr-only` y va en el `page.tsx`, fuera del `Suspense`**, como los listados de la 9.12-2: está también cargando y sin permiso, y no mueve el
+  diseño. Textos: `Actividad`, `Cadena de logística`, `Aduana`, `Embarques`, `Gastos`, `Unidad de logística`, `Repuestos`, `Editar guía`.
+- **D4 · El R7 de `shared/ui` no se arregla aquí.** Es el tamaño de componentes de toda pantalla (`Tabs`, `Switch`, `Checkbox`, `Popover`, «Nuevo lead» del marco,
+  «Abrir» de las listas, el botón por omisión de 32 px): rediseñarlos es de la persona (WCAG 2.5.8 AA pide 24 px; los 44 px son la regla del proyecto, `ui.md`).
+- **D5 · R7 duro en las fases 5 a 9 con excepciones acotadas.** `BLANCOS_CONOCIDOS` tiene 7 descriptores (≤ 10), cada uno con un `max` por ruta. Un blanco chico
+  propio de una pantalla de esas fases hace caer el barrido en `movil`. El descriptor no dice cuál es el botón: un propio con el mismo descriptor que uno de la lista
+  y dentro de su `max` se esconde (límite de la regla).
+- **D6 · R4 como prueba, no como regla del barrido:** A9 mira los `registros` en claro; sólo se exceptúan las rutas de `REDIRECCIONES`.
+- **D7 · Las dos rutas pendientes se sembraron por SQL**, sin tocar el producto: la cotización de repuestos con `config_snapshot = '{}'` (su hoja de lectura no pide
+  un snapshot válido) y la guía en borrador.
+- **D8 · R6 dura, y la causa de los seis campos de fecha era la medición.** `blur()` no suelta el foco de un `input type=date`; ahora se reintenta hasta tres veces
+  y, si el control sigue enfocado, no se cuenta. Con el anillo de 3 px (`ring-3`, color `ring`) a la vista, los dos proyectos y los dos temas dan 0.
+
+## Lo que queda abierto, con dueño (para `docs/PLAN.md` › «Pulido para la Fase 9»)
+
+| Abierto                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Dueño                            | Cuenta (barrido final, celular, tema claro)                                                                                               | Assert que lo cierra                                     |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| **4-20** (ancho del aviso contra altura)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | la persona                       | medida de la 9.12-3: a 22 rem tapa texto de la última fila de una lista al 200 %                                                          | decidir; luego el spec que su fila nombra                |
+| **R7 de `shared/ui`**: marco (`button` «Nuevo lead» 36×28 en 45 rutas; «Saltar al contenido» 24×16), `Tabs` (13 rutas, 25–37 px de alto), `Switch` (`/configuracion/roles` 46, `/configuracion/leads` 18, `/cotizaciones/[id]` 3, `/agenda`, `/perfil`, `/configuracion/origenes/[id]`), `Checkbox` (`/vehiculos`, `/logistica`), `Popover` (`/configuracion/roles` 11), «Abrir» de las listas (`/actividad` 20, `/configuracion/repuestos` 6, `/leads` 3, `/configuracion/flujos` 2, `/cotizaciones`, `/repuestos`, `/configuracion/cotizacion`) y el `submit` apagado de `/actividad` y `/configuracion/origenes/[id]` | la persona, en la lista del 9.13 | 121 blancos, todos de esa lista                                                                                                           | vaciar `BLANCOS_CONOCIDOS` y volver R7 dura en toda ruta |
+| **R7 fuera de `shared/ui` y de las fases 5 a 9**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | la persona (9.13)                | `/` → `/tablero` (1), `/leads` → `/leads` (2), `/leads/[id]` → `tel:` (1), `/configuracion/origenes/[id]` → `/configuracion/origenes` (1) | ampliar `RUTAS_DE_LAS_FASES_5_A_9` a toda la app         |
+| **9-12** («¿Guardar contraseña?» de Chrome con Live)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | 9.13 (ya estaba)                 | —                                                                                                                                         | la lista de la persona del 9.13                          |
+
+R3 (`h1`), R4 (títulos), R6 (foco visible) y el barrido de las 45 rutas quedan cerrados y con su prueba. **Hallazgo fuera de alcance:** `/configuracion/web/guias/[id]` y
+la cotización de repuestos se barrían por primera vez (sólo el `h1` de la guía necesitó arreglo).
+
+<!-- paso:9.13-1 -->
+
+# 9.13-1 · Despliegue en seco: la base limpia (2026-11-13)
+
+- **D1 · «En cero» = cero ERROR y cero WARN sin motivo escrito** (duda 1 del PLAN, la recomendada). Los avisos de `db:lint` se quedan con su motivo.
+- **D2 · La guía sirve para la demo y para un cliente** en un solo documento (duda 2, la recomendada); la escribe la 9.13-3.
+- **D3 · Una sola lista en JSON** (`supabase/tests/advisors-con-motivo.json`) para PGlite y la base real, por el `cache_key` de splinter: lo mismo que
+  muestra el panel de advisors de Supabase.
+- **D4 · Comodín sólo para dos lints de `authenticated`** (las RPC definer, con grant explícito y pruebas de permisos por área; la introspección de
+  GraphQL, con RLS en toda tabla). Los de `anon` van uno por uno.
+- **D5 · Fuera de la comparación sólo lo que depende de estadísticas o de la imagen** (`table_bloat`, `unused_index`, `extension_versions_outdated`).
+- **D6 · `storage_refcount()` sigue con `execute` para `authenticated`:** la llama `quitarSiHuerfano()` desde el navegador; cerrarla es mover ese
+  borrado a una Server Action. Reversible con un `revoke` cuando eso pase.
+- **D7 · `limpieza_el` sigue `security definer`:** sus auxiliares sólo las ejecuta `service_role` y acotarla relee la fila bajo RLS (descartado en
+  «P-limpieza: no releer la fila»). Revela un bit por id de vehículo conocido (anclado o no); los ids son uuid.
+- **D8 · Las 8 funciones `sql` con `search_path` abierto se quedan así, con motivo:** las ocho se inlinean (EXPLAIN medido) y un `SET` lo impediría;
+  `_lead_visible_para` va en una policy y `_motor_*` en el camino rápido del motor de la fórmula.
+- **D15 · «Cero ERROR» admite una sola excepción, escrita en `advisors.sql` y no en el JSON:** `security_definer_view` de una vista del esquema `web`
+  con su clave exacta (la frontera pública, `src/modules/web/CLAUDE.md` › «No se rompe»). Cualquier otro ERROR cae.
+- **D16 · `db:probar` corre splinter con `pgrst.db_schemas` = los `[api] schemas` de `config.toml`:** sin la variable splinter sólo mira `public` y
+  no ve `web`, la superficie de `anon`. El CI todavía no lo hace (lo lleva la 9.13-2).
+- **Para `docs/ESTADO.md` › «Deuda aceptada»** (la lleva el coordinador): «`storage_refcount()` y `limpieza_el` con su motivo en
+  `supabase/tests/advisors-con-motivo.json`; `db:lint`: 133 avisos en 37 funciones, cada una con su motivo (`db_lint`)».
+
+<!-- paso:9.13-2 -->
+
+# 9.13-2 · Despliegue en seco: el guion (2026-11-13)
+
+- **D17 · El guion corre entero dentro de un solo candado** (`pnpm despliegue:en-seco`; los `pnpm db:*` de adentro lo heredan): `db:reset` deja la
+  base que leen `db:lint` y el revisor, y nadie la puede resetear en medio.
+- **D18 · El CI y el guion usan la misma regla que `db:probar`:** `scripts/despliegue/revisar-base.mjs` corre `supabase/tests/advisors.sql` contra la
+  base real, con splinter y `pgrst.db_schemas` = los `[api] schemas` de `config.toml`. Antes había dos reglas: la de PGlite y un `grep '|ERROR|'` que
+  sólo miraba `public` y no veía las 6 vistas de `web`. Sigue habiendo una sola fuente de la regla (no hay copia en TypeScript).
+- **D19 · El revisor es `.mjs` con `pg` (se corre con tsx) y la lógica es `.ts` pura y probada** (`extraer.ts`, `inventario.ts`, `avisos.ts`): no hay
+  `psql` en la máquina, `pg` no tiene tipos instalados y no se suma ninguna dependencia.
+- **D20 · `env:check produccion` corre sin entorno (`env -i`):** sin credenciales no lee nada, sale con 2 y el guion lo da por bueno y lo pasa a «Para
+  la persona». Con credenciales lo corre la persona (la guía de la 9.13-3).
+- **D21 · `next build` compila en `.next-e2e`:** ya está ignorado y en `tsconfig`, y no pisa el `.next/` de un `pnpm dev`. Riesgo aceptado: un
+  `test:e2e` del mismo carril con `E2E_PROD` compila ahí fuera del candado, y con una sesión por carril los dos no coinciden. Si hay un
+  `.env.production*`, el paso cae: el ensayo sólo compila con lo local.
+- **D22 · Un paso que cae no corta los demás:** «termina con lo que falta» pide la lista entera. La excepción es que sin base se saltan `db:lint` y el
+  revisor; `db:probar` es PGlite y corre igual.
+- **D23 · El inventario cuenta lo que no entiende:** un `cron.schedule(` o un `Deno.env.get(` sin nombre literal, una lectura de Vault sin nombre o un
+  `insert` en `storage.buckets` sin filas legibles son una falta. Así, una declaración con otra forma no desaparece del inventario sin aviso.
+- **D24 · `url_proyecto` y los `integracion:*` van a «Para la persona», no a faltas:** en local los pone `supabase/seed.sql` o la app, y en producción
+  los pone la persona. Lo mismo pasa con los secretos propios de cada función (los de `push`) y con la URL de `web_revalidar_correr()`.
+- **D25 · La huella del cuerpo (`md5(prosrc)`) va sólo en las RPC de `anon` con motivo:** son la superficie pública con motivo escrito a mano. Las de
+  `authenticated` van por comodín y las revisan sus pruebas de área.
+- **D26 · Los motivos de las 9 funciones «IMMUTABLE sobre STABLE» se reescriben sin cambiar ninguna volatilidad:** se revisaron una por una y
+  ninguna sostiene un índice, un default ni un check. Las dos que dependen de la sesión en teoría (`_lead_atributos_formato` con `DateStyle`,
+  `_vehiculo_subasta_desde` con `TimeZone`) reciben ISO y fechas con zona en los caminos reales. No se propone ningún abierto.
+- **D27 · El comodín de GraphQL se queda, medido:** `pg_graphql` no está instalado en la base local y el lint no puede dar avisos ahí. El sentido
+  inverso lo exime sólo si la base no tiene la extensión; en una base con `pg_graphql`, un comodín sin avisos caería.
+- **D28 · El revisor sólo se conecta a una base local, con campos explícitos:** rechaza una URL con parámetros (en `pg`, `?host=` pisa al host) y un
+  host que no sea `127.0.0.1`, `localhost` o `[::1]`, y nunca usa `connectionString`. Lee `SUPABASE_DB_LOCAL` sólo con `CI=true`, y el guion la quita.
+
+<!-- paso:9.13-3 -->
+
+# 9.13-3 · Despliegue en seco: la guía (2026-11-13)
+
+- **D29 · La guía no copia `docs/ENTORNOS.md`:** cita sus secciones y pone lo que ENTORNOS no tiene: el orden, la orden de cada paso y qué
+  mirar en su salida. Una variable nueva se agrega en un solo lugar.
+- **D30 · Una prueba chica de la guía, derivada del inventario del guion** (`scripts/despliegue/guia.test.ts`): una función edge, un secreto
+  propio de una función o un nombre de Vault nuevos sin línea en la guía hacen caer `pnpm test`. Nombres entre comillas de código: un
+  «push» suelto no cuenta.
+- **D31 · La guía nombra órdenes remotas porque son de la persona:** vive en `docs/`, fuera de lo que mira la guarda `despliegue-sin-remoto`.
+  La sesión la escribe y la corrige sólo con Write y Edit.
+- **D32 · No se vuelve a correr `pnpm despliegue:en-seco`:** la unión con `main` no tocó `supabase/`, `scripts/despliegue/` ni
+  `src/shared/config/`, así que vale la salida `listo` de la 9.13-2.
+- **D33 · Volver atrás nunca deshace una migración en la nube:** se escribe una migración nueva que la deshaga, con el respaldo como último
+  recurso. La app sólo vuelve al despliegue anterior si el esquema sigue siendo compatible con ese código. Ni el respaldo ni el diario del
+  plan Pro guardan Storage.
+- **D34 · `restaurar.sh` y `resetear.sh` son sólo de la demo** (resetean la base): la guía lo dice en negrita y nunca los ofrece para un
+  proyecto con datos.
+- **D35 · En un cliente, Auth se configura por el panel:** `[remotes.demo]` es de la demo y `config.toml` no se toca.
+- **D36 · El dueño de un cliente es la primera cuenta, por `/registro`,** enseguida de migrar y antes de compartir la URL. `sembrar.mjs` no
+  sirve para eso: siembra datos de demo.
+- **D37 · Sin término nuevo en el glosario:** «la lista de la persona» y «volver atrás» son palabras comunes. La entrada «Despliegue en seco»
+  apunta a la guía.
+- **D38 · `pg_graphql` queda como opcional, sin recomendarlo:** desactivarlo quita los avisos, pero cambia la plataforma. Lo decide la
+  persona.
+- **D39 · En la demo, cada integración ya aplica las migraciones:** `DEMO_PROJECT_REF` está puesta, `demo.yml` sale en verde y a `main`
+  integra el coordinador. El `--dry-run` de la demo confirma que no queda nada pendiente. Para pausar, se quita la variable antes de una
+  integración y se vuelve a poner después, sin cambiar `demo.yml`.
+- **D40 · El proyecto enlazado manda:** las órdenes con `--linked`, los scripts de `scripts/demo/` y `env:check produccion` sin
+  `SUPABASE_PROJECT_REF` actúan sobre `supabase/.temp/project-ref`. Por eso un cliente se instala desde un clon aparte, el ref se mira antes
+  de cada orden y `SUPABASE_PROJECT_REF` es obligatoria para revisar un cliente (salió de la auditoría del plan, que bloqueó).
+- **D41 · La salida de `db:lint` se lee en sus dos formatos, sin forzar uno:** la CLI de Supabase imprime `{"results":…}` en una línea
+  cuando detecta un agente y el arreglo con sangría cuando no (el CI). Se descartó pasar `-o json` en `package.json`: cambia lo que ve la
+  persona y no prueba que el CI y la sesión vean lo mismo. `leerDbLint()` acepta las dos y la prueba fija las dos (2026-11-13).
+
+<!-- paso:9.14-1 -->
+
+# 9.14-1 · El cierre de la Fase 9, parte 1 de 3: las cuatro tareas de oro (2026-11-13)
+
+- **D1 · (Duda 1 de la fila 9.14.) La fase cierra «lista para desplegar»**, no desplegada: el piloto no toca producción y la puerta de una fase
+  es el CI (`docs/PILOTO.md`). Lo escribe la 9.14-3 en PLAN y en ESTADO, con el guion en seco del 9.13 en verde y la lista de la persona entregada.
+- **D2 · (Duda 2 de la fila.) Las metas en segundos se afirman con KLM y teclas o toques contados**, como ya hacía la tarea 2, no con el reloj del
+  robot: con tres carriles en una máquina un cronómetro da rojos falsos. El tiempo del robot se anota, pero sólo como tope generoso.
+- **D3 · Tres partes.** Las tareas de oro (medir y lo que falte), el recorrido con dos cuentas, y el Nivel 3 con los docs de cierre, que corre una
+  sola vez sobre el SHA que ya tiene todo lo anterior.
+- **D4 · De la tarea 1 sale del celular-excluido sólo la prueba de la meta.** La fila pide la meta en los dos proyectos; los «nunca» (teléfono
+  ajeno, perder lo tipeado) basta con afirmarlos una vez, y sus marcas `@sin-celular`, demostradas en el 5a-fix-3, se quedan: son minutos del
+  completo de celular que no compran nada.
+- **D5 · El «nunca» de la tarea 4 se prueba con un e2e, no con una prueba SQL.** Lo que promete UX es que la persona se entere: la prueba mira
+  donde la asesora lo ve (la tarjeta «Vencido» en Inicio y el aviso en `/notificaciones`), y de paso afirma la fila de `notificaciones` como
+  respaldo. La función se llama por `sql()` como `postgres`, igual que la llama el job de cron, y la prueba borra lo que crea.
+- **D6 · El marcador de la bitácora va en una sola línea:** partido en dos, `scripts/piloto/cuenta-e2e.mjs` no lo reconoce (se ve en los cinco
+  «no reconocidos» que dejó el 9.12).
+- **D7 · La tabla de las tareas vive en PLAN › «Fase 9» como sección propia** y la tabla de criterios de la 9.14-3 la cita en su primera fila,
+  en vez de repetir los mismos números en dos lugares.
