@@ -18,7 +18,7 @@ Ficha completa (historia, partes, mediciones, trampas viejas): `docs/archivo/mod
 
 ## Archivos clave
 
-- `entities/`: `filtros.ts` (devuelve `Condicion[]` neutras que `infra/` traduce), `comunes.ts` (`camposComunes()`: único lugar con etiquetas fijas), `esquema.ts` (`validarVehiculo()`: lo usan igual formulario y action), `acciones-de-vehiculo.ts` (lista única del «⋯»), `limpieza.ts` (sólo lee y dice), y `papelera`, `vinculo`, `vitrina`, `foto`, `apibara`, `subasta*`, `resumen`. `infra/`: lecturas en `queries/`, escrituras por RPC, `*.client.ts` para el navegador.
+- `entities/`: `filtros.ts` (devuelve `Condicion[]` neutras que `infra/` traduce), `comunes.ts` (`camposComunes()`: único lugar con etiquetas fijas), `esquema.ts` (`validarVehiculo()`: lo usan igual formulario y action), `acciones-de-vehiculo.ts` (lista única del «⋯»; «Ver actividad» sólo en la ficha y con `actividad.ver`, con la ruta que arma `src/app` por `rutaDeActividadDe`, 9.01-4), `limpieza.ts` (sólo lee y dice), y `papelera`, `vinculo`, `vitrina`, `foto`, `apibara`, `subasta*`, `resumen`. `infra/`: lecturas en `queries/`, escrituras por RPC, `*.client.ts` para el navegador.
 - `features/`: `alta`, `ficha`, `fotos`, `vitrina`, `papelera`, `vinculo`, `listado`, `acciones`, `resumen`, `subasta`, `limpieza`, `panel-para-cotizar` (la barra y el panel del vehículo de la hoja de cotizar; sus listas y su margen, en `entities/panel-para-cotizar.ts`). `CLAVE_DE_EDICION` vive en `features/alta/claves.ts`, no en un `'use client'`.
 - El listado dibuja una sola vista (tabla o tarjetas) elegida en servidor; los e2e buscan filas con `tbody tr, li article`.
 - Pestañas de la ficha: `src/app/(app)/vehiculos/[id]/pestanas.ts`, cada una con su `seccion-<clave>.tsx`.

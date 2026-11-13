@@ -28,12 +28,24 @@ type Props = {
   papelera: PermisoDePapelera
   // `logistica.ver` en el origen del vehículo: sin él no hay enlace (D25). Lo decide la página con `puede()`.
   verEnLogistica: boolean
+  // `/actividad` de este vehículo, con `actividad.ver` (la arma la página); null si no la ve: «Ver actividad» en el «⋯».
+  paraActividad: string | null
 }
 
 // La cabecera de la ficha con lo que la persona puede hacer desde ahí: «Ver en logística», «Editar» y el «⋯» con la lista de siempre (publicar en la web,
 // apagado y con el motivo si no tiene el permiso, y, separada, enviar a la papelera).
 export function Encabezado(props: Props) {
-  const { vehiculo, origen, fase, previa, publicar, editable, papelera, verEnLogistica } = props
+  const {
+    vehiculo,
+    origen,
+    fase,
+    previa,
+    publicar,
+    editable,
+    papelera,
+    verEnLogistica,
+    paraActividad,
+  } = props
   return (
     <CabeceraDeVehiculo
       vehiculo={vehiculo}
@@ -60,7 +72,12 @@ export function Encabezado(props: Props) {
             </Link>
           ) : null}
           {editable ? <BotonEditarVehiculo vehiculo={vehiculo} /> : null}
-          <MenuDeVehiculoDeLaFicha vehiculo={vehiculo} publicar={publicar} papelera={papelera} />
+          <MenuDeVehiculoDeLaFicha
+            vehiculo={vehiculo}
+            publicar={publicar}
+            papelera={papelera}
+            paraActividad={paraActividad}
+          />
         </>
       }
     />

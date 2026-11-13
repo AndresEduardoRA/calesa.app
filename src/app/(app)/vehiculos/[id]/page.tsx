@@ -3,8 +3,9 @@ import type { Metadata, Route } from 'next'
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { z } from 'zod'
+import { rutaDeActividadDe } from '@/modules/actividad'
 import { RegistrarVisita } from '@/modules/buscador/pantallas/visita'
-import { puede, requerirSesion } from '@/modules/equipo'
+import { puede, requerirSesion, type Permisos } from '@/modules/equipo'
 import { leerFasesDeOrigen } from '@/modules/flujos'
 import { getOrigenes, leerLayout } from '@/modules/origenes'
 import {
@@ -52,6 +53,24 @@ function NoDisponible() {
   )
 }
 
+// «Ver actividad» del «⋯», sólo con `actividad.ver` (`vehiculos` no conoce `actividad`: la ruta la arma la página).
+function paraActividadDe(permisos: Permisos, vehiculoId: string): string | null {
+  return puede(permisos, 'actividad.ver') ? rutaDeActividadDe('vehiculos', vehiculoId) : null
+}
+
+// Vuelve al inventario del origen del vehículo.
+function VolverAlOrigen({ origen }: { origen: { id: string; nombre: string } }) {
+  return (
+    <Link
+      href={`${RUTAS.vehiculos}?origen=${origen.id}` as Route}
+      className="inline-flex min-h-11 w-fit items-center gap-1.5 text-(length:--text-sm) text-(--color-ink-soft) underline-offset-2 hover:text-(--color-ink) hover:underline md:min-h-8"
+    >
+      <ArrowLeftIcon aria-hidden className="size-4" />
+      {origen.nombre}
+    </Link>
+  )
+}
+
 // La ficha de un vehículo: su cabecera y, debajo, la pestaña de `?seccion=` (ver `pestanas.ts`;
 // las que faltan se suman con su sección cuando existan).
 export default async function PaginaVehiculo({
@@ -87,13 +106,7 @@ export default async function PaginaVehiculo({
   return (
     <div className="grid max-w-4xl gap-4">
       <RegistrarVisita tipo="vehiculo" id={encontrado.id} />
-      <Link
-        href={`${RUTAS.vehiculos}?origen=${origen.id}` as Route}
-        className="inline-flex min-h-11 w-fit items-center gap-1.5 text-(length:--text-sm) text-(--color-ink-soft) underline-offset-2 hover:text-(--color-ink) hover:underline md:min-h-8"
-      >
-        <ArrowLeftIcon aria-hidden className="size-4" />
-        {origen.nombre}
-      </Link>
+      <VolverAlOrigen origen={origen} />
       <Encabezado
         vehiculo={encontrado}
         origen={origen}
@@ -102,6 +115,7 @@ export default async function PaginaVehiculo({
         publicar={publicar}
         editable={editable}
         verEnLogistica={puede(sesion.permisos, 'logistica.ver', origen.id)}
+        paraActividad={paraActividadDe(sesion.permisos, encontrado.id)}
         papelera={permisoDePapelera(
           eliminables.has(encontrado.id),
           motivoParaNoEnviar(encontrado, fase),

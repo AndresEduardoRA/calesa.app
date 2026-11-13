@@ -28,6 +28,8 @@ type Props = {
   alEnviado?: () => void
   // En una cabecera (el resumen, la ficha): con borde, como los botones de al lado.
   conBorde?: boolean
+  // «Ver actividad»: sólo la ficha, y sólo con `actividad.ver` (la ruta la arma la página). Sin esto, no se ofrece.
+  alVerActividad?: (() => void) | undefined
 }
 
 const oferta = (
@@ -46,7 +48,8 @@ const aLaVitrina = (id: string) => `${RUTAS.vehiculos}/${id}?panel=vitrina`
 // papelera» se hace sin preguntar y ofrece «Deshacer»; lo que ya se sabe que la base va a rechazar (vinculado, fuera de su fase inicial)
 // se ve apagado con el motivo. Sin nada que ofrecer no se dibuja.
 export function MenuDeVehiculo(props: Props) {
-  const { vehiculo, editar, publicar, papelera, alPublicar, alEnviado, conBorde } = props
+  const { vehiculo, editar, publicar, papelera, alPublicar, alEnviado, conBorde, alVerActividad } =
+    props
   const router = useRouter()
   const panel = usePanelDeVehiculo()
   const envio = useEnvioAPapelera()
@@ -54,6 +57,7 @@ export function MenuDeVehiculo(props: Props) {
     editar: editar ? 'habilitada' : 'oculta',
     publicar: oferta(publicar),
     papelera: oferta(papelera),
+    actividad: alVerActividad ? 'habilitada' : 'oculta',
   })
   if (bloques.length === 0) {
     return null
@@ -88,6 +92,7 @@ export function MenuDeVehiculo(props: Props) {
       },
       ...notaDe(motivoDe(publicar), 'motivo-publicar'),
     ],
+    actividad: () => lineaDeActividad(alVerActividad),
     papelera: () => [
       {
         tipo: 'accion',
@@ -119,6 +124,18 @@ export function MenuDeVehiculo(props: Props) {
       conBorde={conBorde}
     />
   )
+}
+
+// «Ver actividad» lleva a `/actividad` de este vehículo (sólo se ofrece con `alVerActividad`).
+function lineaDeActividad(alVerActividad: (() => void) | undefined): AccionDeMenu[] {
+  return [
+    {
+      tipo: 'accion',
+      clave: 'actividad',
+      etiqueta: ETIQUETA_DE_ACCION_DE_VEHICULO.actividad,
+      alElegir: alVerActividad ?? (() => undefined),
+    },
+  ]
 }
 
 function notaDe(motivo: string | null, clave: string): AccionDeMenu[] {

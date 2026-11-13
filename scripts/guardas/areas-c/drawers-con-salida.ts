@@ -75,4 +75,9 @@ export const REGISTRO: Record<string, RegistroDeDrawer> = {
     formulario: 'src/modules/chat/features/fichas/components/panel-de-evento.tsx',
     mecanismo: 'contexto',
   },
+  // El diff de un cambio de la actividad (9.01-4): `?cambio=<id>`. Sólo muestra lo que devuelve `actividad_diff`.
+  'src/modules/actividad/features/diff/components/drawer-de-cambio.tsx': {
+    sinFormulario:
+      'de sólo lectura: el diff de un cambio de la actividad (9.01-4); no hay nada que escribir',
+  },
 }

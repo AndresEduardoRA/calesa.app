@@ -65,6 +65,8 @@ type Props = {
   puedeEnviarAPapelera: boolean
   // La ruta de la hoja de cotizar con este lead, si quien mira cotiza en algún origen (la arma la página).
   paraCotizar: string | null
+  // `/actividad` de este lead, si quien mira tiene `actividad.ver` (la arma la página): «Ver actividad» en el «⋯».
+  paraActividad: string | null
 }
 
 type DatosDeSeccion = {
@@ -153,6 +155,7 @@ export function FichaDeLead({
   accionesDeCartera,
   puedeEnviarAPapelera,
   paraCotizar,
+  paraActividad,
 }: Props) {
   const panel = usePanelDeLead()
   const marcas = useMarcas(ficha.id, ficha.marcas)
@@ -178,6 +181,7 @@ export function FichaDeLead({
               puedeEditar={puedeEditar}
               puedeEnviarAPapelera={puedeEnviarAPapelera}
               paraCotizar={paraCotizar}
+              paraActividad={paraActividad}
             />
           </>
         }

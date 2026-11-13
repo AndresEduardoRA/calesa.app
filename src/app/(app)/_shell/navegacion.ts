@@ -163,7 +163,7 @@ export const NAVEGACION = [
     Icono: ActivityIcon,
     zona: 'usuario',
     permisos: ['actividad.ver'],
-    disponible: false,
+    disponible: true,
   },
   {
     clave: 'datos',

@@ -5,7 +5,7 @@ import { ETIQUETA_DE_FAVORITO, ETIQUETA_DE_TACHADO } from './marcas'
 import { ETIQUETA_DE_ENVIAR } from './papelera'
 
 export type ClaveDeAccionDeLead =
-  'agendar' | 'anotar' | 'etiquetas' | 'favorito' | 'tachado' | 'papelera'
+  'agendar' | 'anotar' | 'etiquetas' | 'favorito' | 'tachado' | 'actividad' | 'papelera'
 
 // El texto de cada una. Las que abren algo encima (un modal, el selector de etiquetas) llevan «…»; «Favorito» y «Tachado» son casillas.
 export const ETIQUETA_DE_ACCION_DE_LEAD: Readonly<Record<ClaveDeAccionDeLead, string>> = {
@@ -14,14 +14,17 @@ export const ETIQUETA_DE_ACCION_DE_LEAD: Readonly<Record<ClaveDeAccionDeLead, st
   etiquetas: 'Etiquetas…',
   favorito: ETIQUETA_DE_FAVORITO,
   tachado: ETIQUETA_DE_TACHADO,
+  // Lleva a otra página (`/actividad` de este lead): sin «…».
+  actividad: 'Ver actividad',
   papelera: ETIQUETA_DE_ENVIAR,
 }
 
-// El orden, en tres bloques: lo que se hace seguido arriba (agendar y anotar), lo que se marca en medio (etiquetas, favorito y tachado) y
-// lo destructivo al final y separado (la papelera). Entre dos bloques con algo va un separador.
+// El orden, en bloques: lo que se hace seguido arriba (agendar y anotar), lo que se marca en medio (etiquetas, favorito y tachado), «Ver
+// actividad» (sólo la ficha, con `actividad.ver`) y lo destructivo al final y separado (la papelera). Entre dos bloques con algo va un separador.
 export const BLOQUES_DEL_MENU_DE_LEAD: readonly (readonly ClaveDeAccionDeLead[])[] = [
   ['agendar', 'anotar'],
   ['etiquetas', 'favorito', 'tachado'],
+  ['actividad'],
   ['papelera'],
 ]
 
@@ -30,6 +33,8 @@ export type PermisosDelMenuDeLead = {
   actuar: boolean
   // Con `leads.eliminar` sobre este lead (`puedeEnviarLead()`).
   enviar: boolean
+  // Con `actividad.ver` y en la ficha (la única superficie que pasa a dónde ir).
+  actividad?: boolean
 }
 
 // Las acciones que quien mira tiene sobre este lead, en su orden y por bloques (sin bloques vacíos). Marcar (etiquetas, favorito y
@@ -41,6 +46,7 @@ export function accionesDeLead(puede: PermisosDelMenuDeLead): ClaveDeAccionDeLea
     etiquetas: true,
     favorito: true,
     tachado: true,
+    actividad: puede.actividad === true,
     papelera: puede.enviar,
   }
   return BLOQUES_DEL_MENU_DE_LEAD.map((bloque) => bloque.filter((clave) => visible[clave])).filter(
