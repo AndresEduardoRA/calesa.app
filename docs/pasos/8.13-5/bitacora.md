@@ -2,7 +2,7 @@
 
 ### Hecho
 
-- **Base:** `pago_registrar_proyecto` (migración `20261112231247_repuestos_pagos_registrar.sql`), gemela de `pago_registrar` para el proyecto: `repuestos.costos.editar` y
+- **Base:** `pago_registrar_proyecto` (migración `20261113024244_repuestos_pagos_registrar.sql`), gemela de `pago_registrar` para el proyecto: `repuestos.costos.editar` y
   `repuestos.ver`, el proyecto `for share`, crear sólo con el proyecto abierto, idempotente por id, sin lead, NaN y tres decimales rechazados. `aplicado_en` de
   `repuestos.costos.editar` en la migración y en `seed.sql` (escrito entero, idéntico al del seed: ninguna migración anterior lo fijaba). Prueba
   `supabase/tests/areas/repuestos/pagos.sql` (P1–P7) y carreras K5/K6 en `supabase/tests/areas/dinero/carreras-proyecto.mjs`.
