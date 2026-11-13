@@ -9,6 +9,7 @@ import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import { pruebasEnOrden } from './lib/pruebas-de-la-base.mjs'
+import { cargarDatos } from './lib/datos-de-prueba.mjs'
 
 const base = process.argv[2] ?? 'supabase'
 const db = new PGlite({ extensions: { pg_trgm, citext, unaccent, pgcrypto } })
@@ -147,10 +148,14 @@ for (const f of lista) {
 }
 console.log(`✓ ${ok} archivos aplicados`)
 
-// Los datos que una prueba lee del repo: la base no lee archivos, así que se los pasa el cliente en una tabla temporal
-// `<nombre> (doc jsonb)`, creada antes de correr su archivo. La ruta es relativa a la raíz del repo. `{ ruta, texto: true }` guarda el archivo
-// como texto (`to_jsonb(texto)`), no como JSON: una migración que la prueba vuelve a ejecutar (si se recrea con otra fecha, se corrige su ruta).
+// Los datos que una prueba lee del repo, por archivo (las clases de dato, en `scripts/lib/datos-de-prueba.mjs`). Si una migración que se lee
+// como texto se recrea con otra fecha, se corrige su ruta.
 const DATOS_DE_PRUEBA = {
+  // splinter sobre el esquema de la prueba, con los esquemas que expone la API, y la lista de avisos aceptados con su motivo (9.13-1).
+  'advisors.sql': {
+    _avisos: { consulta: 'scripts/splinter.sql', schemasDe: configToml },
+    _avisos_con_motivo: path.join(base, 'tests', 'advisors-con-motivo.json'),
+  },
   'validar-formula.sql': {
     _juego_de_formula: 'src/modules/cotizaciones/entities/casos-de-formula.json',
     _corpus_de_formula: path.join(base, 'tests', 'corpus-de-formula.json'),
@@ -194,25 +199,14 @@ const DATOS_DE_PRUEBA = {
   },
 }
 
-async function cargarDatos(archivo) {
-  for (const [tabla, dato] of Object.entries(DATOS_DE_PRUEBA[archivo] ?? {})) {
-    const { ruta, texto } = typeof dato === 'string' ? { ruta: dato, texto: false } : dato
-    await db.exec(`drop table if exists pg_temp.${tabla}; create temp table ${tabla} (doc jsonb)`)
-    await db.query(
-      texto
-        ? `insert into ${tabla} (doc) values (to_jsonb($1::text))`
-        : `insert into ${tabla} (doc) values ($1::jsonb)`,
-      [fs.readFileSync(ruta, 'utf8')],
-    )
-  }
-}
-
 // Pruebas: el humo y, después, lo que se apoya en su base (la matriz de leads y el cinturón de la
 // auditoría). Cada archivo se parte en bloques `-- @test <nombre>` y corre en la misma base.
 // SOLO=<archivo>[,<archivo>] corre sólo esos (para iterar sobre uno; una de un área, por su ruta: `areas/papelera/x.sql`); sin él, todos y en este
 // orden. Después de esta lista corren las de `supabase/tests/areas/**` (`pruebasEnOrden`): ahí suma las suyas un carril que no es base.
 const SOLO = process.env['SOLO']?.split(',')
 const LISTA_FIJA = [
+  // Antes que todo: splinter mira el catálogo antes de que una prueba deje funciones en `pg_temp` (`function_search_path_mutable` no las excluye).
+  'advisors.sql',
   // Primero: mira el seed tal como queda, antes de que el humo publique la v2 de una fórmula o cambie un tipo de cambio.
   'rls-en-todo.sql',
   'privilegios-de-anon.sql',
@@ -281,7 +275,7 @@ const LISTA_FIJA = [
 for (const archivo of pruebasEnOrden(LISTA_FIJA, path.join(base, 'tests'), SOLO)) {
   const t = path.join(base, 'tests', archivo)
   if (!fs.existsSync(t)) continue
-  await cargarDatos(archivo)
+  await cargarDatos(db, DATOS_DE_PRUEBA[archivo] ?? {})
   const bloques = fs
     .readFileSync(t, 'utf8')
     .split(/^-- @test\s+/m)
