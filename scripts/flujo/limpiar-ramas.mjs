@@ -97,7 +97,8 @@ export function limpiarRamas({ gh, git, enSeco = false }) {
       .map((l) => l.slice('branch refs/heads/'.length)),
   )
   const protegidas = new Set(['main', ...enUso])
-  // La rama siguió después de integrarse, pero sólo trayendo main: ningún commit propio (que no sea una mezcla) sobre lo integrado.
+  // La rama siguió después de integrarse, pero sólo trayendo main: ningún commit propio (que no sea una mezcla) fuera de lo integrado
+  // y de main. No pide que la punta integrada sea su ancestro: GitHub pudo recibir otra mezcla de main que la rama local no tiene.
   const soloTrajoMain = (sha, integrada) => {
     try {
       const propios = execFileSync(
@@ -105,7 +106,7 @@ export function limpiarRamas({ gh, git, enSeco = false }) {
         ['rev-list', '--count', '--no-merges', sha, `^${integrada}`, `^${main}`],
         { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
       ).trim()
-      return esAncestro(integrada, sha) && propios === '0'
+      return propios === '0'
     } catch {
       return false
     }
