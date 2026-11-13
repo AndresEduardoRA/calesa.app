@@ -274,11 +274,11 @@ jobs:
           path: ${{ runner.temp }}
       - run: tar -xzf "$RUNNER_TEMP/next-e2e.tgz"
       - run: pnpm db:reset
-      # Las tres que exige e2e/soporte/guardia.ts (FUNCIONES), con su regla: OPTIONS responde y no es 404 ni 5xx.
+      # Las cuatro que exige e2e/soporte/guardia.ts (FUNCIONES), con su regla: OPTIONS responde y no es 404 ni 5xx.
       - name: funciones edge (las pide e2e/global-setup.ts)
         run: |
           nohup pnpm exec supabase functions serve > "$RUNNER_TEMP/funciones.log" 2>&1 &
-          funciones="apibara storage-gc avatares-miniaturas"
+          funciones="apibara storage-gc avatares-miniaturas importar-csv"
           for _ in $(seq 1 60); do
             faltan=""
             for f in $funciones; do

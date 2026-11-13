@@ -65,6 +65,7 @@ export {
 } from './controles'
 export {
   LARGO_DE_TEXTO,
+  LARGO_DE_TEXTO_LARGO,
   NUMERO_MAXIMO,
   OBLIGATORIO,
   enlace,

@@ -10,5 +10,15 @@ export {
   type Pedido,
   type SalidaDeExportacionTotal,
 } from './entities/exportacion'
-// La pantalla `/datos` (9.05-3): qué sección abre `?seccion=`.
-export { seccionDeDatos } from './entities/secciones'
+// La pantalla `/datos` (9.05-3): qué sección abre `?seccion=` y, desde el 9.06-4b, las pestañas (con «Importar» apagada sin permiso).
+export { seccionDeDatos, seccionesDeDatos, type PestanaDeDatos } from './entities/secciones'
+// La sección «Importar» (9.06-4b): qué puede importar cada quien (sólo dibuja: la acción y `importacion_crear` lo exigen) y a quién.
+export {
+  entidadElegida,
+  opcionesDeImportar,
+  origenElegido,
+  puedeImportar,
+  TOPE_DE_DESTINOS,
+  type OpcionesDeImportar,
+} from './entities/opciones-de-importar'
+export { leerPersonasParaDestino, type PersonaDestino } from './composicion'

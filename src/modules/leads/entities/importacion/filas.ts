@@ -15,10 +15,18 @@ import { CLAVE_DEL_ALTA, validarAlta } from '../alta'
 import type { ContextoDeImportacion } from './contexto'
 import type { CampoDeLead } from '../campo'
 import type { TablaDePaises } from '../paises/resolver'
-import { normalizarTelefono } from '../telefono'
 import { valorDeFormularioDesdeTexto } from './convertir'
 import { completarPaisDeLaFila } from './pais'
-import { comparable, esNotacionCientifica, sinApostrofoDeFormula } from './texto'
+import {
+  origenDeLaCelda,
+  tipoDeLaCelda,
+  motivoDeOrigenDesconocido,
+  motivoDeTipoDesconocido,
+} from './catalogo'
+import { marcarRepetido } from './repetidos'
+import { esNotacionCientifica, sinApostrofoDeFormula } from './texto'
+
+export { motivoDeOrigenDesconocido, motivoDeTipoDesconocido } from './catalogo'
 
 export type MotivoDeFila = {
   // El id del objetivo (`nombre`, `telefono_principal`, `atributos.ciudad`…), o `null` si es de la fila.
@@ -79,55 +87,6 @@ export type EntradaDePreparacion = {
 }
 
 const PREFIJO_DE_ATRIBUTO = 'atributos.'
-
-const TIPOS_QUE_SE_NOMBRAN = 10
-
-// Un tipo que no existe o está desactivado nunca se crea por una errata: la fila se rechaza y el motivo lista los activos, para
-// corregir la celda sin ir a otra pantalla. Los nombres salen de la base.
-export function motivoDeTipoDesconocido(texto: string, contexto: ContextoDeImportacion): string {
-  const activos = contexto.tipos.map((tipo) => tipo.nombre)
-  const principio = `El tipo «${texto}» no existe o está desactivado.`
-  if (activos.length === 0) {
-    return `${principio} No hay tipos activos: no se puede importar.`
-  }
-  const nombrados = activos.slice(0, TIPOS_QUE_SE_NOMBRAN).join(', ')
-  const resto = activos.length - TIPOS_QUE_SE_NOMBRAN
-  return `${principio} Los activos: ${nombrados}${resto > 0 ? ` y ${String(resto)} más` : ''}.`
-}
-
-// El tipo (su id) que una celda nombra: por nombre o por clave, entre los activos, sin tildes ni mayúsculas.
-function tipoDeLaCelda(contexto: ContextoDeImportacion, texto: string): string | null {
-  const buscado = comparable(texto)
-  return (
-    contexto.tipos.find(
-      (tipo) => comparable(tipo.nombre) === buscado || comparable(tipo.clave) === buscado,
-    )?.id ?? null
-  )
-}
-
-const ORIGENES_QUE_SE_NOMBRAN = 10
-
-// Un origen que no existe o está desactivado nunca se crea por una errata: la fila se rechaza y el
-// motivo lista los activos, para corregir la celda sin ir a otra pantalla.
-export function motivoDeOrigenDesconocido(texto: string, contexto: ContextoDeImportacion): string {
-  const activos = contexto.origenes.map((origen) => origen.nombre)
-  const principio = `El origen «${texto}» no existe o está desactivado.`
-  if (activos.length === 0) {
-    return `${principio} No hay orígenes activos: deja la celda vacía.`
-  }
-  const nombrados = activos.slice(0, ORIGENES_QUE_SE_NOMBRAN).join(', ')
-  const resto = activos.length - ORIGENES_QUE_SE_NOMBRAN
-  return `${principio} Los activos: ${nombrados}${resto > 0 ? ` y ${String(resto)} más` : ''}.`
-}
-
-function origenDeLaCelda(contexto: ContextoDeImportacion, texto: string): string | null {
-  const buscado = comparable(texto)
-  return (
-    contexto.origenes.find(
-      (origen) => comparable(origen.nombre) === buscado || comparable(origen.clave) === buscado,
-    )?.id ?? null
-  )
-}
 
 type Lectura = { valores: ValoresDeFormulario; propios: Map<string, string> }
 
@@ -292,42 +251,26 @@ function prepararFila(
   }
 }
 
-// El mismo teléfono, normalizado, dos veces en el archivo: la segunda ya no entra.
-function marcarRepetidos(
-  filas: readonly FilaPreparada[],
-  contexto: ContextoDeImportacion,
-): FilaPreparada[] {
+// Preparar por tramos (9.06-4b, la importación total de `/datos` convierte 20.000 filas sin trabar la pantalla): arma una vez el mapa de
+// campos y lo visto de teléfonos, que cruza las llamadas. Cada llamada numera desde `desde` (la fila `desde + i + 2` del archivo) y marca los
+// repetidos contra todo lo anterior. **Las llamadas van en orden y sin saltos:** así el resultado es idéntico al de una sola pasada.
+export function preparadorDeFilas(
+  entrada: Omit<EntradaDePreparacion, 'filas'>,
+): (filas: EntradaDePreparacion['filas'], desde: number) => FilaPreparada[] {
+  const completa = { ...entrada, filas: [] }
+  const campos = new Map(
+    entrada.campos.filter((campo) => campo.activo).map((campo) => [campo.clave, campo]),
+  )
   const vistos = new Map<string, number>()
-  return filas.map((fila) => {
-    const telefono = fila.pedido?.lead.telefono_principal
-    const normalizado =
-      telefono === undefined ? null : normalizarTelefono(contexto.telefonoCc, telefono)
-    if (!normalizado?.ok) {
-      return fila
-    }
-    const primera = vistos.get(normalizado.numero)
-    if (primera === undefined) {
-      vistos.set(normalizado.numero, fila.fila)
-      return fila
-    }
-    return {
-      ...fila,
-      pedido: null,
-      motivos: [
-        {
-          campo: CLAVE_DEL_ALTA.telefono,
-          motivo: `Este teléfono ya está en la fila ${String(primera)} del archivo.`,
-        },
-      ],
-    }
-  })
+  return (filas, desde) => {
+    const preparadas = filas.map((celdas, i) =>
+      prepararFila(celdas, desde + i + 2, completa, campos),
+    )
+    return preparadas.map((fila) => marcarRepetido(fila, vistos, entrada.contexto.telefonoCc))
+  }
 }
 
 // Las filas de datos (la primera es la fila 2 del archivo), cada una con su id de intento.
 export function prepararFilas(entrada: EntradaDePreparacion): FilaPreparada[] {
-  const campos = new Map(
-    entrada.campos.filter((campo) => campo.activo).map((campo) => [campo.clave, campo]),
-  )
-  const preparadas = entrada.filas.map((celdas, i) => prepararFila(celdas, i + 2, entrada, campos))
-  return marcarRepetidos(preparadas, entrada.contexto)
+  return preparadorDeFilas(entrada)(entrada.filas, 0)
 }

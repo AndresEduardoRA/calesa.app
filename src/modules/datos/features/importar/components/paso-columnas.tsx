@@ -1,0 +1,136 @@
+'use client'
+
+import type { ContextoDeImportacion } from '@/modules/leads/client'
+import { Aviso } from '@/shared/ui/aviso'
+import { Button } from '@/shared/ui/button'
+import { CampoSeleccion } from '@/shared/ui/campo-seleccion'
+import type { ArchivoLeido, AsistenteTotal } from '../hooks/use-asistente-total'
+
+const IGNORAR = ''
+
+type Props = {
+  asistente: AsistenteTotal & { archivo: ArchivoLeido }
+  // Sólo en leads: el origen y el tipo de las filas que no lo traen.
+  contexto: ContextoDeImportacion | null
+  alVolver: () => void
+  alContinuar: () => void
+}
+
+function SelectoresDeLeads({
+  asistente,
+  contexto,
+}: {
+  asistente: AsistenteTotal
+  contexto: ContextoDeImportacion
+}) {
+  const { eleccion } = asistente
+  if (!eleccion) {
+    return null
+  }
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {contexto.origenes.length > 0 ? (
+        <CampoSeleccion
+          nombre="origen-del-archivo"
+          etiqueta="Origen para las filas sin origen"
+          opciones={contexto.origenes.map((origen) => ({
+            valor: origen.id,
+            etiqueta: origen.nombre,
+          }))}
+          value={eleccion.origenId ?? ''}
+          onChange={(evento) => {
+            asistente.elegirOrigen(evento.target.value)
+          }}
+        />
+      ) : (
+        <p className="self-end pb-2 text-(length:--text-sm) text-(--color-ink-faint)">
+          No hay un origen de lead activo: los leads se importan sin origen.
+        </p>
+      )}
+      <CampoSeleccion
+        nombre="tipo-del-archivo"
+        etiqueta="Tipo para las filas sin tipo"
+        opciones={contexto.tipos.map((tipo) => ({ valor: tipo.id, etiqueta: tipo.nombre }))}
+        value={eleccion.tipoLeadId}
+        onChange={(evento) => {
+          asistente.elegirTipo(evento.target.value)
+        }}
+      />
+    </div>
+  )
+}
+
+// El primer dato de la columna, para reconocerla (en la pantalla; no va a ningún lado).
+function ejemploDe(archivo: ArchivoLeido, columna: number): string | undefined {
+  const primero = archivo.filas
+    .map((fila) => fila[columna] ?? '')
+    .find((celda) => celda.trim() !== '')
+  if (primero === undefined) {
+    return undefined
+  }
+  return `Ejemplo: ${primero.length > 40 ? `${primero.slice(0, 40)}…` : primero}`
+}
+
+// El segundo paso: a qué dato va cada columna. El emparejamiento automático ya está hecho; acá se corrige. Lo que queda sin pareja se ignora.
+export function PasoColumnas({ asistente, contexto, alVolver, alContinuar }: Props) {
+  const { archivo, objetivos, destinos, avisos, faltan } = asistente
+  const opciones = [
+    { valor: IGNORAR, etiqueta: 'Ignorar esta columna' },
+    ...objetivos.map((objetivo) => ({ valor: objetivo.id, etiqueta: objetivo.etiqueta })),
+  ]
+  return (
+    <div className="grid gap-4">
+      <p className="text-(length:--text-sm) text-(--color-ink-faint)">
+        Revisa a qué dato va cada columna de «{archivo.nombre}». Lo que no emparejes no se importa.
+      </p>
+      {avisos.length > 0 ? (
+        <Aviso tono="info">
+          <ul className="grid gap-0.5">
+            {avisos.map((aviso) => (
+              <li key={aviso}>{aviso}</li>
+            ))}
+          </ul>
+        </Aviso>
+      ) : null}
+      <div className="grid gap-3 sm:grid-cols-2">
+        {archivo.encabezados.map((encabezado, columna) => (
+          <CampoSeleccion
+            key={`${String(columna)}-${encabezado}`}
+            nombre={`columna-${String(columna)}`}
+            etiqueta={
+              encabezado === '' ? `Columna ${String(columna + 1)}` : `Columna «${encabezado}»`
+            }
+            opciones={opciones}
+            value={destinos[columna] ?? IGNORAR}
+            ayuda={ejemploDe(archivo, columna)}
+            onChange={(evento) => {
+              asistente.elegirDestino(
+                columna,
+                evento.target.value === IGNORAR ? null : evento.target.value,
+              )
+            }}
+          />
+        ))}
+      </div>
+      {contexto ? <SelectoresDeLeads asistente={asistente} contexto={contexto} /> : null}
+      {faltan.length > 0 ? (
+        <Aviso tono="aviso">
+          Falta una columna para: {faltan.map((objetivo) => objetivo.etiqueta).join(', ')}.
+        </Aviso>
+      ) : null}
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button type="button" variant="outline" className="h-11 md:h-9" onClick={alVolver}>
+          Elegir otro archivo
+        </Button>
+        <Button
+          type="button"
+          className="h-11 md:h-9"
+          disabled={faltan.length > 0}
+          onClick={alContinuar}
+        >
+          Ver la vista previa
+        </Button>
+      </div>
+    </div>
+  )
+}
