@@ -3,6 +3,41 @@ import { z } from 'zod'
 import { errorDePostgrest, fallo, ok, type Resultado } from '@/shared/lib/errores'
 import type { ClienteSupabase } from '@/shared/lib/supabase/server'
 
+// Crear la importación total (9.06-4) con la sesión de quien importa: `importacion_crear` exige el permiso, la carpeta propia y el destino,
+// y es idempotente por id (`repetido`).
+const respuestaDeCrear = z.object({ id: z.guid(), estado: z.string(), repetido: z.boolean() })
+
+export type PedidoDeCrear = {
+  id: string
+  entidad: 'leads' | 'vehiculos'
+  ruta: string
+  mapeo: Record<string, string | null>
+  asignarA: string | null
+  origenId: string | null
+}
+
+export async function crearImportacion(
+  supabase: ClienteSupabase,
+  pedido: PedidoDeCrear,
+): Promise<Resultado<{ id: string; repetido: boolean }>> {
+  const { data, error } = await supabase.rpc('importacion_crear', {
+    p_id: pedido.id,
+    p_entidad: pedido.entidad,
+    p_archivo_ruta: pedido.ruta,
+    p_mapeo: pedido.mapeo,
+    ...(pedido.asignarA === null ? {} : { p_asignar_a: pedido.asignarA }),
+    ...(pedido.origenId === null ? {} : { p_origen: pedido.origenId }),
+  })
+  if (error) {
+    return { ok: false, error: errorDePostgrest(error) }
+  }
+  const leida = respuestaDeCrear.safeParse(data)
+  if (!leida.success) {
+    return fallo('inesperado', 'No se pudo confirmar la importación. Vuelve a intentar.')
+  }
+  return ok({ id: leida.data.id, repetido: leida.data.repetido })
+}
+
 // Despertar la función edge `importar-csv` para una importación total (9.06-3). El pase lo pide la sesión de quien creó la importación
 // (`importacion_pase_emitir`: sólo la propia y viva); a la función no viaja ninguna clave, sólo el pase de un uso.
 
