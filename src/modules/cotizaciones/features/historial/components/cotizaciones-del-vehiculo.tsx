@@ -19,6 +19,7 @@ export function CotizacionesDelVehiculo({ vehiculoId }: { vehiculoId: string }) 
       historial={historial}
       de={{ vehiculo: vehiculoId }}
       etiqueta="Cotizaciones del vehículo"
+      esperarEsqueleto={false}
     />
   )
 }

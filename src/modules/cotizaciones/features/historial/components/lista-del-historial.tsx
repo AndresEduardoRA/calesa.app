@@ -26,11 +26,13 @@ type Props = {
   de: ListaDe
   // El nombre de la lista para quien lee en voz alta: el panel de la hoja y la pestaña de la ficha no la llaman igual.
   etiqueta: string
+  // Detrás de un `diferido()` que ya mostró su esqueleto, el de las filas pinta en el acto: esperar sería un blanco entre dos esqueletos (4.17-3).
+  esperarEsqueleto?: boolean
 }
 
 // Las cotizaciones de un vehículo o un lead que quien mira ve, de la más nueva a la más vieja, con sus estados (esqueleto, error, vacío) y su pie («Ver más» o el tope).
 // La comparten el historial del panel de la hoja, la pestaña «Cotizaciones» de la ficha del vehículo y la sección de la ficha del lead; la lectura es de `usePaginasDelHistorial`.
-export function ListaDelHistorial({ historial, de, etiqueta }: Props) {
+export function ListaDelHistorial({ historial, de, etiqueta, esperarEsqueleto = true }: Props) {
   const { zonaHoraria } = useRegional()
   if (!historial.leido) {
     if (historial.error) {
@@ -43,7 +45,7 @@ export function ListaDelHistorial({ historial, de, etiqueta }: Props) {
         </div>
       )
     }
-    return <EsqueletoDeLasFilas />
+    return <EsqueletoDeLasFilas esperar={esperarEsqueleto} />
   }
   if (historial.filas.length === 0) {
     return <EstadoVacio Icono={FileTextIcon} titulo="Sin cotizaciones que puedas ver." compacto />
@@ -108,17 +110,20 @@ function PieDelHistorial({ historial, de }: { historial: PaginasDelHistorial; de
   ) : null
 }
 
-// Mientras llega la lista: tres filas, con letrero para quien lee en voz alta.
-function EsqueletoDeLasFilas() {
-  const [visible, setVisible] = useState(false)
+// Mientras llega la lista: tres filas, con letrero para quien lee en voz alta. Misma forma que `EsqueletoDeLasCotizaciones`, el del `diferido()`.
+function EsqueletoDeLasFilas({ esperar }: { esperar: boolean }) {
+  const [visible, setVisible] = useState(!esperar)
   useEffect(() => {
+    if (!esperar) {
+      return
+    }
     const espera = setTimeout(() => {
       setVisible(true)
     }, ESPERA_DEL_ESQUELETO_MS)
     return () => {
       clearTimeout(espera)
     }
-  }, [])
+  }, [esperar])
   return (
     <div aria-busy="true" aria-label="Cargando el historial" className="grid gap-2">
       {visible ? (
