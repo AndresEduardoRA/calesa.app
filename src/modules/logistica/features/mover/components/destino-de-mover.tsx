@@ -6,13 +6,13 @@ import {
 } from '@/modules/flujos/client'
 import { Aviso } from '@/shared/ui/aviso'
 import { Button } from '@/shared/ui/button'
-import type { Unidad } from '../../../entities/nucleo/unidad'
+import type { UnidadAbierta } from '../../../entities/nucleo/unidad'
 import type { BorradorDeMover } from '../hooks/use-borrador-de-mover'
 import { FormularioDeMover } from './formulario-de-mover'
 import { RequisitosDeUnDestino } from './requisitos-de-un-destino'
 
 type Props = {
-  unidad: Unidad
+  unidad: UnidadAbierta
   destino: DestinoConVista
   puedeMover: boolean
   borrador: BorradorDeMover

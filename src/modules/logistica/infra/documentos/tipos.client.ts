@@ -16,7 +16,8 @@ const TOPE_DE_REQUISITOS = 200
 
 // `tipos_documento` activos: los globales (`flujo_id` nulo) y los del flujo de esa unidad (el activo de su origen y su ámbito).
 export async function leerTiposDeLaUnidad(
-  unidad: Pick<Unidad, 'tipo' | 'origenId'>,
+  // Sin origen un ítem de repuesto (8.13-2): su flujo no lo tiene.
+  unidad: { tipo: Unidad['tipo']; origenId: string | null },
 ): Promise<Resultado<TipoDeDocumento[]>> {
   const supabase = createClient()
   const porAmbito = supabase

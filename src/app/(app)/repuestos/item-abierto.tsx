@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { puede } from '@/modules/equipo'
-import type { Unidad } from '@/modules/logistica'
+import type { UnidadAbierta } from '@/modules/logistica'
 import { PanelDeLaUnidad } from '@/modules/logistica/pantallas/unidad'
 import { leerItemDelPanel } from '@/modules/repuestos'
 import { datosO } from '@/shared/lib/errores'
@@ -36,7 +36,7 @@ export async function ItemAbierto({ id, permisos }: { id: string; permisos: Perm
   if (item === null) {
     return <ItemNoDisponible />
   }
-  const unidad: Unidad = {
+  const unidad: UnidadAbierta = {
     tipo: 'repuesto',
     id: item.id,
     origenId: null,

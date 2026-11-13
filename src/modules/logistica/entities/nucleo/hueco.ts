@@ -2,7 +2,7 @@ import type { ComponentType } from 'react'
 
 import { puede, type ClavePermiso, type Permisos } from '@/shared/lib/permisos'
 
-import type { Unidad } from './unidad'
+import type { Unidad, UnidadAbierta } from './unidad'
 
 // Los huecos del panel de la unidad (6.01): lo que un área llena en el panel sin que el núcleo la importe. Cada área declara los suyos en
 // `pantallas/<área>-unidad.ts` (vacío hasta su paso) y `src/app` los junta y los filtra con `huecosVisibles`. Un componente de hueco recibe sólo
@@ -15,9 +15,15 @@ export type HuecoDeLaUnidad = {
   permisos: readonly ClavePermiso[]
   // La regla de `flujos_reglas` que lo enciende (`transporte`, `aduana`, `gastos`, `pagos`…). Nula: no depende de una regla.
   regla: string | null
-  // La variante para un ítem de repuesto (8.13-2): sin ella, el hueco no se dibuja para un ítem. Con ella, se filtra por estos permisos (sin origen: el flujo de repuestos no tiene) y esta regla.
-  repuesto?: { permisos: readonly ClavePermiso[]; regla: string | null }
-  componente: ComponentType<{ unidad: Unidad }>
+  // La variante para un ítem de repuesto (8.13-2): sin ella, el hueco no se dibuja para un ítem. Con ella, se filtra por estos permisos (sin origen: el flujo de repuestos no tiene) y esta regla,
+  // y se dibuja con su `componente` (que recibe la unidad abierta, sin origen). `componente` del hueco es de las áreas que sólo tratan vehículos y nunca ve un ítem.
+  repuesto?: {
+    permisos: readonly ClavePermiso[]
+    regla: string | null
+    componente?: ComponentType<{ unidad: UnidadAbierta }>
+  }
+  // El del hueco de un área que sólo trata vehículos pide `Unidad`; uno que también sirve a un ítem (mover) pide `UnidadAbierta` y se dibuja igual para el vehículo.
+  componente: ComponentType<{ unidad: Unidad }> | ComponentType<{ unidad: UnidadAbierta }>
   // El bloque nace abierto (y su contenido se pide al hidratar el panel). Los demás nacen plegados. Lo usa «Qué falta» (6.04), que es lo primero que se mira para mover.
   abiertoAlInicio?: boolean
 }
@@ -49,7 +55,7 @@ export function huecosVisibles<H extends ParaFiltrar>(
     origenId: string | null
     reglasActivas: readonly string[]
     // Qué unidad se abre: sin él, un vehículo (todo lo de antes). Un ítem sólo ve los huecos con variante `repuesto`.
-    tipo?: Unidad['tipo']
+    tipo?: UnidadAbierta['tipo']
   },
 ): H[] {
   const { permisos, origenId, reglasActivas, tipo = 'vehiculo' } = contexto

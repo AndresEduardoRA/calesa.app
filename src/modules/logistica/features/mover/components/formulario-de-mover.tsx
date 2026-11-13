@@ -12,12 +12,12 @@ import { AvisoDeConflicto } from '@/shared/ui/aviso-de-conflicto'
 import { Button } from '@/shared/ui/button'
 import { Label } from '@/shared/ui/label'
 import { Textarea } from '@/shared/ui/textarea'
-import type { Unidad } from '../../../entities/nucleo/unidad'
+import type { UnidadAbierta } from '../../../entities/nucleo/unidad'
 import type { BorradorDeMover } from '../hooks/use-borrador-de-mover'
 import { useMoverLaUnidad } from '../hooks/use-mover-la-unidad'
 
 type Props = {
-  unidad: Unidad
+  unidad: UnidadAbierta
   destino: DestinoConVista
   puedeMover: boolean
   borrador: BorradorDeMover

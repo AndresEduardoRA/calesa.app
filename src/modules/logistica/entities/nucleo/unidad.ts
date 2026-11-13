@@ -3,21 +3,26 @@
 export type Unidad = {
   tipo: 'vehiculo' | 'repuesto'
   id: string
-  // Nulo para un ítem: el flujo de repuestos no tiene origen.
-  origenId: string | null
+  origenId: string
   // Lo que nombra al vehículo: su título (`vehiculos.titulo`) o, si su origen tiene campo principal, «<principal> · <título>» (6.13).
   titulo: string
   faseId: string | null
   // Cuándo entró a su fase (ISO); nulo si no tiene fase. De ahí salen los días en la fase.
   faseDesde: string | null
-  // Sólo en un ítem (D6 de 8.13-2): su proyecto y el vehículo de éste, si lo tiene. De ahí salen «Abrir proyecto» y «Sigue al vehículo».
+}
+
+/**
+ * La unidad que abre el panel: un vehículo (`Unidad`) o un ítem de repuesto (8.13-2). Un ítem no tiene origen (el flujo de repuestos no lo tiene: `origenId`
+ * nulo) y trae su proyecto y el vehículo de éste, si lo tiene (D6): de ahí salen «Abrir proyecto» y «Sigue al vehículo». `Unidad` se queda con `origenId: string`
+ * para las áreas que sólo tratan vehículos (documentos, transporte, aduana…): ellas no se enteran del ítem.
+ */
+export type UnidadAbierta = Omit<Unidad, 'origenId'> & {
+  origenId: string | null
   proyecto?: { id: string; vehiculoId: string | null }
 }
 
-/** La unidad es un vehículo (y entonces tiene origen): donde sólo hay vehículos, estrecha `origenId` a `string`. */
-export function esUnidadDeVehiculo(
-  unidad: Unidad,
-): unidad is Unidad & { tipo: 'vehiculo'; origenId: string } {
+/** La unidad abierta es un vehículo (y entonces tiene origen): donde sólo hay vehículos, estrecha a `Unidad`. */
+export function esUnidadDeVehiculo(unidad: UnidadAbierta): unidad is Unidad & { tipo: 'vehiculo' } {
   return unidad.tipo === 'vehiculo' && unidad.origenId !== null
 }
 

@@ -5,7 +5,7 @@ import { fallo, type ErrorApp, type Resultado } from '@/shared/lib/errores'
 import { TOPE_DE_LO_CARGADO } from '@/shared/lib/paginacion'
 import { hastaDeUnDia } from '../../../entities/mover/hasta-de-un-dia'
 import type { PaginaDeLaUnidad, PedidoDeLaLista } from '../../../entities/mover/pagina-de-la-unidad'
-import type { Unidad } from '../../../entities/nucleo/unidad'
+import type { UnidadAbierta } from '../../../entities/nucleo/unidad'
 import { useAlCambiarLaUnidad } from '../../nucleo/hooks/eventos-de-la-unidad'
 
 // «Ir a una fecha»: el día elegido y su borde exclusivo.
@@ -23,9 +23,13 @@ function juntar<Fila extends { id: string | number }>(
   return [...previas, ...nuevas.filter((fila) => !vistos.has(fila.id))]
 }
 
-type UnidadDeLaLista = Pick<Unidad, 'id' | 'faseId'> & { tipo?: Unidad['tipo'] }
+type UnidadDeLaLista = Pick<UnidadAbierta, 'id' | 'faseId'> & { tipo?: UnidadAbierta['tipo'] }
 
-function aPedidoDeLaLista(unidadId: string, tipo: Unidad['tipo'] | undefined, pedido: Pedido) {
+function aPedidoDeLaLista(
+  unidadId: string,
+  tipo: UnidadAbierta['tipo'] | undefined,
+  pedido: Pedido,
+) {
   return { unidadId, tipo, cursor: pedido.cursor, hasta: pedido.ventana?.hasta ?? null }
 }
 
