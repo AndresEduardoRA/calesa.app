@@ -75,8 +75,9 @@ Lectura `vehiculos_inventario` (una página por rutas con los filtros del layout
 - **Vitrina, sólo por** `vehiculo_vitrina` (estado entero, sin defaults, con versión; exige `vehiculos.vitrina` del origen y ver el vehículo).
   **Publicado no es «en vitrina»:** la regla vive en `interno.vitrina_vehiculos`; la app no la copia. Vista previa: `vehiculo_vitrina_previa()`.
 - **Papelera, sólo por RPC y con resultado parcial** (cada vehículo con su versión, lote hasta 200; restaurar/purgar con la versión del lote).
-  Enviar ofrece «Deshacer» 10 s. Lo que no entra lo decide `_vehiculo_motivo_de_bloqueo`. Restaurar vuelve sin publicar. Purgar es irreversible
-  (`<ConfirmarPurga>`). Se lee sólo por `vehiculos_papelera_listar()`. Un lead con vehículo vinculado no va a la papelera de leads.
+  Enviar ofrece «Deshacer» 10 s. Lo que no entra lo decide `_vehiculo_motivo_de_bloqueo` (una final activa frena aunque no tenga lead).
+  Restaurar vuelve sin publicar. Purgar es irreversible (`<ConfirmarPurga>`). Se lee sólo por `vehiculos_papelera_listar()`. Un lead con
+  vehículo vinculado no va a la papelera de leads.
 - **Vínculo e interesados, sólo por RPC** (`vehiculo_vincular`; `p_lead` nulo desvincula; bloquea el lead y luego el vehículo; reemplazar exige
   tener también el lead actual). El vínculo otorga permisos (con «propios», quien tiene el lead edita el vehículo). No se lee `leads`: los nombres
   llegan de las RPC. El bloque sólo se dibuja con `leads.ver`.

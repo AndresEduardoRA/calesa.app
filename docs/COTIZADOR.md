@@ -579,7 +579,8 @@ la lectura nueva y lo tipeado no vuelve sobre la versión de la otra persona.
    lote de la papelera de quien marca, el vehículo sin lead queda con el de la cotización, el lead pasa al primer tipo activo de la clase
    cliente (por orden y nombre) si no era de esa clase, y la actividad `cotizacion.final`. Marcar otra vez no falla ni cambia nada.
 
-Una final activa ancla el vehículo en la limpieza automática (`'cotizacion_final'`) y su vínculo no cambia (`vehiculo_vincular`: 23514).
+Una final activa ancla el vehículo en la limpieza automática (`'cotizacion_final'`), su vínculo no cambia (`vehiculo_vincular`: 23514) y,
+aun sin lead, el vehículo no va a la papelera (`_vehiculo_motivo_de_bloqueo`: 23514).
 
 ### Crear una final
 

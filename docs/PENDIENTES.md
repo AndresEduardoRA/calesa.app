@@ -64,7 +64,6 @@ Al cerrar una, se borra su línea (el PR lo cuenta). Lo nuevo que aparezca al tr
 - **[7-4]** Con `p_conversacion` del canal global, `tarea_crear` y `agenda_quienes_reciben` miran la fila suelta de `conversaciones_miembros` y pasa un responsable sin `chat.global` — revalidar con `_chat_miembro_vigente` como `mensaje_tarea_crear`.
 - **[—]** `lead_campo_impacto` lee los valores públicos de todos los leads aunque quien llama tenga `leads.ver` con alcance «propios»: acotando el rango se hallan los extremos de leads que no ve — contar con `_lead_visible_para` sin perder los de la papelera.
 - **[—]** Dominancia: no se cubre que la de quien llama cambie mientras actúa, y `nivel_crear` suma concesiones al rol `dueno` sin tomar `roles … for update`.
-- **[—]** `_vehiculo_motivo_de_bloqueo` no frena mandar a la papelera un vehículo con una final sin lead.
 - **[—]** Purgar un vehículo o un lead no se bloquea mientras una cotización de la papelera lo nombra, y una final en la papelera hace caer con `23514` la purga entera del lote del vehículo.
 - **[—]** Posible `40P01` entre el job de purga (lotes por `creado_en`, en una transacción) y restaurar cotizaciones (por id): sin medir ni orden común.
 - **[—]** Anular un pago confirmado o quitar un gasto de tributos mientras el vehículo entra a una fase que pide `pagos.confirmado` no toma el candado del vehículo, ni anular el último pago de un proyecto el de sus ítems ante `proyecto.pago_cliente` — carreras sin cubrir en `scripts/carreras/`.
