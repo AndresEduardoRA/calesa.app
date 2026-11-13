@@ -12,7 +12,8 @@ import { crearItemSupabase } from './crear'
 import { eliminarItemSupabase } from './eliminar'
 import { leerItem } from './leer'
 
-// Guardar una celda es un `update` directo por columna (la tabla da UPDATE por columna a `repuestos.editar`: el grant y la policy son el límite) y la tabla NO revisa la versión: la revisa
+// Guardar una celda es un `update` directo por columna (la tabla da UPDATE por columna a `repuestos.editar` con `repuestos.ver`: el grant, la policy y el trigger `repuestos_item_escritura`
+// —ítem vivo, proyecto abierto, catálogo activo de su tipo, cantidad no menor que lo que pasó a stock— son el límite) y la tabla NO revisa la versión: la revisa
 // este repositorio con `.eq('actualizado_en', …)`. Cero filas nunca es éxito (patrón de `catalogos/escribir.ts`): o el ítem ya no existe, o cambió desde que se vio. Las filas ya borradas
 // (`eliminado_en`) no se tocan. Sostiene la consulta la clave primaria.
 async function guardar({

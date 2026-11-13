@@ -3,7 +3,9 @@
 //     ni 23514 crudo ni 40001). K2: dos reasignaciones del último en stock con ids distintos; B recibe 23514 «Sólo hay 0 en stock.» y queda un solo
 //     ítem nuevo. K2b: dos reasignaciones con el mismo id (un doble clic); B espera el candado del origen y recibe la respuesta idempotente, sin
 //     descontar dos veces. K3 (D10 de 8.08-1): crear un ítem en un proyecto vacío mientras otro lo elimina; el `for update` de eliminar espera el
-//     `for share` de crear y recibe 23514 «Tiene ítems…»: el proyecto sigue vivo.
+//     `for share` de crear y recibe 23514 «Tiene ítems…»: el proyecto sigue vivo. K4: pasar todo a stock por `sobrante` mientras otro baja la
+//     cantidad con un `update` directo; el `update` espera el `for update` del ítem y recibe 23514: la cantidad no queda bajo lo entrado. K5: cerrar
+//     el proyecto mientras otro edita una celda de un ítem; el `for share` del trigger espera el `for update` de cerrar y recibe 23514.
 // Terreno con el prefijo «Carreras» (proyectos externos por su etiqueta y un rol con repuestos.ver y repuestos.editar para la dueña de las
 // carreras); lo borra `limpiarStock()`. Las corre `scripts/carreras.mjs` (`pnpm db:carreras`).
 import { randomUUID } from 'node:crypto'
@@ -61,6 +63,22 @@ const itemConStock = async (db, proyectoId, stock) =>
       [proyectoId, `${PREFIJO} ítem`, stock],
     )
   ).rows[0].id
+
+// Un ítem sin stock, escrito como postgres.
+const itemSinStock = async (db, proyectoId, cantidad) =>
+  (
+    await db.query(
+      `insert into public.repuestos_items (proyecto_id, descripcion, cantidad) values ($1, $2, $3) returning id`,
+      [proyectoId, `${PREFIJO} ítem`, cantidad],
+    )
+  ).rows[0].id
+
+// Una celda de la hoja: el `update` directo por columna, como lo manda `infra/items/guardar.ts`.
+const ponerCelda = (item, columna, valor) => ({
+  persona: duena,
+  consulta: `with x as (update public.repuestos_items set ${columna} = $2 where id = $1 returning 1) select count(*)::text as r from x`,
+  args: [item, valor],
+})
 
 const stockDe = async (db, item) =>
   (await db.query(`select stock_cantidad from public.repuestos_items where id = $1`, [item]))
@@ -184,6 +202,61 @@ export async function carrerasDeStock({ orquesta, carrera, espero }) {
         r.b.mensaje === 'Tiene ítems: ciérralo en vez de eliminarlo.' &&
         p.eliminado_en === null,
       { r, p },
+    )
+  }
+
+  console.log('Pasar a stock mientras se baja la cantidad')
+  {
+    const item = await itemSinStock(orquesta, origen, 2)
+    const r = await carrera(orquesta, {
+      a: {
+        persona: duena,
+        sql: `public.repuesto_stock_mover($1, 2, 'sobrante', 0)::text`,
+        args: [item],
+      },
+      b: ponerCelda(item, 'cantidad', 1),
+    })
+    const {
+      rows: [i],
+    } = await orquesta.query(
+      `select cantidad, stock_cantidad from public.repuestos_items where id = $1`,
+      [item],
+    )
+    espero(
+      'K4: A pasa 2 a stock; el update esperó el candado del ítem y recibe 23514; cantidad 2 y stock 2',
+      r.a.ok && r.b.codigo === '23514' && i.cantidad === 2 && i.stock_cantidad === 2,
+      { r, i },
+    )
+  }
+
+  console.log('Editar una celda mientras se cierra el proyecto')
+  {
+    const abierto = await proyecto(orquesta, 'cerrar K5')
+    const item = await itemSinStock(orquesta, abierto, 1)
+    const {
+      rows: [{ v }],
+    } = await orquesta.query(
+      `select actualizado_en::text as v from public.repuestos_proyectos where id = $1`,
+      [abierto],
+    )
+    const r = await carrera(orquesta, {
+      a: {
+        persona: duena,
+        sql: 'public.repuesto_proyecto_cerrar($1, $2)::text',
+        args: [abierto, v],
+      },
+      b: ponerCelda(item, 'notas', `${PREFIJO} K5`),
+    })
+    const {
+      rows: [i],
+    } = await orquesta.query(`select notas from public.repuestos_items where id = $1`, [item])
+    espero(
+      'K5: A cierra; la celda esperó el for share del proyecto y recibe 23514 «El proyecto está cerrado…»; el ítem no cambia',
+      r.a.ok &&
+        r.b.codigo === '23514' &&
+        r.b.mensaje === 'El proyecto está cerrado: reábrelo para cambiar los ítems.' &&
+        i.notas === null,
+      { r, i },
     )
   }
 }
