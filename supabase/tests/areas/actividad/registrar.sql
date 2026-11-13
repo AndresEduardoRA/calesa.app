@@ -50,7 +50,7 @@ create or replace function pg_temp.reg_invocadoras() returns text[] language sql
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
    where n.nspname not in ('pg_catalog', 'information_schema') and n.nspname not like 'pg\_temp%' and n.nspname not like 'pg\_toast%'
      and p.prokind in ('f', 'p') and not p.prosecdef and p.proname <> 'registrar_actividad'
-     and pg_get_functiondef(p.oid) ~ 'registrar_actividad\s*\('
+     and pg_get_functiondef(p.oid) ~* 'registrar_actividad\s*\('
 $f$;
 
 -- @test actividad: la app no ejecuta registrar_actividad (T1)
