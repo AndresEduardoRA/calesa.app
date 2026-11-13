@@ -22,9 +22,12 @@ export { completarRecordatorio } from './features/recordatorios/actions/completa
 export { interpretarBusqueda, MINIMO_DE_BUSQUEDA } from './entities/busqueda-de-leads'
 // La importación total de `/datos` (9.06-4): convierte el archivo en el navegador con las mismas reglas que la importación de `/leads`
 // (`prepararFilas` pasa cada fila por `validarAlta()`), así no hay un segundo juego de reglas para un lead.
+// 9.06-4b: `preparadorDeFilas` prepara por tramos con el mismo resultado que una pasada, y `origenInicial` arma la elección de todo el archivo.
 export {
+  preparadorDeFilas,
   prepararFilas,
   type EleccionParaTodoElArchivo,
+  type EntradaDePreparacion,
   type FilaPreparada,
   type MotivoDeFila,
   type PedidoDeFila,
@@ -47,5 +50,6 @@ export {
   type Conversion,
 } from './entities/importacion/convertir'
 export type { ContextoDeImportacion } from './entities/importacion/contexto'
+export { origenInicial } from './entities/contexto-de-alta'
 export type { TablaDePaises } from './entities/paises/resolver'
 export { usePaises } from './features/telefono/hooks/use-paises'
