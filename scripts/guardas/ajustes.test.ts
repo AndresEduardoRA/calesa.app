@@ -79,22 +79,6 @@ describe('.claude/settings.json › hooks', () => {
     expect(cableado('PreToolUse', 'Bash', '.claude/hooks/bloquear-peligrosos.sh')).toBe(true)
   })
 
-  it('lo que autoriza el piloto se guarda en cada escritura y cada Bash, también en los subagentes', () => {
-    expect(
-      cableado(
-        'PreToolUse',
-        'Write|Edit|NotebookEdit|Bash',
-        '.claude/hooks/guardar-autorizaciones.sh',
-      ),
-    ).toBe(true)
-  })
-
-  it('la sola lectura del auditor y del planificador no depende de la confianza de la carpeta: también por settings', () => {
-    expect(
-      cableado('PreToolUse', 'Write|Edit|NotebookEdit|Bash', '.claude/hooks/por-agente.sh'),
-    ).toBe(true)
-  })
-
   it('un archivo editado se lintea y al terminar se verifica', () => {
     expect(cableado('PostToolUse', 'Edit|Write', '.claude/hooks/lint-archivo.sh')).toBe(true)
     expect(cableado('Stop', '', '.claude/hooks/verificar-al-terminar.sh')).toBe(true)
@@ -136,8 +120,8 @@ describe('package.json › el candado de la base', () => {
   })
 })
 
-// El frontmatter de los agentes del piloto: el motor de agentes tampoco corre en Vitest. Se prueba lo que los hace de sólo lectura:
-// las herramientas que no tienen, y el hook de su frontmatter (que sólo corre con la carpeta confiada) cableado a un archivo real.
+// El frontmatter del revisor: el motor de agentes tampoco corre en Vitest. Se prueba lo que lo hace de sólo lectura: las herramientas
+// que no tiene, y el hook de su frontmatter cableado a un archivo real.
 function frontmatter(archivo: string) {
   const texto = readFileSync(join(RAIZ, archivo), 'utf8')
   const bloque = /^---\n([\s\S]*?)\n---\n/.exec(texto)?.[1] ?? ''
@@ -153,85 +137,30 @@ function frontmatter(archivo: string) {
   return { campo, hooks }
 }
 
-describe('.claude/agents › el auditor y el planificador', () => {
-  const auditor = frontmatter('.claude/agents/auditor.md')
-  const planificador = frontmatter('.claude/agents/planificador.md')
+describe('.claude/agents › el revisor', () => {
+  const revisor = frontmatter('.claude/agents/revisor.md')
 
-  it('los dos son opus con esfuerzo alto', () => {
-    for (const agente of [auditor, planificador]) {
-      expect(agente.campo('model')).toBe('opus')
-      expect(agente.campo('effort')).toBe('high')
-    }
+  it('lee y corre Bash de sólo lectura: sin Edit, Write, NotebookEdit ni Agent', () => {
+    expect(revisor.campo('tools')).toBe('Read, Grep, Glob, Bash')
+    expect(revisor.campo('disallowedTools')).toBe('Edit, Write, NotebookEdit, Agent')
+    expect(revisor.hooks).toEqual([{ matcher: 'Bash', ruta: '.claude/hooks/solo-lectura.sh' }])
   })
 
-  it('el auditor lee y corre Bash de sólo lectura: sin Edit, Write, NotebookEdit ni Agent', () => {
-    expect(auditor.campo('tools')).toBe('Read, Grep, Glob, Bash')
-    expect(auditor.campo('disallowedTools')).toBe('Edit, Write, NotebookEdit, Agent')
-    expect(auditor.hooks).toEqual([{ matcher: 'Bash', ruta: '.claude/hooks/solo-lectura.sh' }])
-  })
-
-  it('el planificador escribe sólo por su hook, y su Bash es de sólo lectura', () => {
-    expect(planificador.campo('tools')).toBe('Read, Grep, Glob, Bash, Write, Edit')
-    expect(planificador.campo('disallowedTools')).toBe('NotebookEdit, Agent')
-    expect(planificador.hooks).toEqual([
-      { matcher: 'Bash', ruta: '.claude/hooks/solo-lectura.sh' },
-      { matcher: 'Write|Edit', ruta: '.claude/hooks/escribir-solo-en-piloto.sh' },
-    ])
-  })
-
-  it('cada hook del frontmatter existe y se puede ejecutar', () => {
-    for (const { ruta } of [...auditor.hooks, ...planificador.hooks]) {
+  it('el hook de su frontmatter existe y se puede ejecutar', () => {
+    for (const { ruta } of revisor.hooks) {
       expect(() => accessSync(join(RAIZ, ruta), constants.X_OK), ruta).not.toThrow()
     }
   })
-
-  it('revisor.md queda como estaba: sonnet y sin hooks', () => {
-    const revisor = frontmatter('.claude/agents/revisor.md')
-    expect(revisor.campo('model')).toBe('sonnet')
-    expect(revisor.hooks).toEqual([])
-  })
 })
 
-// Las skills del piloto: cada SKILL.md < 200 líneas; las que sólo lanza el bucle no las invoca el modelo (`disable-model-invocation`);
-// `piloto-decidir` y `piloto-control` sí (se abren como el prompt inicial de una sesión interactiva, que la doc no documenta: por eso
-// se dejan invocables). Los archivos que enlazan existen.
-describe('.claude/skills › las del piloto', () => {
-  const texto = (skill: string, archivo = 'SKILL.md') =>
-    readFileSync(join(RAIZ, '.claude/skills', skill, archivo), 'utf8')
-
-  it.each(['piloto-ruteo', 'piloto', 'piloto-decidir', 'piloto-control'])(
-    '%s: nombre igual a su carpeta y menos de 200 líneas',
+// Las skills del proyecto: el nombre es el de su carpeta y cada SKILL.md es corta (se carga entera al invocarla).
+describe('.claude/skills', () => {
+  it.each(['feature', 'entregar', 'revisar'])(
+    '%s: nombre igual a su carpeta y menos de 80 líneas',
     (skill) => {
-      const s = texto(skill)
+      const s = readFileSync(join(RAIZ, '.claude/skills', skill, 'SKILL.md'), 'utf8')
       expect(/^name: (.+)$/m.exec(s)?.[1]).toBe(skill)
-      expect(s.split('\n').length).toBeLessThan(200)
+      expect(s.split('\n').length).toBeLessThan(80)
     },
   )
-
-  it.each(['piloto-ruteo', 'piloto'])('%s no la invoca el modelo', (skill) => {
-    expect(texto(skill)).toMatch(/^disable-model-invocation: true$/m)
-  })
-
-  it.each(['piloto-decidir', 'piloto-control'])('%s sí queda invocable', (skill) => {
-    expect(texto(skill)).not.toMatch(/disable-model-invocation/)
-  })
-
-  it('/piloto trae sus tres archivos y los enlaza', () => {
-    const s = texto('piloto')
-    for (const archivo of ['plantilla-plan.md', 'plantilla-informe.md', 'compuertas.md']) {
-      expect(s, archivo).toContain(`](${archivo})`)
-      expect(texto('piloto', archivo).length, archivo).toBeGreaterThan(200)
-    }
-  })
-
-  it('el ruteo sólo lee: no pide Bash ni Edit', () => {
-    expect(texto('piloto-ruteo')).toMatch(/sólo `Read`, `Grep` y `Glob`/)
-  })
-
-  it('la sesión de decidir no escribe: sólo Read y AskUserQuestion', () => {
-    const s = texto('piloto-decidir')
-    expect(s).toContain('sólo `Read` y')
-    expect(s).toContain('AskUserQuestion')
-    expect(s).toContain('no escribes nada')
-  })
 })

@@ -1,5 +1,5 @@
-// Los `<Confirmar>` del carril B: de las fases (5.04), de la agenda (7.07-2) eliminar un evento y eliminar una tarea, y de flujos (5.06) quitar una salida, cada uno con su `?eliminar=` (`usePanelPorUrl` con `{ clave: 'eliminar' }`). Es un pedazo de
-// `CONFIRMAR_CON_URL` (`confirmar-con-url.ts`, del A) que la guarda suma con `import.meta.glob('./areas-*/confirmar-con-url.ts')` (`registros-de-carriles.ts`).
+// Parte del registro de `<Confirmar>`: los de las fases (5.04), de la agenda (7.07-2) eliminar un evento y eliminar una tarea, y de flujos (5.06) quitar una salida, cada uno con su `?eliminar=` (`usePanelPorUrl` con `{ clave: 'eliminar' }`). La guarda
+// (`confirmar-con-url.ts`) suma esta parte a `CONFIRMAR_CON_URL` con `import.meta.glob('./areas-*/confirmar-con-url.ts')` (`registros-de-carriles.ts`).
 import type { ConfirmarConUrl } from '../confirmar-con-url'
 
 export const REGISTRO: Record<string, ConfirmarConUrl> = {

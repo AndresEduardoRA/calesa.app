@@ -1,6 +1,0 @@
-## 2026-11-08 — Paso 4.20-4a: los ajustes de cotización de la empresa en la base, la lectura y la action
-
-- **Hecho:** `empresa_guardar_ajustes_de_cotizacion()` guarda la vigencia (1 a 365 días) y el vehículo obligatorio al cotizar con `cotizaciones.configurar` en todos los orígenes (la concesión sin origen) y la misma versión de la fila que `empresa_guardar_ajustes()`, que sigue sin aceptarlas. El catálogo de la clave lo dice, en la migración y en el seed. En `empresa`: `AjustesDeCotizacion`, `leerAjustesDeCotizacion()` (falla en vez de dar los de fábrica), `puedeCambiarAjustesDeCotizacion()` y la action `guardarAjustesDeCotizacion` (`features/ajustes-de-cotizacion/`), sin salir por `client.ts`. Glosario: «Ajustes de cotización».
-- **Verificación:** Nivel 1 + cadena db. `db:reset`, `db:types`, `db:probar` entero (674 ✓, 0 ✗; T1–T6 nuevos: permiso sin origen, guardado, versión, rango con `hint`, separación de la RPC de Empresa, definición), `db:lint` sin avisos de la función. Vitest de lo tocado (174 de 174; la regla y la action con sus pruebas). e2e dirigido `e2e/empresa.spec.ts` en escritorio, 7 de 7. Plan e informe auditados (observaciones, atendidas).
-- **Abiertos:** el formulario y la pestaña «Ajustes» de Configuración › Cotización, 4.20-4b.
-  e2e completo: no (4.20-4a, base, regla y action sin interfaz, Nivel 1 + cadena db)

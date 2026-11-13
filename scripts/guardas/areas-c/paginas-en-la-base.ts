@@ -1,5 +1,5 @@
-// Las RPC con tamaño de página del carril C que no son de la papelera (4.27-2): los comentarios de una cotización. Es un pedazo de `RPC_PAGINADAS`
-// (`paginas-en-la-base.ts`, del A) que la guarda suma con `import.meta.glob('./areas-*/paginas-en-la-base.ts')` (`registros-de-carriles.ts`).
+// Parte del registro de RPC con tamaño de página: los comentarios de una cotización (4.27-2) y las demás de abajo. La guarda
+// (`paginas-en-la-base.ts`) suma esta parte a `RPC_PAGINADAS` con `import.meta.glob('./areas-*/paginas-en-la-base.ts')` (`registros-de-carriles.ts`).
 import { TAMANO_DE_PAGINA_POR_DEFECTO, TAMANO_DE_VER_MAS } from '../../../src/shared/lib/paginacion'
 import { TOPE_DE_FUERA_DE_REGLA } from '../../../src/modules/flujos/entities/requisitos/fuera-de-regla'
 import { TOPE_DE_IMPACTO } from '../../../src/modules/flujos/entities/requisitos/impacto'

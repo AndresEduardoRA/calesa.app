@@ -24,7 +24,7 @@ export type RpcPaginada = {
   lista: string
 }
 
-// Las del núcleo (del A). Las de un área van en su archivo (`paginas-en-la-base-papelera.ts`, del C) y se suman abajo.
+// Las del núcleo. Las de un área van en su archivo (`paginas-en-la-base-papelera.ts`, `areas-*/paginas-en-la-base.ts`) y se suman abajo.
 export const RPC_PAGINADAS_DEL_NUCLEO: readonly RpcPaginada[] = [
   {
     // La sección lee la primera página en el servidor con `OPORTUNIDADES_VISIBLES_DEL_LEAD` (10) y «Ver más», desde el navegador, con `TAMANO_DE_VER_MAS` (esto):

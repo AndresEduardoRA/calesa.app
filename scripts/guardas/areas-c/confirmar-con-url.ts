@@ -1,5 +1,5 @@
-// Los `<Confirmar>` del carril C fuera de la papelera (4.27-2): borrar un comentario de una cotización quitar uno de sus adjuntos (4.27-3) moderarla (4.27-4) y emitir un comprobante (4.26-2). Es un pedazo de `CONFIRMAR_CON_URL` (`confirmar-con-url.ts`,
-// del A) que la guarda suma con `import.meta.glob('./areas-*/confirmar-con-url.ts')` (`registros-de-carriles.ts`).
+// Parte del registro de `<Confirmar>`: los de cotizaciones fuera de la papelera (4.27-2): borrar un comentario de una cotización quitar uno de sus adjuntos (4.27-3) moderarla (4.27-4) y emitir un comprobante (4.26-2). La guarda (`confirmar-con-url.ts`)
+// suma esta parte a `CONFIRMAR_CON_URL` con `import.meta.glob('./areas-*/confirmar-con-url.ts')` (`registros-de-carriles.ts`).
 import type { ConfirmarConUrl } from '../confirmar-con-url'
 
 export const REGISTRO: Record<string, ConfirmarConUrl> = {

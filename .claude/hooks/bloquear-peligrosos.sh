@@ -2,10 +2,9 @@
 # Hook PreToolUse sobre Bash: bloquea lo que ninguna sesión de IA debería correr sola (exit 2 y el motivo por stderr,
 # que es lo que Claude recibe). Lee la entrada con jq (`tool_input.command`, `cwd`). Se prueba en `bloquear-peligrosos.test.ts`.
 #
-#   Siempre:          lo irreversible (reset --hard, clean, checkout --, branch -D…), publicar en main (push a main; una sesión
-#                     empuja sólo su rama, sin forzar; `gh pr merge` sólo lo permite una sesión interactiva, nunca PILOTO=1), lo remoto (supabase --linked salvo leer,
-#                     config push, gh api …/dispatches, vercel), cambiar dependencias y saltarse el candado de la base (`scripts/candado.sh`).
-#   Sólo PILOTO=1:    todo `git push` (lo publica el bucle, que no es una sesión), `gh` que escribe y `claude`.
+#   Lo irreversible (reset --hard, clean, checkout --, branch -D…), publicar en main (una sesión empuja sólo su rama, sin forzar, o
+#   una etiqueta nueva; main avanza por PR: docs/FLUJO.md), lo remoto (supabase --linked salvo leer, config push, gh api …/dispatches,
+#   vercel), cambiar dependencias y saltarse el candado de la base (`scripts/candado.sh`).
 #
 # Un comando se parte en segmentos (`&&`, `||`, `;`, `|`, `$(`, comillas invertidas, saltos de línea) y de cada uno se
 # descartan los envoltorios (`VAR=x`, `sudo`, `npx`, `pnpm exec`, `bash -c`, `scripts/candado.sh <nombre> --`) hasta el comando
@@ -17,7 +16,6 @@ CMD=$(printf '%s' "$ENTRADA" | jq -r '.tool_input.command // empty' 2>/dev/null)
 CWD=$(printf '%s' "$ENTRADA" | jq -r '.cwd // empty' 2>/dev/null)
 [ -z "$CMD" ] && exit 0
 [ -z "$CWD" ] && CWD="$PWD"
-PILOTO="${PILOTO:-}"
 
 bloquear() {
   printf '%s\n' "$1" >&2
@@ -60,13 +58,13 @@ hay_posicional() {
   return 1
 }
 
-# Una sesión empuja sólo la rama en la que está (la de su carril o su PR), sin forzar ni borrar, y nunca main: main lo integra la
-# persona al aprobar el PR. `cd x && git push` cambiaría de rama sin que el hook lo vea: se rechaza.
+# Una sesión empuja sólo la rama en la que está (la de su PR), sin forzar ni borrar, y nunca main: main avanza al integrarse el PR
+# (docs/FLUJO.md). `cd x && git push` cambiaría de rama sin que el hook lo vea: se rechaza. Una etiqueta nueva (`git push origin
+# refs/tags/<nombre>`) sí se empuja, desde cualquier rama: no mueve ninguna.
 revisar_push() {
   local dir="$1"
   shift
   local pos=() t rama
-  [ "$PILOTO" = 1 ] && bloquear "Con PILOTO=1 ninguna sesión hace git push: publica el bucle, después de verificar por su cuenta."
   for t in "$@"; do
     case "$t" in
       --all | --mirror | --tags | --delete | -d | --prune | -f | --force* | --no-verify)
@@ -78,10 +76,13 @@ revisar_push() {
   if printf '%s' "$CMD" | grep -qE '(^|[[:space:];&|])cd[[:space:]]'; then
     bloquear "git push junto a un cd: el hook no ve en qué rama queda. Usa git -C <carpeta> push."
   fi
+  if [ "${#pos[@]}" = 2 ] && [[ "${pos[1]}" =~ ^refs/tags/[A-Za-z0-9._/-]+$ ]]; then
+    return 0
+  fi
   rama=$(rama_de "$dir")
   case "$rama" in
     '') bloquear "git push sin una rama (HEAD suelto o fuera de un repo): no se sabe qué se publica." ;;
-    main) bloquear "git push desde main: main lo integra la persona al aprobar el PR. Trabaja en tu rama y empújala." ;;
+    main) bloquear "git push desde main: main avanza por PR (docs/FLUJO.md). Trabaja en tu rama y empújala." ;;
   esac
   case "${#pos[@]}" in
     0 | 1) ;;
@@ -153,41 +154,20 @@ revisar_git() {
 }
 
 revisar_gh() {
-  local sub="${A[0]:-}" sub2="${A[1]:-}" t
+  local sub="${A[0]:-}" sub2="${A[1]:-}"
   case "$sub $sub2" in
     "workflow run") bloquear "gh workflow run gasta minutos de CI y lo dispara una persona." ;;
   esac
   if [ "$sub" = api ] && printf '%s' "$ARGS" | grep -qE '/dispatches'; then
     bloquear "gh api …/dispatches dispara un flujo de trabajo: lo hace una persona."
   fi
-  # Integrar un PR a main: una sesión interactiva puede hacerlo si la persona se lo pidió; el piloto (PILOTO=1) nunca.
-  if [ "$PILOTO" = 1 ] && { [ "$sub $sub2" = "pr merge" ] || { [ "$sub" = api ] && printf '%s' "$ARGS" | grep -qE '/pulls/[0-9]+/merge'; }; }; then
-    bloquear "gh pr merge integra en main: el piloto no lo hace; lo integra la persona o una sesión a la que ella se lo pidió."
-  fi
-  [ "$PILOTO" = 1 ] || return 0
-  case "$sub $sub2" in
-    "pr create" | "pr merge" | "repo edit" | "run rerun" | "run cancel")
-      bloquear "Con PILOTO=1, gh $sub $sub2 es de afuera: no hay PR ni cambios en el repo remoto desde una sesión." ;;
-  esac
-  case "$sub" in
-    secret | variable | release) bloquear "Con PILOTO=1, gh $sub escribe afuera del repo local." ;;
-    api)
-      for t in "${A[@]:1}"; do
-        case "$t" in
-          -f | -F | --field | --raw-field | --input | -f* | -F* | --field=* | --raw-field=* | --input=*)
-            bloquear "Con PILOTO=1, gh api que escribe (campos o cuerpo) es de afuera." ;;
-          -X | --method | -X* | --method=*)
-            printf '%s' "$ARGS" | grep -qiE '(-X ?|--method[ =])(GET|get)( |$)' || bloquear "Con PILOTO=1, gh api con un método que escribe es de afuera." ;;
-        esac
-      done ;;
-  esac
 }
 
 revisar_supabase() {
   local sub="${A[0]:-}" sub2="${A[1]:-}"
   case "$ARGS" in
     *" --linked"* | *" --project-ref"*)
-      # Sólo lectura del proyecto remoto (docs/PREPARACION.md, etapa 0): volcar, listar migraciones, comparar e inspeccionar.
+      # Sólo lectura del proyecto remoto: volcar, listar migraciones, comparar e inspeccionar.
       # Lo que cambia la demo pasa por scripts/demo/*.sh, que corre una persona o la sesión con su aviso.
       case "$sub $sub2" in
         "db dump" | "migration list" | "db diff") ;;
@@ -292,8 +272,6 @@ revisar_segmento() {
       if [ "$CON_CANDADO" = 0 ] && printf '%s' "${A[0]:-}" | grep -qE '(^|/)scripts/(e2e-completo|carreras|medir-listado|sembrar-volumen)\.mjs$'; then
         bloquear "${A[0]} usa la base local, que es de una a la vez: corre por su script de pnpm (candado) o por scripts/candado.sh."
       fi ;;
-    claude) [ "$PILOTO" = 1 ] && bloquear "Con PILOTO=1 una sesión no lanza otra: la lanza el bucle." ;;
-    tmux) [ "$PILOTO" = 1 ] && [[ "$ARGS" == *claude* ]] && bloquear "Con PILOTO=1 una sesión no lanza otra (ni dentro de tmux): la lanza el bucle." ;;
   esac
   return 0
 }

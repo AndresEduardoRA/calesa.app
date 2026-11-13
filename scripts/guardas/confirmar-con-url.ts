@@ -12,7 +12,7 @@ export type ConfirmarConUrl = {
   senal: string
 }
 
-// Los del núcleo (del A). Los de un área van en su archivo (`confirmar-con-url-formula.ts`, del B; `confirmar-con-url-papelera.ts`, del C) y se suman abajo.
+// Los del núcleo. Los de un área van en su archivo (`confirmar-con-url-formula.ts`, `confirmar-con-url-papelera.ts`, `areas-*/confirmar-con-url.ts`) y se suman abajo.
 export const CONFIRMAR_CON_URL_DEL_NUCLEO: Record<string, ConfirmarConUrl> = {
   'src/modules/leads/features/cartera/components/dialogo-de-salir.tsx': {
     abre: 'src/modules/leads/features/ficha/hooks/use-panel-de-lead.ts',

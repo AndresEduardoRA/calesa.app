@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Hook PreToolUse sobre Bash del auditor y del planificador (agentes que no cambian nada): admite por segmento una lista corta de
+# Hook PreToolUse sobre Bash del revisor (`.claude/agents/revisor.md`, un agente que no cambia nada): admite por segmento una lista corta de
 # comandos de lectura y rechaza todo lo demás con exit 2 (el motivo, por stderr). Se prueba en `scripts/guardas/solo-lectura.test.ts`.
 #
 # Un comando se parte en segmentos (`|`, `||`, `&&`, `;`, `&`, saltos de línea) y en palabras, respetando las comillas (`grep -E
@@ -9,7 +9,7 @@
 #
 # Admitidos: git log|show|diff|status|rev-parse|ls-files|cat-file|blame|grep|for-each-ref y branch --list, wc, ls, cat, head, tail,
 # grep, rg, jq, stat, df, du, file, sort, uniq, cut, tr, diff, cmp, find (sin -exec/-delete/-fprint), sed -n '<n>p', gh run
-# list|view y node scripts/piloto/{nivel,cuenta-e2e,saltadas}.mjs. Con sus salvedades: sin sort -o, sin tail -f, sin rg --pre, sin
+# list|view y node scripts/nivel.mjs. Con sus salvedades: sin sort -o, sin tail -f, sin rg --pre, sin
 # git --output, sin `git -c`, y uniq con un solo archivo (con dos escribe el segundo).
 set -uo pipefail
 
@@ -182,8 +182,8 @@ revisar_segmento() {
       [ "${A[0]:-}" = run ] && { [ "${A[1]:-}" = list ] || [ "${A[1]:-}" = view ]; } ||
         rechazar "gh sólo como gh run list|view." ;;
     node)
-      [[ "${A[0]:-}" =~ ^scripts/piloto/(nivel|cuenta-e2e|saltadas)\.mjs$ ]] ||
-        rechazar "node sólo corre scripts/piloto/nivel.mjs, cuenta-e2e.mjs y saltadas.mjs." ;;
+      [ "${A[0]:-}" = scripts/nivel.mjs ] ||
+        rechazar "node sólo corre scripts/nivel.mjs." ;;
     *) rechazar "«$cmd» no está en la lista de lectura." ;;
   esac
 }

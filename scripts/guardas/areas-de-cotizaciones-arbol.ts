@@ -4,7 +4,7 @@ import { join, relative } from 'node:path'
 import { MODULO, type Archivo } from './areas-de-cotizaciones'
 
 // El árbol de verdad de `src/modules/cotizaciones/`, que leen las pruebas de la partición por áreas
-// (`areas-de-cotizaciones.test.ts` y `areas-de-cotizaciones-plan.test.ts`).
+// (`areas-de-cotizaciones.test.ts`).
 export const RAIZ = process.cwd()
 
 function* archivosDe(dir: string): Generator<string> {

@@ -13,7 +13,9 @@
       "Bash(git diff*)",
       "Bash(git log*)",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(gh pr *)",
+      "Bash(gh run *)"
     ],
     "deny": [
       "Bash(git commit --no-verify*)",
@@ -44,32 +46,11 @@
       "Read(.env)",
       "Read(.env.local)",
       "Read(.env.*.local)",
-      "Read(.env.demo)",
-      "Read(docs/archivo/**)"
+      "Read(.env.demo)"
     ]
   },
   "hooks": {
     "PreToolUse": [
-      {
-        "matcher": "Write|Edit|NotebookEdit|Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/guardar-autorizaciones.sh",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit|NotebookEdit|Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/por-agente.sh",
-            "timeout": 5
-          }
-        ]
-      },
       {
         "matcher": "Bash",
         "hooks": [
@@ -100,8 +81,8 @@
           {
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/verificar-al-terminar.sh",
-            "timeout": 240,
-            "statusMessage": "Verificando antes de terminar (mapa, typecheck, lint, tests)…"
+            "timeout": 120,
+            "statusMessage": "Verificando antes de terminar (mapa, typecheck y lo tocado)…"
           }
         ]
       }

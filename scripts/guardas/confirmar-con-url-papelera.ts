@@ -1,6 +1,5 @@
-// Los `<Confirmar>` de las áreas del carril C en `cotizaciones` (la papelera, 4.24-2b; la final, 4.25-2). Es un pedazo de `CONFIRMAR_CON_URL`
-// (`confirmar-con-url.ts`, del A) en su propio archivo para que el C registre sus diálogos sin tocar un archivo del A. La final va acá y no en
-// `areas-c/confirmar-con-url.ts` porque `confirmar-con-url-areas.test.ts` (del A) todavía da por vacíos los registros `areas-*` (pedido al A, 4.25-2).
+// Los `<Confirmar>` de la papelera (4.24-2b) y de la final (4.25-2) en `cotizaciones`: parte del registro de `CONFIRMAR_CON_URL`
+// (`confirmar-con-url.ts`), que los suma tras los del núcleo y los de la fórmula.
 import type { ConfirmarConUrl } from './confirmar-con-url'
 
 export const CONFIRMAR_CON_URL_DE_LA_PAPELERA: Record<string, ConfirmarConUrl> = {

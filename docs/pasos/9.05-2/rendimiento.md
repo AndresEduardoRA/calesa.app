@@ -1,3 +1,0 @@
-<!-- Ancla: en docs/RENDIMIENTO.md, después de la línea «- Exportar: lotes de 500, hasta 5.000, 5 por hora; …» (la exportación propia de leads). -->
-
-- Exportar todo (leads, 9.05-2): páginas de 1.000 (`FILAS_POR_PEDIDO`, el `max_rows`) por cursor `(creado_en, id)` de `datos_exportar_leads()` por `leads_listado_idx` (se inlinea: sin `Function Scan`), hasta `TOPE_DE_FILAS` (250.000), una página a la vez (`highWaterMark` 0); conteo previo de ids hasta tope + 1; con 200.000 leads, página ≤ 172 ms (≈ 42.000 buffers), página de ids 1 ms, conteo entero 0,3 s, lectura entera 33,9 s (42,3 s extrapolado a 250.000; sin el viaje HTTP ni el JSON de PostgREST); 3 por hora; `supabase/tests/medir-datos-exportar.sql`.

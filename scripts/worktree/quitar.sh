@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Baja el stack de Supabase de un carril y borra su base (`supabase stop --no-backup`), para soltar la RAM y el disco antes de que Orca
-# borre el worktree. Se corre en el worktree del carril; en la principal no hace nada. Lo inverso de scripts/worktree/preparar.sh.
+# Baja el stack de Supabase de un carril y borra su base (`supabase stop --no-backup`), para soltar la RAM y el disco antes de borrar
+# el worktree. Se corre en el worktree del carril; en la principal no hace nada. Lo inverso de scripts/worktree/preparar.sh.
 #
 #   bash scripts/worktree/quitar.sh
 set -euo pipefail

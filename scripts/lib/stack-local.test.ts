@@ -52,7 +52,6 @@ describe('stack-local', () => {
       E2E_PORT: 3410,
       SUPABASE_AUTH_SITE_URL: 'http://localhost:3200',
       E2E_MAILPIT_URL: 'http://127.0.0.1:54824',
-      PILOTO_SUPABASE_URL: 'http://127.0.0.1:54821',
     })
   })
 

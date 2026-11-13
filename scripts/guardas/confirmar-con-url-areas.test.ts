@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ConfirmarConUrl } from './confirmar-con-url'
 import { sumarObjetos } from './registros-de-carriles'
 
-// El carril B registra los `<Confirmar>` de la fórmula en su propio archivo, sin tocar el registro del A (4.20-2c). Lo de los carriles en
+// Los `<Confirmar>` de la fórmula y de la papelera van en su propio archivo y se suman tras los del núcleo (4.20-2c). Las partes de
 // `areas-*/confirmar-con-url.ts` (borrar un comentario, 4.27-2) se suma siempre al final.
 const DE_LAS_AREAS = sumarObjetos<ConfirmarConUrl>(
   import.meta.glob('./areas-*/confirmar-con-url.ts', { eager: true }),
@@ -33,7 +33,7 @@ describe('CONFIRMAR_CON_URL', () => {
 
   it('sin nada de la fórmula, es el núcleo', async () => {
     vi.resetModules()
-    // El registro real de la fórmula deja de estar vacío en cuanto el B registra su diálogo: se simula vacío.
+    // El registro real de la fórmula no está vacío: se simula vacío.
     vi.doMock('./confirmar-con-url-formula', () => ({
       CONFIRMAR_CON_URL_DE_LA_FORMULA: {},
     }))

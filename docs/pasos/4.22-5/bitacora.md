@@ -1,9 +1,0 @@
-## 2026-11-08 — Paso 4.22-5: la vista previa del diseño (quinta parte del 4.22)
-
-- **Hecho:** nivel 1, pantalla de configuración sin migración, RLS ni permiso nuevo (ámbar, sin auditor). Cuatro commits de código.
-  - Lo puro (`entities/diseno/hoja-del-diseno.ts`, `cifras-del-diseno.ts`, `anchos-de-la-vista-previa.ts`): `hojaDeLaVistaPrevia()` arma el `DisenoDeHoja` desde el diseño en edición y la definición (espejo de `_cotizacion_hoja()` sin niveles, tablas ni dato del vehículo; omite un nodo que ya no existe; sólo los tonos del catálogo que el diseño usa) y `cifrasDelDiseno()` evalúa con los datos en 0 y nunca lanza.
-  - El marco y la hoja de prueba (`features/diseno/components/marco-de-la-vista-previa.tsx`, `hoja-de-prueba.tsx`): una caja con scroll de costado y un hijo de ancho propio (412, 1.280 o 206 con `zoom: 2`), `inert`, que dibuja con la cabecera, las secciones y el resumen de la hoja de verdad.
-  - El cableado: «Vista previa» y los tres anchos (`controles-de-la-vista-previa.tsx`, `panel-de-la-vista-previa.tsx`, `use-vista-previa-del-diseno.ts`, `?vista=`), la vista previa en un `diferido()` aparte y los tonos del catálogo, que `SeccionDelDiseno` lee ahora junto a las otras dos lecturas.
-- **Verificación:** vitest de lo nuevo (T1 armador 2, T2 cifras 3, anchos 1) y `scripts/guardas` + `mapa.test.ts` en verde; e2e `configuracion-cotizacion-diseno-vista-previa` (V1) en escritorio y en móvil, más diseño, diseño-ítems y tonos en escritorio: 5 en verde (`.piloto/salidas/4.22-5/`); `tsc`, `eslint` y `mapa.sh --check` limpios. Sin mutaciones (no es fórmula ni dinero).
-  e2e completo: no (4.22-5, pantalla de configuración, Nivel 1: lo dirigido en escritorio)
-- **Commits:** `feat(cotizaciones)` ×3 (lo puro, el marco y la hoja, el cableado) y `test(cotizaciones)` (el e2e).
