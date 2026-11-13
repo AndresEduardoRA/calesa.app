@@ -200,8 +200,23 @@ describe('la lista de avisos contra la base real', () => {
       'motivo de db:lint de una función que ya no da avisos: public.g',
     ])
     expect(compararDbLint(lista, leerDbLint('Linting schema: public\n'))).toEqual([
-      'no se pudo leer la salida de db:lint (falta la línea {"results":…})',
+      'no se pudo leer la salida de db:lint (ni la línea {"results":…} ni el arreglo)',
     ])
+  })
+
+  // La CLI cambia de formato según quién la corre: con un agente (`AI_AGENT`, `CLAUDECODE`) imprime `{"results":…}` en una línea; en el CI,
+  // el arreglo con sangría (9.13, CI 43393195184). Las dos salidas son la misma lista.
+  it('db:lint: el arreglo con sangría del CI se lee igual que la línea de resultados del agente', () => {
+    const resultados = [
+      { function: 'public.f', issues: [{ level: 'warning' }, { level: 'warning' }] },
+      { function: 'public.g', issues: [{ level: 'warning extra' }] },
+    ]
+    const agente = `Linting schema: web\n${JSON.stringify({ results: resultados })}\n`
+    const ci = `Linting schema: web\n${JSON.stringify(resultados, null, 2)}\nA new version of Supabase CLI is available: v3.1.0\n`
+    expect(leerDbLint(agente)).toEqual(resultados)
+    expect(leerDbLint(ci)).toEqual(resultados)
+    expect(compararDbLint(lista, leerDbLint(ci))).toEqual([])
+    expect(leerDbLint(`Linting schema: web\n[\n  {\n    "function": "public.f",\n`)).toBeNull()
   })
 })
 

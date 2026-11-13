@@ -29,16 +29,30 @@ export function avisosSobrantes(lista: Lista, avisos: Aviso[], conGraphql: boole
 
 export type ResultadoDeDbLint = { function: string; issues: unknown[] }
 
-/** La línea JSON de `pnpm db:lint` (`{"results":[…]}`), o `null` si la salida no la trae. */
+/**
+ * Los resultados de `pnpm db:lint`, o `null` si la salida no los trae. La CLI elige el formato según quién la corre: con un agente
+ * (`AI_AGENT`, `CLAUDECODE`) una línea `{"results":[…]}`; sin él (el CI), el arreglo con sangría, de la línea `[` a la línea `]`.
+ */
 export function leerDbLint(texto: string): ResultadoDeDbLint[] | null {
-  const linea = texto.split('\n').find((l) => l.startsWith('{"results"'))
-  if (linea === undefined) return null
+  const bloque = bloqueDeDbLint(texto.split('\n'))
+  if (bloque === undefined) return null
   try {
-    const { results } = JSON.parse(linea) as { results?: ResultadoDeDbLint[] }
-    return Array.isArray(results) ? results : null
+    const leido = JSON.parse(bloque) as ResultadoDeDbLint[] | { results?: ResultadoDeDbLint[] }
+    const resultados = Array.isArray(leido) ? leido : leido.results
+    return Array.isArray(resultados) ? resultados : null
   } catch {
     return null
   }
+}
+
+function bloqueDeDbLint(lineas: string[]): string | undefined {
+  const linea = lineas.find((l) => l.startsWith('{"results"'))
+  if (linea !== undefined) return linea
+  const desde = lineas.findIndex((l) => l.trimEnd() === '[' || l.trimEnd() === '[]')
+  if (desde < 0) return undefined
+  if (lineas[desde]?.trimEnd() === '[]') return '[]'
+  const hasta = lineas.findIndex((l, i) => i > desde && l.trimEnd() === ']')
+  return hasta < 0 ? undefined : lineas.slice(desde, hasta + 1).join('\n')
 }
 
 // `%` es el único comodín de un patrón (hoy ninguno lo usa: todos son el nombre exacto).
@@ -54,7 +68,7 @@ const coincide = (patron: string, funcion: string) =>
 
 export function compararDbLint(lista: Lista, resultados: ResultadoDeDbLint[] | null): string[] {
   if (resultados === null)
-    return ['no se pudo leer la salida de db:lint (falta la línea {"results":…})']
+    return ['no se pudo leer la salida de db:lint (ni la línea {"results":…} ni el arreglo)']
   const conAvisos = resultados.filter((r) => r.issues.length > 0)
   const faltas: string[] = []
   for (const r of conAvisos) {
