@@ -2,6 +2,8 @@
 
 Lo que el CRM configura para la web pública y el portal del cliente: ajustes del sitio, guías, FAQs, testimonios con consentimiento, cola web round-robin («turnos»), vistas y RPC del esquema `web`, revalidación on-demand.
 
+**Fase 8 cerrada el 2026-11-13** (8.14): R1 a R7 de `e2e/fase-8-recorrido.spec.ts` (la rueda, el turno en 2 toques, la tasa, el pegajoso, el respaldo, el portal por HTTP y la guía con revalidar). Abiertos que la tocan: la IP real tras la reescritura (8.07-3), **8-05a** (vincular una solicitud ya contactada) y **8-14a** (los turnos de Inicio con sólo `web.cola.participar`), en `docs/PLAN.md` › «Fase 8».
+
 ## Entra y sale
 
 - Entra: Configuración › Sitio web, editor de guías y legales (un documento de ProseMirror con lista blanca: el HTML lo deriva la base, nunca se guarda HTML escrito), «Contacté» desde la campana, disponibilidad desde el perfil; desde afuera, el repo del sitio llama `web.solicitar_asesor`, `web.portal_login`, `web.portal_snapshot`.
