@@ -27,3 +27,6 @@
 - **D40 · El proyecto enlazado manda:** las órdenes con `--linked`, los scripts de `scripts/demo/` y `env:check produccion` sin
   `SUPABASE_PROJECT_REF` actúan sobre `supabase/.temp/project-ref`. Por eso un cliente se instala desde un clon aparte, el ref se mira antes
   de cada orden y `SUPABASE_PROJECT_REF` es obligatoria para revisar un cliente (salió de la auditoría del plan, que bloqueó).
+- **D41 · La salida de `db:lint` se lee en sus dos formatos, sin forzar uno:** la CLI de Supabase imprime `{"results":…}` en una línea
+  cuando detecta un agente y el arreglo con sangría cuando no (el CI). Se descartó pasar `-o json` en `package.json`: cambia lo que ve la
+  persona y no prueba que el CI y la sesión vean lo mismo. `leerDbLint()` acepta las dos y la prueba fija las dos (2026-11-13).

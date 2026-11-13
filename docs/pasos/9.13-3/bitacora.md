@@ -30,4 +30,12 @@
 3. **«Terminado cuando» de la Fase 9:** queda cerrado «splinter y los advisors en cero errores», salvo los 6 ERROR esperados de las vistas
    `web.*` (D15). «Desplegada apuntando al proyecto Pro» es un paso de la persona, con todo verificado.
 
+### Arreglo del CI del PR (2026-11-13)
+
+El job «Base» cayó en «la base contra el repo»: `db:lint contra su lista` no encontraba la línea `{"results":…}`. La CLI de Supabase
+(2.120.0, la misma en local y en CI) cambia de formato según quién la corre: con un agente (`AI_AGENT`, `CLAUDECODE`) imprime esa línea;
+sin él, el arreglo con sangría. Se reprodujo en local quitando esas variables. `leerDbLint()` (`scripts/despliegue/avisos.ts`) lee las dos
+formas y `en-seco.test.ts` lo prueba; el revisor da `✓ db:lint contra su lista (37 funciones con avisos)` con las dos salidas reales
+(`.piloto/salidas/9.13/revisar-db-lint.txt`).
+
 - e2e completo: no (9.13-3, Nivel 1: sólo docs y una prueba de la guía; lo prueba el CI del PR; dirigidos: ninguno)
