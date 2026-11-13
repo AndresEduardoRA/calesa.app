@@ -27,6 +27,8 @@ type Props = {
   hayMasPersonas: boolean
   destino: string
   alElegirDestino: (destino: string) => void
+  // Mientras se lanza una importación.
+  deshabilitado: boolean
 }
 
 // «Qué importas»: la entidad y el origen viven en la URL, porque el servidor lee sólo el contexto de esa entidad (D43); el destino es una
@@ -39,6 +41,7 @@ export function PasoEntidad({
   hayMasPersonas,
   destino,
   alElegirDestino,
+  deshabilitado,
 }: Props) {
   const [, fijar] = useQueryStates(PARAMETROS, { shallow: false })
   const entidades: EntidadImportable[] = [
@@ -53,6 +56,7 @@ export function PasoEntidad({
         etiqueta="Qué importas"
         opciones={entidades.map((una) => ({ valor: una, etiqueta: ETIQUETA[una] }))}
         value={entidad}
+        disabled={deshabilitado}
         onChange={(evento) => {
           void fijar({
             entidad: evento.target.value === 'vehiculos' ? 'vehiculos' : 'leads',
@@ -69,6 +73,7 @@ export function PasoEntidad({
             ...opciones.vehiculos.map((origen) => ({ valor: origen.id, etiqueta: origen.nombre })),
           ]}
           value={origenId ?? ''}
+          disabled={deshabilitado}
           onChange={(evento) => {
             void fijar({ origen: evento.target.value === '' ? null : evento.target.value })
           }}
@@ -85,6 +90,7 @@ export function PasoEntidad({
               ...personas.map((persona) => ({ valor: persona.id, etiqueta: persona.nombre })),
             ]}
             value={destino}
+            disabled={deshabilitado}
             ayuda="Los leads quedan en su cartera."
             onChange={(evento) => {
               alElegirDestino(evento.target.value)

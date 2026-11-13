@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Permisos } from '@/shared/lib/permisos'
 import { motivoParaNoImportar } from '../../../entities/permiso-de-importar'
 import type { ContextoDeLaSeccion } from '../contexto-de-la-seccion'
@@ -37,6 +37,12 @@ function Pasos({ actual }: { actual: Paso }) {
   )
 }
 
+function useAvisarOcupado(ocupado: boolean, alOcupar: (ocupado: boolean) => void) {
+  useEffect(() => {
+    alOcupar(ocupado)
+  }, [alOcupar, ocupado])
+}
+
 type Props = {
   yo: string
   permisos: Permisos
@@ -44,14 +50,18 @@ type Props = {
   // «Yo» es `null`.
   asignarA: string | null
   alImportarOtro: () => void
+  // Mientras prepara, sube o crea: quien lo dibuja apaga «Qué importas», «Destino» y «Origen» (cambiarlos a mitad no cambia lo que se manda).
+  alOcupar: (ocupado: boolean) => void
 }
 
 // Archivo → Columnas → Vista previa → Importando. Todo lo del archivo vive sólo en la memoria de este asistente: quien lo dibuja le cambia
 // la `key` al cambiar de entidad, origen o destino, al salir de la pantalla y con «Importar otro archivo».
-export function AsistenteTotal({ yo, permisos, seccion, asignarA, alImportarOtro }: Props) {
+export function AsistenteTotal(props: Props) {
+  const { yo, permisos, seccion, asignarA, alImportarOtro } = props
   const asistente = useAsistenteTotal(seccion)
   const lanzar = useLanzarImportacion(yo)
   const [paso, setPaso] = useState<Paso>('archivo')
+  useAvisarOcupado(lanzar.ocupado, props.alOcupar)
   const origenId = seccion.entidad === 'vehiculos' ? seccion.origen.id : null
   const motivoParaNo = motivoParaNoImportar(permisos, yo, {
     entidad: seccion.entidad,

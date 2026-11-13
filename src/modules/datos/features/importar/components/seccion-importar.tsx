@@ -55,6 +55,7 @@ function Indicacion({ children }: { children: string }) {
 export function SeccionImportar({ yo, permisos, opciones, entidad, origenId, seccion }: Props) {
   const [destino, setDestino] = useState(opciones.leads?.yo ? DESTINO_YO : '')
   const [corrida, setCorrida] = useState(0)
+  const [ocupado, setOcupado] = useState(false)
   useEffect(
     () => () => {
       setCorrida((valor) => valor + 1)
@@ -72,6 +73,7 @@ export function SeccionImportar({ yo, permisos, opciones, entidad, origenId, sec
         hayMasPersonas={seccion?.entidad === 'leads' && seccion.hayMasPersonas}
         destino={destino}
         alElegirDestino={setDestino}
+        deshabilitado={ocupado}
       />
       {estado.tipo === 'falta' ? <Indicacion>{estado.texto}</Indicacion> : null}
       {estado.tipo === 'asistente' ? (
@@ -84,6 +86,7 @@ export function SeccionImportar({ yo, permisos, opciones, entidad, origenId, sec
           alImportarOtro={() => {
             setCorrida((valor) => valor + 1)
           }}
+          alOcupar={setOcupado}
         />
       ) : null}
     </div>

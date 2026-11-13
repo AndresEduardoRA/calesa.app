@@ -13,6 +13,9 @@
   «La importación empezó»; la función local la procesó (`importar-csv: … terminada 3/3`).
 - **Auditoría:** plan con observaciones (partir `filas.ts`, el id por intento en el commit de lo puro, la ficha con cada commit, el repetido entre
   tramos en la prueba de `datos`, el tope de destinos), atendidas.
+- **Auditoría del informe:** observaciones. Atendida en un `fix`: «Qué importas», «Destino» y «Origen» se apagan mientras se prepara, sube o
+  crea (cambiarlos a mitad creaba la importación con lo anterior sin decirlo). Para 9.06-5: salir de la pantalla durante la subida no la corta
+  (la importación se crea igual): la lista «Importaciones» tiene que mostrarla.
 - **Lo que sigue (para el coordinador: encolar 9.06-5, la última parte):**
 
 | Parte      | Alcance                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Archivos                                                                                                                                          |
