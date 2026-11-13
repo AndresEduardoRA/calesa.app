@@ -143,6 +143,7 @@ Al cerrar una, se borra su línea (el PR lo cuenta). Lo nuevo que aparezca al tr
 - **[5a-43]** `medir-importacion-volumen.sql` falla si la segunda pasada es más rápida (banda 0,8–1,2) — tope de razón sólo por arriba y el mismo trabajo por fila en las dos pasadas.
 - **[—]** `supabase/tests/medir-jobs.sql` corre la limpieza con `now() + 12 h`: entre las 12:00 y las 15:00 de La Paz no mide nada.
 - **[—]** `fase_mover` con `orden` repetido previo y ancla compartida deja la movida detrás de la otra fase — desempatar si molesta.
+- **[—]** `logistica/entities/dinero/reparto.test.ts` («para cualquier monto…», ~2700 casos) pasa de los 5 s de Vitest con la máquina cargada (`pnpm test` junto a `db:probar`) — menos casos o un `timeout` propio.
 
 ### Límites aceptados
 
