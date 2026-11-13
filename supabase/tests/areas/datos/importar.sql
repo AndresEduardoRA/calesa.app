@@ -62,6 +62,44 @@ create or replace function pg_temp.imp_crear(p_quien uuid, p_id uuid, p_entidad 
     coalesce(p_ruta, p_quien::text || '/' || p_id::text || '.csv'), p_mapeo, p_asignar, p_origen))
 $f$;
 
+-- Llamar como service_role (el dueño de las funciones con los claims de service_role): la respuesta, o «sqlstate» / «sqlstate/hint».
+create or replace function pg_temp.imp_srv(p_sql text) returns text language plpgsql as $f$
+declare v jsonb; v_hint text;
+begin
+  perform pg_temp.imp_ser(null);
+  execute p_sql into v;
+  return v::text;
+exception when others then
+  get stacked diagnostics v_hint = pg_exception_hint;
+  return sqlstate || coalesce('/' || nullif(v_hint, ''), '');
+end $f$;
+
+create or replace function pg_temp.imp_lote(p_imp uuid, p_desde int, p_filas jsonb) returns text language sql as $f$
+  select pg_temp.imp_srv(format('select public.importacion_procesar_lote(%L, %L, %L)', p_imp, p_desde, p_filas))
+$f$;
+
+-- Una importación de Ada (para p_destino, o de vehículos con p_origen) ya empezada con p_total filas.
+create or replace function pg_temp.imp_empezada(p_id uuid, p_destino uuid, p_total int, p_entidad text default 'leads', p_origen uuid default null)
+  returns void language plpgsql as $f$
+declare r text;
+begin
+  r := pg_temp.imp_crear('00000000-0000-4000-8000-00000000906a', p_id, p_entidad, p_destino, p_origen);
+  if (r::jsonb ->> 'estado') is distinct from 'pendiente' then raise exception 'no se creó: %', r; end if;
+  r := pg_temp.imp_srv(format('select public.importacion_empezar(%L, %L)', p_id, p_total));
+  if (r::jsonb ->> 'estado') is distinct from 'procesando' then raise exception 'no empezó: %', r; end if;
+end $f$;
+
+-- Una fila de un lote de leads.
+create or replace function pg_temp.imp_fila(p_fila int, p_nombre text, p_tel text) returns jsonb language sql as $f$
+  select jsonb_build_object('fila', p_fila, 'datos', jsonb_build_object('nombre', p_nombre, 'telefono_principal', p_tel,
+    'origen_lead_id', (select id from public.origenes_lead where clave = 'web')))
+$f$;
+
+-- Quitarle un permiso a esa persona (en su rol).
+create or replace function pg_temp.imp_quitar(p_quien uuid, p_clave text) returns void language sql as $f$
+  delete from public.roles_permisos rp using public.usuarios_roles ur where ur.usuario_id = p_quien and rp.rol_id = ur.rol_id and rp.permiso_clave = p_clave
+$f$;
+
 -- @test importar: sin datos.importar.todo, crear para otra persona da 42501; con él, el destino tiene que estar activo y poder crear leads
 begin;
 select pg_temp.imp_preparar();
@@ -226,5 +264,126 @@ begin
   if (select aplicado_en from public.permisos where clave = 'datos.importar.todo') not like 'importacion_crear%' then
     raise exception 'datos.importar.todo no nombra su enforcement (seed y migración de acuerdo)';
   end if;
+end $$;
+rollback;
+
+-- @test importar (Assert): importacion_procesar_lote no la ejecuta authenticated; un teléfono que ya existe queda «ya existe» sin nombre y no adopta del limbo
+begin;
+select pg_temp.imp_preparar();
+do $$
+declare ada uuid := '00000000-0000-4000-8000-00000000906a'; bea uuid := '00000000-0000-4000-8000-00000000906b';
+        ceci uuid := '00000000-0000-4000-8000-00000000906c'; v_imp uuid := '00000000-0000-4000-8000-0000009060e1';
+        v_limbo uuid; r text; v_cartera uuid[];
+begin
+  -- Un lead de Ceci (79060001) y otro que queda en el limbo (79060002).
+  r := pg_temp.imp_como(ceci, format('select public.crear_lead(%L, %L)', gen_random_uuid(), (pg_temp.imp_fila(1, 'IMP de Ceci', '79060001') -> 'datos')));
+  r := pg_temp.imp_como(ceci, format('select public.crear_lead(%L, %L)', gen_random_uuid(), (pg_temp.imp_fila(1, 'IMP en el limbo', '79060002') -> 'datos')));
+  v_limbo := (r::jsonb ->> 'id')::uuid;
+  reset role;
+  update public.leads_asesores set revocado_en = now() where lead_id = v_limbo and revocado_en is null;
+  if not public.lead_en_limbo(v_limbo) then raise exception 'el lead no quedó en el limbo: %', r; end if;
+  perform pg_temp.imp_empezada(v_imp, bea, 3);
+  -- Como authenticated, la de service_role no corre.
+  r := pg_temp.imp_como(ada, format('select public.importacion_procesar_lote(%L, 1, %L)', v_imp, jsonb_build_array(pg_temp.imp_fila(1, 'x', '79060009'))));
+  if r <> '42501' then raise exception 'authenticated no ejecuta importacion_procesar_lote: %', r; end if;
+  r := pg_temp.imp_lote(v_imp, 1, jsonb_build_array(pg_temp.imp_fila(1, 'IMP otro nombre', '79060001'), pg_temp.imp_fila(2, 'IMP adopta', '79060002'),
+                                                     pg_temp.imp_fila(3, 'IMP nuevo', '79060003')));
+  if r::jsonb <> jsonb_build_object('importacion', v_imp, 'procesadas', 3, 'creadas', 1, 'ya_existian', 2, 'rechazadas', 0, 'saltadas', 0) then
+    raise exception 'el lote debía dar 1 creada y 2 que ya existían, sólo cuentas: %', r;
+  end if;
+  if exists (select 1 from jsonb_path_query(r::jsonb, 'strict $.**') h where h::text like '%IMP%' or h::text like '%7906%') then
+    raise exception 'la respuesta del lote trae un nombre o un teléfono: %', r;
+  end if;
+  if (select jsonb_agg(jsonb_build_array(fila, resultado, campo, motivo) order by fila) from public.importaciones_filas where importacion_id = v_imp)
+     <> '[[1, "ya_existe", "telefono_principal", null], [2, "ya_existe", "telefono_principal", null]]'::jsonb then
+    raise exception 'el informe de lo que ya existía quedó mal: %', (select jsonb_agg(f) from public.importaciones_filas f where importacion_id = v_imp);
+  end if;
+  -- El del limbo sigue en el limbo, con su nombre y sin nadie nuevo en su cartera.
+  if not public.lead_en_limbo(v_limbo) or (select nombre from public.leads where id = v_limbo) <> 'IMP en el limbo'
+     or exists (select 1 from public.leads_asesores where lead_id = v_limbo and revocado_en is null) then
+    raise exception 'la importación adoptó del limbo';
+  end if;
+  select cartera into v_cartera from public.leads where nombre = 'IMP de Ceci';
+  if v_cartera <> array[ceci] then raise exception 'el lead de Ceci cambió de cartera: %', v_cartera; end if;
+  if (select count(*) from public.leads where nombre in ('IMP otro nombre', 'IMP adopta')) <> 0 then raise exception 'entró un duplicado'; end if;
+end $$;
+rollback;
+
+-- @test importar (Assert): si a quien importa le quitan el permiso a mitad, el lote siguiente se rechaza; igual si el destino deja de poder
+begin;
+select pg_temp.imp_preparar();
+do $$
+declare ada uuid := '00000000-0000-4000-8000-00000000906a'; bea uuid := '00000000-0000-4000-8000-00000000906b';
+        v_1 uuid := '00000000-0000-4000-8000-0000009060f1'; v_2 uuid := '00000000-0000-4000-8000-0000009060f2';
+        v_3 uuid := '00000000-0000-4000-8000-0000009060f3'; r text; v public.importaciones; v_leads int;
+begin
+  perform pg_temp.imp_empezada(v_1, bea, 2);
+  perform pg_temp.imp_empezada(v_2, bea, 2);
+  perform pg_temp.imp_empezada(v_3, bea, 2);
+  r := pg_temp.imp_lote(v_1, 1, jsonb_build_array(pg_temp.imp_fila(1, 'IMP uno', '79061001')));
+  if (r::jsonb ->> 'creadas') <> '1' then raise exception 'el lote 1 debía entrar: %', r; end if;
+  v_leads := (select count(*) from public.leads where nombre like 'IMP %');
+  -- Ada pierde datos.importar.todo: el lote 2 se rechaza sin crear nada y la importación queda fallida con su motivo.
+  perform pg_temp.imp_quitar(ada, 'datos.importar.todo');
+  r := pg_temp.imp_lote(v_1, 2, jsonb_build_array(pg_temp.imp_fila(2, 'IMP dos', '79061002')));
+  if r::jsonb <> jsonb_build_object('importacion', v_1, 'estado', 'fallida', 'rechazado', 'sin_permiso') then raise exception 'sin permiso, el lote debía rechazarse: %', r; end if;
+  select * into v from public.importaciones where id = v_1;
+  if v.estado <> 'fallida' or v.errores <> '[{"motivo": "Quien importa ya no tiene el permiso para seguir."}]'::jsonb or v.procesadas <> 1 or v.terminada_en is null then
+    raise exception 'la importación sin permiso quedó mal: % % %', v.estado, v.errores, v.procesadas;
+  end if;
+  if (select count(*) from public.leads where nombre like 'IMP %') <> v_leads then raise exception 'sin permiso se creó un lead'; end if;
+  insert into public.roles_permisos (rol_id, permiso_clave, origen_id, alcance)
+    select ur.rol_id, 'datos.importar.todo', null, 'todos' from public.usuarios_roles ur where ur.usuario_id = ada;
+  -- El destino pierde leads.crear: destino_no_puede.
+  perform pg_temp.imp_quitar(bea, 'leads.crear');
+  r := pg_temp.imp_lote(v_2, 1, jsonb_build_array(pg_temp.imp_fila(1, 'IMP tres', '79061003')));
+  if r::jsonb <> jsonb_build_object('importacion', v_2, 'estado', 'fallida', 'rechazado', 'destino_no_puede') then raise exception 'destino sin leads.crear: %', r; end if;
+  insert into public.roles_permisos (rol_id, permiso_clave, origen_id, alcance)
+    select ur.rol_id, 'leads.crear', null, 'todos' from public.usuarios_roles ur where ur.usuario_id = bea;
+  -- El destino, bloqueado: destino_no_puede.
+  update public.perfiles set bloqueado = true where id = bea;
+  r := pg_temp.imp_lote(v_3, 1, jsonb_build_array(pg_temp.imp_fila(1, 'IMP cuatro', '79061004')));
+  if r::jsonb <> jsonb_build_object('importacion', v_3, 'estado', 'fallida', 'rechazado', 'destino_no_puede') then raise exception 'destino bloqueado: %', r; end if;
+  if (select count(*) from public.leads where nombre like 'IMP %') <> v_leads then raise exception 'con el destino sin poder se creó un lead'; end if;
+  -- Una fallida no sigue.
+  r := pg_temp.imp_lote(v_3, 1, jsonb_build_array(pg_temp.imp_fila(1, 'IMP cuatro', '79061004')));
+  if r <> '22023' then raise exception 'una importación fallida no procesa más lotes: %', r; end if;
+end $$;
+rollback;
+
+-- @test importar (Assert): repetir un lote no duplica (leads, vínculos, informe, procesadas y filas_ok quedan igual)
+begin;
+select pg_temp.imp_preparar();
+do $$
+declare bea uuid := '00000000-0000-4000-8000-00000000906b'; v_imp uuid := '00000000-0000-4000-8000-0000009060a9'; r text;
+        v_lote jsonb; v_antes jsonb; v_despues jsonb;
+begin
+  perform pg_temp.imp_empezada(v_imp, bea, 4);
+  v_lote := jsonb_build_array(pg_temp.imp_fila(1, 'IMP rep 1', '79062001'), pg_temp.imp_fila(2, 'IMP rep 2', '79062002'),
+                              jsonb_build_object('fila', 3, 'rechazo', jsonb_build_object('motivo', 'Falta el nombre.', 'campo', 'nombre')));
+  r := pg_temp.imp_lote(v_imp, 1, v_lote);
+  if r::jsonb <> jsonb_build_object('importacion', v_imp, 'procesadas', 3, 'creadas', 2, 'ya_existian', 0, 'rechazadas', 1, 'saltadas', 0) then
+    raise exception 'el primer lote: %', r;
+  end if;
+  v_antes := jsonb_build_array((select count(*) from public.leads where nombre like 'IMP rep %'),
+    (select count(*) from public.importaciones_leads where importacion_id = v_imp), (select count(*) from public.importaciones_filas where importacion_id = v_imp),
+    (select jsonb_build_array(procesadas, filas_ok, ya_existian, rechazadas) from public.importaciones where id = v_imp));
+  r := pg_temp.imp_lote(v_imp, 1, v_lote);
+  if r::jsonb <> jsonb_build_object('importacion', v_imp, 'procesadas', 3, 'creadas', 0, 'ya_existian', 0, 'rechazadas', 0, 'saltadas', 3) then
+    raise exception 'el lote repetido debía saltarse entero: %', r;
+  end if;
+  v_despues := jsonb_build_array((select count(*) from public.leads where nombre like 'IMP rep %'),
+    (select count(*) from public.importaciones_leads where importacion_id = v_imp), (select count(*) from public.importaciones_filas where importacion_id = v_imp),
+    (select jsonb_build_array(procesadas, filas_ok, ya_existian, rechazadas) from public.importaciones where id = v_imp));
+  if v_antes <> '[2, 2, 1, [3, 2, 0, 1]]'::jsonb or v_despues <> v_antes then raise exception 'repetir el lote cambió algo: % → %', v_antes, v_despues; end if;
+  -- Un lote que se monta sobre lo hecho: salta lo viejo y procesa lo nuevo.
+  r := pg_temp.imp_lote(v_imp, 3, jsonb_build_array(jsonb_build_object('fila', 3, 'rechazo', jsonb_build_object('motivo', 'Falta el nombre.')),
+                                                     pg_temp.imp_fila(4, 'IMP rep 4', '79062004')));
+  if r::jsonb <> jsonb_build_object('importacion', v_imp, 'procesadas', 4, 'creadas', 1, 'ya_existian', 0, 'rechazadas', 0, 'saltadas', 1) then
+    raise exception 'el lote montado: %', r;
+  end if;
+  -- Con hueco: 22023.
+  r := pg_temp.imp_lote(v_imp, 6, jsonb_build_array(pg_temp.imp_fila(6, 'IMP rep 6', '79062006')));
+  if r not like '22023%' then raise exception 'un lote con hueco o fuera del total debía dar 22023: %', r; end if;
 end $$;
 rollback;

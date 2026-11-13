@@ -2430,9 +2430,10 @@ export type Database = {
           terminada_en: string | null
           usuario_id: string
           ya_existian: number
+          _importacion_autorizar: string | null
           _importacion_vence_en: string | null
         }
-        ComputedFields: '_importacion_vence_en'
+        ComputedFields: '_importacion_autorizar' | '_importacion_vence_en'
         Insert: {
           archivo_ruta?: string | null
           asignar_a?: string | null
@@ -8110,6 +8111,45 @@ export type Database = {
       }
       _icono_del_catalogo: { Args: { p_icono: string }; Returns: string }
       _iconos_del_catalogo: { Args: Record<PropertyKey, never>; Returns: string[] }
+      _importacion_autorizar: {
+        Args: {
+          p_imp: Omit<
+            Database['public']['Tables']['importaciones']['Row'],
+            Database['public']['Tables']['importaciones']['ComputedFields']
+          >
+        }
+        Returns: string
+      }
+      _importacion_fallar: { Args: { p_clave: string; p_importacion: string }; Returns: undefined }
+      _importacion_fijar: { Args: { p_usuario: string }; Returns: undefined }
+      _importacion_fila_lead: {
+        Args: {
+          p_datos: Json
+          p_fila: number
+          p_imp: Omit<
+            Database['public']['Tables']['importaciones']['Row'],
+            Database['public']['Tables']['importaciones']['ComputedFields']
+          >
+        }
+        Returns: Json
+      }
+      _importacion_fila_vehiculo: {
+        Args: {
+          p_datos: Json
+          p_fila: number
+          p_imp: Omit<
+            Database['public']['Tables']['importaciones']['Row'],
+            Database['public']['Tables']['importaciones']['ComputedFields']
+          >
+        }
+        Returns: Json
+      }
+      _importacion_lote_validar: {
+        Args: { p_desde: number; p_filas: Json; p_procesadas: number; p_total: number }
+        Returns: undefined
+      }
+      _importacion_motivo: { Args: { p_clave: string }; Returns: string }
+      _importacion_previo: { Args: Record<PropertyKey, never>; Returns: Json }
       _importacion_vence_en: {
         Args: {
           p: Omit<
@@ -8119,6 +8159,7 @@ export type Database = {
         }
         Returns: string
       }
+      _importacion_volver: { Args: { p_previo: Json }; Returns: undefined }
       _lead_aplicar_bajas: { Args: { p_lead: string }; Returns: undefined }
       _lead_atributos_formato: {
         Args: { p_anteriores: Json; p_campos: Json; p_nuevos: Json }
@@ -10071,6 +10112,12 @@ export type Database = {
         }
         Returns: Json
       }
+      importacion_empezar: { Args: { p_importacion: string; p_total: number }; Returns: Json }
+      importacion_procesar_lote: {
+        Args: { p_desde: number; p_filas: Json; p_importacion: string }
+        Returns: Json
+      }
+      importacion_terminar: { Args: { p_error?: string; p_importacion: string }; Returns: Json }
       importaciones_vinculos_purgar: { Args: Record<PropertyKey, never>; Returns: number }
       integracion_guardar: {
         Args: {
