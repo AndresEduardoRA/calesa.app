@@ -3,17 +3,23 @@
     {
       "lint": "anon_security_definer_function_executable",
       "clave": "anon_security_definer_function_executable_web_ajustes_acceso_",
-      "motivo": "Las pantallas de acceso, sin sesión, leen la marca de la empresa (nombre, logo, color, idioma, zona), si el registro está abierto y si aún no hay ninguna cuenta (src/modules/empresa/infra/queries/ajustes.ts): definer porque anon no lee ajustes_empresa; una fila fija, sin datos de personas."
+      "motivo": "Las pantallas de acceso, sin sesión, leen la marca de la empresa (nombre, logo, color, idioma, zona), si el registro está abierto y si aún no hay ninguna cuenta (src/modules/empresa/infra/queries/ajustes.ts): definer porque anon no lee ajustes_empresa; una fila fija, sin datos de personas.",
+      "funcion": "web.ajustes_acceso()",
+      "huella": "91a3046ead27631e323952a05767e716"
     },
     {
       "lint": "anon_security_definer_function_executable",
       "clave": "anon_security_definer_function_executable_web_registrar_evento_p_token text, p_evento text, p_ruta text, p_referencia_id uuid, p_utm jsonb",
-      "motivo": "Entrada pública de eventos de la web: definer porque anon no escribe eventos_web; rechaza un token fuera de ^[A-Za-z0-9_-]{16,64}$ o un evento fuera de su lista, corta la ruta a 300 y no devuelve nada. Sin tope de tamaño de p_utm ni de frecuencia (se purga a los 12 meses)."
+      "motivo": "Entrada pública de eventos de la web: definer porque anon no escribe eventos_web; rechaza un token fuera de ^[A-Za-z0-9_-]{16,64}$ o un evento fuera de su lista, corta la ruta a 300 y no devuelve nada. Sin tope de tamaño de p_utm ni de frecuencia (se purga a los 12 meses).",
+      "funcion": "web.registrar_evento(text,text,text,uuid,jsonb)",
+      "huella": "d9a88d4e01fa80db1b3bb84ab90480ce"
     },
     {
       "lint": "anon_security_definer_function_executable",
       "clave": "anon_security_definer_function_executable_web_solicitar_asesor_p_token text, p_fuente text, p_ruta text, p_vehiculo_id uuid, p_handle text, p_utm jsonb",
-      "motivo": "La solicitud de asesor de la web pública (la cola web): anon, con el token anónimo del visitante (lo genera el navegador; sólo se valida su forma y no autentica; el freno de 12 por hora es por token). Definer porque asigna por la rueda sobre tablas que anon no ve; devuelve el código y el nombre, avatar, cargo y WhatsApp de la web del asesor de la cola (no exige publico_web)."
+      "motivo": "La solicitud de asesor de la web pública (la cola web): anon, con el token anónimo del visitante (lo genera el navegador; sólo se valida su forma y no autentica; el freno de 12 por hora es por token). Definer porque asigna por la rueda sobre tablas que anon no ve; devuelve el código y el nombre, avatar, cargo y WhatsApp de la web del asesor de la cola (no exige publico_web).",
+      "funcion": "web.solicitar_asesor(text,text,text,uuid,text,jsonb)",
+      "huella": "bd392dd924e3ca48a444206576d6601e"
     },
     {
       "lint": "authenticated_security_definer_function_executable",
@@ -103,7 +109,7 @@
     },
     {
       "lint": "pg_graphql_authenticated_table_exposed",
-      "motivo": "authenticated ve en la introspección de GraphQL los nombres de lo que puede leer; las filas las cuida RLS, que rls-en-todo.sql exige en toda tabla de public. Desactivar pg_graphql es opción de la persona (guía)."
+      "motivo": "En la base local pg_graphql no está instalado (medido en la 9.13-2), así que este lint no da avisos aquí; en un proyecto de Supabase viene encendido y authenticated ve en GraphQL los nombres de las tablas que puede leer: las filas las cuida RLS. scripts/despliegue/avisos.ts lo exime sólo si la base no tiene pg_graphql."
     }
   ],
   "fuera": [
@@ -124,22 +130,22 @@
     {
       "patron": "public._atributos_fusionar",
       "avisos": 2,
-      "motivo": "Marcada IMMUTABLE sobre una expresión STABLE (una conversión de texto a fecha o número, o un raise con format): deuda de la base; sólo cambia el resultado si la entrada no trae zona o formato fijo, y se revisa función por función (9.13-2)."
+      "motivo": "IMMUTABLE con dos expresiones que Postgres marca STABLE (revisado en la 9.13-2): format() del mensaje de un raise y jsonb_build_object(text, jsonb). Ninguna pasa por una conversión que dependa de TimeZone, DateStyle ni lc_*: el resultado no cambia con la sesión. Cosmético; no sostiene índice, default ni check."
     },
     {
       "patron": "public._atributos_rango",
       "avisos": 4,
-      "motivo": "Marcada IMMUTABLE sobre una expresión STABLE (una conversión de texto a fecha o número, o un raise con format): deuda de la base; sólo cambia el resultado si la entrada no trae zona o formato fijo, y se revisa función por función (9.13-2)."
+      "motivo": "IMMUTABLE con jsonb_to_recordset a numeric y format() de trim_scale(numeric) (revisado en la 9.13-2): numeric_in y numeric_out no dependen de lc_numeric, así que el texto del motivo y el rango no cambian con la sesión. Cosmético; no sostiene índice, default ni check."
     },
     {
       "patron": "public._atributos_validar",
       "avisos": 1,
-      "motivo": "Marcada IMMUTABLE sobre una expresión STABLE (una conversión de texto a fecha o número, o un raise con format): deuda de la base; sólo cambia el resultado si la entrada no trae zona o formato fijo, y se revisa función por función (9.13-2)."
+      "motivo": "IMMUTABLE con jsonb_to_recordset a text y boolean (revisado en la 9.13-2): Postgres lo marca STABLE porque podría convertir a cualquier tipo, pero text y boolean no dependen de la sesión. Cosmético; no sostiene índice, default ni check."
     },
     {
       "patron": "public._campo_impacto",
       "avisos": 1,
-      "motivo": "Marcada IMMUTABLE sobre una expresión STABLE (una conversión de texto a fecha o número, o un raise con format): deuda de la base; sólo cambia el resultado si la entrada no trae zona o formato fijo, y se revisa función por función (9.13-2)."
+      "motivo": "IMMUTABLE con jsonb_build_object de enteros y jsonb (revisado en la 9.13-2): STABLE en el catálogo porque admite cualquier tipo, pero int y jsonb salen igual en cualquier sesión. Cosmético; no sostiene índice, default ni check."
     },
     {
       "patron": "public._campo_opciones_validas",
@@ -179,7 +185,7 @@
     {
       "patron": "public._lead_atributos_formato",
       "avisos": 5,
-      "motivo": "Marcada IMMUTABLE sobre una expresión STABLE (una conversión de texto a fecha o número, o un raise con format): deuda de la base; sólo cambia el resultado si la entrada no trae zona o formato fijo, y se revisa función por función (9.13-2)."
+      "motivo": "IMMUTABLE con jsonb_to_recordset y jsonb_array_elements (cosméticos) y la validación perform t::date y t::timestamptz (revisado en la 9.13-2): con DateStyle distinto, una fecha ambigua como 03/04/2026 se acepta con otro sentido. La app manda fechas en ISO (en CLAUDE.md, las fechas cruzan como ISO), que no dependen de DateStyle; y sólo valida, no guarda el valor convertido. No sostiene índice, default ni check."
     },
     {
       "patron": "public._lead_campo_privacidad_lote",
@@ -194,17 +200,17 @@
     {
       "patron": "public._seguimiento_nodo",
       "avisos": 3,
-      "motivo": "Una asignación con conversión implícita entre tipos (jsonb, text, numeric, un enum), la buscada; la cubren las pruebas de su área; marcada IMMUTABLE sobre una expresión STABLE (una conversión de texto a fecha o número, o un raise con format): deuda de la base; sólo cambia el resultado si la entrada no trae zona o formato fijo, y se revisa función por función (9.13-2)."
+      "motivo": "IMMUTABLE con array_to_string de un text[] (revisado en la 9.13-2): STABLE en el catálogo porque admite arreglos de cualquier tipo, pero un text[] sale igual en cualquier sesión. Cosmético; no sostiene índice, default ni check."
     },
     {
       "patron": "public._seguimiento_visibilidad",
       "avisos": 1,
-      "motivo": "Marcada IMMUTABLE sobre una expresión STABLE (una conversión de texto a fecha o número, o un raise con format): deuda de la base; sólo cambia el resultado si la entrada no trae zona o formato fijo, y se revisa función por función (9.13-2)."
+      "motivo": "IMMUTABLE con el cast de texto al enum visibilidad_seguimiento (revisado en la 9.13-2): enum_in es STABLE porque un enum puede sumar valores, pero un valor ya existente se lee igual en cualquier sesión. Cosmético; no sostiene índice, default ni check."
     },
     {
       "patron": "public._vehiculo_subasta_desde",
       "avisos": 3,
-      "motivo": "Marcada IMMUTABLE sobre una expresión STABLE (una conversión de texto a fecha o número, o un raise con format): deuda de la base; sólo cambia el resultado si la entrada no trae zona o formato fijo, y se revisa función por función (9.13-2)."
+      "motivo": "IMMUTABLE con ::timestamptz de auction_at, timed_end_at y auction_ended_at de Apibara (revisado en la 9.13-2): un texto sin zona se leería con el TimeZone de la sesión. Apibara los manda con zona (+00:00, e2e/fixtures/apibara/), que no depende de la sesión, y la base de Supabase corre en UTC. No sostiene índice, default ni check."
     },
     {
       "patron": "public._web_ajustes_objeto",
@@ -219,7 +225,7 @@
     {
       "patron": "public._web_doc_nodo",
       "avisos": 3,
-      "motivo": "Una asignación con conversión implícita entre tipos (jsonb, text, numeric, un enum), la buscada; la cubren las pruebas de su área; marcada IMMUTABLE sobre una expresión STABLE (una conversión de texto a fecha o número, o un raise con format): deuda de la base; sólo cambia el resultado si la entrada no trae zona o formato fijo, y se revisa función por función (9.13-2)."
+      "motivo": "IMMUTABLE con array_to_string de un text[] (revisado en la 9.13-2): STABLE en el catálogo porque admite arreglos de cualquier tipo, pero un text[] sale igual en cualquier sesión. Cosmético; no sostiene índice, default ni check."
     },
     {
       "patron": "public.apibara_consultas_purgar",

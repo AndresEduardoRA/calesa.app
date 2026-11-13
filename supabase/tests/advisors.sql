@@ -3,12 +3,14 @@
 --   _avisos (doc jsonb): una fila por aviso, `{ name, level, cache_key, detail, schema }`, con `pgrst.db_schemas` = los `[api] schemas` de
 --     `config.toml` (también `web`, la superficie pública; sin la variable splinter sólo mira `public`).
 --   _avisos_con_motivo (doc jsonb): la lista. `avisos` acepta uno por su `cache_key` exacto; `comodines`, un lint entero (sólo los de abajo);
---   `fuera`, un lint que no se compara (sólo los de abajo); `db_lint`, los avisos de `pnpm db:lint` por función (los compara la 9.13-2).
+--   `fuera`, un lint que no se compara (sólo los de abajo); `db_lint`, los avisos de `pnpm db:lint` por función (los compara `revisar-base.mjs`).
 -- La regla:
 --   - un ERROR cae siempre; la única excepción, escrita aquí y no en el JSON: `security_definer_view` de una vista del esquema `web` con su
 --     clave exacta en la lista (las vistas `web.*` son la frontera pública por diseño: `src/modules/web/CLAUDE.md` › «No se rompe»);
 --   - todo WARN y toda FK sin índice (INFO, no depende de estadísticas) necesita su entrada exacta o un comodín válido;
---   - una entrada exacta que no aparece aquí no cae: puede ser de la base real (pg_graphql no está en PGlite); ese sentido es de la 9.13-2.
+--   - una entrada exacta que no aparece aquí no cae: puede ser de la base real (pg_graphql no está en PGlite); ese sentido lo mira
+--     `scripts/despliegue/revisar-base.mjs` contra la base real (9.13-2), que también corre este archivo con los schemas de `[api]`;
+--   - una RPC de anon con motivo lleva `funcion` y `huella` (`md5(prosrc)`): si su cuerpo cambia, cae hasta que se relea el motivo.
 -- Ningún esquema se excluye: medido en 9.13-1, los dobles del preámbulo (auth, storage, vault, cron, net, extensions, pgcrypto_real) no dan
 -- ningún aviso, y `public_bucket_allows_listing` vive en `storage`.
 -- Corre primero en la lista de `db:probar`: `function_search_path_mutable` no excluye `pg_temp`.
@@ -62,6 +64,22 @@ create or replace function pg_temp._lista_invalida(p_lista jsonb) returns setof 
   union all
   select 'falta la clave ' || k from unnest(array['avisos', 'comodines', 'fuera', 'db_lint']) k
    where jsonb_typeof(p_lista -> k) is distinct from 'array'
+  union all
+  -- Una RPC de anon con motivo fija su cuerpo (9.13-2): si cambia, el motivo se vuelve a leer.
+  select 'sin función o sin huella (anon): ' || coalesce(a ->> 'clave', '(nula)')
+    from jsonb_array_elements(p_lista -> 'avisos') a
+   where (a ->> 'lint') = 'anon_security_definer_function_executable'
+     and (coalesce(a ->> 'funcion', '') = '' or coalesce(a ->> 'huella', '') !~ '^[0-9a-f]{32}$')
+$$;
+
+-- Las RPC de anon con motivo cuyo cuerpo ya no es el que se leyó al escribirlo (`md5(prosrc)`), o que ya no existen.
+create or replace function pg_temp._huellas_cambiadas(p_lista jsonb) returns setof text language sql as $$
+  select 'cambió el cuerpo de ' || (a ->> 'funcion') || ': revisa su motivo y actualiza la huella'
+    from jsonb_array_elements(p_lista -> 'avisos') a
+    left join pg_proc p on p.oid = to_regprocedure(a ->> 'funcion')
+   where (a ->> 'lint') = 'anon_security_definer_function_executable'
+     and md5(p.prosrc) is distinct from (a ->> 'huella')
+   order by 1
 $$;
 
 -- Los avisos que no tienen motivo, uno por línea: `lint · clave · detalle`.
@@ -125,6 +143,14 @@ begin
   end if;
 end $$;
 
+-- @test advisors: el cuerpo de las RPC de anon con motivo no cambió
+do $$
+declare v text;
+begin
+  select string_agg(e, E'\n') into v from pg_temp._huellas_cambiadas((select doc from _avisos_con_motivo)) e;
+  if v is not null then raise exception E'RPC de anon con motivo:\n%', v; end if;
+end $$;
+
 -- @test advisors: comodines y excluidos son sólo los de la regla, sin repetidos ni lints inventados
 do $$
 declare v text;
@@ -183,7 +209,27 @@ begin
                                         'repetido: duplicate_index · duplicate_index_con_motivo'] then
     raise exception 'la lista sintética inválida no da lo esperado: %', v_invalidos;
   end if;
+
+  -- La huella: una falsa y una función que no existe caen; la verdadera no.
+  v_lista := jsonb_build_object('avisos', jsonb_build_array(
+    jsonb_build_object('lint', 'anon_security_definer_function_executable', 'clave', 'k1', 'funcion', 'web.ajustes_acceso()',
+                       'huella', repeat('0', 32)),
+    jsonb_build_object('lint', 'anon_security_definer_function_executable', 'clave', 'k2', 'funcion', 'web.no_existe_sintetica()',
+                       'huella', repeat('0', 32)),
+    jsonb_build_object('lint', 'anon_security_definer_function_executable', 'clave', 'k3', 'funcion', 'web.ajustes_acceso()',
+                       'huella', (select md5(prosrc) from pg_proc where oid = 'web.ajustes_acceso()'::regprocedure)),
+    jsonb_build_object('lint', 'anon_security_definer_function_executable', 'clave', 'k4', 'motivo', repeat('m', 40))));
+  select array_agg(e order by e) into v_salen from pg_temp._huellas_cambiadas(v_lista) e;
+  if v_salen is distinct from array['cambió el cuerpo de web.ajustes_acceso(): revisa su motivo y actualiza la huella',
+                                    'cambió el cuerpo de web.no_existe_sintetica(): revisa su motivo y actualiza la huella'] then
+    raise exception 'las huellas sintéticas no dan lo esperado: %', v_salen;
+  end if;
+  select array_agg(e order by e) into v_invalidos from pg_temp._lista_invalida(v_lista) e where e like 'sin función%';
+  if v_invalidos is distinct from array['sin función o sin huella (anon): k4'] then
+    raise exception 'la entrada de anon sin huella no cae: %', v_invalidos;
+  end if;
 end $$;
+drop function pg_temp._huellas_cambiadas(jsonb);
 drop function pg_temp._avisos_sin_motivo(jsonb, jsonb);
 drop function pg_temp._lista_invalida(jsonb);
 drop function pg_temp._lints_de_splinter();

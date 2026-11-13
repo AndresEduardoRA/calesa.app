@@ -24,6 +24,7 @@
     "db:lint": "bash scripts/candado.sh db:lint -- supabase db lint --fail-on error",
     "mapa": "bash scripts/mapa.sh",
     "env:check": "tsx scripts/env-check.ts",
+    "despliegue:en-seco": "bash scripts/candado.sh despliegue:en-seco -- bash scripts/despliegue/en-seco.sh",
     "email:probar": "tsx scripts/email-probar.ts",
     "preinstall": "npx only-allow pnpm",
     "db:sembrar-volumen": "bash scripts/candado.sh db:sembrar-volumen -- node scripts/sembrar-volumen.mjs",

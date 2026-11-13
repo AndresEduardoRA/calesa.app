@@ -175,7 +175,8 @@ begin;
 select pg_temp.imp_preparar();
 do $$
 declare ada uuid := '00000000-0000-4000-8000-00000000906a'; v_imp uuid := '00000000-0000-4000-8000-0000009061c1';
-        v_origen uuid := (select id from public.origenes where activo order by id limit 1); r text;
+        -- Un origen de la base, siempre el mismo: por id (uuid al azar) a veces tocaba uno que otro archivo de db:probar dejó creado.
+        v_origen uuid := (select id from public.origenes where activo order by creado_en, clave limit 1); r text;
 begin
   perform pg_temp.imp_empezada(v_imp, null, 3, 'vehiculos', v_origen);
   r := pg_temp.imp_lote(v_imp, 1, jsonb_build_array(
