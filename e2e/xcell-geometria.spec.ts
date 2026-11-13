@@ -99,13 +99,13 @@ const COLORES_DE_TONO: Record<
     amarillo: { fondo: '#fff7d6', borde: '#e9d27a', tinta: '#1b2130' },
     verde: { fondo: '#e6f6ee', borde: '#8fd3b0', tinta: '#1b2130' },
     naranja: { fondo: '#ffe9d6', borde: '#f0b27a', tinta: '#1b2130' },
-    neutro: { fondo: '#ffffff', borde: '#cfd4de', tinta: '#1b2130' },
+    neutro: { fondo: '#ffffff', borde: '#8a8f9b', tinta: '#1b2130' },
   },
   oscuro: {
     amarillo: { fondo: '#3e3f3c', borde: '#797251', tinta: '#f2f4f8' },
     verde: { fondo: '#2d3c42', borde: '#50726a', tinta: '#f2f4f8' },
     naranja: { fondo: '#3f3a3c', borde: '#876b55', tinta: '#f2f4f8' },
-    neutro: { fondo: '#1d2330', borde: '#3b4457', tinta: '#f2f4f8' },
+    neutro: { fondo: '#1d2330', borde: '#6c7482', tinta: '#f2f4f8' },
   },
 }
 const CASO_DE_TONO = {
