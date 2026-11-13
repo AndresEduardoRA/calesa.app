@@ -7,7 +7,8 @@
  * Configuración › Empresa y se inyecta en runtime con un <style> (`<EstiloDeMarca>`), que pisa
  * las variables de marca en `:root` y en `.dark`. Los valores de acá son el DEFAULT NEUTRO,
  * pensados para que la app sea usable antes de cargar una marca. Los que tienen copia en
- * `src/shared/config/app.ts` los vigila un test.
+ * `src/shared/config/app.ts` los vigila un test, y el contraste de los pares que la interfaz pone
+ * uno sobre otro (texto ≥ 4.5:1, borde de control y foco ≥ 3:1), `design/tokens.test.ts`.
  *
  * Reglas:
  *  - `-ink` es para texto e íconos (≥ 4.5:1 sobre su superficie); el hue base es para rellenos.
@@ -56,9 +57,9 @@
   --color-surface-3: #f1f3f6; /* hover */
   --color-ink: #1b2130;
   --color-ink-soft: #4a5468;
-  --color-ink-faint: #76809a;
+  --color-ink-faint: #646d85;
   --color-line: #e5e8ee;
-  --color-line-strong: #cfd4de;
+  --color-line-strong: #8a8f9b; /* borde de los controles: ≥ 3:1 sobre surface, surface-2 y paper */
   --color-overlay: rgba(16, 20, 32, 0.45);
 
   /* --- Semánticos ------------------------------------------------------- */
@@ -93,7 +94,7 @@
   --shadow-sm: 0 1px 2px rgba(16, 20, 32, 0.06);
   --shadow-md: 0 4px 12px rgba(16, 20, 32, 0.08);
   --shadow-lg: 0 12px 32px rgba(16, 20, 32, 0.12);
-  --shadow-focus: 0 0 0 3px var(--color-primario-soft);
+  --shadow-focus: 0 0 0 2px var(--color-primario-ink); /* -ink: ≥ 3:1 sobre la superficie con cualquier marca */
 
   /* --- Movimiento ------------------------------------------------------- */
   --dur-rapida: 120ms;
@@ -132,9 +133,9 @@
   --color-surface-3: #2c3445;
   --color-ink: #f2f4f8;
   --color-ink-soft: #c4cbd8;
-  --color-ink-faint: #8d97ab;
+  --color-ink-faint: #929caf;
   --color-line: #2c3344;
-  --color-line-strong: #3b4457;
+  --color-line-strong: #6c7482;
   --color-overlay: rgba(0, 0, 0, 0.6);
 
   --color-positivo-soft: rgba(15, 138, 95, 0.18);
