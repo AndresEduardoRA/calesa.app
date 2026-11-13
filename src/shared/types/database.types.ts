@@ -7094,6 +7094,15 @@ export type Database = {
         Args: { p_defecto: number; p_maximo: number; p_pedido: number }
         Returns: number
       }
+      _actividad_puede_ver_fila: {
+        Args: { p_fila: Json; p_registro: string; p_tabla: string }
+        Returns: boolean
+      }
+      _actividad_recortar: {
+        Args: { p_antes: Json; p_despues: Json; p_registro: string; p_tabla: string }
+        Returns: Json
+      }
+      _actividad_recorte: { Args: { p_tabla: string }; Returns: string }
       _aduana_vehiculo_visible: {
         Args: {
           p_algun: string[]
@@ -9309,6 +9318,19 @@ export type Database = {
       _web_doc_ruta_valida: { Args: { p_ruta: string }; Returns: boolean }
       _web_html_escapar: { Args: { p_texto: string }; Returns: string }
       _web_legales_validar: { Args: { p_anterior: Json; p_legales: Json }; Returns: Json }
+      actividad_diff: { Args: { p_id: number }; Returns: Json }
+      actividad_listar: {
+        Args: {
+          p_accion?: string
+          p_actor?: string
+          p_antes_id?: number
+          p_hasta?: string
+          p_registro?: string
+          p_tabla?: string
+          p_tamano?: number
+        }
+        Returns: Json
+      }
       actividad_purgar: { Args: Record<PropertyKey, never>; Returns: number }
       agenda_quienes_reciben: { Args: { p_conversacion?: string; p_texto: string }; Returns: Json }
       agenda_rango: {

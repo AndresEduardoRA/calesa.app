@@ -228,3 +228,102 @@ begin
 end $$;
 rollback;
 
+-- @test actividad: la página pide actividad.ver y recorta igual que el diff: D no ve el lead ajeno, A sin vehiculos.ver no ve el vehículo (T1, T2, T5)
+begin;
+select pg_temp.act_preparar();
+insert into public.leads_campos (clave, etiqueta, tipo, solo_cartera) values ('act_privado', 'ACT privado', 'texto', true);
+do $$
+declare a uuid := '00000000-0000-4000-8000-00000009901a'; b uuid := '00000000-0000-4000-8000-00000009901b'; c uuid := '00000000-0000-4000-8000-00000009901c';
+        d uuid := '00000000-0000-4000-8000-00000009901d'; f uuid := '00000000-0000-4000-8000-00000009901f';
+        v_lb uuid := gen_random_uuid(); v_web uuid := (select id from public.origenes_lead where clave = 'web'); v uuid := pg_temp.act_vehiculo();
+        v_cambio bigint; v_resp jsonb; v_fila jsonb;
+begin
+  if pg_temp.act_error(c, 'select public.actividad_listar()') <> '42501' then raise exception 'T1: actividad_listar sin actividad.ver no dio 42501'; end if;
+  if has_function_privilege('anon', 'public.actividad_listar(bigint, int, uuid, text, text, timestamptz, text)', 'execute') then
+    raise exception 'T1: anon ejecuta actividad_listar'; end if;
+  perform pg_temp.act_como(b, format('select public.crear_lead(%L, %L::jsonb)', v_lb, jsonb_build_object('nombre', 'ACT lista', 'telefono_principal', '79199011',
+    'origen_lead_id', v_web, 'atributos', jsonb_build_object('act_privado', 'secreto lista'))));
+  insert into public.actividad (accion, actor_id, tabla, registro_id, antes, despues) values ('leads.update', b, 'leads', v_lb::text,
+    jsonb_build_object('nombre', 'ACT lista', 'atributos', jsonb_build_object('act_privado', 'a'), 'numero', '918233333', 'telefono_principal', '79199011'),
+    jsonb_build_object('nombre', 'ACT lista 2', 'atributos', jsonb_build_object('act_privado', 'b'), 'numero', '918244444', 'telefono_principal', '79199012'))
+  returning id into v_cambio;
+
+  -- B: el cambio con sus dos campos; A: sólo el nombre; D: la fila sin nada.
+  v_resp := pg_temp.act_como(b, format('select public.actividad_listar(p_tabla => %L, p_registro => %L)', 'leads', v_lb));
+  v_fila := (select x from jsonb_array_elements(v_resp -> 'filas') x where (x ->> 'id')::bigint = v_cambio);
+  if v_fila -> 'campos' <> '["atributos", "nombre"]'::jsonb or (v_fila ->> 'mas_campos')::boolean then raise exception 'T2: la página de B: %', v_fila; end if;
+  v_resp := pg_temp.act_como(a, format('select public.actividad_listar(p_tabla => %L, p_registro => %L)', 'leads', v_lb));
+  v_fila := (select x from jsonb_array_elements(v_resp -> 'filas') x where (x ->> 'id')::bigint = v_cambio);
+  if v_fila -> 'campos' <> '["nombre"]'::jsonb or not (v_fila ->> 'visible')::boolean then raise exception 'T2: la página de A: %', v_fila; end if;
+  v_resp := pg_temp.act_como(d, format('select public.actividad_listar(p_tabla => %L, p_registro => %L)', 'leads', v_lb));
+  v_fila := (select x from jsonb_array_elements(v_resp -> 'filas') x where (x ->> 'id')::bigint = v_cambio);
+  if v_fila is null or (v_fila ->> 'visible')::boolean or v_fila -> 'campos' <> '[]'::jsonb then raise exception 'T2: la página de D: %', v_fila; end if;
+  -- T3: ninguna página trae un valor: ni el nombre, ni el campo, ni un número o teléfono.
+  if v_resp::text ~ '(ACT lista|secreto|79199|\m9182[0-9]{5}\M)' then raise exception 'T3: la página trajo un valor: %', v_resp; end if;
+  v_resp := pg_temp.act_como(a, format('select public.actividad_listar(p_tabla => %L)', 'leads'));
+  if v_resp::text ~ '(ACT lista|secreto|79199|\m9182[0-9]{5}\M)' then raise exception 'T3: la página de A trajo un valor: %', v_resp; end if;
+  if exists (select 1 from jsonb_path_query(v_resp, 'strict $.filas[*].keyvalue().key') k where k #>> '{}' in ('antes', 'despues', 'detalle', 'cambios')) then
+    raise exception 'T3: la página trajo antes, después, detalle o cambios'; end if;
+
+  -- T5: el alta del vehículo, visible para F y no para A.
+  v_resp := pg_temp.act_como(a, format('select public.actividad_listar(p_tabla => %L, p_registro => %L)', 'vehiculos', v));
+  if jsonb_array_length(v_resp -> 'filas') = 0 or exists (select 1 from jsonb_array_elements(v_resp -> 'filas') x where (x ->> 'visible')::boolean) then
+    raise exception 'T5: A sin vehiculos.ver vio el vehículo en la página: %', v_resp; end if;
+  v_resp := pg_temp.act_como(f, format('select public.actividad_listar(p_tabla => %L, p_registro => %L)', 'vehiculos', v));
+  if not exists (select 1 from jsonb_array_elements(v_resp -> 'filas') x where (x ->> 'visible')::boolean) then
+    raise exception 'T5: F con vehiculos.ver no vio el vehículo en la página: %', v_resp; end if;
+end $$;
+rollback;
+
+-- @test actividad: la página va por cursor, con hay_mas, tope de 100, filtro de acción y registro sólo con su entidad (T7)
+begin;
+select pg_temp.act_preparar();
+do $$
+declare a uuid := '00000000-0000-4000-8000-00000009901a'; b uuid := '00000000-0000-4000-8000-00000009901b';
+        v_ids bigint[] := '{}'; v_id bigint; v_resp jsonb; i int;
+begin
+  for i in 1 .. 3 loop
+    insert into public.actividad (accion, actor_id, tabla, registro_id, antes, despues)
+    values (case when i = 2 then 'categorias.insert' else 'categorias.update' end, b, 'categorias', gen_random_uuid()::text, '{}', '{}') returning id into v_id;
+    v_ids := v_ids || v_id;
+  end loop;
+  v_resp := pg_temp.act_como(a, format('select public.actividad_listar(p_actor => %L, p_tamano => 2)', b));
+  if (select array_agg((x ->> 'id')::bigint) from jsonb_array_elements(v_resp -> 'filas') x) <> array[v_ids[3], v_ids[2]]
+     or not (v_resp ->> 'hay_mas')::boolean then raise exception 'T7: la primera página: %', v_resp; end if;
+  v_resp := pg_temp.act_como(a, format('select public.actividad_listar(p_antes_id => %s, p_actor => %L, p_tamano => 2)', v_ids[2], b));
+  if (select array_agg((x ->> 'id')::bigint) from jsonb_array_elements(v_resp -> 'filas') x) <> array[v_ids[1]]
+     or (v_resp ->> 'hay_mas')::boolean then raise exception 'T7: la segunda página: %', v_resp; end if;
+  v_resp := pg_temp.act_como(a, format('select public.actividad_listar(p_actor => %L, p_accion => %L)', b, 'categorias.insert'));
+  if (select array_agg((x ->> 'id')::bigint) from jsonb_array_elements(v_resp -> 'filas') x) <> array[v_ids[2]] then raise exception 'T7: el filtro de acción: %', v_resp; end if;
+  v_resp := pg_temp.act_como(a, format('select public.actividad_listar(p_accion => %L)', 'categorias.insert'));
+  if not exists (select 1 from jsonb_array_elements(v_resp -> 'filas') x where (x ->> 'id')::bigint = v_ids[2])
+     or exists (select 1 from jsonb_array_elements(v_resp -> 'filas') x where x ->> 'accion' <> 'categorias.insert') then
+    raise exception 'T7: la ruta de acción: %', v_resp; end if;
+  for i in 1 .. 105 loop
+    insert into public.actividad (accion, actor_id, tabla, registro_id) values ('act.prueba', b, 'act_inventada', i::text);
+  end loop;
+  v_resp := pg_temp.act_como(a, format('select public.actividad_listar(p_actor => %L, p_tamano => 1000)', b));
+  if jsonb_array_length(v_resp -> 'filas') <> 100 or not (v_resp ->> 'hay_mas')::boolean then raise exception 'T7: el tope de 100 dio % filas', jsonb_array_length(v_resp -> 'filas'); end if;
+  if pg_temp.act_error(a, format('select public.actividad_listar(p_registro => %L)', gen_random_uuid())) <> '22023/registro' then
+    raise exception 'T7: un registro sin su entidad no dio 22023/registro'; end if;
+end $$;
+rollback;
+
+-- @test actividad: «Ir a una fecha» empieza por la última fila antes de esa hora, sin perder las que comparten su hora (T8)
+begin;
+select pg_temp.act_preparar();
+do $$
+declare a uuid := '00000000-0000-4000-8000-00000009901a'; b uuid := '00000000-0000-4000-8000-00000009901b';
+        v_hace3 timestamptz := now() - interval '3 days'; v1 bigint; v2 bigint; v_ayer bigint; v_resp jsonb; v_ids bigint[];
+begin
+  -- En el orden en que se escriben: dos de una misma transacción de hace 3 días (mismo creado_en) y una de ayer.
+  insert into public.actividad (accion, actor_id, tabla, registro_id, creado_en) values ('act.prueba', b, 'act_inventada', '1', v_hace3) returning id into v1;
+  insert into public.actividad (accion, actor_id, tabla, registro_id, creado_en) values ('act.prueba', b, 'act_inventada', '2', v_hace3) returning id into v2;
+  insert into public.actividad (accion, actor_id, tabla, registro_id, creado_en) values ('act.prueba', b, 'act_inventada', '3', now() - interval '1 day') returning id into v_ayer;
+  v_resp := pg_temp.act_como(a, format('select public.actividad_listar(p_actor => %L, p_hasta => %L)', b, now() - interval '2 days'));
+  select array_agg((x ->> 'id')::bigint) into v_ids from jsonb_array_elements(v_resp -> 'filas') x;
+  if v_ids[1:2] <> array[v2, v1] or v_ayer = any (v_ids) then raise exception 'T8: «Ir a una fecha» dio %, esperaba % y % sin %', v_ids, v2, v1, v_ayer; end if;
+  v_resp := pg_temp.act_como(a, format('select public.actividad_listar(p_actor => %L, p_hasta => %L)', b, now() - interval '400 days'));
+  if v_resp <> '{"hay_mas": false, "filas": []}'::jsonb then raise exception 'T8: una fecha sin nada antes dio %', v_resp; end if;
+end $$;
+rollback;
