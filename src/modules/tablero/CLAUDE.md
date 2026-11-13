@@ -2,6 +2,8 @@
 
 Bandeja de inicio por rol y tablero de métricas con widgets personalizables por usuario; compone a los demás módulos por su API pública.
 
+**Fase 9 cerrada el 2026-11-13** (9.14): la conversión, la cola web y el margen del mes con datos reales los prueban R3, R4, R5 y R5b de `e2e/fase-9-recorrido.spec.ts` (R5b, el primer e2e del widget «Cola de la web») y `e2e/tablero.spec.ts`. Abierto que la toca: **9-14a** (la dueña no actúa sobre un lead ajeno sin tenerlo; `docs/PLAN.md` › «Fase 9» › «Los decide la persona»).
+
 ## Entra y sale
 
 - Entra: permisos del usuario, `?periodo=` de la URL y, la preferencia `tablero.widgets` de `preferencias_usuario`.

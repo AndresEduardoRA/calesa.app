@@ -2,6 +2,8 @@
 
 Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista previa por fila, importa las válidas y deja el informe.
 
+**Fase 9 cerrada el 2026-11-13** (9.14): exportar e importar todo lo prueba R7 de `e2e/fase-9-recorrido.spec.ts` (el teléfono ajeno sale enmascarado y el lead vuelve a la cartera de su asesora), con `datos-importar-funcion.spec.ts` contra `importar-csv` servida.
+
 ## Entra y sale
 
 - Entra: archivo CSV subido desde el navegador, mapeo de columnas, confirmación.
@@ -35,7 +37,7 @@ Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista pre
 
 ## Tablas
 
-`importaciones` (estado, totales, informe por fila). RPC: `crear_lead` por fila (misma regla de limbo y duplicados).
+`importaciones` (estado, totales, informe por fila). RPC: `importacion_crear()` (con destino `asignar_a` para importar a nombre de otra persona, 9.06-1) y `_lead_crear` por fila vía `leads_importar_lote` (misma regla de limbo y duplicados).
 
 - `importaciones` e `importaciones_filas` (9.06-5) leídas desde el navegador con la sesión de quien mira, bajo su RLS (las propias, o todas con
   `datos.importar.todo`): sin `mapeo` ni `archivo_ruta`; los nombres de quien, del destino y del origen, embebidos por sus FK.
