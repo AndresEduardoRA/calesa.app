@@ -6106,3 +6106,194 @@ repetidos— y la línea «Fase 8 cerrada» de las fichas). Su plan está servid
   (D5). Consolidados los docs de paso pendientes (8.05, 8.12, 8.13 y los de la Fase 9).
 - **Sin arreglos de producto** ni inestables.
 - e2e completo: no (8.14-1, Nivel 1: el recorrido en escritorio y movil y los dirigidos; el completo con los dos proyectos lo corre el 8.14-2)
+
+<!-- paso:9.06-1 -->
+
+## Paso 9.06 · Datos: importar todo, parte 1 de 5: la base de la importación total (2026-11-12)
+
+- **Migración `importaciones_crear`:** columnas en `importaciones` (`asignar_a`, `con_destino`, `origen_id`, `procesadas`, `ya_existian`,
+  `rechazadas`, `avance_en`, con sus `check` e índices de fk); tabla `importaciones_filas` (lo que no entró: fila, `ya_existe`/`error`, campo y motivo;
+  RLS de sólo lectura con la regla de `importaciones`); `importacion_crear()` (authenticated, idempotente por id): para otra persona pide
+  `datos.importar.todo` y que el destino esté activo y tenga `leads.crear`; para sí misma, `leads.crear`; vehículos, un origen activo y `vehiculos.crear`;
+  la ruta en la carpeta propia, `.csv` o `.txt`. `datos.importar.todo` con `aplicado_en` nuevo en la migración y en `seed.sql`.
+- **Migración `importaciones_procesar`:** `importacion_empezar`, `importacion_procesar_lote` e `importacion_terminar`, sólo `service_role`. Actúan a
+  nombre de quien importa (los leads, del destino) fijando `request.jwt.claim.*` locales y reponiéndolos en cada salida; vuelven a mirar los permisos en
+  cada lote (perderlos deja la importación `fallida`); todo o nada por fila con `_lead_crear` (sin adoptar: «ya existe» sin nombre) o `vehiculo_crear`;
+  idempotente por (importación, fila). Ayudantes `_importacion_*` sólo para su dueño.
+- **Pruebas** (`supabase/tests/areas/datos/`): `importar.sql` (8 pruebas, los cinco casos del Assert de la fila: 42501 sin `datos.importar.todo`,
+  `authenticated` no ejecuta `importacion_procesar_lote`, «ya existe» sin nombre y sin adoptar del limbo, permiso quitado a mitad, lote repetido) e
+  `importar-lotes.sql` (6: el destino crea, la forma, vehículos, los claims en cinco salidas y tras un error, destino borrado, empezar y terminar). Una
+  mutación (sin reponer los claims en la salida normal del lote) hizo caer la de los claims.
+- **Partición del paso** (5 partes; `docs/PLAN.md` no se toca, cada una cierra sola):
+  - **9.06-2, motor en la base:** `importaciones_pases` + `importacion_pase_emitir` (authenticated, la propia) e `importacion_abrir` (service_role, un uso,
+    10 min); `importaciones_continuar_disparar(p_url)` y `_programar` (el patrón de `storage_gc_disparar`: `pg_cron` → `pg_net`, hasta 5 detenidas por
+    corrida, sin avance en 24 h → `fallida`); purga de `importaciones_filas` a los 30 días por lotes; índices de la lista `(usuario_id, creado_en desc, id
+desc)` y `(creado_en desc, id desc)` `where archivo_ruta is not null`; `leads_importar_lote` y `leads_importacion_terminar` rechazan una con
+    `archivo_ruta` y `leads_importaciones_recientes` la excluye (hoy la aceptan si es propia); deshacer mide «intacto» contra `coalesce(asignar_a,
+usuario_id)`. Pruebas en `importar-motor.sql`.
+  - **9.06-3:** la función edge `supabase/functions/importar-csv` (canjea el pase, baja el archivo, parsea `;` o `,`, valida con
+    `entities/plantillas.ts`, manda las inválidas como `rechazo`, `empezar` → `procesar_lote` × N → `terminar`, `p_error` si no se lee), Vitest de
+    `plantillas.ts` y la carrera `scripts/carreras/importacion-total.mjs`; corrige
+    `supabase/functions/README.md:13` (dice `crear_lead`). La función valida antes de mandar y **nunca copia el valor de una celda en el `motivo` de
+    un `rechazo`**: la base guarda ese texto tal cual.
+  - **9.06-4:** `infra/importar.ts`, acciones y el asistente de «Importar» (entidad → archivo → emparejar → vista previa de 500 → «Importar N filas»); prende la sección.
+  - **9.06-5:** avance (se relee cada pocos segundos), resultado con «Descargar las rechazadas», la que se retoma, la lista «Importaciones» por cursor y
+    `e2e/datos-importar.spec.ts`. Cierra el arrastrado «`datos` (importar de todo para el dueño con `importar-csv`)».
+- **Riesgo conocido hasta el 9.06-2:** cuatro RPC de `/leads` no miran `archivo_ruta`. `leads_importar_lote` y `leads_importacion_terminar` aceptan una
+  importación total propia; `leads_importacion_deshacer` puede marcarla deshecha y dejarla `terminada`, lo que corta el proceso (los leads del destino
+  quedan a salvo, en `otra_persona`); `leads_importaciones_recientes` la muestra en `/leads`. Sólo afecta a quien la creó; lo arregla el 9.06-2.
+- **Para el 9.06-2:** partir `importar.sql` y `importar-lotes.sql` (pasan de 300 líneas) y, si se toca `importacion_procesar_lote`, sacar el cuerpo
+  del bucle a un ayudante (D11).
+- **Cómo se anota en `docs/PLAN.md`:** la fila 9.06 sigue abierta (`parcial: true`).
+- e2e completo: no (9.06-1, Nivel 2: RLS y estructura sin interfaz; el completo lo corre el CI del PR; dirigidos: ninguno)
+
+<!-- paso:9.06-2 -->
+
+## Paso 9.06 · Datos: importar todo, parte 2 de 5: el motor en la base (2026-11-12)
+
+- **Pruebas partidas** (sin cambiar ninguna): `importar.sql` (crear, idempotencia, los cinco del Assert), `importar-crear.sql` (ruta, privilegios,
+  RLS de `importaciones_filas`), `importar-lotes.sql` e `importar-terminar.sql`; todas por debajo de 300 líneas.
+- **Migración `importaciones_pases`:** tabla `importaciones_pases` (RLS sin policies, sólo `service_role`); `importacion_pase_emitir` (authenticated:
+  sólo la total propia y viva, nunca la ajena aunque se tenga `datos.importar.todo`; reusa el pase vivo de 5 min) e `importacion_abrir`
+  (service_role, un uso, 10 min). Índices `importaciones_lista_propia_idx`, `importaciones_lista_idx` (la lista de 9.06-5) e
+  `importaciones_en_curso_idx` (expresión `coalesce(avance_en, creado_en), id`, sólo las vivas).
+- **Migración `importaciones_continuar`:** el job `importaciones-continuar` cada 2 min con la URL de Vault (`_url_del_proyecto()`): hasta 50 sin
+  avance en 24 h → `fallida` (`sin_avance` en `_importacion_motivo`) y un pase a hasta 5 detenidas (2 min sin avance, sin pase de los últimos 5).
+  El pedido lleva sólo `{pase}`. Sin `_programar`.
+- **Migración `importaciones_purgar`:** el job diario `importaciones-filas-purgar`: informe por fila a los 30 días de terminada o fallida, pases a
+  los 7, de a 10.000 y 10 lotes por corrida.
+- **Migración `importaciones_convivir`:** `leads_importar_lote`, `leads_importacion_terminar` (42501) y `leads_importaciones_recientes` (no la
+  lista) ignoran una total. Cierra el riesgo anotado en el 9.06-1.
+- **Migración `importaciones_deshacer`:** `leads_importacion_deshacer` con una total: sólo terminada o fallida, `datos.importar.todo` si tuvo
+  destino, ≤ 2.000 leads, «intacto» contra el destino (destino borrado: nada se mueve). `aplicado_en` del permiso, en la migración y en el seed.
+- **Pruebas** (`supabase/tests/areas/datos/`): `importar-pases.sql` (3), `importar-job.sql` (5), `importar-convivencia.sql` (4). Las de
+  convivencia y deshacer cayeron sin su migración; una mutación (el job sin el filtro de `archivo_ruta`) hizo caer la del job.
+- **Lo que sigue** (partición del 9.06-1, sin cambios):
+  - **9.06-3:** la función edge `importar-csv` (recibe `{pase}`, `importacion_abrir` → id o 401; `verify_jwt = false` en `config.toml`, como
+    `storage-gc`), `plantillas.ts`, la carrera; **borrar el CSV del bucket al terminar** (D19: `storage_refcount()` no conoce ese bucket).
+  - **9.06-4:** la acción llama `importacion_crear` y `importacion_pase_emitir` y manda el pase.
+  - **9.06-5:** la lista por cursor sobre `importaciones_lista_*_idx`; si ofrece «Deshacer» de una total, con las reglas de D17–D18.
+- **Para después:** `importacion_procesar_lote` sigue con 104 líneas (D20). `importaciones_filas_purgar` hereda el warning de `db:lint` de
+  `importaciones_vinculos_purgar` (variable `i` declarada de más).
+- **Desvíos:** 7 commits de código, uno más que el plan: `test(datos): acotar a la importación la prueba de jobs sin dirección` corrige una
+  prueba del job que veía la URL que `humo.sql` deja en `storage-gc` en la corrida completa; entre el commit del job y ése, `db:probar` completo
+  da ese rojo (no se reescribió la historia). La migración de convivencia se aplicó en Postgres junto con la de deshacer (un `db:reset`). Los
+  rojos sin migración (convivencia, deshacer) y el primer `db:probar` completo en rojo no se guardaron.
+- **Cómo se anota en `docs/PLAN.md`:** la fila 9.06 sigue abierta (`parcial: true`).
+- e2e completo: no (9.06-2, Nivel 2: RLS y estructura sin interfaz; el completo lo corre el CI del PR; dirigidos: leads-importar, leads-importar-deshacer y leads-importar-deshecha-estilo en escritorio)
+
+<!-- paso:9.06-3 -->
+
+## Paso 9.06 · Datos: importar todo, parte 3 de 5: la función edge `importar-csv` (2026-11-12)
+
+- **`entities/plantillas.ts` de `datos`:** el archivo normalizado de la importación total (D22): columnas por entidad (las claves de `datos` que
+  admite la base, en su orden), validadores de forma por celda (texto, uuid, entero, número, sí/no, objeto JSON; un motivo nunca repite la celda),
+  `validarEncabezados`, `filaDelLote` (la fila rechazada por la pantalla gana; la primera columna inválida da su clave como `campo`),
+  `escribirArchivo` y `LIMITES_DEL_ARCHIVO` (10 MB, 20.000 filas, D27). Sin imports: la función lleva una copia exacta.
+- **La función `supabase/functions/importar-csv`** (`index.ts`, `procesar.ts`, `base.ts`, copias de `leer.ts` y `plantillas.ts`, `deno.json` con
+  `npm:papaparse@5.7.0`; `verify_jwt = false` en `config.toml`): canjea el pase con `importacion_abrir` (sin pase con forma de uuid, 401 sin
+  tocar la base), lee la fila de `importaciones`, baja el archivo, lo lee y valida, `importacion_empezar` y lotes de 50 a
+  `importacion_procesar_lote` hasta 45 s (D24), siempre desde la marca que devuelve la base (D25); termina y borra el CSV al llegar a `terminada`
+  o `fallida` (D26, cierra D19 del 9.06-2). Logs y respuestas sin datos de nadie (D29). La sección `importar-csv` del README de funciones.
+- **La guarda de las copias** (`scripts/guardas/areas-c/importar-csv-copias.test.ts`): los dos pares idénticos y la versión de `papaparse`.
+- **La carrera** (`scripts/carreras/importacion-total.mjs`): dos llamadas concurrentes a `importacion_procesar_lote` como `service_role` sobre la
+  misma importación (el mismo lote: la segunda vuelve con 50 saltadas y sin crear nada; dos lotes seguidos: la segunda espera y entra sin el «Falta
+  procesar»). Así se lee el Assert de «dos invocaciones de la función»: el candado está en la base, y lo que la función hace con la respuesta (irse
+  si todo vino saltado) lo cubre su prueba de contrato.
+- **`infra/importar.ts` y `dispararImportacion`** en `composicion.ts`: el pase con la sesión de quien creó la importación y la llamada a la función,
+  sin ninguna clave. Hoy no lo llama nadie: lo llama la acción de 9.06-4.
+- **El e2e de la función real** (`e2e/datos-importar-funcion.spec.ts`, con `pnpm funciones`): la dueña importa 3 leads para una asesora, uno con
+  el teléfono de un lead de otra persona → 2 en la cartera de la asesora, 1 «ya existe», el archivo fuera del bucket, el mismo pase da 401.
+  `importar-csv` se suma a la guardia de los e2e y a la espera de funciones de `ci.yml` (lo pidió `scripts/guardas/workflows.test.ts`).
+- **Duración** (auditoría del plan): leer y validar 20.000 filas al tope de 10 MB, ≈ 140 ms en Node. Procesarlas, ≈ 320 s de trabajo: 7 u 8
+  invocaciones y más de 20 min de reloj, porque el job despierta la siguiente a los 2 min sin avance (D24, `docs/RENDIMIENTO.md`).
+- **Para 9.13:** una importación que el job deja `fallida` por 24 h sin avance no borra su CSV, y un error que se repite siempre deja reintentos
+  cada 2 min durante esas 24 h (D25, D26).
+- **Lo que sigue:**
+  - **9.06-4:** la conversión en el navegador (leads con `prepararFilas` de `leads`, que hay que sacar por `leads/client.ts`; vehículos con un
+    conversor nuevo de `datos`) → `escribirArchivo`; el asistente: entidad → archivo → emparejar → vista previa de 500 → «Importar N filas» sube el
+    archivo normalizado a `importaciones/<uid>/<uuid>.csv`, `importacion_crear` y `dispararImportacion` dentro de `after()`. Si no cabe, 4a (la
+    conversión, sólo `entities/`) y 4b (el asistente).
+  - **9.06-5:** avance, resultado, «Descargar las rechazadas» (con las celdas sólo si el navegador todavía tiene el archivo, D26, y la pantalla lo
+    dice), la lista «Importaciones» y `e2e/datos-importar.spec.ts`.
+- **Cómo se anota en `docs/PLAN.md`:** la fila 9.06 sigue abierta (`parcial: true`); el arrastrado «`datos` (importar de todo…)» lo cierra 9.06-5.
+- e2e completo: no (9.06-3, Nivel 2 del paso, esta parte sin disparadores: el completo lo corre el CI del PR; dirigidos: datos-importar-funcion y perfil-avatar en escritorio)
+
+<!-- paso:9.06-4 -->
+
+## Paso 9.06 · Datos: importar todo, parte 4 de 6: convertir en el navegador y lanzar (2026-11-12)
+
+- **Entradas de los dueños:** `leads/client.ts` da lo puro de su importación (`prepararFilas`, el emparejamiento, los lectores de números, sí o no
+  y fechas, `usePaises`); `vehiculos/client.ts`, `validarVehiculo`, `camposComunes`, `camposActivos` y `claveDeAtributo` (D31).
+- **`entities/archivo-de-importacion.ts`:** `normalizarFila` (guarda D34), `armarArchivo` (topes, D35), `mapeoDeColumnas` (D38), `rutaDelArchivo`
+  (D36). El test de contrato lee el archivo como la función edge (`leerCsv` + `validarEncabezados` + `filaDelLote`) y da, fila por fila, lo mismo.
+- **Conversores** (`features/importar/convertir-leads.ts`, `convertir-vehiculos.ts`, `rechazo.ts`): una fila normalizada por fila de la persona
+  (D32), el rechazo con todos sus motivos y la etiqueta del primero (D33).
+- **La acción `crearImportacion`** (`actions/crear-importacion.ts`, cuerpo en `crear.ts` con su test): el permiso antes de la base (D39), la ruta del
+  servidor, `importacion_crear` y el despertar en `after()` con el pase pedido antes (D40).
+- **La subida** (`infra/archivo.client.ts`, `composicion.client.ts`, `lanzar.ts`): subir → crear → quitar sólo ante un rechazo seguro (D37).
+- **Medición D41:** convertir 20.000 leads, 1,6–1,76 s en Node: la 4b convierte por tramos.
+- **Auditoría:** plan con observaciones (borrar sólo ante un rechazo seguro, el id por archivo, el test de la acción, `__proto__`, la etiqueta en
+  la guarda), atendidas; informe con observaciones (la ficha de `leads`, la prueba de `12500.5`, el uuid en mayúsculas), atendidas en un `fix` y en
+  este commit.
+- **Lo que sigue (para el coordinador: encolar 9.06-4b antes de 9.06-5; el paso queda en 6 partes):**
+
+| Parte       | Alcance                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Archivos                                                                                                                                                |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **9.06-4b** | La sección «Importar» de `/datos` hasta lanzar. `secciones.ts` prende `importar`; `page.tsx` dibuja la barra (`?seccion=`). «Importar» se ve con `leads.crear`, con `datos.importar.todo` o con `vehiculos.crear` en algún origen. **Entidad:** Leads (con `datos.importar.todo`, «Destino»: yo u otra persona activa) o Vehículos («Origen», entre los activos donde puede crear, `motivoParaNoImportar`); entidad y origen en la URL; la página lee sólo el contexto de esa entidad (`leerDatosDeImportacion()` de leads, o `leerLayout(origen)` y el origen). **Archivo:** `textoDeBytes` + `leerCsv` con `LIMITES_DE_LECTURA_TOTAL`. **Columnas:** `emparejarColumnas` con `objetivosDeLeads` u `objetivosDeVehiculos`. **Vista previa:** las primeras 500 (`FILAS_DE_VISTA_PREVIA`) con el mismo conversor y `normalizarFila`, con el motivo por fila. **«Importar N filas»:** convierte todo por tramos con «Preparando el archivo…» (D41), `armarArchivo` (con `etiquetaDeLeads`/`etiquetaDeVehiculos`), un id nuevo por archivo armado (D36) y `lanzarImportacion` con el `crear` de `useAction(crearImportacion)` adaptado a `Resultado` (sin red → `inesperado`). Al terminar: «La importación empezó: puedes seguir en otra pantalla.». Estados de `docs/UX.md` y «Sin conexión: el archivo no se subió.». El archivo vive sólo en memoria, con `key` por corrida | `src/modules/datos/{entities/secciones.ts,pantallas/datos.ts,features/importar/components/*,features/importar/hooks/*}`, `src/app/(app)/datos/page.tsx` |
+| **9.06-5**  | Avance, resultado, la importación que se retoma, «Descargar las rechazadas» (la fila `n` es la `n + 1` de la persona, D32), la lista «Importaciones», `revalidatePath` y `e2e/datos-importar.spec.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | ídem                                                                                                                                                    |
+
+- **Para la 4b, sin verificar:** V30, qué da `cubre()` con un permiso por origen y `origenId` nulo (alcanza con tenerlo en cualquier origen, según
+  el comentario de `puede()`); V31, un lector de personas activas que pueden recibir leads en `equipo/index.ts` (si no hay uno sin migración, la
+  base rechaza al destino sin `leads.crear` con su mensaje); V32, los avisos de `emparejarColumnas` dicen «el número de un lead lo pone el sistema»
+  para «N.º», y en vehículos hace falta otro texto.
+- e2e completo: no (9.06-4, Nivel 2 del paso, esta parte sin interfaz: el completo lo corre el CI del PR; dirigidos: ninguno)
+
+<!-- paso:9.06-4b -->
+
+## Paso 9.06 · Datos: importar todo, parte 5 de 6: la pantalla hasta lanzar (2026-11-12)
+
+- **`leads`:** `preparadorDeFilas` prepara por tramos con lo visto de teléfonos cruzando las llamadas (`prepararFilas` lo llama de una vez:
+  `/leads` no cambia); `filas.ts` se partió en `catalogo.ts` y `repetidos.ts`; `emparejarColumnas(…, numeroDe)` dice «un vehículo» en la
+  importación de vehículos (V32 de la 4). `client.ts` suma `preparadorDeFilas`, `origenInicial` y `EntradaDePreparacion`.
+- **`datos`, lo puro:** `convertir-por-tramos.ts` (D45), `intento.ts` (D46), `entities/opciones-de-importar.ts` (quién importa qué), `secciones.ts`
+  con las dos pestañas (D42) e `infra/personas.ts` (destinos, D44).
+- **La pantalla:** `/datos` con la barra; `src/app/(app)/datos/importar.tsx` lee el contexto de la entidad de la URL (D43); la sección, diferida
+  (D49): «Qué importas» → Archivo → Columnas → Vista previa (500) → Importando hasta «La importación empezó: puedes seguir en otra pantalla.».
+- **Pruebas:** tramos de `leads` (`filas-tramos.test.ts`: repetidos que cruzan el borde y numeración), `convertir-por-tramos.test.ts` (leads con el
+  repetido entre tramos, vehículos, avance, cesión y cancelación; cae si se numera sin `desde`), `intento.test.ts`, `opciones-de-importar.test.ts` y
+  `secciones.test.ts`. Recorrido de la IA (spec temporal, borrado): la dueña importa 3 leads con un teléfono repetido y una columna «N.º» hasta
+  «La importación empezó»; la función local la procesó (`importar-csv: … terminada 3/3`).
+- **Auditoría:** plan con observaciones (partir `filas.ts`, el id por intento en el commit de lo puro, la ficha con cada commit, el repetido entre
+  tramos en la prueba de `datos`, el tope de destinos), atendidas.
+- **Auditoría del informe:** observaciones. Atendida en un `fix`: «Qué importas», «Destino» y «Origen» se apagan mientras se prepara, sube o
+  crea (cambiarlos a mitad creaba la importación con lo anterior sin decirlo). Para 9.06-5: salir de la pantalla durante la subida no la corta
+  (la importación se crea igual): la lista «Importaciones» tiene que mostrarla.
+- **Lo que sigue (para el coordinador: encolar 9.06-5, la última parte):**
+
+| Parte      | Alcance                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Archivos                                                                                                                                          |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **9.06-5** | Lo de `.piloto/planes/9.06-3.md:56`. El paso «Importando» (`paso-importando.tsx`) hoy dice «La importación empezó…»: la 5 lo cambia por el avance leído cada pocos segundos de la importación `id` (lo da la fase `lanzada` de `use-lanzar-importacion`), el resultado, «Descargar las rechazadas» (la fila `n` del archivo normalizado es la `n + 1` de la persona, D32, con las celdas de `archivo.filas`, que siguen en memoria) y «Importaciones» debajo del asistente; `revalidatePath`; `e2e/datos-importar.spec.ts` recorre Leads → Destino → archivo → Columnas → Vista previa → «Importar 3 filas» | `src/modules/datos/features/importar/{components,hooks}/*`, `infra/importar.ts`, `src/app/(app)/datos/importar.tsx`, `e2e/datos-importar.spec.ts` |
+
+- e2e completo: no (9.06-4b, Nivel 2 del paso: el completo lo corre el CI del PR; dirigidos: datos-exportar en escritorio)
+
+<!-- paso:9.06-5 -->
+
+## Paso 9.06 · Datos: importar todo, parte 6 de 6: el avance, el resultado y la lista (2026-11-12)
+
+- **Lo puro:** `entities/resumen-de-importacion.ts` (la fila de `importaciones` para la pantalla; estado visible con la pausa primero, D52; la
+  frase del resultado, D53; cuándo hay rechazadas, D54; qué se sondea, con tope) e `informe-de-importacion.ts` (el CSV de las rechazadas, D54).
+- **Las lecturas, del navegador y bajo la RLS de quien mira:** `infra/importaciones.client.ts` (la lista por cursor sobre los índices parciales y el
+  avance por ids) e `infra/informe.client.ts` (el informe por la PK, de a 1.000). Sin migración: grants, policies e índices ya estaban (partes 1–2).
+- **La pantalla:** los hooks `use-importaciones`, `use-sondeo-de-avance` (cada 5 s, D51) y `use-descarga-de-rechazadas`; el paso «Importando»
+  muestra el avance y el resultado (región «Importación en curso») con «Descargar las rechazadas» con las celdas; la lista «Importaciones» al pie de
+  la sección (propias, o todas con `datos.importar.todo`; «Ver más»; vacío; error con «Reintentar»; tope). Sin `revalidatePath` (D56).
+- **Pruebas:** `resumen-de-importacion.test.ts` y `informe-de-importacion.test.ts`; `e2e/datos-importar.spec.ts` (escritorio, con la función): la
+  dueña importa 3 leads para una asesora, uno con el teléfono de un lead ajeno → «2 creados, 1 ya existía y ninguno con errores.», la descarga trae
+  la fila 3 con sus celdas y no nombra a la otra persona, la lista la muestra terminada y la asesora ve los dos leads en `/leads`.
+- **Auditoría del plan:** observaciones (acotar el e2e a la región del resumen, la pausa antes que «esperando», tope de ids del sondeo, el porqué
+  de la `<ul>`, anotar la excepción de D56, teléfonos sin `+`), atendidas.
+- **El 9.06 queda completo en 6 partes.** Para el coordinador: cierra el arrastrado «`datos` (importar de todo para el dueño con `importar-csv`)» de
+  `docs/PLAN.md`, y D56 va a `docs/DECISIONES.md` como excepción a la regla de `revalidatePath`. Sigue abierto D26 (el CSV de una `fallida` por
+  24 h sin avance), para 9.13.
+- e2e completo: no (9.06-5, Nivel 2 del paso: el completo lo corre el CI del PR; dirigidos: datos-importar en escritorio)
