@@ -141,8 +141,9 @@ function cambiosDeAtributos(
     if (iguales(a[interna], d[interna])) {
       continue
     }
+    // Un campo `moneda` del layout no declara en qué moneda está (los de apibara son USD): monto con la moneda sin conocer, nunca la base.
     const dinero: Dinero | null =
-      campos?.get(interna)?.tipo === 'moneda' ? { clase: 'base', moneda: null } : null
+      campos?.get(interna)?.tipo === 'moneda' ? { clase: 'fila', moneda: null } : null
     const completa = `${clave}.${interna}`
     salida.push({
       clave: completa,

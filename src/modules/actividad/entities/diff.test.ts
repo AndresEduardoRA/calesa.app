@@ -97,7 +97,13 @@ describe('presentarDiff', () => {
       ),
       'atributos.valor_fob',
     )
-    expect(atributo?.despues).toMatchObject({ tipo: 'monto', valor: 9500 })
+    expect(atributo?.despues).toEqual({
+      tipo: 'monto',
+      valor: 9500,
+      moneda: null,
+      enMonedaBase: false,
+      monedaConocida: false,
+    })
   })
 })
 
