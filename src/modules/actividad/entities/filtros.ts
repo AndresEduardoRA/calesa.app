@@ -17,6 +17,12 @@ export const CLAVE_DE_ENTIDAD = 'entidad'
 export const CLAVE_DE_REGISTRO = 'registro'
 const LARGO_MAXIMO_DEL_REGISTRO = 100
 
+// La actividad de un solo registro: lo que abre «Ver actividad» en el «⋯» de una ficha (la arma `src/app`, que sabe si quien mira tiene
+// `actividad.ver`).
+export function rutaDeActividadDe(tabla: string, registroId: string): string {
+  return `/actividad?${new URLSearchParams({ [CLAVE_DE_ENTIDAD]: tabla, [CLAVE_DE_REGISTRO]: registroId }).toString()}`
+}
+
 export type PersonaDeLaActividad = { id: string; nombre: string }
 
 export type PedidoDeActividad = {

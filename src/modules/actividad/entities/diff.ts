@@ -198,3 +198,40 @@ export function presentarDiff(
   }
   return salida
 }
+
+// Las opciones de `presentarDiff` para un diff leído: cada lado con la moneda de su foto y las etiquetas de `atributos` (si se leyeron).
+export function opcionesDeLaLectura(
+  diff: DiffDeActividad,
+  campos: ReadonlyMap<string, CampoDeAtributo> | undefined,
+): OpcionesDelDiff {
+  if (!diff.visible) {
+    return {}
+  }
+  return {
+    monedaAntes: diff.monedaAntes,
+    monedaDespues: diff.monedaDespues,
+    ...(campos ? { etiquetasDeAtributos: campos } : {}),
+  }
+}
+
+// Las claves de `atributos` / `atributos_publicos` que cambiaron, sin repetir: lo único cuyas etiquetas se piden al abrir el drawer.
+export function clavesDeAtributos(diff: DiffDeActividad): string[] {
+  if (!diff.visible) {
+    return []
+  }
+  const claves = new Set<string>()
+  for (const clave of CLAVES_CON_ATRIBUTOS) {
+    const cambio = diff.cambios[clave]
+    if (!cambio) {
+      continue
+    }
+    const a = comoObjeto(cambio.antes)
+    const d = comoObjeto(cambio.despues)
+    for (const interna of new Set([...Object.keys(a), ...Object.keys(d)])) {
+      if (!iguales(a[interna], d[interna])) {
+        claves.add(interna)
+      }
+    }
+  }
+  return [...claves].sort()
+}

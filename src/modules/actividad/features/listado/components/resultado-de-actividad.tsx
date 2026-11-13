@@ -19,11 +19,21 @@ type Props = {
   hoy: string
   // `ajustes_empresa.actividad_dias`: cuánto se conserva.
   diasDeActividad: number
+  // Abre el diff de una fila visible; `idAbierto` marca la fila del drawer abierto.
+  abrir: (id: number) => void
+  idAbierto: number | null
 }
 
 // La lista o el estado que corresponda: vacío de primera vez, vacío por filtro (con «Limpiar filtros»), vacío desde una fecha (con «Volver»)
 // o la actividad por día con su pie. Una sola vista: la tabla desde `md` y las tarjetas por debajo.
-export function ResultadoDeActividad({ inicial, pedido, hoy, diasDeActividad }: Props) {
+export function ResultadoDeActividad({
+  inicial,
+  pedido,
+  hoy,
+  diasDeActividad,
+  abrir,
+  idAbierto,
+}: Props) {
   const { zonaHoraria } = useRegional()
   const filtros = useFiltrosDelListado()
   const actividad = useActividad({ inicial, pedido, zona: zonaHoraria })
@@ -63,8 +73,8 @@ export function ResultadoDeActividad({ inicial, pedido, hoy, diasDeActividad }: 
         </p>
       ) : null}
       <UnaSolaVista
-        tabla={() => <TablaDeActividad dias={dias} />}
-        tarjetas={() => <TarjetasDeActividad dias={dias} />}
+        tabla={() => <TablaDeActividad dias={dias} abrir={abrir} idAbierto={idAbierto} />}
+        tarjetas={() => <TarjetasDeActividad dias={dias} abrir={abrir} idAbierto={idAbierto} />}
       />
       <PieDeActividad actividad={actividad} zona={zonaHoraria} />
     </div>

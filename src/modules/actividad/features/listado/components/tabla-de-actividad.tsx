@@ -2,17 +2,29 @@
 
 import { Fragment } from 'react'
 import { formatearHora } from '@/shared/lib/fechas'
-import { CabeceraPegada, CeldaPegada, FilaDeLista, TablaDeLista } from '@/shared/ui/lista'
+import {
+  AbrirResumen,
+  CabeceraPegada,
+  CeldaPegada,
+  FilaDeLista,
+  TablaDeLista,
+} from '@/shared/ui/lista'
 import { useRegional } from '@/shared/ui/regional'
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table'
 import type { DiaDeActividad } from '../../../entities/filtros'
 import { textosDeLaFila } from './celdas-de-actividad'
 
+type Props = {
+  dias: readonly DiaDeActividad[]
+  abrir: (id: number) => void
+  idAbierto: number | null
+}
+
 const COLUMNAS = 5
 
-// La actividad en escritorio, agrupada por día: una fila de cabecera por día y una por cambio. La fila todavía no abre nada (el diff llega
-// en la parte 4): sin `alAbrir`, no promete un clic. Ningún valor ni monto: sólo qué campos cambiaron.
-export function TablaDeActividad({ dias }: { dias: readonly DiaDeActividad[] }) {
+// La actividad en escritorio, agrupada por día: una fila de cabecera por día y una por cambio. Una fila visible abre su diff (con el teclado,
+// el botón de la acción); una sin acceso no promete un clic. Ningún valor ni monto: sólo qué campos cambiaron.
+export function TablaDeActividad({ dias, abrir, idAbierto }: Props) {
   const { zonaHoraria } = useRegional()
   return (
     <TablaDeLista>
@@ -40,12 +52,24 @@ export function TablaDeActividad({ dias }: { dias: readonly DiaDeActividad[] }) 
             {dia.filas.map((fila) => {
               const textos = textosDeLaFila(fila)
               return (
-                <FilaDeLista key={fila.id}>
+                <FilaDeLista
+                  key={fila.id}
+                  alAbrir={fila.visible ? () => abrir(fila.id) : undefined}
+                  abierta={fila.id === idAbierto}
+                >
                   <CeldaPegada lado="nombre" className="whitespace-nowrap tabular-nums">
                     {formatearHora(fila.creadoEn, { zona: zonaHoraria })}
                   </CeldaPegada>
                   <TableCell className="max-w-48 truncate">{textos.persona}</TableCell>
-                  <TableCell className="whitespace-nowrap">{textos.accion}</TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {fila.visible ? (
+                      <AbrirResumen nombre={`${textos.accion} ${textos.entidad}`}>
+                        {textos.accion}
+                      </AbrirResumen>
+                    ) : (
+                      textos.accion
+                    )}
+                  </TableCell>
                   <TableCell className="whitespace-nowrap">{textos.entidad}</TableCell>
                   <TableCell className="max-w-96 truncate text-(--color-ink-soft)">
                     {textos.campos}

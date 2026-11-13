@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type { DiffDeActividad } from './actividad'
-import { presentarDiff } from './diff'
+import { clavesDeAtributos, opcionesDeLaLectura, presentarDiff } from './diff'
 import { etiquetaDeCampo, verboDeLaAccion } from './etiquetas'
 
 function diff(
   tabla: string,
   cambios: Record<string, { antes: unknown; despues: unknown }>,
-): DiffDeActividad {
+): Extract<DiffDeActividad, { visible: true }> {
   return {
     id: 7,
     visible: true,
@@ -17,6 +17,9 @@ function diff(
     actorNombre: null,
     creadoEn: '2026-11-12T15:00:00.000Z',
     cambios,
+    monedaAntes: null,
+    monedaDespues: null,
+    origenId: null,
   }
 }
 
@@ -164,5 +167,47 @@ describe('etiquetas', () => {
     expect(etiquetaDeCampo('vehiculos', 'precio_web_nota')).toBe('Precio web nota')
     expect(verboDeLaAccion('leads.update')).toBe('Cambió')
     expect(verboDeLaAccion('fase.mover')).toBe('Fase mover')
+  })
+})
+
+describe('opcionesDeLaLectura', () => {
+  it('T9 · la moneda de la foto llega a cada lado', () => {
+    const d: DiffDeActividad = {
+      ...diff('gastos', { monto: { antes: 10, despues: 20 } }),
+      monedaAntes: 'BOB',
+      monedaDespues: 'USD',
+    }
+    const [monto] = presentarDiff(d, opcionesDeLaLectura(d, undefined))
+    expect(monto?.antes).toEqual({
+      tipo: 'monto',
+      valor: 10,
+      moneda: 'BOB',
+      enMonedaBase: false,
+      monedaConocida: true,
+    })
+    expect(monto?.despues).toEqual({
+      tipo: 'monto',
+      valor: 20,
+      moneda: 'USD',
+      enMonedaBase: false,
+      monedaConocida: true,
+    })
+  })
+
+  it('T9 · sin acceso no da opciones', () => {
+    expect(opcionesDeLaLectura({ id: 1, visible: false }, etiquetasDeAtributos)).toEqual({})
+  })
+})
+
+describe('clavesDeAtributos', () => {
+  it('T9 · las claves de atributos que cambiaron, sin repetir', () => {
+    const d = diff('vehiculos', {
+      atributos: { antes: { color: 'rojo', km: 1 }, despues: { color: 'azul', km: 1 } },
+      atributos_publicos: { antes: { km: 1 }, despues: { km: 2, color: 'azul' } },
+    })
+    expect(clavesDeAtributos(d)).toEqual(['color', 'km'])
+    expect(clavesDeAtributos(diff('vehiculos', { titulo: { antes: 'a', despues: 'b' } }))).toEqual(
+      [],
+    )
   })
 })

@@ -36,7 +36,22 @@ export type DiffDeActividad =
       actorNombre: string | null
       creadoEn: string
       cambios: Readonly<Record<string, CambioCrudo>>
+      // La moneda de cada lado y el origen de un vehículo, de la foto del cambio (9.01-4); nulos si la base no los da.
+      monedaAntes: string | null
+      monedaDespues: string | null
+      origenId: string | null
     }
+
+export const CLAVE_DE_CAMBIO = 'cambio'
+
+// `?cambio=` es el id de una fila (`bigint`): sólo dígitos, entero seguro y positivo; cualquier otra cosa es nulo (el drawer dice «sin acceso»).
+export function idDelCambio(texto: string | null): number | null {
+  if (texto === null || !/^\d+$/.test(texto)) {
+    return null
+  }
+  const n = Number(texto)
+  return Number.isSafeInteger(n) && n > 0 ? n : null
+}
 
 const esquemaDeFila = z.object({
   id: z.number(),
@@ -64,6 +79,9 @@ const esquemaDeDiff = z.union([
     actor_nombre: z.string().nullable(),
     creado_en: z.string().min(1),
     cambios: z.record(z.string(), z.object({ antes: z.unknown(), despues: z.unknown() })),
+    moneda_antes: z.string().nullish(),
+    moneda_despues: z.string().nullish(),
+    origen_id: z.guid().nullish(),
   }),
   z.object({ id: z.number(), visible: z.literal(false) }),
 ])
@@ -110,5 +128,8 @@ export function diffDesde(crudo: unknown): DiffDeActividad | null {
     actorNombre: d.actor_nombre,
     creadoEn: d.creado_en,
     cambios: d.cambios,
+    monedaAntes: d.moneda_antes ?? null,
+    monedaDespues: d.moneda_despues ?? null,
+    origenId: d.origen_id ?? null,
   }
 }

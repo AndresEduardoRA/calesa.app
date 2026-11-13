@@ -7,5 +7,6 @@ export {
   claveDelPedido,
   esquemaDeFiltrosDeActividad,
   pedidoDeActividad,
+  rutaDeActividadDe,
   type PedidoDeActividad,
 } from './entities/filtros'

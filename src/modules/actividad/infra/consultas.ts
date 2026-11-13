@@ -11,6 +11,7 @@ import {
   type DiffDeActividad,
   type PaginaDeActividad,
 } from '../entities/actividad'
+import type { CampoDeAtributo } from '../entities/diff'
 import type { PedidoDeActividad, PersonaDeLaActividad } from '../entities/filtros'
 
 export type Cliente = SupabaseClient<Database>
@@ -64,4 +65,43 @@ export async function leerPersonas(cliente: Cliente): Promise<Resultado<PersonaD
   }
   const { filas } = cortarAlTope(data, TOPE_DEL_EQUIPO)
   return ok(filas.map((p) => ({ id: p.id, nombre: p.nombre.trim() || 'Sin nombre' })))
+}
+
+export type PedidoDeCampos = { tabla: string; origenId: string | null; claves: readonly string[] }
+
+function porClave(
+  filas: readonly { clave: string; etiqueta: string; tipo: string }[],
+): ReadonlyMap<string, CampoDeAtributo> {
+  return new Map(filas.map((f) => [f.clave, { etiqueta: f.etiqueta, tipo: f.tipo }]))
+}
+
+// Las etiquetas de las claves de `atributos` que trae un diff, sólo esas: de un lead, `leads_campos`; de un vehículo, `origenes_campos` de su
+// origen (el de la foto). Activas o no: quien lo cambió lo cambió con ese nombre. Otra tabla, o un vehículo sin origen: ninguna.
+export async function leerCampos(
+  cliente: Cliente,
+  { tabla, origenId, claves }: PedidoDeCampos,
+): Promise<Resultado<ReadonlyMap<string, CampoDeAtributo>>> {
+  if (claves.length === 0) {
+    return ok(new Map())
+  }
+  if (tabla === 'leads') {
+    // leads_campos_clave_key
+    const { data, error } = await cliente
+      .from('leads_campos')
+      .select('clave, etiqueta, tipo')
+      .in('clave', [...claves])
+      .limit(claves.length)
+    return error ? { ok: false, error: errorDePostgrest(error) } : ok(porClave(data))
+  }
+  if (tabla === 'vehiculos' && origenId !== null) {
+    // origenes_campos_origen_id_clave_key
+    const { data, error } = await cliente
+      .from('origenes_campos')
+      .select('clave, etiqueta, tipo')
+      .eq('origen_id', origenId)
+      .in('clave', [...claves])
+      .limit(claves.length)
+    return error ? { ok: false, error: errorDePostgrest(error) } : ok(porClave(data))
+  }
+  return ok(new Map())
 }
