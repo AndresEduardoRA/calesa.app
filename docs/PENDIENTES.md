@@ -61,7 +61,7 @@ Al cerrar una, se borra su línea (el PR lo cuenta). Lo nuevo que aparezca al tr
 - **[8-13d]** Un pago confirmado de un proyecto de repuestos no se puede anular (`pago_anular` lo rechaza: «se anulan en el paso de repuestos», y ese paso no existe).
 - **[8-13e]** Eliminar el último pago vivo sin confirmar de un proyecto puede dejar sin cumplir `proyecto.pago_cliente` en la fase de un ítem — el vehículo tiene esa guarda y el proyecto no.
 - **[—]** Seguridad de los pagos de un proyecto de repuestos: quedó anotada para revisar sin detalle; hacerla junto con 8-13d y 8-13e.
-- **[—]** Repuestos: el `update` por columna de un ítem no mira proyecto cerrado ni catálogo; se puede borrar la imagen de un proyecto cerrado o de un ítem eliminado; la policy de Storage de `repuestos` no mira la carpeta; `UPDATE(cantidad)` directo frente al tope de `sobrante`.
+- **[—]** Repuestos: la policy de UPDATE de `repuestos_proyectos` pide `repuestos.editar` sin `repuestos.ver` (un `update` sin `where` no pasa por la de leer) y no mira proyecto cerrado ni eliminado — como el trigger `repuestos_item_escritura` de los ítems.
 - **[7-4]** Con `p_conversacion` del canal global, `tarea_crear` y `agenda_quienes_reciben` miran la fila suelta de `conversaciones_miembros` y pasa un responsable sin `chat.global` — revalidar con `_chat_miembro_vigente` como `mensaje_tarea_crear`.
 - **[—]** `lead_campo_impacto` lee los valores de todos los leads, también `solo_cartera` ajenos: con `leads.campos.gestionar`, acotando el rango, se hallan los extremos de un campo privado.
 - **[—]** Dominancia: no se cubre que la de quien llama cambie mientras actúa, y `nivel_crear` suma concesiones al rol `dueno` sin tomar `roles … for update`.

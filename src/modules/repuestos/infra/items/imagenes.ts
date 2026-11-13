@@ -68,8 +68,8 @@ async function agregar({
   }
 }
 
-// Quitar: `delete` por clave primaria con `select` para devolver la ruta (el «Deshacer» la vuelve a registrar). Cero filas = «ya no está», éxito. La RLS (`repuestos.editar`) es el límite; el
-// objeto lo encola la base (`repuestos_imagen_encolar`).
+// Quitar: `delete` por clave primaria con `select` para devolver la ruta (el «Deshacer» la vuelve a registrar). Cero filas = «ya no está», éxito. La RLS (`repuestos.editar` y `repuestos.ver`) y el
+// trigger `repuestos_imagen_quitar` (ítem vivo, proyecto abierto: 23514 con su mensaje) son el límite; el objeto lo encola la base (`repuestos_imagen_encolar`).
 async function quitar(imagenId: string): ReturnType<RepositorioDeImagenes['quitar']> {
   const supabase = await createClient()
   const { data, error } = await supabase

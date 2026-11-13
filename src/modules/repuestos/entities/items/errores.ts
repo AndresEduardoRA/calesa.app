@@ -40,9 +40,10 @@ export function rechazoDeItem(error: ErrorDeItem): ResultadoDeAccion<never> {
   return { ok: false, error: app }
 }
 
-/** Un `update` directo: una violación de `check` o de rango trae texto técnico que no se muestra; se dice por columna. */
+/** Un `update` directo: una violación de `check` o de rango trae texto técnico que no se muestra; se dice por columna. Lo que rechaza el trigger
+ * `repuestos_item_escritura` (proyecto cerrado, catálogo, cantidad bajo lo que pasó a stock) trae `hint` y su propio texto, que se conserva. */
 export function rechazoDeCelda(columna: string, error: ErrorDeItem): ResultadoDeAccion<never> {
-  if (error.code === '23514' && columna === 'cantidad') {
+  if (error.code === '23514' && columna === 'cantidad' && !error.hint) {
     return { ok: false, error: { codigo: 'regla', mensaje: MENSAJE_DE_CANTIDAD } }
   }
   if (error.code === '22003' && columna === 'precio_cliente') {

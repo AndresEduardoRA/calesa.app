@@ -10732,6 +10732,7 @@ export type Database = {
       puede_estar_en_la_rueda: { Args: { p_usuario: string }; Returns: boolean }
       puede_evento: { Args: { p_evento: string }; Returns: boolean }
       puede_lead: { Args: { p_clave: string; p_lead: string }; Returns: boolean }
+      puede_objeto_de_repuesto: { Args: { p_nombre: string }; Returns: boolean }
       puede_objeto_de_vehiculo: { Args: { p_clave: string; p_nombre: string }; Returns: boolean }
       puede_repuesto: { Args: { p_clave: string; p_item: string }; Returns: boolean }
       puede_unidad: {
