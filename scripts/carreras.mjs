@@ -362,6 +362,8 @@ try {
   await carrerasDeTipos({ orquesta, carrera, espero })
   await carrerasDeTonos({ orquesta, carrera, espero })
   await carrerasDePlantillas({ orquesta, carrera, espero })
+  // Antes que las de niveles: crea un nivel y lo borra, y esas dejan los suyos hasta el final, cerca del tope.
+  await carrerasDeDominancia({ orquesta, carrera, espero })
   await carrerasDeNiveles({ orquesta, carrera, espero, conectar, esperarBloqueo })
   await carrerasDeCotizaciones({ orquesta, carrera, espero, conectar, esperarBloqueo })
   await carrerasDeGuardar({ orquesta, carrera, espero, conectar, esperarBloqueo })
@@ -371,7 +373,6 @@ try {
   await carrerasDeConfiguracionDeLeads({ orquesta, carrera, espero })
   await carrerasDeMarcas({ orquesta, carrera, espero })
   await carrerasDeNumeros({ orquesta, carrera, espero, conectar, esperarBloqueo })
-  await carrerasDeDominancia({ orquesta, carrera, espero })
   await carrerasDeLaCartera({ orquesta, carrera, espero, conectar, esperarBloqueo })
   await carrerasDePrivacidad({ orquesta, carrera, espero })
   await carrerasDeLoReciente({ orquesta, carrera, espero })

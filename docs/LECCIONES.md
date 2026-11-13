@@ -65,9 +65,10 @@ Si ya no aplica (cambió la herramienta o el código), se quita.
 - Fija un orden común de candados (lead → vehículo → cotizaciones por id; padres antes que hija, en el orden de quien purga): al revés aparece 40P01.
 - Toma los candados de una clase en una sola pasada ordenada por id (agregar ∪ quitar): quitar todo y luego agregar todo forma ciclos y da 40P01.
 - Haz que un job que retiene filas use `skip locked`: si no, frena a las personas que editan esas filas.
-- Mira el permiso antes del candado y de la versión: quien no puede recibe 42501 sin esperar.
+- Mira el permiso antes del candado y de la versión: quien no puede recibe 42501 sin esperar. Salvo cuando lo que otro cambia a la vez es el permiso de quien llama (la dominancia): ahí el candado va primero.
 - Toma el candado antes de leer el estado que comparas (fase esperada, versión) o de contar lo que usa la fila: si no, dos sesiones pasan las dos o se cuela un 23503 crudo.
 - Pon en una función `volatile` y en una sentencia aparte, tras el candado, la comprobación que debe ver lo que otro acaba de confirmar: en READ COMMITTED la foto es por sentencia.
+- Antes de serializar varias RPC con un candado común, busca en `scripts/carreras/` las que esperan que dos llamadas no se esperen (dos bajas a la vez): ese arnés corre B antes de confirmar A y se cuelga en vez de fallar.
 - Un índice único no frena dos `update … where id` a la vez (la segunda relee y pisa): serializa con `pg_advisory_xact_lock` o `for update` más la versión esperada, y pruébalo con una carrera.
 - Reordenar con valores de orden pide un candado del conjunto (`lock table`): dos personas que mueven tarjetas distintas pueden dejar dos en el mismo orden.
 - Envuelve el `insert` idempotente por id en `exception when unique_violation` (o busca el id tras el candado): dos reintentos simultáneos dan el 23505 crudo de la PK.

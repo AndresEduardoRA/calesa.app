@@ -33,7 +33,8 @@ RPC: `mi_sesion(p_perspectiva)`, `permisos_efectivos`, `mis_permisos`, `tiene_pe
 
 - Permisos = unión de los roles; sin deny ni herencia; el catálogo sólo cambia por migración.
 - Dominancia: nadie otorga, edita, asigna ni quita lo que no tiene; nadie bloquea, da de baja ni cambia los roles de quien tiene permisos que él no
-  cubre (el rol `dueno` sí, sobre todos). La decide la base en cada RPC, que toma el perfil `for update` y los roles `for share`
+  cubre (el rol `dueno` sí, sobre todos). La decide la base en cada RPC, que empieza por `_dominancia_tomar()` (también `nivel_crear`,
+  que le suma permisos al rol `dueno`; la baja, compartido), toma el perfil `for update` y los roles `for share`
   (`scripts/carreras/dominancia.mjs`); la UI la muestra antes con el motivo y, si `personas_dominadas()` falla, apaga igual.
 - `rbac_guardian()`: al commit queda ≥ 1 persona operativa (activa, sin bloqueo, invitación aceptada) cuyos roles **sumados** dan
   `equipo.roles.gestionar` y `equipo.usuarios.gestionar`; el rol `dueno` conserva todos los permisos de `equipo`. Su mensaje llega tal cual.

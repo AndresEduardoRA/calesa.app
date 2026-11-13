@@ -63,7 +63,6 @@ Al cerrar una, se borra su línea (el PR lo cuenta). Lo nuevo que aparezca al tr
 - **[—]** Repuestos: la policy de UPDATE de `repuestos_proyectos` pide `repuestos.editar` sin `repuestos.ver` (un `update` sin `where` no pasa por la de leer) y no mira proyecto cerrado ni eliminado — como el trigger `repuestos_item_escritura` de los ítems.
 - **[7-4]** Con `p_conversacion` del canal global, `tarea_crear` y `agenda_quienes_reciben` miran la fila suelta de `conversaciones_miembros` y pasa un responsable sin `chat.global` — revalidar con `_chat_miembro_vigente` como `mensaje_tarea_crear`.
 - **[—]** `lead_campo_impacto` lee los valores públicos de todos los leads aunque quien llama tenga `leads.ver` con alcance «propios»: acotando el rango se hallan los extremos de leads que no ve — contar con `_lead_visible_para` sin perder los de la papelera.
-- **[—]** Dominancia: no se cubre que la de quien llama cambie mientras actúa, y `nivel_crear` suma concesiones al rol `dueno` sin tomar `roles … for update`.
 - **[—]** `comprobante_emitir` contra la papelera de vehículos: `_vehiculo_motivo_de_bloqueo` mira los comprobantes sin tomar las cotizaciones — que emitir tome el vehículo `for key share` antes.
 - **[—]** `_vehiculo_motivo_de_bloqueo` no frena mandar a la papelera un vehículo con una final sin lead.
 - **[—]** Purgar un vehículo o un lead no se bloquea mientras una cotización de la papelera lo nombra, y una final en la papelera hace caer con `23514` la purga entera del lote del vehículo.

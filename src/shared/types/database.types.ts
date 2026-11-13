@@ -7830,6 +7830,7 @@ export type Database = {
       }
       _documento_ya_registrado: { Args: { p_ids: string[]; p_ruta: string }; Returns: Json }
       _documentos_de: { Args: { p_ids: string[] }; Returns: Json }
+      _dominancia_tomar: { Args: { p_compartido?: boolean }; Returns: undefined }
       _embudo_conflicto: { Args: { p_cuando: string }; Returns: undefined }
       _embudo_defecto_de: { Args: { p_usuario: string }; Returns: string }
       _embudo_etapas_de_fabrica: { Args: Record<PropertyKey, never>; Returns: Json }

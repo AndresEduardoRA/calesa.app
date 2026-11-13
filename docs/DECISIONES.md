@@ -56,7 +56,11 @@ las trampas, en `docs/LECCIONES.md`.
 ## Equipo
 
 - **El guardián cuenta la unión de roles.** Debe quedar una persona operativa (activa, sin bloqueo, invitación aceptada) cuyos roles sumen los permisos de administración.
-- **Dominancia sobre la persona.** Bloquear, desbloquear, dar de baja y asignar/quitar roles exigen dominarla (`rol_dominado()`); el dueño (rol de clave `dueno`) domina a todos. Orden: permiso → propia → perfil `for update` → dominancia (42501) → estado (PT409).
+- **Dominancia sobre la persona.** Bloquear, desbloquear, dar de baja y asignar/quitar roles exigen dominarla (`rol_dominado()`); el dueño (rol de clave `dueno`) domina a todos. Orden: `_dominancia_tomar()` → permiso → propia → perfil `for update` → dominancia (42501) → estado (PT409).
+  `_dominancia_tomar()` es un candado de transacción común, el primero de toda RPC que comprueba la dominancia y de `nivel_crear` (suma
+  permisos al rol `dueno`, que además toma `for no key update`): lo de quien llama puede cambiar mientras actúa (dos que se bloquean o se
+  recortan los roles a la vez), y un candado por fila de quien llama y de lo que toca formaría ciclos (40P01). Dar de baja lo toma
+  compartido, para que dos bajas sigan corriendo a la vez, y entre bajas toma las dos cuentas por id (la propia `for share`).
 - **Lo no dominado se dibuja apagado con motivo, nunca escondido.** `dominada` se lee con `personas_dominadas(p_ids)`, no dentro de `equipo_lista()`; si falla, las acciones se apagan (un error nunca habilita). Sobre la propia cuenta no se mira.
 - **«Ver como» sólo dibuja.** Cookie `perspectiva`; `mi_sesion(p_perspectiva)` da `permisos_efectivos()` (míos ∩ del rol) sólo con `equipo.roles.gestionar`. RLS, RPC y `actionClient` siguen con los reales; lo que escribe en la cuenta real (`/perfil`) queda de sólo lectura.
 - **`mi_sesion()`: la sesión en una ida.** RPC definer con cuenta, perfil, roles, concesiones y preferencias, envuelta en `cache()`. Un dato nuevo del shell sobre la persona se suma ahí.
