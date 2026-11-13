@@ -7,7 +7,7 @@ export function VacioDeGrafica({
   sustantivo,
   puedeCrear,
 }: {
-  sustantivo: 'leads' | 'cotizaciones'
+  sustantivo: 'leads' | 'cotizaciones' | 'turnos de la web'
   puedeCrear: boolean
 }) {
   return (
