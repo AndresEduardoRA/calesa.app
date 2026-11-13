@@ -1,11 +1,14 @@
 'use client'
 
-import { accionesDelPago, type Pago } from '../../../entities/dinero/pago'
+import { accionesDelPago } from '../../../entities/dinero/acciones-del-pago'
+import type { Pago } from '../../../entities/dinero/pago'
 import { FilaDePago } from './fila-de-pago'
 
 type Props = {
   pagos: readonly Pago[]
-  permisos: { puedeEditar: boolean; puedeConfirmar: boolean }
+  // «Pagos de la unidad» o «Pagos del proyecto» (8.13-5).
+  etiqueta: string
+  permisos: { puedeEditar: boolean; puedeConfirmar: boolean; puedeAnular?: boolean }
   alEditar: (id: string) => void
   alEliminar: (id: string) => void
   alConfirmar: (id: string) => void
@@ -16,6 +19,7 @@ type Props = {
 // nada ensancha el panel.
 export function ListaDePagos({
   pagos,
+  etiqueta,
   permisos,
   alEditar,
   alEliminar,
@@ -23,7 +27,7 @@ export function ListaDePagos({
   alAnular,
 }: Props) {
   return (
-    <ul className="grid grid-cols-[minmax(0,1fr)] gap-2" aria-label="Pagos de la unidad">
+    <ul className="grid grid-cols-[minmax(0,1fr)] gap-2" aria-label={etiqueta}>
       {pagos.map((pago) => (
         <FilaDePago
           key={pago.id}

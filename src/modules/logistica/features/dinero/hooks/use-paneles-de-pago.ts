@@ -9,7 +9,7 @@ import { useEliminarElPago } from './use-eliminar-el-pago'
 import { useEliminarPagoPorUrl } from './use-eliminar-pago-por-url'
 import { usePanelDePago } from './use-panel-de-pago'
 
-type Claves = { puedeEditar: boolean | null; puedeConfirmar: boolean | null }
+type Claves = { puedeEditar: boolean | null; puedeConfirmar: boolean | null; puedeAnular?: boolean }
 
 // Los cuatro paneles del hueco «Pagos» por URL (formulario, confirmar, eliminar y anular) con lo que hace cada uno al elegirlo (6.11-2).
 export function usePanelesDePago(unidadId: string, pagos: readonly Pago[] | null, claves: Claves) {

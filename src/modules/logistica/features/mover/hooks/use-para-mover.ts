@@ -5,8 +5,9 @@ import { leerParaMover, type ParaMover } from '@/modules/flujos/client'
 import { enviarAccion } from '@/shared/lib/enviar-accion'
 import type { ErrorApp } from '@/shared/lib/errores'
 import { NO_SE_LEYO_QUE_FALTA } from '../../../entities/mover/textos'
-import type { Unidad } from '../../../entities/nucleo/unidad'
+import type { UnidadAbierta } from '../../../entities/nucleo/unidad'
 import { useAlCambiarLaUnidad } from '../../nucleo/hooks/eventos-de-la-unidad'
+import { unidadAMover } from './unidad-a-mover'
 
 export type LecturaParaMover =
   { tipo: 'cargando' } | { tipo: 'error'; error: ErrorApp } | { tipo: 'listo'; dato: ParaMover }
@@ -16,19 +17,19 @@ const MINIMO_ENTRE_LECTURAS_MS = 5000
 
 // Lo que el hueco «Qué falta» lee de una unidad (6.04): se lee al montarse, cuando cambia su fase (la pantalla se repintó), cuando otro hueco avisa que cambió algo y cuando vuelve el foco a la
 // ventana. Una relectura no vuelve al esqueleto: lo que había se sigue viendo y `actualizando` lo dice. «Reintentar» pasa por «cargando». Una respuesta que llega tarde se descarta.
-export function useParaMover(unidad: Unidad) {
+export function useParaMover(unidad: UnidadAbierta) {
   const [lectura, setLectura] = useState<LecturaParaMover>({ tipo: 'cargando' })
   const [actualizando, setActualizando] = useState(false)
   const pedido = useRef(0)
   const ultimaLectura = useRef(0)
-  const { id, origenId } = unidad
+  const { id, tipo, origenId } = unidad
 
   const leer = useCallback(async () => {
     pedido.current += 1
     const mio = pedido.current
     ultimaLectura.current = Date.now()
     const envio = await enviarAccion<ParaMover>(
-      leerParaMover({ vehiculo: id, origenId }),
+      leerParaMover(unidadAMover({ id, tipo, origenId })),
       NO_SE_LEYO_QUE_FALTA,
     )
     if (mio !== pedido.current) return
@@ -36,7 +37,7 @@ export function useParaMover(unidad: Unidad) {
     setLectura(
       envio.ok ? { tipo: 'listo', dato: envio.data } : { tipo: 'error', error: envio.error },
     )
-  }, [id, origenId])
+  }, [id, tipo, origenId])
 
   // Se vuelve a leer sin soltar lo que se ve.
   const releer = useCallback(() => {

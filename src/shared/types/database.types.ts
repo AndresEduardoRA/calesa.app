@@ -10471,6 +10471,21 @@ export type Database = {
         }
         Returns: Json
       }
+      pago_registrar_proyecto: {
+        Args: {
+          p_comprobante_ruta: string
+          p_concepto: string
+          p_fecha: string
+          p_id: string
+          p_metodo: string
+          p_moneda: string
+          p_monto: number
+          p_notas: string
+          p_proyecto: string
+          p_tipo_cambio: string
+        }
+        Returns: Json
+      }
       pagos_listar: {
         Args: { p_cursor_fecha: string; p_cursor_id: string; p_filtros: Json; p_tope: number }
         Returns: {

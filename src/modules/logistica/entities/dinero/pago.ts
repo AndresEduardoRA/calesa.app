@@ -100,29 +100,6 @@ export function estadoDelPago(pago: Pick<Pago, 'confirmado'>): EstadoDelPago {
   return pago.confirmado ? 'confirmado' : 'sin_confirmar'
 }
 
-export type AccionesDelPago = {
-  editar: boolean
-  eliminar: boolean
-  confirmar: boolean
-  anular: boolean
-}
-
-/**
- * Qué botones ofrece un pago. Un confirmado nunca se edita ni se elimina, aunque quien mira lo pueda todo (D4); sólo se anula, y sólo con la clave de confirmar. La base vuelve a exigirlo.
- */
-export function accionesDelPago(
-  pago: Pick<Pago, 'confirmado'>,
-  permisos: { puedeEditar: boolean; puedeConfirmar: boolean },
-): AccionesDelPago {
-  const sinConfirmar = !pago.confirmado
-  return {
-    editar: permisos.puedeEditar && sinConfirmar,
-    eliminar: permisos.puedeEditar && sinConfirmar,
-    confirmar: permisos.puedeConfirmar && sinConfirmar,
-    anular: permisos.puedeConfirmar && pago.confirmado,
-  }
-}
-
 /** «Confirmado por Ana el 11 nov 2026, 14:30»; sin nombre, «otra persona». Nulo si no está confirmado. */
 export function textoDelSello(
   pago: Pick<Pago, 'confirmado' | 'confirmadoPorNombre' | 'confirmadoEn'>,
@@ -306,20 +283,4 @@ export function cambiosDePago(original: Pago, nuevo: DatosDePago): CambiosDePago
     cambios.comprobante_ruta = nuevo.comprobanteRuta
   }
   return Object.keys(cambios).length === 0 ? null : cambios
-}
-
-export const MOTIVO_MAXIMO = 500
-
-/** El motivo de anular un pago confirmado: recortado, de 1 a 500 letras (la base lo exige igual). */
-export function validarMotivoDeAnulacion(
-  texto: string,
-): { ok: true; motivo: string } | { ok: false; error: string } {
-  const motivo = texto.trim()
-  if (motivo === '') {
-    return { ok: false, error: 'Escribe por qué anulas el pago.' }
-  }
-  if (motivo.length > MOTIVO_MAXIMO) {
-    return { ok: false, error: `El motivo admite hasta ${String(MOTIVO_MAXIMO)} letras.` }
-  }
-  return { ok: true, motivo }
 }

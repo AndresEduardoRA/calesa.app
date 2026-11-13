@@ -6,6 +6,7 @@ import { actionClient } from '@/shared/lib/safe-action'
 import { repositorioDeMover } from '../../../areas/mover/composicion'
 import {
   puedeMoverEn,
+  puedeMoverUnRepuesto,
   TOPE_DE_DESTINOS,
   type DestinoConVista,
   type ParaMover,
@@ -17,12 +18,15 @@ import { esquemaLeerParaMover } from '../schemas/mover'
 export const leerParaMover = actionClient
   .inputSchema(esquemaLeerParaMover)
   .action(async ({ parsedInput, ctx }): Promise<ResultadoDeAccion<ParaMover>> => {
-    const { vehiculo, origenId } = parsedInput
+    const { unidad: aMover, origenId } = parsedInput
     const repositorio = repositorioDeMover
-    const unidad = await repositorio.leerUnidad(vehiculo)
+    const unidad = await repositorio.leerUnidad(aMover)
     if (!unidad.ok) return unidad
     const leidos = await repositorio.leerDestinos({
-      origenId,
+      ambito:
+        aMover.tipo === 'vehiculo' && origenId !== null
+          ? { tipo: 'vehiculo', origenId }
+          : { tipo: 'repuesto' },
       faseId: unidad.data.faseId,
       tope: TOPE_DE_DESTINOS,
     })
@@ -30,7 +34,7 @@ export const leerParaMover = actionClient
     const destinos: DestinoConVista[] = await Promise.all(
       leidos.data.destinos.map(async (destino) => {
         const vista = await repositorio.previsualizar({
-          vehiculoId: vehiculo,
+          unidad: aMover,
           faseDestino: destino.faseId,
         })
         return vista.ok
@@ -44,7 +48,10 @@ export const leerParaMover = actionClient
         faseActualId: unidad.data.faseId,
         fueraDeRegla: unidad.data.fueraDeRegla ? unidad.data.faltanEnSuFase : [],
         destinos,
-        puedeMover: puedeMoverEn(ctx.permisos, origenId),
+        puedeMover:
+          aMover.tipo === 'vehiculo' && origenId !== null
+            ? puedeMoverEn(ctx.permisos, origenId)
+            : aMover.tipo === 'repuesto' && puedeMoverUnRepuesto(ctx.permisos),
         hayMasDestinos: leidos.data.hayMas,
       },
     }

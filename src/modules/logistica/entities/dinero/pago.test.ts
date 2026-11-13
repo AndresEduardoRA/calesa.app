@@ -1,11 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
-  accionesDelPago,
   borradorNuevoDePago,
   cambiosDePago,
   pagosDesde,
   textoDelSello,
-  validarMotivoDeAnulacion,
   validarPago,
   type BorradorDePago,
   type DatosDePago,
@@ -47,53 +45,6 @@ const pago = (p: Partial<Pago> = {}): Pago => ({
   notas: null,
   actualizadoEn: '2026-11-11T12:00:00Z',
   ...p,
-})
-
-const todo = { puedeEditar: true, puedeConfirmar: true }
-
-describe('accionesDelPago', () => {
-  it('un confirmado nunca ofrece editar ni eliminar, aunque tenga todos los permisos', () => {
-    expect(accionesDelPago(pago({ confirmado: true }), todo)).toEqual({
-      editar: false,
-      eliminar: false,
-      confirmar: false,
-      anular: true,
-    })
-  })
-
-  it('sin confirmar, con sólo confirmar, ofrece confirmar y no editar', () => {
-    expect(accionesDelPago(pago(), { puedeEditar: false, puedeConfirmar: true })).toEqual({
-      editar: false,
-      eliminar: false,
-      confirmar: true,
-      anular: false,
-    })
-  })
-
-  it('sin confirmar, con sólo editar, ofrece editar y eliminar y no confirmar', () => {
-    expect(accionesDelPago(pago(), { puedeEditar: true, puedeConfirmar: false })).toEqual({
-      editar: true,
-      eliminar: true,
-      confirmar: false,
-      anular: false,
-    })
-  })
-
-  it('anular es sólo de un confirmado y sólo con la clave de confirmar', () => {
-    expect(accionesDelPago(pago(), todo).anular).toBe(false)
-    expect(
-      accionesDelPago(pago({ confirmado: true }), { puedeEditar: true, puedeConfirmar: false })
-        .anular,
-    ).toBe(false)
-  })
-
-  it('sin ninguna clave todo es falso', () => {
-    const nada = { puedeEditar: false, puedeConfirmar: false }
-    expect(Object.values(accionesDelPago(pago(), nada)).some(Boolean)).toBe(false)
-    expect(Object.values(accionesDelPago(pago({ confirmado: true }), nada)).some(Boolean)).toBe(
-      false,
-    )
-  })
 })
 
 describe('textoDelSello', () => {
@@ -205,19 +156,6 @@ describe('cambiosDePago', () => {
     )
     expect(cambios).not.toBeNull()
     expect(Object.keys(cambios ?? {})).not.toContain('lead_id')
-  })
-})
-
-describe('validarMotivoDeAnulacion', () => {
-  it('vacío y espacios fallan', () => {
-    expect(validarMotivoDeAnulacion('').ok).toBe(false)
-    expect(validarMotivoDeAnulacion('   ').ok).toBe(false)
-  })
-
-  it('500 letras valen y 501 no; recorta', () => {
-    expect(validarMotivoDeAnulacion('a'.repeat(500)).ok).toBe(true)
-    expect(validarMotivoDeAnulacion('a'.repeat(501)).ok).toBe(false)
-    expect(validarMotivoDeAnulacion('  se equivocó  ')).toEqual({ ok: true, motivo: 'se equivocó' })
   })
 })
 

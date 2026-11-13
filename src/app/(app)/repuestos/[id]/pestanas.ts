@@ -1,4 +1,4 @@
-// Las pestañas de `/repuestos/[id]` (8.09-2, C6). «Ítems» siempre; «Compras» (8.11-2) sólo con `repuestos.costos.ver`; «Cotizaciones» (8.12-3) sólo con
+// Las pestañas de `/repuestos/[id]` (8.09-2, C6). «Ítems» siempre; «Compras» (8.11-2) y «Pagos» (8.13-5) sólo con `repuestos.costos.ver`; «Cotizaciones» (8.12-3) sólo con
 // `repuestos.cotizar` (quien sólo tiene `repuestos.costos.ver`, que la RLS deja leer, no la ve: D30). Una pestaña con `lleno: false` no se dibuja hasta que su paso
 // la llene (una pestaña sin pantalla es un botón muerto, D28 de 8.08-3). Con una sola pestaña visible la barra no se dibuja.
 // Esconder una pestaña es comodidad, no seguridad: la autoridad es la RLS y el `assert_permiso` de cada lectura.
@@ -19,6 +19,7 @@ export const PESTANA_DE_ITEMS = 'items'
 export const PESTANAS: readonly PestanaDelProyecto[] = [
   { clave: PESTANA_DE_ITEMS, titulo: 'Ítems', lleno: true },
   { clave: 'compras', titulo: 'Compras', lleno: true, permiso: 'repuestos.costos.ver' },
+  { clave: 'pagos', titulo: 'Pagos', lleno: true, permiso: 'repuestos.costos.ver' },
   { clave: 'cotizaciones', titulo: 'Cotizaciones', lleno: true, permiso: 'repuestos.cotizar' },
 ]
 

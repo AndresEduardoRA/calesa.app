@@ -3,6 +3,7 @@
 import { TAMANO_DE_PAGINA_POR_DEFECTO, TAMANO_DE_VER_MAS } from '../../../src/shared/lib/paginacion'
 import { TOPE_DE_FUERA_DE_REGLA } from '../../../src/modules/flujos/entities/requisitos/fuera-de-regla'
 import { TOPE_DE_IMPACTO } from '../../../src/modules/flujos/entities/requisitos/impacto'
+import { TOPE_DE_ESPERAS } from '../../../src/modules/repuestos/entities/flujo/esperas'
 import { TOPE_DE_BLOQUE } from '../../../src/modules/tablero/entities/bandeja'
 import type { RpcPaginada } from '../paginas-en-la-base'
 
@@ -87,6 +88,13 @@ export const REGISTRO: readonly RpcPaginada[] = [
     parametro: 'p_tope',
     pideElCodigo: TOPE_DE_BLOQUE,
     lista: 'la bandeja de logística en Inicio (demoradas, trabados y por aprobar)',
+  },
+  // Los repuestos que espera un vehículo (8.13-1): `TOPE_DE_ESPERAS` (el defecto de la base, que devuelve una fila más para decir si hay más).
+  {
+    rpc: 'repuestos_pendientes_de_vehiculo',
+    parametro: 'p_tope',
+    pideElCodigo: TOPE_DE_ESPERAS,
+    lista: 'repuestos que espera un vehículo',
   },
   // `/actividad` (9.01-3): por cursor sobre `id`, de a `TAMANO_DE_VER_MAS` («Ver más» e «Ir a una fecha») hasta `TOPE_DE_LO_CARGADO`.
   {

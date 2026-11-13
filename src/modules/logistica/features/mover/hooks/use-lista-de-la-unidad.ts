@@ -5,7 +5,7 @@ import { fallo, type ErrorApp, type Resultado } from '@/shared/lib/errores'
 import { TOPE_DE_LO_CARGADO } from '@/shared/lib/paginacion'
 import { hastaDeUnDia } from '../../../entities/mover/hasta-de-un-dia'
 import type { PaginaDeLaUnidad, PedidoDeLaLista } from '../../../entities/mover/pagina-de-la-unidad'
-import type { Unidad } from '../../../entities/nucleo/unidad'
+import type { UnidadAbierta } from '../../../entities/nucleo/unidad'
 import { useAlCambiarLaUnidad } from '../../nucleo/hooks/eventos-de-la-unidad'
 
 // «Ir a una fecha»: el día elegido y su borde exclusivo.
@@ -21,6 +21,16 @@ function juntar<Fila extends { id: string | number }>(
   if (cursor === null || previas === null) return nuevas
   const vistos = new Set(previas.map((fila) => fila.id))
   return [...previas, ...nuevas.filter((fila) => !vistos.has(fila.id))]
+}
+
+type UnidadDeLaLista = Pick<UnidadAbierta, 'id' | 'faseId'> & { tipo?: UnidadAbierta['tipo'] }
+
+function aPedidoDeLaLista(
+  unidadId: string,
+  tipo: UnidadAbierta['tipo'] | undefined,
+  pedido: Pedido,
+) {
+  return { unidadId, tipo, cursor: pedido.cursor, hasta: pedido.ventana?.hasta ?? null }
 }
 
 export type ListaDeLaUnidad<Fila> = {
@@ -43,7 +53,7 @@ export type ListaDeLaUnidad<Fila> = {
 // fase de la unidad (pasó algo) o cuando otro hueco avisa. «Ver más» suma la página siguiente por cursor hasta `TOPE_DE_LO_CARGADO`; «Ir a una fecha» reemplaza lo leído. Un pedido a la vez:
 // una respuesta que llega tarde se descarta. Releer conserva la ventana de «Ir a una fecha»; la fase cambia cuando la pantalla se repinta tras mover.
 export function useListaDeLaUnidad<Fila extends { id: string | number }>(
-  unidad: Pick<Unidad, 'id' | 'faseId'>,
+  unidad: UnidadDeLaLista,
   leer: (pedido: PedidoDeLaLista) => Promise<Resultado<PaginaDeLaUnidad<Fila>>>,
   mensajeDeFallo: string,
   zona: string,
@@ -56,7 +66,7 @@ export function useListaDeLaUnidad<Fila extends { id: string | number }>(
   const turno = useRef(0)
   const ultimo = useRef<Pedido>({ cursor: null, ventana: null })
   const ventanaVigente = useRef<Ventana | null>(null)
-  const { id } = unidad
+  const { id, tipo } = unidad
 
   useEffect(() => {
     ventanaVigente.current = ventana
@@ -69,11 +79,9 @@ export function useListaDeLaUnidad<Fila extends { id: string | number }>(
       ultimo.current = pedido
       setPidiendo(true)
       setError(null)
-      const resultado = await leer({
-        unidadId: id,
-        cursor: pedido.cursor,
-        hasta: pedido.ventana?.hasta ?? null,
-      }).catch(() => fallo('inesperado', mensajeDeFallo))
+      const resultado = await leer(aPedidoDeLaLista(id, tipo, pedido)).catch(() =>
+        fallo('inesperado', mensajeDeFallo),
+      )
       if (mio !== turno.current) return
       setPidiendo(false)
       if (!resultado.ok) {
@@ -85,7 +93,7 @@ export function useListaDeLaUnidad<Fila extends { id: string | number }>(
       setSiguiente(proxima)
       setFilas((previas) => juntar(previas, nuevas, pedido.cursor))
     },
-    [id, leer, mensajeDeFallo],
+    [id, tipo, leer, mensajeDeFallo],
   )
 
   const releer = useCallback(() => {

@@ -4,6 +4,7 @@ export type { FaseParaMover, FlujoDeOrigen } from '../../entities/mover/flujo-de
 export {
   LARGO_MAXIMO_DE_LA_NOTA,
   MOTIVO_SIN_PERMISO_DE_MOVER,
+  MOTIVO_SIN_PERMISO_DE_MOVER_UN_REPUESTO,
   TOPE_DE_DESTINOS,
   TOPE_DEL_LOTE,
 } from '../../entities/mover/para-mover'

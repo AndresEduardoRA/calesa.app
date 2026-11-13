@@ -195,6 +195,8 @@ declare
     -- Los pagos (6.10-1): escriben `public.pagos` y su `lead_id`, pero el lead lo exige `trg_lead_visible` dentro de la RPC (`puede_lead` con
     -- `leads.ver`, el mismo mensaje para uno ajeno o inexistente) y no lo devuelven. Lo prueba `areas/dinero/pagos.sql`.
     ('pago_registrar(uuid,uuid,uuid,text,text,numeric,uuid,text,date,text,text)', 'X'),
+    -- El pago de un proyecto de repuestos (8.13-5) no recibe lead: queda nulo (D2). Lo prueba `areas/repuestos/pagos.sql`.
+    ('pago_registrar_proyecto(uuid,uuid,text,text,numeric,uuid,text,date,text,text)', 'X'),
     ('pago_guardar(uuid,timestamp with time zone,jsonb)', 'X'),
     ('pago_eliminar(uuid,timestamp with time zone)', 'X'),
     ('pago_confirmar(uuid,timestamp with time zone)', 'X'),

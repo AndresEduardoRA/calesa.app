@@ -12,7 +12,12 @@ import { esquemaEditarNota } from '../schemas/nota'
 export const editarNota = actionClient
   .inputSchema(esquemaEditarNota)
   .action(async ({ parsedInput, ctx }): Promise<ResultadoDeAccion<NotaGuardada>> => {
-    if (!puede(ctx.permisos, 'logistica.ver', parsedInput.origenId)) {
+    const { origenId, tipo } = parsedInput
+    const permitido =
+      tipo === 'repuesto'
+        ? puede(ctx.permisos, 'repuestos.ver')
+        : puede(ctx.permisos, 'logistica.ver', origenId ?? undefined)
+    if (!permitido) {
       return fallo('sin_permiso', 'No tienes permiso para editar notas en esta unidad.')
     }
     return repositorioDeNotas.editar({

@@ -100,4 +100,43 @@ describe('huecos del panel de la unidad', () => {
     expect(claves(r)).toEqual(['notas'])
     expect(r.aviso).toBe(AVISO_SIN_REGLAS)
   })
+
+  it('el hueco «Repuestos» del vehículo pide repuestos.ver y la regla esperas, y no se dibuja en un ítem', () => {
+    const ver = [concede('repuestos.ver', null)]
+    const hay = (permisos: Permisos, flujo: Parameters<typeof huecosDeLaUnidad>[1]['flujo']) =>
+      claves(huecosDeLaUnidad(HUECOS_DE_LA_UNIDAD, { unidad, permisos, flujo })).includes(
+        'repuestos',
+      )
+    expect(hay(ver, conReglas('esperas'))).toBe(true)
+    expect(hay(ver, conReglas())).toBe(false)
+    expect(hay([], conReglas('esperas'))).toBe(false)
+    const item = { tipo: 'repuesto' as const, origenId: null }
+    const enItem = huecosDeLaUnidad(HUECOS_DE_LA_UNIDAD, {
+      unidad: item,
+      permisos: ver,
+      flujo: conReglas('esperas'),
+    })
+    expect(claves(enItem)).not.toContain('repuestos')
+  })
+})
+
+describe('huecos del panel de un ítem de repuesto', () => {
+  it('un ítem de repuesto con repuestos.ver ve Documentos, Transporte y lo de mover, y nada de aduana ni dinero (8.13-2)', () => {
+    const item = { tipo: 'repuesto' as const, origenId: null }
+    const todo = conReglas('transporte', 'aduana', 'gastos', 'pagos', 'esperas')
+    const conVer = huecosDeLaUnidad(HUECOS_DE_LA_UNIDAD, {
+      unidad: item,
+      permisos: [concede('repuestos.ver', null)],
+      flujo: todo,
+    })
+    expect(claves(conVer)).toEqual(['que-falta', 'documentos', 'transporte', 'notas', 'historial'])
+    // Cada uno trae el componente de su variante: el de un ítem nunca cae en el de un vehículo.
+    expect(conVer.huecos.every((h) => h.repuesto?.componente !== undefined)).toBe(true)
+    const sinVer = huecosDeLaUnidad(HUECOS_DE_LA_UNIDAD, {
+      unidad: item,
+      permisos: [concede('logistica.ver', null)],
+      flujo: todo,
+    })
+    expect(claves(sinVer)).toEqual([])
+  })
 })

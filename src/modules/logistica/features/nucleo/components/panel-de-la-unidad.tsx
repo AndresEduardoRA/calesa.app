@@ -5,11 +5,11 @@ import { RUTAS } from '@/shared/lib/rutas'
 import { buttonVariants } from '@/shared/ui/button'
 import { textoDeDiasEnLaFase } from '../../../entities/nucleo/dias-en-la-fase'
 import type { HuecoDeLaUnidad } from '../../../entities/nucleo/hueco'
-import type { Unidad } from '../../../entities/nucleo/unidad'
+import { esUnidadDeVehiculo, type UnidadAbierta } from '../../../entities/nucleo/unidad'
 import { BloqueDelHueco } from './bloque-del-hueco'
 
 type Props = {
-  unidad: Unidad
+  unidad: UnidadAbierta
   // El nombre del origen de la unidad.
   origen: string
   // La fase de la unidad (nombre y color); nula si no tiene.
@@ -18,6 +18,29 @@ type Props = {
   huecos: readonly HuecoDeLaUnidad[]
   // Una línea de aviso bajo la cabecera (p. ej. que no se pudo leer el flujo del origen).
   aviso?: string | null
+}
+
+// «Abrir ficha» para un vehículo; «Abrir proyecto» para un ítem (sin su proyecto, ningún enlace).
+function EnlaceDeLaUnidad({ unidad }: { unidad: UnidadAbierta }) {
+  const esItem = unidad.tipo === 'repuesto'
+  if (esItem && unidad.proyecto === undefined) return null
+  const href = esItem
+    ? `${RUTAS.repuestos}/${unidad.proyecto?.id ?? ''}`
+    : `${RUTAS.vehiculos}/${unidad.id}`
+  return (
+    <Link href={href as Route} className={buttonVariants({ variant: 'outline' })}>
+      {esItem ? 'Abrir proyecto' : 'Abrir ficha'}
+    </Link>
+  )
+}
+
+// Un vehículo dibuja el `componente` del hueco (las áreas que sólo tratan vehículos); un ítem, la `repuesto.componente` de su variante, y sin ella no dibuja nada.
+function ContenidoDelHueco({ hueco, unidad }: { hueco: HuecoDeLaUnidad; unidad: UnidadAbierta }) {
+  if (unidad.tipo === 'repuesto') {
+    const Componente = hueco.repuesto?.componente
+    return Componente === undefined ? null : <Componente unidad={unidad} />
+  }
+  return esUnidadDeVehiculo(unidad) ? <hueco.componente unidad={unidad} /> : null
 }
 
 // El panel de la unidad (6.01): la cabecera con el título, el origen, la fase y los días en ella, y debajo un bloque plegado por hueco. No lee nada: recibe lo que se dibuja. Sirve
@@ -34,12 +57,7 @@ export function PanelDeLaUnidad({ unidad, origen, fase, huecos, aviso = null }: 
           >
             {unidad.titulo}
           </h2>
-          <Link
-            href={`${RUTAS.vehiculos}/${unidad.id}` as Route}
-            className={buttonVariants({ variant: 'outline' })}
-          >
-            Abrir ficha
-          </Link>
+          <EnlaceDeLaUnidad unidad={unidad} />
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-(length:--text-sm) text-(--color-ink-soft)">
           <span>{origen}</span>
@@ -57,7 +75,7 @@ export function PanelDeLaUnidad({ unidad, origen, fase, huecos, aviso = null }: 
               titulo={hueco.titulo}
               abiertoAlInicio={hueco.abiertoAlInicio}
             >
-              <hueco.componente unidad={unidad} />
+              <ContenidoDelHueco hueco={hueco} unidad={unidad} />
             </BloqueDelHueco>
           ))}
         </div>

@@ -9,6 +9,7 @@ export {
 } from '../../infra/dinero/unidad.client'
 export {
   leerPagosDeLaUnidad,
+  leerPagosDelProyecto,
   NO_SE_CARGARON_LOS_PAGOS,
   TOPE_DE_PAGOS_DE_LA_UNIDAD,
 } from '../../infra/dinero/pagos.client'

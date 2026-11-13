@@ -29,6 +29,11 @@ describe('huecosVisibles', () => {
     )
   })
 
+  it('el hueco «repuestos» va entre «transporte» y «aduana»', () => {
+    const lista = ['aduana', 'repuestos', 'transporte'].map((c) => hueco(c))
+    expect(claves(huecosVisibles(lista, ctx()))).toEqual(['transporte', 'repuestos', 'aduana'])
+  })
+
   it('una lista vacía no dibuja nada', () => {
     expect(huecosVisibles([], ctx())).toEqual([])
   })
@@ -66,5 +71,53 @@ describe('huecosVisibles', () => {
     const segundo = { ...hueco('notas'), titulo: 'otra' }
     const r = huecosVisibles([hueco('inventada'), primero, segundo], ctx())
     expect(r).toEqual([primero])
+  })
+})
+
+describe('huecosVisibles de un ítem de repuesto (8.13-2)', () => {
+  const deItem = (clave: string, repuesto?: H['repuesto']) =>
+    ({
+      clave,
+      titulo: clave,
+      permisos: ['logistica.ver'],
+      regla: 'transporte',
+      repuesto,
+      componente: () => null,
+    }) as unknown as H
+  const conVer = [concede('repuestos.ver', null)]
+  const itemCtx = (permisos: Permisos) => ({
+    permisos,
+    origenId: null,
+    reglasActivas: [] as readonly string[],
+    tipo: 'repuesto' as const,
+  })
+  const propio = { permisos: ['repuestos.ver'], regla: null } as const
+
+  it('sólo entran los huecos con variante de repuesto', () => {
+    const huecos = [deItem('que-falta', propio), deItem('aduana'), deItem('notas', propio)]
+    expect(claves(huecosVisibles(huecos, itemCtx(conVer)))).toEqual(['que-falta', 'notas'])
+  })
+
+  it('con repuestos.ver y sin origen se dibuja; sin él, no', () => {
+    const huecos = [deItem('notas', propio)]
+    expect(claves(huecosVisibles(huecos, itemCtx(conVer)))).toEqual(['notas'])
+    expect(claves(huecosVisibles(huecos, itemCtx([])))).toEqual([])
+  })
+
+  it('un hueco de vehículo con la misma clave no tapa al de repuesto', () => {
+    const delVehiculo = { ...deItem('notas'), repuesto: undefined }
+    const delItem = deItem('notas', propio)
+    expect(huecosVisibles([delVehiculo, delItem], itemCtx(conVer))).toEqual([delItem])
+  })
+
+  it('el vehículo, con el tipo por defecto o explícito, sigue igual', () => {
+    const huecos = [deItem('notas', propio), deItem('que-falta')]
+    const todo = [concede('logistica.ver', null)]
+    const base = { permisos: todo, origenId: 'o1', reglasActivas: ['transporte'] }
+    expect(claves(huecosVisibles(huecos, base))).toEqual(['que-falta', 'notas'])
+    expect(claves(huecosVisibles(huecos, { ...base, tipo: 'vehiculo' }))).toEqual([
+      'que-falta',
+      'notas',
+    ])
   })
 })

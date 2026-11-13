@@ -37,12 +37,16 @@ async function nombresDe(ids: readonly string[]): Promise<Record<string, string>
   return nombres
 }
 
-// Por `pagos_vehiculo_idx` (vehiculo_id) donde no está eliminado, con `limit tope + 1`: ordena a lo sumo esas filas. Los eliminados no salen: la policy de lectura los esconde.
-export async function leerPagosDeLaUnidad(vehiculoId: string): Promise<Resultado<PagosDeLaUnidad>> {
+// Por el índice de la columna (`pagos_vehiculo_idx` o `pagos_proyecto_repuestos_id_idx`) donde no está eliminado, con `limit tope + 1`: ordena a lo sumo esas filas. Los
+// eliminados no salen: la policy de lectura los esconde.
+async function leerPagos(
+  columna: 'vehiculo_id' | 'proyecto_repuestos_id',
+  id: string,
+): Promise<Resultado<PagosDeLaUnidad>> {
   const { data, error } = await createClient()
     .from('pagos')
     .select(COLUMNAS)
-    .eq('vehiculo_id', vehiculoId)
+    .eq(columna, id)
     .is('eliminado_en', null)
     .order('fecha', { ascending: false })
     .order('id', { ascending: false })
@@ -62,4 +66,13 @@ export async function leerPagosDeLaUnidad(vehiculoId: string): Promise<Resultado
   }
   const { filas: visibles, hayMas } = cortarAlTope(pagos, TOPE_DE_PAGOS_DE_LA_UNIDAD)
   return ok({ pagos: visibles, hayMas })
+}
+
+export function leerPagosDeLaUnidad(vehiculoId: string): Promise<Resultado<PagosDeLaUnidad>> {
+  return leerPagos('vehiculo_id', vehiculoId)
+}
+
+// Los pagos del cliente de un proyecto de repuestos (8.13-5): la misma lectura, con `repuestos.costos.ver` (la policy).
+export function leerPagosDelProyecto(proyectoId: string): Promise<Resultado<PagosDeLaUnidad>> {
+  return leerPagos('proyecto_repuestos_id', proyectoId)
 }

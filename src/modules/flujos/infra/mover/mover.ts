@@ -1,7 +1,8 @@
 import 'server-only'
 import { errorDePostgrest, MENSAJE_INESPERADO, type Resultado } from '@/shared/lib/errores'
 import { createClient } from '@/shared/lib/supabase/server'
-import { unidadParaMoverDesde } from '../../entities/mover/para-mover'
+import { unidadDeRepuestoParaMover, unidadParaMoverDesde } from '../../entities/mover/para-mover'
+import { type UnidadAMover } from '../../entities/mover/unidad-a-mover'
 import type { FalloDeMover, RepositorioDeMover } from '../../entities/mover/repositorios'
 import {
   filasDelLoteDesde,
@@ -13,6 +14,13 @@ import { leerDestinosDeBase } from './destinos'
 // Las cuatro RPC de mover (`…023125_fases_mover_candado.sql`, `…023126_fases_mover_lote.sql`) y `logistica_unidad` (`…023135_fases_unidad.sql`). Las RPC no declaran valores por omisión
 // y sus tipos generados no admiten nulo; la base sí (un parámetro nulo es «no va»). Un rechazo de `cambiar_fase` trae su código en el `hint`.
 const nulo = (valor: string | null): string => valor as string
+
+// A qué parámetro de la RPC va cada unidad: o `p_vehiculo` o `p_repuesto`, el otro nulo.
+function paramsDeUnidad(unidad: UnidadAMover) {
+  return unidad.tipo === 'vehiculo'
+    ? { p_vehiculo: unidad.vehiculoId, p_repuesto: nulo(null) }
+    : { p_vehiculo: nulo(null), p_repuesto: unidad.repuestoId }
+}
 
 type ErrorDeRpc = { code?: string | null; message: string; hint?: string | null }
 
@@ -32,20 +40,29 @@ function comoLectura<T>(
 }
 
 export const moverSupabase: RepositorioDeMover = {
-  leerUnidad: async (vehiculoId) => {
+  leerUnidad: async (unidad) => {
     const supabase = await createClient()
+    if (unidad.tipo === 'repuesto') {
+      // `logistica_unidad` es sólo de vehículo (D3 de 8.13): el ítem se lee de su tabla, bajo la RLS de quien mira.
+      const { data, error } = await supabase
+        .from('repuestos_items')
+        .select('id, fase_id')
+        .eq('id', unidad.repuestoId)
+        .is('eliminado_en', null)
+        .maybeSingle()
+      return error ? { ok: false, error: errorDePostgrest(error) } : unidadDeRepuestoParaMover(data)
+    }
     return comoLectura(
-      await supabase.rpc('logistica_unidad', { p_vehiculo: vehiculoId }),
+      await supabase.rpc('logistica_unidad', { p_vehiculo: unidad.vehiculoId }),
       unidadParaMoverDesde,
     )
   },
   leerDestinos: (pedido) => leerDestinosDeBase(pedido),
-  previsualizar: async ({ vehiculoId, faseDestino }) => {
+  previsualizar: async ({ unidad, faseDestino }) => {
     const supabase = await createClient()
     return comoLectura(
       await supabase.rpc('previsualizar_cambio_fase', {
-        p_vehiculo: vehiculoId,
-        p_repuesto: nulo(null),
+        ...paramsDeUnidad(unidad),
         p_fase_destino: faseDestino,
       }),
       vistaPreviaDesde,
@@ -61,11 +78,10 @@ export const moverSupabase: RepositorioDeMover = {
       vistaPreviaDelLoteDesde,
     )
   },
-  cambiar: async ({ vehiculoId, faseDestino, faseEsperada, nota }) => {
+  cambiar: async ({ unidad, faseDestino, faseEsperada, nota }) => {
     const supabase = await createClient()
     const { data, error } = await supabase.rpc('cambiar_fase', {
-      p_vehiculo: vehiculoId,
-      p_repuesto: nulo(null),
+      ...paramsDeUnidad(unidad),
       p_fase_destino: faseDestino,
       p_nota: nulo(nota),
       p_fase_esperada: nulo(faseEsperada),

@@ -13,10 +13,11 @@ import type { PaginaDeLaUnidad, PedidoDeLaLista } from '../../entities/mover/pag
 
 export const NO_SE_LEYO_EL_HISTORIAL = 'No se pudo cargar el historial.'
 
-// Por `historial_fases_vehiculo_idx (vehiculo_id, creado_en)`, caminado hacia atrás, con `limit 21`: ordena a lo sumo esas filas, por profundo que sea el cursor. El `id` (un `bigint`)
+// Por `historial_fases_vehiculo_idx (vehiculo_id, creado_en)` (o `historial_fases_repuesto_idx` si es un ítem), caminado hacia atrás, con `limit 21`: ordena a lo sumo esas filas, por profundo que sea el cursor. El `id` (un `bigint`)
 // desempata; el borde del cursor es el de `aplicarCursor()` de `shared`: `creado_en <= instante` y (`<` o el mismo instante con menor `id`).
 export async function leerHistorialDeLaUnidad({
   unidadId,
+  tipo,
   cursor,
   hasta,
 }: PedidoDeLaLista): Promise<Resultado<PaginaDeLaUnidad<CambioDeFase>>> {
@@ -26,7 +27,7 @@ export async function leerHistorialDeLaUnidad({
     .select(
       'id, creado_en, nota, de:fases!historial_fases_de_fase_id_fkey(nombre), a:fases!historial_fases_a_fase_id_fkey(nombre), quien:perfiles!historial_fases_usuario_id_fkey(nombre)',
     )
-    .eq('vehiculo_id', unidadId)
+    .eq(tipo === 'repuesto' ? 'repuesto_id' : 'vehiculo_id', unidadId)
   if (hasta !== null) {
     consulta = consulta.lt('creado_en', hasta)
   }

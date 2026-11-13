@@ -5,7 +5,10 @@ Proyectos de repuestos por vehículo (o externos), ítems que recorren el flujo 
 ## Entra y sale
 
 - Entra: proyectos desde la ficha del vehículo o sueltos, hoja de ítems editable celda a celda (XCell compacta), compras, movimientos de stock, cotizaciones de repuestos.
-- Sale: `proyectoDe(vehiculoId)` y `leerResumenDeVehiculo(vehiculoId)` (8.09-4, por el `index.ts` del área `proyectos`), `esperasQueDestraban(vehiculoId)` (para `flujos`/`logistica`), `<ResumenRepuestos>` (por `pantallas/proyectos-vehiculo.ts`, 8.09-4: la pestaña «Repuestos» de `/vehiculos/[id]`). Lo consumen `vehiculos`, `logistica`, `tablero`, `buscador`.
+- Sale: `proyectoDe(vehiculoId)` y `leerResumenDeVehiculo(vehiculoId)` (8.09-4, por el `index.ts` del área `proyectos`), `esperasQueDestraban(vehiculoId)` (8.13-1, por el `index.ts` del área `flujo`: `Resultado<{ items, hayMas }>`, una fila por ítem con sus esperas, hasta 50; con `repuestos_pendientes_de_vehiculo`, que oculta los nombres de fase sin `logistica.ver`; para el panel del vehículo de `logistica`), `<ResumenRepuestos>` (por `pantallas/proyectos-vehiculo.ts`, 8.09-4: la pestaña «Repuestos» de `/vehiculos/[id]`). Lo consumen `vehiculos`, `logistica`, `tablero`, `buscador`.
+- **Panel del ítem (8.13-2), área `flujo`:** `?item=<id>` sobre la hoja de `/repuestos/[id]` abre `<PanelDeLaUnidad>` de `logistica` con la unidad del ítem (sin origen; `src/app/(app)/repuestos/item-abierto.tsx` la arma: `repuestos` lee, `logistica` dibuja). Sale por `index.ts`: `leerItemDelPanel(id)` (una fila bajo la RLS de quien mira, con la fase y el proyecto; nulo si no existe, está en la papelera, no se ve o su proyecto no se ve: los cuatro se dicen igual), `itemAbiertoDe(parametros)` (el guid de `?item=` **sólo sin `?panel=`**: con `?panel=stock|imagenes&item=` manda el panel de siempre) y `ItemDelPanel`; por `pantallas/flujo.ts`, `<DrawerDelItem>` (`diferido()`, marco sin formulario), `<BotonDelPanelDelItem>` («Abrir panel» en cada fila, `repuestos.ver`) y `useItemPorUrl()`. Mover, documentos, notas e historial del ítem son de `logistica` (huecos con variante `repuesto`); el transporte del ítem sólo dice «Sigue al vehículo» (abierto 8-13b).
+- **La Cadena y el hueco del vehículo (8.13-3), área `flujo`:** `/repuestos?vista=cadena` (`pantallas/flujo-cadena.ts`: `CadenaDeRepuestos`) dibuja una columna por fase del flujo de repuestos, en escritorio una al lado de la otra y en el celular con pestañas (`?fase=`); `src/app/(app)/repuestos/listado-de-la-cadena.tsx` la lee y monta el mismo panel `?item=` (`panel-del-item.tsx`). Sale por `index.ts`: `leerCadenaDeRepuestos(filtros)`, `esquemaDeLaCadena`, `pedidoDeLaCadena`, `rutaDeLaCadena({ proyecto?, q? })` y las claves `vista`, `q`, `proyecto` y `fase` (para los «Ver todas» de Inicio, parte 4). Una consulta por fase con `limit 51` (nunca por tarjeta), «Ver más» por cursor `(fase_desde, id)` (`verMasDeLaColumnaDeRepuestos`); las fases finales van de lo más reciente. `?proyecto=` sólo viaja por URL (aviso «Mostrando un solo proyecto»). **Hueco «Repuestos»** del panel de logística del vehículo: `pantallas/flujo-esperas.ts` declara `HUECOS_DE_ESPERAS_EN_LA_UNIDAD` (`repuestos.ver`, regla `esperas`, con su propio tipo estructural: `repuestos` no importa `logistica`; el cast va en `src/app/(app)/logistica/huecos-de-la-unidad.tsx`); lee con la action `leerEsperasDelVehiculo` al abrir el bloque y si cambia la fase, **sin** escuchar `logistica:unidad-cambio`; sólo explica, mover es del panel del ítem.
+- **Bloques de Inicio (8.13-4), área `flujo`:** `leerRepuestosPorMover(tope)` y `leerEsperasDeInicio(tope)` (por `index.ts`; `tope` de 1 a `TOPE_DE_INICIO` = 20, otro valor es `validacion`) los leen los bloques de `tablero` `repuestos-por-mover` (`repuestos.mover`) y `esperas-repuestos` (`repuestos.ver`). Un ítem vivo, sin stock, en una fase no final de un proyecto vivo (el que más lleva en su fase, primero; la segunda, sólo de proyectos con vehículo); una consulta cada una, `limit tope + 1`, fase y proyecto embebidos, bajo la RLS de `repuestos.ver` (quien tiene `repuestos.mover` sin `repuestos.ver` ve el vacío). «Por mover» es «en vuelo», no «listo»: la fila abre el panel del ítem (`rutaDelItemDeInicio`), donde «Qué falta» dice si se puede. Sin el cruce exacto con la fase del vehículo (8-13a); el orden `fase_desde` sin índice propio (8-13c).
 - Sale por `index.ts` (área `catalogos`, 8.08-2): `leerCatalogosDeRepuestos()` (los cuatro, con los desactivados, tope 200 cada uno) y `CATALOGOS_DE_REPUESTOS`; por
   `client.ts`, lo puro del formulario de un valor (`validarValor`, `cambiosDeValor`, `ordenSiguiente`…). Las actions `crearValor`, `guardarValor` y
   `eliminarValor` (`features/catalogos/actions/`, `repuestos.configurar`) no salen por los barriles: las importan en relativo los componentes de la 8.08-3.
@@ -37,6 +40,10 @@ Proyectos de repuestos por vehículo (o externos), ítems que recorren el flujo 
   `pantallas/compras.ts`). En 8.11-3: un solo «Registrar compra» arriba de la lista (apagado con su motivo sin `repuestos.costos.editar` o con el proyecto cerrado;
   la página calcula `puedeEditarCostos` con `puede()`), el Drawer `?panel=compra&compra=<id|nueva>` (con `diferido()`, montado al abrirse; ítems y monedas los pasa
   la página, sin otra lectura) y «Editar» y «Eliminar» en la fila. Tras escribir, la action revalida la página: la lista y el margen se vuelven a leer en el servidor.
+- **Pagos del cliente** (8.13-5): la pestaña «Pagos» de `/repuestos/[id]` (`?pestana=pagos`, tras «Compras») sólo existe con `repuestos.costos.ver`; la dibuja
+  `PagosDelProyectoDiferido` de `logistica` (`pantallas/dinero-proyecto.ts`) con `cerrado` y los permisos que calcula la página. Registrar pide
+  `repuestos.costos.editar` y `repuestos.ver` (`pago_registrar_proyecto`); confirmar, `logistica.pagos.confirmar`; anular un pago de proyecto todavía no (8-13d).
+  Un pago vivo cumple `proyecto.pago_cliente`.
 - **Configuración del cotizador** (8.12-2, área `cotizador`): la pestaña «Cotizador» de `/configuracion/repuestos` (`?seccion=cotizador`) la lee
   `src/app/(app)/configuracion/repuestos/seccion-cotizador.tsx` con `leerConfiguracionDelCotizador()` (por `areas/cotizador/index.ts`: la vigente, el historial
   con tope 20 y tramos y cajas con tope 200) y las monedas activas, y dibuja `<ConfiguracionDelCotizador>` (por `pantallas/cotizador-configuracion.ts`). Las
@@ -67,16 +74,16 @@ El módulo se parte por **área** (8.08-2, igual que `logistica`) para que los p
 `features/<área>/`, `entities/<área>/`, `infra/<área>/`, `areas/<área>/{index,client,composicion}.ts` y `pantallas/<área>.ts` (y `pantallas/<área>-<pantalla>.ts`). El
 **núcleo** es la carpeta `nucleo` de cada capa. `index.ts`, `client.ts` y `composicion.ts` de la raíz sólo hacen `export *` del núcleo y de cada área: nadie los edita.
 
-| Área        | La llena                | Qué es                                                          |
-| ----------- | ----------------------- | --------------------------------------------------------------- |
-| `nucleo`    | —                       | lo compartido entre áreas (hoy vacío)                           |
-| `proyectos` | 8.09                    | `/repuestos`: el listado de proyectos, crear, cerrar, eliminar  |
-| `items`     | 8.09                    | `/repuestos/[id]`: la hoja de ítems                             |
-| `stock`     | 8.10                    | movimientos de stock y sobrantes                                |
-| `compras`   | 8.11                    | compras y pagos (con `repuestos.costos.*`)                      |
-| `cotizador` | 8.12                    | la configuración versionada y las cotizaciones de repuestos     |
-| `catalogos` | 8.08 (pantalla: 8.08-3) | los cuatro catálogos: leer, crear, guardar y borrar valores     |
-| `flujo`     | 8.13                    | el panel de pendientes para `logistica` y los bloques de Inicio |
+| Área        | La llena                | Qué es                                                                             |
+| ----------- | ----------------------- | ---------------------------------------------------------------------------------- |
+| `nucleo`    | —                       | lo compartido entre áreas (hoy vacío)                                              |
+| `proyectos` | 8.09                    | `/repuestos`: el listado de proyectos, crear, cerrar, eliminar                     |
+| `items`     | 8.09                    | `/repuestos/[id]`: la hoja de ítems                                                |
+| `stock`     | 8.10                    | movimientos de stock y sobrantes                                                   |
+| `compras`   | 8.11                    | compras y pagos (con `repuestos.costos.*`)                                         |
+| `cotizador` | 8.12                    | la configuración versionada y las cotizaciones de repuestos                        |
+| `catalogos` | 8.08 (pantalla: 8.08-3) | los cuatro catálogos: leer, crear, guardar y borrar valores                        |
+| `flujo`     | 8.13                    | el panel del ítem, el panel de pendientes para `logistica` y los bloques de Inicio |
 
 **Un área no importa otra** (lo vigila `scripts/guardas/areas-c/areas-de-repuestos.test.ts`): lo compartido va al núcleo.
 

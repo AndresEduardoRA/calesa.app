@@ -22,6 +22,8 @@ vi.mock('../../../areas/dinero/composicion.client', () => ({
   leerMisPermisos: () => Promise.resolve(ok(lecturas.permisos)),
   leerPagosDeLaUnidad: () =>
     Promise.resolve(ok({ pagos: lecturas.pagos, hayMas: lecturas.hayMas })),
+  leerPagosDelProyecto: () =>
+    Promise.resolve(ok({ pagos: lecturas.pagos, hayMas: lecturas.hayMas })),
   leerOpcionesDeGasto: () =>
     Promise.resolve(ok({ categorias: [], monedas: [], tiposDeCambio: [] })),
   subirComprobante: () => Promise.resolve(ok('x')),

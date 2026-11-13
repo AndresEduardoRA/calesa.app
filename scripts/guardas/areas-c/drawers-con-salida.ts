@@ -36,6 +36,11 @@ export const REGISTRO: Record<string, RegistroDeDrawer> = {
     formulario: 'src/modules/repuestos/features/stock/components/formulario-pasar-a-stock.tsx',
     mecanismo: 'contexto',
   },
+  // El panel de un ítem de repuestos (8.13-2): `?item=<id>` sin `?panel=`. Es el marco de `<PanelDeLaUnidad>`.
+  'src/modules/repuestos/features/flujo/components/drawer-del-item.tsx': {
+    sinFormulario:
+      'sólo es el marco del panel del ítem (8.13-2): no guarda nada tipeado; lo que cada área escriba en sus huecos va en modales que preguntan por sí solos',
+  },
   // Vista «Stock» de `/repuestos` (8.10-3): `?panel=vender-stock|devolver-stock&item=<id>`. Dice que tiene algo escrito con `useCambiosSinGuardar` en el mismo archivo.
   'src/modules/repuestos/features/stock/components/drawer-de-salida.tsx': {
     formulario: 'src/modules/repuestos/features/stock/components/drawer-de-salida.tsx',

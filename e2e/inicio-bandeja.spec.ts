@@ -8,7 +8,7 @@ import { completoCon, nacional } from './soporte/leads-ficha-telefonos'
 import { meterRecordatorio } from './soporte/leads-seguimientos'
 
 // Inicio: la bandeja con sus bloques. Una asesora con un recordatorio para hoy lo ve y llega a la ficha; la dueña ve a la persona
-// recién invitada en «Personas sin rol»; un bloque de otra fase todavía muestra su vacío. Camino feliz de la pantalla (9.02).
+// recién invitada en «Personas sin rol»; un bloque de repuestos se dibuja sin tumbar a los demás. Camino feliz de la pantalla (9.02).
 test.describe.configure({ mode: 'serial' })
 
 let t: TerrenoDelListado
@@ -71,13 +71,12 @@ test('la dueña ve a la persona recién invitada en «Personas sin rol» y la ab
   await expect(page).toHaveURL(new RegExp(`/configuracion/equipo\\?persona=${personaId}`))
 })
 
-test('un bloque de otra fase todavía muestra su vacío, sin tumbar a los demás', async ({
-  page,
-}) => {
+test('los bloques de repuestos se dibujan sin tumbar a los demás', async ({ page }) => {
   await entrar(page, t.personas.duena)
   await page.goto('/')
-  // «Esperas que destraban vehículos» sigue siendo un hueco (lo llena la Fase 8); los de logística ya dependen de la base (6.12-2).
+  // La base compartida puede traer ítems de otro spec: el bloque se dibuja (fila o vacío) y no cae a su error.
   const bloque = page.getByRole('region', { name: 'Esperas que destraban vehículos' })
-  await expect(bloque.getByText('Ningún vehículo espera repuestos.')).toBeVisible()
+  await expect(bloque).toBeVisible()
+  await expect(bloque.getByRole('button', { name: 'Reintentar' })).toHaveCount(0)
   await expect(page.getByRole('region', { name: 'Recordatorios de hoy' })).toBeVisible()
 })

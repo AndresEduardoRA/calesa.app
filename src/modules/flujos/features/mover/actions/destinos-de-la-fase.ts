@@ -22,7 +22,7 @@ export const destinosDeLaFase = actionClient
     }): Promise<ResultadoDeAccion<{ destinos: DestinoDeMover[]; hayMas: boolean }>> => {
       if (!puedeMoverEn(ctx.permisos, parsedInput.origenId)) return sinPermisoDeMover()
       return repositorioDeMover.leerDestinos({
-        origenId: parsedInput.origenId,
+        ambito: { tipo: 'vehiculo', origenId: parsedInput.origenId },
         faseId: parsedInput.faseId,
         tope: TOPE_DE_DESTINOS,
       })

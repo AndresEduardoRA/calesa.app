@@ -12,7 +12,11 @@ import {
 } from '../../../entities/dinero/paneles-de-pago'
 
 type Panel = Parameters<typeof motivoParaNoAbrirPago>[0]['panel']
-type Permisos = { puedeEditar: boolean | null; puedeConfirmar: boolean | null }
+type Permisos = {
+  puedeEditar: boolean | null
+  puedeConfirmar: boolean | null
+  puedeAnular?: boolean
+}
 
 // Lo común de los diálogos de un pago por URL (`?panel=<panel>&pago=<id>`; `url` es el `usePanelPorUrl` de cada uno, que lo declara en su archivo): se puede recargar y «atrás» los cierra. Un pago que no está, que no está en el estado que pide el panel o sin el
 // permiso no abre: se avisa y la URL se limpia, una vez, con la lista ya leída. Mientras se va, el diálogo conserva el último pago que vio.

@@ -7,6 +7,8 @@ export type PaginaDeLaUnidad<Fila> = {
 
 export type PedidoDeLaLista = {
   unidadId: string
+  // De quién es la unidad: sin él, un vehículo (`vehiculo_id`); un ítem se lee por `repuesto_id` (8.13-2).
+  tipo?: 'vehiculo' | 'repuesto'
   // El cursor `(creado_en, id)` de la última fila ya leída; nulo = la primera página.
   cursor: string | null
   // «Ir a una fecha»: el instante exclusivo (`hastaDeUnDia()`); nulo = desde lo más reciente.

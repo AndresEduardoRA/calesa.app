@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { connection } from 'next/server'
 import { Suspense, type ComponentProps, type ReactNode } from 'react'
 import { puede, requerirSesion } from '@/modules/equipo'
-import { leerCatalogosDeRepuestos } from '@/modules/repuestos'
+import { itemAbiertoDe, leerCatalogosDeRepuestos } from '@/modules/repuestos'
 import {
   PROYECTO_YA_NO_ESTA,
   cuentasDeLaHoja,
@@ -12,6 +12,7 @@ import {
   leerProyecto,
 } from '@/modules/repuestos'
 import { CabeceraDeProyecto } from '@/modules/repuestos/pantallas/proyectos'
+import { PagosDelProyectoDiferido } from '@/modules/logistica/pantallas/dinero-proyecto'
 import { leerMonedasYTiposCambio } from '@/modules/empresa'
 import { leerVehiculo } from '@/modules/vehiculos'
 import { datosO } from '@/shared/lib/errores'
@@ -20,6 +21,7 @@ import { RUTAS, unParametro } from '@/shared/lib/rutas'
 import { buttonVariants } from '@/shared/ui/button'
 import { EstadoSinPermiso, EstadoVacio } from '@/shared/ui/estados'
 import { EsqueletoListado } from '@/shared/ui/esqueletos'
+import { PanelDelItem } from '../panel-del-item'
 import { HojaConStock } from './hoja-con-stock'
 import { pestanaDe, pestanasLlenas } from './pestanas'
 import { PestanasDelProyecto } from './pestanas-del-proyecto'
@@ -28,7 +30,8 @@ import { SeccionDeCotizaciones } from './seccion-cotizaciones'
 
 export const metadata: Metadata = { title: 'Proyecto de repuestos' }
 
-// Un proyecto de repuestos (`docs/UX.md` › «Repuestos»): su cabecera y la hoja de ítems o, con `repuestos.costos.ver` y `?pestana=compras`, sus compras y el margen, o, con
+// Un proyecto de repuestos (`docs/UX.md` › «Repuestos»): su cabecera y la hoja de ítems o, con `repuestos.costos.ver` y `?pestana=compras`, sus compras y el margen
+// (`?pestana=pagos`, los pagos del cliente, 8.13-5), o, con
 // `repuestos.cotizar` y `?pestana=cotizaciones`, sus cotizaciones. Lo que no existe, está eliminado o quien mira no ve se dicen igual (D49), con un enlace al listado.
 export default function PaginaDeUnProyecto({ params, searchParams }: PageProps<'/repuestos/[id]'>) {
   return (
@@ -88,6 +91,7 @@ async function Proyecto({
     monedas: monedas.monedas.filter((m) => m.activa),
     permisos: sesion.permisos,
     cerrado: proyecto.cerradoEn !== null,
+    itemId: itemAbiertoDe(parametros),
   })
   return (
     <CabeceraDeProyecto
@@ -110,11 +114,12 @@ type DatosDeLaSeccion = {
   monedas: (ComponentProps<typeof HojaConStock>['monedas'][number] & { nombre: string })[]
   permisos: Permisos
   cerrado: boolean
+  itemId: string | null
 }
 
 // Lo que dibuja la pestaña abierta. Compras y cotizaciones se leen recién al abrirse (`escala.md` › «Carga del cliente»).
 function seccionAbierta(abierta: string, datos: DatosDeLaSeccion): ReactNode {
-  const { proyectoId, hoja, catalogos, monedas, permisos, cerrado } = datos
+  const { proyectoId, hoja, catalogos, monedas, permisos, cerrado, itemId } = datos
   if (abierta === 'compras') {
     return (
       <Suspense fallback={<EsqueletoListado filas={4} columnas={4} />}>
@@ -124,6 +129,19 @@ function seccionAbierta(abierta: string, datos: DatosDeLaSeccion): ReactNode {
           monedas={monedas}
           puedeEditarCostos={puede(permisos, 'repuestos.costos.editar')}
           cerrado={cerrado}
+        />
+      </Suspense>
+    )
+  }
+  if (abierta === 'pagos') {
+    // El código del hueco de pagos (de `logistica`) se pide al abrir la pestaña; lee los pagos desde el navegador, bajo la policy.
+    return (
+      <Suspense fallback={<EsqueletoListado filas={4} columnas={4} />}>
+        <PagosDelProyectoDiferido
+          proyectoId={proyectoId}
+          cerrado={cerrado}
+          puedeEditar={puede(permisos, 'repuestos.costos.editar')}
+          puedeConfirmar={puede(permisos, 'logistica.pagos.confirmar')}
         />
       </Suspense>
     )
@@ -141,14 +159,17 @@ function seccionAbierta(abierta: string, datos: DatosDeLaSeccion): ReactNode {
     )
   }
   return (
-    <HojaConStock
-      proyectoId={proyectoId}
-      filas={hoja.filas}
-      hayMas={hoja.hayMas}
-      catalogos={catalogos}
-      monedas={monedas}
-      puedeEditar={puede(permisos, 'repuestos.editar')}
-      cerrado={cerrado}
-    />
+    <>
+      <HojaConStock
+        proyectoId={proyectoId}
+        filas={hoja.filas}
+        hayMas={hoja.hayMas}
+        catalogos={catalogos}
+        monedas={monedas}
+        puedeEditar={puede(permisos, 'repuestos.editar')}
+        cerrado={cerrado}
+      />
+      <PanelDelItem itemId={itemId} permisos={permisos} />
+    </>
   )
 }

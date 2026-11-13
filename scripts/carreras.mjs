@@ -39,6 +39,10 @@ import {
   limpiarComprobantes,
 } from '../supabase/tests/areas/comprobantes/carreras.mjs'
 import { carrerasDeDinero, limpiarDinero } from '../supabase/tests/areas/dinero/carreras.mjs'
+import {
+  carrerasDePagosDeProyecto,
+  limpiarPagosDeProyecto,
+} from '../supabase/tests/areas/dinero/carreras-proyecto.mjs'
 import { carrerasDeFases } from '../supabase/tests/areas/flujos/carreras.mjs'
 import { carrerasDeDocumentos } from '../supabase/tests/areas/documentos/carreras.mjs'
 import { carrerasDeMover } from '../supabase/tests/areas/mover/carreras.mjs'
@@ -370,6 +374,7 @@ try {
   await carrerasDeLaRueda({ orquesta, espero, conectar, esperarBloqueo })
   await carrerasDeComprobantes({ orquesta, espero, conectar, esperarBloqueo })
   await carrerasDeDinero({ orquesta, espero, conectar, esperarBloqueo })
+  await carrerasDePagosDeProyecto({ orquesta, espero, conectar, esperarBloqueo })
   await carrerasDeFases({ orquesta, carrera, espero, conectar })
   await carrerasDeDocumentos({ orquesta, carrera, espero })
   await carrerasDeMover({ orquesta, carrera, espero, conectar })
@@ -383,6 +388,9 @@ try {
   await limpiarStock(orquesta).catch((e) => fallas.push(`limpiar el stock: ${e.message}`))
   await limpiarAduana(orquesta).catch((e) => fallas.push(`limpiar la aduana: ${e.message}`))
   await limpiarTransporte(orquesta).catch((e) => fallas.push(`limpiar el transporte: ${e.message}`))
+  await limpiarPagosDeProyecto(orquesta).catch((e) =>
+    fallas.push(`limpiar los pagos de proyecto: ${e.message}`),
+  )
   await limpiarDinero(orquesta).catch((e) => fallas.push(`limpiar los gastos: ${e.message}`))
   await limpiarComprobantes(orquesta).catch((e) =>
     fallas.push(`limpiar los comprobantes: ${e.message}`),

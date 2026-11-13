@@ -7,7 +7,7 @@ import {
   NO_SE_LEYO_EL_HISTORIAL,
 } from '../../../areas/mover/composicion.client'
 import { lineaDelCambio, quienHizoElCambio } from '../../../entities/mover/historial'
-import type { Unidad } from '../../../entities/nucleo/unidad'
+import type { UnidadAbierta } from '../../../entities/nucleo/unidad'
 import { useListaDeLaUnidad } from '../hooks/use-lista-de-la-unidad'
 import { CuerpoDeLaLista } from './cuerpo-de-la-lista'
 
@@ -15,7 +15,7 @@ const SUSTANTIVO = { plural: 'cambios', articulo: 'los' } as const
 
 // El hueco «Historial» del panel de la unidad (6.04-2): de sólo lectura, una línea por cambio de fase con quién, cuándo y su nota. Más reciente primero, de a 20 con «Ver más» y «Ir a una
 // fecha». Es una lista, no una tabla: nada se abre desde aquí.
-export function HuecoDeHistorial({ unidad }: { unidad: Unidad }) {
+export function HuecoDeHistorial({ unidad }: { unidad: UnidadAbierta }) {
   const { zonaHoraria } = useRegional()
   const lista = useListaDeLaUnidad(
     unidad,
