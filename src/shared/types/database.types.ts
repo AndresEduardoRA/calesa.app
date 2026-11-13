@@ -8708,6 +8708,7 @@ export type Database = {
         Args: { p_def: Json; p_diseno: Json; p_ignorar_retirados: boolean; p_params: Json }
         Returns: Json
       }
+      _proyecto_fase_que_pide_pago: { Args: { p_proyecto: string }; Returns: string }
       _publicar_formula: {
         Args: {
           p_actualizado_en_esperado: string
