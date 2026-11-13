@@ -165,7 +165,9 @@ test('si otra persona cambia el ítem, guardar otra celda sale como conflicto y 
   await page.goto(`/repuestos/${proyecto}`)
   const descripcion = page.getByLabel(`Descripción del ítem ${FARO}`)
   await expect(descripcion).toBeVisible()
-  sql(`update repuestos_items set precio_cliente = 99 where proyecto_id = '${proyecto}'`)
+  sql(
+    `update repuestos_items set precio_cliente = 99 where proyecto_id = '${proyecto}' and descripcion = '${FARO}' and eliminado_en is null`,
+  )
   await descripcion.fill(`${FARO} derecho`)
   await descripcion.press('Enter')
   await expect(
