@@ -1,101 +1,106 @@
 # shared/ui/xcell
 
 La celda de la hoja de cotizar (`docs/COTIZADOR.md` › «Binding con la XCell»; `docs/UX.md` › «Cotizar», 3). Dibuja y maneja **una** celda a partir de props:
-no lee la base y **no calcula nada**. Dice «esta celda pasó a N» (`onCommit`) o «volver» (`onReset`) y la base recalcula (4.13). La hoja que la usa es el 4.13.
+no lee la base y **no calcula nada**. Dice «esta celda pasó a N» (`onCommit`) o «volver» (`onReset`) y la base recalcula.
 
 ## Entra y sale
 
 - Entra: `@/shared/lib` (`formato`, `color`, `numero-tipeado`), `../monto`, `../regional`, `../live`, `../lista/simbolos-de-lista` (los trazos de los iconos).
-- Sale: `index.ts` → `XCell`, `EstiloDeTonos`, `SimbolosDeXCell` y los tipos. Nadie la importa todavía. `xcell.soporte.tsx` (`celda()`, `abrir()`, `BASE`) es **sólo de las pruebas**
-  (importa vitest y testing-library; el sufijo `.soporte.` es el del repo, como `funcion-apibara.soporte.ts`, y `scripts/mapa.sh` no lo lista).
-- La hoja monta **una vez** `<SimbolosDeXCell/>` (los iconos y la descripción que anuncia las flechas) y `<EstiloDeTonos tonos={…}/>` (las filas de `tonos`, que lee ella; `shared` no las busca).
+- Sale: `index.ts` → `XCell`, `EstiloDeTonos`, `SimbolosDeXCell` y los tipos; la usa la hoja de `cotizaciones`. `xcell.soporte.tsx` (`celda()`, `abrir()`,
+  `BASE`) es **sólo de las pruebas** (importa vitest y testing-library; `scripts/mapa.sh` no lista los `.soporte.`).
+- La hoja monta **una vez** `<SimbolosDeXCell/>` (los iconos y la descripción que anuncia las flechas) y `<EstiloDeTonos tonos={…}/>` (las filas de
+  `tonos`, que lee ella; `shared` no las busca).
 
 ## El contrato con la hoja (props primitivas)
 
 `id, label, format ('monto'|'porcentaje'|'numero'), currency?, decimals?` (sólo la vista), `value, defaultValue?, suggested, overridden,
 disabledReason?, secondaryDisabledReason?, tone?, error?, secondaryId?, secondaryValue?, secondaryFormat?, secondaryDecimals?, hasHelp?, hasSettings?, onHelp?(id), onSettings?(id), onCommit(id, valor|null), onReset(id)`.
 
-- `suggested = fuentes[id] === 'sugerido'` y `overridden = fuentes[id] === 'override'`. **`overridden` no estaba en el binding**: con `value`, `defaultValue` y
-  `suggested` no se distingue «modificado» de «input» en un sobrescribible (con un override el motor no calcula el sugerido, 4-1).
-- **Un candado por lado (4.13-3c).** `disabledReason` es el del principal (en una celda sin par, el de la celda) y `secondaryDisabledReason` el del secundario: el monto calculado de Transferencia se
-  bloquea y su porcentaje se edita. Un lado bloqueado lleva `aria-disabled` (se alcanza con Tab y se lee) y no abre la edición (ni clic, ni un carácter, ni F2, ni Retroceso); si se bloquea **el lado que
-  se edita**, la edición se va en el render; si se bloquea el otro, sigue. Con **todos** los lados bloqueados la celda entera es `deshabilitado` (su borde discontinuo, sin ↺); con uno solo, el borde
-  discontinuo es de la caja de ese botón (P3) y ↺ sigue con `overridden`. Las guardas son tres (abrir, las teclas y el render): quitar una sola no cambia nada que se vea (mutaciones equivalentes).
-- `defaultValue` sólo decide la palabra de ↺: con él, «Volver al valor por defecto»; sin él, «Volver al sugerido». **Nunca la cifra** (4-1).
-- Los callbacks son uno por hoja y estables: la celda está en `memo` y una hoja de cientos de celdas recalcula cada 150 ms. Un objeto o una función nuevos por
-  render dibujan **todas** las celdas (`xcell-hoja.test.tsx` lo mide: cambiar una dibuja una).
-- **El par porcentaje–monto es una celda con dos lados**, editables los dos: el principal es el nodo de la celda y el secundario es `secondaryId`. Cada uno emite
-  `onCommit(suId, valor)`; ↺ emite `onReset(id)` con el id de la celda. **Es la hoja la que traduce:** editar el % quita el override del monto (si no, el monto lo
-  pisa: `COTIZADOR.md` › «El par porcentaje-monto») y ↺ quita los dos.
+- `suggested = fuentes[id] === 'sugerido'` y `overridden = fuentes[id] === 'override'`: con `value`, `defaultValue` y `suggested` no se distingue
+  «modificado» de «input» en un sobrescribible (con un override el motor no calcula el sugerido).
+- **Un candado por lado.** `disabledReason` es el del principal (sin par, el de la celda) y `secondaryDisabledReason` el del secundario. Un lado bloqueado
+  lleva `aria-disabled` (se alcanza con Tab y se lee) y no abre la edición (ni clic, ni un carácter, ni F2, ni Retroceso); si se bloquea **el lado que se
+  edita**, la edición se va en el render; si se bloquea el otro, sigue. Con **todos** los lados bloqueados la celda es `deshabilitado` (borde discontinuo,
+  sin ↺); con uno solo, el borde discontinuo es de la caja de ese botón y ↺ sigue con `overridden`. Las guardas son tres (abrir, las teclas y el render).
+- `defaultValue` sólo decide la palabra de ↺: con él, «Volver al valor por defecto»; sin él, «Volver al sugerido». **Nunca la cifra.**
+- Los callbacks son uno por hoja y estables: la celda está en `memo` y la hoja recalcula cada 150 ms. Un objeto o una función nuevos por render dibujan
+  **todas** las celdas (`xcell-hoja.test.tsx`: cambiar una dibuja una).
+- **El par porcentaje–monto es una celda con dos lados**, editables los dos: el principal es el nodo de la celda y el secundario `secondaryId`. Cada uno
+  emite `onCommit(suId, valor)`; ↺ emite `onReset(id)` con el id de la celda. **La hoja traduce:** editar el % quita el override del monto (`COTIZADOR.md` ›
+  «El par porcentaje-monto») y ↺ quita los dos.
 
-## La ayuda y el ⚙ (4.12-2)
+## La ayuda y el ⚙
 
-- `hasHelp` = la celda del diseño trae `ayuda` (una tabla **o** un texto: lo que abre lo decide la hoja); `hasSettings` = constante con `cotizaciones.configurar` del origen, o tipo de cambio con
-  `empresa.tipos_cambio.gestionar`. **La celda no decide permisos ni abre nada: emite `onHelp(id)` / `onSettings(id)`** con el id de la celda (no el del secundario) y **no mueve el foco**; devolverlo al cerrar es de la hoja.
-- Cada botón se dibuja con la bandera **y** el callback (`accionesDe()` en `estado.ts`): una bandera sin callback sería un botón muerto. Banderas y callbacks aparte, y **los mismos callbacks para todas las celdas**:
-  un ternario por celda que cree una función nueva por render dibuja todas (`xcell-hoja.test.tsx`, el memo).
-- **Deshabilitada:** la ayuda y el ⚙ **siguen** (no escriben en esta cotización: la ayuda informa y el ⚙ cambia el default global); ↺ se va. Si no corresponde (un tipo de cambio sin permiso), la hoja no manda `hasSettings`.
-- **Modo Live:** siguen. Los botones no dicen cifras; lo que abran pasa sus cifras por `<Monto>` (4.13) cuando es una celda de dinero: un factor `raw` de la ayuda de una tabla queda a la vista, sin `<Monto>` (4.13-4c2, P13). La cabecera no lee `useLive()`: encender Live no la dibuja de nuevo.
-- Nombres con el glosario y la etiqueta de la celda: «Ayuda de {label}» y «Cambiar el valor por defecto de {label}» (con ↺: «Volver al valor por defecto de {label}»). Iconos del sprite: `xcell-ayuda`, `xcell-ajustes`.
-- **El atajo se anuncia.** El valor, con acciones, lleva `aria-keyshortcuts="ArrowRight"` (lo leen VoiceOver y algunos) **y** `aria-describedby` a «Más acciones con la flecha derecha.» (lo lee todo lector; NVDA y JAWS
-  no leen `aria-keyshortcuts`). El texto vive **una vez por hoja** en `<SimbolosDeXCell/>` (`hidden`, que sigue contando para `aria-describedby`): 0 nodos por celda. Va después de la nota (el motivo del candado o el error).
-  En los dos lados de un par; sin acciones, ni lo uno ni lo otro. Lo prueba `e2e/xcell-teclado.spec.ts` con la descripción que entrega CDP.
-- Si la etiqueta no tiene 6 rem junto a las acciones (tres de 44 px al 200 % en 412 px), las acciones bajan a su fila, a la derecha: las palabras no se quiebran por la mitad. Entre acciones, 8 px (el contorno del foco ocupa 4).
+- `hasHelp` = la celda del diseño trae `ayuda` (tabla **o** texto: lo decide la hoja); `hasSettings` = constante con `cotizaciones.configurar` del origen, o
+  tipo de cambio con `empresa.tipos_cambio.gestionar`. **La celda no decide permisos ni abre nada: emite `onHelp(id)` / `onSettings(id)`** con el id de la
+  celda (no el del secundario) y **no mueve el foco**; devolverlo al cerrar es de la hoja.
+- Cada botón se dibuja con la bandera **y** el callback (`accionesDe()` en `estado.ts`): una bandera sin callback sería un botón muerto. **Los mismos
+  callbacks para todas las celdas**: un ternario por celda que cree una función por render dibuja todas.
+- **Deshabilitada:** la ayuda y el ⚙ **siguen** (no escriben en esta cotización); ↺ se va. Si no corresponde, la hoja no manda `hasSettings`.
+- **Modo Live:** siguen. Los botones no dicen cifras; lo que abran pasa sus cifras por `<Monto>` cuando es una celda de dinero (un factor `raw` de la
+  ayuda de una tabla queda a la vista). La cabecera no lee `useLive()`: encender Live no la dibuja de nuevo.
+- Nombres: «Ayuda de {label}», «Cambiar el valor por defecto de {label}», «Volver al valor por defecto de {label}». Iconos del sprite: `xcell-ayuda`,
+  `xcell-ajustes`.
+- **El atajo se anuncia.** El valor, con acciones, lleva `aria-keyshortcuts="ArrowRight"` **y** `aria-describedby` a «Más acciones con la flecha derecha.»
+  (NVDA y JAWS no leen `aria-keyshortcuts`). El texto vive **una vez por hoja** en `<SimbolosDeXCell/>` (`hidden`, que sigue contando para
+  `aria-describedby`), después de la nota. En los dos lados de un par; sin acciones, nada. Lo prueba `e2e/xcell-teclado.spec.ts` con CDP.
+- Si la etiqueta no tiene 6 rem junto a las acciones (tres de 44 px al 200 % en 412 px), las acciones bajan a su fila, a la derecha. Entre acciones, 8 px
+  (el contorno del foco ocupa 4).
 
 ## Estados (`data-estado`, suman)
 
-`normal` · `sugerido` (punto + «Sugerido» para el lector, sin «Sugerido: X» junto al modificado) · `modificado` (anillo interior en la tinta + ↺) · `deshabilitado`
-(candado + el motivo escrito, borde discontinuo; `aria-disabled`, no `disabled`: se lee y se alcanza con Tab, y no abre la edición), **sólo con todos los lados bloqueados**. Ningún estado es sólo color.
+`normal` · `sugerido` (punto + «Sugerido» para el lector) · `modificado` (anillo interior en la tinta + ↺) · `deshabilitado` (candado + el motivo escrito,
+borde discontinuo; `aria-disabled`, no `disabled`), **sólo con todos los lados bloqueados**. Ningún estado es sólo color.
 
-**Las notas (4.13-3c, `notasDe()` en `estado.ts`).** Primero el aviso de lo tipeado o, si no hay, el `error` (`role=alert`): describe a todos los lados. Después el candado de cada lado bloqueado, **una nota por texto
-distinto** (dos lados con el mismo motivo, una sola que describe a los dos). El error y un candado **conviven**: un lado bloqueado nunca queda sin su motivo. Cada botón describe, en orden, el aviso o el error,
-**su** candado y el atajo; la entrada abierta, sólo el aviso o el error (nunca el candado del otro lado).
+**Las notas (`notasDe()` en `estado.ts`).** Primero el aviso de lo tipeado o, si no hay, el `error` (`role=alert`): describe a todos los lados. Después el
+candado de cada lado bloqueado, **una nota por texto distinto**. El error y un candado **conviven**. Cada botón describe, en orden, el aviso o el error,
+**su** candado y el atajo; la entrada abierta, sólo el aviso o el error.
 
 ## Qué emite y quién valida
 
-- Emite sólo si **cambió**: el texto es otro que el que se abrió **y** el número leído, a 15 cifras, es otro que `value` a 15 cifras. Abrir y salir con Tab sin tocar nada
-  no convierte un sugerido en override. El texto de edición lleva la precisión completa (`formatearParaEditar`), no los decimales con que se muestra.
-- Vacío emite `null` (la hoja decide qué significa). Lo que no es un número finito («abc», «Infinity», «1e999», «1,2,3») no se emite: la edición sigue, con su aviso.
-- **El rango, lo obligatorio y lo entero no los valida la celda ni llegan como un error de la base:** `cotizacion_evaluar` los dice en `faltantes` (`fuera_de_rango`, `requerido_sin_valor`) con el
-  valor en null, y la hoja los traduce a un texto propio (`textoDelFaltante()` de `cotizaciones`) y los pasa por `error`.
-- Un porcentaje se tipea en puntos («14,94») y se emite como la fracción que guarda `valores` (0,1494), a 15 cifras: una unidad, no un cálculo.
-- **El número se lee con el lector de toda la app** (`leerNumeroTipeado` de `@/shared/lib/numero-tipeado`, 4-25) y el locale de la empresa (`useRegional()`): en es-BO
-  «1.234» es 1234, «1,5» es 1,5 y «1.5» no se emite, con su aviso en la nota («Usa coma para los decimales: 1,5.»); «1e3», «0x10» e «Infinity» no son números
-  («Escribe un número, por ejemplo 1234,5.», el ejemplo escrito en el locale).
+- Emite sólo si **cambió**: el texto es otro que el que se abrió **y** el número, a 15 cifras, es otro que `value` a 15 cifras. Abrir y salir con Tab no
+  convierte un sugerido en override. El texto de edición lleva la precisión completa (`formatearParaEditar`).
+- Vacío emite `null` (la hoja decide qué significa). Lo que no es un número finito no se emite: la edición sigue, con su aviso.
+- **El rango, lo obligatorio y lo entero no los valida la celda:** `cotizacion_evaluar` los dice en `faltantes` (`fuera_de_rango`, `requerido_sin_valor`)
+  con el valor en null, y la hoja los traduce (`textoDelFaltante()` de `cotizaciones`) y los pasa por `error`.
+- Un porcentaje se tipea en puntos («14,94») y se emite como la fracción que guarda `valores` (0,1494), a 15 cifras.
+- **El número se lee con `leerNumeroTipeado`** (`@/shared/lib/numero-tipeado`) y el locale de la empresa (`useRegional()`): en es-BO «1.234» es 1234, «1,5»
+  es 1,5 y «1.5» no se emite («Usa coma para los decimales: 1,5.»); «1e3», «0x10» e «Infinity» no son números («Escribe un número, por ejemplo 1234,5.»).
 
 ## Teclado
 
-- **Una parada de `Tab` por valor** (dos en un par). Las acciones (ayuda, ⚙ y ↺) llevan `tabIndex -1` y se alcanzan con `→` / `←` desde el valor,
-  en el orden valor → secundario → ayuda → ⚙ → ↺; `Esc` en una acción vuelve al valor. Así «Tab avanza» es de celda en celda aunque la acción vaya antes en el DOM.
-  Las flechas son **de la celda**: la hoja no las usa para moverse entre celdas. Dentro de la entrada abierta mueven el cursor.
-- Tipear un carácter abre la edición con él (el `keydown` se frena: si no, el navegador lo inserta otra vez en la entrada que se monta, «55»); Enter, F2 y el clic abren con
-  el valor seleccionado; Retroceso o Supr abren vacía.
-- Enter confirma y devuelve el foco al valor (el `keydown` se frena: si no, su `keypress` cae en el botón que ocupa su lugar y vuelve a abrir). `Esc` cancela (y no sube al modal
-  que contiene la celda). `Tab` confirma **sin** frenar el keydown y la entrada se va cuando pierde el foco: desmontarla antes deja al navegador sin lugar de partida.
-  Con un texto que no es un número, Enter y Tab no avanzan. Un clic afuera confirma un número y descarta lo demás.
+- **Una parada de `Tab` por valor** (dos en un par). Las acciones llevan `tabIndex -1` y se alcanzan con `→` / `←` desde el valor (valor → secundario →
+  ayuda → ⚙ → ↺); `Esc` en una acción vuelve al valor. Las flechas son **de la celda**: la hoja no las usa entre celdas; en la entrada mueven el cursor.
+- Tipear un carácter abre la edición con él (el `keydown` se frena: si no, se inserta dos veces, «55»); Enter, F2 y el clic abren con el valor
+  seleccionado; Retroceso o Supr abren vacía.
+- Enter confirma y devuelve el foco al valor (el `keydown` se frena: si no, su `keypress` vuelve a abrir). `Esc` cancela (y no sube al modal). `Tab`
+  confirma **sin** frenar el keydown y la entrada se va al perder el foco: desmontarla antes deja al navegador sin lugar de partida. Con un texto que no es
+  un número, Enter y Tab no avanzan. Un clic afuera confirma un número y descarta lo demás.
 - El foco vuelve al botón por un ref que sólo se marca al cerrar una edición: montar 300 celdas no le roba el foco a la página.
 
 ## Tono, Modo Live y tamaños
 
-- **El tono:** la celda sólo pone `data-tono="<clave>"` y lee `--tono-fondo|borde|tinta`; `<EstiloDeTonos>` los escribe por clave, en claro y en `.dark`, desde las filas de `tonos`
-  (AA validado en la base, `…005700_tonos.sql`). Una clave desconocida no casa con ninguna regla y cae a los tokens neutros. `cssDeTonos()` valida con Zod (la clave de
-  `_tono_clave()` y `#rrggbb`) y descarta el tono entero si algo falla: nada que no sea validado llega al `<style>`. Todo lo que dice la celda va en la tinta.
-- **Modo Live:** el valor sin editar pasa por `<Monto>`. La entrada abierta es `type="password"` con el modo encendido: `-webkit-text-security` tapa lo que se dibuja pero
-  el valor sigue en el árbol de accesibilidad (medido con CDP, `e2e/xcell-geometria.spec.ts`).
-- **Gestores de contraseñas (sólo con Live):** un campo de contraseña que se vacía solo invita a «Guardar contraseña». La entrada lleva `autoComplete="off"`, `data-1p-ignore` (1Password), `data-lpignore` (LastPass),
-  `data-bwignore` (Bitwarden) y `data-form-type="other"` (Dashlane). **Chrome ignora `autocomplete="off"` en un `password` y no tiene marca propia: el riesgo queda. No se puede probar aquí** (el Chromium de Playwright no
-  trae gestor): los tests afirman que las marcas están, no que Chrome no ofrezca guardar. Se descartó `autocomplete="one-time-code"` (el teclado del celular ofrecería los códigos de los SMS). Se mira a mano con un Chrome con sesión
-  y Live encendido cuando la hoja (4.13) exista; si ofrece guardar, se decide de nuevo (con `type="text"` y sólo el CSS el valor queda en el árbol de accesibilidad: DECISIONES, «Paso 4.12 (1 de 2)», hb).
-- **Tamaños:** la etiqueta se parte (`[overflow-wrap:anywhere]`), nunca se corta. La entrada ocupa la caja exacta del valor (sin salto) y mide 44 px en px con el dedo.
-  El anillo del modificado es **interior** (`ring-inset`) y el foco, un contorno **exterior**: se ven a la vez.
-- **Nodos por celda** (medidos, `xcell-hoja.test.tsx`): normal 8, par 9, sugerido 10, modificado 11, deshabilitado 11, con error 11; **la ayuda o el ⚙ suman 3 cada uno** (11; los dos, 14; modificado con los dos, 17;
-  deshabilitado con los dos, 17); par modificado con error, ayuda y ⚙: 21. **El candado por lado (4.13-3c):** un lado, 12; los dos con el mismo motivo, 12; con dos motivos o un lado y un error, 15;
-  **par modificado con un lado bloqueado, error, ayuda y ⚙: 24 (el peor)**. Iconos por sprite (`<SimbolosDeXCell/>`, 2 nodos cada uno). 300 celdas de la mezcla del banco, con acciones: **3.000** en el 4.12-2 (tope 3.100; el 4.13-3c le sumó un caso, el par con un lado bloqueado, y sigue bajo el tope sin volver a medirse con número); la mezcla de `xcell-hoja.test.tsx`, con el candado del porcentaje en uno de cada ocho: **3.485** (tope 3.500, 4.13-3c; era 3.368). Un nodo más por celda son 300: lo ven los dos topes.
+- **El tono:** la celda sólo pone `data-tono="<clave>"` y lee `--tono-fondo|borde|tinta`; `<EstiloDeTonos>` los escribe por clave, en claro y en `.dark`,
+  desde las filas de `tonos` (AA validado en la base, `_tono_colores()`). Una clave desconocida cae a los tokens neutros. `cssDeTonos()` valida con Zod (la
+  clave de `_tono_clave()` y `#rrggbb`) y descarta el tono entero si algo falla: al `<style>` no llega nada sin validar. Todo lo que dice la celda va en la
+  tinta.
+- **Modo Live:** el valor sin editar pasa por `<Monto>`. La entrada abierta es `type="password"` con el modo encendido: `-webkit-text-security` tapa lo
+  dibujado pero el valor sigue en el árbol de accesibilidad (`e2e/xcell-geometria.spec.ts`).
+- **Gestores de contraseñas (sólo con Live):** la entrada lleva `autoComplete="off"`, `data-1p-ignore`, `data-lpignore`, `data-bwignore` y
+  `data-form-type="other"`. **Chrome ignora `autocomplete="off"` en un `password` y no tiene marca propia: el riesgo queda** y no se puede probar (el
+  Chromium de Playwright no trae gestor); los tests afirman que las marcas están. Descartados: `autocomplete="one-time-code"` (el celular ofrecería los
+  códigos de los SMS) y `type="text"` con sólo el CSS (el valor queda en el árbol de accesibilidad; `docs/DECISIONES.md`).
+- **Tamaños:** la etiqueta se parte (`[overflow-wrap:anywhere]`), nunca se corta. La entrada ocupa la caja exacta del valor y mide 44 px en px. El anillo del
+  modificado es **interior** (`ring-inset`) y el foco, un contorno **exterior**: se ven a la vez.
+- **Nodos por celda:** los fija `xcell-hoja.test.tsx` (normal 8, par 9; la ayuda o el ⚙ suman 3 cada uno; el peor, par modificado con un lado bloqueado,
+  error, ayuda y ⚙: 24). Iconos por sprite (2 nodos cada uno). Topes de 300 celdas: 3.100 en el banco (`e2e/xcell-teclado.spec.ts`) y 3.500 en la mezcla de
+  `xcell-hoja.test.tsx`. Un nodo más por celda son 300: lo ven los dos.
 
 ## Cómo se prueba
 
-- Vitest (`xcell-*.test.tsx`, `estado.test.ts`, `tonos.test.tsx`): estados, teclado, lo tipeado, sin emisión falsa, el par, las flechas, la ayuda y el ⚙ (`xcell-acciones.test.tsx`), el atajo, las marcas de Live, el tono, el sprite (cada id existe), los nodos y el memo.
-  **jsdom no reproduce dónde cae el primer carácter ni qué hace el navegador con un `keypress` ni a dónde va Tab:** eso lo prueba el e2e.
-- e2e (`e2e/xcell-teclado.spec.ts`, `e2e/xcell-geometria.spec.ts`, en los dos proyectos): la celda sola, hidratada, en un **banco** que no es una ruta de `src/app`
-  (`e2e/soporte/banco.ts` compila `banco-de-xcell.tsx` con el esbuild que trae `tsx` y lo sirve con `page.route`, con los estilos de `/ingreso`). Teclado de verdad, el atajo en la descripción del árbol de accesibilidad (CDP) y geometría
-  (claro/oscuro, 100/200 %, 412/1.280 px; la celda más cargada con el foco en cada acción). Firefox no se prueba (los proyectos son Chromium).
+- Vitest (`xcell-*.test.tsx`, `estado.test.ts`, `tonos.test.tsx`): estados, teclado, sin emisión falsa, el par y sus candados, las flechas, la ayuda y el ⚙,
+  el atajo, las marcas de Live, el tono, el sprite, los nodos y el memo. **jsdom no reproduce dónde cae el primer carácter, el `keypress` ni a dónde va
+  Tab:** eso lo prueba el e2e.
+- e2e (`e2e/xcell-teclado.spec.ts`, `e2e/xcell-geometria.spec.ts`, en los dos proyectos): la celda sola en un **banco** que no es una ruta de `src/app`
+  (`e2e/soporte/banco.ts` compila `banco-de-xcell.tsx` con el esbuild de `tsx` y lo sirve con `page.route`). Teclado de verdad, el atajo en el árbol de
+  accesibilidad (CDP) y geometría (claro/oscuro, 100/200 %, 412/1.280 px). Firefox no se prueba.

@@ -2,65 +2,111 @@
 
 Leads (prospectos y clientes) con teléfono principal único y enmascarado salvo cartera, **campos configurables** con quién los ve, seguimientos, recordatorios, etiquetas, favoritos/tachados, la cartera (compartir, transferir, quitar acceso y salir), la papelera, oportunidades en embudos, portal del cliente y limbo.
 
-Ficha completa (historia, partes, mediciones, trampas viejas): `docs/archivo/modulos/leads.md`, sólo con grep.
-
 ## Entra y sale
 
-- Depende de `equipo` (permisos, alcance propios/todos) y `shared/lib/campos` + `shared/ui/campos`. **No** importa `origenes` ni `empresa`: lo que cruza módulos (ciudad/país de la empresa, vehículos, `web`) lo compone la página por props o promesas.
-- `index.ts` (servidor): lecturas, actions, reglas y tipos, **ningún componente**. Ej.: `leerListadoDeLeads`, `leerFichaDeLead`, `leerLayoutDeLeads`, `leerVistaDeEmbudo`, `exportarLeadsEnCsv` (y, para «exportar todo» de `datos`, 9.05-2: `leerCatalogosDeLead`, `camposDeExportacion`, `telefonoDeExportacion`, `valorDeExportacion` y `ENCABEZADO_DEL_NUMERO_GLOBAL`: una sola regla por tipo de campo), `leerPapeleraDeLeads`, `accionesDeCartera`, `puedeEditarLead`, `puedeGestionarPortal`. Los componentes salen por `pantallas/<pantalla>.ts` (`listado`, `ficha`, `importar`, `papelera`, `configuracion`; sólo `src/app`): pantalla nueva = su archivo.
-- `client.ts`: reglas puras, tipos, `<AltaDeLead>`, `normalizarTelefono()`, `interpretarBusqueda()` y `MINIMO_DE_BUSQUEDA` (las llama la feature del buscador, 7.12-2). `shell.ts`: `<AltaDeLead>` y `<ProveedorDeEscribirPorChat>`; `shell.client.ts`: `useAbrirNuevoLead()` (la paleta del buscador abre «Nuevo lead» con él; no es `usePanelDeAlta()`, que registra la vuelta del foco del panel y ya la registra `<AltaDeLead>`); el layout `(app)` nunca importa el `index.ts`.
-- Rutas: `/leads`, `/leads/[id]` (`leads.ver`; `?seccion=datos|seguimientos|vehiculos|oportunidades|cotizaciones|portal`; «Cotizaciones» con `cotizaciones.ver` en algún origen, sin mirar la cartera: la compone `src/app` con `cotizaciones/pantallas/lead` y se lee desde el navegador al abrirla, 4.17-4b; `leads` no importa `cotizaciones`), `/leads/papelera`, `/leads/importar` (`leads.crear`), `POST /leads/exportar` (`leads.exportar`), `/configuracion/leads` (`leads.configurar`). Todo modal vive en `?panel=` (constantes `PANEL_*`); los de una fila del listado llevan `para=<id>` y con `?lead=` no responden.
-- `client.ts`: reglas puras, tipos, `<AltaDeLead>`, `normalizarTelefono()`, `interpretarBusqueda()` y `MINIMO_DE_BUSQUEDA` (las llama la feature del buscador, 7.12-2). `shell.ts`: sólo `<AltaDeLead>`; `shell.client.ts`: `useAbrirNuevoLead()` (la paleta del buscador abre «Nuevo lead» con él; no es `usePanelDeAlta()`, que registra la vuelta del foco del panel y ya la registra `<AltaDeLead>`); el layout `(app)` nunca importa el `index.ts`.
-- `client.ts` también da lo puro de la importación para `datos` (9.06-4): `prepararFilas` (y, desde 9.06-4b, `preparadorDeFilas`: por tramos, con lo visto de teléfonos cruzando las llamadas y el mismo resultado que una pasada; y `origenInicial`), `objetivosDeImportacion`, `emparejarColumnas`, `conDestino`, `objetivosSinColumna`, `comparable`, `sinApostrofoDeFormula`, `fechaIso`, `fechaHoraLocal`, `convertirNumero`, `convertirSiONo`, `MOTIVO_DE_FECHA`, `MOTIVO_DE_FECHA_HORA`, `usePaises` y sus tipos (`Conversion`, `TablaDePaises`…). La importación total convierte con estas reglas: no hay otras.
-- Rutas: `/leads`, `/leads/[id]` (`leads.ver`; `?seccion=datos|seguimientos|vehiculos|oportunidades|cotizaciones|portal`; «Cotizaciones» con `cotizaciones.ver` en algún origen, sin mirar la cartera: la compone `src/app` con `cotizaciones/pantallas/lead` y se lee desde el navegador al abrirla, 4.17-4b; `leads` no importa `cotizaciones`), `/leads/papelera`, `/leads/importar` (`leads.crear`), `POST /leads/exportar` (`leads.exportar`), `/configuracion/leads` (`leads.campos.gestionar` o `leads.configurar`; «Campos» y las cinco `lead_campo_*` piden la primera, orígenes, tipos de lead, tipos de seguimiento y `?seccion=embudo|portal` (la plantilla del embudo y el mensaje del portal, `features/plantillas/`, 9.04-5) la segunda, 9.04-1). Todo modal vive en `?panel=` (constantes `PANEL_*`); los de una fila del listado llevan `para=<id>` y con `?lead=` no responden.
-- `/cotizaciones/nuevo` (4.14-3b): `pantallas/cotizar.ts` da `<BarraDelCliente>` (una parada de Tab bajo la barra del vehículo) y `features/panel-para-cotizar/` su panel (`?panel=cliente&clase=&buscar=&cursor=`: «míos» por `reciente_en` en «Todos», «Prospecto» y «Cliente», o la búsqueda por nombre o `#n`; elegir o quitar escribe `?lead=` con `history: 'replace', shallow: false`). `index.ts` da `leerClienteElegido(id)` (`ok(null)` sólo si no se ve; un error es un error). Lo que llama el navegador: `leads_cartera_vista`, `leads_candidatos`, `leads_vista_por_ids`, `leads_ids_del_numero` y `leads_catalogos` (`infra/panel-para-cotizar.client.ts`). `src/app` lo compone: `cotizaciones` no importa `leads`.
-- Inicio, «Vincular a lead» de un turno de la web (8.05-1): `pantallas/turno.ts` da `PanelParaVincularDiferido` y `CLAVES_DE_LA_BUSQUEDA`; `features/vincular-turno/` compone el buscador y la lista de `panel-para-cotizar` (sin elegido) en un `<Drawer>` «Vincular a un lead» (`?panel=vincular-turno&turno=<id>`); elegir llama `alElegir(leadId)` y quien lo monta (`src/app/(app)/_inicio/vincular-turno.tsx`, que junta la action de `web`) decide. «+» abre «Nuevo lead» con `?elegir=vincular` y el alta devuelve `?vincular=<id>`. `web` no importa `leads`.
-- `index.ts` da `leerNombresDeLeads(ids)` (4.16-4a, `infra/queries/nombres-de-leads.ts`): los nombres de los leads de una página de `/cotizaciones` por `leads_vista_por_ids()` (invocadora: la RLS decide; el que no se ve no llega ni se distingue del que no existe), hasta 100 ids y una vez por página. `src/app` lo compone: `cotizaciones` no importa `leads`.
-- **«Nuevo lead» desde la hoja de cotizar** (4.14-3c): el «+» del panel del cliente abre el alta del shell con `?panel=nuevo-lead&elegir=<clave>` (`entities/elegir-al-crear.ts`: `claveParaElegir()` valida que sea un nombre de 1 a 20 letras minúsculas que no sea `panel` ni `elegir`); con él, `usePanelDeAlta()` entrega `paraElegir` y `elegirElCreado(id)`, y al guardar (`features/alta/hooks/use-al-guardar-del-alta.ts`) el alta se cierra, el aviso va sin «Abrir ficha» y la pantalla elige al creado. El foco vuelve a la barra «Cliente» (`data-elige`, `marco-del-alta.tsx`), y el panel del cliente no devuelve el suyo al pasar al alta. Sin `elegir`, el alta no cambia. «Cotizar» de la cabecera de la ficha lo arma `src/app` (`paraCotizar`: la ruta de la hoja en el primer origen donde se cotiza, o null): `leads` no importa `cotizaciones`.
-- **Inicio** (9.02): `index.ts` da `leerRecordatoriosDeHoy({ hasta, tope })` y `leerLeadsSinSeguimiento({ creadosAntesDe, tope })` (`infra/queries/bandeja.ts`, `entities/bandeja.ts`) para los bloques de la bandeja de `tablero`: mis recordatorios pendientes (`recordatorios_vista`) y los leads de mi cartera (`leads_cartera_vista`) sin ningún seguimiento y de más de 24 h. Piden `tope + 1` y devuelven `{ filas, hayMas }`; `finDeHoy()` y `creadoAntesDe()` calculan los instantes, `rutaDeSeguimientos()` la ficha.
-- **«Escribirle por chat»** (7.11-2): en el aviso «Lo tiene <persona>» del teléfono principal (alta y cambio de principal; el alterno no trae el id), `features/chat/` (`EnlaceDeChat`, `useEscribirPorChat`, `ProveedorDeEscribirPorChat`) dibuja un enlace a `/chat?con=<duenoId>` sólo si el layout dijo `chat.participar`
-  (un booleano por contexto, falso por omisión). `Verificacion.duenoId` existe sólo si la base mandó `dueno_id`. **`leads` no importa `chat`**: la página `/chat` abre la directa y la base decide si la otra persona puede (`chat_directa`).
-- **Agenda** (7.07-3): `client.ts` reexporta la action `completarRecordatorio` para el panel `?recordatorio=` de `/agenda` (sale por la raíz del módulo; la RPC `recordatorio_completar` exige que el recordatorio sea de quien actúa y la action no decide permisos sobre `leads`).
-- Pendiente (sin código): `getLead()`, `buscarLeads()`, `<ChipLead>`, `telefonoDe(leadId)`.
+- Depende de `equipo` y `shared/lib/campos` + `shared/ui/campos`. **No** importa `origenes`, `empresa`, `cotizaciones`, `chat` ni `web`: lo que
+  cruza módulos lo compone `src/app` por props o promesas.
+- `index.ts` (sin componentes): `leerListadoDeLeads`, `leerFichaDeLead`, `leerLayoutDeLeads`, `leerVistaDeEmbudo`, `exportarLeadsEnCsv`,
+  `leerPapeleraDeLeads`, `accionesDeCartera`, `puedeEditarLead`, `puedeGestionarPortal`; para «exportar todo» de `datos`: `leerCatalogosDeLead`,
+  `camposDeExportacion`, `telefonoDeExportacion`, `valorDeExportacion`, `ENCABEZADO_DEL_NUMERO_GLOBAL` (una sola regla por tipo de campo).
+  - `leerNombresDeLeads(ids)`: nombres de una página de `/cotizaciones` por `leads_vista_por_ids()` (invocadora: el que no se ve no se distingue del
+    que no existe), hasta 100 ids, una vez por página.
+  - `leerClienteElegido(id)`: `ok(null)` sólo si no se ve; un error es un error.
+  - Bandeja de Inicio (`tablero`): `leerRecordatoriosDeHoy({ hasta, tope })` (mis pendientes, `recordatorios_vista`) y
+    `leerLeadsSinSeguimiento({ creadosAntesDe, tope })` (mi cartera sin seguimiento y de más de 24 h, `leads_cartera_vista`); piden `tope + 1` y
+    devuelven `{ filas, hayMas }` (`entities/bandeja.ts`: `finDeHoy()`, `creadoAntesDe()`, `rutaDeSeguimientos()`).
+- Pantallas por `pantallas/<pantalla>.ts` (`listado`, `ficha`, `importar`, `papelera`, `configuracion`, `cotizar`, `turno`; sólo `src/app`).
+- `client.ts`: reglas puras, tipos, `<AltaDeLead>`, `normalizarTelefono()`, `interpretarBusqueda()`, `MINIMO_DE_BUSQUEDA` (para `buscador`), la
+  action `completarRecordatorio` (panel `?recordatorio=` de `/agenda`; la RPC exige que sea de quien actúa) y lo puro de la importación de `datos`
+  (`prepararFilas`, `preparadorDeFilas` por tramos con el mismo resultado que una pasada, `emparejarColumnas`, `convertir*`, `fecha*`, `usePaises`…):
+  la importación total no tiene otras reglas.
+- `shell.ts`: `<AltaDeLead>`, `<ProveedorDeEscribirPorChat>`; `shell.client.ts`: `useAbrirNuevoLead()` (paleta del buscador; no `usePanelDeAlta()`).
+- Rutas: `/leads`, `/leads/[id]` (`leads.ver`; `?seccion=datos|seguimientos|vehiculos|oportunidades|cotizaciones|portal`; «Cotizaciones» con
+  `cotizaciones.ver` en algún origen, sin mirar la cartera, la compone `src/app` con `cotizaciones/pantallas/lead`), `/leads/papelera`,
+  `/leads/importar` (`leads.crear`), `POST /leads/exportar` (`leads.exportar`), `/configuracion/leads` («Campos» y las `lead_campo_*` piden
+  `leads.campos.gestionar`; orígenes, tipos de lead y de seguimiento y `?seccion=embudo|portal` (`features/plantillas/`), `leads.configurar`).
+  Todo modal en `?panel=` (`PANEL_*`); los de una fila llevan `para=<id>` y con `?lead=` no responden.
+- Hoja de cotizar: `<BarraDelCliente>` y su panel (`features/panel-para-cotizar/`, `?panel=cliente&clase=&buscar=&cursor=`: «míos» por
+  `reciente_en` o búsqueda por nombre o `#n`; elegir escribe `?lead=` con `history: 'replace', shallow: false`; lecturas del navegador en
+  `infra/panel-para-cotizar.client.ts`). Su «+» abre el alta con `?panel=nuevo-lead&elegir=<clave>` (`claveParaElegir()`: 1 a 20 minúsculas, ni
+  `panel` ni `elegir`): `usePanelDeAlta()` entrega `paraElegir` y `elegirElCreado(id)`, el aviso va sin «Abrir ficha» y el foco vuelve a la barra
+  (`data-elige`). «Cotizar» de la ficha: `paraCotizar`, de `src/app`.
+- «Vincular a lead» de un turno de la web (`features/vincular-turno/`, `?panel=vincular-turno&turno=<id>`): elegir llama `alElegir(leadId)` y decide
+  `src/app/(app)/_inicio/vincular-turno.tsx`; «+» abre el alta con `?elegir=vincular` y vuelve con `?vincular=<id>`.
+- «Escribirle por chat» (`features/chat/`): en el aviso «Lo tiene <persona>» del teléfono principal, enlace a `/chat?con=<duenoId>` sólo si el layout
+  dijo `chat.participar` (falso por omisión) y la base mandó `dueno_id`. La base decide si se puede (`chat_directa`).
+- Sin código: `getLead()`, `buscarLeads()`, `<ChipLead>`, `telefonoDe(leadId)`.
 
 ## Archivos clave
 
-- `entities/campo.ts` (`CampoDeLead`, con el rango `minimo`/`maximo` de un número o un monto, 9.04-3; `CLAVES_RESERVADAS_DE_LEAD`, espejo de `_lead_clave_reservada()`); `entities/telefono.ts` (`normalizarTelefono()`, espejo de la SQL, probado en PGlite); `entities/documento.ts` (lista blanca, espejo de `_seguimiento_detalle()`).
-- Alta: `entities/alta.ts` (`validarAlta()`), `features/alta/` (un solo drawer, `marco-del-alta.tsx`; lee su contexto al abrirse: `infra/contexto-de-alta.client.ts`). El aviso de guardado sale cuando el envío terminó, no al resolver la promesa (`features/alta/hooks/use-tras-el-envio.ts`, 9-7): `useTrasElEnvio()` encola y `useSoltarTrasElEnvio(tras, enCurso)` lo suelta con `isPending` en falso o al desmontarse; lo usan el alta y el panel de etapas del embudo (`use-panel-de-etapas.ts`). `vehiculos` tiene una copia igual (9.12-2, D3).
-- Listado: `entities/filtros.ts`, `fuente-del-listado.ts`, `candidatos.ts`, `infra/queries/listado.ts` (`buscarLeads`, `contarLeadsHasta`). Ficha: `entities/ficha.ts`, `edicion.ts`, `infra/ficha.ts` (`lead_guardar`).
-- `features/seguimientos/`, `features/recordatorios/`, `features/marcas/components/menu-de-lead.tsx` (el «⋯» en cuatro superficies; «Ver actividad» sólo en la ficha y con `actividad.ver`, con la ruta que arma `src/app` por `rutaDeActividadDe`, 9.01-4); cartera, papelera, portal, embudo y oportunidades: `entities/<x>.ts` + `infra/<x>.ts`.
-- CSV: `entities/exportacion.ts`, `entities/importacion/`, `infra/importacion.ts`. Catálogos: `entities/catalogos.ts` + `infra/queries/catalogos.ts` (`leads_catalogos()`, una llamada para listado, ficha y exportación). Números: `@/shared/lib/numeros-de-lead`.
+- `entities/campo.ts` (`CampoDeLead`, con `minimo`/`maximo`; `CLAVES_RESERVADAS_DE_LEAD`, espejo de `_lead_clave_reservada()`),
+  `entities/telefono.ts` (espejo de la SQL, probado en PGlite), `entities/documento.ts` (lista blanca, espejo de `_seguimiento_detalle()`).
+- Alta: `entities/alta.ts` (`validarAlta()`), `features/alta/` (un drawer; contexto al abrirse, `infra/contexto-de-alta.client.ts`). El aviso de
+  guardado sale cuando el envío terminó (`useTrasElEnvio()` encola, `useSoltarTrasElEnvio(tras, enCurso)` suelta; también el panel de etapas;
+  `vehiculos` tiene una copia).
+- Listado: `entities/filtros.ts`, `fuente-del-listado.ts`, `candidatos.ts`, `infra/queries/listado.ts` (`buscarLeads`, `contarLeadsHasta`). Ficha:
+  `entities/ficha.ts`, `edicion.ts`, `infra/ficha.ts`.
+- `features/seguimientos/`, `features/recordatorios/`, `features/marcas/components/menu-de-lead.tsx` (el «⋯»; «Ver actividad» sólo en la ficha, con
+  `actividad.ver` y la ruta de `rutaDeActividadDe`); cartera, papelera, portal, embudo, oportunidades: `entities/<x>.ts` + `infra/<x>.ts`.
+- CSV: `entities/exportacion.ts`, `entities/importacion/`, `infra/importacion.ts`. Catálogos: `leads_catalogos()`, una llamada para listado, ficha y
+  exportación. Números: `@/shared/lib/numeros-de-lead`.
 
 ## Tablas
 
-`leads` (con `atributos`, `atributos_publicos`, `cartera`), `leads_campos`, `leads_telefonos`, `leads_asesores`, `leads_favoritos`, `leads_tachados`, `etiquetas`, `leads_etiquetas`, `tipos_seguimiento`, `seguimientos`, `recordatorios`, `embudos`, `embudos_etapas`, `oportunidades`, `accesos_portal`, `origenes_lead`, `tipos_lead`, `importaciones`, `ajustes_leads` (fila única: las plantillas del embudo y del mensaje del portal, 9.04-4); `lotes_papelera` es compartida.
+`leads` (`atributos`, `atributos_publicos`, `cartera`), `leads_campos`, `leads_telefonos`, `leads_asesores`, `leads_favoritos`, `leads_tachados`,
+`etiquetas`, `leads_etiquetas`, `tipos_seguimiento`, `seguimientos`, `recordatorios`, `embudos`, `embudos_etapas`, `oportunidades`, `accesos_portal`,
+`origenes_lead`, `tipos_lead`, `importaciones`, `ajustes_leads` (fila única: plantillas del embudo y del mensaje del portal); `lotes_papelera` es
+compartida.
 
-**Sólo se leen; se escriben por RPC:** `leads` (`crear_lead`, `lead_guardar`; `telefono_principal` sólo `crear_lead` y `cambiar_telefono_lead`), `leads_telefonos` (`lead_telefono_*`, sin grant), `leads_asesores` (`lead_compartir|transferir|revocar_acceso|salir`), marcas (`lead_favorito_poner`, `lead_tachado_poner`, `lead_etiquetas_poner`, `etiqueta_*`), y por prefijo `seguimiento_*`, `recordatorio_*`, `embudo_*`, `oportunidad_*`, `origen_lead_*`, `tipo_lead_*`, `tipo_seguimiento_*`, `lead_campo_*`, `leads_papelera_*`, `leads_importar_lote`, `otorgar_portal`, `ajustes_leads` (`embudo_plantilla_guardar`, `portal_mensaje_guardar`, con `leads.configurar` y PT409; versiones `embudo_actualizado_en` y `portal_actualizado_en`, independientes). Lecturas: `ajustes_leads_leer()` (cuenta activa, sin permiso; las etapas de fábrica salen de la base), `leads_vista`, `leads_cartera_vista`, `lead_ficha()`, `leads_candidatos()` + `leads_vista_por_ids()`, `lead_oportunidades()` (de invocadora y por cursor: `p_antes_abierta`, `p_antes_en`, `p_antes_id`, de a 20 y hasta 100; tres rutas, cada una por su parcial `oportunidades_lead_abiertas_idx` o `oportunidades_lead_cerradas_idx`; la sección de la ficha lee 10 en el servidor y «Ver más» de a 20 desde el navegador, hasta 500: `infra/oportunidades.client.ts`).
+**Sólo se leen; se escriben por RPC:** `leads` (`crear_lead`, `lead_guardar`; `telefono_principal` sólo `crear_lead` y `cambiar_telefono_lead`),
+`leads_telefonos` (`lead_telefono_*`), `leads_asesores` (`lead_compartir|transferir|revocar_acceso|salir`), marcas (`lead_*_poner`, `etiqueta_*`), y
+`seguimiento_*`, `recordatorio_*`, `embudo_*`, `oportunidad_*`, `origen_lead_*`, `tipo_lead_*`, `tipo_seguimiento_*`, `lead_campo_*`,
+`leads_papelera_*`, `leads_importar_lote`, `otorgar_portal`, `ajustes_leads` (`embudo_plantilla_guardar`, `portal_mensaje_guardar`:
+`leads.configurar`, PT409 con versiones independientes `embudo_actualizado_en` y `portal_actualizado_en`). Lecturas: `ajustes_leads_leer()` (sin
+permiso), `leads_vista`, `leads_cartera_vista`, `lead_ficha()`, `leads_candidatos()` + `leads_vista_por_ids()`, `lead_oportunidades()` (invocadora,
+por cursor, de a 20 y hasta 100, por `oportunidades_lead_abiertas_idx` y `oportunidades_lead_cerradas_idx`; «Ver más» hasta 500).
 
 ## No se rompe
 
-- **Privados recortados en la base:** un campo `solo_cartera` y el teléfono completo sólo llegan a quien tiene el lead en su cartera, también quien ve «todos» (incluido el dueño: deliberado). `leads.atributos` y `telefono_principal` no tienen grant: la app lee `leads_vista`. Falla cerrada: a un ajeno sólo llegan claves que el layout conoce como no privadas. Filtrar es leer: un privado ajeno no se encuentra.
-- **Clase 1** (editar, teléfonos, seguimientos, recordatorios, portal, vehículos): cartera **y** permiso con cualquier alcance, vía `puede_actuar_lead()` o `_lead_mio()`, nunca `puede_lead(…, 'leads.editar')`. Limbo, papelera, ajeno e inexistente dan el mismo `42501`. **Clase 2** (compartir, transferir, quitar, salir): el dueño o, con «todos», quien lo ve; nadie se concede acceso a sí mismo (salvo `crear_lead` con `adoptar`). **Clase 3** (papelera): el permiso con su alcance; purgar pide `leads.papelera.purgar`. Toda RPC que recibe un lead cae en una clase: `supabase/tests/auditoria-leads.sql` falla si una nueva no figura.
-- **`lead_guardar` es la única puerta de edición** y exige `actualizado_en` (`PT409`). La versión la mueve sólo nombre, tipo, origen, atributos, teléfono o papelera (`lead_version()`); una columna derivada nueva se suma fuera. `atributos` es un parche y nunca guarda un nulo.
-- **`crear_lead(p_id, …)`:** una transacción idempotente por `p_id`; un duplicado es un valor (`existe`, `de_otro`, `limbo`), no una excepción; adoptar exige `adoptar: true`.
-- **Teléfono:** único entre leads vivos; la búsqueda es por nombre y por número de lead (`#124`), **nunca por teléfono** (oráculo). El tope de 10 extras lo aplica «agregar», no el cambio.
-- **Marcas** (favorito, tachado, etiquetas): de quien mira, `poner(valor)` y nunca alternar, sin versión, sin tocar `leads`. Embudos personales; oportunidades clase 1.
-- **Un origen o tipo de lead con leads no se elimina: se desactiva.** Siempre queda un tipo activo de cada clase; la clase no cambia. **Se razona por la clase, nunca por nombre o clave de un tipo**; ningún texto de `src/` ni `supabase/` nombra un origen o tipo. Un campo con datos no cambia de tipo ni se elimina.
+- **Privados recortados en la base:** un campo `solo_cartera` y el teléfono completo sólo llegan a quien tiene el lead en su cartera, también con
+  «todos» (incluido el dueño: deliberado). `leads.atributos` y `telefono_principal` sin grant: la app lee `leads_vista`. Falla cerrada: a un ajeno
+  sólo llegan claves que el layout conoce como no privadas. Un privado ajeno no se encuentra filtrando.
+- **Clase 1** (editar, teléfonos, seguimientos, recordatorios, portal, vehículos): cartera **y** permiso, vía `puede_actuar_lead()` o `_lead_mio()`,
+  nunca `puede_lead(…, 'leads.editar')`; limbo, papelera, ajeno e inexistente dan el mismo `42501`. **Clase 2** (compartir, transferir, quitar,
+  salir): el dueño o, con «todos», quien lo ve; nadie se da acceso a sí mismo (salvo `crear_lead` con `adoptar`). **Clase 3** (papelera): el permiso
+  con su alcance; purgar pide `leads.papelera.purgar`. Toda RPC que recibe un lead figura en `supabase/tests/auditoria-leads.sql`.
+- **`lead_guardar` es la única puerta de edición** y exige `actualizado_en` (`PT409`). La versión la mueven sólo nombre, tipo, origen, atributos,
+  teléfono o papelera (`lead_version()`): una columna derivada nueva se suma fuera. `atributos` es un parche y nunca guarda un nulo.
+- **`crear_lead(p_id, …)`:** idempotente por `p_id`; un duplicado es un valor (`existe`, `de_otro`, `limbo`); adoptar exige `adoptar: true`.
+- **Teléfono:** único entre vivos; se busca por nombre y por número (`#124`), **nunca por teléfono** (oráculo). El tope de 10 extras lo aplica
+  «agregar», no el cambio.
+- **Marcas:** de quien mira, `poner(valor)` y nunca alternar, sin versión, sin tocar `leads`. Embudos personales; oportunidades clase 1.
+- **Un origen o tipo de lead con leads se desactiva, no se elimina.** Siempre queda un tipo activo de cada clase; la clase no cambia. **Se razona
+  por la clase, nunca por nombre o clave**. Un campo con datos no cambia de tipo ni se elimina.
 - **Seguimientos:** privado = sólo su autor; el detalle es un documento validado contra la lista blanca, nunca HTML ni `innerHTML`.
-- **CSV:** exportar sólo la cartera (`en_cartera = true`), tope 5.000, 5 por hora, apóstrofo ante `= + - @`. Importar pasa cada fila por `validarAlta()` y no adopta del limbo. `FILAS_POR_LOTE` (50) lo compara `scripts/guardas/lote-de-importacion.test.ts`.
-- **Portal:** la clave se ve una vez y nunca cruza registro, URL ni almacenamiento (`logging.serverFunctions` apagado); `otorgado_en` es la versión del acceso. El texto para WhatsApp sale de `ajustes_leads.portal_mensaje` con sus variables (`aplicarMensaje()`, una sola pasada; `validarMensajeDelPortal()` es espejo de `_portal_mensaje_normalizar`); nulo = el de fábrica de `entities/portal-mensaje.ts`. La sección «Portal» lo lee con `leerAjustesDeLeads()` junto con el acceso.
-- **Visibilidad:** `_lead_visible_para(eliminado_en, cartera, alcance, yo, fuera)`; una función que lee `leads_asesores … revocado_en is null` entra al inventario de `humo.sql` o filtra con `_bajas_en_curso()`.
-- **Lo reciente en la cartera:** `leads_asesores.lead_reciente_en` es una copia de `coalesce(ultimo_seguimiento_en, creado_en)` en **todas** las filas del lead, también las revocadas (compartir revive una fila por `on conflict` y ahí lo del `before insert` se descarta). La llena `leads_asesores_creado_en()`, la sigue `leads_reciente_seguir()` (trigger de `leads`) y nadie más la escribe (`leads_asesores_creado_en_guarda()`); las dos vistas la exponen como `reciente_en`. Un `insert` en `leads_asesores` con los triggers apagados nombra las dos copias.
-- Ningún componente decide qué número de lead mostrar: dibujan el global si llegó, si no el propio.
-- **Recordatorios:** avisa el job `recordatorios-notificar` (cada minuto, `recordatorios_notificar()`, 7.01-1), una vez por hora fijada. La `ruta` del aviso
-  nombra el lead sólo si su dueño todavía lo tiene vivo en la cartera; si no, `/agenda?recordatorio=<id>`. Cambiar la hora reemplaza el aviso abierto.
-- **La cartera avisa** (7.01-2): `lead_compartir` deja un `lead_compartido` a quien recibe y `lead_transferir`, un `lead_transferido` al destino (al
-  saliente no); `sin_cambios` no avisa. Repetir reemplaza el aviso abierto. Ningún título ni cuerpo lleva el teléfono, el número ni el nombre del lead: se abre por la `ruta` (`supabase/tests/areas/notificaciones/avisos-de-cartera.sql`).
+- **CSV:** exportar sólo la cartera (`en_cartera = true`), tope 5.000, 5 por hora, apóstrofo ante `= + - @`. Importar pasa cada fila por
+  `validarAlta()` y no adopta del limbo. `FILAS_POR_LOTE` (50) lo vigila `scripts/guardas/lote-de-importacion.test.ts`.
+- **Portal:** la clave se ve una vez y nunca cruza registro, URL ni almacenamiento (`logging.serverFunctions` apagado); `otorgado_en` es la versión.
+  El texto para WhatsApp sale de `ajustes_leads.portal_mensaje` (`aplicarMensaje()`, una pasada; `validarMensajeDelPortal()`, espejo de
+  `_portal_mensaje_normalizar`); nulo = el de fábrica de `entities/portal-mensaje.ts`. Lo lee `leerAjustesDeLeads()`.
+- **Visibilidad:** `_lead_visible_para(eliminado_en, cartera, alcance, yo, fuera)`; una función que lee `leads_asesores … revocado_en is null` entra
+  al inventario de `humo.sql` o filtra con `_bajas_en_curso()`.
+- **`leads_asesores.lead_reciente_en`** copia `coalesce(ultimo_seguimiento_en, creado_en)` en **todas** las filas del lead, también las revocadas
+  (compartir revive por `on conflict`). La llena `leads_asesores_creado_en()`, la sigue `leads_reciente_seguir()` y
+  nadie más la escribe (`leads_asesores_creado_en_guarda()`); las vistas la exponen como `reciente_en`. Un `insert` con triggers apagados nombra las
+  dos copias.
+- Ningún componente decide qué número mostrar: el global si llegó, si no el propio.
+- **Recordatorios:** avisa el job `recordatorios-notificar` (cada minuto, `recordatorios_notificar()`), una vez por hora fijada. La `ruta` nombra el
+  lead sólo si su dueño aún lo tiene vivo en la cartera; si no, `/agenda?recordatorio=<id>`. Cambiar la hora reemplaza el aviso abierto.
+- **La cartera avisa:** `lead_compartir` deja `lead_compartido` a quien recibe; `lead_transferir`, `lead_transferido` al destino; `sin_cambios` no
+  avisa y repetir reemplaza el abierto. Ningún aviso lleva teléfono, número ni nombre del lead
+  (`supabase/tests/areas/notificaciones/avisos-de-cartera.sql`).
 
 ## Ojo
 
-- Los números mostrados son acotados (`contarLeadsHasta`, «500+») y las listas hijas tienen tope (`.claude/rules/escala.md`); un resultado de RPC se pone sólo dentro de lo cargado (`ponerEnLaVentana()`).
-- Búsqueda y campos van por `leads_candidatos()` (`security definer`): `condicionesDeLaPagina()` **quita** lo que ya cumplen (repetirlo cambia el plan). `_leads_vista_crear()` define `leads_vista` y `leads_cartera_vista` (con `reciente_en`): no `drop view` a mano. `atributos_lead()` lleva `COST 20000`; un campo público se filtra por `atributos_publicos`.
-- La tabla de países (`entities/paises/`) sólo con `import()`, nunca estática; un lead existente no cambia de país al cambiar un teléfono.
+- Un resultado de RPC se pone sólo dentro de lo cargado (`ponerEnLaVentana()`).
+- Búsqueda y campos van por `leads_candidatos()` (`security definer`): `condicionesDeLaPagina()` **quita** lo que ya cumplen (repetirlo cambia el
+  plan). `_leads_vista_crear()` define `leads_vista` y `leads_cartera_vista`: nada de `drop view` a mano. `atributos_lead()` lleva `COST 20000`.
+- La tabla de países (`entities/paises/`) sólo con `import()`; un lead no cambia de país al cambiar un teléfono.
 - Los e2e que insertan leads con el cliente de servicio completan los requeridos (`e2e/soporte/leads.ts`).
 - Las carreras se prueban en `pnpm db:carreras`, no en `db:probar`.
