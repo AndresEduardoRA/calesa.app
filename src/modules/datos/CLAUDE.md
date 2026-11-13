@@ -7,6 +7,7 @@ Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista pre
 - Entra: archivo CSV subido desde el navegador, mapeo de columnas, confirmación.
 - Sale: `/datos` y `POST /datos/exportar` (9.05-2: el archivo de «exportar todo» por un flujo; `index.ts` da `exportarTodo`, `esquemaDelPedido`, `TOPE_DE_FILAS` y `TOPE_POR_ENTIDAD`). Entidades: `leads`, `vehiculos` (9.05-2b, con `origen` obligatorio: un archivo por origen) y `cotizaciones` (9.05-2c, con `origen` optativo).
 - La pantalla `/datos` (9.05-3): `pantallas/datos.ts` da `SeccionExportar`; `index.ts` suma `seccionDeDatos` (`?seccion=`, «Importar» apagada hasta el 9.06).
+- La sección «Importar» (9.06-4b): `index.ts` da `opcionesDeImportar`, `puedeImportar`, `entidadElegida`, `origenElegido` y `TOPE_DE_DESTINOS` (qué puede importar cada quien: sólo dibuja) y `leerPersonasParaDestino` (a quién darle los leads).
 - Depende de: `leads` (las celdas de su exportación propia y sus catálogos, por su entrada), `vehiculos` (`camposComunes`), `origenes` (`getOrigenes(true)`, `leerLayout`) y `flujos` (`leerFasesDeOrigen`), por sus entradas (la pantalla, además, `PANEL_EXPORTAR` de `leads` para enlazar «Mis leads» a su diálogo); el route handler compone `equipo` (`getPermisos`) y `empresa` (`leerAjustes`). **Los listados no dependen de `datos`:** el CSV de lo propio de `leads` (exportar «lo que ves» e importar con vista previa) vive en `leads` (Fase 3, parte 8) y `datos` lo consume por su entrada y reutiliza `shared/lib/csv` (`escribir`, `leer`, `descargar`). Lo que es de `datos` es el **todo del dueño** con `datos.exportar.todo` e `importar-csv`. La importación total (9.06-4) convierte en el navegador con las reglas de los dueños, por su `client.ts`: `leads/client` (`prepararFilas`, el emparejamiento y los lectores de números, sí o no y fechas) y `vehiculos/client` (`validarVehiculo`, `camposComunes`).
 
 ## Archivos clave
@@ -23,6 +24,8 @@ Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista pre
 ## Tablas
 
 `importaciones` (estado, totales, informe por fila). RPC: `crear_lead` por fila (misma regla de limbo y duplicados).
+
+- `perfiles` (9.06-4b, `infra/personas.ts`): sólo `id, nombre` de las personas activas y sin bloqueo, hasta 100, bajo «perfiles: leer», para el destino de una importación de leads. Nunca el correo.
 
 - `datos_exportacion_registrar(p_entidad, p_filas, p_filtros)` (9.05-1, definer): el enforcement de `datos.exportar.todo`. Entidades `leads`,
   `vehiculos` y `cotizaciones`; hasta 250.000 filas por archivo; filtros sólo `desde`, `hasta` (fecha) y `origen` (obligatorio en vehículos,

@@ -58,3 +58,6 @@ export const pedirPaseParaImportar = pedirPaseDeImportacion
 export function despertarImportacion(pase: string) {
   return llamarImportarCsv(entornoPublico().NEXT_PUBLIC_SUPABASE_URL, pase)
 }
+
+// A quién darle los leads de una importación total (9.06-4b): personas activas, `id` y `nombre`, hasta `TOPE_DE_DESTINOS`.
+export { leerPersonasParaDestino, type PersonaDestino } from './infra/personas'
