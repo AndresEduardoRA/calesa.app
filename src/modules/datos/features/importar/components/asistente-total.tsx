@@ -5,6 +5,7 @@ import type { Permisos } from '@/shared/lib/permisos'
 import { motivoParaNoImportar } from '../../../entities/permiso-de-importar'
 import type { ContextoDeLaSeccion } from '../contexto-de-la-seccion'
 import { useAsistenteTotal } from '../hooks/use-asistente-total'
+import type { Importaciones } from '../hooks/use-importaciones'
 import { useLanzarImportacion } from '../hooks/use-lanzar-importacion'
 import { PasoArchivo } from './paso-archivo'
 import { PasoColumnas } from './paso-columnas'
@@ -49,6 +50,8 @@ type Props = {
   seccion: ContextoDeLaSeccion
   // «Yo» es `null`.
   asignarA: string | null
+  // La lista «Importaciones» de la sección: el avance de la recién lanzada sale de ahí.
+  importaciones: Importaciones
   alImportarOtro: () => void
   // Mientras prepara, sube o crea: quien lo dibuja apaga «Qué importas», «Destino» y «Origen» (cambiarlos a mitad no cambia lo que se manda).
   alOcupar: (ocupado: boolean) => void
@@ -57,9 +60,9 @@ type Props = {
 // Archivo → Columnas → Vista previa → Importando. Todo lo del archivo vive sólo en la memoria de este asistente: quien lo dibuja le cambia
 // la `key` al cambiar de entidad, origen o destino, al salir de la pantalla y con «Importar otro archivo».
 export function AsistenteTotal(props: Props) {
-  const { yo, permisos, seccion, asignarA, alImportarOtro } = props
+  const { yo, permisos, seccion, asignarA, importaciones, alImportarOtro } = props
   const asistente = useAsistenteTotal(seccion)
-  const lanzar = useLanzarImportacion(yo)
+  const lanzar = useLanzarImportacion(yo, { alLanzar: importaciones.alLanzar })
   const [paso, setPaso] = useState<Paso>('archivo')
   useAvisarOcupado(lanzar.ocupado, props.alOcupar)
   const origenId = seccion.entidad === 'vehiculos' ? seccion.origen.id : null
@@ -125,6 +128,8 @@ export function AsistenteTotal(props: Props) {
       {paso === 'importando' ? (
         <PasoImportando
           lanzar={lanzar}
+          importaciones={importaciones}
+          archivo={asistente.archivo}
           alVolverALaPrevia={() => {
             setPaso('previa')
           }}

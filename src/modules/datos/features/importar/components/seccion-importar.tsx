@@ -5,6 +5,8 @@ import type { Permisos } from '@/shared/lib/permisos'
 import type { OpcionesDeImportar } from '../../../entities/opciones-de-importar'
 import type { EntidadImportable } from '../../../entities/plantillas'
 import type { ContextoDeLaSeccion } from '../contexto-de-la-seccion'
+import { puede } from '@/shared/lib/permisos'
+import { useImportaciones } from '../hooks/use-importaciones'
 import { AsistenteTotal } from './asistente-total'
 import { DESTINO_YO, PasoEntidad } from './paso-entidad'
 
@@ -56,6 +58,7 @@ export function SeccionImportar({ yo, permisos, opciones, entidad, origenId, sec
   const [destino, setDestino] = useState(opciones.leads?.yo ? DESTINO_YO : '')
   const [corrida, setCorrida] = useState(0)
   const [ocupado, setOcupado] = useState(false)
+  const importaciones = useImportaciones({ yo, todas: puede(permisos, 'datos.importar.todo') })
   useEffect(
     () => () => {
       setCorrida((valor) => valor + 1)
@@ -83,6 +86,7 @@ export function SeccionImportar({ yo, permisos, opciones, entidad, origenId, sec
           permisos={permisos}
           seccion={estado.seccion}
           asignarA={estado.asignarA}
+          importaciones={importaciones}
           alImportarOtro={() => {
             setCorrida((valor) => valor + 1)
           }}

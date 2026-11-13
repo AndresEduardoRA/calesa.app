@@ -48,8 +48,12 @@ async function deUnaVez(corriendo: { current: boolean }, tarea: () => Promise<vo
 }
 
 // Convertir por tramos → armar el archivo → subir y crear (9.06-4b). Un intento a la vez: el botón se apaga mientras corre. «Reintentar»
-// vuelve a mandar el **mismo** intento, sin volver a convertir (D46). Salir de la pantalla corta la conversión.
-export function useLanzarImportacion(usuarioId: string) {
+// vuelve a mandar el **mismo** intento, sin volver a convertir (D46). Salir de la pantalla corta la conversión. `alLanzar` avisa a la lista
+// «Importaciones» para que la siga (9.06-5).
+export function useLanzarImportacion(
+  usuarioId: string,
+  { alLanzar }: { alLanzar?: (id: string) => void } = {},
+) {
   const accion = useAction(crearImportacion)
   const [fase, setFase] = useState<FaseDeLanzar>({ tipo: 'quieta' })
   const intento = useRef<Intento | null>(null)
@@ -73,6 +77,7 @@ export function useLanzarImportacion(usuarioId: string) {
     if (control.current?.signal.aborted) {
       return
     }
+    if (lanzada.ok) alLanzar?.(lanzada.data.id)
     setFase(
       lanzada.ok
         ? { tipo: 'lanzada', id: lanzada.data.id, repetido: lanzada.data.repetido }
