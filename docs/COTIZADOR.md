@@ -643,8 +643,8 @@ reenvía con `p_con_la_abierta`).
 Un comprobante se emite sobre una final activa con `comprobante_emitir(cotización, versión)` y se anula con
 `comprobante_anular(id, motivo)`; la serie vigente la cambia `comprobantes_serie_cambiar(serie, versión)` en Empresa. La serie y `datos`
 los pone la base: `datos` congela el recorte del nivel «todos» (el de quien sólo tiene `cotizaciones.ver`, con `_cotizacion_contexto` y
-`_cotizacion_recorte`), las etiquetas de esos nodos y, del cliente y del vehículo, sólo los ids. Los candados van cotización → serie
-vigente → contador, y la numeración no tiene huecos (un contador por serie, nunca una sequence). Un vigente por cotización; una
+`_cotizacion_recorte`), las etiquetas de esos nodos y, del cliente y del vehículo, sólo los ids. Los candados van vehículo → cotización →
+serie vigente → contador, y la numeración no tiene huecos (un contador por serie, nunca una sequence). Un vigente por cotización; una
 cotización con comprobante no va a la papelera ni la baja marcar otra final. Errores y pruebas:
 `src/modules/cotizaciones/areas/comprobantes/CLAUDE.md`.
 

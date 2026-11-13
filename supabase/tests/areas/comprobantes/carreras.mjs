@@ -1,7 +1,7 @@
 // Las carreras de la numeración de comprobantes (paso 4.26-1), con dos conexiones reales a la base del Supabase LOCAL. El orden que prueban: la cotización
 // `for no key update` → `comprobantes_ajustes` (la serie vigente) `for update` → el contador (`update … returning`), y `comprobantes_serie_cambiar`, que toma
 // ajustes → contador (`…_comprobantes_emitir_y_serie.sql`). Después de cada una, los números de cada serie usada son 1..último, sin huecos ni repetidos, y
-// ninguna termina en 40P01 (K6 y K7, contra la papelera y marcar final, en `carreras-papelera.mjs`). A abre su transacción y actúa, B lanza, se espera a que B quede esperando un candado y A confirma (o revierte, K2). La serie
+// ninguna termina en 40P01 (K6 a K8, contra la papelera y marcar final, en `carreras-papelera.mjs`). A abre su transacción y actúa, B lanza, se espera a que B quede esperando un candado y A confirma (o revierte, K2). La serie
 // `CARRERAS` se fija como vigente al empezar y `limpiarComprobantes()` deja «A». Las corre `scripts/carreras.mjs` (`pnpm db:carreras`) y, solas,
 // `correr-carreras.mjs`. Terreno con el prefijo «Carreras», como las demás.
 import { comoPersona } from '../../../../scripts/carreras/terreno.mjs'

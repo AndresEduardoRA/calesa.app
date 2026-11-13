@@ -21,8 +21,9 @@ afuera entra por `pantallas/`.
   - **`datos`**: `{version: 1, cotizacion: {id, numero, titulo, clase}, origen: {id, nombre}, formula_id, cliente: {lead_id}, vehiculo: {id} | null,
 empresa: {razon_social, nit}, valores, totales, tipos_cambio, etiquetas}`. El recorte es el del nivel «todos», sea quien sea el que emite. Del cliente y
     del vehículo, sólo los ids: quien ve la cotización y no el lead no lee su nombre (la pantalla los muestra vivos).
-  - **Candados:** cotización `for no key update` → `comprobantes_ajustes` `for update` → el contador (`update … returning`). `datos` se arma antes de tomar
-    la serie. El `update` del contador y el `insert` van en un solo bloque `begin … exception`: un PT409 atrapado por quien llama ya devolvió el número.
+  - **Candados:** su vehículo `for key share` (contra mandarlo a la papelera, que lo toma `for update` y mira sus comprobantes; si cambió mientras se
+    esperaba, PT409) → cotización `for no key update` → `comprobantes_ajustes` `for update` → el contador (`update … returning`). `datos` se arma antes
+    de tomar la serie. El `update` del contador y el `insert` van en un solo bloque `begin … exception`: un PT409 atrapado por quien llama ya devolvió el número.
 - `comprobante_anular(p_comprobante, p_motivo)`: la misma clave; ver la cotización (42501 «No tienes acceso a este comprobante.»); motivo de 1 a 500
   (22023, `hint` `motivo`); uno ya anulado da PT409. El número no vuelve. Devuelve `{id, anulado_en}`.
 - Una cotización con comprobante (anulado o no) no va a la papelera (23514 «Tiene un comprobante emitido.»). Marcar o crear otra final del vehículo con un
