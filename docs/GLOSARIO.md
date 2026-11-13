@@ -49,8 +49,9 @@ ese nombre: nunca un sinónimo ni su traducción al inglés.
 - **Sello (de un pago)** — `pagos.confirmado_por`, `pagos.confirmado_en` / `textoDelSello()`: quién confirmó y cuándo; lo pone
   `pago_confirmar()`, nadie lo edita; «Confirmado por <nombre> el <fecha>». Un error se corrige con `pago_anular()`, nunca se deshace.
 - **Confirmar un pago** — `pago_confirmar()` / `logistica.pagos.confirmar`: acto aparte de registrarlo; confirmado ya no se edita ni elimina.
-- **Anular un pago** — `pago_anular()` / `logistica.pagos.confirmar`: saca de la venta un pago confirmado, con motivo y constancia
-  `pago.anulado` en `actividad`; no vuelve ni deja sin cumplir lo que la fase actual pide de pagos. Eliminar es sólo para uno sin confirmar.
+- **Anular un pago** — `pago_anular()` / `logistica.pagos.confirmar`: saca de la venta un pago confirmado (de un vehículo o de un proyecto de repuestos), con
+  motivo y constancia `pago.anulado` en `actividad`; no vuelve ni deja sin cumplir lo que pide de pagos la fase actual del vehículo o de un ítem del proyecto.
+  Eliminar es sólo para uno sin confirmar.
 - **Comprobante de un gasto o pago** — `comprobante_ruta` de `gastos`, `pagos` y `repuestos_compras`, bucket `comprobantes` /
   `comprobante_puede()`: archivo que los respalda (`<unidad|proyecto>/<sha-256>.<ext>`); lo lee quien ve la fila (una compra, con
   `repuestos.costos.ver`). No es el **Comprobante** de venta.

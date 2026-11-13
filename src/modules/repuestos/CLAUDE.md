@@ -2,7 +2,7 @@
 
 Proyectos de repuestos por vehículo (o externos), ítems que recorren el flujo de repuestos con el mismo motor, imágenes, stock, compras con permiso de costos y un cotizador propio con configuración versionada.
 
-Abiertos que lo tocan: **8-13a** a **8-13f** y la revisión de seguridad del stock y de los pagos de repuestos (`docs/PENDIENTES.md`).
+Abiertos que lo tocan: **8-13a** a **8-13c**, **8-13e** y la revisión de seguridad del stock y de los pagos de repuestos (`docs/PENDIENTES.md`).
 
 ## Entra y sale
 
@@ -23,9 +23,9 @@ Abiertos que lo tocan: **8-13a** a **8-13f** y la revisión de seguridad del sto
   `?panel=reasignar-stock|vender-stock|devolver-stock&item=`; el destino lo busca `buscarProyectoAbierto` por render prop.
 - **`compras`** — `?pestana=compras` de `/repuestos/[id]`: `leerComprasDelProyecto` (tope 200), `leerMargenDelProyecto`, `<MargenDelProyecto>`,
   `<ComprasDelProyecto>` (`pantallas/compras.ts`); Drawer `?panel=compra&compra=<id|nueva>`. `?pestana=pagos` la dibuja `PagosDelProyectoDiferido` de
-  `logistica`: registrar pide `repuestos.costos.editar` y `repuestos.ver` (`pago_registrar_proyecto`), confirmar `logistica.pagos.confirmar`, anular aún
-  no (8-13d). Un pago vivo cumple `proyecto.pago_cliente`. Las dos pestañas sólo existen con `repuestos.costos.ver` (`pestanasLlenas(permisos)`; sin él la
-  URL abre «Ítems» y no se lee nada de costos).
+  `logistica`: registrar pide `repuestos.costos.editar` y `repuestos.ver` (`pago_registrar_proyecto`), confirmar y anular `logistica.pagos.confirmar`.
+  Un pago vivo cumple `proyecto.pago_cliente`: `pago_anular` no anula el último si un ítem vivo está en una fase que lo pide. Las dos pestañas sólo
+  existen con `repuestos.costos.ver` (`pestanasLlenas(permisos)`; sin él la URL abre «Ítems» y no se lee nada de costos).
 - **`cotizador`** — `?seccion=cotizador` de `/configuracion/repuestos`: `leerConfiguracionDelCotizador()` (vigente, historial tope 20, tramos y cajas tope
   200), `<ConfiguracionDelCotizador>` (`pantallas/cotizador-configuracion.ts`), modales `?panel=tramo|caja&tramo|caja=<id|nuevo>&moneda=`.
   `?pestana=cotizaciones` de `/repuestos/[id]`, sólo con `repuestos.cotizar`: `leerCotizacionesDelProyecto` (tope 50), `<CotizacionesDelProyecto>`

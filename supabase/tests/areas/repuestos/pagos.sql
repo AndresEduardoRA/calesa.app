@@ -7,7 +7,7 @@
 --   P4. Proyecto cerrado (23514) o eliminado (PT409); el reintento de un id ya guardado pasa aunque el proyecto se haya cerrado.
 --   P5. Idempotencia: el mismo id no pisa; el id de un pago de otro proyecto o de un vehículo → 23505.
 --   P6. `proyecto.pago_cliente` se cumple con un pago vivo del proyecto y vuelve a no cumplirse al eliminarlo (sólo de ese proyecto).
---   P7. Corregir, confirmar y leer sirven al proyecto; anular no (8-13d); eliminar el proyecto con un pago vivo → 23514 `en_uso`.
+--   P7. Corregir, confirmar y leer sirven al proyecto (anular, en `pagos-anular.sql`); eliminar el proyecto con un pago vivo → 23514 `en_uso`.
 
 create or replace function pg_temp.rp_sin_duena() returns void language plpgsql as $f$
 begin
@@ -243,7 +243,7 @@ begin
 end $$;
 rollback;
 
--- @test repuestos: corregir, confirmar y leer sirven al proyecto; anular no; el proyecto con un pago vivo no se elimina (P7)
+-- @test repuestos: corregir, confirmar y leer sirven al proyecto; el proyecto con un pago vivo no se elimina (P7)
 begin;
 do $$
 declare
@@ -271,8 +271,6 @@ begin
   perform pg_temp.rp_ok('P7 confirmar', pg_temp.rpg_corre(conf, format('select public.pago_confirmar(%L::uuid, %L::timestamptz)', a, f.actualizado_en)));
   f := pg_temp.rpg_fila(a);
   if not f.confirmado or f.confirmado_por <> conf then raise exception 'P7: el pago debía quedar confirmado por quien confirmó'; end if;
-  perform pg_temp.rp_es('P7 anular uno de proyecto', pg_temp.rpg_corre(conf, format('select public.pago_anular(%L::uuid, %L::timestamptz, %L)', a,
-    f.actualizado_en, 'Error')), '22023', 'id');
   perform pg_temp.rp_es('P7 eliminar el proyecto con un pago vivo', pg_temp.rpg_corre(editor, format(
     'select public.repuesto_proyecto_eliminar(%L::uuid, %L::timestamptz)', p, (select actualizado_en from public.repuestos_proyectos where id = p))),
     '23514', 'en_uso');

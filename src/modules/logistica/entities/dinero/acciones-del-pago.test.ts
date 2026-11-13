@@ -49,15 +49,4 @@ describe('accionesDelPago', () => {
       false,
     )
   })
-
-  it('con puedeAnular en falso no ofrece anular aunque se pueda confirmar (pago de proyecto, 8.13-5)', () => {
-    const proyecto = { ...todo, puedeAnular: false }
-    expect(accionesDelPago(pago({ confirmado: true }), proyecto).anular).toBe(false)
-    expect(accionesDelPago(pago(), proyecto)).toEqual({
-      editar: true,
-      eliminar: true,
-      confirmar: true,
-      anular: false,
-    })
-  })
 })

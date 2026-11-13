@@ -26,8 +26,8 @@ function Cargando() {
 type Props = {
   // El vehículo o el proyecto de repuestos (lo dice el ámbito, `AmbitoDePagoContext`).
   unidadId: string
-  // Nulo mientras se leen los permisos. `puedeAnular` en falso apaga «Anular» (proyecto, 8.13-5).
-  claves: { puedeEditar: boolean | null; puedeConfirmar: boolean | null; puedeAnular?: boolean }
+  // Nulo mientras se leen los permisos.
+  claves: { puedeEditar: boolean | null; puedeConfirmar: boolean | null }
   // «Registrar pago»: oculto, o visible y apagado con su motivo al lado si `motivo` no es nulo.
   registrar: { visible: boolean; motivo: string | null }
   vacio: string
@@ -92,7 +92,6 @@ export function CuerpoDePagos({
             permisos={{
               puedeEditar: claves.puedeEditar === true,
               puedeConfirmar: claves.puedeConfirmar === true,
-              ...(claves.puedeAnular === undefined ? {} : { puedeAnular: claves.puedeAnular }),
             }}
             alEditar={paneles.abrirEdicion}
             alEliminar={paneles.abrirEliminar}

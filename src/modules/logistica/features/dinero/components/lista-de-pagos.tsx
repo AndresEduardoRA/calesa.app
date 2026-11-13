@@ -8,7 +8,7 @@ type Props = {
   pagos: readonly Pago[]
   // «Pagos de la unidad» o «Pagos del proyecto» (8.13-5).
   etiqueta: string
-  permisos: { puedeEditar: boolean; puedeConfirmar: boolean; puedeAnular?: boolean }
+  permisos: { puedeEditar: boolean; puedeConfirmar: boolean }
   alEditar: (id: string) => void
   alEliminar: (id: string) => void
   alConfirmar: (id: string) => void

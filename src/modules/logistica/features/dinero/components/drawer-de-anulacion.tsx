@@ -12,6 +12,7 @@ import { PieDelPanel } from '@/shared/ui/pie-del-panel'
 import { Textarea } from '@/shared/ui/textarea'
 import { MOTIVO_MAXIMO } from '../../../entities/dinero/anulacion-de-pago'
 import { tituloDeAnularPago, type Pago } from '../../../entities/dinero/pago'
+import { useAmbitoDePago } from '../hooks/ambito-de-pago'
 import { useAnulacionDePago } from '../hooks/use-anulacion-de-pago'
 
 type Props = {
@@ -28,6 +29,8 @@ function Formulario({ alCerrar, unidadId, pago }: Omit<Props, 'abierto' | 'apert
   const idMotivo = `${idFormulario}-motivo`
   const formulario = useRef<HTMLFormElement>(null)
   const a = useAnulacionDePago({ unidadId, pago, alCerrar })
+  // El margen de un proyecto de repuestos (`repuestos_proyecto_margen`) no cuenta sus pagos.
+  const proyecto = useAmbitoDePago() === 'proyecto'
   // Con un motivo escrito, la acción de un aviso que sale de la pantalla pregunta en el pie; descartar lo tira.
   useCambiosSinGuardar(a.hayCambios, () => {
     a.escribir('')
@@ -50,7 +53,9 @@ function Formulario({ alCerrar, unidadId, pago }: Omit<Props, 'abierto' | 'apert
         }}
       >
         <p className="text-(length:--text-sm)">
-          El pago deja de contar en el margen. No se puede deshacer.
+          {proyecto
+            ? 'El pago deja de contar como pago del cliente. No se puede deshacer.'
+            : 'El pago deja de contar en el margen. No se puede deshacer.'}
         </p>
         {pago ? (
           <p className="text-(length:--text-sm)">

@@ -3,7 +3,7 @@
 --
 -- Qué asegura:
 --   A1. Sin `logistica.pagos.confirmar`, 42501 y el pago sigue vivo; con la clave sin ver el pago, 42501; motivo vacío o de 501, 22023 (hint `motivo`); uno
---       sin confirmar, 23514; uno de proyecto, 22023.
+--       sin confirmar, 23514; uno de proyecto sin `repuestos.costos.ver`, 42501 (el resto del proyecto, en `areas/repuestos/pagos-anular.sql`).
 --   A2. Anular un confirmado: queda borrado, una fila `pago.anulado` en `actividad` con el motivo y la venta del margen baja; otra vez, PT409; versión vieja,
 --       PT409.
 --   A3. Con la fase actual que pide `pagos.confirmado` y un solo confirmado: 23514 y sigue vivo; con dos, se anula uno.
@@ -116,7 +116,7 @@ begin
   update public.vehiculos set fase_id = f where id = (t ->> 'v')::uuid;
 end $f$;
 
--- @test dinero: anular pide la clave de confirmar, ver el pago, un motivo y que esté confirmado y sea de vehículo (A1)
+-- @test dinero: anular pide la clave de confirmar, ver el pago, un motivo y que esté confirmado (A1)
 begin;
 do $$
 declare t jsonb := pg_temp.din_terreno(); jefa uuid; p uuid; sin uuid; pr uuid; pp uuid;
@@ -133,7 +133,6 @@ begin
   perform pg_temp.din_da('A1: sin confirmar', pg_temp.din_anular(jefa, sin), '23514', 'id');
   insert into public.repuestos_proyectos (vehiculo_id) values (null) returning id into pr;
   insert into public.pagos (proyecto_repuestos_id, concepto, moneda, monto, monto_base) values (pr, 'DIN proyecto', t ->> 'base', 10, 10) returning id into pp;
-  perform pg_temp.din_da('A1: de un proyecto', pg_temp.din_anular(jefa, pp), '22023', 'id');
   perform pg_temp.din_da('A1: de un proyecto, sin verlo', pg_temp.din_anular(pg_temp.din_persona('logistica.pagos.confirmar'), pp), '42501');
 end $$;
 rollback;

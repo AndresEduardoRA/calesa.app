@@ -3,7 +3,7 @@
 Operación diaria sobre el flujo: cadena por fase, mover con vista previa, documentos con aprobación y vencimiento, transporte (embarques y contenedores como grupos), declaraciones aduaneras, gastos y pagos, notas, alertas por demora y margen contra la cotización final.
 
 La tarea de oro 3 la prueba `e2e/logistica-tarea-de-oro.spec.ts`. Abiertos (`docs/PENDIENTES.md`): **6-4**, **6-5** (medir `gastos_listar` y `pagos_listar`),
-**6-6** (prorratear por valor), **6-7** (borrar una nota propia por RPC), **8-13b**, **8-13d**.
+**6-6** (prorratear por valor), **6-7** (borrar una nota propia por RPC), **8-13b**.
 
 ## Entra y sale
 
@@ -97,7 +97,8 @@ y su regla de `flujos_reglas` está activa; el orden es `ORDEN_DE_HUECOS`, no el
   anular piden `logistica.pagos.confirmar` (global); el sello «Confirmado por <nombre> el <fecha>» lo pone la base; anular pide motivo; el lead va nulo.
   **Pagos de un proyecto de repuestos:** `pantallas/dinero-proyecto.ts` (pestaña «Pagos» de `/repuestos/[id]`): el mismo `CuerpoDePagos` con
   `AmbitoDePagoContext` en `proyecto`, registra `{ proyectoId }` por `pago_registrar_proyecto`, sin lead; permisos por props (`repuestos.costos.editar`,
-  `logistica.pagos.confirmar`); `puedeAnular: false` (`pago_anular` es de vehículo: 8-13d).
+  `logistica.pagos.confirmar`); anula como el vehículo, y `pago_anular` no deja sin pago vivo a un proyecto con un ítem en una fase que pide
+  `proyecto.pago_cliente`.
   **Lista:** `/logistica/gastos?ver=gastos|pagos` (`ENLACE_DE_DINERO` pide `logistica.gastos.ver`). `entities/dinero/listas.ts` manda sólo las claves que acepta
   cada RPC (una de más da `22023`); cursor `(fecha, id)` como instante a medianoche, sin «Anterior» ni sumas. La fila abre `?vehiculo=` de `/logistica`.
   **Prorratear:** `pantallas/dinero-grupo.ts`, hueco del resumen de un grupo (`logistica.gastos.editar`; no en el de una declaración). `entities/dinero/reparto.ts`
