@@ -10,7 +10,7 @@ export function EnlaceAlFlujo() {
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
       <Link
         href={`${RUTAS.configuracionDeFlujos}?ambito=repuestos` as Route}
-        className={buttonVariants({ variant: 'outline' })}
+        className={buttonVariants({ variant: 'outline', className: 'h-11 md:h-8' })}
       >
         Configurar el flujo de repuestos
       </Link>

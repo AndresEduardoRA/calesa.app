@@ -3,9 +3,14 @@
 import * as React from 'react'
 import { cn } from 'cn'
 
-function Table({ className, ...props }: React.ComponentProps<'table'>) {
+// `contenedor`: clases del que se desplaza (p. ej. `scroll-pl-44`, el relleno de desplazamiento de una columna pegada a la izquierda).
+function Table({
+  className,
+  contenedor,
+  ...props
+}: React.ComponentProps<'table'> & { contenedor?: string }) {
   return (
-    <div data-slot="table-container" className="relative w-full overflow-x-auto">
+    <div data-slot="table-container" className={cn('relative w-full overflow-x-auto', contenedor)}>
       <table
         data-slot="table"
         className={cn('w-full caption-bottom text-sm', className)}

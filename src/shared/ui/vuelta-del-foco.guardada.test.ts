@@ -27,9 +27,9 @@ function botonConFoco(): HTMLButtonElement {
 }
 
 // Abre `s` en `/panel`; devuelve el estado de la entrada de antes (la marcada).
-async function abrir(): Promise<unknown> {
+async function abrir(donde = '/panel'): Promise<unknown> {
   const { abrirConVuelta } = await modulo()
-  history.replaceState(null, '', '/panel')
+  history.replaceState(null, '', donde)
   let marcada: unknown = null
   abrirConVuelta('s', () => {
     marcada = history.state
@@ -59,6 +59,22 @@ describe('la vuelta del foco: la ficha guardada', () => {
     const marcada = await abrir()
     // Next borra la ficha de la entrada, y la página que se recarga es otra.
     history.replaceState({ __NA: true }, '', '/otra')
+    await recargarYVolver(marcada)
+    expect(document.activeElement).toBe(document.body)
+  })
+
+  it('la guardada se toma aunque sólo cambien el panel, el modal o la pestaña (4-62)', async () => {
+    const boton = botonConFoco()
+    const marcada = await abrir('/leads?lead=a')
+    history.replaceState({ __NA: true }, '', '/leads?lead=a&pestana=seguimientos&panel=anotar')
+    await recargarYVolver(marcada)
+    expect(document.activeElement).toBe(boton)
+  })
+
+  it('la guardada no se toma si cambia el lead (4-62)', async () => {
+    botonConFoco()
+    const marcada = await abrir('/leads?lead=a')
+    history.replaceState({ __NA: true }, '', '/leads?lead=b&pestana=seguimientos')
     await recargarYVolver(marcada)
     expect(document.activeElement).toBe(document.body)
   })

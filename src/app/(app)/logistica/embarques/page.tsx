@@ -29,9 +29,13 @@ export const metadata: Metadata = { title: 'Embarques' }
 // resumen (`?booking=` o `?contenedor=`). Ningún total exacto: lo que se muestra es la fila.
 export default function PaginaDeEmbarques({ searchParams }: PageProps<'/logistica/embarques'>) {
   return (
-    <Suspense fallback={<EsqueletoListado filas={8} columnas={7} />}>
-      <Listado searchParams={searchParams} />
-    </Suspense>
+    <>
+      {/* El h1 va fuera del Suspense: está también cargando y sin permiso (9.12-5, R3). Sin cabecera visible: la ocupa la barra de filtros. */}
+      <h1 className="sr-only">Embarques</h1>
+      <Suspense fallback={<EsqueletoListado filas={8} columnas={7} />}>
+        <Listado searchParams={searchParams} />
+      </Suspense>
+    </>
   )
 }
 

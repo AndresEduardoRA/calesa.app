@@ -46,6 +46,8 @@
 }
 
 .dark {
+  /* El anillo de foco llega a 3:1 sobre la superficie oscura: `primario` da 2,5:1, su `-ink` ≈ 8:1 (9.12-3). */
+  --ring: var(--color-primario-ink);
   color-scheme: dark;
 }
 

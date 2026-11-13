@@ -14,7 +14,7 @@ import {
   sembrarBorradorDePlantilla,
   type TerrenoDePlantilla,
 } from './soporte/plantilla'
-import { sinScrollHorizontal, tactil } from './soporte/recorrido'
+import { quieto, sinScrollHorizontal, tactil } from './soporte/recorrido'
 
 // Descartar el borrador de la tarjeta (4.19-3c): «Descartar borrador…» abre `?panel=descartar-plantilla`; cancelar, Esc y «atrás» no borran; confirmar borra el borrador y
 // deja la publicada; el PT409 de la base (otra persona guardó o descartó) se dice tal cual y no borra; por la URL, sin borrador no abre.
@@ -143,7 +143,10 @@ test('E9: por la URL, sin borrador no abre y limpia; y en móvil el diálogo es 
   await sinScrollHorizontal(page)
   await descartar(page).click()
   await expect(dialogo(page)).toBeVisible()
-  // Los botones del pie de `<Confirmar>` son de `shared/ui` (42 px de alto): no son de este paso.
+  // Los botones del pie de `<Confirmar>` (`shared/ui`) miden 44 px en el celular (4-102).
+  await quieto(dialogo(page))
+  await tactil(page, dialogo(page).getByRole('button', { name: 'Cancelar' }))
+  await tactil(page, confirmar(page))
   await sinScrollHorizontal(page)
   await page.evaluate(() => {
     document.documentElement.style.fontSize = '200%'

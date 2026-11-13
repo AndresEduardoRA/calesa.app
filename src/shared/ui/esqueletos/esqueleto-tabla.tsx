@@ -5,7 +5,7 @@ type Props = { filas?: number; columnas?: number }
 // Patrón «tabla + drawer»: barra de filtros, encabezado y filas de la altura de la densidad.
 export function EsqueletoTabla({ filas = 8, columnas = 5 }: Props) {
   return (
-    <div aria-busy="true" aria-label="Cargando la lista" className="grid gap-3">
+    <div role="status" aria-busy="true" aria-label="Cargando la lista" className="grid gap-3">
       <div className="flex gap-2">
         <Skeleton className="h-9 w-56" />
         <Skeleton className="h-9 w-28" />

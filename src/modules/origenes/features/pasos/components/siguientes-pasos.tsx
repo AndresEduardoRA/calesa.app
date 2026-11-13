@@ -54,7 +54,7 @@ export function SiguientesPasos({ nombre, pasos }: Props) {
             key={paso.clave}
             className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2"
           >
-            <div className="flex min-w-0 flex-1 items-start gap-2">
+            <div className="flex min-w-[min(12rem,100%)] flex-1 items-start gap-2">
               <CircleDashedIcon
                 aria-hidden
                 className="mt-0.5 size-4 shrink-0 text-(--color-ink-faint)"

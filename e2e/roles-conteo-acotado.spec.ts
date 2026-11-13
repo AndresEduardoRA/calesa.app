@@ -1,4 +1,4 @@
-import { expect, test, type Page } from './soporte/prueba'
+import { expect, test, type Locator, type Page } from './soporte/prueba'
 import {
   PREFIJO_ROL_E2E,
   borrarPersonasDePrueba,
@@ -58,6 +58,20 @@ async function verRol(page: Page, nombre: string) {
   }
 }
 
+// 5a-33: en escritorio, con la tabla desplazada hasta el conteo, ni su caja ni la de otra columna quedan bajo la columna «Permiso», que va pegada a la
+// izquierda (`toBeVisible` no ve el solape: el conteo está en el DOM y pintado, sólo que debajo).
+async function sinSolaparConPermiso(page: Page, conteo: Locator) {
+  if (esMovil(page)) return
+  const permiso = await page.getByRole('columnheader', { name: 'Permiso' }).boundingBox()
+  const caja = await conteo.boundingBox()
+  expect(permiso && caja, 'el conteo y la columna «Permiso» tienen caja').toBeTruthy()
+  if (!permiso || !caja) return
+  expect(
+    caja.x,
+    `el conteo empieza en ${String(Math.round(caja.x))} y «Permiso» llega a ${String(Math.round(permiso.x + permiso.width))}`,
+  ).toBeGreaterThanOrEqual(permiso.x + permiso.width - 1)
+}
+
 for (const zoom of ['100', '200'] as const) {
   test(`al ${zoom} %: un rol con más de 1.000 personas lo dice sin contarlas todas`, async ({
     page,
@@ -77,6 +91,7 @@ for (const zoom of ['100', '200'] as const) {
     const masDeMil = page.getByText('más de 1.000 personas', { exact: true })
     await expect(masDeMil).toBeVisible()
     await masDeMil.scrollIntoViewIfNeeded()
+    await sinSolaparConPermiso(page, masDeMil)
     await expect(page.getByText(`${String(SEMBRADAS)} personas`)).toHaveCount(0)
     // Con personas adentro no se elimina: el motivo es el mismo con el tope.
     await expect(
@@ -88,5 +103,6 @@ for (const zoom of ['100', '200'] as const) {
     const tres = page.getByText('3 personas', { exact: true })
     await expect(tres).toBeVisible()
     await tres.scrollIntoViewIfNeeded()
+    await sinSolaparConPermiso(page, tres)
   })
 }

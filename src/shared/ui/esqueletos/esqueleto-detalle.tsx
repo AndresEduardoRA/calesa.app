@@ -3,7 +3,7 @@ import { Skeleton } from '../skeleton'
 // Patrón «detalle con pestañas»: título, pestañas y dos columnas de contenido.
 export function EsqueletoDetalle() {
   return (
-    <div aria-busy="true" aria-label="Cargando la ficha" className="grid gap-5">
+    <div role="status" aria-busy="true" aria-label="Cargando la ficha" className="grid gap-5">
       <div className="grid gap-2">
         <Skeleton className="h-7 w-72 max-w-full" />
         <Skeleton className="h-4 w-48" />

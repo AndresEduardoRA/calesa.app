@@ -70,8 +70,11 @@ function EstadoYUso({ nivel }: { nivel: NivelDeAcceso }) {
   const { zonaHoraria } = useRegional()
   return (
     <span className="flex flex-wrap gap-x-1 text-(length:--text-sm) whitespace-normal text-(--color-ink-faint)">
-      <span>{estadoDe(nivel, zonaHoraria)}</span>
-      <span aria-hidden>·</span>
+      <span>
+        {estadoDe(nivel, zonaHoraria)}
+        {/* Pegado al estado, con espacio duro: al partirse la línea el «·» queda al final de la anterior, nunca solo al comienzo de otra (4-19). */}
+        <span aria-hidden>{'\u00a0·'}</span>
+      </span>
       <span>{usoDe(nivel)}</span>
     </span>
   )

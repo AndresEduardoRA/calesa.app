@@ -81,7 +81,7 @@ export function ConfigApibara({ config, puedeEditar, ediciones }: Props) {
         void guardar(evento.currentTarget)
       }}
     >
-      <fieldset disabled={!puedeEditar} className="grid min-w-0 gap-4">
+      <fieldset disabled={!puedeEditar} className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4">
         <legend className="sr-only">Configuración de apibara</legend>
         <Campo
           nombre="endpoint"
@@ -104,7 +104,7 @@ export function ConfigApibara({ config, puedeEditar, ediciones }: Props) {
             <Button
               type="submit"
               variant="outline"
-              className="h-11 md:h-9"
+              className="h-auto min-h-[44px] py-1.5 whitespace-normal md:min-h-9"
               disabled={ediciones.enCurso}
             >
               {ediciones.enCurso ? 'Guardando…' : 'Guardar configuración'}

@@ -18,7 +18,7 @@ export function EsqueletoListado({
   conMiniatura = false,
 }: Props) {
   return (
-    <div aria-busy="true" aria-label="Cargando la lista" className="grid gap-3">
+    <div role="status" aria-busy="true" aria-label="Cargando la lista" className="grid gap-3">
       {pestanas > 0 ? (
         <div className="flex gap-2 border-b border-(--color-line) pb-2">
           {Array.from({ length: pestanas }, (_, pestana) => (

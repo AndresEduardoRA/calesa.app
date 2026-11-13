@@ -30,9 +30,9 @@ function FichaDelOrigen({ origen }: { origen: OrigenConUso }) {
           {ETIQUETA_DE_TIPO_DE_ORIGEN[origen.tipo]}
         </dd>
       </div>
-      <div className="flex flex-wrap gap-x-2">
+      <div className="flex min-w-0 flex-wrap gap-x-2">
         <dt className="text-(--color-ink-soft)">Clave interna</dt>
-        <dd className="font-mono text-(--color-ink)">{origen.clave}</dd>
+        <dd className="min-w-0 font-mono break-all text-(--color-ink)">{origen.clave}</dd>
       </div>
       <p className="text-(--color-ink-faint)">{MOTIVO_TIPO_NO_CAMBIA}</p>
     </dl>

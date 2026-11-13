@@ -41,9 +41,13 @@ export const metadata: Metadata = { title: 'Repuestos' }
 // devuelve vacío sin `repuestos.ver`); acá sólo se arma el pedido y se dibuja. Cada fila trae las cuentas de sus ítems: no hay una lectura por proyecto.
 export default function PaginaDeRepuestos({ searchParams }: PageProps<'/repuestos'>) {
   return (
-    <Suspense fallback={<EsqueletoListado filas={8} columnas={6} />}>
-      <Listado searchParams={searchParams} />
-    </Suspense>
+    <>
+      {/* El h1 va fuera del Suspense: está también cargando y sin permiso (9.12-5, R3). Sin cabecera visible: la ocupa las vistas y la barra de filtros. */}
+      <h1 className="sr-only">Repuestos</h1>
+      <Suspense fallback={<EsqueletoListado filas={8} columnas={6} />}>
+        <Listado searchParams={searchParams} />
+      </Suspense>
+    </>
   )
 }
 

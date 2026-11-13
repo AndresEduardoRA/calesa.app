@@ -40,7 +40,7 @@ export default function PaginaDeNotificaciones({ searchParams }: PageProps<'/not
         <h1 className="text-(length:--text-xl) font-semibold text-(--color-ink)">Notificaciones</h1>
         <Link
           href={`${RUTAS.perfil}#notificaciones`}
-          className="text-(length:--text-sm) text-(--color-ink-faint) underline underline-offset-2 hover:text-(--color-ink)"
+          className="inline-flex min-h-11 items-center text-(length:--text-sm) text-(--color-ink-faint) underline underline-offset-2 hover:text-(--color-ink) md:min-h-0"
         >
           Preferencias de avisos
         </Link>

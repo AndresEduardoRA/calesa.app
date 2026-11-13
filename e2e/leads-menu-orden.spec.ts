@@ -14,7 +14,7 @@ import {
   prepararListado,
   type TerrenoDelListado,
 } from './soporte/leads-listado'
-import { abrirMenuDeLaFicha, abrirMenuDelLead } from './soporte/leads-marcas'
+import { abrirMenuDeLaFicha, abrirMenuDelLead, menuDeLaFicha } from './soporte/leads-marcas'
 import {
   embudoPorDefecto,
   irAlEmbudo,
@@ -214,6 +214,33 @@ test('anotar y agendar abren su modal donde se pidieron: el resumen, la ficha y 
   await expect(page).toHaveURL(new RegExp(`para=${lead.id}`))
   await page.keyboard.press('Escape')
   await expect(modal).toBeHidden()
+})
+
+test('anotar desde el «⋯» de la ficha: «atrás» devuelve el foco al «⋯», con y sin recargar (4-61)', async ({
+  page,
+}, info) => {
+  const lead = await leadDeBerta(`Foco ficha ${info.project.name}`)
+  await entrar(page, t.personas.berta)
+  await irAFicha(page, lead.id)
+  const anotar = page.getByRole('dialog', { name: 'Anotar seguimiento' })
+  const abrirAnotar = async () => {
+    const menu = await abrirMenuDeLaFicha(page)
+    await menu.getByRole('menuitem', { name: 'Anotar seguimiento…' }).click()
+    await expect(page).toHaveURL(/panel=anotar-seguimiento/)
+    await expect(anotar).toBeVisible()
+  }
+  // Sin recargar, Base UI lo devuelve al «⋯».
+  await abrirAnotar()
+  await page.goBack()
+  await expect(anotar).toBeHidden()
+  await expect(menuDeLaFicha(page)).toBeFocused()
+  // Tras recargar con el modal abierto, lo devuelve la marca de `vuelta-del-foco`.
+  await abrirAnotar()
+  await page.reload()
+  await expect(anotar).toBeVisible()
+  await page.goBack()
+  await expect(anotar).toBeHidden()
+  await expect(menuDeLaFicha(page)).toBeFocused()
 })
 
 test('favorito desde el resumen se ve en el resumen, y enviar a la papelera lo cierra', async ({

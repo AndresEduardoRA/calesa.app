@@ -3,7 +3,7 @@ import { Skeleton } from '@/shared/ui/skeleton'
 // La forma del formulario mientras llegan los ajustes de la empresa y los parámetros de la URL.
 export function EsqueletoAcceso({ campos }: { campos: number }) {
   return (
-    <div aria-busy="true" aria-label="Cargando el formulario" className="grid gap-4">
+    <div role="status" aria-busy="true" aria-label="Cargando el formulario" className="grid gap-4">
       {Array.from({ length: campos }, (_, campo) => (
         <div key={campo} className="grid gap-1.5">
           <Skeleton className="h-3.5 w-24" />

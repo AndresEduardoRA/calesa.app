@@ -5,7 +5,7 @@ type Props = { bloques?: number }
 // Patrón «bandeja»: saludo y una grilla de bloques con su contador.
 export function EsqueletoBandeja({ bloques = 6 }: Props) {
   return (
-    <div aria-busy="true" aria-label="Cargando la bandeja" className="grid gap-5">
+    <div role="status" aria-busy="true" aria-label="Cargando la bandeja" className="grid gap-5">
       <div className="grid gap-2">
         <Skeleton className="h-7 w-64 max-w-full" />
         <Skeleton className="h-4 w-80 max-w-full" />

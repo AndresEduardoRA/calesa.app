@@ -47,7 +47,7 @@ export function GrupoMatriz({ grupo, columnas, origenes, misPermisos, alAplicar 
           <CabeceraPegada
             lado="nombre"
             scope="row"
-            className="min-w-52 py-2 font-normal whitespace-normal"
+            className="min-w-44 py-2 font-normal whitespace-normal"
           >
             <span
               data-nombre-de-permiso

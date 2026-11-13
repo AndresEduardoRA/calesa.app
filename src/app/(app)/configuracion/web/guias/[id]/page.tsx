@@ -18,9 +18,13 @@ const VOLVER = RUTA_DE_LA_LISTA_DE_GUIAS as Route
 // Una guía del sitio (`web.contenido.gestionar`): su formulario con el editor. La que no existe (o cuyo id no es uno) se dice con un enlace a la lista.
 export default function PaginaDeUnaGuia({ params }: PageProps<'/configuracion/web/guias/[id]'>) {
   return (
-    <Suspense fallback={<EsqueletoFormulario bloques={3} campos={4} />}>
-      <Guia params={params} />
-    </Suspense>
+    <>
+      {/* El h1 va fuera del Suspense: está también cargando y sin permiso (9.12-5, R3). Sin cabecera visible: el formulario abre con su enlace «← Guías». */}
+      <h1 className="sr-only">Editar guía</h1>
+      <Suspense fallback={<EsqueletoFormulario bloques={3} campos={4} />}>
+        <Guia params={params} />
+      </Suspense>
+    </>
   )
 }
 
@@ -55,7 +59,7 @@ async function Guia({ params }: { params: PageProps<'/configuracion/web/guias/[i
     <div className="grid max-w-3xl gap-4">
       <Link
         href={VOLVER}
-        className="w-fit text-(length:--text-sm) text-(--color-ink-soft) underline-offset-2 hover:underline"
+        className="inline-flex min-h-11 w-fit items-center text-(length:--text-sm) text-(--color-ink-soft) underline-offset-2 hover:underline md:min-h-0"
       >
         ← Guías
       </Link>

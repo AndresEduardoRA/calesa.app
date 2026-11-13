@@ -109,7 +109,7 @@ export function EditorDeDocumento({
 
   return (
     <div
-      className={`focus-within:ring-ring/50 grid min-w-0 rounded-(--radius-md) border bg-(--color-surface) focus-within:ring-2 ${invalido ? 'border-(--color-peligro)' : 'border-(--color-line)'}`}
+      className={`focus-within:ring-ring grid min-w-0 rounded-(--radius-md) border bg-(--color-surface) focus-within:ring-2 ${invalido ? 'border-(--color-peligro)' : 'border-(--color-line)'}`}
     >
       <BarraDelEditor
         editor={editor}
