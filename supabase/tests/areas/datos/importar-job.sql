@@ -222,3 +222,48 @@ begin
     raise exception 'no hay _programar: la URL nunca se escribe en el comando';
   end if;
 end $$;
+
+-- @test importar-job: la purga borra el informe de las totales terminadas hace más de 30 días y los pases de más de 7; lo demás queda
+begin;
+select pg_temp.imp_preparar();
+do $$
+declare v_31 uuid := '00000000-0000-4000-8000-0000009062e1'; v_29 uuid := '00000000-0000-4000-8000-0000009062e2';
+        v_viva uuid := '00000000-0000-4000-8000-0000009062e3'; v_n integer;
+begin
+  perform pg_temp.imp_vieja(v_31, interval '40 days');
+  perform pg_temp.imp_vieja(v_29, interval '40 days');
+  perform pg_temp.imp_vieja(v_viva, interval '40 days', 10);
+  update public.importaciones set estado = 'terminada', terminada_en = now() - interval '31 days' where id = v_31;
+  update public.importaciones set estado = 'fallida', terminada_en = now() - interval '29 days' where id = v_29;
+  insert into public.importaciones_filas (importacion_id, fila, resultado, motivo)
+    select x.id, g, 'error', 'Falta el nombre.' from unnest(array[v_31, v_29, v_viva]) x(id), generate_series(1, 3) g;
+  insert into public.importaciones_pases (importacion_id, creado_en) values (v_31, now() - interval '8 days'), (v_29, now() - interval '1 day');
+  v_n := public.importaciones_filas_purgar();
+  if v_n is distinct from 3 then raise exception 'debía borrar las 3 filas de la de hace 31 días: %', v_n; end if;
+  if exists (select 1 from public.importaciones_filas where importacion_id = v_31)
+     or (select count(*) from public.importaciones_filas where importacion_id in (v_29, v_viva)) <> 6 then
+    raise exception 'la purga borró de más o de menos';
+  end if;
+  if exists (select 1 from public.importaciones_pases where creado_en < now() - interval '7 days')
+     or not exists (select 1 from public.importaciones_pases where importacion_id = v_29) then
+    raise exception 'la purga de pases borró de más o de menos';
+  end if;
+end $$;
+rollback;
+
+-- @test importar-job: la purga está programada sin URL y sólo la corre el job
+do $$
+begin
+  if not exists (select 1 from cron.job where jobname = 'importaciones-filas-purgar' and command = 'select public.importaciones_filas_purgar()') then
+    raise exception 'falta el job importaciones-filas-purgar';
+  end if;
+  if has_function_privilege('service_role', 'public.importaciones_filas_purgar()', 'execute')
+     or has_function_privilege('authenticated', 'public.importaciones_filas_purgar()', 'execute')
+     or has_function_privilege('anon', 'public.importaciones_filas_purgar()', 'execute') then
+    raise exception 'la purga la ejecuta alguien más que el job';
+  end if;
+  if not exists (select 1 from pg_proc where oid = 'public.importaciones_filas_purgar()'::regprocedure and prosecdef
+                   and 'search_path=""' = any (coalesce(proconfig, '{}'))) then
+    raise exception 'la purga va definer con search_path vacío';
+  end if;
+end $$;

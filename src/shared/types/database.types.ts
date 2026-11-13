@@ -10152,6 +10152,7 @@ export type Database = {
       importacion_terminar: { Args: { p_error?: string; p_importacion: string }; Returns: Json }
       importaciones_continuar_correr: { Args: Record<PropertyKey, never>; Returns: number }
       importaciones_continuar_disparar: { Args: { p_url: string }; Returns: number }
+      importaciones_filas_purgar: { Args: Record<PropertyKey, never>; Returns: number }
       importaciones_vinculos_purgar: { Args: Record<PropertyKey, never>; Returns: number }
       integracion_guardar: {
         Args: {
