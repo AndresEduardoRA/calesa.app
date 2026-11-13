@@ -182,7 +182,7 @@ begin
     raise exception 'la de 24 horas no quedó fallida con su motivo';
   end if;
   if exists (select 1 from public.importaciones_pases where importacion_id = v_viejo) then raise exception 'la fallida recibió un pase'; end if;
-  -- Las 5 más viejas primero (la 7.ª y la 6.ª, la de menos tiempo detenida, quedan para la siguiente).
+  -- Las 5 más viejas primero (la 1.ª y la 2.ª, las de menos tiempo detenidas, quedan para la siguiente).
   if exists (select 1 from public.importaciones_pases where importacion_id in ('00000000-0000-4000-8000-0000009062d1', '00000000-0000-4000-8000-0000009062d2')) then
     raise exception 'el job no tomó primero las más viejas';
   end if;
