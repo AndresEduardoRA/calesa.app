@@ -98,6 +98,43 @@ function cruzadosPorElAviso(selector: string): string[] {
 export const quePisaElAviso = (page: Page): Promise<string[]> =>
   page.evaluate(cruzadosPorElAviso, SECCIONES)
 
+// 4-19: las líneas de «Estado · Uso» que empiezan por el separador «·» (queda solo al comienzo de una línea al 200 %); vacío si el separador siempre va pegado al
+// final de la anterior. Se recorre cada carácter del renglón y se agrupa por su alto.
+function lineasConElSeparadorAlComienzo(): string[] {
+  return [...document.querySelectorAll('[aria-hidden]')]
+    .filter((s) => s.textContent.trim() === '·')
+    .flatMap((separador) => {
+      const renglon = separador.closest('span.flex-wrap') ?? separador.parentElement
+      if (!renglon || renglon.getClientRects().length === 0) {
+        return []
+      }
+      const primeros = new Map<number, string>()
+      const recorrido = document.createTreeWalker(renglon, NodeFilter.SHOW_TEXT)
+      for (let nodo = recorrido.nextNode(); nodo; nodo = recorrido.nextNode()) {
+        const texto = nodo.textContent ?? ''
+        for (let i = 0; i < texto.length; i++) {
+          const caracter = texto.charAt(i)
+          if (caracter.trim() === '') {
+            continue
+          }
+          const rango = document.createRange()
+          rango.setStart(nodo, i)
+          rango.setEnd(nodo, i + 1)
+          const caja = rango.getBoundingClientRect()
+          if (caja.width > 0 && !primeros.has(Math.round(caja.top))) {
+            primeros.set(Math.round(caja.top), caracter)
+          }
+        }
+      }
+      return [...primeros.values()].includes('·')
+        ? [`«${renglon.textContent.trim()}» tiene una línea que empieza por «·»`]
+        : []
+    })
+}
+
+export const lineasQueEmpiezanPorSeparador = (page: Page): Promise<string[]> =>
+  page.evaluate(lineasConElSeparadorAlComienzo)
+
 // Trae una de las dos listas al primer cuadro de la pantalla (las capturas la muestran con sus filas: al 200 % la tabla queda bajo el pliegue).
 export async function traerALaVista(page: Page, lista: 'niveles' | 'retirados'): Promise<void> {
   await page.evaluate(

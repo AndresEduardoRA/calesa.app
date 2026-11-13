@@ -26,10 +26,11 @@ type Props = {
 export function TablaDeRoles(props: Props) {
   const { grupos, columnas, origenes, misPermisos, puedeGestionar } = props
   return (
-    <Table>
+    // `scroll-pl-44`: el ancho de «Permiso» (`min-w-44`): una columna a la que se desplaza la tabla no queda debajo de la fija (5a-33).
+    <Table contenedor="scroll-pl-44">
       <TableHeader>
         <TableRow>
-          <CabeceraPegada lado="nombre" className="min-w-52 align-bottom">
+          <CabeceraPegada lado="nombre" className="min-w-44 align-bottom">
             Permiso
           </CabeceraPegada>
           {columnas.map(({ rol }) => (

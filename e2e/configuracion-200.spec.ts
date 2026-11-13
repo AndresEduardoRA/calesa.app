@@ -183,6 +183,34 @@ test('al 200 %: en la ficha de un origen la clave interna cabe en su tarjeta y �
   ).toBe(true)
 })
 
+// 5a-28: el formulario de apibara (la dirección del servicio, las plataformas y «Guardar configuración», que era `nowrap`) no pasa del relleno del cuerpo de su
+// tarjeta con el texto al 200 % desde la carga.
+test('al 200 %: nada del formulario de apibara pasa del relleno de su tarjeta', async ({
+  page,
+}) => {
+  await textoGrandeAlCargar(page)
+  await entrar(page)
+  await page.goto('/configuracion/empresa?seccion=integraciones')
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+  const formulario = page.locator('form', { hasText: 'Dirección del servicio' })
+  await expect(formulario).toBeVisible()
+  const pasan = await formulario.evaluate((form) => {
+    const cuerpo = form.closest('[data-slot=bloque] > div')
+    if (!cuerpo) return ['sin cuerpo de tarjeta']
+    const estilo = getComputedStyle(cuerpo)
+    const limite = cuerpo.getBoundingClientRect().right - Number.parseFloat(estilo.paddingRight)
+    return [...form.querySelectorAll('*')].flatMap((e) => {
+      const c = e.getBoundingClientRect()
+      return c.width > 0 && c.right > limite + 0.5
+        ? [
+            `${e.tagName.toLowerCase()} «${e.textContent.trim().slice(0, 30)}» llega a ${String(Math.round(c.right))} de ${String(Math.round(limite))}`,
+          ]
+        : []
+    })
+  })
+  expect(pasan, 'descendientes que pasan del relleno del cuerpo de la tarjeta').toEqual([])
+})
+
 // Empresa › Monedas: con el texto al 200 % en 412 px la fila de un tipo de cambio no aprieta su nombre («O…») ni deja el valor encima de
 // su insignia: el valor baja a otra línea cuando no cabe al lado. Se lee entero el nombre de cada tipo de cambio y de cada moneda.
 test('al 200 %: en Monedas se leen enteros el nombre y el valor de cada tipo de cambio, sin solaparse', async ({

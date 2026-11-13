@@ -17,6 +17,7 @@ import {
   sembrarNivel,
 } from './soporte/niveles'
 import {
+  lineasQueEmpiezanPorSeparador,
   quePisaElAviso,
   textosQueNoSeVenEnteros,
   traerALaVista,
@@ -70,6 +71,9 @@ test('al 200 %: el estado y el uso de cada fila se ven enteros, y un aviso no ta
   await capturar(page, info, 'niveles-200-retirados')
   expect
     .soft(await textosQueNoSeVenEnteros(page), 'cada texto de las filas se ve entero')
+    .toEqual([])
+  expect
+    .soft(await lineasQueEmpiezanPorSeparador(page), 'ningún «Estado · Uso» empieza por «·»')
     .toEqual([])
 
   // Un aviso a la vista (retirar, con «Deshacer»): no tapa texto ni botones de la lista. En el celular los avisos van de lado a lado abajo y la página se
