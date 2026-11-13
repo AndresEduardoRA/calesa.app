@@ -53,6 +53,11 @@ Si ya no aplica (cambió la herramienta o el código), se quita.
 - No llames a un ayudante con un prefijo que una prueba cuenta por patrón (`_formula_%` lo cuenta `validar-formula.sql`).
 - Si dos ramas reescriben entera la misma función, la que se integra segunda se rehace sobre la otra: si no, la pisa sin conflicto de git.
 
+- Al regenerar SQL desde el catálogo (`pg_policies.qual`, `pg_get_triggerdef`), consulta con el `search_path` vacío: si no, los nombres salen sin esquema (`uid()` por `auth.uid()`) y la policy no aplica.
+- `format('%s', un_booleano)` escribe `t` o `f`, que no es SQL: usa `case when … then 'true' else 'false' end` al generar un `insert`.
+- Antes de comparar dos volcados quita las líneas `\restrict` y `\unrestrict` de `pg_dump` 17: llevan una clave al azar y dan una diferencia falsa.
+- `supabase db dump` ya trae `alter publication supabase_realtime add table …`, pero no los triggers de `auth.users`, las policies de `storage.objects`, los buckets, los secretos de Vault ni los jobs: eso lo suma `scripts/db/aplastar.sh`.
+
 ## Candados y concurrencia
 
 - Toma la fila `for no key update` cuando no cambias una clave: `for update` choca con el `key share` de quien inserta hijas (comentarios, revisiones) y termina en espera, 55P03 o 40P01.
@@ -274,6 +279,10 @@ Si ya no aplica (cambió la herramienta o el código), se quita.
 - Si `next build` cae con «Type '/x' is not assignable to RouteImpl», corre `pnpm typecheck` (hace `next typegen`): no es del código.
 - Usa `set -o pipefail` en los arneses: el código de salida de una tubería es el del último comando y una mutación «cae» o «pasa» en falso.
 - Tras traer main corre `pnpm db:reset` antes de culpar al código por e2e que caen: la base local puede no tener las migraciones nuevas.
+- El hook de Bash lee el texto entero del comando, heredocs incluidos: un guion que nombre un push, la bandera de saltar hooks o una orden remota de Supabase se escribe en un archivo (Write) y se corre desde ahí.
+- Con dos cuentas en `gh`, no cambies la activa: pide el token de la dueña del repo por llamada (`GH_TOKEN=$(gh auth token --user <dueña>)`), como hace `scripts/flujo/publicar.sh`.
+- `gh pr merge --auto` sin protección en `main` integra en el acto, antes del CI: el auto-merge sólo espera lo que la rama exige («Listo · todo en verde»).
+- La cuenta de líneas de `max-lines` (300) vale también para un `.test.ts`: una prueba nueva que no cabe va en su propio archivo.
 
 ## Por módulo
 

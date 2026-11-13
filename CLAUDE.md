@@ -11,6 +11,7 @@ chat, agenda y la web pública. Una empresa por despliegue. Sólo español, de t
    ya pisadas: míralo antes de una migración, una RPC, un e2e o una pantalla), `PENDIENTES.md` (lo que falta), `RENDIMIENTO.md`,
    `ARQUITECTURA.md`. Si costó encontrar algo, arregla el mapa o la ficha.
 4. El proyecto está terminado y vive de actualizaciones chicas: una rama, un PR que se integra solo con el CI en verde (`docs/FLUJO.md`).
+   `bash scripts/flujo/estado.sh` dice en cuatro líneas si hay un PR abierto o un CI en rojo: eso va antes que lo pedido.
 
 ## Comandos
 

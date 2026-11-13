@@ -59,6 +59,42 @@ describe('limpiar-ramas › qué ramas se borran', () => {
       ),
     ).toEqual([])
   })
+})
+
+describe('limpiar-ramas › ramas que siguieron después de integrarse o que nunca tuvieron PR', () => {
+  it('borra la rama que no aporta nada sobre su ancestro común con main, aunque su punta no esté en main', () => {
+    expect(
+      ramasPorBorrar(
+        [
+          { nombre: 'trajo-main', sha: 'f1' },
+          { nombre: 'con-trabajo', sha: 'g1' },
+        ],
+        [],
+        PROTEGIDAS,
+        () => false,
+        'm1',
+        (sha: string) => sha === 'f1',
+      ),
+    ).toEqual(['trajo-main'])
+  })
+
+  it('borra la rama que siguió tras integrarse sólo trayendo main, y deja la que sumó trabajo propio', () => {
+    const soloTrajoMain = (sha: string, integrada: string) => sha === 'h2' && integrada === 'h1'
+    expect(
+      ramasPorBorrar(
+        [
+          { nombre: 'fix/trajo-main', sha: 'h2' },
+          { nombre: 'fix/siguio', sha: 'i2' },
+        ],
+        [pr('fix/trajo-main', 'h1', 'MERGED'), pr('fix/siguio', 'i1', 'MERGED')],
+        PROTEGIDAS,
+        () => false,
+        'm1',
+        () => false,
+        soloTrajoMain,
+      ),
+    ).toEqual(['fix/trajo-main'])
+  })
 
   it('borra una rama sin PR cuya punta ya está en main, y deja la que no', () => {
     const esAncestro = (a: string, b: string) => a === 'd1' && b === 'm1'
