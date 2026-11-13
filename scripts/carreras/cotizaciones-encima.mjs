@@ -1,7 +1,7 @@
 // Las carreras de `cotizacion_encima` (paso 4.15-2), con dos conexiones reales a la base del Supabase LOCAL (el arnés de `scripts/carreras.mjs`: A abre una transacción y actúa,
 // B lanza su llamada, el orquestador espera a que B esté esperando un lock y A confirma; si B no espera, la carrera no se probó y el script falla). En todas, ningún interbloqueo
-// (40P01). El orden que prueban está en `…_cotizacion_encima.sql`: el intento (advisory), la anterior `for share`, el lead `for key share`, el vehículo, la publicada `for share`,
-// y el índice `cotizaciones_encima_unica` en el insert.
+// (40P01). El orden que prueban es el de `cotizacion_encima()`: el intento (advisory), el lead y el vehículo de la anterior `for key share`, la anterior `for share`, la
+// publicada `for share`, y el índice `cotizaciones_encima_unica` en el insert.
 import { PERSONAS } from './terreno.mjs'
 import { insertaCotizacion, publica, terreno } from './cotizaciones.mjs'
 

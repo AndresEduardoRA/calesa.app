@@ -72,6 +72,8 @@ Si ya no aplica (cambió la herramienta o el código), se quita.
 - Reordenar con valores de orden pide un candado del conjunto (`lock table`): dos personas que mueven tarjetas distintas pueden dejar dos en el mismo orden.
 - Envuelve el `insert` idempotente por id en `exception when unique_violation` (o busca el id tras el candado): dos reintentos simultáneos dan el 23505 crudo de la PK.
 - Fija con una prueba de definición una cláusula de candado que no tiene prueba de carrera: al recrear la función, un merge la perdió en silencio.
+- Prueba un ciclo de candados con tres conexiones (una retiene el candado del medio, `scripts/carreras/candados-papelera.mjs`): con dos, A termina su llamada antes de que B empiece y el 40P01 nunca aparece.
+- Un `for key share` no espera a quien aguarda un `for update` sobre la misma fila si quien la tiene es otro `key share`: se adelanta, y así se arma el ciclo con quien esperaba.
 
 ## Pruebas de la base (PGlite y `db:probar`)
 
