@@ -1,5 +1,7 @@
-// Las carreras de emitir contra los dos caminos a la papelera (paso 4.26-1): mandar la misma final a la papelera (K6, P3 a) y marcar otra final del mismo
-// vehículo, que baja la vieja (K7, P7 a). Los tres toman la fila de la cotización (`for no key update`), así que nunca queda un comprobante sobre una
+// Las carreras de emitir contra los caminos a la papelera (paso 4.26-1): mandar la misma final a la papelera (K6, P3 a), marcar otra final del mismo
+// vehículo, que baja la vieja (K7, P7 a), y mandar su vehículo a la papelera, que se lleva sus cotizaciones (K8). Los tres primeros toman la fila de la
+// cotización (`for no key update`); contra el vehículo, emitir lo toma `for key share` antes que la cotización (el orden lead → vehículo → cotización), y
+// así la papelera, que toma el vehículo `for update` y mira sus comprobantes, ve el que se acaba de emitir. Nunca queda un comprobante sobre una
 // cotización en la papelera y el que pierde no consume número. Las llama `carreras.mjs` con su `carrera()`, después de K1–K5.
 import { insertaCotizacion, terreno } from '../../../../scripts/carreras/cotizaciones.mjs'
 import { emitir, fila, nuevoId, sinHuecos, sinInterbloqueo, SERIE } from './carreras-comun.mjs'
@@ -13,6 +15,13 @@ const enviar = (c) => ({
   args: [c],
 })
 const marcar = (c) => ({ sql: 'public.cotizacion_marcar_final($1)', args: [c] })
+const enviarVehiculo = (v) => ({
+  sql: `public.vehiculos_papelera_enviar(jsonb_build_array(jsonb_build_object('id', $1::uuid, 'actualizado_en', (select actualizado_en from public.vehiculos where id = $1))))`,
+  args: [v],
+})
+const vehiculoVivo = async (db, v) =>
+  (await fila(db, 'select eliminado_en is null as viva from public.vehiculos where id = $1', [v]))
+    .viva
 
 const estado = (db, c) =>
   fila(
@@ -34,7 +43,7 @@ export async function carrerasDePapelera({ orquesta, espero, carrera }) {
     const [f, p] = [nuevoId(), nuevoId()]
     await insertaCotizacion(orquesta, t, f, { clase: 'final' })
     await insertaCotizacion(orquesta, t, p)
-    return [f, p]
+    return [f, p, t.vehiculo]
   }
 
   console.log('Emitir contra mandar la misma final a la papelera (K6, en los dos órdenes)')
@@ -102,6 +111,47 @@ export async function carrerasDePapelera({ orquesta, espero, carrera }) {
         sinInterbloqueo(r1.a, r1.b, r2.a, r2.b) &&
         (await sinHuecos(orquesta)),
       { r2, e2, q2 },
+    )
+  }
+
+  console.log('Emitir contra mandar su vehículo a la papelera (K8, en los dos órdenes)')
+  {
+    // Emitir no toca el vehículo: si no lo toma antes que la cotización, la papelera toma el vehículo, no ve el comprobante sin confirmar, espera la
+    // cotización y, al confirmar emitir, se la lleva a la papelera con su comprobante.
+    const [f1, , v1] = await finalYPreventa('k8a')
+    const r1 = await carrera({ a: emitir(f1), b: enviarVehiculo(v1) })
+    const e1 = await estado(orquesta, f1)
+    const vivo1 = await vehiculoVivo(orquesta, v1)
+    espero(
+      'emite primero: la papelera deja el vehículo en rechazados con 23514, y el vehículo y la final siguen vivos con su comprobante',
+      r1.a.ok &&
+        r1.b.ok &&
+        r1.b.valor.enviados?.length === 0 &&
+        r1.b.valor.rechazados?.[0]?.codigo === '23514' &&
+        r1.b.valor.rechazados[0].motivo === CON_COMPROBANTE &&
+        vivo1 &&
+        e1.viva &&
+        e1.comprobantes === 1,
+      { r1, e1, vivo1 },
+    )
+    const [f2, , v2] = await finalYPreventa('k8b')
+    const antes = await ultimo(orquesta)
+    const r2 = await carrera({ a: enviarVehiculo(v2), b: emitir(f2) })
+    const e2 = await estado(orquesta, f2)
+    const vivo2 = await vehiculoVivo(orquesta, v2)
+    espero(
+      'envía primero: el vehículo se lleva la final y emitir da el 42501 de lo inexistente, sin comprobante ni número',
+      r2.a.ok &&
+        r2.a.valor.enviados?.length === 1 &&
+        r2.b.codigo === '42501' &&
+        r2.b.mensaje === ACCESO &&
+        !vivo2 &&
+        !e2.viva &&
+        e2.comprobantes === 0 &&
+        (await ultimo(orquesta)) === antes &&
+        sinInterbloqueo(r1.a, r1.b, r2.a, r2.b) &&
+        (await sinHuecos(orquesta)),
+      { r2, e2, vivo2 },
     )
   }
 }
