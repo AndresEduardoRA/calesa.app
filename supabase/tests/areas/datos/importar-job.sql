@@ -201,7 +201,10 @@ begin
                    and command = 'select public.importaciones_continuar_correr()') then
     raise exception 'falta el job importaciones-continuar cada 2 minutos que lee la URL de Vault';
   end if;
-  if exists (select 1 from cron.job where command ~ 'https?://') then raise exception 'un job lleva una URL escrita en su comando'; end if;
+  -- Sólo los de la importación: humo.sql (que corre antes en la lista fija) reprograma storage-gc con una dirección a mano.
+  if exists (select 1 from cron.job where jobname like 'importaciones-%' and command ~ 'https?://') then
+    raise exception 'un job de la importación lleva una URL escrita en su comando';
+  end if;
   v_f := 'public.importaciones_continuar_disparar(text)'::regprocedure;
   if not has_function_privilege('service_role', v_f, 'execute') then raise exception 'service_role no ejecuta disparar'; end if;
   if has_function_privilege('authenticated', v_f, 'execute') or has_function_privilege('anon', v_f, 'execute') then
