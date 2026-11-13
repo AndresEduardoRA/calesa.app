@@ -8,12 +8,12 @@
     {
       "lint": "anon_security_definer_function_executable",
       "clave": "anon_security_definer_function_executable_web_registrar_evento_p_token text, p_evento text, p_ruta text, p_referencia_id uuid, p_utm jsonb",
-      "motivo": "Entrada pública de eventos de la web: definer porque anon no escribe eventos_web; rechaza un token fuera de ^[A-Za-z0-9_-]{16,64}$ o un evento fuera de su lista, corta la ruta a 300 y no devuelve nada."
+      "motivo": "Entrada pública de eventos de la web: definer porque anon no escribe eventos_web; rechaza un token fuera de ^[A-Za-z0-9_-]{16,64}$ o un evento fuera de su lista, corta la ruta a 300 y no devuelve nada. Sin tope de tamaño de p_utm ni de frecuencia (se purga a los 12 meses)."
     },
     {
       "lint": "anon_security_definer_function_executable",
       "clave": "anon_security_definer_function_executable_web_solicitar_asesor_p_token text, p_fuente text, p_ruta text, p_vehiculo_id uuid, p_handle text, p_utm jsonb",
-      "motivo": "La solicitud de asesor de la web pública (la cola web): anon con token del sitio (rechaza uno fuera de su forma); definer porque asigna por la rueda sobre tablas que anon no ve; devuelve el código y lo público del asesor asignado (perfil publico_web y su WhatsApp de la web)."
+      "motivo": "La solicitud de asesor de la web pública (la cola web): anon, con el token anónimo del visitante (lo genera el navegador; sólo se valida su forma y no autentica; el freno de 12 por hora es por token). Definer porque asigna por la rueda sobre tablas que anon no ve; devuelve el código y el nombre, avatar, cargo y WhatsApp de la web del asesor de la cola (no exige publico_web)."
     },
     {
       "lint": "authenticated_security_definer_function_executable",
@@ -28,7 +28,7 @@
     {
       "lint": "function_search_path_mutable",
       "clave": "function_search_path_mutable_public__lead_visible_para_9f4ad99ee8b5d534a174da75aea979a3",
-      "motivo": "Función SQL de una sola consulta, sin definer ni SET, que Postgres inlinea (EXPLAIN de 9.13-1: el cuerpo aparece en el plan de quien la llama); fijarle search_path lo impide y cambia el plan del llamador. Todo nombre de su cuerpo va calificado con `public.`. La usa una policy (`puede_lead`/`_leads_candidatos_sql`): inlinearla por fila es lo que mantiene el plan."
+      "motivo": "Función SQL de una sola consulta, sin definer ni SET, que Postgres inlinea (EXPLAIN de 9.13-1: el cuerpo aparece en el plan de quien la llama); fijarle search_path lo impide y cambia el plan del llamador. Todo nombre de su cuerpo va calificado con `public.`. La usa la policy «leads: leer» de `leads` y, adentro, `puede_lead` y `_leads_candidatos_sql`: inlinearla por fila es lo que mantiene el plan."
     },
     {
       "lint": "function_search_path_mutable",
