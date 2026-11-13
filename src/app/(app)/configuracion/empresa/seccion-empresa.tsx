@@ -17,6 +17,7 @@ export async function SeccionEmpresa({ puedeEditar }: { puedeEditar: boolean }) 
   const { monedas } = datosO(monedasYTipos)
 
   const logoUrl = urlPublicaONull('marca', ajustes.logoRuta)
+  const logoOscuroUrl = urlPublicaONull('marca', ajustes.logoOscuroRuta)
 
   // Los ajustes son una fila con una versión, que editan dos cosas. Cada una lleva de `key` lo
   // que ella muestra: arranca de nuevo cuando eso cambia, y no cuando guardó la otra.
@@ -26,6 +27,7 @@ export async function SeccionEmpresa({ puedeEditar }: { puedeEditar: boolean }) 
         key={huellaDelFormulario(ajustes)}
         ajustes={ajustes}
         logoUrl={logoUrl}
+        logoOscuroUrl={logoOscuroUrl}
         monedas={monedas.filter((moneda) => moneda.activa || moneda.codigo === ajustes.monedaBase)}
         zonas={zonasHorarias()}
         conDatosCargados={conDatosCargados}

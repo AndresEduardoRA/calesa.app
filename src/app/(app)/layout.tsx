@@ -68,6 +68,7 @@ async function Shell({ children }: { children: ReactNode }) {
                   <Marca
                     nombre={ajustes.nombre}
                     logoUrl={urlPublicaONull('marca', ajustes.logoRuta)}
+                    logoOscuroUrl={urlPublicaONull('marca', ajustes.logoOscuroRuta)}
                   />
                 }
                 navegacion={<BarraLateral permisos={sesion.permisos} />}

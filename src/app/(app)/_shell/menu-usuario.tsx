@@ -17,6 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu'
+import { InstalarApp } from '@/shared/ui/instalar-app'
 import { VerComo } from './ver-como'
 
 // Alto de un renglón del menú: cómodo para el dedo en móvil, compacto con mouse.
@@ -131,6 +132,7 @@ export function MenuUsuario({ persona, entradas, alCerrarSesion }: Props) {
           </DropdownMenuItem>
         ))}
         <DropdownMenuSeparator />
+        <InstalarApp className={RENGLON} />
         <VerComo />
         <Preferencias />
         <DropdownMenuSeparator />
