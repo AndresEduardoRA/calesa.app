@@ -4,13 +4,13 @@ Trabajo que no debe vivir en una Server Action que el usuario espera. Cada una s
 fase que la necesita (`docs/PLAN.md`); hasta entonces sólo existe su contrato. Deno, `supabase
 functions new <nombre>`, secretos con `supabase secrets set`, nunca en el código.
 
-| Función               | Fase         | La dispara                                                               | Hace                                                                                                                                                                                                                   | Secretos                                                             |
-| --------------------- | ------------ | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| `apibara`             | 2 (parte 5)  | El navegador de quien da de alta o refresca un vehículo, con su sesión   | Consulta la API de Copart e IAAI: la ficha por enlace, VIN o lote, una foto y el uso de la cuenta. Ver «`apibara`» más abajo.                                                                                          | la clave de apibara, de Vault (`integracion_secreto`)                |
-| `push`                | 7            | `trg_notificaciones_push` → `push_disparar()` → `pg_net` con un pase     | Canjea el pase con `push_abrir`, cifra (RFC 8291) y firma (RFC 8292) con Web Crypto, envía a cada suscripción del destinatario y anota con `push_resultado` (404/410 borran). Ver «`push`» más abajo.                  | `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` |
-| `storage-gc`          | 2 (parte 4)  | `pg_cron` cada hora → `storage_gc_disparar(url)` → `pg_net`              | Canjea el pase que trae el pedido; si vale, reclama, borra por la API de Storage y confirma. Nunca recuenta ni decide por su cuenta. Ver «`storage-gc`» más abajo.                                                     | ninguno propio: la service key que inyecta el runtime                |
-| `avatares-miniaturas` | 3 (cierre 1) | `pg_cron` cada hora → `avatares_miniaturas_disparar(url)` → `pg_net`     | Canjea el pase (los de `storage-gc`); hace la miniatura de 96 px de hasta 20 avatares que no la tienen y la guarda si el avatar no cambió; una imagen que no lee queda marcada. Ver «`avatares-miniaturas`» más abajo. | ninguno propio: la service key que inyecta el runtime                |
-| `importar-csv`        | 9            | Server Action de `datos` tras subir el archivo al bucket `importaciones` | Parsea, valida por fila contra la plantilla, llama `crear_lead` (misma regla de limbo/duplicados) o inserta vehículos; escribe el informe en `importaciones`.                                                          | ninguno                                                              |
+| Función               | Fase         | La dispara                                                                                                 | Hace                                                                                                                                                                                                                   | Secretos                                                             |
+| --------------------- | ------------ | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `apibara`             | 2 (parte 5)  | El navegador de quien da de alta o refresca un vehículo, con su sesión                                     | Consulta la API de Copart e IAAI: la ficha por enlace, VIN o lote, una foto y el uso de la cuenta. Ver «`apibara`» más abajo.                                                                                          | la clave de apibara, de Vault (`integracion_secreto`)                |
+| `push`                | 7            | `trg_notificaciones_push` → `push_disparar()` → `pg_net` con un pase                                       | Canjea el pase con `push_abrir`, cifra (RFC 8291) y firma (RFC 8292) con Web Crypto, envía a cada suscripción del destinatario y anota con `push_resultado` (404/410 borran). Ver «`push`» más abajo.                  | `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` |
+| `storage-gc`          | 2 (parte 4)  | `pg_cron` cada hora → `storage_gc_disparar(url)` → `pg_net`                                                | Canjea el pase que trae el pedido; si vale, reclama, borra por la API de Storage y confirma. Nunca recuenta ni decide por su cuenta. Ver «`storage-gc`» más abajo.                                                     | ninguno propio: la service key que inyecta el runtime                |
+| `avatares-miniaturas` | 3 (cierre 1) | `pg_cron` cada hora → `avatares_miniaturas_disparar(url)` → `pg_net`                                       | Canjea el pase (los de `storage-gc`); hace la miniatura de 96 px de hasta 20 avatares que no la tienen y la guarda si el avatar no cambió; una imagen que no lee queda marcada. Ver «`avatares-miniaturas`» más abajo. | ninguno propio: la service key que inyecta el runtime                |
+| `importar-csv`        | 9 (9.06)     | La acción de `/datos` (`importacion_pase_emitir`, 9.06-4) o el job `importaciones-continuar` → pase → POST | Canjea el pase con `importacion_abrir`, baja el archivo normalizado, lo valida contra la plantilla y procesa por lotes de 50 hasta 45 s; termina y borra el CSV. Ver «`importar-csv`» más abajo.                       | ninguno propio: la service key que inyecta el runtime                |
 
 ## `apibara`
 
@@ -162,3 +162,33 @@ la prueba de contrato los carga en Node. `supabase/tests/push-contrato.test.ts` 
 En la nube: `supabase functions deploy push` (la demo la despliega `demo.yml`) y `supabase secrets set NEXT_PUBLIC_VAPID_PUBLIC_KEY=… VAPID_PRIVATE_KEY=…
 VAPID_SUBJECT=mailto:…` (las genera `pnpm exec web-push generate-vapid-keys`, sin red; la pública es la misma en Vercel). `url_proyecto` en Vault ya lo
 ponen el seed y `resetear.sh`. En local, sin `.env` de funciones, responde `sin_claves`.
+
+## `importar-csv`
+
+Procesa una importación total de `/datos` (9.06). No recibe un id ni una sesión: recibe un pase de un uso
+(`importaciones_pases`) que emiten la acción de `/datos` (`importacion_pase_emitir`, sólo quien creó la importación) o el
+job `importaciones-continuar` (cada 2 min, las que llevan 2 min sin avance), y lo canjea con `importacion_abrir` (10 min).
+A nombre de quién se importa y qué entidad lo dice la fila de `importaciones`; las RPC (`importacion_empezar`,
+`importacion_procesar_lote`, `importacion_terminar`, sólo `service_role`) vuelven a mirar los permisos en cada lote.
+
+- **El archivo normalizado** (`src/modules/datos/entities/plantillas.ts`): la pantalla convierte en el navegador lo que
+  escribió la persona y sube un CSV cuyas columnas son `rechazo_motivo`, `rechazo_campo` y las claves de `datos` de la
+  entidad. La función sólo valida la forma; la base valida el resto por fila. Topes: 10 MB y 20.000 filas (leer y validar
+  20.000 filas al tope tarda ≈ 140 ms en Node, 9.06-3).
+- **Copias:** `leer.ts` y `plantillas.ts` son copias exactas de `src/shared/lib/csv/leer.ts` y de `plantillas.ts`, y
+  `papaparse` va en `deno.json` con la versión del `package.json`; la guarda `scripts/guardas/areas-c/importar-csv-copias.test.ts`
+  falla si se separan. Se edita el de `src/` y se copia.
+- **Una invocación trabaja hasta 45 s** (por debajo de los 60 s del `pg_net` del job) y responde; lo que falte lo retoma
+  el job. Con 20.000 filas son 7 u 8 invocaciones y más de 20 min.
+- **La marca la dice la base:** cada lote empieza en `procesadas + 1` de la respuesta anterior; si un lote vuelve todo
+  saltado, otra invocación va adelante y ésta se va. Nunca se importa dos veces la misma fila (la base es idempotente por
+  importación y fila, y forma en fila los lotes con el candado de la importación).
+- **El CSV se borra** al llegar a `terminada` o `fallida` en una invocación. Uno que el job deja `fallida` por 24 h sin
+  avance no se borra (anotado para el despliegue, 9.13).
+- Logs sin datos: sólo el id de la importación, el estado y cuentas; de un error, sólo qué pedido respondió qué estado.
+
+Cómo se prueba: `supabase/tests/importar-csv-funcion.test.ts` (el contrato en Node, con la base simulada),
+`scripts/carreras/importacion-total.mjs` (dos lotes a la vez sobre la misma importación) y
+`e2e/datos-importar-funcion.spec.ts` (la función real, con `pnpm funciones`).
+
+En la nube: `supabase functions deploy importar-csv`. La URL del job sale de Vault (9.06-2).
