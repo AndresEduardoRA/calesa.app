@@ -135,6 +135,54 @@ for (const pantalla of PANTALLAS) {
   })
 }
 
+// Lo que cabe en el relleno de su contenedor: el borde derecho de `lugar` no pasa el del contenido de su ancestro `selector` más cercano (5a-29).
+async function dentroDe(lugar: Locator, selector: string, que: string): Promise<void> {
+  const m = await lugar.evaluate((e, sel) => {
+    const contenedor = e.closest(sel)
+    if (!contenedor) return null
+    const estilo = getComputedStyle(contenedor)
+    const limite =
+      contenedor.getBoundingClientRect().right -
+      Number.parseFloat(estilo.borderRightWidth) -
+      Number.parseFloat(estilo.paddingRight)
+    return { derecha: e.getBoundingClientRect().right, limite }
+  }, selector)
+  expect(m, `${que}: no está dentro de ${selector}`).not.toBeNull()
+  expect(m?.derecha ?? 0, `${que}: pasa el relleno de ${selector}`).toBeLessThanOrEqual(
+    (m?.limite ?? 0) + 0.5,
+  )
+}
+
+// 5a-29 y 5a-30: la ficha de un origen al 200 %: la clave interna cabe en su tarjeta (se parte, no se corta) y el texto de un paso pendiente mide al menos
+// 12 rem o su «Abrir» pasa debajo, en vez de quedar en una columna de ~130 px.
+test('al 200 %: en la ficha de un origen la clave interna cabe en su tarjeta y «Abrir» no aprieta el texto del paso', async ({
+  page,
+}, info) => {
+  await textoGrandeAlCargar(page)
+  await entrar(page)
+  // Una clave de 28 caracteres en monoespaciada: al 200 % no cabe en una línea.
+  const conClaveLarga = await crearOrigenDePrueba(
+    'Origen de clave larga',
+    `clave_interna_${info.project.name}`,
+  )
+  await page.goto(`/configuracion/origenes/${conClaveLarga.id}?seccion=datos`)
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+  await dentroDe(page.locator('dd.font-mono').first(), 'main', 'la clave interna')
+  const abrir = page.getByRole('link', { name: /^Abrir/ }).first()
+  const paso = abrir.locator('xpath=ancestor::li[1]')
+  const texto = await paso.locator(':scope > div').first().boundingBox()
+  const boton = await abrir.boundingBox()
+  const raiz = await page.evaluate(() =>
+    Number.parseFloat(getComputedStyle(document.documentElement).fontSize),
+  )
+  expect(texto && boton, 'el paso tiene texto y botón').toBeTruthy()
+  const debajo = (boton?.y ?? 0) >= (texto?.y ?? 0) + (texto?.height ?? 0) - 1
+  expect(
+    debajo || (texto?.width ?? 0) >= 12 * raiz - 1,
+    'el texto del paso mide 12 rem o «Abrir» pasa debajo',
+  ).toBe(true)
+})
+
 // Empresa › Monedas: con el texto al 200 % en 412 px la fila de un tipo de cambio no aprieta su nombre («O…») ni deja el valor encima de
 // su insignia: el valor baja a otra línea cuando no cabe al lado. Se lee entero el nombre de cada tipo de cambio y de cada moneda.
 test('al 200 %: en Monedas se leen enteros el nombre y el valor de cada tipo de cambio, sin solaparse', async ({
