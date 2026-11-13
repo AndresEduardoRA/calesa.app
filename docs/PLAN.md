@@ -397,7 +397,8 @@ reintentar en CI no son abiertos (`.claude/rules/e2e.md` › «Inestables»).
   6,5 min de pruebas cada uno). El mecanismo: los dos proyectos comparten la base y corren con un solo worker. Assert original:
   `pnpm test:e2e:completo` con los dos proyectos ≤ 25 min con las mismas pruebas (`node scripts/areas-cubiertas.mjs`); el cierre (4.28)
   anota el tiempo de cada proyecto para que la persona decida con números si vale la segunda pila local (dos pilas de Supabase con otro
-  `project_id`, otros puertos y `scripts/e2e-completo.mjs` lanzando los dos a la vez).
+  `project_id`, otros puertos y `scripts/e2e-completo.mjs` lanzando los dos a la vez). En la lista de la persona: `docs/DESPLIEGUE.md` ›
+  «Lo que sólo una persona comprueba».
 - **5a-39** (sin fase: lo decide la persona): Equipo › «Dadas de baja» dice «Por ahora el equipo eres tú. Invita a la primera persona y
   aparece acá.» con una persona en la lista (el aviso de la cabecera cuenta al equipo activo y no mira el filtro) — con un estado que no es
   «En el equipo» y al menos una fila, el aviso no sale o no contradice la lista; lo mira `e2e/equipo.spec.ts`
@@ -2357,55 +2358,65 @@ auditoría AA de la Fase 9, con 5a-28. Los defectos de pulido nuevos se anotan a
 - (6.14-1) El margen sin gastos dice «Real USD 0,00»: es cierto, pero junto a «Sin venta registrada» parece un costo cargado; «Sin gastos» lo diría sin cifra (escritorio y celular; `logistica-tarea-de-oro` 08).
 - (6.14-1) La cadena de la dueña: en el celular las pestañas de origen parten en dos líneas y la última queda cortada en el borde; en escritorio la tercera columna se corta sin indicio de que se desplaza (`logistica-tarea-de-oro` 01 y 09).
 - (5.04-3) El inspector de fase no se miró al 200 % (los bloques anidados miden con `minmax(0, 1fr)`; sin captura): `docs/pasos/5.04-3/bitacora.md`.
-- (4.18-3b) «Copiar texto» apagado nombra por `aria-describedby` un id que no está en el DOM mientras la tarjeta carga (`copiar-texto-de-la-tarjeta.tsx`): el aviso y «Falta el total para copiarlo.» sólo se dibujan con la tarjeta.
+- (4.18-3b) «Copiar texto» apagado nombra por `aria-describedby` un id que no está en el DOM mientras la tarjeta carga (`copiar-texto-de-la-tarjeta.tsx`): el aviso y «Falta el total para copiarlo.» sólo se dibujan con la tarjeta. **Cerrado en el 9.12** (`docs/pasos/9.12-2/bitacora.md`).
 
 - **4-50** (desde el 4.18-1, P7): el resumen fijo al pie al 200 %; el 4.18-2 no lo empeora al 100 % y el assert de hoy sigue verde.
+  **Cerrado en el 9.12** (`docs/pasos/9.12-5/bitacora.md`).
 
-- **Pulido nuevo (4.17-3):** al abrir la pestaña «Cotizaciones» de la ficha del vehículo puede verse esqueleto, luego blanco, luego esqueleto: el primero es el de `diferido()` mientras llega el código y el segundo el de las filas, que espera 300 ms. Sin prueba nueva.
+- **Pulido nuevo (4.17-3):** al abrir la pestaña «Cotizaciones» de la ficha del vehículo puede verse esqueleto, luego blanco, luego esqueleto: el primero es el de `diferido()` mientras llega el código y el segundo el de las filas, que espera 300 ms. Sin prueba nueva. **Cerrado en el 9.12** (`docs/pasos/9.12-2/bitacora.md`).
 
 - **4-19** (A, sin paso: pulido): el «·» entre el estado y el uso queda solo al comienzo de una línea al 200 % — en
   `e2e/configuracion-cotizacion-niveles-200.spec.ts`, ninguna línea de «Estado · Uso» empieza por «·» (el separador va pegado al final de
   la anterior); `src/modules/cotizaciones/features/niveles/components/lista-de-niveles.tsx` (`EstadoYUso`).
+  **Cerrado en el 9.12** (`docs/pasos/9.12-5/bitacora.md`).
 - **4-20** (A, sin paso: pulido; con la persona: ancho contra altura): el aviso de escritorio es angosto (216 px al 100 %): una descripción larga ocupa
   unas diez líneas y al 200 % (432 px) un aviso cubre campos de un panel — en `e2e/avisos-con-descripcion.spec.ts`, al 100 % en
   escritorio el aviso con descripción cabe en seis líneas o menos, y ningún aviso cubre un campo con foco (`src/shared/ui/sonner.tsx` y
-  `--ancho-del-aviso` de `src/app/globals.css`; el pie del panel no se tapa: `avisoNoTapaElPie`).
+  `--ancho-del-aviso` de `src/app/globals.css`; el pie del panel no se tapa: `avisoNoTapaElPie`). Lo decide la persona (9.12-5).
 - **4-61** (sin fase; salió del 4.14-2a5, F16 y F17 de su sonda): anotar o agendar desde el «⋯» de la cabecera de la ficha llegan por `router.push` a `?seccion=seguimientos&panel=…`
   (navegación del servidor, sin la marca del guardián). Sin recargar, «atrás» devuelve el foco al «⋯» (guardia en `paneles-foco-al-volver-ficha.spec.ts`); tras recargar lo deja
   en `body` (F16 en los dos proyectos; F17 sólo medido en móvil: en escritorio la sonda no vio el diálogo tras recargar). Assert: tras recargar y «atrás», el foco en el «⋯».
+  **Cerrado en el 9.12** (`docs/pasos/9.12-5/bitacora.md`).
 - **4-62** (sin fase; límite de 4-59, del 4.14-2a5): tras recargar con anotar o agendar abierto desde el botón de la pestaña del lead rápido, o con un panel que se cierra con Esc,
   la ✕ o guardar en una URL distinta de la de apertura (la que lleva `&pestana=`), el segundo «atrás» deja el foco en `body`: la ficha de `lead` sólo se recupera en la URL
   donde se abrió. Assert: el segundo «atrás» devuelve el foco al nombre de la fila también desde la pestaña.
+  **Cerrado en el 9.12** (`docs/pasos/9.12-5/bitacora.md`).
 - **4-50** (pulido para la Fase 9 desde el 4.18-1, P7; antes: antes del 4.18, P5 del 4.14-2a; salió del 4.13-4d, de las capturas): al 200 %, el resumen fijo al pie (escritorio y celular) ocupa cerca del 40 % del alto de la pantalla y
   tapa la hoja mientras se desplaza; se pliega con su «—», pero nace abierto. Assert: al 200 % el resumen al pie no pasa de un alto que se decida, o nace plegado, y
   `aLaVistaSinDesplazar()` de la celda con el foco sigue verde. Suma (4.14-2a, P5): el resumen no sube más allá del borde de arriba de la hoja, y con la barra del vehículo
   encima, al 200 % y con la página arriba de todo, queda debajo del borde de la ventana: 107 px en escritorio y 37,6 en el celular (al 100 % cabe; antes cabía por 1 px).
   `cotizar-hoja-resumen.spec.ts` lo mide ahora con la hoja arriba de la ventana. La persona lo aceptó (P5) y **endureció el assert**: además, al 200 % en los dos
   proyectos y con la página arriba de todo, el resumen cabe entero en la ventana (su borde de abajo a ≤ 1 px del de la ventana). Se arregla al decidir 4-50, antes del 4.18. Suma (4.14-3b): con las dos barras (vehículo y cliente), al 200 % y con la página arriba de todo, el resumen queda 227 px (escritorio) y 157,6 (celular) bajo el borde de la ventana (al 100 % cabe: −258,5 y 0); el assert endurecido, con la hoja arriba de la ventana, sigue en verde.
+  **Cerrado en el 9.12** (`docs/pasos/9.12-5/bitacora.md`).
 - **5a-29** (Fase 9): la «Clave interna» de un origen se corta en el borde de la pantalla al 200 % en el celular (`e2e_largo_capturas_movil`,
   monoespaciada, llega a x = 412; no ensancha la página, así que `sinScrollHorizontal()` no lo ve) — `aLaVistaSinDesplazar()` sobre el
   valor de la clave al 200 % en 412 px (la clave se parte, o se desplaza dentro de su caja). Lugar:
   `src/modules/origenes/features/origenes/components/datos-del-origen.tsx` (línea 34) y `e2e/configuracion-200.spec.ts`.
+  **Cerrado en el 9.12** (`docs/pasos/9.12-5/bitacora.md`).
 - **5a-30** (Fase 9): el paso «Revisa los permisos» de la ficha de un origen queda en una columna de ~130 px al 200 % en el celular («Abrir
   →» no cede; el paso «Publica la fórmula» ganaría su «Abrir →» y heredaría el defecto) — el texto del paso mide al menos 12 rem de
   ancho al 200 % en 412 px, o «Abrir» pasa debajo (`@container`, como las tarjetas), con su prueba en `e2e/`
-  (`src/modules/origenes/features/pasos/components/siguientes-pasos.tsx`).
+  (`src/modules/origenes/features/pasos/components/siguientes-pasos.tsx`). **Cerrado en el 9.12** (`docs/pasos/9.12-5/bitacora.md`).
 - **5a-33** (pulido de la Fase 9; el 4.28 no lo recoge, por la regla del 2026-10-30): Roles, en escritorio al 200 %, el conteo del rol (`roles_personas()`) queda tapado por la columna «Permiso» fija, y
   `toBeVisible` no lo detecta — al 200 % en escritorio, la caja del conteo no se solapa con la columna fija (sus cajas no se intersecan),
   con un rol de miles de personas («más de 1.000 personas») y con uno de una. Lugar: `e2e/roles-conteo-acotado.spec.ts`,
   `matriz-de-roles.tsx` y `cabecera-matriz.tsx` (`src/modules/equipo/features/roles/components/`). Decidido por la persona el 2026-10-22.
+  **Cerrado en el 9.12** (`docs/pasos/9.12-5/bitacora.md`).
+
+Lo que sigue aquí sin marca no tiene paso: pulido para después de la Fase 9 (9.14-3).
 
 Abiertos de esta fase:
 
 - **4-41** (Fase 9; decidido el 2026-10-28: no antes): `pnpm env:check` sólo revisa `.env.local` y `.env.demo`. Falta leer por API, sin
   valores, las variables de Vercel (producción y preview) y los secretos de las funciones y la configuración de Auth de Supabase. Assert:
   con `VERCEL_TOKEN` y `SUPABASE_ACCESS_TOKEN`, `env:check produccion` dice qué falta en cada lugar de la tabla de docs/ENTORNOS.md.
+  **Cerrado en el 9.09** (2026-11-12).
 - **5a-28** (Fase 9: la auditoría AA recorre Configuración al 200 %): el formulario de apibara toca el borde de su tarjeta al 200 % en el
   celular (el campo «Dirección del servicio», el `fieldset` de plataformas y el botón «Guardar configuración», `nowrap`, miden 315 px
   dentro de 282 y terminan en x = 380) — al 200 % en 412 px, ningún descendiente del cuerpo de la tarjeta de Integraciones pasa de su
   relleno (`getBoundingClientRect` contra el cuerpo de `<Bloque>`). Lugar:
   `src/modules/empresa/features/integraciones/components/config-apibara.tsx` (la grilla del `fieldset` exterior a `minmax(0, 1fr)` y el
-  botón que parte su texto) y `e2e/interruptor-200.spec.ts`.
+  botón que parte su texto) y `e2e/interruptor-200.spec.ts`. **Cerrado en el 9.12** (2026-11-13).
 - **9-1** (Fase 9): dominancia sobre la persona. Hoy la dominancia mira permisos y no personas: quien tiene `equipo.usuarios.gestionar`
   puede bloquear, dar de baja o cambiar los roles de alguien con permisos que él no cubre. Regla decidida el 2026-10-21: nadie bloquea,
   da de baja ni cambia los roles de quien tiene permisos que él no cubre; el dueño sí, sobre todos — en `supabase/tests/dominancia-persona.sql`
@@ -2413,25 +2424,26 @@ Abiertos de esta fase:
   `equipo_dar_de_baja`, `rbac_asignar_rol` y `rbac_quitar_rol` sobre B, que sí lo tiene; el dueño puede sobre B; quien cubre todo lo de B
   puede; con «Ver como» no cambia lo que decide la base. La interfaz lo muestra antes (`accionesSobre()` deshabilita con el motivo, como
   `rolDominado()`), con su prueba. Lugar: esas cuatro RPC (migración y cadena db con `db:carreras`), `entities/dominancia.ts` y
-  `entities/persona.ts` de `equipo` (la ficha de `equipo` lista la deuda).
+  `entities/persona.ts` de `equipo` (la ficha de `equipo` lista la deuda). **Cerrado en el 9.03** (2026-11-12).
 - **9-2** (Fase 9; decidido el 2026-10-21: no se hace antes de cotizaciones): el rango de un campo numérico — un valor fuera de `min`/`max`
   lo rechaza la base (`_lead_atributos_formato()` y la validación de atributos de vehículos) con su motivo en el campo y el formulario lo
   dice junto al campo; el límite se edita en el editor de campos y un cambio que deja datos fuera lo avisa con su impacto
   (`resumenDeImpacto()`). Lugar: `src/shared/lib/campos/esquema-de-valor.ts`, el panel del campo de `src/shared/ui/campos/` y las dos
-  validaciones de la base.
+  validaciones de la base. **Cerrado en el 9.04** (2026-11-12).
 - **9-3** (Fase 9; decidido el 2026-10-21: no se hace antes de cotizaciones): separar `leads.campos.gestionar` de `leads.configurar` (hoy
   un solo permiso gobierna los campos, los orígenes y los tipos de lead) — una migración siembra `leads.campos.gestionar` con su
   enforcement y la concede a todo rol que hoy tiene `leads.configurar`; las RPC de campos de leads la piden (`leads.configurar` sigue para
   orígenes y tipos); `permisos-enforcement.sql` la ve; la matriz de Roles la muestra. Lugar: las RPC `leads_campos_*`, `CLAVES_PERMISO` y
-  Configuración › Leads › Campos.
+  Configuración › Leads › Campos. **Cerrado en el 9.04** (2026-11-12).
 - **9-4** (Fase 9; decidido en CI-1, 2026-10-25): `db:medir` fuera de CI (mide tiempo y un runner compartido de 2 vCPU lo vuelve inestable;
   corre en local en el paso que toca una RPC medida) — `scripts/guardas/workflows.test.ts` falla si un workflow llama `db:medir` o
   `medir-listado`; para que entre a CI hace falta un runner dedicado y 5 corridas seguidas en él con cada tiempo a ≤ 10 % de su mediana
   (desvío / mediana), anotadas en una tabla. Lugar: `scripts/medir-listado.mjs`, `supabase/tests/medir-*.sql`, el job `base` de
-  `.github/workflows/ci.yml` y la lista `FUERA_DE_CI` de `scripts/guardas/workflows.ts`.
+  `.github/workflows/ci.yml` y la lista `FUERA_DE_CI` de `scripts/guardas/workflows.ts`. **Cerrado en el 9.09** (2026-11-12), como decidido: sigue fuera
+  de CI.
 - **9-5** (Fase 9; decidido en CI-1): `db:medir:volumen` fuera de CI, lo mismo que 9-4 y además pide `db:sembrar-volumen` antes y `db:reset`
   después (la guarda ya lo cubre: `db:medir` es prefijo de `db:medir:volumen`), con las 5 corridas medidas sobre el volumen sembrado.
-  Lugar: el de 9-4 y `scripts/sembrar-volumen.mjs`.
+  Lugar: el de 9-4 y `scripts/sembrar-volumen.mjs`. **Cerrado en el 9.09** (2026-11-12), como decidido: sigue fuera de CI.
 - **9-6** (Fase 9; decidido en CI-1): `db:carreras` fuera de CI hasta ver cómo se porta en el runner (dos o tres conexiones reales sin
   `sleep`; en local 25,8 s y 23,6 s, nunca con 2 vCPU). Entra al job `base` después de **5 corridas seguidas en verde por
   `workflow_dispatch`**, sin reintentos; un rojo vuelve la cuenta a 0 y lleva su número. El job `carreras` (CI-1b) corre sólo con
@@ -2440,7 +2452,7 @@ Abiertos de esta fase:
   **Cuenta: 3 de 5**, por el job `carreras`: 1) 2026-10-25, 40222651048, verde; 2) 2026-10-25, 40241115895, verde; 3) 2026-10-26,
   40320539963, verde en 3 min 8 s (el resto de la corrida cayó en el e2e, bloque 2: `leads-exportar`, CI-4). La cuenta sigue con cada fila
   nueva (fecha, id de `gh run list`, resultado). Lugar: `scripts/carreras.mjs`, `scripts/carreras/`, `.github/workflows/ci.yml` y
-  `scripts/guardas/workflows.ts`.
+  `scripts/guardas/workflows.ts`. En la lista de la persona: `docs/DESPLIEGUE.md` › «Lo que sólo una persona comprueba».
 - **9-7** (Fase 9; gravedad baja): el aviso de «guardado» sale con el pie todavía en «Guardando…». `alGuardar` avisa («Lead creado», con
   «Abrir ficha») pero `enCurso` es el `isPending` de next-safe-action y dura hasta que la pantalla termina de refrescarse: del aviso al pie
   quieto pasan 40 a 49 ms, ≈ 150 ms con la CPU 6× más lenta y ≈ 800 ms a 20× — una prueba (o la sonda de CI-2 hecha prueba) que con la CPU
@@ -2449,6 +2461,7 @@ Abiertos de esta fase:
   (`alGuardar` y `avisarExito`), `use-crear-lead.ts`, `use-envio-del-alta.ts:136`; y los mismos patrones en
   `src/modules/vehiculos/features/…/use-formulario-de-vehiculo.ts:143-175` (+ `panel-de-vehiculo.tsx:58,98`) y
   `src/modules/…/use-panel-de-etapas.ts:35-43`. Salida posible: avisar cuando `isPending` vuelve a `false`, no al resolver la promesa.
+  **Cerrado en el 9.12** (2026-11-13).
 - **9-8** (Fase 9): `e2e/empresa.spec.ts:194` deja una clave de apibara en Vault y pisaría una real. La prueba escribe
   `e2e-clave-<proyecto>-0123456789` (`integracion_guardar_secreto`) y `restaurarEmpresa()` (`e2e/soporte/empresa.ts:132-151`) sólo devuelve
   la columna `integraciones.secreto_guardado_en`, no Vault (la base queda incoherente, lo que escondió el rojo de
@@ -2456,7 +2469,7 @@ Abiertos de esta fase:
   `vault.secrets` (id, `updated_at` y `md5` del texto cifrado de `integracion:apibara`) queda como estaba, con y sin una clave previa; el
   spec mueve la clave real de lugar por SQL (renombrar la fila de `vault.secrets`, sin descifrarla) y la vuelve a poner al terminar, también
   si cae. Lugar: `e2e/empresa.spec.ts:194` y `e2e/soporte/empresa.ts`; el ayudante `e2e/soporte/apibara-clave.ts` ya sabe preguntar si
-  existe y la huella sin leer.
+  existe y la huella sin leer. **Cerrado en el 9.09** (2026-11-12).
 - **9-9** (Fase 9): mediciones de una sola vez tras cargar que CI-3 no reprodujo (no cayeron con la CPU limitada y quedan como están):
   `e2e/leads-ficha-origen-inactivo-200.spec.ts:81` (9 de 9 a 14×; a 20× el drawer tarda más que los 5 s de `toBeVisible`),
   `e2e/barra-de-filtros-200.spec.ts:157-163` (18 de 18 a 14× y 20×; `menu-de-acciones-200.spec.ts:43` dice que el listado llega más ancho
@@ -2465,7 +2478,7 @@ Abiertos de esta fase:
   (`configuracion-200-capturas.spec.ts:61-72`, `cierre-pendientes-capturas.spec.ts:66,107,118`, `leads-recorrido-cierre-2.spec.ts:208-210`)
   — cada una pasa 15 de 15 con una copia que limita la CPU a 20× por CDP (`Emulation.setCPUThrottlingRate`), o espera un estado antes de
   medir o capturar (`aLaVistaAlAcomodarse()`, `esperarHidratado()`, la pista con `data-visible`); en las capturas, la pestaña abierta de la
-  imagen está entera dentro de su barra. Lugar: esos archivos y `e2e/soporte/recorrido.ts`.
+  imagen está entera dentro de su barra. Lugar: esos archivos y `e2e/soporte/recorrido.ts`. **Cerrado en el 9.09** (2026-11-12).
 - **9-10** (Fase 9): las esperas del e2e que leen un texto con la espera de fábrica (5 s) cuando lo que tarda es un pedido (RPC desde el
   navegador, route handler o server action), después de sembrar volumen: `e2e/leads-rapido-volumen.spec.ts` («Ver más» `:106`, `:111`, el
   bucle `:124` con el aviso del tope `:130-131` y `:172`; «Ir a una fecha» `:152-153` y «Volver a los más recientes» `:158`; «Guardar» con
@@ -2477,22 +2490,54 @@ Abiertos de esta fase:
   `listas-por-pagina-volumen` (60 s), `leads-recorrido-csv:121` (20 s) y el ayudante `descargar()` — cada una espera la respuesta de su
   pedido (`page.waitForResponse` con un tope propio, como la prueba «más de 5.000 leads» de `leads-exportar.spec.ts`) o el estado que la
   sigue, deja en el log lo que tardó y pasa con un POST demorado 6 s por `page.route`. Lugar: esos cinco specs y, si se repite, un ayudante
-  en `e2e/soporte/esperas.ts`.
+  en `e2e/soporte/esperas.ts`. **Cerrado en el 9.09** (2026-11-12).
 - **9-11** (Fase 9; para el próximo cambio del workflow): un rojo del e2e en CI no deja nada de la base (el dispatch 40320539963 cayó por una
   lentitud de ~20 s y el artefacto sólo trae lo de Playwright y `funciones.log`; ver 4-26) — el paso `if: failure()` del job e2e
   (`.github/workflows/ci.yml:224-232`) suma a `e2e-fallos/` el `docker logs` de la base, `pg_stat_statements` (las 30 de mayor
   `max_exec_time`), `pg_stat_user_tables` de `leads` y `leads_asesores` (`n_dead_tup`, `last_autovacuum`, `last_autoanalyze`),
   `pg_stat_checkpointer` y `cron.job_run_details` de los últimos 15 min; `scripts/guardas/workflows.test.ts` exige esos archivos en ese
-  paso, y un rojo provocado a propósito en un dispatch los deja en el artefacto con contenido.
+  paso, y un rojo provocado a propósito en un dispatch los deja en el artefacto con contenido. **Cerrado en el 9.09** (2026-11-12), salvo el dispatch.
+  En la lista de la persona: `docs/DESPLIEGUE.md` › «Lo que sólo una persona comprueba».
 - **9-12** (Fase 9; para antes de producción): «¿Guardar contraseña?» de Chrome con la entrada `type="password"` del Modo Live. La `XCell`
   abre su entrada como `password` con Live encendido (el CSS tapa lo que se dibuja y el valor sigue en el árbol de accesibilidad, medido
   con CDP); lleva `autoComplete="off"` y las marcas de 1Password, LastPass, Bitwarden y Dashlane, pero Chrome ignora `autocomplete="off"`
   en un `password` y no tiene marca propia, y no se puede probar en el Chromium de Playwright — con un Chrome con sesión y gestor de
   contraseñas, y Live encendido, tipear y confirmar un monto en la hoja de cotizar no ofrece guardar nada, en escritorio y en el celular;
   si lo ofrece, se decide de nuevo (con `type="text"` y sólo el CSS el valor queda en el árbol de accesibilidad: `docs/DECISIONES.md`,
-  «Paso 4.12 (1 de 2)», hb). Lugar: `src/shared/ui/xcell/entrada-de-xcell.tsx` y su ficha; se mira cuando la hoja (4.13) exista.
+  «Paso 4.12 (1 de 2)», hb). Lugar: `src/shared/ui/xcell/entrada-de-xcell.tsx` y su ficha; se mira cuando la hoja (4.13) exista. En la lista de la
+  persona: `docs/DESPLIEGUE.md` › «Lo que sólo una persona comprueba».
 - **9-13** (Fase 9; salió del 5.05): `rbac_eliminar_rol` sobre un rol que figura en una lista de quién mueve (`fases_roles`,
   `fases_transiciones_roles`) da el `23503` crudo de la FK `restrict`; mensaje humano o quitar el rol de las listas. Lugar: `equipo` y su RPC.
+
+#### Los decide la persona
+
+- **9-6** (salió de CI-1; el 9.09 lo dejó con su cuenta): las dos corridas por `workflow_dispatch` que faltan para pasar `db:carreras` al job `base`
+  (cuenta 3 de 5; `docs/pasos/9.09/decisiones.md`). En la lista de la persona: `docs/DESPLIEGUE.md` › «Lo que sólo una persona comprueba». CI.
+- **9-11** (el dispatch; el 9.09 cerró el resto): un spec que cae a propósito en un dispatch deja en `e2e-fallos/` los cinco archivos de
+  `scripts/ci/volcar-base.sh` (una sesión no puede disparar un workflow: `docs/pasos/9.09/decisiones.md`). En la misma lista. CI.
+- **9-12** (el 9.12 lo mandó al 9.13): «¿Guardar contraseña?» de Chrome con Live; pide un Chrome con sesión y gestor de contraseñas. En la misma
+  lista. Navegador real.
+- **4-20** (el 9.12-3 no lo cerró): ancho contra altura del aviso de escritorio; medido a 22 rem, tapa texto de la última fila de una lista al 200 %
+  (`docs/pasos/9.12-3/bitacora.md`, `9.12-5/decisiones.md`). Se decide y después se afirma en `e2e/avisos-con-descripcion.spec.ts`. Pantalla.
+- **R7 de `shared/ui` y del marco** (salió del 9.12-5, D4): los blancos táctiles bajo 44 px de componentes de toda pantalla (`Tabs`, `Switch`,
+  `Checkbox`, `Popover`, «Nuevo lead» del marco, «Abrir» de las listas, el botón por omisión de 32 px): 121 en el barrido final del celular, todos en
+  `BLANCOS_CONOCIDOS`; y los 5 de fuera de `shared/ui` y de las fases 5 a 9 (`docs/pasos/9.12-5/decisiones.md`). Se cierra vaciando
+  `BLANCOS_CONOCIDOS` y volviendo R7 dura en toda ruta. Pantalla (`src/shared/ui`).
+- **9-14a** (salió del 9.14-2, D11): marcar final y editar un lead exigen estar en su cartera (`puede_actuar_lead` › `en_cartera`): una dueña con
+  `leads.editar` «todos» no cierra la venta de un lead de su asesora sin que se lo compartan (`docs/pasos/9.14-2/decisiones.md`, D11). Recomendado:
+  dejarlo (actuar sobre un lead exige tenerlo; compartirlo lo resuelve). Permisos.
+
+Abiertos de la fase con su lugar: **9-13** (`rbac_eliminar_rol` da el `23503` crudo de la FK `restrict`; `equipo` y su RPC: un paso de datos) y lo
+de «Pulido para la Fase 9» que el 9.12 no cerró (arriba, «pulido sin paso»).
+
+Cerrados en la fase: **9-1** (9.03), **9-2** y **9-3** (9.04), **9-4** y **9-5** (como decididos), **9-8**, **9-9**, **9-10**, **9-11** salvo el
+dispatch y **4-41** (9.09), **9-7**, **5a-28**, **4-102** y, de «Pulido para la Fase 9», **4-19**, **4-50**, **4-61**, **4-62**, **5a-29**,
+**5a-30**, **5a-33** y las líneas de 4.18-3b y 4.17-3 (9.12), «transiciones y esqueletos revisados» y «auditoría AA» (9.12), «splinter y los
+advisors en cero errores» (9.13, salvo los 6 ERROR esperados de las vistas `web.*`, D15 del 9.13-1), y las contradicciones 1 y 8 (9.01: el job
+`actividad-purgar` y `actividad_diff`), 2 (9.07: `cliente_desde`), 3 (9.11: `tablero_margen` y `tablero_cola_web`), 4 y 5 (9.04: `lead_campo_*` y
+las columnas `minimo` y `maximo`), 6 (9.05: `docs/UX.md` dice `datos.exportar.todo`), 7 (9.06: `importacion_crear` con destino y `_lead_crear`; la
+ficha de `datos` lo dice desde el 9.14-3), 9 (9.10), 10 (9.13: `docs/DESPLIEGUE.md` y D39 del 9.13-3) y 11 (**4-63**, cerrado el
+2026-11-07: `docs/pasos/9.12-2/bitacora.md`).
 
 ### Lo que ya existe y lo que falta (leído el 2026-11-09)
 
@@ -2540,6 +2585,76 @@ carriles en una máquina un cronómetro da rojos falsos). Las cuatro cumplen su 
 | **3** Mover vehículos de fase con documentos            | mover 1 en ≤ 15 s; contenedor de 8 en ≤ 60 s, con «qué falta» antes                            | `e2e/logistica-tarea-de-oro.spec.ts` › R1 «mueve una unidad desde la cadena en ≤ 15 s» y R4 «marca que llegó un contenedor de 8 desde embarques en ≤ 60 s»                                                                                           | escritorio y movil (ya desde el 6.14)                        | mover 1 KLM **11,3 s** en los dos (3 gestos, 7 teclas); contenedor de 8 KLM **14,6 s** en los dos (5 gestos)               | sin el documento bloqueante: R2 «el botón se apaga y dice cuál»; pisar el cambio de otro: R3 «si la dueña movió antes, logística lee su nombre y no se mueve nada»; perder un archivo subido: `supabase/tests/areas/documentos/registrar.sql` › «la escritura directa da 42501 a quien sí puede por RPC, y sigue leyendo» |
 | **4** Atender un turno de la web y dar acceso al portal | «Contacté» en ≤ 2 toques desde el celular; portal desde la ficha en ≤ 30 s sólo con el teclado | `e2e/web-turno.spec.ts` › ««Contacté» confirma el turno en un toque y la tarjeta se va» y `e2e/fase-8-recorrido.spec.ts` › R2; `e2e/leads-portal-acceso.spec.ts` › «tarea de oro 4: de la ficha al texto para WhatsApp copiado, sólo con el teclado» | escritorio y movil (ya desde el 8.05 y el 8.06)              | «Contacté»: **1 toque** en los dos; portal KLM **8,5 s** en los dos (16 teclas de control, 0 clics, 16 controles)          | dejar vencer un turno sin aviso: `web-turno.spec.ts` › «un turno que vence sin «Contacté» queda «Vencido» en Inicio y avisa a la asesora» (nueva en el 9.14-1, los dos proyectos); código que no se pueda dictar: `leads-portal.spec.ts` › ««Generar»: diez símbolos dictables…» y `supabase/tests/portal-cliente.sql`    |
 
+### Tabla de criterios
+
+Cada criterio del «Terminado cuando» y del párrafo de la fase con la prueba que lo mide y su resultado en el Nivel 3 del 9.14-3 («base» = `db:probar` o
+`db:carreras`; «unidad» = Vitest; rutas `areas/…` de `supabase/tests/`). `db:carreras` corre al empezar cada proyecto del completo; Vitest, `db:probar`,
+`db:lint` y el ensayo en seco se corrieron en la misma sesión tras los dos completos (D3 del 9.14-3) y los repite el CI del PR.
+
+| Criterio                                                                                                     | Prueba                                                                                                                                                                                                                                                                                                                                                      | Proyectos                     | Resultado                                                                                                                                        |
+| ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Las cuatro tareas de oro cumplen su meta en e2e móvil y escritorio                                           | la tabla «Las cuatro tareas de oro» (arriba), con sus specs y sus «nunca»                                                                                                                                                                                                                                                                                   | escritorio y movil            | verde en los dos                                                                                                                                 |
+| El tablero del dueño muestra la conversión de leads con datos reales (por `tipos_lead.clase`, 9j)            | `tablero.spec.ts` › «T1 la dueña ve las cinco cifras y «Convertidos» sube al marcar final»; `fase-9-recorrido.spec.ts` › «E2E R3 la asesora marca final su cotización y el lead pasa a cliente» y «E2E R5 la dueña ve en el tablero subir «Convertidos» y el margen del mes»; `areas/tablero/{metricas,metricas-conteos}.sql`                               | escritorio, movil (T1) y base | verde en los dos (base: `db:probar` de la sesión)                                                                                                |
+| … la cola web                                                                                                | `fase-9-recorrido.spec.ts` › «E2E R5b la cola de la web del tablero cuenta el turno que la asesora contactó» (el primer e2e del widget, 9.14-2); `cola-web-tablero.spec.ts` (3); `areas/tablero/cola-web.sql`                                                                                                                                               | escritorio y base             | verde (escritorio; base: `db:probar` de la sesión)                                                                                               |
+| … y el margen del mes                                                                                        | `tablero.spec.ts` › «T7 la dueña ve subir el margen del mes al confirmar un pago»; `fase-9-recorrido.spec.ts` › «E2E R4 la asesora registra el pago de esa unidad y la dueña lo confirma» y R5; `areas/tablero/margen-y-cola.sql`                                                                                                                           | escritorio y base             | verde (escritorio; base: `db:probar` de la sesión)                                                                                               |
+| Widgets personalizables guardados por persona; tablero de equipo con `tablero.metricas.ver`                  | `tablero.spec.ts` › «T5 la dueña ve las cinco gráficas y «Ver como tabla» abre los números», «T6 la dueña oculta y ordena widgets en «Personalizar» y, tras recargar, sigue igual; «Restablecer» los devuelve» y «T3 Ana, sin el permiso, no tiene «Tablero» en el menú y la ruta se lo dice»; `areas/tablero/metricas.sql`; `permisos-enforcement.sql`     | escritorio, movil y base      | verde en los dos (base: `db:probar` de la sesión)                                                                                                |
+| `actividad`: listado por día con diff, recortado por cartera, sin números de lead, con purga                 | `actividad.spec.ts` › «la dueña ve el cambio del nombre en la actividad del lead y abre su diff»; `fase-9-recorrido.spec.ts` › «E2E R6 la dueña encuentra en /actividad el cambio del lead con su diff» y «E2E R6b la asesora no ve el detalle del cambio de un lead ajeno»; `areas/actividad/{actividad,listar,purgar,registrar}.sql`; `numero-global.sql` | escritorio y base             | verde (escritorio; base: `db:probar` de la sesión)                                                                                               |
+| `datos`: exportar e importar todo para el dueño con `importar-csv`                                           | `datos-exportar.spec.ts` (2), `datos-importar.spec.ts` (2), `datos-importar-funcion.spec.ts` › «E2E escritorio: la dueña importa 3 leads para una asesora y el repetido queda «ya existe»»; `fase-9-recorrido.spec.ts` › «E2E R7 la dueña exporta los leads y vuelve a importar el del recorrido»; `areas/datos/*.sql` (10)                                 | escritorio y base             | verde (escritorio; base: `db:probar` de la sesión)                                                                                               |
+| PWA: instalación, push, `sw.js` mínimo                                                                       | `pwa.spec.ts` (6: manifest, service worker sin caché, «Instalar la app», iOS, el clic de una notificación); `fase-9-recorrido.spec.ts` › «E2E R8 «Instalar la app» llama a prompt() una vez y desaparece»; `areas/push/`                                                                                                                                    | escritorio, movil y base      | verde en los dos (base: `db:probar` de la sesión); la instalación real y el push con la app instalada: paso de la persona (`docs/DESPLIEGUE.md`) |
+| Inicio: la bandeja con sus bloques                                                                           | `inicio-bandeja.spec.ts` (3), `inicio-bandeja-logistica.spec.ts` › «con una unidad demorada y un documento subido, Inicio los muestra y «Ver todas» abre la cadena filtrada»                                                                                                                                                                                | escritorio y movil            | verde en los dos                                                                                                                                 |
+| Dominancia sobre la persona (9-1)                                                                            | `supabase/tests/dominancia-persona.sql`; `src/modules/equipo/entities/dominancia.test.ts`                                                                                                                                                                                                                                                                   | base y unidad                 | verde (base: `db:probar`; unidad: `pnpm test`, los dos de la sesión)                                                                             |
+| Rango de un campo (9-2), `leads.campos.gestionar` (9-3) y plantillas por empresa (embudo y texto del portal) | `configuracion-leads-rango.spec.ts` › «un campo con rango avisa al acotarlo y la ficha dice el motivo»; `configuracion-leads-plantillas.spec.ts` (3); `areas/campos/{rango,rango-leads,rango-origenes}.sql`, `configuracion-de-leads.sql`, `areas/plantillas/{plantillas,portal}.sql`                                                                       | escritorio y base             | verde (escritorio; base: `db:probar` de la sesión)                                                                                               |
+| Transiciones y esqueletos revisados contra `docs/UX.md`; auditoría AA                                        | `transicion-de-pagina.spec.ts` (2); `accesibilidad.spec.ts` (A0, el barrido por grupo de rutas y A9)                                                                                                                                                                                                                                                        | escritorio y movil            | verde en los dos                                                                                                                                 |
+| Higiene del e2e, del CI y de los entornos (9.09: 4-41, 9-4, 9-5, 9-8 a 9-11)                                 | `scripts/env-check.test.ts`, `scripts/guardas/workflows.test.ts` (unidad); `empresa.spec.ts` (la clave de Vault vuelve como estaba)                                                                                                                                                                                                                         | escritorio y unidad           | verde (escritorio; unidad: `pnpm test` fuera del entorno del bucle, D10)                                                                         |
+| splinter y los advisors en cero errores                                                                      | `pnpm despliegue:en-seco` › la base (splinter, advisors y `db:lint` contra su lista); `supabase/tests/advisors.sql`; salvo los 6 ERROR esperados de las vistas `web.*` (D15 del 9.13-1)                                                                                                                                                                     | base                          | `listo` (en seco) y verde (base: `advisors.sql` en `db:probar`, 690 avisos de splinter contra su lista)                                          |
+| La app desplegada apuntando al proyecto Pro                                                                  | «lista para desplegar» (D1 del 9.14-3): `pnpm despliegue:en-seco` y la lista de la persona en `docs/DESPLIEGUE.md`                                                                                                                                                                                                                                          | —                             | `listo` (en seco); desplegar: paso de la persona                                                                                                 |
+| Una dueña actúa sobre un lead ajeno (marcar final, editar)                                                   | `fase-9-recorrido.spec.ts` › R3 lo hace la asesora, que tiene el lead (D11 del 9.14-2)                                                                                                                                                                                                                                                                      | —                             | hueco conocido: **9-14a**                                                                                                                        |
+
+### Cierre de la Fase 9
+
+**Fase 9 cerrada el 2026-11-13, lista para desplegar**, con el Nivel 3 del 9.14-3, corrido por proyecto (cada uno desde `db:reset` y `db:carreras`,
+18,8 s y 20,9 s) sobre `20815f1c` (la rama con las partes 1 y 2 del 9.14, unida a `main`): escritorio, 1.291 en verde, 17 saltadas y 0 caídas en 54,1
+min (55,6 de reloj); celular, 898 en verde, 31 saltadas y 0 caídas en 38,2 min (39,7 de reloj). Ninguna caída, así que no hubo triaje ni `fix`; el
+inestable de `leads-alta.spec.ts` que anotó el 9.14-1 pasó en los dos. Ninguna saltada nueva (`saltadas.mjs 3179fc8e..HEAD`: 0). 5a-4b: los dos
+proyectos suman 95,3 min de reloj (92,9 en el 8.14-2). El resto del assert, en la misma sesión tras los dos completos: `pnpm test` 10.889 de 10.891 (los 2 rojos son pruebas del bucle que caen sólo con el entorno `PILOTO_*` de la sesión: con `env -i`, 15 de 15; D10), `db:probar` 1.485 en verde, `db:lint` en verde y `pnpm despliegue:en-seco` en `listo`; `mapa.sh --check` en
+verde y el CI del PR en verde. Las tareas de oro: la tabla de arriba (9.14-1). El recorrido (`e2e/fase-9-recorrido.spec.ts`, 9.14-2, dos cuentas y
+nada sembrado de lo que produce): R1, la asesora registra un lead con «N» y su seguimiento; R2, lo cotiza con un vehículo del inventario; R3, marca final
+su cotización y el lead pasa a cliente; R4, registra el pago y la dueña lo confirma; R5, la dueña ve subir «Convertidos» y el margen del mes; R5b, la
+cola de la web cuenta el turno que la asesora contactó; R6, la dueña encuentra el cambio del lead en `/actividad` con su diff; R6b, la asesora no ve el
+detalle del de un lead ajeno; R7, la dueña exporta los leads y vuelve a importar el del recorrido; R8, «Instalar la app» llama a `prompt()` una vez. Lo
+que deja: **9-6**, **9-11** (el dispatch), **9-12**, **4-20**, el R7 de `shared/ui` y **9-14a** (los decide la persona), **9-13** y el pulido sin
+marca de «Pulido para la Fase 9». Desplegar es de la persona: `docs/DESPLIEGUE.md`. La «Partición» sigue aquí hasta que una sesión con permiso la
+pase a `docs/archivo/PLAN.md`.
+
+### Lo que la fase dejó fuera
+
+La reconciliación de lo que cada fila dijo «no entra» (la fila 9.14 citaba unas secciones «C y E» que no existen; se reconcilió contra el «**No
+entra:**» de cada fila, D8 del 9.14-3).
+
+- **9.01:** la línea de tiempo dentro de las fichas: en su lugar, «Ver actividad» en el «⋯» de lead y de vehículo (D1 del 9.01-1); exportar la
+  actividad y cambiar `actividad_dias` (ya está en Empresa › Retención): fuera de alcance de esta versión.
+- **9.02:** widgets en Inicio: fuera de alcance de esta versión (Inicio sigue siendo la bandeja, D1 del 9.08-1); los siete bloques de las otras fases:
+  los llenaron las fases 6, 7 y 8 (`src/modules/tablero/features/bandeja/bloques/`).
+- **9.03:** cambiar qué permisos existen o la matriz de Roles: fuera de alcance de esta versión.
+- **9.04:** cambiar los embudos que ya existen: fuera de alcance de esta versión (la plantilla sólo toca los que nacen después, 9.04-4);
+  `lead_dormido_meses` y `demora_dias_default` (su «ver E»): sin interfaz, en «Deuda aceptada» de `docs/ESTADO.md`.
+- **9.05:** exportar seguimientos, documentos, fotos o repuestos, y un formato que no sea CSV: fuera de alcance de esta versión.
+- **9.06:** importar `seguimientos` y `repuestos_items` (el `check` ya los admite), importar cotizaciones y deshacer una importación de vehículos:
+  fuera de alcance de esta versión.
+- **9.07:** la pantalla: lo hizo el 9.08; margen y cola web: lo hizo el 9.11; métricas por asesor para quien no tiene `tablero.metricas.ver`: fuera
+  de alcance de esta versión.
+- **9.08:** widgets en Inicio (D1 del 9.08-1), exportar una gráfica y comparar períodos: fuera de alcance de esta versión.
+- **9.09:** estabilizar inestables (decidido el 2026-11-08) y `deno check` de las funciones en el CI (su «ver E»: dependencia nueva): fuera de
+  alcance de esta versión; `db:medir` en el CI: **9-4** y **9-5**, cerrados como decididos; las carreras en el CI: abierto **9-6**, de la persona:
+  `docs/DESPLIEGUE.md`.
+- **9.10:** modo sin conexión y sincronización en segundo plano: fuera de alcance de esta versión («Offline real», en «Fuera de alcance»); la
+  suscripción al push y sus preferencias: lo hizo la Fase 7 (`supabase/functions/push`).
+- **9.11:** margen por vehículo (es de `logistica`) y editar la cola: fuera de alcance de esta versión.
+- **9.12:** specs nuevos al 200 % (regla del 2026-10-30) y lectores de pantalla reales: fuera de alcance de esta versión; **9-12**: de la persona:
+  `docs/DESPLIEGUE.md`.
+- **9.13:** desplegar, crear proyectos y cambiar `demo.yml`: de la persona: `docs/DESPLIEGUE.md`.
+- **9.14:** desplegar: de la persona: `docs/DESPLIEGUE.md`.
+
 ### Partición
 
 Un paso, su verificación y su PR; quién lo hace y de qué depende lo dice `docs/plan.yaml` (la tabla de «Carriles de las fases 5 a 9»). Cada fila dice qué entra, su assert y el lugar. Sus «Dudas» ya traen la opción recomendada: sin compuertas, **esa es la decisión**, y quien haga el paso la anota en `docs/DECISIONES.md` (el carril base) o en `docs/pasos/<paso>/decisiones.md`.
@@ -2547,7 +2662,7 @@ Un paso, su verificación y su PR; quién lo hace y de qué depende lo dice `doc
 Catorce pasos. Para no pasar de 14 junté cosas que serían pasos propios; lo digo en cada uno («se puede partir en…»). «Adelantable» = no depende de las
 fases 5 a 8 y puede tomarlo un carril libre desde hoy.
 
-- **9.01** — Actividad: lectura recortada, purga y `/actividad`. **Adelantable.** _Base (partes 1 y 2), migración `actividad_…`:_ (a)
+- **9.01** (hecho el 2026-11-12; `docs/pasos/9.01-1/`, `9.01-2/`, `9.01-3/`, `9.01-4/`) — Actividad: lectura recortada, purga y `/actividad`. **Adelantable.** _Base (partes 1 y 2), migración `actividad_…`:_ (a)
   `actividad_listar(p_antes_id, p_tamano, p_actor, p_tabla, p_registro, p_hasta)`: por cursor sobre `id` (la PK; nunca `offset`), una ruta por filtro en
   plpgsql con su `order by id desc limit`, tamaño por `_acotar_pagina` y registrada en `scripts/guardas/areas-<carril>/paginas-en-la-base.ts`; pide
   `actividad.ver`; devuelve acción, tabla, registro, quién (nombre) y cuándo, y un resumen armado por acción, **no el `detalle` en bruto**. (b)
@@ -2582,7 +2697,7 @@ fases 5 a 8 y puede tomarlo un carril libre desde hoy.
   `_shell`). Tipo: datos y dinero. Partes estimadas: 4.
   Dudas, con la recomendada: (1) ¿La línea de tiempo dentro de la ficha (`actividadDe(entidad)` de la ficha del módulo)? Recomiendo **no**: un enlace «Ver actividad» en el «⋯» de la ficha de lead y de vehículo a `/actividad?entidad=leads&registro=<id>`, sólo para quien tiene `actividad.ver`; cubre la necesidad sin una pestaña nueva ni tocar dos módulos ajenos. (2) ¿Qué ve del diff de un lead ajeno quien tiene `actividad.ver`? Recomiendo lo público y nada más (lo que ya ve en `leads_vista`); el dueño tampoco ve teléfonos, como dice la ficha. (3) Se puede partir en 9.01a (base, `opus`) y 9.01b (pantalla, `sonnet`).
 
-- **9.02** — Inicio: la bandeja con huecos y los bloques de lo que ya existe. **Adelantable, y conviene que entre antes de las fases 6, 7 y 8**, que
+- **9.02** (hecho el 2026-11-11; `docs/pasos/9.02/`) — Inicio: la bandeja con huecos y los bloques de lo que ya existe. **Adelantable, y conviene que entre antes de las fases 6, 7 y 8**, que
   llenan sus bloques. Deja la base del área `bandeja` del módulo `tablero`: cada bloque de `BLOQUES_BANDEJA` pasa a tener **su archivo**
   `features/bandeja/bloques/<clave>.tsx` (un Server Component bajo su `<Suspense>` con el esqueleto del bloque, que lee por la entrada pública del
   módulo dueño) y un registro `features/bandeja/bloques/registro.ts` con las diez claves ya declaradas, cada una apuntando a su archivo: los siete de
@@ -2602,7 +2717,7 @@ features/bandeja/,infra/bandeja/,pantallas/inicio.ts,CLAUDE.md}`, `src/modules/l
   `src/app/(app)/page.tsx`. Nivel **1** (Nivel 2 sólo si una lectura pide un índice nuevo). Tipo: pantalla. Partes estimadas: 2.
   Dudas, con la recomendada: (1) ¿Qué es «sin seguimiento»? Recomiendo: mío, en mi cartera, sin ningún seguimiento y creado hace más de 24 h (lo que la asesora dejó sin contactar ayer); `ajustes_empresa.lead_dormido_meses` es otra cosa y sigue sin lector (ver E). (2) ¿Los bloques leen en el servidor o desde el navegador? Recomiendo en el servidor, cada uno tras su `<Suspense>` con `await connection()`: Inicio no suma JS y un bloque lento no frena a los demás.
 
-- **9.03** — Dominancia sobre la persona (9-1). **Adelantable.** _Base (parte 1):_ migración `equipo_…` con `persona_dominada(p_usuario) returns
+- **9.03** (hecho el 2026-11-12; `docs/pasos/9.03/`) — Dominancia sobre la persona (9-1). **Adelantable.** _Base (parte 1):_ migración `equipo_…` con `persona_dominada(p_usuario) returns
 boolean` (`stable`, `security definer`, `set search_path = ''`: quien llama cubre **todo** permiso de esa persona, con la misma comparación de origen
   y alcance que `rol_dominado()`, `base.sql:16787`; el dueño domina a todos) y las cuatro RPC que la exigen tras su `assert_permiso` y con la fila de
   `perfiles` tomada `for update`: `equipo_bloquear` (10168), `equipo_dar_de_baja` (10196), `rbac_asignar_rol` (16331) y `rbac_quitar_rol` (16453); 42501
@@ -2620,7 +2735,7 @@ boolean` (`stable`, `security definer`, `set search_path = ''`: quien llama cubr
   datos y dinero. Partes estimadas: 2.
   Dudas, con la recomendada: (1) ¿Desbloquear también exige dominar? Recomiendo sí (es la misma RPC con `p_bloquear = false`, y desbloquear a quien tiene más permisos que tú es darle acceso). (2) ¿Quitarle un rol que sí dominas a alguien que no dominas? Recomiendo que no: la regla del 2026-10-21 es sobre la persona.
 
-- **9.04** — Configuración de leads que quedó: `leads.campos.gestionar` (9-3), el rango de un campo numérico (9-2) y las plantillas por empresa.
+- **9.04** (hecho el 2026-11-12; `docs/pasos/9.04-1/`, `9.04-2/`, `9.04-3/`, `9.04-4/`, `9.04-5/`) — Configuración de leads que quedó: `leads.campos.gestionar` (9-3), el rango de un campo numérico (9-2) y las plantillas por empresa.
   **Adelantable.** Van juntos porque los tres editan `lead_campo_*` o las pestañas de Configuración › Leads: en carriles distintos chocarían. _Parte 1
   (9-3):_ migración `leads_…`: siembra `leads.campos.gestionar` en `permisos` con su `aplicado_en`, la concede a todo rol que hoy tiene
   `leads.configurar` (mismo alcance), y `lead_campo_crear/guardar/eliminar/mover/impacto` (`base.sql:11638–11855`) pasan a pedirla;
@@ -2655,7 +2770,7 @@ pantallas/configuracion.ts}`, `src/modules/origenes/features/campos/`, `src/app/
   columnas y una tabla con RLS; `src/shared`; `_shell`). Tipo: datos y dinero. Partes estimadas: 5.
   Dudas, con la recomendada: (1) ¿Un valor que ya estaba fuera del rango impide guardar la ficha? Recomiendo que no: se valida el campo sólo si cambió (la función ya recibe `p_anteriores`), y el impacto avisa cuántos hay. (2) ¿Quién edita las plantillas? Recomiendo `leads.configurar` (no un permiso nuevo: sería otro interruptor para lo mismo). (3) **No puede correr en paralelo con el paso de la Fase 6 que hace 6-1** (la bandera «principal» toca `origenes_campos`, `origen_campo_guardar` y el mismo panel del campo). (4) Se puede partir en 9.04a (partes 1 a 3) y 9.04b (partes 4 y 5), sin dependencia entre sí.
 
-- **9.05** — Datos: exportar todo (`/datos`, primera mitad). **Adelantable.** Deja la base del módulo `datos` (entradas, la ruta `/datos` con dos
+- **9.05** (hecho el 2026-11-12; `docs/pasos/9.05-1/`, `9.05-2/`, `9.05-2b/`, `9.05-2c/`, `9.05-3/`) — Datos: exportar todo (`/datos`, primera mitad). **Adelantable.** Deja la base del módulo `datos` (entradas, la ruta `/datos` con dos
   secciones por URL, `?seccion=exportar|importar`; «Importar» nace como hueco que llena el 9.06). _Base (parte 1):_ migración `datos_…` con
   `datos_exportacion_registrar(p_entidad, p_filas, p_filtros)`, `security definer`: pide `datos.exportar.todo`, limita a 3 por hora y por entidad con
   un candado por persona (el patrón de `leads_exportacion_registrar`, `base.sql:13230`) y deja la constancia `datos.exportado` en `actividad` sin datos
@@ -2680,7 +2795,7 @@ features/exportar,pantallas/datos.ts,index.ts,CLAUDE.md}`, `src/app/(app)/datos/
   Tipo: datos y dinero. Partes estimadas: 3.
   Dudas, con la recomendada: (1) ¿Qué entidades? Recomiendo leads, vehículos y cotizaciones (lo que hay que poder llevarse); lo demás se suma cuando alguien lo pida. (2) ¿«Todo» incluye los teléfonos y lo privado de carteras ajenas? Recomiendo **no**, como dicen las fichas de `datos` y `actividad` (el dueño ve todo salvo teléfonos): un permiso de exportar no puede ser la puerta trasera de la privacidad. (3) ¿Tope? Recomiendo 250.000 filas por archivo y 3 por hora.
 
-- **9.06** — Datos: importar todo con `supabase/functions/importar-csv` (`/datos`, segunda mitad). **Adelantable** (después del 9.05). _Base (partes 1
+- **9.06** (hecho el 2026-11-13; `docs/pasos/9.06-1/`, `9.06-2/`, `9.06-3/`, `9.06-4/`, `9.06-4b/`, `9.06-5/`) — Datos: importar todo con `supabase/functions/importar-csv` (`/datos`, segunda mitad). **Adelantable** (después del 9.05). _Base (partes 1
   y 2):_ migración `importaciones_…`: `importacion_crear(p_entidad, p_archivo_ruta, p_mapeo, p_asignar_a)` (crea la fila en `pendiente`; `leads` y
   `vehiculos`; con `p_asignar_a` distinto de quien llama pide `datos.importar.todo`, y el destino tiene que estar activo y poder crear leads; sin él,
   `leads.crear`), columnas de avance en `importaciones` (`procesadas`, `asignar_a`), `importacion_procesar_lote(p_importacion, p_desde, p_filas)`
@@ -2707,7 +2822,7 @@ features/exportar,pantallas/datos.ts,index.ts,CLAUDE.md}`, `src/app/(app)/datos/
   `src/app/(app)/datos/`, `e2e/datos-importar.spec.ts`. Nivel **2** (estructura: columnas de `importaciones`). Tipo: datos y dinero. Partes estimadas: 5.
   Dudas, con la recomendada: (1) ¿Se puede deshacer una importación total de leads? Recomiendo sí, con lo que ya existe (`importaciones_leads` y `leads_importacion_deshacer`, 24 h, sólo lo intacto) y sólo quien la hizo. (2) ¿Tamaño? Recomiendo 20.000 filas por archivo aunque el bucket admita 50 MB: un archivo más grande se parte (lo dice la pantalla antes de subir). (3) ¿La columna «Asesor» por fila o un destino por archivo? Recomiendo un destino por archivo (`p_asignar_a`): una columna por fila pide validar personas fila a fila y nadie lo pidió. (4) Se puede partir en 9.06a (base y función) y 9.06b (pantalla, `sonnet`).
 
-- **9.07** — Tablero: las métricas en la base. **Adelantable** (leads y cotizaciones ya existen). Migración `tablero_…`: (a) `leads.cliente_desde
+- **9.07** (hecho el 2026-11-12; `docs/pasos/9.07/`) — Tablero: las métricas en la base. **Adelantable** (leads y cotizaciones ya existen). Migración `tablero_…`: (a) `leads.cliente_desde
 timestamptz` (sin grant de columna: sólo la leen las RPC), puesta por un trigger cuando el tipo del lead pasa a **clase** `cliente` y vaciada si
   vuelve a `prospecto` (mira `tipos_lead.clase`, nunca el nombre ni la clave: 9j), con su índice parcial por fecha; (b) `tablero_leads(p_desde, p_hasta)`
   → `{creados, convertidos, tasa, por_dia[], por_origen[], por_asesor[]}` y `tablero_cotizaciones(p_desde, p_hasta)` → `{creadas, finales, por_dia[],
@@ -2725,7 +2840,7 @@ por_origen[]}`: `security definer` con `set search_path = ''`, piden `tablero.me
   columna e índice). Tipo: datos y dinero. Partes estimadas: 2.
   Dudas, con la recomendada: (1) **«Un número que se muestra nunca es un total exacto»** (`CLAUDE.md`) contra un tablero, que es contar. Recomiendo una excepción escrita en `docs/DECISIONES.md` y `escala.md`: los agregados de un período cerrado se cuentan en la base, con ventana máxima, por índice de fecha y con su motivo en `escala.sql`; las listas siguen igual. (2) ¿Qué es la conversión del mes? Recomiendo dos números: «Convertidos» (por `cliente_desde` en el período) y «Tasa» = convertidos del período / creados del período. (3) ¿Los clientes que ya existen? Recomiendo dejar `cliente_desde` nulo (no se sabe cuándo pasaron) y decirlo en el widget el primer mes («Desde <fecha de la migración>»); no inventar fechas.
 
-- **9.08** — Tablero: `/tablero` con widgets personalizables. **Adelantable** (después del 9.07). Área `metricas` del módulo `tablero` (no toca la de
+- **9.08** (hecho el 2026-11-12; `docs/pasos/9.08-1/`, `9.08-2/`, `9.08-3/`) — Tablero: `/tablero` con widgets personalizables. **Adelantable** (después del 9.07). Área `metricas` del módulo `tablero` (no toca la de
   `bandeja`, del 9.02): `entities/widgets.ts`, el catálogo tipado (clave, título, permisos que exige, grupo de RPC, tamaño), con un widget por archivo
   en `features/metricas/widgets/<clave>.tsx` y un registro con todas las claves declaradas (las de margen y cola web nacen como hueco para el 9.11);
   `infra/queries/metricas.ts` llama a cada RPC **en el servidor**, cada widget tras su `<Suspense>`. Pantalla `/tablero` (`tablero.metricas.ver`):
@@ -2746,7 +2861,7 @@ index.ts}`, `src/app/(app)/tablero/{page,loading}.tsx`, `src/app/(app)/_shell/na
   `docs/GLOSARIO.md` («Widget»). Nivel **2** (layout: `_shell`). Tipo: pantalla. Partes estimadas: 3.
   Dudas, con la recomendada: (1) ¿Widgets en Inicio («bandeja por rol + widgets opcionales», `docs/UX.md:74`)? Recomiendo **no**: Inicio sigue siendo la bandeja («no dashboard», Decisiones de UX) y quien tiene `tablero.metricas.ver` ve en su cabecera el enlace «Ver el tablero». (2) ¿«Por rol»? Recomiendo por permiso: cada widget declara los suyos y el tablero muestra los que te tocan; no hay un tablero distinto por nombre de rol. (3) ¿Librería de gráficas? Recomiendo SVG propio: una dependencia nueva es una compuerta `dependencia` que detiene al carril, y el JS de la ruta tiene presupuesto.
 
-- **9.09** — Higiene del e2e, del CI y de los entornos (9-4 a 9-6, 9-8 a 9-11 y 4-41). **Adelantable.** _Parte 1 (9-8):_ `e2e/empresa.spec.ts:194` y
+- **9.09** (hecho el 2026-11-12; `docs/pasos/9.09/`) — Higiene del e2e, del CI y de los entornos (9-4 a 9-6, 9-8 a 9-11 y 4-41). **Adelantable.** _Parte 1 (9-8):_ `e2e/empresa.spec.ts:194` y
   `e2e/soporte/empresa.ts` dejan `vault.secrets` de `integracion:apibara` como estaba: mueven la clave real de lugar por SQL sin descifrarla y la
   devuelven al terminar, también si la prueba cae (con `e2e/soporte/apibara-clave.ts`). _Parte 2 (9-9 y 9-10):_ las mediciones de una sola vez esperan
   un estado antes de medir o capturar (`aLaVistaAlAcomodarse()`, `esperarHidratado()`, la pista con `data-visible`) y las esperas de fábrica de 5 s
@@ -2772,7 +2887,7 @@ index.ts}`, `src/app/(app)/tablero/{page,loading}.tsx`, `src/app/(app)/_shell/na
   datos ni permisos de producto). Partes estimadas: 4.
   Dudas, con la recomendada: (1) 9-11 pide «un rojo provocado a propósito en un dispatch»: una sesión no puede dispararlo. Recomiendo demostrarlo en local con el guion y dejar el dispatch en la lista de la persona. (2) 9-9 pide «15 de 15 con la CPU a 20×»: son 15 corridas por archivo; recomiendo 5 de 5 (lo decidido el 2026-11-08 es no gastar en estabilizar) y decirlo en el informe. (3) **No en paralelo con el paso de la Fase 7 que hace 7-1** (los dos editan `esquemas.ts`), ni con el 9.13.
 
-- **9.10** — PWA: instalar la app, el `sw.js` y el logo oscuro. **Adelantable** en lo que es instalación; lo del push espera a la Fase 7. _Parte 1:_
+- **9.10** (hecho el 2026-11-12; `docs/pasos/9.10/`) — PWA: instalar la app, el `sw.js` y el logo oscuro. **Adelantable** en lo que es instalación; lo del push espera a la Fase 7. _Parte 1:_
   «Instalar la app» en el menú del usuario (`_shell/menu-usuario.tsx`): guarda el `beforeinstallprompt` y lo ofrece; en iOS, donde no existe, abre las
   instrucciones («Compartir › Agregar a inicio»); no aparece si la app ya corre instalada (`display-mode: standalone`) ni si el navegador no instala.
   El manifest (`src/app/manifest.ts`) gana `id` y dos atajos por permiso neutro («Nuevo lead», «Cotizar»). `public/sw.js` sigue sin caché de datos (sin
@@ -2789,7 +2904,7 @@ index.ts}`, `src/app/(app)/tablero/{page,loading}.tsx`, `src/app/(app)/_shell/na
   pantalla. Partes estimadas: 2.
   Dudas, con la recomendada: (1) ¿Un aviso que invite a instalar? Recomiendo no: sólo la entrada del menú (un aviso que nadie pidió tapa trabajo). (2) `public/sw.js` lo edita también la Fase 7 (manejadores `push` y `notificationclick`): este paso **no lo toca** si la 7 no entró; sólo lo lee.
 
-- **9.11** — Tablero: margen del mes y cola web. **Depende de la Fase 6** (`F6·pagos`: gastos y pagos con «confirmar», y el margen) **y de la Fase 8**
+- **9.11** (hecho el 2026-11-12; `docs/pasos/9.11-1/`, `9.11-2/`) — Tablero: margen del mes y cola web. **Depende de la Fase 6** (`F6·pagos`: gastos y pagos con «confirmar», y el margen) **y de la Fase 8**
   (`F8·cola`: el tablero de la cola con «Contacté»). Las tablas ya existen, así que la base se puede escribir y probar con filas sembradas por SQL; se
   espera a las dos fases para no rehacerla si cambian `pagos` o el turno, y porque «con datos reales» los genera su interfaz. Migración `tablero_…`:
   `tablero_margen(p_desde, p_hasta)` (`security definer`; sólo los orígenes donde quien llama tiene `logistica.margen.ver`,
@@ -2809,7 +2924,7 @@ index.ts}`, `src/app/(app)/tablero/{page,loading}.tsx`, `src/app/(app)/_shell/na
   Partes estimadas: 2.
   Dudas, con la recomendada: (1) ¿El mes del margen es el del pago confirmado o el de la venta? Recomiendo el del pago confirmado (`confirmado_en`): es el único hecho sellado; la base no tiene «fecha de venta». (2) ¿Un vehículo pagado a medias? Recomiendo que cuente lo confirmado y lleve la marca «pago parcial» si la Fase 6 deja cómo saberlo; si no, se suma tal cual y se anota.
 
-- **9.12** — Auditoría de accesibilidad AA: el pulido anotado, las transiciones y los esqueletos. **Depende de los cierres de las fases 5 a 8** (recorre
+- **9.12** (hecho el 2026-11-13; `docs/pasos/9.12-1/`, `9.12-2/`, `9.12-3/`, `9.12-4/`, `9.12-5/`) — Auditoría de accesibilidad AA: el pulido anotado, las transiciones y los esqueletos. **Depende de los cierres de las fases 5 a 8** (recorre
   sus pantallas) y de los pasos de pantalla de esta. _Parte 1, el barrido:_ un recorrido de todas las rutas de `docs/MAPA.md` en `escritorio` y
   `movil`, tema claro y oscuro, que comprueba lo que una máquina puede: nombre accesible de cada control, etiqueta y error asociados en los formularios
   (ids de `aria-describedby` que existen), un `h1` y un título por página, orden de foco, foco visible, blancos táctiles de 44 px y contraste de los
@@ -2834,7 +2949,7 @@ index.ts}`, `src/app/(app)/tablero/{page,loading}.tsx`, `src/app/(app)/_shell/na
   (`src/shared`). Tipo: pantalla. Partes estimadas: 5.
   Dudas, con la recomendada: (1) ¿Con qué se barre? Recomiendo, sin dependencia nueva, el árbol de accesibilidad por CDP (`Accessibility.getFullAXTree`) más reglas propias; `@axe-core/playwright` detecta más, pero es una dependencia (compuerta que va a la persona): si la aprueba antes de la fase, se usa. (2) 4-20 dice «con la persona: ancho contra altura». Recomiendo subir `--ancho-del-aviso` a 22 rem en escritorio. (3) 4-50: recomiendo que al 200 % el resumen nazca plegado. (4) **Las partes 2 y 3 no dependen de las fases 5 a 8**: si se admite un paso más, son un 9.12a adelantable (pulido anotado) y el resto, 9.12b. (5) 4-63: su texto no está en PLAN; el plan del paso lo busca en `docs/archivo/` o lo da por cubierto con 4-61 y 4-62.
 
-- **9.13** — Despliegue en seco: splinter y advisors en cero, la guía y la lista de la persona. **Depende de que no falte ninguna migración** (los pasos
+- **9.13** (hecho el 2026-11-13; `docs/pasos/9.13-1/`, `9.13-2/`, `9.13-3/`) — Despliegue en seco: splinter y advisors en cero, la guía y la lista de la persona. **Depende de que no falte ninguna migración** (los pasos
   con base de esta fase y los cierres de las 5 a 8). **Nada de este paso toca la nube**: ni la CLI contra el proyecto enlazado, ni Vercel, ni
   secretos, ni los conectores MCP de Supabase o de Vercel; el hook rechaza hasta el texto de esas órdenes dentro de un comando, así que los archivos
   que las nombran se escriben con Write o Edit. _Parte 1, la base limpia:_ `scripts/splinter.sql` sobre el esquema final con **cero ERROR** (ya lo
@@ -2859,7 +2974,7 @@ index.ts}`, `src/app/(app)/tablero/{page,loading}.tsx`, `src/app/(app)/_shell/na
   borre un índice o una policy). Tipo: datos y dinero. Partes estimadas: 3.
   Dudas, con la recomendada: (1) ¿«En cero» incluye los WARN? Recomiendo cero ERROR y cero WARN **sin motivo escrito** (los 47 de `_formula_*` son cosméticos y se quedan con su motivo). (2) ¿La guía es para la demo o para la instalación de un cliente? Recomiendo las dos en un solo documento: la demo es el ensayo, y la de un cliente suma tres pasos (quitar el comodín de los previews, el registro y el dueño).
 
-- **9.14** — El cierre de la Fase 9: las cuatro tareas de oro en celular y escritorio, la tabla de criterios y el Nivel 3. _Parte 1, las tareas de
+- **9.14** (hecho el 2026-11-13; `docs/pasos/9.14-1/`, `9.14-2/`, `9.14-3/`) — El cierre de la Fase 9: las cuatro tareas de oro en celular y escritorio, la tabla de criterios y el Nivel 3. _Parte 1, las tareas de
   oro:_ una tabla tarea → spec → meta → proyecto, y lo que falte para que las cuatro tengan su meta afirmada en `escritorio` **y** en `movil`, con el
   método de la tarea 2 (teclas o toques contados y KLM, no un cronómetro) y su «nunca» afirmado: 1, `e2e/leads-alta.spec.ts` (≤ 25 s; el duplicado al
   terminar de tipear); 2, `e2e/cotizar-tarea-de-oro-recorrido.spec.ts` (≤ 90 s, ya en los dos); 3, el spec que deje la Fase 6 (mover 1 en ≤ 15 s y el
@@ -2876,31 +2991,48 @@ index.ts}`, `src/app/(app)/tablero/{page,loading}.tsx`, `src/app/(app)/_shell/na
   verde. Lugar: `e2e/` (lo que falte de las cuatro tareas), `docs/{PLAN,ESTADO,BITACORA,DECISIONES,UX}.md`. Nivel **3** (cierre de fase). Tipo: pantalla.
   Partes estimadas: 3.
   Dudas, con la recomendada: (1) ¿La fase cierra sin el despliegue hecho? Recomiendo sí, como «lista para desplegar»: el piloto no puede tocar producción y la puerta de una fase es el CI (`docs/PILOTO.md`). (2) ¿Las metas en segundos se miden con reloj? Recomiendo KLM y conteo de teclas o toques, como en la 2: un cronómetro en una máquina con tres carriles da rojos falsos.
-  **9.14-1** (hecho el 2026-11-13; `docs/pasos/9.14-1/`): las cuatro tareas de oro con su meta afirmada en `escritorio` y en `movil` (tabla en «Las cuatro tareas de oro»); la tarea 1 salió del celular-excluido y el «nunca» de la 4 (dejar vencer un turno sin aviso) estrenó prueba. Quedan el **9.14-2** (el recorrido con dos cuentas) y el **9.14-3** (el Nivel 3 y los docs de cierre).
-  **9.14-2** (hecho el 2026-11-13; `docs/pasos/9.14-2/`): el recorrido del «Terminado cuando» con dos cuentas en `e2e/fase-9-recorrido.spec.ts` (diez tramos encadenados, en serie y de escritorio, con los datos creados por la interfaz), tres corridas seguidas en verde. Dos hallazgos que son la regla y no un defecto: marcar final y editar un lead exigen estar en su cartera (`puede_actuar_lead` › `en_cartera`), y la actividad de un lead ajeno recorta el detalle («Sin acceso al detalle»), no la fila. Queda el **9.14-3** (el Nivel 3 y los docs de cierre).
+  Hecho en tres: el **9.14-1** (las cuatro tareas de oro con su meta en `escritorio` y `movil`), el **9.14-2** (el recorrido con dos cuentas,
+  `e2e/fase-9-recorrido.spec.ts`) y el **9.14-3** (el Nivel 3 y los docs de cierre).
+
+Total de la fase: 14 pasos y 41 partes, todos hechos (la fase cerró con el 9.14, el 2026-11-13, lista para desplegar).
 
 ### Riesgos y huecos
 
 - **Ids de las otras fases:** los alias `F5·…` a `F8·…` de `depende_de` se cambian por los ids reales al armar `plan.yaml`. **4-63** no tiene texto en PLAN.
+  (`docs/plan.yaml` no lleva ningún alias `F5·`…`F8·`. Resuelto en el 9.12: **4-63** ya estaba cerrado desde el 2026-11-07,
+  `docs/pasos/9.12-2/bitacora.md`.)
 - **El piloto y la nube.** El hook bloquea el texto de las órdenes remotas y `gh workflow run` (por eso 9-6 y el dispatch de 9-11 van a la lista de la
   persona). Esta sesión tiene a la vista conectores MCP de Supabase y de Vercel: si las del piloto también, conviene negarlos antes de la fase.
+  (Resuelto en el 9.13: **9-6** y el dispatch de **9-11** están en `docs/DESPLIEGUE.md` › «Lo que sólo una persona comprueba».) Sigue para la
+  persona (9.14-3).
 - **`demo.yml` ya toca el proyecto Pro:** aplica a la demo (la producción de hoy) cada migración que entra a `main` si el repo tiene `DEMO_PROJECT_REF`.
-  Es lo decidido, pero integrar un PR con base ya escribe en la nube; la persona decide si sigue así durante las fases 5 a 9.
+  Es lo decidido, pero integrar un PR con base ya escribe en la nube; la persona decide si sigue así durante las fases 5 a 9. (D39 del 9.13-3:
+  `DEMO_PROJECT_REF` está puesta y, para pausar, se quita la variable antes de integrar, sin cambiar `demo.yml`.) Sigue para la persona (9.14-3).
 - **Una dependencia nueva detiene al carril** (la compuerta `dependencia` va a la persona): por eso gráficas en SVG propio, el barrido AA sin axe y nada
   de `deno check` en el CI (las tres funciones Deno siguen fuera de lint y typecheck). Si la persona aprueba antes `@axe-core/playwright`, se usa.
+  (Resuelto en el 9.08 y el 9.12: gráficas en HTML y SVG, sin librería (D15 del 9.08-2), y el barrido AA por CDP con reglas propias, sin
+  `@axe-core/playwright` (D1 del 9.12-1); `deno check` sigue fuera del CI.)
 - **«Un número que se muestra nunca es un total exacto»** contra un tablero: sin la excepción escrita (duda 1 del 9.07) el tablero rompe la regla y
   su guarda (`escala.sql`). **La conversión no tiene historia:** los clientes de antes quedan sin `cliente_desde` y el primer mes arranca en cero.
+  (Resuelto en el 9.07: la excepción del período cerrado está en `.claude/rules/escala.md` (D1), y `tablero_leads` devuelve `conversion_desde`
+  para que «Convertidos» diga desde cuándo cuenta (D3; D8 del 9.08-1).)
 - **`importar-csv` es el paso más incierto.** No pude determinar si el empaquetado de la función admite importar `src/shared/lib/csv/leer.ts` desde
   fuera de `supabase/functions/` (si no, el parser se copia y una prueba compara las copias); el tiempo máximo de una invocación obliga a procesar por
-  tramos con avance guardado; su e2e pide `pnpm funciones`.
+  tramos con avance guardado; su e2e pide `pnpm funciones`. (Resuelto en el 9.06: la función existe y lleva copias exactas de `leer.ts` y
+  `plantillas.ts` con una guarda que las compara (D23 del 9.06-3); procesa por lotes con el avance en `importaciones` y el job
+  `importaciones-continuar` retoma las detenidas (9.06-2).)
 - **La purga de la actividad nunca corrió:** al programarla (9.01), el primer pase borra todo lo de más de 14 días y, con la misma función,
   `eventos_web`, `visitados` y notificaciones viejas. **`actividad.detalle` no está recortado** y no revisé una por una las 65 llamadas a
-  `registrar_actividad()`: lo hace el 9.01, y si alguna guarda algo privado la tabla pierde el grant de `detalle`.
+  `registrar_actividad()`: lo hace el 9.01, y si alguna guarda algo privado la tabla pierde el grant de `detalle`. (Resuelto en el 9.01: el job
+  `actividad-purgar` corre a diario por lotes de 10.000 y ya no borra notificaciones ni visitados, que purga `notificaciones_purgar()` (9.01-1);
+  `authenticated` ya no lee `detalle` y la nota de `actividad.detalle` quedó resuelta (9.01-2).)
 - **`lead_dormido_meses` no lo lee nada** (ni la base ni la app): no le doy interfaz; sigue en Deuda aceptada hasta que algo lo use.
 - **Fuera del repo:** `VERCEL_TOKEN` y `SUPABASE_ACCESS_TOKEN` (4-41: `fetch` simulado y un «no se pudo leer» explícito); VAPID y el correo (Fase 7);
   el dominio y el proyecto de un cliente (guía del 9.13); un Chrome con gestor de contraseñas (9-12) y un iPhone (fotos): lista de la persona.
+  (Resuelto en el 9.09 y el 9.13: `env:check produccion` se probó con `fetch` simulado y sin tokens dice que no pudo leer (9.09-3); VAPID, el
+  correo, el dominio, la instalación de un cliente, **9-12** y las fotos en iPhone están en `docs/DESPLIEGUE.md`.)
 - **Tamaño:** 9.04, 9.06 y 9.12 quedan en 5 partes, el máximo, por el tope de 14 pasos; con 18 se parten 9.01, 9.04, 9.06 y 9.12 como dice cada fila
-  (las mitades de pantalla irían a `sonnet`). **5a-4b** (70 min el completo) hace del Nivel 3 lo más largo del cierre.
+  (las mitades de pantalla irían a `sonnet`). **5a-4b** (70 min el completo) hace del Nivel 3 lo más largo del cierre. (Fue en 41 partes.)
 
 ---
 

@@ -2,6 +2,8 @@
 
 Auditoría inmutable de 14 días: qué cambió, quién, cuándo y el diff, con purga automática.
 
+**Fase 9 cerrada el 2026-11-13** (9.14): el diff con su recorte por cartera lo prueban R6 y R6b de `e2e/fase-9-recorrido.spec.ts` (la asesora ve la fila de un lead ajeno con «Sin acceso al detalle» y sin diff).
+
 ## Entra y sale
 
 - Entra: trigger `auditar()` en las tablas sensibles y `registrar_actividad()` desde las RPC (mover fase, publicar fórmula, otorgar portal, adoptar lead…).
