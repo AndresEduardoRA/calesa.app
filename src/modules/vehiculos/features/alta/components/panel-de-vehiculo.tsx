@@ -2,7 +2,7 @@
 
 import type { Route } from 'next'
 import { useRouter } from 'next/navigation'
-import { useEffect, useId, useRef } from 'react'
+import { useEffect, useId, useRef, type RefObject } from 'react'
 import {
   concordar,
   type CampoDeLayout,
@@ -26,6 +26,7 @@ import {
 } from '../hooks/use-formulario-de-vehiculo'
 import { useFuentesDelPanel } from '../hooks/use-fuentes-del-panel'
 import { usePanelDeVehiculo } from '../hooks/use-panel-de-vehiculo'
+import { useSoltarTrasElEnvio, useTrasElEnvio, type TrasElEnvio } from '../hooks/use-tras-el-envio'
 import { useGuardadoDeSubasta } from '../../subasta/hooks/use-guardado-de-subasta'
 import { AltaPorSubasta } from '../../subasta/components/alta-por-subasta'
 import { FormularioDeVehiculo } from './formulario-de-vehiculo'
@@ -74,6 +75,48 @@ function useSalidaDelPanel(estado: EstadoDelFormulario, alCerrar: () => void) {
   })
 }
 
+type AlGuardarDelPanel = Pick<PropsDeContenido, 'origen' | 'vehiculo' | 'alCerrar' | 'alCrear'> & {
+  volverAlTituloRef: RefObject<boolean>
+  subasta: ReturnType<typeof useGuardadoDeSubasta>
+  despues: TrasElEnvio['despues']
+}
+
+// Lo que pasa al guardar: en la edición, «Cambios guardados» y se cierra; en el alta, «… creado» con «Abrir ficha» y, salvo «guardar y cargar otro» o
+// varias líneas pegadas, se cierra. El aviso y cerrar van juntos por `despues` (9-7): si cerrara antes, el panel se desmontaría con el aviso en la cola.
+function useAlGuardarDelPanel({
+  origen,
+  vehiculo,
+  alCerrar,
+  alCrear,
+  volverAlTituloRef,
+  subasta,
+  despues,
+}: AlGuardarDelPanel) {
+  const router = useRouter()
+  return (datos: Guardado) => {
+    const { id, seguir } = datos
+    if (vehiculo) {
+      despues(() => {
+        avisarExito('Cambios guardados')
+        alCerrar()
+      })
+      return
+    }
+    despues(() => {
+      avisarCreado(origen, datos, () => {
+        router.push(`${RUTAS.vehiculos}/${id}` as Route)
+      })
+    })
+    subasta.despuesDeGuardar(datos)
+    // Con varias líneas pegadas, guardar una no cierra el panel: quedan las demás.
+    if (seguir || datos.subasta?.clave) {
+      volverAlTituloRef.current = seguir
+    } else {
+      despues(alCrear)
+    }
+  }
+}
+
 // Lo de adentro del panel. Se monta al abrirlo (y de nuevo si cambia la versión de lo que se
 // edita): así cada apertura arranca de lo guardado y cada alta, con su id.
 function Contenido({
@@ -93,25 +136,17 @@ function Contenido({
   const volverAlTitulo = useRef(false)
 
   const subasta = useGuardadoDeSubasta(origen.id)
-
-  function alGuardar(datos: Guardado) {
-    const { id, seguir } = datos
-    if (vehiculo) {
-      avisarExito('Cambios guardados')
-      alCerrar()
-      return
-    }
-    avisarCreado(origen, datos, () => {
-      router.push(`${RUTAS.vehiculos}/${id}` as Route)
-    })
-    subasta.despuesDeGuardar(datos)
-    // Con varias líneas pegadas, guardar una no cierra el panel: quedan las demás.
-    if (seguir || datos.subasta?.clave) {
-      volverAlTitulo.current = seguir
-    } else {
-      alCrear()
-    }
-  }
+  // El aviso de guardado sale cuando el envío terminó (9-7): se encola acá y se suelta con `estado.enCurso`, que sale del formulario de abajo.
+  const tras = useTrasElEnvio()
+  const alGuardar = useAlGuardarDelPanel({
+    origen,
+    vehiculo,
+    alCerrar,
+    alCrear,
+    volverAlTituloRef: volverAlTitulo,
+    subasta,
+    despues: tras.despues,
+  })
 
   const estado = useFormularioDeVehiculo({
     origenId: origen.id,
@@ -121,6 +156,7 @@ function Contenido({
     alGuardar,
   })
 
+  useSoltarTrasElEnvio(tras, estado.enCurso)
   const salida = useSalidaDelPanel(estado, alCerrar)
   useEffect(() => {
     if (!estado.enCurso && volverAlTitulo.current) {

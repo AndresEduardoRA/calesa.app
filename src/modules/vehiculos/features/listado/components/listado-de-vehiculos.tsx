@@ -66,17 +66,9 @@ function MotivoDeAlta({ permiso }: { permiso: PermisoDeAlta }) {
 // El inventario: una pestaña por origen y, adentro, los filtros de ese origen, su lista y el
 // panel de alta y edición. Todo el estado (origen, filtros, página, panel) vive en la URL.
 export function ListadoDeVehiculos(props: Props) {
-  const {
-    origenes,
-    esquema,
-    vistas,
-    puedeConfigurarCampos,
-    permisoDeAlta,
-    enEdicion,
-    porPagina,
-    ...demas
-  } = props
-  const { verPapelera, apibara, verInteresados, paraCotizar, ...resto } = demas
+  const { origenes, esquema, vistas, puedeConfigurarCampos, permisoDeAlta, enEdicion, ...demas } =
+    props
+  const { verPapelera, apibara, verInteresados, paraCotizar, porPagina, ...resto } = demas
   const { origen, campos, categorias, fases, vitrina, limpiezaHoy, pagina, editables } = resto
   const nuevo = <BotonNuevoVehiculo origen={origen} permiso={permisoDeAlta} />
   const resumen = useResumenDeVehiculo({ verInteresados })
@@ -96,6 +88,8 @@ export function ListadoDeVehiculos(props: Props) {
   )
   return (
     <div className="grid gap-4">
+      {/* El título de la página para quien lee en voz alta: la barra de filtros ocupa la cabecera (como en `/leads`). */}
+      <h1 className="sr-only">Vehículos</h1>
       <PestanasDeOrigen origenes={origenes} actual={origen.id} />
       <MotivoDeAlta permiso={permisoDeAlta} />
       {/* Los filtros salen del layout de cada origen: al cambiar de pestaña se arma otro. */}

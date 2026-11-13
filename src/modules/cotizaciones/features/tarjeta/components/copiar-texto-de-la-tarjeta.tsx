@@ -34,12 +34,15 @@ export function CopiarTextoDeLaTarjeta({ modelo, aviso, idDelDesactualizado }: P
       avisar('No se pudo copiar el texto: tu navegador no lo permite.')
     }
   }
+  // Sin tarjeta no hay aviso dibujado: el «Total desactualizado.» y el «Falta el total…» viven con ella, y nombrarlos dejaría la referencia colgando.
   const describe =
-    aviso === 'desactualizado'
-      ? idDelDesactualizado
-      : aviso === 'sin_total'
-        ? idSinTotal
-        : undefined
+    modelo === null
+      ? undefined
+      : aviso === 'desactualizado'
+        ? idDelDesactualizado
+        : aviso === 'sin_total'
+          ? idSinTotal
+          : undefined
   return (
     <>
       {modelo !== null && aviso === 'sin_total' ? (

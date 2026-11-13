@@ -14,6 +14,7 @@ import {
 } from '../../../entities/alta'
 import type { CampoDeLead } from '../../../entities/campo'
 import { useAlGuardarDelAlta } from '../hooks/use-al-guardar-del-alta'
+import { useSoltarTrasElEnvio, useTrasElEnvio } from '../hooks/use-tras-el-envio'
 import { useAltaDeLead, type AltaDeLead, type Paso } from '../hooks/use-alta-de-lead'
 import { usePanelDeAlta } from '../hooks/use-panel-de-alta'
 import { EnElMarco, useAjustesDelMarco } from './marco-del-alta'
@@ -189,7 +190,9 @@ export function AltaCargada({ contexto, campos }: Props) {
   // Tras guardar, el foco vuelve al teléfono cuando los campos dejan de estar deshabilitados.
   const enfocarTelefono = useRef(false)
 
-  const alGuardar = useAlGuardarDelAlta(panel, enfocarTelefono)
+  // El aviso de guardado espera a que el envío termine (9-7): se encola acá y se suelta con el `enCurso` del alta, que sale del hook de abajo.
+  const tras = useTrasElEnvio()
+  const alGuardar = useAlGuardarDelAlta(panel, enfocarTelefono, tras.despues)
   const alta = useAltaDeLead({
     contexto,
     layout: campos,
@@ -198,6 +201,7 @@ export function AltaCargada({ contexto, campos }: Props) {
     alGuardar,
   })
   const { paso, enCurso, enviar, guardar } = alta
+  useSoltarTrasElEnvio(tras, enCurso)
   const salida = useSalidaDelAlta(alta, panel)
   useFocoAlLlegarAbierto(panel.abierto)
 

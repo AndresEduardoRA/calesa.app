@@ -1,6 +1,6 @@
 'use client'
 
-import type { ReactNode } from 'react'
+import { useId, type ReactNode } from 'react'
 import { Button } from '@/shared/ui/button'
 import { Monto } from '@/shared/ui/monto'
 import {
@@ -10,6 +10,7 @@ import {
 } from '../../../entities/binding'
 import type { HojaLista } from '../../../entities/hoja'
 import type { EstadoDeRecalculo } from '../../../entities/recalculo'
+import { useResumenPlegado } from '../hooks/use-resumen-plegado'
 import { LiveDelResumen } from './live-del-resumen'
 import { ModoDelResumen } from './modo-del-resumen'
 import { TotalEnMonedaLocal } from './total-en-moneda-local'
@@ -153,6 +154,31 @@ function PieDelResumen({
   )
 }
 
+// Pliega y abre el detalle del resumen al pie (4-50). Al costado (`@4xl/hoja`) no se dibuja: ahí el detalle se ve siempre. Sin ícono: la hoja más grande
+// está a pocos nodos del techo de 500 (`cotizar-hoja-200.spec.ts`). Alto en px, como Live: con el texto al 200 % no dobla y el resumen plegado ocupa menos.
+function BotonDelDetalle({
+  plegado,
+  alternar,
+  idDelDetalle,
+}: {
+  plegado: boolean
+  alternar: () => void
+  idDelDetalle: string
+}) {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      className="min-h-[44px] md:min-h-8 @4xl/hoja:hidden"
+      aria-expanded={!plegado}
+      aria-controls={idDelDetalle}
+      onClick={alternar}
+    >
+      {plegado ? 'Ver el detalle' : 'Ocultar el detalle'}
+    </Button>
+  )
+}
+
 // El resumen: el total de la hoja, fijo (al pie en el celular y al costado, a la derecha de las secciones, desde un ancho de la hoja: `sticky`, 4.13-4b3) y lo que la tarjeta suma aparte. **No deja pasar por bueno un total viejo:** mientras
 // se recalcula o si falló, el total se marca desactualizado con su texto. Los avisos van en una región viva; «Recalculando» no se anuncia (pasa cada 150 ms).
 export function ResumenDeHoja({
@@ -174,6 +200,8 @@ export function ResumenDeHoja({
   const viejo = estado.tipo !== 'al_dia'
   const ocupado = estado.tipo === 'esperando' || estado.tipo === 'recalculando'
   const variante = contexto.indice.variante?.etiqueta
+  const { plegado, alternar } = useResumenPlegado()
+  const idDelDetalle = useId()
   return (
     <aside
       aria-label="Resumen"
@@ -193,24 +221,28 @@ export function ResumenDeHoja({
         >
           {total.tipo === 'valor' ? <Monto valor={total.usd} moneda="USD" /> : '—'}
         </strong>
+        <BotonDelDetalle plegado={plegado} alternar={alternar} idDelDetalle={idDelDetalle} />
       </div>
       <AvisosDelTotal total={total} estado={estado} variante={variante} />
       {totalGuardado}
-      {monedaDelTotalBs === null ? null : (
-        <TotalEnMonedaLocal respuesta={contexto.respuesta} moneda={monedaDelTotalBs} />
-      )}
-      <ul className="grid gap-1">
-        {secundariosDelResumen(tarjeta.secundarios, contexto.respuesta).map((s) => (
-          <li
-            key={s.nodo}
-            className="flex flex-wrap items-baseline justify-between gap-x-4 text-(length:--text-sm) text-(--color-ink-soft)"
-          >
-            <span className="[overflow-wrap:anywhere]">{s.etiqueta}</span>
-            <ValorDeNodo valor={s.valor} formato={s.formato} />
-          </li>
-        ))}
-      </ul>
-      <ModoDelResumen nombre={modo} />
+      {/* Plegado sólo esconde lo secundario: el total, sus avisos, lo guardado, la región viva y «Guardar» quedan siempre a la vista. */}
+      <div id={idDelDetalle} className={plegado ? 'hidden @4xl/hoja:contents' : 'contents'}>
+        {monedaDelTotalBs === null ? null : (
+          <TotalEnMonedaLocal respuesta={contexto.respuesta} moneda={monedaDelTotalBs} />
+        )}
+        <ul className="grid gap-1">
+          {secundariosDelResumen(tarjeta.secundarios, contexto.respuesta).map((s) => (
+            <li
+              key={s.nodo}
+              className="flex flex-wrap items-baseline justify-between gap-x-4 text-(length:--text-sm) text-(--color-ink-soft)"
+            >
+              <span className="[overflow-wrap:anywhere]">{s.etiqueta}</span>
+              <ValorDeNodo valor={s.valor} formato={s.formato} />
+            </li>
+          ))}
+        </ul>
+        <ModoDelResumen nombre={modo} />
+      </div>
       <div role="status" className="grid gap-1">
         <AvisoDeFallo estado={estado} alReintentar={alReintentar} alRecargar={alRecargar} />
         {avisoDelVehiculo === null ? null : (
