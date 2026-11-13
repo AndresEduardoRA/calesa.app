@@ -1,14 +1,15 @@
-// Las reglas del barrido de accesibilidad (auditoría AA, 9.12): lo que una máquina comprueba en una página ya cargada. Tres hacen caer
-// la prueba (R1, un control sin nombre accesible; R2, un `aria-describedby` o `aria-labelledby` que apunta a un id que no existe; R3,
-// una página sin un `h1` o con más de uno, dura desde el 9.12-2) y cuatro sólo informan, para la tabla de hallazgos (R4 título, R5
-// orden de foco, R6 foco visible, R7 blancos táctiles de 44 px). R1 lee el árbol que calcula Chrome por CDP (`Accessibility.getFullAXTree`), no `ariaSnapshot`, que lee el DOM.
+// Las reglas del barrido de accesibilidad (auditoría AA, 9.12): lo que una máquina comprueba en una página ya cargada. Hacen caer la
+// prueba R1 (un control sin nombre accesible), R2 (un `aria-describedby` o `aria-labelledby` que apunta a un id que no existe), R3 (una
+// página sin un `h1` o con más de uno), R6 (un control que no cambia de aspecto al recibir el foco por teclado) y R7 (blancos táctiles
+// de 44 px) sólo en el celular y en las pantallas de las fases 5 a 9. R4, el título único, es la prueba A9 del spec; R5, el orden de
+// foco, sólo informa. R1 lee el árbol que calcula Chrome por CDP (`Accessibility.getFullAXTree`), no `ariaSnapshot`, que lee el DOM.
 //
 // El descriptor de un hallazgo tiene que ser estable entre corridas para compararlo con los conocidos: rol, etiqueta HTML y sus
 // atributos de forma (`data-slot`, `name`, `type`, `href` sin query), nunca un id de `useId` ni un texto que salga de los datos.
 import type { Page } from '@playwright/test'
 
 export type Regla = 'nombre' | 'referencia' | 'h1' | 'titulo' | 'orden' | 'foco' | 'blanco'
-export const REGLAS_DURAS: readonly Regla[] = ['nombre', 'referencia', 'h1']
+export const REGLAS_DURAS: readonly Regla[] = ['nombre', 'referencia', 'h1', 'foco']
 
 export type Hallazgo = { regla: Regla; descriptor: string; n: number }
 
@@ -223,7 +224,9 @@ export async function focoVisible(page: Page): Promise<Hallazgo[]> {
         return PROPIEDADES.map((p) => calculado.getPropertyValue(p)).join('|')
       }
       const con = foto(el) + foto(el.parentElement)
-      el.blur()
+      // Un `input type=date` guarda el foco en el campo de su mes: un solo `blur()` no lo suelta.
+      for (let intento = 0; intento < 3 && document.activeElement === el; intento++) el.blur()
+      if (document.activeElement === el) return null
       const sin = foto(el) + foto(el.parentElement)
       el.focus()
       if (con !== sin) return null
