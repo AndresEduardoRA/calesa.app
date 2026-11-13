@@ -35,9 +35,13 @@ export default function PaginaDeGastosDeLogistica({
   searchParams,
 }: PageProps<'/logistica/gastos'>) {
   return (
-    <Suspense fallback={<EsqueletoListado filas={8} columnas={5} />}>
-      <Listado searchParams={searchParams} />
-    </Suspense>
+    <>
+      {/* El h1 va fuera del Suspense: está también cargando y sin permiso (9.12-5, R3). Sin cabecera visible: la ocupa la barra de filtros. */}
+      <h1 className="sr-only">Gastos</h1>
+      <Suspense fallback={<EsqueletoListado filas={8} columnas={5} />}>
+        <Listado searchParams={searchParams} />
+      </Suspense>
+    </>
   )
 }
 

@@ -11,7 +11,7 @@ import { PestanasDeRepuestos } from './pestanas-de-repuestos'
 import { SeccionCatalogos } from './seccion-catalogos'
 import { SeccionCotizador } from './seccion-cotizador'
 
-export const metadata: Metadata = { title: 'Repuestos' }
+export const metadata: Metadata = { title: 'Configurar repuestos' }
 
 // Configuración › Repuestos (8.08-3): los catálogos que se eligen en cada ítem y el cotizador (8.12-2). Entra quien tiene `repuestos.configurar`; sin la
 // clave, «No tienes permiso». Con dos o más pestañas visibles se dibuja la barra. La base vuelve a exigir la clave en cada escritura.

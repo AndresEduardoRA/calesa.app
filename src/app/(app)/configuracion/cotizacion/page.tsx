@@ -7,7 +7,7 @@ import { pestanaDe, pestanasVisibles } from './pestanas'
 import { PestanasDeCotizacion } from './pestanas-de-cotizacion'
 import { SeccionAbierta } from './seccion-abierta'
 
-export const metadata: Metadata = { title: 'Cotización' }
+export const metadata: Metadata = { title: 'Configurar cotizaciones' }
 
 // Configuración › Cotización. Entra quien ve alguna pestaña (`pestanas.ts`): «Niveles de acceso» con `equipo.roles.ver` (los cambia quien tiene
 // `equipo.roles.gestionar`: cada nivel es un permiso de la matriz de Roles), «Fórmula», «Tarjeta», «Diseño» y «Tonos» con `cotizaciones.configurar` en algún origen

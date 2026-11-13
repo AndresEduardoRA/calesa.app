@@ -30,9 +30,13 @@ export const metadata: Metadata = { title: 'Aduana' }
 // (`?declaracion=`). Ningún total exacto: lo que se muestra es la fila.
 export default function PaginaDeAduana({ searchParams }: PageProps<'/logistica/aduana'>) {
   return (
-    <Suspense fallback={<EsqueletoListado filas={8} columnas={6} />}>
-      <Listado searchParams={searchParams} />
-    </Suspense>
+    <>
+      {/* El h1 va fuera del Suspense: está también cargando y sin permiso (9.12-5, R3). Sin cabecera visible: la ocupa la barra de filtros. */}
+      <h1 className="sr-only">Aduana</h1>
+      <Suspense fallback={<EsqueletoListado filas={8} columnas={6} />}>
+        <Listado searchParams={searchParams} />
+      </Suspense>
+    </>
   )
 }
 

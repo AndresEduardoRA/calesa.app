@@ -155,3 +155,15 @@ NOMBRES.forEach((nombre, i) => {
     ).toEqual([])
   })
 })
+
+// Un título por página (9.12-5, R4): es lo primero que lee quien navega con un lector de pantalla. `/auth/nueva-contrasena` sin sesión de
+// recuperación termina en `/recuperar` (`REDIRECCIONES`): las dos dicen lo mismo y se aceptan.
+test('E2E A9 cada página tiene su propio título', () => {
+  const porTitulo = new Map<string, string[]>()
+  for (const r of registros) {
+    if (r.tema !== 'claro' || r.titulo === undefined || r.ruta in REDIRECCIONES) continue
+    porTitulo.set(r.titulo, [...(porTitulo.get(r.titulo) ?? []), r.ruta])
+  }
+  const repetidos = [...porTitulo].filter(([, rutas]) => rutas.length > 1)
+  expect(repetidos, 'títulos que repiten dos o más páginas').toEqual([])
+})

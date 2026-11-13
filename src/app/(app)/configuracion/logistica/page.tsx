@@ -9,7 +9,7 @@ import { alMenosUna, type AlMenosUna } from '../empresa/pestanas'
 import { catalogoDe, catalogosVisibles } from './catalogos'
 import { PestanasDeLogistica } from './pestanas-de-logistica'
 
-export const metadata: Metadata = { title: 'Logística' }
+export const metadata: Metadata = { title: 'Configurar logística' }
 
 // Configuración › Logística (6.01): los catálogos que cada área llena (transporte, gastos). Entra quien tiene `logistica.catalogos.gestionar`; sin la clave, «No tienes
 // permiso». Mientras ningún área llene el suyo dice que no hay nada que configurar. La base vuelve a exigir lo suyo en cada escritura.

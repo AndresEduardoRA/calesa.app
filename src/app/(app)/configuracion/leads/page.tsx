@@ -12,7 +12,7 @@ import { SeccionOrigenes } from './seccion-origenes'
 import { SeccionTipos } from './seccion-tipos'
 import { SeccionTiposDeSeguimiento } from './seccion-tipos-de-seguimiento'
 
-export const metadata: Metadata = { title: 'Leads' }
+export const metadata: Metadata = { title: 'Configurar leads' }
 
 const DESCRIPCION_DE = {
   campos:

@@ -32,9 +32,13 @@ const DIAS_POR_DEFECTO = 14
 // entidad en la URL y `?registro=` desde una ficha. Lo que se ve lo decide la base: las dos RPC piden `actividad.ver` y recortan cada fila.
 export default function PaginaDeActividad({ searchParams }: PageProps<'/actividad'>) {
   return (
-    <Suspense fallback={<EsqueletoListado filas={8} columnas={5} />}>
-      <Actividad searchParams={searchParams} />
-    </Suspense>
+    <>
+      {/* El h1 va fuera del Suspense: está también cargando y sin permiso (9.12-5, R3). Sin cabecera visible: la ocupa la barra de filtros. */}
+      <h1 className="sr-only">Actividad</h1>
+      <Suspense fallback={<EsqueletoListado filas={8} columnas={5} />}>
+        <Actividad searchParams={searchParams} />
+      </Suspense>
+    </>
   )
 }
 

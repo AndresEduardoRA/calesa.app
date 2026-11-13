@@ -38,9 +38,13 @@ export const metadata: Metadata = { title: 'Logística' }
 // panel de la unidad (6.01) se dibuja en un drawer por URL: un id que no es válido o que ya no se ve muestra, dentro del drawer, el mismo «ya no está disponible» de su propia página.
 export default function PaginaDeLogistica({ searchParams }: PageProps<'/logistica'>) {
   return (
-    <Suspense fallback={<EsqueletoDeTablero />}>
-      <Cadena searchParams={searchParams} />
-    </Suspense>
+    <>
+      {/* El h1 va fuera del Suspense: está también cargando y sin permiso (9.12-5, R3). Sin cabecera visible: la ocupa las pestañas de origen. */}
+      <h1 className="sr-only">Cadena de logística</h1>
+      <Suspense fallback={<EsqueletoDeTablero />}>
+        <Cadena searchParams={searchParams} />
+      </Suspense>
+    </>
   )
 }
 
