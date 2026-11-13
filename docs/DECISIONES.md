@@ -127,6 +127,7 @@ las trampas, en `docs/LECCIONES.md`.
 - **Privados recortados al leer.** `leads.atributos` sin grant; `atributos_lead()` da todo a la cartera, lo no privado a quien sólo ve y nada a quien no ve. La visibilidad se escribe una vez en `_lead_visible_para()` sobre copias derivadas por trigger.
 - **«La de la empresa» es columna.** `leads_campos.valor_defecto_empresa` (ciudad o país), resuelto al leer el layout; «País» sigue al teléfono mientras esté vacío o puesto por el sistema.
 - **El rango se valida sólo en lo que cambia.** Un valor igual al guardado no se rechaza por rango ni por opción retirada (`_atributos_rango`, `esquemaDeValor` con lo guardado); el impacto avisa cuántos quedan fuera, sin bloquear.
+- **El impacto de un campo privado no lee valores ajenos.** `lead_campo_impacto` cuenta la presencia (con valor, sin valor) en todos los leads, porque frena cambiar el tipo o eliminar; fuera de rango y por opción de un campo `solo_cartera`, sólo en la cartera de quien llama, como `atributos_lead()`.
 - **`leads.configurar` gobierna toda la configuración de leads.** Orígenes de lead, tipos y tipos de seguimiento por RPC con tope 100; el origen por defecto no se apaga ni elimina; el CSV nunca crea orígenes.
 
 ### Escritura y acceso
