@@ -316,6 +316,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Proyecto de repuestos** — `repuestos_proyectos`: un proyecto por vehículo (o externo).
 - **Ítem de repuesto** — `repuestos_items`: el repuesto que recorre el flujo de repuestos.
 - **Stock** — `repuestos_items.stock_cantidad`, `_stock_movimientos`: sobrantes disponibles. Se mueve sólo por `repuesto_stock_mover` y `repuesto_stock_reasignar` (8.10); nunca negativo.
+- **Movimiento de stock** — `repuestos_stock_movimientos`: cada entrada o salida del stock de un ítem, con su motivo (`sobrante`, `vendido`, `devuelto`, `ajuste`, `reasignado`) y una nota opcional. Lo escriben sólo `repuesto_stock_mover` y `repuesto_stock_reasignar` (8.10-1); nadie lo inserta directo. No: «ajuste de inventario», «transacción».
 - **Sobrante** — lo que de un ítem entra a stock (motivo `sobrante`, «Pasar a stock»): como mucho su cantidad menos lo que ya entró.
 - **Vender suelto** — sacar del stock lo vendido fuera de un proyecto (motivo `vendido`); no registra precio: el cobro es un pago del proyecto.
 - **Devolver al proveedor** — sacar del stock lo que se devuelve a quien lo vendió (motivo `devuelto`, botón «Devolver»).
@@ -346,8 +347,10 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Rueda / Cola web** — `cola_web_asesores` / `estado_cola_web`: quién recibe turnos. Elegible = `habilitado` y permiso `web.cola.participar` (`puede_estar_en_la_rueda()`). Matriz: «Recibir turnos de la web».
 - **Contacté** — `web_confirmar_contacto`: el asesor confirma que atendió el turno (y lo vincula a un lead).
 - **Pegajoso** — `ajustes_web.dias_pegajoso`: un visitante vuelve al mismo asesor dentro del plazo.
+- **Disponible** — `cola_web_asesores.disponible` / el interruptor «Disponible para recibir turnos» de Mi perfil: la persona de la rueda acepta turnos ahora. La ruleta sólo elige a quien lo tiene; el pegajoso no lo mira (quien vuelve dentro del plazo recibe a su asesora aunque esté apagado). No: «activo», «en línea».
 - **Respaldo** — `ajustes_web.whatsapp_respaldo`: número que recibe cuando nadie está disponible.
 - **Sin asignar** — `solicitudes_contacto_web.estado = 'sin_asignar'` / `cola_web_solicitudes`: un turno web que no encontró asesor (al visitante se lo mandó al respaldo). Se ve arriba de Configuración › Cola web.
+- **Ficha pública** — «Tu ficha en la web» de Mi perfil: `perfiles.whatsapp_web`, `handle`, `cargo_web`, `bio_web`, `especialidades` y `publico_web` («Aparecer en la web»). Sin WhatsApp no se reciben turnos; con `publico_web` y `handle`, la web la muestra y un visitante puede pedirla directo. No: «perfil público», «tarjeta».
 - **Guía / FAQ / Testimonio** — `web_guias`, `web_faqs`, `web_testimonios`: contenido de la web pública; nace despublicado.
 - **Programada** — guía con `web_guias.publicada_en` futura: ya tiene fecha pero aún no se ve en la web (`estadoDeGuia()`: «Borrador», «Programada» o «Publicada»).
 - **Consentimiento (de un testimonio)** — `web_testimonio_consentir` / `web_testimonio_retirar`: lo que da el cliente para que su testimonio se publique: quién lo registró, cuándo y por qué canal, y si se muestran su ciudad, su vehículo y su foto. Cambiar el nombre, el texto o la foto lo anula.
