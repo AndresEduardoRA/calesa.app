@@ -34,16 +34,13 @@ export function motivoParaNoAbrirPago(args: {
   panel: PanelDePago
   valor: string | null
   encontrado: { confirmado: boolean } | null
-  // `puedeAnular` (8.13-5): un pago de proyecto no se anula todavía; sin él, anular sigue a confirmar.
-  permisos: { puedeEditar: boolean | null; puedeConfirmar: boolean | null; puedeAnular?: boolean }
+  permisos: { puedeEditar: boolean | null; puedeConfirmar: boolean | null }
 }): string | null {
   const { panel, valor, encontrado, permisos } = args
   const permitido =
     panel === PANEL_PAGO || panel === PANEL_ELIMINAR_PAGO
       ? permisos.puedeEditar
-      : panel === PANEL_ANULAR_PAGO
-        ? (permisos.puedeAnular ?? permisos.puedeConfirmar)
-        : permisos.puedeConfirmar
+      : permisos.puedeConfirmar
   if (!permitido) {
     return MENSAJE_PAGO_YA_NO_ESTA
   }

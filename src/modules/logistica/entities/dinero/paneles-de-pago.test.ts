@@ -50,12 +50,6 @@ describe('motivoParaNoAbrirPago: el permiso', () => {
     expect(abre(PANEL_ELIMINAR_PAGO, sinConfirmar, soloConfirmar)).not.toBeNull()
     expect(abre(PANEL_PAGO, sinConfirmar, soloConfirmar)).not.toBeNull()
   })
-
-  it('con puedeAnular en falso, anular no abre aunque se pueda confirmar (pago de proyecto, 8.13-5)', () => {
-    const proyecto = { ...todo, puedeAnular: false }
-    expect(abre(PANEL_ANULAR_PAGO, confirmado, proyecto)).toBe(MENSAJE_PAGO_YA_NO_ESTA)
-    expect(abre(PANEL_CONFIRMAR_PAGO, sinConfirmar, proyecto)).toBeNull()
-  })
 })
 
 describe('motivoParaNoAbrirPago: lo que abre', () => {

@@ -16,7 +16,8 @@ export const MOTIVO_SIN_PERMISO_DE_PAGOS =
 export const MOTIVO_PROYECTO_CERRADO = 'El proyecto está cerrado: reábrelo para registrar pagos.'
 
 // Los pagos del cliente de un proyecto de repuestos (8.13-5): la pestaña «Pagos» de `/repuestos/[id]`. El mismo cuerpo que el hueco del vehículo, en el ámbito `proyecto`:
-// «Registrar pago» siempre a la vista (apagado con su motivo sin permiso o con el proyecto cerrado), sin «Anular» (8-13d) y sin «Ver todos» (no hay lista global de proyectos).
+// «Registrar pago» siempre a la vista (apagado con su motivo sin permiso o con el proyecto cerrado) y sin «Ver todos» (no hay lista global de proyectos). «Anular» sigue a confirmar,
+// como en el vehículo; la base no deja anular el último pago vivo si un ítem está en una fase que pide el pago del cliente.
 export function PagosDelProyecto({ proyectoId, cerrado, puedeEditar, puedeConfirmar }: Props) {
   const motivo = !puedeEditar
     ? MOTIVO_SIN_PERMISO_DE_PAGOS
@@ -27,7 +28,7 @@ export function PagosDelProyecto({ proyectoId, cerrado, puedeEditar, puedeConfir
     <AmbitoDePagoContext value="proyecto">
       <CuerpoDePagos
         unidadId={proyectoId}
-        claves={{ puedeEditar, puedeConfirmar, puedeAnular: false }}
+        claves={{ puedeEditar, puedeConfirmar }}
         registrar={{ visible: true, motivo }}
         vacio="Este proyecto no tiene pagos registrados."
         etiquetaDeLaLista="Pagos del proyecto"
