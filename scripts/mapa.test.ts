@@ -26,7 +26,7 @@ describe('mapa.sh › la API de un módulo que reexporta por área', () => {
     expect(api).toBeDefined()
     expect(api).not.toContain('* ./')
     // Al menos los 87 de cuando se partió por área (diez y «+77»): cada paso que exporta algo suma, y un número exacto hacía caer esta
-    // prueba del A con el trabajo de cualquier carril (el 4.18-3a la dejó en 92, 2026-11-06).
+    // prueba con cualquier cambio ajeno (el 4.18-3a la dejó en 92, 2026-11-06).
     const resto = Number(/, \+(\d+)$/.exec(api ?? '')?.[1] ?? 0)
     expect(resto).toBeGreaterThanOrEqual(77)
     expect(cliente).toContain('`useLectorDeOpciones`')

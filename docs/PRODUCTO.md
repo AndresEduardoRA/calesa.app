@@ -27,7 +27,7 @@ que cada rol vea exactamente lo que le toca.
 Los roles son libres: el dueño los crea y les da permisos del catálogo. La interfaz se arma por
 permisos, no por nombre de rol.
 
-## Alcance (completo, por fases en `docs/PLAN.md`)
+## Alcance (completo)
 
 - **Equipo y permisos**: auth email+contraseña y Google, recuperar contraseña, registro on/off
   aplicado en base; roles libres; catálogo de permisos fijo por código parametrizable por origen y

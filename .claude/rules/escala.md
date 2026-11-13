@@ -12,7 +12,7 @@ Toda lista se diseña para miles de filas, aunque la semilla tenga 20 (cursor, t
 verifica con volumen sembrado, no a ojo (`pnpm db:sembrar-volumen`, `pnpm db:medir:volumen`), **sólo si va
 sobre una tabla que crece**: leads, vehículos, cotizaciones, revisiones, comentarios y papeleras. Las de
 configuración (plantillas, versiones de la fórmula, tablas de referencia, series: decenas de filas) no se
-miden (`.claude/rules/e2e.md` › «Pulido y rigor por tipo de paso», 2026-11-08). Cada superficie con su
+miden (`.claude/rules/e2e.md` › «Pruebas: sólo lo clave»). Cada superficie con su
 tope, índice y presupuesto está en `docs/RENDIMIENTO.md`.
 
 ## Paginación y topes
@@ -29,7 +29,7 @@ tope, índice y presupuesto está en `docs/RENDIMIENTO.md`.
 - Toda RPC con parámetro de tamaño (`p_tamano`, `p_tope`…) lo pasa por
   `_acotar_pagina(parámetro, por_defecto, máximo)`, nunca `least(greatest(…))` a mano. Una RPC
   nueva con tamaño entra al registro de `scripts/guardas/paginas-en-la-base.ts` (la de la papelera de
-  cotizaciones, en `paginas-en-la-base-papelera.ts`, del C) y su máximo no puede ser menor que el del
+  cotizaciones, en `paginas-en-la-base-papelera.ts`; las demás partes del registro, en `areas-*/paginas-en-la-base.ts`) y su máximo no puede ser menor que el del
   código. Una lectura por PostgREST tiene su tope en `max_rows` de `config.toml`.
 - Lo que se dibuja tiene tope. Al llegar se avisa con `<AvisoDeTope>` de `shared/ui`; la lectura
   pide uno de más y `cortarAlTope()` de `shared/lib/conteo` corta y dice si había más. Siempre hay un

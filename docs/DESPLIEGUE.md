@@ -1,7 +1,7 @@
 # Despliegue
 
 La lista de la persona para desplegar: en orden, con la orden de cada paso y **qué mirar** en su salida. Ninguna sesión de IA corre
-nada de esta guía: el piloto prepara y verifica en seco (`pnpm despliegue:en-seco`), y lo que toca la nube lo hace la persona. Sirve
+nada de esta guía: una sesión prepara y verifica en seco (`pnpm despliegue:en-seco`), y lo que toca la nube lo hace la persona. Sirve
 para la demo y para un cliente; lo que cambia en un cliente está en «La instalación de un cliente».
 
 Qué se configura y dónde vive cada variable está en `docs/ENTORNOS.md` (una sola fuente); esta guía agrega el orden y qué mirar.
@@ -21,8 +21,6 @@ Las secciones van en el orden en que se ejecutan.
   real con los schemas de `[api]`, el inventario del repo contra la base, `env:check produccion` sin credenciales y `next build`.
 - El CI del PR corre el mismo revisor de la base. **Cero ERROR** de splinter salvo los 6 esperados de las vistas `web.*` (abajo, «Lo
   que el panel de advisors muestra y está bien»), y todo WARN con su motivo en `supabase/tests/advisors-con-motivo.json`.
-- Del «Terminado cuando» de la Fase 9 queda cerrado «splinter y los advisors en cero errores». «Desplegada apuntando al proyecto Pro»
-  es esta lista.
 
 ## 1. El ensayo en seco
 
@@ -82,7 +80,7 @@ pnpm exec supabase db push --dry-run
 **Qué mirar** en el `--dry-run`: sólo las migraciones del repo más nuevas que la última de la nube, en orden.
 
 - Si la nube tiene una migración que el repo no, **para**: alguien migró a mano. Se resuelve en el repo antes de seguir.
-- Si una migración del repo es **más vieja** que la última de la nube (pasa en este repo: los carriles renumeran migraciones), `db push`
+- Si una migración del repo es **más vieja** que la última de la nube (pasa con ramas en paralelo), `db push`
   la rechaza y te propone `--include-all`. No lo fuerces a ciegas: confirma que no depende del orden ni choca con lo ya aplicado y
   recién entonces agrega `--include-all` al `--dry-run` y al push; o pide a una sesión que la renumere con una fecha posterior en `main`.
 - Los índices se crean sin `concurrently` (las migraciones van en transacción): en la demo el bloqueo es de segundos; con muchos datos,
@@ -119,7 +117,7 @@ end $$;
 ```
 
 **Qué mirar:** `select name from vault.secrets order by 1` trae `url_proyecto`, `cotizacion:abierta` y `portal:sal` (las dos últimas las
-crea la base); `select jobname from cron.job order by 1` trae los jobs del inventario del ensayo (hoy 19); a los pocos minutos,
+crea la base); `select jobname from cron.job order by 1` trae los jobs del inventario del ensayo; a los pocos minutos,
 `select status, count(*) from cron.job_run_details where start_time > now() - interval '15 minutes' group by 1` sin `failed`. Los
 `integracion:*` no se crean aquí: los crea la app (paso 10).
 
@@ -196,6 +194,18 @@ Con la cuenta dueña, Empresa › Integraciones: la clave de apibara (la guarda 
   guarda los archivos de Storage.
 - **El correo:** `docs/ENTORNOS.md › «Cambiar de Resend a Cloudflare»`, paso 5.
 
+## Tras aplastar las migraciones
+
+Las migraciones se aplastan con `pnpm db:aplastar` (sólo local; comprueba que la base queda idéntica). La base nueva lleva la versión de
+la última que reemplaza, así que un proyecto que ya las tenía todas no la vuelve a correr. En ese proyecto hay que marcar las versiones
+viejas como revertidas en su historial, **antes** de `db push` (paso 4):
+
+- **La demo:** lo hace solo `demo.yml`.
+- **Producción:** lo corre la persona con el proyecto enlazado (y su ref mirado): `bash scripts/demo/alinear-historial.sh`. No toca
+  esquema ni datos; si al proyecto le faltaba alguna de las aplastadas, se niega y lo dice.
+
+Producción todavía no existe: su primer despliegue aplica la base directamente y no necesita nada de esto.
+
 ## La instalación de un cliente
 
 Un proyecto propio de Supabase y de Vercel (los crea la persona), **desde un clon aparte** del repo, con
@@ -209,7 +219,7 @@ Un proyecto propio de Supabase y de Vercel (los crea la persona), **desde un clo
 
 ## Lo que sólo una persona comprueba
 
-Cada uno con su abierto en `docs/PLAN.md`; lo que salga se anota ahí (o se le pide a una sesión).
+Cada uno con su abierto en `docs/PENDIENTES.md`; lo que salga se anota ahí (o se le pide a una sesión).
 
 - **9-12** · Chrome con sesión y gestor de contraseñas, Live encendido: tipear y confirmar un monto en la hoja de cotizar, en
   escritorio y en el celular. **Bien:** no ofrece guardar nada. Si lo ofrece, se decide de nuevo.
@@ -234,8 +244,8 @@ Cada uno con su abierto en `docs/PLAN.md`; lo que salga se anota ahí (o se le p
 
   **Bien:** `e2e-fallos/` trae los cinco archivos de `scripts/ci/volcar-base.sh`, con contenido. Después, borrar la rama.
 
-- **5a-4b** · decidir con los números del 4.28 si vale una segunda pila local de Supabase para el e2e completo. Lo decidido hasta hoy es
-  que no (los shards del CI son la salida).
+- **5a-4b** · decidir si vale una segunda pila local de Supabase para el e2e completo. Lo decidido hasta hoy es que no (los shards del
+  CI son la salida).
 
 ## Lo que el panel de advisors muestra y está bien
 

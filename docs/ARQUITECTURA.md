@@ -77,7 +77,7 @@ Un módulo tiene **dos entradas** y nada más se importa desde afuera:
 
 - `@/modules/<x>/pantallas/<pantalla>` (`pantallas/<pantalla>.ts`) — los componentes de una pantalla,
   reexportados sólo los que esa pantalla dibuja. El `index.ts` **no exporta componentes**: una pantalla paga
-  en JS todo lo que reexporta lo que importa, y con un barril de todas `/perfil` pagaba 30 KB que no usa.
+  en JS todo lo que reexporta lo que importa.
   `scripts/guardas/barriles.test.ts` falla si el `index.ts` de un módulo alcanza un módulo `'use client'`.
 - `@/modules/<x>/shell` (y `shell.client`) — sólo el layout `(app)`: lo que dibuja el marco de toda pantalla.
 
@@ -87,7 +87,7 @@ Un módulo tiene **dos entradas** y nada más se importa desde afuera:
 
 - `src/proxy.ts` — refresco de sesión; Next 16 lo exige al nivel de `app/`, no adentro.
 - `src/app/` — rutas (App Router), `layout.tsx`, `manifest.ts`, route
-  handlers (`api/portal`, `api/revalidar`, `api/push`, `api/pdf`). Composition root.
+  handlers (`api/portal/*`, `auth/callback`, `cotizaciones/[id]/pdf`, los `exportar` de leads y datos). Composition root.
 - `src/modules/<dominio>/index.ts` — API pública del módulo (servidor); `client.ts` — la de cliente.
   `pantallas/<pantalla>.ts` — los componentes de cada pantalla, para `src/app`.
 - `src/modules/<dominio>/features/<caso>/` — `components/`, `hooks/`, `actions/`, `schemas/`.
@@ -106,26 +106,26 @@ Un módulo tiene **dos entradas** y nada más se importa desde afuera:
 
 «Mover un vehículo a la fase Embarcado» (tarea de oro 3):
 
-1. `app/(app)/logistica/page.tsx` (Server Component) lee la cadena con
-   `logistica.cadenaPorFlujo(origenId)` (query de `infra/`, bajo RLS del usuario) y pasa los datos
-   al componente `features/cadena/components/Cadena`.
-2. El usuario abre el panel del vehículo: el hook `usePrevisualizarCambio` llama a la action
-   `previsualizarCambioFase` → RPC `previsualizar_cambio_fase` → devuelve `ok`, motivos y requisitos
-   evaluados; la UI muestra «qué falta» antes del clic.
+1. `app/(app)/logistica/page.tsx` (Server Component) lee la cadena con `leerCadena()` de
+   `@/modules/logistica` (RPC `logistica_cadena()`, bajo RLS del usuario) y la dibuja con
+   `CadenaDeLogistica` de `pantallas/cadena`.
+2. El usuario abre el panel del vehículo: la action `previsualizarCambio` de `flujos` → RPC
+   `previsualizar_cambio_fase` → devuelve `ok`, motivos y requisitos evaluados; la UI muestra «qué
+   falta» antes del clic.
 3. Clic en «Mover a Embarcado» → `cambiarFase` (action con `next-safe-action`): valida con Zod,
-   comprueba `puede(permisos, 'flujos.mover', origenId)` en `entities/`, llama a la RPC
+   comprueba `flujos.mover` del origen en `entities/` (`puedeMoverEn`), llama a la RPC
    `cambiar_fase(vehiculo, null, fase, nota, fase_esperada)`.
 4. La RPC (única puerta que escribe `fase_id`) repite la secuencia: viva → destino existe y activo
    → transición o inicial → rol → requisitos bloqueantes → escribe `vehiculos.fase_id`,
    `historial_fases`, `notas` y `actividad` en una transacción. Conflicto → `PT409`.
-5. La action traduce el resultado a `{ ok }` o `{ ok: false, error: { codigo: 'conflicto' } }`,
-   `revalidatePath('/logistica')`; la UI muestra el toast o el aviso «Rosa lo movió hace 1 min ·
-   Recargar». Si se marcó un lote, `cambiar_fase_lote` devuelve ok/motivo por unidad y la UI
+5. La action traduce el resultado a `{ ok }` o `{ ok: false, error: { codigo: 'conflicto' } }`;
+   la pantalla se repinta con `router.refresh()` del cliente y muestra el toast o el aviso «Rosa lo
+   movió hace 1 min · Recargar». Si se marcó un lote, `cambiar_fase_lote` devuelve ok/motivo por unidad y la UI
    muestra el resultado parcial.
 
 ## Mecanismos transversales
 
-- **Permisos**: catálogo fijo en `supabase/seed.sql` (`permisos`) + `src/shared/lib/permisos.ts`
+- **Permisos**: catálogo fijo en la tabla `permisos` (seed y migraciones) + `src/shared/lib/permisos.ts`
   (mismas claves, tipadas). `puede(permisos, clave, origenId)` en `entities/`; en la base,
   `tiene_permiso()` / `alcance_de()` en policies y RPC. La UI esconde o deshabilita; la base decide.
 - **Perspectiva «ver como»**: cookie `perspectiva` → `mi_sesion(p_perspectiva)` →
@@ -141,7 +141,7 @@ Un módulo tiene **dos entradas** y nada más se importa desde afuera:
 - **Conflictos**: `actualizado_en` + `p_*_esperado` → `PT409` → `codigo: 'conflicto'`. Donde la
   versión daría conflictos falsos (bloquear, dar de baja), la precondición es el estado.
 - **Trabajo en segundo plano**: `supabase/functions/` (`storage-gc`, `push`, `apibara`,
-  `importar-csv`) + `pg_cron` (recordatorios, expirar turnos, alertas de demora, purgas).
+  `importar-csv`, `avatares-miniaturas`) + `pg_cron` (recordatorios, expirar turnos, alertas de demora, purgas).
 - **Realtime**: canales de Supabase para chat y notificaciones; la fila es señal, se rehidrata por fetch.
 - **Modo Live**: `useLive()` + `<Monto>`; clase en `<html>`; todo monto pasa por ahí.
 - **Campos configurables**: el motor es de `shared` (`lib/campos` puro, `ui/campos` el editor) y de la base

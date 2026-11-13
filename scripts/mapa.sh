@@ -4,13 +4,11 @@
 #   bash scripts/mapa.sh           regenera docs/MAPA.md
 #   bash scripts/mapa.sh --check   lo regenera también, y falla (exit 1) si una unidad
 #                                  no tiene CLAUDE.md, o si un módulo importa las tripas de otro
-#                                  (cualquier cosa que no sea `@/modules/<x>` o `@/modules/<x>/client`), o si una
-#                                  entrada de DECISIONES o BITACORA lleva una fecha de mañana o fuera de orden
-#                                  (`scripts/fechas-de-entradas.mjs`: la fecha sale de `TZ=America/La_Paz date +%F`), o si un
+#                                  (cualquier cosa que no sea `@/modules/<x>` o `@/modules/<x>/client`), o si un
 #                                  enlace interno está roto (`scripts/enlaces-internos.mjs`: un doc citado que no existe, o
-#                                  una sección «…» que no es título del doc ni de su copia en docs/archivo/)
+#                                  una sección «…» que no es título del doc)
 #
-# docs/MAPA.md no se versiona (está en .gitignore): con dos carriles, cada PR lo cambiaría y chocarían. Lo regeneran el hook Stop de
+# docs/MAPA.md no se versiona (está en .gitignore): dos PR en paralelo lo cambiarían y chocarían. Lo regeneran el hook Stop de
 # Claude Code, lefthook (pre-commit con --check; post-checkout y post-merge), scripts/worktree/preparar.sh y CI (--check).
 # No escribe fechas a propósito: la salida es determinista.
 # Compatible con bash 3.2 (macOS) y Git Bash: sin arrays asociativos ni globstar.
@@ -265,7 +263,6 @@ if [ "$MODO" = "--check" ]; then
     echo "✗ El mapa tiene pendientes:" >&2; echo "$AVISOS_TXT" >&2; fallo=1
   fi
   # No depende del mapa sino de los docs: va aparte para que `generar` no escriba fechas en MAPA.md.
-  if [ -f scripts/fechas-de-entradas.mjs ] && ! node scripts/fechas-de-entradas.mjs; then fallo=1; fi
   if [ -f scripts/enlaces-internos.mjs ] && ! node scripts/enlaces-internos.mjs; then fallo=1; fi
   exit $fallo
 fi
