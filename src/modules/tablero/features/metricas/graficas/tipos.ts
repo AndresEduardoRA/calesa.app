@@ -10,3 +10,8 @@ export const CREADAS_Y_FINALES: readonly [Serie, Serie] = [
   { nombre: 'Creadas', uno: 'creada', varios: 'creadas' },
   { nombre: 'Finales', uno: 'final', varios: 'finales' },
 ]
+
+export const ASIGNADOS_Y_CONTACTADOS: readonly [Serie, Serie] = [
+  { nombre: 'Asignados', uno: 'asignado', varios: 'asignados' },
+  { nombre: 'Contactados', uno: 'contactado', varios: 'contactados' },
+]

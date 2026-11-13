@@ -47,7 +47,10 @@ declare
     ('cotizacion_contadores', 'trigger: los reportes o favoritos de UNA cotización'),
     ('estado_cola_web', 'la cola de asesores de la web (el equipo)'),
     -- Tablero (9.07, D1): un agregado de un período cerrado se cuenta en la base, con ventana máxima y por índice de fecha.
-    ('tablero_cotizaciones', 'agregado de un período cerrado (≤ 366 días) por índice de fecha: cotizaciones_listado_idx')
+    ('tablero_cotizaciones', 'agregado de un período cerrado (≤ 366 días) por índice de fecha: cotizaciones_listado_idx'),
+    -- 9.11: el margen del mes y la cola web, con la misma excepción.
+    ('tablero_margen', 'agregado de un período cerrado (≤ 366 días) por índice de fecha: pagos_tablero_confirmado_idx y pagos_fecha_idx'),
+    ('tablero_cola_web', 'agregado de un período cerrado (≤ 366 días) por índice de fecha: solicitudes_contacto_web_asignada_idx')
   ) t (f, m));
   v_malas text[];
   v_vivas text[];
