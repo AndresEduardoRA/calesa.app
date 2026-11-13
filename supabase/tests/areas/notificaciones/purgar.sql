@@ -4,7 +4,8 @@
 -- Qué asegura:
 --   G1. Se van la leída y la accionada de 91 días y el visitado de 31; se quedan la no leída de 91, la leída de 89 y el visitado de 29.
 --       Devuelve cuántas borró de cada tabla.
---   G2. El job `notificaciones-purgar` está en `cron.job`; ni `authenticated` ni `anon` ejecutan la función; `actividad_purgar` sigue sin job.
+--   G2. El job `notificaciones-purgar` está en `cron.job`; ni `authenticated` ni `anon` ejecutan la función; `actividad_purgar` sólo corre en su
+--       job `actividad-purgar` (9.01-1), que ya no borra notificaciones ni visitados (areas/actividad/purgar.sql).
 
 -- @test purgar: se van las leídas o accionadas de más de 90 días y los visitados de más de 30; lo demás se queda (G1)
 begin;
@@ -33,7 +34,7 @@ begin
 end $$;
 rollback;
 
--- @test purgar: el job notificaciones-purgar está en cron.job, la app no ejecuta la función y actividad_purgar sigue sin job (G2)
+-- @test purgar: el job notificaciones-purgar está en cron.job, la app no ejecuta la función y actividad_purgar sólo en su job (G2)
 do $$
 begin
   if not exists (select 1 from cron.job where jobname = 'notificaciones-purgar' and schedule = '45 3 * * *'
@@ -44,5 +45,7 @@ begin
      or has_function_privilege('anon', 'public.notificaciones_purgar()', 'execute') then
     raise exception 'notificaciones_purgar() se puede ejecutar desde la app';
   end if;
-  if exists (select 1 from cron.job where command ~ 'actividad_purgar') then raise exception 'actividad_purgar quedó programada'; end if;
+  if exists (select 1 from cron.job where command ~ 'actividad_purgar' and jobname <> 'actividad-purgar') then
+    raise exception 'actividad_purgar quedó programada fuera de su job';
+  end if;
 end $$;
