@@ -2,6 +2,8 @@
 
 Proyectos de repuestos por vehículo (o externos), ítems que recorren el flujo de repuestos con el mismo motor, imágenes, stock, compras con permiso de costos y un cotizador propio con configuración versionada.
 
+**Fase 8 cerrada el 2026-11-13** (8.14): R8 de `e2e/fase-8-recorrido.spec.ts` (el repuesto en «Recibido» cumple la espera del vehículo en «En taller»). Abiertos que lo tocan: **8-13a** a **8-13f** (`docs/PLAN.md` › «Fase 8») y la seguridad de D14 del 8.10-1 y de los pagos, en «Pulido para la Fase 9».
+
 ## Entra y sale
 
 - Entra: proyectos desde la ficha del vehículo o sueltos, hoja de ítems editable celda a celda (XCell compacta), compras, movimientos de stock, cotizaciones de repuestos.

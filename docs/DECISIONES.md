@@ -7424,3 +7424,209 @@ Fecha: 2026-11-13 (`TZ=America/La_Paz date +%F`). Sin compuertas ni preguntas ab
   confirmar» de Inicio se muestra con `leads.crear` o `web.cola.gestionar` (`BLOQUES_BANDEJA`, 8.05-1), no con `web.cola.participar`. Un rol que recibe turnos
   sin crear leads los recibiría (campana) sin verlos en Inicio: no es un rol real (quien atiende la web crea el lead), pero queda anotado para la tabla de
   criterios del 8.14-2 como hueco conocido, no como rojo.
+
+<!-- paso:9.06-1 -->
+
+# 9.06-1 · Datos: la base de la importación total (2026-11-12)
+
+- **D1 · Deshacer una importación total de leads, con lo que ya existe** (duda 1 de la fila, la recomendada): `importaciones_leads` +
+  `leads_importacion_deshacer`, 24 h, sólo lo intacto y sólo quien la hizo. Esta parte deja escritos los vínculos; medir «intacto» contra
+  `coalesce(asignar_a, usuario_id)` es del 9.06-2.
+- **D2 · Hasta 20.000 filas por archivo** (duda 2), aunque el bucket admita 50 MB: `importacion_empezar` lo exige; la pantalla lo dirá antes de subir (9.06-4).
+- **D3 · Un destino por archivo** (`asignar_a`, duda 3), no una columna «Asesor» por fila.
+- **D4 · El lead lo crea el destino:** `_lead_crear` corre con la identidad de `coalesce(asignar_a, usuario_id)`; así nace en su cartera con la misma regla
+  de duplicados y limbo que si lo cargara a mano, y la constancia `lead.creado` es suya. Quién importó queda en `importaciones.usuario_id` y en la
+  constancia `datos.importado`. Un vehículo lo crea quien importa (no tiene destino).
+- **D5 · El informe por fila va a `importaciones_filas`, no a `importaciones.errores`.** La fila dice «todo o nada por fila y con el informe en
+  `importaciones.errores`» (`docs/PLAN.md`, 9.06); sumar a un `jsonb` en cada lote reescribe el informe entero unas 400 veces en un archivo de 20.000
+  filas. `errores` queda para el fallo del archivo entero (`importacion_terminar(…, p_error)` o el permiso perdido).
+- **D6 · Idempotencia por (importación, fila):** la marca de agua `procesadas` bajo el `for update` de la fila de `importaciones`, y el id de cada lead o
+  vehículo es `md5(importación:fila)::uuid`, así un reintento cae en el «repetido» de `_lead_crear`/`vehiculo_crear`.
+- **D7 · El total lo fija `importacion_empezar(p_importacion, p_total)`** cuando la función edge ya leyó el archivo (la vista previa ve sólo 500 filas).
+  `importacion_crear` suma `p_id` (idempotente por id) y `p_origen` (vehículos: un archivo por origen) a la firma de la fila.
+- **D8 · Perder el permiso a mitad no es un error del lote:** la importación pasa a `fallida` con su motivo y el lote devuelve `rechazado` sin crear nada,
+  así el job del 9.06-2 no la reintenta para siempre. Lo mismo si el perfil del destino se borra (`con_destino` y `asignar_a` nulo): nunca cambia de dueño.
+- **D9 · `importacion_crear` no comprueba que el archivo exista** en `storage.objects`, sólo que la ruta esté en la carpeta de quien llama (la regla de la
+  policy del bucket); si falta, la función edge la termina con `p_error` (9.06-3).
+- **D10 · La identidad se captura una vez y se repone en cada salida** (auditoría del plan): `_importacion_previo()` al entrar, `_importacion_fijar()`
+  para cambiar (sin devolver previo) y `_importacion_volver()` antes de cada `return`. Los ayudantes `_importacion_*` no los ejecuta nadie más que su dueño
+  (revocados también a `service_role`). La fallida por permiso perdido no deja constancia: la deja sólo `importacion_terminar`.
+- **D11 · Desvíos de tamaño respecto del plan** (auditoría del informe): `importacion_procesar_lote` quedó con 104 líneas (el plan corregido prometía
+  ≤ 80) y la migración `importaciones_procesar` con 424 (pedía partirla pasadas las ≈ 300). Ya estaba commiteada con sus pruebas en verde; no se
+  reescribe una migración. `_importacion_fila_lead`/`_vehiculo` devuelven `jsonb` (no `text`) porque llevan el id para repartir los números propios.
+  Para 23502 y 23514 el motivo guardado es el texto de Postgres (técnico, sin datos de la fila: el DETAIL no se captura).
+
+<!-- paso:9.06-2 -->
+
+# 9.06-2 · Datos: el motor de la importación total (2026-11-12)
+
+- **D12 · El pase es de la importación** (`importaciones_pases.importacion_id`), no de la cola de storage: la función edge sabe qué procesar y la base,
+  cuántas veces se la pidió. Lo emite quien la creó (`importacion_pase_emitir`) o el job; ver una importación ajena con `datos.importar.todo` no
+  da poder para emitirle un pase (sólo `usuario_id`).
+- **D13 · Un pase vivo por importación:** si ya tiene uno sin usar de los últimos 5 min, `importacion_pase_emitir` devuelve ése (auditoría del
+  plan: llamarla en bucle no llena la tabla). El job no vuelve a llamar una importación que tiene un pase de los últimos 5 min.
+- **D14 · Detenida = `pendiente` o `procesando` sin avance hace más de 2 min** (`coalesce(avance_en, creado_en)`); el job corre cada 2 min y toma
+  hasta 5. Sin avance en 24 h pasa a `fallida` con `sin_avance` (hasta 50 por corrida) y sin constancia: el job no tiene identidad para
+  `registrar_actividad` (igual que la fallida por permiso, D10).
+- **D15 · Purga diaria aparte** (`importaciones-filas-purgar`): el informe por fila a los 30 días de terminada o fallida y los pases a los 7, por lotes.
+  El job de cada 2 min no borra.
+- **D16 · `/leads` no toma una total:** sus tres RPC la tratan como inexistente (42501 «No encontramos esta importación.»).
+- **D17 · Deshacer una total:** sólo quien la hizo, sólo terminada o fallida (nunca corta el proceso), con `datos.importar.todo` vigente si tuvo
+  destino (mueve leads de otra persona a la papelera, que queda a nombre de quien deshace). «Intacto» se mide contra el destino; destino borrado →
+  nulo → todo `otra_persona`, nada se mueve.
+- **D18 · Tope de deshacer: 2.000 leads** (`filas_ok`), sin medir: 4 veces las 500 de `/leads`. Subirlo es una línea.
+- **D19 · El CSV no se borra en esta parte:** el bucket `importaciones` no está en `storage_refcount()`; borrarlo al terminar es de la función edge (9.06-3).
+- **D20 · `importacion_procesar_lote` no se toca:** el ayudante del bucle de D11 queda para cuando haya que cambiarla.
+- **D21 · Sin `importaciones_continuar_programar`** (auditoría del plan): la URL sale de Vault y sería la única vía de escribirla en `cron.job`.
+
+<!-- paso:9.06-3 -->
+
+# 9.06-3 · Datos: la función edge de la importación total (2026-11-12)
+
+- **D22 · El bucket guarda el archivo normalizado, no el de la persona.** La pantalla (9.06-4) convierte cada fila en el navegador (para leads, con
+  el conversor de `leads` que ya existe y está probado) y sube un CSV cuyas columnas son `rechazo_motivo`, `rechazo_campo` y las claves de `datos`
+  de la entidad (`entities/plantillas.ts`). La función sólo valida la forma; la base valida el resto por fila. Así no se duplican en Deno
+  ≈ 800 líneas de conversión que dependen de `@/shared`, y la vista previa y la importación usan la misma regla. Sigue siendo lo que dice la fila:
+  la función baja un CSV, lo lee con `;` o `,` detectado y lo valida contra `plantillas.ts`. Reversible: el conversor se mueve y el formato no cambia.
+- **D23 · Copias con guarda, no un import de Deno a `src/`.** No está verificado que `pnpm funciones` ni el despliegue incluyan archivos de
+  fuera de `supabase/functions/`. La función lleva copias exactas de `leer.ts` y `plantillas.ts`; `papaparse` va en su `deno.json` como
+  `npm:papaparse@5.7.0`, la versión del lock (no es una dependencia nueva). La guarda `scripts/guardas/areas-c/importar-csv-copias.test.ts` compara
+  los dos pares y la versión.
+- **D24 · Una invocación trabaja hasta 45 s** desde que llega el pedido (por debajo de los 60 s del `pg_net` del job) y responde, sin
+  `EdgeRuntime.waitUntil` ni encadenar invocaciones: lo que falte lo retoma el job a los 2 min sin avance. Con ≈ 8 s cada 500 leads
+  (`docs/RENDIMIENTO.md`), 20.000 filas son ≈ 320 s de trabajo: 7 u 8 invocaciones y más de 20 min de reloj. El avance de 9.06-5 lo dice.
+- **D25 · La marca la dice la base.** Cada lote empieza en `procesadas + 1` de la respuesta anterior. Si un lote vuelve todo saltado, otra
+  invocación va adelante y ésta se va sin terminar ni borrar. Un error de la base corta la invocación sin terminar: el job la retoma y, si en 24 h
+  no avanza, queda `fallida` (D14). Un error que se repite siempre deja reintentos cada 2 min durante 24 h y el CSV sin borrar (va con el hueco de D26).
+- **D26 · El CSV se borra cuando la importación llega a `terminada` o `fallida` en una invocación** (cierra D19). «Descargar las rechazadas»
+  (9.06-5) lleva las celdas sólo mientras el navegador tenga el archivo de la persona; si no, Fila, Campo y Motivo de `importaciones_filas`, y la
+  pantalla lo dice. Hueco: una importación que el job deja `fallida` por 24 h sin avance no se borra (el job no manda pase a una vencida). Para 9.13.
+- **D27 · Topes del archivo normalizado: 10 MB y 20.000 filas,** exactamente las columnas de la plantilla y celdas de hasta 20.000 caracteres.
+  La función lee el archivo entero en cada invocación y en la nube una función tiene ≈ 2 s de CPU por pedido (auditoría del plan): bajó de 20 a
+  10 MB y se midió leer y validar 20.000 filas al tope, ≈ 140 ms en Node.
+- **D28 · La función no relee `mapeo`:** es el registro de lo que emparejó la persona; el archivo trae exactamente los encabezados de la plantilla.
+- **D29 · Respuesta:** 200 `{ok: true, data: {importacion, estado, procesadas, filas_total}}` (sólo cuentas); 401 `sin_pase`, 405 `metodo`, 500
+  `inesperado`, como `storage-gc`. Sin CORS: no la llama el navegador. Un log de error dice sólo qué pedido respondió qué estado.
+
+<!-- paso:9.06-4 -->
+
+# 9.06-4 · Datos: convertir en el navegador y lanzar la importación total (2026-11-12)
+
+- **D30 · Partición por capa de verificación.** La parte 4 que dejó la 3 («conversión + asistente») no cabía en 6 commits de código. Esta parte
+  lleva lo puro, la acción y la subida (Vitest y `typecheck`); la 9.06-4b, la pantalla; el e2e del camino feliz sigue en 9.06-5
+  (`e2e/datos-importar.spec.ts`), que puede mirar el resultado. El paso queda en 6 partes aunque `docs/PLAN.md` dice 5 como máximo.
+- **D31 · Se reusan las reglas de los dueños, no se copian.** Leads se convierte con `prepararFilas` de `leads` (`validarAlta()`); vehículos se valida
+  con `validarVehiculo()` de `vehiculos`. Salen por su `client.ts` porque la conversión corre en el navegador (D22). Los conversores viven en
+  `datos/features/importar/` porque `entities` no importa otros módulos. **Desvío de lo planeado:** los números y el sí o no de vehículos se leen
+  con los lectores de la importación de `/leads` (`convertirNumero`, `convertirSiONo`), no con el lector del formulario: la exportación escribe
+  `12500.5` con punto cuando el separador es la coma, y así el archivo de «exportar todo» vuelve a entrar (probado en es-BO). Límite conocido, el
+  de `/leads`: «2.125» se lee como 2125, así que un campo `numero` con 3 decimales y parte entera de hasta 3 dígitos escrito con punto no vuelve
+  igual (el precio, con 2 decimales, y el kilometraje, entero, sí).
+- **D32 · Una fila normalizada por cada fila de datos de la persona**, también la rechazada (con `rechazo_motivo`). La fila `n` del archivo
+  normalizado y de `importaciones_filas` es la `n + 1` del archivo de la persona: 9.06-5 baja las rechazadas con sus celdas. Una fila sin ningún
+  dato sale rechazada («La fila no tiene datos.»): una línea vacía la saltaría `leerCsv` y correría la numeración.
+- **D33 · Texto del rechazo:** todos los motivos de la fila unidos con «; » (500 caracteres); `campo`, la etiqueta de lo que la persona emparejó en
+  el primero (120), o nada si el motivo es de la fila. La guarda D34 también escribe la etiqueta (`armarArchivo` recibe `etiquetaDe`). Los motivos
+  pueden repetir la celda, como la vista previa de `/leads`: quedan en `importaciones_filas`, bajo su RLS, 30 días, y nunca en un log.
+- **D34 · Guarda de forma antes de escribir.** Cada fila convertida pasa por los validadores de `plantillas.ts` (`normalizarFila`); la que la función
+  rechazaría (un precio con 3 decimales que el alta admite) sale ya rechazada en la vista previa.
+- **D35 · Topes de lectura del archivo de la persona** (`LIMITES_DE_LECTURA_TOTAL`): 10 MB, 20.000 filas, 200 columnas, celdas de 5.000 caracteres.
+  Después de armar, el tope de 10 MB del archivo normalizado en bytes UTF-8: «El archivo convertido pasa de 10 MB: pártelo en dos.».
+- **D36 · Ruta e id.** El id lo genera el navegador y nace con cada `armarArchivo`: sólo se reintenta con el mismo id si el texto es idéntico. La
+  ruta es `<usuarioId>/<id>.csv` en minúsculas; la acción la vuelve a armar con `ctx.usuarioId` y no la recibe. `importacion_crear` es
+  idempotente por id y una subida repetida («exists») cuenta como subida.
+- **D37 · Subir → crear → despertar.** Si la subida falla no se crea nada («Sin conexión: el archivo no se subió.» sin red; «No se pudo subir el
+  archivo. Prueba de nuevo.» con red). Si crear falla con un rechazo seguro (`sin_permiso`, `regla`, `validacion`) el navegador borra su objeto;
+  con un fallo dudoso (sin red, la acción cortada, `inesperado`) no, porque la importación pudo quedar creada. El borrado es de intento único: si
+  falla, el objeto queda (el hueco de D26, para 9.13).
+- **D38 · Mapeo de constancia:** encabezado → id del dato o `null`; claves de 120; un encabezado vacío o `__proto__` (Zod 4 lo descarta en
+  `z.record`) pasa a «Columna N»; uno repetido lleva « (2)», « (3)».
+- **D39 · El permiso en la acción es el de la base, dicho antes** (`motivoParaNoImportar`): leads para sí con `leads.crear`, para otra persona con
+  `datos.importar.todo`, vehículos con `vehiculos.crear` del origen. Un destino igual a quien importa va como `null`.
+- **D40 · El despertar no hace esperar.** El pase se pide en la acción con la sesión del pedido; la llamada a `importar-csv` va en `after()`, que
+  no lee cookies. Si falla, el job `importaciones-continuar` la despierta en ≤ 2 min. `dispararImportacion` se reemplazó.
+- **D41 · Convertir todo una sola vez,** al apretar «Importar»; la vista previa convierte 500. Medido: 20.000 leads en 1,6–1,76 s en Node (pasa el
+  presupuesto de 1 s), así que la 4b convierte por tramos con «Preparando el archivo…» (`docs/RENDIMIENTO.md`).
+
+<!-- paso:9.06-4b -->
+
+# 9.06-4b · Datos: la pantalla de la importación total hasta lanzar (2026-11-12)
+
+- **D42 · «Importar» se ve siempre.** Sin ningún permiso de importar (`leads.crear`, `datos.importar.todo` o `vehiculos.crear` en algún origen),
+  la pestaña sale apagada con «Tu rol no importa datos.» (lo que no se puede no se esconde, `docs/UX.md`). Pedir `?seccion=importar` sin permiso
+  abre «Exportar».
+- **D43 · Entidad y origen van en la URL** (`?entidad=leads|vehiculos&origen=<id>`, nuqs con `shallow: false`): el servidor lee sólo el contexto de
+  esa entidad. El destino y todo lo del archivo viven en memoria: son elecciones de un archivo, no una vista.
+- **D44 · Destino:** «Yo» (con `leads.crear`) y las personas activas sin bloqueo, por nombre, hasta 100 (`perfiles`, sólo `id, nombre`), con
+  `<AvisoDeTope>` si hay más. Es la tabla del equipo, de decenas; si algún día pasa de 100 se suma la búsqueda por nombre con `ilike`, como la
+  agenda. No se filtra por `leads.crear` porque no hay lector sin migración: `importacion_crear` rechaza a quien no puede recibir leads (22023 →
+  `regla`, rechazo seguro: el navegador quita su objeto, D37).
+- **D45 · Por tramos de 500 filas**, cediendo el hilo entre tramos, con «Preparando el archivo… n de N filas». Lo visto de teléfonos cruza los tramos
+  (`preparadorDeFilas` de `leads`), así el resultado es idéntico al de una pasada. Salir de la pantalla cancela. Para no pasar de 300 líneas,
+  `leads/entities/importacion/filas.ts` se partió: `catalogo.ts` (tipo y origen de una celda) y `repetidos.ts` (la marca de repetidos).
+- **D46 · El mismo id sólo para el mismo intento:** mismo texto armado, entidad, mapeo (claves, valores y orden), destino y origen. «Reintentar»
+  manda el intento guardado sin volver a convertir; un cambio es otro intento, con otro id (D36). Hueco aceptado: tras un fallo dudoso, salir de
+  la pantalla y volver da un id nuevo (lo cubre la importación que se retoma, 9.06-5).
+- **D47 · La conversión completa usa la misma entrada que la vista previa** (elecciones, columnas, países, locale y zona). Si la tabla de países
+  llega después, la vista previa se recalcula con ella.
+- **D48 · Vista previa:** las primeras 500, de 50 en 50, con «Ver sólo las filas con errores» (prendido si hay más errores que filas listas).
+  «Importar N filas» cuenta las filas del archivo (todas viajan: las rechazadas quedan en el informe, D32). Cada fila se reconoce por sus dos
+  primeras celdas con algo: la fila normalizada no lleva nombre.
+- **D49 · El código de la sección se pide al abrirla** (`diferido()`): quien sólo exporta no lo paga.
+- **D50 · Un error al leer el contexto en el servidor** va a `error.tsx` con «Reintentar» (`datosO`), como `/leads/importar`.
+
+<!-- paso:9.06-5 -->
+
+# 9.06-5 · Datos: el avance, el resultado y la lista de la importación total (2026-11-12)
+
+- **D51 · El avance se lee desde el navegador, cada 5 s,** con la sesión de quien mira (la policy «importaciones: leer»), sólo mientras haya alguna
+  importación en `pendiente` o `procesando` (o una recién lanzada sin leer) y la pestaña a la vista. Sin realtime. Es la consulta de la lista
+  acotada con `.in('id', ids)` por la PK, con a lo sumo 21 ids (`idsParaSondear` corta: el sondeo no crece con lo cargado).
+- **D52 · «En pausa: sigue sola en unos minutos.»** Una importación en curso sin avance hace más de 2 min (`avance_en ?? creado_en`) está a medias y
+  la retoma el job `importaciones-continuar`: es lo normal entre una invocación de 45 s y la siguiente. La pausa se mira **antes** que «Esperando a
+  que empiece…»: una `pendiente` que nunca empezó (falló el despertar de `after()`) también está a medias. Sin botón «Retomar ahora» (pediría un
+  pase y una acción para ahorrar ≤ 2 min). El reloj es el del navegador, fijado al llegar cada respuesta.
+- **D53 · Resultado:** «2 creados, 1 ya existía y ninguno con errores.» (singular y plural por número). Fallida: «No terminó: <motivo>. Llegó a n
+  de N filas.», con el primer `errores[].motivo` o «Se detuvo por un error».
+- **D54 · «Descargar las rechazadas»** en una terminada o fallida con `ya_existian + rechazadas > 0`, mientras la base guarda el informe (30 días de
+  `terminada_en`; después, «El detalle por fila se guarda 30 días.»). Desde el paso «Importando» del asistente que la lanzó, cada fila lleva las
+  celdas del archivo de la persona (`archivo.filas[n - 1]`, D32); desde la lista, sólo «Fila, Resultado, Campo, Motivo». Un «ya existe» de lead
+  dice «Ya hay un lead con este teléfono.»: la base no guarda de quién es, y el archivo tampoco lo dice. `importacion-rechazadas.csv`, `;` y BOM.
+- **D55 · La lista «Importaciones» se lee desde el navegador al abrir la sección** (lista hija), de 20 en 20 con «Ver más» hasta 500 y su aviso de
+  tope, por `importaciones_lista_propia_idx` o `importaciones_lista_idx`. Las propias; con `datos.importar.todo`, todas («De <quien>»), sin
+  conmutador. Después de lanzar se recarga la primera página; al volver a la pantalla se lee de nuevo, así aparece también la que se dejó a mitad de
+  la subida (auditoría de la 4b). Es una `<ul>` y no `@/shared/ui/lista`: una bitácora sin resumen que abrir, como el historial de una unidad de
+  logística.
+- **D56 · Sin `revalidatePath` en `crearImportacion`.** Ningún Server Component de `/datos` lee las importaciones totales: la lista y el avance son
+  del navegador (D51, D55), y revalidar volvería a leer orígenes, catálogos y destinos a mitad del asistente sin cambiar nada de lo que se ve. Es
+  una excepción a la regla de `.claude/rules/datos.md` (`revalidatePath` en la action que muta), por el mismo motivo que las de `docs/DECISIONES.md` del
+  2026-10 (líneas 2190 y 3091): **para el coordinador**, anotarla allí. Reversible: si la lista pasa al servidor, se suma
+  `revalidatePath('/datos')`.
+- **D57 · Si el sondeo falla, se conserva lo último:** «Sin conexión: el avance se actualiza al volver.» o «No se pudo leer el avance. Se vuelve a
+  intentar.», y el próximo tic reintenta. La lista que no carga: `EstadoError` con «Reintentar».
+- **D58 · «Importar otro archivo» se ofrece apenas está lanzada:** la importación sigue en la lista, con su avance y su resultado.
+
+<!-- paso:8.14-2 -->
+
+# Paso 8.14-2 — El cierre de la Fase 8 (parte 2 de 2): el Nivel 3 y los docs de cierre
+
+Fecha: 2026-11-13 (`TZ=America/La_Paz date +%F`). Sin compuertas ni preguntas abiertas. El plan: `.piloto/planes/8.14-2.md`.
+
+- **D1** El Nivel 3 corre sobre la rama unida a `main` al empezar (`3179fc8e`, con el 9.06), antes de los docs: los docs no cambian lo que prueba el
+  e2e y así el completo no espera a que se escriban.
+- **D2** Una unión de `main` que entre después del Nivel 3 no repite el completo aunque traiga código: lo prueba el CI del PR, y la bitácora da los dos
+  SHA (como el 7.14-2).
+- **D3** El hueco D9 del 8.14-1 nace como **8-14a** en «Los decide la persona»: decide qué ve un rol, y un cierre no cambia permisos. Recomendado: dejarlo
+  (quien atiende la web crea el lead).
+- **D4** Lo que no corre en el completo (unidad, `db:probar`) va en la tabla de criterios con el resultado de su última corrida y dónde, no como «verde
+  del Nivel 3».
+- **D5** `db:probar` y `db:lint` locales sólo si un `fix` toca `supabase/`: la rama no cambió la base y el CI del PR los corre sobre la unión con el 9.06.
+- **D6** El D4 del 8.05-1 (vincular una solicitud ya contactada pide una RPC) no tenía nombre de abierto: se llama **8-05a**, con el mismo molde que los
+  8-13x (paso de origen y letra), para poder citarlo desde ESTADO y la ficha de `web`.
+- **D7** Van a «Los decide la persona» los abiertos que piden migración, `security definer`, permisos o dinero (8-05a, 8-13a, 8-13c a 8-13f y 8-14a); 8-13b
+  (un formulario con una RPC que ya existe) y la IP real tras la reescritura (espera al sitio) quedan como abiertos de la fase con su lugar, y la
+  seguridad de 8.10-1 y de los pagos de repuestos, en «Pulido para la Fase 9», como pidieron sus pasos.
+- **D8** La contradicción 5 (`ruta = '/notificaciones'`) se da por cerrada: la pantalla existe desde el 7.02, `notificaciones/entities/tipos.ts` lista
+  `turno_web` y ninguna migración de noviembre cambió esa `ruta`.
+- **D9** En «Riesgos y huecos» sólo se marca «Resuelto» lo que un doc de paso o un archivo comprueba; el Realtime, las escrituras directas, el volumen y
+  «sin determinar» quedan como estaban.
