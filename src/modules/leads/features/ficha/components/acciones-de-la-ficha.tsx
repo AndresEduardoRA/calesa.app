@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { CLAVE_DE_PANEL } from '@/shared/lib/filtros'
 import { RUTAS } from '@/shared/lib/rutas'
 import { buttonVariants } from '@/shared/ui/button'
+import { abrirConVuelta, alLlegarA } from '@/shared/ui/vuelta-del-foco'
 import { PANEL_ANOTAR_SEGUIMIENTO } from '../../../entities/edicion-de-seguimiento'
 import { CLAVE_DE_SECCION, type LeadDeFicha } from '../../../entities/ficha'
 import { motivoParaNoEnviar } from '../../../entities/papelera'
@@ -48,8 +49,13 @@ export function AccionesDeLaFicha(props: Props) {
   const irA = (url: string) => {
     router.push(url as Route)
   }
+  // Con la marca de la vuelta del foco: tras recargar con el modal abierto, «atrás» devuelve el foco al «⋯» (4-61).
   const irAlSeguimiento = (modal: string) => {
-    irA(`${RUTAS.leads}/${ficha.id}?${CLAVE_DE_SECCION}=seguimientos&${CLAVE_DE_PANEL}=${modal}`)
+    const url = `${RUTAS.leads}/${ficha.id}?${CLAVE_DE_SECCION}=seguimientos&${CLAVE_DE_PANEL}=${modal}`
+    abrirConVuelta(CLAVE_DE_PANEL, () => {
+      irA(url)
+      return alLlegarA(url)
+    })
   }
   return (
     <>

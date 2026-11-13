@@ -265,3 +265,27 @@ test('una pestaña escrita a mano que no existe abre «Resumen»; la que existe,
     expect(caja?.height ?? 0).toBeGreaterThanOrEqual(43)
   }
 })
+
+// 4-62: la ficha de `lead` se recupera también en la URL de la pestaña (`&pestana=`) y con el modal abierto (`&panel=`), no sólo donde se abrió el drawer.
+test('recargar con anotar abierto desde la pestaña: el segundo «atrás» devuelve el foco al nombre de la fila', async ({
+  page,
+}, info) => {
+  const lead = await leadDeBerta(`Rap Foco ${info.project.name}`)
+  await entrar(page, t.personas.berta)
+  await irALeads(page)
+  const nombreDeLaFila = page.getByRole('button', { name: `Abrir ${lead.nombre}` })
+  await nombreDeLaFila.focus()
+  await page.keyboard.press('Enter')
+  const drawer = drawerDe(page, lead.nombre)
+  await expect(drawer).toBeVisible()
+  await abrirPestanaDeSeguimientos(page, drawer)
+  const modal = await abrirAnotar(page)
+  await page.reload()
+  await expect(modal).toBeVisible()
+  await page.goBack()
+  await expect(modal).toHaveCount(0)
+  await expect(drawer).toBeVisible()
+  await page.goBack()
+  await expect(drawer).toHaveCount(0)
+  await expect(nombreDeLaFila).toBeFocused()
+})

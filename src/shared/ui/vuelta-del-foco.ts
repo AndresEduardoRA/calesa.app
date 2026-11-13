@@ -97,7 +97,17 @@ const fichaNueva = () => `${Date.now().toString(36)}${Math.random().toString(36)
 // de la URL, sin su texto). Sin `sessionStorage` (Safari privado), queda sólo la del historial.
 const GUARDADAS = 'vuelta-del-foco'
 type Guardada = { donde: number; ficha: string }
-const aqui = () => hashDe(`${location.pathname}${location.search}`)
+// Dónde está la página, sin las claves que los paneles escriben ellos mismos al abrirse y cerrarse (4-62): el drawer del lead se abre en `?lead=` y su pestaña y sus
+// modales cambian `pestana`, `panel` y `eliminar` sin ser otra pantalla. `lead`, la ruta y lo demás siguen contando: dos fichas de dos leads no se confunden.
+const CLAVES_DE_LOS_PANELES = ['panel', 'eliminar', 'pestana']
+function aqui(): number {
+  const parametros = new URLSearchParams(location.search)
+  for (const clave of CLAVES_DE_LOS_PANELES) {
+    parametros.delete(clave)
+  }
+  const consulta = parametros.toString()
+  return hashDe(`${location.pathname}${consulta ? `?${consulta}` : ''}`)
+}
 
 function guardadas(): Record<string, Guardada> {
   try {
@@ -175,6 +185,26 @@ export function abrirConVuelta(
       escribiendo.delete(clave)
     },
   )
+}
+
+// Para abrir con `router.push` (una navegación del servidor: `escribir()` vuelve antes de que la URL cambie): la promesa se cumple al llegar a `url`, que es
+// cuando la ficha puede guardarse con la URL del panel (4-61). Si no llega en `TOPE_DE_LA_VUELTA_MS`, falla y el panel no toma la ficha.
+export function alLlegarA(url: string): Promise<void> {
+  const destino = new URL(url, location.href)
+  const meta = `${destino.pathname}${destino.search}`
+  return new Promise((cumplir, fallar) => {
+    const inicio = Date.now()
+    const mirar = () => {
+      if (`${location.pathname}${location.search}` === meta) {
+        cumplir()
+      } else if (Date.now() - inicio > TOPE_DE_LA_VUELTA_MS) {
+        fallar(new Error('la URL no llegó'))
+      } else {
+        requestAnimationFrame(mirar)
+      }
+    }
+    mirar()
+  })
 }
 
 // --- La vuelta: cuadro a cuadro, hasta que quien abrió esté y el foco esté libre; y, devuelto, hasta el tope por si se vuelve a crear ---
