@@ -77,7 +77,7 @@ describe('validarCelda', () => {
 
 describe('PLANTILLAS', () => {
   it('leads lleva las claves de _importacion_fila_lead, en su orden', () => {
-    // supabase/migrations/20261113015327_importaciones_procesar.sql (v_permitidas)
+    // supabase/migrations/20261113031654_importaciones_procesar.sql (v_permitidas)
     expect(PLANTILLAS.leads.map((c) => c.clave)).toEqual([
       'nombre',
       'telefono_principal',
