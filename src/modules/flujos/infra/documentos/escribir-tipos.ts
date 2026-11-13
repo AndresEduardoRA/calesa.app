@@ -13,7 +13,7 @@ import {
 } from '../../entities/documentos/respuestas'
 import type { Json } from '@/shared/types/database.types'
 
-// Las tres escrituras (`…20261111195259_tipos_documento_crear.sql` y siguientes): el permiso del grupo, la versión (`PT409`), las reglas del dato
+// Las tres escrituras (`tipo_documento_crear`, `tipo_documento_guardar`, `tipo_documento_eliminar`): el permiso del grupo, la versión (`PT409`), las reglas del dato
 // con el campo en el `hint` (`22023`) y el nombre repetido (`23505`). Ninguna devuelve la lista.
 const NO_SE_LEYO = 'No pudimos leer la respuesta. Recarga para ver cómo quedó.'
 

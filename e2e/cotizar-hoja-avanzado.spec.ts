@@ -215,7 +215,7 @@ test('quien no ve ninguna sección avanzada abre ?panel=avanzado y no hay botón
   await expect(page.getByRole('dialog')).toHaveCount(0)
 })
 
-// Los dos diseños de la semilla (`docs/PLAN.md` › criterio de la fase: el del cotizador actual y el del Excel), a cada ancho y tamaño (4.13-4d). 4-44 (b): al 200 % en el celular las
+// Los dos diseños de la semilla (`docs/PENDIENTES.md` › criterio de la fase: el del cotizador actual y el del Excel), a cada ancho y tamaño (4.13-4d). 4-44 (b): al 200 % en el celular las
 // celdas y los chips no se salen de la tarjeta de su sección (no desplazan la página ni cortan texto: `sinScrollHorizontal` y `sinTextoCortado` no lo ven).
 for (const clave of ['subasta_usa', 'planilla_usa']) {
   for (const zoom of [100, 200]) {

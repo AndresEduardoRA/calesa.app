@@ -1,4 +1,4 @@
-// Los nodos que la plantilla nombra o dibuja, espejo de `_plantilla_nodos()` (20261106185900_plantilla_validar.sql:83-132; 4.19-2). Cada clave de `etiquetas` y
+// Los nodos que la plantilla nombra o dibuja, espejo de `_plantilla_nodos()` (4.19-2). Cada clave de `etiquetas` y
 // `leyendas` es un nodo de la fórmula con lugar en la tarjeta (un miembro de un grupo, el total o lo aparte de la tarjeta del total), y lo que dibuja es del
 // nivel «todos» (no figurar en la visibilidad compilada cuenta como restringido). Todo lo que se busca por id va por `Map`/`Set`/`Object.hasOwn`.
 import { rechazoDePlantilla, type RechazoDePlantilla } from './motivos-de-plantilla'

@@ -31,7 +31,7 @@ export async function origenesEnLaBase(): Promise<OrigenEnLaBase[]> {
 
 // Un grupo del panel de filtros del listado, en el contenedor que esa pantalla usa: el panel del costado en escritorio
 // y la hoja en el celular. En escritorio la hoja también existe un cuadro (~7 ms, con opacidad 0: nunca se pinta, ver
-// `docs/BITACORA.md`, 9g) y un localizador por rol que no distinga el contenedor contaría dos grupos «visibles».
+// `docs/DECISIONES.md`, 9g) y un localizador por rol que no distinga el contenedor contaría dos grupos «visibles».
 export function grupoDelFiltro(page: Page, nombre: string): Locator {
   const panel = esMovil(page)
     ? page.getByRole('dialog', { name: 'Filtros' })

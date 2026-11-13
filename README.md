@@ -13,12 +13,18 @@ pnpm db:reset && pnpm db:types    # las migraciones (supabase/migrations) + seed
 pnpm dev                          # http://localhost:3000  (PWA: pnpm dev --experimental-https)
 ```
 
-Un carril de Orca (un worktree con su propio stack) se arranca con `bash scripts/worktree/preparar.sh`: `docs/ORCA.md`.
+Un carril (un worktree con su propia pila, para trabajar en paralelo) se arranca con `bash scripts/worktree/preparar.sh`:
+`docs/FLUJO.md` › «En paralelo».
+
+## Cambiar algo
+
+Una actualización es una rama, un PR y un commit en `main`: `docs/FLUJO.md`. `bash scripts/flujo/publicar.sh` empuja la rama, abre el
+PR con auto-merge y espera al CI; con todo en verde GitHub lo integra solo. Lo que falta por hacer está en `docs/PENDIENTES.md`.
 
 ## Verificar
 
 `pnpm lint` · `pnpm typecheck` · `pnpm test` · `pnpm db:probar` (schema en Postgres embebido +
-pruebas de humo) · `pnpm test:e2e:completo` (los e2e, ver abajo) · `bash scripts/mapa.sh --check`.
+pruebas; `pnpm db:probar:rapido` sin las siete exhaustivas) · `pnpm test:e2e:completo` (los e2e, ver abajo) · `bash scripts/mapa.sh --check`.
 Los hooks de git y de Claude Code corren esto solos; saltarse los hooks de commit está bloqueado.
 
 ### e2e
@@ -45,4 +51,5 @@ cuentas, leads, vehículos, ajustes de la empresa, layouts y archivos. Para volv
 ## Dónde está cada cosa
 
 `src/modules/<dominio>/` (ficha en su `CLAUDE.md`) · `src/shared/` · `supabase/migrations` (la base
-aplastada y una migración por cambio) · `docs/` (producto, UX, plan, decisiones).
+aplastada y una migración por cambio; `pnpm db:aplastar` las vuelve a fundir) · `docs/` (estado, flujo, producto, UX, cotizador,
+decisiones, lecciones, pendientes). La historia anterior al 2026-11-13 está en la etiqueta `fases-0-9`.

@@ -1,7 +1,7 @@
-// Lo puro de la guarda de las áreas de `web` (`areas-de-web.test.ts`; paso 8.01-2, copia adaptada de `../areas-c/areas-de-repuestos.ts`:
-// vive en `areas-b/` porque es del carril B, D6 de docs/pasos/8.01-2/decisiones.md).
+// Lo puro de la guarda de las áreas de `web` (`areas-de-web.test.ts`; paso 8.01-2, copia adaptada de `../areas-c/areas-de-repuestos.ts`).
+// La carpeta `areas-b/` es sólo dónde vive: la guarda es una más.
 //
-// El módulo se parte por ÁREA para que los pasos 8.02–8.05 agreguen archivos propios y no editen los compartidos: un área
+// El módulo se parte por ÁREA, como regla de arquitectura, para que cada área agregue archivos propios y no edite los compartidos: un área
 // vive en `features/<área>/`, `entities/<área>/`, `infra/<área>/`, `areas/<área>/` (sus tres entradas) y `pantallas/<área>.ts`. Lo demás es el
 // NÚCLEO (la carpeta `nucleo` de cada capa). Un área importa lo suyo y el núcleo, nunca otra; el núcleo no importa
 // ningún área; nadie de adentro importa las tres entradas de la raíz, que sólo reexportan (`export *`) el núcleo y cada área.
@@ -116,10 +116,7 @@ function carpetasSinDueno(rels: readonly Rel[]): string[] {
   }
   return [...carpetas]
     .sort()
-    .map(
-      (c) =>
-        `${c}: carpeta que no es de ningún área: súmala a las áreas (y a docs/plan.yaml) o al núcleo`,
-    )
+    .map((c) => `${c}: carpeta que no es de ningún área: súmala a las áreas o al núcleo`)
 }
 
 function entradasDeLaRaiz(rels: readonly Rel[]): string[] {

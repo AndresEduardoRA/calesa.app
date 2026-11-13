@@ -1,5 +1,5 @@
 -- @test equipo_lista: las personas de prueba y el estado de cada una (espejo de estadoDePersona)
--- La lista del equipo con tope (`equipo_lista()`, migración 20261019004100, `docs/PLAN.md` 5a-21). Este archivo siembra sus propias personas («Eql …») y
+-- La lista del equipo con tope (`equipo_lista()`, migración 20261019004100, `docs/PENDIENTES.md` 5a-21). Este archivo siembra sus propias personas («Eql …») y
 -- las borra en el último bloque. `_estado_de_persona()` es el espejo de `estadoDePersona()` (`entities/persona.ts`): baja > bloqueada > invitación pendiente > activa.
 --   a  invitada, sin aceptar          → invitacion_pendiente      d  bloqueada                   → bloqueada
 --   b  invitada y aceptada            → activa                    e  de baja                     → baja

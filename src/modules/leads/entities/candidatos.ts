@@ -3,7 +3,7 @@
 //
 // Por qué: bajo RLS `ilike` y `@>` no son _leakproof_, así que ningún índice los sostiene y la consulta recorre `leads` (207 ms la dueña con 212.000
 // leads). `leads_candidatos()` (la base, `security definer`) saca de un índice los primeros K que coinciden, sólo de lo que quien llama ve, y la
-// página se lee de `leads_vista_por_ids()` con el resto de las condiciones. `docs/RENDIMIENTO.md` › «Cierre 5a-fix-1b».
+// página se lee de `leads_vista_por_ids()` con el resto de las condiciones. `docs/RENDIMIENTO.md`.
 import { z } from 'zod'
 import type { Cursor, Pagina } from '@/shared/lib/paginacion'
 import type { CondicionDeLead } from './filtros'

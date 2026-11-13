@@ -29,12 +29,11 @@ supabase/.temp/
 # volcados de la demo (scripts/demo, docs/PREPARACION.md): esquema y datos, nunca en git
 respaldos/
 
-# claude code (contador del hook Stop, su huella verde, los worktrees y lo que escribe el piloto)
+# claude code (contador del hook Stop, su huella verde y los worktrees)
 .claude/.intentos-stop
 .claude/.verificado-stop
 .claude/settings.local.json
 .claude/worktrees/
-.piloto/
 
 # referencias del negocio: la planilla de una empresa no viaja en el producto white-label;
 # su transcripción está en docs/referencias/excel-de-cotizacion.md

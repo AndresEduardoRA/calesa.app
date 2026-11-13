@@ -7,7 +7,7 @@ import type { LectorDeImpactoDeRequisito } from '../../entities/requisitos/repos
 const NO_SE_LEYO =
   'No pudimos calcular cuántas unidades quedarían fuera de regla. Vuelve a intentar.'
 
-// `requisito_impacto` (`…20261111222247_requisitos_impacto.sql`): mira el requisito como si ya fuera bloqueante y cuenta, a lo sumo `TOPE_DE_IMPACTO + 1`,
+// `requisito_impacto`: mira el requisito como si ya fuera bloqueante y cuenta, a lo sumo `TOPE_DE_IMPACTO + 1`,
 // las unidades de su fase que no lo cumplen (por `vehiculos_fase_id_idx`, sobre una muestra de ≤ 1.000). `42501` a quien no configura el flujo; `PT409` si el
 // requisito ya no existe.
 export const leerImpactoDeRequisito: LectorDeImpactoDeRequisito = async ({ requisitoId }) => {

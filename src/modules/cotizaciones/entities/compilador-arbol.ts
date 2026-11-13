@@ -1,4 +1,4 @@
-// El árbol que arma el parser del compilador de fórmulas como texto (docs/COTIZADOR.md › «Fórmulas como texto (4.07)»). Cada
+// El árbol que arma el parser del compilador de fórmulas como texto (docs/COTIZADOR.md › «Fórmulas como texto»). Cada
 // hoja y cada operación guardan su tramo del texto: así un error, una etiqueta y la posición de un auxiliar salen de él.
 import type { Token } from './compilador-lexico'
 import type { CodigoDeCompilacion, DatosDeError } from './motivos-del-compilador'

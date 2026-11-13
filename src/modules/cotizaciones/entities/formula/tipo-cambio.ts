@@ -1,7 +1,7 @@
 // El ⚙ de una celda de tipo de cambio (4.20-3c): la fila que nombra el nodo y cómo se lee el valor nuevo que se tipea. Lo puro, sin React ni I/O; la pantalla es del
 // 4.20-3d. La regla de verdad (el permiso, mayor que cero, la versión esperada) es de `tipo_cambio_guardar()` y del esquema de `guardarTipoCambio` (`empresa`): esto sólo
 // evita pedir lo que se va a rechazar y dice por qué junto al campo. Copia la regla de `valorTipeado` de `empresa/entities/tipos-cambio.ts`, que no sale por su
-// `client.ts` (lo pide «Necesita del carril A» del 4.20-3c).
+// `client.ts` (4.20-3c).
 import { formatearParaEditar } from '@/shared/lib/formato'
 import { avisoDeNumero, leerNumeroTipeado } from '@/shared/lib/numero-tipeado'
 import { MENSAJE_DEL_VALOR_VACIO, type ValorTipeado } from './ajuste'
@@ -64,7 +64,7 @@ export const textoInicialDeTipoCambio = (valor: number, locale: string): string 
 const DECIMALES_MINIMOS_AL_MOSTRAR = 2
 
 // Con cuántos decimales se muestra «Valor de hoy» (4.20-3d): los que tiene, entre 2 y 6 (la base guarda 6), como Monedas. Copia de `decimalesDeValor` de
-// `empresa/entities/tipos-cambio.ts`, que no sale por su `client.ts` («Necesita del carril A» del 4.20-3d). 11.68 → 2; 6.9612 → 4; 0.000145 → 6.
+// `empresa/entities/tipos-cambio.ts`, que no sale por su `client.ts` (4.20-3d). 11.68 → 2; 6.9612 → 4; 0.000145 → 6.
 export function decimalesDeTipoCambio(valor: number): number {
   for (let decimales = DECIMALES_MINIMOS_AL_MOSTRAR; decimales < DECIMALES_MAXIMOS; decimales++) {
     const factor = 10 ** decimales

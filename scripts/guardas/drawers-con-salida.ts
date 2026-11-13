@@ -12,7 +12,7 @@ import { sumarObjetos } from './registros-de-carriles'
 export type RegistroDeDrawer =
   { formulario: string; mecanismo: 'contexto' | 'propio' } | { sinFormulario: string }
 
-// Los del núcleo (del A). Los de un área van en su archivo (`drawers-con-salida-formula.ts`, del B) y se suman abajo.
+// Los del núcleo. Los de un área van en su archivo (`drawers-con-salida-formula.ts`, `areas-*/drawers-con-salida.ts`) y se suman abajo.
 export const DRAWERS_DEL_NUCLEO: Record<string, RegistroDeDrawer> = {
   // --- leads
   // El único `<Drawer>` de «Nuevo lead»: monta el marco (siempre cerrado hasta que se abre) y el formulario, que tiene su estado afuera

@@ -1,12 +1,12 @@
 // Revisa los enlaces internos: que cada `docs/X.md` (o `.claude/rules/x.md`, o un `CLAUDE.md`) nombrado exista, y que cada sección
-// citada con `› «Título»` o `, «Título»` esté en ese doc o en su copia completa de `docs/archivo/` (los docs vivos se adelgazaron el
-// 2026-10-28: lo que salió sigue ahí, con su título, y se busca con grep). También los enlaces Markdown `[x](ruta)` de los `.md`.
+// citada con `› «Título»` o `, «Título»` sea un título (o un texto en negrita) de ese doc. También los enlaces Markdown `[x](ruta)`
+// de los `.md`. Un título citado no se renombra sin corregir a quien lo cita: este chequeo lo dice.
 // Uso: node scripts/enlaces-internos.mjs   (lo corre `bash scripts/mapa.sh --check`, y por eso lefthook en pre-commit y CI)
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-// Dónde se buscan citas. `docs/archivo/` no: es una copia congelada, con las citas que tenía.
+// Dónde se buscan citas.
 const RAICES = [
   'docs',
   'src',
@@ -18,11 +18,12 @@ const RAICES = [
   'CLAUDE.md',
   'README.md',
 ]
+// `migrations` tampoco: la base aplastada copia los `comment on` de la base tal cual quedaron, y no se edita.
 const IGNORADOS = new Set([
+  'migrations',
   'node_modules',
   '.next',
   '.next-e2e',
-  'archivo',
   '.temp',
   '.branches',
   'test-salidas',
@@ -49,19 +50,6 @@ const RUTA_DE_DOC =
 const SECCIONES = /^`?((?:\s*(?:›|,)\s*«[^»\n]+»)+)/
 const UNA_SECCION = /«([^»\n]+)»/g
 const ENLACE_MD = /\]\(([^)\s]+)\)/g
-
-// La copia completa de un doc vivo en el archivo, si la hay.
-export function rutaEnElArchivo(ruta) {
-  if (ruta === 'CLAUDE.md') return 'docs/archivo/CLAUDE.md'
-  let m = /^docs\/([^/]+\.md)$/.exec(ruta)
-  if (m) return `docs/archivo/${m[1]}`
-  m = /^\.claude\/rules\/([\w-]+\.md)$/.exec(ruta)
-  if (m) return `docs/archivo/reglas/${m[1]}`
-  m = /^src\/modules\/([\w-]+)\/CLAUDE\.md$/.exec(ruta)
-  if (m) return `docs/archivo/modulos/${m[1]}.md`
-  if (ruta === 'src/shared/CLAUDE.md') return 'docs/archivo/modulos/shared.md'
-  return null
-}
 
 // Los títulos de un doc: las líneas de encabezado y lo que va en negrita (una regla se cita por su título en negrita).
 export function titulosDe(texto) {
@@ -136,21 +124,15 @@ export function problemasDeEnlaces(base = '.') {
     for (const { linea, ruta, secciones } of citasDe(texto)) {
       // Una ruta que lleva comodines o marcadores (`docs/<X>.md`, `docs/X.md` de un ejemplo) no es una cita.
       if (/[<>*]|\/x\.md$/i.test(ruta)) continue
-      const vivo = leer(ruta)
-      const archivado = rutaEnElArchivo(ruta)
-      const copia = archivado ? leer(archivado) : null
-      if (vivo === null && copia === null) {
+      const doc = leer(ruta)
+      if (doc === null) {
         problemas.push({ archivo, linea, motivo: `${ruta} no existe` })
         continue
       }
-      const titulos = [...(vivo ? titulosDe(vivo) : []), ...(copia ? titulosDe(copia) : [])]
+      const titulos = titulosDe(doc)
       for (const seccion of secciones) {
         if (!titulos.some((t) => t.includes(seccion))) {
-          problemas.push({
-            archivo,
-            linea,
-            motivo: `«${seccion}» no es un título de ${ruta}${copia ? ' (ni de su copia en docs/archivo)' : ''}`,
-          })
+          problemas.push({ archivo, linea, motivo: `«${seccion}» no es un título de ${ruta}` })
         }
       }
     }
@@ -172,7 +154,7 @@ function principal() {
   for (const p of problemas) console.error(`✗ ${p.archivo}:${String(p.linea)}: ${p.motivo}`)
   if (problemas.length > 0) {
     console.error(
-      `${String(problemas.length)} enlaces internos rotos. Una sección citada tiene que ser un título del doc o de su copia en docs/archivo/.`,
+      `${String(problemas.length)} enlaces internos rotos. Una sección citada tiene que ser un título (o un texto en negrita) del doc.`,
     )
     process.exit(1)
   }

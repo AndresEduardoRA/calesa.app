@@ -1,4 +1,4 @@
-// La hoja de la vista previa del diseño (4.22-5): lo que la hoja de cotizar dibujaría con el diseño que se está editando, armado en el navegador. Espeja `_cotizacion_hoja()` (…20261030225530)
+// La hoja de la vista previa del diseño (4.22-5): lo que la hoja de cotizar dibujaría con el diseño que se está editando, armado en el navegador. Espeja `_cotizacion_hoja()`
 // sin la parte de niveles, de `dato_del_vehiculo` ni de chips: la vista previa es la de quien lo ve todo (P4 a) y no lee tablas (P3 a). Puro y sin I/O; la hoja de verdad
 // la arma la base y nada de aquí la reemplaza. Un ítem que apunta a un nodo que ya no existe se omite (`validarDiseno()` ya lo avisa en el editor).
 import type { Tono } from '@/shared/ui/xcell'

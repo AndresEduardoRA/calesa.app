@@ -59,7 +59,7 @@ begin
   end if;
 end $$;
 
--- @test comparaciones-candidatos: cada persona, cada filtro y cada ventana dan las mismas filas enteras que la consulta de siempre
+-- @test [lento] comparaciones-candidatos: cada persona, cada filtro y cada ventana dan las mismas filas enteras que la consulta de siempre
 -- «Lo de siempre» es la vista con el predicado que arma PostgREST: `ilike` con el patrón de `patronContiene()` sobre `->>`, el rango de número como jsonb contra jsonb sobre `->` (un valor
 -- de texto ordena antes que cualquier número) y el de fecha sobre `->>` con el final exclusivo. Con un campo privado, `en_cartera = true` siempre (lo suma `condicionesDeLeads`). La ventana
 -- de «todos» se pide `sin_tope`: el tope (probado aparte) deja de ser «las mismas filas» por diseño.
@@ -225,7 +225,7 @@ begin
   if v_con < 8 then raise exception 'el lead del número casi no encontró nada (% de %)', v_con, v_n; end if;
 end $$;
 
--- @test comparaciones-candidatos: el recorrido por cursor da las mismas filas, sin repetir ninguna, con cada ventana
+-- @test [lento] comparaciones-candidatos: el recorrido por cursor da las mismas filas, sin repetir ninguna, con cada ventana
 do $$ declare
   v_tope_original text := pg_get_functiondef('public._leads_candidatos_tope()'::regprocedure);
   v_recorrido_original text := pg_get_functiondef('public._leads_candidatos_recorrido()'::regprocedure);

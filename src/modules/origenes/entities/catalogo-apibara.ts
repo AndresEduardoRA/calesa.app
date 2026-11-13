@@ -2,7 +2,7 @@
 // (`vehicle_specs.engine.raw`) como `clave_apibara`. Es lo que nace con un origen de subasta, todo
 // encendido, y lo que `origen_apibara_completar()` suma a los que ya existían.
 //
-// Espejo de `_apibara_catalogo()` (supabase/migrations/20261014000200_apibara.sql): sirve para
+// Espejo de `_apibara_catalogo()`: sirve para
 // decir qué va a nacer y para que las pruebas sepan qué ruta llena qué clave.
 // `catalogo-apibara.test.ts` lee el SQL y falla si divergen. Lo que NO es campo y queda sólo en
 // la respuesta guardada: `details`, las listas, lo que caduca al minuto, los duplicados y lo que

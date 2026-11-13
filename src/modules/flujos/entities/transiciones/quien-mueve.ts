@@ -1,4 +1,4 @@
-// Quién puede mover una unidad de una fase a otra, dicho para la pantalla (5.06). Espejo de `_puede_mover(p_flujo, p_de, p_a)` (`20261028180656_base.sql`)
+// Quién puede mover una unidad de una fase a otra, dicho para la pantalla (5.06). Espejo de `_puede_mover(p_flujo, p_de, p_a)`
 // **sin su parte de permisos**: el hueco no lleva los permisos de quien mira, así que sólo dice qué roles acotan. Si hay una transición `(de, a)` con lista de
 // roles, manda esa lista; si no, manda la lista de la fase destino; si tampoco hay, cualquiera con el permiso de mover. Puro: la RPC `cambiar_fase` es el candado.
 import type { FlujoParaConfigurar } from '../flujo'

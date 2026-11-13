@@ -28,7 +28,7 @@ import { aLaVista } from './soporte/inventario'
 import { elegirDelMenu } from './soporte/lista-de-catalogo'
 import { literal, sql } from './soporte/sql'
 
-// El cierre de la Fase 5 (5.13, `docs/PLAN.md` › «Fase 5» › «Terminado cuando»): la dueña, sin SQL para configurar, crea un origen (nace sin fases), arma 5
+// El cierre de la Fase 5 (5.13, `docs/PENDIENTES.md`): la dueña, sin SQL para configurar, crea un origen (nace sin fases), arma 5
 // fases con sus salidas, pide un dato, un documento y una espera contra el flujo de repuestos; «Revisar» marca la fase sin salida y la espera cruzada, y
 // ella las corrige. Un vehículo nuevo nace en la inicial, se mueve por SQL como la dueña (mover no tiene pantalla hasta la Fase 6) y, al jubilar esa fase
 // con historial, deja de ser destino («jubilada») mientras `/vehiculos` y la ficha la siguen nombrando. Lo de cada regla lo prueba la base

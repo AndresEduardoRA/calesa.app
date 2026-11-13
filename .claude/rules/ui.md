@@ -77,5 +77,5 @@ Antes de construir una pantalla, lee su fila en `docs/UX.md` (patrón, roles, es
 
 - Un texto, un espacio, un icono, el orden de dos botones o el tamaño de un vacío no se preguntan: se
   deciden con `docs/UX.md`, `docs/GLOSARIO.md` y el patrón más parecido que ya exista, y se dicen en
-  el informe (o en `docs/carriles/b.md`). Se pregunta sólo lo que cambia un flujo, lo que ve o puede un
+  el cuerpo del PR. Se pregunta sólo lo que cambia un flujo, lo que ve o puede un
   rol, o un dato que se guarda.

@@ -1,10 +1,10 @@
-// Las reglas de los workflows de GitHub Actions (`docs/DECISIONES.md`, «CI-1»), leídas por líneas: sin dependencias para parsear
+// Las reglas de los workflows de GitHub Actions, leídas por líneas: sin dependencias para parsear
 // YAML. Cada función devuelve la lista de problemas en palabras; vacía es que cumple. Las prueba `workflows.test.ts`.
 
 const SHA = /^[0-9a-f]{40}$/
 const MINIMO_DE_MOTIVO = 40
 
-// Lo que mide tiempo o necesita dos conexiones queda fuera de CI (docs/PLAN.md, 9-4 a 9-6), y el completo local corre las carreras.
+// Lo que mide tiempo o necesita dos conexiones queda fuera de CI (docs/PENDIENTES.md, 9-6), y el completo local corre las carreras.
 // La única salvedad es `db:carreras` en el job `carreras`, que corre sólo a mano (`admitidaEnSuJob`).
 const FUERA_DE_CI = [
   'db:medir',
@@ -120,7 +120,7 @@ function jobDeLinea(jobs: Job[], n: number): Job | undefined {
   return jobs.find((j) => n >= j.n && n < j.n + j.bloque.split('\n').length)
 }
 
-// `db:carreras` corre sólo en el job `carreras` y sólo a mano, con su input (docs/PLAN.md, 9-6: hasta 5 corridas seguidas en verde).
+// `db:carreras` corre sólo en el job `carreras` y sólo a mano, con su input (docs/PENDIENTES.md, 9-6: hasta 5 corridas seguidas en verde).
 const JOB_DE_CARRERAS = 'carreras'
 const SI_DE_CARRERAS =
   /^(?:\$\{\{\s*)?github\.event_name == 'workflow_dispatch' && inputs\.carreras(?:\s*\}\})?$/

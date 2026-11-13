@@ -1,4 +1,4 @@
-// De un árbol a nodos del grafo (docs/COTIZADOR.md › «Fórmulas como texto (4.07)»). Una pasada en post-orden con pila explícita:
+// De un árbol a nodos del grafo (docs/COTIZADOR.md › «Fórmulas como texto»). Una pasada en post-orden con pila explícita:
 // los hijos de izquierda a derecha y después el padre. Cada operación anidada y cada número escrito es un nodo auxiliar
 // `<destino>__<n>`, con `n` desde 1 en ese orden; la raíz es la fila que se compila y no se numera. Un nombre no crea nodo.
 import {

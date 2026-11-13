@@ -1,10 +1,10 @@
 // Lo puro de la guarda de las áreas de `cotizaciones` (`areas-de-cotizaciones.test.ts`; `docs/DECISIONES.md`, paso 4.15-4).
 //
-// El módulo se parte por ÁREA para que los carriles B y C (`docs/plan.yaml`) agreguen archivos propios y no editen los compartidos: un
+// El módulo se parte por ÁREA, como regla de arquitectura, para que cada área agregue archivos propios y no edite los compartidos: un
 // área vive en `features/<área>/`, `entities/<área>/`, `infra/<área>/`, `areas/<área>/` (sus tres entradas) y `pantallas/<área>.ts` (o
 // `pantallas/<área>-<pantalla>.ts`). Lo demás es el NÚCLEO: lo que comparten las áreas (la hoja, guardar, encima, revisiones, el motor, el
 // compilador…). Un área importa lo suyo y el núcleo, nunca otra área; el núcleo no importa ningún área; nadie de adentro importa las tres
-// entradas de la raíz, que sólo reexportan (`export *`) cada área. La coherencia con `docs/plan.yaml`, en `areas-de-cotizaciones-plan.ts`.
+// entradas de la raíz, que sólo reexportan (`export *`) cada área.
 
 export const MODULO = 'src/modules/cotizaciones/'
 
@@ -21,7 +21,7 @@ export const AREAS_DE_COTIZACIONES = [
   'comentarios',
 ] as const
 
-// Las carpetas del núcleo que ya existían cuando se partió el módulo. Una nueva es una decisión del carril A: se suma aquí o a las áreas.
+// Las carpetas del núcleo que ya existían cuando se partió el módulo. Una nueva se suma aquí o a las áreas.
 const CARPETAS_DEL_NUCLEO: Readonly<Record<string, readonly string[]>> = {
   features: ['encima', 'historial', 'hoja', 'niveles', 'revisiones'],
   entities: [],
@@ -127,10 +127,7 @@ function carpetasSinDueno(rels: readonly Relativo[]): string[] {
   }
   return [...carpetas]
     .sort()
-    .map(
-      (c) =>
-        `${c}: carpeta que no es de ningún área: súmala a las áreas (y a docs/plan.yaml) o al núcleo`,
-    )
+    .map((c) => `${c}: carpeta que no es de ningún área: súmala a las áreas o al núcleo`)
 }
 
 // El archivo al que llega un destino, como lo resuelve TypeScript (`entities/diseno` es `entities/diseno.ts`, del núcleo, aunque exista la

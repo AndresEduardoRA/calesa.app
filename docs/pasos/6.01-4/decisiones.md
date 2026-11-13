@@ -1,1 +1,0 @@
-- **D18 · Logística se enciende en la navegación con su primera pantalla**, no con la cadena (6.03): `disponible` dice si existe la página (`navegacion.test.ts`), y `/logistica` ya existe con el drawer de la unidad.

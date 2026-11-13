@@ -11,7 +11,7 @@ import { telefonoAlAzar } from './soporte/leads-alta'
 import { irAFicha, leadEnLaBase, panelDeEdicion } from './soporte/leads-ficha'
 import { ingresar } from './soporte/pasos'
 
-// @sin-celular-archivo: las pantallas de Configuración no llevan e2e en el celular (.claude/rules/e2e.md, «Pulido y rigor por tipo de paso»)
+// @sin-celular-archivo: las pantallas de Configuración no llevan e2e en el celular (.claude/rules/e2e.md › «Pruebas: sólo lo clave»)
 
 // El rango de un campo numérico (9-2, 9.04-3) contra la app compilada y el Supabase local: la dueña crea un campo con mínimo y
 // máximo, lo acota con un lead ya cargado fuera (el aviso cuenta y no bloquea) y, en la ficha, el motivo sale al escribir un valor

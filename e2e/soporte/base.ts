@@ -90,7 +90,7 @@ export async function personasAjenas(): Promise<number> {
 
 // Borra las cuentas de prueba. La más vieja es la dueña (la primera que se creó) y el guardián de la base no deja que el equipo quede
 // sin quien lo administre mientras haya más gente: las demás se borran a la vez (cada `deleteUser` tarda ~55 ms y eran seis o siete en
-// fila en cada `afterAll`) y la dueña, al final. `docs/RENDIMIENTO.md`, «Preparar y limpiar un spec».
+// fila en cada `afterAll`) y la dueña, al final. `docs/RENDIMIENTO.md`.
 // Un comprobante nombra a quien lo emitió y la serie vigente a quien la cambió (FK sin `on delete`, 4.26-1): si una corrida de los specs de comprobantes se cortó
 // a la mitad, lo de sus series de prueba (`E2E-…`) frenaría el borrado de las personas. Se suelta antes: la serie vigente de prueba vuelve a «A» sin autor y se
 // borran los comprobantes y contadores de prueba.

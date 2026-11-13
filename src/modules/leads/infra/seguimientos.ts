@@ -6,7 +6,7 @@ import type { RepositorioDeSeguimientos, ResultadoDeSeguimiento } from '../entit
 import { recordatorioDesde } from '../entities/recordatorios'
 import { seguimientoDesde, type CambiosDeSeguimiento } from '../entities/seguimiento'
 
-// Los seguimientos se escriben sólo por estas RPC (`…20261015000100_seguimientos_recordatorios.sql`):
+// Los seguimientos se escriben sólo por estas RPC:
 // la tabla no tiene grants de escritura. Exigen el lead en la cartera y responden igual que un lead
 // inexistente si no; el detalle viaja como documento y la base lo valida contra su lista blanca.
 

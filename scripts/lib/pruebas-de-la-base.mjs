@@ -1,6 +1,6 @@
 // El orden en que `db:probar` corre las pruebas SQL (4.15-7): su lista fija (`scripts/probar-schema.mjs`) y, después, todo `.sql` bajo
-// `supabase/tests/areas/` (recursivo, en orden alfabético de la ruta relativa a `supabase/tests/`). Así un carril que no es base suma las pruebas
-// de su área (`areas/<área>/x.sql`) sin editar la lista, que es del A. `solo` (lo de `SOLO=`) filtra por nombre de la lista o por esa ruta relativa.
+// `supabase/tests/areas/` (recursivo, en orden alfabético de la ruta relativa a `supabase/tests/`). Así las pruebas
+// de un área (`areas/<área>/x.sql`) se suman sin editar la lista. `solo` (lo de `SOLO=`) filtra por nombre de la lista o por esa ruta relativa.
 import fs from 'node:fs'
 import path from 'node:path'
 

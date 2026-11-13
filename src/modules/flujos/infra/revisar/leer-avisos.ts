@@ -7,7 +7,7 @@ import type { LectorDeAvisosDeRevision } from '../../entities/revisar/repositori
 
 const NO_SE_LEYO = 'No pudimos revisar el flujo.'
 
-// `revisar_flujo` (`…20261112044537_revisar_flujo_avisos.sql`): los avisos de un flujo, con `tope + 1` filas para saber si hay más. Sin índice que nombrar:
+// `revisar_flujo`: los avisos de un flujo, con `tope + 1` filas para saber si hay más. Sin índice que nombrar:
 // recorre la configuración de un flujo (decenas de fases). A quien no configura el flujo la base le da cero filas.
 export const leerAvisosDeRevision: LectorDeAvisosDeRevision = async ({ flujoId }) => {
   const supabase = await createClient()

@@ -1,5 +1,5 @@
 // El catálogo de tonos de la empresa (D7, 4.22-4): lo puro de crear y guardar uno. Espejo de `_tono_nombre()`, `_tono_colores()` y de los topes de `tono_crear()`
-// (`…20261028180656_base.sql`, probados con `supabase/tests/tonos.sql` y el corpus de contraste): los motivos que la pantalla da antes de enviar son los mismos textos que da la
+// (en la base, probados con `supabase/tests/tonos.sql` y el corpus de contraste): los motivos que la pantalla da antes de enviar son los mismos textos que da la
 // base, así que quien los lea no ve dos frases distintas para lo mismo. La base sigue siendo la autoridad: lo que esto deja pasar, ella lo vuelve a decidir.
 import { CONTRASTE_AA, contraste, esHex } from '@/shared/lib/color'
 

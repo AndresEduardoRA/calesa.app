@@ -1,7 +1,7 @@
 // El stack local de Supabase de ESTE worktree: su project_id (los contenedores se llaman `supabase_<servicio>_<project_id>`) y sus
 // puertos. Manda, en este orden: la variable `SUPABASE_*` del entorno, `.env.carril` (lo escribe scripts/worktree/preparar.sh en un
-// carril de Orca) y `supabase/config.toml` (la principal). La CLI de Supabase lee las mismas variables, así que un carril tiene su
-// stack sin tocar config.toml (docs/ORCA.md).
+// worktree) y `supabase/config.toml` (la principal). La CLI de Supabase lee las mismas variables, así que un carril tiene su
+// stack sin tocar config.toml (docs/FLUJO.md › «En paralelo»).
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { parseEnv } from 'node:util'
@@ -22,7 +22,7 @@ const BASE = {
 }
 
 /**
- * El `.env.carril` de un carril: el project_id, los puertos y lo que leen los e2e y el piloto. Puro: sin I/O.
+ * El `.env.carril` de un carril: el project_id, los puertos y lo que leen los e2e. Puro: sin I/O.
  * @param {string} carril
  * @returns {Record<string, string | number>}
  */
@@ -39,7 +39,6 @@ export function variablesDelCarril(carril) {
     // Los enlaces de los correos de Auth llevan a la app de este carril (config.toml › additional_redirect_urls los admite).
     SUPABASE_AUTH_SITE_URL: `http://localhost:${String(puertos.PUERTO_APP)}`,
     E2E_MAILPIT_URL: `http://127.0.0.1:${String(puertos.SUPABASE_LOCAL_SMTP_PORT)}`,
-    PILOTO_SUPABASE_URL: `http://127.0.0.1:${String(puertos.SUPABASE_API_PORT)}`,
   }
 }
 

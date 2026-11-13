@@ -8,22 +8,28 @@ paths:
 
 ## Una sola fuente: las migraciones
 
-- `supabase/migrations/20261028180656_base.sql` es la base: el volcado de las 146 migraciones de antes, aplastadas el 2026-10-28.
-  **No se edita nunca** (`scripts/guardas/orden-de-migraciones.test.ts` fija su sha256). Una cita `…2026101xxxxxxx` en un
-  comentario es historia: esa migración está en git, en el padre del commit que las borró (`git log --diff-filter=D -- supabase/migrations`).
-- Todo cambio es una migración nueva: `pnpm exec supabase migration new <nombre>` (fecha y hora reales, UTC). Si al integrar quedó
-  antes de una que ya entró, se crea de nuevo con otra fecha. La misma guarda lo exige.
-- En un carril que no es base, el nombre empieza por uno de sus dominios (`docs/plan.yaml` › `migraciones`), que es el prefijo de sus
-  tablas (`formula_…`, `papelera_…`); `cotizacion_…` y `cotizaciones_…` son del núcleo y las crea el carril a. Lo vigila
-  `scripts/guardas/carriles.mjs`.
+- `supabase/migrations/<versión>_base.sql` es la base: el volcado de todas las migraciones anteriores al último aplastado. **No se
+  edita** (`scripts/guardas/orden-de-migraciones.test.ts` fija su sha256). Una cita a una migración vieja por su nombre en un
+  comentario es historia: está en git (`git log --diff-filter=D -- supabase/migrations`).
+- Todo cambio es una migración nueva: `pnpm exec supabase migration new <nombre>` (fecha y hora reales, UTC), con el nombre de su
+  dominio al principio (`formula_…`, `papelera_…`, `leads_…`). Si otro PR integró antes una posterior, se crea de nuevo con otra
+  fecha: lo exige la misma guarda, contra `main` en el CI del PR.
+- **Aplastar** (`pnpm db:aplastar`, `scripts/db/aplastar.sh`): funde todas en una base nueva con la versión de la última y comprueba
+  que deja la misma base (`scripts/db/huella-de-la-base.sh`). Va solo en su PR, cuando pasan de unas cuarenta o antes de un despliegue
+  grande. Una **migración de datos** (la que transforma filas que ya existen: conceder una clave nueva a quien tenía otra) desaparece
+  al aplastar, con su prueba: todo proyecto remoto tiene que haberla aplicado antes (`docs/DESPLIEGUE.md` › «Tras aplastar las migraciones»).
+- Una prueba o un comentario **nunca nombra un archivo de migración**: la definición vigente de una función o tabla se lee con
+  `definicionSql()`, `tablaSql()` o `migracionesEnOrden()` (`scripts/lib/definicion-sql.ts`), que sobreviven a un aplastado.
 - Cambiar una función: `create or replace` en la migración nueva, partiendo de su definición vigente (la última entre la base y las
   que siguen: `definicionSql()` de `scripts/lib/definicion-sql.ts`). Renombrar es `alter … rename`.
 - Un dato de catálogo (permiso, tono, nivel, bucket, job) va en su migración con `insert … on conflict`: la nube no vuelve a correr
   el seed. `seed.sql` es lo configurable por empresa y los ejemplos.
-- Después de cualquier cambio: `pnpm db:reset`, `pnpm db:types` y `pnpm db:probar`; si tocaste policies, un caso en
-  `supabase/tests/humo.sql` con un usuario simulado.
-- Las pruebas SQL del área de un carril que no es base van en `supabase/tests/areas/<área>/`: `db:probar` las corre después de su lista
-  fija, sin editarla (`SOLO=areas/<área>/x.sql`). Cada bloque, su transacción revertida, sin depender del estado de otro archivo.
+- Después de cualquier cambio: `pnpm db:reset`, `pnpm db:types` y `pnpm db:probar:rapido` (el completo, `pnpm db:probar`, lo corre el
+  CI: suma los 7 bloques `[lento]` de la búsqueda de leads, ≈ 4 min; córrelo tú si tocaste `leads_candidatos`, la vista de leads o la
+  cartera); si tocaste policies, un caso en `supabase/tests/humo.sql` con un usuario simulado.
+- Las pruebas SQL nuevas van en `supabase/tests/areas/<área>/`: `db:probar` las corre después de su lista fija, sin editarla
+  (`SOLO=areas/<área>/x.sql` corre una; `PROBAR_TIEMPOS=1` dice cuánto tarda cada bloque). Cada bloque, su transacción revertida, sin
+  depender del estado de otro archivo. Un bloque que pasa de ≈ 10 s se nombra `-- @test [lento] …`.
 
 ## Privilegios
 
@@ -56,9 +62,9 @@ paths:
 - Toda RPC de edición nace con `p_actualizado_en_esperado timestamptz` sin default y lo pasa por `_exigir_version()`; las de crear
   no. Una RPC que guarda la única fila de su clase (`plantilla_guardar_borrador`: el borrador del origen) toma la esperada nula como crear: si la fila ya existe,
   PT409; nunca pisa. Una que publica sobre una versión (`formula_publicar()`, `formula_cambiar_constante()`) lleva `p_publicada_esperada uuid default null` (una
-  versión, no una hora). Una de lote, por elemento. Excepciones: `formula_guardar_borrador` hasta el 4.21, `leads_papelera_enviar` (todo o nada,
+  versión, no una hora). Una de lote, por elemento. Excepciones: `leads_papelera_enviar` (todo o nada,
   idempotente por lote) y las del chat, idempotentes y que no pisan nada: `chat_grupo_miembros`, `chat_leer`, `chat_silenciar` y
-  `mensaje_eliminar` (7.08). Una versión que debe moverse dos veces en una transacción no usa el trigger genérico:
+  `mensaje_eliminar`. Una versión que debe moverse dos veces en una transacción no usa el trigger genérico:
   `greatest(clock_timestamp(), anterior + 1 µs)`; la de una cotización la sella `cotizacion_version()`.
 - Un `if` de plpgsql termina en el primer `then`, también el de un `case`: esa condición va a una variable antes.
 - Clave nueva de requisito de fase = caso en `_requisito_dato_cumplido()` y en `claves_dato_requisito()`.

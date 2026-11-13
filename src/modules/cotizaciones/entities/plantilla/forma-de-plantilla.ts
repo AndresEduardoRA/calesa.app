@@ -1,4 +1,4 @@
-// La forma de la plantilla de la tarjeta, espejo de `_plantilla_forma()` (20261106185900_plantilla_validar.sql:10-79; 4.19-2), en su orden: el primer rechazo
+// La forma de la plantilla de la tarjeta, espejo de `_plantilla_forma()` (4.19-2), en su orden: el primer rechazo
 // manda y su `donde` es el de la base. Se valida lo que viaja: la entrada pasa por JSON (una propiedad `undefined` es una clave ausente; lo que no es JSON, como
 // un nulo de SQL). Las claves de un objeto se leen con `Object.hasOwn`/`Object.keys`, nunca con `in` ni `obj[k]` sobre una ausente: `constructor` y `__proto__`
 // son claves posibles.

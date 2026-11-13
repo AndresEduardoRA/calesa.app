@@ -3,7 +3,7 @@
 import { cumpleElMinimo, type MinimoDeBusqueda } from '@/shared/lib/filtros'
 
 // El nombre se busca con 3 letras o dígitos seguidos (un trigrama: con menos, el índice no tiene qué buscar y la base camina la cartera de quien
-// busca, 139 a 217 ms la dueña con 212.000 leads; no se pagan n-gramas de 1 y 2 caracteres: `docs/DECISIONES.md`, «5a-8»). Un número vale con
+// busca, 139 a 217 ms la dueña con 212.000 leads; no se pagan n-gramas de 1 y 2 caracteres: `docs/DECISIONES.md`). Un número vale con
 // menos: «5» y «#5» buscan el lead número 5. Es el mismo `[[:alnum:]]{3}` de `_leads_candidatos_indexable()`.
 export const MINIMO_DE_BUSQUEDA: MinimoDeBusqueda = {
   letras: 3,

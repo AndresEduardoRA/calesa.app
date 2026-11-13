@@ -1,6 +1,6 @@
 -- El dato del vehículo de una celda de tabla (paso 4.14-2c2): `cotizacion_hoja()` dice, en cada celda de un nodo `tabla` que quien mira ve, qué columna de su tabla casa con
 -- qué dato del vehículo (`dato_del_vehiculo: {tabla, columnas: [{columna, campo}]}`), y `cotizacion_tabla()` le da las filas de esa columna. Un valor de `match` que nombra un
--- nodo nunca viaja, aunque coincida con la clave de un campo activo (D7). docs/COTIZADOR.md › «La lectura que abre la hoja (4.13-1)».
+-- nodo nunca viaja, aunque coincida con la clave de un campo activo (D7). docs/COTIZADOR.md › «La lectura que abre la hoja».
 -- Corre después de `cotizacion-tabla.sql`; la dueña es `…0001` (la crea `humo.sql`). Cada bloque abre su transacción y la revierte. Compara claves y hojas, nunca texto suelto.
 
 create or replace function pg_temp.dv_como(p_quien uuid) returns void language plpgsql as $f$

@@ -5,7 +5,7 @@
 
 -- Una cotización escrita directo (como postgres) sobre una fórmula publicada nueva: sirve para probar la versión sin pasar por ninguna RPC.
 -- Los teléfonos de los leads de la prueba salen de una secuencia: un número fijo chocaría consigo mismo si un bloque preparara dos terrenos, y uno al azar
--- chocaba de vez en cuando con un lead vivo que dejó otra prueba (`docs/PLAN.md`, 4-22). Nadie más usa 7213xxxx.
+-- chocaba de vez en cuando con un lead vivo que dejó otra prueba (`docs/PENDIENTES.md`, 4-22). Nadie más usa 7213xxxx.
 create temp sequence cg_telefono;
 create or replace function pg_temp.cg_basica() returns jsonb language plpgsql as $f$
 declare

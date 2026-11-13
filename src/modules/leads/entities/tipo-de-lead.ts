@@ -1,12 +1,12 @@
 import { z } from 'zod'
 
 // El tipo de un lead (Prospecto, Cliente y los que la empresa agregue), configurable en Configuración › Leads › Tipos de lead.
-// Estas reglas son espejo de `tipo_lead_*()`, `_tipo_lead_nombre()` y los triggers de `tipos_lead`
-// (`…20261019002800_tipos_de_lead.sql` y `…002900`): la base las vuelve a decir, con estos mismos textos, si algo llega de otro lado.
+// Estas reglas son espejo de `tipo_lead_*()`, `_tipo_lead_nombre()` y los triggers de `tipos_lead`:
+// la base las vuelve a decir, con estos mismos textos, si algo llega de otro lado.
 //
 // Cada tipo es de una CLASE fija, la única parte que no se configura: un lead «prospecto» todavía no compró y uno «cliente» ya
 // compró. El sistema razona por la clase y nunca por el nombre ni por la clave de un tipo (la cotización final pasa al lead a
-// cliente; las métricas de conversión cuentan por clase: `docs/PLAN.md`, Fases 4 y 9). Los dos nombres de las clases son del
+// cliente; las métricas de conversión cuentan por clase: `docs/PENDIENTES.md`, Fases 4 y 9). Los dos nombres de las clases son del
 // sistema y no son nombres de tipos: ningún tipo se nombra desde acá.
 
 export const CLASES_DE_TIPO = ['prospecto', 'cliente'] as const

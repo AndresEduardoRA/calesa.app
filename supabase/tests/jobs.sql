@@ -1,4 +1,4 @@
--- Los jobs que llaman a una función edge (`20261028183622_jobs_con_la_url_del_proyecto.sql`): están programados después de un reset y
+-- Los jobs que llaman a una función edge (`storage-gc`, `avatares-miniaturas`, con `cron.schedule` en la base): están programados después de un reset y
 -- leen la URL del proyecto de Vault (`url_proyecto`) cuando corren. Que de verdad lleguen a `storage-gc` y vuelvan con 200 lo prueba
 -- `supabase/tests/jobs-de-verdad.sh`, contra la base local con las funciones servidas. Corre antes de `humo.sql` (que reprograma
 -- `storage-gc` con una dirección a mano) y cada bloque deja la base como la encontró.

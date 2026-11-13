@@ -11,7 +11,7 @@ import {
 } from './areas-de-flujos'
 
 // La partición de `flujos` por área (5.02-1): un área no importa otra, el núcleo no importa ningún área, las entradas de la raíz sólo
-// reexportan y cada área tiene sus lugares. Si cae: lo nuevo de un paso va en las carpetas de SU área; lo compartido, al núcleo (lo decide el A).
+// reexportan y cada área tiene sus lugares. Si cae: lo nuevo de un paso va en las carpetas de SU área; lo compartido, al núcleo.
 const TODAS = ['nucleo', ...AREAS_DE_FLUJOS]
 const f = (rel: string, texto = ''): Archivo => ({ ruta: `${MODULO}${rel}`, texto })
 

@@ -17,7 +17,7 @@ import { borrarPersonasDePrueba, correoDePrueba, crearDuenaDePrueba } from './so
 import { entrarConSesion } from './soporte/pasos'
 import { expect, test, type Page } from './soporte/prueba'
 
-// La auditoría AA (9.12-1, `docs/PLAN.md` › 9.12): un barrido de todas las páginas de `src/app` que comprueba lo que una máquina puede.
+// La auditoría AA (9.12-1, `docs/PENDIENTES.md` › 9.12): un barrido de todas las páginas de `src/app` que comprueba lo que una máquina puede.
 // Caen la prueba un control sin nombre accesible y un `aria-describedby`/`aria-labelledby` roto que no estén en los conocidos
 // (`soporte/accesibilidad-conocidos.ts`, cada uno con la parte que lo arregla), también el `h1` y, en el celular y en las pantallas de las
 // fases 5 a 9, un blanco táctil de menos de 44 px que no es de `shared/ui`; el orden de foco sólo informa. El foco visible (R6) también cae. Cada página se mira en tema claro y su foco visible otra vez en oscuro (el contraste de los

@@ -1,7 +1,7 @@
 name: demo
 
 # Al integrar en main, aplica a la demo las migraciones nuevas y despliega sus funciones edge, sólo si cambió supabase/
-# (docs/ENTORNOS.md › «Vercel»). Un preview nunca migra. Corre sólo con la variable DEMO_PROJECT_REF y los secretos
+# (docs/ENTORNOS.md). Un preview nunca migra. Corre sólo con la variable DEMO_PROJECT_REF y los secretos
 # SUPABASE_ACCESS_TOKEN y SUPABASE_DB_PASSWORD del repo; sin ellos no hace nada. Resetear y sembrar la demo es otra cosa:
 # scripts/demo/restaurar.sh, a mano.
 on:
@@ -34,6 +34,9 @@ jobs:
       - uses: ./.github/acciones/preparar
       # La CLI es la devDependency (`pnpm exec supabase`): la misma versión que en local.
       - run: pnpm exec supabase link --project-ref "$DEMO_PROJECT_REF"
+      # Tras un aplastado (`pnpm db:aplastar`) la demo tiene versiones que el repo ya no: se marcan revertidas, sin tocar la base.
+      - name: historial alineado con el repo
+        run: bash scripts/demo/alinear-historial.sh
       - name: migraciones nuevas (las que la demo no tiene)
         run: pnpm exec supabase db push --yes
       - name: funciones edge

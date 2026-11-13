@@ -4,7 +4,7 @@ import { createClient } from '@/shared/lib/supabase/server'
 import { respuestaDeNivelesDesde } from '../entities/nivel'
 import type { RepositorioDeNiveles } from '../entities/repositorios-de-niveles'
 
-// Los niveles se escriben sólo por estas RPC (`…20261019006100_niveles_de_acceso.sql` y `…006400_nivel_restaurar.sql`), con `equipo.roles.gestionar`.
+// Los niveles se escriben sólo por estas RPC, con `equipo.roles.gestionar`.
 // Renombrar, retirar, restaurar y eliminar piden la versión (`PT409` legible si otra pestaña la cambió). Todas devuelven la lista entera: la
 // pantalla no vuelve a leer. Eliminar uno en uso responde 23503 con el texto de cuánto lo usan: llega tal cual a la pantalla.
 

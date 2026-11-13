@@ -1,4 +1,4 @@
--- Guardar y publicar el diseño de la hoja (`…20261019005800_formula_con_diseno.sql`, paso 4.08 prompt 2): `formula_guardar_borrador` con su diseño,
+-- Guardar y publicar el diseño de la hoja (paso 4.08 prompt 2): `formula_guardar_borrador` con su diseño,
 -- `formula_publicar` y el ⚙ (`formula_cambiar_constante`) con `validar_diseno()` y la compilación de `formulas.visibilidad`, `_nivel_en_uso`, y lo
 -- que no debe existir (la firma vieja, ayudantes ejecutables, la fórmula entera en `actividad`). Corre después de `humo.sql` y de `tonos.sql`.
 -- `scripts/probar-schema.mjs` carga antes `_juego_de_diseno` (casos-de-diseno.json) y `_juego_de_formula`. La dueña es `…0001`.
@@ -404,7 +404,7 @@ begin
   perform pg_temp.limpiar(o);
 end $$;
 
--- @test publicar: el conflicto de publicar dice quién publicó, qué versión y cuándo, sin «Recarga»: un caso por fila de docs/COTIZADOR.md › «Versiones (4.20-1)»
+-- @test publicar: el conflicto de publicar dice quién publicó, qué versión y cuándo, sin «Recarga»: un caso por fila de docs/COTIZADOR.md › «Versiones»
 do $$
 declare
   o uuid := pg_temp.preparar(); o2 uuid; v1 uuid; v2 uuid; v_e text; v_nombre text;

@@ -49,4 +49,5 @@ paths:
   `extensionDe(blob.type)`; documentos sin comprimir.
 - Borrar de Storage nunca es un `remove` directo: en `marca` y `avatares`, `quitarSiHuerfano()`; en
   `vehiculos` el navegador no borra (barre `storage_gc_reclamar`).
-- `revalidatePath` en la action que muta; sin `router.refresh()` en el éxito.
+- `revalidatePath` en la action que muta (salvo desde una pantalla con algo a medio tipear: `.claude/rules/acciones.md`); sin
+  `router.refresh()` en el éxito.

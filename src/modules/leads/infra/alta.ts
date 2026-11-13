@@ -7,7 +7,7 @@ import type { PedidoDeAlta, RepositorioDeAlta, ResultadoDeAlta } from '../entiti
 import { CAMPOS_DE_NUMEROS, numerosDesde } from '@/shared/lib/numeros-de-lead'
 import { verificacionDesde } from '../entities/verificacion'
 
-// El alta se escribe sólo por `crear_lead()` (`…20261014001000_lead_alta.sql`): el lead, su primer
+// El alta se escribe sólo por `crear_lead()`: el lead, su primer
 // seguimiento y el recordatorio entran en una transacción o no entra nada.
 
 const respuesta = z.discriminatedUnion('resultado', [

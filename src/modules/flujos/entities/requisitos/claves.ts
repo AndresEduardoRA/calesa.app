@@ -1,5 +1,5 @@
 // Las claves de dato que un requisito de fase puede pedir, por ámbito del flujo, con su nombre para la persona. La base manda: la lista es la de
-// `claves_dato_requisito(p_ambito)` (`20261028180656_base.sql`) y `claves.test.ts` la compara con el SQL vigente, así una clave nueva en la base sin
+// `claves_dato_requisito(p_ambito)` y `claves.test.ts` la compara con el SQL vigente, así una clave nueva en la base sin
 // etiqueta rompe la prueba y no sale en pantalla como un texto técnico.
 import type { AmbitoDeFlujo } from '../flujo'
 

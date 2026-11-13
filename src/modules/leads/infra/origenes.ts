@@ -4,7 +4,7 @@ import { createClient } from '@/shared/lib/supabase/server'
 import { respuestaDeOrigenesDesde } from '../entities/origen-de-lead'
 import type { RepositorioDeOrigenesDeLead } from '../entities/repositorios-de-origenes'
 
-// Los orígenes del lead se escriben sólo por estas RPC (`…20261019000700_origenes_lead_configurables.sql`),
+// Los orígenes del lead se escriben sólo por estas RPC,
 // con `leads.configurar`. Guardar, mover y eliminar piden la versión (`PT409` legible si otra pestaña
 // la cambió). Todas devuelven la lista entera: la pantalla no vuelve a leer.
 

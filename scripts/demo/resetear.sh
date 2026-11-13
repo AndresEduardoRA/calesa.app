@@ -8,7 +8,7 @@
 #   bash scripts/demo/resetear.sh [--sin-respaldo]
 #
 # La demo no tiene datos reales y se puede resetear; las guardas de las sesiones sólo dejan pasar lecturas remotas
-# sueltas, así que esto lo corre la persona o una sesión que se lo avisó antes (docs/PREPARACION.md). Lee `.env.demo` si existe:
+# sueltas, así que esto lo corre la persona o una sesión que se lo avisó antes (docs/ENTORNOS.md). Lee `.env.demo` si existe:
 # `DEMO_SUPABASE_URL` (si no, https://<ref>.supabase.co). Ningún valor secreto pasa por aquí ni se imprime.
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"

@@ -1,7 +1,7 @@
 # Edge functions
 
 Trabajo que no debe vivir en una Server Action que el usuario espera. Cada una se construye en la
-fase que la necesita (`docs/PLAN.md`); hasta entonces sólo existe su contrato. Deno, `supabase
+fase que la necesita (`docs/PENDIENTES.md`); hasta entonces sólo existe su contrato. Deno, `supabase
 functions new <nombre>`, secretos con `supabase secrets set`, nunca en el código.
 
 | Función               | Fase         | La dispara                                                                                                 | Hace                                                                                                                                                                                                                   | Secretos                                                             |
@@ -74,8 +74,8 @@ alcanza en `http://127.0.0.1:54621/functions/v1/apibara`. No hay nada que desple
 
 ## `storage-gc`
 
-El protocolo vive en SQL y está probado en humo (`supabase/migrations/20261013000400_storage_gc.sql`,
-`…000900_papelera_purga.sql`, `…001000_storage_gc_funcion.sql`); la función sólo borra y confirma.
+El protocolo vive en SQL y está probado en humo (`storage_gc_reclamar`,
+`storage_gc_confirmar`, `storage_gc_rescatar` y los demás `storage_gc_*` de la base); la función sólo borra y confirma.
 
 - **Reclamar** (`storage_gc_reclamar`): encola los huérfanos del bucket `vehiculos` (objetos sin
   fila, con más de 24 h) —de a una ventana de 10.000 objetos por nombre, siguiendo el cursor de `cola_gc_barrido`: cada

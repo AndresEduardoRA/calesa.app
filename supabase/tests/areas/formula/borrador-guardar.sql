@@ -1,6 +1,6 @@
 -- La versión esperada al guardar el borrador de la fórmula (4.21-2, 4-8): `formula_guardar_borrador()` crea sin hora (y la publicada esperada, si viene,
 -- tiene que seguir siendo la publicada) y pisa sólo con la `actualizado_en` que leyó; devuelve `{id, actualizado_en}` de la fila escrita. El PT409 dice qué
--- pasó, sin «Recarga». docs/COTIZADOR.md › «Versiones (4.20-1)».
+-- pasó, sin «Recarga». docs/COTIZADOR.md › «Versiones».
 -- Corre en PGlite (`pnpm db:probar`, después de la lista fija); cada bloque arma su terreno con `be_preparar()` dentro de su transacción y la revierte: no se
 -- apoya en el humo ni en otro archivo, ni deja nada. Los otros dos: `borrador-*.sql`.
 

@@ -1,5 +1,5 @@
-// Las filas de una tabla de referencia contra sus columnas (4.23-2): el espejo de `_tabla_referencia_filas_validas()` (migración
-// `20261108084712_tablas_referencia_publicar.sql`), con los mismos mensajes y el mismo camino (el `hint` de la base). La regla de verdad es la de la base: esto deja
+// Las filas de una tabla de referencia contra sus columnas (4.23-2): el espejo de `_tabla_referencia_filas_validas()`,
+// con los mismos mensajes y el mismo camino (el `hint` de la base). La regla de verdad es la de la base: esto deja
 // decir el motivo al lado de la celda antes de publicar. Tres detalles se copian al pie de la letra: el largo de un texto en puntos de código (`char_length`), las
 // claves de una fila en orden de punto de código (`collate "C"`) y la etiqueta recortada sólo de espacios (`btrim`).
 import { z } from 'zod'

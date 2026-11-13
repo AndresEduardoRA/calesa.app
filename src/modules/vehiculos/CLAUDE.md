@@ -2,53 +2,98 @@
 
 Inventario de vehículos por origen con atributos dinámicos: listado con filtros en la URL y vistas guardadas, ficha según el layout del origen, alta y edición en un panel, fotos (hasta 24, con portada), el vínculo a un lead con sus interesados (en la ficha del vehículo, con «Desvincular»; y la sección «Vehículos» de la ficha del lead, que vive acá), la vitrina (publicar en la web con precio público y vista previa de lo que verá el visitante) la papelera por lotes (enviar con «Deshacer», restaurar y purgar) y, en un origen de subasta con apibara encendida, el alta pegando un enlace de Copart o IAAI, un VIN o un lote (de a uno o varios), con sus fotos, y «Refrescar» la subasta desde la ficha; y la limpieza automática de lo importado de una subasta que nadie compró, con su aviso previo y «Conservar».
 
-Ficha completa (historia, partes, mediciones, trampas viejas): `docs/archivo/modulos/vehiculos.md`, sólo con grep.
-
 ## Entra y sale
 
-- Entra: `/vehiculos` (`?origen=`, filtros, `?cursor=`, `?vitrina=si|no`, `?vehiculo=<id>` abre el resumen con `?pestana=fotos|interesados`), `/vehiculos/papelera`, `/vehiculos/[id]` (`?seccion=ficha|fotos|cotizaciones`; la última sólo con `cotizaciones.ver` del origen del vehículo y la dibuja `cotizaciones/pantallas/vehiculo`, compuesta por `src/app`: `vehiculos` no importa `cotizaciones`; sin esa clave abre «Ficha», 4.17-3). Paneles por URL: `?panel=nuevo`, `?editar=<id>`, `?panel=vitrina`, `?panel=desvincular`, `?panel=purgar&lote=`. Layout, categorías y orígenes vienen de `origenes`; fases de `flujos`; vistas guardadas de `equipo`: la página los lee y los pasa por props.
-- `/cotizaciones/nuevo` (la compone `app/`): la barra del vehículo sobre la hoja (`pantallas/cotizar`, `<BarraDelVehiculo>`) abre el panel del vehículo en `?panel=vehiculo&lista=ultima|cierre&buscar=&cursor=`: arriba, un campo que busca por nombre, VIN o lote (`?buscar=`, desde 3 letras o números: `entities/texto-del-panel.ts`; el campo lleva `useTextoDeUrl()` y la URL espera 300 ms; con resultados no hay pestañas), y debajo «Últ. cotización» y, en un origen de subasta, «Cierre subasta», leídas desde el navegador (`infra/panel-para-cotizar.client.ts`, la búsqueda con la forma de la del inventario) y escritas en la URL sin ir al servidor; elegir o quitar escribe el vehículo en la clave que le pasa la página (`claveDeLaUrl`) y cierra el panel. «+» («Cargar a mano») y «Traer» (un enlace de Copart o IAAI, un VIN o un lote; Enter trae un enlace, y un VIN o un lote sólo si su búsqueda volvió vacía: cada consulta a apibara gasta cuota) cambian el cuerpo del panel por el alta del inventario (`?alta=mano|subasta`, `alta-desde-el-panel.tsx`: el mismo formulario y borrador `vehiculo-nuevo-<origen>`); «Crear y elegir» crea el vehículo con `crearVehiculo` y la hoja lo elige, sin «Abrir ficha» ni cotización guardada. El alta se arma con `alta` (origen y apibara, que arma la página sólo si quien mira ve y crea vehículos en el origen) y lee el layout al abrirse con `useLayoutActivo()` de `origenes`; recargar con `?alta=subasta` muestra lo pegado y no vuelve a consultar. La barra recibe, ya armados por la página, el «n» de «Cotizado (n)» (`cotizado`, texto, dibujado sin `<Badge>`: éste arrastra Base UI y sumaba 8,5 KB a la carga en frío de la hoja) y el `historial` del elegido (un `ReactNode` de `cotizaciones`: `vehiculos` no lo importa), que el panel dibuja dentro de la región «Elegido». En «Elegido», el dato del vehículo que casa con una tabla de la hoja (el tipo del transporte, 4.14-2c3) se elige entre las filas de la tabla, tal cual salen de ella, con la del vehículo marcada (`dato-del-elegido.tsx`): la página arma `paraElegir` (`datosParaElegirDe()` de `entities/dato-para-elegir.ts`: sólo campos activos del layout de texto; la versión; si quien mira lo edita, por `editablesDe`) y `src/app` le suma el lector de `cotizaciones/client`. Se dibujan a lo sumo 50, con «Buscar en las opciones»; un toque guarda con `guardarDatoDelVehiculo` (sólo ese atributo, con la versión, por `vehiculo_guardar`) y el panel cierra como al elegir; quien no edita lo ve sin elegir.
-- `index.ts` (servidor) **no exporta componentes**; las pantallas los traen por `pantallas/<pantalla>.ts` (`listado`, `ficha`, `papelera`, `vehiculos-del-lead`, `cotizar`). Una pantalla nueva = su archivo. Exporta lecturas y reglas (`buscarVehiculos`, `leerVehiculo` —null si no existe, está en papelera o no se ve—, `condicionesDe`, `editablesDe`, `leerPapelera`, `leerSubasta`, `limpiezaDe`…: ver `docs/MAPA.md`) y `MAXIMO_DE_PAGINA_DE_VEHICULOS` (100); el tamaño sale de `tamanoDePagina()`.
-- `client.ts`: `<TarjetaVehiculo>`, `<BadgeDeFase>`, `Vehiculo`; y para la importación total de `datos` (9.06-4) `validarVehiculo`, `camposComunes`, `camposActivos`, `claveDeAtributo` y sus tipos: cada fila se valida con el esquema del alta.
-- `camposComunes(tipo)` y sus tipos (`CampoComun`, `ClaveComun`, `TipoComun`) salen por `index.ts` para `datos` (9.05-2b: las columnas comunes al exportar los vehículos de un origen).
-- Qué nombra a un vehículo (6.13): `identidadDeVehiculo(vehiculo, principal, formato)` y `identidadEnUnaLinea()` de `entities/identidad.ts` (salen por `index.ts`; las usa logística). Con campo principal activo y un valor que no es vacío ni monto, el valor nombra y el título acompaña; si no, el título. En la fila, la tarjeta y el resumen el nombre lo arma `useIdentidad(campos)` (`features/listado/hooks/`, con el formato de la empresa) y el título va en la línea de abajo; la página `/vehiculos/[id]`, el PDF, la web y la hoja de cotizar siguen con el título.
-- `leerTitulosDeVehiculos(ids)` (4.16-4a, `infra/queries/titulos-de-vehiculos.ts`): los títulos de los vehículos de una página de `/cotizaciones`, por clave primaria, con la RLS de quien mira y sin los de la papelera (como `leerVehiculo`); hasta 100 ids, una vez por página.
-- «Cotizar» del resumen (4.14-2b): `/vehiculos` pasa `paraCotizar` (`entities/ruta-para-cotizar.ts`: la ruta de la hoja con el origen y la clave del vehículo, o `null` si no cotiza en el origen: `origenesParaCotizar()`) por el listado y el resumen hasta la cabecera. Abre la hoja sin lead.
-- Depende de `origenes`, `flujos`, `equipo`. `leads` no importa `vehiculos`: vínculo e interesados viven acá aunque se muestren en la ficha del lead (`app/` los compone).
+- Entra: `/vehiculos` (`?origen=`, filtros, `?cursor=`, `?vitrina=si|no`, `?vehiculo=<id>` abre el resumen con `?pestana=fotos|interesados`),
+  `/vehiculos/papelera`, `/vehiculos/[id]` (`?seccion=ficha|fotos|cotizaciones`; la última sólo con `cotizaciones.ver` del origen, la dibuja
+  `cotizaciones/pantallas/vehiculo` compuesta por `src/app`; sin esa clave abre «Ficha»). Paneles: `?panel=nuevo`, `?editar=<id>`,
+  `?panel=vitrina`, `?panel=desvincular`, `?panel=purgar&lote=`. Layout, categorías y orígenes (`origenes`), fases (`flujos`) y vistas guardadas
+  (`equipo`) los lee la página y los pasa por props.
+- Hoja de cotizar (`/cotizaciones/nuevo`, la compone `app/`): `<BarraDelVehiculo>` (`pantallas/cotizar`) abre
+  `?panel=vehiculo&lista=ultima|cierre&buscar=&cursor=`:
+  - Búsqueda por nombre, VIN o lote (`?buscar=`, desde 3 letras o números, `entities/texto-del-panel.ts`) y las listas «Últ. cotización» y, en
+    subasta, «Cierre subasta», leídas desde el navegador (`infra/panel-para-cotizar.client.ts`) sin ir al servidor. Elegir escribe en `claveDeLaUrl`.
+  - «+» y «Traer» cambian el cuerpo por el alta (`?alta=mano|subasta`, `alta-desde-el-panel.tsx`, mismo formulario y borrador); «Crear y elegir»
+    usa `crearVehiculo`. Enter trae un enlace, y un VIN o lote sólo si su búsqueda volvió vacía (cada consulta a apibara gasta cuota); recargar con
+    `?alta=subasta` no vuelve a consultar.
+  - La barra recibe armados `cotizado` (texto sin `<Badge>`, que arrastra Base UI a la carga en frío) y `historial` (un `ReactNode` de `cotizaciones`).
+  - En «Elegido», el dato que casa con una tabla de la hoja se elige entre sus filas (`dato-del-elegido.tsx`, `datosParaElegirDe()`; a lo sumo 50,
+    con «Buscar en las opciones»): un toque guarda con `guardarDatoDelVehiculo` (sólo ese atributo, con versión, por `vehiculo_guardar`); quien no
+    edita lo ve sin elegir.
+- `index.ts` (sin componentes): `buscarVehiculos`, `leerVehiculo` (null si no existe, está en papelera o no se ve), `condicionesDe`, `editablesDe`,
+  `leerPapelera`, `leerSubasta`, `limpiezaDe`… (ver `docs/MAPA.md`), `MAXIMO_DE_PAGINA_DE_VEHICULOS` (100) y:
+  - `camposComunes(tipo)` y sus tipos (`CampoComun`, `ClaveComun`, `TipoComun`), para exportar en `datos`.
+  - `identidadDeVehiculo(vehiculo, principal, formato)` e `identidadEnUnaLinea()` (logística): con campo principal activo y un valor no vacío ni
+    monto, el valor nombra y el título acompaña; si no, el título. Fila, tarjeta y resumen: `useIdentidad(campos)`; ficha, PDF, web y hoja: el título.
+  - `leerTitulosDeVehiculos(ids)`: títulos de una página de `/cotizaciones` por pk, con la RLS de quien mira y sin papelera; hasta 100 ids.
+- Pantallas por `pantallas/<pantalla>.ts` (`listado`, `ficha`, `papelera`, `vehiculos-del-lead`, `cotizar`).
+- `client.ts`: `<TarjetaVehiculo>`, `<BadgeDeFase>`, `Vehiculo`; para la importación de `datos`, `validarVehiculo`, `camposComunes`, `camposActivos`,
+  `claveDeAtributo` y sus tipos (cada fila se valida con el esquema del alta).
+- «Cotizar» del resumen: `paraCotizar` (`entities/ruta-para-cotizar.ts`, o `null` si no cotiza: `origenesParaCotizar()`); abre la hoja sin lead.
+- Depende de `origenes`, `flujos`, `equipo`; no importa `cotizaciones`. `leads` no importa `vehiculos`: vínculo e interesados viven acá aunque se
+  vean en la ficha del lead.
 
 ## Archivos clave
 
-- `entities/`: `filtros.ts` (devuelve `Condicion[]` neutras que `infra/` traduce), `comunes.ts` (`camposComunes()`: único lugar con etiquetas fijas), `esquema.ts` (`validarVehiculo()`: lo usan igual formulario y action), `acciones-de-vehiculo.ts` (lista única del «⋯»; «Ver actividad» sólo en la ficha y con `actividad.ver`, con la ruta que arma `src/app` por `rutaDeActividadDe`, 9.01-4), `limpieza.ts` (sólo lee y dice), y `papelera`, `vinculo`, `vitrina`, `foto`, `apibara`, `subasta*`, `resumen`. `infra/`: lecturas en `queries/`, escrituras por RPC, `*.client.ts` para el navegador.
-- `features/`: `alta`, `ficha`, `fotos`, `vitrina`, `papelera`, `vinculo`, `listado`, `acciones`, `resumen`, `subasta`, `limpieza`, `panel-para-cotizar` (la barra y el panel del vehículo de la hoja de cotizar; sus listas y su margen, en `entities/panel-para-cotizar.ts`). `CLAVE_DE_EDICION` vive en `features/alta/claves.ts`, no en un `'use client'`.
-- El panel de alta y edición (`features/alta/components/panel-de-vehiculo.tsx`) avisa lo guardado cuando el envío terminó (`features/alta/hooks/use-tras-el-envio.ts`, 9-7): «Cambios guardados» y cerrar, o «… creado» y cerrar, van juntos en la cola y salen con `estado.enCurso` en falso o al volver a montarse el panel con la versión nueva. Copia igual a la de `leads` (9.12-2, D3).
+- `entities/`: `filtros.ts` (`Condicion[]` neutras que `infra/` traduce), `comunes.ts` (único lugar con etiquetas fijas), `esquema.ts`
+  (`validarVehiculo()`, igual para formulario y action), `acciones-de-vehiculo.ts` (lista única del «⋯»; «Ver actividad» sólo en la ficha, con
+  `actividad.ver` y `rutaDeActividadDe`), `limpieza.ts` (sólo lee y dice), `papelera`, `vinculo`, `vitrina`, `foto`, `apibara`, `subasta*`,
+  `resumen`, `panel-para-cotizar.ts`. `infra/`: lecturas en `queries/`, escrituras por RPC, `*.client.ts` para el navegador.
+- `features/`: `alta`, `ficha`, `fotos`, `vitrina`, `papelera`, `vinculo`, `listado`, `acciones`, `resumen`, `subasta`, `limpieza`,
+  `panel-para-cotizar`. `CLAVE_DE_EDICION` vive en `features/alta/claves.ts`, no en un `'use client'`.
+- El panel de alta y edición avisa y cierra cuando el envío terminó (`features/alta/hooks/use-tras-el-envio.ts`, copia de la de `leads`).
 - El listado dibuja una sola vista (tabla o tarjetas) elegida en servidor; los e2e buscan filas con `tbody tr, li article`.
 - Pestañas de la ficha: `src/app/(app)/vehiculos/[id]/pestanas.ts`, cada una con su `seccion-<clave>.tsx`.
 
 ## Tablas
 
-`vehiculos`, `vehiculos_imagenes`, `vehiculos_imagenes_version`, `vehiculos_interesados`, `vehiculos_vinculos`, `vehiculos_conservados`, `apibara_consultas` y `limpieza_corridas` (sólo `service_role`), `cola_gc_*` (cola de Storage de todos los buckets), `lotes_papelera` (compartida con leads y cotizaciones).
-RPC de lectura `vehiculos_inventario` (una página por rutas con los filtros del layout en SQL; la lee `buscarVehiculos()` para quien ve «propios», por `fuenteDelInventario()`). RPC de escritura: `vehiculo_crear|guardar|subasta_refrescar|vincular|vitrina|conservar`, `vehiculo_fotos_agregar`, `vehiculo_foto_mover|portada|eliminar`, `vehiculo_interesado_marcar|quitar`, `vehiculos_papelera_enviar|restaurar|purgar`. `vehiculos`, `vehiculos_imagenes` y `vehiculos_interesados` son de sólo lectura para la app.
+`vehiculos`, `vehiculos_imagenes`, `vehiculos_imagenes_version`, `vehiculos_interesados`, `vehiculos_vinculos`, `vehiculos_conservados`,
+`apibara_consultas` y `limpieza_corridas` (sólo `service_role`), `cola_gc_*` (cola de Storage de todos los buckets), `lotes_papelera` (compartida).
+Lectura `vehiculos_inventario` (una página por rutas con los filtros del layout en SQL; la usa `buscarVehiculos()` para «propios», por
+`fuenteDelInventario()`). Escritura: `vehiculo_crear|guardar|subasta_refrescar|vincular|vitrina|conservar`, `vehiculo_fotos_agregar`,
+`vehiculo_foto_mover|portada|eliminar`, `vehiculo_interesado_marcar|quitar`, `vehiculos_papelera_enviar|restaurar|purgar`. `vehiculos`,
+`vehiculos_imagenes` y `vehiculos_interesados` son de sólo lectura para la app.
 
 ## No se rompe
 
-- **La ficha se escribe sólo por RPC** (`vehiculo_crear`, `vehiculo_guardar`): lista cerrada de claves; `fase_id`, `publicado_web`, `lead_id`, `creado_por` se rechazan. Nada de `.insert()` ni `.update()` sobre `vehiculos`. `fase_id` lo escribe `cambiar_fase` y, sólo al nacer, `vehiculo_crear` (si el flujo tiene una única inicial sin nota ni requisitos; si no, «Sin fase»).
-- **`cotizado_en`** (cuándo se cotizó por última vez) la escribe sólo el trigger `trg_vehiculo_cotizado` de `cotizaciones` (crear con el vehículo, o pasarle una cotización; nunca retrocede). Cuando lo único que cambia es `cotizado_en`, ni `trg_actualizado_en` mueve la versión ni `trg_auditar_cambio` escribe en `actividad`: cotizar no le cambia la ficha a quien la tiene abierta. **`cierre_subasta_en`** es generada (la regla de «subasta viva» y su fecha vive en la base: abierta o en vivo, `coalesce(subasta_fin_en, subasta_en)`); nadie la escribe y entra en `antes`/`despues` de `actividad`. En `vehiculos` no va un trigger `before` con un `when` que nombre la fila `new` entera o una columna generada.
-- Toda edición manda la versión (`actualizado_en`); otra es `PT409` con «<quién> cambió este vehículo hace <cuánto>». Formulario y servidor validan con **el mismo esquema**. En `atributos` nunca un nulo: vaciar quita la clave.
-- Los filtros salen del layout (clave de `origenes_campos`, nunca de la URL); todo texto de la persona pasa por `citar()` o `patronContiene()` antes de un `or()` de PostgREST. `buscarVehiculos()` no filtra por permiso: lo decide la RLS. La regla de cada filtro tiene dos copias, `aplicarCondiciones` y `_vehiculos_inventario_sql` (la base): las ata `e2e/vehiculos-inventario-postgrest.spec.ts`; en el SQL, ningún valor va al texto (todo por `using`). La fuente del inventario (`fuenteDelInventario()`) es un camino y no un permiso: la RLS decide lo que se ve, y las dos lecturas dan lo mismo (lo ata `vehiculos-inventario-postgrest.spec.ts`); si la base rechaza los filtros de la función, esa página se lee por la tabla (el contrato de tipos de `inventario.test.ts` ata `Condicion` con la base).
-- **Fotos:** commit diferido (elegir no sube; «Subir N» sube los dos objetos y **una** action registra). Sólo por RPC; las tres de edición mandan la versión **de las fotos** (`vehiculos_imagenes_version`), no la de la ficha. Máx. 24 y una portada: lo impone la base. Sin duplicados (hash del archivo elegido). Objetos `vehiculos/<vehiculo_id>/<sha-256>.<webp|jpg>`; la app no borra objetos: eliminar encola en `cola_gc_storage` y «Deshacer» (10 s) los saca.
-- **Vitrina, sólo por RPC** `vehiculo_vitrina` (estado entero, sin defaults, con versión del vehículo; exige `vehiculos.vitrina` del origen y ver el vehículo). **Publicado no es «en vitrina»:** la regla vive en la base (`interno.vitrina_vehiculos`); la app no la copia. La vista previa la da `vehiculo_vitrina_previa()`.
-- **Papelera, sólo por RPC y siempre resultado parcial** (cada vehículo con su versión, lote hasta 200; restaurar/purgar mandan la versión del lote). Enviar ofrece «Deshacer» 10 s. Lo que no entra lo decide la base (`_vehiculo_motivo_de_bloqueo`). Restaurar vuelve sin publicar. Purgar es irreversible (`<ConfirmarPurga>`). Se lee sólo por `vehiculos_papelera_listar()`. Un lead con vehículo vinculado no va a la papelera de leads.
-- **Vínculo e interesados, sólo por RPC** (`vehiculo_vincular`; `p_lead` nulo desvincula; bloquea el lead y luego el vehículo; reemplazar exige tener también el lead actual). El vínculo otorga permisos (con alcance «propios», quien tiene el lead edita el vehículo). Este módulo no lee `leads`: los nombres llegan de las RPC con RLS de quien llama. El bloque sólo se dibuja con `leads.ver`.
+- **La ficha se escribe sólo por RPC** (`vehiculo_crear`, `vehiculo_guardar`): lista cerrada de claves; `fase_id`, `publicado_web`, `lead_id`,
+  `creado_por` se rechazan. `fase_id` lo escribe `cambiar_fase` y, al nacer, `vehiculo_crear` (si el flujo tiene una única inicial sin nota ni
+  requisitos; si no, «Sin fase»).
+- **`cotizado_en`** la escribe sólo el trigger `trg_vehiculo_cotizado` de `cotizaciones` (nunca retrocede); si sólo cambia ella, ni
+  `trg_actualizado_en` mueve la versión ni `trg_auditar_cambio` escribe en `actividad`. **`cierre_subasta_en`** es generada
+  (`coalesce(subasta_fin_en, subasta_en)` si la subasta está viva); entra en `antes`/`despues` de `actividad`. En `vehiculos` no va un trigger
+  `before` con un `when` que nombre la fila `new` entera o una columna generada.
+- Toda edición manda `actualizado_en`; otra es `PT409` («<quién> cambió este vehículo hace <cuánto>»). Formulario y servidor, **el mismo esquema**.
+  En `atributos` nunca un nulo: vaciar quita la clave.
+- Los filtros salen del layout (clave de `origenes_campos`, nunca de la URL); texto de la persona por `citar()` o `patronContiene()` antes de un
+  `or()`. `buscarVehiculos()` no filtra por permiso (la RLS) y `fuenteDelInventario()` es un camino, no un permiso. Cada filtro tiene dos copias,
+  `aplicarCondiciones` y `_vehiculos_inventario_sql` (todo valor por `using`), atadas por `e2e/vehiculos-inventario-postgrest.spec.ts`. Si la base
+  rechaza los filtros, esa página se lee por la tabla (`inventario.test.ts` ata `Condicion` con la base).
+- **Fotos:** commit diferido (elegir no sube; «Subir N» sube los dos objetos y **una** action registra). Sólo por RPC; las tres de edición mandan la
+  versión **de las fotos** (`vehiculos_imagenes_version`). Máx. 24 y una portada (la base). Sin duplicados (hash). Objetos
+  `vehiculos/<vehiculo_id>/<sha-256>.<webp|jpg>`; la app no borra objetos: eliminar encola en `cola_gc_storage` y «Deshacer» (10 s) los saca.
+- **Vitrina, sólo por** `vehiculo_vitrina` (estado entero, sin defaults, con versión; exige `vehiculos.vitrina` del origen y ver el vehículo).
+  **Publicado no es «en vitrina»:** la regla vive en `interno.vitrina_vehiculos`; la app no la copia. Vista previa: `vehiculo_vitrina_previa()`.
+- **Papelera, sólo por RPC y con resultado parcial** (cada vehículo con su versión, lote hasta 200; restaurar/purgar con la versión del lote).
+  Enviar ofrece «Deshacer» 10 s. Lo que no entra lo decide `_vehiculo_motivo_de_bloqueo`. Restaurar vuelve sin publicar. Purgar es irreversible
+  (`<ConfirmarPurga>`). Se lee sólo por `vehiculos_papelera_listar()`. Un lead con vehículo vinculado no va a la papelera de leads.
+- **Vínculo e interesados, sólo por RPC** (`vehiculo_vincular`; `p_lead` nulo desvincula; bloquea el lead y luego el vehículo; reemplazar exige
+  tener también el lead actual). El vínculo otorga permisos (con «propios», quien tiene el lead edita el vehículo). No se lee `leads`: los nombres
+  llegan de las RPC. El bloque sólo se dibuja con `leads.ver`.
 - «Editar» lo decide la base (`editablesDe()` + `vehiculos_editables`; las RPC, `puede_vehiculo()`).
-- **La limpieza automática es de la base** (`_limpieza_aplica|termino|vence|ancla|fecha`; `limpieza_el` columna calculada): nunca una copia de la regla en TypeScript; sumar una ancla = una línea en `_limpieza_ancla()`. Sólo `importado_apibara` en origen de subasta. «Conservar» no mueve la versión de la ficha.
-- **apibara:** la llamada vive en la edge function, que llama el navegador; guarda el bruto en `apibara_consultas` y alta/refresco sólo mandan su id (`p_consulta`). Fecha y estado de subasta los deriva la base (`_vehiculo_subasta_desde()`). `precio` nunca sale de la puja. Refrescar no pisa lo editado (`fusionarRefresco()`). Con 429 o clave rechazada no se consulta la línea siguiente.
-- Atajo `N`: abre «Nuevo» sólo si se puede; si no, nada.
+- **La limpieza automática es de la base** (`_limpieza_aplica|termino|vence|ancla|fecha`; `limpieza_el` calculada): nunca una copia en TypeScript;
+  una ancla nueva = una línea en `_limpieza_ancla()`. Sólo `importado_apibara` en origen de subasta. «Conservar» no mueve la versión.
+- **apibara:** la llamada vive en la edge function, que llama el navegador; guarda el bruto en `apibara_consultas` y alta/refresco sólo mandan su id
+  (`p_consulta`). Fecha y estado de subasta: `_vehiculo_subasta_desde()`. `precio` nunca sale de la puja. Refrescar no pisa lo editado
+  (`fusionarRefresco()`). Con 429 o clave rechazada no se consulta la línea siguiente.
+- Atajo `N`: abre «Nuevo» sólo si se puede.
 
 ## Ojo
 
-- Bajo RLS los filtros sobre `atributos` no usan el GIN: lo barato es `vehiculos_origen_listado_idx`. Keyset `(creado_en, id)`; el cursor viaja como texto (por `Date` pierde microsegundos).
-- El VIN es único entre todos los vivos (puede chocar con uno que no ves); el lote, por origen y plataforma. El `id` del alta lo genera el navegador (reintentar devuelve el mismo).
+- Bajo RLS los filtros sobre `atributos` no usan el GIN: lo barato es `vehiculos_origen_listado_idx`. Keyset `(creado_en, id)`; el cursor viaja como
+  texto (`Date` pierde microsegundos).
+- El VIN es único entre todos los vivos (puede chocar con uno que no ves); el lote, por origen y plataforma. El `id` del alta lo genera el navegador.
 - En plpgsql nunca `if not (lead_id in (select mis_leads()))` (con nulo no levanta): `puede_vehiculo()`.
-- `cotizacion_marcar_final` toma vehículo y luego lead, al revés que vincular: revisar el orden de locks. Desvincular con cotización final no se frena.
+- `cotizacion_marcar_final` toma vehículo y luego lead, al revés que vincular: cuidar el orden de locks. Desvincular con cotización final no se frena.
 - Una foto < 480 px tiene `ruta = ruta_miniatura` (refcount 2 con una foto).
 - e2e: borrar fases antes que el origen (`borrarFasesDe`) y lotes antes que la persona (`borrarLotesDePrueba`).

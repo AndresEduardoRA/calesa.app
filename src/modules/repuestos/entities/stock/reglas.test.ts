@@ -1,6 +1,5 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { migracionesEnOrden } from '../../../../../scripts/lib/definicion-sql'
 import { MOTIVOS_POR_MOVER } from './motivos'
 import {
   MENSAJE_DE_CANTIDAD_DE_STOCK,
@@ -118,15 +117,12 @@ describe('enStockTras y la nota', () => {
 })
 
 describe('los textos son los de la base', () => {
-  const archivo = join(
-    process.cwd(),
-    'supabase',
-    'migrations',
-    '20261112131749_repuestos_stock_mover.sql',
-  )
-  const sql = readFileSync(archivo, 'utf8')
+  // Todas las migraciones (nunca un archivo por su nombre: cambia al aplastar).
+  const sql = migracionesEnOrden()
+    .map((m) => m.texto)
+    .join('\n')
 
-  it('cada mensaje y cada motivo de mover está en la migración del stock', () => {
+  it('cada mensaje y cada motivo de mover está en las migraciones', () => {
     for (const texto of [
       MENSAJE_DE_CANTIDAD_DE_STOCK,
       MENSAJE_DE_MOTIVO_INEXISTENTE,

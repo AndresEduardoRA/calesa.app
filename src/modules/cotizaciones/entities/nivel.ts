@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { compararNombresDeNivel } from '@/shared/lib/permisos'
 
 // Un nivel de acceso de la hoja (D7, paso 4.09): quién ve y quién edita una celda o una sección. Se configura en Configuración › Cotización ›
-// Niveles. Estas reglas son espejo de `nivel_*()` y `_nivel_nombre()` (`…20261019006100_niveles_de_acceso.sql`): la base las vuelve a decir, con
+// Niveles. Estas reglas son espejo de `nivel_*()` y `_nivel_nombre()`: la base las vuelve a decir, con
 // estos mismos textos, si algo llega de otro lado.
 //
 // **La pantalla no razona por el nombre ni por la clave de un nivel.** Qué admite cada uno lo dice la fila (`seRenombra`, `seRetira`,

@@ -24,7 +24,7 @@
     {
       "lint": "authenticated_security_definer_function_executable",
       "clave": "authenticated_security_definer_function_executable_public_limpieza_el_v public.vehiculos",
-      "motivo": "Columna calculada de `vehiculos` (filtro, insignia, banner): definer porque llama a `_limpieza_fecha`, `_limpieza_proxima` y `_limpieza_ancla`, que sólo ejecuta service_role. Con una fila armada a mano revela un bit por id de vehículo conocido (anclado por conservado, documentos, gastos, pagos, cotización final o bloqueo); los ids son uuid y hay que conocerlos. Acotarla relee la fila bajo RLS por fila listada, ya descartado (docs/DECISIONES.md, «P-limpieza: no releer la fila»)."
+      "motivo": "Columna calculada de `vehiculos` (filtro, insignia, banner): definer porque llama a `_limpieza_fecha`, `_limpieza_proxima` y `_limpieza_ancla`, que sólo ejecuta service_role. Con una fila armada a mano revela un bit por id de vehículo conocido (anclado por conservado, documentos, gastos, pagos, cotización final o bloqueo); los ids son uuid y hay que conocerlos. Acotarla relee la fila bajo RLS por fila listada, ya descartado (docs/DECISIONES.md)."
     },
     {
       "lint": "authenticated_security_definer_function_executable",

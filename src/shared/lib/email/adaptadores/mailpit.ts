@@ -2,7 +2,7 @@ import { fallo, ok } from '../../errores'
 import { destinatarios, type AdaptadorDeEmail } from '../tipos'
 
 // Mailpit, el correo local de Supabase (`[local_smtp]`, puerto 54624): su API de envío (`POST /api/v1/send`). Sirve para desarrollo y
-// para los e2e, que leen lo que llegó en Mailpit. Resend y Cloudflare llegan en la Fase 7 con el mismo contrato (docs/PLAN.md).
+// para los e2e, que leen lo que llegó en Mailpit. Resend y Cloudflare llegan en la Fase 7 con el mismo contrato (docs/PENDIENTES.md).
 export function crearAdaptadorMailpit(url: string, pedir: typeof fetch = fetch): AdaptadorDeEmail {
   const destino = `${url.replace(/\/+$/, '')}/api/v1/send`
   return async (mensaje, remitente) => {

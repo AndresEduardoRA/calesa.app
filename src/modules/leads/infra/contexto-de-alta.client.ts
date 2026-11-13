@@ -2,8 +2,8 @@
 // seguimiento, el último origen de quien lo abre, el código de país y la ciudad y el país de la empresa: `lead_alta_contexto()`) y el layout
 // de campos (`leads_campos`). Dos pedidos en paralelo, desde el navegador, la primera vez que se pide el drawer (o antes, cuando el puntero
 // llega al botón); antes los leía el layout `(app)` en el servidor en cada pantalla y viajaban en su documento (~26 KB con 100 orígenes y
-// 100 tipos, `docs/RENDIMIENTO.md` › «Cierre 5b-fix»). Su tope es el de escribir: 100 orígenes y 100 tipos (los tipos de seguimiento todavía
-// no tienen pantalla ni tope, `docs/PLAN.md` 5b-5). Lo leído vale un minuto y se tira cuando se crea o cambia un origen o un tipo.
+// 100 tipos, `docs/RENDIMIENTO.md`). Su tope es el de escribir: 100 orígenes y 100 tipos (los tipos de seguimiento todavía
+// no tienen pantalla ni tope, `docs/PENDIENTES.md` 5b-5). Lo leído vale un minuto y se tira cuando se crea o cambia un origen o un tipo.
 import { errorDePostgrest, type Resultado, ok } from '@/shared/lib/errores'
 import { memoriaDeLectura } from '@/shared/lib/memoria-de-lectura'
 import { createClient } from '@/shared/lib/supabase/browser'

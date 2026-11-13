@@ -15,7 +15,7 @@ import {
   type TerrenoDelPortal,
 } from './soporte/leads-portal'
 
-// @sin-celular-archivo: las pantallas de Configuración no llevan e2e en el celular (.claude/rules/e2e.md, «Pulido y rigor por tipo de paso»)
+// @sin-celular-archivo: las pantallas de Configuración no llevan e2e en el celular (.claude/rules/e2e.md › «Pruebas: sólo lo clave»)
 
 // Las plantillas por empresa (9.04-5) contra la app compilada y el Supabase local: la dueña cambia el mensaje del portal y, al darle
 // acceso a un lead, el texto para WhatsApp es el nuevo; la plantilla del embudo se guarda y se restablece. Que el embudo nuevo nazca con

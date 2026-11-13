@@ -314,7 +314,7 @@ begin
 end $$;
 
 -- ---------------------------------------------------------------------------------------------------------------------------------
--- La guarda: la policy y la función de antes (copias de `…20261013000100` y `…20261011000200`), con los mismos datos, rompen esos asserts en Beto. La dueña y Pía no
+-- La guarda: la policy y la función de antes (copias de las de antes del 4.11), con los mismos datos, rompen esos asserts en Beto. La dueña y Pía no
 -- llegan a la rama de la cartera: con la vieja cuestan lo mismo (se mide y se anota). La chica, con la vieja, se anota para comparar.
 -- ---------------------------------------------------------------------------------------------------------------------------------
 drop policy "vehiculos: leer" on public.vehiculos;

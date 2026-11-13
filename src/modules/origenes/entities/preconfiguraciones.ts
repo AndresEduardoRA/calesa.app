@@ -1,5 +1,5 @@
 // Lo que nace con un origen según su tipo: espejo de `origen_preconfigurar_campos()` y de
-// `origen_crear_flujo()` (supabase/migrations/…000300_triggers.sql y …20261014000200_apibara.sql).
+// `origen_crear_flujo()`, en la base.
 // Sirve sólo para mostrar qué va a nacer antes de crearlo: la base es la que crea.
 // `preconfiguraciones.test.ts` lee el SQL y falla si las dos listas divergen.
 import { CATALOGO_APIBARA, GRUPOS_DEL_CATALOGO } from './catalogo-apibara'

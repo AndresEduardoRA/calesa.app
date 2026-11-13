@@ -2,24 +2,30 @@
 
 Bandeja de inicio por rol y tablero de métricas con widgets personalizables por usuario; compone a los demás módulos por su API pública.
 
-**Fase 9 cerrada el 2026-11-13** (9.14): la conversión, la cola web y el margen del mes con datos reales los prueban R3, R4, R5 y R5b de `e2e/fase-9-recorrido.spec.ts` (R5b, el primer e2e del widget «Cola de la web») y `e2e/tablero.spec.ts`. Abierto que la toca: **9-14a** (la dueña no actúa sobre un lead ajeno sin tenerlo; `docs/PLAN.md` › «Fase 9» › «Los decide la persona»).
+Abierto: **9-14a** (la dueña no actúa sobre un lead ajeno sin tenerlo; `docs/PENDIENTES.md`).
 
 ## Entra y sale
 
-- Entra: permisos del usuario, `?periodo=` de la URL y, la preferencia `tablero.widgets` de `preferencias_usuario`.
-- Sale: `<Bandeja nombre permisos sinRol zona>` para `/` por `pantallas/inicio.ts` (sólo `src/app`; el `index.ts` no exporta componentes, hoy nada) y `<PanelDelTablero permisos periodo zona>` para `/tablero` por `pantallas/tablero.ts` (9.08-1). No lo consume ningún módulo.
-- Depende de: `leads` (recordatorios de hoy, leads sin seguimiento), `agenda` (mis tareas: `leerMisTareas`, 7.07-3), `equipo` (personas sin rol; `client.ts`: `guardarPreferencia` y `CLAVE_WIDGETS_DEL_TABLERO`), `logistica` (los tres bloques de la Fase 6: `bandejaLogistica`, una lectura por request, y las claves de URL de la cadena para «Ver todas», 6.12-2), `web` (8.05-1: `leerMisTurnos` por su `index.ts` y `<TarjetaTurno>` y `<ActualizarAlVolver>` por su `client.ts`) y `repuestos` (8.13-4: `leerRepuestosPorMover` y `leerEsperasDeInicio`, con los textos de sus filas y `rutaDeLaCadena` para «Ver todas»), por su entrada. Cuando los demás bloques tengan contenido: `cotizaciones`. «Ver todas» (`components/ver-todas-del-bloque.tsx`) lo dibuja cada bloque que lo necesita, bajo su lista.
+- Entra: permisos del usuario, `?periodo=` y la preferencia `tablero.widgets`.
+- Sale: `<Bandeja>` para `/` (`pantallas/inicio.ts`) y `<PanelDelTablero>` para `/tablero` (`pantallas/tablero.ts`); `index.ts` no exporta nada.
+- Depende, por su entrada, de `leads`, `agenda`, `equipo`, `logistica`, `web` y `repuestos`.
 
 ## Archivos clave
 
-- `entities/bandeja.ts` — `BLOQUES_BANDEJA` (cada bloque con los permisos que lo muestran), `bloquesVisibles(permisos)`, `ClaveDeBloque` y `TOPE_DE_BLOQUE` (5: cada bloque pide 6 y dice «5» o «más de 5», nunca un total).
-- `features/bandeja/bloques/<clave>.tsx` — **un archivo por bloque**, un Server Component que dibuja sólo su cuerpo (recibe `{ bloque, zona }`: `bloques/tipos.ts`); `bloques/registro.ts` los une con un `Record<ClaveDeBloque, …>` (el compilador pide las diez claves). **Quien llena un hueco edita sólo su archivo**: `vehiculos-trabados`, `documentos-por-aprobar` y `alertas-demora` (Fase 6), `tareas` (7), `repuestos-por-mover` y `esperas-repuestos` (8). Llenos hoy, todos: `recordatorios`, `leads-sin-seguimiento`, `equipo-sin-rol`, `tareas`, `turnos-web` (8.05-1: una `<TarjetaTurno>` por turno, sólo los míos), `repuestos-por-mover` y `esperas-repuestos` (8.13-4: una fila por ítem en vuelo, abre el panel del ítem; sin la RLS de `repuestos.ver`, el vacío) y los tres de logística (6.12-2: `vehiculos-trabados` sin «Ver todas», porque la cadena no filtra trabados). Un bloque lee por la entrada pública del módulo dueño, devuelve `<ErrorDeBloque/>` si falla y `<VacioDeBloque/>` si no hay nada.
-- `features/bandeja/components/bandeja.tsx` — `<Bandeja nombre permisos sinRol zona>`: el Inicio. Dibuja el marco de cada bloque (`marco-de-bloque.tsx`: `<section>` y `<h2>`; el título no se toca desde el bloque) y su cuerpo tras un `<Suspense>` con `await connection()` (`montaje-de-bloque.tsx`): uno lento o caído no frena a los demás. `lista-de-bloque.tsx`, `esqueleto-de-bloque.tsx` y `error-de-bloque.tsx` («Reintentar» = `router.refresh()`). Sin rol muestra «Aún no tienes un rol, avisa al dueño».
-- `entities/widgets.ts` — `WIDGETS_TABLERO` (catálogo: clave, título, permisos, grupo de RPC, tamaño, `disponible`; `margen-del-mes` pide `logistica.margen.ver` y `cola-web` `web.cola.gestionar`, no `tablero.metricas.ver`: hoy no hay huecos), `widgetsVisibles(permisos)` y `aplicarPreferencia(visibles, {orden, ocultos} | null)`. `entities/periodo.ts` (`?periodo=mes|mes-anterior|90d`, calculado con la zona de la empresa), `entities/cifras.ts` (una tasa nula es «Sin datos», nunca «0 %»; un margen nulo, «Sin venta registrada») y `entities/metricas.ts` (los payloads de las RPC con Zod y `RepositorioDeMetricas`).
-- `infra/queries/metricas.ts` — las RPC `tablero_leads` y `tablero_cotizaciones` (9.07; piden `tablero.metricas.ver`), `tablero_margen` (9.11; `logistica.margen.ver`, sólo sus orígenes, en moneda base) y `tablero_cola_web` (9.11; `web.cola.gestionar`): una por grupo de widgets, ventana ≤ 366 días, validadas con Zod; `composicion.ts` las une a la interfaz. «Convertidos» sale de `leads.cliente_desde` (sin grant: la leen esas RPC y queda en la foto de `actividad`, D12).
-- `features/metricas/` — `lectura.ts` (una llamada por grupo y request, con `cache()`), `widgets/<clave>.tsx` (un archivo por widget, Server Component que dibuja su cuerpo; `widgets/registro.ts` los une con un `Record<ClaveDeWidget, …>`; **quien llena un hueco edita su archivo**) y `components/` (`panel-del-tablero`, `marco-de-widget`, `montaje-de-widget` con `await connection()` tras su `<Suspense>`, `selector-de-periodo` con tres `<Link>`, `error-de-widget` con «Reintentar»). Cada cifra es un `role="group"` con nombre «Título: valor»; **una de dinero**, `cifra-de-monto` (el grupo sólo con el título y el monto por `<Monto>`, así el Modo Live no lo deja en el nombre). `widgets/margen-del-mes.tsx` y `widgets/cola-web.tsx` (9.11-2).
-- `entities/graficas.ts` (escala redonda, fracción, marcas de días, textos y topes `TOPE_DE_ORIGENES`/`TOPE_DE_PERSONAS`) y `features/metricas/graficas/` (`barras-por-dia`, `ranking`, `tabla-equivalente` con «Ver como tabla» en un `<details>`, `vacio-de-grafica`, `leyenda`): HTML y SVG de servidor con los tokens `--viz-*`; una gráfica es `role="img"`, no `group`. Cinco widgets anchos las usan (`leads-por-dia`, `cotizaciones-por-dia`, `leads-por-origen`, `leads-por-persona`, `cotizaciones-por-origen`).
-- `entities/personalizar.ts` (mover, alternar, `aPreferencia`, `filasDesde`) y `features/metricas/personalizar/`: «Personalizar» (`?panel=personalizar`, `<Drawer>` con `diferido()`; interruptor y subir/bajar por widget, guarda al cambiar con `guardarPreferencia` de `equipo/client`, «Restablecer» manda `null`). Sólo se ofrece lo que `widgetsVisibles(permisos)` deja ver; `/tablero` aplica la preferencia con `widgetsParaMontar(permisos, preferencia)`.
+- `entities/bandeja.ts` — `BLOQUES_BANDEJA` (cada bloque con sus permisos), `TOPE_DE_BLOQUE` (5: pide 6 y dice «5» o «más de 5»).
+- `features/bandeja/bloques/<clave>.tsx` y `features/metricas/widgets/<clave>.tsx` — **un archivo por bloque o widget**, unidos por su `registro.ts`
+  (un `Record` que exige todas las claves): quien llena un hueco edita sólo su archivo. Cada uno lee por la entrada pública del módulo dueño, tras su
+  propio `<Suspense>` con `await connection()` (uno lento o caído no frena a los demás), con estado de error («Reintentar») y vacío. «Ver todas» lo
+  dibuja cada bloque que lo necesita. El título del bloque lo pone el marco, no el bloque.
+- `entities/widgets.ts` — `WIDGETS_TABLERO` (permisos, grupo de RPC, tamaño). `entities/cifras.ts`: una tasa nula es «Sin datos», nunca «0 %»; un margen
+  nulo, «Sin venta registrada».
+- `infra/queries/metricas.ts` — una RPC por grupo de widgets, ventana ≤ 366 días: `tablero_leads` y `tablero_cotizaciones` (`tablero.metricas.ver`),
+  `tablero_margen` (`logistica.margen.ver`, sólo sus orígenes, en moneda base), `tablero_cola_web` (`web.cola.gestionar`). «Convertidos» sale de
+  `leads.cliente_desde` (sin grant: la leen esas RPC).
+- Cada cifra es un `role="group"` «Título: valor»; una de dinero (`cifra-de-monto`) lleva en el nombre sólo el título, y el monto por `<Monto>`, para que
+  el Modo Live no lo deje en el nombre. Una gráfica (HTML y SVG de servidor, «Ver como tabla») es `role="img"`.
+- «Personalizar» (`?panel=personalizar`): guarda al cambiar con `guardarPreferencia`; «Restablecer» manda `null`; sólo ofrece lo que
+  `widgetsVisibles(permisos)` deja ver.
 
 ## Tablas
 
@@ -29,9 +35,9 @@ Ninguna propia. Lee `preferencias_usuario` (equipo) y las vistas/RPC de los otro
 
 - La bandeja se arma por permisos, nunca por nombre de rol; un bloque nuevo declara sus permisos en `BLOQUES_BANDEJA`.
 - Cada contador de la bandeja lleva a la lista ya filtrada (misma URL con `nuqs`).
-- Un widget se muestra sólo si el usuario tiene su permiso; sin datos muestra el estado vacío con la acción que lo llena.
+- Un widget se muestra sólo con su permiso; sin datos, el estado vacío con la acción que lo llena.
 - Métricas de dinero pasan por `<Monto>` (Modo Live).
 
 ## Ojo
 
-- Las gráficas usan la escala de `--viz-*`; nunca colores sueltos. La skill `dataviz` no está en este árbol: regirse por `design/tokens.css` y las decisiones D15 a D21 de `docs/pasos/9.08-2/decisiones.md`.
+- Las gráficas usan la escala de `--viz-*` de `design/tokens.css`; nunca colores sueltos.

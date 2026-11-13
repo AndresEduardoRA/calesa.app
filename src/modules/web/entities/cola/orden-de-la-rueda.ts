@@ -1,5 +1,5 @@
-// El orden de la rueda que dibuja el tablero (8.04-2): **espejo documentado** del paso 5 de `web.solicitar_asesor`
-// (`supabase/migrations/20261028180656_base.sql:19874-19882`). La base decide a quién va cada turno; esto sólo dibuja en qué orden la ruleta elegiría hoy
+// El orden de la rueda que dibuja el tablero (8.04-2): **espejo documentado** del paso 5 de `web.solicitar_asesor`.
+// La base decide a quién va cada turno; esto sólo dibuja en qué orden la ruleta elegiría hoy
 // entre las que están en la rueda. Antes de la ruleta la base mira el turno abierto del visitante y el pegajoso: pueden adelantarse, así que el número es el
 // orden de la ruleta, nunca una promesa de «le toca». Si la función de la base cambia de orden, este archivo y su test cambian con ella.
 import type { FilaDelTablero } from './tablero'

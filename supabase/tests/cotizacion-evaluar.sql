@@ -1,4 +1,4 @@
--- cotizacion_evaluar() contra evaluar_formula() (paso 4.06, prompt 2; docs/COTIZADOR.md › «En la base (4.06-2)»).
+-- cotizacion_evaluar() contra evaluar_formula() (paso 4.06, prompt 2; docs/COTIZADOR.md › «En la base»).
 -- `scripts/probar-schema.mjs` carga antes los JSON en tablas temporales (la base no lee archivos del repo):
 --   _corpus_del_motor ← supabase/tests/corpus-del-motor.json (el juego de 84 casos, el corpus diferencial y las fórmulas)
 -- La paridad: para cada caso REPRODUCIBLE se siembran en la base lo que `cotizacion_evaluar()` lee (la fórmula publicada del origen, sus

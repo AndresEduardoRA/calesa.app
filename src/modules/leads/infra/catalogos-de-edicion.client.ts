@@ -1,7 +1,7 @@
 // Lo que el panel de edición de la ficha necesita y la ficha no manda: el layout de campos y los orígenes y tipos de lead (también los
 // apagados: el lead que conserva uno lo sigue nombrando y el panel lo ofrece marcado). Se leen en el navegador, con la sesión de quien mira,
 // cuando el panel se abre: hasta 100 orígenes, 100 tipos y todos los campos del layout viajaban con el documento de la ficha en
-// cada visita, la use o no (`docs/RENDIMIENTO.md` › «Cierre 5b»). Es lo mismo que lee el servidor (`leads_campos` y `leads_catalogos()`):
+// cada visita, la use o no (`docs/RENDIMIENTO.md`). Es lo mismo que lee el servidor (`leads_campos` y `leads_catalogos()`):
 // la RLS de las dos tablas la lee toda sesión y qué recibe de cada lead lo decide la base.
 import { errorDePostgrest, fallo, ok, type Resultado } from '@/shared/lib/errores'
 import { createClient } from '@/shared/lib/supabase/browser'

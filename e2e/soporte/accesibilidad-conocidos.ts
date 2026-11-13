@@ -16,7 +16,7 @@ export const CONOCIDOS: Conocido[] = []
 
 // R7, los blancos táctiles de 44 px (9.12-5): dura en el celular en las pantallas de las fases 5 a 9. Lo que se arregló en sus módulos no puede
 // volver; lo que queda es de `shared/ui` (el marco, las pestañas, el interruptor, la casilla, «Abrir» de las listas) y su tamaño es de la persona
-// (`docs/PLAN.md` › «Pulido para la Fase 9»: WCAG 2.5.8 AA pide 24 px; los 44 px son la regla del proyecto). Cada uno vale en toda ruta de
+// (`docs/PENDIENTES.md`: WCAG 2.5.8 AA pide 24 px; los 44 px son la regla del proyecto). Cada uno vale en toda ruta de
 // esas pantallas con a lo más `max` apariciones, para que un segundo blanco chico del mismo descriptor no se esconda tras él.
 export const RUTAS_DE_LAS_FASES_5_A_9 = [
   /^\/(actividad|agenda|chat|datos|notificaciones|tablero)$/,

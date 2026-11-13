@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Deja un worktree de Orca listo para trabajar como un carril, con su propio stack de Supabase, sin pisar a la principal ni al otro
-# carril. Idempotente: corre las veces que haga falta. Se corre en el worktree del carril, nunca en la principal.
+# Deja un worktree (de Orca, de Claude Code o de `git worktree add`) listo para trabajar en paralelo con la principal: un «carril», con
+# su propio stack de Supabase y sus puertos (docs/FLUJO.md › «En paralelo»). Idempotente: corre las veces que haga falta. Se corre en
+# el worktree, nunca en la principal.
 #
-#   bash scripts/worktree/preparar.sh [a|b|c]   (sin carril: lo saca de la rama, `a/…`, `b/…` o `c/…`)
+#   bash scripts/worktree/preparar.sh [a|b|c]   (sin letra: la que ya tenía este worktree o la primera libre)
 #
 # 1) `.env.carril`: el project_id `importadora-<carril>` y los puertos con su desfase (scripts/lib/stack-local.mjs: a = +100, b = +200).
 #    Lo cargan el candado (`pnpm db:*`, `test:e2e`), `pnpm dev`, `pnpm funciones` y los scripts de medir: config.toml no se toca.
@@ -16,18 +17,19 @@ cd "$RAIZ"
 falta() { echo "✗ $1" >&2; exit 64; }
 
 if [ "$(git rev-parse --path-format=absolute --git-dir)" = "$(git rev-parse --path-format=absolute --git-common-dir)" ]; then
-  falta "esto es la principal: preparar.sh va en el worktree de un carril (lo crea Orca)."
+  falta "esto es la principal: preparar.sh va en un worktree (git worktree add, Orca o Claude Code)."
 fi
 PRINCIPAL=$(git worktree list --porcelain | sed -n '1s/^worktree //p')
 
 CARRIL="${1:-}"
+letra_de() { sed -n 's/^SUPABASE_PROJECT_ID=.*-\([a-z]\)$/\1/p' "$1/.env.carril" 2>/dev/null | head -n 1; }
+[ -n "$CARRIL" ] || CARRIL=$(letra_de "$RAIZ")
 if [ -z "$CARRIL" ]; then
-  case "$(git symbolic-ref --quiet --short HEAD || true)" in
-    a/*) CARRIL=a ;;
-    b/*) CARRIL=b ;;
-    c/*) CARRIL=c ;;
-    *) falta "no sé el carril: pásalo (a o b) o usa una rama a/… o b/…" ;;
-  esac
+  usadas=$(git worktree list --porcelain | sed -n 's/^worktree //p' | while IFS= read -r dir; do letra_de "$dir"; done)
+  for letra in a b c; do
+    grep -qx "$letra" <<<"$usadas" || { CARRIL=$letra; break; }
+  done
+  [ -n "$CARRIL" ] || falta "los tres carriles (a, b y c) están en uso: quita uno con scripts/worktree/quitar.sh en su worktree."
 fi
 
 # 1) .env.carril
@@ -72,7 +74,7 @@ mv .env.local.nuevo .env.local
 pnpm --silent env:check local >/dev/null || { pnpm --silent env:check local >&2; falta ".env.local incompleta (arriba, lo que falta)."; }
 echo "✓ .env.local"
 
-# 5) La base: con datos de demo si hay credenciales (en .env.demo, que Orca copia de la principal, o en el entorno).
+# 5) La base: con datos de demo si hay credenciales (en .env.demo, que se copia de la principal por .worktreeinclude, o en el entorno).
 if [ -f .env.demo ] || [ -n "${DEMO_DUENO_EMAIL:-}" ]; then
   bash scripts/demo/restaurar.sh --local
 else

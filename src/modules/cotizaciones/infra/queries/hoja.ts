@@ -6,7 +6,7 @@ import { hojaDesde } from '../../entities/hoja'
 import type { LectorDeHoja } from '../../entities/repositorios-de-hoja'
 
 // Lo que abre la hoja de cotizar: UNA llamada a `cotizacion_hoja()`, que ya recorta por nivel, trae la versión y la hora de la base y dice si la fórmula del origen no está
-// publicada. No lee cotizaciones ni el snapshot, y la respuesta pesa unos pocos KB (`docs/RENDIMIENTO.md`, «Paso 4.13 (1 de 4)»): ni lista ni cursor.
+// publicada. No lee cotizaciones ni el snapshot, y la respuesta pesa unos pocos KB (`docs/RENDIMIENTO.md`): ni lista ni cursor.
 const esquemaOrigen = z.guid()
 
 export const getHojaParaCotizar: LectorDeHoja = async (origenId) => {

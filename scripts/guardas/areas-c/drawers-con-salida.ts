@@ -1,5 +1,5 @@
-// Los `<Drawer>` del carril C que no llevan formulario: el panel de «fuera de regla» de los requisitos de fase (5.08). Es un pedazo de `DRAWERS`
-// (`drawers-con-salida.ts`, del A) que la guarda suma con `import.meta.glob('./areas-*/drawers-con-salida.ts')` (`registros-de-carriles.ts`).
+// Parte del registro de `<Drawer>`: el panel de «fuera de regla» de los requisitos de fase (5.08) y los de abajo. La guarda
+// (`drawers-con-salida.ts`) suma esta parte a `DRAWERS` con `import.meta.glob('./areas-*/drawers-con-salida.ts')` (`registros-de-carriles.ts`).
 import type { RegistroDeDrawer } from '../drawers-con-salida'
 
 export const REGISTRO: Record<string, RegistroDeDrawer> = {

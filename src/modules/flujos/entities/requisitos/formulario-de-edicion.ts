@@ -1,4 +1,4 @@
-// El formulario de «Editar» un requisito: qué se puede cambiar según su tipo (`requisito_guardar`, `…20261111222242_requisitos_guardar.sql`) y qué se manda:
+// El formulario de «Editar» un requisito: qué se puede cambiar según su tipo (`requisito_guardar`) y qué se manda:
 // sólo lo que cambió, y `null` para lo que se vació. El formulario no escribe «Bloqueante» (lo cambia el interruptor de la fila, con el aviso de impacto). Sin I/O.
 import type { RequisitoParaConfigurar } from '../flujo'
 import { CLAVE_CON_PORCENTAJE } from './claves'

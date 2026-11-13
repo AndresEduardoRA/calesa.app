@@ -1,5 +1,5 @@
 // El formulario de un tipo de documento: lo escrito, su validación y el pedido a la base. La validación es espejo de `_tipo_documento_validar()` y
-// `_tipo_documento_de_jsonb()` (`…20261111195259_tipos_documento_crear.sql`): la base las vuelve a decir, con estos mismos textos y estos mismos
+// `_tipo_documento_de_jsonb()`: la base las vuelve a decir, con estos mismos textos y estos mismos
 // campos en el `hint`, si algo llega de otro lado. Aquí sirve para mostrar el error junto al campo sin ir a la base.
 import {
   DIAS_MAXIMOS,

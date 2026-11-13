@@ -22,7 +22,7 @@ import { literal, sql } from './soporte/sql'
 test.describe.configure({ mode: 'serial' })
 
 // Lo que aguanta la página 1 con 5 lotes de 20 a la vista (la papelera de leads usa 3.000 con la misma forma, `escala-recorrido.spec.ts`) y su documento sin comprimir;
-// el JS en frío de la ruta, en KB con gzip (`presupuestos.ts` es del A: el presupuesto de esta ruta vive aquí hasta que lo mude, «Necesita del carril A»).
+// el JS en frío de la ruta, en KB con gzip (el presupuesto de esta ruta vive aquí y no en `soporte/presupuestos.ts`).
 const NODOS_DE_LA_PAPELERA_DE_COTIZACIONES = 3_000
 // El documento mide 91.005 B con la papelera vacía (el marco). Con 5 lotes × 20 filas medía 342.766 B en el 4.24-2 y, con «Purgar» en cada fila y «Purgar el lote»
 // (4.24-2b, la dueña tiene la clave), 452.015 B: ≈ 1 KB por botón, casi todo las 598 letras de clases de la base de `Button` (`src/shared/ui/button.tsx`). Lo que importa

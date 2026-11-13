@@ -1,4 +1,4 @@
-// Compilar el texto de UNA fila en su lugar (4.21-1, C3 a C6; docs/COTIZADOR.md › «El editor (4.21-1)»): lo puro de «escribo `=(remate+fees)*4%`
+// Compilar el texto de UNA fila en su lugar (4.21-1, C3 a C6; docs/COTIZADOR.md › «El editor»): lo puro de «escribo `=(remate+fees)*4%`
 // en una fila y la fórmula se vuelve a armar». Usa `compilarExpresion()` (4.07, que no se toca) con el contexto de la fila: lo que está antes de su
 // primera auxiliar. Puro, nunca lanza (errores como valores), no toca lo que recibe y lineal con el medidor. `compilar-fila.ts` suma la pregunta
 // antes de pisar un ⚙ (C10); `texto-vigente.ts` compila con esto el texto guardado.

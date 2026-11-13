@@ -10,8 +10,8 @@ import {
   problemasDelWorkflow,
 } from './workflows'
 
-// Las reglas de CI (`docs/DECISIONES.md`, «CI-1»): cada job con su tope de minutos, permisos de lectura, acciones fijadas por SHA y
-// sólo de GitHub (o con su excepción escrita), nada de `latest`, lo que mide tiempo fuera de CI (docs/PLAN.md, 9-4 a 9-6), el e2e en
+// Las reglas de CI: cada job con su tope de minutos, permisos de lectura, acciones fijadas por SHA y
+// sólo de GitHub (o con su excepción escrita), nada de `latest`, lo que mide tiempo fuera de CI (docs/PENDIENTES.md, 9-6), el e2e en
 // bloques con E2E_COMPLETO y escritorio o ambos, el diff con la historia entera y Playwright sin reintentos. Desde CI-1b: un dispatch
 // con su propio grupo y sin cancelarse, `db:carreras` sólo en su job manual con su input apagado, y la espera de cada función edge.
 const WORKFLOWS = '.github/workflows'
@@ -69,31 +69,21 @@ describe('los workflows del repo cumplen', () => {
     expect(jobsDe(ci).map((j) => j.nombre)).toEqual([
       'nivel-1',
       'pruebas',
-      'carriles',
       'cambios',
       'base',
       'carreras',
       'e2e-build',
       'e2e',
+      'listo',
     ])
   })
 })
 
 // Cada mutación rompe una regla en el ci.yml real y la guarda tiene que caer con el motivo.
-// CI por niveles y carriles (docs/ORCA.md): la guarda de carriles en cada PR, sobre todo el diff; los e2e del PR según
-// scripts/e2e-dirigidos.mjs; el completo cada noche.
-describe('ci.yml por niveles y carriles', () => {
+// CI por niveles (docs/FLUJO.md): los e2e del PR según scripts/e2e-dirigidos.mjs y el completo cada noche. El título, las migraciones
+// del PR y `listo`, el único check que main exige: `workflows-flujo.test.ts`.
+describe('ci.yml por niveles', () => {
   const job = (nombre: string) => jobsDe(ci).find((j) => j.nombre === nombre)?.bloque ?? ''
-
-  it('el job carriles corre en cada PR, con la historia entera y las dependencias, la guarda de carriles de la base', () => {
-    const carriles = job('carriles')
-    expect(carriles).toMatch(/if: github\.event_name == 'pull_request'/)
-    expect(carriles).toMatch(/fetch-depth: 0/)
-    const orden = ['./.github/acciones/preparar', 'worktree add --detach .guarda-base "$BASE_PR"']
-    orden.push('node .guarda-base/scripts/guardas/carriles.mjs "$BASE_PR" "$RAMA"')
-    const en = orden.map((t) => carriles.indexOf(t))
-    expect(en.every((i) => i >= 0) && [...en].sort((a, b) => a - b)).toEqual(en)
-  })
 
   it('el PR elige sus e2e con scripts/e2e-dirigidos.mjs, y la matriz y los specs salen de esa elección', () => {
     expect(job('cambios')).toContain(
@@ -106,7 +96,7 @@ describe('ci.yml por niveles y carriles', () => {
     }
   })
 
-  it('`pnpm test` corre en 3 partes, cada una en su job, y su nombre sigue siendo del Nivel 1 (rojo firme del coordinador)', () => {
+  it('`pnpm test` corre en 3 partes, cada una en su job', () => {
     const pruebas = job('pruebas')
     expect(pruebas).toMatch(/name: Nivel 1 · tests, parte \$\{\{ matrix\.parte \}\} de 3/)
     expect(pruebas).toMatch(/parte: \[1, 2, 3\]/)
@@ -128,7 +118,7 @@ describe('las mutaciones caen', () => {
       'un job sin timeout-minutes',
       /( {4}timeout-minutes: 5\n)/,
       '',
-      /job carriles no tiene timeout-minutes/,
+      /job cambios no tiene timeout-minutes/,
     ],
     [
       'una acción de GitHub por tag',

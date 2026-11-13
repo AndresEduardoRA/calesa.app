@@ -1,5 +1,5 @@
-// El formulario de «Agregar requisito» de forma «Dato»: lo escrito, su validación y lo que se manda. Espejo de `_requisito_forma()` y `_requisito_validar()`
-// (`…20261111222241_requisitos_crear.sql`): la base vuelve a decir cada motivo, con el campo en el `hint`, si algo llega de otro lado. Sin I/O.
+// El formulario de «Agregar requisito» de forma «Dato»: lo escrito, su validación y lo que se manda. Espejo de `_requisito_forma()` y `_requisito_validar()`:
+// la base vuelve a decir cada motivo, con el campo en el `hint`, si algo llega de otro lado. Sin I/O.
 import { leerNumeroTipeado } from '@/shared/lib/numero-tipeado'
 import type { AmbitoDeFlujo } from '../flujo'
 import { CLAVE_CON_PORCENTAJE, CLAVES_POR_AMBITO } from './claves'

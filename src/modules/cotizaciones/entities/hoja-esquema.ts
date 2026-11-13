@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { ANCHOS, EFECTOS_DE_INTERRUPTOR, PRESENTACIONES, SECUNDARIOS } from './diseno'
 import { esquemaCampo, esquemaId, FORMATOS } from './nodos'
 
-// Lo que la hoja de cotizar lee al abrir (paso 4.13, `cotizacion_hoja()` en `…20261019008900_cotizacion_hoja.sql`): el diseño publicado de un origen RECORTADO al nivel de
+// Lo que la hoja de cotizar lee al abrir (paso 4.13, `cotizacion_hoja()`): el diseño publicado de un origen RECORTADO al nivel de
 // quien mira, con lo que la hoja necesita para dibujarse sin otra consulta, la versión de la fórmula, la hora de la base y la hoja abierta firmada (`p_abierta` de
 // `cotizacion_crear` y de `cotizacion_evaluar`, D2, 4-27 y 4-28) o el estado «sin publicar». Lo que la persona no ve no llega: ni su id, ni su etiqueta, ni su valor, ni su tono, ni su ayuda; lo que ve y no edita
 // llega con su motivo. Este tipo es lo único que la pantalla conoce de la respuesta: lo que la base manda y no figura acá se cae al leerla (`z.object` no es estricto).

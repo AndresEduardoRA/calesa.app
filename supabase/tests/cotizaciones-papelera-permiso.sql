@@ -5,8 +5,6 @@
 --   T1. La fila del catálogo (cada campo), que el dueño la tiene con «todos» y sin origen, y el texto nuevo de la de vehículos.
 --   T2. Las tres genéricas (`papelera_listar`, `papelera_restaurar`, `papelera_purgar`) piden la clave nueva: con la de vehículos ya no se ve, restaura ni purga lo
 --       ajeno; quien envió ve y restaura lo suyo; sin sesión (el job) se purga igual. V y E van antes de crear a K (K nombra la clave nueva, que antes no existía).
---   T3. La migración, ejecutada otra vez sobre una base con roles propios (como la nube): concede la clave al dueño y a todo rol con alguna concesión de la de
---       vehículos, con «todos» y sin origen, a nadie más; y ejecutarla de nuevo no cambia nada. El texto llega en `_migracion_cpp` (`DATOS_DE_PRUEBA`).
 --   T4. Ninguna genérica nombra la clave de vehículos, las tres nombran la nueva, y siguen con `prosecdef`, con `search_path = ''` y sin `execute` para anon ni PUBLIC.
 
 -- Una persona activa con un rol propio y estas concesiones (todos los orígenes, alcance «todos»).
@@ -165,55 +163,6 @@ begin
   if (select purgado_en from public.lotes_papelera where id = l_j) is null then raise exception 'sin sesión el lote no quedó purgado'; end if;
 end $$;
 reset role;
-rollback;
-
--- @test papelera de cotizaciones: la migración concede la clave al dueño y a quien tenía la de vehículos, y volver a ejecutarla no cambia nada (T3)
-begin;
-do $$
-declare
-  o uuid := (select id from public.origenes order by clave limit 1); r1 uuid; r2 uuid; v_antes jsonb; v_despues jsonb; v_n int; v_mal text[];
-  v_sql text := (select doc #>> '{}' from _migracion_cpp);
-begin
-  if v_sql is null or v_sql !~ 'cotizaciones\.papelera\.purgar' then raise exception 'la migración del 4.15-7 no llegó o no nombra la clave'; end if;
-  select to_jsonb(p) into v_antes from public.permisos p where p.clave = 'cotizaciones.papelera.purgar';
-  if v_antes is null then raise exception 'no existe la clave cotizaciones.papelera.purgar en el catálogo'; end if;
-
-  insert into public.roles (clave, nombre) values ('cpp_r1', 'CPP R1') returning id into r1;
-  insert into public.roles (clave, nombre) values ('cpp_r2', 'CPP R2') returning id into r2;
-  insert into public.roles_permisos (rol_id, permiso_clave, origen_id, alcance) values (r1, 'vehiculos.papelera.purgar', o, 'propios');
-  insert into public.roles_permisos (rol_id, permiso_clave, alcance) values (r2, 'vehiculos.editar', 'todos');
-  delete from public.roles_permisos where permiso_clave = 'cotizaciones.papelera.purgar';
-  update public.permisos set nombre = 'pisado', descripcion = 'pisado', aplicado_en = 'pisado' where clave = 'vehiculos.papelera.purgar';
-
-  execute v_sql;
-
-  -- Quién la tiene: el dueño y todo rol con alguna concesión de la de vehículos, con «todos» y sin origen; nadie más.
-  select array_agg(r.clave order by r.clave) into v_mal from public.roles r
-   where (r.clave = 'dueno' or exists (select 1 from public.roles_permisos x where x.rol_id = r.id and x.permiso_clave = 'vehiculos.papelera.purgar'))
-     and not exists (select 1 from public.roles_permisos x where x.rol_id = r.id and x.permiso_clave = 'cotizaciones.papelera.purgar' and x.alcance = 'todos' and x.origen_id is null);
-  if v_mal is not null then raise exception 'la migración no concedió la clave con «todos» y sin origen a: %', v_mal; end if;
-  select array_agg(distinct r.clave order by r.clave) into v_mal from public.roles r join public.roles_permisos x on x.rol_id = r.id and x.permiso_clave = 'cotizaciones.papelera.purgar'
-   where r.clave <> 'dueno' and not exists (select 1 from public.roles_permisos y where y.rol_id = r.id and y.permiso_clave = 'vehiculos.papelera.purgar');
-  if v_mal is not null then raise exception 'la migración concedió la clave a roles sin la de vehículos: %', v_mal; end if;
-  if (select count(*) from public.roles_permisos where permiso_clave = 'cotizaciones.papelera.purgar' and (alcance <> 'todos' or origen_id is not null)) <> 0 then
-    raise exception 'la migración concedió la clave con otro alcance o con origen'; end if;
-  if not exists (select 1 from public.roles_permisos where rol_id = r1 and permiso_clave = 'cotizaciones.papelera.purgar') then raise exception 'R1 (la de vehículos en un origen, «propios») no la recibió'; end if;
-  if exists (select 1 from public.roles_permisos where rol_id = r2 and permiso_clave = 'cotizaciones.papelera.purgar') then raise exception 'R2 (sin la de vehículos) la recibió'; end if;
-
-  -- La fila del catálogo es la del seed, y la de vehículos vuelve a decir lo suyo.
-  select to_jsonb(p) into v_despues from public.permisos p where p.clave = 'cotizaciones.papelera.purgar';
-  if v_despues is distinct from v_antes then raise exception 'la migración y el seed no dicen lo mismo de la clave: % contra %', v_despues, v_antes; end if;
-  if (select jsonb_build_object('nombre', nombre, 'descripcion', descripcion, 'aplicado_en', aplicado_en) from public.permisos where clave = 'vehiculos.papelera.purgar')
-     is distinct from jsonb_build_object('nombre', 'Vaciar la papelera de vehículos', 'descripcion', 'Ver toda la papelera de vehículos, restaurar y purgar antes de tiempo',
-       'aplicado_en', 'vehiculos_papelera_*, policy lotes_papelera') then
-    raise exception 'la migración no dejó el texto de la de vehículos'; end if;
-
-  -- Otra vez: ni una concesión ni un campo de más.
-  select count(*) into v_n from public.roles_permisos where permiso_clave = 'cotizaciones.papelera.purgar';
-  execute v_sql;
-  if (select count(*) from public.roles_permisos where permiso_clave = 'cotizaciones.papelera.purgar') <> v_n then raise exception 'ejecutarla otra vez duplicó concesiones'; end if;
-  if (select to_jsonb(p) from public.permisos p where p.clave = 'cotizaciones.papelera.purgar') is distinct from v_antes then raise exception 'ejecutarla otra vez cambió el catálogo'; end if;
-end $$;
 rollback;
 
 -- @test papelera de cotizaciones: las genéricas nombran la clave nueva y no la de vehículos, y siguen con prosecdef sin execute para anon ni PUBLIC (T4)

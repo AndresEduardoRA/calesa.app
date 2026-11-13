@@ -1,4 +1,4 @@
--- La semilla del cotizador (paso 4.08, prompt 3; `supabase/seed.sql` y `supabase/semillas/cotizador-*.sql`; docs/COTIZADOR.md › «La semilla (4.08-3)»).
+-- La semilla del cotizador (paso 4.08, prompt 3; `supabase/seed.sql` y `supabase/semillas/cotizador-*.sql`; docs/COTIZADOR.md).
 -- Corre ANTES que `humo.sql`: mira la base tal como la deja el seed (la v1 de cada fórmula, los tipos de cambio sin tocar) y el humo la modifica
 -- (publica la v2 de subasta_usa con el ⚙, cambia el oficial). Por eso cada bloque que necesita una persona la crea dentro de una transacción
 -- que se revierte: el humo exige que su dueña sea la primera cuenta de la base.

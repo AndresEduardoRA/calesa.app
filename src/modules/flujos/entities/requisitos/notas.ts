@@ -1,5 +1,5 @@
 // Las notas de un requisito (opcionales, hasta 500 caracteres): la regla es una sola para el dato, el documento, la espera y la edición. Espejo de
-// `_requisito_validar()` (`…20261111222241_requisitos_crear.sql`). Sin I/O.
+// `_requisito_validar()`. Sin I/O.
 export const LARGO_MAXIMO_DE_LAS_NOTAS = 500
 export const MENSAJE_DE_NOTAS_LARGAS = `Las notas tienen hasta ${String(LARGO_MAXIMO_DE_LAS_NOTAS)} caracteres.`
 

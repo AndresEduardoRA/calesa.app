@@ -1,5 +1,5 @@
 // Por qué se rechaza una plantilla de la tarjeta. El código es el contrato con `validar_plantilla()` de la base (la regla en `detail`, el donde en `hint`) y
-// con el juego `casos-de-plantilla.json`; el mensaje es el mismo `format` de la base (20261106185900_plantilla_validar.sql), con el donde entre comillas latinas.
+// con el juego `casos-de-plantilla.json`; el mensaje es el mismo `format` de la base, con el donde entre comillas latinas.
 
 // En el orden fijo de la base: el primer rechazo manda.
 export const REGLAS_DE_PLANTILLA = [

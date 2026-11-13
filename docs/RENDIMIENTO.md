@@ -1,349 +1,607 @@
 # Rendimiento
 
-Versión completa (mediciones, historia): `docs/archivo/RENDIMIENTO.md`, sólo con grep.
-
-Los topes vigentes de cada superficie que crece, su índice y el comando que los mide. La regla está en `.claude/rules/escala.md`. Un presupuesto no se sube para hacer pasar una medición: se explica o se arregla.
+Los topes vigentes de cada superficie que crece, su índice y el comando que los mide. La regla está en `.claude/rules/escala.md`. Un
+presupuesto no se sube para hacer pasar una medición: se explica o se arregla (salvo la regla del 5 % de `.claude/rules/e2e.md`).
 
 ## Cómo se mide
 
-- `pnpm db:medir` (`scripts/medir-listado.mjs`): corre cada `supabase/tests/medir-*.sql` contra el Supabase local en una transacción que se revierte; como `authenticated`, plan genérico (`force_generic_plan`), `EXPLAIN (ANALYZE, BUFFERS)`, mediana de 5 de 7 corridas. Asserta la forma del plan (índice nombrado, sin recorrer la tabla, lo que se descarta). Imprime la carga, la presión de disco y de CPU, el WAL y los checkpoints de cada corrida.
-- `pnpm db:sembrar-volumen` (50.000 leads → 62.000 con los de la siembra; `-- --leads 200000` → 212.000; 10.000 vehículos, 200.000 seguimientos, 20.000 recordatorios, 8.000 oportunidades en una etapa; 50.000 cotizaciones de `sembrar-cotizaciones.sql`: la dueña 2/5, Ana 1/25, 70 % con vehículo, 2 % finales, 2 % en la papelera con su lote; termina en `vacuum analyze`) y `pnpm db:medir:volumen`: `medir-escala.sql` (cada consulta del inventario, como la dueña con «todos» y como Ana con «propios»), `medir-jobs.sql`, `medir-cartera-reciente.sql`, `medir-bajas.sql`, `medir-importacion-volumen.sql`, `medir-lead-oportunidades.sql` (1.000 oportunidades en un lead y 20.000 de fondo, en su transacción), `medir-cotizacion-revisiones-fecha.sql` (el salto a una fecha de las revisiones con 5.000 en la cotización, en su transacción), `medir-equipo.sql`, `medir-rueda.sql`, `medir-evaluar.sql`, `medir-cotizaciones-lectura.sql`, `medir-vehiculos-lectura.sql`. Después, `pnpm db:reset`. Una medición que siembra dentro de su transacción hace `vacuum` antes y después (las filas muertas suman buffers). Una que siembra sus cotizaciones vacía la tabla en su transacción (`truncate … cascade`, que el `rollback` devuelve; 4.16-3): mide sólo las suyas y no deja filas muertas.
+- `pnpm db:medir` (`scripts/medir-listado.mjs`, títulos en `scripts/mediciones.mjs`): cada `supabase/tests/medir-*.sql` en una transacción
+  que se revierte, como `authenticated`, plan genérico (`force_generic_plan`), `EXPLAIN (ANALYZE, BUFFERS)`, mediana de 5 de 7 corridas.
+  Asserta la forma del plan (índice nombrado, sin recorrer la tabla, lo que se descarta).
+- `pnpm db:sembrar-volumen` (62.000 leads; `-- --leads 200000` → 212.000; 10.000 vehículos, 200.000 seguimientos, 20.000 recordatorios,
+  8.000 oportunidades en una etapa; 50.000 cotizaciones de `sembrar-cotizaciones.sql`: la dueña 2/5, Ana 1/25, 70 % con vehículo, 2 %
+  finales, 2 % en la papelera; termina en `vacuum analyze`) y `pnpm db:medir:volumen` (`medir-escala.sql`, como la dueña con «todos» y Ana
+  con «propios», y las demás `medir-*.sql` de volumen). Después, `pnpm db:reset`. Una medición que siembra en su transacción hace `vacuum`
+  antes y después; una que siembra sus cotizaciones vacía la tabla en su transacción (`truncate … cascade`, que el `rollback` devuelve).
 - Buffers por relación (`pg_stat_get_xact_blocks_fetched`), no totales: el autovacuum de las tablas de permisos mueve los totales.
-- Pantalla: `E2E_VOLUMEN=1 pnpm test:e2e` (volumen sembrado por SQL en `e2e/soporte/sql.ts`): pedidos, bytes de la primera respuesta y nodos del DOM, sin cronómetros.
-- JS en frío: suma de los `.js` (gzip, sin caché) que el documento de la pantalla nombra (`e2e/soporte/js-en-frio.ts`); lo guarda `e2e/presupuesto-js.spec.ts` con `e2e/soporte/presupuestos.ts`.
-- Los jobs y la baja con transacciones de verdad: `medir-jobs.sql`, `medir-bajas.sql` (pausa el cron `equipo-bajas` mientras mide). `pnpm db:carreras` para los candados.
-- Los ms de lo que escribe a disco dependen de un `fsync` lento (5a-42): un job o una baja que cae sin que haya cambiado el trabajo (lotes, buffers) se anota con su carga y no se afloja el tope ni se reintenta a ciegas.
+- Pantalla: `E2E_VOLUMEN=1 pnpm test:e2e` (volumen por SQL en `e2e/soporte/sql.ts`): pedidos, bytes de la primera respuesta y nodos del
+  DOM, sin cronómetros.
+- JS en frío: suma de los `.js` (gzip, sin caché) que nombra el documento (`e2e/soporte/js-en-frio.ts`); topes en
+  `e2e/soporte/presupuestos.ts`, los hace cumplir `e2e/presupuesto-js.spec.ts`.
+- Jobs y baja con transacciones de verdad: `medir-jobs.sql`, `medir-bajas.sql` (pausa el cron `equipo-bajas`). `pnpm db:carreras` para los
+  candados.
+- Los ms de lo que escribe a disco dependen de un `fsync` lento: un job o una baja que cae sin que cambie el trabajo (lotes, buffers) se
+  anota con su carga; no se afloja el tope ni se reintenta a ciegas.
 
 ## Seguimientos de un lead
 
 Sección «Seguimientos» de la ficha y pestaña del drawer.
 
-- Página y tope: 20 por «Ver más», hasta 500 (`TAMANO_DE_PAGINA`, `TOPE_DE_LO_CARGADO`); más allá, «Ir a una fecha». Lectura: `lead_seguimientos()`.
-- Índices: `seguimientos_lead_autor_idx (lead_id, usuario_id, ocurrido_en desc, id desc)` y `seguimientos_lead_publicos_idx` (parcial). «Recargar» tras un conflicto: primera página + `lead_seguimiento(p_lead, p_id)` por la clave primaria, ≤ 2 pedidos.
-- Primera respuesta ≤ 24 KB con 20 ítems; 1 pedido al abrir la pestaña (+ los tipos activos). Nodos del drawer: ~1.700 tras 5 «Ver más», ~7.000 en el tope (`content-visibility: auto` por ítem).
-- Mide: `db:medir` (página 1 y 501 ~7 ms); `e2e/leads-rapido-volumen.spec.ts`.
+- 20 por «Ver más», hasta 500 (`TAMANO_DE_VER_MAS`, `TOPE_DE_LO_CARGADO`); más allá, «Ir a una fecha». Lectura: `lead_seguimientos()`.
+- Índices: `seguimientos_lead_autor_idx (lead_id, usuario_id, ocurrido_en desc, id desc)` y `seguimientos_lead_publicos_idx` (parcial).
+  «Recargar» tras un conflicto: primera página + `lead_seguimiento(p_lead, p_id)` por la PK, ≤ 2 pedidos.
+- Primera respuesta < 24 KB con 20 ítems; 1 pedido al abrir la pestaña (+ los tipos activos). Nodos del drawer ≤ 2.500 tras 5 «Ver más» y
+  ≤ 9.000 en el tope (`content-visibility: auto` por ítem).
+- Mide: `db:medir` (página 1 y 501); `e2e/leads-rapido-volumen.spec.ts`.
 
 ## Recordatorios de un lead
 
-- Página y tope: 20 por «Ver más», hasta 500 por lista; «Completados» no se lee hasta abrirse. Lectura: `lead_recordatorios(p_lead, p_completados, …)` sobre la tabla; por id, `recordatorios_vista`.
-- Índices (parciales): `recordatorios_lead_pendientes_idx (usuario_id, lead_id, recordar_en, id)` y `recordatorios_lead_completados_idx (usuario_id, lead_id, completado_en desc, id desc)`.
-- Primera respuesta ≤ 14 KB con 20 ítems; 1 pedido al abrir (los pendientes), 1 más al abrir «Completados»; «Recargar»: 1 pedido, por su id.
+- 20 por «Ver más», hasta 500 por lista; «Completados» no se lee hasta abrirse. Lectura: `lead_recordatorios(p_lead, p_completados, …)`;
+  por id, `recordatorios_vista`.
+- Índices (parciales): `recordatorios_lead_pendientes_idx (usuario_id, lead_id, recordar_en, id)` y
+  `recordatorios_lead_completados_idx (usuario_id, lead_id, completado_en desc, id desc)`.
+- Primera respuesta < 14 KB con 20 ítems; 1 pedido al abrir, 1 más al abrir «Completados»; «Recargar»: 1 pedido, por su id.
 - Aviso de vencidos de la ficha: `lead_ficha()` cuenta hasta 21 por `recordatorios_lead_pendientes_idx` («más de 20»).
 - Mide: `db:medir` (sin filas descartadas en ningún plan); `e2e/leads-rapido-volumen.spec.ts`.
 
 ## Agenda
 
-- Calendario: `agenda_rango()`, un pedido por rango de ≤ 45 días; tope 200 por clase (`limit 201`, `hay_mas` y `tope` en la respuesta). Índices:
+- Calendario: `agenda_rango()`, un pedido por rango de ≤ 45 días; tope 200 por clase (`limit 201`, `hay_mas` y `tope`). Índices:
   `eventos_inicio_idx`, `tareas_responsable_idx` (mías) o `tareas_vence_idx` (con `agenda.ver_todo`), `recordatorios_usuario_idx` y
   `vehiculos_cierre_subasta_idx` origen por origen. `eventos: leer` en línea: `tiene_permiso` como InitPlan y el destinatario por PK.
-- Límite sin assert: en un origen con «propios» la RLS descarta adentro los vehículos ajenos, acotado a las subastas vivas del origen en el rango (el
-  mismo índice y límite que 4-23 anotó para el panel, `medir-panel-cierre-subasta.sql`).
-- «Sin fecha»: `agenda_tareas_sin_fecha()`, 20 por «Ver más» (50 como mucho), `tareas_sin_fecha_idx`, cursor `(creado_en, id)`.
-- «¿A quién?»: `agenda_quienes_reciben()`, ≥ 3 letras o dígitos, tope 20, sobre `perfiles` (el equipo, no crece).
-- Sin siembra de volumen ni `medir-*.sql`: `eventos` y `tareas` no son tablas que crecen (7.06-2, D29).
+- Límite sin assert: en un origen con «propios» la RLS descarta adentro los vehículos ajenos, acotado a las subastas vivas del origen en el
+  rango (el mismo de `medir-panel-cierre-subasta.sql`).
+- «Sin fecha»: `agenda_tareas_sin_fecha()`, 20 por «Ver más» (máx. 50), `tareas_sin_fecha_idx`, cursor `(creado_en, id)`.
+- «¿A quién?»: `agenda_quienes_reciben()`, ≥ 3 letras o dígitos, tope 20, sobre `perfiles`.
+- Sin volumen ni `medir-*.sql`: `eventos` y `tareas` no son tablas que crecen.
 
-## Embarques y contenedores (6.08-3)
+## Embarques y contenedores
 
-- `/logistica/embarques`: `transporte_grupos()` (`security definer`) por cursor opaco = el id de una fila de la clave siguiente, de a `TAMANO_DE_PAGINA_POR_DEFECTO` (50; la base acota con `_acotar_pagina(p_tope, 50, 100)`), sin selector `?por=`, sin total y sin `offset`. Índices: `transportes_booking_idx` y `transportes_contenedor_idx` (parciales, por la clave). La llamada recorre **a lo sumo 2.000 filas**: si no llena la página devuelve `cortada` y la pantalla ofrece «Seguir buscando». Registrada en `scripts/guardas/areas-b/paginas-en-la-base.ts`.
-- El resumen lee `transporte_grupo()` (≤ 200 unidades, una llamada, sin N+1: por eso no trae «días en la fase») y los catálogos de navieras y puertos se leen una vez por pedido (`cache()`, `.limit(201)`: decenas de filas).
-- **Sin medir con volumen:** no hay un `medir-*.sql` de transporte (sólo la prueba SQL de 6.07-3, `supabase/tests/areas/transporte/grupos.sql`, que fija el comportamiento); igual que Gastos, hasta medirlo no hay presupuesto de tiempo. Sin presupuesto de JS nuevo: el drawer sólo se monta con la clave en la URL y los huecos viajan con `diferido()`.
+- `/logistica/embarques`: `transporte_grupos()` (definer) por cursor opaco (el id de una fila de la clave siguiente), de a
+  `TAMANO_DE_PAGINA_POR_DEFECTO` (`_acotar_pagina(p_tope, 50, 100)`), sin `?por=`, total ni `offset`. Índices `transportes_booking_idx` y
+  `transportes_contenedor_idx` (parciales). Recorre **a lo sumo 2.000 filas**: si no llena la página devuelve `cortada` y la pantalla
+  ofrece «Seguir buscando». Registrada en `scripts/guardas/areas-b/paginas-en-la-base.ts`.
+- El resumen lee `transporte_grupo()` (≤ 200 unidades, una llamada, sin N+1: por eso no trae «días en la fase»); navieras y puertos, una vez
+  por pedido (`cache()`, `.limit(201)`).
+- **Sin medir con volumen** (lo fija `supabase/tests/areas/transporte/grupo.sql`): sin presupuesto de tiempo. Sin presupuesto de JS: el
+  drawer sólo se monta con la clave en la URL y los huecos van con `diferido()`.
 
-## Gastos y pagos (6.11-3)
+## Gastos y pagos
 
-- `/logistica/gastos`: `gastos_listar()` y `pagos_listar()` (invocadoras con `security definer` que filtran por origen y alcance), por cursor `(fecha desc, id desc)`, de a `TAMANO_DE_PAGINA_POR_DEFECTO` (50, más una), sin selector `?por=` (D9), sin total y sin `offset`. Índices: `gastos_fecha_idx` y `pagos_fecha_idx` (parciales `where eliminado_en is null`). Registradas en `scripts/guardas/areas-c/paginas-en-la-base.ts`.
-- **Sin medir con volumen** (abierto **6-5**, `docs/pasos/6.11-3/bitacora.md`): falta `supabase/tests/medir-gastos-pagos-listar.sql`. Con «propios» el filtro `en_cartera` por fila puede descartar filas al profundizar; hasta medirlo no hay presupuesto.
-- Las listas de un hueco de la unidad (`gastos_vehiculo_idx`, `pagos_vehiculo_idx`) llevan tope 50 + 1 con aviso y el camino «Ver todos en Gastos».
+- `/logistica/gastos`: `gastos_listar()` y `pagos_listar()` (definer, filtran por origen y alcance), cursor `(fecha desc, id desc)`, de a
+  `TAMANO_DE_PAGINA_POR_DEFECTO` + 1, sin `?por=`, total ni `offset`. Índices `gastos_fecha_idx` y `pagos_fecha_idx` (parciales
+  `where eliminado_en is null`). Registradas en `scripts/guardas/areas-c/paginas-en-la-base.ts`.
+- **Sin medir con volumen** (abierto 6-5, `docs/PENDIENTES.md`: falta `medir-gastos-pagos-listar.sql`). Con «propios» el `en_cartera` por
+  fila puede descartar al profundizar; hasta medirlo no hay presupuesto.
+- Listas de un hueco de la unidad (`gastos_vehiculo_idx`, `pagos_vehiculo_idx`): tope 50 + 1 con aviso y «Ver todos en Gastos».
 
-## Chat (7.08)
+## Chat
 
-- Lista: `chat_conversaciones()`, 20 por «Ver más» (50 como mucho), cursor `(ultimo_mensaje_en, id)`. Parte de `conversaciones_miembros_usuario_idx`
-  y lee `conversaciones` por su pk: ordena sólo las conversaciones de quien mira (directas ≤ personas del equipo, más sus grupos), no la tabla. No
-  leídos: ≤ 100 entradas de `mensajes_hilo_idx` por fila de la página (≤ 2.000 por página de 20; ≤ 5.000 con el máximo de 50).
-- Total: `chat_no_leidos()`, se detiene a los 100; peor caso, una sonda de índice por conversación de quien mira más 100 entradas.
-- Medido una vez con `EXPLAIN (analyze)` en una transacción revertida (7.08-3): con 200.000 conversaciones, nested loop desde las filas de
-  miembro; con 20.000, el planificador prefiere recorrer `conversaciones` (chica). Medido con valores literales: el plan genérico de plpgsql (`v_yo` como parámetro) no se midió. Sin siembra de volumen ni `medir-*.sql`: `conversaciones` y
-  `mensajes` no son tablas que crecen de `.claude/rules/escala.md`.
+- Lista: `chat_conversaciones()`, 20 por «Ver más» (máx. 50), cursor `(ultimo_mensaje_en, id)`. Parte de
+  `conversaciones_miembros_usuario_idx` y lee `conversaciones` por PK: ordena sólo las de quien mira. No leídos: ≤ 100 entradas de
+  `mensajes_hilo_idx` por fila (≤ 2.000 por página de 20; ≤ 5.000 con 50).
+- Total: `chat_no_leidos()`, se detiene a los 100; peor caso, una sonda por conversación de quien mira más 100 entradas.
+- Sin volumen ni `medir-*.sql` (`conversaciones` y `mensajes` no son tablas que crecen). El plan genérico de plpgsql no se midió.
 - Límite sin assert: una conversación que recibe un mensaje mientras se pagina sube y no reaparece abajo; la relectura de la cabeza la trae.
 
-## Hilo (7.09)
+## Hilo
 
-- El hilo se lee en el navegador: páginas de 21 filas (`tamano + 1`) por `mensajes_hilo_idx (conversacion_id, creado_en desc, id desc)`, sin `offset` ni `count`; tope de 500
-  con `<AvisoDeTope>` e `<IrAUnaFecha>` como camino a lo antiguo. La señal relee 20 filas (una sola por ráfaga, con debounce de 250 ms).
-- La cita de un mensaje respondido se lee **aparte**, por `mensajes_pkey` (`id in (…)`, ≤ 21 ids, y sólo si la página trae respuestas): el embed `responde` no sirve sobre una
-  relación a sí misma (PostgREST la rechaza por ambigua o la devuelve como arreglo de respuestas).
-- `chat_leer`, `mensaje_editar` y `mensaje_eliminar` son escrituras de una fila. El DOM es de a lo sumo 500 burbujas, cada una con un «⋯» (el contenido del menú sólo existe abierto).
-- Límite sin assert: un `UPDATE` (editar o borrar) de un mensaje más viejo que los 20 más nuevos no se refresca en la **otra** sesión hasta recargar o «Ver anteriores».
-  Sin siembra de volumen ni `medir-*.sql`: `mensajes` no es una tabla que crece de `.claude/rules/escala.md`; su consulta es la del índice medido en 7.08.
+- Se lee en el navegador: páginas de 21 (`tamano + 1`) por `mensajes_hilo_idx (conversacion_id, creado_en desc, id desc)`, sin `offset` ni
+  `count`; tope 500 con `<AvisoDeTope>` e `<IrAUnaFecha>`. La señal relee 20 filas (una por ráfaga, debounce de 250 ms).
+- La cita de un mensaje respondido se lee **aparte**, por `mensajes_pkey` (≤ 21 ids, sólo si la página trae respuestas): el embed
+  `responde` no sirve sobre una relación a sí misma (PostgREST la rechaza o la devuelve como arreglo).
+- `chat_leer`, `mensaje_editar` y `mensaje_eliminar` escriben una fila. DOM: ≤ 500 burbujas; el menú «⋯» sólo existe abierto.
+- Límite sin assert: editar o borrar un mensaje más viejo que los 20 más nuevos no se refresca en la **otra** sesión hasta recargar o «Ver
+  anteriores». Sin volumen ni `medir-*.sql`.
 
-## Inicio: la bandeja (9.02)
+## Inicio: la bandeja
 
-- Tres lecturas en el servidor, cada una `limit 6` y cada una tras el `<Suspense>` de su bloque (un bloque lento no frena a los demás): `recordatorios_vista` por `recordatorios_usuario_idx`; `leads_cartera_vista` por `leads_asesores_listado_idx` (cuesta lo que pesa la cartera de quien mira, no la tabla); `perfiles` por `perfiles_vigentes_orden_idx`.
-- Sin `count`, sin `offset`, sin N+1. No se sembró volumen: ninguna recorre `leads` entera.
-- **Turnos de la web (8.05-1):** el bloque `turnos-web` suma dos lecturas `limit 6` de `solicitudes_contacto_web` (`usuario_id = yo`, por `solicitudes_contacto_web_usuario_id_idx`; las `asignada`, por `solicitudes_web_asesor_abiertas_idx`) y, si hay vehículos, una de `web.vehiculos` por ids (`limit` = los ids). Acotadas por la cola (`max_abiertas`) y por las `vencida` de mi fila; sin `count`, `offset` ni N+1; no se sembró volumen. JS en frío de `/`: `e2e/presupuesto-js.spec.ts` sigue en verde (la tarjeta sólo se monta con turnos; el panel de vincular viaja con `diferido()`).
-- **Repuestos (8.13-4):** los bloques `repuestos-por-mover` y `esperas-repuestos` suman una lectura cada uno, `limit 6` sobre `repuestos_items` (por `repuestos_items_fase_id_idx`, orden `fase_desde`; sin índice propio: abierto 8-13c), con la fase, el proyecto y el título del vehículo embebidos; sin `count`, `offset` ni N+1; no se sembró volumen (tabla fuera de las que crecen). Cuerpos de servidor: sin JS nuevo en `/`.
+- Tres lecturas en el servidor, cada una `limit 6` tras el `<Suspense>` de su bloque: `recordatorios_vista` por
+  `recordatorios_usuario_idx`; `leads_cartera_vista` por `leads_asesores_listado_idx` (cuesta la cartera de quien mira); `perfiles` por
+  `perfiles_vigentes_orden_idx`. Ninguna recorre `leads`.
+- `turnos-web`: dos lecturas `limit 6` de `solicitudes_contacto_web` (`solicitudes_contacto_web_usuario_id_idx`; las `asignada`, por
+  `solicitudes_web_asesor_abiertas_idx`) y, si hay vehículos, una de `web.vehiculos` por ids. La tarjeta sólo se monta con turnos; el panel
+  de vincular va con `diferido()`.
+- `repuestos-por-mover` y `esperas-repuestos`: una lectura `limit 6` cada uno sobre `repuestos_items` (`repuestos_items_fase_id_idx`, orden
+  `fase_desde`; sin índice propio: abierto 8-13c, `docs/PENDIENTES.md`), con fase, proyecto y título embebidos. Server Components.
 
-## Inventario de escala (9e)
+## Inventario de escala
 
-Tope = lo que se dibuja o se lee de una vez; un número que se muestra es siempre acotado (`limit tope + 1`, «más de N»). Presupuesto = lo que asserta `pnpm db:medir:volumen` o el e2e. Mide todo `medir-escala.sql` salvo que se diga otro.
+Tope = lo que se dibuja o se lee de una vez; un número que se muestra es siempre acotado (`limit tope + 1`, «más de N»). Presupuesto = lo
+que asserta `pnpm db:medir:volumen` o el e2e. Mide `medir-escala.sql` salvo que se diga otro.
 
 ### Leads
 
-- Listado, página: 100 filas por cursor (`MAXIMO_DE_PAGINA_DE_LEADS`), `leads_listado_idx`; 30 ms página 1 y 150 ms página profunda (página 100 por cursor); la policy se estima con `_lead_visible_para()` sobre `leads.cartera`. Cada fila recorrida cuesta ~0,4 µs.
-- Quien tiene pocos leads (la «chica», 3): «míos» se lee por `leads_cartera_vista` e `leads_asesores_listado_idx (usuario_id, lead_creado_en desc, lead_id desc) include (tipo_acceso, revocado_en) where revocado_en is null` (la elige `fuenteDelListado()`); página 1 ≤ 30 ms, cursor ≤ 150, ≤ 3.000 descartes, con 62.000 y 212.000. Un alcance «todos» con cartera corta (`leads_cartera_corta()`, hasta 5.000 filas) también va por la cartera; la dueña (40 % de los leads) no. Límite: una persona con 500 leads en la papelera descarta ~530 en su página 1 (≤ 30 ms).
-- «Míos» del panel del cliente por lo más reciente (4.14-3a, leído por el panel del cliente en el 4.14-3b: `leerMios`): `leads_cartera_vista`, columnas `id, nombre, tipo_lead_id, numero, numero_propio, numero_propio_creador, reciente_en`, `order by reciente_en desc, id desc`, `leads_asesores_reciente_idx (usuario_id, lead_reciente_en desc, lead_id desc) where revocado_en is null`, `TAMANO_DE_VER_MAS + 1` filas, sin `Sort` ni `Seq Scan`. Medido de nuevo con esas columnas, con 62.000 y 212.000 (`medir-cartera-reciente.sql`): página 1 y profunda de la dueña, Ana y Berta 2,0–3,1 ms y 515–1.009 buffers (tope 30 ms, 1.500); la pestaña de la clase cliente de la dueña (~15 %) 3,3–3,5 ms y 1.849–2.042 buffers (tope 2.500: camina ~7 leads por cada uno que muestra); sin el índice, 74 y 299 ms. **Límite aceptado (4-65, T3, cerrado en el 4.14-3b):** una persona con miles de leads y ninguno de una clase recorre su cartera entera en la pestaña por clase: 72 ms con 20.000 en su cartera (62.000) y 285 ms con 80.000 (212.000), tope 400 ms, y mientras tanto el panel muestra el esqueleto; crece con la cartera de quien mira, no con los leads de los demás. Escribir: cada seguimiento reescribe las filas de cartera de su lead (+0,2 ms y +141/+150 buffers, tope 250). El relleno de la migración (201.600 filas): 10,7 s; con el trigger de la cartera apagado o encendido no cambia nada medible.
-- El panel del cliente de la hoja (4.14-3b; `e2e/cotizar-panel-del-cliente.spec.ts`, ambos proyectos): la barra va fuera de `[data-hoja]` y no importa el panel ni `<Badge>`. Con 20 filas, el panel abierto en «Todos» mide **156 nodos** con el «+» de «Nuevo lead» (151 antes; 4.14-3c) y la primera respuesta de «míos» **4.988–5.030 bytes** (≈ 240 B por fila con los tres números y el tipo); topes: 159 nodos y 5.282 bytes (lo medido más un 5 %; el presupuesto previo era 320 y 6.000). Cambiar de pestaña o de página no pide la página al servidor (la URL cambia con `history: 'replace'`). El catálogo de tipos es `leads_catalogos()` entero (los tipos y hasta 100 orígenes de lead, que el panel no usa: es la lectura que ya existe) y se lee una vez al abrir el panel, con memoria de 60 s; en «Todos» y en la búsqueda va a la vez que la primera página, y la pestaña de una clase lo espera (necesita los ids de sus tipos). La búsqueda es la del listado por candidatos —una ventana de `leads_candidatos()` (hasta 300) y una lectura de `leads_vista_por_ids()`—, que mide `busqueda-volumen.sql`: no se mide aparte. JS en frío de `/cotizaciones/nuevo`: **453,1 KB** con gzip contra 460 (452,9 en el 4.14-3b; 444,7 antes); el «+» va en el panel diferido y el alta es el del shell, que no viaja con la hoja.
-- Nombre y filtros por dos pasos: `leads_candidatos(p_filtros)` (`security definer`, devuelve `{ ids, completa, hasta }`, 300 candidatos, etapa W de hasta 4.000 filas por el orden del listado, etapa I por `leads_busqueda_idx gin (cartera, nombre gin_trgm_ops, atributos_publicos jsonb_path_ops) where eliminado_en is null and cartera <> '{}'`; `fastupdate = on`, `gin_pending_list_limit = 256`) y `leads_vista_por_ids(p_leads)` (invocador, SQL, `stable`, sin `strict`: se inlinea). Etapa W de un campo público de quien ve «todos»: hasta 10.000. No depende de N; `condicionesDeLaPagina()` no repite nombre, campo público ni etiqueta en el paso 2.
-- Presupuestos de esos dos pasos, iguales con 62.000 y 212.000: nombre escaso ≤ 50 ms para las cuatro personas; texto y rango de un campo público ≤ 50 ms y 45.000 buffers; campo privado, tachados ocultos y primer pedido de la exportación ≤ 100 ms y 40.000 buffers (paso 1 ≤ 80 ms, paso 2 ≤ 40); conteo entero de la exportación con un valor denso ≤ 800 ms y 400.000 buffers. Berta lee ≤ 40 bloques del heap buscando un nombre ajeno (sin oráculo). Una etiqueta propia entra por `leads_candidatos()` (clave `etiquetas`, `leads_etiquetas_etiqueta_id_idx`); ≤ 100 ms.
-- Mínimo del nombre: 3 letras o dígitos seguidos (`[[:alnum:]]{3}` en `_leads_candidatos_indexable()`; JS `[\p{L}\p{Nd}]{3}`); con 1 o 2 caracteres, 0 pedidos al servidor (`e2e/leads-listado-busqueda-minima.spec.ts`). Límite: una etiqueta puesta sólo en los 40.000 leads más viejos de la dueña cuesta ~138 ms con 212.000.
-- Huella: `busqueda-leads.sql` (`db:probar`) y `busqueda-volumen.sql` (`db:medir:volumen`) comparan filas enteras por md5 entre la ruta de la vista y la de los candidatos.
-- Filtros por origen y por tipo del lead: `leads_listado_idx` (un origen o tipo raro o sin leads, por `leads_origen_lead_id_idx` y `leads_tipo_lead_id_idx`); 100 ms. Sin índice compuesto. Para más de ~1.000.000 de leads, volver a medir con `db:sembrar-volumen -- --leads 1000000`.
-- Atributo público: por `atributos_publicos`, 100 ms. Favoritos / tachados / etiqueta: unión por clave primaria con las marcas, 100 ms cada uno. Aviso de tachados ocultos: «más de 50» (`contarLeadsHasta`, `leads_tachados_pkey`), 100 ms.
-- Buscar `#n`: `leads_ids_del_numero(p_numero, p_todos)`, hasta 100 ids; `leads_numeros_globales_numero_key` y `leads_numeros_propios_creador_idx (creado_por, numero)`; ≤ 5 ms (con la página ≤ 20), sin `Seq Scan`. Los números del listado son subconsultas escalares de la lista de columnas (no uniones); `tiene_permiso('leads.numero_global.ver')` se evalúa una vez por consulta, no por fila. Alta de un lead (número propio): `leads_contadores` por clave primaria, 80 ms.
-- Ficha: «más de 100 vehículos» (`vehiculos_lead_id_idx`), 80 ms. Oportunidades de la ficha: por cursor de a 20 (máximo 100), las abiertas primero, por `oportunidades_lead_abiertas_idx` y `oportunidades_lead_cerradas_idx`; ≈ 3 ms por página con 1.000 en el lead y 4 a 8 bloques que no crecen con la profundidad (`medir-lead-oportunidades.sql`); la de `medir-escala.sql` (150 ms, ≈ 1 ms) mide la primera página de 20; la pantalla pide 10 en el servidor y 20 por «Ver más» (4.17-2).
-- Papelera de leads: 5 lotes por cursor (`LOTES_POR_PAGINA`), de cada uno los primeros 20 (`PRIMEROS_DEL_LOTE`) y «Mostrar los N» (≤ 200); `en_papelera` exacto ≤ 200; `lotes_papelera_tipo_idx`; 400 ms.
-- «Quién lo tiene» (`leads_asesores`, 50 ms) y candidatos de cartera (`limit 500`, 50 ms). Catálogos (`leads_catalogos()`, 30 ms). Etiquetas: 50 por persona, «En N leads» hasta 1.001 (`leads_etiquetas_etiqueta_id_idx`), 300 ms.
-- Selectores del alta (se leen desde el navegador al abrir el drawer: `lead_alta_contexto` y `leads_campos`): los tres catálogos al tope de 100 (`_origenes_lead_tope()`, `_tipos_lead_tope()`, `_tipos_seguimiento_tope()`), sin `clave` ni `icono`; 2 pedidos al abrir, respuesta < 40 KB sin comprimir con 100 + 100 + 100 (`e2e/leads-alta-contexto.spec.ts`); el documento de ninguna pantalla los lleva.
-- Configuración de orígenes, tipos de lead y tipos de seguimiento: 100 cada uno («N de 100»); la sonda «¿algún lead lo usa?» es un `exists` por rango (`>= x and <= x`) sobre `leads_origen_lead_id_idx`, `leads_tipo_lead_id_idx`, `seguimientos_tipo_idx`; 100 ms la lista, 5 ms eliminar. `medir-escala.sql` la asserta con la columna (plan genérico) y con un origen de un solo lead.
-- Iconos del catálogo (24 claves cerradas): listado de 100 filas ≤ 3.500 nodos y 48.000 B gz; las filas dibujan un símbolo compartido (`<use href>`); el shell y el alta no importan el catálogo (guarda).
+- Listado: 100 por cursor (`MAXIMO_DE_PAGINA_DE_LEADS`), `leads_listado_idx`; 30 ms página 1, 150 ms página profunda (100 por cursor). La
+  policy se estima con `_lead_visible_para()` sobre `leads.cartera`.
+- Quien tiene pocos leads («la chica»): «míos» por `leads_cartera_vista` e
+  `leads_asesores_listado_idx (usuario_id, lead_creado_en desc, lead_id desc) include (tipo_acceso, revocado_en) where revocado_en is null`
+  (lo elige `fuenteDelListado()`); página 1 hasta 30 ms, cursor hasta 150, hasta 3.000 descartes, con 62.000 y 212.000. Un «todos» con
+  cartera corta (`leads_cartera_corta()`, hasta 5.000) también va por la cartera; la dueña no. Límite: 500 leads en la papelera descartan
+  ~530 en la página 1 (≤ 30 ms).
+- «Míos» del panel del cliente por lo más reciente (`leerMios`; `medir-cartera-reciente.sql`): `leads_cartera_vista`,
+  `order by reciente_en desc, id desc`, `TAMANO_DE_VER_MAS + 1` filas, sin `Sort` ni `Seq Scan`, por
+  `leads_asesores_reciente_idx (usuario_id, lead_reciente_en desc, lead_id desc) where revocado_en is null`. Topes: 30 ms y 1.500
+  buffers; la pestaña de una clase, 2.500 buffers (camina ~7 leads por cada uno que muestra). **Límite aceptado:** quien tiene miles de
+  leads y ninguno de una clase recorre su cartera entera en esa pestaña, tope 400 ms con 80.000 en su cartera (el panel muestra el esqueleto); crece con la cartera de quien mira. Escribir: cada
+  seguimiento reescribe las filas de cartera de su lead (tope 250 buffers); el relleno de la migración ≤ 60 s.
+- Panel del cliente de la hoja (`e2e/cotizar-panel-del-cliente.spec.ts`): la barra va fuera de `[data-hoja]` y no importa el panel ni
+  `<Badge>`. Con 20 filas, en «Todos»: ≤ 159 nodos y ≤ 5.282 B la primera respuesta de «míos». Cambiar de pestaña o de página no pide al
+  servidor (`history: 'replace'`). El catálogo es `leads_catalogos()` entero, leído una vez al abrir (memoria de 60 s); en «Todos» y en la
+  búsqueda va a la vez que la primera página y la pestaña de una clase lo espera. La búsqueda es la del listado por candidatos (la mide
+  `busqueda-volumen.sql`). El «+» va en el panel diferido; el alta es la del shell.
+- Nombre y filtros en dos pasos: `leads_candidatos(p_filtros)` (definer, `{ ids, completa, hasta }`, 300 candidatos; etapa W de hasta
+  4.000 filas por el orden del listado, 10.000 en un campo público de quien ve «todos»; etapa I por
+  `leads_busqueda_idx gin (cartera, nombre gin_trgm_ops, atributos_publicos jsonb_path_ops) where eliminado_en is null and cartera <> '{}'`,
+  con `fastupdate = on` y `gin_pending_list_limit = 256`) y `leads_vista_por_ids(p_leads)` (invocador, SQL, `stable`, sin `strict`: se
+  inlinea). No depende de N;
+  `condicionesDeLaPagina()` no repite nombre, campo público ni etiqueta en el paso 2.
+- Presupuestos de esos dos pasos, iguales con 62.000 y 212.000: nombre escaso ≤ 50 ms; texto y rango de un campo público ≤ 50 ms y 45.000
+  buffers; campo privado, tachados ocultos y primer pedido de la exportación ≤ 100 ms y 40.000 buffers (paso 1 ≤ 80, paso 2 ≤ 40); conteo
+  entero de la exportación con un valor denso ≤ 800 ms y 400.000 buffers. Berta lee ≤ 40 bloques del heap buscando un nombre ajeno (sin
+  oráculo). Una etiqueta propia entra por `leads_candidatos()` (clave `etiquetas`, `leads_etiquetas_etiqueta_id_idx`), ≤ 100 ms.
+- Mínimo del nombre: 3 letras o dígitos seguidos (`[[:alnum:]]{3}` en `_leads_candidatos_indexable()`; JS `[\p{L}\p{Nd}]{3}`); con 1 o 2,
+  0 pedidos (`e2e/leads-listado-busqueda-minima.spec.ts`). Límite: una etiqueta puesta sólo en los 40.000 leads más viejos de la dueña
+  cuesta ~138 ms con 212.000.
+- Huella: `busqueda-leads.sql` (`db:probar`) y `busqueda-volumen.sql` (`db:medir:volumen`) comparan filas enteras por md5 entre la ruta de
+  la vista y la de los candidatos.
+- Filtros por origen y tipo: `leads_listado_idx` (uno raro, por `leads_origen_lead_id_idx` y `leads_tipo_lead_id_idx`); 100 ms; sin índice
+  compuesto. Más de ~1.000.000 de leads: volver a medir con `db:sembrar-volumen -- --leads 1000000`.
+- Atributo público (`atributos_publicos`), favoritos, tachados, etiqueta (unión por PK con las marcas): 100 ms cada uno. Aviso de tachados
+  ocultos: «más de 50» (`contarLeadsHasta`, `leads_tachados_pkey`), 100 ms.
+- Buscar `#n`: `leads_ids_del_numero(p_numero, p_todos)`, hasta 100 ids; `leads_numeros_globales_numero_key` y
+  `leads_numeros_propios_creador_idx (creado_por, numero)`; ≤ 5 ms, sin `Seq Scan`. Los números del listado son subconsultas escalares;
+  `tiene_permiso('leads.numero_global.ver')` se evalúa una vez por consulta. Alta (número propio): `leads_contadores` por PK, 80 ms.
+- Ficha: «más de 100 vehículos» (`vehiculos_lead_id_idx`), 80 ms. Oportunidades: cursor de a 20 (máx. 100), las abiertas primero, por
+  `oportunidades_lead_abiertas_idx` y `oportunidades_lead_cerradas_idx`; bloques que no crecen con la profundidad
+  (`medir-lead-oportunidades.sql`); `medir-escala.sql` mide la primera de 20 (150 ms). La pantalla pide 10 en el servidor y 20 por «Ver más».
+- Papelera de leads: 5 lotes por cursor (`LOTES_POR_PAGINA`), de cada uno los primeros 20 (`PRIMEROS_DEL_LOTE`) y «Mostrar los N» (≤ 200);
+  `en_papelera` exacto ≤ 200; `lotes_papelera_tipo_idx`; 400 ms.
+- «Quién lo tiene» (`leads_asesores`, 50 ms), candidatos de cartera (`limit 500`, 50 ms), `leads_catalogos()` (30 ms). Etiquetas: 50 por
+  persona, «En N leads» hasta 1.001 (`leads_etiquetas_etiqueta_id_idx`), 300 ms.
+- Selectores del alta (desde el navegador al abrir el drawer: `lead_alta_contexto` y `leads_campos`): los tres catálogos al tope de 100
+  (`_origenes_lead_tope()`, `_tipos_lead_tope()`, `_tipos_seguimiento_tope()`), sin `clave` ni `icono`; 2 pedidos, < 40 KB sin comprimir con
+  100 + 100 + 100 (`e2e/leads-alta-contexto.spec.ts`); ningún documento los lleva.
+- Configuración de orígenes, tipos de lead y de seguimiento: 100 cada uno («N de 100»); «¿algún lead lo usa?» es un `exists` por rango
+  (`>= x and <= x`) sobre `leads_origen_lead_id_idx`, `leads_tipo_lead_id_idx`, `seguimientos_tipo_idx`; 100 ms la lista, 5 ms eliminar.
+- Iconos del catálogo (24 claves): las filas dibujan un símbolo compartido (`<use href>`); el shell y el alta no importan el catálogo.
 - Exportar: lotes de 500, hasta 5.000, 5 por hora; hasta 5.001 ids de a 1.000 (`leads_listado_idx`), 100 ms; «Descargamos N» exacto.
-- Importar: «Tus importaciones recientes» 20 de las últimas 24 h (`importaciones_leads`, 300 ms); vista previa 500 filas del archivo, 50 por página; lotes de 50 filas, 500 por archivo (`FILAS_POR_LOTE`). Mide `medir-importacion-volumen.sql` (`db:medir:volumen`): 500 filas ≤ 2 s con 62.000 y 212.000 leads, con `actividad` ≈ 23.000 y ≈ 124.000 (razón del tiempo por fila entre ambas, 0,8 a 1,2: falla si crece con `actividad`). `_lead_crear` busca «¿este intento ya entró por una adopción?» sólo si el alta trae `adoptar` (`actividad_intento_adopcion_idx`); la importación lo rechaza. `medir-importacion.sql` (`db:medir`, base recién reseteada): 8 s las 500 filas, `seed.sql` analiza.
+- Importar: «Tus importaciones recientes» 20 de las últimas 24 h (`importaciones_leads`, 300 ms); vista previa 500 filas, 50 por página;
+  lotes de 50, 500 por archivo (`FILAS_POR_LOTE`). `medir-importacion-volumen.sql`: 500 filas ≤ 2 s con 62.000 y 212.000 leads, y la razón
+  del tiempo por fila entre los dos volúmenes de `actividad` en 0,8–1,2 (falla si crece con `actividad`). `_lead_crear` busca la adopción
+  sólo si el alta trae `adoptar` (`actividad_intento_adopcion_idx`); la importación lo rechaza. `medir-importacion.sql` (`db:medir`, base
+  recién reseteada; `seed.sql` analiza).
 - No se agrega un índice, trigger o columna a `leads` sin medir alta (80 ms), 500 filas importadas (≤ 2 s) y la baja de 200.000.
 
 ### Vehículos, orígenes, equipo y empresa
 
-- Inventario, página: 50 por cursor (máximo 100, `MAXIMO_DE_PAGINA_DE_VEHICULOS`), `vehiculos_origen_listado_idx`; 20 ms página, 100 / 150 ms búsqueda y limpieza.
-- Lectura de vehículos con 50.000 y 250.000 (`medir-vehiculos-lectura.sql`, `db:medir:volumen`): la dueña, Pía y la página de Beto («propios» sobre su cartera, `en_cartera` una vez por fila) ≤ 10 ms y 300 buffers (Beto ≤ 1.000); `puede_vehiculo()` ≤ 5 ms (un `alcance_de` y un `en_cartera`); razón de ms con 250.000 sobre 50.000 ≤ máx(1,5 × t; t + 3 ms) y buffers ≤ 1,2 × + 20. Límite abierto (4-23, sin assert): quien tiene vehículos sin lead recorre el origen entero (~33 ms con 250.000); lo resuelve `vehiculos_inventario()` (abajo) y la pantalla la usa desde el 4.16-2b (quien ve «propios»; la dueña y quien ve «todos» siguen por la tabla).
-- **El inventario por rutas** (4.16-2a, `vehiculos_inventario()`; `medir-vehiculos-inventario.sql`, `-forma.sql`, `-guarda.sql`, `db:medir:volumen`), con 50.000 y 250.000, plpgsql invocadora que planea su texto en cada llamada (≈ 0,9 ms de planeo): R1 el origen (`vehiculos_origen_listado_idx`; quien ve «todos» o tiene más de 5.000 leads en su cartera), R2 lo creado (`vehiculos_creador_idx`) y R3 la cartera corta (un lateral por lead sobre `vehiculos_lead_id_idx`), cada una con su `limit`; `limpieza_el` sobre la fila que leyó R1 o R2 y R3 relee sólo las de la página. Topes: Pía, la chica y Beto ≤ 10 ms (Pía con un atributo sin coincidencias ≤ 20), Vera (cartera de 5.000, 1.000 vehículos) ≤ 40; el índice de la ruta, Pía ≤ 12 bloques, la chica ≤ 6, Beto ≤ 20; crecimiento de los bloques de `vehiculos` (por relación) ≤ 1,2 × + 20; el tiempo no se compara entre volúmenes (4-82: el ruido de una máquina compartida lo confundía con crecimiento) y sólo lo acotan los topes de arriba. **Medido** (página 1, 250.000; hoy por PostgREST / nuevo): la chica 32,3 / 2,5 ms, Vera 78,5 / 28,1, Pía 5,0 / 6,0, Beto 6,3 / 8,1, la dueña 4,7 / 4,9. Límites sin assert: más de 5.000 en la cartera recorre el origen como hoy (R1); R3 crece con los vehículos de la cartera (un `en_cartera` por cada uno), no con N; un filtro sin coincidencias recorre todo lo que la persona creó (Pía 2.228 bloques, 4,5 ms); 500 alternativas sin coincidencias, 144 ms (el tope de la validación); `por_limpiar` llama a `limpieza_el(v)` (definer, fila entera) por candidata, como hoy PostgREST, y otra vez en las columnas; R3 relee hasta `n` filas aunque, con la regla de hoy, toda fila con lead queda anclada (`vinculo`) y su `limpieza_el` es nula. El costo fijo de una llamada (C10, 4-77) no crece con las concesiones: 7 buffers y ≈ 0,3 ms con 1, 74 y 122.
-- **Panel de revisiones de una guardada** (4.15-3b, `e2e/cotizar-guardada-revisiones.spec.ts`, ambos proyectos): `cotizacion_revisiones` por cursor (`p_antes`, el id), de a `TAMANO_DE_VER_MAS` (20) hasta `TOPE_DE_LO_CARGADO` (500), por `cotizaciones_revisiones_cotizacion_idx (cotizacion_id, id desc)`; la base ya estaba medida con 500 (de 4,9 a 7,3 ms, de 40 a 161 buffers). Con 501 sembradas por SQL (la revisión real, copiada), la primera página mide **241 nodos y 11.907 bytes** con 20 filas (≈ 12 nodos y 595 B por fila: dos `<Monto>` por revisión), topes 254 y 12.503 (lo medido más un 5 %); **el previo del plan, 200 nodos, no alcanzó** (el plan contaba ≈ 8 por fila): la primera corrida dio 281 y quitar un `<span>` de envoltorio por cambio la bajó a 241; «Ver más» pide una página con `p_antes`. El tope de 500 se prueba en Vitest. **«Ir a una fecha»** (4.17-5c): un pedido por salto con `p_hasta` y la página de siempre; lo nuevo viaja en el chunk del panel (JS en frío de `/cotizaciones/[id]` sin cambio, 435,7 KB de 448, `presupuesto-js.spec.ts`). JS en frío de `/cotizaciones/[id]` 442,3 KB de 448 (el panel viaja con `diferido()`). **El salto a una fecha** (4.17-5a, `medir-cotizacion-revisiones-fecha.sql`): `cotizacion_revisiones(…, p_hasta)` busca el ancla por `cotizaciones_revisiones_cotizacion_creado_idx (cotizacion_id, creado_en desc, id desc)` y lee la página por `cotizaciones_revisiones_cotizacion_idx`; con 5.000 revisiones en la cotización (y 20.000 cotizaciones de fondo con una), de 10 a 12 bloques y de 4,7 a 6,7 ms a cualquier profundidad (de a 20, a la mitad y a 4.960 de las más nuevas), y lo mismo con 500 que con 5.000 (contraste con N; sin el índice, 679 bloques contra 76: su guarda). Supone que el id crece con `creado_en` por cotización (4-95).
-- Panel del vehículo (4.14-1; lo dibuja el 4.14-2a desde el navegador, con las mismas dos consultas y el margen de 24 h como otro `>=` sobre `cierre_subasta_en`), páginas de `TAMANO_DE_VER_MAS` + 1 = 21 por cursor, con 50.000 y 250.000 vivos, como la dueña, Pía y Beto: «Últ. cotización» por `vehiculos_cotizado_idx` (`medir-panel-ultima-cotizacion.sql`) y «Cierre subasta» por `vehiculos_cierre_subasta_idx` sobre la columna generada `cierre_subasta_en` (`medir-panel-cierre-subasta.sql`), ≤ 10 ms y 300 buffers (Beto ≤ 1.000), sin `Sort`; medido 0,3 a 0,9 ms y 71 a 246 buffers. El historial de un vehículo (5.000 cotizaciones) por `cotizaciones_vehiculo_creado_idx` (`medir-historial-del-vehiculo.sql`), la dueña ≤ 10 ms y 300 buffers; medido 0,35 ms y 77. Razón con 250.000 ≤ máx(1,5 × t; t + 3 ms), buffers ≤ 1,2 × + 20. Las guardas: con los índices de la fila del PLAN la página ordena («Últ. cotización», `Sort` incremental, con el mismo costo: una guarda de forma) o no usa el índice («Cierre subasta», 37 ms), y con el índice de antes la página 1 del historial lee 63.495 buffers. El historial se siembra con 100 vehículos: con 1.000 (un promedio de 50 cotizaciones por vehículo) el plan genérico de la profunda de un vehículo muy cotizado a veces ordena las suyas (334 buffers, ~1 ms; crece con las cotizaciones del vehículo, no con N; límite sin assert, la familia de 4-14). Límites abiertos, sin assert: la «chica» recorre lo cotizado y lo vivo de su origen (4-23: 10,8 y 11,3 ms con 250.000; desde el 4.14-2a, en pantalla; sigue con el 4.16) y el historial de Ana («propios», ve 5 de 5.000) recorre las del vehículo (4-14: 38 ms y 1.452 buffers). La portada embebida de cada fila (21 lecturas por `vehiculos_portada_unica`, una por fila; no crece con N) no tiene medición SQL, como la del inventario: límite sin assert. En pantalla (`e2e/cotizar-panel-del-vehiculo.spec.ts`, ambos proyectos, 4.14-2a): con 20 tarjetas, presupuestos previos de 370 nodos (≈ 16 por tarjeta con holgura + 50 de estructura) y 12.000 bytes de la primera respuesta (≈ 450 por fila); **medido con 20 tarjetas sin foto 284 nodos y 4.660 bytes, topes 299 y 4.900** (con portada, cada fila suma su ruta de miniatura) (lo medido más un 5 %); cambiar de pestaña o de página no pide la página al servidor. **La búsqueda y el alta en el panel (4.14-2c1):** la búsqueda tiene la forma de la del inventario (título, VIN o lote por `vehiculos_origen_listado_idx`, de a 21, desde 3 letras o números y con la pausa de tecleo de 300 ms) y pide `creado_en` sólo ella (las pestañas no: con la columna de más la primera respuesta pasaba de 4.900 B, 5.627 medidos). Lo medido de esa forma es `titulo|vin` con un texto que coincide (`medir-escala.sql`, «vehículos: búsqueda»); **sin medir**, igual que en el inventario: el `lote` en el `or` y el caso en que nada coincide, que recorre el origen entero. Con el buscador, el panel de 20 tarjetas mide **295 nodos y 4.681 bytes** (topes 299 y 4.900). El alta se pide al abrirse y lee el layout activo desde el navegador (`useLayoutActivo()`): con el layout en el documento de la hoja la diferencia con quien no puede crear vehículos era 69.098 B sin comprimir (106 campos de un origen de subasta, presupuesto 40.000) y el alta lo lee ahora al abrirse; la diferencia que queda entre la dueña y un rol sin `vehiculos.crear` es de 17.373 B (el resto del shell y la hoja, `e2e/cotizar-panel-crear-vehiculo.spec.ts`, D1, tope 40.000). JS en frío de `/cotizaciones/nuevo` 443,9 KB de 460 (antes 433,5) y de `/vehiculos` 476,3 de 500 (473,5). **El historial en pantalla (4.14-2b):** se lee al desplegarlo, de a 21 por cursor, con el autor embebido (una lectura por clave primaria de `perfiles` por fila, a lo sumo 21: límite sin assert) y «Ver más» hasta `TOPE_DE_LO_CARGADO` (500); medido en `e2e/cotizar-historial-del-vehiculo.spec.ts` con 21 filas: **4.972 bytes** (escritorio) y 4.867 (móvil) en la primera respuesta, tope 5.250 (la estimación era 4.000: ≈ 237 por fila, no 150; P3), y **61 nodos** de la lista, tope 65. «Cotizado (n)» es la misma consulta con `select('id')`, en paralelo con la hoja. **Con camino a lo antiguo desde el 4.16-4a:** el tope de 500 ofrece «Ver todas en Cotizaciones» (`/cotizaciones?vehiculo=`, el listado por cursor filtrado por ese vehículo). **La pestaña «Cotizaciones» de `/vehiculos/[id]` (4.17-3)** es la misma lectura (`cotizaciones_vehiculo_creado_idx`, de a 21 por cursor, hasta 500, con el autor embebido): se lee al abrir la pestaña, nunca con la ficha, y su código viaja con `diferido()` en su propio `diferidos.tsx` (`/cotizaciones/nuevo` pasó de 456,8 a 456,9 KB por el reparto del historial en el commit 1). Medido en `e2e/vehiculos-cotizaciones.spec.ts`, en los dos proyectos: 4.996 bytes (escritorio) y 4.912 (móvil) la primera respuesta, 61 nodos con 20 (tope 65) y 1.501 con 500 (tope 1.576, lo medido más un 5 %; el previo de 1.600 alcanzó), y la 25.ª respuesta pesa lo mismo que la 1.ª. Con «propios» hereda el límite del historial (4-14).
-- El dato del vehículo en el panel (4.14-2c3, medido con `e2e/cotizar-panel-tipo-de-vehiculo-volumen.spec.ts`, ambos proyectos; sin prueba desde el 2026-11-08: su spec se borró, «Pruebas: sólo lo clave»): con un vehículo en la URL, la página lee además el layout del origen en el `Promise.all` de siempre y, en serie tras `leerVehiculo`, `editablesDe` (sin consulta con alcance «todos» o lo que creó; una por cartera, como «Editar» del inventario); el documento suma `paraElegir` (≈ 150 B) y `seEligen`. Al abrir el panel con un elegido y un dato, una lectura de `cotizacion_tabla` por tabla distinta, en paralelo (dos en `subasta_usa`), cada una dentro de su tope de arriba; `memoriaDeLectura()` la recuerda 5 min por hoja abierta y tabla (volver a abrir el panel no la repite; guardar trae otra hoja abierta y la lee de nuevo). Lo dibujado tiene tope: **50 opciones** (`TOPE_DE_OPCIONES`), con «Buscar en las opciones» (filtra lo leído) como camino a las demás y `<AvisoDeTope>`. Con dos tablas de 1.000 claves distintas: **56 nodos** del grupo (presupuesto previo 260, ≈ 4 por botón + 60; tope 59, lo medido más un 5 %) y **55.116 y 55.120 B** por respuesta como la dueña (tope 569.352). JS en frío de `/cotizaciones/nuevo` 444,7 KB de 460 (antes 443,9).
-- Papelera de vehículos: como la de leads (5 lotes, primeros 20), 200 ms. Aviso de archivos por borrar: «más de 1.000», `cola_gc_storage_edad_idx`, 50 ms. Galería de fotos: 24 por vehículo (`vehiculos_imagenes_hash_unico`). Vínculos e interesados de un vehículo: 50 / 100, «Mostrando los 50 vínculos / 100 interesados más recientes.» (`vehiculos_vinculos_vehiculo_idx`); en el lead, los tres bloques de «Vehículos» 100 / 100 / 50. Selector «agregar vehículo»: 20, lee 21, 300 ms.
-- Papelera de cotizaciones (4.24-1a): como la de vehículos (5 lotes por cursor, primeros 20, «Mostrar los N» ≤ 200, `en_papelera` exacto ≤ 200), `lotes_papelera_tipo_idx`, 200 ms. «Le queda alguna en la papelera» es una sonda por lote (`cotizaciones_lote_papelera_idx`, `limit 1`): con un `exists`, el plan genérico con pocas en la papelera es un semi join que lee entero ese índice. `medir-escala.sql`: la RPC sobre la siembra 0,9–2,5 ms; con 500 lotes más de la dueña, 1,1–1,5 ms (la dueña, página 1 y por el cursor del lote 400; Ana, sin la clave, su página 1); la consulta de adentro, como la ve plpgsql (sentencia preparada, plan genérico), por el índice sin recorrer `lotes_papelera` ni `cotizaciones`: Ana descarta 506 lotes ajenos (tope 600), la dueña por el cursor 0. Quien no tiene la clave descarta todos los lotes pendientes ajenos de cotizaciones (crece con ellos, no con la página).
-- La pantalla `/cotizaciones/papelera` (4.24-2): una página (`tamano + 1`) y «Mostrar los N» un lote (≤ 200) al pedirlo; sin `count`, sin `offset`. JS en frío 417,9 KB (23 chunks; `/perfil` 417,2), presupuesto 440. Página 1 con 5 lotes × 20 filas: 1.119 nodos y ≈ 342.800 B de documento (vacía, 91.005 B), igual con lotes de 21 que de 200 (`e2e/cotizaciones-papelera.spec.ts`, E8); topes 3.000 nodos y 360.000 B. El enlace del listado es un Server Component: `/cotizaciones` sigue en sus 380 KB. Con purgar (4.24-2b; la dueña ve «Purgar» en cada fila y «Purgar el lote»): JS en frío 424,5 KB (23 chunks), 1.329 nodos y 452.015 B (451.594 con lotes de 21: no crece con el lote); el tope de bytes pasa a 475.000 (lo medido más un 5 %): ≈ 1 KB por botón, casi todo las clases de la base de `Button`. Purgar no lee nada: una llamada por confirmación y el resultado relee una página.
-- Orígenes: resumen y categorías con uso, 100 / 50 ms (exento, administración). Tipos de cambio, historial: 30 («Mostrando los 30 cambios más recientes.»).
-- Requisitos de una fase (5.07, administración): `requisito_impacto()` y `flujo_fuera_de_regla()` recorren a lo sumo 1.000 unidades por fase sin orden (`vehiculos_fase_id_idx` / `repuestos_items_fase_id_idx`; más es una muestra, `revisadas` lo dice) y cortan en `tope + 1` (50, máx. 100). Presupuesto previo 500 ms. Peor caso de `flujo_fuera_de_regla`: fases con bloqueantes × 1.000 evaluaciones de `evaluar_requisitos`. Exento de medición (administración, como «Orígenes: resumen»); si el 5.08 la lee al abrir el panel, la mide allí.
-- Equipo, lista: 100 por nombre (`TOPE_DEL_EQUIPO`; la RPC `equipo_lista()` lee 101) en dos etapas: W recorre las primeras 2.000 del estado, de a una (perezosa, no `count(*)`), e I el trigram. Índices: `perfiles_vigentes_orden_idx`, `perfiles_estado_orden_idx`, `perfiles_busqueda_idx` (GIN trigram; `unaccent` declarada `immutable`, `reindex` si cambia). Presupuesto: buffers ≤ 150 la consulta sin texto (106 medidos con 100.007 personas), < 3.500 nodos (1.673 medidos); la RPC entera sin texto 405 buffers. Mínimo 3 letras o dígitos, 0 pedidos con 1 o 2 (`e2e/equipo-busqueda-minima.spec.ts`); `lista-equipo.tsx` no llama a `setParametros` si `q` no cambia. Miniatura de 96 px, no el avatar de 512. Mide `medir-equipo.sql` (10.000 y 100.000 personas; no crece más de 1,5 veces, piso 60 buffers).
-- Roles, personas de cada rol: `roles_personas()` hasta 1.001 por rol («más de 1.000 personas»), `usuarios_roles_rol_idx`, ≤ 150 buffers y ≤ 1.001 filas con un rol de 100.007 (medidos: 24 buffers). La matriz de Roles no pagina: 72 filas de catálogo más hasta 18 de niveles (`_niveles_tope()` = 10; 9 que generan permisos × 2) = 90 (`e2e/roles-niveles.spec.ts`).
+- Inventario: 50 por cursor (máx. 100, `MAXIMO_DE_PAGINA_DE_VEHICULOS`), `vehiculos_origen_listado_idx`; 20 ms página, 100 / 150 ms
+  búsqueda y limpieza.
+- Lectura con 50.000 y 250.000 (`medir-vehiculos-lectura.sql`): la dueña, Pía y Beto («propios», `en_cartera` una vez por fila) ≤ 10 ms y
+  300 buffers (Beto ≤ 1.000); `puede_vehiculo()` ≤ 5 ms; razón con 250.000 ≤ máx(1,5 × t; t + 3 ms), buffers ≤ 1,2 × + 20. Sin assert:
+  quien tiene vehículos sin lead recorre el origen entero por PostgREST; por eso quien ve «propios» lee por `vehiculos_inventario()`.
+- **El inventario por rutas** (`vehiculos_inventario()`; `medir-vehiculos-inventario.sql`, `-forma`, `-guarda`, `-costo-fijo`), plpgsql
+  invocadora que planea su texto en cada llamada: R1 el origen (`vehiculos_origen_listado_idx`; quien ve «todos» o tiene más de 5.000 leads
+  en su cartera), R2 lo creado (`vehiculos_creador_idx`), R3 la cartera corta (un lateral por lead sobre `vehiculos_lead_id_idx`), cada una
+  con su `limit`; `limpieza_el` sobre lo leído por R1 o R2, y R3 relee sólo las de la página. Topes: Pía, la chica y Beto ≤ 10 ms (Pía con
+  un atributo sin coincidencias ≤ 20), Vera (cartera de 5.000) ≤ 40; bloques del índice de la ruta: Pía ≤ 12, la chica ≤ 6, Beto ≤ 20;
+  bloques de `vehiculos` con 250.000 ≤ 1,2 × + 20. El tiempo no se compara entre volúmenes (el ruido lo confundía con crecimiento).
+  Límites sin assert: más de 5.000 en la cartera recorre el origen (R1); R3 crece con los vehículos de la cartera, no con N; un filtro sin
+  coincidencias recorre todo lo que la persona creó; 500 alternativas sin coincidencias ≈ 144 ms (el tope de la validación);
+  `por_limpiar` llama a `limpieza_el(v)` por candidata; el costo fijo de una llamada no crece con las concesiones.
+- **Panel de revisiones de una guardada** (`e2e/cotizar-guardada-revisiones.spec.ts`): `cotizacion_revisiones` por cursor (`p_antes`), de a
+  `TAMANO_DE_VER_MAS` hasta `TOPE_DE_LO_CARGADO`, por `cotizaciones_revisiones_cotizacion_idx (cotizacion_id, id desc)`. Primera página con
+  20: ≤ 254 nodos y ≤ 12.503 B (≈ 12 nodos por fila: dos `<Monto>` por revisión; no envolver cada cambio en otro `<span>`). El tope de 500
+  se prueba en Vitest. «Ir a una fecha»: un pedido por salto con `p_hasta`; viaja en el chunk diferido del panel.
+  `medir-cotizacion-revisiones-fecha.sql`: el ancla por
+  `cotizaciones_revisiones_cotizacion_creado_idx (cotizacion_id, creado_en desc, id desc)` y la página por
+  `cotizaciones_revisiones_cotizacion_idx`; con 5.000 revisiones, los mismos bloques a cualquier profundidad e igual
+  con 500 que con 5.000 (sin el índice, la guarda cae). Supone que el id crece con `creado_en` por cotización (abierto 4-95,
+  `docs/PENDIENTES.md`).
+- Panel del vehículo (desde el navegador): páginas de `TAMANO_DE_VER_MAS` + 1 por cursor, con 50.000 y 250.000, como la dueña, Pía y Beto:
+  «Últ. cotización» por `vehiculos_cotizado_idx` (`medir-panel-ultima-cotizacion.sql`) y «Cierre subasta» por `vehiculos_cierre_subasta_idx`
+  sobre la columna generada `cierre_subasta_en` (`medir-panel-cierre-subasta.sql`; el margen de 24 h es otro `>=`), ≤ 10 ms y 300 buffers
+  (Beto ≤ 1.000), sin `Sort`. Historial de un vehículo con 5.000 cotizaciones por `cotizaciones_vehiculo_creado_idx`
+  (`medir-historial-del-vehiculo.sql`), ≤ 10 ms y 300 buffers. Razón con 250.000 ≤ máx(1,5 × t; t + 3 ms), buffers ≤ 1,2 × + 20.
+  Límites sin assert: el plan genérico de la profunda de un vehículo muy cotizado a veces ordena las suyas (crece con las cotizaciones del
+  vehículo, no con N); la chica recorre lo cotizado y lo vivo de su origen; el historial de quien ve «propios» recorre las del vehículo; la
+  portada embebida de cada fila (≤ 21 lecturas por `vehiculos_portada_unica`) no tiene medición SQL.
+- En pantalla (`e2e/cotizar-panel-del-vehiculo.spec.ts`): con 20 tarjetas sin foto y el buscador, ≤ 299 nodos y ≤ 4.900 B la primera
+  respuesta (con portada, cada fila suma su ruta de miniatura); cambiar de pestaña o de página no pide al servidor. La búsqueda tiene la
+  forma de la del inventario (título, VIN o lote por `vehiculos_origen_listado_idx`, de a 21, desde 3 letras o números, pausa de 300 ms) y
+  sólo ella pide `creado_en` (en las pestañas pasaría el tope de bytes). Sin medir, como en el inventario: el `lote` en el `or` y el texto que
+  no coincide (recorre el origen).
+- El alta se pide al abrirse y lee el layout activo desde el navegador (`useLayoutActivo()`): la diferencia del documento entre la dueña y
+  un rol sin `vehiculos.crear` ≤ 40.000 B sin comprimir (`e2e/cotizar-panel-crear-vehiculo.spec.ts`; con el layout en el documento eran
+  69.098).
+- Historial en pantalla: al desplegarlo, de a 21 por cursor, con el autor embebido (una lectura por PK de `perfiles` por fila, ≤ 21: límite
+  sin assert) y «Ver más» hasta 500, que ofrece «Ver todas en Cotizaciones» (`/cotizaciones?vehiculo=`).
+  `e2e/cotizar-historial-del-vehiculo.spec.ts`:
+  ≤ 5.250 B la primera respuesta y ≤ 65 nodos. «Cotizado (n)» es la misma consulta con `select('id')`, en paralelo con la hoja.
+- Pestaña «Cotizaciones» de `/vehiculos/[id]`: la misma lectura, al abrir la pestaña (nunca con la ficha), código con `diferido()` en su
+  `diferidos.tsx`. `e2e/vehiculos-cotizaciones.spec.ts`: ≤ 5.250 B, ≤ 65 nodos con 20 y ≤ 1.576 con 500; la 25.ª respuesta pesa lo que la
+  1.ª. Con «propios» hereda el límite del historial.
+- El dato del vehículo en el panel (sin spec propio): con un vehículo en la URL, la página lee además el layout del origen en el
+  `Promise.all` y, tras `leerVehiculo`, `editablesDe` (sin consulta con «todos» o lo que creó); el documento suma `paraElegir` (≈ 150 B) y
+  `seEligen`. Con un elegido y un dato, una `cotizacion_tabla` por tabla distinta, en paralelo, recordada 5 min por hoja abierta y tabla
+  (`memoriaDeLectura()`). Se dibujan ≤ 50 opciones (`TOPE_DE_OPCIONES`) con «Buscar en las opciones» y `<AvisoDeTope>`.
+- Papelera de vehículos: como la de leads, 200 ms. «Más de 1.000» archivos por borrar (`cola_gc_storage_edad_idx`, 50 ms). Galería: 24 por
+  vehículo (`vehiculos_imagenes_hash_unico`). Vínculos e interesados: 50 / 100, «Mostrando los 50 vínculos / 100 interesados más
+  recientes.» (`vehiculos_vinculos_vehiculo_idx`); en el lead, los tres bloques de «Vehículos» 100 / 100 / 50. «Agregar vehículo»: 20, lee
+  21, 300 ms.
+- Papelera de cotizaciones: como la de vehículos, `lotes_papelera_tipo_idx`, 200 ms. «Le queda alguna en la papelera» es una sonda por lote
+  (`cotizaciones_lote_papelera_idx`, `limit 1`): un `exists` haría un semi join que lee entero ese índice. `medir-escala.sql`, con 500
+  lotes más de la dueña: por el índice, sin recorrer `lotes_papelera` ni `cotizaciones`; quien no tiene la clave descarta los lotes ajenos
+  (tope 600; crece con ellos, no con la página).
+- `/cotizaciones/papelera` (`e2e/cotizaciones-papelera.spec.ts`): una página (`tamano + 1`) y «Mostrar los N» un lote al pedirlo. JS en frío
+  ≤ 440 KB. Página 1 con 5 × 20: ≤ 3.000 nodos y ≤ 475.000 B de documento, igual (± 2 %) con lotes de 21 que
+  de 200 (≈ 1 KB por botón «Purgar»: las clases de `Button`). Purgar no lee nada: una llamada por confirmación y relee una página.
+- Orígenes: resumen y categorías con uso, 100 / 50 ms (exento, administración). Tipos de cambio: historial de 30 («Mostrando los 30
+  cambios más recientes.»).
+- Requisitos de una fase (administración): `requisito_impacto()` y `flujo_fuera_de_regla()` recorren ≤ 1.000 unidades por fase sin orden
+  (`vehiculos_fase_id_idx` / `repuestos_items_fase_id_idx`; más es una muestra, `revisadas` lo dice) y cortan en `tope + 1` (50, máx. 100).
+  Presupuesto previo 500 ms; peor caso de `flujo_fuera_de_regla`: fases con bloqueantes × 1.000 `evaluar_requisitos`. Exento de medición.
+- Equipo: 100 por nombre (`TOPE_DEL_EQUIPO`; `equipo_lista()` lee 101) en dos etapas: W las primeras 2.000 del estado (perezosa), I el
+  trigram. Índices `perfiles_vigentes_orden_idx`, `perfiles_estado_orden_idx`, `perfiles_busqueda_idx` (GIN trigram; `unaccent` declarada
+  `immutable`, `reindex` si cambia). Sin texto ≤ 150 buffers la consulta; < 3.500 nodos (`e2e/equipo-tope.spec.ts`). Mínimo 3 letras o
+  dígitos, 0 pedidos con 1 o 2 (`e2e/equipo-busqueda-minima.spec.ts`); `lista-equipo.tsx` no llama a `setParametros` si `q` no cambia.
+  Miniatura de 96 px. `medir-equipo.sql` (10.000 y 100.000 personas; no crece más de 1,5 veces, piso 60 buffers).
+- Roles: `roles_personas()` hasta 1.001 por rol («más de 1.000 personas»), `usuarios_roles_rol_idx`, ≤ 150 buffers. La matriz no pagina:
+  72 filas de catálogo + hasta 18 de niveles (`_niveles_tope()` = 10; 9 que generan permisos × 2) (`e2e/roles-niveles.spec.ts`).
 
 ### Baja de una persona
 
-- Vista previa: hasta 1.001 («más de 1.000»), `leads_asesores_usuario_vigente_idx`, ≤ 300 ms (con 200.000, 44–73 ms; `_bajas_en_curso()` va envuelta en `(select …)::uuid[]`, un InitPlan).
-- Baja: lotes de 5.000 por cursor (cada lote sigue desde el último lead; ids del índice y candado por clave, separados). Mide `medir-bajas.sql` con 200.000 leads de una persona: la llamada (primer lote) ≤ 4.000 ms; el job `equipo-bajas`, cada corrida corta a 1,5 s: ≤ 12 corridas, ≤ 20.000 ms en total y la corrida más larga ≤ 3.000 ms. El trabajo es el que cuenta: 40 lotes y ~15,6 M buffers (el 5a-42 propone juzgar el tiempo sólo con una ventana sana, ningún checkpoint con `sync` > 2 s y presión de E/S del kernel ≤ 30 %: no aplicado).
-- Por qué cuesta lo que cuesta: `cartera` es una columna indexada en `leads_busqueda_idx`, ningún update de la baja es HOT (11 btree de `leads`). Sacar la cartera del GIN rompe la búsqueda (Berta leería 25.016 leads ajenos): descartado. Con lotes de 1.000 son 20 corridas y la guarda cae.
+- Vista previa: hasta 1.001 («más de 1.000»), `leads_asesores_usuario_vigente_idx`, ≤ 300 ms (`_bajas_en_curso()` envuelta en
+  `(select …)::uuid[]`, un InitPlan).
+- Baja: lotes de 5.000 por cursor (ids del índice y candado por clave, separados). `medir-bajas.sql` con 200.000 leads de una persona: la
+  llamada ≤ 4.000 ms; el job `equipo-bajas` corta cada corrida a 1,5 s: ≤ 12 corridas, ≤ 20.000 ms en total, la más larga ≤ 3.000 ms. Lo
+  que cuenta es el trabajo (≈ 40 lotes).
+- Por qué cuesta: `cartera` está en `leads_busqueda_idx`, así que ningún update de la baja es HOT (11 btree en `leads`). Sacarla del GIN rompe
+  la búsqueda (Berta leería leads ajenos): descartado. Con lotes de 1.000 la guarda de corridas cae.
 
 ### Jobs (100.000 filas por purgar)
 
 Mide `medir-jobs.sql`; los presupuestos son 10 a 30 veces lo típico.
 
-- `papelera-purgar`: 50 lotes por corrida entre leads, vehículos y cotizaciones, cada hora (10.000 leads en ≈ 4 s). Con 100.000 cotizaciones en 500 lotes, cada una con una revisión y un adjunto, una corrida purga 10.000 en 8,1–9,2 s (presupuesto 25.000 ms, `medir-jobs.sql`, 4.24-1b); la selección por `lotes_papelera_pendientes_idx` y una sonda por lote; el refcount de cada adjunto por `cotizaciones_adjuntos_ruta_idx` (sin él, un `Seq Scan` de `cotizaciones_adjuntos` por ruta). Desde el 4.24-1b el job también purga los lotes vencidos de cotizaciones de la siembra de volumen.
+- `papelera-purgar`: 50 lotes por corrida entre leads, vehículos y cotizaciones, cada hora. Con 100.000 cotizaciones en 500 lotes (una
+  revisión y un adjunto cada una), una corrida purga 10.000 ≤ 25.000 ms; selección por `lotes_papelera_pendientes_idx` y una sonda por lote;
+  refcount de cada adjunto por `cotizaciones_adjuntos_ruta_idx` (sin él, un `Seq Scan` por ruta).
 - `limpieza-automatica`: mueve 200 y revisa 1.000 más.
 - `importaciones-vinculos-purgar`, `importaciones-filas-purgar` y `apibara-consultas-purgar`: lotes de 10.000, 10 por corrida.
-- `importaciones-continuar` (cada 2 min): 5 importaciones totales detenidas por corrida y 50 sin avance en 24 h, sobre `importaciones_en_curso_idx`.
-- `importar-csv` (función edge, 9.06-3): hasta 45 s por invocación y lotes de 50 (`FILAS_POR_LOTE`); archivo normalizado de hasta 10 MB y 20.000 filas, leído entero en cada invocación (leer y validar 20.000 filas al tope: ≈ 140 ms en Node, medido en el 9.06-3). Con ≈ 8 s cada 500 leads, 20.000 filas son 7 u 8 invocaciones y más de 20 min de reloj (el job despierta la siguiente a los 2 min sin avance).
-- Convertir en el navegador (9.06-4): 20.000 leads de 7 columnas por `prepararFilas` + `filaNormalizadaDeLead` + `armarArchivo`, 1,6–1,76 s en Node (casi todo en `prepararFilas`, la regla de `/leads`; normalizar y armar ≈ 90 ms; 3,3 MB). Pasa el presupuesto de ≤ 1 s: la pantalla (9.06-4b) convierte por tramos de 500 filas (≈ 40 ms cada uno, `convertir-por-tramos.ts`) cediendo el hilo entre tramos, con «Preparando el archivo…» y el avance; el resultado es idéntico al de una pasada (`preparadorDeFilas`). La vista previa convierte sólo 500 (`FILAS_DE_VISTA_PREVIA`).
-- Importaciones (9.06-5): «Ver más» de 20 hasta 500 por `importaciones_lista_propia_idx` o `importaciones_lista_idx` (parciales: el filtro `archivo_ruta is not null` va siempre); sondeo cada 5 s por PK con ≤ 21 ids, sólo con alguna en curso y la pestaña a la vista; el informe de las rechazadas, ≤ 20 × 1.000 por la PK y sólo al apretar «Descargar». `importaciones` no es una tabla que crece (decenas o cientos por empresa): sin volumen.
-- `storage-gc`: reclama 100 por ronda, 5 rondas; 2.000 huérfanos encolados por pasada. El barrido de huérfanos lleva un cursor por bucket (`cola_gc_barrido`): 10.000 objetos examinados por pasada, 5 pasadas por corrida; no recorre el bucket entero.
+- `importaciones-continuar` (cada 2 min): 5 importaciones totales detenidas y 50 sin avance en 24 h por corrida
+  (`importaciones_en_curso_idx`).
+- `importar-csv` (función edge): ≤ 45 s por invocación, lotes de 50 (`FILAS_POR_LOTE`); archivo normalizado ≤ 10 MB y 20.000 filas, leído
+  entero en cada invocación. Con ≈ 8 s cada 500 leads, 20.000 filas son 7 u 8 invocaciones y más de 20 min (el job despierta la siguiente a
+  los 2 min sin avance).
+- Convertir en el navegador: 20.000 leads pasan el presupuesto de ≤ 1 s, así que la pantalla convierte por tramos de 500
+  (`convertir-por-tramos.ts`) cediendo el hilo, con «Preparando el archivo…» y el avance; idéntico a una pasada (`preparadorDeFilas`). La
+  vista previa convierte 500 (`FILAS_DE_VISTA_PREVIA`).
+- Importaciones: «Ver más» de 20 hasta 500 por `importaciones_lista_propia_idx` o `importaciones_lista_idx` (parciales: el filtro
+  `archivo_ruta is not null` va siempre); sondeo cada 5 s por PK con ≤ 21 ids, sólo con alguna en curso y la pestaña a la vista; el informe
+  de rechazadas, ≤ 20 × 1.000 por PK y sólo al «Descargar». No es una tabla que crece.
+- `storage-gc`: 100 por ronda, 5 rondas; 2.000 huérfanos encolados por pasada; el barrido lleva un cursor por bucket (`cola_gc_barrido`):
+  10.000 objetos por pasada, 5 pasadas por corrida.
 - `leads-campos-privacidad` (lotes de 5.000, hasta 10 por corrida) y `equipo-bajas` (arriba).
 
-## Ítems por página (9g): qué lista lo admite y su máximo
+## Ítems por página: qué lista lo admite y su máximo
 
-Elige 10, 25, 50 o 100 (`listas.por_pagina`, `?por=`); cada lista declara su máximo y el selector llega hasta ahí. Un máximo se gana midiendo: `db:medir:volumen` y `e2e/listas-por-pagina-volumen.spec.ts` (bytes, nodos, página profunda). El selector va arriba de la lista en el celular y se dibuja una sola vista (`UnaSolaVista`, según el `user-agent`).
+Elige 10, 25, 50 o 100 (`listas.por_pagina`, `?por=`); cada lista declara su máximo. Un máximo se gana midiendo: `db:medir:volumen` y
+`e2e/listas-por-pagina-volumen.spec.ts` (bytes, nodos, página profunda). En el celular el selector va arriba de la lista y se dibuja una sola
+vista (`UnaSolaVista`, según el `user-agent`).
 
-- Listado de leads: 100; 3.500 nodos y 48 KB gz (`leads-escala.spec.ts`, `?por=100`); medido ~2.300 nodos.
-- Inventario de vehículos: 100; 6.000 nodos y 60 KB gz (`vehiculos-por-pagina.spec.ts`); medido ~4.700 nodos, 50 KB.
-- Papeleras: no entran al selector (5 lotes × 20 ya son 100 filas). «Ver más» de seguimientos y recordatorios (20, tope 500), columna del kanban (50, tope 500, `TAMANO_DE_COLUMNA`) y las listas de tope fijo no tienen selector.
-- En la base cada RPC con tamaño acota con `_acotar_pagina(pedido, por_defecto, máximo)`: seguimientos y recordatorios 20 hasta 50; papeleras 6 hasta 51; `embudo_tablero` 50 hasta 100 por columna y 500 hasta 1.000 de total; `embudo_etapa_pagina` 50 hasta 100. El listado de leads y el inventario de quien ve «todos» se leen por PostgREST: `max_rows` = 1.000; el de quien ve «propios», por `vehiculos_inventario()`: 100 hasta 100. `escala.sql` llama las RPC con 100000, 51, 30, 0, -1 y nulo.
+- Listado de leads: 100; ≤ 3.500 nodos y 48.000 B gz (`leads-escala.spec.ts` con `?por=100`; 2.200 con 50).
+- Inventario de vehículos: 100; ≤ 6.000 nodos y 60.000 B gz.
+- Listado de cotizaciones: 100; ≤ 2.130 nodos y 39.500 B gz.
+- Sin selector: las papeleras (5 lotes × 20), «Ver más» de seguimientos y recordatorios, la columna del kanban (50, tope 500,
+  `TAMANO_DE_COLUMNA`) y las listas de tope fijo.
+- En la base cada RPC con tamaño acota con `_acotar_pagina(pedido, por_defecto, máximo)`: seguimientos y recordatorios 20 hasta 50;
+  papeleras 6 hasta 51; `embudo_tablero` 50 hasta 100 por columna y 500 hasta 1.000 de total; `embudo_etapa_pagina` 50 hasta 100;
+  `vehiculos_inventario()` 100 hasta 100. El listado de leads y el inventario de quien ve «todos» van por PostgREST (`max_rows` = 1.000).
+  `escala.sql` llama las RPC con 100000, 51, 30, 0, -1 y nulo.
 
 ## Kanban y oportunidades
 
-- Tablero: 6 columnas × 50, «500+» por columna, `oportunidades_tablero_idx`; la policy de `oportunidades` pregunta por fila `_lead_vivo_en_mi_cartera(lead_id)` (no arma el arreglo de la cartera). Presupuestos: tablero 800 ms, «Ver más» 500 ms, buscar 700 / 200 ms; primera página de una columna, «Ver más» y total acotado ≤ 25 ms (la guarda asserta `oportunidades_tablero_idx`, sin recorrer `oportunidades`, ≤ 200 descartes). «Ver más» hasta 500 por columna con aviso.
-- Nodos del DOM de una columna en el tope (500 tarjetas): ≤ 10.250; el «⋯» de cada tarjeta cuesta exactamente 3 nodos (`<use>` a un símbolo de `src/shared/ui/lista/simbolos-de-lista.tsx`; `e2e/mas-acciones-icono.spec.ts`). El servidor dibuja una sola distribución (columnas o pestañas) según el ancho de la petición.
-- Oportunidades de la ficha: 10 en el servidor (las abiertas primero) y «Ver más» de a `TAMANO_DE_VER_MAS` desde el navegador, hasta `TOPE_DE_LO_CARGADO` con aviso y el camino «Buscarlas en tu embudo». Documento de la ficha ≤ 66 KB con la sección abierta, con 10 o con 1.000 (62,7 y 61,7 KB). Cada «Ver más», una página de 20 de ≈ 15,5 KB que no crece con la profundidad (≈ 3 ms en la base, `medir-lead-oportunidades.sql`); nodos lineales hasta 500 (238 con 10 y 11.509 con 500). `e2e/leads-oportunidades-ver-todas.spec.ts`.
+- Tablero: 6 columnas × 50, «500+» por columna, `oportunidades_tablero_idx`; la policy de `oportunidades` pregunta por fila
+  `_lead_vivo_en_mi_cartera(lead_id)`. Presupuestos: tablero 800 ms, «Ver más» 500 ms, buscar 700 / 200 ms; primera página de una columna,
+  «Ver más» y total acotado ≤ 25 ms (la guarda asserta `oportunidades_tablero_idx`, sin recorrer `oportunidades`, ≤ 200 descartes).
+- Nodos con una columna en el tope (500 tarjetas): ≤ 10.250 en escritorio y 6.000 en el celular (`leads-escala.spec.ts`); el «⋯» de cada
+  tarjeta cuesta exactamente 3 nodos (`<use>` a un símbolo de `src/shared/ui/lista/simbolos-de-lista.tsx`; `e2e/mas-acciones-icono.spec.ts`).
+  El servidor dibuja una sola distribución según el ancho de la petición.
+- Oportunidades de la ficha: 10 en el servidor y «Ver más» de a `TAMANO_DE_VER_MAS` desde el navegador hasta `TOPE_DE_LO_CARGADO`, con
+  aviso y «Buscarlas en tu embudo». Documento de la ficha ≤ 66 KB sobre `/perfil` con la sección abierta, igual con 10 o con 1.000; cada
+  «Ver más» pesa lo mismo a cualquier profundidad; nodos lineales hasta 500 (`e2e/leads-oportunidades-ver-todas.spec.ts`).
 
-## Alertas y bandeja de logística (6.12)
+## Alertas y bandeja de logística
 
-- `logistica_bandeja(5)` (definer, máximo 20): demoradas = por par (origen visible, fase que alerta) un rango de `vehiculos_cadena_idx` con `limit 50`;
-  cuesta los pares que ve quien mira (decenas), no las unidades. Trabados: hasta 50 llamadas a `evaluar_requisitos` (los requisitos de una fase son
-  configuración). Por aprobar: `documentos_por_revisar_idx` con `limit n + 1` (cola corta). Sin `count`, sin `offset`, sin volumen sembrado (no es una
-  lista nueva sobre una tabla que crece: lee rangos acotados de índices ya medidos en 6.02).
-- `alertas_demora()` (job `alertas-demora`, cada hora en el minuto 12): hasta 2.000 unidades por corrida, de a 200 por cursor `(fase_desde, id)` sobre
-  `vehiculos_cadena_idx`; destinatarios una vez por origen. «Ya avisé», «abierto» y el cierre al mover (`trg_alertas_cerrar_al_mover`, también en un
-  `cambiar_fase_lote` de 200) van por `notificaciones_referencia_idx (referencia_id, tipo, usuario_id, creado_en desc)`. **Límite aceptado:** con más de
-  2.000 demoradas a la vez, las más nuevas esperan a que se muevan las viejas.
-- `documentos_vencimientos()` (job `documentos-vencimientos`, 11:15 UTC): hasta 2.000 documentos por corrida por `documentos_vencen_idx (vence_el)`; el
-  cursor `(vence_el, id)` agrega un ordenamiento parcial y recorre también los documentos de repuestos (cuentan para el tope).
-- Cada aviso nuevo pasa por `trg_notificaciones_push` (7.03): con `push_web` activa, un `pg_net` por insert; reabrir (update) no empuja.
-- Inicio (6.12-2): los tres bloques de logística leen `bandejaLogistica(TOPE_DE_BLOQUE)`, memorizada con `cache()`: una sola llamada a
-  `logistica_bandeja(5)` por pantalla, no tres. Cada bloque dice «N» o «más de 5» con `cantidadAcotada` (la base pide `n + 1`).
+- `logistica_bandeja(5)` (definer, máx. 20): demoradas = por par (origen visible, fase que alerta) un rango de `vehiculos_cadena_idx` con
+  `limit 50` (cuesta los pares, no las unidades). Trabados: hasta 50 `evaluar_requisitos`. Por aprobar: `documentos_por_revisar_idx` con
+  `limit n + 1`. Sin volumen: rangos acotados de índices ya medidos.
+- `alertas_demora()` (job `alertas-demora`, cada hora en el minuto 12): ≤ 2.000 unidades por corrida, de a 200 por cursor
+  `(fase_desde, id)` sobre `vehiculos_cadena_idx`; destinatarios una vez por origen. «Ya avisé», «abierto» y el cierre al mover
+  (`trg_alertas_cerrar_al_mover`, también en un `cambiar_fase_lote` de 200) van por
+  `notificaciones_referencia_idx (referencia_id, tipo, usuario_id, creado_en desc)`. **Límite aceptado:** con más de 2.000 demoradas, las
+  nuevas esperan a que se muevan las viejas.
+- `documentos_vencimientos()` (job `documentos-vencimientos`, 11:15 UTC): ≤ 2.000 por corrida por `documentos_vencen_idx (vence_el)`; el
+  cursor `(vence_el, id)` agrega un ordenamiento parcial e incluye los documentos de repuestos (cuentan para el tope).
+- Cada aviso nuevo pasa por `trg_notificaciones_push`: con `push_web`, un `pg_net` por insert; reabrir no empuja.
+- Inicio: los tres bloques de logística leen `bandejaLogistica(TOPE_DE_BLOQUE)` con `cache()`: una llamada por pantalla. Cada bloque dice
+  «N» o «más de 5» (`cantidadAcotada`).
 
-## La cadena de logística (6.03)
+## La cadena de logística
 
-- `/logistica`: `logistica_cadena()` trae la primera página de cada columna (`TAMANO_DE_COLUMNA`, 50), «Ver más» pide de a 50 por `verMasDeLaColumna` hasta `TOPE_DE_LO_CARGADO` (500) por columna con `<AvisoDeTope>`; el número de la columna es `50+`, nunca un total (`limit n + 1`). Índice `vehiculos_cadena_idx (origen_id, fase_id, fase_desde, id)` de 6.02 (plan medido allí). Nada por tarjeta: los atributos para el nombre van en tandas de 100 ids por clave primaria, una vez por lectura. Sin foto ni menú «⋯»: el nodo de cada tarjeta es corto (12 columnas × 50 = 600 tarjetas). Una sola vista en el DOM (escritorio o celular, la elige el ancho de la petición).
-- JS en frío de `/logistica` ≤ 410 KB (medido **397,4** en 31 chunks con el lote, 6.04-3; antes 388,9 en 30, `presupuesto-js.spec.ts`, con la dueña de la prueba).
-- Sin volumen de interfaz sembrado: el spec `e2e/logistica-cadena.spec.ts` prueba «Ver más» con una columna de 51, no mide nodos.
-- Lote de mover (6.04-3): la selección y los lotes están acotados a 200 (`TOPE_DEL_LOTE`) y van en **una llamada** (`previsualizar_cambio_fase_lote` y `cambiar_fase_lote`, probadas en 6.02), nunca una por unidad. Los destinos de la fase son configuración (`TOPE_DE_DESTINOS`). «Unidades de un grupo (lote)»: lectura del navegador de `vehiculos` con `transportes!inner` por `transportes_contenedor_idx` / `transportes_booking_idx`, `limit 201`; hija de un valor de grupo, sin `medir-*.sql`. Las casillas y el contexto son JS en frío de `/logistica`; la barra, el drawer y el hueco del grupo van con `diferido()`.
-- Panel de la unidad, «Notas» (6.04-2): lectura del navegador de `notas` por `notas_vehiculo_vivas_idx (vehiculo_id, creado_en desc, id desc) where eliminado_en is null`, `limit 21` (`TAMANO_DE_VER_MAS` + 1), cursor `(creado_en, id)` y, con «Ir a una fecha», `creado_en <` el inicio del día siguiente; hasta 500 con `<AvisoDeTope>`. El autor y la fase de una nota de cambio vienen embebidos en la misma consulta (nada por fila). Hija de una unidad (decenas de filas): sin `medir-*.sql`.
-- Panel de la unidad, «Historial» (6.04-2): `historial_fases` por `historial_fases_vehiculo_idx (vehiculo_id, creado_en)` caminado hacia atrás, `limit 21`, igual cursor, tope y salto a una fecha; las fases y la persona, embebidas. Se leen al abrir su bloque y su código viaja con `diferido()`: el panel no paga JS de más al abrirse.
+- `/logistica`: `logistica_cadena()` trae la primera página de cada columna (`TAMANO_DE_COLUMNA`), «Ver más» de a 50 por
+  `verMasDeLaColumna` hasta `TOPE_DE_LO_CARGADO` con `<AvisoDeTope>`; el número de la columna es `50+`, nunca un total. Índice
+  `vehiculos_cadena_idx (origen_id, fase_id, fase_desde, id)`. Nada por tarjeta: los atributos del nombre van en tandas de 100 ids por PK.
+  Sin foto ni «⋯». Una sola vista en el DOM.
+- JS en frío ≤ 410 KB (al borde: 401,0).
+- Sin volumen de interfaz: `e2e/logistica-cadena.spec.ts` prueba «Ver más» con 51, no mide nodos.
+- Lote de mover: selección y lotes ≤ 200 (`TOPE_DEL_LOTE`) en **una llamada** (`previsualizar_cambio_fase_lote`, `cambiar_fase_lote`). Los
+  destinos de la fase son configuración (`TOPE_DE_DESTINOS`). «Unidades de un grupo (lote)»: `vehiculos` con `transportes!inner` por
+  `transportes_contenedor_idx` / `transportes_booking_idx`, `limit 201`. Las casillas y el contexto van en el JS de `/logistica`; la barra,
+  el drawer y el hueco del grupo, con `diferido()`.
+- Panel de la unidad, «Notas»: `notas` por `notas_vehiculo_vivas_idx (vehiculo_id, creado_en desc, id desc) where eliminado_en is null`,
+  `limit 21`, cursor `(creado_en, id)` e «Ir a una fecha»; hasta 500 con `<AvisoDeTope>`; autor y fase embebidos. Sin `medir-*.sql`.
+- «Historial»: `historial_fases` por `historial_fases_vehiculo_idx (vehiculo_id, creado_en)` hacia atrás, igual cursor, tope y salto; fases
+  y persona embebidas. Se lee al abrir su bloque; código con `diferido()`.
 
-## Buscador (7.12)
+## Buscador
 
-Cada sección por su RPC, de a `_acotar_pagina(p_tamano, 5, 20)` + 1, con el mínimo de `MINIMO_DE_BUSQUEDA` en la base (`_buscador_interpretar()`).
+Cada sección por su RPC, de a `_acotar_pagina(p_tamano, 5, 20)` + 1, con el mínimo de `MINIMO_DE_BUSQUEDA` en la base
+(`_buscador_interpretar()`).
 
-- Leads (`buscador_leads()`): la ventana de `leads_candidatos()` con sólo el texto (la búsqueda del listado, medida en `busqueda-volumen.sql`) + `leads_ids_del_numero()` (≤ 100) + una pasada de `leads_vista_por_ids()` sobre esos ids; corta en 21.
-- Vehículos (`buscador_vehiculos()`): una ruta por origen visible por `vehiculos_origen_listado_idx`, ≤ 21 por origen. **Límite sin assert**, el del panel y el inventario: con un texto que no coincide recorre los vehículos vivos de cada origen visible.
-- Cotizaciones (`buscador_cotizaciones()`, definer; `supabase/tests/medir-buscador.sql`, 7.12-2, como authenticated con el plan genérico, 50.000 y 250.000, la dueña y
-  Ana con 100 propias fijas): el número por `cotizaciones_numero_key` (6–8 bloques, 0,9 ms); el título por `cotizaciones_titulo_trgm`, a lo sumo 1.000 candidatas de
-  los orígenes que se ven, más las propias por `cotizaciones_creador_idx` (≤ 21) **sólo donde se tiene «propios» sin «todos»** (desde
-  `20261111200531_buscador_cotizaciones_rutas.sql`: antes, un título raro de la dueña recorría todas sus propias, 46 → 229 ms), y la policy sobre ellas por la PK
-  (`en_cartera` por fila con «propios»). Medido: raro 41–61 bloques y ≈ 1 ms, sin crecer con N; común 5 / 11 ms la dueña y 12 / 18 ms Ana (1.000 `en_cartera`), el
-  heap ≈ 610 bloques sin crecer (el tope de 1.000). Presupuestos: número 10 ms, raro 20, común 150 la dueña y 300 Ana; ningún recorrido entero. **Límites
-  declarados:** con un título común, el GIN (31 → 136 bloques) y la PK de la policy (≈ 510 → 2.010, ≤ 1.000 × su profundidad) crecen con las coincidencias; la
-  ruta de las propias crece con las propias de quien busca, no con N; con «todos» en un origen y más de 1.000 coincidencias, las propias no tienen prioridad (se llega por `#número` o afinando el texto). Con el plan a medida (las 5 primeras llamadas de una sesión), un título muy común va por un
-  Seq Scan con `limit 1000` (≈ 600 bloques si las coincidencias se reparten; la tabla entera si quedan al final): se queda así, D22 del 7.12-2. La guarda: sin
-  `cotizaciones_titulo_trgm`, lo raro de la dueña recorre la tabla (7.723 bloques del heap, 228 ms).
-- Últimos abiertos (`leerUltimosAbiertos()`): un pedido de ≤ 16 visitas propias por `visitados_usuario_visto_idx` y hasta tres en paralelo por PK (`in('id', …)`,
-  ≤ 16 ids cada uno, bajo la RLS de cada tabla); se muestran 8.
-- Una búsqueda: hasta 4 pedidos en paralelo (leads hace dos), cada uno ≤ 6 filas; la espera de 250 ms entre teclas es de la paleta (7.13).
-- La paleta (7.13-3), sin lista nueva ni tabla que crece: topes de 5 filas por sección, 8 «Últimos abiertos» y 8 acciones con texto (sin texto, las ~25 del menú, con desplazamiento propio). El shell suma el botón, `useAtajo` y las acciones como props; `cmdk`, `command.tsx`, la paleta y sus hooks van tras `diferido()` y no viajan hasta pulsar «Buscar» o tocarlo con el puntero. `e2e/presupuesto-js.spec.ts` sin cambios de tope (ver la bitácora del paso).
+- Leads (`buscador_leads()`): la ventana de `leads_candidatos()` con sólo el texto + `leads_ids_del_numero()` (≤ 100) + una pasada de
+  `leads_vista_por_ids()`; corta en 21.
+- Vehículos (`buscador_vehiculos()`): una ruta por origen visible por `vehiculos_origen_listado_idx`, ≤ 21 por origen. **Límite sin
+  assert:** un texto que no coincide recorre los vehículos vivos de cada origen visible.
+- Cotizaciones (`buscador_cotizaciones()`, definer; `medir-buscador.sql`, 50.000 y 250.000): el número por `cotizaciones_numero_key`; el
+  título por `cotizaciones_titulo_trgm`, ≤ 1.000 candidatas de los orígenes que se ven, más las propias por `cotizaciones_creador_idx`
+  (≤ 21) **sólo donde se tiene «propios» sin «todos»**; la policy sobre ellas por PK. Presupuestos: número 10 ms, título raro 20, común 150
+  la dueña y 300 con «propios»; ningún recorrido entero. **Límites declarados:** con un título común el GIN y la PK de la policy crecen con
+  las coincidencias (≤ 1.000 × su profundidad); la ruta de las propias crece con las propias; con «todos» y más de 1.000 coincidencias, las
+  propias no tienen prioridad (se llega por `#número` o afinando). Con el plan a medida (las 5 primeras llamadas de una sesión) un título muy
+  común va por un `Seq Scan` con `limit 1000`: se queda así. Guarda: sin `cotizaciones_titulo_trgm`, lo raro recorre la tabla.
+- Últimos abiertos (`leerUltimosAbiertos()`): ≤ 16 visitas propias por `visitados_usuario_visto_idx` y hasta tres lecturas en paralelo por
+  PK (≤ 16 ids cada una, bajo la RLS de cada tabla); se muestran 8.
+- Una búsqueda: hasta 4 pedidos en paralelo, cada uno ≤ 6 filas; espera de 250 ms entre teclas.
+- La paleta: 5 filas por sección, 8 «Últimos abiertos», 8 acciones con texto (sin texto, las ~25 del menú). El shell suma el botón,
+  `useAtajo` y las acciones como props; `cmdk`, `command.tsx`, la paleta y sus hooks van tras `diferido()` hasta pulsar «Buscar».
 - `visitados`: ≤ 50 por persona (`visita_registrar()` recorta), por la PK y `visitados_usuario_visto_idx (usuario_id, visto_en desc)`.
 
-## Repuestos (8.08)
+## Repuestos
 
-- `repuestos_proyectos_listar()` (definer): por cursor sobre `repuestos_proyectos_numero_key` (`numero desc`), de a 50 (máximo 100) más uno; con cursor y sin
-  cursor son dos consultas. Las cuentas de ítems de cada fila leen como mucho 201 ítems vivos por `repuestos_items_proyecto_id_idx` (un número que se muestra
-  nunca es un total exacto), y el título del vehículo (`puede_vehiculo`) se calcula sólo para la página. El texto (≥ 3 o sólo dígitos) es filtro, no índice:
-  con un texto que no coincide recorre los proyectos vivos por el índice del número (**límite sin assert**; la tabla crece por decenas al día).
-- `repuestos_stock_listar()` (definer, 8.10-1): los ítems vivos en stock por cursor `(en_stock_desde, id)` sobre el índice parcial
-  `repuestos_items_en_stock_idx (en_stock_desde desc, id desc) where en_stock_desde is not null and eliminado_en is null`, de a 50 (máximo 100) más uno; con cursor
-  y sin cursor son dos consultas; ids primero y luego el proyecto y el título (`puede_vehiculo`) sólo de la página. Sin `count` ni `offset`; sin presupuesto medido
-  (no es una tabla de las que se siembran). La dibuja `/repuestos?vista=stock` (8.10-3), una página de `TAMANO_DE_PAGINA_POR_DEFECTO`; el buscador de proyecto
-  destino de «Reasignar» lee una página de `TAMANO_DE_VER_MAS` de abiertos por `repuestos_proyectos_listar()`. El historial de un ítem va por `repuestos_stock_movimientos_item_id_idx` (pocos por ítem): por la action
-  `leerMovimientosDeItem` (8.10-2), `id desc` con el `id` como cursor, de a `TAMANO_DE_VER_MAS` más uno, tope `TOPE_DE_LO_CARGADO` con `<AvisoDeTope>`. **Excepción a
-  «siempre hay un camino a lo antiguo»:** más allá de 500 movimientos de un ítem no hay «Ir a una fecha»; un ítem tiene pocos (D9 de 8.10-2).
-- Compras de un proyecto (8.11-2): PostgREST bajo la RLS de `repuestos.costos.ver`, por `repuestos_compras_proyecto_id_idx`, tope 200 más uno con `<AvisoDeTope>`
-  (sin camino: compras no crece, D10 de 8.11-2), orden `fecha desc, creado_en desc, id desc` sobre las de un proyecto; se lee sólo al abrir la pestaña. El margen,
-  `repuestos_proyecto_margen()` (definer), un proyecto, `sin_precio` hasta 201. Sin medición (no es una tabla que crece).
+- `repuestos_proyectos_listar()` (definer): cursor sobre `repuestos_proyectos_numero_key` (`numero desc`), de a 50 (máx. 100) + 1; con y
+  sin cursor son dos consultas. Las cuentas de ítems leen ≤ 201 vivos por `repuestos_items_proyecto_id_idx`; el título del vehículo
+  (`puede_vehiculo`) sólo para la página. El texto (≥ 3 o sólo dígitos) es filtro: si no coincide recorre los proyectos vivos (**límite sin
+  assert**).
+- `repuestos_stock_listar()` (definer): cursor `(en_stock_desde, id)` sobre
+  `repuestos_items_en_stock_idx (en_stock_desde desc, id desc) where en_stock_desde is not null and eliminado_en is null`, de a 50
+  (máx. 100) + 1; ids primero, luego proyecto y título de la página. Sin presupuesto
+  medido. La dibuja `/repuestos?vista=stock` (`TAMANO_DE_PAGINA_POR_DEFECTO`); el buscador de «Reasignar»
+  lee una página de `TAMANO_DE_VER_MAS` abiertos. Movimientos de un ítem (`leerMovimientosDeItem`): por
+  `repuestos_stock_movimientos_item_id_idx`, `id desc` como cursor, de a `TAMANO_DE_VER_MAS` + 1, tope `TOPE_DE_LO_CARGADO` con
+  `<AvisoDeTope>`. **Excepción a «siempre hay un camino a lo antiguo»:** más allá de 500 movimientos no hay «Ir a una fecha» (un ítem tiene
+  pocos).
+- Compras de un proyecto: PostgREST bajo `repuestos.costos.ver`, por `repuestos_compras_proyecto_id_idx`, tope 200 + 1 con `<AvisoDeTope>`
+  (sin camino: compras no crece), orden `fecha desc, creado_en desc, id desc`; sólo al abrir la pestaña. `repuestos_proyecto_margen()`
+  (definer), un proyecto, `sin_precio` hasta 201.
 - `repuestos_pendientes_de_vehiculo()` (definer): un proyecto vivo por vehículo (`repuestos_proyecto_por_vehiculo`), sus ítems por
-  `repuestos_items_proyecto_id_idx` y las esperas de las fases siguientes del vehículo; de a 50 (máximo 200) más uno.
-- Cadena de repuestos (8.13-3, `/repuestos?vista=cadena`): PostgREST bajo la RLS de `repuestos.ver`, **una consulta por fase** del flujo (≤ 30, hoy 5) más «Sin fase», en paralelo, cada una con `limit 51` (`TAMANO_DE_COLUMNA + 1`) por `repuestos_items_fase_id_idx`, ordenada por `(fase_desde, id)` (las fases finales, de lo más reciente); «Ver más» de a 50 por cursor `(fase_desde, id)` hasta `TOPE_DE_LO_CARGADO`; sin `offset`, `count` ni N+1 (el proyecto va embebido). Sin siembra de volumen ni `EXPLAIN` (los ítems de repuestos no crecen como las tablas de `escala.md`; abierto **8-13c**: un índice `(fase_id, fase_desde, id)` si la Cadena llega a miles). `/repuestos` no tiene presupuesto en `presupuesto-js`; la vista paga su JS sólo con `?vista=cadena` (no se midió).
-- Hueco «Repuestos» del panel del vehículo (8.13-3): una llamada a `repuestos_pendientes_de_vehiculo` (50 + 1, la fila de arriba) sólo al abrir el bloque y otra si cambia la fase del vehículo.
-- Sin siembra de volumen ni `EXPLAIN` en `db:medir:volumen` (`repuestos_proyectos` no está entre las tablas que crecen de `escala.md`; regla del 2026-11-08).
-- Imágenes de un ítem (8.09-3): `limit 9` por `repuestos_items_imagenes_item_id_idx`, sólo al abrir el panel (nunca con la hoja); el trigger cuenta con `limit 8` bajo un candado por ítem. **Excepción a «nunca el original»:** sin miniatura y con `unoptimized`, cada imagen baja el WebP de ≤ 1600 px, pero son ≤ 8 por panel abierto (D65 de 8.09-3; sin medición).
-- Pestaña «Repuestos» de la ficha del vehículo (8.09-4): `proyectoDe` es `limit 1` por `repuestos_proyecto_por_vehiculo` y el recuento por fase lee como mucho 201 ítems por `repuestos_items_proyecto_id_idx`; sólo al abrir la pestaña (nunca con la ficha); componentes de servidor, sin JS de cliente nuevo.
-- Catálogos de Configuración (8.08-2): 4 × `limit 201` por PostgREST, sin índice por `orden` (tabla de configuración, decenas de filas); tope 200 por
-  catálogo, con `<AvisoDeTope>` en la 8.08-3.
-- Configuración del cotizador (8.12-2, pestaña «Cotizador» de `/configuracion/repuestos`): tres lecturas en paralelo por PostgREST bajo la RLS de
-  `repuestos.cotizar` o `repuestos.configurar`: la configuración por su PK (`order by id desc`, la primera es la vigente) con tope 20 + 1, los tramos por
-  `repuestos_tramos_logistica_moneda_idx` con tope 200 + 1 y las cajas por `repuestos_cajas_moneda_monto_key` con tope 200 + 1, cada una con `<AvisoDeTope>`.
-  Tablas de configuración (decenas de filas): sin medición. Los modales de tramo y caja se piden al abrirse (`diferido()`).
-- Cotizaciones de un proyecto de repuestos (8.12-3, pestaña «Cotizaciones» de `/repuestos/[id]` y su hoja): la lista es `limit 51` por
-  `repuestos_cotizaciones_proyecto_id_idx` (ordena sólo las de un proyecto, decenas; no crece con la tabla) con tope 50 y `<AvisoDeTope>`, leída sólo con la
-  pestaña abierta; la hoja lee la cotización por su PK y proyecto (`limit 1`) y sus líneas por `repuestos_cotizaciones_lineas_cotizacion_id_idx` con el tope de la
-  base (200). Sin cursor ni volumen sembrado (D35); sin `diferido()` nuevo (no hay modal).
-- Hoja editable de una cotización de repuestos (8.12-4): además de la cotización y sus líneas (arriba), lee los ítems del proyecto sólo en borrador
-  (`repuestos_items_proyecto_id_idx`, `limit 201`, tope 200 por `armarHoja`). El total en vivo es O(líneas) ≤ 200 por cambio; las líneas y las `XCell` van en
-  `memo` con callbacks estables. Tablas acotadas por proyecto: sin volumen sembrado.
+  `repuestos_items_proyecto_id_idx` y las esperas de las fases siguientes; de a 50 (máx. 200) + 1. El hueco «Repuestos» del panel del
+  vehículo la llama al abrir el bloque y otra vez si cambia la fase.
+- Cadena (`/repuestos?vista=cadena`): PostgREST bajo `repuestos.ver`, **una consulta por fase** (≤ 30) más «Sin fase», en paralelo, cada una
+  `limit 51` (`TAMANO_DE_COLUMNA + 1`) por `repuestos_items_fase_id_idx`, orden `(fase_desde, id)`; «Ver más» de a 50 por cursor hasta
+  `TOPE_DE_LO_CARGADO`. Abierto 8-13c (`docs/PENDIENTES.md`): un índice `(fase_id, fase_desde, id)` si llega a
+  miles. `/repuestos` no tiene presupuesto de JS.
+- Sin volumen ni `EXPLAIN` en `db:medir:volumen`: `repuestos_*` no están entre las tablas que crecen de `escala.md`.
+- Imágenes de un ítem: `limit 9` por `repuestos_items_imagenes_item_id_idx`, sólo al abrir el panel; el trigger cuenta con `limit 8` bajo
+  un candado por ítem. **Excepción a «nunca el original»:** sin miniatura y con `unoptimized`, cada imagen baja el WebP de ≤ 1600 px (≤ 8
+  por panel abierto).
+- Pestaña «Repuestos» de la ficha del vehículo: `proyectoDe` es `limit 1` por `repuestos_proyecto_por_vehiculo` y el recuento por fase lee
+  ≤ 201 ítems; sólo al abrir la pestaña; Server Components.
+- Catálogos de Configuración: 4 × `limit 201` por PostgREST (decenas de filas); tope 200 con `<AvisoDeTope>`.
+- Configuración del cotizador (`/configuracion/repuestos`, «Cotizador»): tres lecturas en paralelo bajo `repuestos.cotizar` o
+  `repuestos.configurar`: la configuración por su PK (`order by id desc`, la primera es la vigente) tope 20 + 1, los tramos por
+  `repuestos_tramos_logistica_moneda_idx` y las cajas por `repuestos_cajas_moneda_monto_key`, tope 200 + 1 cada una, con `<AvisoDeTope>`.
+  Los modales se piden al abrirse (`diferido()`).
+- Cotizaciones de un proyecto (`/repuestos/[id]`, «Cotizaciones»): `limit 51` por `repuestos_cotizaciones_proyecto_id_idx`, tope 50 con
+  `<AvisoDeTope>`, sólo con la pestaña abierta; la hoja lee la cotización por PK (`limit 1`) y sus líneas por
+  `repuestos_cotizaciones_lineas_cotizacion_id_idx` (tope 200 de la base). En borrador lee además los ítems del proyecto (`limit 201`, tope
+  200 por `armarHoja`); el total en vivo es O(líneas) ≤ 200 por cambio, con líneas y `XCell` en `memo` y callbacks estables.
 
-## Tablero: métricas (9.07)
+## Tablero: métricas
 
-- `tablero_leads()` y `tablero_cotizaciones()` (definer): agregados de un período de hasta 366 días (fechas en la zona de la empresa). `tablero_leads`
-  recorre `leads_listado_idx` por el rango de `creado_en` y `leads_cliente_desde_idx` (parcial: vivos con fecha) por el de `cliente_desde`; el dueño de
-  cada lead del período, por `leads_asesores_dueno_unico` (una sonda por lead). `tablero_cotizaciones` recorre `cotizaciones_listado_idx`. Costo lineal en
-  lo **del período**, no en la tabla; rankings cortados con `row_number()` (10 orígenes, 20 personas) y un día por fecha con `generate_series`.
-- Sin presupuesto medido ni `EXPLAIN` en `db:medir:volumen`: no es una lista; si la pantalla (9.08) lo pide, se mide con el período de 366 días.
-- `tablero_margen()` y `tablero_cola_web()` (9.11-1, definer), con la misma regla. `tablero_margen` recorre el rango de `pagos_tablero_confirmado_idx`
-  (nuevo, parcial: confirmados vivos de vehículo, por `confirmado_en`) y el de `pagos_fecha_idx` (los sin confirmar del período); por vehículo de la
-  cohorte, una sonda en `pagos_vehiculo_idx`, `gastos_vehiculo_idx` y `cotizaciones_final_por_vehiculo`; 10 orígenes. `tablero_cola_web` recorre el rango de
-  `solicitudes_contacto_web_asignada_idx` (nuevo) y corta en 20 personas. Costo lineal en lo del período; sin volumen sembrado (no es una lista).
-- `/tablero` (9.08-1; 9.11-2): a lo sumo cuatro RPC por carga (una por grupo: leads, cotizaciones, margen y cola web; compartidas con `cache()`); Server Components sin JS propio salvo el «Reintentar» de un widget caído y los `<Link>`. Sin presupuesto de JS hasta la parte 3 (el `<Drawer>` de «Personalizar» va con `diferido()`).
-- `/tablero` (9.08-3): «Personalizar» es un `<Drawer>` diferido (sólo el botón va en el JS de la ruta); guardar es un `upsert` de `tablero.widgets` y `router.refresh()`, sin consulta nueva.
-- `/tablero` (9.08-2): las cinco gráficas son HTML y SVG de servidor; 90 días son 180 rectángulos y 90 filas de tabla (acotado por la ventana); sin consulta nueva (leen lo que ya leen las cifras) y sin JS de cliente propio.
+- `tablero_leads()` y `tablero_cotizaciones()` (definer): agregados de un período ≤ 366 días (zona de la empresa). `tablero_leads` recorre
+  `leads_listado_idx` por `creado_en` y `leads_cliente_desde_idx` (parcial) por `cliente_desde`; el dueño por `leads_asesores_dueno_unico`
+  (una sonda por lead). `tablero_cotizaciones` recorre `cotizaciones_listado_idx`. Costo lineal en lo **del período**; rankings cortados con
+  `row_number()` (10 orígenes, 20 personas), un día por fecha con `generate_series`.
+- `tablero_margen()` y `tablero_cola_web()` (definer), con la misma regla: `tablero_margen` recorre `pagos_tablero_confirmado_idx` (parcial:
+  confirmados vivos de vehículo, por `confirmado_en`) y `pagos_fecha_idx`; por vehículo, una sonda en `pagos_vehiculo_idx`,
+  `gastos_vehiculo_idx` y `cotizaciones_final_por_vehiculo`; 10 orígenes. `tablero_cola_web` recorre
+  `solicitudes_contacto_web_asignada_idx` y corta en 20 personas.
+- Sin presupuesto medido ni `EXPLAIN` en `db:medir:volumen` (no es una lista); si hace falta, se mide con 366 días.
+- `/tablero`: ≤ 4 RPC por carga (una por grupo, compartidas con `cache()`); Server Components sin JS propio salvo el «Reintentar» de un
+  widget caído y los `<Link>`; sin presupuesto de JS. «Personalizar» es un `<Drawer>` diferido; guardar es un `upsert` de `tablero.widgets`
+  y `router.refresh()`. Las gráficas son HTML y SVG de servidor (90 días: 180 rectángulos y 90 filas), sin consulta nueva.
 
 ## JS en frío (con gzip, lo que el documento nombra)
 
-- `/leads` ≤ 530 KB (medido 503,5), `/perfil` ≤ 440 KB (413,5), `/vehiculos` ≤ 500 KB (468,6). `/cotizaciones/nuevo` con la subasta (`?origen=`) ≤ 460 KB (medido **459,0** en 27 chunks en el 4.18-3b, tras «Vista previa» del 4.18-2, el runtime de react-pdf del 4.18-3a y el enlace del PDF del 3b; 432 en 27 chunks desde el 4.14-2a, con la barra del vehículo en frío y su panel diferido; 429,5 en 25 antes; 428,1 en el 4.13-4b3, 426,8 antes y 423,8 antes del 4.13-4a), desde el 4.13-4d en `e2e/presupuesto-js.spec.ts`.
-- `/cotizaciones/[id]` (4.15-3a, `e2e/presupuesto-js.spec.ts`): ≤ 448 KB (medido **441,9** en 26 chunks en el 4.27-4, con favorita, reportar y moderar en la cabecera; 440,1 en el 4.27-3; 438,0 en el 4.18-3b; 438,6 con el commit 2 del 4.15-3a y 440,3 con el 3). `/cotizaciones/nuevo` midió 456,9 KB tras el commit 2 y 456,2 tras el 3 (453,1 antes del 4.15-3a; tope 460, margen 3,8 KB): viene de lo compartido que tocaron los commits 1 y 2, sin atribuir a uno (abierto 4-73). La guardada también viaja con la hoja nueva (`hoja-de-cotizar.tsx` importa su guardado).
-- La página de una guardada lee en serie: `cotizacion_hoja_guardada` (≤ 20 ms; la dueña ≤ 14.230 B), `cotizacion_evaluar(p_cotizacion)` (p95 ≤ 20 ms) y, con la hoja leída, el cliente y el vehículo por su nombre (sus ids salen de la hoja; no en paralelo). Guardar: una llamada a `cotizacion_guardar` (≤ 20 ms). Desde el 4.27-4, tras `<Suspense>` (no retrasan la hoja) y una vez por request (`cache()`), tres lecturas por clave primaria en paralelo: la fila (`estado`, `reportes_count`), la favorita propia y el reporte propio (`(cotizacion_id, usuario_id)`). Al abrir el Confirmar de moderar, los reportes de esa cotización por la misma PK, hasta 21 (uno por persona: lo acota el equipo; sin «Ver más»).
-- El `index.ts` de un módulo no exporta componentes: cada pantalla trae los suyos por `pantallas/<pantalla>.ts` (sólo `src/app`). La guarda `scripts/guardas/barriles.test.ts` falla, con el camino, si un `index.ts` llega a un `'use client'`.
-- **La burbuja del chat en el marco** (7.11-1, `e2e/presupuesto-js.spec.ts`): en el JS de toda pantalla viaja el botón, `usePathname`, el store del contador y `useAlDescansar`; el cliente de Supabase, la suscripción, el panel, la lista, el hilo y el redactor van con `diferido()` (el panel sólo se monta abierto). Medido ≈ +1,9 KB y un chunk por ruta (`/leads` 513,8, `/perfil` 420,5, `/cotizaciones/[id]` 447,3 → 449,2: tope 448 → 452). El documento de `/perfil` sólo recibe `usuarioId`, la zona y los permisos del hueco. Una llamada a `chat_no_leidos` al montar y otra por ráfaga de señales (≥ 250 ms).
-- Documento de `/perfil` (HTML con el payload RSC, sin comprimir) ≤ 113 KB (`PRESUPUESTO_DEL_DOCUMENTO_DE_PERFIL_EN_KB`; 113 con «Turnos de la web» y «Tu ficha en la web» (8.05-2: el interruptor de disponibilidad y el bloque plegado de la ficha, cuyo formulario se monta y se pide con `diferido()` al abrirla; montado de entrada eran 118.688 B), 109.522 B medidos: lo medido más un 5 %; 103 con las acciones de la paleta (7.13-3), 100.444 B medidos con la dueña —las ≈ 30 acciones del menú, de Configuración y de crear viajan como props del hueco del buscador en cada pantalla—: lo medido más un 5 %; 96 hasta entonces, 93.382 B; 82 hasta el 6.01-4, que encendió la entrada de Logística —84.810 B—, 87 con ella, 91 con la campana de la barra (7.02-2), 86.627 B medidos, y 96 con el bloque «Notificaciones» del perfil (7.04), 93.382 B medidos: lo medido más un 5 %), igual con la semilla y con 100 + 100 + 100 catálogos (±1 KB); medido 80.338 B sin ninguna de las dos. La campana de la barra (7.02-2) no suma JS en frío: su contador con Realtime (cliente de Supabase del navegador) y su popover van con `diferido()`; sin eso `/cotizaciones` pasaba de 358 a 424 KB. El layout `(app)` no manda catálogos al alta: `<AltaDeLead>` no recibe nada y los lee del navegador (`infra/contexto-de-alta.client.ts`, memoria de 60 s en `shared/lib/memoria-de-lectura.ts`).
-- **Cierre de la Fase 7** (7.14-1, `e2e/presupuesto-js.spec.ts`, escritorio): con la campana, la burbuja y la paleta en el marco, todas las rutas bajo su tope y ninguno cambia: `/leads` 515,6 de 530 (33 chunks; 513,8 en el 7.11-1), `/perfil` 421,2 de 440 (25; 420,5), `/vehiculos` 481,7 de 500 (32), `/cotizaciones` 359,8 de 380 (24), `/cotizaciones/nuevo` 445,6 de 460 (27), `/cotizaciones/[id]` 449,9 de 452 (28; 449,2), `/logistica` 401,0 de 410 (29). El documento de `/perfil`, 103.360 B de 103 KB, igual con 100 + 100 + 100 catálogos. El arreglo de 7-2 (`useVueltaDeLaRed()` en `campana.tsx`) no suma JS medible.
-- Documento de `/perfil` (HTML con el payload RSC, sin comprimir) ≤ 103 KB (`PRESUPUESTO_DEL_DOCUMENTO_DE_PERFIL_EN_KB`; 103 con las acciones de la paleta (7.13-3), 100.444 B medidos con la dueña —las ≈ 30 acciones del menú, de Configuración y de crear viajan como props del hueco del buscador en cada pantalla—: lo medido más un 5 %; 96 hasta entonces, 93.382 B; 82 hasta el 6.01-4, que encendió la entrada de Logística —84.810 B—, 87 con ella, 91 con la campana de la barra (7.02-2), 86.627 B medidos, y 96 con el bloque «Notificaciones» del perfil (7.04), 93.382 B medidos: lo medido más un 5 %), igual con la semilla y con 100 + 100 + 100 catálogos (±1 KB); medido 80.338 B sin ninguna de las dos. La campana de la barra (7.02-2) no suma JS en frío: su contador con Realtime (cliente de Supabase del navegador) y su popover van con `diferido()`; sin eso `/cotizaciones` pasaba de 358 a 424 KB. El layout `(app)` no manda catálogos al alta: `<AltaDeLead>` no recibe nada y los lee del navegador (`infra/contexto-de-alta.client.ts`, memoria de 60 s en `shared/lib/memoria-de-lectura.ts`).
-- Ficha, «Datos»: ≤ 43 KB sobre `/perfil`, igual con la semilla y con 100 orígenes + 100 tipos (manda los campos activos y el origen y el tipo de ese lead; el panel de edición los lee al abrirse, `leerCatalogosDeEdicion()`); `e2e/leads-ficha.spec.ts`. «Cotizar» de la cabecera (4.14-3c) suma, sólo para quien tiene `cotizaciones.crear`, la lectura de los orígenes activos (`getOrigenes()`, una por request) a la vez que la de la ficha y ~90 B en el documento; `/perfil` sigue en 418,4 KB de 440.
+- Topes (`PRESUPUESTO_DE_JS_EN_KB`): `/leads` 530, `/perfil` 440, `/vehiculos` 500, `/cotizaciones` 380, `/cotizaciones/nuevo` 460 (con la
+  subasta, `?origen=`), `/cotizaciones/[id]` 452, `/logistica` 410; `/cotizaciones/papelera` 440 (en su spec). Al borde:
+  `/cotizaciones/[id]` 449,9 de 452 y `/cotizaciones/nuevo`, que llegó a 459,0 de 460 (abierto 4-73, `docs/PENDIENTES.md`); lo que se sume
+  a la hoja va con `diferido()`. La guardada viaja con la hoja nueva (`hoja-de-cotizar.tsx` importa su guardado).
+- El `index.ts` de un módulo no exporta componentes: cada pantalla trae los suyos por `pantallas/<pantalla>.ts`. `scripts/guardas/barriles.test.ts`
+  falla, con el camino, si un `index.ts` llega a un `'use client'`.
+- **Trampa:** con `loading.tsx` importando el barril de pantallas, sumar un Client Component a la página baja dos chunks casi iguales (el de
+  `loading` y el de `page`); por eso existe `pantallas/esqueleto-de-hoja.ts`. Se ve comparando `entryJSFiles` de
+  `page_client-reference-manifest.js` entre dos builds.
+- react-pdf no llega al navegador, pero estar en el grafo del servidor suma ≈ 0,45 KB al runtime de Turbopack de **todas** las rutas.
+- El marco (shell): en el JS de toda pantalla viajan el botón de la burbuja del chat, `usePathname`, el store del contador y
+  `useAlDescansar`; el cliente de Supabase, la suscripción, el panel, la lista, el hilo y el redactor van con `diferido()`. La campana: su
+  contador con Realtime y su popover van con `diferido()` (sin eso `/cotizaciones` subía ≈ 66 KB). Una `chat_no_leidos` al montar y otra por
+  ráfaga de señales (≥ 250 ms).
+- Documento de `/perfil` (HTML con el payload RSC, sin comprimir) ≤ 113 KB (`PRESUPUESTO_DEL_DOCUMENTO_DE_PERFIL_EN_KB`), igual con la
+  semilla y con 100 + 100 + 100 catálogos (± 1 KB): lo paga toda pantalla del marco. Las ≈ 30 acciones de la paleta viajan como props del
+  hueco del buscador; el formulario de «Tu ficha en la web» se monta y se pide con `diferido()` al abrirla. El layout `(app)` no manda
+  catálogos al alta: `<AltaDeLead>` no recibe nada y los lee del navegador (`infra/contexto-de-alta.client.ts`, memoria de 60 s en
+  `shared/lib/memoria-de-lectura.ts`).
+- Ficha, «Datos»: ≤ 43 KB sobre `/perfil` (`PRESUPUESTO_DE_LA_FICHA_EN_KB`), igual con la semilla y con 100 orígenes + 100 tipos (manda los
+  campos activos y el origen y tipo del lead; el panel de edición los lee al abrirse, `leerCatalogosDeEdicion()`); `e2e/leads-ficha.spec.ts`.
+  «Cotizar» de la cabecera suma, para quien tiene `cotizaciones.crear`, `getOrigenes()` (una por request) y ~90 B.
 - «Nuevo lead» es un solo drawer: 1 montaje y 1 entrada animada por apertura, 1 lectura de cada pedido (`e2e/leads-alta-un-drawer.spec.ts`).
 
 ## Cotizador (fórmula, diseño, cotizaciones)
 
-Salvo que se diga otro, mide `pnpm db:medir` en la base de la semilla; el tope en ms es la mayor mediana de varias corridas × 3, el de buffers lo medido + 20 %, y la razón entre tamaños la fija el pedido. Cada guarda se prueba con una versión mala (cuadrática, N+1) que debe fallar.
+Salvo que se diga otro, mide `pnpm db:medir` en la base de la semilla; el tope en ms es la mayor mediana de varias corridas × 3, el de
+buffers lo medido + 20 %, y la razón entre tamaños la fija el pedido. Cada guarda se prueba con una versión mala (cuadrática, N+1) que debe
+fallar.
 
-- `validar_formula()` (`medir-validar-formula.sql`): 200 nodos ≤ 26 ms, 2.000 ≤ 245 ms, razón ≤ 12. La función es `STABLE`; la llamada va sobre una subconsulta con `offset 0` (inmutable, caería en Planning Time). 0 buffers.
-- `evaluar_formula()` (`medir-evaluar-formula.sql`): 200 nodos ≤ 16 ms, 2.000 ≤ 136 ms, razón ≤ 12, con una columna comprimida ≤ 1,5 veces los literales. Informativo: 200 nodos con 4 tablas vivas de 1.000 filas ~28 ms, congeladas ~16 ms; 2.000 nodos congeladas ~164 ms. Una guarda de texto en `evaluar-formula.sql` (`db:probar`) cae si la pasada lee un argumento dentro de un bucle.
-- `validar_diseno()` (`medir-validar-diseno.sql`): 206 ítems ≤ 15 ms, 2.018 ≤ 136 ms, razón ≤ 12; columna externa 206 ítems ≤ 320 buffers y 2.018 ≤ 2.000 (razón ≤ 12); comprimida ≤ 1,5 veces los literales. Con `_diseno_auxiliares()` (4.21-3b-2), en `db:medir`: 6,5 y 58,8 ms (razón 9,0), 290 y 1.860 buffers; el sintético no lleva `texto`, así que no recorre el camino nuevo (sale en el primer `continue`). Informativo, aparte (`.piloto/salidas/4.21-3b-2/medir-auxiliares-3-tamanos.txt`): el ayudante solo, con una auxiliar por fila, 100 / 1.000 / 4.000 filas de texto corto en 1,9 / 18 / 72 ms y de ≈ 2.000 caracteres que nombran `<fila>__10` (el patrón corre en cada fila) en 31 / 307 / 1.243 ms: lineal. Ese peor caso pasa el tope de `validar_diseno` con 2.018 ítems (136 ms) desde unas 450 filas así; no es guarda. Ninguna consulta del bucle nombra un arreglo: cada una lo recibiría entero (lo cuadrático que se midió primero: 40 → 308 ms de 1.000 a 4.000).
-- Guardar y publicar (`medir-publicar.sql`; se repite sin `db:reset` desde el 4.20-1, porque compacta `formulas` antes de medir: 4-36): `formula_publicar` 206 ítems ≤ 55 ms y 2.350 buffers, 2.018 ≤ 550 ms y 20.600 buffers (razón ≤ 12 en ms y buffers); `formula_guardar_borrador` ≤ 36 / 320 ms; `_compilar_visibilidad` ≤ 4 / 27 ms y, con columna externa, ≤ 60 / 375 buffers. El ⚙ (`formula_cambiar_constante`, 4.20-1) ≤ 60 / 550 ms y 2.300 / 5.200 buffers; `formula_revertir` ≤ 60 / 600 ms y 2.700 / 21.600 buffers (razón ≤ 12 en los dos); en 3 tandas × 3, la mayor mediana por 3 en ms (el ⚙ 19,5 y 182,3; revertir 19,6 y 190,2) y el mayor medido más un 20 % en buffers (el ⚙ 1.871 y 4.253; revertir 2.186 y 17.970). Sus topes de ms pasan los de publicar (60 contra 55, y 600 contra 550 en revertir) sólo por el redondeo de la regla: las medianas son como las de publicar (17,7 a 19,8 y 173,5 a 197,5 ms en las mismas corridas), porque validan y compilan lo mismo. Con 2.018 ítems, en las mismas corridas, publicar leyó de 12.801 a 12.915 buffers, revertir ~17.900 (un 40 % más) y el ⚙ ~4.200 (unas 3 veces menos), sin causa atribuida. Las sondas de uso (`_tono_en_uso`, `_nivel_uso`; índices `formulas_tonos_idx`, `formulas_niveles_idx`, con CTE `materialized` para que el GIN conduzca) se miden con `formulas` casi vacía y por crecimiento: 1.800 versiones más suman ≤ 1/3 de lo que suma una copia sin GIN (medido 18 bloques contra 100).
-- `_nodos_visibles()` (`medir-nodos-visibles.sql`): razón 255 → 2.487 nodos ≤ 12 en ms y buffers, ≤ 20 ms con 2.487 nodos, nunca más que leer la fila de la fórmula + 600 buffers. `_nivel_uso()` ≤ 100 ms con 2.000 versiones; `niveles_con_uso()` (peor caso, 9 niveles en uso) ≤ 60 ms con 200 versiones por nivel y ≤ 400 ms con 2.000.
-- `cotizacion_hoja()` (`medir-cotizacion-hoja.sql`): la hoja de las capturas como dueña ≤ 16 KB y 10 ms (la asesora, más chica); `planilla_usa` ≤ 10 ms; con una tabla viva de 1.000 filas ≤ 12 bloques de `tablas_referencia_filas`; sintética de 255 nodos ≤ 25 ms, de 2.487 ≤ 300 ms, razón ≤ 15; 0 bloques de `cotizaciones` y `cotizaciones_revisiones`. Lineal (~140 bytes por ítem); el diseño publicable tiene a lo sumo 40 ítems (`demasiados_items`, 4.22-6; antes, sin tope: 4-30). Con `dato_del_vehiculo` (4.14-2c2) la hoja de las capturas como dueña pasa de 10.630 a 10.866 B (+236: las dos celdas de transporte), la asesora de 6.198 a 6.434 y `planilla_usa` de 9.750 a 9.986; 4,6 ms, 12,4 y 161,4 ms las sintéticas (razón 13,0). Las sintéticas no producen ningún dato (sus `match` nombran el nodo `anio`): el camino con dato lo miden las dos semillas. Una sola función SQL por nodo: cada llamada de más a una función con `set search_path` costaba ~50 µs por ítem. **La hoja de una guardada** (`cotizacion_hoja_guardada()`, `medir-cotizacion-hoja-guardada.sql`, 4.15-2; 50.000 y 250.000, la del medio de una cadena de tres como la dueña y la asesora «propios»): ≤ 20 ms y 1.500 buffers (en `db:medir` 6,2 a 7,1 ms y 127 a 139 buffers; sola, recién sembrada, 6,3 a 7,5 y 201 a 429), razón de `cotizacion_crear`, 0 recorridos de `cotizaciones` (la anterior por la clave; la nueva viva por `cotizacion_padre_id`), `_nodos_visibles` 2 veces (el diseño y el snapshot) y la respuesta de la dueña ≤ 14.230 bytes (13.551 + 5 %). Guarda: la cadena que busca la nueva sin índice, 112 ms y un recorrido.
-- Las versiones de la fórmula de un origen (Configuración › Cotización › «Fórmula», 4.20-2a, `infra/formula/consulta-de-versiones.ts`): PostgREST sobre `formulas` de a 20 + 1 por cursor sobre `formulas_origen_id_version_key` (`version < n`, hacia atrás), sin `definicion`, `params`, `diseno` ni `visibilidad`; tope 500 con «Ir a la versión»; la primera página, el estado (publicada y borrador, `limit 2`) y los autores en el servidor (una lectura de `perfiles` por página), «Ver más» desde el navegador. El plan (con y sin cursor, a profundidad 20 y 1.900 sobre 2.000 versiones: `Index Scan Backward`, sin `Sort` ni `Seq Scan`) lo fija `supabase/tests/areas/formula/versiones-por-cursor.sql` en `db:probar`; falta su `EXPLAIN` en `db:medir:volumen` (lo suma el carril A). En `configuracion-cotizacion-formula.spec.ts`, con 520 versiones: la primera respuesta de «Ver más» 4.429 B (tope 4.650), la lista 121 nodos con 20 (tope 127) y 3.001 con 500 (tope 3.151) con «Revertir» en cada archivada (4.20-2b; en el 4.20-2a, 102 y 2.502). Publicar, revertir y descartar no crecen con lo cargado: un pedido por envío y la relectura es la primera página.
-- La pestaña «Tarjeta» (Configuración › Cotización, 4.19-3b, `e2e/configuracion-cotizacion-tarjeta-volumen.spec.ts`): con una fórmula de 500 miembros, 147.448 B del primer HTML (tope 154.900; desde el 4.22-7, 155.874 B y tope 163.700: la barra de pestañas pasó de 4 a 6 con Diseño y Tonos y el CI midió +8,4 KB sobre lo del 4.19-3c, regla del 5 %) y 4.756 nodos del DOM con «Filas» abierto (tope 5.000; 147.484 B y 4.754 antes de 4.19-3c, que suma la fila de botones y no mueve los topes: el modal de publicar y el diálogo de descartar viajan por `diferido()`). **4.19-4:** la vista previa suma los colores de los tonos y el `plazo` al contexto y ≈ 150 nodos al DOM (4 filas por grupo); la tarjeta viaja por `diferido()` y los topes pasan sin tocarse. `/cotizaciones/nuevo` 439,5 de 460 KB (`pantallas/tarjeta-plantilla.ts` no entra a la hoja); lo pesado es el contexto reducido (≈ 100 B por nodo con lugar) y la plantilla inicial en el payload; el editor va por `diferido()` y «Buscar fila» filtra en el navegador (con 600, halla la fila 600 pasado el tope de 500). Las lecturas son las del 4.19-3a (≤ 2, 1 y 24 filas). Sin presupuesto de JS propio: `/configuracion/cotizacion` no figura en `presupuesto-js.spec.ts`.
-- El editor de la fórmula (4.21-3a-1, `e2e/configuracion-cotizacion-formula-editor.spec.ts`): abrirlo lee una fila de `formulas` por `formulas_pkey` (`definicion`, `params`): con 600 filas, 77.017 B (tope 80.900); dibuja hasta 500 filas (`TOPE_DE_LO_CARGADO`) con `<AvisoDeTope>` y «Buscar fila»: 3.992 nodos con 500 (tope 4.200). El estado de las filas es O(filas × nodos) (cada fila compila contra la fórmula entera), una vez por fórmula de trabajo; filtrar y tipear no lo recalculan: 1,83 M visitas con 600 filas y 20,1 M con 2.000 (`use-editor-de-la-formula.soporte.escala.test.ts`: razón cuadrática ≤ 1,1, ~0,2 y ~1,8 s en Vitest); del clic a la lista con 600 filas, 957 ms en escritorio (informativo). Abierto: con miles de filas pasa de 1 s. Compilar y validar corren en el navegador al aplicar; su código viaja con `diferido()`. La fila de las versiones (arriba) no se mueve: los botones nuevos van en las tarjetas.
-- El editor de la fórmula (4.21-3a-1, `e2e/configuracion-cotizacion-formula-editor.spec.ts`): abrirlo lee una fila de `formulas` por `formulas_pkey` (`definicion`, `params` y, desde el 4.21-3b-1, `estado`, `diseno`, `nota`): con 600 filas, 77.017 B (tope 80.900); dibuja hasta 500 filas (`TOPE_DE_LO_CARGADO`) con `<AvisoDeTope>` y «Buscar fila»: 5.996 nodos con 500 (tope 6.300; 3.992 antes de la vista previa y de «Sumar fila», que suman la cifra de cada fila y un botón). El estado de las filas es O(filas × nodos) (cada fila compila contra la fórmula entera), una vez por fórmula de trabajo; filtrar y tipear no lo recalculan: 1,83 M visitas con 600 filas y 20,1 M con 2.000 (`use-editor-de-la-formula.soporte.escala.test.ts`: razón cuadrática ≤ 1,1, ~0,2 y ~1,8 s en Vitest); del clic a la lista con 600 filas, 957 ms en escritorio (informativo). Abierto: con miles de filas pasa de 1 s. Compilar y validar corren en el navegador al aplicar; su código viaja con `diferido()`. La vista previa (4.21-3a-2) suma lo de prueba: 3 pedidos en el caso habitual (tipos de cambio; tablas vivas; sus filas por páginas de `limit(1000)`, el `max_rows` de PostgREST, por `tablas_referencia_filas_tabla_orden_idx`) y a lo sumo 8 (hasta 6 de filas), constantes en el tiempo y no por fila (`e2e/configuracion-cotizacion-formula-editor-previa-volumen.spec.ts`); una tabla se lee si tiene hasta 999 filas, 40 tablas como máximo; `validarFormula()` + `evaluar()`, O(nodos), una vez por cambio aplicado; el chunk del editor trae `motor.ts` (74,4 KB, 24,0 KB gzip; sin medida de antes). Abierto «Para el A»: el `EXPLAIN` de las tres lecturas en `db:medir:volumen`. La fila de las versiones (arriba) no se mueve: los botones nuevos van en las tarjetas. Guardar el borrador (4.21-3b-1) es una Server Action con la definición, los `params` y el diseño, sin releer después: con 600 filas, 69.372 B del pedido y 130 ms del clic a «Se guardó» en escritorio (informativo, G7 de `…-editor-previa-volumen.spec.ts`); 2.000 nodos con un diseño de 2.000 ítems, 400.650 B de JSON, bajo el tope de 1 MB de una Server Action (lo fija `use-guardar-borrador.soporte.test.ts`); `formulaParaGuardar`, `hayCambiosPorGuardar` y `filasSinCelda`, O(nodos + ítems), una vez por cambio aplicado. En la base, sin cambio: `formula_guardar_borrador` ≤ 36 / 320 ms (arriba).
-- `cotizacion_tabla()` (`medir-cotizacion-hoja.sql`, 4.13-4c1): la tabla viva de 1.000 filas por origen (`tablas_referencia_filas_tabla_orden_idx`, `limit 1001`), con y sin la hoja abierta, ≤ 25 ms (medido 2,0 la dueña y 6,2 una asesora con «costos»); la firma suma ≤ 3 ms (0,2 y 0,3); bytes ≤ 569.352 la dueña (filas enteras, con una clave de relleno: 542.240 + 5 %) y ≤ 52.752 la asesora (año y factor: 50.240 + 5 %, P9); 0 bloques de `cotizaciones`. Quien configura recibe las filas sin recortar a `columnas`.
-- `cotizacion_evaluar()` (`medir-evaluar.sql`, `db:medir:volumen`, 200 llamadas seguidas, `authenticated`, plan genérico, con 50.000 y 250.000 cotizaciones): fórmula del seed mediana ≤ 10 ms y p95 ≤ 20 (medido ~4); sintética de 200 nodos con 4 tablas de 1.000 filas p95 ≤ 50 (medido ~43); p95 con 250.000 sobre 50.000 ≤ 1,5. Guarda de ARMAR: lee a lo sumo `1,2 × (páginas + 4 × (hojas + 3) + costo fijo)` buffers, y por relación: los bloques de `tablas_referencia(_filas)` ≤ los de la consulta de referencia sobre `t1`..`t4` + 2 (cae con una tabla de más, N+1 por tabla o por fila). La firma de la hoja abierta suma ≤ 3 ms.
-- `cotizacion_crear()` (`medir-cotizacion-crear.sql`) y `cotizacion_guardar()` (`medir-cotizacion-guardar.sql`), con 50.000 y 250.000: ≤ 20 ms y 1.500 buffers (la sintética de guardar ≤ 60 ms y 1.000); 0 recorridos enteros de `cotizaciones` o sus revisiones (`pg_stat_xact_user_tables.seq_scan`); razón de ms ≤ máx(1,5 × t; t + 3 ms) y buffers ≤ 1,2 × + 20. Con el permiso de guardar en `_cotizacion_puede_guardar()` (4.15-1: dos llamadas más a `puede_cotizacion` en una preventa), la dueña 6,6 ms y 305 buffers con 50.000 y 6,5/315 con 250.000 (antes, en el 4.14-3a, 5,4/283 y 5,9/293) y la asesora 6,7/311 y 6,8/317 (antes 6,4/314 y 6,8/320). El intento se busca por `cotizacion_id` (el índice único empieza por ahí). Desde el 4.14-1, el peor caso: cada corrida reescribe la fila del vehículo (`cotizado_en`, `pg_temp.sin_cotizar()` antes de cada `explain`, con el delta de `n_tup_upd` exigido por caso); medido solo tras un `db:reset`, contra HEAD, con 250.000, la reescritura suma ≈ 0,2 ms y 50 a 140 buffers (preventa de 6,29 ms y 506 buffers a 6,52 y 621, «a mano» de 6,87 y 680 a 7,05 y 729, guardar cambiando de vehículo de 6,68 y 510 a 6,89 y 585). **Cotizar encima** (`cotizacion_encima()`, `medir-cotizacion-encima.sql`, 4.15-2): los mismos topes que crear (≤ 20 ms y 1.500 buffers, la misma razón, 0 recorridos), una anterior distinta por corrida (P3): la dueña y la asesora 7,8 a 8,4 ms y 276 a 292 buffers. Guarda: la versión nueva viva buscada sin `cotizaciones_encima_unica`, 111 a 115 ms y un recorrido. **Con los índices del listado** (4.16-1: cuatro nuevos, tres menos), contra HEAD con 250.000 y la migración deshecha en la transacción (`.piloto/salidas/4.16-1/medir-crear-guardar-head.txt`): crear suma 5 a 6 buffers (preventa 343 → 349, la asesora 368 → 374) y guardar ≈ 10 (la dueña 316 → 328, la asesora 318 → 328), con el mismo tiempo (± 0,3 ms). Se esperaba una entrada menos en una preventa (dos índices de `lead_id` pasan a uno): no se ve, probablemente porque las tuplas de los índices enteros nuevos son más anchas (`origen_id` y `lead_id` con `creado_en` e `id`) y porque las filas sin lead también entran a `cotizaciones_lead_creado_idx`.
-- Lectura de cotizaciones (`medir-cotizaciones-lectura.sql`): páginas de n + 1 = 101 por cursor `(creado_en desc, id desc)` como la dueña, Ana («propios») y la «chica» ≤ 10 ms y 300 buffers; `cotizacion_leer` ≤ 10 ms; `cotizacion_revisiones` (500) ≤ 12 ms; razón con 250.000 ≤ máx(1; 5 × t; t + 3 ms); 0 llamadas por fila a `en_cartera`, `alcance_de` y `mis_leads()`, a lo sumo 2 a `origenes_con_alcance`; `cotizacion_leer` y `cotizacion_revisiones` piden `alcance_de` **1** vez, también Ana («propios»; 4-24, 4.15-1: con el `lateral` de antes, 2). «Todas las que veo» de quien ve «propios» ya no se lee así: va por `cotizaciones_listado()` (abajo; 4-14 cerrado en el 4.16-1). La «chica» tiene sus 3 de verdad (antes 0). Con autor y etiquetas (4.15-2, `left join` por la clave de `perfiles` y `_revision_etiquetas` sobre la página ya recortada), `cotizacion_revisiones` con 500 revisiones de snapshot entero: 4,9 a 7,3 ms, 40 a 161 buffers, razón 0,96 a 1,01, `_nodos_visibles` y `alcance_de` 1 vez.
-- El listado `/cotizaciones` (`medir-cotizaciones-listado.sql`, `db:medir:volumen`, 4.16-1): `cotizaciones_listado()`, invocadora, como `authenticated` y con el plan genérico; páginas de
-  `MAXIMO_DE_PAGINA_DE_COTIZACIONES` + 1 = 101, la 1, una profunda y (Ana) una hacia atrás, con 50.000 y 250.000 (2 % de finales y 2 % en la papelera, repartidos). Rutas: «todos» por
-  `cotizaciones_listado_idx` (con la final, el parcial `cotizaciones_finales_idx`) o, con el origen o si «todos» no cubre todos los orígenes, un lateral por origen sobre
-  `cotizaciones_origen_creado_idx` (con la final, `cotizaciones_origen_finales_idx`); lo propio por `cotizaciones_creador_idx`; la cartera, un lateral por lead de `mis_leads()` sobre
-  `cotizaciones_lead_creado_idx`; el vehículo por `cotizaciones_vehiculo_creado_idx`; con el lead (`p_lead`, 4.17-4a), una sola ruta por `cotizaciones_lead_creado_idx`, sin la cartera (el vehículo, si
-  llega, es un filtro sobre ella; la pantalla lo pide con `?lead=` desde el 4.17-4b). La clase nunca es columna de un índice (`enum_eq` no es leakproof: bajo la RLS no sería condición).
-  Topes: la dueña y la «chica» ≤ 10 ms, Ana y Teo ≤ 50 (Ana con un vehículo de 5.005, ≤ 100); la dueña ≤ 116 bloques de `cotizaciones` en cada filtro; con 250.000 ≤ 1,2 × los bloques de
-  50.000 + 20 (con la cartera, + |cartera| · d; medido d = 0) y ≤ máx(1,5 × t; t + 3 ms); llamadas iguales; `mis_leads()` 1 vez si va la cartera, `origenes_con_alcance()` ≤ 2 + 2 por ruta,
-  `en_cartera()` a lo sumo una por fila leída de la cartera o del vehículo, ninguna a `alcance_de` ni a `_bajas_en_curso`; los índices de cada caso por nombre y ningún otro con bloques.
-  Medido (250.000): la dueña 1,1–2,1 ms y 24–105 bloques; Ana 18,6 ms la página 1 (8.402 bloques: 2.400 sondas de su cartera), 10,3 la profunda, 14,7 hacia atrás, «mías» 1,6–1,8;
-  la «chica» 1,6; Teo 2,2. La guarda: «lo de hoy» por PostgREST, 1,8 s Ana y 2,3 s la «chica». Máximo: 100.
-  **Con el lead** (4.17-4a; las 5.005 del vehículo muy cotizado son de un lead ajeno, sin fila y fuera de toda cartera): topes la dueña ≤ 10 ms, Ana con un lead de su cartera ≤ 50 y con el ajeno ≤ 100 (un
-  `en_cartera()` por cada una de sus 5.005, como el vehículo), `mis_leads()` ninguna vez. Medido (250.000): la dueña 1,1–1,2 ms y 104–106 bloques, también con el vehículo; Ana con el lead 1.001 de su
-  cartera 2,5 ms la página 1, 2,1 la profunda y 2,5 hacia atrás (117, 78 y 119 bloques); con el ajeno 50,8 ms y 5.068 bloques la página 1 (ve 5), y con «mías» 3,7 ms; iguales con 50.000.
-  **La lectura de la sección «Cotizaciones» de la ficha del lead** (medida en el 4.17-4a y dibujada en el 4.17-4b; por PostgREST con la RLS, `lead_id = …` y el cursor de PostgREST, `TAMANO_DE_VER_MAS` + 1 = 21,
-  por `cotizaciones_lead_creado_idx`, en el mismo archivo): topes la dueña ≤ 10 ms, Ana con su cartera ≤ 50 y con el ajeno ≤ 100, que no crece con N. Medido (250.000): la dueña 0,3 ms (25 bloques), Ana
-  0,9 con su cartera (28) y 48,1 con el ajeno (5.069), iguales con 50.000. Dibujada en el 4.17-4b: se lee al abrir la sección, nunca con la ficha, y su código viaja con `diferido()` en su propio `diferidos.tsx`. Medido en `e2e/leads-cotizaciones.spec.ts`: 5.038 B la primera respuesta en escritorio y 4.933 en móvil, 61 nodos con 20 y 1.501 con 500, la 25.ª igual que la 1.ª. La metapágina de un índice vacío leída al planear (`cotizaciones_lote_papelera_idx`, tras el truncate) no cuenta.
-  Sobre la siembra (`medir-escala.sql`, 4.16-3: las 50.000 de `db:sembrar-volumen`, con los mismos topes, también la profunda; la página 1, la profunda y «mías» llenas): la dueña
-  1,4–1,5 ms en la página 1, la profunda, por origen, finales y «mías»; Ana 10,7 la página 1, 7,6 la profunda, 8,1 por origen, 11,5 finales y 1,5 «mías».
-  **La pantalla** (4.16-4a, `e2e/cotizaciones-listado.spec.ts` y `e2e/listas-por-pagina-volumen.spec.ts`, `E2E_VOLUMEN=1`, ambos proyectos): una sola vista, 8 columnas, el máximo (100) sin pedidos
-  del navegador a la base ni acciones; con las 50.000 de la siembra, el documento pesa 37,1 KB comprimidos la dueña y 37,5 Ana (escritorio; 35,9 y 36,3 en el celular) y 1.979 nodos en escritorio y
-  2.024 en el celular; diez «Siguiente» no suben los nodos más de un 15 % (1.973–1.980 y 2.024–2.025). Topes: **39.500 B** y **2.130 nodos**. JS en frío de `/cotizaciones`: 358,4 KB de **380**.
-  **El resumen `?cotizacion=`** (4.16-4b, `e2e/cotizaciones-listado-resumen.spec.ts`): abrir desde la fila no pide nada a la base ni a la página; el drawer va en su chunk (JS en frío 359 KB de 380) y con 100 filas el documento
-  midió 35,4 KB y 1.979 nodos (escritorio) y 34,4 KB y 2.024 (celular), bajo los topes. Una cotización fuera de la página (recargar, enlace, «Siguiente») cuesta un pedido por `cotizaciones_pkey` y una
-  llamada a `cotizaciones_listado()` de tamaño 1 por su índice, más sus tres lecturas de nombres (un id cada una); sin medición SQL nueva. **`router.refresh()`**: sólo si la URL trae una que ni la página ni el servidor
-  trajeron (una vez por id) y en cada clic en «Reintentar»; vuelve a dibujar la página entera (hasta 100 filas, sus tres lecturas de nombres, la búsqueda por clave primaria y la llamada de tamaño 1), y si falla la
-  lectura de la página cae al `error.tsx`.
-  Los nombres de la página (cliente, vehículo, autor) son tres lecturas por clave primaria de a lo sumo 100 ids, en paralelo, una vez por página (`leads_vista_por_ids`, `vehiculos_pkey`,
-  `perfiles_pkey`); sin medición SQL propia, como el autor del historial («límite sin assert»).
-  Límites sin assert: el costo fijo de cada llamada, ≈ 160–240 buffers de `mis_permisos()` (4-77; no crece con N ni, medido en el 4.16-2a, con las concesiones de quien mira: su causa sigue sin medir); la
-  preventa va por filtro (si las finales fueran mayoría, leería de más); Ana «finales» lee sus propias filtrando la clase (23 ms con 5.000; crece con las propias, no con N); Ana con un
-  vehículo de 5.005 hace un `en_cartera()` por cada ajena (43,7 ms; ≈ 9 µs cada una); una tanda contigua en la papelera dentro de un índice entero (el lateral por origen o por lead) se
-  lee entera antes de descartarse. Los `count(*)` por origen de `origenes_resumen()` y del borrado de un origen recorren la tabla también con el índice de HEAD (51.000 buffers con
-  250.000 en los dos casos): quitar `cotizaciones_origen_id_idx` no les cambia el plan. Con las 50.000 sembradas, `origenes_resumen()` 7,5 ms (tope 100; con cero, 2,3): el total
-  exacto que dibuja Configuración › Orígenes es 4-79.
-- La hoja dibujada (`e2e/cotizar-hoja-200.spec.ts`, ambos proyectos, 100 % y 200 %): `[data-hoja]` más el diálogo de «Avanzado» abierto ≤ 500 nodos con la fórmula más grande (31 celdas; medido 468 al abrir y 490 usada con el modal, el segundo modo elegido y «Ver total Bs» encendido y el botón de la ayuda de una tabla en 3 celdas, 4.13-4c2 (2,0 % de margen; 459 y 481 en el 4.13-4b3); 434 y 453 en el 4.13-4a; con «Avanzado» en línea, 413 y 432; ~13 nodos por celda). El tope era 460; P7 lo sube a lo medido más un 5 % con techo 500, y P8 lo dejó en 500 (4,0 % de margen en el 4b3; con el 4c2, 2,0 %: lo siguiente que sume nodos a la hoja se para y se reporta; el 4.13-4d no los cambió: 468 y 490). Al abrir, 2 llamadas desde el servidor (3 con un vehículo en la URL: `leerVehiculo` de la barra del vehículo, a la vez, 4.14-2a) y ninguna del navegador hasta abrir el panel del vehículo o el del cliente (4.14-3b: con un `?lead=` visible suma `leerClienteElegido`, una lectura de `leads_vista` por la clave primaria, en el mismo `Promise.all`) (con `vehiculos.crear` la página suma, en el mismo `Promise.all`, `integracionActiva('apibara')` en un origen de subasta; el layout del alta se lee del navegador al abrir el alta); después un pedido por pausa de tecleo, con 1 en vuelo como máximo (`e2e/cotizar-hoja.spec.ts`).
-- **El ⚙ de una constante** (4.20-3b, `e2e/cotizar-hoja-200.spec.ts` y `e2e/cotizar-ajuste-constante.spec.ts`, ambos proyectos): el techo de 500 nodos de la hoja se mide como quien cotiza sin ⚙ (un rol con el nivel «costos»: 469 al abrir y 491 usada, como antes del paso); como quien configura, cada ⚙ son 3 nodos (el botón, su `svg` y su `use`) y la subasta mide **532 al abrir (21 ⚙) y 557 usada (22)**, tope 585 (lo medido más un 5 %, con techo en 600: P1 del 4.20-3b); la prueba exige que las dos personas vean las mismas celdas y que la diferencia sea exactamente 3 por ⚙. Ningún pedido al abrir la hoja ni al pasar por una celda; abrir un ⚙ lee una fila de `formulas` por `formulas_publicada_unica`: **66 B** (tope 70). El panel, su hook, la lectura y la action viajan con `diferido()`: JS en frío de `/cotizaciones/nuevo` 458,5 → **458,6 KB** de 460 y de `/cotizaciones/[id]` 437,6 → **437,7** de 448 (`presupuesto-js.spec.ts`).
-- **El ⚙ de un tipo de cambio** (4.20-3d, `e2e/cotizar-ajuste-tipo-cambio.spec.ts`, ambos proyectos): abrirlo es una llamada a `formula_tipo_cambio_del_nodo()` (una fila): **235 B** en escritorio y 224 en movil (la clave y el nombre de prueba llevan el proyecto), tope 247; tras cambiarlo, la hoja se vuelve a abrir y no relee (una lectura en todo E1). El bloque, sus hooks y la action de `empresa` viajan con el panel por `diferido()`: JS en frío de `/cotizaciones/nuevo` **459** KB de 460 y de `/cotizaciones/[id]` **438,2** de 448, iguales antes y después del paso.
-- **Vista previa de la tarjeta** (4.18-2, `e2e/cotizar-vista-previa.spec.ts`, ambos proyectos): ninguna lectura al abrir la hoja; «Vista previa» suma **un** elemento al pie del resumen (la hoja de `subasta_usa` pasó de 468 a 469 nodos al abrir y de 490 a 491 usada, de 500; el modal va en un portal, fuera de `[data-hoja]`, y su código viaja con `diferido()`). Al abrir el modal, una `cotizacion_tarjeta()` por versión de la fórmula, desde el navegador, recordada 5 minutos (`memoriaDeLectura`: volver a abrir no lee); la respuesta como la dueña pesa **2.950 bytes** (tope 3.098, lo medido más un 5 %) y la tarjeta de `subasta_usa` con todo encendido dibuja **105 nodos** (tope 111). No es una lista: lo dibujado lo acota la plantilla (hasta 20 grupos, `COTIZADOR.md`). JS en frío: `/cotizaciones/nuevo` **458,5 KB** de 460 (456,9 antes; el botón, el contexto, el proveedor y la cáscara de `diferido()`) y `/cotizaciones/[id]` **437,6 KB** de 448 (435,7). La página de una guardada suma, en el mismo `Promise.all`, una lectura de `cotizaciones` por clave primaria con el autor embebido (`leerAsesorDeLaCotizacion`, una fila). **El pie** (4.18-3b, `e2e/cotizar-vista-previa-acciones.spec.ts`): «Copiar texto» no lee nada (copia el modelo que el modal ya armó) y «Descargar PDF» es un pedido a la ruta del PDF por clic; los dos botones van fuera de `[data-tarjeta-de-cotizacion]` (sus 105 nodos no cambian) y su código viaja en el chunk diferido del modal: JS en frío de `/cotizaciones/nuevo` **459,0 KB** de 460 (458,9 antes) y de `/cotizaciones/[id]` **438,0** de 448 (igual).
-- **«Enviar a la papelera» en la guardada** (4.24-3, `e2e/presupuesto-js.spec.ts`): ninguna lectura nueva al abrir; enviar es una RPC y «Deshacer» otra, cada una con su `revalidatePath`. Quién lo ve se decide en el servidor (el hueco es un Server Component) y al navegador llega un `<button>` con las clases de `<Button>`, sin `permisos.ts` ni `useAction`. JS en frío de `/cotizaciones/[id]` **439,2 KB** de 448 (438,4 en el HEAD de arranque). **Trampa medida:** con `loading.tsx` importando el barril `pantallas/cotizacion`, sumar un Client Component a la página hacía que el HTML bajara dos chunks casi iguales (el de `loading`, 12.390 B gz, y el de `page`, 12.987): 450,7 KB; el A lo arregló con `pantallas/esqueleto-de-hoja.ts` (`9bf2d6cd`). Se ve comparando `entryJSFiles` de `page_client-reference-manifest.js` entre dos builds.
-- **«Marcar final» en la guardada** (4.25-2, `e2e/presupuesto-js.spec.ts`): ninguna lectura nueva al abrir; marcar es una RPC con su `revalidatePath`. Como la papelera: el hueco es un Server Component, al navegador llega un `<button>` con las clases de `<Button>` y el `<Confirmar>`, la action y su función viajan con `diferido()`. JS en frío de `/cotizaciones/[id]` **439,8 KB** de 448 (439,2 en el 4.24-3).
-- **PDF de la tarjeta** (4.18-3a, `e2e/cotizar-pdf.spec.ts`, escritorio): una cotización por clave primaria — `cotizacion_hoja_guardada`, `cotizacion_evaluar(p_cotizacion)` (las de la página), `cotizacion_tarjeta`, el asesor y el vehículo por clave primaria y `leerAjustes()` (la fila de `ajustes_empresa` y `empresa_con_datos_cargados()`, una RPC más que `getAjustes()`: lo que paga leer unos ajustes que fallan); el logo, hasta 1 MB con 2 s de espera. Nada por fila: no es una lista y la plantilla acota los grupos a 20. Medido con `subasta_usa`: **23.293 bytes** y **123 ms** en local (23.359 y 106 al repetir); topes del spec, 150 KB y 1,5 s. react-pdf no llega al navegador, pero al estar en el grafo del servidor suma ≈ 0,45 KB al runtime de Turbopack de **todas** las rutas (el soporte de módulos asíncronos; `@react-pdf/renderer` es sólo ESM): `/cotizaciones/nuevo` 458,5 → **458,9 KB** de 460, `/cotizaciones/[id]` 437,6 → 438,0 de 448, `/perfil` 418,0 → 418,5, `/leads` 510,7 → 511,2, `/vehiculos` 477,0 → 477,4, `/cotizaciones` 359,9 → 360,4 (`docs/DECISIONES.md` › «Paso 4.18-3a»). Bajarlo desde «Vista previa» (4.18-3b) es el mismo pedido, desde el navegador; la tarjeta de lo guardado de la hoja nueva lo ofrece con un `<a download>` sin JS: esa tarjeta, que reemplaza a la hoja, dibuja **13 nodos** con el enlace (medido; 12 antes, por construcción: el enlace es un elemento sin hijos; contra el tope de 500 de la hoja, P6 del 4.18-3).
-- La tarea de oro 2, tramo de la hoja (`e2e/cotizar-tarea-de-oro.spec.ts`, ambos proyectos, 4.13-4d): la asesora de la semilla, con el lead y el vehículo en la URL, tipea el remate y la grúa y guarda con Ctrl+S sin un clic: ≤ 25 teclas de control (medido 25 desde el 4.14-3b, que suma la barra del cliente; 24 desde el 4.14-2a, que suma la barra del vehículo; 23 antes), robot < 30 s (0,7) y KLM ≤ 90 s (12,5) con 3 decisiones. **Hasta el PDF** (4.18-3b: Tab desde la tarjeta de lo guardado a «Descargar PDF» y Enter, el PDF bajado con su nombre y el total de lo guardado): **≤ 29 teclas de control** (medido 29 en los dos proyectos), robot < 30 s (0,7–1,4) y KLM ≤ 90 s (15,5) con 4 decisiones. Con el tramo del panel (4.14-2c1: la asesora busca el vehículo por nombre en el panel, lo elige y guarda): ≤ 29 teclas de control (medido 29 desde el 4.14-3b; 28 antes), robot < 30 s (1,5 y 1,7), KLM ≤ 90 s (21,1 en escritorio y 19,7 en móvil) con 4 decisiones. Con un enlace de subasta (4.14-2c3, `e2e/cotizar-tarea-de-oro-enlace.spec.ts`: sin vehículo, pega un enlace de Copart en el panel, «Crear y elegir», elige el tipo de la tabla, remate, grúa y Ctrl+S): **33 teclas de control** (medido 33 en los dos proyectos desde el 4.14-3b; 32 antes), robot < 30 s (2,3), KLM ≤ 90 s (39,7) con 6 decisiones. Con el tramo del cliente (4.14-3c, `e2e/cotizar-tarea-de-oro-cliente.spec.ts`: la hoja sin cliente, con el vehículo en la URL): **29 teclas de control** con un cliente que existe (lo busca por nombre y lo elige) y **30** con uno nuevo (el «+» del panel, teléfono, nombre y Ctrl+S del alta), iguales en los dos proyectos; robot < 30 s (1,4–1,8), KLM ≤ 90 s (17,2 y 28,3 en escritorio, 26,9 en móvil) con 4 y 6 decisiones. Cada lado editable de la hoja y de «Avanzado» se alcanza con Tab, en orden.
-- El panel de la ayuda de una tabla (medido con `e2e/cotizar-hoja-ayuda-tabla-volumen.spec.ts`, ambos proyectos, 4.13-4c2; sin prueba desde el 2026-11-08: su spec se borró, «Pruebas: sólo lo clave»): 1.001 filas congeladas de 3 columnas (un año, un texto largo y un factor en dólares) dibujan las primeras 1.000 con el aviso «Mostrando las 1.000 primeras filas.»; 7 nodos por fila (`<tr>`, 3 celdas y un `<Monto>`), **7.023 nodos medidos con 1.000 filas, tope 7.374** (lo medido más un 5 %); abrir y dibujar 1,0–1,4 s. La lectura no cambia (una por apertura, nunca con la hoja). El lector va en el chunk inicial de la hoja y el panel en uno diferido: el JS en frío de `/cotizaciones/nuevo` pasó de 428,6 KB (24 chunks, ya con el lector exportado por el barril) a 429,5 KB (25); contra los 428,1 de `ed0fe2ef`, +1,4 KB.
-- **Comprobantes de una cotización** (4.26-2, sin medir con volumen: no crece con el uso): la guardada los lee en el servidor una vez por pedido (`cache`, para el botón de la cabecera y la sección), por PostgREST con `limit TAMANO_DE_VER_MAS + 1` por `comprobantes_cotizacion_id_idx` (ordena a lo sumo 21 filas: un vigente y los anulados de una sola cotización), más el `estado` de la cotización por su clave primaria. La serie vigente de Empresa (4.26-3) es una fila (`maybeSingle`). El aviso del tope («Mostrando los 20 más recientes.») no ofrece cómo ver los anteriores: haría falta anular 20 veces una misma cotización; si pasa, el camino es «Ver más» por cursor `(emitido_en, numero)`. El diálogo de emitir y el modal de anular van por `diferido()`. JS en frío de `/cotizaciones/[id]`: 442,8 KB (tope 448; antes 441,9).
-- **Comentarios de una cotización** (4.27-1, sin medir con volumen: pedido al A para el 4.28): `cotizacion_comentarios()` lee las raíces de la más nueva a la más vieja por cursor `(creado_en, id)`, de a `TAMANO_DE_VER_MAS` (20, máximo 50), por `cotizaciones_comentarios_raices_idx (cotizacion_id, creado_en desc, id desc) where padre_id is null`, y por raíz sus primeras 20 respuestas (máximo 50) por `cotizaciones_comentarios_respuestas_idx (padre_id, creado_en, id)`; `cotizacion_comentario_respuestas()` sigue por el mismo índice. Dos consultas por ruta, `limit tope + 1`; a lo sumo 21 raíces × 21 respuestas por llamada. El recorrido no filtra: borrar quita la fila de una respuesta o de una raíz sin respuestas, y sólo deja en la tabla una raíz eliminada con respuestas vivas. Presupuesto a fijar al medir (1.000 comentarios y 500 respuestas en una cotización: sin `Sort`, sin crecer entre 100 y 1.000). Adjuntos: ≤ 20 por cotización (`cotizacion_adjuntar` los cuenta con `limit 20`). La pantalla (4.27-2) lee al llegar la sección a la vista, desde el navegador, de a `TAMANO_DE_VER_MAS` raíces con sus primeras `TAMANO_DE_VER_MAS` respuestas, y dibuja a lo sumo `TOPE_DE_LO_CARGADO` entre raíces y respuestas («Ir a una fecha»: el cursor `(inicio del día siguiente, uuid nulo)`, sin migración); su código va por `diferido()`. JS en frío de `/cotizaciones/[id]`: 440 KB (tope 448, sin cambio). Los adjuntos (4.27-3) se leen una vez con la primera página de comentarios, por PostgREST con `limit 21` y `cotizaciones_adjuntos_cotizacion_id_idx` (ordena a lo sumo 21 filas); una URL firmada por clic, nunca al leer la lista; las imágenes suben como WebP ≤ 1600 px y la lista no las baja (sin miniaturas). El bloque y la subida viajan en el `diferido()` de los comentarios: JS en frío de `/cotizaciones/[id]` 440,1 KB (tope 448, sin cambio).
+- `validar_formula()` (`medir-validar-formula.sql`): 200 nodos ≤ 26 ms, 2.000 ≤ 245 ms, razón ≤ 12. Es `STABLE`; la llamada va sobre una
+  subconsulta con `offset 0` (inmutable, caería en Planning Time). 0 buffers.
+- `evaluar_formula()` (`medir-evaluar-formula.sql`): 200 nodos ≤ 16 ms, 2.000 ≤ 136 ms, razón ≤ 12; con una columna comprimida ≤ 1,5 veces
+  los literales. Una guarda de texto en `evaluar-formula.sql` (`db:probar`) cae si la pasada lee un argumento dentro de un bucle.
+- `validar_diseno()` (`medir-validar-diseno.sql`): 206 ítems ≤ 15 ms, 2.018 ≤ 136 ms, razón ≤ 12; columna externa 206 ítems ≤ 320 buffers
+  y 2.018 ≤ 2.000; comprimida ≤ 1,5 veces los literales. El sintético no lleva `texto` (no recorre `_diseno_auxiliares()`). Límite: el
+  ayudante es lineal en filas × largo del texto; con textos de ≈ 2.000 caracteres pasa el tope desde unas 450 filas (no es guarda). Ninguna
+  consulta del bucle nombra un arreglo: lo recibiría entero (cuadrático).
+- Guardar y publicar (`medir-publicar.sql`; se repite sin `db:reset` porque compacta `formulas` antes de medir): `formula_publicar` 206
+  ítems ≤ 55 ms y 2.350 buffers, 2.018 ≤ 550 ms y 20.600 (razón ≤ 12); `formula_guardar_borrador` ≤ 36 / 320 ms; `_compilar_visibilidad`
+  ≤ 4 / 27 ms y, con columna externa, ≤ 60 / 375 buffers. El ⚙ (`formula_cambiar_constante`) ≤ 60 / 550 ms y 2.300 / 5.200 buffers;
+  `formula_revertir` ≤ 60 / 600 ms y 2.700 / 21.600 (razón ≤ 12); sus topes de ms pasan los de publicar sólo por el redondeo. Sondas de uso
+  (`_tono_en_uso`, `_nivel_uso`; `formulas_tonos_idx`, `formulas_niveles_idx`, CTE `materialized` para que el GIN conduzca): se miden por
+  crecimiento: 1.800 versiones más suman ≤ 1/3 de lo que suma una copia sin GIN.
+- `_nodos_visibles()` (`medir-nodos-visibles.sql`): razón 255 → 2.487 nodos ≤ 12 en ms y buffers, ≤ 20 ms con 2.487, nunca más que leer la
+  fila de la fórmula + 600 buffers. `_nivel_uso()` ≤ 100 ms con 2.000 versiones; `niveles_con_uso()` (9 niveles en uso) ≤ 60 ms con 200
+  versiones por nivel y ≤ 400 con 2.000.
+- `cotizacion_hoja()` (`medir-cotizacion-hoja.sql`): la hoja de las capturas como dueña ≤ 16 KB y 10 ms; `planilla_usa` ≤ 10 ms; con una
+  tabla viva de 1.000 filas ≤ 12 bloques de `tablas_referencia_filas`; sintética de 255 nodos ≤ 25 ms, de 2.487 ≤ 300 ms, razón ≤ 15; 0
+  bloques de `cotizaciones` y `cotizaciones_revisiones`. Lineal (~140 B por ítem); un diseño publicable tiene ≤ 40 ítems
+  (`demasiados_items`). Las sintéticas no producen ningún dato: el camino con `dato_del_vehiculo` lo miden las semillas. Una sola función SQL
+  por nodo: cada llamada de más a una función con `set search_path` cuesta ~50 µs por ítem.
+- La hoja de una guardada (`cotizacion_hoja_guardada()`, `medir-cotizacion-hoja-guardada.sql`, 50.000 y 250.000): ≤ 20 ms y 1.500
+  buffers, razón de `cotizacion_crear`, 0 recorridos de `cotizaciones` (la anterior por la clave; la nueva viva por `cotizacion_padre_id`),
+  `_nodos_visibles` 2 veces y la respuesta de la dueña ≤ 14.230 B. Guarda: buscar la nueva sin índice recorre.
+- Versiones de la fórmula (Configuración › Cotización › «Fórmula», `infra/formula/consulta-de-versiones.ts`): PostgREST de a 20 + 1 por
+  cursor sobre `formulas_origen_id_version_key` (`version < n`), sin `definicion`, `params`, `diseno` ni `visibilidad`; tope 500 con «Ir a la
+  versión»; la primera página, el estado (`limit 2`) y los autores en el servidor, «Ver más» desde el navegador. El plan lo fija
+  `supabase/tests/areas/formula/versiones-por-cursor.sql` (`db:probar`); falta su `EXPLAIN` en `db:medir:volumen`.
+  `configuracion-cotizacion-formula.spec.ts`: «Ver más» ≤ 4.650 B, ≤ 127 nodos con 20 y ≤ 3.151 con 500. Publicar, revertir y descartar: un
+  pedido por envío y relee la primera página.
+- Pestaña «Tarjeta» (`e2e/configuracion-cotizacion-tarjeta-volumen.spec.ts`): con 500 miembros, primer HTML ≤ 163.700 B y ≤ 5.000 nodos con
+  «Filas» abierto. La tarjeta, el editor, el modal de publicar y el diálogo de descartar van por `diferido()`; «Buscar fila» filtra en el
+  navegador. `pantallas/tarjeta-plantilla.ts` no entra a la hoja. `/configuracion/cotizacion` no tiene presupuesto de JS.
+- Editor de la fórmula (`e2e/configuracion-cotizacion-formula-editor.spec.ts`): abrirlo lee una fila de `formulas` por `formulas_pkey`
+  (`definicion`, `params`, `estado`, `diseno`, `nota`): con 600 filas ≤ 80.900 B; dibuja hasta 500 (`TOPE_DE_LO_CARGADO`) con
+  `<AvisoDeTope>` y «Buscar fila»: ≤ 6.300 nodos. El estado de las filas es O(filas × nodos), una vez por fórmula de trabajo; filtrar y
+  tipear no lo recalculan (`use-editor-de-la-formula.soporte.escala.test.ts`: razón cuadrática ≤ 1,1). Abierto: con miles de filas pasa de
+  1 s. Compilar y validar corren en el navegador al aplicar, con `diferido()`. La vista previa: 3 pedidos en el caso habitual (tipos de
+  cambio; tablas vivas; sus filas por páginas de `limit(1000)` por `tablas_referencia_filas_tabla_orden_idx`) y ≤ 8, constantes
+  (`e2e/configuracion-cotizacion-formula-editor-previa-volumen.spec.ts`); una tabla se lee si tiene ≤ 999 filas, ≤ 40 tablas. Falta el
+  `EXPLAIN` de esas lecturas en `db:medir:volumen`. Guardar el borrador es una Server Action sin releer; un diseño de 2.000 ítems queda bajo
+  el tope de 1 MB de una Server Action (`use-guardar-borrador.soporte.test.ts`).
+- `cotizacion_tabla()` (`medir-cotizacion-hoja.sql`): la tabla viva de 1.000 filas (`tablas_referencia_filas_tabla_orden_idx`,
+  `limit 1001`), con y sin la hoja abierta, ≤ 25 ms; la firma suma ≤ 3 ms; ≤ 569.352 B la dueña (filas enteras) y ≤ 52.752 la asesora (año y
+  factor); 0 bloques de `cotizaciones`. Quien configura recibe las filas sin recortar a `columnas`.
+- `cotizacion_evaluar()` (`medir-evaluar.sql`, `db:medir:volumen`, 200 llamadas, 50.000 y 250.000): fórmula del seed mediana ≤ 10 ms y
+  p95 ≤ 20; sintética de 200 nodos con 4 tablas de 1.000 filas p95 ≤ 50; p95 con 250.000 sobre 50.000 ≤ 1,5. Guarda de ARMAR:
+  ≤ `1,2 × (páginas + 4 × (hojas + 3) + costo fijo)` buffers, y los bloques de `tablas_referencia(_filas)` ≤ los de la consulta de referencia + 2
+  (cae con una tabla de más o N+1). La firma de la hoja abierta suma ≤ 3 ms.
+- `cotizacion_crear()` (`medir-cotizacion-crear.sql`) y `cotizacion_guardar()` (`medir-cotizacion-guardar.sql`), 50.000 y 250.000:
+  ≤ 20 ms y 1.500 buffers (la sintética de guardar ≤ 60 ms y 1.000); 0 recorridos de `cotizaciones` o sus revisiones
+  (`pg_stat_xact_user_tables.seq_scan`); razón ≤ máx(1,5 × t; t + 3 ms), buffers ≤ 1,2 × + 20. Cada corrida reescribe la fila del vehículo
+  (`cotizado_en`; `pg_temp.sin_cotizar()` antes de cada `explain`, delta de `n_tup_upd` exigido). El intento se busca por `cotizacion_id`.
+  **Cotizar encima** (`cotizacion_encima()`, `medir-cotizacion-encima.sql`): los mismos topes, una anterior distinta por corrida. Guarda: la
+  nueva viva buscada sin `cotizaciones_encima_unica` recorre.
+- Lectura (`medir-cotizaciones-lectura.sql`): páginas de 101 por cursor `(creado_en desc, id desc)` como la dueña, Ana y la chica ≤ 10 ms
+  y 300 buffers; `cotizacion_leer` ≤ 10 ms; `cotizacion_revisiones` (500, con autor y etiquetas sobre la página recortada) ≤ 12 ms; razón
+  con 250.000 ≤ máx(1,5 × t; t + 3 ms); 0 llamadas por fila a `en_cartera`, `alcance_de` y `mis_leads()`, ≤ 2 a `origenes_con_alcance`;
+  `cotizacion_leer` y `cotizacion_revisiones` piden `alcance_de` 1 vez, también con «propios».
+- El listado `/cotizaciones` (`medir-cotizaciones-listado.sql`, `db:medir:volumen`): `cotizaciones_listado()`, invocadora, páginas de
+  `MAXIMO_DE_PAGINA_DE_COTIZACIONES` + 1, la 1, una profunda y una hacia atrás, con 50.000 y 250.000. Rutas: «todos» por
+  `cotizaciones_listado_idx` (con la final, `cotizaciones_finales_idx`) o, con el origen o si «todos» no cubre todos los orígenes, un lateral
+  por origen sobre `cotizaciones_origen_creado_idx` (`cotizaciones_origen_finales_idx`); lo propio por `cotizaciones_creador_idx`; la
+  cartera, un lateral por lead de `mis_leads()` sobre `cotizaciones_lead_creado_idx`; el vehículo por `cotizaciones_vehiculo_creado_idx`; con
+  `p_lead` (`?lead=`), una sola ruta por `cotizaciones_lead_creado_idx`, sin la cartera. La clase nunca es columna de un índice (`enum_eq` no
+  es leakproof). Topes: la dueña y la chica ≤ 10 ms, Ana y Teo ≤ 50 (Ana con un vehículo de 5.005 o un lead ajeno, ≤ 100); la dueña ≤ 116
+  bloques de `cotizaciones`; con 250.000 ≤ 1,2 × los bloques de 50.000 + 20 y ≤ máx(1,5 × t; t + 3 ms); `mis_leads()` 1 vez si va la cartera
+  (ninguna con `p_lead`), `origenes_con_alcance()` ≤ 2 + 2 por ruta, `en_cartera()` ≤ una por fila leída de la cartera o del vehículo,
+  ninguna a `alcance_de` ni a `_bajas_en_curso`; los índices de cada caso por nombre y ningún otro con bloques. Máximo: 100.
+  La sección «Cotizaciones» de la ficha del lead (PostgREST, `lead_id = …`, `TAMANO_DE_VER_MAS` + 1, mismo archivo): la dueña ≤ 10 ms, Ana
+  ≤ 50 con su cartera y ≤ 100 con el ajeno. Se lee al abrir la sección, con `diferido()` en su `diferidos.tsx`;
+  `e2e/leads-cotizaciones.spec.ts`: ≤ 5.250 B, ≤ 65 nodos con 20 y ≤ 1.576 con 500, la 25.ª igual que la 1.ª.
+  La pantalla (`e2e/cotizaciones-listado.spec.ts`, `e2e/listas-por-pagina-volumen.spec.ts`): una vista, 8 columnas, el máximo sin pedidos
+  del navegador ni acciones: ≤ 39.500 B y ≤ 2.130 nodos; diez «Siguiente» no los suben. El resumen `?cotizacion=`: abrir desde la fila no
+  pide nada; fuera de la página cuesta un pedido por `cotizaciones_pkey` y un `cotizaciones_listado()` de tamaño 1, más sus tres nombres.
+  `router.refresh()` sólo si la URL trae una que nadie trajo (una vez por id) y en cada «Reintentar». Los nombres de la página (cliente,
+  vehículo, autor) son tres lecturas por PK de ≤ 100 ids en paralelo (`leads_vista_por_ids`, `vehiculos_pkey`, `perfiles_pkey`): límite sin
+  assert.
+  Límites sin assert: el costo fijo de cada llamada, ≈ 160–240 buffers de `mis_permisos()` (abierto 4-77, `docs/PENDIENTES.md`); la preventa
+  va por filtro; Ana «finales» filtra la clase sobre sus propias; con un vehículo muy cotizado, un `en_cartera()` por cada ajena; una tanda
+  contigua en la papelera dentro de un índice entero se lee antes de descartarse. Los `count(*)` por origen de `origenes_resumen()` y del
+  borrado de un origen recorren la tabla (tope 100 ms con las 50.000 sembradas; el total exacto es el abierto 4-79, `docs/PENDIENTES.md`).
+- La hoja dibujada (`e2e/cotizar-hoja-200.spec.ts`, 100 % y 200 %): `[data-hoja]` más «Avanzado» abierto ≤ 500 nodos con la fórmula más
+  grande, como quien cotiza sin ⚙ (~13 nodos por celda); está cerca del techo: lo que sume nodos a la hoja se para y se reporta. Al abrir,
+  2 llamadas desde el servidor (+ `leerVehiculo` con un vehículo en la URL, + `leerClienteElegido` con un `?lead=`, + `integracionActiva`
+  con `vehiculos.crear` en un origen de subasta, todas en el mismo `Promise.all`) y ninguna del navegador hasta abrir un panel; después un
+  pedido por pausa de tecleo, con 1 en vuelo como máximo (`e2e/cotizar-hoja.spec.ts`).
+- El ⚙ de una constante (`e2e/cotizar-ajuste-constante.spec.ts`): como quien configura, cada ⚙ son exactamente 3 nodos (botón, `svg`,
+  `use`) y la subasta ≤ 585 nodos (techo 600); las dos personas ven las mismas celdas. Ningún pedido al abrir la hoja ni al pasar por una
+  celda; abrir un ⚙ lee una fila por `formulas_publicada_unica`, ≤ 70 B. Panel, hook, lectura y action con `diferido()`.
+- El ⚙ de un tipo de cambio (`e2e/cotizar-ajuste-tipo-cambio.spec.ts`): una llamada a `formula_tipo_cambio_del_nodo()`, ≤ 247 B; tras
+  cambiarlo la hoja no relee. Bloque, hooks y action de `empresa` van con el panel por `diferido()`.
+- Vista previa de la tarjeta (`e2e/cotizar-vista-previa.spec.ts`): ninguna lectura al abrir la hoja; suma un elemento al pie del resumen;
+  el modal va en un portal, fuera de `[data-hoja]`, con `diferido()`. Al abrirlo, una `cotizacion_tarjeta()` por versión de la fórmula,
+  recordada 5 min (`memoriaDeLectura`): ≤ 3.098 B como la dueña y ≤ 111 nodos la tarjeta. Lo acota la plantilla (≤ 20 grupos). «Copiar
+  texto» no lee nada y «Descargar PDF» es un pedido por clic; los dos van fuera de `[data-tarjeta-de-cotizacion]`, en el chunk del modal.
+- La página de una guardada lee en serie `cotizacion_hoja_guardada`, `cotizacion_evaluar(p_cotizacion)` y, con la hoja, el cliente y el
+  vehículo por su nombre. Guardar: una `cotizacion_guardar`. Tras `<Suspense>` y con `cache()`, tres lecturas por PK en paralelo: la fila
+  (`estado`, `reportes_count`), la favorita propia y el reporte propio (`(cotizacion_id, usuario_id)`). El Confirmar de moderar lee los
+  reportes de esa cotización, ≤ 21 (uno por persona).
+- «Enviar a la papelera» y «Marcar final» en la guardada: ninguna lectura nueva al abrir; cada acción es una RPC con su `revalidatePath`. El
+  hueco es un Server Component y al navegador llega un `<button>` con las clases de `<Button>`; `<Confirmar>`, la action y su función van
+  con `diferido()`.
+- PDF de la tarjeta (`e2e/cotizar-pdf.spec.ts`): una cotización por PK — `cotizacion_hoja_guardada`, `cotizacion_evaluar(p_cotizacion)`,
+  `cotizacion_tarjeta`, asesor y vehículo por PK y `leerAjustes()` (una RPC más que `getAjustes()`); el logo ≤ 1 MB con 2 s de espera. Topes:
+  150 KB y 1,5 s. La tarjeta de lo guardado lo ofrece con un `<a download>` sin JS.
+- Tarea de oro 2 (`e2e/cotizar-tarea-de-oro*.spec.ts`; deterministas: una parada nueva en el camino las rompe): robot < 30 s y KLM ≤ 90 s.
+  Teclas de control: el tramo de la hoja hasta el PDF ≤ 29; con el panel del vehículo ≤ 29; con un enlace de subasta, exactamente 33; con
+  el cliente, ≤ 29 si existe y ≤ 30 si es nuevo. Cada lado editable de la hoja y de «Avanzado» se alcanza con Tab, en orden.
+- El panel de la ayuda de una tabla (sin spec propio): dibuja las primeras 1.000 filas con el aviso «Mostrando las 1.000 primeras filas.»
+  (7 nodos por fila); una lectura por apertura, nunca con la hoja; el panel va en un chunk diferido.
+- Comprobantes de una cotización (sin volumen: no crece): la guardada los lee una vez por pedido (`cache`), `limit TAMANO_DE_VER_MAS + 1`
+  por `comprobantes_cotizacion_id_idx`, más el `estado` por PK. La serie vigente de Empresa es una fila. El aviso «Mostrando los 20 más
+  recientes.» no ofrece camino (haría falta anular 20 veces una cotización; si pasa, «Ver más» por cursor `(emitido_en, numero)`). Emitir y
+  anular van por `diferido()`.
+- Comentarios de una cotización (sin medir con volumen): `cotizacion_comentarios()` lee las raíces de la más nueva a la más vieja por cursor
+  `(creado_en, id)`, de a `TAMANO_DE_VER_MAS` (máx. 50), por
+  `cotizaciones_comentarios_raices_idx (cotizacion_id, creado_en desc, id desc) where padre_id is null`, y por raíz sus primeras 20
+  respuestas (máx. 50) por `cotizaciones_comentarios_respuestas_idx (padre_id, creado_en, id)`; `cotizacion_comentario_respuestas()` sigue
+  por el mismo índice. ≤ 21 raíces × 21 respuestas por llamada. Borrar quita la fila salvo
+  una raíz con respuestas vivas. Presupuesto a fijar al medir (1.000 comentarios y 500 respuestas: sin `Sort`, sin crecer entre 100 y
+  1.000). Adjuntos ≤ 20 por cotización (`cotizacion_adjuntar` cuenta con `limit 20`), leídos con la primera página por
+  `cotizaciones_adjuntos_cotizacion_id_idx` (`limit 21`); una URL firmada por clic; sin miniaturas. La pantalla lee al llegar la sección a la
+  vista, dibuja ≤ `TOPE_DE_LO_CARGADO` entre raíces y respuestas («Ir a una fecha»: cursor `(inicio del día siguiente, uuid nulo)`); todo
+  por `diferido()`.
 
 ## La rueda por rol
 
-`web.solicitar_asesor` y `web_expirar_solicitudes` evalúan `puede_estar_en_la_rueda()` por candidata de la cola (`usuarios_roles_pkey`, `roles_permisos_rol_clave_idx`). `medir-rueda.sql` (`db:medir:volumen`; 500 personas en la cola, 50.000 y 200.000 solicitudes): la elección de la rueda ≤ 40 ms, `estado_cola_web` ≤ 40, `solicitar_asesor` ≤ 60, `web_expirar_solicitudes(20)` ≤ 800 ms; razón con 4 veces las solicitudes ≤ 1,5 (piso 3 ms). Las abiertas de cada persona se cuentan por `solicitudes_web_asesor_abiertas_idx`, sin recorrer `solicitudes_contacto_web`. La regla cuesta ~16 µs por persona de la cola; lo que crece es la cola, no las solicitudes ni los leads. El tablero (8.04-1, sin medir con volumen: el cursor va por su índice y `solicitudes_contacto_web` no está en la lista de tablas que crecen de `escala.md`): `cola_web_tablero()` lee a lo sumo 201 habilitadas (`_acotar_pagina(p_tope, 100, 200)`; decenas en la práctica), una `puede_estar_en_la_rueda` por fila y las abiertas por `solicitudes_web_asesor_abiertas_idx` (conteo exacto a propósito, acotado por el cupo ≤ 50: es el que usa la rueda); `cola_web_solicitudes()` lee 21 filas (`_acotar_pagina(p_tamano, 20, 50)`) por `solicitudes_contacto_web_estado_creado_idx (estado, creado_en desc, id desc)`, con y sin cursor en dos consultas, y el título por `id` de `web.vehiculos` para esas 21. La pantalla `/configuracion/cola-web` (8.04-2) hace tres lecturas al abrir —el tablero (≤ 100 + 1), la primera página de «Sin asignar» (20 + 1) y `ajustes_web` (una fila)— y «Ver más» lee de a 20 desde el navegador hasta 500 (`TOPE_DE_LO_CARGADO`); «Actualizar» y volver a la pestaña repiten las tres, nunca lo ya cargado.
+- `web.solicitar_asesor` y `web_expirar_solicitudes` evalúan `puede_estar_en_la_rueda()` por candidata (`usuarios_roles_pkey`,
+  `roles_permisos_rol_clave_idx`). `medir-rueda.sql` (`db:medir:volumen`; 500 personas en la cola, 50.000 y 200.000 solicitudes): la
+  elección ≤ 40 ms, `estado_cola_web` ≤ 40, `solicitar_asesor` ≤ 60, `web_expirar_solicitudes(20)` ≤ 800 ms; razón con 4 veces las
+  solicitudes ≤ 1,5 (piso 3 ms). Las abiertas por persona, por `solicitudes_web_asesor_abiertas_idx`. Crece la cola, no las solicitudes.
+- `cola_web_tablero()` (sin volumen): ≤ 201 habilitadas (`_acotar_pagina(p_tope, 100, 200)`), una `puede_estar_en_la_rueda` por fila y las
+  abiertas por `solicitudes_web_asesor_abiertas_idx` (conteo exacto a propósito, acotado por el cupo ≤ 50). `cola_web_solicitudes()`: 21
+  filas (`_acotar_pagina(p_tamano, 20, 50)`) por `solicitudes_contacto_web_estado_creado_idx (estado, creado_en desc, id desc)`, y el título
+  por `id` de `web.vehiculos`.
+- `/configuracion/cola-web`: tres lecturas al abrir (tablero, primera página de «Sin asignar», `ajustes_web`); «Ver más» de a 20 desde el
+  navegador hasta 500; «Actualizar» y volver a la pestaña repiten las tres, nunca lo cargado.
 
 ## Formas de pantalla (cajas, al 100 y al 200 %)
 
-- El panel de filtros va al costado si el contenedor del listado mide ≥ 40 rem (15 de panel + 1 de hueco + 24 de lista); si no, hoja. Ninguna pantalla se ensancha al 200 % (`sinScrollHorizontal()`), el texto no se corta (`sinTextoCortado()`, `exigirMarcadorQueCabe`) y los botones del pie del modal miden 44 px.
-- La barra del listado: las cajas siguen el orden de lectura; el buscador mide 44 × 44 px y desde 24 rem muestra «Buscar» entero (`barra-de-filtros-200.spec.ts`, `barra-de-filtros-vehiculos-200.spec.ts`).
+- El panel de filtros va al costado si el contenedor del listado mide ≥ 40 rem (15 de panel + 1 de hueco + 24 de lista); si no, hoja.
+  Ninguna pantalla se ensancha al 200 % (`sinScrollHorizontal()`), el texto no se corta (`sinTextoCortado()`, `exigirMarcadorQueCabe`) y los
+  botones del pie del modal miden 44 px.
+- La barra del listado: las cajas siguen el orden de lectura; el buscador mide 44 × 44 px y desde 24 rem muestra «Buscar» entero
+  (`barra-de-filtros-200.spec.ts`, `barra-de-filtros-vehiculos-200.spec.ts`).
 - Matriz de Roles a 412 px al 200 %: 0 de 72 filas con el control fuera de la vista, sin ensanchar la página.
-- El celular corre en e2e sólo lo que tiene rama propia (tarjetas, hoja de filtros, pestañas del kanban, panel desde abajo, menú, pie del modal, foto, «Rol a la vista»): las pruebas marcadas se deciden con `E2E_HUELLA` + `scripts/comparar-anchos.mjs`. `E2E_ESTRES=1` repite «ítems por página» con la lectura lenta (al cerrar una tarea que toque `shared/ui/filtros` o la preferencia).
+- El celular corre en e2e sólo lo que tiene rama propia (tarjetas, hoja de filtros, pestañas del kanban, panel desde abajo, menú, pie del
+  modal, foto, «Rol a la vista»): las pruebas marcadas se deciden con `E2E_HUELLA` + `scripts/comparar-anchos.mjs`. `E2E_ESTRES=1` repite
+  «ítems por página» con la lectura lenta (al cerrar una tarea que toque `shared/ui/filtros` o la preferencia).

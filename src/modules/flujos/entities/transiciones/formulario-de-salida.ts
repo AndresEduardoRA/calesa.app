@@ -1,4 +1,4 @@
-// El formulario de «Agregar salida» y lo que decide qué fases se ofrecen (5.06). Espejo de `transicion_crear` (`20261111212908_transiciones_crear.sql`): la base
+// El formulario de «Agregar salida» y lo que decide qué fases se ofrecen (5.06). Espejo de `transicion_crear`: la base
 // vuelve a decir cada motivo, con el campo en el `hint`. Sin I/O.
 import { porOrdenYNombre } from '../fase'
 import type { FaseParaConfigurar, FlujoParaConfigurar, TransicionParaConfigurar } from '../flujo'

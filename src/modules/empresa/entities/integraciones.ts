@@ -128,7 +128,7 @@ function esRedInterna(host: string): boolean {
 // «Probar» manda el secreto a esta dirección desde el servidor de la app: no puede apuntar a la
 // red del servidor (SSRF). Es más estricta que la base, que sólo mira el protocolo; el loopback
 // pasa sólo si quien llama lo permite: la base del despliegue es local (D10 en
-// docs/pasos/8.06-2/decisiones.md).
+// docs/DECISIONES.md).
 export function esDireccionDeRevalidacion(
   direccion: string,
   { loopback }: { loopback: boolean },

@@ -1,4 +1,4 @@
-// El parser del compilador de fórmulas como texto (docs/COTIZADOR.md › «Fórmulas como texto (4.07)»): precedencia usual, todo
+// El parser del compilador de fórmulas como texto (docs/COTIZADOR.md › «Fórmulas como texto»): precedencia usual, todo
 // asociativo a la izquierda. Es una máquina de dos pilas (operandos y operadores) con una pila de marcos para los paréntesis y las
 // llamadas a una función: nada recursivo, así que ni diez mil paréntesis ni treinta mil operadores revientan la pila. Una cadena
 // `a+b+c` (`-`, `*`) se aplana al reducir en UN nodo, en el orden del texto; un paréntesis o una función corta el aplanado.

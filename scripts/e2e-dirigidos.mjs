@@ -1,5 +1,5 @@
 // Los e2e que corre un PR en CI (el Nivel 1 de `.claude/rules/e2e.md`, en CI): el completo si el cambio toca un disparador del
-// Nivel 2 (`scripts/piloto/nivel.mjs`) o algo que mueve a todos los specs; si no, los dirigidos a lo tocado; ninguno si no hay qué.
+// Nivel 2 (`scripts/nivel.mjs`) o algo que mueve a todos los specs; si no, los dirigidos a lo tocado; ninguno si no hay qué.
 // El completo de cada noche (`.github/workflows/ci.yml`, `schedule`) cubre lo que esta elección deje afuera.
 //
 //   node scripts/e2e-dirigidos.mjs --rango <base>...<head> [--github]   → JSON por stdout, o las líneas de $GITHUB_OUTPUT
@@ -13,7 +13,7 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { basename } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-import { nivelDe } from './piloto/nivel.mjs'
+import { nivelDe } from './nivel.mjs'
 
 // Lo que mueve a todos los specs a la vez: la configuración del runner, las dependencias y la base (migraciones y semillas).
 const MUEVE_TODO = [

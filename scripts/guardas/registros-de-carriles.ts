@@ -1,7 +1,6 @@
-// Los registros por carril de las guardas (`confirmar-con-url`, `drawers-con-salida`, `paginas-en-la-base`). Cada guarda es del A, pero un
-// carril registra lo suyo sin pedirle nada: crea su archivo en `scripts/guardas/areas-<carril>/<guarda>.ts` (la carpeta es de su
-// `dueno_de` en `docs/plan.yaml`) y exporta `REGISTRO` (un objeto, o una lista en `paginas-en-la-base`). La guarda los descubre con
-// `import.meta.glob('./areas-*/<guarda>.ts')` y los suma tras los suyos: un archivo nuevo no se toca en ningún archivo del A.
+// Las partes del registro de las guardas (`confirmar-con-url`, `drawers-con-salida`, `paginas-en-la-base`). Cada parte vive en
+// `scripts/guardas/areas-*/<guarda>.ts` y exporta `REGISTRO` (un objeto, o una lista en `paginas-en-la-base`). La guarda las descubre con
+// `import.meta.glob('./areas-*/<guarda>.ts')` y las suma tras las suyas: sumar una parte no edita la guarda.
 type Modulo = { REGISTRO?: unknown }
 
 /** Suma los `REGISTRO` que son objetos (clave → valor), en el orden de las rutas. Uno que no es objeto es un error. */

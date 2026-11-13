@@ -43,7 +43,7 @@ import { literal, sql } from './soporte/sql'
 // dueña lo confirma (quien carga no confirma); (R5) la dueña ve en el tablero subir «Convertidos» y el margen del mes; (R5b) el turno de la web que la
 // asesora contactó se cuenta en «Cola de la web»; (R6) la dueña encuentra en `/actividad` el cambio que hizo la asesora, con su diff, y (R6b) la asesora ve que hubo un
 // cambio en un lead ajeno pero no su detalle; (R7) la dueña exporta los leads y vuelve a importar el del recorrido, que regresa a la cartera de su asesora; (R8) «Instalar la app».
-// El detalle de cada pieza lo prueban sus specs y `supabase/tests/` (la tabla de criterios de la fase, `docs/PLAN.md`).
+// El detalle de cada pieza lo prueban sus specs y `supabase/tests/` (la tabla de criterios de la fase, `docs/PENDIENTES.md`).
 test.describe.configure({ mode: 'serial' })
 
 let t: TerrenoDeLaFase9 | undefined

@@ -1,6 +1,6 @@
 -- @test oportunidades-policy (5a-6): lo que la policy de `oportunidades` entrega es lo que dice la regla escrita a mano
--- La policy "oportunidades: leer" dejó de armar un arreglo con toda la cartera (`_mis_leads_vivos()`) y pregunta por cada oportunidad con `_lead_vivo_en_mi_cartera()`
--- (`…20261019003600`). La visibilidad no puede cambiar: para cada persona, la huella md5 de las oportunidades que la policy le entrega (como `authenticated`) tiene que ser
+-- La policy "oportunidades: leer" dejó de armar un arreglo con toda la cartera (`_mis_leads_vivos()`) y pregunta por cada oportunidad con `_lead_vivo_en_mi_cartera()`.
+-- La visibilidad no puede cambiar: para cada persona, la huella md5 de las oportunidades que la policy le entrega (como `authenticated`) tiene que ser
 -- la de la regla, escrita aparte desde `leads_asesores` y `leads` sin mirar la copia `leads.cartera` ni la policy. Cada caso además se afirma con filas concretas, para
 -- que una huella igual por error no pase. Lo que no se ve responde como inexistente, también para la RPC. Corre al final: usa los roles de `matriz-leads.sql`.
 --

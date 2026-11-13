@@ -14,7 +14,7 @@ import { SECCION_DE_WEB, SECCIONES_DE_WEB } from './web/seccion'
 const APP = path.join(process.cwd(), 'src/app/(app)')
 
 describe('secciones de configuración', () => {
-  it('son las de hoy, en su orden, y Cotización viene de la carpeta del carril B', () => {
+  it('son las de hoy, en su orden, y Cotización viene de su carpeta', () => {
     expect(SECCIONES.map((seccion) => seccion.clave)).toEqual([
       'empresa',
       'origenes',

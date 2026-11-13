@@ -10,8 +10,8 @@ import {
 import { archivosDelModulo } from './areas-de-cotizaciones-arbol'
 
 // La partición de `cotizaciones` por área (4.15-4, `docs/DECISIONES.md`, paso 4.15-4): un área no importa otra, el núcleo no importa
-// ningún área, las entradas de la raíz sólo reexportan, cada área tiene sus lugares y `docs/plan.yaml` le da a cada carril áreas enteras.
-// Si cae: lo nuevo de un paso va en las carpetas de SU área y en `areas/<su área>/`; lo que dos áreas comparten va al núcleo (lo decide el A).
+// ningún área, las entradas de la raíz sólo reexportan, y cada área tiene sus lugares.
+// Si cae: lo nuevo de un paso va en las carpetas de SU área y en `areas/<su área>/`; lo que dos áreas comparten va al núcleo.
 
 const TODAS = ['nucleo', ...AREAS_DE_COTIZACIONES]
 const enModulo = (rel: string, texto = ''): Archivo => ({ ruta: `${MODULO}${rel}`, texto })

@@ -4,7 +4,7 @@ import { createClient } from '@/shared/lib/supabase/server'
 import { envioDesde, purgaDesde, restauracionDesde } from '../entities/papelera'
 import type { RepositorioDePapeleraDeLeads } from '../entities/repositorios'
 
-// La papelera de leads se escribe sólo por RPC (`…20261015000400_leads_auditoria.sql`). Enviar es
+// La papelera de leads se escribe sólo por RPC. Enviar es
 // todo o nada y lleva el id del lote; restaurar y purgar, la versión del lote. Lo que la base
 // rechaza vuelve como error con el mensaje ya escrito para la persona.
 

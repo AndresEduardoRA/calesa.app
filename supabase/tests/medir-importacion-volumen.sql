@@ -75,7 +75,7 @@ begin
 end $$;
 
 -- Un teléfono fijo que no choca: la semilla de volumen usa 8xxxxxxx y 9xxxxxxx, las pruebas de `db:probar` 7xxxxxxx, `medir-bajas.sql` nueve dígitos (69…), y
--- `borrar_lo_medido()` quita los «Volimp» de una corrida anterior al empezar. Nunca `random()` (`docs/PLAN.md`, 4-22: 1 de cada N corridas chocaba).
+-- `borrar_lo_medido()` quita los «Volimp» de una corrida anterior al empezar. Nunca `random()` (`docs/PENDIENTES.md`, 4-22: 1 de cada N corridas chocaba).
 select 60000000 as base \gset
 
 -- Pasada 1: `actividad` en 23.000 filas.

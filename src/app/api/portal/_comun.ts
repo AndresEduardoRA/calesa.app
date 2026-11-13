@@ -14,7 +14,7 @@ import { MENSAJE_INESPERADO } from '@/shared/lib/errores'
 
 // Lo común de los route handlers del portal del cliente (8.07-3). El portal no tiene sesión de Supabase: la puerta es la cookie
 // firmada `portal` (`Path=/api/portal`) y, en la base, `_portal_vigente`. Lo importan sólo los handlers de esta carpeta. El contrato
-// con el sitio, que reescribe `/api/portal/*` hacia aquí, está en la ficha de `web` y en `docs/pasos/8.07-3/decisiones.md`.
+// con el sitio, que reescribe `/api/portal/*` hacia aquí, está en la ficha de `web` y en `docs/DECISIONES.md`.
 
 const SIN_GUARDAR = { 'Cache-Control': 'no-store' }
 const TOPE_DEL_CUERPO = 2048

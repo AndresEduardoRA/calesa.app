@@ -1,6 +1,6 @@
 # shellcheck shell=bash
-# Se carga con `source`: exporta las variables de `.env.carril` de este worktree (lo escribe scripts/worktree/preparar.sh en un carril
-# de Orca: el project_id y los puertos de su stack de Supabase, de la app y del e2e). Una variable que ya viene en el entorno manda.
+# Se carga con `source`: exporta las variables de `.env.carril` de este worktree (lo escribe scripts/worktree/preparar.sh: el
+# project_id y los puertos de su stack de Supabase, de la app y del e2e). Una variable que ya viene en el entorno manda.
 # En la principal no hay `.env.carril` y no hace nada: queda lo de `supabase/config.toml`. Lo mismo en JS: scripts/lib/stack-local.mjs.
 cargar_carril() {
   local raiz archivo linea clave valor

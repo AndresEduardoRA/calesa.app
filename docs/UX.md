@@ -1,465 +1,1090 @@
 # Experiencia de uso — importadora
 
-Versión completa (historia, mediciones, relatos): `docs/archivo/UX.md`, sólo con grep.
-
-Reemplaza planillas de Excel por asesor, WhatsApp entre áreas y el prototipo `ip`. Regla: ninguna tarea de oro puede ser más lenta que la planilla que reemplaza.
+Reemplaza planillas de Excel por asesor, WhatsApp entre áreas y el prototipo `ip`. Regla: ninguna tarea de oro puede ser más lenta que la
+planilla que reemplaza.
 
 ## Roles
 
 Los roles son libres (el dueño los crea); la interfaz se arma por **permisos**, no por nombre de rol. Perfiles de referencia y su inicio:
 
-- **Asesor:** leads, cotizaciones, turnos de la web; escritorio y celular. Inicio: recordatorios de hoy, turnos web sin confirmar, leads sin seguimiento.
-- **Logística:** vehículos por el flujo, documentos, embarques, aduana; celular en puerto o aduana. Inicio: vehículos trabados, documentos por aprobar, alertas por demora.
+- **Asesor:** leads, cotizaciones, turnos de la web; escritorio y celular. Inicio: recordatorios de hoy, turnos web sin confirmar, leads sin
+  seguimiento.
+- **Logística:** vehículos por el flujo, documentos, embarques, aduana; celular en puerto o aduana. Inicio: vehículos trabados, documentos
+  por aprobar, alertas por demora.
 - **Repuestos:** proyectos e ítems, compras, stock. Inicio: ítems por mover, esperas que destraban vehículos.
 - **Dueño / admin:** configura, mira métricas, resuelve conflictos. Inicio: tablero operativo.
 - **RRHH / equipo:** alta, roles, bloqueo y baja. Inicio: Equipo.
 
 ## Tareas de oro
 
-- **1. Registrar lead y anotar un seguimiento** (asesor, ~30/día). Meta: ≤ 25 s desde `N` hasta lead guardado (seguimiento opcional); duplicado detectado al terminar de tipear el teléfono. La tarea entera, en los dos proyectos, `e2e/leads-alta.spec.ts` (9.14-1): KLM 18,3 s en escritorio y 16,9 s en el celular, 8 controles. Nunca: crear un lead con teléfono ajeno; perder lo tipeado.
-- **2. Cotizar un vehículo para un lead** (asesor, ~15/día). Meta: ≤ 90 s con link de subasta o vehículo del inventario; cada celda editable con teclado; PDF en 1 clic (el tramo de la hoja, `e2e/cotizar-tarea-de-oro.spec.ts`; con un enlace de subasta, `e2e/cotizar-tarea-de-oro-enlace.spec.ts`, 4.14-2c3; el cliente de la hoja, elegido o creado con el «+» del panel, `e2e/cotizar-tarea-de-oro-cliente.spec.ts`, 4.14-3c; el tramo de la hoja llega al PDF con «Descargar PDF» de la tarjeta de lo guardado, 29 teclas de control, 4.18-3b; la tarea entera, del listado al PDF y con dos cuentas, `e2e/cotizar-tarea-de-oro-recorrido.spec.ts`, 4.28). Nunca: guardar con una constante vencida sin saberlo; un total que no cuadre con las líneas.
-- **3. Mover vehículos de fase con documentos** (logística, ~40/día). Meta: mover 1 en ≤ 15 s; marcar llegada de un contenedor de 8 en ≤ 60 s; ver _antes_ de confirmar qué falta en cada uno. La tarea entera, con logística y la dueña y en los dos proyectos, `e2e/logistica-tarea-de-oro.spec.ts` (6.14): mover 1 desde la cadena, KLM 11,3 s; el contenedor de 8 desde `/logistica/embarques`, KLM 14,6 s. Nunca: mover sin el documento bloqueante; perder un archivo subido; pisar el cambio de otro.
-- **4. Atender un turno de la web y dar acceso al portal** (asesor, ~5/día). Meta: «contacté» en 2 toques desde el celular; otorgar portal desde la ficha en ≤ 30 s con sólo el teclado. En los dos proyectos (9.14-1): «Contacté» en 1 toque desde Inicio, `e2e/web-turno.spec.ts`; el portal, KLM 8,5 s con 16 teclas de control, `e2e/leads-portal-acceso.spec.ts`. Nunca: dejar vencer un turno sin aviso (el turno vencido queda «Vencido» en Inicio y avisa en `/notificaciones`, `e2e/web-turno.spec.ts`, 9.14-1); un código que no se pueda dictar.
+Cada meta la hace cumplir su e2e, en escritorio y celular.
+
+- **1. Registrar lead y anotar un seguimiento** (asesor, ~30/día). Meta: ≤ 25 s desde `N` hasta lead guardado (seguimiento opcional);
+  duplicado detectado al terminar de tipear el teléfono. `e2e/leads-alta.spec.ts`. Nunca: crear un lead con teléfono ajeno; perder lo
+  tipeado.
+- **2. Cotizar un vehículo para un lead** (asesor, ~15/día). Meta: ≤ 90 s con link de subasta o vehículo del inventario; cada celda editable
+  con teclado; PDF en 1 clic. `e2e/cotizar-tarea-de-oro.spec.ts` (la hoja), `…-enlace.spec.ts` (enlace de subasta), `…-cliente.spec.ts`
+  (cliente elegido o creado con el «+»), `…-recorrido.spec.ts` (del listado al PDF, con dos cuentas). Nunca: guardar con una constante
+  vencida sin saberlo; un total que no cuadre con las líneas.
+- **3. Mover vehículos de fase con documentos** (logística, ~40/día). Meta: mover 1 en ≤ 15 s; marcar llegada de un contenedor de 8 en
+  ≤ 60 s; ver _antes_ de confirmar qué falta en cada uno. `e2e/logistica-tarea-de-oro.spec.ts` (el contenedor desde `/logistica/embarques`).
+  Nunca: mover sin el documento bloqueante; perder un archivo subido; pisar el cambio de otro.
+- **4. Atender un turno de la web y dar acceso al portal** (asesor, ~5/día). Meta: «contacté» en 2 toques desde el celular (hoy, 1 desde
+  Inicio, `e2e/web-turno.spec.ts`); otorgar portal desde la ficha en ≤ 30 s con sólo el teclado (`e2e/leads-portal-acceso.spec.ts`). Nunca:
+  dejar vencer un turno sin aviso (el vencido queda «Vencido» en Inicio y avisa en `/notificaciones`); un código que no se pueda dictar.
 
 ### Flujo 1 — Registrar lead y seguimiento
 
-1. «Nuevo lead» en la barra superior, o `N` donde la pantalla no tiene un «nuevo» propio → drawer (no página), `?panel=nuevo-lead`. **Se abre al instante** y lee orígenes, tipos y layout desde el navegador: esqueleto con la forma del formulario, listo, o error («No se pudo cargar el formulario.» con «Reintentar»). **Un solo panel**: se desliza una vez y los estados cambian dentro (`e2e/leads-alta-un-drawer.spec.ts`). Foco en **Teléfono principal**.
-2. Al completar el teléfono (debounce 400 ms) se consulta `verificar_telefono`. Es mío: «Ya existe: Ana Quispe (Tu n.º 12), y es tuyo». Es de otro: «Lo tiene Diego Vargas», nada más. En limbo: «Sin dueño» y «Tomar lead» (se adopta al guardar, queda constancia). Existente o ajeno no deja seguir. Debajo, cómo quedará y de qué país («Se guardará como +54 91155550000 · Argentina»), sin pedir nada al servidor; «País» (en «Más datos») se llena solo mientras esté vacío; lo escrito no se pisa.
-3. Nombre, origen (el último usado, por persona), tipo (el primero activo de la clase prospecto) y los **requeridos** del layout, en su orden; el resto plegado en «Más datos» con su valor por defecto. Volver requerido un campo suma un paso: Configuración lo avisa (desde el cuarto, la meta cuesta).
-4. `Ctrl/Cmd+Enter` valida y abre «Primer seguimiento (opcional)» en el mismo drawer, sin guardar; `Ctrl/Cmd+S` o «Guardar lead» guardan desde cualquier paso; `Esc` vuelve a los datos. Mismos campos que el redactor de la ficha; se escribe seguimiento sólo si hay algo escrito.
-5. El pie dice lo que pasará, sin diálogo («Se creará sin primer seguimiento…» / «Se guardará con el primer seguimiento que escribiste.»). Guardar crea lead, seguimiento y próximo contacto en una transacción → toast «Lead #124 creado»; el drawer queda listo para el siguiente, foco en el teléfono. «Abrir ficha» → `/leads/[id]`. Abierto con el «+» del panel del cliente de la hoja de cotizar, guardar cierra el drawer y la hoja elige al lead creado (el foco vuelve a la barra «Cliente»; el aviso va sin «Abrir ficha»: salir dejaría la cotización a medias).
+1. «Nuevo lead» en la barra superior, o `N` donde la pantalla no tiene un «nuevo» propio → drawer (no página), `?panel=nuevo-lead`. **Se
+   abre al instante** y lee orígenes, tipos y layout desde el navegador: esqueleto con la forma del formulario, listo, o error («No se pudo
+   cargar el formulario.» con «Reintentar»). **Un solo panel**: se desliza una vez y los estados cambian dentro
+   (`e2e/leads-alta-un-drawer.spec.ts`). Foco en **Teléfono principal**.
+2. Al completar el teléfono (debounce 400 ms) se consulta `verificar_telefono`. Es mío: «Ya existe: Ana Quispe (Tu n.º 12), y es tuyo». Es
+   de otro: «Lo tiene Diego Vargas», nada más. En limbo: «Sin dueño» y «Tomar lead» (se adopta al guardar, queda constancia). Existente o
+   ajeno no deja seguir. Debajo, cómo quedará y de qué país («Se guardará como +54 91155550000 · Argentina»), sin pedir nada al servidor;
+   «País» (en «Más datos») se llena solo mientras esté vacío; lo escrito no se pisa.
+3. Nombre, origen (el último usado, por persona), tipo (el primero activo de la clase prospecto) y los **requeridos** del layout, en su
+   orden; el resto plegado en «Más datos» con su valor por defecto. Volver requerido un campo suma un paso: Configuración lo avisa (desde el
+   cuarto, la meta cuesta).
+4. `Ctrl/Cmd+Enter` valida y abre «Primer seguimiento (opcional)» en el mismo drawer, sin guardar; `Ctrl/Cmd+S` o «Guardar lead» guardan
+   desde cualquier paso; `Esc` vuelve a los datos. Mismos campos que el redactor de la ficha; se escribe seguimiento sólo si hay algo
+   escrito.
+5. El pie dice lo que pasará, sin diálogo («Se creará sin primer seguimiento…» / «Se guardará con el primer seguimiento que escribiste.»).
+   Guardar crea lead, seguimiento y próximo contacto en una transacción → toast «Lead #124 creado»; el drawer queda listo para el siguiente,
+   foco en el teléfono. «Abrir ficha» → `/leads/[id]`. Abierto con el «+» del panel del cliente de la hoja de cotizar, guardar cierra el
+   drawer y la hoja elige al lead creado (foco a la barra «Cliente»; el aviso va sin «Abrir ficha»: salir dejaría la cotización a medias).
 
-Estados propios: teléfono en verificación (spinner, resto editable); sin permiso (ni botón, ni atajo, ni URL); conexión caída al guardar (conserva todo y guarda solo al volver; el intento lleva su id, reintentar no duplica); cerrar o recargar con datos (borrador con «Descartar»); dato inválido (motivo junto al campo); ningún origen activo (campo deshabilitado con motivo).
+Estados propios: teléfono en verificación (spinner, resto editable); sin permiso (ni botón, ni atajo, ni URL); conexión caída al guardar
+(conserva todo y guarda solo al volver; el intento lleva su id, reintentar no duplica); cerrar o recargar con datos (borrador con
+«Descartar»); dato inválido (motivo junto al campo); ningún origen activo (campo deshabilitado con motivo).
 
 ### Flujo 2 — Cotizar
 
-La hoja es **configurable por origen** (D7, `docs/COTIZADOR.md` › «El diseño de la hoja»): la semilla trae un diseño igual al cotizador actual (`docs/referencias/cotizador-actual.md`) y otro al Excel (`docs/referencias/excel-de-cotizacion.md`).
+La hoja es **configurable por origen** (`docs/COTIZADOR.md` › «El diseño de la hoja»): la semilla trae un diseño igual al cotizador actual
+(`docs/referencias/cotizador-actual.md`) y otro al Excel (`docs/referencias/excel-de-cotizacion.md`).
 
-1. **Entrada:** desde la ficha del lead, el resumen de un vehículo o el listado. Arriba, pestañas de orígenes (nombres de la base; «Oficina» es un origen) y los **modos** de tipo de cambio del diseño (Aduana, Paralelo, Unificado…; se eligen con dos o más, la hoja abre con el primero marcado y con uno solo no se elige: el resumen lo nombra). `Ctrl/Cmd+K → «Nueva cotización»` abre la hoja.
+1. **Entrada:** desde la ficha del lead, el resumen de un vehículo o el listado. Arriba, pestañas de orígenes (nombres de la base; «Oficina»
+   es un origen) y los **modos** de tipo de cambio del diseño (Aduana, Paralelo, Unificado…; se eligen con dos o más, la hoja abre con el
+   primero marcado; con uno solo no se elige y el resumen lo nombra). `Ctrl/Cmd+K → «Nueva cotización»` abre la hoja.
 2. **Pasos:** **la hoja** (preventa o final), **vehículo**, **cliente**, **vista previa**; no hay paso «Oficina».
-   - **Vehículo:** título; un solo campo busca por nombre, VIN o lote (desde 3 letras o números) y trae un enlace, un VIN o un lote de la subasta (`apibara` llena ficha y fotos); «+» carga a mano. **Ambas abren el alta del inventario dentro del panel y «Crear y elegir» crea el vehículo** (D3, P1 del 4.14-2c) **y lo elige**, sin guardar la cotización; pestañas «Últ. cotización» y «Cierre subasta»; el elegido muestra su historial (plegado, se lee al desplegarlo y avanza con «Ver más»); la barra dice «Cotizado (n)». En «Elegido», el tipo de vehículo se elige entre las filas de la tabla, tal cual salen de ella, con el del vehículo marcado; un toque lo guarda en el vehículo, cierra el panel y la hoja recalcula (quien no puede editar el vehículo lo ve sin elegir; la celda sin valor dice que se elige en «Vehículo»).
-   - **Cliente:** búsqueda desde 3 letras o `#n`; sin buscar, «míos» por lo más reciente (`reciente_en`: el último seguimiento o el alta) en las pestañas «Todos», «Prospecto» y «Cliente» (abre en «Todos»); la búsqueda es entre los leads que quien cotiza ve, como el listado, y el tipo de cada lead va como texto; el elegido tiene «Quitar»; «+» abre «Nuevo lead», el del shell con su borrador y la verificación del teléfono, y al guardar la hoja elige al creado, conservando lo tipeado (4.14-3c). Los dos paneles van por cursor (Anterior y Siguiente), nunca «Página N de M».
-   - **El lead es obligatorio siempre** (preseleccionado desde su ficha: «Cotizar», en la cabecera junto a «Editar», abre la hoja con ese lead en el primer origen donde se cotiza). El vehículo, salvo que el ajuste «Vehículo obligatorio al cotizar» diga que no; una final lo exige siempre.
-3. **La hoja:** secciones en el orden declarado; cada monto en una **XCell** (`Tab` avanza, tipear abre edición, `Esc` cancela) con el tono de su grupo, ayuda y ⚙ si el permiso lo da. **El ⚙** (4.20-3b, `?ajuste=celda&nodo=`) abre «Valor por defecto de <celda>»: por cada constante, su valor por defecto, «Afecta a las cotizaciones nuevas de este origen: publica una versión nueva de la fórmula.», «Valor nuevo» (un porcentaje en puntos) y, si la celda se edita en esta hoja, «Aplicar también a esta cotización»; «Cambiar el valor por defecto» publica la versión siguiente con lo que el panel leyó (si otra persona publicó antes, el mensaje de la base y «Volver a leer», sin perder lo tipeado) y avisa «Esta cotización no cambia.» o «… y lo aplicaste a esta cotización.»; la hoja sigue en su versión. Cerrar con algo tipeado pregunta. Una celda de tipo de cambio (4.20-3d) abre «Tipo de cambio de <celda>»: en la hoja nueva, «Valor de hoy: 1 USD = Bs 11,68» (por `<Monto>`), «Afecta a toda la empresa: las cotizaciones nuevas de todos los orígenes lo usan desde ya; las guardadas conservan el suyo.», «Valor nuevo» (con Modo Live, como una celda) y «Cambiar el tipo de cambio», que avisa «Cambiaste el tipo de cambio <nombre> para toda la empresa.»; la hoja se vuelve a abrir con el valor nuevo y lo tipeado vuelve con «Recuperamos…»; sin fila o desactivado dice dónde se cambia; en una guardada, que se cambia en Configuración › Empresa › Monedas y «Esta cotización conserva el tipo de cambio con que se guardó.». Lo **sugerido** lleva un punto; sobrescrito queda **modificado** (anillo y ↺). Atajos (chips de año), **variante** (Moto, Auto Gasolina…), **interruptores** (habilitar fila, mostrar garantía). **Una celda que quien mira no puede ver no se dibuja ni llega**; una que no puede editar va con candado y su motivo. La **ayuda** de una celda (botón «Ayuda de X») abre un panel de sólo lectura con su texto o con su tabla de referencia (la de la hoja abierta; cargando, sin filas, tope de 1.000 filas y fallo con «Reintentar» o «Recargar»); con Modo Live sus cifras se tapan como las de la celda. **Recalcula en la base** 150 ms después de la última tecla. En el celular y al 200 %, una columna en el mismo orden.
-4. **Resumen fijo:** total (y el total en moneda local si se pidió: «Ver total en moneda local», apagado al nacer y sólo si la versión da su moneda), garantía si está a la vista, modo de tipo de cambio y toggle **Live**; al pie en el celular (alto máximo del 40 % de la ventana) y al costado, pegado bajo la barra, desde 56 rem de la hoja (el 200 % lo pasa al pie). `Ctrl/Cmd+S` guarda (preventa); «Vista previa» abre la tarjeta; su pie trae «Copiar texto» (la tarjeta como texto, con cifras; apagado con el total desactualizado o sin total) y, en una guardada, «Descargar PDF» (lo guardado, sin salir de la página; un fallo se dice con «Reintentar»). La tarjeta de lo guardado de la hoja nueva ofrece «Descargar PDF» tras «Abrir la cotización» (4.18-3b).
+   - **Vehículo:** un solo campo busca por nombre, VIN o lote (desde 3 letras o números) y trae un enlace, un VIN o un lote de la subasta
+     (`apibara` llena ficha y fotos); «+» carga a mano. **Ambas abren el alta del inventario dentro del panel y «Crear y elegir» crea el
+     vehículo y lo elige**, sin guardar la cotización; pestañas «Últ. cotización» y «Cierre subasta»; el elegido muestra su historial
+     (plegado, se lee al desplegarlo, «Ver más»); la barra dice «Cotizado (n)». En «Elegido», el tipo de vehículo se elige entre las filas
+     de la tabla, con el del vehículo marcado; un toque lo guarda en el vehículo, cierra el panel y la hoja recalcula (quien no puede editar
+     el vehículo lo ve sin elegir; la celda sin valor dice que se elige en «Vehículo»).
+   - **Cliente:** búsqueda desde 3 letras o `#n`; sin buscar, «míos» por `reciente_en` (el último seguimiento o el alta) en las pestañas
+     «Todos», «Prospecto» y «Cliente» (abre en «Todos»); busca entre los leads que quien cotiza ve, como el listado, y el tipo de cada lead
+     va como texto; el elegido tiene «Quitar»; «+» abre «Nuevo lead» del shell (borrador y verificación del teléfono) y al guardar la hoja
+     elige al creado, conservando lo tipeado. Los dos paneles van por cursor (Anterior y Siguiente), nunca «Página N de M».
+   - **El lead es obligatorio siempre** (preseleccionado desde su ficha: «Cotizar», en la cabecera junto a «Editar», abre la hoja con ese
+     lead en el primer origen donde se cotiza). El vehículo, salvo que el ajuste «Vehículo obligatorio al cotizar» diga que no; una final lo
+     exige siempre.
+3. **La hoja:** secciones en el orden declarado; cada monto en una **XCell** (`Tab` avanza, tipear abre edición, `Esc` cancela) con el tono
+   de su grupo, ayuda y ⚙ si el permiso lo da. Lo **sugerido** lleva un punto; sobrescrito queda **modificado** (anillo y ↺). Atajos (chips
+   de año), **variante** (Moto, Auto Gasolina…), **interruptores** (habilitar fila, mostrar garantía). **Una celda que quien mira no puede
+   ver no se dibuja ni llega**; una que no puede editar va con candado y su motivo. **Recalcula en la base** 150 ms después de la última
+   tecla. En el celular y al 200 %, una columna en el mismo orden.
+   - **El ⚙** (`?ajuste=celda&nodo=`) abre «Valor por defecto de <celda>»: el valor por defecto de cada constante, que afecta a las
+     cotizaciones nuevas del origen (publica la versión siguiente de la fórmula con lo que el panel leyó) y, si la celda se edita en esta
+     hoja, «Aplicar también a esta cotización». La hoja sigue en su versión. Si otra persona publicó antes, el mensaje de la base y «Volver
+     a leer», sin perder lo tipeado. Cerrar con algo tipeado pregunta.
+   - **Una celda de tipo de cambio** abre «Tipo de cambio de <celda>»: en la hoja nueva, el valor de hoy (por `<Monto>`), que cambiarlo
+     afecta a toda la empresa (las guardadas conservan el suyo) y «Valor nuevo» (con Modo Live, como una celda); al cambiarlo la hoja se
+     reabre con el valor nuevo y lo tipeado vuelve. Sin fila o desactivado, dice dónde se cambia; en una guardada, que se cambia en
+     Configuración › Empresa › Monedas y que la cotización conserva el suyo.
+   - **La ayuda** («Ayuda de X») abre un panel de sólo lectura con su texto o su tabla de referencia (la de la hoja abierta; cargando, sin
+     filas, tope de 1.000 filas, fallo con «Reintentar» o «Recargar»); con Modo Live sus cifras se tapan.
+4. **Resumen fijo:** total (y en moneda local si se pidió con «Ver total en moneda local», apagado al nacer y sólo si la versión da su
+   moneda), garantía si está a la vista, modo de tipo de cambio y toggle **Live**; al pie en el celular (alto máximo 40 % de la ventana) y
+   al costado, pegado bajo la barra, desde 56 rem de la hoja (el 200 % lo pasa al pie). `Ctrl/Cmd+S` guarda (preventa); «Vista previa»
+   abre la tarjeta, con «Copiar texto» (apagado sin total o desactualizado) y, en una guardada, «Descargar PDF» (sin salir de la página;
+   un fallo con «Reintentar»). La tarjeta de lo guardado también ofrece «Descargar PDF».
 
 Estados propios:
 
-- **Fórmula del origen sin publicar:** pantalla bloqueada «Falta publicar la fórmula de <origen>», con enlace a configuración si hay permiso. **Link de subasta inválido o sin datos:** se sigue a mano.
-- **Desactualizada** (D2): al guardar una nueva, la fórmula o un tipo de cambio cambió desde que se abrió; el resumen ofrece «Usar la versión nueva» o «Guardar con la versión N». Editar una vieja usa SU versión. **Vencida** (D1): pasó la vigencia de la empresa; se dice en listado, tarjeta y PDF, y se recotiza encima.
-- **Guardar:** la hoja pasa a la tarjeta «Cotización n.º N guardada» con total y «Cotizar otra». Sin lead, apagado («Para guardar, elige el cliente en «Cliente».»); con el total nulo o recalculando, también. El borrador vuelve al recargar.
-- **El recálculo falla o no hay red:** conserva lo tipeado, «No se pudo recalcular» con «Reintentar», no deja guardar con un total viejo; si la fórmula cambió, «Recargar». El mensaje de la base nunca se muestra (puede nombrar lo que quien mira no ve). Una celda apagada por una bandera que el nivel esconde dice «Está apagada en esta hoja.» sin nombrarla; «Sin total» dice «Revisa las celdas con aviso.» o «Falta un dato que esta hoja no muestra.».
-- **Una guardada** (`/cotizaciones/[id]`): «Enviar a la papelera» se hace sin preguntar, aunque haya cambios sin guardar (lo guardado vuelve con «Deshacer»; lo tipeado, no). «Guardar» y `Ctrl/Cmd+S` están apagados sin cambios («Sin cambios que guardar.»), salvo con un guardado pendiente o con el aviso de abajo; guardar dice «Cambios guardados.» y la URL no cambia. Si otra persona la cambió, el resumen dice quién y cuándo (el único texto de la base que se muestra) y «Al recargar se abre esa versión; lo que escribiste no vuelve.», con «Recargar», que vuelve a montar la hoja con la lectura nueva. **Sólo lectura** (quien puede verla y no guardarla): sin «Guardar», modos y «Ver total Bs» apagados y «Sólo lectura: no puedes guardar esta cotización.». **Lo de hoy no es lo guardado** (una tabla de referencia o un dato del vehículo cambió desde que se guardó): se recalcula con lo de hoy, el aviso lo dice, «Total guardado» muestra el de antes con `<Monto>` y «Guardar» la deja con lo de hoy; si el recálculo falla (también quien no ve el vehículo), «Total guardado» se ve igual. **Revisiones** (4.15-3b): el botón «Revisiones» de la cabecera abre un panel de sólo lectura (`?panel=revisiones`; recargar lo abre, «atrás» lo cierra) con, por revisión, «<autor> · <fecha relativa>», qué cambió (las primeras tres cosas y «y N más»; «Sin cambios que puedas ver.» si sólo cambió lo que el nivel esconde) y «Total: <antes> → <después>» con `<Monto>`; de a 20, con «Ver más»; mientras hay más hacia atrás, «Ir a una fecha» (un día, no va a la URL) trae ese día y lo anterior, con «Desde el …» y «Volver a las más recientes» arriba y, si no hay ninguna, «No hay revisiones hasta esa fecha.»; en 500, «Mostrando las 500 más recientes.» (o «Mostrando 500 desde el …») y «Para ver anteriores, ve a una fecha.». Estados: esqueleto a los 300 ms, vacío «Todavía no tiene cambios guardados.», error con «Reintentar». **La cadena** bajo el título: «Versión V de la n.º N» (enlace a la anterior), «Hay una versión nueva: n.º M (versión W).» (enlace) o «Hay una versión nueva que no puedes ver.». **Aviso de versión**: si usa otra versión de la fórmula que la de hoy («Esta cotización usa la versión 1; la de hoy es la 2.») o venció, lo dice a todo el que abre la página y, a quien puede cotizar encima, ofrece «Cotizar encima», que crea la versión nueva en el acto y la abre con «Versión 2 creada (n.º M).» (y lo descartado, si algo); con cambios sin guardar queda apagado con «Guarda o descarta tus cambios antes de cotizar encima: la versión nueva lleva lo guardado.»; si la base lo rechaza, el aviso dice por qué con «Abrir la versión nueva», «Reintentar» o «Recargar». Una que no existe, está en la papelera o no se ve: «Esta cotización ya no está disponible: no existe o ya no tienes acceso.». **Marcar final** (4.25-2): sin vehículo o sin cliente, el botón está apagado con su motivo al lado («Para marcarla final, elige el vehículo y guarda.», o a quien no puede guardarla «…le falta el vehículo: pídeselo a quien la cotizó.»), y la URL escrita a mano avisa ese motivo y se limpia. El `<Confirmar>` («Marcar como final la cotización n.º N») dice que el vehículo queda vinculado a su lead, el lead pasa a cliente y las demás cotizaciones del vehículo van a tu papelera, y que se marca lo guardado (lo no guardado se pierde). Al entrar la cabecera dice «Final», sin el botón, con «Marcaste la n.º N como final. Si el vehículo tenía otras, están en tu papelera.». Si la base lo rechaza, el diálogo sigue abierto con su motivo; otra persona la cambió, otra ya es la final («Otra cotización de este vehículo ya es la final. Recarga para verla.») o no se sabe si entró, con «Recargar». Se puede marcar una vencida o de otra versión de la fórmula: el aviso de versión basta (P2 a).
-- **Puede cotizar pero no ve la hoja** (`cotizaciones.crear` sin `cotizaciones.ver`): «No puedes ver esta hoja». **Par con monto calculado:** bloqueado («Se calcula con los demás datos.»); su porcentaje editable llega con el candado por lado (4.13-3).
+- **Fórmula del origen sin publicar:** pantalla bloqueada «Falta publicar la fórmula de <origen>», con enlace a configuración si hay
+  permiso. **Link de subasta inválido o sin datos:** se sigue a mano.
+- **Desactualizada:** al guardar una nueva, la fórmula o un tipo de cambio cambió desde que se abrió; el resumen ofrece «Usar la versión
+  nueva» o «Guardar con la versión N». Editar una vieja usa SU versión. **Vencida:** pasó la vigencia de la empresa; se dice en listado,
+  tarjeta y PDF, y se recotiza encima.
+- **Guardar:** la hoja pasa a la tarjeta «Cotización n.º N guardada» con total y «Cotizar otra». Sin lead, apagado («Para guardar, elige el
+  cliente en «Cliente».»); con el total nulo o recalculando, también. El borrador vuelve al recargar.
+- **El recálculo falla o no hay red:** conserva lo tipeado, «No se pudo recalcular» con «Reintentar», no deja guardar con un total viejo; si
+  la fórmula cambió, «Recargar». El mensaje de la base nunca se muestra (puede nombrar lo que quien mira no ve). Una celda apagada por una
+  bandera que el nivel esconde dice «Está apagada en esta hoja.» sin nombrarla; «Sin total» dice «Revisa las celdas con aviso.» o «Falta un
+  dato que esta hoja no muestra.».
+- **Una guardada** (`/cotizaciones/[id]`):
+  - «Enviar a la papelera» no pregunta, aunque haya cambios sin guardar (lo guardado vuelve con «Deshacer»; lo tipeado, no). «Guardar» y
+    `Ctrl/Cmd+S` apagados sin cambios, salvo con un guardado pendiente o con «Lo de hoy»; guardar no cambia la URL. Si otra persona la
+    cambió, el resumen dice quién y cuándo (el único texto de la base que se muestra), que lo escrito no vuelve, y «Recargar» monta la hoja
+    con la lectura nueva.
+  - **Sólo lectura** (puede verla y no guardarla): sin «Guardar», modos y «Ver total Bs» apagados, con su aviso.
+  - **Lo de hoy no es lo guardado** (cambió una tabla de referencia o un dato del vehículo): se recalcula con lo de hoy, el aviso lo dice,
+    «Total guardado» muestra el de antes con `<Monto>` (también si el recálculo falla o no ve el vehículo) y «Guardar» la deja con lo de
+    hoy.
+  - **Revisiones** (`?panel=revisiones`, sólo lectura; recargar lo abre, «atrás» lo cierra): por revisión, autor y fecha relativa, qué
+    cambió (tres cosas y «y N más»; «Sin cambios que puedas ver.» si sólo cambió lo que el nivel esconde) y «Total: <antes> → <después>»;
+    de a 20 hasta 500, con «Ir a una fecha» (no va a la URL) y «Volver a las más recientes». Esqueleto a los 300 ms, vacío, error.
+  - **La cadena** bajo el título: «Versión V de la n.º N» (enlace a la anterior) y, si la hay, la versión nueva (enlace) o «Hay una versión
+    nueva que no puedes ver.».
+  - **Aviso de versión:** si usa otra versión de la fórmula que la de hoy o venció, lo dice a todos y, a quien puede, ofrece «Cotizar
+    encima», que crea la versión nueva en el acto y la abre (apagado con cambios sin guardar: la versión nueva lleva lo guardado); un
+    rechazo dice por qué con «Abrir la versión nueva», «Reintentar» o «Recargar». Una que no existe, está en la papelera o no se ve: «Esta
+    cotización ya no está disponible: no existe o ya no tienes acceso.».
+  - **Marcar final:** sin vehículo o sin cliente, apagado con su motivo al lado (a quien no puede guardarla, a quién pedírselo); la URL a
+    mano avisa y se limpia. El `<Confirmar>` dice que el vehículo queda vinculado a su lead, el lead pasa a cliente, las demás cotizaciones
+    del vehículo van a tu papelera y se marca lo guardado. Al entrar, la cabecera dice «Final». Rechazo: el diálogo sigue abierto con su
+    motivo (otra persona la cambió, otra ya es la final, no se sabe si entró) y «Recargar». Se puede marcar una vencida o de otra versión:
+    el aviso de versión basta.
+- **Puede cotizar pero no ve la hoja** (`cotizaciones.crear` sin `cotizaciones.ver`): «No puedes ver esta hoja». **Par con monto
+  calculado:** bloqueado («Se calcula con los demás datos.»); su porcentaje editable llega con el candado por lado.
 
 ### Flujo 3 — Mover de fase
 
 1. `/logistica` abre la **cadena**: columnas por fase del flujo del origen, tarjetas con alerta por demora, filtros en URL.
 2. Clic en un vehículo → panel lateral «Qué falta para pasar a …» (documentos aprobados/faltantes, datos, esperas de repuestos, en vivo).
-3. Subir documento desde el panel (arrastrar o cámara); se sube al confirmar, nunca antes; queda «subido» hasta que alguien con permiso lo aprueba.
-4. «Mover a <fase>» pide nota interna (obligatoria si la fase lo exige) → RPC con `fase_esperada`; conflicto: «Rosa Mamani la movió a «<fase>» hace 1 min.», «No se movió nada.» y «Recargar», que conserva la nota escrita (nunca pisa).
-5. Lote: en la cadena, elegir unidades de una fase (su casilla o «Elegir los de esta columna»), o desde el resumen de un contenedor en `/logistica/embarques`, «Marcar que llegó» (abre el lote con ese contenedor) → destino → vista previa por unidad («Lista» / «Falta: <documento> aprobado.») → «Mover los N que pueden» → resultado parcial explícito («Se movieron 7 de 8.») con «Reintentar» de los que no.
+3. Subir documento desde el panel (arrastrar o cámara); se sube al confirmar, nunca antes; queda «subido» hasta que alguien con permiso lo
+   aprueba.
+4. «Mover a <fase>» pide nota interna (obligatoria si la fase lo exige) → RPC con `fase_esperada`; conflicto: «Rosa Mamani la movió a
+   «<fase>» hace 1 min.», «No se movió nada.» y «Recargar», que conserva la nota escrita (nunca pisa).
+5. Lote: en la cadena, elegir unidades de una fase (su casilla o «Elegir los de esta columna»), o desde el resumen de un contenedor en
+   `/logistica/embarques`, «Marcar que llegó» (abre el lote con ese contenedor) → destino → vista previa por unidad («Lista» / «Falta:
+   <documento> aprobado.») → «Mover los N que pueden» → resultado parcial explícito («Se movieron 7 de 8.») con «Reintentar» de los que no.
 
 ### Flujo 4 — Turno de la web
 
-1. Notificación push/campana «Turno web #WEB-4F2K · Toyota RAV4» → tarjeta con **Contacté** y **Vincular a lead** (buscador; «crear lead» adentro). Cuenta regresiva visible; al vencer, aviso y reasignación.
-2. Ficha del lead, pestaña «Portal» (`?seccion=portal`; lead en la cartera y `leads.portal.gestionar`): «Dar acceso» → diálogo (`?panel=otorgar-portal`) con el campo de la clave (8 a 64) y **un solo botón principal** que dice lo que hará («Generar clave y dar acceso» con el campo vacío; «Dar acceso con esta clave» con algo escrito) → código `MII-4F2K9` en grande y dicho símbolo por símbolo, la clave **una sola vez** y el texto para WhatsApp. Mientras otorga el diálogo no se cierra; al cerrarse la clave se olvida.
-3. Con acceso, la sección muestra estado (activo, bloqueado, revocado), código, quién lo otorgó y último ingreso, con «Volver a otorgar» (avisa que el código anterior y la sesión abierta dejan de valer), «Revocar» (confirma nombrando el código, `?panel=revocar-portal`) y «Desbloquear».
+1. Notificación push/campana «Turno web #WEB-4F2K · Toyota RAV4» → tarjeta con **Contacté** y **Vincular a lead** (buscador; «crear lead»
+   adentro). Cuenta regresiva visible; al vencer, aviso y reasignación.
+2. Ficha del lead, pestaña «Portal» (`?seccion=portal`; lead en la cartera y `leads.portal.gestionar`): «Dar acceso» → diálogo
+   (`?panel=otorgar-portal`) con el campo de la clave (8 a 64) y **un solo botón principal** que dice lo que hará («Generar clave y dar
+   acceso» con el campo vacío; «Dar acceso con esta clave» con algo escrito) → código `MII-4F2K9` en grande y dicho símbolo por símbolo, la
+   clave **una sola vez** y el texto para WhatsApp. Mientras otorga el diálogo no se cierra; al cerrarse la clave se olvida.
+3. Con acceso, la sección muestra estado (activo, bloqueado, revocado), código, quién lo otorgó y último ingreso, con «Volver a otorgar»
+   (avisa que el código anterior y la sesión abierta dejan de valer), «Revocar» (confirma nombrando el código, `?panel=revocar-portal`) y
+   «Desbloquear».
 
 ## Pantallas
 
-Navegación de primer nivel (hasta 7, filtrada por permisos): Inicio · Leads · Vehículos · Cotizaciones · Logística · Agenda · Chat; Repuestos sólo con permiso. Configuración, Actividad y Datos van en el menú del usuario y en `Ctrl/Cmd+K`, con «Mi perfil», «Instalar la app» (sólo si el navegador puede instalarla y aún no corre instalada; en iOS explica «Compartir › Agregar a inicio»), «Ver como» (quien gestiona roles), tema, densidad y «Cerrar sesión». Declarada en `src/app/(app)/_shell/navegacion.ts`.
+Navegación de primer nivel (hasta 7, filtrada por permisos, en `src/app/(app)/_shell/navegacion.ts`): Inicio · Leads · Vehículos ·
+Cotizaciones · Logística · Agenda · Chat; Repuestos sólo con permiso. Configuración, Actividad y Datos van en el menú del usuario y en
+`Ctrl/Cmd+K`, con «Mi perfil», «Instalar la app» (sólo si el navegador puede instalarla y aún no corre instalada; en iOS explica «Compartir ›
+Agregar a inicio»), «Ver como» (quien gestiona roles), tema, densidad y «Cerrar sesión».
 
-- **Acceso** — `/ingreso`, `/registro`, `/recuperar` (sin sesión): `?returnTo=`, `?aviso=`; `/registro` sólo con registro abierto o sin equipo; `/auth/nueva-contrasena` tras el enlace del correo.
-- **Inicio** — `/` (todos): bandeja por rol + widgets opcionales; bloques por permiso; cada contador lleva a la lista filtrada. Bloques de la Fase 8: «Turnos de la web sin confirmar» (8.05-1, con `leads.crear` o `web.cola.gestionar`: mis turnos con código, fuente y «Vence en…», «Contacté» en un toque y «Vincular a lead»), «Repuestos por mover» (`repuestos.mover`) y «Esperas que destraban vehículos» (`repuestos.ver`) (8.13-4).
-- **Leads** — `/leads` (`leads.ver`): tabla + resumen. «Míos» por defecto; con alcance «todos», `?alcance=`. Filtros del layout (`a.<campo>`), tipo, origen, `?q=`, `?cursor=`, vistas guardadas; resumen `?lead=` (`?pestana=seguimientos|recordatorios`); marcas `?tachados=`, `?favoritos=`, `?etiqueta=`; `?panel=etiquetas`. «Lista | Embudo»: `?vista=embudo&embudo=<id>` es el kanban de las oportunidades propias (`?etapa=` en el celular; `?panel=etapas`, `?panel=nuevo-embudo`).
-- **Lead** — `/leads/[id]` (`leads.ver` y acceso): «Datos» (`?panel=editar-lead`; «Cotizar» en la cabecera para quien cotiza), «Seguimientos» (`?seccion=seguimientos`; `?panel=anotar-seguimiento`, `editar-seguimiento&seguimiento=<id>`), «Vehículos» (`vehiculos.ver`; `?panel=agregar-vehiculo`), «Oportunidades» (`?panel=nueva-oportunidad`, `editar-oportunidad&oportunidad=<id>`), «Cotizaciones» (`cotizaciones.ver` en algún origen: las que quien mira ve, de la más nueva, de a 20 con «Ver más» y, en 500, «Ver todas en Cotizaciones» a `/cotizaciones?lead=`; se lee al abrirla; estados: esqueleto, error con «Reintentar», «Sin cotizaciones que puedas ver.») y «Portal». Ninguna pestaña se dibuja vacía.
-- **Vehículos** — `/vehiculos` (`vehiculos.*`): tabla + panel de filtros + resumen. Pestaña por origen (`?origen=`); filtros en URL (`q`, `fase`, `categoria`, `anio.min`, `a.<campo>`…), `?cursor=`, vistas guardadas; resumen `?vehiculo=<id>` (`?pestana=fotos|interesados`); alta `?panel=nuevo`; edición `?editar=`; `?vitrina=si|no`, `?limpieza=si|no`. `/vehiculos/papelera` (por lote).
-- **Vehículo** — `/vehiculos/[id]` (según origen): cabecera con portada y fase de sólo lectura; «Publicar en la web» en `?panel=vitrina`; `?seccion=`: «Ficha» (por layout del origen; edición `?editar=`; banner de limpieza; «Vínculo e interesados» con «Desvincular» confirmado) y «Fotos» (≤ 24, portada, orden) y «Repuestos» (8.09-4, con `repuestos.ver`, la última: sin proyecto, el vacío «Este vehículo no tiene proyecto de repuestos.» con «Crear proyecto de repuestos» sólo si se puede editar; con él, «Proyecto #N», su estado y los ítems por fase; se lee al abrirla; esqueleto y error con «Reintentar») y «Cotizaciones» (sólo con `cotizaciones.ver` del origen del vehículo: las que quien mira ve, de la más nueva, de a 20 con «Ver más» y, en 500, «Ver todas en Cotizaciones»; se lee al abrirla; estados: esqueleto, error con «Reintentar», «Sin cotizaciones que puedas ver.»).
-- **Cotizaciones** — `/cotizaciones` (`cotizaciones.*`): tabla + resumen `?cotizacion=` (lo de la fila y «Abrir cotización»; una que no se ve: «Esta cotización ya no está disponible: no existe o ya no tienes acceso.»); filtro mías, clase (preventa o final), origen; `?vehiculo=` y `?lead=` (ids, fuera del esquema: ni chip ni los borra «Limpiar»; arriba, «Cotizaciones de <título>.», «…de <nombre>.» o «…de <nombre> sobre <título>.» con «Ver todas», y sin cotizaciones su vacío propio); «Vencida» en la fila; `nuevo` abre la hoja; «Papelera» (antes de «Nueva», para quien puede enviar a la papelera o vaciarla) lleva a `/cotizaciones/papelera`: los lotes por cursor (5, las primeras 20 de cada uno y «Mostrar los N»), «Restaurar» una o el lote, «Purgar» una o el lote (con `cotizaciones.papelera.purgar`: `?panel=purgar&lote=<id>[&cotizacion=<id>]`, nombra lo que se borra y un lote de varios pide tipear «purgar N»; una final con comprobante queda y el aviso dice por qué), y las que se fueron con su vehículo están en la papelera de vehículos.
-- **Cotizar** — `/cotizaciones/nuevo` (`cotizaciones.crear`): formulario hoja (XCell); `?origen=&lead=&vehiculo=&returnTo=` (se validan y se llevan; el vehículo va al recálculo); sin entrada en la navegación. Ver Flujo 2.
-- **Cotización guardada** — `/cotizaciones/[id]` (`cotizaciones.ver`; edita quien la puede guardar, `puede_guardar` de la base; P8 y P13 del 4.15): la hoja de SU versión; quien sólo ve, en sólo lectura. Se llega desde el historial del vehículo y la tarjeta de lo guardado; su cabecera trae «Revisiones», la cadena, si no está al día, «Cotizar encima», «Marcar final» (4.25-2: lo ve, en una preventa, quien tiene `cotizaciones.final.gestionar` del origen; confirma en `?panel=marcar-final`), «Emitir comprobante» (4.26-2: en una final activa sin comprobante vigente, con `cotizaciones.comprobantes.emitir`; confirma en `?panel=emitir-comprobante` y el aviso nombra el número «S-N») y «Enviar a la papelera» (4.24-3: lo ve quien puede guardarla, o en una preventa quien tiene `cotizaciones.moderar`; lleva al listado con «Deshacer»). Bajo la hoja, «Comprobantes» (en una final, o en una que ya tiene alguno): del más nuevo, «Vigente» o «Anulado» con quién, cuándo y el motivo, hasta 20 con su aviso de tope; «Anular» en el vigente abre un modal con motivo en `?panel=anular-comprobante` (sin id: hay a lo sumo uno); estados: esqueleto, error con «Reintentar», «Todavía no tiene comprobantes.».
-- **Logística** — `/logistica` (`logistica.ver` en algún origen): cadena (kanban por fase, 6.03) + panel de la unidad en un `<Drawer>` por URL (`?vehiculo=<id>`, que abre el clic en una tarjeta); en la URL: `?origen=` (pestañas de los orígenes con la logística encendida), `?fase=` (celular: una fase a la vez), `q` (nombre, VIN o lote; 3 letras o números), `demoradas`, `por_aprobar`, `contenedor`, `booking` y `naviera`; `/logistica/vehiculo/[id]` (el mismo panel en su página: a ella apunta la notificación de demora), `/embarques`, `/aduana`, `/gastos` (6.11-3: `?ver=gastos|pagos`; los enlaces de la sub-navegación aparecen cuando cada página existe). El panel de la unidad tiene el hueco «Repuestos» (8.13-3, con `repuestos.ver`): «Espera N repuestos», cada ítem con su proyecto, «Para pasar a «X» espera que llegue a «Y».» y el enlace a su panel; sin espera, «Este vehículo no espera ningún repuesto.». Ver «Logística: estados propios».
-- **Repuestos** — `/repuestos` (`repuestos.ver`; 8.09-1): el listado de proyectos por cursor `numero` (`?q=` de 3 letras o un número, `?estado=abiertos|cerrados|todos`, `?por=`, `?cursor=`) con número, vehículo o «Externo», cliente, estado derivado, ítems («200+») y última actividad; «Nuevo proyecto» (`repuestos.editar`, `N`, `?panel=nuevo-proyecto`, `&vehiculo=<id>` lo abre vinculado). `/repuestos/[id]` (8.09-2): cabecera con «Cerrar proyecto» o «Reabrir proyecto» (y «Eliminar proyecto» si no tiene ítems: sin confirmación, con «Deshacer», vuelve al listado) y la hoja de ítems editable celda a celda; la vista «Stock» (`?vista=stock`, 8.10-3) lista lo que está en stock con «Reasignar a un proyecto», «Vender suelto» y «Devolver al proveedor»; la pestaña «Compras» (`?pestana=compras`, 8.11-2) sólo con `repuestos.costos.ver`, con «Registrar compra» y «Editar» en `?panel=compra&compra=<id|nueva>` (8.11-3, `repuestos.costos.editar`); la pestaña «Cotizaciones» (`?pestana=cotizaciones`, 8.12-3) sólo con `repuestos.cotizar`: «Nueva cotización» con la moneda en la misma barra (apagado con su motivo si el proyecto está cerrado o no hay monedas activas; sin configuración, el mensaje de la base y, con `repuestos.configurar`, «Ir a la configuración del cotizador») y la lista (número, estado, total o «Sin total», fecha; vacía: «Todavía no hay cotizaciones en este proyecto.»; tope 50); la hoja `/repuestos/[id]/cotizaciones/[cotizacion]` en sólo lectura (la configuración con que se calculó, los bloques «Importado» y «Local» con «Sin líneas en este bloque.», cada línea sin total con su motivo y el total de la base; «Esta cotización ya no está.» si no existe o no se ve); desde 8.12-4, una borrador con el proyecto abierto es la hoja editable (por bloque «Agregar línea» y «Agregar desde un ítem», apagados con su motivo; cada línea con «Descripción», `XCell` de «Cantidad», «Costo» y «Logística» —sugerida del tramo, ↺; sin tramo, vacía—, «Caja» —«Elige una caja», «Sin caja», «Caja N» con la elegida en `<Monto>`—, «Total» o «Sin total · motivo» y «Quitar línea»; pie con el total en vivo, «Notas», «Cambios sin guardar» y «Guardar», con PT409 en `<AvisoDeConflicto>`), «Aceptar» (apagado con su motivo: sin permiso para editar ítems, con cambios sin guardar o sin total) en `?panel=aceptar-cotizacion` (nombra el número y el total guardado) y «Anular» en `?panel=anular-cotizacion` (borrador o aceptada con el proyecto abierto); con el proyecto cerrado, la borrador se ve en sólo lectura con «El proyecto está cerrado: reábrelo para cotizar.». La vista «Cadena» (`?vista=cadena`, 8.13-3): una columna por fase del flujo de repuestos (más «Sin fase» si tiene ítems), de a 50 con «Ver más», tarjeta con «Proyecto #N» y días en la fase; `?q=` (3 letras), `?proyecto=` («Mostrando un solo proyecto.») y, en el celular, una fase a la vez (`?fase=`). El panel del ítem (`?item=<id>` sobre `/repuestos/[id]` o la Cadena, 8.13-2) es el panel de la unidad de logística: mover de fase con vista previa, documentos y transporte. La pestaña «Pagos» del proyecto (8.13-5). Ver «Repuestos: listado (estados propios)» y «Repuestos: proyecto (estados propios)».
+- **Acceso** — `/ingreso`, `/registro`, `/recuperar` (sin sesión): `?returnTo=`, `?aviso=`; `/registro` sólo con registro abierto o sin
+  equipo; `/auth/nueva-contrasena` tras el enlace del correo.
+- **Inicio** — `/` (todos): bandeja por rol + widgets opcionales; bloques por permiso; cada contador lleva a la lista filtrada. «Turnos de
+  la web sin confirmar» (`leads.crear` o `web.cola.gestionar`: mis turnos con código, fuente y «Vence en…», «Contacté» en un toque y
+  «Vincular a lead»), «Repuestos por mover» (`repuestos.mover`) y «Esperas que destraban vehículos» (`repuestos.ver`).
+- **Leads** — `/leads` (`leads.ver`): tabla + resumen. «Míos» por defecto; con alcance «todos», `?alcance=`. Filtros del layout
+  (`a.<campo>`), tipo, origen, `?q=`, `?cursor=`, vistas guardadas; resumen `?lead=` (`?pestana=seguimientos|recordatorios`); marcas
+  `?tachados=`, `?favoritos=`, `?etiqueta=`; `?panel=etiquetas`. «Lista | Embudo»: `?vista=embudo&embudo=<id>` es el kanban de las
+  oportunidades propias (`?etapa=` en el celular; `?panel=etapas`, `?panel=nuevo-embudo`).
+- **Lead** — `/leads/[id]` (`leads.ver` y acceso): «Datos» (`?panel=editar-lead`; «Cotizar» en la cabecera para quien cotiza),
+  «Seguimientos» (`?seccion=seguimientos`; `?panel=anotar-seguimiento`, `editar-seguimiento&seguimiento=<id>`), «Vehículos»
+  (`vehiculos.ver`; `?panel=agregar-vehiculo`), «Oportunidades» (`?panel=nueva-oportunidad`, `editar-oportunidad&oportunidad=<id>`),
+  «Cotizaciones» (con `cotizaciones.ver` en algún origen; ver «Pestaña de cotizaciones») y «Portal». Ninguna pestaña se dibuja vacía.
+- **Vehículos** — `/vehiculos` (`vehiculos.*`): tabla + panel de filtros + resumen. Pestaña por origen (`?origen=`); filtros en URL (`q`,
+  `fase`, `categoria`, `anio.min`, `a.<campo>`…), `?cursor=`, vistas guardadas; resumen `?vehiculo=<id>` (`?pestana=fotos|interesados`);
+  alta `?panel=nuevo`; edición `?editar=`; `?vitrina=si|no`, `?limpieza=si|no`. `/vehiculos/papelera` (por lote).
+- **Vehículo** — `/vehiculos/[id]` (según origen): cabecera con portada y fase de sólo lectura; «Publicar en la web» en `?panel=vitrina`;
+  `?seccion=`: «Ficha» (por layout del origen; edición `?editar=`; banner de limpieza; «Vínculo e interesados» con «Desvincular»
+  confirmado), «Fotos» (≤ 24, portada, orden), «Repuestos» (con `repuestos.ver`, la última; sin proyecto, «Este vehículo no tiene proyecto
+  de repuestos.» con «Crear proyecto de repuestos» sólo si se puede editar; con él, «Proyecto #N», su estado y los ítems por fase) y
+  «Cotizaciones» (sólo con `cotizaciones.ver` del origen del vehículo). Las pestañas que se leen al abrirlas tienen esqueleto y error con
+  «Reintentar».
+  - **Pestaña de cotizaciones** (lead y vehículo): las que quien mira ve, de la más nueva, de a 20 con «Ver más» y, en 500, «Ver todas en
+    Cotizaciones» (`/cotizaciones?lead=` o `?vehiculo=`); se lee al abrirla; esqueleto, error con «Reintentar», «Sin cotizaciones que
+    puedas ver.».
+- **Cotizaciones** — `/cotizaciones` (`cotizaciones.*`): tabla + resumen `?cotizacion=` (lo de la fila y «Abrir cotización»; una que no se
+  ve dice que ya no está disponible); filtros mías, clase (preventa o final), origen; `?vehiculo=` y `?lead=` (ids fuera del esquema: sin
+  chip y «Limpiar» no los borra; arriba, de quién o de qué son, con «Ver todas», y su vacío propio); «Vencida» en la fila; `nuevo` abre la
+  hoja. «Papelera» (para quien puede enviar a ella o vaciarla) lleva a `/cotizaciones/papelera`: lotes por cursor (5, las primeras 20 de
+  cada uno y «Mostrar los N»), «Restaurar» y «Purgar» una o el lote (`cotizaciones.papelera.purgar`,
+  `?panel=purgar&lote=<id>[&cotizacion=<id>]`, nombra lo que borra; un lote de varios pide tipear «purgar N»; una final con comprobante
+  queda y el aviso dice por qué); las que se fueron con su vehículo están en la papelera de vehículos.
+- **Cotizar** — `/cotizaciones/nuevo` (`cotizaciones.crear`): formulario hoja (XCell); `?origen=&lead=&vehiculo=&returnTo=` (se validan y
+  se llevan; el vehículo va al recálculo); sin entrada en la navegación. Ver Flujo 2.
+- **Cotización guardada** — `/cotizaciones/[id]` (`cotizaciones.ver`; edita quien la puede guardar, `puede_guardar` de la base): la hoja de
+  SU versión; quien sólo ve, en sólo lectura. Cabecera: «Revisiones», la cadena, «Cotizar encima» si no está al día, «Marcar final» (en una
+  preventa, con `cotizaciones.final.gestionar` del origen; `?panel=marcar-final`), «Emitir comprobante» (en una final activa sin
+  comprobante vigente, con `cotizaciones.comprobantes.emitir`; `?panel=emitir-comprobante`, el aviso nombra el número «S-N») y «Enviar a la
+  papelera» (quien puede guardarla o, en una preventa, quien tiene `cotizaciones.moderar`; vuelve al listado con «Deshacer»). Bajo la hoja,
+  «Comprobantes» (en una final o en una que ya tiene alguno): del más nuevo, «Vigente» o «Anulado» con quién, cuándo y motivo, hasta 20
+  con aviso de tope; «Anular» el vigente pide motivo en `?panel=anular-comprobante` (sin id: hay a lo sumo uno). Estados en Flujo 2.
+- **Logística** — `/logistica` (`logistica.ver` en algún origen): cadena (kanban por fase) + panel de la unidad en un `<Drawer>` por URL
+  (`?vehiculo=<id>`, lo abre el clic en una tarjeta); en la URL: `?origen=` (orígenes con la logística encendida), `?fase=` (celular: una
+  fase a la vez), `q` (nombre, VIN o lote; 3 letras o números), `demoradas`, `por_aprobar`, `contenedor`, `booking` y `naviera`.
+  `/logistica/vehiculo/[id]` (el mismo panel en su página: a ella apunta la notificación de demora), `/embarques`, `/aduana`, `/gastos`
+  (`?ver=gastos|pagos`). El panel de la unidad tiene el hueco «Repuestos» (con `repuestos.ver`): «Espera N repuestos», cada ítem con su
+  proyecto, «Para pasar a «X» espera que llegue a «Y».» y el enlace a su panel; sin espera, «Este vehículo no espera ningún repuesto.». Ver
+  «Logística: estados propios».
+- **Repuestos** — `/repuestos` (`repuestos.ver`): proyectos por cursor `numero` (`?q=` de 3 letras o un número,
+  `?estado=abiertos|cerrados|todos`, `?por=`, `?cursor=`) con número, vehículo o «Externo», cliente, estado derivado, ítems («200+») y
+  última actividad; «Nuevo proyecto» (`repuestos.editar`, `N`, `?panel=nuevo-proyecto`, `&vehiculo=<id>` lo abre vinculado).
+  - `/repuestos/[id]`: «Cerrar proyecto» o «Reabrir proyecto» (y «Eliminar proyecto» sin ítems: sin confirmación, con «Deshacer») y la hoja
+    de ítems editable celda a celda. Pestañas «Compras» (`?pestana=compras`, `repuestos.costos.ver`; escribir con
+    `repuestos.costos.editar` en `?panel=compra&compra=<id|nueva>`), «Cotizaciones» (`?pestana=cotizaciones`, `repuestos.cotizar`) y
+    «Pagos».
+  - Vistas «Stock» (`?vista=stock`) y «Cadena» (`?vista=cadena`: una columna por fase del flujo de repuestos, más «Sin fase» si tiene
+    ítems, de a 50, tarjeta con «Proyecto #N» y días en la fase; `?q=`, `?proyecto=` y, en el celular, `?fase=`).
+  - El panel del ítem (`?item=<id>`, sobre el proyecto o la Cadena) es el panel de la unidad de logística.
+  - **Cotizaciones del proyecto:** «Nueva cotización» con la moneda en la misma barra (apagado con su motivo con el proyecto cerrado o sin
+    monedas activas; sin configuración, el mensaje de la base y, con `repuestos.configurar`, el enlace a configurarla) y la lista (número,
+    estado, total o «Sin total», fecha; tope 50). En `/repuestos/[id]/cotizaciones/[cotizacion]`, una borrador con el proyecto abierto se
+    edita: bloques «Importado» y «Local» con «Agregar línea» y «Agregar desde un ítem»; cada línea con descripción, `XCell` de cantidad,
+    costo y logística (sugerida del tramo, ↺), caja (con la elegida en `<Monto>`), total o «Sin total · motivo» y «Quitar línea»; pie con
+    el total en vivo, notas y «Guardar» (PT409 en `<AvisoDeConflicto>`). «Aceptar» (`?panel=aceptar-cotizacion`; apagado sin permiso para
+    editar ítems, con cambios sin guardar o sin total) y «Anular» (`?panel=anular-cotizacion`, borrador o aceptada con el proyecto
+    abierto). Las demás, y la borrador con el proyecto cerrado, en sólo lectura con la configuración con que se calculó y el total de la
+    base.
+  - Ver «Repuestos: listado (estados propios)» y «Repuestos: proyecto (estados propios)».
 - **Agenda** — `/agenda` (todos): calendario mes/semana/día + drawer; eventos, tareas, recordatorios, subastas.
-- **Chat** — `/chat` (`chat.participar`; `?c=<conversación>`, `?panel=nueva|grupo|salir|borrar-mensaje&mensaje=<id>`; estados en «Chat (estados propios)»): maestro-detalle; menciones `#` de vehículo/lead/cotización, `/tarea`, `/evento`; widget flotante fuera de `/chat`.
-- **Notificaciones** — `/notificaciones` (todos): lista; la campana trae las que piden acción. Arriba, el enlace «Preferencias de avisos» a `/perfil#notificaciones`.
-- **Perfil** — `/perfil` (todos): nombre, foto, preferencias (tema, densidad, ítems por página) y «Turnos de la web» (8.05-2): el interruptor «Disponible para recibir turnos» (apagado, la ruleta no le reparte; el pegajoso sí); a quien su rol no recibe turnos, apagado y deshabilitado con «Tu rol no recibe turnos de la web.». «Tu ficha en la web» (plegable; su formulario se pide al abrirlo): WhatsApp, identificador, cargo, bio, especialidades y «Aparecer en la web», con versión. **Notificaciones** (7.04): «Recibir avisos en este navegador» (push), un interruptor por tipo del catálogo y «Tus navegadores» con «Quitar». Estados propios, todos con el interruptor a la vista y deshabilitado: «Tu rol no recibe avisos push.», «La empresa todavía no activó los avisos push.» (con dónde se activa), «Falta la clave pública de los avisos push. Avisa a quien administra el sistema.», «Este navegador no admite avisos push.» y «Bloqueaste los avisos en este navegador. Actívalos en la configuración del sitio y vuelve aquí.»; mientras se revisa el navegador, «Revisando este navegador…». Los de por tipo sólo apagan el push, no la campana.
-- **Actividad** — `/actividad` (`actividad.ver`): tabla agrupada por día en la zona de la empresa con «Ver más» e «Ir a una fecha»; filtros `?persona=`, `?entidad=` (y `?registro=` desde «Ver actividad» del «⋯» de la ficha de lead y de vehículo, sólo con `actividad.ver`); el diff en un drawer `?cambio=<id>` (sólo lo que cambió, con la etiqueta del campo y cada monto con la moneda de su lado; sin moneda conocida, el número y «(moneda sin conocer)»); «No tienes acceso a este cambio.»; retención de `actividad_dias` (14 si no se puede leer).
-- **Configuración** — `/configuracion/*` (permiso de cada sección): hub + bloques: empresa, equipo, roles, orígenes, leads, cotización, flujos, web, cola web, integraciones.
-- **Leads (config)** — `/configuracion/leads` (`leads.campos.gestionar` o `leads.configurar`): lista agrupada + panel lateral. `?seccion=campos` (`?campo=`), `origenes` (`?panel=nuevo-origen`/`editar-origen&origen=<id>`), `tipos` (`?panel=nuevo-tipo`/`editar-tipo&tipo=<id>`/`eliminar-tipo&tipo=<id>`), `seguimientos`, `embudo` (la plantilla del embudo: el editor de etapas en la página, «Guardar» apagado sin cambios, «Restablecer» con `?panel=restablecer-embudo`), `portal` (el mensaje del portal: un `<Textarea>` que parte del texto de fábrica con sus variables, la vista previa con un cliente, un código y una clave de ejemplo, el rechazo junto al campo, «Guardar» apagado sin cambios, en blanco remite a «Restablecer», que confirma en `?panel=restablecer-portal`). «Campos» pide `leads.campos.gestionar` y las otras cinco `leads.configurar`: la que no puedes abrir se ve apagada, con su motivo en una línea bajo la barra, y su `?seccion=` abre la primera habilitada. Sin ninguno de los dos no se entra.
-- **Cotización (config)** — `/configuracion/cotizacion` (`equipo.roles.ver|gestionar` o `cotizaciones.configurar` en algún origen): `?seccion=niveles|formula|tarjeta|diseno|tonos|tablas|ajustes`, cada pestaña con sus permisos, Niveles primero y Ajustes al final; «Fórmula» con `?origen=` (los orígenes con la clave, también los inactivos), `?panel=publicar-formula`, `?panel=revertir-formula&version=<id>`, `?panel=descartar-borrador` y `?panel=editar-formula` (el editor en texto, 4.21-3a-1). «Diseño» con `?origen=` (4.22-2). «Tonos» con `?panel=nuevo-tono`, `?panel=editar-tono&tono=<id>` y `?panel=eliminar-tono&tono=<id>` (4.22-4). «Tarjeta» con `?origen=`, `?panel=publicar-tarjeta` y `?panel=descartar-plantilla` (4.19-3c). «Tablas» (4.23-3) con `?origen=`, `?tabla=<id>` (el editor) y `?panel=publicar-tabla`. Ver «Cotización: tarjeta (estados propios)», «Cotización: niveles de acceso (estados propios)», «Cotización: fórmula (estados propios)», «Cotización: diseño (estados propios)», «Cotización: tonos (estados propios)», «Cotización: tablas (estados propios)» y «Cotización: ajustes (estados propios)».
-- **Empresa** — `/configuracion/empresa` (`empresa.*`): bloques + `?seccion=empresa|monedas|integraciones|comprobantes` («Comprobantes», 4.26-3, con `empresa.ajustes.gestionar`: la serie vigente, el próximo comprobante y el campo para cambiarla, con versión); `?tc=`, `?moneda=`, crear en `?panel=`.
-- **Flujos (config)** — `/configuracion/flujos` (`flujos.configurar` en algún origen, `repuestos.configurar` o `logistica.catalogos.gestionar`; 5.02): una pestaña por flujo que se puede configurar (los orígenes con la clave, también los inactivos, y «Repuestos»), `?origen=<id>` y `?ambito=repuestos` (el del enlace de Orígenes), `?seccion=fases|documentos|reglas` (la barra se dibuja con dos o más pestañas; «Fases» abre primero) y `?fase=<id>` (el inspector de una fase). Las fases se crean, ordenan, jubilan y reactivan desde la lista y se editan en el inspector (5.04); en él se agregan y se quitan las salidas (5.06) y los requisitos (5.08). Ver «Flujos: configuración (estados propios)» y «Flujos: fases (estados propios)».
-- **Logística (config)** — `/configuracion/logistica` (`logistica.catalogos.gestionar`; 6.01): los catálogos «Puertos» (6.08-1: nombre, país, código, orden y activo), «Navieras» (6.08-1: nombre y activa; sin «Eliminar»: se desactivan) y «Categorías de gasto» (6.11-4: nombre, propósito de la lista fija de la base, orden y activa; una con gastos no se elimina, se desactiva), en pestañas `?seccion=puertos|navieras|categorias-de-gasto` (sin barra con una sola; una URL ajena abre «Puertos»). La tarjeta del hub sólo existe cuando algún área llena un catálogo; si ninguno está lleno, la URL entra y dice «Por ahora no hay nada que configurar aquí.». Ver «Logística: estados propios».
-- **Repuestos (config)** — `/configuracion/repuestos` (`repuestos.configurar`; 8.08): la pestaña «Catálogos» con tipo de pieza, condición, vía de transporte y país de origen (agregar, editar con nombre, orden y activo, desactivar, eliminar sin uso; tope 200 por catálogo con `<AvisoDeTope>`); `?panel=nuevo-valor&catalogo=`, `?panel=editar-valor&valor=`, `?panel=eliminar-valor&valor=`. La pestaña «Cotizador» (`?seccion=cotizador`, 8.12-2): «Fórmula» con «Publicar cambios» y su historial, «Tramos de logística» y «Cajas» por moneda con sus modales en la URL (`?panel=tramo|caja`). Arriba, el enlace a su flujo en Flujos (config) (8.13-4).
-- **Sitio web (config)** — `/configuracion/web` (`web.ajustes.gestionar` o `web.contenido.gestionar`; 8.01-3): `?seccion=ajustes|legales|guias|faqs|testimonios` («Ajustes» y «Legales» con `web.ajustes.gestionar`; «Guías», «Preguntas frecuentes» y «Testimonios» con `web.contenido.gestionar`; la barra sólo con dos o más visibles). «Ajustes» (8.01-4): la fila única del sitio (nombre, lema, WhatsApp de respaldo, horario, dirección pública, redes, SEO, moneda secundaria y orígenes visibles, con el aviso de los vehículos que dejan de verse), con versión; cargando, error con «Reintentar», sin red («No hay conexión…») y conflicto. «Guías» (8.03-1; categorías, 8.03-2): la lista y el editor `/configuracion/web/guias/[id]` (documento con imágenes; «Publicar», «Programar» o «Despublicar» con `web.guias.publicar`; «Borrador», «Programada», «Publicada»). «Preguntas frecuentes» (8.02-1): alta y edición en panel por URL, reordenar y eliminar con confirmación. «Testimonios» (8.02-2): con su consentimiento (quién, cuándo, canal; ciudad, vehículo y foto por separado) y «Retirar». «Legales» (8.03-2): los textos legales del sitio, con el mismo editor.
-- **Cola web (config)** — `/configuracion/cola-web` (`web.cola.gestionar`; 8.04-2): «Sin asignar» arriba (las solicitudes que no encontraron asesor: código y fuente), «En la rueda» (en el orden de la ruleta: disponible o no, abiertas de su cupo, prioridad, «Contacta el N %» o «Sin turnos aún», vencidas y último turno, con «Quitar»), «Habilitada, pero su rol no recibe turnos de la web» (con «Se cambia en Roles.»), «Actualizar», «Agregar a la rueda» (`?panel=agregar-a-la-rueda&q=`, busca en el equipo; avisa si el rol de la persona no recibe turnos, 8.04-3) y la política de la cola (cola activa, minutos para contactar, días de pegajoso, máximo de abiertas e intentos).
-- **Orígenes** — `/configuracion/origenes`, `/[id]` (`origenes.gestionar`; lectura con `flujos.configurar` o `cotizaciones.configurar`): `?panel=nuevo`; `/[id]?seccion=datos|campos|categorias`, `?campo=`, `?categoria=`; sin permiso, todo deshabilitado con motivo.
-- **Equipo** — `/configuracion/equipo` (`equipo.usuarios.*`): tabla desde 768 px, tarjetas debajo, panel lateral. `?q=&estado=` se resuelven en el servidor («jose» encuentra «José»); dibuja las 100 primeras por nombre y lo dice al pie; la persona se gestiona desde su «⋯», sin resumen. `?panel=invitar`; `?persona=`; `?baja=`.
-- **Roles** — `/configuracion/roles` (`equipo.roles.*`): matriz roles × permisos por módulo; desde 768 px la columna «Permiso» queda pegada a la izquierda; cada celda guarda sola. En móvil, un rol a la vez (`?rol=`) y como lista (permiso, explicación y control debajo). `?panel=nuevo-rol`, `?eliminar=`.
-- **Datos** — `/datos` (todos: «Mis leads»; todo: `datos.exportar.todo`): `?seccion=exportar|importar`, con la barra de pestañas siempre: sin permiso para importar nada (`leads.crear`, `datos.importar.todo` o `vehiculos.crear` en algún origen), «Importar» sale apagada con «Tu rol no importa datos.» y pedirla abre «Exportar». **Exportar:** «Mis leads» (con `leads.ver` y `leads.exportar`, «Ir a Leads» abre `/leads?panel=exportar`; si no, apagada con su motivo) y, con `datos.exportar.todo`, «Todo»: una tarjeta por entidad —Leads, Vehículos (un archivo por origen) y Cotizaciones (todas o de un origen)— con «Desde», «Hasta» y «Descargar». Estados: «Preparando el archivo…» con el botón apagado; «No hay nada para exportar en ese rango.»; más del tope («Son más de 250.000 filas. Elige un rango de fechas más corto.»); el límite («Ya exportaste 3 veces en la última hora. Podrás de nuevo a las 15:42.»); error con «Reintentar»; la tarjeta que tu rol no puede usar, apagada con su motivo. **Importar** (9.06-4b): «Qué importas» (Leads o Vehículos, sólo lo que puedes; `?entidad=`), con Leads y `datos.importar.todo` «Destino» («Yo» y las personas activas, hasta 100 con su aviso; sin elegirlo, «Elige a quién van los leads.»), con Vehículos «Origen» (los activos donde creas; `?origen=`; sin él, «Elige el origen de los vehículos.»). Pasos: Archivo (CSV de hasta 20.000 filas y 10 MB; sirve el de Exportar; «Leyendo el archivo…», el error de lectura en rojo) → Columnas (emparejadas solas, «Ignorar esta columna», «Falta una columna para: …»; en Leads, origen y tipo para las filas sin) → Vista previa (las primeras 500 de 50 en 50, «Lista» o «Con errores» con su motivo, «Ver sólo las filas con errores», «Importar N filas», apagado con su motivo sin permiso) → Importando («Preparando el archivo… n de N filas», «Subiendo el archivo…», «La importación empezó: puedes seguir en otra pantalla.» e «Importar otro archivo»; error con su mensaje, «Sin conexión: el archivo no se subió.», y «Reintentar», que manda el mismo intento). Sin ningún permiso de importar: «Tu rol no importa leads ni vehículos.». Lanzada (9.06-5), el paso «Importando» sigue la importación leída de la base cada 5 s: «Esperando a que empiece…», «Importando… n de N filas.», «En pausa: sigue sola en unos minutos.» (sin avance hace 2 min: la retoma el sistema); al terminar, «2 creados, 1 ya existía y ninguno con errores.» o «No terminó: <motivo>.» y «Descargar las rechazadas» (con las celdas del archivo; un «ya existe» no nombra a nadie; pasados 30 días, «El detalle por fila se guarda 30 días.»). Si no se puede leer: «Sin conexión: el avance se actualiza al volver.» o «No se pudo leer el avance. Se vuelve a intentar.», sin perder lo último. Al pie, «Importaciones»: las propias (todas, con «De <quien>», con `datos.importar.todo`), la más nueva arriba, con fecha, qué, «para <destino>», estado y avance; «Ver más» de 20 hasta 500 con su aviso; vacío («Todavía no importaste nada.»); error con «Reintentar».
-- **Buscador** — `Ctrl/Cmd+K` o el botón «Buscar» de la barra (todos): paleta sin URL (un `Dialog`). Sin texto: «Últimos abiertos» (8) y las acciones que la persona puede (`puede()`: Nuevo lead, Nuevo vehículo,
-  Nueva cotización, «Ir a…», Configuración, «Ver atajos de teclado»). Con texto (mínimo 3, 250 ms de espera, cancela la anterior): las acciones que coinciden arriba y una sección por tipo (Leads, Vehículos, Cotizaciones;
-  hasta 5 cada una) y «Ver todos en Leads» (`/leads?q=`). Un teléfono no se busca. Estados: buscando, sin resultados, error y sin conexión con «Reintentar». Enter abre la fila; Esc cierra. `?` lista los atajos.
+- **Chat** — `/chat` (`chat.participar`; `?c=<conversación>`, `?panel=nueva|grupo|salir|borrar-mensaje&mensaje=<id>`; estados en «Chat
+  (estados propios)»): maestro-detalle; menciones `#` de vehículo/lead/cotización, `/tarea`, `/evento`; widget flotante fuera de `/chat`.
+- **Notificaciones** — `/notificaciones` (todos): lista; la campana trae las que piden acción. Arriba, «Preferencias de avisos» a
+  `/perfil#notificaciones`.
+- **Perfil** — `/perfil` (todos): nombre, foto, preferencias (tema, densidad, ítems por página) y:
+  - «Turnos de la web»: «Disponible para recibir turnos» (apagado, la ruleta no le reparte; el pegajoso sí); si su rol no recibe turnos,
+    deshabilitado con el motivo.
+  - «Tu ficha en la web» (plegable; el formulario se pide al abrirlo): WhatsApp, identificador, cargo, bio, especialidades y «Aparecer en la
+    web», con versión.
+  - **Notificaciones:** push en este navegador, un interruptor por tipo del catálogo (sólo apagan el push, no la campana) y «Tus
+    navegadores» con «Quitar». Con el interruptor a la vista y deshabilitado, dice por qué: el rol no recibe push, la empresa no lo activó
+    (y dónde), falta la clave pública, el navegador no lo admite o lo bloqueó; mientras revisa, «Revisando este navegador…».
+- **Actividad** — `/actividad` (`actividad.ver`): tabla agrupada por día en la zona de la empresa con «Ver más» e «Ir a una fecha»; filtros
+  `?persona=`, `?entidad=` (y `?registro=` desde «Ver actividad» del «⋯» de la ficha de lead y de vehículo); el diff en un drawer
+  `?cambio=<id>` (sólo lo que cambió, con la etiqueta del campo y cada monto con la moneda de su lado; sin moneda conocida, el número y
+  «(moneda sin conocer)»); «No tienes acceso a este cambio.»; retención de `actividad_dias` (14 si no se puede leer).
+- **Configuración** — `/configuracion/*` (permiso de cada sección): hub + bloques: empresa, equipo, roles, orígenes, leads, cotización,
+  flujos, web, cola web, integraciones.
+- **Leads (config)** — `/configuracion/leads` (`leads.campos.gestionar` o `leads.configurar`): lista agrupada + panel lateral.
+  `?seccion=campos` (`?campo=`), `origenes` (`?panel=nuevo-origen`/`editar-origen&origen=<id>`), `tipos`
+  (`?panel=nuevo-tipo`/`editar-tipo&tipo=<id>`/`eliminar-tipo&tipo=<id>`), `seguimientos`, `embudo` (la plantilla: editor de etapas en la
+  página, «Guardar» apagado sin cambios, «Restablecer» con `?panel=restablecer-embudo`), `portal` (el mensaje del portal: `<Textarea>` que
+  parte del texto de fábrica con sus variables, vista previa con un cliente, código y clave de ejemplo, rechazo junto al campo, «Guardar»
+  apagado sin cambios; en blanco remite a «Restablecer», `?panel=restablecer-portal`). «Campos» pide `leads.campos.gestionar` y las otras
+  cinco `leads.configurar`: la que no puedes abrir se ve apagada con su motivo bajo la barra, y su `?seccion=` abre la primera habilitada.
+  Sin ninguno de los dos no se entra.
+- **Cotización (config)** — `/configuracion/cotizacion` (`equipo.roles.ver|gestionar` o `cotizaciones.configurar` en algún origen):
+  `?seccion=niveles|formula|tarjeta|diseno|tonos|tablas|ajustes`, cada pestaña con sus permisos, Niveles primero y Ajustes al final.
+  «Fórmula» con `?origen=` (los orígenes con la clave, también los inactivos), `?panel=publicar-formula`,
+  `?panel=revertir-formula&version=<id>`, `?panel=descartar-borrador` y `?panel=editar-formula` (el editor en texto). «Diseño» con
+  `?origen=`. «Tonos» con `?panel=nuevo-tono`, `editar-tono&tono=<id>` y `eliminar-tono&tono=<id>`. «Tarjeta» con `?origen=`,
+  `?panel=publicar-tarjeta` y `?panel=descartar-plantilla`. «Tablas» con `?origen=`, `?tabla=<id>` (el editor) y `?panel=publicar-tabla`.
+  Estados en las secciones «Cotización: …».
+- **Empresa** — `/configuracion/empresa` (`empresa.*`): bloques + `?seccion=empresa|monedas|integraciones|comprobantes` («Comprobantes»,
+  con `empresa.ajustes.gestionar`: la serie vigente, el próximo comprobante y el campo para cambiarla, con versión); `?tc=`, `?moneda=`,
+  crear en `?panel=`.
+- **Flujos (config)** — `/configuracion/flujos` (`flujos.configurar` en algún origen, `repuestos.configurar` o
+  `logistica.catalogos.gestionar`): una pestaña por flujo configurable (los orígenes con la clave, también los inactivos, y «Repuestos»),
+  `?origen=<id>` y `?ambito=repuestos`, `?seccion=fases|documentos|reglas` (la barra con dos o más pestañas; «Fases» abre primero) y
+  `?fase=<id>` (el inspector). Las fases se crean, ordenan, jubilan y reactivan desde la lista; en el inspector se editan y se agregan y
+  quitan salidas y requisitos. Ver «Flujos: configuración (estados propios)» y siguientes.
+- **Logística (config)** — `/configuracion/logistica` (`logistica.catalogos.gestionar`): catálogos «Puertos» (nombre, país, código, orden y
+  activo), «Navieras» (nombre y activa; sin «Eliminar»: se desactivan) y «Categorías de gasto» (nombre, propósito de la lista fija de la
+  base, orden y activa; una con gastos no se elimina, se desactiva), en `?seccion=puertos|navieras|categorias-de-gasto` (sin barra con una
+  sola; una URL ajena abre «Puertos»). La tarjeta del hub sólo existe cuando algún área llena un catálogo; si no, la URL entra y dice «Por
+  ahora no hay nada que configurar aquí.». Ver «Logística: estados propios».
+- **Repuestos (config)** — `/configuracion/repuestos` (`repuestos.configurar`): pestaña «Catálogos» con tipo de pieza, condición, vía de
+  transporte y país de origen (agregar, editar nombre, orden y activo, desactivar, eliminar sin uso; tope 200 por catálogo con
+  `<AvisoDeTope>`; `?panel=nuevo-valor&catalogo=`, `editar-valor&valor=`, `eliminar-valor&valor=`). Pestaña «Cotizador»
+  (`?seccion=cotizador`): «Fórmula» con «Publicar cambios» y su historial, «Tramos de logística» y «Cajas» por moneda con sus modales en la
+  URL (`?panel=tramo|caja`). Arriba, el enlace a su flujo en Flujos (config).
+- **Sitio web (config)** — `/configuracion/web` (`web.ajustes.gestionar` o `web.contenido.gestionar`):
+  `?seccion=ajustes|legales|guias|faqs|testimonios` («Ajustes» y «Legales» con `web.ajustes.gestionar`; el resto con
+  `web.contenido.gestionar`; la barra sólo con dos o más). «Ajustes»: la fila única del sitio (nombre, lema, WhatsApp de respaldo, horario,
+  dirección, redes, SEO, moneda secundaria y orígenes visibles, avisando qué vehículos dejan de verse), con versión, sin red y conflicto.
+  «Guías» (con categorías) y «Legales»: lista y editor `/configuracion/web/guias/[id]` (documento con imágenes; publicar, programar o
+  despublicar con `web.guias.publicar`; «Borrador», «Programada», «Publicada»). «Preguntas frecuentes»: panel por URL, reordenar, eliminar
+  con confirmación. «Testimonios»: con su consentimiento (quién, cuándo, canal; ciudad, vehículo y foto por separado) y «Retirar».
+- **Cola web (config)** — `/configuracion/cola-web` (`web.cola.gestionar`): «Sin asignar» arriba (solicitudes sin asesor: código y fuente),
+  «En la rueda» (en el orden de la ruleta: disponible o no, abiertas de su cupo, prioridad, «Contacta el N %» o «Sin turnos aún», vencidas
+  y último turno, con «Quitar»), «Habilitada, pero su rol no recibe turnos de la web» (con «Se cambia en Roles.»), «Actualizar», «Agregar a
+  la rueda» (`?panel=agregar-a-la-rueda&q=`, busca en el equipo; avisa si el rol no recibe turnos) y la política de la cola (cola activa,
+  minutos para contactar, días de pegajoso, máximo de abiertas e intentos).
+- **Orígenes** — `/configuracion/origenes`, `/[id]` (`origenes.gestionar`; lectura con `flujos.configurar` o `cotizaciones.configurar`):
+  `?panel=nuevo`; `/[id]?seccion=datos|campos|categorias`, `?campo=`, `?categoria=`; sin permiso, todo deshabilitado con motivo.
+- **Equipo** — `/configuracion/equipo` (`equipo.usuarios.*`): tabla desde 768 px, tarjetas debajo, panel lateral. `?q=&estado=` se
+  resuelven en el servidor («jose» encuentra «José»); dibuja las 100 primeras por nombre y lo dice al pie; la persona se gestiona desde su
+  «⋯», sin resumen. `?panel=invitar`; `?persona=`; `?baja=`.
+- **Roles** — `/configuracion/roles` (`equipo.roles.*`): matriz roles × permisos por módulo; desde 768 px la columna «Permiso» queda pegada
+  a la izquierda; cada celda guarda sola. En móvil, un rol a la vez (`?rol=`) y como lista (permiso, explicación y control debajo).
+  `?panel=nuevo-rol`, `?eliminar=`.
+- **Datos** — `/datos` (todos: «Mis leads»; todo: `datos.exportar.todo`): `?seccion=exportar|importar`, con la barra siempre; sin permiso
+  para importar nada (`leads.crear`, `datos.importar.todo` o `vehiculos.crear` en algún origen), «Importar» apagada con su motivo y
+  pedirla abre «Exportar».
+  - **Exportar:** «Mis leads» (con `leads.ver` y `leads.exportar`, abre `/leads?panel=exportar`) y, con `datos.exportar.todo`, una tarjeta
+    por entidad (Leads; Vehículos, un archivo por origen; Cotizaciones, todas o de un origen) con «Desde», «Hasta» y «Descargar». Estados:
+    preparando (botón apagado), nada en el rango, más de 250.000 filas (pide un rango más corto), límite de 3 por hora (dice cuándo se
+    puede), error con «Reintentar», tarjeta apagada con su motivo.
+  - **Importar:** «Qué importas» (Leads o Vehículos, sólo lo que puedes; `?entidad=`); con Leads y `datos.importar.todo`, «Destino» («Yo» y
+    las personas activas, hasta 100); con Vehículos, «Origen» (activos donde creas; `?origen=`). Pasos: Archivo (CSV ≤ 20.000 filas y
+    10 MB; sirve el de Exportar) → Columnas (emparejadas solas, «Ignorar esta columna», las que faltan; en Leads, origen y tipo para las
+    filas sin) → Vista previa (las primeras 500 de 50 en 50, «Lista» o «Con errores» con su motivo, filtro de errores, «Importar N filas»)
+    → Importando (preparar, subir, «puedes seguir en otra pantalla»; sin conexión o error, «Reintentar» manda el mismo intento).
+  - **Avance:** «Importando» lee la importación cada 5 s: esperando, «n de N filas», en pausa (sin avance hace 2 min la retoma el sistema);
+    al terminar, cuántos creados, ya existentes y con errores, o «No terminó: <motivo>.», y «Descargar las rechazadas» (con las celdas del
+    archivo; un «ya existe» no nombra a nadie; el detalle se guarda 30 días). Si no se puede leer, lo dice sin perder lo último.
+  - Al pie, «Importaciones»: las propias (todas, con quién, con `datos.importar.todo`), con fecha, qué, destino, estado y avance; de a 20
+    hasta 500 con aviso; vacío; error con «Reintentar».
+- **Buscador** — `Ctrl/Cmd+K` o el botón «Buscar» de la barra (todos): paleta sin URL (un `Dialog`). Sin texto: «Últimos abiertos» (8) y
+  las acciones que la persona puede (`puede()`: Nuevo lead, Nuevo vehículo, Nueva cotización, «Ir a…», Configuración, «Ver atajos de
+  teclado»). Con texto (mínimo 3, 250 ms de espera, cancela la anterior): las acciones que coinciden arriba y una sección por tipo (Leads,
+  Vehículos, Cotizaciones; hasta 5 cada una) y «Ver todos en Leads» (`/leads?q=`). Un teléfono no se busca. Estados: buscando, sin
+  resultados, error y sin conexión con «Reintentar». Enter abre la fila; Esc cierra. `?` lista los atajos.
 
 ## Permisos (matriz de referencia; el catálogo real vive en `permisos.ts` y se siembra en SQL)
 
-- **Asesor:** crear lead y ver mis leads; cotizar; crear y ver vehículos (por origen); chat y tareas; importar leads (`leads.crear`); deshacer mi importación (24 h).
+- **Asesor:** crear lead y ver mis leads; cotizar; crear y ver vehículos (por origen); chat y tareas; importar leads (`leads.crear`);
+  deshacer mi importación (24 h).
 - **Logística:** crear y ver vehículos; mover de fase y aprobar documentos (por origen); chat y tareas.
 - **Repuestos:** proyectos, costos y cotizador de repuestos; chat y tareas.
-- **Dueño:** todo lo anterior, más leads de otros (teléfono enmascarado), fórmulas, costos y margen, vitrina web y guías, equipo/roles/bloqueo/registro, exportar e importar todo, exportar mi cartera (`leads.exportar`).
+- **Dueño:** todo lo anterior, más leads de otros (teléfono enmascarado), fórmulas, costos y margen, vitrina web y guías,
+  equipo/roles/bloqueo/registro, exportar e importar todo, exportar mi cartera (`leads.exportar`).
 
 ## Reglas transversales
 
-- **Estados obligatorios en toda pantalla:** cargando (esqueleto propio por patrón), vacío primera vez, vacío por filtro, error con reintentar, sin permiso — `.claude/rules/ui.md`.
-- **Destructivas:** papelera (vehículos, cotizaciones, leads) = hacer + toast con deshacer 10 s; purga y baja de usuario = diálogo que nombra el objeto; masivas irreversibles = confirmación tipeada.
-- **Formatos:** `Intl` con locale y moneda de la empresa (`es-BO` por defecto); montos con cifras tabulares; fechas cruzan servidor↔cliente como ISO y se muestran en la zona de la empresa. **Modo Live** oculta cifras sensibles **y** símbolos de moneda. Voz: español neutro con tuteo. Densidad: compacta en escritorio (filas 36–40 px), cómoda en táctil (48 px), recordada por usuario.
-- **Atajos:** `Ctrl/Cmd+K` buscar/comandos · `N` nuevo, lo propio de la pantalla (vehículo en vehículos; si no hay, un lead; «Nuevo lead» siempre tiene botón) · `Ctrl/Cmd+S` guardar · `Ctrl/Cmd+Enter` guardar y seguir · `Esc` cerrar panel o volver un paso · `?` abre «Atajos de teclado» (la lista del catálogo; no se dispara mientras se escribe). En un alta de vehículo `Ctrl/Cmd+S` guarda y cierra; en «Nuevo lead» deja el drawer listo para el siguiente.
-- **Filtros:** panel lateral plegable si el listado mide 40 rem o más (si no, hoja inferior) + chips activos + «limpiar»; esquema declarativo por listado; estado en URL (nuqs, `shallow:false`); vistas guardadas por usuario. Formularios en drawer/modal con bloques plegables; `returnTo` para volver.
-- **Patrón de lista** (`.claude/rules/ui.md`): toda lista de registros (hoy leads y vehículos) se dibuja igual. Desde 768 px, tabla con **nombre pegado a la izquierda** (entero hasta 16 rem; más largo, «…» y completo en `title`) y **«⋯» a la derecha**, que se desplaza de costado dentro de su tarjeta, nunca la página; por debajo, tarjetas. Una sola vista, la que dice el servidor. **Un clic en cualquier parte de la fila o tarjeta abre su resumen**, salvo casilla, «⋯», enlace o botón. Teclado: una parada de Tab por fila (el nombre, «Abrir Ana Rojas»); Enter o Espacio abren; al cerrar el resumen el foco vuelve a él. El «⋯» («Más acciones de …») mide 44 px en el celular; lo que no se puede hacer no aparece, y un ítem visible pero imposible dice por qué. Una guarda falla si una lista nueva no usa el patrón sin motivo registrado.
-- **Texto al 200 % (reflujo, WCAG 1.4.10):** ninguna lista ensancha la página; «⋯» y casilla miden 44 px; una tarjeta de menos de 16 rem apila sus piezas; los botones chicos crecen con el texto. Los avisos (22,25 rem) crecen con el texto sin pasar de la pantalla menos 1 rem por lado y suben sobre el pie de un panel abierto.
-- **Paneles y modales con formulario:** cerrar con algo escrito (Esc, ✕, clic afuera, «Cancelar») pregunta **en el mismo modal o panel** («Tienes cambios sin guardar.» con «Seguir editando», con el foco, y «Descartar»); sin cambios cierra directo; «atrás» cierra sin preguntar (el borrador vuelve al reabrir). La acción de un aviso que deja la pantalla («Abrir ficha», «Recargar») con algo escrito pregunta lo mismo en el pie del panel; la que actúa en el lugar («Deshacer») no. Mientras guarda, los campos se apagan y no se cierra. El rechazo de un campo se dice **junto a su campo**, con el foco ahí. Sin conexión lo escrito queda y se guarda al volver.
-- **Un modal nunca abre otro modal:** segundo nivel = panel lateral o página. En el celular al 200 %: título y pie fijos, **la descripción se desplaza con el cuerpo**, botones del pie de 44 px (`e2e/modales-celular-200.spec.ts`: pie ≤ 26 % de la pantalla, cuerpo ≥ 45 % del modal).
-- **Confirmaciones con URL** (`?panel=mover-oportunidad&oportunidad=<id>&destino=<id>`, `salir-lead`, `purgar&lote=<id>`, `deshacer-importacion&importacion=<id>`, `desvincular`, `etapas&eliminar=embudo`, `eliminar-origen`): «atrás» las cierra, recargar las reabre, Esc devuelve el foco, no se cierran mientras actúan. Si lo que nombra ya no existe, avisa y limpia la URL.
-- **Barra de un listado (`<FilterShell>`):** búsqueda, «Filtros», «Vistas», acciones y «Ítems por página». Con contenedor de 48 rem o más las acciones van a la derecha; si no, cada pieza envuelve a la izquierda. **El marcador de búsqueda es corto** («Nombre o número», «Título, VIN o lote», «Título o lead») para caber al 200 % en el celular.
-- **Mínimo para buscar por nombre:** 3 letras o dígitos seguidos; un número (`5`, `#5`) busca por número desde un dígito. Mientras no alcanza, el campo lo deja escrito, dice «Escribe al menos 3 letras» y **no escribe `?q=`, no pide nada, no deja chip ni toca los tachados**; un `?q=ab` por URL igual (`e2e/leads-listado-busqueda-minima.spec.ts`).
-- **Ítems por página:** en cada lista con Anterior/Siguiente y filtros (leads, vehículos), selector «Ítems por página» (10, 25, 50, 100) en la barra desde `md` y, por debajo, arriba de la lista (`<select>` de 44 px). Se guarda en la cuenta (`listas.por_pagina`, también en el perfil); `?por=` la fija para esa página; cada lista tiene un máximo (hoy 100). Cambiarlo vuelve a la primera página y conserva filtros y búsqueda. No lo llevan el kanban ni las papeleras (`docs/RENDIMIENTO.md`).
-- **Barra superior:** tipo de cambio por defecto a la vista y, al abrirlo, los vigentes con su último cambio (Modo Live lo oculta). En el celular menú, Live y avatar miden 44 px y la barra cabe al 200 %; el tipo de cambio sólo se dibuja con 24 rem o más. El botón «Buscar» (44 px) abre la paleta (`Ctrl/Cmd+K`) y la campana trae los avisos; el widget del chat flota fuera de `/chat` y no va en la barra.
-- **Permisos en UI:** ocultar lo que nunca va a usar; deshabilitar con motivo lo que espera poder hacer (**dominancia**: lo que no puede dar nunca se esconde). RLS es la seguridad. **«Ver como»:** banner fijo «Viendo como <rol> · Salir»; cambia lo que se ve, no lo que se puede.
-- **Conflictos:** todo formulario de edición manda `actualizado_en` esperado; `PT409` → «X cambió esto hace N min · ver / recargar». Barras que se desplazan: degradado en el borde por donde siguen. Transiciones con View Transitions y `prefers-reduced-motion`.
+- **Estados obligatorios en toda pantalla:** cargando (esqueleto propio por patrón), vacío primera vez, vacío por filtro, error con
+  reintentar, sin permiso — `.claude/rules/ui.md`. **Cargando**: toda página de `(app)` tiene su propio `loading.tsx` con la forma de lo
+  que dibuja después; no vale el heredado (`scripts/guardas/estados-de-ruta.test.ts`).
+- **Destructivas:** papelera (vehículos, cotizaciones, leads) = hacer + toast con deshacer 10 s; purga y baja de usuario = diálogo que nombra
+  el objeto; masivas irreversibles = confirmación tipeada.
+- **Formatos:** `Intl` con locale y moneda de la empresa (`es-BO` por defecto); montos con cifras tabulares; fechas cruzan servidor↔cliente
+  como ISO y se muestran en la zona de la empresa. **Modo Live** oculta cifras sensibles **y** símbolos de moneda. Voz: español neutro con
+  tuteo. Densidad: compacta en escritorio (filas 36–40 px), cómoda en táctil (48 px), recordada por usuario.
+- **Atajos:** `Ctrl/Cmd+K` buscar/comandos · `N` nuevo, lo propio de la pantalla (vehículo en vehículos; si no hay, un lead; «Nuevo lead»
+  siempre tiene botón) · `Ctrl/Cmd+S` guardar · `Ctrl/Cmd+Enter` guardar y seguir · `Esc` cerrar panel o volver un paso · `?` abre «Atajos
+  de teclado» (la lista del catálogo; no se dispara mientras se escribe). En un alta de vehículo `Ctrl/Cmd+S` guarda y cierra; en «Nuevo
+  lead» deja el drawer listo para el siguiente.
+- **Filtros:** panel lateral plegable si el listado mide 40 rem o más (si no, hoja inferior) + chips activos + «limpiar»; esquema
+  declarativo por listado; estado en URL (nuqs, `shallow:false`); vistas guardadas por usuario. Formularios en drawer/modal con bloques
+  plegables; `returnTo` para volver.
+- **Patrón de lista** (`.claude/rules/ui.md`): toda lista de registros se dibuja igual. Desde 768 px, tabla con **nombre pegado a la
+  izquierda** (entero hasta 16 rem; más largo, «…» y completo en `title`) y **«⋯» a la derecha**, que se desplaza de costado dentro de su
+  tarjeta, nunca la página; por debajo, tarjetas. **Un clic en cualquier parte de la fila o tarjeta abre su resumen**, salvo casilla, «⋯»,
+  enlace o botón. Teclado: una parada de Tab por fila (el nombre, «Abrir Ana Rojas»); al cerrar el resumen el foco vuelve a él. El «⋯»
+  («Más acciones de …») mide 44 px en el celular; lo que no se puede hacer no aparece, y un ítem visible pero imposible dice por qué.
+- **Texto al 200 % (reflujo, WCAG 1.4.10):** ninguna lista ensancha la página; «⋯» y casilla miden 44 px; una tarjeta de menos de 16 rem
+  apila sus piezas; los botones chicos crecen con el texto. Los avisos (22,25 rem) crecen con el texto sin pasar de la pantalla menos 1 rem
+  por lado y suben sobre el pie de un panel abierto.
+- **Paneles y modales con formulario:** cerrar con algo escrito (Esc, ✕, clic afuera, «Cancelar») pregunta **en el mismo modal o panel**
+  («Tienes cambios sin guardar.» con «Seguir editando», con el foco, y «Descartar»); sin cambios cierra directo; «atrás» cierra sin
+  preguntar (el borrador vuelve al reabrir). La acción de un aviso que deja la pantalla («Abrir ficha», «Recargar») con algo escrito
+  pregunta lo mismo en el pie del panel; la que actúa en el lugar («Deshacer») no. Mientras guarda, los campos se apagan y no se cierra. El
+  rechazo de un campo se dice **junto a su campo**, con el foco ahí. Sin conexión lo escrito queda y se guarda al volver.
+- **Un modal nunca abre otro modal:** segundo nivel = panel lateral o página. En el celular al 200 %: título y pie fijos, **la descripción
+  se desplaza con el cuerpo**, botones del pie de 44 px (`e2e/modales-celular-200.spec.ts`: pie ≤ 26 % de la pantalla, cuerpo ≥ 45 % del
+  modal).
+- **Confirmaciones con URL** (`?panel=mover-oportunidad&oportunidad=<id>&destino=<id>`, `salir-lead`, `purgar&lote=<id>`,
+  `deshacer-importacion&importacion=<id>`, `desvincular`, `etapas&eliminar=embudo`, `eliminar-origen`): «atrás» las cierra, recargar las
+  reabre, Esc devuelve el foco, no se cierran mientras actúan. Si lo que nombra ya no existe, avisa y limpia la URL.
+- **Barra de un listado (`<FilterShell>`):** búsqueda, «Filtros», «Vistas», acciones y «Ítems por página». Con contenedor de 48 rem o más
+  las acciones van a la derecha; si no, cada pieza envuelve a la izquierda. **El marcador de búsqueda es corto** («Nombre o número»,
+  «Título, VIN o lote», «Título o lead») para caber al 200 % en el celular.
+- **Mínimo para buscar por nombre:** 3 letras o dígitos seguidos; un número (`5`, `#5`) busca por número desde un dígito. Mientras no
+  alcanza, el campo lo deja escrito, dice «Escribe al menos 3 letras» y **no escribe `?q=`, no pide nada, no deja chip ni toca los
+  tachados**; un `?q=ab` por URL igual (`e2e/leads-listado-busqueda-minima.spec.ts`).
+- **Ítems por página:** en cada lista con Anterior/Siguiente y filtros (leads, vehículos), selector «Ítems por página» (10, 25, 50, 100) en
+  la barra desde `md` y, por debajo, arriba de la lista (`<select>` de 44 px). Se guarda en la cuenta (`listas.por_pagina`, también en el
+  perfil); `?por=` la fija para esa página; cada lista tiene un máximo (hoy 100). Cambiarlo vuelve a la primera página y conserva filtros y
+  búsqueda. No lo llevan el kanban ni las papeleras (`docs/RENDIMIENTO.md`).
+- **Barra superior:** tipo de cambio por defecto a la vista y, al abrirlo, los vigentes con su último cambio (Modo Live lo oculta). En el
+  celular menú, Live y avatar miden 44 px y la barra cabe al 200 %; el tipo de cambio sólo se dibuja con 24 rem o más. El botón «Buscar»
+  (44 px) abre la paleta (`Ctrl/Cmd+K`) y la campana trae los avisos; el widget del chat flota fuera de `/chat` y no va en la barra.
+- **Permisos en UI**: ocultar lo que nunca va a usar; deshabilitar con motivo lo que espera poder hacer (**dominancia**: lo que no puede dar
+  nunca se esconde). RLS es la seguridad. **«Ver como»:** banner fijo «Viendo como <rol> · Salir»; cambia lo que se ve, no lo que se puede.
+- **Conflictos:** todo formulario de edición manda `actualizado_en` esperado; `PT409` → «X cambió esto hace N min · ver / recargar». Barras
+  que se desplazan: degradado en el borde por donde siguen. **Movimiento**: transiciones con View Transitions (un fundido corto) y
+  `prefers-reduced-motion`.
 
 ### Chat (estados propios)
 
-- **Entrar:** `chat.participar`; sin él, «sin permiso» y no se lee nada. `?c=` ilegible = «Elige una conversación»; una conversación que ya no es mía (salí, la borraron, perdí `chat.global`) dice «Esta conversación ya no es tuya», nunca un 404. En el celular, lista y hilo son dos pantallas y «Volver a la lista» regresa.
-- **Lista:** esqueleto con la forma de las filas; vacía de primera vez invita a iniciar una conversación; error con «Reintentar»; «Ver más» hasta el tope. No leídos «99+».
-- **Hilo:** cargando reserva el alto con un esqueleto; error con «Reintentar» (el redactor no se dibuja); sin mensajes, «Escribe el primero». «Ver anteriores» por cursor y, al llegar al tope de lo cargado, `<AvisoDeTope>` con «Ir a una fecha» (mirando desde una fecha el hilo no sigue lo nuevo y arriba dice cómo volver).
-- **Enviar:** Enter envía, Mayús+Enter salta de línea; el mensaje se ve al instante («Enviando…»). Sin red o rechazado queda «No enviado · Reintentar» con el motivo; reintentar reusa el mismo `id` y nunca duplica. Pasado el largo máximo, el motivo va bajo el campo.
-- **Responder:** «Responder» en el «⋯» del mensaje (siempre visible, 44 px en celular) pone sobre el redactor «Respondiendo a {nombre}» con las primeras palabras y «Quitar respuesta». En la burbuja la cita va arriba del texto, sin clic; sin original legible dice «Mensaje no disponible», y un original borrado, «Mensaje eliminado».
-- **Editar:** sólo lo propio, hasta 15 minutos después de escribirlo (se mide al abrir el «⋯»; la base manda). El editor reemplaza el texto en la burbuja: Enter guarda, Mayús+Enter salta de línea, Esc cancela; «Guardar» se apaga con el texto vacío, sin cambios o mientras guarda. Un rechazo (más de 15 minutos, el mensaje cambió, permiso) se dice dentro y conserva el texto. Lo editado dice «editado».
-- **Borrar:** el autor, o quien tiene `chat.moderar`, desde el «⋯»: diálogo «Borrar tu mensaje» / «Borrar el mensaje de {nombre}» con URL (`?panel=borrar-mensaje&mensaje=<id>`; una URL con un mensaje que no está cargado o que ya no se puede borrar avisa y se limpia). No se deshace: queda «Mensaje eliminado» sin el texto, para todas las personas. Un rechazo se dice dentro del diálogo.
+- **Entrar:** `chat.participar`; sin él, «sin permiso» y no se lee nada. `?c=` ilegible = «Elige una conversación»; una conversación que ya
+  no es mía (salí, la borraron, perdí `chat.global`) dice «Esta conversación ya no es tuya», nunca un 404. En el celular, lista y hilo son
+  dos pantallas.
+- **Lista:** esqueleto con la forma de las filas; vacío de primera vez que invita a iniciar una; error con «Reintentar»; «Ver más» hasta el
+  tope. No leídos «99+».
+- **Hilo:** esqueleto que reserva el alto; error con «Reintentar» (sin redactor); sin mensajes, «Escribe el primero». «Ver anteriores» por
+  cursor y, en el tope, `<AvisoDeTope>` con «Ir a una fecha» (desde una fecha el hilo no sigue lo nuevo y dice cómo volver).
+- **Enviar:** Enter envía, Mayús+Enter salta de línea; se ve al instante («Enviando…»). Sin red o rechazado queda «No enviado ·
+  Reintentar» con el motivo; reintentar reusa el mismo `id` y nunca duplica. Pasado el largo máximo, el motivo bajo el campo.
+- **Responder:** desde el «⋯» del mensaje (siempre visible, 44 px en celular): «Respondiendo a {nombre}» sobre el redactor con «Quitar
+  respuesta». La cita va arriba del texto; sin original legible, «Mensaje no disponible»; borrado, «Mensaje eliminado».
+- **Editar:** sólo lo propio, hasta 15 minutos (se mide al abrir el «⋯»; la base manda), en la burbuja: Enter guarda, Esc cancela;
+  «Guardar» apagado vacío, sin cambios o guardando. Un rechazo se dice dentro y conserva el texto. Lo editado dice «editado».
+- **Borrar:** el autor o quien tiene `chat.moderar`, con diálogo por URL (`?panel=borrar-mensaje&mensaje=<id>`; uno no cargado o que ya no
+  se puede borrar avisa y se limpia). No se deshace: queda «Mensaje eliminado» para todos.
 
 ### Empresa (estados propios)
 
-- **Entrar:** `empresa.ajustes.gestionar` o `empresa.tipos_cambio.gestionar`; cada pestaña se edita con su permiso, sin él se ve deshabilitada con el motivo arriba; sin ninguno, «sin permiso».
-- **Empresa:** un «Guardar». Color sin contraste, logo inválido y moneda base con datos: motivo junto al campo. Sin conexión: lo tipeado queda y se repone con «Descartar».
-- **Tipos de cambio:** tocar uno abre su panel con el valor listo y su historial debajo. El por defecto no se desactiva; nada se borra. **Integraciones:** apibara no se activa sin su clave, que nunca se muestra («Reemplazar»).
+- **Entrar:** `empresa.ajustes.gestionar` o `empresa.tipos_cambio.gestionar`; cada pestaña se edita con su permiso, sin él deshabilitada
+  con el motivo arriba; sin ninguno, «sin permiso».
+- **Empresa:** un «Guardar». Color sin contraste, logo inválido y moneda base con datos: motivo junto al campo. Sin conexión, lo tipeado
+  queda y se repone con «Descartar».
+- **Tipos de cambio:** cada uno abre su panel con el valor listo y su historial. El por defecto no se desactiva; nada se borra.
+  **Integraciones:** apibara no se activa sin su clave, que nunca se muestra («Reemplazar»).
 
 ### Vehículos (estados propios)
 
-- **Entrar:** `vehiculos.ver` en algún origen; pestañas = orígenes donde lo tiene, también desactivados («Inactivo»); sin ninguno, «sin permiso» diciendo a quién pedírselo. Origen desactivado: se edita lo que tiene, «Nuevo» apagado con motivo, `N` y `?panel=nuevo` no abren nada.
-- **Lista:** esqueleto con la forma del listado; vacío de primera vez con la frase del origen («Ningún vehículo en Corea todavía») y «Nuevo» sólo si puede; vacío por filtro con «Limpiar filtros»; error con reintentar. Filtros: los «filtrables» del origen más fase, categoría y año; lo inválido en la URL se ignora; al cambiar de pestaña no se arrastran filtros.
-- **Alta y edición (panel):** «Datos principales», «Precio» y un bloque por grupo del layout (con obligatorio nace abierto; con error se abre solo); lo que no pasa se dice junto al campo (VIN o lote repetido también). Conflicto: «Rosa Mamani cambió este vehículo hace 3 min» con «Ver cómo quedó» y «Recargar».
-- **Fotos:** elegir (selector, soltar o cámara) las muestra en una bandeja sin subir y ahí se dice lo que no entra y por qué (no es foto, > 25 MB, repetida, pasa de 24). «Subir N fotos» con avance «5 de 8»; si algo falla se dice entero con «Reintentar las N que faltan». Reordenar con botones o `Alt+←/→`; eliminar con «Deshacer».
-- **Vitrina:** «Publicar en la web…» es un ítem del «⋯»; en la ficha, sin el permiso va apagado con motivo; en fila y resumen no aparece. Panel `?panel=vitrina`: interruptor, precio público (vacío = «Consultar»), rango, nota, destacado y «Así lo verá el visitante». Si la fase no publica o la web está apagada, la insignia es «Publicado, no visible».
-- **Papelera:** enviar no pregunta: se hace y ofrece «Deshacer» 10 s, desde el «⋯» o eligiendo filas (casilla sólo en las que puede). El resultado se dice entero («Se enviaron 3 de 4… No se envió «X»: …»); lo publicado se despublica. Lo que no puede ir (vinculado a un lead, fuera de su fase inicial) va apagado con motivo. Pantalla: por lote; restaurar vuelve sin publicar; purgar (`vehiculos.papelera.purgar`) nombra lo que se borra y un lote de varios pide tipear «purgar N»; si otra persona ya actuó, no se purga nada.
-- **Limpieza automática** (sólo vehículos importados de subasta, con el interruptor encendido): dentro de 3 días, banner en la ficha con «Conservar» (quien edita, sin preguntar); conservado, «Quitar». Listado: filtro «Se limpiará pronto» e insignia con fecha.
-- **Resumen (`?vehiculo=<id>`):** portada, identificación, fase («Sin fase»), «Editar» y «⋯»; pestañas `?pestana=fotos|interesados` que se leen al elegirlas. «Editar» abre el panel encima y vuelve al resumen al día. Inexistente, en la papelera o de otro origen: «Este vehículo ya no está disponible: no existe o ya no tienes acceso.».
+- **Entrar:** `vehiculos.ver` en algún origen; pestañas = orígenes donde lo tiene, también desactivados («Inactivo»); sin ninguno, «sin
+  permiso» diciendo a quién pedírselo. Origen desactivado: se edita lo que hay; «Nuevo», `N` y `?panel=nuevo` no abren nada.
+- **Lista:** esqueleto; vacío de primera vez con la frase del origen y «Nuevo» si puede; vacío por filtro con «Limpiar filtros»; error.
+  Filtros: los «filtrables» del origen más fase, categoría y año; lo inválido en la URL se ignora; cambiar de pestaña suelta los filtros.
+- **Alta y edición (panel):** «Datos principales», «Precio» y un bloque por grupo del layout (con obligatorio nace abierto; con error se
+  abre solo); rechazos junto al campo (VIN o lote repetido también). Conflicto: quién y cuándo, «Ver cómo quedó» y «Recargar».
+- **Fotos:** elegir (selector, soltar o cámara) las deja en una bandeja sin subir que dice lo que no entra y por qué (no es foto, > 25 MB,
+  repetida, pasa de 24). «Subir N fotos» con avance; un fallo se dice entero con «Reintentar las N que faltan». Reordenar con botones o
+  `Alt+←/→`; eliminar con «Deshacer».
+- **Vitrina:** «Publicar en la web…» en el «⋯» (en la ficha, sin permiso, apagado con motivo). Panel `?panel=vitrina`: interruptor, precio
+  público (vacío = «Consultar»), rango, nota, destacado y «Así lo verá el visitante». Si la fase no publica o la web está apagada,
+  «Publicado, no visible».
+- **Papelera:** enviar no pregunta: se hace con «Deshacer» 10 s, desde el «⋯» o eligiendo filas (casilla sólo en las que puede). El
+  resultado se dice entero; lo publicado se despublica; lo que no puede ir (vinculado a un lead, fuera de su fase inicial) va apagado con
+  motivo. Pantalla por lote; restaurar vuelve sin publicar; purgar (`vehiculos.papelera.purgar`) nombra lo que borra y un lote de varios
+  pide tipear «purgar N»; si otra persona ya actuó, no se purga nada.
+- **Limpieza automática** (importados de subasta, con el interruptor encendido): dentro de 3 días, banner en la ficha con «Conservar»;
+  conservado, «Quitar». Listado: filtro «Se limpiará pronto» e insignia con fecha.
+- **Resumen (`?vehiculo=<id>`):** portada, identificación, fase («Sin fase»), «Editar» (abre el panel encima y vuelve al resumen al día) y
+  «⋯»; pestañas `?pestana=fotos|interesados` que se leen al elegirlas. Inexistente, en la papelera o de otro origen: «Este vehículo ya no
+  está disponible: no existe o ya no tienes acceso.».
 
 ### Leads: configuración (estados propios)
 
-- **Campos** (`leads.configurar`; sin él «No tienes permiso» y sin tarjeta en el hub): activos agrupados como los verá el formulario, con tipo, clave e interruptores («En la tabla», «Filtrable», «Solo la cartera») que guardan solos; desactivados plegados con «Reactivar»; los de fábrica llevan «De fábrica». Fijos: teléfono, nombre, tipo y que el lead tenga origen.
-- **Impacto, siempre con números y dentro del panel:** volver requerido («2 leads no tienen este dato: no podrán guardarse hasta completarlo»); cambiar el tipo o eliminar con datos; sacar una opción en uso; dejar de ser «solo la cartera». Conflicto con «Recargar».
-- **Orígenes del lead, tipos de lead y tipos de seguimiento** (`?seccion=origenes|tipos|seguimientos`, patrón de `shared/ui/lista`): icono y nombre, «Subir»/«Bajar» (con teclado), estado y «⋯» («Editar» · «Activar»/«Desactivar» con «Deshacer» · «Eliminar»). Lo que no se puede va apagado con motivo. Nuevo/editar: modal por URL (nombre ≤ 40 caracteres, sin repetidos). Eliminar: apagado si algo lo usa (la papelera cuenta). Tope 100.
-- **Origen por defecto:** a lo sumo uno, siempre activo; no se apaga ni elimina mientras lo sea. **Tipo de lead:** su clase («Prospecto»/«Cliente») se elige al crear y no cambia; el último activo de una clase no se desactiva ni elimina, con el motivo visible. **Tipo de seguimiento:** cualquiera se apaga.
-- **Dónde se nota:** el select del alta ofrece los activos (si el elegido se apaga mientras se escribe, el guardado falla y lo demás queda); la ficha conserva uno apagado como «(inactivo)»; el CSV acepta nombre o clave de un activo y nunca crea.
+- **Campos** (`leads.configurar`; sin él, sin permiso y sin tarjeta en el hub): activos agrupados como en el formulario, con tipo, clave e
+  interruptores («En la tabla», «Filtrable», «Solo la cartera») que guardan solos; desactivados plegados con «Reactivar»; «De fábrica».
+  Fijos: teléfono, nombre, tipo y que el lead tenga origen.
+- **Impacto, siempre con números y dentro del panel:** volver requerido (cuántos leads no podrán guardarse hasta completarlo); cambiar el
+  tipo o eliminar con datos; sacar una opción en uso; dejar de ser «solo la cartera». Conflicto con «Recargar».
+- **Orígenes del lead, tipos de lead y tipos de seguimiento** (`?seccion=origenes|tipos|seguimientos`, patrón de `shared/ui/lista`): icono
+  y nombre, «Subir»/«Bajar» (con teclado), estado y «⋯» (Editar · Activar/Desactivar con «Deshacer» · Eliminar); lo imposible, apagado con
+  motivo. Modal por URL (nombre ≤ 40, sin repetidos). Eliminar, apagado si algo lo usa (la papelera cuenta). Tope 100.
+- **Origen por defecto:** a lo sumo uno, siempre activo; no se apaga ni elimina mientras lo sea. **Tipo de lead:** su clase
+  («Prospecto»/«Cliente») se elige al crear y no cambia; el último activo de una clase no se desactiva ni elimina. **Tipo de seguimiento:**
+  cualquiera se apaga.
+- **Dónde se nota:** el alta ofrece los activos (si el elegido se apaga mientras se escribe, el guardado falla y lo demás queda); la ficha
+  conserva uno apagado como «(inactivo)»; el CSV acepta nombre o clave de un activo y nunca crea.
 
 ### Flujos: configuración (estados propios)
 
-- **Entrada:** quien tiene alguna de las tres claves ve la tarjeta «Flujos» en el hub; sin ninguna, «No tienes permiso para ver esto». Sólo con `logistica.catalogos.gestionar` entra y ve sólo la pestaña «Documentos» (5.09): «Por ahora no hay nada que configurar aquí con tus permisos.» queda para quien ya no tiene ninguna pestaña.
-- **Selector:** una pestaña por flujo que quien mira puede configurar, con el nombre de la fila del origen («(inactivo)» si no está activo) y «Repuestos» al final con el nombre del flujo. `?ambito=repuestos` gana sobre `?origen=`; una URL inválida o ajena abre la primera pestaña, nunca un error. Elegir una borra `?fase=`. Sin ningún flujo configurable: «No hay flujos que puedas configurar.»; un flujo que desapareció: «Este flujo ya no existe.»
-- **Lista de fases** (patrón de `shared/ui/lista`: tabla desde 768 px, tarjetas debajo): en el orden de la base, el nombre con su color de la fila (texto y color, nunca sólo color) y las marcas «Inicial», «Final» y «Jubilada». Un clic en la fila o Enter en el nombre abre el inspector. Sin fases: «El flujo de <origen> todavía no tiene fases.» Con 200 fases: «Mostrando las primeras 200 fases.» Sin acciones ni «⋯» hasta 5.04.
-- **Inspector de fase** (`?fase=<id>`, un `<Drawer>` por URL; sobrevive a recargar, «atrás» lo cierra, Esc también): tres bloques de sólo lectura, «Datos», «Salidas y quién mueve» y «Requisitos para entrar». De los requisitos sólo dice cuántos hay por tipo y si bloquean; los roles, por su nombre («otro rol» si no estaba en los 100 leídos). Un id que no es de una fase del flujo se ignora.
-- **Conflicto:** «Otra persona cambió este flujo · Recargar» arriba de la pantalla cuando una escritura choca (`PT409`); se va cuando llega la versión nueva. Hoy ninguna acción lo dispara.
-- **Estados:** esqueleto (`loading.tsx` y el del `Suspense`), error con «Reintentar» (el de `(app)`), sin permiso.
+- **Entrada:** con alguna de las tres claves, la tarjeta «Flujos» en el hub; sin ninguna, sin permiso. Con sólo
+  `logistica.catalogos.gestionar`, sólo la pestaña «Documentos»; sin ninguna pestaña, «Por ahora no hay nada que configurar aquí con tus
+  permisos.».
+- **Selector:** una pestaña por flujo configurable, con el nombre del origen («(inactivo)») y «Repuestos» al final. `?ambito=repuestos`
+  gana sobre `?origen=`; una URL inválida o ajena abre la primera, nunca un error. Elegir una borra `?fase=`. Vacíos: ningún flujo
+  configurable; flujo que desapareció.
+- **Lista de fases** (patrón de `shared/ui/lista`): en el orden de la base, nombre con su color (texto y color, nunca sólo color) y las
+  marcas «Inicial», «Final» y «Jubilada»; la fila abre el inspector. Vacía, su frase; tope 200 con aviso.
+- **Inspector de fase** (`?fase=<id>`, `<Drawer>` por URL; sobrevive a recargar, «atrás» y Esc lo cierran): «Datos», «Salidas y quién
+  mueve» y «Requisitos para entrar». Los roles por nombre («otro rol» si no estaba entre los 100 leídos). Un id ajeno al flujo se ignora.
+- **Conflicto:** «Otra persona cambió este flujo · Recargar» arriba cuando una escritura choca (`PT409`); se va al llegar la versión nueva.
+  En un modal, «Recargar» va dentro y lo escrito queda.
+- **Estados:** esqueleto (`loading.tsx` y el del `Suspense`), error con «Reintentar» (el de `(app)`), sin permiso. Una URL escrita a mano
+  que no apunta a algo que existe se avisa y se limpia.
 
 ### Flujos: revisar (estados propios)
 
-- **Lugar:** una franja sobre el selector, sólo en la pestaña «Fases» y sólo con un flujo leído (quien la ve configura ese flujo).
-- **Cerrada (siempre al entrar):** el resumen con su icono y su color, «Revisar: Todo en orden», «Revisar: 1 error y 3 avisos»; las de información no cuentan. Con más de 200: «Más de 200 avisos» (nunca un total). Sin ninguna fila no hay nada que abrir: el resumen es texto, no botón.
-- **Abierta:** cada aviso con icono y la **palabra** del nivel («Error», «Aviso», «Información»; nunca sólo color) y el texto tal cual viene de la base, que nombra la fase; error › aviso › información. Un aviso de una fase lleva «Abrir la fase», que abre su inspector (suma al historial). Con 200: «Mostrando los primeros 200 avisos.»
-- **Tras guardar:** se relee sola con la versión nueva del flujo, sin volver al esqueleto y sin cerrarse. Cambiar de flujo la vuelve a cerrar.
-- **Estados:** primera lectura «Revisando el flujo…» (una línea, no ocupa más que cerrada); falla «No pudimos revisar el flujo.» con «Reintentar» (si ya había algo leído, se queda y la línea va debajo del resumen).
-- **No frena:** «Revisar» avisa y abre; nunca impide guardar (un flujo se arma por pasos y a medio armar siempre tiene avisos). No arregla solo.
+- **Lugar:** franja sobre el selector, sólo en «Fases» y con un flujo leído.
+- **Cerrada (al entrar):** resumen con icono y color («Revisar: Todo en orden», «Revisar: 1 error y 3 avisos»; la información no cuenta;
+  más de 200, «Más de 200 avisos»). Sin filas, el resumen es texto, no botón.
+- **Abierta:** cada aviso con icono y la **palabra** del nivel (nunca sólo color) y el texto de la base, error › aviso › información; uno
+  de una fase lleva «Abrir la fase» (suma al historial). Tope 200 con aviso.
+- **Tras guardar** se relee sola, sin esqueleto y sin cerrarse; cambiar de flujo la cierra. Primera lectura, una línea «Revisando el
+  flujo…»; si falla, su línea con «Reintentar» (lo ya leído queda).
+- **No frena:** avisa y abre; nunca impide guardar (un flujo a medio armar siempre tiene avisos). No arregla solo.
 
 ### Flujos: tipos de documento (estados propios)
 
-Configuración › Flujos › Documentos (`?seccion=documentos`, 5.09). Hermana de «Tipos de seguimiento» (patrón de `shared/ui/lista`, «Subir»/«Bajar» con teclado, «⋯», modal por URL), con lo propio de **dos grupos en una pantalla**, **sólo lectura con motivo** y **una lista que se relee** (ninguna RPC devuelve la lista).
+Configuración › Flujos › Documentos (`?seccion=documentos`). Hermana de «Tipos de seguimiento» (patrón de `shared/ui/lista`, orden con
+teclado, «⋯», modal por URL), con **dos grupos**, **sólo lectura con motivo** y **una lista que se relee** (ninguna RPC la devuelve).
 
-- **Grupos:** «De toda la empresa» (arriba; los cambia `logistica.catalogos.gestionar`) y, bajo el selector de flujo, «Sólo de este flujo» (`flujos.configurar` o `repuestos.configurar`). Cada uno tiene su orden, su tope («N de 100 tipos posibles.») y su «Nuevo tipo». Sin flujo configurable, en lugar del segundo grupo: «No hay flujos que puedas configurar.»
-- **Filas:** nombre, insignias con texto («Renueva cada 365 días», «Pide fecha», «Portal»; «Desactivado»), estado y uso («Sin uso», «Lo usan 3 documentos y 2 requisitos», «más de 50»; «—» a quien no puede cambiar el grupo). «⋯»: «Editar» · «Activar»/«Desactivar» con «Deshacer» · «Eliminar». **Con uso, «Eliminar» está apagado** y dice «…: se desactiva en lugar de eliminarse.»
-- **Sin permiso sobre un grupo:** «Nuevo tipo» y «Editar» apagados, los botones de orden apagados con el motivo como `title` (no «Ya es el primero…») y un aviso «Los tipos de documento de toda la empresa los cambia quien gestiona los catálogos de logística.» Una URL escrita a mano (`?panel=nuevo-tipo&de=empresa`) no abre el modal: se avisa el motivo y se limpia.
-- **Modal** (`?panel=nuevo-tipo&de=empresa|flujo`, `?panel=editar-tipo&tipo=<id>`): nombre, descripción, formatos (casillas, al menos una), vencimiento («No vence», «Quien lo sube escribe la fecha», «Vence tantos días después de subido») con días de vigencia (sólo «renovar») y de aviso; cambiar de modo vacía los días que ya no aplican; «Se puede mostrar en el portal» («Los documentos ya subidos y mostrados en el portal siguen mostrándose.») y, al editar, «Activo». El motivo de la base va junto a su campo. Más de 6 campos: borrador en `sessionStorage` por grupo y tipo.
-- **Eliminar** (`?panel=eliminar-tipo&tipo=<id>`, `<Confirmar>` que nombra el tipo): sólo con uno sin uso. Si entre tanto llegó uso, la base lo desactiva y el aviso dice «No se pudo eliminar «X». Lo usan 3 documentos y 2 requisitos. Quedó desactivado.»
-- **Orden:** el foco sigue en el botón de esa fila una vez que llega el orden nuevo; en el extremo pasa al otro botón.
-- **Vacíos:** «Este flujo no tiene tipos propios. Crea el primero con «Nuevo tipo».» · «No hay tipos de toda la empresa.»
-- **Conflicto:** «Otra persona cambió este tipo de documento mientras lo editabas.» con «Recargar» (lo escrito queda); un tipo que otra persona eliminó con el modal abierto: «Ese tipo de documento ya no existe. Lo que escribiste no se guardó.»
-- **Estados:** esqueleto de dos bloques (el `Suspense` de la pestaña), error con «Reintentar» (el de `(app)`), sin permiso para cambiar (arriba).
+- **Grupos:** «De toda la empresa» (`logistica.catalogos.gestionar`) y, bajo el selector, «Sólo de este flujo» (`flujos.configurar` o
+  `repuestos.configurar`), cada uno con su orden, tope («N de 100 tipos posibles.») y «Nuevo tipo».
+- **Filas:** nombre, insignias con texto («Renueva cada 365 días», «Pide fecha», «Portal», «Desactivado»), estado y uso acotado («más de
+  50»; «—» a quien no puede cambiar el grupo). **Con uso, «Eliminar» está apagado**: se desactiva en lugar de eliminarse.
+- **Sin permiso sobre un grupo:** crear, editar y ordenar apagados con su motivo y un aviso de quién lo cambia; una URL escrita a mano no
+  abre el modal: avisa y se limpia.
+- **Modal** (`?panel=nuevo-tipo&de=empresa|flujo`, `editar-tipo&tipo=<id>`): nombre, descripción, formatos (al menos uno), vencimiento («No
+  vence», «Quien lo sube escribe la fecha», «Vence tantos días después de subido») con días de vigencia y de aviso (cambiar de modo vacía
+  los que ya no aplican), «Se puede mostrar en el portal» (lo ya mostrado sigue) y, al editar, «Activo». Borrador en `sessionStorage` por
+  grupo y tipo.
+- **Eliminar** (`?panel=eliminar-tipo&tipo=<id>`, `<Confirmar>`): sólo uno sin uso; si entre tanto llegó uso, la base lo desactiva y el
+  aviso lo dice.
+- **Conflicto:** «Recargar» y lo escrito queda; uno que otra persona eliminó con el modal abierto lo dice. Esqueleto de dos bloques.
 
 ### Flujos: fases (estados propios)
 
-Configuración › Flujos › Fases (5.04). Lo que la lista de fases suma a «Flujos: configuración» (la lista, 5.04-2; el inspector › Datos, 5.04-3). Mismo patrón que «Tipos de documento»: «Subir»/«Bajar» con teclado, «⋯», modal y confirmación por URL, y la lista que se relee.
+Lo que la lista de fases y el inspector › Datos suman a «Flujos: configuración». Mismo patrón que «Tipos de documento».
 
-- **Nueva fase** (botón a la derecha del título, `?panel=nueva-fase`): nombre, color de una paleta cerrada de baldosas con su nombre dicho con texto, y tipo («Intermedia», «Inicial» o «Final»). Se crea al final del flujo; lo demás se edita al abrirla. Un nombre repetido dice «Ya hay una fase «X» en este flujo.» junto al campo y el foco vuelve a él. Con 200 fases el botón se apaga y lo dice.
-- **Filas:** «Subir X» y «Bajar X» (apagados en los extremos) y el «⋯»: activa → «Editar» · «Jubilar o eliminar»; jubilada → «Editar» · «Reactivar» (avisa «Fase «X» reactivada.»; sin «Deshacer»). El foco sigue en el botón de esa fila una vez que llega el orden nuevo.
-- **Jubilar o eliminar** (`?panel=eliminar-fase&quitar=<id>`, `<Confirmar>`): al abrirse lee qué usa la fase («Mirando qué usa la fase…»; si falla, «Reintentar»). Sin unidades ni historial: «Se elimina «X». No tiene unidades ni historial y no se puede deshacer.» Con ellas: «Se jubila «X»: N unidades siguen en ella y deja de ser destino. Podrás reactivarla.» Bloqueada (otras fases la esperan, única inicial activa): el motivo y «Confirmar» apagado. Si entre la lectura y el clic el uso cambió, decide la base y el aviso dice lo que pasó.
-- **Inspector › Datos** (`?fase=<id>`, `bloques.datos`): un formulario en cinco bloques plegables, «Identidad» abierto y el resto plegados: **Identidad** (nombre, descripción, color, icono), **En el flujo** («Es inicial», «Es final», «Pide nota al entrar», «Es logística»), **Alerta por demora** («Demora (días)»: vacío usa la de la empresa, 0 apaga la alerta; «Repetir la alerta cada (horas)», de 1 a 720), **Transporte y aduana** («Permite contenedor», «Permite aduana», «Llegada de repuestos») y **Web y portal** («Se publica en la web», «Visible en el portal», «Nombre para el cliente», «Descripción para el cliente»). «Guardar» y «Cancelar» van al pie del panel; sólo se manda lo que cambió y se queda abierto con «Fase «X» guardada.». Sin cambios: «No hay nada que guardar.».
-  - **Errores:** cada uno junto a su campo, con su bloque abierto y el foco en el primero que se ve («Una fase no puede ser inicial y final a la vez.», «Para mostrarla en el portal escribe su nombre para el cliente.»). Marcar «Es inicial» no desmarca a la otra: avisa «Ya es inicial «X»…».
-  - **Interruptor apagado:** una regla del flujo apagada (Aduana, Logística, Vitrina web, Portal del cliente) deja el interruptor deshabilitado con su motivo en la ayuda («La regla «Aduana» está apagada en este flujo.»); en el flujo de repuestos, «No existe en el flujo de repuestos.». Uno ya encendido siempre se puede apagar.
-  - **Borrador, conflicto y red:** lo escrito sin guardar queda en `sessionStorage` (uno por fase) y vuelve con «Recuperamos lo que habías escrito…»; un conflicto lo dice el aviso de arriba con «Recargar» y lo escrito queda; sin conexión, sale solo al volver.
-  - **Fase jubilada:** también se edita; arriba, «Esta fase está jubilada: no es destino de ningún cambio. Reactívala desde el ⋯ de la lista.».
-- **Conflicto:** «Otra persona cambió este flujo · Recargar» arriba; en el modal, con «Recargar» dentro y lo escrito a salvo.
-- **Estados:** los de «Flujos: configuración»; una URL escrita a mano que no apunta a una fase activa se avisa y se limpia.
+- **Nueva fase** (`?panel=nueva-fase`): nombre, color de una paleta cerrada (con su nombre en texto) y tipo (Intermedia, Inicial, Final);
+  se crea al final del flujo. Nombre repetido, junto al campo. Con 200 fases, apagado con su motivo.
+- **Filas:** «Subir/Bajar X» (el foco sigue en el botón al llegar el orden nuevo) y el «⋯»: activa → Editar · Jubilar o eliminar;
+  jubilada → Editar · Reactivar (sin «Deshacer»).
+- **Jubilar o eliminar** (`?panel=eliminar-fase&quitar=<id>`, `<Confirmar>`): al abrirse lee qué usa la fase. Sin unidades ni historial se
+  elimina (no se deshace); con ellas se jubila (siguen en ella, deja de ser destino, se puede reactivar). Bloqueada (otras fases la
+  esperan, única inicial activa): el motivo y «Confirmar» apagado. Si el uso cambió en el medio, decide la base y el aviso lo dice.
+- **Inspector › Datos** (`?fase=<id>`, `bloques.datos`): cinco bloques plegables: **Identidad** (abierto: nombre, descripción, color,
+  icono), **En el flujo** (inicial, final, pide nota al entrar, es logística), **Alerta por demora** (días: vacío usa la de la empresa, 0
+  la apaga; repetir cada 1 a 720 horas), **Transporte y aduana** (permite contenedor, permite aduana, llegada de repuestos) y **Web y
+  portal** (se publica en la web, visible en el portal, nombre y descripción para el cliente). Manda sólo lo que cambió y queda abierto.
+  - Errores junto a su campo, con el bloque abierto y el foco en el primero (inicial y final a la vez; portal sin nombre para el cliente).
+    Marcar «Es inicial» no desmarca a la otra: avisa.
+  - Una regla del flujo apagada (Aduana, Logística, Vitrina web, Portal del cliente) deja su interruptor deshabilitado con el motivo; en
+    repuestos, «No existe en el flujo de repuestos.». Uno ya encendido siempre se puede apagar.
+  - Borrador en `sessionStorage` por fase («Recuperamos…»); sin conexión, sale al volver. Una jubilada también se edita, con su aviso.
 
 ### Flujos: requisitos para entrar (estados propios)
 
-Bloque «Requisitos para entrar» del inspector de una fase (`?fase=<id>`, 5.08). Debajo del resumen leído («Datos: 1 (bloquea)»), la lista de los requisitos de la fase y «Agregar requisito».
+Bloque del inspector (`?fase=<id>`): el resumen («Datos: 1 (bloquea)»), la lista y «Agregar requisito».
 
-- **Fila:** descripción en una línea («VIN del vehículo», «Pagos confirmados: 50 % del precio», «Título · 1 a 3 archivos · PDF, JPG»; una clave que la app no conoce se dice «Dato: <clave>»), las notas debajo en gris, un interruptor «Bloqueante» (`aria-label` «Bloqueante: <descripción>»), `<Badge>` «Bloqueante» o «Informativo» (con texto, nunca sólo color), «Subir» y «Bajar» (apagados en los extremos con su motivo) y un «⋯» con «Quitar». Los tipos de documento se nombran cuando llegan (una sola lectura por flujo, `leerOpcionesDeRequisitos`); mientras, dice «Documento».
-- **Agregar requisito** (`?agregar=nuevo&forma=elegir|dato|documento|espera`): primero un selector «Dato / Documento / Espera / Cancelar» (en línea; «Dato» apagado si la fase ya los pide todos, «Espera» apagado con «Enciende la regla «Esperas» del flujo para pedir una espera.») y luego la forma, en línea dentro del bloque (un modal no abre otro modal). «Dato que se pide» con las claves del ámbito del flujo que la fase aún no pide; con «Pagos confirmados», «Porcentaje del precio» (1 a 100); «Notas (opcional)». Nace informativo: «Requisito agregado. Nace informativo: vuélvelo bloqueante cuando quieras.» Si la regla de la clave está apagada, se ofrece igual con la nota «La regla «Aduana» está apagada: nadie podrá cumplirlo.». El motivo de la base va junto a su campo; lo escrito se conserva si falla. Cerrar el inspector con algo escrito pregunta.
-- **Documento:** «Tipo de documento» (sólo los activos; si hay de la empresa y del flujo, los del flujo dicen « · de este flujo»; sin ninguno: «No hay tipos de documento activos.» y «Crear uno en Documentos»), «Mínimo» y «Máximo de archivos» (enteros desde 1; el máximo no baja del mínimo), «Formatos aceptados» (casillas sólo con los del tipo; ninguna marcada = «los del tipo») y notas.
-- **Espera:** «Fase que se espera» (las fases activas del otro flujo; con varios flujos de origen, «<fase> · <flujo>»): un vehículo espera a sus repuestos y un repuesto a su vehículo. La fila la dice «Espera a que un repuesto llegue a «Recibido»».
-- **Editar** (`?editar=requisito&requisito=<id>`, primera entrada del «⋯» de la fila): abre en el lugar de «Agregar requisito» el formulario de su tipo: porcentaje (sólo «Pagos confirmados»), mínimo, máximo y formatos (documento) y notas. Manda sólo lo que cambió; sin cambios dice «No hay nada que guardar.» y no llama a la base. No cambia la clave, el tipo ni «Bloqueante» (eso es el interruptor de la fila). Una sola forma abierta a la vez.
-- **Bloqueante** (5.08-3): apagar el interruptor guarda directo («El requisito ahora es informativo.»). Encenderlo lee antes cuántas unidades de la fase quedarían fuera de regla: sin ninguna guarda directo; con alguna deja bajo la lista, en línea (no un diálogo: no destruye nada), un grupo «Volver bloqueante el requisito» que nombra el requisito y dice «2 vehículos que ya están en «Embarcado» quedarán fuera de regla. No se mueven: quedan marcados.» («Más de 50…» si hay más; en repuestos, «ítems de repuestos»; si la base revisó 1.000 unidades lo dice) con «Volver bloqueante» (foco inicial) y «Cancelar». Recargar descarta el aviso. El foco vuelve al interruptor.
-- **Fuera de regla** (`?panel=fuera-de-regla`): sobre la lista de fases, «5 unidades fuera de regla» («1 unidad…», «50+ unidades…») con «Ver cuáles». El panel «Unidades fuera de regla» lista por fase (las jubiladas dicen « (jubilada)») el título de cada una y «Le falta 1 requisito» / «Le faltan 3 requisitos»; «Verlas en el inventario» lleva a `/vehiculos?origen=&fase=` (en repuestos no hay inventario y no se ofrece). Lo que quien mira no ve dice «Un vehículo que no puedes ver»; si no se pudieron leer los títulos, un aviso lo dice. Con tope: «Mostrando las primeras 50 unidades.» Sin unidades no se dibuja nada; si la lectura falla, «No pudimos revisar las unidades fuera de regla.» El panel sólo lista: arreglar la unidad es de la Fase 6.
-- **Quitar** (`?eliminar=requisito&quitar=<id>`, `<Confirmar>` que nombra el requisito): irreversible, sin «Deshacer». Un id que ya no está en la fase se avisa («Ese requisito ya no existe.») y la URL se limpia.
-- **Orden:** el foco sigue en el botón de esa fila cuando llega el orden nuevo; en el extremo pasa al otro botón.
-- **Sin datos que ofrecer:** «Agregar requisito» apagado con «Esta fase ya pide todos los datos que este flujo ofrece.»
-- **Estados:** sin requisitos («Sin requisitos.», del resumen), tope («Se muestran los primeros 500 requisitos del flujo.»), error al leer los tipos («No pudimos leer los tipos de documento. Reintentar»), conflicto (el aviso de arriba del flujo, «Recargar»; lo escrito queda), sin permiso (la base dice `42501` y se avisa).
+- **Fila:** descripción en una línea («Pagos confirmados: 50 % del precio», «Título · 1 a 3 archivos · PDF, JPG»; clave desconocida, «Dato:
+  <clave>»), notas, interruptor «Bloqueante» (`aria-label` con la descripción), `<Badge>` «Bloqueante» o «Informativo», orden y «⋯» con
+  Editar y Quitar. Los tipos de documento se nombran al llegar (una lectura por flujo, `leerOpcionesDeRequisitos`).
+- **Agregar** (`?agregar=nuevo&forma=elegir|dato|documento|espera`): selector Dato / Documento / Espera («Dato» apagado si ya los pide
+  todos; «Espera» si la regla «Esperas» está apagada) y la forma en línea (un modal no abre otro). **Dato:** las claves del ámbito que aún
+  no pide; «Pagos confirmados» pide porcentaje (1 a 100); se ofrece aunque su regla esté apagada, con la nota de que nadie podrá cumplirlo.
+  **Documento:** tipo (activos; los del flujo marcados; sin ninguno, enlace a Documentos), mínimo y máximo de archivos (enteros ≥ 1, máximo
+  ≥ mínimo), formatos (ninguno = los del tipo). **Espera:** una fase activa del otro flujo (un vehículo espera a sus repuestos y viceversa).
+  Nace informativo y lo dice. Motivos junto al campo; lo escrito queda.
+- **Editar** (`?editar=requisito&requisito=<id>`): el formulario de su tipo en el lugar de «Agregar»; manda sólo lo que cambió (sin
+  cambios no llama a la base); no cambia clave, tipo ni «Bloqueante». Una sola forma abierta.
+- **Bloqueante:** apagar guarda directo. Encender lee antes cuántas unidades quedarían fuera de regla: sin ninguna guarda; con alguna,
+  confirma en línea (no destruye nada) diciendo cuántas y que no se mueven, quedan marcadas («Más de 50…»; si la base revisó 1.000, lo
+  dice). Recargar descarta el aviso; el foco vuelve al interruptor.
+- **Fuera de regla** (`?panel=fuera-de-regla`): sobre la lista de fases, «N unidades fuera de regla» (acotado) con «Ver cuáles»: por fase,
+  el título y cuántos requisitos le faltan; «Verlas en el inventario» (`/vehiculos?origen=&fase=`, no en repuestos). Lo oculto dice «Un
+  vehículo que no puedes ver». Tope 50 con aviso. Sólo lista.
+- **Quitar** (`?eliminar=requisito&quitar=<id>`, `<Confirmar>`): irreversible.
+- **Estados:** sin requisitos, tope de 500 con aviso, error al leer los tipos, conflicto (el aviso del flujo), sin permiso (`42501`).
 
 ### Flujos: salidas y quién mueve (estados propios)
 
-Bloque «Salidas y quién mueve» del inspector de una fase (`?fase=<id>`, 5.06-1) y los chips de la fila de la lista. «Salida» es una transición que sale de la fase; «entrada», una que llega.
+Bloque del inspector (`?fase=<id>`) y los chips de la fila. «Salida» es una transición que sale de la fase; «entrada», una que llega.
 
-- **Quién puede mover a esta fase:** «Hoy pueden mover: Dueño, Logística» (los roles de la fase, en orden) o «Cualquiera con el permiso de mover», y la nota fija «Quien tenga permiso para mover a cualquier fase siempre puede.». Debajo, el selector «Roles que pueden mover a esta fase» (una casilla por rol; ayuda «Vacío: cualquiera con el permiso de mover.») y «Guardar quién mueve» (apagado sin cambios; «Quién puede mover guardado.»). Un rol que no está entre los 100 leídos se dice «otro rol» y se conserva al guardar.
-- **Entradas:** «Se llega desde: Compra, Puerto»; sin ninguna, «Nadie llega aquí: es una fase inicial o le falta una entrada.» (en una inicial, «Es una fase inicial: nadie llega aquí.»).
-- **Fila de salida:** «Embarcar → Embarcado» (sin acción, «Mover → Embarcado»), debajo quién puede mover por ella («Hoy pueden mover: Logística (lista de esta salida)» si la salida tiene su lista; «(los de la fase)» si cae a la de la fase destino; o «Cualquiera con el permiso de mover»), «Pide nota» y «Jubilada» como `<Badge>` si aplican, «Editar» (`aria-label` «Editar la salida a <destino>») y «Quitar» (`aria-label` «Quitar la salida a <destino>»).
-- **Agregar salida** (estado local, en línea; recargar la cierra sin perder lo guardado): «Fase de destino» (sólo las fases activas distintas de ésta que aún no son salida), «Acción» (hasta 40 caracteres; vacía dice «Mover») y el interruptor «Pide nota al mover». «Salida agregada.» El motivo de la base va junto a su campo y lo escrito se conserva. Sin destino posible, el botón queda apagado con «No hay otra fase activa a la que salir.» o «Ya sacas a todas las fases activas.». Cerrar el inspector con algo escrito pregunta.
-- **Quitar** (`?eliminar=salida&salida=<id>`, `<Confirmar>` «Quitar la salida «Embarcar» a «Embarcado»»): irreversible, no mueve a nadie («Salida quitada.»). Un id que ya no está en la fase se avisa («Esa salida ya no está en esta fase.») y la URL se limpia.
-- **Chips en la fila:** «→ Embarcado · Embarcar» (sin acción, «→ Embarcado») con el color de la fase destino y texto; hasta 3 y «+N más»; no son enlaces (el clic en la fila abre el inspector).
-- **Estados:** sin salidas («Esta fase no tiene salidas: es un final o le falta una.»; en un final, «…: es un final.»), tope («Se muestran las primeras 500 salidas y roles del flujo: puede que falten algunas.»), conflicto (el aviso de arriba del flujo; lo escrito queda), sin permiso (la base dice `42501` y se avisa), red caída (el reintento repite el mismo id: «ya existe» se toma por hecho).
-- **Editar una salida** (5.06-2; estado local, en el lugar de la fila): «Salida a <destino>» y «El destino no cambia: para otro destino quita la salida y crea otra.», «Acción», «Pide nota al mover» y el selector «Quién puede mover por esta salida» (ayuda «Vacío: la lista de la fase destino.»). Un solo «Guardar» (apagado sin cambios; «Guardando…») manda sólo lo que cambió; «Salida guardada.», se cierra y el foco vuelve a «Editar». Mientras se edita, «Agregar salida» y los demás «Editar» esperan. Si la acción y la nota quedaron y los roles no, la forma sigue abierta: «Se guardaron la acción y la nota, pero no quién mueve: <motivo>.» y un segundo «Guardar» manda sólo lo que falta. Acción de más de 40 caracteres: «La acción tiene hasta 40 caracteres.» junto al campo. Sin roles en la empresa: «No hay roles para elegir.». Cerrar el inspector con cambios pregunta.
+- **Quién puede mover a esta fase:** «Hoy pueden mover: Dueño, Logística» o «Cualquiera con el permiso de mover», con la nota de que quien
+  puede mover a cualquier fase siempre puede. Selector de roles (vacío = cualquiera con el permiso) y «Guardar quién mueve». Un rol fuera
+  de los 100 leídos se dice «otro rol» y se conserva.
+- **Entradas:** «Se llega desde: …»; sin ninguna, lo dice (distinto en una inicial).
+- **Fila de salida:** «Embarcar → Embarcado» (sin acción, «Mover → …»), quién mueve por ella (su lista, «(los de la fase)» o cualquiera),
+  «Pide nota» y «Jubilada» como `<Badge>`, «Editar» y «Quitar» (`aria-label` con el destino).
+- **Agregar salida** (estado local, en línea): destino (activas, distintas, que aún no son salida), acción (≤ 40; vacía, «Mover») y «Pide
+  nota al mover». Sin destino posible, apagado con su motivo.
+- **Editar una salida** (en el lugar de la fila): el destino no cambia (para otro, quitar y crear); acción, nota y «Quién puede mover por
+  esta salida» (vacío = la lista de la fase destino). Un «Guardar» manda lo que cambió; el foco vuelve a «Editar»; mientras, lo demás
+  espera. Si acción y nota entraron y los roles no, sigue abierta con el motivo y otro «Guardar» manda lo que falta.
+- **Quitar** (`?eliminar=salida&salida=<id>`, `<Confirmar>`): irreversible, no mueve a nadie.
+- **Chips:** «→ Embarcado · Embarcar» con el color del destino y texto; hasta 3 y «+N más»; no son enlaces.
+- **Estados:** sin salidas, tope de 500 con aviso, conflicto, sin permiso (`42501`), red caída (el reintento repite el id: «ya existe» se
+  toma por hecho). Cerrar el inspector con algo escrito pregunta.
 
 ### Flujos: reglas y oferta de transporte (estados propios)
 
-Configuración › Flujos › Reglas (`?seccion=reglas`, 5.11). Bajo el selector de flujo, dos bloques: las reglas del flujo y, con «Transporte» encendida, la oferta de transporte. Escribe quien configura el flujo (`flujos.configurar` o `repuestos.configurar`); la base vuelve a decidir.
+Configuración › Flujos › Reglas (`?seccion=reglas`): las reglas del flujo y, con «Transporte» encendida, la oferta. Escribe quien configura
+el flujo; la base vuelve a decidir.
 
-- **Reglas del flujo:** una fila por regla del ámbito (repuestos no tiene «Vitrina web», «Portal del cliente» ni «Aduana») con su interruptor (`role="switch"`, el nombre accesible es el de la regla), qué permite y qué enciende. El interruptor sigue a lo que lee el servidor: un apagado que no se hace no «salta» y vuelve; mientras hay un envío en vuelo todos están apagados.
-- **Apagar con uso:** no escribe. Bajo la regla, un aviso «No se puede apagar «Aduana»: la usa la fase «En aduana».» (o «la usan las fases «A» y «B»», «la usan 2 requisitos de espera (fase «X»)», «más de 50») y un enlace por fase a su inspector (`?seccion=fases&origen=<id>&fase=<id>`). El aviso se va cuando el cambio de esa regla tiene éxito.
-- **Sin uso:** apaga al momento con un toast «Regla «Aduana» apagada.» y «Deshacer»; encender también lo ofrece. «Deshacer» usa la última versión conocida del flujo: apagar dos reglas y deshacer la primera no da conflicto por culpa de quien lo hace.
-- **Oferta de transporte:** tres grupos de casillas (puertos de origen, puertos de destino, navieras: sólo los activos) y «Guardar oferta» (apagado sin cambios) y «Ofrecer todos». Sin marcar ninguno, cada grupo dice «Vacío: se ofrecen todos.». Un puerto o naviera guardado que se desactivó se sigue viendo, rotulado «(inactivo)», para poder quitarlo. Con más de 200, «Mostrando los primeros 200.». Las marcas sin guardar sobreviven a encender o apagar otra regla.
-- **Vacíos:** «Todavía no hay navieras cargadas. Se cargan en Logística.» · «Todavía no hay puertos cargados. Se cargan en Logística.» · «No hay flujos que puedas configurar.» · «Este flujo ya no existe.»
-- **Conflicto:** «Otra persona cambió este flujo.» con «Recargar» arriba de la pantalla (lo marcado en la oferta se conserva mientras la oferta guardada no cambie). Una regla que dejó de poder cambiarse (permiso, flujo) se dice con un toast y se relee.
-- **Sin permiso:** interruptores y casillas apagados y un aviso «No puedes configurar las reglas de este flujo.».
-- **Estados:** esqueleto (el `Suspense` de la pestaña), error con «Reintentar» (el de `(app)`).
+- **Reglas:** una fila por regla del ámbito (repuestos no tiene «Vitrina web», «Portal del cliente» ni «Aduana») con su interruptor
+  (`role="switch"`, nombre = la regla), qué permite y qué enciende. Sigue a lo que lee el servidor: un apagado que no se hace no «salta»;
+  con un envío en vuelo todos se apagan.
+- **Apagar con uso:** no escribe; bajo la regla dice qué fases o requisitos de espera la usan («más de 50») con un enlace a cada inspector.
+- **Sin uso:** apaga al momento con toast y «Deshacer» (también al encender), que usa la última versión conocida del flujo.
+- **Oferta de transporte:** casillas de puertos de origen, de destino y navieras (activos), «Guardar oferta» y «Ofrecer todos»; sin
+  marcar ninguno, se ofrecen todos. Uno guardado y luego desactivado se ve «(inactivo)» para poder quitarlo. Tope 200 con aviso. Las
+  marcas sin guardar sobreviven a cambiar otra regla.
+- **Vacíos:** sin navieras o puertos (se cargan en Logística), sin flujos configurables, flujo que ya no existe.
+- **Conflicto:** «Recargar» arriba (lo marcado queda mientras la oferta guardada no cambie). Una regla que dejó de poder cambiarse se dice
+  con un toast y se relee. **Sin permiso:** todo apagado con su aviso.
 
 ### Logística: estados propios
 
-El panel de la unidad (`<PanelDeLaUnidad>`, 6.01) se dibuja igual en `/logistica/vehiculo/<id>` y, dentro de un drawer, en `/logistica?vehiculo=<id>`.
+El panel de la unidad (`<PanelDeLaUnidad>`) se dibuja igual en `/logistica/vehiculo/<id>` y, dentro de un drawer, en `/logistica?vehiculo=<id>`.
 
-- **Panel de la unidad:** cabecera con el título del vehículo, el origen, la fase (`<BadgeDeFase>`; «Sin fase» si no tiene), «Desde hace N días en esta fase» (nada si no tiene fase) y «Abrir ficha». Debajo, un bloque plegado por hueco (qué falta, documentos, transporte, aduana, gastos, pagos, margen, notas, historial), en ese orden, que lee al abrirse y que sólo aparece con su permiso en el origen de la unidad y su regla del flujo encendida. Gastos, pagos y margen ya están (6.11) y transporte también (6.08-2); los demás llegan con su área.
-- **Hueco «Transporte»** (6.08-2; plegado, lee al abrirse con la sesión de quien mira): tres bloques abiertos — «Ruta» (Naviera, Puerto de origen, Puerto de destino, con «Sin elegir»), «Contenedor y booking» y «Fechas y notas» (Zarpe, ETA, Arribo con selector de fecha y Notas de hasta 2.000) — y «Guardar» (apagado sin cambios, mientras guarda y sin permiso; manda sólo lo que cambió). El selector ofrece lo del flujo (vacío = todo lo activo) y siempre lo ya guardado, rotulado «(inactiva)» o «(fuera de la oferta)». Contenedor y booking se guardan en mayúsculas y sin espacios. Estados: esqueleto (`aria-busy`); error con «Reintentar»; sin transporte, «Esta unidad todavía no tiene transporte cargado.» sobre el formulario vacío; sin navieras activas, «Todavía no hay navieras cargadas.» junto al selector y, con `logistica.catalogos.gestionar`, el enlace «Cargar navieras». **Rechazos:** junto a su campo («La ETA no puede ser antes del zarpe.», «La fase «X» no permite asignar contenedor.», «La fase «X» exige contenedor: no se puede vaciar.»), con el foco al primero y lo escrito intacto; sin campo, un aviso sobre «Guardar». **Conflicto:** dentro del formulario, el texto de la base con «No se guardó nada. Recargar trae la versión nueva y conserva lo que escribiste.» y «Recargar». Sin `logistica.transporte.editar` del origen: los campos apagados con lo guardado y «No tienes permiso para editar el transporte de este origen.», sin «Guardar». Al guardar: «Transporte guardado.» y «Qué falta» se relee. Una unidad de repuesto: «El transporte de los repuestos llega con su módulo.»
-- **Entrada:** la unidad se lee bajo la RLS de `vehiculos` y se pide `logistica.ver` en su origen. Sin esa clave: «No tienes permiso para ver esto». Lo que no existe, está en la papelera, no se ve o trae un id inválido: «Este vehículo ya no está disponible» con «No existe o ya no tienes acceso.» y el enlace «Ir a Logística» (nunca «sin permiso»: confirmaría que existe). En el drawer, el mismo estado va dentro del panel.
-- **«Qué falta» y mover** (6.04-1; hueco abierto al inicio, el primero del panel): una tarjeta por destino (las salidas de la fase actual; sin fase, las fases iniciales) con la fase y lo que pide, cada requisito con su estado **dicho con texto** («Cumplido» / «Falta»), «Obligatorio» / «Informativo», su detalle («1 de 2 aprobados», «2 de 3 llegaron») y, en una falta obligatoria, «Ir a Documentos» (o Transporte, Aduana, Pagos) si el panel tiene ese hueco; «Elegir» abre el formulario en el mismo bloque: nota interna («obligatoria» si la fase o la salida la piden, con «Esta fase pide una nota interna.» junto al campo), el botón (la acción de la salida, «Mover a «<fase>»» o «Mover a la fase inicial «<fase>»») y «Cancelar». **Botón apagado con su motivo escrito debajo:** «Falta: BL aprobado.», «Tu rol no puede mover a esta fase.», «Esta fase pide una nota interna.», «No tienes permiso para mover unidades de este origen.». `Ctrl/Cmd+Enter` en la nota envía si el botón está habilitado. Al lograrlo: «<título> pasó a «<fase>».», la tarjeta cambia de columna y el foco vuelve al título del panel. **Conflicto:** dentro del formulario, el texto de la base con el nombre («Rosa Mamani la movió a «Embarcado» hace 1 min.»), «No se movió nada. Recargar trae su estado y conserva tu nota.», «Ver cómo quedó» (otra pestaña) y «Recargar». Una unidad **fuera de regla** lo dice arriba («Fuera de regla: a esta fase le falta …»). Estados: esqueleto de bloque; error con «Reintentar»; sin fase «Todavía no tiene fase.»; sin destinos «Desde esta fase no hay a dónde mover.»; «Hay más destinos de los que se muestran.» al llegar al tope de 12; «Actualizando…» al releer (al volver el foco, mínimo 5 s entre lecturas); sin permiso de mover la lista se ve y no hay «Elegir».
-- **Notas e historial** (6.04-2; dos bloques plegados que leen al abrirse, con la sesión de quien mira): «Notas» trae arriba «Escribir una nota» (`<Textarea>` con su etiqueta, «Quedan N caracteres.» de 2000 y «Guardar nota»; Ctrl/Cmd+Enter guarda; apagado mientras guarda o sin texto, y si falla el motivo va junto al botón y el texto queda) y debajo las notas, la más nueva primero: quién, cuándo y su texto con los saltos de línea; la que dejó un cambio de fase dice «al pasar a «<fase>»» y no se edita. «Editar» sólo en la propia (en el lugar, con «Guardar» y «Cancelar»; el foco vuelve a «Editar»); **no hay «Borrar»**: la base no deja el borrado suave por `update` (abierto 6-3, pide una RPC). «Historial» es de sólo lectura: una línea por cambio («Entró a «B»» o ««A» → «B»»), quién («Sistema» si no hay persona), cuándo y la nota. Las dos listas: de a 20 con «Ver más» hasta 500 (`<AvisoDeTope>` «Para ver anteriores, ve a una fecha.»), «Ir a una fecha» y «Desde el … · Volver a los más recientes». Estados: esqueleto, vacíos («Todavía no hay notas.» / «Todavía no hay cambios de fase.» / «No hay nada hasta esa fecha.») y error con «Reintentar» dentro del bloque. **Ficha del vehículo:** «Ver en logística» en la cabecera, antes de «Editar», sólo con `logistica.ver` en el origen; lleva a `/logistica/vehiculo/<id>`.
-- **Flujo del origen:** si no se pudo leer, los bloques que piden una regla no se dibujan y una línea lo dice («No pudimos leer el flujo de este origen: algunas secciones no se muestran. Recarga la página.»); el resto sigue.
-- **Lote (6.04-3)** — con `flujos.mover` en el origen, cada tarjeta lleva una casilla de 44 px («Elegir <nombre>») y cada columna con fase, «Elegir los de esta columna» (lo cargado y filtrado, hasta 200; «Se eligieron las primeras 200.»). Una sola fase: elegir en otra dice «Elegiste en otra fase: se vació la selección anterior.». Con elegidos, una barra fija abajo: «N elegidos en «F»», «Limpiar» y «Mover a…», que abre `?panel=lote` en un drawer (claves `destino`, `contenedor` y `booking`; la selección no sobrevive a recargar: «No elegiste ninguna unidad.»). El drawer: «Elige a dónde mover.» con un botón por salida; con destino, «N listas, M no pueden entrar» y una línea por unidad («Lista», «Falta: BL aprobado.», «Ya no está en «F»»; las primeras 20 con «Mostrar todas»), la nota común (obligatoria si la fase la pide, dicho junto al campo; Ctrl/Cmd+Enter), «Mover los N que pueden» (apagado con su motivo si ninguna puede) y «Elegir otro destino». Al mover, el resultado entero: «Se movieron 6 de 8.» y una línea por unidad que no pasó («No se movió «X». Falta: BL aprobado.»), «Reintentar los 2» (vuelve a la vista previa con sólo esas) y «Cerrar» (vacía la selección). `?contenedor=` o `?booking=` abre el mismo drawer con las unidades de ese grupo que estén en una misma fase («Se eligieron 7 de 8; 1 está en otra fase y no entra.»). Estados: esqueleto, error con «Reintentar», sin unidades, ninguna se movió.
-- **Drawer de `/logistica`:** `?vehiculo=<id>` lo abre al cargar; Esc, la ✕ o «atrás» lo cierran y quitan el parámetro. Sólo muestra, así que cerrar no pregunta.
-- **`/logistica`:** sin `logistica.ver` en ningún origen, «No tienes permiso para ver esto». La cadena (6.03): pestañas de origen (con uno solo no se dibujan; cambiar de origen suelta filtros, fase y panel), `<FilterShell>` con sus filtros y las columnas en el orden de la base. **Cargando:** esqueleto de tablero (`loading.tsx` y el `Suspense`). **Origen sin fases:** «Este origen todavía no tiene fases.» (con el enlace «Configurar los flujos» sólo si la persona tiene `flujos.configurar`). **Sin orígenes con la logística encendida:** «Ningún origen tiene la logística encendida.». **Vacío por filtro** (todas las columnas vacías con filtros): «Ningún vehículo coincide con los filtros.» con «Limpiar»; una columna vacía dice «Sin vehículos en esta fase.» (o «Ningún vehículo coincide.»). **Error:** «No se pudo cargar la cadena» con «Reintentar»; un origen que no se pudo comprobar: «No se pudo comprobar N origen(es).». **Columna:** su nombre sobre el color de la fila, «Sin fase» (la pone la base, primera y sólo con tarjetas), «Jubilada» en texto, y el número acotado (`50+`, nunca un total); «Ver más» hasta 500 y, en el tope, «Mostrando las 500 que llevan más tiempo en la fase.» con «Afina con los filtros o busca el VIN.»; un fallo de «Ver más» avisa y la columna queda como estaba. **Tarjeta:** nombre (identidad «<principal> · <título>») como enlace, VIN y lote, «N días en la fase», «Demorado» en texto (lo calcula la base), contenedor y ETA si hay; sin foto. **Dónde está** (con `q` válido): lista de hasta 10 de todos tus orígenes, «en «<fase>» hace N días», cada una lleva a su origen con el panel abierto; «Ninguno de tus vehículos coincide.» y «Hay más: escribe más para afinar.». **Celular:** una fase a la vez con pestañas (`?fase=`). La sub-navegación (Cadena · Embarques · Aduana · Gastos) sólo dibuja los enlaces de páginas que existen y que la persona puede ver; con uno solo no se dibuja.
-- **`/logistica/gastos`** (6.11-3; `logistica.ver` y `logistica.gastos.ver` o `pagos.ver`, si no «No tienes permiso para ver esto»): los gastos y los pagos que se ven, vista `?ver=gastos|pagos` (dos enlaces, sólo con las dos claves; cambiar de vista no conserva filtros). Filtros en la URL: origen (con dos o más), categoría (gastos), confirmación «Sin confirmar» (pagos) y rango de fecha. Por cursor de a 50, sin selector, sin total ni suma en ninguna parte y sin «Anterior» (la base sólo camina hacia adelante: «Siguiente» y «Volver a los más recientes»). La fila (o su nombre, con Enter) abre el panel de la unidad (`?vehiculo=`) sin perder filtros ni página; al cerrarlo la lista se vuelve a leer. Estados: vacío de primera vez («Todavía no hay gastos que puedas ver.» / «…pagos…»), «Nada coincide con los filtros» con «Limpiar filtros», una página sin filas con «Volver al principio», error con «Reintentar» y esqueleto de lista. El pago confirmado dice «Confirmado» con su fecha; quién lo confirmó está en el sello del panel. «Ver todos en Gastos» sale del tope de los huecos «Gastos» y «Pagos» de la unidad, ya filtrado por su origen.
-- **`/logistica/embarques`** (6.08-3; `logistica.ver`, si no «No tienes permiso para ver esto»): los embarques (por booking) y los contenedores que quien mira ve, vista `?grupo=embarques|contenedores` (dos enlaces; cambiar de vista no conserva filtros ni página). Filtros en la URL: naviera, puerto de origen, puerto de destino (de los catálogos activos; sin ninguno, no se dibujan), estado («En tránsito» sin fecha de arribo, «Ya llegaron») y búsqueda por booking o por contenedor (3 letras o números). Por cursor de a 50, sin selector, sin total y sin «Anterior»: «Las primeras.» o «Siguen las anteriores.» con «Volver al principio». Cada fila dice la clave (botón que abre el resumen), la naviera, la ruta «Origen → Destino», Zarpe, ETA, Arribo y las unidades («1 unidad», «N unidades», «200+ unidades»; «Hay unidades que no ves.»); lo que difiere entre las unidades dice «Varias» («Varios» en los puertos) y lo que ninguna tiene, «—». Si la base revisó una parte y no llenó la página: «Se revisó una parte de la lista y no se llenó la página. «Siguiente» sigue buscando.» (sin filas: «Ningún grupo de esta parte coincide.» con «Seguir buscando»). Estados: esqueleto de lista, vacío («Todavía no hay embarques con booking.» / «Todavía no hay contenedores cargados.»), por filtro («Ningún embarque coincide con los filtros.» / «Ningún contenedor…» con «Limpiar filtros»), una página sin filas y error con «Reintentar». El resumen (`?booking=` o `?contenedor=` en un `<Drawer>` que sólo muestra): «Embarque X» / «Contenedor X», «N unidades» (acotado), una fila por unidad con su título (enlace a la unidad si es un vehículo), su fase y su ETA y arribo, y los avisos «Hay más unidades de las que se muestran.» y «Hay unidades que no ves.»; sin unidades visibles, «Este embarque no tiene unidades que puedas ver.». Debajo, bloques plegados «Mover el grupo», «Subir un documento a las unidades» y «Prorratear un gasto entre las unidades», cada uno sólo con su permiso (en cualquier origen; la base lo vuelve a exigir por unidad). **«Editar grupo»** (6.08-4): el botón del encabezado del resumen sólo se dibuja con `logistica.transporte.editar` o `repuestos.editar`; abre `?panel=editar-grupo`, un `<Drawer>` «Editar el contenedor X» / «Editar el embarque X» que **tapa** al resumen (no convive con él). Tres bloques abiertos: «Ruta» (naviera, puertos), «Contenedor y booking» y «Fechas» (zarpe, ETA, arribo; sin notas). Un campo común sale con su valor; el que difiere entre las unidades sale vacío y dice «Varios» (y «Varios: cada unidad tiene el suyo. Escribe o elige uno para aplicarlo a todas.»): dejarlo así no lo toca y nunca se vacía. Pie «Se aplicará a las N unidades.»; «Guardar» sólo con cambios y manda lo tocado a todas o a ninguna. Éxito: «Se aplicó a las N unidades.» y se vuelve al resumen (con la clave nueva si cambió el contenedor o el booking). Conflicto: «No se cambió ninguna: <motivo>» con «Recargar», que conserva lo escrito; un rechazo de una unidad va junto a su campo con el título de la unidad. Si el grupo no se puede editar desde aquí (más de 200 unidades, unidades que no ves o que no puedes editar) el botón sale apagado con el motivo debajo.
-- **`/logistica/aduana`** (6.09; `logistica.ver` lee y `logistica.aduana.gestionar` escribe, si no «No tienes permiso para ver esto»): las declaraciones aduaneras que se ven, por cursor de a 50, sin selector, sin total y sin «Anterior». Filtros en la URL: `canal` (los de la base), `pagada` (todas, pagadas o con tributos pendientes) y `q` por número (3 letras o números). Cada fila dice el número (botón que abre el resumen), el canal en `<Badge>` con su texto, la fecha aceptada, el estado de los tributos y las unidades (acotado: «más de 200»): «Pagada» o «Faltan los tributos de N» (con «y de unidades que no ves» si hay ocultas; «Sin vehículos» si no tiene) y el vencimiento en texto («Vencida el …», «Vence hoy», «Vence mañana», «Vence en N días» hasta 7, si no «Vence el 10 ene 2027»; una pagada no se alarma). La fila abre el resumen en un `<Drawer>` por `?declaracion=<id>` (datos, «Pagada» o «Faltan…» y los vehículos con «Tiene el tributo» o «Falta el tributo»; sin montos). Estados: esqueleto de lista, vacío («Todavía no hay declaraciones.»), por filtro («Ninguna declaración coincide con los filtros.» con «Limpiar filtros»), una página sin filas, error con «Reintentar»; el resumen: esqueleto, «Esta declaración ya no existe o ya no la ves.» y error. El hueco «Aduana» del panel de la unidad (regla `aduana`): la declaración vigente con enlace a su resumen, el canal, el vencimiento y «Tributos pagados: sí|no» con «Ir a Gastos»; sin declaración, «Esta unidad no está en ninguna declaración.» con «Ver declaraciones». **Escribir (6.09-2, sólo con `logistica.aduana.gestionar`):** «Nueva declaración» sobre la lista abre un `<Drawer>` por `?panel=nueva-declaracion` (número obligatorio, «Aceptada el», «Vencen los tributos el», despachante, depósito y notas; error del número repetido junto al campo; borrador; «No hay nada que guardar.» sin cambios); «Editar» en el resumen abre `?panel=editar-declaracion&declaracion=<id>` y no convive con el resumen; un conflicto de versión dice el texto de la base con «Recargar», que conserva lo escrito. En el resumen, «Vehículos de la declaración»: «Quitar» marca (con «Deshacer»), un buscador por título, VIN o lote (3 letras o números, «Buscar» o Enter, hasta 10, «Hay más: escribe más para afinar.») suma con «Agregar» y «Guardar vehículos» manda todo junto (hasta 200 por vez); con canal queda todo apagado con «La composición quedó fija al asignar el canal.». «Asignar canal» (o «Cambiar canal») abre un `<Confirmar>` por `?panel=canal` sobre el resumen, con el selector adentro y el aviso de que la composición queda fija; sin vehículos el botón dice «Agrega al menos un vehículo antes de asignar el canal.». El canal no se quita.
-- **Configuración › Logística:** sin `logistica.catalogos.gestionar`, «No tienes permiso para ver esto». Con la clave y ningún catálogo lleno, «Por ahora no hay nada que configurar aquí.». **Categorías de gasto** (6.11-4): cargando (esqueleto), vacío («Todavía no hay categorías de gasto.»), error («No se pudieron cargar las categorías» con «Reintentar»); el «⋯» de cada fila lleva Editar, Activar o Desactivar y Eliminar (`?panel=eliminar-categoria&categoria=<id>`; si tiene gastos, el diálogo dice ««<nombre>» está en uso: tiene gastos. Desactívala…» y no se cierra); el orden es un número del modal; una categoría con propósito «Tributos» no cambia de propósito (Aduana la lee). **Prorratear** (hueco del resumen de un grupo, 6.11-4): «Prorratear un gasto entre las N unidades», con la vista de cuánto le toca a cada unidad y la suma antes de confirmar (`?panel=prorratear`, «Repartir 100,00 USD entre 3 unidades»); sin unidades, «Este grupo no tiene unidades. No hay nada que repartir.»; más de 200, no se reparte; el equivalente en base lo calcula la base al confirmar.
-- **Estados:** esqueleto de detalle (`loading.tsx` y el del `Suspense`), error con «Reintentar» (el de `(app)`), sin permiso y no disponible.
+- **Entrada:** la unidad se lee bajo la RLS de `vehiculos` y se pide `logistica.ver` en su origen; sin esa clave, «No tienes permiso para
+  ver esto». Lo que no existe, está en la papelera, no se ve o trae un id inválido: «Este vehículo ya no está disponible» con «No existe o
+  ya no tienes acceso.» e «Ir a Logística» (nunca «sin permiso»: confirmaría que existe). En el drawer, el mismo estado va dentro.
+- **Panel de la unidad:** cabecera con título, origen, fase (`<BadgeDeFase>`; «Sin fase»), «Desde hace N días en esta fase» y «Abrir
+  ficha». Debajo, un bloque plegado por hueco (qué falta, documentos, transporte, aduana, gastos, pagos, margen, notas, historial), en ese
+  orden, que lee al abrirse con la sesión de quien mira y sólo aparece con su permiso en el origen y su regla del flujo encendida. Si el
+  flujo del origen no se pudo leer, los bloques que piden una regla no se dibujan y una línea lo dice; el resto sigue. La ficha del
+  vehículo lleva «Ver en logística» (antes de «Editar», con `logistica.ver`) a `/logistica/vehiculo/<id>`.
+- **«Qué falta» y mover** (abierto al inicio, el primero): una tarjeta por destino (las salidas de la fase actual; sin fase, las iniciales)
+  con cada requisito y su estado **dicho con texto** («Cumplido» / «Falta»), «Obligatorio» / «Informativo», su detalle («1 de 2
+  aprobados») y, en una falta obligatoria, el enlace al hueco que la resuelve. «Elegir» abre en el bloque la nota interna (obligatoria si
+  la fase o la salida la piden) y el botón con la acción de la salida; apagado, su motivo va escrito debajo («Falta: BL aprobado.», rol,
+  nota, permiso del origen). `Ctrl/Cmd+Enter` envía. Al lograrlo la tarjeta cambia de columna y el foco vuelve al título del panel.
+  **Conflicto:** dentro del formulario, quién la movió y cuándo, «No se movió nada.», «Ver cómo quedó» (otra pestaña) y «Recargar», que
+  conserva la nota. Una unidad **fuera de regla** lo dice arriba. Estados: esqueleto, error con «Reintentar», sin fase, sin destinos, tope
+  de 12 destinos con aviso, «Actualizando…» al releer (al volver el foco, mínimo 5 s entre lecturas); sin permiso de mover, la lista sin
+  «Elegir».
+- **Hueco «Transporte»:** «Ruta» (naviera, puertos de origen y destino), «Contenedor y booking» (en mayúsculas y sin espacios) y «Fechas y
+  notas» (zarpe, ETA, arribo, notas ≤ 2.000) con un «Guardar» que manda sólo lo que cambió (apagado sin cambios, guardando o sin permiso).
+  El selector ofrece la oferta del flujo (vacía = todo lo activo) y siempre lo guardado, rotulado «(inactiva)» o «(fuera de la oferta)».
+  Rechazos junto a su campo (ETA antes del zarpe, la fase no permite o exige contenedor) con el foco al primero; conflicto dentro del
+  formulario con «Recargar», que conserva lo escrito. Sin `logistica.transporte.editar` del origen, campos apagados con su motivo. Vacíos:
+  sin transporte cargado; sin navieras (con `logistica.catalogos.gestionar`, «Cargar navieras»). Guardar relee «Qué falta». Una unidad de
+  repuesto: `TEXTO_DE_REPUESTO`.
+- **Notas e historial** (plegados): «Notas» con «Escribir una nota» (`<Textarea>`, contador de 2.000, «Guardar nota», `Ctrl/Cmd+Enter`; el
+  error junto al botón y el texto queda) y las notas de la más nueva: quién, cuándo, texto; la que dejó un cambio de fase dice «al pasar a
+  «<fase>»» y no se edita. «Editar» sólo la propia, en el lugar. **No hay «Borrar»**: la base no deja el borrado suave por `update` (pide
+  una RPC). «Historial», sólo lectura: una línea por cambio, quién («Sistema» sin persona), cuándo y la nota. Las dos: de a 20 con «Ver
+  más» hasta 500 (`<AvisoDeTope>`), «Ir a una fecha» y «Volver a los más recientes»; esqueleto, vacíos y error dentro del bloque.
+- **Lote** — con `flujos.mover` en el origen, cada tarjeta lleva casilla de 44 px y cada columna «Elegir los de esta columna» (lo cargado y
+  filtrado, hasta 200). Una sola fase: elegir en otra vacía la selección y lo dice. Con elegidos, barra fija abajo («N elegidos en «F»»,
+  «Limpiar», «Mover a…») que abre `?panel=lote` (claves `destino`, `contenedor`, `booking`; la selección no sobrevive a recargar). El
+  drawer: un botón por salida; con destino, «N listas, M no pueden entrar» y una línea por unidad (las primeras 20 con «Mostrar todas»), la
+  nota común, «Mover los N que pueden» (apagado con motivo si ninguna puede) y «Elegir otro destino». El resultado se dice entero («Se
+  movieron 6 de 8.», una línea por unidad que no pasó), con «Reintentar los 2» (vuelve a la vista previa con esas) y «Cerrar».
+  `?contenedor=` o `?booking=` abre el mismo drawer con las unidades del grupo que estén en una misma fase, y dice cuántas quedan fuera.
+- **Drawer de `/logistica`:** `?vehiculo=<id>` lo abre al cargar; Esc, ✕ o «atrás» lo cierran y quitan el parámetro; sólo muestra, así que
+  cerrar no pregunta.
+- **`/logistica` (la cadena):** pestañas de origen (con uno solo no se dibujan; cambiar suelta filtros, fase y panel), `<FilterShell>` y las
+  columnas en el orden de la base. Estados: esqueleto de tablero; origen sin fases (con «Configurar los flujos» si tiene
+  `flujos.configurar`); ningún origen con la logística encendida; vacío por filtro con «Limpiar» y columna vacía; error con «Reintentar» y
+  «No se pudo comprobar N origen(es).». **Columna:** nombre sobre el color de la fila, «Sin fase» (la pone la base, primera y sólo con
+  tarjetas), «Jubilada» en texto, número acotado (`50+`); «Ver más» hasta 500 y en el tope «Mostrando las 500 que llevan más tiempo en la
+  fase.»; un fallo de «Ver más» deja la columna como estaba. **Tarjeta:** identidad «<principal> · <título>» como enlace, VIN y lote, días
+  en la fase, «Demorado» en texto (lo calcula la base), contenedor y ETA; sin foto. **Dónde está** (con `q` válido): hasta 10 de todos tus
+  orígenes con su fase, cada una a su origen con el panel abierto, y «Hay más: escribe más para afinar.». **Celular:** una fase a la vez
+  (`?fase=`). La sub-navegación (Cadena · Embarques · Aduana · Gastos) dibuja sólo lo que la persona puede ver; con uno solo, nada.
+- **Listas de `/logistica/*`** (gastos, embarques, aduana): por cursor de a 50, sin selector, sin total y sin «Anterior» (la base camina
+  sólo hacia adelante: «Siguiente» y «Volver al principio»); filtros en la URL; estados: esqueleto de lista, vacío de primera vez, por
+  filtro con «Limpiar filtros», página sin filas con «Volver al principio» y error con «Reintentar». Sin permiso, «No tienes permiso para
+  ver esto».
+- **`/logistica/gastos`** (`logistica.ver` y `logistica.gastos.ver` o `pagos.ver`): vista `?ver=gastos|pagos` (sólo con las dos claves;
+  cambiar no conserva filtros); filtros origen (con dos o más), categoría, «Sin confirmar» y rango de fecha; **ninguna suma**. La fila abre
+  el panel de la unidad (`?vehiculo=`) sin perder filtros ni página y la lista se relee al cerrarlo. El pago confirmado dice «Confirmado»
+  con su fecha (quién, en el sello del panel). «Ver todos en Gastos» sale del tope de los huecos «Gastos» y «Pagos», filtrado por origen.
+- **`/logistica/embarques`** (`logistica.ver`): `?grupo=embarques|contenedores`; filtros naviera, puertos (de los catálogos activos),
+  estado («En tránsito», «Ya llegaron») y búsqueda por booking o contenedor (3). Fila: la clave (abre el resumen), naviera, ruta, zarpe,
+  ETA, arribo y unidades acotadas («200+»; «Hay unidades que no ves.»); lo que difiere entre unidades dice «Varias», lo que ninguna tiene
+  «—». Si la base revisó una parte sin llenar la página, lo dice y «Siguiente» sigue buscando. **Resumen** (`?booking=` o `?contenedor=`,
+  `<Drawer>` que sólo muestra): una fila por unidad con título (enlace si es vehículo), fase, ETA y arribo, con avisos de tope y de ocultas;
+  debajo, plegados y cada uno con su permiso (la base lo exige por unidad): «Mover el grupo», «Subir un documento a las unidades» y
+  «Prorratear un gasto entre las unidades». **«Editar grupo»** (con `logistica.transporte.editar` o `repuestos.editar`; `?panel=editar-grupo`
+  **tapa** al resumen): ruta, contenedor y booking, fechas; un campo común sale con su valor, uno que difiere sale vacío con «Varios» y
+  dejarlo así no lo toca. «Guardar» manda lo tocado a todas o a ninguna («Se aplicó a las N unidades.»; conflicto «No se cambió ninguna:
+  <motivo>» con «Recargar»; el rechazo de una unidad junto a su campo con su título). Más de 200 unidades, ocultas o no editables: botón
+  apagado con su motivo.
+- **`/logistica/aduana`** (`logistica.ver` lee, `logistica.aduana.gestionar` escribe): filtros `canal`, `pagada` y `q` por número. Fila:
+  número (abre el resumen), canal en `<Badge>` con texto, fecha aceptada, tributos («Pagada» o «Faltan los tributos de N», con «y de
+  unidades que no ves»; «Sin vehículos»), unidades acotadas y vencimiento en texto (vencida, hoy, mañana, en N días hasta 7, si no la
+  fecha; una pagada no se alarma). Resumen en `?declaracion=<id>` (datos y vehículos con «Tiene/Falta el tributo»; sin montos). El hueco
+  «Aduana» del panel (regla `aduana`): la declaración vigente, canal, vencimiento y «Tributos pagados: sí|no» con «Ir a Gastos». **Escribir:**
+  «Nueva declaración» (`?panel=nueva-declaracion`: número obligatorio y único, fechas, despachante, depósito, notas; borrador) y «Editar»
+  (`?panel=editar-declaracion&declaracion=<id>`, no convive con el resumen; conflicto con «Recargar» que conserva lo escrito). «Vehículos
+  de la declaración»: «Quitar» marca (con «Deshacer»), buscador (3, hasta 10) con «Agregar» y «Guardar vehículos» manda todo junto (hasta
+  200); con canal queda todo apagado: la composición queda fija. «Asignar canal» es un `<Confirmar>` en `?panel=canal` con el selector
+  adentro; pide al menos un vehículo. El canal no se quita.
+- **Configuración › Logística:** sin `logistica.catalogos.gestionar`, «No tienes permiso para ver esto»; sin ningún catálogo lleno, «Por
+  ahora no hay nada que configurar aquí.». **Categorías de gasto:** esqueleto, vacío, error con «Reintentar»; el «⋯» lleva Editar,
+  Activar/Desactivar y Eliminar (`?panel=eliminar-categoria&categoria=<id>`; con gastos el diálogo dice que está en uso, propone
+  desactivarla y no se cierra); el orden es un número del modal; una de propósito «Tributos» no cambia de propósito (Aduana la lee).
+  **Prorratear** (hueco del resumen de un grupo, `?panel=prorratear`): muestra cuánto le toca a cada unidad y la suma antes de confirmar;
+  sin unidades no hay nada que repartir; más de 200 no se reparte; el equivalente en base lo calcula la base.
+- **Estados:** esqueleto de detalle (`loading.tsx` y el del `Suspense`), error con «Reintentar» (el de `(app)`), sin permiso y no
+  disponible.
 
-### Tablero: estados propios (9.08)
+### Tablero: estados propios
 
-- **`/tablero`** (`tablero.metricas.ver`; sin él, «No tienes permiso para ver esto» y la entrada ni se dibuja en el menú): el período vive en la URL (`?periodo=mes|mes-anterior|90d`; uno desconocido cae en «Este mes») y son tres enlaces con `aria-current`. Cada widget lleva su `<Suspense>` con esqueleto; si falla, «Reintentar» sólo en ése. Cinco cifras (leads creados, convertidos, tasa, cotizaciones, finales), cada una un grupo con nombre «Título: valor». Una tasa nula dice «Sin datos», nunca «0 %»; «Leads creados» en cero dice «Todavía no hay leads en este período» y, con `leads.crear`, ofrece «Nuevo lead». Inicio lo enlaza con «Ver el tablero». Cinco gráficas anchas (barras por día de leads y de cotizaciones, rankings de leads por origen y por persona, y de cotizaciones por origen): leyenda siempre en texto, «Ver como tabla» con todos los números, tope dicho con «Se muestran los 10 primeros orígenes.» / «las 20 primeras personas.», vacío «Todavía no hay leads en este período» (con «Nuevo lead» si puede) y error con «Reintentar» por widget. «Margen del mes» (9.11, con `logistica.margen.ver` en algún origen; suma sólo esos): el monto por `<Monto>` en un grupo que se llama sólo «Margen del mes» (el Modo Live lo oculta entero), nulo «Sin venta registrada»; nota con venta, real y cotizado (por `<Monto>`), «N vehículos por su último pago confirmado» y «N vehículos sin venta registrada». «Cola de la web» (9.11, ancho, con `web.cola.gestionar`): «Turnos», «Tasa de contacto» (sin los directos; nula «Sin datos») y «Mediana hasta Contacté» (min), la cuenta por estado y el ranking «Turnos por persona» con «Ver como tabla»; vacío «Todavía no hay turnos de la web en este período». «Personalizar» (cabecera, siempre; `?panel=personalizar`, conserva el período): un `<Drawer>` con una fila por widget que la persona puede ver, con un interruptor «Mostrar X» («Visible» / «Oculto» en texto) y «Subir X» / «Bajar X» (apagados en los extremos); guarda al cambiar, sin «Guardar», con los controles apagados mientras guarda y el error si falla; «Restablecer» vuelve al tablero de fábrica (apagado si ya está así). Un widget sin permiso no se muestra ni se ofrece. Si oculta todos: «Ocultaste todos los widgets».
+- **`/tablero`** (`tablero.metricas.ver`; sin él, «No tienes permiso para ver esto» y sin entrada en el menú; Inicio lo enlaza con «Ver el
+  tablero»): período en la URL (`?periodo=mes|mes-anterior|90d`; uno desconocido cae en «Este mes»), tres enlaces con `aria-current`. Cada
+  widget con su `<Suspense>` y esqueleto; si falla, «Reintentar» sólo en ése; uno sin permiso no se muestra ni se ofrece.
+- **Cifras:** leads creados, convertidos, tasa, cotizaciones, finales; cada una un grupo «Título: valor». Una tasa nula dice «Sin datos»,
+  nunca «0 %»; sin leads, «Todavía no hay leads en este período» (con `leads.crear`, «Nuevo lead»).
+- **Gráficas** (barras por día de leads y cotizaciones; rankings de leads por origen y por persona y de cotizaciones por origen): leyenda en
+  texto, «Ver como tabla» con todos los números, tope dicho (10 orígenes, 20 personas), vacío y error por widget.
+- **«Margen del mes»** (con `logistica.margen.ver` en algún origen; suma sólo esos): monto por `<Monto>` en un grupo llamado sólo «Margen
+  del mes» (Modo Live lo oculta entero), nulo «Sin venta registrada»; nota con venta, real y cotizado y cuántos vehículos entran y cuántos
+  no tienen venta.
+- **«Cola de la web»** (con `web.cola.gestionar`): turnos, tasa de contacto (sin los directos; nula «Sin datos»), mediana hasta «Contacté»,
+  la cuenta por estado y «Turnos por persona» con «Ver como tabla».
+- **«Personalizar»** (`?panel=personalizar`, conserva el período): una fila por widget visible con «Mostrar X» («Visible» / «Oculto» en
+  texto) y «Subir/Bajar X»; guarda al cambiar, sin «Guardar», con los controles apagados mientras guarda; «Restablecer» vuelve al de
+  fábrica (apagado si ya está así). Todos ocultos: «Ocultaste todos los widgets».
 
 ### Cotización: niveles de acceso (estados propios)
 
-Configuración › Cotización (`/configuracion/cotizacion?seccion=niveles`). Hermana de «Tipos de seguimiento», con lo propio de que **un nivel retirado se deshace** y de que **el motivo de por qué no se elimina viene de la base**.
+Configuración › Cotización (`?seccion=niveles`). Hermana de «Tipos de seguimiento»; **un nivel retirado se deshace** y **el motivo de por
+qué no se elimina viene de la base**.
 
-- **Quién entra:** `equipo.roles.ver` o `equipo.roles.gestionar` (cada nivel es un permiso de la matriz de Roles); sin ninguno, «No tienes permiso para ver esto». Con sólo `ver` se lee: sin «Nuevo nivel», sin «⋯», sin clic.
-- **Lista:** primero el fijo «Todos» (sin «⋯» ni clic) y los niveles en uso; debajo «Retirados». Cada fila: estado y «Sin uso»/«En uso». Pie «N de 10 niveles posibles.». «⋯»: Renombrar · Retirar/Restaurar (guardan solos, con «Deshacer») · ─ · Eliminar. «Costos» se renombra y retira, no se elimina.
-- **Eliminar con uso:** apagado, con lo que dice la base; sin uso confirma nombrándolo (`?panel=eliminar-nivel&nivel=<id>`). Nuevo y renombrar: modal por URL (`?panel=nuevo-nivel`, `renombrar-nivel&nivel=<id>`); vacío, > 40 o repetido se rechaza junto al campo. **Tope** 10 contando «todos» y retirados. Estados: esqueleto, error con «Reintentar», lista llena.
-- **Dónde se nota:** cada nivel son **dos permisos por origen** (`Ver el nivel «X»`, `Editar el nivel «X»`) en la matriz de Roles; el dueño los recibe al nacer. La tabla de escritorio tiene dos columnas, «Nombre» y «⋯» (estado y uso bajo el nombre).
+- **Quién entra:** `equipo.roles.ver` o `equipo.roles.gestionar` (cada nivel es un permiso de la matriz de Roles); sin ninguno, «No tienes
+  permiso para ver esto». Con sólo `ver` se lee: sin «Nuevo nivel», «⋯» ni clic.
+- **Lista:** el fijo «Todos» (sin «⋯» ni clic) y los niveles en uso; debajo «Retirados». Fila: estado y «Sin uso»/«En uso»; pie «N de 10
+  niveles posibles.». «⋯»: Renombrar · Retirar/Restaurar (guardan solos, con «Deshacer») · Eliminar. «Costos» se renombra y retira, no se
+  elimina.
+- **Eliminar con uso:** apagado, con lo que dice la base; sin uso confirma nombrándolo (`?panel=eliminar-nivel&nivel=<id>`). Nuevo y
+  renombrar: modal por URL (`?panel=nuevo-nivel`, `renombrar-nivel&nivel=<id>`); vacío, > 40 o repetido se rechaza junto al campo. **Tope**
+  10 contando «todos» y retirados. Estados: esqueleto, error con «Reintentar», lista llena.
+- **Dónde se nota:** cada nivel son **dos permisos por origen** (`Ver el nivel «X»`, `Editar el nivel «X»`) en Roles; el dueño los recibe
+  al nacer.
 
 ### Cotización: comentarios (estados propios)
 
-La sección «Comentarios» bajo la hoja de una cotización guardada (`/cotizaciones/[id]`, 4.27-2). Un nivel de respuestas, con los adjuntos de la cotización arriba (4.27-3); favorita, reportar y moderar (4.27-4) van en la cabecera (abajo).
+La sección «Comentarios» bajo la hoja de una cotización guardada: un nivel de respuestas, los adjuntos arriba; favorita, reportar y moderar
+en la cabecera.
 
-- **Dónde y cuándo se lee:** siempre presente bajo la hoja; la lista y su código llegan la primera vez que la sección está a la vista (o enseguida si la URL trae `?panel=borrar-comentario` o `?panel=quitar-adjunto`). Mientras lee, esqueleto de tres renglones con el campo ya dibujado y apagado; sin comentarios, «Todavía no hay comentarios.»; un fallo, su mensaje con «Reintentar»; sin acceso, «No tienes acceso a esta cotización.» sin campo.
-- **Comentar y responder:** «Escribe un comentario» arriba (lo más nuevo va primero) y «Comentar»; `Ctrl/Cmd+Enter` envía. «Responder» sólo en una raíz (también eliminada) abre «Escribe una respuesta» al pie de sus respuestas. Vacío o de más de 4.000: «Escribe el comentario (hasta 4.000 caracteres).» sin pedir nada; un rechazo deja lo escrito y lo dice bajo el campo («Ese comentario ya no está.» con «Recargar»).
-- **Editar y borrar:** «Editar» sólo lo propio y vivo (campo con «Guardar» y «Cancelar», `Esc` cancela sin preguntar; un conflicto ofrece «Recargar» y conserva lo escrito). «Borrar» lo propio o, con `cotizaciones.moderar`, lo ajeno: abre «Borrar tu comentario» / «Borrar el comentario de <nombre>» por `?panel=borrar-comentario&comentario=<id>`, cita el comienzo y, en una raíz con respuestas, «Las respuestas quedan.». Una raíz con respuestas queda «Comentario eliminado.» y se va con su última respuesta. Una URL que no abre avisa «Ese comentario ya no está.» y se limpia.
-- **Cuántos:** de a 20 raíces, cada una con sus primeras 20 respuestas («Ver más comentarios», «Ver más respuestas») hasta 500 entre todos; ahí «Mostrando los 500 más recientes.» con «Ir a una fecha», que muestra ese día y lo anterior («Comentarios hasta el …» con «Volver a los más recientes»). Lo de otra persona aparece al recargar (sin tiempo real).
-- **Adjuntos** (4.27-3): bloque «Adjuntos» arriba del campo, leído con la primera página (dos renglones de esqueleto; «Todavía no hay adjuntos.»; un fallo, su mensaje con «Reintentar» sin tocar los comentarios). Quien puede guardar la cotización ve la zona «Adjuntar archivo» («PDF, imágenes o Word, hasta 25 MB. Hasta 20 por cotización.»; las imágenes suben como WebP ≤ 1600 px); en el tope, apagada con «Una cotización admite hasta 20 adjuntos.». Lo que no se puede subir se dice debajo, uno por línea («<nombre>: sólo PDF, imágenes o Word.», «<nombre> pesa más de 25 MB.»). Cada archivo sube de a uno con su fila «Subiendo <nombre>…»; un fallo deja la fila con el mensaje (el de la base: «Ese archivo ya está adjunto.»…), «Reintentar» y «Descartar». Cada adjunto: icono, nombre (cortado, entero al pasar el puntero), tamaño, «Tú» o quién lo subió y cuándo; «Descargar» pide una URL firmada al tocarlo (60 s) y «Quitar» (quien lo subió y todavía puede adjuntar, o quien modera) abre «Quitar <nombre>» por `?panel=quitar-adjunto&adjunto=<id>` («El archivo deja de estar en esta cotización.» y, si es ajeno, «Lo subió <nombre>.»). Una URL que no abre avisa «Ese adjunto ya no está.» y se limpia. Sin miniaturas.
-- **Favorita, reportar y moderar** (4.27-4), en la cabecera de la guardada, tras «Revisiones»: la estrella «Favorita» (para todo el que la ve; marca privada, cambia al tocar y, si la base la rechaza, vuelve y lo avisa), «Reportar…» (o «Reportaste esta cotización…») y, sólo para quien modera (`cotizaciones.moderar` y, en una final, `cotizaciones.final.gestionar` del origen), «Invalidar…» en toda activa, «Descartar los reportes…» si tiene reportes y «Reactivar…» en una inválida. Antes de «Revisiones», la insignia «Inválida» (todos) o «Reportada» (sólo quien modera: el autor no se entera de un reporte sin juzgar). Si la lectura falla, la cabecera sigue sin nada de esto. «Reportar…» abre `?panel=reportar`: «Reportar la cotización n.º N», «¿Qué está mal?» con contador `n/500` (vacío o largo: «Cuéntanos qué está mal (hasta 500 caracteres).» bajo el campo), «Enviar el reporte» o, con uno propio, el motivo escrito, «Cambiar el motivo» y «Retirar mi reporte» (sin preguntar; «Reporte retirado.» con «Deshacer»). Moderar abre `?panel=moderar&accion=invalidar|descartar|reactivar`, un `<Confirmar>` con los motivos (hasta 20, con fecha; «Hay más de 20 reportes.»; «Sin reportes.»; esqueleto; un fallo con «Reintentar», y se puede confirmar igual): «Invalidar la cotización n.º N» («Deja de valer y no ancla al vehículo. Sus reportes se conservan. Lo que no guardaste en la hoja se descarta.»), «Descartar los reportes de la n.º N» («Se borran sus reportes y sigue activa.») y «Reactivar la cotización n.º N» («Vuelve a valer y se borran sus reportes. Lo que no guardaste en la hoja se descarta.»). Entró: «Cotización invalidada.», «Reportes descartados.» o «Cotización reactivada.» y la página se vuelve a leer; otra persona la cambió: el texto de la base adentro, con «Recargar». Una URL con una acción que ya no corresponde avisa «Esta cotización ya no está así. Recarga para ver cómo quedó.» y se limpia.
+- **Cuándo se lee:** la lista llega la primera vez que la sección está a la vista (o enseguida si la URL trae `?panel=borrar-comentario` o
+  `quitar-adjunto`). Esqueleto con el campo dibujado y apagado; vacío; error con «Reintentar»; sin acceso, sin campo.
+- **Comentar y responder:** campo arriba (lo más nuevo primero) y «Comentar», `Ctrl/Cmd+Enter`. «Responder» sólo en una raíz (también
+  eliminada), al pie de sus respuestas. Vacío o > 4.000: el motivo sin pedir nada; un rechazo deja lo escrito y lo dice bajo el campo.
+- **Editar y borrar:** «Editar» sólo lo propio y vivo (`Esc` cancela sin preguntar; conflicto con «Recargar» que conserva lo escrito).
+  «Borrar» lo propio o, con `cotizaciones.moderar`, lo ajeno, por `?panel=borrar-comentario&comentario=<id>`; cita el comienzo y, en una
+  raíz con respuestas, «Las respuestas quedan.»: queda «Comentario eliminado.» y se va con su última respuesta. Una URL que no abre avisa y
+  se limpia.
+- **Cuántos:** de a 20 raíces con sus primeras 20 respuestas («Ver más comentarios», «Ver más respuestas») hasta 500; ahí aviso de tope
+  con «Ir a una fecha» y «Volver a los más recientes». Sin tiempo real: lo ajeno aparece al recargar.
+- **Adjuntos:** leídos con la primera página (esqueleto, vacío, error propio). Quien puede guardar la cotización ve «Adjuntar archivo» (PDF,
+  imágenes o Word, ≤ 25 MB, hasta 20 por cotización; imágenes a WebP ≤ 1600 px); en el tope, apagado con su motivo. Lo que no se puede
+  subir se dice uno por línea. Cada archivo sube de a uno con su fila; un fallo deja la fila con el mensaje de la base, «Reintentar» y
+  «Descartar». Cada adjunto: icono, nombre, tamaño, quién y cuándo; «Descargar» pide una URL firmada al tocarlo (60 s); «Quitar» (quien lo
+  subió y aún puede adjuntar, o quien modera) por `?panel=quitar-adjunto&adjunto=<id>`. Sin miniaturas.
+- **Favorita, reportar y moderar** (cabecera, tras «Revisiones»): «Favorita» (marca privada, optimista; si la base la rechaza vuelve y
+  avisa), «Reportar…» (`?panel=reportar`: motivo con contador `n/500`; con uno propio, «Cambiar el motivo» y «Retirar mi reporte» con
+  «Deshacer») y, sólo para quien modera (`cotizaciones.moderar` y, en una final, `cotizaciones.final.gestionar` del origen), «Invalidar…»
+  en una activa, «Descartar los reportes…» si tiene y «Reactivar…» en una inválida. Insignia «Inválida» (todos) o «Reportada» (sólo quien
+  modera: el autor no se entera de un reporte sin juzgar). Moderar: `?panel=moderar&accion=invalidar|descartar|reactivar`, un
+  `<Confirmar>` con los motivos (hasta 20) y lo que hace (invalidar: deja de valer y no ancla al vehículo; descartar: borra los reportes;
+  reactivar: vuelve a valer y borra los reportes; invalidar y reactivar descartan lo no guardado de la hoja). Entró: aviso y se relee;
+  conflicto: el texto de la base con «Recargar»; una acción que ya no corresponde avisa y se limpia. Si la lectura falla, la cabecera sigue
+  sin nada de esto.
 
 ### Cotización: fórmula (estados propios)
 
-Configuración › Cotización (`/configuracion/cotizacion?seccion=formula&origen=<id>`, 4.20-2a). Publicar el borrador y revertir a una archivada, 4.20-2b; descartar el borrador, 4.20-2c; el editor en texto, 4.21-3a-1; su vista previa y las filas nuevas, 4.21-3a-2; guardar el borrador, 4.21-3b-1.
+Configuración › Cotización (`?seccion=formula&origen=<id>`): ver, publicar, revertir, descartar y editar la fórmula de un origen.
 
-- **Quién entra:** `cotizaciones.configurar` en algún origen, aunque no tenga los permisos de los niveles (entonces la única pestaña es «Fórmula» y `?seccion=niveles` abre «Fórmula»). Sin ninguno de los tres permisos de la sección, «No tienes permiso para ver esto». La base vuelve a decidir: la policy `formulas: leer` sólo deja ver los orígenes con la clave.
-- **Origen:** los orígenes donde tiene la clave, en el orden del catálogo y también los inactivos («(inactivo)» detrás). Con más de uno, el selector «Origen» escribe `?origen=`; uno que no es suyo o no existe abre el primero. Cambiar de pestaña lo limpia. Sin ninguno: «No hay orígenes donde puedas configurar la fórmula.».
-- **Arriba:** la publicada («Publicada: versión N», su nota, quién y cuándo) o, sin ella, «<Origen> todavía no tiene una versión publicada: no se puede cotizar en él.»; el borrador si hay («Borrador de <persona> · guardado <cuándo>», su nota, «Empezó sobre la versión M.» y, si se publicó otra después, «Después de que empezó, se publicó la versión N: publicarlo dará conflicto.»).
-- **Versiones:** las publicadas y archivadas, de la más nueva; cada una con «Publicada» en la vigente, su nota o «Sin nota.» y quién la publicó y cuándo (sin autor: «Alguien»). De a 20 con «Ver más» hasta 500; en el tope, «Mostrando las 500 más recientes.» e «Ir a la versión» (un número; lo demás: «Escribe un número de versión.»), que lee desde esa versión hacia atrás con «Desde la versión N.» y «Volver a la más nueva». La posición no va a la URL. Estados: el esqueleto de la sección mientras lee, el error de la lectura con «Reintentar» (el de la ruta), «Todavía no hay versiones.», «No hay versiones desde la N.» y, si falla «Ver más», «No se pudieron cargar más versiones.» con «Reintentar» sin perder lo cargado.
-- **Publicar** (4.20-2b): «Publicar…» en la tarjeta del borrador sólo si está al día (atrasado, el aviso ya dice por qué no). Abre `?panel=publicar-formula`: «Publicar el borrador», «Pasa a ser la versión con la que se cotiza en <Origen>. Las cotizaciones guardadas siguen con la suya.», el campo «Nota» (vacía: «Publicar pide una nota.» junto al campo, sin pedir nada; más de 2.000 caracteres: «La nota pasa de 2.000 caracteres.») y «Publicar»/«Publicando…». Entró: «Se publicó el borrador.», la publicada nueva, sin borrador y la lista desde la primera página. El conflicto (otra persona publicó, o guardó el borrador después de que se leyó: 4.21-3b-1) es el texto de la base tal cual, con «Recargar», que conserva la nota; si con lo nuevo el borrador ya no está («El borrador ya no está: otra persona lo publicó o lo descartó.») o quedó atrasado («Después de que empezó este borrador se publicó la versión N: ya no se puede publicar.»), el modal lo dice y no deja publicar. Una regla de la base («Publicar pide el diseño de la hoja.», un nivel retirado) va arriba del modal y la nota queda; sin conexión, sale sola al volver. Por la URL sin borrador: «No hay borrador para publicar.»; con uno atrasado: «Ese borrador ya no se puede publicar: después de que empezó se publicó otra versión.» (se avisa y la URL se limpia).
-- **Revertir** (4.20-2b): «Revertir» (nombre «Revertir a la versión N») en cada archivada, en cualquier página, si el origen tiene publicada. Abre `?panel=revertir-formula&version=<id>`: «Revertir a la versión N», «Se publica una versión nueva, copia de la N con su diseño, y con ella se cotiza desde ahora. El borrador no cambia.», la nota escrita («Vuelve a la versión N.», se puede cambiar; vacía, como al publicar) y «Revertir»/«Revirtiendo…». Entró: «Se publicó una copia de la versión N.»; el borrador, si hay, queda atrasado. El conflicto, como al publicar: «Recargar» trae la publicada nueva y deja volver a enviar. Por la URL sin publicada: «Sin una versión publicada no hay a qué revertir.»; la publicada: «Esa ya es la versión publicada.»; una que no es una archivada de la primera página ni la recién elegida (otra página tras recargar, otro origen, una que no existe): «Esa versión no está en la lista: búscala y elige «Revertir».». Cambiar de pestaña limpia `panel` y `version`.
-- **Descartar** (4.20-2c): «Descartar…» en la tarjeta del borrador, al día **y atrasado** (atrasado ya no se publica, y se descarta), para todo el que configura el origen. Abre `?panel=descartar-borrador`, un `<Confirmar>`: «Descartar el borrador de <persona>», «Guardado <cuándo>. Se borra y no se puede deshacer; la versión publicada no cambia.», «Cancelar» y «Descartar borrador». Recargar lo reabre; «Cancelar», Esc y «atrás» lo cierran sin borrar. Entró: «Se descartó el borrador.», sin la tarjeta del borrador; la publicada y la lista no cambian. Lo que no entró queda en el diálogo, que no se cierra: el mensaje de la base tal cual o, sin respuesta, «No sabemos si se descartó: recarga para verlo.» (sin reintento solo: se confirma otra vez a mano); sin conexión, `<Confirmar>` lo dice y no deja. Por la URL sin borrador: «No hay borrador para descartar.» (se avisa y la URL se limpia). Sin versión esperada hasta el 4.21: si otra persona lo publicó o lo descartó entre abrir y confirmar, no se borra nada y el aviso igual dice «Se descartó el borrador.».
-- **Editar** (4.21-3a-1): «Editar» en la tarjeta del borrador (también atrasado) y, sin borrador, «Editar en un borrador» en la de la publicada; sin ninguna, no hay botón y `?panel=editar-formula` por la URL dice «No hay una fórmula para editar en <Origen>.» (se avisa y la URL se limpia). El editor ocupa el lugar del selector, las tarjetas y la lista: «Editar la fórmula de <Origen>», «Sobre el borrador de <persona>.» o «Sobre la versión N publicada.» y «Volver a la fórmula» («atrás» también, con el foco de vuelta en el botón). Lee la versión desde el navegador: el esqueleto mientras, el error con «Reintentar» y, si ya no vuelve, «Esa versión de la fórmula ya no se puede abrir: se descartó o ya no configuras <Origen>.». Cada fila: etiqueta, id (el nombre que usan los textos) y tipo; un cálculo o una constante, su texto vigente (tras un ⚙, el texto reescrito y «Con ⚙ se cambió X por Y: el texto ya dice el valor nuevo.», o «El texto ya no manda: …»), el texto escrito desde el nodo o sus campos («Calcula: …», «Vale …»), con «Editar»; las demás, sin «Editar». «Editar» abre «Texto de <etiqueta>»: una fila a la vez (las demás esperan), «Aplicar» o Ctrl/Cmd+Enter compila, «Cancelar» o Esc cierra; el error queda debajo del texto, con la fila abierta («El texto de la fila pasa de 2.000 caracteres.», los del compilador); pisar un valor del ⚙ pide «Pisar el valor»; un rechazo de la fórmula entera va en la fila que nombra (o arriba de la lista) y lo aplicado queda. Lo aplicado se repone al volver o recargar, con el aviso de siempre y «Descartar», hasta «Guardar el borrador» (4.21-3b-1). Hasta 500 filas, con «Mostrando las 500 primeras filas.» y «Buscar fila» (id o etiqueta); sin coincidencias, «Nada coincide con los filtros».
-- **Vista previa y filas nuevas** (4.21-3a-2): entre la cabecera del editor y «Buscar fila», «Vista previa» con «Cifras de prueba.» y qué se supuso (los datos en 0, las opciones apagadas, la variante por defecto y los tipos de cambio y las tablas de hoy): el esqueleto mientras lee, el error con «Reintentar», «La vista previa espera una fórmula válida: …» si no valida, «No se pudo calcular con estas cifras: revisa la variante por defecto de la fórmula.» y, calculada, «Total en dólares» y «Total en Bs» (por `<Monto>`; «Sin cifra: falta algo en las filas.» si falta algo) con los avisos de lo que no se pudo leer bajo ellos («No hay una tabla «x» activa en <Origen> ni compartida.», «La tabla «x» tiene 1.000 filas o más: la vista previa no la lee.», «No hay un tipo de cambio activo «x».»). Cada fila suma su cifra tras el tipo (o «Fuera de la variante.», «Condición apagada.», el faltante de la fila o «Sin cifra: depende de algo que falta.»). «Sumar fila debajo de <etiqueta>» abre bajo la fila «Etiqueta», «Tipo» (Cálculo o Constante), «Nombre» (propuesto desde la etiqueta, editable; con «Constante», «Una constante nueva aún no aparece en la hoja: hay que colocarla en el diseño.») y «Texto»; «Crear fila» o Ctrl/Cmd+Enter crean, «Cancelar» o Esc cierran; cada error junto a su campo y lo escrito queda; la fila nueva queda justo debajo, con su cifra y el foco en su «Editar». Una sola cosa abierta a la vez («Aplica o cancela la fila abierta.»). Una fila que existe no cambia de nombre: con otro nombre es una fila nueva.
-- **Guardar el borrador** (4.21-3b-1): arriba de la lista, «Guardar el borrador» con una línea de estado. Espera con «Aplica o cancela la fila abierta.» (una fila abierta o «Sumar fila»), «Corrige lo marcado para guardar.» (la fórmula no valida) o «No hay cambios por guardar.»; una fila que el ⚙ reescribió cuenta como cambio. Sin confirmación. Sobre la publicada crea el borrador con su diseño; sobre el borrador lo pisa con su hora, sin releer: el editor no se vuelve a montar y la cabecera pasa a «Sobre el borrador de <persona>.». Mientras guarda, «Guardando…» y «Editar» y «Sumar fila» esperan. Entró: «Se guardó el borrador.». Un conflicto (otra persona guardó o empezó un borrador) es el texto de la base con «Recargar trae el borrador como quedó; lo que aplicaste y no guardaste se pierde.» y «Recargar», que vuelve a montar el editor sobre lo de ahora; una regla de la base, «La base no aceptó la fórmula por una regla que el editor no revisó: no se guardó.»; sin permiso, «Ya no configuras <Origen>: no se puede guardar.»; sin respuesta, «No sabemos si se guardó: recarga para verlo.»; otro error, «No pudimos guardar el borrador. Vuelve a intentar en un momento.». Lo que el diseño de la hoja no muestra (una constante sin celda; la auxiliar de un número escrito en un texto ya no la pide, 4.21-3b-2) se avisa mientras haya: «Para publicar, el diseño de la hoja tiene que mostrar: «…». Puedes guardar igual.» (cinco y «y N más»); sin diseño, «Este borrador no tiene el diseño de la hoja: todavía no se puede publicar.» (P1).
-- **Grupos** (4.21-3c): con grupos, tras «Vista previa» y antes de «Buscar fila», la sección «Grupos» con una tarjeta por grupo en el orden de la fórmula (hasta `TOPE_DE_LO_CARGADO`, con su aviso): etiqueta, id, «Plazo: …» o «Sin plazo», «Tono: <nombre>» (la clave mientras el catálogo no llega), «Tipo de cambio: <bucket> · <etiqueta>», «n filas» y «Editar» (nombre «Editar el grupo <etiqueta>»; espera con «Aplica o cancela la fila abierta.» si hay otra cosa abierta o se guarda). Sin grupos no se dibuja ni se ofrece convertir, y no se suman ni quitan grupos (P2: la plantilla de la tarjeta nombra exactamente los grupos). El formulario «Grupo <etiqueta>», sin campo de id: «Etiqueta», «Plazo de pago» (opcional; vacío lo quita), «Tono» (del catálogo, leído al montarse la sección: «Cargando los tonos…» y, junto a «Aplicar», que espera, «Esperando los tonos de la empresa.»; si falla «No se pudieron leer los tonos de la empresa.» con «Reintentar»; ayuda «La tarjeta usa el tono que elija su plantilla, si elige uno.»), «Tipo de cambio» (el bucket, P1; con modos en el diseño, «En la hoja, cada modo elige el tipo de cambio de cada bucket.») y «Filas del grupo» con «Quitar» en cada una («Queda sin grupo «…». Sin grupo, una fila no entra en el total.», P3) y «Sumar una fila» (las que pueden sumar, `· en <grupo>` o `· sin grupo`, P4). «Aplicar» o Ctrl/Cmd+Enter; «Cancelar» o Esc; un error junto a su campo con el foco en el primero. Tras aplicar, la tarjeta dice «Entró «…» (estaba en …).» o «Quedó sin grupo «…».», la vista previa recalcula y «Guardar el borrador» lo cuenta como cambio. Un rechazo de un grupo (`grupo_vacio`…) va a su tarjeta. Cada fila con grupo dice «Grupo: <etiqueta>» en su cabecera.
+- **Quién entra:** `cotizaciones.configurar` en algún origen, aunque no tenga los permisos de los niveles (entonces «Fórmula» es la única
+  pestaña y `?seccion=niveles` la abre). La base vuelve a decidir: la policy `formulas: leer` sólo deja ver los orígenes con la clave.
+- **Origen:** los que tienen la clave, en el orden del catálogo, también los inactivos («(inactivo)»). Con más de uno, el selector escribe
+  `?origen=`; uno ajeno o inexistente abre el primero; cambiar de pestaña lo limpia. Sin ninguno, su vacío.
+- **Arriba:** la publicada (versión, nota, quién y cuándo) o, sin ella, que no se puede cotizar en el origen; el borrador si hay (de quién,
+  cuándo, nota, versión sobre la que empezó y, si se publicó otra después, que publicarlo dará conflicto).
+- **Versiones:** publicadas y archivadas de la más nueva (sin autor: «Alguien»), de a 20 hasta 500; en el tope, «Ir a la versión» (un
+  número) que lee desde ahí hacia atrás con «Volver a la más nueva»; la posición no va a la URL. Estados: esqueleto, error con
+  «Reintentar», vacío, vacío desde la N y fallo de «Ver más» sin perder lo cargado.
+- **Publicar** (`?panel=publicar-formula`, sólo con el borrador al día): nota obligatoria (≤ 2.000, el motivo junto al campo sin pedir
+  nada). Entró: la publicada nueva, sin borrador y la lista desde la primera página. Conflicto (otra persona publicó o guardó el borrador
+  después de leerlo): el texto de la base con «Recargar», que conserva la nota; si con lo nuevo el borrador ya no está o quedó atrasado, el
+  modal lo dice y no deja publicar. Una regla de la base (falta el diseño, un nivel retirado) va arriba del modal y la nota queda. Por URL
+  sin borrador o con uno atrasado: avisa y limpia.
+- **Revertir** (`?panel=revertir-formula&version=<id>`, en cada archivada si hay publicada): publica una copia de la N con su diseño; el
+  borrador no cambia (queda atrasado). Nota propuesta «Vuelve a la versión N.». Conflicto como al publicar. Por URL: sin publicada, la
+  publicada misma o una versión que no está en lo cargado, avisa y limpia. Cambiar de pestaña limpia `panel` y `version`.
+- **Descartar** (`?panel=descartar-borrador`, `<Confirmar>`; al día **y atrasado**): borra el borrador sin deshacer; publicada y lista no
+  cambian. Lo que no entró queda en el diálogo con el mensaje de la base o, sin respuesta, «No sabemos si se descartó: recarga para verlo.»
+  (sin reintento solo). Por URL sin borrador: avisa y limpia.
+- **Editar** (`?panel=editar-formula`): «Editar» en el borrador (también atrasado) o «Editar en un borrador» en la publicada; sin ninguna,
+  la URL avisa y se limpia. El editor ocupa el lugar de la sección, con «Volver a la fórmula» («atrás» también); lee la versión desde el
+  navegador (esqueleto, error con «Reintentar», versión que ya no se abre). Cada fila: etiqueta, id y tipo; un cálculo o una constante,
+  su texto vigente (tras un ⚙, el reescrito con su aviso) y «Editar», que abre su texto (una fila a la vez; «Aplicar» o `Ctrl/Cmd+Enter`
+  compila, Esc cierra; el error queda bajo el texto; pisar un valor del ⚙ pide «Pisar el valor»; un rechazo de la fórmula entera va a la
+  fila que nombra). Lo aplicado se repone al volver o recargar, con «Descartar», hasta guardar. Hasta 500 filas con aviso y «Buscar fila».
+- **Vista previa y filas nuevas:** «Vista previa» con «Cifras de prueba.» y qué se supuso (datos en 0, opciones apagadas, variante por
+  defecto, tipos de cambio y tablas de hoy): esqueleto, error, fórmula inválida, sin cálculo posible y, calculada, los totales por
+  `<Monto>` con avisos de lo que no se pudo leer (tabla inexistente o de 1.000 filas o más, tipo de cambio inactivo). Cada fila suma su
+  cifra o por qué no la tiene. «Sumar fila debajo de <etiqueta>»: etiqueta, tipo (Cálculo o Constante), nombre (propuesto desde la
+  etiqueta; una constante nueva no aparece en la hoja hasta colocarla en el diseño) y texto; errores junto al campo. Una sola cosa abierta
+  a la vez. Una fila existente no cambia de nombre.
+- **Guardar el borrador:** espera si hay una fila abierta, si no valida o sin cambios (un cambio del ⚙ cuenta). Sin confirmación. Sobre la
+  publicada crea el borrador con su diseño; sobre el borrador lo pisa con su hora, sin releer. Conflicto: el texto de la base con
+  «Recargar» (lo aplicado y no guardado se pierde); regla de la base, sin permiso, sin respuesta y otro error, cada uno con su mensaje. Lo
+  que el diseño no muestra (una constante sin celda) se avisa: «Para publicar, el diseño de la hoja tiene que mostrar: «…». Puedes guardar
+  igual.»; sin diseño, todavía no se puede publicar.
+- **Grupos:** con grupos, una tarjeta por grupo en el orden de la fórmula (hasta `TOPE_DE_LO_CARGADO`): etiqueta, id, plazo, tono, tipo de
+  cambio (bucket), filas y «Editar». Sin grupos no se dibuja; no se suman ni quitan grupos (la plantilla de la tarjeta los nombra). El
+  formulario: etiqueta, plazo de pago (opcional), tono (del catálogo, leído al montarse; «Aplicar» espera a que llegue), tipo de cambio (el
+  bucket; con modos, cada modo elige el de cada bucket) y «Filas del grupo» con «Quitar» (sin grupo, una fila no entra en el total) y
+  «Sumar una fila». Aplicar recalcula la vista previa y cuenta como cambio; un rechazo (`grupo_vacio`…) va a su tarjeta. Cada fila con
+  grupo dice «Grupo: <etiqueta>».
 
 ### Cotización: tarjeta (estados propios)
 
-Configuración › Cotización (`/configuracion/cotizacion?seccion=tarjeta&origen=<id>`, 4.19-3b). Edita el **borrador** de la plantilla de la tarjeta, lo publica con nota y lo descarta (4.19-3c); la vista previa en vivo, 4.19-4.
+Configuración › Cotización (`?seccion=tarjeta&origen=<id>`): edita el **borrador** de la plantilla de la tarjeta, lo publica con nota y lo
+descarta.
 
-- **Vista previa en vivo** (4.19-4): en la pestaña «Tarjeta», una sección «Vista previa de la tarjeta» con «Cifras de ejemplo.» sigue a la plantilla de trabajo (guardada o no). Desde `xl` va al costado y pegada arriba; debajo, tras el cuerpo del editor y antes de «Guardar». Corta cada grupo en 4 filas y lo dice («Se muestran las primeras 4 filas de cada grupo.»). Cargando: esqueleto de alto fijo; sin conexión: el aviso «aquí» con «Reintentar» y el editor sigue en pie; vacío: sin grupos, sólo el total. No es interactiva ni anuncia nada al tipear.
-- **Quién entra:** `cotizaciones.configurar` en algún origen; la pestaña va después de «Fórmula». Sin la clave no hay pestaña y `?seccion=tarjeta` abre la primera de las suyas. **Origen:** como en «Fórmula» (los orígenes con la clave, también los inactivos; con más de uno, el selector «Origen»; uno ajeno abre el primero).
-- **Sin orígenes:** «No hay orígenes donde puedas configurar la tarjeta.» **Sin fórmula publicada:** «Falta publicar la fórmula de <Origen>: la tarjeta se arma con sus grupos.» con «Ir a «Fórmula»»; no hay editor.
-- **Arriba:** «Tarjeta de <Origen>» y de dónde nace: «Sobre el borrador guardado el <fecha>.», «Sin borrador: parte de la versión N publicada.» o «Sin borrador ni publicada: parte de los grupos de la fórmula.»; si hay publicada, «Publicada: versión N, <fecha>.» y su nota.
-- **Avisos** (en este orden): lo corregido al abrir (un grupo que la fórmula ya no tiene se quita, uno nuevo se suma al final sin tono, una etiqueta o leyenda de un nodo sin lugar se quita; **no se guarda solo**), un tono que ya no está en el catálogo («Elige otro o «Del grupo».»), «Con esto no se podría publicar: <motivo>» (lo que sólo ve la fórmula: no apaga «Guardar») y lo que pasó al guardar.
-- **Bloques:** «Grupos» (el tono de cada uno; «Del grupo (<tono>)» quita la clave; un tono que ya no está sale «<clave> (ya no está)»), «Total» (etiqueta y leyenda), «Filas» (plegado; la etiqueta y la leyenda de cada nodo con «Buscar fila» en el navegador; hasta 500 filas del resultado, «Se muestran las 500 primeras filas. Escribe en «Buscar fila» para ver otras.») y «Pie y columnas» (plegado: nota, «Logo», «Leyenda», «Plazo», «Tipo de cambio»). Cada campo dice «n de <tope>» (caracteres, sin `maxLength`) y su motivo va junto a él.
-- **Guardar:** activo desde el principio sin borrador; con borrador, sólo si algo cambió; apagado con la forma rechazada, un envío en curso o un conflicto. Entra: «Se guardó el borrador.» y los campos se apagan hasta que llega lo guardado.
-- **Conflicto (PT409):** el mensaje de la base tal cual, «Ver cómo quedó» (misma URL, otra pestaña, sin perder lo tipeado) y «Recargar» (trae lo de la otra persona y descarta lo escrito); se va **al llegar** la versión nueva. **Sin conexión:** lo escrito queda, sale solo al volver y hay «Reintentar». **Cambios repuestos:** lo tipeado y sin guardar vuelve tras recargar o cambiar de pestaña, con «Recuperamos lo que habías escrito y no guardaste.» y «Descartar».
-- **Publicar** (`?panel=publicar-tarjeta`, 4.19-3c): «Publicar…» está en la fila de «Guardar» y se apaga con su motivo escrito a la vista: «Guarda un borrador para poder publicarlo.» sin borrador y «Guarda los cambios para poder publicarlos.» con cambios sin guardar (se publica lo guardado). El modal «Publicar la tarjeta de <Origen>» dice la fecha del borrador y que lo sin guardar no se publica; «Nota de la versión» es obligatoria («Publicar pide una nota.» junto al campo, sin pedir nada; «n de 2.000»). Entra: «Se publicó la tarjeta.» y el encabezado dice «Publicada: versión N». **PT409:** el mensaje de la base tal cual, «No se publicó nada. La nota que escribiste sigue aquí.», «Recargar» (se va **al llegar** el borrador nuevo, la nota se conserva); si ya no hay borrador, «El borrador ya no está: otra persona lo publicó o lo descartó.» y «Publicar» apagado. Una regla de la base contra la fórmula sale arriba del modal y la nota queda. Sin conexión, sale sola al volver, con «Reintentar». Por la URL, sin borrador no abre: «No hay borrador para publicar.»
-- **Descartar** (`?panel=descartar-plantilla`, 4.19-3c): «Descartar borrador…» sólo con borrador, también con cambios sin guardar. El diálogo «Descartar el borrador de la tarjeta de <Origen>» (sin autor) dice «Guardado el <fecha>. Se borra y no se puede deshacer; la tarjeta publicada no cambia.» Entra: «Se descartó el borrador.» y el editor parte de la publicada. **PT409:** el mensaje de la base, «Descartar borrador» apagado y «Recargar»; si ya no está, «El borrador ya no está: otra persona lo publicó o lo descartó.» Sin respuesta: «No sabemos si se descartó: recarga para verlo.» y no reintenta solo. Por la URL, sin borrador: «No hay borrador para descartar.»
+- **Quién entra:** `cotizaciones.configurar` en algún origen; la pestaña va después de «Fórmula» (sin la clave, `?seccion=tarjeta` abre la
+  primera de las suyas). **Origen:** como en «Fórmula». Sin orígenes, su vacío; **sin fórmula publicada**, no hay editor: «Falta publicar
+  la fórmula de <Origen>: la tarjeta se arma con sus grupos.» con «Ir a «Fórmula»».
+- **Arriba:** «Tarjeta de <Origen>» y de dónde nace (el borrador guardado, la versión publicada o los grupos de la fórmula) y, si hay
+  publicada, su versión, fecha y nota.
+- **Avisos** (en este orden): lo corregido al abrir (un grupo que la fórmula ya no tiene se quita, uno nuevo se suma al final sin tono, la
+  etiqueta de un nodo sin lugar se quita; **no se guarda solo**), un tono que ya no está en el catálogo, «Con esto no se podría publicar:
+  <motivo>» (no apaga «Guardar») y lo que pasó al guardar.
+- **Bloques:** «Grupos» (el tono de cada uno; «Del grupo (<tono>)» quita la clave; uno que ya no está sale «<clave> (ya no está)»),
+  «Total» (etiqueta y leyenda), «Filas» (plegado; etiqueta y leyenda de cada nodo, «Buscar fila», hasta 500 con aviso) y «Pie y columnas»
+  (plegado: nota, logo, leyenda, plazo, tipo de cambio). Cada campo dice «n de <tope>» (sin `maxLength`) y su motivo junto a él.
+- **Vista previa en vivo:** «Vista previa de la tarjeta» con «Cifras de ejemplo.» sigue a la plantilla de trabajo (guardada o no); desde
+  `xl` al costado y pegada arriba, si no debajo del editor. Corta cada grupo en 4 filas y lo dice. Esqueleto de alto fijo; sin conexión, el
+  aviso con «Reintentar» y el editor sigue; sin grupos, sólo el total. No es interactiva ni anuncia nada al tipear.
+- **Guardar:** activo de entrada sin borrador; con borrador, sólo si algo cambió; apagado con la forma rechazada, un envío en curso o un
+  conflicto. Entra: «Se guardó el borrador.» y los campos se apagan hasta que llega lo guardado.
+- **Conflicto (PT409):** el mensaje de la base, «Ver cómo quedó» (otra pestaña, sin perder lo tipeado) y «Recargar» (descarta lo escrito);
+  se va **al llegar** la versión nueva. **Sin conexión:** lo escrito queda, sale solo al volver, con «Reintentar». Lo tipeado sin guardar
+  vuelve tras recargar o cambiar de pestaña, con «Recuperamos lo que habías escrito y no guardaste.» y «Descartar».
+- **Publicar** (`?panel=publicar-tarjeta`): en la fila de «Guardar», apagado con su motivo a la vista sin borrador o con cambios sin
+  guardar (se publica lo guardado). Nota obligatoria (≤ 2.000). Entra: el encabezado dice «Publicada: versión N». PT409: el mensaje de la
+  base, «No se publicó nada.» y «Recargar» (la nota queda); sin borrador, «Publicar» apagado. Una regla de la base contra la fórmula, arriba
+  del modal. Por URL sin borrador: «No hay borrador para publicar.»
+- **Descartar** (`?panel=descartar-plantilla`): sólo con borrador, también con cambios sin guardar; se borra sin deshacer y el editor parte
+  de la publicada. PT409 con «Recargar»; sin respuesta, «No sabemos si se descartó: recarga para verlo.» (no reintenta solo). Por URL sin
+  borrador: «No hay borrador para descartar.»
 
 ### Cotización: tablas (estados propios)
 
-Configuración › Cotización (`/configuracion/cotizacion?seccion=tablas&origen=<id>`, 4.23-3). La base es la del 4.23-1 (`tabla_referencia_publicar()`); la lectura y la action, del 4.23-2.
+Configuración › Cotización (`?seccion=tablas&origen=<id>`): editar y publicar las filas de las tablas de referencia
+(`tabla_referencia_publicar()`).
 
-- **Quién entra y origen:** como «Fórmula» (`cotizaciones.configurar` en algún origen; el selector «Origen» escribe `?origen=` y borra `?tabla=`). Sin ninguno: «No hay orígenes donde puedas configurar las tablas de referencia.».
-- **Lista:** las tablas activas del origen y las compartidas, por clave: el nombre como enlace a `?tabla=<id>`, la clave, «Compartida» y «Tapada por la de <Origen>» (`<Badge>`), y «Versión N · <persona> · <cuándo>». Vacía: «<Origen> no tiene tablas de referencia.» y «Las tablas nuevas y sus columnas todavía no se crean desde aquí.» (P5 del 4.23-1). Tope de 100 con «Mostrando las 100 primeras tablas.». Esqueleto y error con «Reintentar», los de la ruta.
-- **Abrir una:** sólo si está en la lista del origen elegido; si no, «No encontramos esa tabla de referencia en <Origen>.» con «Volver a las tablas». Una que ya no está o pasa de 2.000 filas dice su motivo con «Volver a las tablas». El editor (con `diferido()`) ocupa el lugar del selector y la lista: «Volver a las tablas» (no pregunta: el borrador conserva lo hecho), «Editar <nombre>», «Versión N · <persona> · <cuándo>» y, si es compartida o tapada, a quién le cambia publicarla.
-- **Editor:** la tabla entera en memoria, de a 100 filas («Filas»: «Desde la fila 1», «Desde la fila 101»…, sin total; «Anterior» y «Siguiente»; la página no va a la URL). Un campo por columna declarada, con su etiqueta en la primera fila de la página y el nombre «<Etiqueta>, fila n» en todas; los números y años con el locale de la empresa (en es-BO «9.200,5» es 9200,5 y «1.5» es un aviso). Lo tipeado se aplica al salir del campo o con Enter; lo que no se lee queda escrito con su motivo debajo y la fila conserva el valor de antes; salir sin tocar no cambia nada. «Subir» y «Bajar» y el «⋯» con «Sumar una fila debajo», «Mover al principio», «Mover al final» y «Quitar la fila» (sin preguntar: «Quitaste la fila n.» con «Deshacer»); «Sumar una fila» al pie de la última página; con 2.000, «Una tabla tiene hasta 2.000 filas.». Mover lo anuncia: «La fila quedó en el lugar n.».
-- **Primer error:** el de la fila más temprana (un texto sin leer o una celda que la base no acepta, con el mensaje de la base) arriba, con «Ir a la celda» (cambia de página y pone el foco); una columna que la tabla no declara no tiene campo: «Descartar los cambios».
-- **Borrador:** cada cambio queda en la pestaña del navegador con la versión que se leyó. Al volver: «Recuperamos tus cambios sin publicar.» con «Descartar»; si la tabla se publicó después, «Esta tabla se publicó después de tus cambios sin publicar: no se recuperaron.». Al pie: «Cambios sin publicar: quedan en esta pestaña del navegador hasta que publiques o los descartes.» y «Descartar los cambios» (con «Deshacer»), o «Sin cambios que publicar.».
-- **Publicar:** apagado sin cambios o con «Corrige la celda marcada para publicar.». Abre `?panel=publicar-tabla`: «Publicar <nombre>», «Las fórmulas publicadas que la usan pasan a su versión siguiente con estas filas; lo guardado de cada cotización no cambia.», «Nota» (como en «Fórmula») y «Publicar»/«Publicando…». Por la URL sin cambios: «No hay cambios por publicar.»; con una celda marcada, lo mismo que el botón, con «Ir a la celda»: no se manda. Entró: «Publicaste la versión N de «<nombre>».» (y « Las fórmulas que la usan pasaron a su versión siguiente.»), y el editor vuelve a montarse con la versión nueva. El conflicto es el texto de la base con «Al recargar se abre la versión nueva; tus cambios no vuelven.» y «Recargar»; una celda que la base rechaza, su mensaje con «Ir a la celda»; sin permiso (una compartida pide configurar cada origen que la usa) y lo demás, arriba del modal.
+- **Quién entra y origen:** como «Fórmula»; el selector escribe `?origen=` y borra `?tabla=`.
+- **Lista:** las tablas activas del origen y las compartidas, por clave: nombre como enlace a `?tabla=<id>`, clave, «Compartida» y
+  «Tapada por la de <Origen>» (`<Badge>`) y «Versión N · <persona> · <cuándo>». Vacía: «<Origen> no tiene tablas de referencia.» y «Las
+  tablas nuevas y sus columnas todavía no se crean desde aquí.». Tope 100 con aviso. Esqueleto y error de la ruta.
+- **Abrir una:** sólo si está en la lista del origen elegido; si no, o si ya no está o pasa de 2.000 filas, su motivo con «Volver a las
+  tablas». El editor (con `diferido()`) ocupa el lugar de la lista: «Volver a las tablas» (no pregunta: el borrador conserva lo hecho),
+  versión y, si es compartida o tapada, a quién le cambia publicarla.
+- **Editor:** la tabla entera en memoria, de a 100 filas («Desde la fila 101»…, sin total; «Anterior» y «Siguiente»; la página no va a la
+  URL). Un campo por columna declarada, con su etiqueta en la primera fila y el nombre «<Etiqueta>, fila n» en todas; números y años con el
+  locale de la empresa (en es-BO «9.200,5» es 9200,5 y «1.5» es un aviso). Se aplica al salir del campo o con Enter; lo que no se lee queda
+  escrito con su motivo y la fila conserva el valor de antes. «Subir», «Bajar» y el «⋯» con «Sumar una fila debajo», «Mover al
+  principio/al final» y «Quitar la fila» (sin preguntar, con «Deshacer»); «Sumar una fila» al pie; tope 2.000 filas. Mover lo anuncia.
+- **Primer error:** el de la fila más temprana (texto sin leer o celda que la base no acepta) arriba, con «Ir a la celda» (cambia de página
+  y pone el foco); una columna que la tabla no declara no tiene campo: «Descartar los cambios».
+- **Borrador:** cada cambio queda en la pestaña del navegador con la versión leída. Al volver, «Recuperamos tus cambios sin publicar.» con
+  «Descartar»; si la tabla se publicó después, no se recuperan y lo dice. Al pie, que los cambios viven en esta pestaña hasta publicar o
+  descartar, y «Descartar los cambios» (con «Deshacer»), o «Sin cambios que publicar.».
+- **Publicar** (`?panel=publicar-tabla`; apagado sin cambios o con una celda marcada): las fórmulas publicadas que la usan pasan a su
+  versión siguiente con estas filas; lo guardado de cada cotización no cambia. Nota como en «Fórmula». Por URL sin cambios o con una celda
+  marcada, no se manda. Entró: el aviso con la versión y el editor se vuelve a montar. Conflicto: el texto de la base con «Recargar» (los
+  cambios no vuelven); una celda rechazada, su mensaje con «Ir a la celda»; sin permiso (una compartida pide configurar cada origen que la
+  usa) y lo demás, arriba del modal.
 
 ### Cotización: ajustes (estados propios)
 
-Configuración › Cotización (`/configuracion/cotizacion?seccion=ajustes`, 4.20-4b): la vigencia y el vehículo obligatorio al cotizar, una fila que vale para todas las cotizaciones.
+Configuración › Cotización (`?seccion=ajustes`): la vigencia y el vehículo obligatorio al cotizar, una fila para todas las cotizaciones.
 
-- **Quién:** la pestaña «Ajustes» (la última) la ve quien tiene `cotizaciones.configurar` en algún origen; la cambia quien la tiene en todos (la concesión sin origen). Sin eso, los dos campos apagados, «Cambiar estos ajustes pide configurar el cotizador en todos los orígenes.» arriba y sin «Guardar». La base vuelve a exigirlo en `empresa_guardar_ajustes_de_cotizacion()`.
-- **Formulario:** «Ajustes», un bloque «Vigencia y vehículo» abierto con «Vigencia (días)» (1 a 365; fuera de rango: «La vigencia va de 1 a 365 días.» junto al campo, con el foco) y el interruptor «Vehículo obligatorio al cotizar». Sin borrador. Estados: el esqueleto mientras lee; si la lectura falla, el error de la ruta con «Reintentar» (nunca los de fábrica).
-- **Guardar:** «Guardando…» con los campos apagados; entró: «Ajustes de cotización guardados» y el formulario se vuelve a montar con lo guardado. Otra persona cambió la fila (aquí o en Empresa): el texto de la base con «Recargar», y lo tipeado queda; sin conexión o sin permiso, el aviso y lo tipeado queda.
-- **Dónde se nota:** la vigencia mueve «Vencida», «vence el», la tarjeta y el PDF de todas las cotizaciones, también las ya guardadas (se calcula al leer); el vehículo obligatorio rige en la hoja que se abre después (apagado, una preventa se guarda sin vehículo; una final siempre lo pide).
+- **Quién:** la pestaña (la última) la ve quien tiene `cotizaciones.configurar` en algún origen; la cambia quien la tiene en todos (la
+  concesión sin origen). Sin eso, los campos apagados con su motivo arriba y sin «Guardar». La base lo vuelve a exigir en
+  `empresa_guardar_ajustes_de_cotizacion()`.
+- **Formulario:** bloque «Vigencia y vehículo» con «Vigencia (días)» (1 a 365; fuera de rango, el motivo junto al campo con el foco) y el
+  interruptor «Vehículo obligatorio al cotizar». Sin borrador. Esqueleto; si la lectura falla, el error de la ruta (nunca los de fábrica).
+- **Guardar:** «Guardando…» con los campos apagados; entró: aviso y el formulario se monta con lo guardado. Otra persona cambió la fila
+  (aquí o en Empresa): el texto de la base con «Recargar» y lo tipeado queda; igual sin conexión o sin permiso.
+- **Dónde se nota:** la vigencia mueve «Vencida», «vence el», la tarjeta y el PDF de todas las cotizaciones, también las guardadas (se
+  calcula al leer); el vehículo obligatorio rige en la hoja que se abre después (apagado, una preventa se guarda sin vehículo; una final
+  siempre lo pide).
 
 ### Cotización: diseño (estados propios)
 
-Configuración › Cotización (`/configuracion/cotizacion?seccion=diseno&origen=<id>`, 4.22-2: secciones y celdas; 4.22-3: ítems, cabecera y tarjeta; tonos, 4.22-4, en su pestaña; vista previa, 4.22-5).
+Configuración › Cotización (`?seccion=diseno&origen=<id>`): secciones, celdas, ítems, cabecera y tarjeta del total de la hoja, y su vista
+previa.
 
-- **Quién entra:** `cotizaciones.configurar` en algún origen (la misma clave que «Fórmula»; la pestaña va después de ella). Sin ningún origen con la clave, «No hay orígenes donde puedas configurar el diseño de la hoja.» El selector «Origen» sólo con 2 o más y escribe `?origen=` (como «Fórmula»).
-- **Qué abre:** el borrador o, sin él, la publicada. Sin versión, «Este origen todavía no tiene una fórmula.»; sin diseño, «Esta versión no tiene diseño de la hoja.» (aquí no se crea uno). Cargando, `EsqueletoFormulario`; una lectura que falla sube al «Reintentar» de la ruta.
-- **Secciones y celdas:** por sección, «Título» (hasta 80; vacío lo quita), «Dónde va» (Principal | Avanzado), «Quién la ve» y «Quién la edita»; por celda, «Ancho» (Completo | Mitad | Un tercio), «Quién la ve» y «Quién la edita». Los niveles son «Todos» y los vivos; uno retirado que el diseño usa se muestra «(retirado)». Ver y editar van juntos: elegir quién ve alinea quién edita.
-- **Ítems que no son celda (4.22-3):** por celda, además, «Ayuda con una tabla» («Sin tabla» y las tablas que nombra la fórmula) y «Ayuda con un texto» (hasta 300): una quita la otra. «Atajos de <nodo>.» con «Columna de los chips» (las claves de la tabla del nodo) y «Cuántos chips (1 a 12)»; «Interruptor <nodo>.» con «Qué hace»: «Habilita» (apagado, deshabilita lo que condiciona) o «Muestra» (apagado, no dibuja lo que condiciona). «Variante <nodo>.» y «Subtotal <nodo>.» se ven y no se editan: no tienen más campo que su nodo.
-- **Cabecera de la hoja:** arriba de las secciones, «Ofrecer «Ver total en moneda local»» (la hoja lo muestra apagado; quien cotiza lo enciende) y los modos de tipo de cambio: por modo «Nombre» (se aplica al salir del campo), «Tipo de cambio de <bucket>» por cada bucket de la fórmula, «Total en» y «Quitar el modo» (sin confirmar: es un borrador sin guardar). «Sumar un modo» copia los tipos de cambio de la fórmula, con la clave derivada del nombre (no cambia si se renombra). Sin total en moneda local en la fórmula: «Esta fórmula no divide el total en Bs: sin eso no hay modos.»; sin tipos de cambio, «La fórmula no tiene tipos de cambio para un modo.»; «Sumar» queda apagado y los modos que ya hubiera siguen editables.
-- **Tarjeta del total:** después de las secciones, «Lo que muestra la tarjeta del resumen y el PDF. Repite lo que la hoja ya dibuja.», «Total» (los nodos marcados como total; con uno solo queda apagado) y una casilla «Mostrar «<nodo>» junto al total» por cada nodo «aparte»; uno ya elegido que ya no es «aparte» se sigue mostrando para poder quitarlo.
-- **Lo que no admite nivel:** «Quién la ve» queda apagado con «El total y lo que va aparte los ve todo el mundo.» (celda) o «Esta sección tiene un ítem que ve todo el mundo.» (sección).
-- **Avisos** (`role="status"`, sin bloquear): «Quien no tiene el nivel «X» puede deducir «Y» restando: ve «Z» y los demás sumandos.» (3 y «Y N más.»); y «Revisa el diseño: <regla de la base>» cuando lo que quedó aplicado no pasaría al publicar. Ninguno apaga «Guardar».
-- **Guardar el borrador:** «Guardar el borrador» con su línea: «No hay cambios por guardar.», «Guardando…» (todos los campos esperan) y «Se guardó el borrador.». Conflicto: el texto de la base + «Recargar trae el borrador como quedó; lo que cambiaste y no guardaste se pierde.» y «Recargar»; también «Ya no configuras <Origen>: no se puede guardar.», «No sabemos si se guardó: recarga para verlo.» y los de regla y error. Lo cambiado y no guardado vuelve al volver a la pestaña, con «Recuperamos lo que habías escrito y no guardaste.».
-- **Vista previa (4.22-5):** junto a «Guardar el borrador», el botón «Vista previa» (interruptor, `aria-expanded`) abre la hoja dibujada con el diseño **en edición**, con lo aplicado aunque no se haya guardado, y escribe `?vista=412|1280|200` (sin el parámetro o con otro valor, cerrada; recargar la deja como estaba y cambiar el ancho no suma al historial). Abierta, «Ancho de la vista previa»: «412 px», «1.280 px» y «200 %» (uno a la vez, el elegido con `aria-pressed`, 44 px). Es el mismo componente de la hoja (cabecera, secciones y resumen) dentro de un marco que se desplaza de costado con un hijo de ancho propio: a 412 el resumen queda debajo; a 1.280, al costado (el marco se desplaza dentro de la pestaña, con pista de desborde, y la página no se ensancha); «200 %» es el celular de 412 px con el texto al doble. Va con cifras de prueba («Cifras de prueba: los datos en 0; no son las de una cotización.»): el total puede decir «—» con su «Sin total: …»; si la fórmula aún no calcula, «No se pudieron calcular las cifras de prueba; se dibuja sin cifras.». Es la de quien lo ve todo (no recorta por nivel) y sólo se ve: sin foco, sin acciones y sin tocar la URL de la hoja. Las secciones «Avanzado» no se dibujan: «n secciones van detrás del botón «Avanzado» de la hoja: …». Con el diseño vacío, «No hay nada que dibujar.» Cargando, «Cargando…» del `diferido()` (su código se pide al abrirla); un tono que no llega deja la hoja sin colores.
-- **200 %:** `<ul>` con `grid-cols-[minmax(0,1fr)]`, campos a todo el ancho y la fila de campos de una celda en columna bajo `@container` estrecho.
+- **Quién entra:** `cotizaciones.configurar` en algún origen (la pestaña va después de «Fórmula»); sin ninguno, su vacío. Selector
+  «Origen» con 2 o más, como «Fórmula».
+- **Qué abre:** el borrador o, sin él, la publicada. Sin versión o sin diseño lo dice (aquí no se crea uno). Cargando,
+  `EsqueletoFormulario`; una lectura que falla sube al «Reintentar» de la ruta.
+- **Secciones y celdas:** por sección, «Título» (≤ 80; vacío lo quita), «Dónde va» (Principal | Avanzado), «Quién la ve» y «Quién la
+  edita»; por celda, «Ancho» (Completo | Mitad | Un tercio), «Quién la ve» y «Quién la edita». Niveles: «Todos» y los vivos; uno retirado
+  que el diseño usa se muestra «(retirado)». Elegir quién ve alinea quién edita. **Lo que no admite nivel** (el total y lo que va aparte,
+  o una sección que los tiene): «Quién la ve» apagado con su motivo.
+- **Ítems que no son celda:** por celda, «Ayuda con una tabla» (las que nombra la fórmula) o «Ayuda con un texto» (≤ 300): una quita la
+  otra. Atajos: «Columna de los chips» y «Cuántos chips (1 a 12)». Interruptor: «Habilita» (apagado, deshabilita lo que condiciona) o
+  «Muestra» (apagado, no lo dibuja). Variante y subtotal se ven y no se editan.
+- **Cabecera de la hoja:** «Ofrecer «Ver total en moneda local»» (la hoja lo muestra apagado) y los modos de tipo de cambio: nombre, «Tipo
+  de cambio de <bucket>» por bucket de la fórmula, «Total en» y «Quitar el modo» (sin confirmar: es borrador). «Sumar un modo» copia los
+  tipos de cambio de la fórmula, con la clave derivada del nombre (no cambia al renombrar). Sin total en moneda local o sin tipos de cambio
+  en la fórmula, «Sumar» se apaga con su motivo y los modos existentes siguen editables.
+- **Tarjeta del total:** lo que muestran el resumen y el PDF (repite lo que la hoja dibuja): «Total» (los nodos marcados como total; con
+  uno solo, apagado) y «Mostrar «<nodo>» junto al total» por cada nodo «aparte»; uno elegido que dejó de ser «aparte» se sigue mostrando
+  para poder quitarlo.
+- **Avisos** (`role="status"`, no apagan «Guardar»): lo que alguien sin un nivel puede deducir restando («Quien no tiene el nivel «X»
+  puede deducir «Y»…», 3 y «Y N más.») y «Revisa el diseño: <regla de la base>» cuando lo aplicado no pasaría al publicar.
+- **Guardar el borrador:** «No hay cambios por guardar.», «Guardando…» (los campos esperan), «Se guardó el borrador.». Conflicto: el texto
+  de la base con «Recargar» (lo no guardado se pierde); sin permiso, sin respuesta, regla y error, cada uno con su mensaje. Lo no guardado
+  vuelve al volver a la pestaña, con «Recuperamos…».
+- **Vista previa:** el botón «Vista previa» (`aria-expanded`) abre la hoja dibujada con el diseño **en edición** (lo aplicado aunque no se
+  haya guardado) y escribe `?vista=412|1280|200` (otro valor, cerrada; recargar la conserva; cambiar el ancho no suma al historial). «Ancho
+  de la vista previa»: 412 px, 1.280 px y 200 % (`aria-pressed`, 44 px). Es el mismo componente de la hoja dentro de un marco que se
+  desplaza de costado (la página no se ensancha): a 412 el resumen va debajo, a 1.280 al costado, 200 % es el celular con el texto al
+  doble. Con cifras de prueba (datos en 0; si la fórmula aún no calcula, se dibuja sin cifras). Es la de quien lo ve todo y sólo se ve: sin
+  foco, sin acciones, sin tocar la URL de la hoja. Las secciones «Avanzado» no se dibujan y se dice cuántas. Diseño vacío: «No hay nada que
+  dibujar.» Su código se pide al abrirla (`diferido()`); un tono que no llega deja la hoja sin colores.
+- **200 %:** la fila de campos de una celda va en columna bajo `@container` estrecho (el resto, `.claude/rules/ui.md`).
 
 ### Cotización: tonos (estados propios)
 
-Configuración › Cotización (`/configuracion/cotizacion?seccion=tonos`, 4.22-4). El catálogo de colores con que se pintan los grupos de una fórmula: es de **toda la empresa**, no de un origen, y **se guarda al instante** (cada tono es una escritura propia; no entra en «Guardar el borrador» del diseño).
+Configuración › Cotización (`?seccion=tonos`): el catálogo de colores de los grupos de una fórmula. Es de **toda la empresa**, no de un
+origen, y **se guarda al instante** (cada tono es una escritura propia; no entra en el borrador del diseño).
 
-- **Quién entra:** `cotizaciones.configurar` en algún origen (la pestaña va después de «Diseño»; sin él ni figura y `?seccion=tonos` abre la primera de las suyas). La lectura la puede cualquiera con sesión; la base vuelve a pedir la clave en cada escritura.
-- **Lista:** por nombre, hasta 24 (el tope lo pone la base). Una fila por tono con su nombre, su clave en texto suave (no cambia nunca: la nombran los grupos de una fórmula), dos muestras «Aa» («Claro» y «Oscuro», con el fondo, el borde y la tinta de ese tema, sea cual sea el tema de quien mira) y «Editar» y «Eliminar» con el nombre en el `aria-label`. No se muestra cuántos hay.
-- **Nuevo y editar** (modal): «Nombre» (hasta 40; dos tonos no pueden llamarse igual) y, por «Tema claro» y «Tema oscuro», «Fondo», «Borde» y «Tinta»: un selector de color y el campo `#rrggbb`, que escriben el mismo valor. Debajo, la muestra «Aa Así se lee» y el contraste de la tinta sobre el fondo **en vivo**: «Contraste 12,6:1: cumple AA.» o, en rojo, «En el tema claro la tinta sobre el fondo da 3,2:1 y hace falta 4,5:1.» (la razón se trunca a un decimal, como la base). **«Guardar» no se apaga por el AA:** al enviar, el motivo queda junto al campo (y la tinta marcada) y nada sale; lo que la base rechaza (nombre repetido, conflicto) vuelve junto a su campo o como aviso. Sin cambios, «Guardar» cierra sin escribir; cerrar con algo escrito pregunta; un conflicto conserva lo escrito y ofrece «Recargar».
-- **Eliminar** (`<Confirmar>`): «Eliminar el tono «X»» / «Si una fórmula lo usa, no se elimina y te decimos cuál. No se puede deshacer.» La lista no sabe cuáles están en uso: si alguna versión de una fórmula lo nombra, la base responde con su frase («…lo usa la fórmula de «Y»…»), sale como aviso y el diálogo se cierra.
-- **Vacío:** «Todavía no hay tonos. Crea el primero.» con «Nuevo tono». **Con 24:** «Nuevo tono» apagado y «Ya hay 24 tonos, que es el máximo. Elimina uno que ningún grupo use.» Cargando, `EsqueletoFormulario`; una lectura que falla sube al «Reintentar» de la ruta. Sin conexión lo escrito queda y sale al volver.
-- **200 %:** cada fila apila nombre, muestras y botones (`flex-wrap` sobre una base en rem; botones de 44 px); el modal es de `ModalDeFormulario`.
+- **Quién entra:** `cotizaciones.configurar` en algún origen (la pestaña va después de «Diseño»). Leer, cualquiera con sesión; la base
+  pide la clave en cada escritura.
+- **Lista:** por nombre, hasta 24 (tope de la base). Fila: nombre, clave en texto suave (no cambia nunca: la nombran los grupos), dos
+  muestras «Aa» («Claro» y «Oscuro», con los colores de ese tema sea cual sea el de quien mira) y «Editar» y «Eliminar» con el nombre en el
+  `aria-label`. No se muestra cuántos hay.
+- **Nuevo y editar** (modal): «Nombre» (≤ 40, único) y, por tema claro y oscuro, «Fondo», «Borde» y «Tinta» (selector de color y campo
+  `#rrggbb` con el mismo valor). Debajo, la muestra y el contraste de la tinta sobre el fondo **en vivo** (cumple AA o, en rojo, cuánto da
+  y cuánto hace falta; truncado a un decimal, como la base). **«Guardar» no se apaga por el AA:** al enviar, el motivo queda junto al campo
+  y nada sale; lo que la base rechaza (nombre repetido, conflicto) vuelve junto a su campo o como aviso. Sin cambios, «Guardar» cierra sin
+  escribir; cerrar con algo escrito pregunta; un conflicto conserva lo escrito con «Recargar».
+- **Eliminar** (`<Confirmar>`): la lista no sabe cuáles están en uso; si alguna versión de una fórmula lo nombra, la base responde cuál, sale
+  como aviso y el diálogo se cierra. No se deshace.
+- **Vacío** con «Nuevo tono»; **con 24**, «Nuevo tono» apagado con su motivo. `EsqueletoFormulario`; una lectura que falla sube al
+  «Reintentar» de la ruta. Sin conexión lo escrito queda y sale al volver.
+- **200 %:** cada fila apila nombre, muestras y botones; el modal es `ModalDeFormulario`.
 
 ### Leads: listado (estados propios)
 
-- **Entrar:** `leads.ver`; sin él «No tienes permiso para ver leads. Pídeselo a quien administra los roles.», sin consulta. «Propios» sólo la cartera; «todos» todo, con el teléfono enmascarado («+591 •••••01») y «Solo la cartera» en los datos privados de lo ajeno. Limbo y papelera no aparecen para nadie.
-- **Columnas:** nombre y debajo su número («N.º 1.234» con `leads.numero_global.ver`; «Tu n.º 12» sin él), teléfono, tipo, origen y campos «en la tabla». Tarjeta del celular: nombre, número, tipo, teléfono, origen y hasta dos datos.
-- **Filtros y búsqueda:** por nombre o número (`#124`), nunca por teléfono; sobre un campo «solo la cartera», quien ve «todos» lee «Solo busca en tus leads…». Una vista guardada con un campo desactivado o eliminado, o una etiqueta inexistente, se aplica sin ese filtro y avisa con «Entendido».
-- **Tus marcas (privadas, «Solo las ves tú.»):** «Tachados» (Ocultarlos por defecto · Mostrarlos también · Solo los tachados), «Favoritos», «Etiquetas». No reordenan. Una línea dice cuántos coincidentes ocultan los tachados, con «Mostrarlos». **Mientras se busca no se ocultan.**
-- **«⋯» de la fila** (misma lista, en este orden, en fila, kanban, resumen y ficha): «Agendar recordatorio…» y «Anotar seguimiento…» (cartera y `leads.editar`) · ─ · «Etiquetas…», «Favorito», «Tachado» · ─ · «Enviar a la papelera» (`leads.eliminar`). Anotar y agendar abren el modal de la ficha (`?panel=…&para=<id>`). Tachar ofrece «Deshacer».
-- **Vacíos:** sin leads, «Todavía no tienes leads en tu cartera» con «Nuevo lead» y «Ver todos» según permiso; por filtro, «Nada coincide con los filtros» con «Limpiar filtros». Esqueleto con la forma del listado; error con «Reintentar».
-- **Resumen (`?lead=`):** arriba tipo, marcas, «Editar» (cartera y `leads.editar`), «Abrir ficha», «⋯»; pestañas `?pestana=seguimientos|recordatorios` que se piden al elegirlas. «Resumen» trae nombre, número, tipo, teléfono tal como lo entrega la vista, origen y campos activos. Un lead que deja de verse: «Este lead ya no está disponible: no existe o ya no tienes acceso.».
+- **Entrar:** `leads.ver`; sin él, sin permiso (a quién pedirlo) y sin consulta. «Propios», sólo la cartera; «todos», todo, con el teléfono
+  enmascarado («+591 •••••01») y «Solo la cartera» en los datos privados de lo ajeno. Limbo y papelera no aparecen para nadie.
+- **Columnas:** nombre y su número («N.º 1.234» con `leads.numero_global.ver`; «Tu n.º 12» sin él), teléfono, tipo, origen y campos «en
+  la tabla». Tarjeta: nombre, número, tipo, teléfono, origen y hasta dos datos.
+- **Filtros y búsqueda:** por nombre o número (`#124`), nunca por teléfono; sobre un campo «solo la cartera», quien ve «todos» lee que
+  sólo busca en sus leads. Una vista guardada con un campo o etiqueta que ya no existe se aplica sin ese filtro y avisa.
+- **Tus marcas (privadas, «Solo las ves tú.»):** «Tachados» (ocultarlos por defecto · mostrarlos también · sólo los tachados),
+  «Favoritos», «Etiquetas». No reordenan. Una línea dice cuántos coincidentes ocultan los tachados, con «Mostrarlos». **Mientras se busca
+  no se ocultan.**
+- **«⋯» de la fila** (la misma lista, en este orden, en fila, kanban, resumen y ficha): «Agendar recordatorio…» y «Anotar seguimiento…»
+  (cartera y `leads.editar`, abren el modal de la ficha con `?panel=…&para=<id>`) · «Etiquetas…», «Favorito», «Tachado» (con «Deshacer») ·
+  «Enviar a la papelera» (`leads.eliminar`).
+- **Vacíos:** sin leads, con «Nuevo lead» y «Ver todos» según permiso; por filtro, con «Limpiar filtros». Esqueleto; error.
+- **Resumen (`?lead=`):** tipo, marcas, «Editar» (cartera y `leads.editar`), «Abrir ficha», «⋯»; pestañas
+  `?pestana=seguimientos|recordatorios` que se piden al elegirlas; nombre, número, tipo, teléfono tal como lo entrega la vista, origen y
+  campos activos. Uno que deja de verse: «Este lead ya no está disponible: no existe o ya no tienes acceso.».
 
 ### Leads: ficha (estados propios)
 
-- **Entrar:** `leads.ver`. Un lead inexistente, en la papelera, en limbo o ajeno **se ven igual**: «No encontramos este lead o no tienes acceso.» con «Ir a Leads»; ni nombre ni número en la página.
-- **Cabecera:** nombre, números, tipo, origen («(inactivo)» si está apagado), teléfono principal tal como lo entrega la base y quién lo tiene (enmascarado si no está en la cartera). «Favorito», «Tachado» y «Etiquetas…» van en el «⋯»; tope 20 etiquetas por lead. `?panel=etiquetas` gestiona (renombrar, color, eliminar con confirmación si está en uso).
-- **Datos:** principales, «Teléfonos» (principal y extras con etiqueta y país) y un bloque por grupo del layout. **Editar** sólo con `leads.editar` y el lead **en la cartera** (con «todos» se ve y no se edita); `Ctrl/Cmd+S` guarda y cierra. Conflicto: «Rosa Mamani cambió este lead hace 3 min» con «Ver cómo quedó» y «Recargar»; un seguimiento nuevo, compartir o transferir no dan conflicto.
-- **Quién lo tiene:** nombres y tipo de acceso («Dueño», «Compartido»); nunca correo ni teléfono. «Compartir» y «Transferir» (`?panel=compartir-lead`/`transferir-lead`) sólo para el dueño o, con el permiso en «todos», para quien lo ve; nunca ofrecen a quien mira. «Quitar acceso» ofrece «Deshacer»; «Salir de este lead» confirma. Al dueño se le transfiere, no se le quita.
-- **Enviar a la papelera:** último ítem del «⋯», para `leads.eliminar`; sin preguntar, con «Deshacer» 10 s. Con un vehículo vinculado visible va apagado con motivo y ofrece «Ir a «Vehículos»»; si lo frena uno que no se ve, la base rechaza nombrando al lead, no al vehículo.
-- **Vehículos** (`?seccion=vehiculos`, sólo con `vehiculos.ver`): «Vinculados», «Interesados» (con nota) y «Vínculos anteriores», sólo lo que quien mira ve. «Agregar vehículo» (cartera y `leads.editar`): busca por título, VIN, lote o #número, «Vincular» y nota de interés ≤ 500. «Desvincular» (quien edita el vehículo): con la cartera ofrece «Deshacer»; sin ella confirma.
+- **Entrar:** `leads.ver`. Inexistente, en la papelera, en limbo o ajeno **se ven igual** («No encontramos este lead o no tienes acceso.»
+  con «Ir a Leads»): ni nombre ni número en la página.
+- **Cabecera:** nombre, números, tipo, origen («(inactivo)»), teléfono principal tal como lo entrega la base y quién lo tiene (enmascarado
+  fuera de la cartera). «Favorito», «Tachado» y «Etiquetas…» en el «⋯»; tope 20 etiquetas por lead; `?panel=etiquetas` las gestiona
+  (renombrar, color, eliminar con confirmación si está en uso).
+- **Datos:** principales, «Teléfonos» (principal y extras con etiqueta y país) y un bloque por grupo del layout. **Editar** sólo con
+  `leads.editar` y el lead **en la cartera** (con «todos» se ve y no se edita); `Ctrl/Cmd+S` guarda y cierra. Conflicto: quién y cuándo,
+  «Ver cómo quedó» y «Recargar»; un seguimiento nuevo, compartir o transferir no dan conflicto.
+- **Quién lo tiene:** nombres y tipo de acceso («Dueño», «Compartido»); nunca correo ni teléfono. «Compartir» y «Transferir»
+  (`?panel=compartir-lead`/`transferir-lead`) sólo para el dueño o, con el permiso en «todos», para quien lo ve; nunca se ofrecen a quien
+  mira. «Quitar acceso» con «Deshacer»; «Salir de este lead» confirma. Al dueño se le transfiere, no se le quita.
+- **Enviar a la papelera:** último ítem del «⋯» (`leads.eliminar`); sin preguntar, con «Deshacer» 10 s. Con un vehículo vinculado visible,
+  apagado con motivo y «Ir a «Vehículos»»; si lo frena uno que no se ve, la base rechaza nombrando al lead, no al vehículo.
+- **Vehículos** (`?seccion=vehiculos`, con `vehiculos.ver`): «Vinculados», «Interesados» (con nota) y «Vínculos anteriores», sólo lo que
+  quien mira ve. «Agregar vehículo» (cartera y `leads.editar`): busca por título, VIN, lote o #número, «Vincular» y nota de interés ≤ 500.
+  «Desvincular» (quien edita el vehículo): con la cartera, con «Deshacer»; sin ella, confirma.
 
 ### Leads: papelera, importar y teléfonos (estados propios)
 
-- **Papelera** (`/leads/papelera`): para `leads.eliminar`, `leads.crear` (ve lo que envió) o `leads.papelera.purgar` (ve todo). Enviar es todo o nada (hasta 200). Por lote, con nombre y número; **nunca teléfono ni datos privados**. Restaurar no reabre el portal; un lead cuyo teléfono tomó otro queda adentro con motivo. Purgar (`leads.papelera.purgar`): diálogo que nombra lo que se borra, un lote de varios pide «purgar N»; vehículo vinculado, pagos o portal vigente lo impiden.
-- **Importar:** vista previa en grilla alineada (contenedor ≥ 42 rem; si no, nombre sobre motivo). «País» vacío se completa con el del teléfono. **Deshacer importación** (24 h): diálogo que cuenta cuántos leads van a la papelera; el resultado dice cuántos se movieron y cuántos quedaron, nunca nombres ni teléfonos.
-- **Teléfonos de la ficha:** sólo con la cartera y `leads.editar`; sin ella, enmascarados y sin botones. «Cambiar el principal» (`?panel=cambiar-telefono`): el actual pasa a extra «Anterior»; el nuevo se verifica al tipear y uno existente, ajeno o el mismo principal deshabilitan el botón con su frase. Extras (`?panel=agregar-telefono`, ≤ 10): número con país y etiqueta ≤ 40, «Quitar» con «Deshacer».
+- **Papelera** (`/leads/papelera`): para `leads.eliminar`, `leads.crear` (ve lo que envió) o `leads.papelera.purgar` (ve todo). Enviar es
+  todo o nada (hasta 200). Por lote, con nombre y número; **nunca teléfono ni datos privados**. Restaurar no reabre el portal; un lead cuyo
+  teléfono tomó otro queda adentro con motivo. Purgar (`leads.papelera.purgar`) nombra lo que borra y un lote de varios pide «purgar N»;
+  vehículo vinculado, pagos o portal vigente lo impiden.
+- **Importar:** vista previa en grilla alineada (contenedor ≥ 42 rem; si no, nombre sobre motivo). «País» vacío se completa con el del
+  teléfono. **Deshacer importación** (24 h): el diálogo cuenta cuántos leads van a la papelera y el resultado cuántos se movieron y cuántos
+  quedaron, nunca nombres ni teléfonos.
+- **Teléfonos de la ficha:** sólo con la cartera y `leads.editar`; si no, enmascarados y sin botones. «Cambiar el principal»
+  (`?panel=cambiar-telefono`): el actual pasa a extra «Anterior»; el nuevo se verifica al tipear y uno existente, ajeno o el mismo
+  deshabilitan el botón con su frase. Extras (`?panel=agregar-telefono`, ≤ 10): número con país y etiqueta ≤ 40, «Quitar» con «Deshacer».
 
 ### Leads: seguimientos y recordatorios (estados propios)
 
-- **Quién ve qué:** un seguimiento nace privado y sólo lo ve su autor; «Visible para el cliente» lo muestra a quienes ven el lead y al portal. Ni el co-asesor ni quien ve «todos» lee lo privado ajeno, y la pantalla no lo insinúa (sin conteo ni «último seguimiento»).
-- **Anotar** (cartera y `leads.editar`): modal `?panel=anotar-seguimiento` con los campos del alta más «Visible para el cliente». `Ctrl/Cmd+Enter` o `Ctrl/Cmd+S` guardan; recargar lo reabre con lo escrito; «atrás» deja un borrador («Tienes un seguimiento sin guardar»); sin tipos activos el botón se apaga con motivo. **Editar/eliminar** sólo lo propio (`?panel=editar-seguimiento&seguimiento=<id>`); eliminar ofrece «Deshacer». Conflicto con «Recargar» conservando lo escrito.
-- **Línea de tiempo:** vacío «Todavía no hay seguimientos»; de a 20 con «Ver más» hasta 500; «Ir a una fecha» (un día, no va a la URL) trae ese día y lo anterior.
-- **Tus recordatorios:** sólo los propios; «Agendar recordatorio» (cartera); vencidos primero con «Vencido»; «Completados» plegados; «Completar»/«Reabrir», «Editar», «Eliminar» con «Deshacer». Modal por URL (`?panel=agendar-recordatorio`, `editar-recordatorio&recordatorio=<id>`) con «De qué es», «Cuándo» y «Vehículo (opcional)»; no se agenda en el pasado.
+- **Quién ve qué:** un seguimiento nace privado, sólo para su autor; «Visible para el cliente» lo muestra a quienes ven el lead y al
+  portal. Ni el co-asesor ni quien ve «todos» leen lo privado ajeno, y la pantalla no lo insinúa (sin conteo ni «último seguimiento»).
+- **Anotar** (cartera y `leads.editar`): modal `?panel=anotar-seguimiento` con los campos del alta más «Visible para el cliente».
+  `Ctrl/Cmd+Enter` o `Ctrl/Cmd+S` guardan; recargar lo reabre con lo escrito; «atrás» deja un borrador; sin tipos activos, apagado con
+  motivo. **Editar/eliminar** sólo lo propio (`?panel=editar-seguimiento&seguimiento=<id>`); eliminar con «Deshacer». Conflicto con
+  «Recargar», conservando lo escrito.
+- **Línea de tiempo:** de a 20 hasta 500; «Ir a una fecha» (no va a la URL) trae ese día y lo anterior; vacío.
+- **Tus recordatorios:** sólo los propios; «Agendar recordatorio» (cartera); vencidos primero con «Vencido»; «Completados» plegados;
+  «Completar»/«Reabrir», «Editar», «Eliminar» con «Deshacer». Modal por URL (`?panel=agendar-recordatorio`,
+  `editar-recordatorio&recordatorio=<id>`): «De qué es», «Cuándo» y «Vehículo (opcional)»; no se agenda en el pasado.
 
-### Totales y topes (9e, `.claude/rules/escala.md`)
+### Totales y topes (`.claude/rules/escala.md`)
 
-Un número que se muestra nunca es el total exacto: se cuenta hasta un tope y se dice «más de N» (en una frase) o «N+» (en una cabecera). Toda lista que crece dibuja a lo sumo un tope y lo dice, con un camino a lo antiguo.
+Un número que se muestra nunca es el total exacto: se cuenta hasta un tope y se dice «más de N» (en una frase) o «N+» (en una cabecera).
+Toda lista que crece dibuja a lo sumo un tope y lo dice, con un camino a lo antiguo.
 
-- **Listado de leads y vehículos:** sin total ni «página 3 de 800»: Anterior y Siguiente y, arriba, «Los más recientes» o «Creados hasta el 2 sep 2026» con «Volver al principio». Para lo antiguo, **filtrar** o **buscar**.
+- **Listado de leads y vehículos:** sin total ni «página 3 de 800»: Anterior y Siguiente y, arriba, «Los más recientes» o «Creados hasta
+  el 2 sep 2026» con «Volver al principio». Para lo antiguo, **filtrar** o **buscar**.
 - **Exportar:** con más de 5.000 leads en los filtros no exporta y pide filtrar más.
-- **Embudo:** cabecera de columna y pestaña dicen «37» o «500+». Una columna dibuja a lo sumo 500 y ahí ofrece «Buscar en el embudo» (`?q=`, desde 2 caracteres; busca título y nombre del lead en todas las columnas; es de la vista de embudo).
-- **Vehículos y ficha:** los bloques de vínculos, interesados y «Agregar vehículo» dicen su tope al pie con `<AvisoDeTope>`; «Oportunidades» muestra las 10 más recientes (abiertas primero) con «Ver más» de a 20 desde el navegador, hasta 500 (en el tope, «Buscarlas en tu embudo»).
-- **Papeleras:** de a 5 lotes por página (`?cursor=`); un lote trae hasta 200 y muestra 20 con «Mostrar los 200». Sin «Ítems por página»: su unidad es el lote.
-- **Sin red:** abrir un modal, panel o pestaña nunca pedidos dice «Sin conexión. No se pudo abrir esto.» con «Reintentar»; paginar sin red no navega y lo dice.
+- **Embudo:** cabecera de columna y pestaña dicen «37» o «500+». Una columna dibuja a lo sumo 500 y ahí ofrece «Buscar en el embudo»
+  (`?q=`, desde 2 caracteres; busca título y nombre del lead en todas las columnas; es de la vista de embudo).
+- **Vehículos y ficha:** los bloques de vínculos, interesados y «Agregar vehículo» dicen su tope al pie con `<AvisoDeTope>`;
+  «Oportunidades» muestra las 10 más recientes (abiertas primero) con «Ver más» de a 20 desde el navegador, hasta 500 (en el tope,
+  «Buscarlas en tu embudo»).
+- **Papeleras:** de a 5 lotes por página (`?cursor=`); un lote trae hasta 200 y muestra 20 con «Mostrar los 200». Sin «Ítems por página»:
+  su unidad es el lote.
+- **Sin red:** abrir un modal, panel o pestaña nunca pedidos dice «Sin conexión. No se pudo abrir esto.» con «Reintentar»; paginar sin red
+  no navega y lo dice.
 
 ### Repuestos: listado (estados propios)
 
-- **Cargando:** esqueleto de lista (8 filas, 6 columnas).
-- **Vacío por primera vez:** «Todavía no hay proyectos de repuestos.» con «Nuevo proyecto» si hay `repuestos.editar`; con el filtro «Abiertos» aclara que los cerrados no se muestran.
-- **Vacío por filtro:** «Nada coincide con los filtros» con «Limpiar filtros». **Cursor fuera de rango:** «No hay más en esta página» con «Volver al principio».
-- **Error:** el de `(app)` con «Reintentar». **Sin permiso:** «No tienes permiso» (sin `repuestos.ver`).
-- **Sin «Anterior»:** «Siguiente» y, con cursor, «Volver al principio». Un número que se muestra nunca es un total exacto: más de 200 ítems se escribe «200+».
-- **Vista «Stock»** (8.10-3): enlaces «Proyectos» y «Stock» arriba (cambiar no conserva filtros ni página; «Nuevo proyecto» sólo en «Proyectos»). Columnas: ítem,
-  proyecto (`#N` · vehículo, con «Cerrado»), en stock y desde; sin filtros, por cursor con «Siguiente» y «Volver al principio» («Estás viendo lo que entró a stock antes.»).
-  Vacío: «No hay repuestos en stock.» con «Lo que sobra de un ítem se pasa a stock desde la hoja de su proyecto.». La fila abre el ítem en la hoja de su proyecto con su
-  panel de stock. El «⋯» (sólo con `repuestos.editar`, también con el proyecto cerrado): «Reasignar a un proyecto» (proyecto destino abierto, sin el de origen, y
-  cantidad), «Vender suelto» y «Devolver al proveedor» (cantidad y nota); cada uno un drawer con URL que, si el ítem ya no está en la página, avisa «Ese ítem ya no está
-  en stock.» y limpia la URL. Tras el éxito el drawer se cierra, la página se relee y un aviso lo dice («Vendiste N.», «Devolviste N al proveedor.», «Reasignaste N al
-  proyecto #M.» con «Ver proyecto»).
-- **Nuevo proyecto:** origen «De un vehículo» (buscador del inventario) o «Externo» (vehículo, VIN, cliente, teléfono y, con `leads.ver`, lead); un `?vehiculo=` que no se ve abre como «Externo» con un aviso.
+- **Estados:** esqueleto de lista (8 filas, 6 columnas); vacío de primera vez con «Nuevo proyecto» si hay `repuestos.editar` (con el
+  filtro «Abiertos» aclara que los cerrados no se muestran); vacío por filtro con «Limpiar filtros»; cursor fuera de rango con «Volver al
+  principio»; error de `(app)`; sin `repuestos.ver`, «No tienes permiso».
+- **Sin «Anterior»:** «Siguiente» y, con cursor, «Volver al principio». Más de 200 ítems se escribe «200+».
+- **Vista «Stock»:** enlaces «Proyectos» y «Stock» arriba (cambiar no conserva filtros ni página; «Nuevo proyecto» sólo en «Proyectos»).
+  Columnas: ítem, proyecto (`#N` · vehículo, con «Cerrado»), en stock y desde; sin filtros, por cursor. Vacío: «No hay repuestos en
+  stock.» con «Lo que sobra de un ítem se pasa a stock desde la hoja de su proyecto.». La fila abre el ítem en la hoja de su proyecto con
+  su panel de stock. El «⋯» (sólo con `repuestos.editar`, también con el proyecto cerrado): «Reasignar a un proyecto» (destino abierto,
+  distinto del de origen, y cantidad), «Vender suelto» y «Devolver al proveedor» (cantidad y nota); cada uno un drawer con URL que, si el
+  ítem ya no está en la página, avisa y limpia la URL. Tras el éxito se cierra, la página se relee y un aviso lo dice (reasignar, con «Ver
+  proyecto»).
+- **Nuevo proyecto:** «De un vehículo» (buscador del inventario) o «Externo» (vehículo, VIN, cliente, teléfono y, con `leads.ver`, lead);
+  un `?vehiculo=` que no se ve abre como «Externo» con un aviso.
 
 ### Repuestos: proyecto (estados propios)
 
-- **Cargando:** cabecera esqueleto y esqueleto de lista (6 filas, 6 columnas). **Sin permiso:** «No tienes permiso» (sin `repuestos.ver`). **Error:** el de `(app)` con «Reintentar».
-- **No existe, eliminado o sin acceso:** «Este proyecto ya no está disponible: no existe o ya no tienes acceso.» con «Volver a Repuestos» (se dicen igual).
-- **Vacío por primera vez:** «Este proyecto todavía no tiene ítems.» y, con `repuestos.editar`, la fila nueva debajo. Sin filtro: la hoja no filtra (hasta 200 ítems; con 200 no hay fila nueva y `<AvisoDeTope>` lo explica).
-- **Hoja:** tabla desde 768 px y tarjetas debajo; cada celda se guarda sola (Enter o al salir; la lista, al elegir). Cantidad y precio son `XCell`; la fase es de lectura. Un precio sin moneda lleva la primera activa. Enter en la fila nueva agrega el ítem y deja el foco en la siguiente.
-- **Sólo lectura:** sin `repuestos.editar` o con el proyecto cerrado (aviso arriba: «El proyecto está cerrado: reábrelo para editar los ítems.»), texto plano, sin fila nueva ni «Eliminar».
-- **Conflicto:** «Otra persona cambió este ítem. Recarga para ver lo nuevo.» con «Recargar»; lo escrito no se guarda. **Eliminar:** `<Confirmar>` con URL que nombra el ítem; uno con historial, documentos, compras, gastos o stock dice por qué y no se elimina.
-- **Cerrar:** sin confirmación; toast «Proyecto #N cerrado.» con «Deshacer».
-- **Imágenes del ítem** (8.09-3): «Imágenes» en la columna de acciones de cada fila (tabla y tarjeta), también sin `repuestos.editar`; abre `?panel=imagenes&item=<id>` (se recarga; «atrás» lo cierra y el foco vuelve al botón). **Cargando:** tres esqueletos. **Error:** el mensaje con «Reintentar». **Vacío:** «Este ítem aún no tiene imágenes» y, con permiso, la zona. **Con imágenes:** «3 de 8 imágenes» (exacto: el tope es duro), rejilla de 2 a 4 columnas, cada una enlaza al original, «Quitar» de 44 px y toast «Imagen quitada» con «Deshacer». **Lleno:** zona deshabilitada con «Este ítem ya tiene 8 imágenes. Quita alguna para subir otra.». **Sólo lectura:** «Sólo puedes ver las imágenes de este ítem.» (o el motivo del proyecto cerrado), sin zona ni «Quitar». **Sin conexión:** aviso y zona deshabilitada. Elegir sube al momento; lo repetido dice «ya estaba».
-- **Compras** (8.11-2): pestaña «Compras» sólo con `repuestos.costos.ver` (sin él no se dibuja y `?pestana=compras` abre «Ítems»). Arriba «Margen del proyecto», una tarjeta por moneda con «Precios», «Compras» y «Margen» (`<Monto>`; el Modo Live los oculta); con algún ítem sin precio (o con precio y sin moneda), el margen dice «Sin precio en N ítems» («… en más de 200 ítems»), nunca 0; sin nada, «Todavía no hay precios ni compras.». Debajo «Compras», de la más reciente: proveedor (o «Sin proveedor»), fecha, ítem (o «Sin ítem»), monto y, si no es la moneda base, «Equivale a …». **Cargando:** esqueleto de lista (4 filas). **Vacío:** «Todavía no hay compras en este proyecto.». **Tope:** «Mostrando las 200 compras más recientes.». **Error:** el de `(app)` con «Reintentar». **Escribir** (8.11-3): un solo «Registrar compra» arriba de la lista (también vacía); sin `repuestos.costos.editar` o con el proyecto cerrado, apagado con su motivo escrito al lado («Necesitas el permiso de editar costos para registrar compras.» o «El proyecto está cerrado: reábrelo para registrar compras.») y la fila sin «⋯». El Drawer «Registrar compra» / «Editar compra» (`?panel=compra&compra=<id|nueva>`; se recarga, «atrás» lo cierra, una compra que ya no está avisa «Esa compra ya no está.») con «Ítem» («Sin ítem» o los de la hoja), «Proveedor», «Moneda», «Monto», «Fecha», «Comprobante» (PDF o imagen de hasta 10 MB, se sube al elegir, «Ver comprobante» y «Quitar») y «Notas»; el equivalente en la base lo calcula el sistema al guardar. Los motivos de la base van junto a su campo; **conflicto**, «Otra persona cambió esta compra. Recarga para ver lo nuevo.» con «Recargar»; **sin conexión**, lo escrito queda pendiente y sale al volver la red; con algo escrito, cerrar pregunta. Tras guardar, toast «Compra registrada.» o «Compra guardada.» y la lista y el margen se releen. «⋯» → «Editar» y «Eliminar»: eliminar no pregunta, toast «Compra eliminada.» con «Deshacer» («Compra restituida.»). La fila con comprobante muestra «Ver comprobante» (URL de 60 s, pedida al tocarlo).
-- **Stock del ítem** (8.10-2): «Stock» en la columna de acciones de cada fila (tabla y tarjeta), también sin `repuestos.editar` y con el proyecto cerrado; con algo en stock, al lado, «En stock: N» (`<Badge>` de texto; con 0 no se dice nada). Abre `?panel=stock&item=<id>` (se recarga; «atrás» lo cierra y el foco vuelve al botón; un ítem que ya no está avisa «Ese ítem ya no está.»). Arriba «En stock: N de <cantidad>»; con `repuestos.editar` (también con el proyecto cerrado: los sobrantes nacen al terminar), «Pasar a stock» con «Cantidad» (entero desde 1, no más que la del ítem; el tope exacto de lo que ya entró lo dice la base junto al campo) y «Nota» opcional (hasta 500); tras pasar, el panel queda abierto, el formulario se vacía, el historial se relee y un toast dice «Pasaste N a stock.». Sin el permiso: «Sólo puedes ver los movimientos de este ítem.». **Historial** «Movimientos», del más nuevo al más viejo: **cargando**, tres esqueletos; **error**, el mensaje con «Reintentar»; **vacío**, «Este ítem aún no tiene movimientos de stock.»; cada uno con el motivo («Pasar a stock», «Vender suelto», «Devolver al proveedor», «Ajuste», «Reasignado»), la cantidad con signo, fecha, quién y la nota; «Ver más» de a 20 hasta 500 («Mostrando los 500 movimientos más recientes.»). **Conflicto** (el stock cambió): toast con «Recargar».
+- **Estados:** cabecera y lista esqueleto (6 filas, 6 columnas); sin `repuestos.ver`, «No tienes permiso»; error de `(app)`. No existe,
+  eliminado o sin acceso se dicen igual: «Este proyecto ya no está disponible: no existe o ya no tienes acceso.» con «Volver a Repuestos».
+- **Hoja:** tabla desde 768 px y tarjetas debajo; cada celda se guarda sola (Enter o al salir; la lista, al elegir). Cantidad y precio son
+  `XCell`; la fase es de lectura. Un precio sin moneda lleva la primera activa. Enter en la fila nueva agrega el ítem y deja el foco en la
+  siguiente. No filtra: hasta 200 ítems (con 200, sin fila nueva y con `<AvisoDeTope>`). Vacía: «Este proyecto todavía no tiene ítems.» y,
+  con `repuestos.editar`, la fila nueva.
+- **Sólo lectura:** sin `repuestos.editar` o con el proyecto cerrado («El proyecto está cerrado: reábrelo para editar los ítems.»), texto
+  plano, sin fila nueva ni «Eliminar».
+- **Conflicto:** «Otra persona cambió este ítem. Recarga para ver lo nuevo.» con «Recargar»; lo escrito no se guarda. **Eliminar:**
+  `<Confirmar>` con URL que nombra el ítem; uno con historial, documentos, compras, gastos o stock dice por qué y no se elimina.
+- **Cerrar:** sin confirmación; toast con «Deshacer».
+- **Imágenes del ítem:** «Imágenes» en las acciones de cada fila, también sin `repuestos.editar`; abre `?panel=imagenes&item=<id>` (se
+  recarga; «atrás» lo cierra y el foco vuelve al botón). Esqueleto, error con «Reintentar», vacío (con permiso, la zona de subir). Con
+  imágenes: «3 de 8 imágenes» (exacto: el tope es duro), rejilla de 2 a 4 columnas que enlaza al original, «Quitar» de 44 px con
+  «Deshacer». Lleno: zona apagada con su motivo. Sólo lectura (o proyecto cerrado): sin zona ni «Quitar». Sin conexión: zona apagada.
+  Elegir sube al momento; lo repetido dice «ya estaba».
+- **Compras:** pestaña sólo con `repuestos.costos.ver` (sin él no se dibuja y `?pestana=compras` abre «Ítems»).
+  - «Margen del proyecto»: una tarjeta por moneda con precios, compras y margen (`<Monto>`; Modo Live los oculta); con algún ítem sin
+    precio o sin moneda, «Sin precio en N ítems» («más de 200»), nunca 0; sin nada, su vacío.
+  - Lista de la más reciente: proveedor («Sin proveedor»), fecha, ítem («Sin ítem»), monto y, fuera de la moneda base, «Equivale a …».
+    Esqueleto, vacío, tope 200 con aviso, error de `(app)`.
+  - **Escribir:** «Registrar compra» arriba (también con la lista vacía); sin `repuestos.costos.editar` o con el proyecto cerrado, apagado
+    con su motivo al lado y la fila sin «⋯». Drawer `?panel=compra&compra=<id|nueva>` (se recarga, «atrás» lo cierra, una que ya no está
+    avisa): ítem, proveedor, moneda, monto, fecha, comprobante (PDF o imagen ≤ 10 MB, se sube al elegir, «Ver comprobante» y «Quitar») y
+    notas; el equivalente en la base lo calcula el sistema al guardar. Motivos junto a su campo; conflicto con «Recargar»; sin conexión,
+    sale al volver; cerrar con algo escrito pregunta. Guardar relee lista y margen. «⋯» → «Editar» y «Eliminar» (sin preguntar, con
+    «Deshacer»). «Ver comprobante» pide una URL de 60 s al tocarlo.
+- **Stock del ítem:** «Stock» en las acciones de cada fila, también sin `repuestos.editar` y con el proyecto cerrado; al lado, «En stock: N»
+  (`<Badge>` de texto; con 0 nada). Abre `?panel=stock&item=<id>` (se recarga; «atrás» lo cierra; un ítem que ya no está avisa). Arriba
+  «En stock: N de <cantidad>»; con `repuestos.editar` (también con el proyecto cerrado: los sobrantes nacen al terminar), «Pasar a stock»
+  con cantidad (entero ≥ 1, no más que la del ítem; el tope exacto lo dice la base junto al campo) y nota (≤ 500); tras pasar, el panel
+  queda abierto, el formulario se vacía y el historial se relee. Sin permiso: sólo los movimientos. **Movimientos**, del más nuevo:
+  esqueleto, error, vacío; cada uno con motivo («Pasar a stock», «Vender suelto», «Devolver al proveedor», «Ajuste», «Reasignado»),
+  cantidad con signo, fecha, quién y nota; de a 20 hasta 500. Conflicto (el stock cambió): toast con «Recargar».
 
 ### Equipo y roles (estados propios)
 
-- **Equipo:** sólo tú (aviso con invitación); con más de 100 personas, las 100 primeras por nombre; sobre la cuenta propia el menú dice por qué no se puede bloquear ni dar de baja. Dar de baja confirma nombrando a la persona y cuántos leads van al limbo (hasta 1.000); con muchos sigue por lotes («Pasando sus leads…»). Invitar: si el correo falla, el enlace queda a la vista.
-- **Roles:** «Recibir turnos de la web» es un interruptor más de la matriz; un rol sin él vende igual pero no recibe turnos. Rol que no dominas: columna de sólo lectura con motivo; permiso que no tienes: celda deshabilitada con motivo; conflicto «Otra persona cambió este rol · Recargar».
+- **Equipo:** sólo tú (aviso con invitación); con más de 100 personas, las 100 primeras por nombre; sobre la cuenta propia el menú dice por
+  qué no se puede bloquear ni dar de baja. Dar de baja confirma nombrando a la persona y cuántos leads van al limbo (hasta 1.000); con
+  muchos sigue por lotes («Pasando sus leads…»). Invitar: si el correo falla, el enlace queda a la vista.
+- **Roles:** «Recibir turnos de la web» es un interruptor más de la matriz; un rol sin él vende igual pero no recibe turnos. Rol que no
+  dominas: columna de sólo lectura con motivo; permiso que no tienes: celda deshabilitada con motivo; conflicto «Otra persona cambió este
+  rol · Recargar».
 
 ## Decisiones de UX
 
 - Inicio = bandeja de trabajo por rol, no dashboard; el tablero analítico vive en `/tablero`.
 - El teléfono principal se verifica al tipear, no al guardar: el duplicado no cuesta un formulario entero.
-- Mover de fase con el mismo panel de requisitos desde la cadena y desde la ficha; nunca drag & drop (oculta el porqué del rechazo). Documentos se suben al confirmar, nunca al elegir el archivo.
+- Mover de fase con el mismo panel de requisitos desde la cadena y desde la ficha; nunca drag & drop (oculta el porqué del rechazo).
+  Documentos se suben al confirmar, nunca al elegir el archivo.
 - Chat con menciones `#` que abren el drawer de la entidad sin salir; referenciar no otorga acceso.
 - Los roles de una persona se cambian con un interruptor por rol (permisos = unión de sus roles); la matriz guarda cada celda sola.
-- Los campos de los leads y los nombres de orígenes, fases, tipos de documento y categorías salen de la base: ningún texto fijo los nombra. «Solo la cartera» se recorta en la base, no en la pantalla.
-- Empresa es una pantalla con pestañas: quien tiene uno de sus dos permisos ve la otra parte deshabilitada con motivo. El tipo de cambio se cambia en un panel con su historial a la vista.
-- La fase de un vehículo se ve en el inventario y se cambia en logística. Un vehículo nace en la fase inicial cuando hay una sola; si no, «Sin fase».
-- `Ctrl/Cmd+Enter` en un alta guarda y deja el panel listo para otro; `Ctrl/Cmd+S` guarda y cierra, salvo en «Nuevo lead», donde guarda y deja el drawer listo.
+- Los campos de los leads y los nombres de orígenes, fases, tipos de documento y categorías salen de la base: ningún texto fijo los nombra.
+  «Solo la cartera» se recorta en la base, no en la pantalla.
+- Empresa es una pantalla con pestañas: quien tiene uno de sus dos permisos ve la otra parte deshabilitada con motivo. El tipo de cambio se
+  cambia en un panel con su historial a la vista.
+- La fase de un vehículo se ve en el inventario y se cambia en logística. Un vehículo nace en la fase inicial cuando hay una sola; si no,
+  «Sin fase».
+- `Ctrl/Cmd+Enter` en un alta guarda y deja el panel listo para otro; `Ctrl/Cmd+S` guarda y cierra, salvo en «Nuevo lead», donde guarda y
+  deja el drawer listo.

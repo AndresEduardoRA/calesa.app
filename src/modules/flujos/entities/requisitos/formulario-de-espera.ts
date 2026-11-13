@@ -1,5 +1,5 @@
-// El formulario de «Agregar requisito» de forma «Espera»: la fase del otro flujo que se espera y las notas. Espejo de `_requisito_forma()`
-// (`…20261111222241_requisitos_crear.sql`); que la regla «Esperas» esté encendida y que la fase sea de otro ámbito lo dice la base. Sin I/O.
+// El formulario de «Agregar requisito» de forma «Espera»: la fase del otro flujo que se espera y las notas. Espejo de `_requisito_forma()`;
+// que la regla «Esperas» esté encendida y que la fase sea de otro ámbito lo dice la base. Sin I/O.
 import { MENSAJE_DE_NOTAS_LARGAS, validarNotas } from './notas'
 import type { FaseDelOtroFlujo } from './opciones'
 

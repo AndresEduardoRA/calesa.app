@@ -1,6 +1,6 @@
 // Lo puro de la guarda de las áreas de `flujos` (`areas-de-flujos.test.ts`; paso 5.02-1, igual que `areas-de-cotizaciones.ts`).
 //
-// El módulo se parte por ÁREA para que los carriles B y C (`docs/plan.yaml`) agreguen archivos propios y no editen los compartidos: un área
+// El módulo se parte por ÁREA, como regla de arquitectura, para que cada área agregue archivos propios y no edite los compartidos: un área
 // vive en `features/<área>/`, `entities/<área>/`, `infra/<área>/`, `areas/<área>/` (sus tres entradas) y `pantallas/<área>.ts`. Lo demás es el
 // NÚCLEO (el flujo entero, sus lecturas, `features/configuracion/`). Un área importa lo suyo y el núcleo, nunca otra; el núcleo no importa
 // ningún área; nadie de adentro importa las tres entradas de la raíz, que sólo reexportan (`export *`) el núcleo y cada área.
@@ -19,7 +19,7 @@ export const AREAS_DE_FLUJOS = [
 export const ENTRADAS = ['index', 'client', 'composicion'] as const
 export type Archivo = { ruta: string; texto: string }
 
-// Las carpetas del núcleo. Una nueva es una decisión del carril A: se suma aquí o a las áreas.
+// Las carpetas del núcleo. Una nueva se suma aquí o a las áreas.
 const DEL_NUCLEO: Readonly<Record<string, readonly string[]>> = {
   features: ['configuracion'],
   entities: [],
@@ -104,10 +104,7 @@ function carpetasSinDueno(rels: readonly Rel[]): string[] {
   }
   return [...carpetas]
     .sort()
-    .map(
-      (c) =>
-        `${c}: carpeta que no es de ningún área: súmala a las áreas (y a docs/plan.yaml) o al núcleo`,
-    )
+    .map((c) => `${c}: carpeta que no es de ningún área: súmala a las áreas o al núcleo`)
 }
 
 function entradasDeLaRaiz(rels: readonly Rel[]): string[] {

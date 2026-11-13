@@ -6,7 +6,7 @@ import type { Json } from '@/shared/types/database.types'
 import type { CambiosDeLead } from '../entities/edicion'
 import type { PedidoDeGuardado, RepositorioDeFicha } from '../entities/repositorios'
 
-// La ficha se escribe sólo por `lead_guardar()` (`…20261014001300_lead_ficha.sql`): permiso, versión
+// La ficha se escribe sólo por `lead_guardar()`: permiso, versión
 // y validación del layout en una transacción. No hay `.update()` sobre `leads`.
 
 const respuesta = z.object({ actualizado_en: z.string() })

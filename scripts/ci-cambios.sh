@@ -20,7 +20,7 @@ EVENTO="${EVENTO:-}"
 
 salir() {
   local pesado="$1" motivo="$2" e2e=false
-  # El disparo del e2e: cambiar esta línea es cambiar cuándo se gastan sus minutos (`docs/DECISIONES.md`, «CI-1»).
+  # El disparo del e2e: cambiar esta línea es cambiar cuándo se gastan sus minutos (`docs/DECISIONES.md`).
   if [ "$pesado" = true ] && [ "$EVENTO" != push ]; then e2e=true; fi
   echo "pesado=$pesado"
   echo "e2e=$e2e"

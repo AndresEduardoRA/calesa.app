@@ -1,4 +1,4 @@
-// El lector de un número que la persona tipea (4-25, `docs/PLAN.md`): uno solo para la XCell, los campos numéricos, el tipo de cambio, el
+// El lector de un número que la persona tipea (4-25, `docs/PENDIENTES.md`): uno solo para la XCell, los campos numéricos, el tipo de cambio, el
 // precio de la vitrina y el monto de una oportunidad. Con el locale de la empresa, el decimal es su separador decimal y el otro (de la coma y
 // el punto) sólo agrupa de a 3: en es-BO «1.234» es 1234 y «1.5» es un aviso, no 1,5 (P7 del 4.13-3b). «1e3», «0x10» e «Infinity» no son
 // números. Sin I/O ni React: lo usan igual el navegador y el servidor.

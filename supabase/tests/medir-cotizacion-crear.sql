@@ -214,7 +214,7 @@ reset role;
 -- ---------------------------------------------------------------------------------------------------------------------------------
 do $$
 declare
-  c_ms constant numeric := 20;            -- ms por llamada (medido: 1,7 a 6,5; docs/RENDIMIENTO.md, «Paso 4.10 (2 de 3)»)
+  c_ms constant numeric := 20;            -- ms por llamada (medido: 1,7 a 6,5; docs/RENDIMIENTO.md)
   c_buf constant bigint := 1500;          -- buffers por llamada (medido: 185 a 629)
   r record; g record; v_fallas text := '';
 begin

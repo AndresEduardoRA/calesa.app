@@ -35,7 +35,7 @@ create temp table violaciones (texto text);
 -- Lo que midió cada `escala()` (la mediana), para sumar los dos pasos de una búsqueda.
 create temp table medidas (nombre text, quien text, ms numeric);
 -- Los teléfonos de las altas que se miden: cada `escala()` corre la llamada siete veces por persona en esta transacción (un número fijo chocaría consigo mismo,
--- y uno al azar, de vez en cuando, con otro lead vivo: `docs/PLAN.md`, 4-22). Una secuencia, con el prefijo 70 que no siembra nadie.
+-- y uno al azar, de vez en cuando, con otro lead vivo: `docs/PENDIENTES.md`, 4-22). Una secuencia, con el prefijo 70 que no siembra nadie.
 create temp sequence medir_telefono start 900001;
 grant usage on sequence pg_temp.medir_telefono to authenticated;
 
@@ -272,7 +272,7 @@ declare
   v_desc int := case when p_mios and v_rel = 'leads_vista' then 6000 else 3000 end;
 begin
   -- La dueña en «míos» sigue leyendo `leads_vista` (su cartera es grande: por la cartera no mejora, `docs/RENDIMIENTO.md`): se asserta lo
-  -- que ya se asertaba de esa lectura y nada más. Su etiqueta propia (112 ms con 62.000 leads, presupuesto 100) es de `docs/PLAN.md` 5a-7; un campo
+  -- que ya se asertaba de esa lectura y nada más. Su etiqueta propia (112 ms con 62.000 leads, presupuesto 100) es de `docs/PENDIENTES.md` 5a-7; un campo
   -- público (el atributo común, 105,6 ms con 212.000) se lee ahora por los candidatos y lo mide `busqueda()`, y uno privado (5a-10), `privados()`.
   if p_mios and v_rel = 'leads_vista' then
     perform pg_temp.escala(v_modo || ': página 1 con el máximo de la lista', q, pg_temp.pagina(v_m || 'esta_tachado = false', v_max, v_rel), 30, v_idx, v_tablas, v_desc);

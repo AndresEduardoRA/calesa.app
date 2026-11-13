@@ -4,7 +4,7 @@ import { createClient } from '@/shared/lib/supabase/server'
 import { recordatorioDesde } from '../entities/recordatorios'
 import type { RepositorioDeRecordatorios, ResultadoDeRecordatorio } from '../entities/repositorios'
 
-// Los recordatorios se escriben sólo por estas RPC (`…20261015000100_seguimientos_recordatorios.sql`):
+// Los recordatorios se escriben sólo por estas RPC:
 // la tabla no tiene grants de escritura. Son de su dueño: uno ajeno responde igual que uno que no
 // existe. Con lead, crearlo exige la cartera.
 

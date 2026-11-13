@@ -10,7 +10,7 @@ type Props = {
   parametros: Record<string, string | string[] | undefined>
 }
 
-// La sección de una pestaña del área de comprobantes (4.26-3, del carril C): «Comprobantes» dibuja la serie vigente y su cambio, con
+// La sección de una pestaña del área de comprobantes (4.26-3): «Comprobantes» dibuja la serie vigente y su cambio, con
 // `empresa.ajustes.gestionar`. No usa `parametros`: no tiene estado de URL propio.
 export function SeccionDeComprobantes({ pestana, permisos }: Props) {
   if (pestana !== 'comprobantes') {

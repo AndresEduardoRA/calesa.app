@@ -1,5 +1,5 @@
-// Las RPC con tamaño de página del carril B: «Tareas sin fecha» de la agenda (7.07-3), las secciones del buscador (7.12-2) los grupos de transporte (6.08-3) y el tablero de la cola web (8.04-2). Es un pedazo de `RPC_PAGINADAS`
-// (`paginas-en-la-base.ts`, del A) que la guarda suma con `import.meta.glob('./areas-*/paginas-en-la-base.ts')` (`registros-de-carriles.ts`).
+// Parte del registro de RPC con tamaño de página: «Tareas sin fecha» de la agenda (7.07-3), las secciones del buscador (7.12-2) los grupos de transporte (6.08-3) y el tablero de la cola web (8.04-2). La guarda
+// (`paginas-en-la-base.ts`) suma esta parte a `RPC_PAGINADAS` con `import.meta.glob('./areas-*/paginas-en-la-base.ts')` (`registros-de-carriles.ts`).
 import { POR_SECCION } from '../../../src/modules/buscador/entities/ranking'
 import {
   TAMANO_DE_PAGINA_POR_DEFECTO,
