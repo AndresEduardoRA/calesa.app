@@ -112,7 +112,7 @@ begin
   return jsonb_build_object('filas', v_todas, 'paginas', v_paginas);
 end $$;
 
--- @test búsqueda-leads: cada persona, cada término y cada filtro dan las mismas filas enteras que la consulta de siempre, con ventanas de 2, de 3 y de las de verdad
+-- @test [lento] búsqueda-leads: cada persona, cada término y cada filtro dan las mismas filas enteras que la consulta de siempre, con ventanas de 2, de 3 y de las de verdad
 do $$ declare
   v_tope_original text := pg_get_functiondef('public._leads_candidatos_tope()'::regprocedure);
   v_recorrido_original text := pg_get_functiondef('public._leads_candidatos_recorrido()'::regprocedure);
@@ -166,7 +166,7 @@ begin
   raise notice 'búsqueda-leads: % comparaciones, % con filas', v_cmp, v_con_filas;
 end $$;
 
--- @test búsqueda-leads: el recorrido entero por cursor, hacia los dos lados, da las mismas filas por los dos caminos (y cada fila una sola vez)
+-- @test [lento] búsqueda-leads: el recorrido entero por cursor, hacia los dos lados, da las mismas filas por los dos caminos (y cada fila una sola vez)
 do $$ declare
   v_tope_original text := pg_get_functiondef('public._leads_candidatos_tope()'::regprocedure);
   v_recorrido_original text := pg_get_functiondef('public._leads_candidatos_recorrido()'::regprocedure);
@@ -320,7 +320,7 @@ begin
   end loop;
 end $$;
 
--- @test búsqueda-leads (5a-7): la etiqueta da las mismas filas enteras que `etiquetas && …` por la vista de siempre, con cada ventana, y no revela de quién es una etiqueta
+-- @test [lento] búsqueda-leads (5a-7): la etiqueta da las mismas filas enteras que `etiquetas && …` por la vista de siempre, con cada ventana, y no revela de quién es una etiqueta
 -- Las etiquetas son privadas de cada persona. Cada persona pide las suyas, una ajena (la de otra persona), una que no existe y varias a la vez, sola y con un nombre, con tachados
 -- ocultos y con un tipo. Una etiqueta ajena o inexistente da lo mismo que «ninguna»: ni los ids, ni «completa», ni un error, ni el tiempo la distinguen.
 do $$ declare

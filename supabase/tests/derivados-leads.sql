@@ -168,7 +168,7 @@ do $$ declare v text; begin
   end;
 end $$;
 
--- @test derivados (9h): 300 cambios al azar sobre la cartera y los leads, y después de cada 25 todo sigue igual a su fuente
+-- @test [lento] derivados (9h): 300 cambios al azar sobre la cartera y los leads, y después de cada 25 todo sigue igual a su fuente
 -- Los cambios van directo a las tablas (como postgres): lo que se prueba es que los triggers cubren todo camino, también
 -- uno que hoy no existe. Las RPC, con sus nombres, en el bloque siguiente.
 do $$

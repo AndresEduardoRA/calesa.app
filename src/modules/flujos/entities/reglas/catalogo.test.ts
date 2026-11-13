@@ -1,7 +1,5 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { definicionSql } from '../../../../../scripts/lib/definicion-sql'
+import { definicionSql, migracionesEnOrden } from '../../../../../scripts/lib/definicion-sql'
 import {
   CLAVES_DE_REGLAS,
   REGLAS_DEL_CATALOGO,
@@ -10,12 +8,16 @@ import {
   reglasParaMostrar,
 } from './catalogo'
 
-// La ruta va por una variable: Vite reescribe `new URL('…', import.meta.url)` literal.
-const BASE = join(process.cwd(), 'supabase/migrations/20261028180656_base.sql')
-
+// El check vigente: el último entre todas las migraciones, en orden (nunca un archivo por su nombre: cambia al aplastar).
 function clavesDelCheck(): string[] {
-  const sql = readFileSync(BASE, 'utf8')
-  const m = /flujos_reglas_regla_check"?\s+CHECK\s+\(\(?"?regla"?[^;]*?ARRAY\[([^\]]+)\]/i.exec(sql)
+  const sql = migracionesEnOrden()
+    .map((m) => m.texto)
+    .join('\n')
+  const m = [
+    ...sql.matchAll(
+      /flujos_reglas_regla_check"?\s+CHECK\s+\(\(?"?regla"?[^;]*?ARRAY\[([^\]]+)\]/gi,
+    ),
+  ].at(-1)
   const lista = m?.[1] ?? ''
   return [...lista.matchAll(/'([a-z_]+)'/g)].map((x) => x[1] ?? '')
 }

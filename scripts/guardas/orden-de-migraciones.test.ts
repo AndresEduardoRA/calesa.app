@@ -3,13 +3,14 @@ import { execFileSync } from 'node:child_process'
 import { readFileSync, readdirSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-// Las migraciones desde que se aplastaron (2026-10-28, docs/PREPARACION.md, etapa 1):
-// - La base (`…_base.sql`, el volcado de las 146 de antes) es la primera y **no se edita nunca**: su sha256 está fijo aquí.
+// Las migraciones (`.claude/rules/migraciones.md`):
+// - La base (`…_base.sql`, el volcado de todas las anteriores al último aplastado) es la primera y **no se edita**: su sha256 está fijo
+//   aquí, y sólo lo cambia `scripts/db/aplastar.sh` al volver a aplastar.
 // - Toda migración nueva sale de `supabase migration new <nombre>`: su prefijo es la fecha y hora reales en UTC, no una del futuro.
-// - Lo que se agrega respecto de HEAD va después de la última que HEAD tiene (un reset aplica por el orden del nombre): si otro
-//   carril integró antes una migración posterior, la tuya se renombra con `supabase migration new` antes de integrarla.
-const BASE = '20261028180656_base.sql'
-const SHA256_DE_LA_BASE = '8fdf089ae90c0e310e6efaecff30e3a6a0243a1e8e9a2dd9a17b3a43b6996faa'
+// - Lo que se agrega va después de la última ya integrada (un reset aplica por el orden del nombre): contra HEAD en local y contra main
+//   en el CI de un PR (`MIGRACIONES_BASE`). Si otro PR integró antes una posterior, la tuya se crea de nuevo con `supabase migration new`.
+const BASE = '20261113065630_base.sql'
+const SHA256_DE_LA_BASE = 'ca1d48f94531fbcad522dcf795f1d620245c2c27abb3d3f623ef64966dfcbc5f'
 const NOMBRE = /^(\d{14})_[a-z0-9_]+\.sql$/
 // Margen para el reloj de otra máquina: una migración «de dentro de una hora» todavía es de hoy.
 const MARGEN_MS = 60 * 60 * 1000
@@ -84,7 +85,7 @@ describe('el orden de las migraciones: la regla', () => {
     ])
   })
 
-  const head = [BASE, '20261028181638_vistas_de_la_app_solo_se_leen.sql']
+  const head = ['20261028180656_base.sql', '20261028181638_vistas_de_la_app_solo_se_leen.sql']
 
   it('lo nuevo después de la última de HEAD pasa; antes o con el mismo prefijo, no', () => {
     expect(fueraDeOrden(head, [...head, '20261029100000_algo.sql'])).toEqual([])
@@ -122,10 +123,11 @@ describe('el orden de las migraciones: el repo', () => {
     ).toEqual([])
   })
 
-  it('las que se agregaron respecto de HEAD van después de la última', () => {
+  it('las que se agregaron respecto de lo integrado van después de la última', () => {
+    const base = process.env['MIGRACIONES_BASE'] ?? 'HEAD'
     let enHead: string[]
     try {
-      enHead = execFileSync('git', ['ls-tree', '--name-only', 'HEAD', 'supabase/migrations/'], {
+      enHead = execFileSync('git', ['ls-tree', '--name-only', base, 'supabase/migrations/'], {
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'ignore'],
       })
@@ -136,7 +138,7 @@ describe('el orden de las migraciones: el repo', () => {
       // Sin git o sin commits (un árbol exportado): no hay contra qué comparar.
       return
     }
-    // Antes del aplastado HEAD tenía las 146 viejas, que ya no están: sólo se compara contra lo que sigue en el árbol.
+    // Tras un aplastado lo integrado tiene las viejas, que ya no están: sólo se compara contra lo que sigue en el árbol.
     const vigentesEnHead = enHead.filter((n) => enElArbol.includes(n))
     expect(
       fueraDeOrden(vigentesEnHead, enElArbol),

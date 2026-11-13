@@ -1,4 +1,4 @@
--- Configuración de leads (`…20261019004000_configuracion_de_leads.sql`): los tipos de seguimiento con escritura propia, el icono del
+-- Configuración de leads: los tipos de seguimiento con escritura propia, el icono del
 -- origen y del tipo de lead y de seguimiento, el origen «por defecto» y la lectura acotada del alta (5b-5). Corre después de `humo.sql`:
 -- la dueña es `…0001` y `…00b1` es una persona sin `leads.configurar`. Cada bloque deja la base como la encontró.
 
@@ -408,56 +408,6 @@ end $$;
 reset role;
 rollback;
 select set_config('request.jwt.claim.sub', '', false);
-
--- @test campos: la migración concede leads.campos.gestionar al dueño y a quien tenía leads.configurar, y volver a ejecutarla no cambia nada (9.04-1)
--- (b) El texto de la migración llega en `_migracion_lcg` (`DATOS_DE_PRUEBA`) y se ejecuta sobre roles propios, como en la nube.
-begin;
-do $$
-declare
-  o uuid := (select id from public.origenes order by clave limit 1); r1 uuid; r2 uuid; v_antes jsonb; v_n int; v_mal text[];
-  v_sql text := (select doc #>> '{}' from _migracion_lcg);
-begin
-  if v_sql is null or v_sql !~ 'leads\.campos\.gestionar' then raise exception 'la migración del 9.04-1 no llegó o no nombra la clave'; end if;
-  select to_jsonb(p) into v_antes from public.permisos p where p.clave = 'leads.campos.gestionar';
-  if v_antes is null then raise exception 'no existe la clave leads.campos.gestionar en el catálogo'; end if;
-
-  insert into public.roles (clave, nombre) values ('lcg_r1', 'LCG R1') returning id into r1;
-  insert into public.roles (clave, nombre) values ('lcg_r2', 'LCG R2') returning id into r2;
-  insert into public.roles_permisos (rol_id, permiso_clave, alcance) values (r1, 'leads.configurar', 'todos');
-  insert into public.roles_permisos (rol_id, permiso_clave, origen_id, alcance) values (r2, 'vehiculos.ver', o, 'todos');
-  delete from public.roles_permisos where permiso_clave = 'leads.campos.gestionar';
-  update public.permisos set descripcion = 'pisado', aplicado_en = 'pisado' where clave = 'leads.configurar';
-
-  execute v_sql;
-
-  -- Quién la tiene: el dueño y todo rol con `leads.configurar`, con «todos» y sin origen; nadie más.
-  select array_agg(r.clave order by r.clave) into v_mal from public.roles r
-   where (r.clave = 'dueno' or exists (select 1 from public.roles_permisos x where x.rol_id = r.id and x.permiso_clave = 'leads.configurar'))
-     and not exists (select 1 from public.roles_permisos x where x.rol_id = r.id and x.permiso_clave = 'leads.campos.gestionar' and x.alcance = 'todos' and x.origen_id is null);
-  if v_mal is not null then raise exception 'la migración no concedió la clave con «todos» y sin origen a: %', v_mal; end if;
-  select array_agg(distinct r.clave order by r.clave) into v_mal from public.roles r join public.roles_permisos x on x.rol_id = r.id and x.permiso_clave = 'leads.campos.gestionar'
-   where r.clave <> 'dueno' and not exists (select 1 from public.roles_permisos y where y.rol_id = r.id and y.permiso_clave = 'leads.configurar');
-  if v_mal is not null then raise exception 'la migración concedió la clave a roles sin leads.configurar: %', v_mal; end if;
-  -- R1 conserva las dos; R2 (sin leads.configurar) no gana nada.
-  if (select count(*) from public.roles_permisos where rol_id = r1 and permiso_clave in ('leads.configurar', 'leads.campos.gestionar')) <> 2 then
-    raise exception 'R1 (con leads.configurar) no quedó con las dos'; end if;
-  if exists (select 1 from public.roles_permisos where rol_id = r2 and permiso_clave = 'leads.campos.gestionar') then raise exception 'R2 (sin leads.configurar) la recibió'; end if;
-
-  -- La fila del catálogo es la del seed, y leads.configurar vuelve a decir lo suyo (sin los campos).
-  if (select to_jsonb(p) from public.permisos p where p.clave = 'leads.campos.gestionar') is distinct from v_antes then
-    raise exception 'la migración y el seed no dicen lo mismo de la clave'; end if;
-  if (select jsonb_build_object('descripcion', descripcion, 'aplicado_en', aplicado_en) from public.permisos where clave = 'leads.configurar')
-     is distinct from jsonb_build_object('descripcion', 'Los orígenes de lead, los tipos de lead y los tipos de seguimiento',
-       'aplicado_en', 'origen_lead_*, origenes_lead_con_uso, tipo_lead_*, tipos_lead_con_uso, tipo_seguimiento_*, tipos_seguimiento_con_uso') then
-    raise exception 'la migración no dejó el texto de leads.configurar'; end if;
-
-  -- Otra vez: ni una concesión ni un campo de más.
-  select count(*) into v_n from public.roles_permisos where permiso_clave = 'leads.campos.gestionar';
-  execute v_sql;
-  if (select count(*) from public.roles_permisos where permiso_clave = 'leads.campos.gestionar') <> v_n then raise exception 'ejecutarla otra vez duplicó concesiones'; end if;
-  if (select to_jsonb(p) from public.permisos p where p.clave = 'leads.campos.gestionar') is distinct from v_antes then raise exception 'ejecutarla otra vez cambió el catálogo'; end if;
-end $$;
-rollback;
 
 -- @test campos: las cinco lead_campo_* nombran leads.campos.gestionar y no leads.configurar, con prosecdef y sin execute para anon ni PUBLIC (9.04-1)
 do $$

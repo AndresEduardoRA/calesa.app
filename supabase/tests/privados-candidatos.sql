@@ -63,7 +63,7 @@ begin
 end $$;
 create or replace function pg_temp.pc_valor(p_valor text) returns jsonb language sql immutable as $$ select jsonb_build_object('direccion', p_valor) $$;
 
--- @test privados-candidatos: cada persona, cada valor, cada filtro y cada estado del campo dan las mismas filas enteras que la consulta de siempre, con cada ventana
+-- @test [lento] privados-candidatos: cada persona, cada valor, cada filtro y cada estado del campo dan las mismas filas enteras que la consulta de siempre, con cada ventana
 do $$ declare
   v_tope_original text := pg_get_functiondef('public._leads_candidatos_tope()'::regprocedure);
   v_recorrido_original text := pg_get_functiondef('public._leads_candidatos_recorrido()'::regprocedure);
@@ -168,7 +168,7 @@ begin
 end $$;
 
 -- @test privados-candidatos: el lead del número (`extra`) también está en la cartera de quien filtra y tiene el valor, porque la página ya no repite el campo privado
--- Con y sin etiquetas (5a-35: sin ellas el lead del número no entraba nunca; `…20261019004500`): cada caso se pide dos veces, y da lo mismo. Con etiquetas, además, el lead tiene que tenerlas.
+-- Con y sin etiquetas (5a-35: sin ellas el lead del número no entraba nunca): cada caso se pide dos veces, y da lo mismo. Con etiquetas, además, el lead tiene que tenerlas.
 do $$ declare
   d1 constant uuid := '00000000-0000-0000-0000-000000000001'; f4 constant uuid := '00000000-0000-0000-0000-0000000009f4'; f5 constant uuid := '00000000-0000-0000-0000-0000000009f5';
   e_f4 uuid := gen_random_uuid(); e_d1 uuid := gen_random_uuid(); e_f5 uuid := gen_random_uuid();

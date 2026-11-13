@@ -103,8 +103,7 @@ function* archivos(dir) {
   }
 }
 
-// Las migraciones, en orden: la base (el volcado de las 146 aplastadas el 2026-10-28) y las que le siguen. Es lo mismo que
-// aplica un reset de la base local.
+// Las migraciones, en orden: la base (el volcado de las aplastadas) y las que le siguen. Es lo mismo que aplica un reset de la base local.
 const lista = [...archivos(path.join(base, 'migrations'))]
 // El seed: los archivos de `[db.seed] sql_paths` de config.toml, en su orden (lo que aplica `supabase db reset`). Sin config.toml, sólo seed.sql.
 const configToml = path.join(base, 'config.toml')
@@ -125,7 +124,7 @@ let ok = 0
 const sinLoDeSupabase = (sql) =>
   sql
     .replace(/^CREATE EXTENSION IF NOT EXISTS [^;]+;$/gim, '')
-    .replace(/^ALTER PUBLICATION "supabase_realtime" [^;]+;$/gim, '')
+    .replace(/^ALTER PUBLICATION "supabase_realtime" OWNER TO [^;]+;$/gim, '')
 for (const f of lista) {
   const sql = f.includes(`${path.sep}migrations${path.sep}`)
     ? sinLoDeSupabase(fs.readFileSync(f, 'utf8'))
@@ -148,8 +147,8 @@ for (const f of lista) {
 }
 console.log(`✓ ${ok} archivos aplicados`)
 
-// Los datos que una prueba lee del repo, por archivo (las clases de dato, en `scripts/lib/datos-de-prueba.mjs`). Si una migración que se lee
-// como texto se recrea con otra fecha, se corrige su ruta.
+// Los datos que una prueba lee del repo, por archivo (las clases de dato, en `scripts/lib/datos-de-prueba.mjs`). Una prueba que vuelve a
+// ejecutar el texto de una migración de datos (`{ ruta, texto: true }`) se borra con ella al aplastar: `pnpm db:aplastar`.
 const DATOS_DE_PRUEBA = {
   // splinter sobre el esquema de la prueba, con los esquemas que expone la API, y la lista de avisos aceptados con su motivo (9.13-1).
   'advisors.sql': {
@@ -185,25 +184,18 @@ const DATOS_DE_PRUEBA = {
   'plantilla-validar.sql': {
     _juego_de_plantilla: 'src/modules/cotizaciones/entities/plantilla/casos-de-plantilla.json',
   },
-  'cotizaciones-papelera-permiso.sql': {
-    _migracion_cpp: {
-      ruta: path.join(base, 'migrations', '20261106062752_cotizaciones_papelera_purgar.sql'),
-      texto: true,
-    },
-  },
-  'configuracion-de-leads.sql': {
-    _migracion_lcg: {
-      ruta: path.join(base, 'migrations', '20261112151143_leads_campos_gestionar.sql'),
-      texto: true,
-    },
-  },
 }
 
 // Pruebas: el humo y, después, lo que se apoya en su base (la matriz de leads y el cinturón de la
 // auditoría). Cada archivo se parte en bloques `-- @test <nombre>` y corre en la misma base.
 // SOLO=<archivo>[,<archivo>] corre sólo esos (para iterar sobre uno; una de un área, por su ruta: `areas/papelera/x.sql`); sin él, todos y en este
-// orden. Después de esta lista corren las de `supabase/tests/areas/**` (`pruebasEnOrden`): ahí suma las suyas un carril que no es base.
+// orden. Después de esta lista corren las de `supabase/tests/areas/**` (`pruebasEnOrden`), cada una independiente de las demás.
 const SOLO = process.env['SOLO']?.split(',')
+const TIEMPOS = process.env['PROBAR_TIEMPOS'] === '1'
+// PROBAR_RAPIDO=1 (`pnpm db:probar:rapido`): salta los bloques `-- @test [lento] …`, las comparaciones exhaustivas de la búsqueda de
+// leads (7 bloques, ≈ 4 de los 5 min). Es el modo de trabajo y del hook del push; el CI corre todo (`pnpm db:probar`).
+const RAPIDO = process.env['PROBAR_RAPIDO'] === '1'
+let saltados = 0
 const LISTA_FIJA = [
   // Antes que todo: splinter mira el catálogo antes de que una prueba deje funciones en `pg_temp` (`function_search_path_mutable` no las excluye).
   'advisors.sql',
@@ -282,9 +274,16 @@ for (const archivo of pruebasEnOrden(LISTA_FIJA, path.join(base, 'tests'), SOLO)
     .filter(Boolean)
   for (const b of bloques) {
     const [nombre, ...resto] = b.split('\n')
+    if (RAPIDO && nombre.startsWith('[lento]')) {
+      saltados++
+      continue
+    }
+    const inicio = performance.now()
     try {
       await db.exec(resto.join('\n'))
-      console.log('  ✓ ' + nombre.trim())
+      // PROBAR_TIEMPOS=1: los milisegundos de cada bloque, para encontrar el que frena la corrida.
+      const ms = TIEMPOS ? ` (${String(Math.round(performance.now() - inicio))} ms)` : ''
+      console.log('  ✓ ' + nombre.trim() + ms)
     } catch (e) {
       console.error('  ✗ ' + nombre.trim() + '\n    ' + e.message)
       process.exitCode = 1
@@ -293,4 +292,6 @@ for (const archivo of pruebasEnOrden(LISTA_FIJA, path.join(base, 'tests'), SOLO)
     }
   }
 }
+if (saltados > 0)
+  console.log(`· ${String(saltados)} bloques [lento] saltados (PROBAR_RAPIDO): el CI los corre.`)
 await db.close()

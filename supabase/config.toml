@@ -1,4 +1,4 @@
-# Supabase CLI — proyecto importadora. Un carril de Orca cambia el project_id y los puertos por entorno (.env.carril, docs/ORCA.md).
+# Supabase CLI — proyecto importadora. Un carril (un worktree con su pila) cambia el project_id y los puertos por entorno (.env.carril, docs/FLUJO.md).
 # Puertos en el bloque 546xx: el 5432x por defecto choca con otros stacks locales de la misma máquina.
 project_id = "importadora"
 
@@ -42,8 +42,8 @@ port = 54627
 [auth]
 enabled = true
 site_url = "http://localhost:3000"
-# Destinos permitidos para `redirectTo` (ingreso con Google). 3210 es el puerto de los e2e; 3100/3310 y 3200/3410, la app y los e2e
-# de los carriles de Orca (scripts/lib/stack-local.mjs; cada carril pone su site_url con SUPABASE_AUTH_SITE_URL).
+# Destinos permitidos para `redirectTo` (ingreso con Google). 3210 es el puerto de los e2e; 3100/3310, 3200/3410 y 3300/3510, la app y los e2e
+# de los carriles a, b y c (scripts/lib/stack-local.mjs; cada carril pone su site_url con SUPABASE_AUTH_SITE_URL).
 additional_redirect_urls = [
   "https://localhost:3000/**",
   "http://localhost:3000/**",
@@ -53,6 +53,8 @@ additional_redirect_urls = [
   "http://localhost:3310/**",
   "http://localhost:3200/**",
   "http://localhost:3410/**",
+  "http://localhost:3300/**",
+  "http://localhost:3510/**",
 ]
 jwt_expiry = 3600
 enable_refresh_token_rotation = true
