@@ -88,4 +88,11 @@ export const REGISTRO: readonly RpcPaginada[] = [
     pideElCodigo: TOPE_DE_BLOQUE,
     lista: 'la bandeja de logística en Inicio (demoradas, trabados y por aprobar)',
   },
+  // `/actividad` (9.01-3): por cursor sobre `id`, de a `TAMANO_DE_VER_MAS` («Ver más» e «Ir a una fecha») hasta `TOPE_DE_LO_CARGADO`.
+  {
+    rpc: 'actividad_listar',
+    parametro: 'p_tamano',
+    pideElCodigo: TAMANO_DE_VER_MAS,
+    lista: '/actividad, «Ver más» y «Ir a una fecha»',
+  },
 ]
