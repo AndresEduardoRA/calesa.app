@@ -51,7 +51,7 @@ export async function leerUnDiff(
 }
 
 // Las personas del filtro: todo el equipo, activas o no (quien dejó el equipo sigue en la actividad de estos días). Sólo `id` y `nombre`
-// (`perfiles: leer`), nunca el correo; hasta `TOPE_DEL_EQUIPO` por nombre (la tabla del equipo, decenas de filas; orden por `perfiles_pkey`).
+// (`perfiles: leer`), nunca el correo; hasta `TOPE_DEL_EQUIPO` por nombre (la tabla del equipo, decenas de filas: la base ordena en memoria hasta `TOPE_DEL_EQUIPO + 1`).
 export async function leerPersonas(cliente: Cliente): Promise<Resultado<PersonaDeLaActividad[]>> {
   const { data, error } = await cliente
     .from('perfiles')
