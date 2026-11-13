@@ -16,16 +16,20 @@ const TOPE_DE_REQUISITOS = 200
 
 // `tipos_documento` activos: los globales (`flujo_id` nulo) y los del flujo de esa unidad (el activo de su origen y su ámbito).
 export async function leerTiposDeLaUnidad(
-  unidad: Pick<Unidad, 'tipo' | 'origenId'>,
+  // Sin origen un ítem de repuesto (8.13-2): su flujo no lo tiene.
+  unidad: { tipo: Unidad['tipo']; origenId: string | null },
 ): Promise<Resultado<TipoDeDocumento[]>> {
   const supabase = createClient()
-  const flujos = await supabase
+  const porAmbito = supabase
     .from('flujos')
     .select('id')
-    .eq('origen_id', unidad.origenId)
     .eq('ambito', unidad.tipo === 'vehiculo' ? 'vehiculos' : 'repuestos')
     .eq('activo', true)
-    .limit(1)
+  const flujos = await (
+    unidad.origenId === null
+      ? porAmbito.is('origen_id', null)
+      : porAmbito.eq('origen_id', unidad.origenId)
+  ).limit(1)
   if (flujos.error) {
     return { ok: false, error: errorDePostgrest(flujos.error) }
   }
