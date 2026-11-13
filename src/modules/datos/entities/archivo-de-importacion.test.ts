@@ -196,9 +196,11 @@ describe('mapeoDeColumnas', () => {
 })
 
 describe('rutaDelArchivo', () => {
-  it('va a la carpeta de quien importa, con el id de la importación', () => {
+  it('va a la carpeta de quien importa, con el id de la importación en minúsculas', () => {
     expect(rutaDelArchivo(USUARIO, IMPORTACION)).toBe(`${USUARIO}/${IMPORTACION}.csv`)
     expect(() => rutaDelArchivo(USUARIO, '../otro')).toThrow()
-    expect(() => rutaDelArchivo(USUARIO.toUpperCase(), IMPORTACION)).toThrow()
+    expect(rutaDelArchivo(USUARIO.toUpperCase(), IMPORTACION.toUpperCase())).toBe(
+      `${USUARIO}/${IMPORTACION}.csv`,
+    )
   })
 })

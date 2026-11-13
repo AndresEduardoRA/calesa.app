@@ -147,10 +147,13 @@ export function mapeoDeColumnas(
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
-// La carpeta de quien importa y el id de la importación (D36). La acción la vuelve a armar con su `usuarioId`; la base la vuelve a mirar.
+// La carpeta de quien importa y el id de la importación (D36), en minúsculas (como los escribe la base: `z.guid()` admite mayúsculas). La acción
+// la vuelve a armar con su `usuarioId`; la base la vuelve a mirar. Algo que no es un uuid es un error de programación: Zod ya lo filtró.
 export function rutaDelArchivo(usuarioId: string, importacionId: string): string {
-  if (!UUID.test(usuarioId) || !UUID.test(importacionId)) {
-    throw new Error('rutaDelArchivo: se esperaban dos uuid en minúsculas')
+  const usuario = usuarioId.toLowerCase()
+  const importacion = importacionId.toLowerCase()
+  if (!UUID.test(usuario) || !UUID.test(importacion)) {
+    throw new Error('rutaDelArchivo: se esperaban dos uuid')
   }
-  return `${usuarioId}/${importacionId}.csv`
+  return `${usuario}/${importacion}.csv`
 }

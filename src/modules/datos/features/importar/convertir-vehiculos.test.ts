@@ -120,6 +120,15 @@ describe('prepararVehiculos', () => {
     })
   })
 
+  it('el precio como lo escribe «exportar todo» (punto decimal, sin miles) vuelve igual en es-BO', () => {
+    expect(una({ Título: 'Hilux', Precio: '12500.5', Kilometraje: '85000' })).toEqual({
+      datos: { titulo: 'Hilux', precio: 12500.5, kilometraje: 85000 },
+    })
+    expect(una({ Título: 'Hilux', Precio: '12500,5' })).toMatchObject({
+      datos: { precio: 12500.5 },
+    })
+  })
+
   it('lo que no se lee o no pasa el alta queda rechazado con la etiqueta', () => {
     expect(una({ Título: 'Hilux', Placado: 'quizás' })).toEqual({
       rechazo: { motivo: 'Escribe «Sí» o «No».', campo: 'Placado' },
