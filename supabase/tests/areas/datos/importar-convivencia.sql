@@ -135,3 +135,84 @@ begin
   end if;
 end $$;
 rollback;
+
+-- Una total de Ada para p_destino con p_n leads, terminada.
+create or replace function pg_temp.imp_terminada(p_id uuid, p_destino uuid, p_n int, p_tel text) returns void language plpgsql as $f$
+declare r text;
+begin
+  perform pg_temp.imp_empezada(p_id, p_destino, p_n);
+  r := pg_temp.imp_lote(p_id, 1, (select jsonb_agg(pg_temp.imp_fila(g, 'IMP DES ' || p_tel || ' ' || g, p_tel || g)) from generate_series(1, p_n) g));
+  if (r::jsonb ->> 'creadas')::int is distinct from p_n then raise exception 'no entraron: %', r; end if;
+  r := pg_temp.imp_srv(format('select public.importacion_terminar(%L)', p_id));
+  if (r::jsonb ->> 'estado') is distinct from 'terminada' then raise exception 'no terminó: %', r; end if;
+end $f$;
+
+-- @test importar-convivencia: deshacer una total con destino mide «intacto» contra el destino; sólo quien la hizo
+begin;
+select pg_temp.imp_preparar();
+do $$
+declare ada uuid := '00000000-0000-4000-8000-00000000906a'; bea uuid := '00000000-0000-4000-8000-00000000906b';
+        v_t uuid := '00000000-0000-4000-8000-0000009062f3'; r text;
+begin
+  perform pg_temp.imp_terminada(v_t, bea, 3, '7906900');
+  r := pg_temp.imp_como(bea, format('select public.leads_importacion_deshacer(%L)', v_t));
+  if r <> '42501' then raise exception 'Bea (no la hizo) la deshizo: %', r; end if;
+  -- Bea edita el de la fila 2.
+  update public.leads set nombre = nombre || ' editado', creado_en = creado_en - interval '1 minute' where nombre = 'IMP DES 7906900 2';
+  r := pg_temp.imp_como(ada, format('select public.leads_importacion_deshacer(%L)', v_t));
+  if (r::jsonb - 'importacion') <> '{"movidos": 2, "quedaron": [{"motivo": "editado", "cantidad": 1, "filas": [2]}], "purgados": 0, "repetido": false}'::jsonb then
+    raise exception 'deshacer debía mover los dos intactos de Bea: %', r;
+  end if;
+  if (select count(*) from public.leads where nombre in ('IMP DES 7906900 1', 'IMP DES 7906900 3') and eliminado_en is not null) <> 2
+     or exists (select 1 from public.leads where nombre like 'IMP DES 7906900 2%' and eliminado_en is not null) then
+    raise exception 'la papelera no quedó con los dos intactos';
+  end if;
+end $$;
+rollback;
+
+-- @test importar-convivencia: deshacer no corta una total en curso, pide datos.importar.todo si tuvo destino, tope de 2.000 y destino borrado no mueve nada
+begin;
+select pg_temp.imp_preparar();
+do $$
+declare ada uuid := '00000000-0000-4000-8000-00000000906a'; bea uuid := '00000000-0000-4000-8000-00000000906b';
+        v_curso uuid := '00000000-0000-4000-8000-0000009062f4'; v_tope uuid := '00000000-0000-4000-8000-0000009062f5';
+        v_borrado uuid := '00000000-0000-4000-8000-0000009062f6'; v_perm uuid := '00000000-0000-4000-8000-0000009062f7'; r text;
+begin
+  -- En curso: 22023 y sigue procesando, sin marca de deshecha.
+  perform pg_temp.imp_empezada(v_curso, bea, 2);
+  r := pg_temp.imp_lote(v_curso, 1, jsonb_build_array(pg_temp.imp_fila(1, 'IMP DES curso', '79069101')));
+  r := pg_temp.imp_como(ada, format('select public.leads_importacion_deshacer(%L)', v_curso));
+  if r <> '22023' then raise exception 'una total en curso se deshizo: %', r; end if;
+  if (select jsonb_build_array(estado, deshecha_en) from public.importaciones where id = v_curso) <> '["procesando", null]'::jsonb then
+    raise exception 'deshacer cortó una total en curso';
+  end if;
+  -- Más de 2.000 leads: 22023/importacion.
+  perform pg_temp.imp_terminada(v_tope, bea, 1, '7906920');
+  update public.importaciones set filas_ok = 2001 where id = v_tope;
+  r := pg_temp.imp_como(ada, format('select public.leads_importacion_deshacer(%L)', v_tope));
+  if r <> '22023/importacion' then raise exception 'el tope de 2.000: %', r; end if;
+  -- El perfil del destino se borró (asignar_a nulo, con_destino): nada se mueve, todo queda otra_persona.
+  perform pg_temp.imp_terminada(v_borrado, bea, 2, '7906930');
+  update public.importaciones set asignar_a = null where id = v_borrado;
+  r := pg_temp.imp_como(ada, format('select public.leads_importacion_deshacer(%L)', v_borrado));
+  if (r::jsonb - 'importacion') <> '{"movidos": 0, "quedaron": [{"motivo": "otra_persona", "cantidad": 2, "filas": [1, 2]}], "purgados": 0, "repetido": false}'::jsonb then
+    raise exception 'con el destino borrado no debía mover nada: %', r;
+  end if;
+  if exists (select 1 from public.leads where nombre like 'IMP DES 7906930 %' and eliminado_en is not null) then raise exception 'se movió un lead'; end if;
+  -- Sin datos.importar.todo: 42501 y nada cambia.
+  perform pg_temp.imp_terminada(v_perm, bea, 1, '7906940');
+  perform pg_temp.imp_quitar(ada, 'datos.importar.todo');
+  r := pg_temp.imp_como(ada, format('select public.leads_importacion_deshacer(%L)', v_perm));
+  if r <> '42501' then raise exception 'sin datos.importar.todo la deshizo: %', r; end if;
+  if (select deshecha_en from public.importaciones where id = v_perm) is not null then raise exception 'quedó marcada deshecha'; end if;
+end $$;
+rollback;
+
+-- @test importar-convivencia: el aplicado_en de datos.importar.todo nombra leads_importacion_deshacer
+do $$
+begin
+  if (select aplicado_en from public.permisos where clave = 'datos.importar.todo')
+     is distinct from 'importacion_crear, _importacion_autorizar, leads_importacion_deshacer, policy importaciones' then
+    raise exception 'el aplicado_en de datos.importar.todo no nombra leads_importacion_deshacer';
+  end if;
+end $$;

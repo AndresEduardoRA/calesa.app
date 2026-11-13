@@ -39,7 +39,7 @@ declare
     ('vehiculos_papelera_restaurar', 'un lote tiene a lo sumo 200 vehículos'),
     ('leads_importar_lote', 'un lote de importación son a lo sumo 50 filas de un archivo de 500'),
     ('leads_importacion_terminar', 'una importación son a lo sumo 500 filas'),
-    ('leads_importacion_deshacer', 'una importación son a lo sumo 500 leads'),
+    ('leads_importacion_deshacer', 'una importación son a lo sumo 500 leads (/leads) o 2.000 (la total que se deja deshacer, 9.06-2)'),
     ('leads_exportacion_registrar', 'las exportaciones de UNA persona en la última hora (a lo sumo 5)'),
     ('storage_refcount', 'las referencias de UNA ruta de Storage (una o dos)'),
     ('_encolar_para_limpiar', 'las rutas de un lote de hasta 200 vehículos'),
