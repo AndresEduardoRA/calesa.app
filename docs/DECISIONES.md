@@ -279,8 +279,8 @@ las trampas, en `docs/LECCIONES.md`.
 - **Imágenes del ítem: tope 8 en la base con candado por ítem**, sin UPDATE; proyecto cerrado e ítem eliminado frenan el INSERT.
 - **Nulo no es 0 en dinero.** Margen y total son nulos si a un ítem le falta precio o moneda; un total que no cabe en `numeric(18,2)` es error de la línea, no un recorte.
 - **Pagos de proyecto por la RPC gemela `pago_registrar_proyecto`**, sin tocar la firma de `pago_registrar`; el lead queda nulo.
-- **Un pago de proyecto se anula con el mismo `pago_anular`** y la clave de confirmar; como cualquier pago vivo cumple `proyecto.pago_cliente`, no se anula el
-  último mientras un ítem vivo (también en stock) esté en una fase que lo pide. Como confirmar, no mira si el proyecto está cerrado.
+- **Un pago de proyecto se anula con el mismo `pago_anular`** y la clave de confirmar; como cualquier pago vivo cumple `proyecto.pago_cliente`, no se anula ni
+  se elimina (`pago_eliminar`) el último mientras un ítem vivo (también en stock) esté en una fase que lo pide. Como confirmar, no mira si el proyecto está cerrado.
 - **La cotización de repuestos se numera con `identity`, con huecos** (no es comprobante). Aceptar copia el unitario a `precio_cliente`; anular no lo revierte.
 
 ## Agenda

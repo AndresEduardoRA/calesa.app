@@ -24,7 +24,7 @@ Abiertos que lo tocan: **8-13a** a **8-13c**, **8-13e** y la revisión de seguri
 - **`compras`** — `?pestana=compras` de `/repuestos/[id]`: `leerComprasDelProyecto` (tope 200), `leerMargenDelProyecto`, `<MargenDelProyecto>`,
   `<ComprasDelProyecto>` (`pantallas/compras.ts`); Drawer `?panel=compra&compra=<id|nueva>`. `?pestana=pagos` la dibuja `PagosDelProyectoDiferido` de
   `logistica`: registrar pide `repuestos.costos.editar` y `repuestos.ver` (`pago_registrar_proyecto`), confirmar y anular `logistica.pagos.confirmar`.
-  Un pago vivo cumple `proyecto.pago_cliente`: `pago_anular` no anula el último si un ítem vivo está en una fase que lo pide. Las dos pestañas sólo
+  Un pago vivo cumple `proyecto.pago_cliente`: `pago_anular` y `pago_eliminar` no quitan el último si un ítem vivo está en una fase que lo pide. Las dos pestañas sólo
   existen con `repuestos.costos.ver` (`pestanasLlenas(permisos)`; sin él la URL abre «Ítems» y no se lee nada de costos).
 - **`cotizador`** — `?seccion=cotizador` de `/configuracion/repuestos`: `leerConfiguracionDelCotizador()` (vigente, historial tope 20, tramos y cajas tope
   200), `<ConfiguracionDelCotizador>` (`pantallas/cotizador-configuracion.ts`), modales `?panel=tramo|caja&tramo|caja=<id|nuevo>&moneda=`.

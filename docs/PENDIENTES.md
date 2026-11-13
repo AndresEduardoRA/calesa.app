@@ -58,8 +58,7 @@ Al cerrar una, se borra su línea (el PR lo cuenta). Lo nuevo que aparezca al tr
 ## Seguridad y dinero
 
 - **[—]** Un gasto en la moneda base acepta `NaN` como monto: `_gasto_validar` mira `< 0` y `_monto_en_base` no lo ataja sin conversión — el corte de `_pago_validar`; migración.
-- **[8-13e]** Eliminar el último pago vivo sin confirmar de un proyecto puede dejar sin cumplir `proyecto.pago_cliente` en la fase de un ítem — el vehículo tiene esa guarda y el proyecto no.
-- **[—]** Seguridad de los pagos de un proyecto de repuestos: quedó anotada para revisar sin detalle; hacerla junto con 8-13e.
+- **[—]** Seguridad de los pagos de un proyecto de repuestos: quedó anotada para revisar sin detalle.
 - **[—]** Repuestos: la policy de UPDATE de `repuestos_proyectos` pide `repuestos.editar` sin `repuestos.ver` (un `update` sin `where` no pasa por la de leer) y no mira proyecto cerrado ni eliminado — como el trigger `repuestos_item_escritura` de los ítems.
 - **[7-4]** Con `p_conversacion` del canal global, `tarea_crear` y `agenda_quienes_reciben` miran la fila suelta de `conversaciones_miembros` y pasa un responsable sin `chat.global` — revalidar con `_chat_miembro_vigente` como `mensaje_tarea_crear`.
 - **[—]** `lead_campo_impacto` lee los valores de todos los leads, también `solo_cartera` ajenos: con `leads.campos.gestionar`, acotando el rango, se hallan los extremos de un campo privado.
@@ -68,7 +67,7 @@ Al cerrar una, se borra su línea (el PR lo cuenta). Lo nuevo que aparezca al tr
 - **[—]** `_vehiculo_motivo_de_bloqueo` no frena mandar a la papelera un vehículo con una final sin lead.
 - **[—]** Purgar un vehículo o un lead no se bloquea mientras una cotización de la papelera lo nombra, y una final en la papelera hace caer con `23514` la purga entera del lote del vehículo.
 - **[—]** Posible `40P01` entre el job de purga (lotes por `creado_en`, en una transacción) y restaurar cotizaciones (por id): sin medir ni orden común.
-- **[—]** Anular un pago confirmado o quitar un gasto de tributos mientras el vehículo entra a una fase que pide `pagos.confirmado` no toma el candado del vehículo, ni anular el último pago de un proyecto el de sus ítems ante `proyecto.pago_cliente` — carreras sin cubrir en `scripts/carreras/`.
+- **[—]** Anular un pago confirmado o quitar un gasto de tributos mientras el vehículo entra a una fase que pide `pagos.confirmado` no toma el candado del vehículo, ni anular o eliminar el último pago de un proyecto el de sus ítems ante `proyecto.pago_cliente` — carreras sin cubrir en `scripts/carreras/`.
 - **[—]** Faltan carreras mixtas de la fórmula en `scripts/carreras/`: el ⚙ contra publicar el borrador, y revertir contra el ⚙.
 - **[—]** Las carreras de marcar y crear una final (`supabase/tests/areas/final/correr-carreras.mjs`) no están en `pnpm db:carreras`: sólo corren a mano — sumarlas a `scripts/carreras.mjs`.
 - **[4-33]** Una tarifa de tipo de cambio que confirma después de abrir la hoja, con `cambiado_en` anterior, cuenta como vista — `abierta` con una huella de las tarifas vistas que `cotizacion_crear` compare.

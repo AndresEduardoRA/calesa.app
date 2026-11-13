@@ -97,7 +97,7 @@ y su regla de `flujos_reglas` está activa; el orden es `ORDEN_DE_HUECOS`, no el
   anular piden `logistica.pagos.confirmar` (global); el sello «Confirmado por <nombre> el <fecha>» lo pone la base; anular pide motivo; el lead va nulo.
   **Pagos de un proyecto de repuestos:** `pantallas/dinero-proyecto.ts` (pestaña «Pagos» de `/repuestos/[id]`): el mismo `CuerpoDePagos` con
   `AmbitoDePagoContext` en `proyecto`, registra `{ proyectoId }` por `pago_registrar_proyecto`, sin lead; permisos por props (`repuestos.costos.editar`,
-  `logistica.pagos.confirmar`); anula como el vehículo, y `pago_anular` no deja sin pago vivo a un proyecto con un ítem en una fase que pide
+  `logistica.pagos.confirmar`); anula como el vehículo, y `pago_anular` y `pago_eliminar` no dejan sin pago vivo a un proyecto con un ítem en una fase que pide
   `proyecto.pago_cliente`.
   **Lista:** `/logistica/gastos?ver=gastos|pagos` (`ENLACE_DE_DINERO` pide `logistica.gastos.ver`). `entities/dinero/listas.ts` manda sólo las claves que acepta
   cada RPC (una de más da `22023`); cursor `(fecha, id)` como instante a medianoche, sin «Anterior» ni sumas. La fila abre `?vehiculo=` de `/logistica`.
