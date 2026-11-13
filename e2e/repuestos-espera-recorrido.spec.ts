@@ -10,9 +10,8 @@ import {
   crearPersona,
   darRolDePrueba,
 } from './soporte/base'
-import { borrarOrigenes, crearOrigenDePrueba } from './soporte/origenes'
+import { REPUESTO_DE_LA_ESPERA, limpiarEspera, sembrarEspera } from './soporte/repuestos-espera'
 import { sql } from './soporte/sql'
-import { borrarVehiculosDe } from './soporte/vehiculos'
 
 // El assert del paso 8.13: un vehículo en «En taller» con una espera a «Recibido» y un ítem de repuesto «En tránsito» → su panel de logística dice que espera un repuesto y «Qué falta» lo
 // marca → quien tiene `repuestos.mover` pasa el ítem a «Recibido» con la vista previa, desde la Cadena → el vehículo ya puede pasar de fase; y sin `repuestos.mover`, mover está apagado con su
@@ -29,46 +28,12 @@ let proyectoDeRepuestos = ''
 let item = ''
 let transito = ''
 let recibido = ''
-const REPUESTO = 'Pastillas de freno'
-
-const limpiar = () => {
-  if (claveDelOrigen === '') return
-  sql(
-    `delete from repuestos_proyectos where vehiculo_id in (select v.id from vehiculos v join origenes o on o.id = v.origen_id where o.clave like 'e2e_${claveDelOrigen}%')`,
-  )
-}
-
-async function sembrar(): Promise<void> {
-  const origen = await crearOrigenDePrueba(`E2E Espera ${proyecto}`, claveDelOrigen)
-  const fase = (nombre: string) =>
-    sql(
-      `select f.id from fases f join flujos fl on fl.id = f.flujo_id where fl.ambito = 'repuestos' and f.nombre = '${nombre}'`,
-    )
-  transito = fase('En tránsito')
-  recibido = fase('Recibido')
-  const salida = sql(`
-    with flujo as (select id from flujos where origen_id = '${origen.id}' and ambito = 'vehiculos'),
-    taller as (insert into fases (flujo_id, nombre, orden, es_inicial) select id, 'En taller', 1, true from flujo returning id, flujo_id),
-    listo as (insert into fases (flujo_id, nombre, orden) select id, 'Listo', 2 from flujo returning id, flujo_id),
-    salida as (insert into fases_transiciones (flujo_id, de_fase_id, a_fase_id) select t.flujo_id, t.id, l.id from taller t, listo l returning 1),
-    espera as (insert into fases_requisitos (fase_id, tipo, bloqueante, espera_fase_id, espera_ambito) select l.id, 'espera', true, '${recibido}', 'hijos' from listo l returning 1),
-    v as (insert into vehiculos (origen_id, titulo, fase_id, fase_desde) select '${origen.id}', 'E2E Espera ${proyecto}', t.id, now() - interval '2 days' from taller t returning id),
-    p as (insert into repuestos_proyectos (vehiculo_id) select id from v returning id),
-    i as (insert into repuestos_items (proyecto_id, descripcion, fase_id, fase_desde) select p.id, '${REPUESTO}', '${transito}', now() from p returning id, proyecto_id)
-    select (select id from v) || ',' || (select id from p) || ',' || (select id from i)
-      from salida, espera limit 1`)
-  ;[vehiculo = '', proyectoDeRepuestos = '', item = ''] = salida.split(',')
-  sql(
-    `insert into historial_fases (flujo_id, repuesto_id, de_fase_id, a_fase_id) select f.flujo_id, '${item}', null, f.id from fases f where f.id = '${transito}'`,
-  )
-}
+const REPUESTO = REPUESTO_DE_LA_ESPERA
 
 test.beforeAll(async ({}, info) => {
   proyecto = info.project.name
   claveDelOrigen = `espera_${proyecto}`
-  limpiar()
-  await borrarVehiculosDe([`e2e_${claveDelOrigen}`])
-  await borrarOrigenes([`e2e_${claveDelOrigen}`])
+  await limpiarEspera(claveDelOrigen)
   await borrarPersonasDePrueba()
   await borrarRolesDePrueba()
   duena = correoDePrueba(`duena-espera-${proyecto}`)
@@ -88,13 +53,14 @@ test.beforeAll(async ({}, info) => {
     },
     permisos: ['repuestos.ver'],
   })
-  await sembrar()
+  ;({ vehiculo, proyectoDeRepuestos, item, transito, recibido } = await sembrarEspera(
+    proyecto,
+    claveDelOrigen,
+  ))
 })
 
 test.afterAll(async () => {
-  limpiar()
-  await borrarVehiculosDe([`e2e_${claveDelOrigen}`])
-  await borrarOrigenes([`e2e_${claveDelOrigen}`])
+  await limpiarEspera(claveDelOrigen)
   await borrarPersonasDePrueba()
   await borrarRolesDePrueba()
 })
