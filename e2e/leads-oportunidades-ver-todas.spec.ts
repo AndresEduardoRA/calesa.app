@@ -61,6 +61,16 @@ async function leadConOportunidades(
 const items = (page: Page) => page.getByRole('article')
 const verMas = (page: Page) => page.getByRole('button', { name: 'Ver más' })
 const titulosVisibles = (page: Page) => items(page).evaluateAll((a) => a.map((x) => x.ariaLabel))
+// «Ver más» hasta tener `cuantas` a la vista. Antes de hidratar el clic no vale: se insiste hasta que la lista crece (con una lectura en
+// vuelo otro clic no pide nada, y al llegar todas el botón ya no está).
+async function verMasHasta(page: Page, cuantas: number) {
+  await expect(async () => {
+    if ((await items(page).count()) < cuantas && (await verMas(page).count()) > 0) {
+      await verMas(page).click()
+    }
+    await expect(items(page)).toHaveCount(cuantas, { timeout: 1000 })
+  }).toPass()
+}
 
 test('con 12: se ven 10 con «Ver más», que trae las 12 sin cambiar la URL', async ({
   page,
@@ -68,8 +78,7 @@ test('con 12: se ven 10 con «Ver más», que trae las 12 sin cambiar la URL', a
   const lead = await leadConOportunidades(page, `VerMas ${info.project.name}`, { abiertas: 12 })
   await expect(items(page)).toHaveCount(10)
   const url = page.url()
-  await verMas(page).click()
-  await expect(items(page)).toHaveCount(12)
+  await verMasHasta(page, 12)
   await expect(verMas(page)).toHaveCount(0)
   await expect(page.getByText(/Mostrando las/)).toHaveCount(0)
   expect(page.url()).toBe(url)
@@ -94,8 +103,7 @@ test('con 25 (15 abiertas y 10 cerradas): «Ver más» las trae todas en el orde
   expect(enLaBase).toHaveLength(25)
   await expect(items(page)).toHaveCount(10)
   expect(await titulosVisibles(page)).toEqual(enLaBase.slice(0, 10))
-  await verMas(page).click()
-  await expect(items(page)).toHaveCount(25)
+  await verMasHasta(page, 25)
   expect(await titulosVisibles(page)).toEqual(enLaBase)
   await expect(verMas(page)).toHaveCount(0)
 

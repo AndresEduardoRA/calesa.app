@@ -16,8 +16,12 @@ type Ciclo = {
 
 // Abre, cierra con Esc, «atrás» y «adelante», y recarga: termina con la confirmación abierta.
 export async function cicloDeUnaConfirmacion(page: Page, c: Ciclo): Promise<void> {
-  await c.abrir()
-  await expect(c.dialogo).toBeVisible()
+  // La primera vez la página puede no haber hidratado y el clic no vale: se insiste hasta que la URL pide el panel, y no de más (cada
+  // clic de sobra sumaría una entrada al historial y rompería «atrás»).
+  await expect(async () => {
+    if (!c.url.test(page.url())) await c.abrir()
+    await expect(c.dialogo).toBeVisible({ timeout: 1000 })
+  }).toPass()
   await expect(page).toHaveURL(c.url)
   await page.keyboard.press('Escape')
   await expect(c.dialogo).toBeHidden()
