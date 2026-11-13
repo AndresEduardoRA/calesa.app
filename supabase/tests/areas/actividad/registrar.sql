@@ -3,6 +3,7 @@
 -- Qué asegura:
 --   T1. La app (authenticated, anon) no ejecuta `registrar_actividad()`: sólo la llaman funciones `security definer`, y service_role.
 --   T2. Ninguna función de invocador llama a `registrar_actividad()` (fallaría con 42501 al quitarle el execute a la app).
+--   T3. La app lee la cabecera de `actividad` pero no su `detalle` (lleva teléfonos enmascarados, el código del portal, montos).
 --   T4. El detector de T2 encuentra una invocadora plpgsql y una `begin atomic` (lee `pg_get_functiondef`, no `prosrc`).
 
 -- @test actividad: los ayudantes de registrar
@@ -74,6 +75,25 @@ do $$
 declare v text[] := pg_temp.reg_invocadoras();
 begin
   if cardinality(v) > 0 then raise exception 'T2: funciones de invocador que llaman a registrar_actividad: %', v; end if;
+end $$;
+
+-- @test actividad: la app lee la cabecera de la actividad pero no su detalle (T3)
+do $$
+declare p uuid; v text; c text;
+begin
+  if has_column_privilege('authenticated', 'public.actividad', 'detalle', 'select') then raise exception 'T3: authenticated lee actividad.detalle'; end if;
+  if has_column_privilege('anon', 'public.actividad', 'detalle', 'select') then raise exception 'T3: anon lee actividad.detalle'; end if;
+  foreach c in array array['id', 'accion', 'actor_id', 'tabla', 'registro_id', 'creado_en'] loop
+    if not has_column_privilege('authenticated', 'public.actividad', c, 'select') then raise exception 'T3: authenticated no lee actividad.%', c; end if;
+  end loop;
+  p := pg_temp.reg_persona();
+  v := pg_temp.reg_error(p, 'select to_jsonb(detalle) from public.actividad limit 1');
+  if v <> '42501' then raise exception 'T3: una persona con sesión leyó actividad.detalle (%)', v; end if;
+  v := pg_temp.reg_error(p, 'select to_jsonb(x) from (select id, accion, actor_id, tabla, registro_id, creado_en from public.actividad limit 1) x');
+  if v <> 'ok' then raise exception 'T3: una persona con actividad.ver no leyó la cabecera (%)', v; end if;
+  raise exception using errcode = 'P0001', message = 'deshacer';
+exception when sqlstate 'P0001' then
+  if sqlerrm <> 'deshacer' then raise; end if;
 end $$;
 
 -- @test actividad: el detector de T2 encuentra una invocadora que llama a registrar_actividad (T4)
