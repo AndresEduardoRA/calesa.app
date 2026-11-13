@@ -51,6 +51,33 @@ describe('los esqueletos de ruta', () => {
   })
 })
 
+// Un esqueleto avisa a un lector de pantalla que algo carga: `role="status"` con `aria-busy` y un `aria-label` «Cargando …». Un `aria-label` en un
+// `div` sin rol no se lee (auditoría AA, 9.12-5, D4 de la 9.12-4). Valen los de `shared/ui/esqueletos/` y el de las pantallas de acceso.
+describe('los esqueletos compartidos', () => {
+  const esqueletos = [
+    ...readdirSync(join(process.cwd(), 'src', 'shared', 'ui', 'esqueletos'))
+      .filter((nombre) => /^esqueleto-.*\.tsx$/.test(nombre))
+      .map((nombre) => `src/shared/ui/esqueletos/${nombre}`),
+    'src/app/(acceso)/esqueleto-acceso.tsx',
+  ]
+
+  it('recorre los cinco de shared/ui y el de acceso', () => {
+    expect(esqueletos.length).toBe(6)
+  })
+
+  it('todo esqueleto lleva role="status", aria-busy y un aria-label «Cargando …»', () => {
+    const sinAviso = esqueletos.filter((ruta) => {
+      const texto = leer(ruta)
+      return (
+        !/role="status"/.test(texto) ||
+        !/aria-busy="true"/.test(texto) ||
+        !/aria-label="Cargando /.test(texto)
+      )
+    })
+    expect(sinAviso).toEqual([])
+  })
+})
+
 // La transición entre pantallas es un fundido corto; con movimiento reducido no se anima (docs/UX.md › «Movimiento»).
 describe('la transición de página', () => {
   it('el template de (app) envuelve cada pantalla en TransicionPagina', () => {
