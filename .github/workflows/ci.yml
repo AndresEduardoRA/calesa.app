@@ -1,9 +1,10 @@
 name: ci
 
-# Cómo corre y cuánto cuesta: docs/DECISIONES.md, «CI-1». Las reglas de este archivo las prueba scripts/guardas/workflows.test.ts.
-# Por niveles (docs/ORCA.md): un PR corre el Nivel 1 y los e2e dirigidos a lo tocado (el completo de escritorio si toca un disparador del
-# Nivel 2: scripts/e2e-dirigidos.mjs); cada noche, el completo de escritorio sobre main si hubo commits; antes de cerrar una fase, el
-# completo con los dos proyectos a mano (workflow_dispatch, `proyectos: ambos`).
+# Las reglas de este archivo las prueba scripts/guardas/workflows.test.ts. Por niveles (docs/FLUJO.md, .claude/rules/e2e.md): un PR
+# corre el Nivel 1 y los e2e dirigidos a lo tocado (el completo de escritorio si toca un disparador del Nivel 2:
+# scripts/e2e-dirigidos.mjs); cada noche, el completo de escritorio sobre main si hubo commits; antes de desplegar, el completo con los
+# dos proyectos a mano (workflow_dispatch, `proyectos: ambos`). El job `listo` resume a todos: es el único check que main exige, y con
+# él en verde GitHub integra el PR solo (auto-merge).
 on:
   push:
     branches: [main]
@@ -13,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       proyectos:
-        description: 'Proyectos del e2e: escritorio (como el Nivel 2) o ambos (el Nivel 3, el cierre de una fase)'
+        description: 'Proyectos del e2e: escritorio (como el Nivel 2) o ambos (el Nivel 3, antes de desplegar)'
         type: choice
         options: [escritorio, ambos]
         default: escritorio
@@ -22,7 +23,7 @@ on:
         type: boolean
         default: true
       carreras:
-        description: 'Correr las carreras con dos conexiones (docs/PLAN.md, 9-6): cada corrida cuenta para las 5 seguidas en verde'
+        description: 'Correr las carreras con dos conexiones (docs/PENDIENTES.md, 9-6): cada corrida cuenta para las 5 seguidas en verde'
         type: boolean
         default: false
 
@@ -61,13 +62,26 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/acciones/preparar
+      # El PR se integra con squash: su título es el mensaje del commit que queda en main (docs/FLUJO.md).
+      - name: el título del PR es un commit convencional
+        if: github.event_name == 'pull_request'
+        env:
+          TITULO: ${{ github.event.pull_request.title }}
+        run: printf '%s\n' "$TITULO" | pnpm exec commitlint
+      # Una migración nueva va después de la última de main: un reset aplica por el orden del nombre (.claude/rules/migraciones.md).
+      - name: las migraciones del PR van después de las de main
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git fetch --no-tags --depth=1 origin "$BASE_REF"
+          MIGRACIONES_BASE=FETCH_HEAD pnpm exec vitest run scripts/guardas/orden-de-migraciones.test.ts
       - run: pnpm lint
       - run: pnpm typecheck # corre `next typegen` antes de tsc
       - run: bash scripts/mapa.sh --check
 
   # `pnpm test` en 3 partes (`vitest --shard`), cada una en su runner. En un solo job eran 14 de los 15 a 18 min del Nivel 1 (962
-  # archivos, 2026-11-12): el job más largo de un PR con e2e dirigidos, y el veredicto de main llegaba después de que la integración
-  # siguiente lo cancelara. El nombre empieza con «Nivel 1»: su rojo es del código y no se vuelve a correr (COORD_ROJO_FIRME).
+  # archivos, 2026-11-12): el job más largo de un PR con e2e dirigidos.
   pruebas:
     name: Nivel 1 · tests, parte ${{ matrix.parte }} de 3
     runs-on: ubuntu-24.04
@@ -80,29 +94,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/acciones/preparar
       - run: pnpm test --shard=${{ matrix.parte }}/3
-
-  # Lo que un PR puede tocar según su carril (scripts/guardas/carriles.mjs, docs/ORCA.md): un carril que no es base (docs/plan.yaml, el de la
-  # base del PR) no edita ESTADO, PLAN, DECISIONES ni BITACORA ni crea migraciones de otro dominio; ninguna migración se intercala ni se edita.
-  # La guarda que corre es la de la base, no la del PR: un PR que la edite se juzga con la que ya estaba.
-  carriles:
-    name: Carriles · lo que el PR puede tocar
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-      - uses: ./.github/acciones/preparar
-      - env:
-          BASE_REF: ${{ github.base_ref }}
-          RAMA: ${{ github.head_ref }}
-        # La base es la rama base de AHORA, no pull_request.base.sha: ése queda viejo y, cuando la rama del carril trae main (antes de
-        # cada parte), lo que main sumó después aparecía como del PR (los PR 72, 76 y 78 cayeron así el 2026-11-08).
-        run: |
-          BASE_PR=$(git rev-parse "origin/$BASE_REF")
-          git worktree add --detach .guarda-base "$BASE_PR"
-          node .guarda-base/scripts/guardas/carriles.mjs "$BASE_PR" "$RAMA"
 
   # Decide si corren los jobs pesados (scripts/ci-cambios.sh, probado en scripts/ci-cambios.test.ts) y qué e2e corre un PR: el completo
   # en 4 bloques, los dirigidos en 1, o ninguno (scripts/e2e-dirigidos.mjs). Fuera de un PR, el completo.
@@ -170,7 +161,7 @@ jobs:
           pnpm db:lint > "$RUNNER_TEMP/db-lint.txt" 2>&1 || { cat "$RUNNER_TEMP/db-lint.txt"; exit 1; }
           pnpm exec tsx scripts/despliegue/revisar-base.mjs advisors db-lint "$RUNNER_TEMP/db-lint.txt" inventario
 
-  # docs/PLAN.md, 9-6: dos o tres conexiones reales, sólo a mano (`carreras: true`) hasta 5 corridas seguidas en verde; entonces
+  # docs/PENDIENTES.md, 9-6: dos o tres conexiones reales, sólo a mano (`carreras: true`) hasta 5 corridas seguidas en verde; entonces
   # pasan a `base`. Sin reintentos: `scripts/carreras.mjs` falla si una carrera no llegó a probarse.
   carreras:
     name: Carreras · db:carreras (a mano, 9-6)
@@ -186,8 +177,7 @@ jobs:
       - run: pnpm db:reset
       - run: pnpm db:carreras
 
-  # La app se compila una vez y los bloques bajan la misma (docs/DECISIONES.md, «CI-1»: factura menos y corre en
-  # paralelo con el Nivel 1, que los bloques esperan igual). Un PR sin e2e que correr (`e2e_modo: ninguno`) no compila.
+  # La app se compila una vez y los bloques bajan la misma (factura menos y corre en paralelo con el Nivel 1). Un PR sin e2e que correr (`e2e_modo: ninguno`) no compila.
   # Con workflow_dispatch, `e2e: false` lo apaga (para correr sólo las carreras).
   e2e-build:
     name: e2e · compilar la app
@@ -214,11 +204,10 @@ jobs:
           if-no-files-found: error
 
   # Cada bloque tiene su runner y su pila de Supabase: una base por bloque. Sin reintentos (`retries: 0`): la causa de un
-  # fallo va a los artefactos y a e2e-fallos/. Las carreras (`db:carreras`) van en su job, a mano (docs/PLAN.md, 9-6).
+  # fallo va a los artefactos y a e2e-fallos/. Las carreras (`db:carreras`) van en su job, a mano (docs/PENDIENTES.md, 9-6).
   e2e:
     name: e2e · bloque ${{ matrix.bloque }} de ${{ needs.cambios.outputs.e2e_de }}
-    # Sin esperar al Nivel 1 (≈ 10 min): compilar tarda 1,2 y cada PR perdía unos 9 min con los runners libres. Si el Nivel 1 cae, el
-    # coordinador devuelve el paso sin esperar a estos bloques (COORD_ROJO_FIRME) y el push siguiente los cancela.
+    # Sin esperar al Nivel 1 (≈ 5 min): compilar tarda 1,2 y cada PR perdía esos minutos con los runners libres.
     needs: [cambios, e2e-build]
     if: needs.cambios.outputs.e2e == 'true' && needs.cambios.outputs.e2e_modo != 'ninguno' && (github.event_name != 'workflow_dispatch' || inputs.e2e)
     runs-on: ubuntu-24.04
@@ -312,8 +301,8 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
-          # Con el intento en el nombre: al volver a correr lo que cayó (el coordinador lo hace una vez por commit), el artefacto del primer
-          # intento ya existía y este paso caía con un 409, sin dejar la traza del segundo (el #116, 2026-11-11).
+          # Con el intento en el nombre: al volver a correr lo que cayó, el artefacto del primer intento ya existía y este paso caía
+          # con un 409, sin dejar la traza del segundo.
           name: e2e-bloque-${{ matrix.bloque }}-intento-${{ github.run_attempt }}
           path: |
             playwright-report/
@@ -321,3 +310,21 @@ jobs:
             test-results/
           retention-days: 14
           if-no-files-found: ignore
+
+  # El veredicto del CI en un solo check: verde si ningún job cayó ni se canceló (uno que no tocaba correr cuenta como verde). Es el
+  # único que la protección de main exige: los demás cambian de nombre con la matriz o no corren en todo PR, y GitHub no puede esperar
+  # a un check que nunca aparece. Con éste en verde el PR se integra solo (docs/FLUJO.md).
+  listo:
+    name: Listo · todo en verde
+    if: always()
+    needs: [nivel-1, pruebas, cambios, base, e2e-build, e2e]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - env:
+          RESULTADOS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "resultados: $RESULTADOS"
+          case " $RESULTADOS " in
+            *" failure "* | *" cancelled "*) echo "::error::Algún job cayó o se canceló."; exit 1 ;;
+          esac
