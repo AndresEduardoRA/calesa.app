@@ -2593,6 +2593,36 @@ export type Database = {
           },
         ]
       }
+      importaciones_pases: {
+        Row: {
+          creado_en: string
+          importacion_id: string
+          pase: string
+          usado_en: string | null
+        }
+        ComputedFields: never
+        Insert: {
+          creado_en?: string
+          importacion_id: string
+          pase?: string
+          usado_en?: string | null
+        }
+        Update: {
+          creado_en?: string
+          importacion_id?: string
+          pase?: string
+          usado_en?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'importaciones_pases_importacion_id_fkey'
+            columns: ['importacion_id']
+            isOneToOne: false
+            referencedRelation: 'importaciones'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       integraciones: {
         Row: {
           activa: boolean
@@ -10101,6 +10131,7 @@ export type Database = {
         }
         Returns: Json
       }
+      importacion_abrir: { Args: { p_pase: string }; Returns: string }
       importacion_crear: {
         Args: {
           p_archivo_ruta: string
@@ -10113,6 +10144,7 @@ export type Database = {
         Returns: Json
       }
       importacion_empezar: { Args: { p_importacion: string; p_total: number }; Returns: Json }
+      importacion_pase_emitir: { Args: { p_importacion: string }; Returns: string }
       importacion_procesar_lote: {
         Args: { p_desde: number; p_filas: Json; p_importacion: string }
         Returns: Json

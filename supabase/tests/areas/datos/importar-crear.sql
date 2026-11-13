@@ -167,7 +167,7 @@ begin
       if has_function_privilege('authenticated', v_f, 'execute') or has_function_privilege('service_role', v_f, 'execute') then
         raise exception 'el ayudante % lo ejecuta alguien más que su dueño', v_nombre;
       end if;
-    elsif v_nombre <> 'importacion_crear' then
+    elsif v_nombre not in ('importacion_crear', 'importacion_pase_emitir') then  -- las dos que llama la app (9.06-2: el pase)
       if has_function_privilege('authenticated', v_f, 'execute') then raise exception 'authenticated ejecuta %', v_nombre; end if;
       if not has_function_privilege('service_role', v_f, 'execute') then raise exception 'service_role no ejecuta %', v_nombre; end if;
     end if;
