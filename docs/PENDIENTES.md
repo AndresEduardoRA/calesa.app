@@ -57,7 +57,7 @@ Al cerrar una, se borra su línea (el PR lo cuenta). Lo nuevo que aparezca al tr
 
 ## Seguridad y dinero
 
-- **[8-13f]** `pago_registrar` (vehículo) acepta `NaN` como monto: `_pago_validar` mira `<= 0` y `'NaN' > 0` es verdadero en PG — copiar el corte de `pago_registrar_proyecto`; migración.
+- **[—]** Un gasto en la moneda base acepta `NaN` como monto: `_gasto_validar` mira `< 0` y `_monto_en_base` no lo ataja sin conversión — el corte de `_pago_validar`; migración.
 - **[8-13d]** Un pago confirmado de un proyecto de repuestos no se puede anular (`pago_anular` lo rechaza: «se anulan en el paso de repuestos», y ese paso no existe).
 - **[8-13e]** Eliminar el último pago vivo sin confirmar de un proyecto puede dejar sin cumplir `proyecto.pago_cliente` en la fase de un ítem — el vehículo tiene esa guarda y el proyecto no.
 - **[—]** Seguridad de los pagos de un proyecto de repuestos: quedó anotada para revisar sin detalle; hacerla junto con 8-13d y 8-13e.
