@@ -9,6 +9,7 @@ import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import { pruebasEnOrden } from './lib/pruebas-de-la-base.mjs'
+import { cargarDatos } from './lib/datos-de-prueba.mjs'
 
 const base = process.argv[2] ?? 'supabase'
 const db = new PGlite({ extensions: { pg_trgm, citext, unaccent, pgcrypto } })
@@ -147,9 +148,8 @@ for (const f of lista) {
 }
 console.log(`✓ ${ok} archivos aplicados`)
 
-// Los datos que una prueba lee del repo: la base no lee archivos, así que se los pasa el cliente en una tabla temporal
-// `<nombre> (doc jsonb)`, creada antes de correr su archivo. La ruta es relativa a la raíz del repo. `{ ruta, texto: true }` guarda el archivo
-// como texto (`to_jsonb(texto)`), no como JSON: una migración que la prueba vuelve a ejecutar (si se recrea con otra fecha, se corrige su ruta).
+// Los datos que una prueba lee del repo, por archivo (las clases de dato, en `scripts/lib/datos-de-prueba.mjs`). Si una migración que se lee
+// como texto se recrea con otra fecha, se corrige su ruta.
 const DATOS_DE_PRUEBA = {
   'validar-formula.sql': {
     _juego_de_formula: 'src/modules/cotizaciones/entities/casos-de-formula.json',
@@ -192,19 +192,6 @@ const DATOS_DE_PRUEBA = {
       texto: true,
     },
   },
-}
-
-async function cargarDatos(archivo) {
-  for (const [tabla, dato] of Object.entries(DATOS_DE_PRUEBA[archivo] ?? {})) {
-    const { ruta, texto } = typeof dato === 'string' ? { ruta: dato, texto: false } : dato
-    await db.exec(`drop table if exists pg_temp.${tabla}; create temp table ${tabla} (doc jsonb)`)
-    await db.query(
-      texto
-        ? `insert into ${tabla} (doc) values (to_jsonb($1::text))`
-        : `insert into ${tabla} (doc) values ($1::jsonb)`,
-      [fs.readFileSync(ruta, 'utf8')],
-    )
-  }
 }
 
 // Pruebas: el humo y, después, lo que se apoya en su base (la matriz de leads y el cinturón de la
@@ -281,7 +268,7 @@ const LISTA_FIJA = [
 for (const archivo of pruebasEnOrden(LISTA_FIJA, path.join(base, 'tests'), SOLO)) {
   const t = path.join(base, 'tests', archivo)
   if (!fs.existsSync(t)) continue
-  await cargarDatos(archivo)
+  await cargarDatos(db, DATOS_DE_PRUEBA[archivo] ?? {})
   const bloques = fs
     .readFileSync(t, 'utf8')
     .split(/^-- @test\s+/m)
