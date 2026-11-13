@@ -95,5 +95,11 @@ export const REGISTRO: readonly RpcPaginada[] = [
     parametro: 'p_tope',
     pideElCodigo: TOPE_DE_ESPERAS,
     lista: 'repuestos que espera un vehículo',
+  // `/actividad` (9.01-3): por cursor sobre `id`, de a `TAMANO_DE_VER_MAS` («Ver más» e «Ir a una fecha») hasta `TOPE_DE_LO_CARGADO`.
+  {
+    rpc: 'actividad_listar',
+    parametro: 'p_tamano',
+    pideElCodigo: TAMANO_DE_VER_MAS,
+    lista: '/actividad, «Ver más» y «Ir a una fecha»',
   },
 ]

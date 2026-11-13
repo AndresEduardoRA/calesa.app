@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { CLAVES_PERMISO, type Concesion, type Permisos } from '@/shared/lib/permisos'
-import { NAVEGACION, entradasVisibles, estaEn } from './navegacion'
+import { NAVEGACION, entradasVisibles, estaEn, type EntradaNav } from './navegacion'
 
 const CARPETA_APP = path.join(process.cwd(), 'src/app/(app)')
 
@@ -47,7 +47,9 @@ describe('entradasVisibles', () => {
     const todo = concesiones(...CLAVES_PERMISO)
     const visibles = [...entradasVisibles(todo, 'principal'), ...entradasVisibles(todo, 'usuario')]
     expect(visibles.every((entrada) => entrada.disponible)).toBe(true)
-    expect(visibles.length).toBe(NAVEGACION.filter((entrada) => entrada.disponible).length)
+    expect(visibles.length).toBe(
+      NAVEGACION.filter((entrada: EntradaNav) => entrada.disponible).length,
+    )
   })
 
   it('con cotizaciones.ver se ve Cotizaciones; sin él, no', () => {

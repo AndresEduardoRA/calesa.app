@@ -3,18 +3,22 @@
 // (`leads/entities/acciones-de-lead.ts`) con lo que ya existe de un vehículo: lo que se hace seguido arriba, lo destructivo al final y separado.
 // Lo que una persona no puede hacer no aparece (los permisos no cambian: salen de `editablesDe()`, `permisoDeVitrina()` y `permisoDePapelera()`).
 
-export type ClaveDeAccionDeVehiculo = 'editar' | 'publicar' | 'papelera'
+export type ClaveDeAccionDeVehiculo = 'editar' | 'publicar' | 'actividad' | 'papelera'
 
 export const ETIQUETA_DE_ACCION_DE_VEHICULO: Readonly<Record<ClaveDeAccionDeVehiculo, string>> = {
   editar: 'Editar',
   // Abre el panel de la vitrina, con su vista previa: lleva «…».
   publicar: 'Publicar en la web…',
+  // Lleva a otra página (`/actividad` de este vehículo): sin «…».
+  actividad: 'Ver actividad',
   papelera: 'Enviar a la papelera',
 }
 
-// El orden, en dos bloques: lo que se hace seguido arriba (editar y publicar) y lo destructivo al final y separado (la papelera).
+// El orden, en bloques: lo que se hace seguido arriba (editar y publicar), «Ver actividad» (sólo la ficha, con `actividad.ver`) y lo
+// destructivo al final y separado (la papelera).
 export const BLOQUES_DEL_MENU_DE_VEHICULO: readonly (readonly ClaveDeAccionDeVehiculo[])[] = [
   ['editar', 'publicar'],
+  ['actividad'],
   ['papelera'],
 ]
 

@@ -27,7 +27,7 @@ Ficha completa (historia, partes, mediciones, trampas viejas): `docs/archivo/mod
 - `entities/campo.ts` (`CampoDeLead`, con el rango `minimo`/`maximo` de un número o un monto, 9.04-3; `CLAVES_RESERVADAS_DE_LEAD`, espejo de `_lead_clave_reservada()`); `entities/telefono.ts` (`normalizarTelefono()`, espejo de la SQL, probado en PGlite); `entities/documento.ts` (lista blanca, espejo de `_seguimiento_detalle()`).
 - Alta: `entities/alta.ts` (`validarAlta()`), `features/alta/` (un solo drawer, `marco-del-alta.tsx`; lee su contexto al abrirse: `infra/contexto-de-alta.client.ts`).
 - Listado: `entities/filtros.ts`, `fuente-del-listado.ts`, `candidatos.ts`, `infra/queries/listado.ts` (`buscarLeads`, `contarLeadsHasta`). Ficha: `entities/ficha.ts`, `edicion.ts`, `infra/ficha.ts` (`lead_guardar`).
-- `features/seguimientos/`, `features/recordatorios/`, `features/marcas/components/menu-de-lead.tsx` (el «⋯» en cuatro superficies); cartera, papelera, portal, embudo y oportunidades: `entities/<x>.ts` + `infra/<x>.ts`.
+- `features/seguimientos/`, `features/recordatorios/`, `features/marcas/components/menu-de-lead.tsx` (el «⋯» en cuatro superficies; «Ver actividad» sólo en la ficha y con `actividad.ver`, con la ruta que arma `src/app` por `rutaDeActividadDe`, 9.01-4); cartera, papelera, portal, embudo y oportunidades: `entities/<x>.ts` + `infra/<x>.ts`.
 - CSV: `entities/exportacion.ts`, `entities/importacion/`, `infra/importacion.ts`. Catálogos: `entities/catalogos.ts` + `infra/queries/catalogos.ts` (`leads_catalogos()`, una llamada para listado, ficha y exportación). Números: `@/shared/lib/numeros-de-lead`.
 
 ## Tablas
