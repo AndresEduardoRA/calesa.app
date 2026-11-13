@@ -156,6 +156,13 @@ describe('emparejarColumnas: el número de un lead', () => {
     ])
   })
 
+  it('la importación de vehículos nombra su entidad en el aviso', () => {
+    const { avisos } = emparejarColumnas(['N.º', 'Nombre'], objetivos, 'un vehículo')
+    expect(avisos).toEqual([
+      'La columna «N.º» no se importa: el número de un vehículo lo pone el sistema.',
+    ])
+  })
+
   it('un campo del layout que se llama «Número» sigue siendo un campo, no el número del lead', () => {
     const conNumero = camposDeLeadDesde([
       {

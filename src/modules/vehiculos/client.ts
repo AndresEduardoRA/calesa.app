@@ -4,3 +4,8 @@
 export { TarjetaVehiculo } from './features/listado/components/tarjeta-vehiculo'
 export { BadgeDeFase } from './features/listado/components/badge-de-fase'
 export type { Vehiculo } from './entities/vehiculo'
+// La importación total de `/datos` (9.06-4): valida cada fila con el mismo esquema del formulario y de la acción del alta.
+export { validarVehiculo, type DatosDeVehiculo, type Fuentes } from './entities/esquema'
+export { camposComunes, type CampoComun, type ClaveComun, type TipoComun } from './entities/comunes'
+export { camposActivos, type CampoDeVehiculo, type CategoriaDeVehiculo } from './entities/campo'
+export { claveDeAtributo } from './entities/formulario'

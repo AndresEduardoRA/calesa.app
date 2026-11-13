@@ -1,0 +1,5 @@
+{
+  "imports": {
+    "papaparse": "npm:papaparse@5.7.0"
+  }
+}

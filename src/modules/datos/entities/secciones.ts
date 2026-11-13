@@ -1,21 +1,29 @@
-// Las secciones de `/datos` (`?seccion=`). «Importar» está declarada y apagada hasta el 9.06: mientras haya una sola visible no hay barra
-// de pestañas, y pedirla abre «Exportar» (ninguna pestaña se dibuja vacía, `docs/UX.md`). Sin I/O.
+// Las secciones de `/datos` (`?seccion=`): «Exportar» y, desde el 9.06-4b, «Importar». Las dos se ven siempre: sin permiso para importar
+// nada, «Importar» sale apagada con su motivo (lo que no se puede no se esconde, `docs/UX.md`) y pedirla abre «Exportar» (D42). Sin I/O.
+import type { Permisos } from '@/shared/lib/permisos'
+import { puedeImportarAlgo } from './opciones-de-importar'
 
 export const SECCIONES_DE_DATOS = [
-  { clave: 'exportar', titulo: 'Exportar', disponible: true },
-  { clave: 'importar', titulo: 'Importar', disponible: false },
+  { clave: 'exportar', titulo: 'Exportar' },
+  { clave: 'importar', titulo: 'Importar' },
 ] as const
 
 export type SeccionDeDatos = (typeof SECCIONES_DE_DATOS)[number]['clave']
 
-export function seccionesVisibles() {
-  return SECCIONES_DE_DATOS.filter((seccion) => seccion.disponible)
+export const MOTIVO_SIN_IMPORTAR = 'Tu rol no importa datos.'
+
+export type PestanaDeDatos = { clave: SeccionDeDatos; titulo: string; motivo?: string }
+
+export function seccionesDeDatos(permisos: Permisos): PestanaDeDatos[] {
+  const importa = puedeImportarAlgo(permisos)
+  return SECCIONES_DE_DATOS.map((seccion) =>
+    seccion.clave === 'importar' && !importa
+      ? { ...seccion, motivo: MOTIVO_SIN_IMPORTAR }
+      : { ...seccion },
+  )
 }
 
-// La sección pedida si existe y está prendida; si no, la primera prendida.
-export function seccionDeDatos(valor: string | undefined): SeccionDeDatos {
-  const visibles = seccionesVisibles()
-  return (
-    visibles.find((seccion) => seccion.clave === valor)?.clave ?? visibles[0]?.clave ?? 'exportar'
-  )
+// «Importar» sólo si se pidió y se puede; cualquier otra cosa abre «Exportar».
+export function seccionDeDatos(valor: string | undefined, permisos: Permisos): SeccionDeDatos {
+  return valor === 'importar' && puedeImportarAlgo(permisos) ? 'importar' : 'exportar'
 }

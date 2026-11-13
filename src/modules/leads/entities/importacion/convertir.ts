@@ -12,8 +12,8 @@ export type Conversion = { ok: true; valor: ValorDeFormulario } | { ok: false; m
 const SI = new Set(['si', 's', 'yes', 'y', 'true', 'verdadero', '1', 'x'])
 const NO = new Set(['no', 'n', 'false', 'falso', '0'])
 
-const MOTIVO_DE_FECHA = 'No es una fecha válida: usa AAAA-MM-DD o día/mes/año.'
-const MOTIVO_DE_FECHA_HORA =
+export const MOTIVO_DE_FECHA = 'No es una fecha válida: usa AAAA-MM-DD o día/mes/año.'
+export const MOTIVO_DE_FECHA_HORA =
   'No es una fecha y hora válidas: usa AAAA-MM-DD HH:MM o día/mes/año HH:MM.'
 
 const dosDigitos = (n: number) => String(n).padStart(2, '0')
@@ -67,7 +67,7 @@ function numeroDelArchivo(texto: string): number | null {
   return null
 }
 
-function convertirNumero(texto: string, locale: string): Conversion {
+export function convertirNumero(texto: string, locale: string): Conversion {
   const numero = numeroDelArchivo(texto)
   return numero === null
     ? { ok: false, motivo: avisoDeNumero(texto, 'no_es_numero', locale) }
@@ -101,7 +101,7 @@ function convertirOpciones(campo: CampoDeLead, texto: string): Conversion {
   return { ok: true, valor: claves }
 }
 
-function convertirSiONo(texto: string): Conversion {
+export function convertirSiONo(texto: string): Conversion {
   const dicho = comparable(texto)
   if (SI.has(dicho)) {
     return { ok: true, valor: true }
