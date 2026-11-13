@@ -30,6 +30,12 @@ Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista pre
   La RLS decide las filas; de un lead ajeno, el teléfono enmascarado y sin los campos de sólo cartera; el número global sólo con
   `leads.numero_global.ver`. No pide el permiso (devuelve lo que la vista ya da). PostgREST le pone el orden `(creado_en, id)`, el cursor y
   `max_rows`: se inlinea, así que **no le pongas** `strict`, `search_path`, `security definer`, `volatile` ni `begin atomic`.
+- Importación total (9.06-1): `importacion_crear(p_id, p_entidad, p_archivo_ruta, p_mapeo, p_asignar_a, p_origen)` (authenticated, idempotente por id):
+  el enforcement de `datos.importar.todo` (para otra persona, con el destino activo y con `leads.crear`), de `leads.crear` (para sí misma) y de
+  `vehiculos.crear` del origen; la ruta en la carpeta propia. `importacion_empezar`, `importacion_procesar_lote` (hasta 50 filas consecutivas) e
+  `importacion_terminar`, **sólo `service_role`** (la función edge `importar-csv`, 9.06-3): actúan a nombre de quien importa y vuelven a mirar sus
+  permisos en cada lote. `importaciones_filas`: lo que no entró, con su campo y su motivo (RLS: la regla de `importaciones`). Columnas de avance
+  `procesadas`, `ya_existian`, `rechazadas`, `avance_en`; de destino `asignar_a`, `con_destino`, `origen_id`.
 - Cotizaciones (9.05-2c): la tabla `cotizaciones` (sólo columnas con `grant select`; la papelera la cortan sus policies y el filtro explícito), `leads_vista_por_ids`
   (sólo `id, nombre`) y `vehiculos` (`id, titulo`), todo con el cliente del flujo. Medido en `supabase/tests/medir-datos-exportar-cotizaciones.sql`.
 
@@ -37,6 +43,9 @@ Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista pre
 
 - Exportar respeta RLS: lo que no ves no sale. El teléfono completo sale sólo de la propia cartera.
 - Importar nunca pisa: un teléfono existente se reporta como «ya existe» (en masa **no se nombra a nadie**, como en `leads`) y lo del limbo no se adopta en bloque: `crear_lead` con `adoptar` es una decisión por lead.
+- En la importación total el lead lo crea el destino (`asignar_a`): nace en su cartera, con su constancia. Perder el permiso a mitad (o borrarse el
+  destino) deja la importación `fallida`, nunca cambia de dueño. La identidad se captura al entrar y se repone en cada salida (`_importacion_previo`,
+  `_importacion_fijar`, `_importacion_volver`): esos ayudantes sólo los ejecuta su dueño.
 - El contrato de `leads` (Fase 3, parte 8, `docs/DECISIONES.md`): `_lead_crear(…, p_recordar_origen)` y `leads_importar_lote` son lo que se llama por fila o por lote; `importaciones.archivo_ruta` es nulo sólo en la de `leads`.
 - El CSV usa `;` o `,` detectado, UTF-8 con BOM al exportar (Excel en español).
 - Exportar todo: el permiso (efectivo) → la sesión → layout y catálogos → el conteo hasta `TOPE_POR_ENTIDAD[entidad] + 1` → **el registrar** → el flujo. Con más del

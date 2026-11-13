@@ -366,6 +366,8 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Tablero** — `/tablero`: métricas y gráficas por rol con widgets.
 - **Vista guardada** — `vistas_guardadas` / `VistaGuardada`, `<MenuDeVistas>`: filtros de un listado con nombre, por persona; aplicarla es navegar.
 - **Importación** — `importaciones`: carga CSV con vista previa por fila.
+- **Importación total** — `importacion_crear()`, `importaciones` con `archivo_ruta`: la de `/datos`, que `importar-csv` procesa por lotes a nombre de quien importa y para un destino (`asignar_a`).
+- **Fila de la importación** — `importaciones_filas`: una fila que no entró (ya existe o error), con su campo y su motivo, para «Descargar las rechazadas».
 - **Exportar leads** — `leads.exportar`, `POST /leads/exportar`: CSV de los leads de la cartera del listado con sus filtros; hasta 5.000 y 5 por hora.
 - **Importar leads** — `/leads/importar`, `leads_importar_lote()`: asistente de CSV: empareja, valida con las reglas del alta e importa por lotes.
 - **Archivo de errores** — `leads-rechazados.csv`: CSV con las filas que no entraron y su motivo, con las mismas columnas, para corregir y volver a subir.
