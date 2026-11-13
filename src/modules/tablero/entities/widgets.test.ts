@@ -6,7 +6,7 @@ const CON_PERMISO: Permisos = [{ clave: 'tablero.metricas.ver', origenId: null, 
 const SIN_PERMISO: Permisos = [{ clave: 'leads.ver', origenId: null, alcance: 'todos' }]
 
 describe('widgetsVisibles', () => {
-  it('con el permiso salen los diez disponibles y ningún hueco', () => {
+  it('con sólo el permiso del tablero salen los diez, y ningún widget de dinero ni de la cola', () => {
     const claves = widgetsVisibles(CON_PERMISO).map((w) => w.clave)
     expect(claves).toEqual([
       'leads-creados',
@@ -22,6 +22,33 @@ describe('widgetsVisibles', () => {
     ])
     expect(claves).not.toContain('margen-del-mes')
     expect(claves).not.toContain('cola-web')
+  })
+
+  it('con `logistica.margen.ver` en un solo origen sale el margen del mes, y la cola no', () => {
+    const conMargen: Permisos = [
+      ...CON_PERMISO,
+      {
+        clave: 'logistica.margen.ver',
+        origenId: '7b0e1f6a-2c3d-4e5f-8a9b-0c1d2e3f4a5b',
+        alcance: 'todos',
+      },
+    ]
+    const claves = widgetsVisibles(conMargen).map((w) => w.clave)
+    expect(claves).toContain('margen-del-mes')
+    expect(claves).not.toContain('cola-web')
+    expect(claves).toHaveLength(11)
+  })
+
+  it('con `web.cola.gestionar` sale la cola de la web; con sólo `logistica.margen.ver` no', () => {
+    const conCola: Permisos = [
+      ...CON_PERMISO,
+      { clave: 'web.cola.gestionar', origenId: null, alcance: 'todos' },
+    ]
+    expect(widgetsVisibles(conCola).map((w) => w.clave)).toContain('cola-web')
+    const soloMargen: Permisos = [
+      { clave: 'logistica.margen.ver', origenId: null, alcance: 'todos' },
+    ]
+    expect(widgetsVisibles(soloMargen).map((w) => w.clave)).toEqual(['margen-del-mes'])
   })
 
   it('sin el permiso no sale ninguno, y un permiso de otra clave no basta', () => {

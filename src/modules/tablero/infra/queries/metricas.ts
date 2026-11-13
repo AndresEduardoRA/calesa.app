@@ -3,15 +3,19 @@ import type { z } from 'zod'
 import { errorDePostgrest, fallo, MENSAJE_INESPERADO, type Resultado } from '@/shared/lib/errores'
 import { createClient } from '@/shared/lib/supabase/server'
 import {
+  esquemaDeColaWeb,
+  esquemaDeMargenDelMes,
   esquemaDeMetricasDeCotizaciones,
   esquemaDeMetricasDeLeads,
   type RepositorioDeMetricas,
 } from '../../entities/metricas'
 
-// Una RPC por grupo de widgets, nunca N consultas (`…20261112110517_tablero_leads.sql` y `…110519_tablero_cotizaciones.sql`):
-// piden `tablero.metricas.ver` (42501) y una ventana de hasta 366 días (22023). Sin `.from()` sobre tablas.
+// Una RPC por grupo de widgets, nunca N consultas (`…20261112110517_tablero_leads.sql`, `…110519_tablero_cotizaciones.sql`,
+// `…230042_tablero_margen.sql` y `…230045_tablero_cola_web.sql`). Las dos primeras piden `tablero.metricas.ver`; la del margen,
+// `logistica.margen.ver` y sólo mira sus orígenes; la de la cola, `web.cola.gestionar` (42501). Todas, una ventana de hasta 366 días
+// (22023). Sin `.from()` sobre tablas.
 async function leer<Esquema extends z.ZodType>(
-  funcion: 'tablero_leads' | 'tablero_cotizaciones',
+  funcion: 'tablero_leads' | 'tablero_cotizaciones' | 'tablero_margen' | 'tablero_cola_web',
   esquema: Esquema,
   desde: string,
   hasta: string,
@@ -32,4 +36,6 @@ export const repositorioDeMetricas: RepositorioDeMetricas = {
   leads: (desde, hasta) => leer('tablero_leads', esquemaDeMetricasDeLeads, desde, hasta),
   cotizaciones: (desde, hasta) =>
     leer('tablero_cotizaciones', esquemaDeMetricasDeCotizaciones, desde, hasta),
+  margen: (desde, hasta) => leer('tablero_margen', esquemaDeMargenDelMes, desde, hasta),
+  colaWeb: (desde, hasta) => leer('tablero_cola_web', esquemaDeColaWeb, desde, hasta),
 }

@@ -10840,8 +10840,10 @@ export type Database = {
         Args: { p_filas: Json; p_nota: string; p_tabla: string; p_version_esperada: number }
         Returns: Json
       }
+      tablero_cola_web: { Args: { p_desde: string; p_hasta: string }; Returns: Json }
       tablero_cotizaciones: { Args: { p_desde: string; p_hasta: string }; Returns: Json }
       tablero_leads: { Args: { p_desde: string; p_hasta: string }; Returns: Json }
+      tablero_margen: { Args: { p_desde: string; p_hasta: string }; Returns: Json }
       tarea_completar: {
         Args: { p_actualizado_en_esperado: string; p_completada: boolean; p_tarea: string }
         Returns: Json
@@ -11390,6 +11392,7 @@ export type Database = {
           color_acento: string
           iconos: Json
           locale: string
+          logo_oscuro_ruta: string
           logo_ruta: string
           moneda_base: string
           nombre: string

@@ -15,6 +15,7 @@ Ficha completa (cada componente con su historia y sus trampas): `docs/archivo/mo
 - `lib/safe-action.ts` — `actionClient` (exige sesión; `ctx` trae `supabase`, `usuarioId`, `permisos`) y `actionClientPublico`. Toda mutación entra por acá.
 - `lib/errores.ts` — `Resultado<T>`, `ok()`, `fallo()`, `conflicto()`, `errorDePostgrest()` (`PT409` → conflicto, `42501` → sin_permiso), `datosO()`.
 - `lib/permisos.ts` — `puede()`, `alcanceDe()`, `origenesCon()`, `CLAVES_PERMISO`; las claves de nivel de acceso (`esClaveDeNivel()`) las crea la empresa y no están en la lista.
+- `lib/instalacion.ts` y `ui/{use-instalacion.ts,instalar-app.tsx}` — «Instalar la app» del menú del usuario: `ofrecerInstalacion()` (pura: `ninguna` si ya corre instalada o el navegador no instala, `prompt` con el `beforeinstallprompt` guardado, `instrucciones` en iOS) y el hook que guarda el evento.
 - `lib/rutas.ts` (`decidirAcceso()`, `returnToSeguro()`) y `lib/navegacion.ts` (`redirigir()`).
 - `lib/formato.ts`, `lib/fechas.ts` — todo número y toda fecha salen de acá, en el locale y la zona de la empresa.
 - `lib/numero-tipeado.ts` — el lector de un número tipeado, uno solo: `leerNumeroTipeado(texto, locale)`. Lo usan `XCell`, `esquemaDeValor()` y los formularios de dinero.
@@ -47,6 +48,7 @@ Ficha completa (cada componente con su historia y sus trampas): `docs/archivo/mo
 - Todo número pasa por `formato.ts` y toda fecha por `fechas.ts`; `toFixed` está prohibido por lint.
 - `<Monto>` manda al DOM el valor y su reemplazo; el CSS elige con la clase `live` de `<html>`. Nunca una cifra a la vista antes de hidratar.
 - `cssDeMarca()` sólo recibe colores que pasaron por `tokensDeMarca()`: a un `<style>` nunca llega texto libre.
+- `<Marca>` con `logoOscuroUrl` dibuja los dos logos y el tema elige por CSS (`dark:hidden` / `hidden dark:block`, cada `<img>` con `data-logo`): nunca por JS, que parpadearía al hidratar. Sin él, igual que antes.
 - Cada `<Confirmar>` vive en su URL (`usePanelPorUrl()`) y se registra en `scripts/guardas/confirmar-con-url.ts`; cada `<Drawer>` en `drawers-con-salida.ts`; cada `<Modal>` con algo escrito en `modales-con-salida.ts`. Sus tests fallan si hay uno sin registrar.
 - Cada `history: 'push'` de `src/` marca la vuelta del foco: importa `abrirConVuelta()` y `useVueltaDelFoco()` (lo vigila `scripts/guardas/paneles-con-vuelta.test.ts`).
 - Nada anima `font-size` ni el alto: sin `transition-all` (`scripts/guardas/sin-transition-all.test.ts`).
@@ -55,6 +57,7 @@ Ficha completa (cada componente con su historia y sus trampas): `docs/archivo/mo
 
 ## Ojo
 
+- `use-instalacion.ts` pone sus oyentes (`beforeinstallprompt`, `appinstalled`) al evaluarse el módulo, no en un efecto: el navegador avisa una vez y el menú se monta tarde. Un evento sirve una sola vez, acepte o no la persona.
 - `admin.ts` importa `server-only`; el lint sólo deja importarlo desde `equipo/infra/invitaciones.ts`, `empresa/infra/revalidacion-prueba.ts` y `web/infra/portal/rpc.ts`.
 - Esc dentro de un diálogo lo atiende Base UI (cierra sólo el de más arriba y detiene el evento en `document`): el atajo «cerrar» de `ProveedorAtajos` no lo ve, por eso `<Modal>` no lo registra. Un `<Modal>` abierto desde un `<Drawer>` se dibuja dentro de los hijos del Drawer.
 - Un `<fieldset disabled>` no apaga los `Switch` de Base UI: pásales `disabled` a mano.

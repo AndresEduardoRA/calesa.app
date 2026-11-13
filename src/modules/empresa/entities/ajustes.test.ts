@@ -4,6 +4,7 @@ import { AJUSTES_POR_DEFECTO, ajustesDesde, registroDisponible } from './ajustes
 const fila = {
   nombre: 'Importadora Andina',
   logo_ruta: 'logo.png',
+  logo_oscuro_ruta: null,
   color_acento: '#0b7285',
   iconos: null,
   locale: 'es-BO',
@@ -18,6 +19,7 @@ describe('ajustesDesde', () => {
     expect(ajustesDesde(fila)).toEqual({
       nombre: 'Importadora Andina',
       logoRuta: 'logo.png',
+      logoOscuroRuta: null,
       colorAcento: '#0b7285',
       iconos: null,
       locale: 'es-BO',
@@ -32,6 +34,12 @@ describe('ajustesDesde', () => {
     const ajustes = ajustesDesde({ ...fila, logo_ruta: null, color_acento: null })
     expect(ajustes?.logoRuta).toBeNull()
     expect(ajustes?.colorAcento).toBeNull()
+  })
+
+  it('trae el logo para el tema oscuro', () => {
+    expect(ajustesDesde({ ...fila, logo_oscuro_ruta: 'logos/o.png' })?.logoOscuroRuta).toBe(
+      'logos/o.png',
+    )
   })
 
   it('unos íconos con otra forma no tumban los ajustes: valen los neutros', () => {

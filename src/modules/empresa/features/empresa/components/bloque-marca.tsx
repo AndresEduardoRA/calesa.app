@@ -10,20 +10,17 @@ import type { ErroresDeAjustes } from './campos-de-empresa'
 type Props = {
   ajustes: AjustesEmpresa
   logoUrl: string | null
+  logoOscuroUrl: string | null
   logo: LogoElegido
   alCambiarLogo: (logo: LogoElegido) => void
+  logoOscuro: LogoElegido
+  alCambiarLogoOscuro: (logo: LogoElegido) => void
   deshabilitado: boolean
   errores: ErroresDeAjustes
 }
 
-export function BloqueMarca({
-  ajustes,
-  logoUrl,
-  logo,
-  alCambiarLogo,
-  deshabilitado,
-  errores,
-}: Props) {
+export function BloqueMarca(props: Props) {
+  const { ajustes, deshabilitado, errores } = props
   return (
     <Bloque titulo="Marca" descripcion="Lo que identifica a la empresa en toda la app.">
       <Campo
@@ -36,9 +33,17 @@ export function BloqueMarca({
       />
       <CampoColor guardado={ajustes.colorAcento} error={errorDeCampo(errores, 'colorAcento')} />
       <CampoLogo
-        urlActual={logoUrl}
-        cambio={logo}
-        alCambiar={alCambiarLogo}
+        variante="claro"
+        urlActual={props.logoUrl}
+        cambio={props.logo}
+        alCambiar={props.alCambiarLogo}
+        deshabilitado={deshabilitado}
+      />
+      <CampoLogo
+        variante="oscuro"
+        urlActual={props.logoOscuroUrl}
+        cambio={props.logoOscuro}
+        alCambiar={props.alCambiarLogoOscuro}
         deshabilitado={deshabilitado}
       />
     </Bloque>

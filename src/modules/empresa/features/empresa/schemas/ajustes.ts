@@ -56,6 +56,11 @@ export const esquemaAjustes = z.object({
     }),
   // Sin la clave = no tocar el logo; null = quitarlo; una ruta = el que se acaba de subir.
   logoRuta: z.string().regex(RUTA_DE_LOGO, { error: 'El logo no se subió bien.' }).nullish(),
+  // El logo para el tema oscuro, igual que el normal.
+  logoOscuroRuta: z
+    .string()
+    .regex(RUTA_DE_LOGO, { error: 'El logo oscuro no se subió bien.' })
+    .nullish(),
   razonSocial: opcional(160),
   nit: opcional(40),
   direccion: opcional(200),
