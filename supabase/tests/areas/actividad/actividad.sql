@@ -207,7 +207,7 @@ begin
 end $$;
 rollback;
 
--- @test actividad: la configuración se ve entera, sin actualizado_en (T6)
+-- @test actividad: la configuración se ve entera, sin actualizado_en; una fórmula sólo con cotizaciones.configurar (T6)
 begin;
 select pg_temp.act_preparar();
 do $$
@@ -225,6 +225,17 @@ begin
   v_resp := pg_temp.act_como(a, format('select public.actividad_diff(%s)', v_id));
   if not (pg_temp.act_claves(v_resp) @> array['id', 'nombre', 'origen_id']) or 'actualizado_en' = any (pg_temp.act_claves(v_resp)) then
     raise exception 'T6: el alta de la categoría debía venir entera sin actualizado_en: %', pg_temp.act_claves(v_resp); end if;
+  -- Una fórmula no es configuración entera: espeja «formulas: leer» (cotizaciones.configurar del origen).
+  insert into public.actividad (accion, tabla, registro_id, antes, despues) values ('formulas.update', 'formulas', gen_random_uuid()::text,
+    jsonb_build_object('origen_id', (select origen_id from public.vehiculos where id = v), 'nota', 'ACT nota vieja'),
+    jsonb_build_object('origen_id', (select origen_id from public.vehiculos where id = v), 'nota', 'ACT nota nueva'))
+  returning id into v_id;
+  v_resp := pg_temp.act_como(a, format('select public.actividad_diff(%s)', v_id));
+  if v_resp <> jsonb_build_object('id', v_id, 'visible', false) then raise exception 'T6: sin cotizaciones.configurar se vio la fórmula: %', v_resp; end if;
+  insert into public.roles_permisos (rol_id, permiso_clave, origen_id, alcance)
+  select ur.rol_id, 'cotizaciones.configurar', null, 'todos' from public.usuarios_roles ur where ur.usuario_id = a;
+  v_resp := pg_temp.act_como(a, format('select public.actividad_diff(%s)', v_id));
+  if v_resp #>> '{cambios,nota,despues}' is distinct from 'ACT nota nueva' then raise exception 'T6: con cotizaciones.configurar no se vio la fórmula: %', v_resp; end if;
 end $$;
 rollback;
 
