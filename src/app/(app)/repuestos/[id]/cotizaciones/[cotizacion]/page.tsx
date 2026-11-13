@@ -24,7 +24,7 @@ import { EsqueletoListado } from '@/shared/ui/esqueletos'
 export const metadata: Metadata = { title: 'Cotización de repuestos' }
 
 // Una cotización de repuestos (8.12-3, C12; 8.12-4, C9). Pide `repuestos.ver` y `repuestos.cotizar` (D30); la autoridad es la RLS. Una cotización que no
-// existe, que es de otro proyecto o que quien mira no ve, y un proyecto que no está, se dicen igual. Sin `loading.tsx` propio (D40). Una borrador con el
+// existe, que es de otro proyecto o que quien mira no ve, y un proyecto que no está, se dicen igual. Su `loading.tsx` repite el esqueleto del `<Suspense>` de abajo. Una borrador con el
 // proyecto abierto y el snapshot válido es la hoja editable (D41: la base rechaza lo mismo); si no, la de lectura.
 export default function PaginaDeUnaCotizacion({
   params,
