@@ -9,25 +9,50 @@ import {
 describe('accionesDeVehiculo', () => {
   it('con todo, el orden es: editar, publicar y, separada, la papelera', () => {
     expect(
-      accionesDeVehiculo({ editar: 'habilitada', publicar: 'habilitada', papelera: 'habilitada' }),
+      accionesDeVehiculo({
+        editar: 'habilitada',
+        publicar: 'habilitada',
+        papelera: 'habilitada',
+        actividad: 'oculta',
+      }),
     ).toEqual([['editar', 'publicar'], ['papelera']])
   })
 
   it('lo que no se ofrece no aparece, y no queda un bloque vacío', () => {
     expect(
-      accionesDeVehiculo({ editar: 'oculta', publicar: 'oculta', papelera: 'habilitada' }),
+      accionesDeVehiculo({
+        editar: 'oculta',
+        publicar: 'oculta',
+        papelera: 'habilitada',
+        actividad: 'oculta',
+      }),
     ).toEqual([['papelera']])
     expect(
-      accionesDeVehiculo({ editar: 'habilitada', publicar: 'oculta', papelera: 'oculta' }),
+      accionesDeVehiculo({
+        editar: 'habilitada',
+        publicar: 'oculta',
+        papelera: 'oculta',
+        actividad: 'oculta',
+      }),
     ).toEqual([['editar']])
     expect(
-      accionesDeVehiculo({ editar: 'oculta', publicar: 'oculta', papelera: 'oculta' }),
+      accionesDeVehiculo({
+        editar: 'oculta',
+        publicar: 'oculta',
+        papelera: 'oculta',
+        actividad: 'oculta',
+      }),
     ).toEqual([])
   })
 
   it('una apagada sigue en su lugar (se ve y dice por qué)', () => {
     expect(
-      accionesDeVehiculo({ editar: 'oculta', publicar: 'apagada', papelera: 'apagada' }),
+      accionesDeVehiculo({
+        editar: 'oculta',
+        publicar: 'apagada',
+        papelera: 'apagada',
+        actividad: 'oculta',
+      }),
     ).toEqual([['publicar'], ['papelera']])
   })
 
@@ -46,8 +71,21 @@ describe('accionesDeVehiculo', () => {
       editar: 'habilitada',
       publicar: 'habilitada',
       papelera: 'habilitada',
+      actividad: 'habilitada',
     })
     expect(bloques.at(-1)).toEqual(['papelera'])
     expect(bloques.slice(0, -1).flat()).not.toContain('papelera')
+  })
+
+  it('T11 · «Ver actividad» sólo si se ofrece (la ficha, con actividad.ver), en su bloque antes de la papelera', () => {
+    expect(
+      accionesDeVehiculo({
+        editar: 'habilitada',
+        publicar: 'habilitada',
+        papelera: 'habilitada',
+        actividad: 'habilitada',
+      }),
+    ).toEqual([['editar', 'publicar'], ['actividad'], ['papelera']])
+    expect(ETIQUETA_DE_ACCION_DE_VEHICULO.actividad).toBe('Ver actividad')
   })
 })

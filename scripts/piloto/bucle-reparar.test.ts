@@ -96,6 +96,14 @@ describe('bucle.sh › completa ultimo.json cuando declara de menos', () => {
     expect(a.secuencia()).toContain('publicar:4.99')
   })
 
+  it('ultimo.json sin commits y uno del paso en el rango: lo completa y publica', () => {
+    a.paso(1, pasoListo({ 'src/a.ts': 'a' }, { commits: 'ninguno' }))
+    const r = a.correr(['--una-vuelta'], SOLO)
+    expect(r.estado, r.salida).toBe(0)
+    expect(r.salida).toContain('ultimo.json declaraba 0 commits y el rango tiene 1; lo completé')
+    expect(a.secuencia()).toContain('publicar:4.99')
+  })
+
   it('un commit que no existe no se «repara»: avisa', () => {
     a.paso(
       1,

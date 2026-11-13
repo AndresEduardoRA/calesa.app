@@ -25,6 +25,8 @@ type Props = {
   puedeEnviarAPapelera: boolean
   // La hoja de cotizar con este lead elegido, en el primer origen donde quien mira cotiza (la compone la página: `leads` no conoce `cotizaciones`); null si no cotiza.
   paraCotizar: string | null
+  // `/actividad` de este lead, sólo con `actividad.ver` (la compone la página: `leads` no conoce `actividad`); null si no la ve.
+  paraActividad: string | null
 }
 
 // Lo que se puede hacer con el lead desde su cabecera: «Editar», «Cotizar» (sólo a quien cotiza) y el «⋯», con la lista de siempre (`accionesDeLead()`). Anotar y agendar
@@ -32,8 +34,16 @@ type Props = {
 // listado, porque la ficha ya no existe para nadie. Con un vehículo vinculado que quien mira ve, se apaga con el motivo y ofrece ir a
 // «Vehículos»; si lo frena uno que no ve, lo dice la base al intentar.
 export function AccionesDeLaFicha(props: Props) {
-  const { ficha, marcas, etiquetas, alGestionar, puedeEditar, puedeEnviarAPapelera, paraCotizar } =
-    props
+  const {
+    ficha,
+    marcas,
+    etiquetas,
+    alGestionar,
+    puedeEditar,
+    puedeEnviarAPapelera,
+    paraCotizar,
+    paraActividad,
+  } = props
   const router = useRouter()
   const irA = (url: string) => {
     router.push(url as Route)
@@ -69,6 +79,13 @@ export function AccionesDeLaFicha(props: Props) {
                 alAgendar: () => {
                   irAlSeguimiento(PANEL_AGENDAR_RECORDATORIO)
                 },
+              }
+            : undefined
+        }
+        verActividad={
+          paraActividad
+            ? () => {
+                irA(paraActividad)
               }
             : undefined
         }

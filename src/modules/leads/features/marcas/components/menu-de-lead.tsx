@@ -31,6 +31,8 @@ type PropsComunes = {
   papelera?: { alEnviado?: () => void; motivo?: string | null; alIrAVehiculos?: () => void }
   // Después de cambiar una marca: el resumen vuelve a leer el lead.
   alMarcar?: () => void
+  // «Ver actividad»: sólo la ficha, y sólo con `actividad.ver` (la ruta la arma la página). Sin esto, no se ofrece.
+  verActividad?: (() => void) | undefined
   // En una cabecera (el resumen, la ficha): con borde, como los botones de al lado.
   conBorde?: boolean
   // El kanban no trae las marcas ni la cartera del lead: se leen al abrir el menú (`alAbrir`) y mientras tanto, o si no llegan, el menú
@@ -43,7 +45,7 @@ type Lineas = {
   marcas: Marcas
   envio: ReturnType<typeof useEnvioAPapelera>
   abrirEtiquetas: () => void
-} & Pick<PropsComunes, 'leadId' | 'acciones' | 'papelera' | 'alMarcar' | 'carga'>
+} & Pick<PropsComunes, 'leadId' | 'acciones' | 'papelera' | 'alMarcar' | 'carga' | 'verActividad'>
 
 const sinAccion = () => undefined
 
@@ -99,6 +101,14 @@ const LINEAS: Readonly<Record<ClaveDeAccionDeLead, Constructor>> = {
       alCambiar: (valor) => void p.marcas.tachado(valor).then(p.alMarcar),
     },
   ],
+  actividad: (p) => [
+    {
+      tipo: 'accion',
+      clave: 'actividad',
+      etiqueta: ETIQUETA_DE_ACCION_DE_LEAD.actividad,
+      alElegir: p.verActividad ?? sinAccion,
+    },
+  ],
   papelera: (p) => {
     const motivo = p.papelera?.motivo ?? null
     const enviar: AccionDeMenu = {
@@ -143,7 +153,11 @@ function lineasDelMenu(p: Lineas, puedeEnviar: boolean): AccionDeMenu[] {
   if (carga?.cargando) {
     return [{ tipo: 'nota', clave: 'cargando', texto: 'Cargando…' }]
   }
-  const bloques = accionesDeLead({ actuar: p.acciones !== undefined, enviar: puedeEnviar })
+  const bloques = accionesDeLead({
+    actuar: p.acciones !== undefined,
+    enviar: puedeEnviar,
+    actividad: p.verActividad !== undefined,
+  })
   return bloques.flatMap((bloque, indice) => [
     ...(indice > 0 ? [{ tipo: 'separador' as const, clave: `separador-${String(indice)}` }] : []),
     ...bloque.flatMap((clave) => LINEAS[clave](p)),
@@ -172,6 +186,7 @@ export function MenuDeLeadConMarcas(props: PropsConMarcas) {
       papelera: props.papelera,
       alMarcar: props.alMarcar,
       carga: props.carga,
+      verActividad: props.verActividad,
       abrirEtiquetas: () => {
         setSelector(true)
       },

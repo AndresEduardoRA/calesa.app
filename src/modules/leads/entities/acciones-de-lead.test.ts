@@ -63,4 +63,19 @@ describe('accionesDeLead', () => {
     expect(ETIQUETA_DE_ACCION_DE_LEAD.favorito).toBe('Favorito')
     expect(ETIQUETA_DE_ACCION_DE_LEAD.tachado).toBe('Tachado')
   })
+
+  it('T10 · «Ver actividad» sólo con actividad.ver, en su bloque, justo antes de la papelera', () => {
+    expect(aplanar(accionesDeLead({ actuar: true, enviar: true }))).not.toContain('actividad')
+    expect(accionesDeLead({ actuar: true, enviar: true, actividad: true })).toEqual([
+      ['agendar', 'anotar'],
+      ['etiquetas', 'favorito', 'tachado'],
+      ['actividad'],
+      ['papelera'],
+    ])
+    expect(accionesDeLead({ actuar: false, enviar: false, actividad: true })).toEqual([
+      ['etiquetas', 'favorito', 'tachado'],
+      ['actividad'],
+    ])
+    expect(ETIQUETA_DE_ACCION_DE_LEAD.actividad).toBe('Ver actividad')
+  })
 })

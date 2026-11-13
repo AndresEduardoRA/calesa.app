@@ -88,7 +88,12 @@ test('con todo, el orden es el mismo en la fila, el resumen y la ficha, y la pap
     page.getByRole('button', { name: `Más acciones de ${TITULO}` }),
     page,
   )
-  expect(await opciones(deLaFicha)).toEqual(['Publicar en la web…', 'Enviar a la papelera'])
+  // La dueña tiene `actividad.ver`: sólo la ficha le ofrece «Ver actividad», antes de la papelera.
+  expect(await opciones(deLaFicha)).toEqual([
+    'Publicar en la web…',
+    'Ver actividad',
+    'Enviar a la papelera',
+  ])
   await capturar(page, info, 'menu-del-vehiculo-ficha')
   await cerrar(page, deLaFicha)
 })

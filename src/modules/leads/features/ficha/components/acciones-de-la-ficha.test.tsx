@@ -26,6 +26,7 @@ function montar(paraCotizar: string | null, puedeEditar = true) {
       puedeEditar={puedeEditar}
       puedeEnviarAPapelera={false}
       paraCotizar={paraCotizar}
+      paraActividad={null}
     />,
   )
 }

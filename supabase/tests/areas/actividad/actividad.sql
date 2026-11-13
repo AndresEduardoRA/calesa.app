@@ -239,3 +239,73 @@ begin
 end $$;
 rollback;
 
+
+-- @test actividad: la moneda de cada lado y el origen salen de la foto; sin grant de moneda no sale; sigue security definer con search_path vacío (T7)
+begin;
+select pg_temp.act_preparar();
+do $$
+declare b uuid := '00000000-0000-4000-8000-00000009901b'; e uuid := '00000000-0000-4000-8000-00000009901e'; f uuid := '00000000-0000-4000-8000-00000009901f';
+        v uuid := pg_temp.act_vehiculo(); v_web uuid := (select id from public.origenes_lead where clave = 'web'); v_lb uuid := gen_random_uuid();
+        v_alta bigint; v_gasto bigint; v_solo_monto bigint; v_pago_id uuid; v_pago bigint; v_lead bigint; v_resp jsonb; v_columnas text;
+begin
+  -- (a) Un gasto que cambia de moneda: cada lado la suya, y E (sin logistica.gastos.ver) recibe exactamente {id, visible:false}.
+  insert into public.actividad (accion, tabla, registro_id, antes, despues) values ('gastos.update', 'gastos', gen_random_uuid()::text,
+    jsonb_build_object('vehiculo_id', v, 'repuesto_id', null, 'moneda', 'BOB', 'monto', 10),
+    jsonb_build_object('vehiculo_id', v, 'repuesto_id', null, 'moneda', 'USD', 'monto', 20))
+  returning id into v_gasto;
+  v_resp := pg_temp.act_como(f, format('select public.actividad_diff(%s)', v_gasto));
+  if v_resp ->> 'moneda_antes' is distinct from 'BOB' or v_resp ->> 'moneda_despues' is distinct from 'USD' then
+    raise exception 'T7a: la moneda de cada lado no salió de la foto: %', v_resp; end if;
+  if v_resp ->> 'origen_id' is not null then raise exception 'T7a: un gasto trajo origen_id: %', v_resp; end if;
+  v_resp := pg_temp.act_como(e, format('select public.actividad_diff(%s)', v_gasto));
+  if v_resp <> jsonb_build_object('id', v_gasto, 'visible', false) then raise exception 'T7a: sin logistica.gastos.ver se vio algo: %', v_resp; end if;
+
+  -- (b) Sólo cambia el monto: la moneda no está en cambios pero sí en la cabecera, igual en los dos lados.
+  insert into public.actividad (accion, tabla, registro_id, antes, despues) values ('gastos.update', 'gastos', gen_random_uuid()::text,
+    jsonb_build_object('vehiculo_id', v, 'repuesto_id', null, 'moneda', 'BOB', 'monto', 10),
+    jsonb_build_object('vehiculo_id', v, 'repuesto_id', null, 'moneda', 'BOB', 'monto', 30))
+  returning id into v_solo_monto;
+  v_resp := pg_temp.act_como(f, format('select public.actividad_diff(%s)', v_solo_monto));
+  if pg_temp.act_claves(v_resp) <> array['monto'] or v_resp ->> 'moneda_antes' is distinct from 'BOB' or v_resp ->> 'moneda_despues' is distinct from 'BOB' then
+    raise exception 'T7b: con sólo el monto cambiado la moneda debía ser BOB en los dos lados: %', v_resp; end if;
+
+  -- (c) Un pago sin fotos: la moneda no se inventa de la fila vigente.
+  insert into public.pagos (vehiculo_id, concepto, moneda, monto, monto_base) values (v, 'ACT seña', 'USD', 5, 5) returning id into v_pago_id;
+  insert into public.actividad (accion, tabla, registro_id, detalle) values ('pago.confirmado', 'pagos', v_pago_id::text, '{}') returning id into v_pago;
+  v_resp := pg_temp.act_como(f, format('select public.actividad_diff(%s)', v_pago));
+  if v_resp ->> 'visible' is distinct from 'true' or v_resp ->> 'moneda_antes' is not null or v_resp ->> 'moneda_despues' is not null then
+    raise exception 'T7c: un pago sin foto trajo moneda: %', v_resp; end if;
+
+  -- (d) El alta de un vehículo: su origen de la foto, sin moneda.
+  select max(x.id) into v_alta from public.actividad x where x.tabla = 'vehiculos' and x.registro_id = v::text;
+  v_resp := pg_temp.act_como(f, format('select public.actividad_diff(%s)', v_alta));
+  if v_resp ->> 'origen_id' is distinct from (select origen_id::text from public.vehiculos where id = v)
+     or v_resp ->> 'moneda_antes' is not null or v_resp ->> 'moneda_despues' is not null then
+    raise exception 'T7d: el alta del vehículo no trajo su origen o trajo moneda: %', v_resp; end if;
+
+  -- (e) De un lead, ni moneda ni origen (aunque la foto las traiga).
+  perform pg_temp.act_como(b, format('select public.crear_lead(%L, %L::jsonb)', v_lb, jsonb_build_object('nombre', 'ACT moneda', 'telefono_principal', '79199011',
+    'origen_lead_id', v_web)));
+  insert into public.actividad (accion, actor_id, tabla, registro_id, antes, despues) values ('leads.update', b, 'leads', v_lb::text,
+    jsonb_build_object('nombre', 'ACT moneda', 'moneda', 'BOB', 'origen_id', gen_random_uuid()),
+    jsonb_build_object('nombre', 'ACT moneda 2', 'moneda', 'USD', 'origen_id', gen_random_uuid()))
+  returning id into v_lead;
+  v_resp := pg_temp.act_como(b, format('select public.actividad_diff(%s)', v_lead));
+  if v_resp ->> 'visible' is distinct from 'true' or v_resp ->> 'moneda_antes' is not null or v_resp ->> 'moneda_despues' is not null
+     or v_resp ->> 'origen_id' is not null then
+    raise exception 'T7e: un lead trajo moneda u origen: %', v_resp; end if;
+
+  -- (f) Sin grant de select sobre gastos.moneda, la moneda no sale aunque esté en la foto.
+  select string_agg(quote_ident(a.attname), ', ' order by a.attnum) into v_columnas
+    from pg_catalog.pg_attribute a where a.attrelid = 'public.gastos'::regclass and a.attnum > 0 and not a.attisdropped and a.attname <> 'moneda';
+  revoke select on public.gastos from authenticated;
+  execute format('grant select (%s) on public.gastos to authenticated', v_columnas);
+  v_resp := pg_temp.act_como(f, format('select public.actividad_diff(%s)', v_gasto));
+  if v_resp ->> 'visible' is distinct from 'true' or v_resp ->> 'moneda_antes' is not null or v_resp ->> 'moneda_despues' is not null then
+    raise exception 'T7f: sin grant de moneda la moneda salió: %', v_resp; end if;
+
+  -- (g) Sigue security definer y con search_path vacío.
+  if not (select p.prosecdef and p.proconfig @> array['search_path=""'] from pg_catalog.pg_proc p where p.oid = 'public.actividad_diff(bigint)'::regprocedure) then
+    raise exception 'T7g: actividad_diff perdió security definer o su search_path vacío'; end if;
+end $$;
+rollback;
