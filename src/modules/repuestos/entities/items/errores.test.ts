@@ -62,4 +62,34 @@ describe('rechazoDeCelda', () => {
       error: { mensaje: MENSAJE_DE_PRECIO },
     })
   })
+
+  it('lo que rechaza el trigger trae hint y conserva su texto', () => {
+    expect(
+      rechazoDeCelda('cantidad', {
+        code: '23514',
+        message: 'Ya pasaron 2 de este ítem a stock: la cantidad no puede ser menor.',
+        hint: 'cantidad',
+      }),
+    ).toEqual({
+      ok: false,
+      error: {
+        codigo: 'regla',
+        mensaje: 'Ya pasaron 2 de este ítem a stock: la cantidad no puede ser menor.',
+      },
+      porCampo: { cantidad: 'Ya pasaron 2 de este ítem a stock: la cantidad no puede ser menor.' },
+    })
+    expect(
+      rechazoDeCelda('cantidad', {
+        code: '23514',
+        message: 'El proyecto está cerrado: reábrelo para cambiar los ítems.',
+        hint: 'proyecto',
+      }),
+    ).toEqual({
+      ok: false,
+      error: {
+        codigo: 'regla',
+        mensaje: 'El proyecto está cerrado: reábrelo para cambiar los ítems.',
+      },
+    })
+  })
 })

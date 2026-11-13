@@ -2,7 +2,7 @@
 
 Proyectos de repuestos por vehículo (o externos), ítems que recorren el flujo de repuestos con el mismo motor, imágenes, stock, compras con permiso de costos y un cotizador propio con configuración versionada.
 
-Abiertos que lo tocan: **8-13a** a **8-13f** y la revisión de seguridad del stock y de los pagos de repuestos (`docs/PENDIENTES.md`).
+Abiertos que lo tocan: **8-13a** a **8-13c**, **8-13e** y la revisión de seguridad del stock y de los pagos de repuestos (`docs/PENDIENTES.md`).
 
 ## Entra y sale
 
@@ -104,12 +104,18 @@ El módulo se parte por **área**, como `logistica`: `features|entities|infra/<�
 - Es el **ítem**, no el proyecto, el que recorre el flujo; el estado del proyecto se deriva. Mover pasa por `cambiar_fase(repuesto_id)`.
 - Ningún costo vive en `repuestos_items` (RLS no esconde columnas): compras y pagos tienen su tabla y su permiso (`repuestos.costos.*`).
 - Proyectos e ítems se crean, cierran, eliminan y restauran **sólo por RPC** (sin INSERT directo; `eliminado_en`, `cerrado_en`, `vehiculo_id`, `fase_id` y
-  `stock_cantidad` sin grant de UPDATE); toda RPC que escribe pide `repuestos.editar`. Un proyecto sólo se elimina vacío. La base **no** frena el `update`
-  de un ítem ni borrar una imagen de un proyecto cerrado: lo frena la interfaz (texto plano sin `repuestos.editar` o con el proyecto cerrado).
+  `stock_cantidad` sin grant de UPDATE); toda RPC que escribe pide `repuestos.editar`. Un proyecto sólo se elimina vacío. El `update` por columna de un
+  ítem pide `repuestos.editar` y `repuestos.ver` (policy) y el trigger `repuestos_item_escritura` exige, sólo en lo que cambia, ítem vivo (`PT409`), proyecto
+  vivo y abierto (23514 hint `proyecto`, tras su `for share`), catálogo activo de su tipo (22023, hint = columna; el desactivado que ya tenía se conserva) y una
+  cantidad no menor que lo que entró por `sobrante` (23514 hint `cantidad`). La interfaz además lo muestra como texto plano sin `repuestos.editar` o con
+  el proyecto cerrado.
 - El ítem nace en la única fase inicial activa del flujo de repuestos con su fila de historial; si hay cero o varias, o algo que decidir, nace sin fase.
 - Un ítem con historial, documentos, compras, gastos o stock no se borra: pasa a stock o se marca perdido (fase final sin llegar).
 - Imágenes: **tope 8 por ítem en la base** (`repuestos_imagen_integridad`, candado por ítem; el mismo 8 en `entities/items/imagenes.ts`); la tabla sólo
-  admite insert y delete. La app **no borra objetos**: borrar la fila encola la ruta (`repuestos_imagen_encolar`, por refcount) y «Deshacer» la rescata.
+  admite insert y delete, las dos con `repuestos.editar` y `repuestos.ver`, y sólo de un ítem vivo de un proyecto abierto (`repuestos_imagen_integridad`,
+  `repuestos_imagen_quitar`: 23514 hint `item` o `proyecto`; un borrado en cascada con su ítem pasa). La app **no borra objetos**: borrar la fila encola la
+  ruta (`repuestos_imagen_encolar`, por refcount) y «Deshacer» la rescata; Storage `repuestos` no tiene policy de borrar, y subir pide la carpeta `<ítem>/`
+  de un ítem vivo de un proyecto abierto con los dos permisos (`puede_objeto_de_repuesto`).
 - Un valor de catálogo en uso (por un ítem, aun eliminado, o una línea de cotización) no se borra: se desactiva. Los valores se escriben directo bajo la
   RLS de `repuestos.configurar`; el UPDATE es sólo de `nombre`, `activo` y `orden` (`catalogo`, `id` y `datos` dan 42501).
 - **El stock se mueve sólo por RPC**: sin INSERT de `repuestos_stock_movimientos` (ni su secuencia) ni UPDATE de `en_stock_desde` o `stock_cantidad`.
