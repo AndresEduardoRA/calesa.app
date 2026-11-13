@@ -74,9 +74,11 @@ export type Emparejamiento = {
   avisos: readonly string[]
 }
 
+// `numeroDe` nombra la entidad en el aviso de una columna de número: la importación total de vehículos (9.06-4b) dice «un vehículo».
 export function emparejarColumnas(
   encabezados: readonly string[],
   objetivos: readonly ObjetivoDeImportacion[],
+  numeroDe = 'un lead',
 ): Emparejamiento {
   const porNombre = new Map<string, string>()
   for (const objetivo of objetivos) {
@@ -94,10 +96,10 @@ export function emparejarColumnas(
     }
     const id = porNombre.get(comparable(encabezado))
     if (id === undefined) {
-      // Los números de un lead (el global y el propio) los pone el sistema: no se pueden fijar desde un archivo.
+      // Los números (de un lead, el global y el propio) los pone el sistema: no se pueden fijar desde un archivo.
       avisos.push(
         esEncabezadoDeNumero(encabezado)
-          ? `La columna «${encabezado}» no se importa: el número de un lead lo pone el sistema.`
+          ? `La columna «${encabezado}» no se importa: el número de ${numeroDe} lo pone el sistema.`
           : `La columna «${encabezado}» no corresponde a ningún dato: se ignora.`,
       )
       return null
