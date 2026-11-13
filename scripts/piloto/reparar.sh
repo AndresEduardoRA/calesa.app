@@ -3,7 +3,7 @@
 # sólo es de entorno, el bucle intenta arreglarla UNA vez y lo anota en el registro; si no queda arreglada, avisa como siempre.
 #   reparar_disco       libera cachés de Docker y npm (lo que se regenera solo) y vuelve a medir el disco.
 #   reparar_funciones   levanta `pnpm funciones` en la sesión de tmux `piloto-funciones` y espera a que estén servidas.
-#   reparar_commits     ultimo.json declara de menos: si todo lo declarado está en el rango, lo completa con el rango entero.
+#   reparar_commits     ultimo.json declara de menos (o nada): si todo lo declarado está en el rango, lo completa con el rango entero.
 # `PILOTO_REPARAR=0` las apaga (el arnés de pruebas). Los comandos se pueden cambiar con PILOTO_CMD_LIMPIAR y PILOTO_CMD_FUNCIONES.
 # Variables que espera: ESTADO, RAIZ, BIN y la función `registro`.
 
@@ -57,7 +57,9 @@ reparar_commits() {
   # Sólo los commits propios del paso (cierre.sh › rango_propio): lo que vino de main al traerlo no se le atribuye al paso.
   mapfile -t en_rango < <(rango_propio "$desde" | while read -r c; do git rev-parse --short=8 "$c"; done)
   mapfile -t declarados < <(jq -r '.commits[]' "$ESTADO/ultimo.json" 2>/dev/null)
-  [ "${#declarados[@]}" -gt 0 ] && [ "${#declarados[@]}" -lt "${#en_rango[@]}" ] || return 1
+  # Cero declarados también se completa: el 8.13 del 12-11 hizo su commit, la sesión siguió (otra vuelta, la misma rama) y el cierre dijo
+  # «sin commits propios en esta sesión»; el carril quedó reintentando 30 min por vuelta. El rango sale de head_arranque: es del paso.
+  [ "${#declarados[@]}" -lt "${#en_rango[@]}" ] || return 1
   for c in "${declarados[@]}"; do
     completo=$(git rev-parse --verify --quiet --short=8 "$c^{commit}") || return 1
     printf '%s\n' "${en_rango[@]}" | grep -qx "$completo" || return 1
