@@ -367,6 +367,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Vista guardada** — `vistas_guardadas` / `VistaGuardada`, `<MenuDeVistas>`: filtros de un listado con nombre, por persona; aplicarla es navegar.
 - **Importación** — `importaciones`: carga CSV con vista previa por fila.
 - **Importación total** — `importacion_crear()`, `importaciones` con `archivo_ruta`: la de `/datos`, que `importar-csv` procesa por lotes a nombre de quien importa y para un destino (`asignar_a`).
+- **Archivo normalizado** — `entities/plantillas.ts` de `datos` (`PLANTILLAS`, `escribirArchivo`, `filaDelLote`): el CSV que sube la pantalla de Datos para una importación total, con `rechazo_motivo`, `rechazo_campo` y las claves de `datos` de la entidad como columnas; `importar-csv` lo valida en su forma y lo borra al terminar.
 - **Fila de la importación** — `importaciones_filas`: una fila que no entró (ya existe o error), con su campo y su motivo, para «Descargar las rechazadas».
 - **Exportar leads** — `leads.exportar`, `POST /leads/exportar`: CSV de los leads de la cartera del listado con sus filtros; hasta 5.000 y 5 por hora.
 - **Importar leads** — `/leads/importar`, `leads_importar_lote()`: asistente de CSV: empareja, valida con las reglas del alta e importa por lotes.

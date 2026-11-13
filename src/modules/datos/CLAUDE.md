@@ -11,8 +11,8 @@ Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista pre
 
 ## Archivos clave
 
-- `entities/plantillas.ts` — columnas de cada plantilla CSV con sus validadores Zod (teléfono normalizado por la base con el código de la empresa, fechas ISO, orígenes por nombre).
-- `infra/importar.ts` — llama a `supabase/functions/importar-csv` (fuera de la Server Action: es trabajo en segundo plano).
+- `entities/plantillas.ts` (9.06-3) — el **archivo normalizado** de la importación total: las columnas por entidad (las claves de `datos` que admite la base), los validadores de forma por celda, `validarEncabezados`, `filaDelLote`, `escribirArchivo`, `LIMITES_DEL_ARCHIVO` (10 MB, 20.000 filas) y `FILAS_POR_LOTE`. Sin un solo import: la función edge lleva una copia exacta.
+- `infra/importar.ts` (9.06-3) — `pedirPaseDeImportacion` (con la sesión de quien creó la importación) y `llamarImportarCsv` (el pase, sin ninguna clave; respuesta validada con Zod). `composicion.ts` da `dispararImportacion(id)`, que llama la acción de 9.06-4 dentro de `after()`.
 - `entities/exportacion.ts` — exportar todo: el pedido (Zod), `TOPE_DE_FILAS` (250.000, medido), `FILAS_POR_PEDIDO` (el `max_rows`), el rango por fechas con el instante de corte, lo que contesta el registrar y los tipos `LectorDeExportacion`, `ColumnasDeExportacion` y `Registrador`.
 - `infra/cliente-del-flujo.ts` — `prepararSesion()`: la sesión de quien exporta con su token **fijo** (`accessToken` de supabase-js: nunca refresca). `infra/exportacion.ts` — el conteo y las páginas de `datos_exportar_leads()` por cursor, el registrar y los nombres de los dueños. `infra/paginas.ts` — lo común de leer por páginas (`enElRango`, `siguienteDe`, `contarHasta`). `infra/vehiculos.ts` (9.05-2b) — los vehículos de un origen de la tabla `vehiculos`, de a 1.000, bajo la RLS de quien exporta (no `vehiculos_inventario()`). `infra/cotizaciones.ts` (9.05-2c) — las cotizaciones de la tabla `cotizaciones` (todas o de un origen), de a 1.000, bajo la RLS de quien exporta (no `cotizaciones_listado()`), y los nombres de una página: clientes por `leads_vista_por_ids` y títulos de `vehiculos` de a `IDS_POR_CONSULTA_DE_NOMBRES` (100).
 - La pantalla (9.05-3): `entities/secciones.ts`, `entities/tarjetas.ts` (qué tarjeta ve y puede usar cada quien, por `puede()` y los orígenes de la base) y `entities/descarga.ts` (la respuesta del route como estado, la validación del formulario y `EXPORTACIONES_POR_HORA`); `features/exportar/hooks/use-descarga.ts` (el POST, un pedido a la vez) y `features/exportar/components/` (`seccion-exportar`, `tarjeta-mis-leads`, `tarjeta-de-entidad`, `campos-de-la-tarjeta`, `aviso-de-descarga`).
@@ -55,6 +55,10 @@ Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista pre
   si tuvo destino, ≤ 2.000 leads, e «intacto» contra el destino. El pase lo pide sólo quien la creó.
 - El contrato de `leads` (Fase 3, parte 8, `docs/DECISIONES.md`): `_lead_crear(…, p_recordar_origen)` y `leads_importar_lote` son lo que se llama por fila o por lote; `importaciones.archivo_ruta` es nulo sólo en la de `leads`.
 - El CSV usa `;` o `,` detectado, UTF-8 con BOM al exportar (Excel en español).
+- Importación total (9.06-3): el bucket `importaciones` guarda el **archivo normalizado**, no el de la persona (la pantalla convierte en el navegador); la
+  función `importar-csv` sólo valida su forma, sigue la marca `procesadas` que devuelve la base (nunca su cuenta) y borra el CSV al llegar a `terminada`
+  o `fallida`. `plantillas.ts` y `shared/lib/csv/leer.ts` tienen copia exacta en `supabase/functions/importar-csv/`: se edita el de `src/` y se copia
+  (la guarda `scripts/guardas/areas-c/importar-csv-copias.test.ts` cae si se separan).
 - Exportar todo: el permiso (efectivo) → la sesión → layout y catálogos → el conteo hasta `TOPE_POR_ENTIDAD[entidad] + 1` → **el registrar** → el flujo. Con más del
   tope o ninguna fila, no se registra; con 42501 o el cupo gastado, 403 o 429 sin leer filas; nunca se registra dos veces; el archivo nunca lleva más
   filas que las registradas (el conteo y la lectura usan el mismo instante de corte y la lectura corta en `filas`). Lo prueba `route.test.ts`.

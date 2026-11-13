@@ -138,6 +138,7 @@ Mide `medir-jobs.sql`; los presupuestos son 10 a 30 veces lo típico.
 - `limpieza-automatica`: mueve 200 y revisa 1.000 más.
 - `importaciones-vinculos-purgar`, `importaciones-filas-purgar` y `apibara-consultas-purgar`: lotes de 10.000, 10 por corrida.
 - `importaciones-continuar` (cada 2 min): 5 importaciones totales detenidas por corrida y 50 sin avance en 24 h, sobre `importaciones_en_curso_idx`.
+- `importar-csv` (función edge, 9.06-3): hasta 45 s por invocación y lotes de 50 (`FILAS_POR_LOTE`); archivo normalizado de hasta 10 MB y 20.000 filas, leído entero en cada invocación (leer y validar 20.000 filas al tope: ≈ 140 ms en Node, medido en el 9.06-3). Con ≈ 8 s cada 500 leads, 20.000 filas son 7 u 8 invocaciones y más de 20 min de reloj (el job despierta la siguiente a los 2 min sin avance).
 - `storage-gc`: reclama 100 por ronda, 5 rondas; 2.000 huérfanos encolados por pasada. El barrido de huérfanos lleva un cursor por bucket (`cola_gc_barrido`): 10.000 objetos examinados por pasada, 5 pasadas por corrida; no recorre el bucket entero.
 - `leads-campos-privacidad` (lotes de 5.000, hasta 10 por corrida) y `equipo-bajas` (arriba).
 
