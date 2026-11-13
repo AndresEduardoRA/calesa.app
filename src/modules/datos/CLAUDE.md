@@ -21,6 +21,11 @@ Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista pre
   `intento.ts` (el mismo id sólo para el mismo texto y pedido), los hooks `use-asistente-total` y `use-lanzar-importacion` y los componentes
   `seccion-importar` → `paso-entidad` + `asistente-total` (`paso-archivo`, `paso-columnas`, `paso-vista-previa`, `paso-importando`). La lectura del
   servidor por entidad está en `src/app/(app)/datos/importar.tsx`.
+- El avance, el resultado y la lista (9.06-5): `entities/resumen-de-importacion.ts` (la fila de `importaciones` para la pantalla, su estado
+  visible con «En pausa» primero, la frase del resultado, qué se sondea y cuándo hay rechazadas) y `entities/informe-de-importacion.ts` (el CSV de
+  las rechazadas: con el archivo en memoria, las celdas de la persona; sin él, fila, resultado, campo y motivo). Las lecturas son del navegador
+  (`infra/importaciones.client.ts`: la lista por cursor y el avance por ids; `infra/informe.client.ts`: el informe de a 1.000), por
+  `composicion.client.ts`.
 - `entities/exportacion.ts` — exportar todo: el pedido (Zod), `TOPE_DE_FILAS` (250.000, medido), `FILAS_POR_PEDIDO` (el `max_rows`), el rango por fechas con el instante de corte, lo que contesta el registrar y los tipos `LectorDeExportacion`, `ColumnasDeExportacion` y `Registrador`.
 - `infra/cliente-del-flujo.ts` — `prepararSesion()`: la sesión de quien exporta con su token **fijo** (`accessToken` de supabase-js: nunca refresca). `infra/exportacion.ts` — el conteo y las páginas de `datos_exportar_leads()` por cursor, el registrar y los nombres de los dueños. `infra/paginas.ts` — lo común de leer por páginas (`enElRango`, `siguienteDe`, `contarHasta`). `infra/vehiculos.ts` (9.05-2b) — los vehículos de un origen de la tabla `vehiculos`, de a 1.000, bajo la RLS de quien exporta (no `vehiculos_inventario()`). `infra/cotizaciones.ts` (9.05-2c) — las cotizaciones de la tabla `cotizaciones` (todas o de un origen), de a 1.000, bajo la RLS de quien exporta (no `cotizaciones_listado()`), y los nombres de una página: clientes por `leads_vista_por_ids` y títulos de `vehiculos` de a `IDS_POR_CONSULTA_DE_NOMBRES` (100).
 - La pantalla (9.05-3): `entities/secciones.ts`, `entities/tarjetas.ts` (qué tarjeta ve y puede usar cada quien, por `puede()` y los orígenes de la base) y `entities/descarga.ts` (la respuesta del route como estado, la validación del formulario y `EXPORTACIONES_POR_HORA`); `features/exportar/hooks/use-descarga.ts` (el POST, un pedido a la vez) y `features/exportar/components/` (`seccion-exportar`, `tarjeta-mis-leads`, `tarjeta-de-entidad`, `campos-de-la-tarjeta`, `aviso-de-descarga`).
@@ -30,6 +35,8 @@ Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista pre
 
 `importaciones` (estado, totales, informe por fila). RPC: `crear_lead` por fila (misma regla de limbo y duplicados).
 
+- `importaciones` e `importaciones_filas` (9.06-5) leídas desde el navegador con la sesión de quien mira, bajo su RLS (las propias, o todas con
+  `datos.importar.todo`): sin `mapeo` ni `archivo_ruta`; los nombres de quien, del destino y del origen, embebidos por sus FK.
 - `perfiles` (9.06-4b, `infra/personas.ts`): sólo `id, nombre` de las personas activas y sin bloqueo, hasta 100, bajo «perfiles: leer», para el destino de una importación de leads. Nunca el correo.
 
 - `datos_exportacion_registrar(p_entidad, p_filas, p_filtros)` (9.05-1, definer): el enforcement de `datos.exportar.todo`. Entidades `leads`,
