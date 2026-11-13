@@ -91,7 +91,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Lote de papelera** — `lotes_papelera` / `LoteDePapelera`: envío de 1 a 200 a la papelera; se restaura o purga entero o por partes. En la UI, «lote».
 - **Purga** — `vehiculos_papelera_purgar()`, `cotizaciones_papelera_purgar()`, `papelera_purgar()`, `papelera_purgar_vencidos()`: borrar para siempre: a mano (`vehiculos.papelera.purgar`, `leads.papelera.purgar` o `cotizaciones.papelera.purgar`, cada papelera la suya) o a los `papelera_dias`; lo que otra tabla necesita (un pago, un comprobante) queda bloqueado, con motivo, y se queda en la papelera.
 - **Limpieza de Storage** — `cola_gc_storage` / función `storage-gc`, `storage_gc_*()`: borrar de Storage lo que nadie referencia; job cada hora.
-- **Pase** — `cola_gc_pases` / `storage_gc_disparar()`, `storage_gc_abrir()`; `push_pases` / `push_disparar()`, `push_abrir()`: uuid de un solo uso (10 min) con que la base autentica su llamada a una función edge (`storage-gc`; `push`, atado a una notificación).
+- **Pase** — `cola_gc_pases` / `storage_gc_disparar()`, `storage_gc_abrir()`; `push_pases` / `push_disparar()`, `push_abrir()`; `importaciones_pases` / `importacion_pase_emitir()`, `importacion_abrir()`: uuid de un solo uso (10 min) con que la base autentica su llamada a una función edge (`storage-gc`; `push`, atado a una notificación; `importar-csv`, atado a una importación total).
 - **Restaurar** — `vehiculos_papelera_restaurar()`: vuelve al inventario sin publicar; lo que choca con un VIN o lote ya tomado queda pendiente, con motivo. `cotizaciones_papelera_restaurar()`: lo que choca con otra viva (una versión nueva, una final del vehículo) o cuelga de un vehículo o cliente en la papelera queda pendiente, con motivo.
 - **Lead** — `leads` / `leads_vista`: prospecto o cliente; el teléfono principal lo identifica.
 - **Origen del lead** — `origenes_lead` / `origen_lead_crear()`, `OrigenDeLeadConUso`: de dónde llegó un lead (Facebook, referido…).
@@ -371,9 +371,9 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Exportar leads** — `leads.exportar`, `POST /leads/exportar`: CSV de los leads de la cartera del listado con sus filtros; hasta 5.000 y 5 por hora.
 - **Importar leads** — `/leads/importar`, `leads_importar_lote()`: asistente de CSV: empareja, valida con las reglas del alta e importa por lotes.
 - **Archivo de errores** — `leads-rechazados.csv`: CSV con las filas que no entraron y su motivo, con las mismas columnas, para corregir y volver a subir.
-- **Deshacer la importación** — `leads_importacion_deshacer()`, `<DeshacerImportacion>`: 24 h; manda a la papelera lo importado que sigue intacto.
-- **Intacto (lead importado)** — `_lead_motivo_para_deshacer()`: sólo en la cartera de quien importó, sin editar y sin nada colgado; las marcas no cuentan.
-- **Tus importaciones recientes** — `leads_importaciones_recientes()`, `<ImportacionesRecientes>`: importaciones propias de 24 h, con «Deshacer», en `/leads/importar`.
+- **Deshacer la importación** — `leads_importacion_deshacer()`, `<DeshacerImportacion>`: 24 h; manda a la papelera lo importado que sigue intacto. Una importación total: sólo terminada o fallida, ≤ 2.000 leads y, si tuvo destino, con `datos.importar.todo`.
+- **Intacto (lead importado)** — `_lead_motivo_para_deshacer()`: sólo en la cartera de quien importó (en una importación total con destino, del destino), sin editar y sin nada colgado; las marcas no cuentan.
+- **Tus importaciones recientes** — `leads_importaciones_recientes()`, `<ImportacionesRecientes>`: importaciones propias de 24 h, con «Deshacer», en `/leads/importar`. No lista las importaciones totales de `/datos`.
 - **Subasta (de un vehículo)** — `SubastaDeVehiculo` / `<BloqueDeSubasta>`, `leerSubasta()`: cuándo es, en qué está, cuánto va y cuándo se consultó.
 - **Cierre (de una subasta)** — `vehiculos.cierre_subasta_en` (generada): cuándo cierra una subasta abierta o en vivo, `coalesce(subasta_fin_en, subasta_en)`; nula si no está viva. Ordena «Cierre subasta» del panel del vehículo, desde ahora menos 24 h.
 - **Estado de subasta** — `vehiculos.estado_subasta` / `EstadoDeSubasta`: `abierta`, `en vivo`, `terminada` o `vendida`; lo deriva la base, nadie lo escribe.

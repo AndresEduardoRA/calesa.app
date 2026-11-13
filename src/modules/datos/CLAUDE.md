@@ -36,6 +36,10 @@ Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista pre
   `importacion_terminar`, **sólo `service_role`** (la función edge `importar-csv`, 9.06-3): actúan a nombre de quien importa y vuelven a mirar sus
   permisos en cada lote. `importaciones_filas`: lo que no entró, con su campo y su motivo (RLS: la regla de `importaciones`). Columnas de avance
   `procesadas`, `ya_existian`, `rechazadas`, `avance_en`; de destino `asignar_a`, `con_destino`, `origen_id`.
+- Motor de la importación total (9.06-2): `importaciones_pases` (sólo `service_role`); `importacion_pase_emitir(p_importacion)` (authenticated, sólo
+  la total propia y viva; reusa el pase vivo de 5 min) e `importacion_abrir(p_pase)` (service_role, un uso, 10 min). Jobs:
+  `importaciones-continuar` (cada 2 min, URL de Vault: 5 detenidas por corrida, sin avance en 24 h → `fallida`) e `importaciones-filas-purgar`
+  (diario: informe a los 30 días, pases a los 7). Índices de la lista «Importaciones»: `importaciones_lista_propia_idx`, `importaciones_lista_idx`.
 - Cotizaciones (9.05-2c): la tabla `cotizaciones` (sólo columnas con `grant select`; la papelera la cortan sus policies y el filtro explícito), `leads_vista_por_ids`
   (sólo `id, nombre`) y `vehiculos` (`id, titulo`), todo con el cliente del flujo. Medido en `supabase/tests/medir-datos-exportar-cotizaciones.sql`.
 
@@ -46,6 +50,9 @@ Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista pre
 - En la importación total el lead lo crea el destino (`asignar_a`): nace en su cartera, con su constancia. Perder el permiso a mitad (o borrarse el
   destino) deja la importación `fallida`, nunca cambia de dueño. La identidad se captura al entrar y se repone en cada salida (`_importacion_previo`,
   `_importacion_fijar`, `_importacion_volver`): esos ayudantes sólo los ejecuta su dueño.
+- `/leads` no toma una importación total (`archivo_ruta`): `leads_importar_lote` y `leads_importacion_terminar` dan 42501 y
+  `leads_importaciones_recientes` no la lista. Deshacer una total: sólo terminada o fallida (nunca corta el proceso), con `datos.importar.todo`
+  si tuvo destino, ≤ 2.000 leads, e «intacto» contra el destino. El pase lo pide sólo quien la creó.
 - El contrato de `leads` (Fase 3, parte 8, `docs/DECISIONES.md`): `_lead_crear(…, p_recordar_origen)` y `leads_importar_lote` son lo que se llama por fila o por lote; `importaciones.archivo_ruta` es nulo sólo en la de `leads`.
 - El CSV usa `;` o `,` detectado, UTF-8 con BOM al exportar (Excel en español).
 - Exportar todo: el permiso (efectivo) → la sesión → layout y catálogos → el conteo hasta `TOPE_POR_ENTIDAD[entidad] + 1` → **el registrar** → el flujo. Con más del
