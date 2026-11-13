@@ -105,7 +105,8 @@ select pg_temp.imp_preparar();
 do $$
 declare ada uuid := '00000000-0000-4000-8000-00000000906a'; bea uuid := '00000000-0000-4000-8000-00000000906b';
         ceci uuid := '00000000-0000-4000-8000-00000000906c';
-        v_origen uuid := (select id from public.origenes where activo order by id limit 1); v_inactivo uuid; r text; v public.importaciones;
+        -- Un origen de la base, siempre el mismo (por id, uuid al azar, podía tocar uno que dejó otro archivo de db:probar).
+        v_origen uuid := (select id from public.origenes where activo order by creado_en, clave limit 1); v_inactivo uuid; r text; v public.importaciones;
 begin
   insert into public.origenes (clave, nombre, tipo, activo) values ('imp_inactivo', 'IMP inactivo', 'manual', false) returning id into v_inactivo;
   foreach r in array array[
