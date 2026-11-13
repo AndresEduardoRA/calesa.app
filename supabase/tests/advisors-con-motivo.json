@@ -3,17 +3,23 @@
     {
       "lint": "anon_security_definer_function_executable",
       "clave": "anon_security_definer_function_executable_web_ajustes_acceso_",
-      "motivo": "Las pantallas de acceso, sin sesión, leen la marca de la empresa (nombre, logo, color, idioma, zona), si el registro está abierto y si aún no hay ninguna cuenta (src/modules/empresa/infra/queries/ajustes.ts): definer porque anon no lee ajustes_empresa; una fila fija, sin datos de personas."
+      "motivo": "Las pantallas de acceso, sin sesión, leen la marca de la empresa (nombre, logo, color, idioma, zona), si el registro está abierto y si aún no hay ninguna cuenta (src/modules/empresa/infra/queries/ajustes.ts): definer porque anon no lee ajustes_empresa; una fila fija, sin datos de personas.",
+      "funcion": "web.ajustes_acceso()",
+      "huella": "91a3046ead27631e323952a05767e716"
     },
     {
       "lint": "anon_security_definer_function_executable",
       "clave": "anon_security_definer_function_executable_web_registrar_evento_p_token text, p_evento text, p_ruta text, p_referencia_id uuid, p_utm jsonb",
-      "motivo": "Entrada pública de eventos de la web: definer porque anon no escribe eventos_web; rechaza un token fuera de ^[A-Za-z0-9_-]{16,64}$ o un evento fuera de su lista, corta la ruta a 300 y no devuelve nada. Sin tope de tamaño de p_utm ni de frecuencia (se purga a los 12 meses)."
+      "motivo": "Entrada pública de eventos de la web: definer porque anon no escribe eventos_web; rechaza un token fuera de ^[A-Za-z0-9_-]{16,64}$ o un evento fuera de su lista, corta la ruta a 300 y no devuelve nada. Sin tope de tamaño de p_utm ni de frecuencia (se purga a los 12 meses).",
+      "funcion": "web.registrar_evento(text,text,text,uuid,jsonb)",
+      "huella": "d9a88d4e01fa80db1b3bb84ab90480ce"
     },
     {
       "lint": "anon_security_definer_function_executable",
       "clave": "anon_security_definer_function_executable_web_solicitar_asesor_p_token text, p_fuente text, p_ruta text, p_vehiculo_id uuid, p_handle text, p_utm jsonb",
-      "motivo": "La solicitud de asesor de la web pública (la cola web): anon, con el token anónimo del visitante (lo genera el navegador; sólo se valida su forma y no autentica; el freno de 12 por hora es por token). Definer porque asigna por la rueda sobre tablas que anon no ve; devuelve el código y el nombre, avatar, cargo y WhatsApp de la web del asesor de la cola (no exige publico_web)."
+      "motivo": "La solicitud de asesor de la web pública (la cola web): anon, con el token anónimo del visitante (lo genera el navegador; sólo se valida su forma y no autentica; el freno de 12 por hora es por token). Definer porque asigna por la rueda sobre tablas que anon no ve; devuelve el código y el nombre, avatar, cargo y WhatsApp de la web del asesor de la cola (no exige publico_web).",
+      "funcion": "web.solicitar_asesor(text,text,text,uuid,text,jsonb)",
+      "huella": "bd392dd924e3ca48a444206576d6601e"
     },
     {
       "lint": "authenticated_security_definer_function_executable",
