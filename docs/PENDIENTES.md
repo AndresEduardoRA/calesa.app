@@ -63,7 +63,7 @@ Al cerrar una, se borra su línea (el PR lo cuenta). Lo nuevo que aparezca al tr
 - **[—]** Seguridad de los pagos de un proyecto de repuestos: quedó anotada para revisar sin detalle; hacerla junto con 8-13d y 8-13e.
 - **[—]** Repuestos: la policy de UPDATE de `repuestos_proyectos` pide `repuestos.editar` sin `repuestos.ver` (un `update` sin `where` no pasa por la de leer) y no mira proyecto cerrado ni eliminado — como el trigger `repuestos_item_escritura` de los ítems.
 - **[7-4]** Con `p_conversacion` del canal global, `tarea_crear` y `agenda_quienes_reciben` miran la fila suelta de `conversaciones_miembros` y pasa un responsable sin `chat.global` — revalidar con `_chat_miembro_vigente` como `mensaje_tarea_crear`.
-- **[—]** `lead_campo_impacto` lee los valores de todos los leads, también `solo_cartera` ajenos: con `leads.campos.gestionar`, acotando el rango, se hallan los extremos de un campo privado.
+- **[—]** `lead_campo_impacto` lee los valores públicos de todos los leads aunque quien llama tenga `leads.ver` con alcance «propios»: acotando el rango se hallan los extremos de leads que no ve — contar con `_lead_visible_para` sin perder los de la papelera.
 - **[—]** Dominancia: no se cubre que la de quien llama cambie mientras actúa, y `nivel_crear` suma concesiones al rol `dueno` sin tomar `roles … for update`.
 - **[—]** Ciclos de candados abiertos: `cotizacion_encima` (anterior → vehículo) contra la papelera de vehículos (vehículo → cotizaciones), y restaurar cotizaciones (vehículo → lead) contra vincular (lead → vehículo) — salida: tomar lead → vehículo primero.
 - **[—]** `comprobante_emitir` contra la papelera de vehículos: `_vehiculo_motivo_de_bloqueo` mira los comprobantes sin tomar las cotizaciones — que emitir tome el vehículo `for key share` antes.
@@ -170,6 +170,7 @@ Al cerrar una, se borra su línea (el PR lo cuenta). Lo nuevo que aparezca al tr
 - **[—]** El inspector de fase no se miró al 200 % (los bloques anidados miden con `minmax(0, 1fr)`).
 - **[—]** Al 200 % la burbuja del chat puede tapar la última línea de una página.
 - **[—]** Las 200 compras por proyecto llevan `<AvisoDeTope>` sin camino a lo antiguo — filtro por fecha si aparece.
+- **[—]** En un campo privado de cartera, los avisos de rango y de opciones que sacas cuentan sólo los leads de tu cartera y no lo dicen (`resumenDeImpacto` de leads).
 
 ## Fuera de alcance
 
