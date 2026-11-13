@@ -2876,6 +2876,7 @@ index.ts}`, `src/app/(app)/tablero/{page,loading}.tsx`, `src/app/(app)/_shell/na
   verde. Lugar: `e2e/` (lo que falte de las cuatro tareas), `docs/{PLAN,ESTADO,BITACORA,DECISIONES,UX}.md`. Nivel **3** (cierre de fase). Tipo: pantalla.
   Partes estimadas: 3.
   Dudas, con la recomendada: (1) ¿La fase cierra sin el despliegue hecho? Recomiendo sí, como «lista para desplegar»: el piloto no puede tocar producción y la puerta de una fase es el CI (`docs/PILOTO.md`). (2) ¿Las metas en segundos se miden con reloj? Recomiendo KLM y conteo de teclas o toques, como en la 2: un cronómetro en una máquina con tres carriles da rojos falsos.
+  **9.14-1** (hecho el 2026-11-13; `docs/pasos/9.14-1/`): las cuatro tareas de oro con su meta afirmada en `escritorio` y en `movil` (tabla en «Las cuatro tareas de oro»); la tarea 1 salió del celular-excluido y el «nunca» de la 4 (dejar vencer un turno sin aviso) estrenó prueba. Quedan el **9.14-2** (el recorrido con dos cuentas) y el **9.14-3** (el Nivel 3 y los docs de cierre).
 
 ### Riesgos y huecos
 
