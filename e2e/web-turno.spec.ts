@@ -69,6 +69,7 @@ test.beforeAll(async ({}, info) => {
 })
 
 test.afterAll(async () => {
+  sql(`delete from public.notificaciones where usuario_id = ${literal(asesoraId)}`)
   sql(`delete from public.solicitudes_contacto_web where token_visitante like 'e2eturno%'`)
   quitarLeads()
   await borrarPersonasDePrueba()
@@ -161,4 +162,32 @@ test('quien gestiona la cola no ve en su Inicio los turnos de otra persona', asy
   await expect(bloque).toBeVisible()
   await expect(bloque.getByText('Sin turnos pendientes', { exact: false })).toBeVisible()
   await expect(page.getByText(turno.codigo)).toHaveCount(0)
+})
+
+// El «nunca» de la tarea de oro 4 (docs/UX.md): un turno no vence sin que la asesora se entere. Se adelanta el vencimiento y se corre lo que corre el job cada
+// 5 min (`web_expirar_solicitudes`); el número que devuelve no se afirma porque el job pudo correr antes.
+test('un turno que vence sin «Contacté» queda «Vencido» en Inicio y avisa a la asesora', async ({
+  page,
+}, info) => {
+  const turno = pedirTurno(info.project.name)
+  sql(`update public.solicitudes_contacto_web set vence_en = now() - interval '1 minute' where id = ${literal(turno.id)};
+       select public.web_expirar_solicitudes();`)
+  expect(solicitud(turno.id, 'estado')).toBe('vencida')
+  expect(
+    sql(`select count(*) from public.notificaciones where usuario_id = ${literal(asesoraId)}
+           and tipo = 'turno_web_perdido' and referencia_id = ${literal(turno.id)}`),
+  ).toBe('1')
+
+  await entrar(page, asesora)
+  const tarjeta = page
+    .getByRole('region', { name: BLOQUE })
+    .getByRole('article', { name: `Turno ${turno.codigo}` })
+  await expect(tarjeta.getByText('Vencido')).toBeVisible()
+
+  await page.goto('/notificaciones')
+  const aviso = page
+    .locator('li[data-notificacion]')
+    .filter({ hasText: 'Se venció un turno de la web' })
+    .filter({ hasText: turno.codigo })
+  await expect(aviso).toBeVisible()
 })
