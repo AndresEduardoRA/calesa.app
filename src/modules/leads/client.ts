@@ -37,7 +37,15 @@ export {
   type ObjetivoDeImportacion,
 } from './entities/importacion/emparejar'
 export { comparable, sinApostrofoDeFormula } from './entities/importacion/texto'
-export { fechaHoraLocal, fechaIso } from './entities/importacion/convertir'
+export {
+  convertirNumero,
+  convertirSiONo,
+  fechaHoraLocal,
+  fechaIso,
+  MOTIVO_DE_FECHA,
+  MOTIVO_DE_FECHA_HORA,
+  type Conversion,
+} from './entities/importacion/convertir'
 export type { ContextoDeImportacion } from './entities/importacion/contexto'
 export type { TablaDePaises } from './entities/paises/resolver'
 export { usePaises } from './features/telefono/hooks/use-paises'
