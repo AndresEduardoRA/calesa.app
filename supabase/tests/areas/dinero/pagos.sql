@@ -2,7 +2,7 @@
 -- bloque abre su transacción y la revierte.
 --
 -- Qué asegura:
---   Q1. `pago_registrar` en XTS a 6,96 guarda 696,00 sin confirmar; monto 0, 22023; sin `logistica.pagos.editar` del origen, 42501; un lead que no se ve,
+--   Q1. `pago_registrar` en XTS a 6,96 guarda 696,00 sin confirmar; monto 0 o NaN (también al corregir), 22023; sin `logistica.pagos.editar` del origen, 42501; un lead que no se ve,
 --       42501 con hint `lead_id`. Corregir no recibe el monto en base ni el sello; eliminar es suave.
 --   Q2. Sin `logistica.pagos.confirmar`, 42501 y sigue sin confirmar; con ella y viendo el pago, queda quién y cuándo y una sola fila `pago.confirmado` en
 --       `actividad`; con la clave y sin ver el pago, 42501; la segunda confirmación, PT409; versión vieja, PT409.
@@ -113,6 +113,12 @@ begin
   end if;
   perform pg_temp.din_da('Q1: monto 0', pg_temp.din_pago(p, gen_random_uuid(), v, 'XTS', 0, tc), '22023', 'monto');
   perform pg_temp.din_da('Q1: tres decimales', pg_temp.din_pago(p, gen_random_uuid(), v, 'XTS', 1.005, tc), '22023', 'monto');
+  -- 'NaN' > 0 es verdadero en PG y numeric(18,2) lo guarda: el `check` de la tabla no lo para. En la moneda base no hay conversión que lo ataje.
+  perform pg_temp.din_da('Q1: monto NaN', pg_temp.din_corre(p, format('select public.pago_registrar(%L, %L, null, %L, %L, %L::numeric, null, null, null, null, null)',
+                                                                      gen_random_uuid(), v, 'Anticipo', t ->> 'base', 'NaN')), '22023', 'monto');
+  r := pg_temp.din_pago(p, gen_random_uuid(), v, t ->> 'base', 10, null);
+  perform pg_temp.din_da('Q1: corregir a NaN', pg_temp.din_pago_guardar(p, (r ->> 'id')::uuid, '{"monto": "NaN"}'), '22023', 'monto');
+  if exists (select 1 from public.pagos x where x.vehiculo_id = v and x.monto = 'NaN'::numeric) then raise exception 'Q1: quedó un pago con monto NaN'; end if;
   perform pg_temp.din_da('Q1: sin la clave del origen',
     pg_temp.din_pago(pg_temp.din_persona('logistica.pagos.editar:todos:' || (t ->> 'o2')), gen_random_uuid(), v, 'XTS', 100, tc), '42501');
   perform pg_temp.din_da('Q1: un lead que no se ve', pg_temp.din_pago(p, gen_random_uuid(), v, 'XTS', 100, tc, pg_temp.din_lead()), '42501', 'lead_id');
