@@ -1604,7 +1604,7 @@ muestra placeholder; el buscador nunca devuelve algo que la RLS esconde ni busca
   `src/modules/chat/features/widget/components/diferidos.tsx:6`) no se reintenta al volver la red, como sí la campana desde el 7.14-1; el
   arreglo es el mismo hook y una `key`. Y la suscripción de la campana, pedida sin red, pone su barra fija «Sin conexión. No se pudo abrir
   esto.» aunque nadie abrió nada (se va sola al volver la red; el completo del 7.14-2 la vio sobre la del modal en `leads-escala`): una suscripción de fondo
-  no debería avisar. Lugar: `chat/features/widget` y `notificaciones/features/campana`. Pantalla, Nivel 1.
+  no debería avisar. Lugar: `chat/features/widget` y `notificaciones/features/campana`. Pantalla, Nivel 1. La primera mitad la cerró el 8.12-ci (`docs/pasos/8.12-ci/bitacora.md:9`).
 
 Cerrados en la fase: **7-1** (7.05), **7-2** (7.14-1), notificar al compartir, transferir y limpiar (7.01-2), `recordatorios_notificar()` con su
 cron (7.01-1), «Escribirle por chat» (7.11), el buscador de leads sin privados (7.12) y el atajo `?` (7.13).
@@ -1959,7 +1959,36 @@ el lead aunque su dueño ya no lo vea; el job `web_expirar_solicitudes` se progr
   rueda (decidido el 2026-10-21) y `cola_web_configurar` deja habilitar a quien no puede: quien administra la cola cree que habilitó a
   alguien que no recibe nada — el tablero de la cola muestra a esa persona aparte, con «Habilitada, pero su rol no recibe turnos de la
   web», y un e2e lo prueba (rol sin el permiso y habilitada: su fila y el texto; con el permiso: entra en la rueda); habilitar a alguien
-  sin el permiso lo avisa. Lugar: `src/modules/web/features/cola/` (nuevo), con una lectura propia que no pase por `estado_cola_web`.
+  sin el permiso lo avisa. Lugar: `src/modules/web/features/cola/` (nuevo), con una lectura propia que no pase por `estado_cola_web`. **Cerrado en el 8.04-3** (2026-11-12).
+
+#### Los decide la persona
+
+- **8-13a** (salió del 8.13-1, D3, y el 8.13-4, D2): un ítem de repuestos no dice «fuera de regla» ni quién lo movió, y «Esperas que destraban
+  vehículos» lista los ítems en vuelo de proyectos con vehículo sin cruzarlos con la fase del vehículo: `logistica_unidad` es sólo de vehículo y leerlo
+  pide una RPC `security definer` (`docs/pasos/8.13-1/decisiones.md:5`, `8.13-4/decisiones.md:5`). Paso de datos.
+- **8-13c** (salió del 8.13-3, D2): un índice `(fase_id, fase_desde, id)` en `repuestos_items` si la Cadena de repuestos y los bloques de Inicio llegan a
+  miles; hoy van por `repuestos_items_fase_id_idx`, ≤ 30 consultas de 51 (`docs/pasos/8.13-3/bitacora.md:12`, `8.13-4/bitacora.md:11`). Migración.
+- **8-13d** (salió del 8.13-5): anular un pago confirmado de un proyecto de repuestos; hoy no se puede y el texto de confirmar lo dice
+  (`docs/pasos/8.13-5/decisiones.md:8`). Dinero.
+- **8-13e** (salió del 8.13-5): eliminar el último pago vivo sin confirmar de un proyecto puede dejar sin cumplir `proyecto.pago_cliente` de la fase
+  actual de un ítem; el vehículo tiene esa guarda y el proyecto no (`docs/pasos/8.13-5/decisiones.md:18`). Dinero.
+- **8-13f** (salió del 8.13-5, D10): `pago_registrar` del vehículo acepta `NaN` (`'NaN' > 0` es verdadero en PG y `numeric(18,2)` lo guarda); la gemela
+  de repuestos ya lo rechaza (`docs/pasos/8.13-5/decisiones.md:17`). Dinero, migración.
+- **8-05a** (salió del 8.05-1, D4): vincular a un lead una solicitud ya contactada pide una RPC (`docs/pasos/8.05-2/bitacora.md:17`). Paso de datos.
+- **8-14a** (salió del 8.14-1, D9): el bloque de turnos de Inicio pide `leads.crear` o `web.cola.gestionar`; un rol con sólo `web.cola.participar`
+  recibe turnos y no los ve en Inicio (`docs/pasos/8.14-1/decisiones.md`, D9). Recomendado: dejarlo (quien atiende la web crea el lead). Permisos.
+
+Abiertos de la fase con su lugar: **8-13b** (el transporte propio de un ítem sin vehículo, hoy sólo texto: un formulario con
+`transporte_guardar(p_repuesto)`, que ya lo acepta; `docs/pasos/8.13-2/decisiones.md:7`; pantalla de `repuestos`, Nivel 1); la IP real tras la
+reescritura (medir la IP que llega a `/api/portal/ingresar` cuando el sitio publique el portal; si es la del sitio, una cabecera firmada por el sitio;
+`docs/pasos/8.07-3/bitacora.md:18-19`); para «Pulido para la Fase 9» › seguridad, los de D14 de `docs/pasos/8.10-1/decisiones.md:16` y los pagos de un
+proyecto de repuestos (`docs/pasos/8.11-1/bitacora.md:26`); para «Pulido para la Fase 9», la cabecera del proyecto tras pasar a stock (D8 de 8.10-2,
+`docs/pasos/8.10-2/bitacora.md:28`).
+
+Cerrados en la fase: **8-1** (8.04-3), `api/portal/*` con la cookie con `otorgado_en`, el límite por IP y el ingreso (8.07), `direccion_publica` (8.01-4),
+el job `web_expirar_solicitudes` (8.04-1), los arrastrados de la Fase 7 (el CTA del chat, la notificación de la limpieza, el buscador, el atajo `?` y
+`recordatorios_notificar()`) y las contradicciones 1 (8.06-2), 2 y 4 (8.01-1), 3 (8.08-1), 6 (9.01, el job `actividad-purgar`) y 5 (`/notificaciones`
+existe desde el 7.02 y lista `turno_web`; ninguna migración cambió esa `ruta`).
 
 ### Lo que ya existe y lo que falta (leído el 2026-11-09)
 
@@ -1989,6 +2018,46 @@ Contradicciones entre el párrafo de PLAN (o las fichas) y la base:
 5. **Notificaciones de turno:** `solicitar_asesor` y `web_expirar_solicitudes` escriben `ruta = '/notificaciones'` (B:19629, 19850, 19894), pantalla de la Fase 7.
 6. **Purga de `eventos_web`:** la hace `actividad_purgar()` (B:8040), que tampoco tiene job. No es de esta fase (Fase 9, `actividad`), pero nadie lo tiene anotado.
 
+### Tabla de criterios
+
+Cada criterio del «Terminado cuando» y del párrafo de la fase con la prueba que lo mide y su resultado en el Nivel 3 del 8.14-2 («base» = `db:probar` o
+`db:carreras`; «unidad» = Vitest; rutas `areas/…` de `supabase/tests/`). `db:carreras` corre al empezar cada proyecto del completo; `db:probar` y Vitest, en
+el CI de cada PR.
+
+| Criterio                                                                                     | Prueba                                                                                                                                                                                                                                                                                                                                                                                                | Proyectos                        | Resultado                                                          |
+| -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------ |
+| Confirmar un turno toma 2 toques en viewport móvil                                           | `fase-8-recorrido.spec.ts` › «E2E R2 la asesora confirma el turno en dos toques desde Inicio»; `web-turno.spec.ts` › ««Contacté» confirma el turno en un toque y la tarjeta se va»                                                                                                                                                                                                                    | escritorio y movil               | verde en los dos                                                   |
+| … y la tasa de contacto se actualiza                                                         | `fase-8-recorrido.spec.ts` › «E2E R3 el tablero de la cola muestra la tasa de contacto nueva»; `src/modules/web/entities/cola/tablero.test.ts`                                                                                                                                                                                                                                                        | escritorio y unidad              | verde (escritorio; unidad: CI del PR sobre `910befb2`)             |
+| Un visitante anónimo recibe asesor                                                           | `fase-8-recorrido.spec.ts` › «E2E R1 un visitante anónimo pide un asesor y le toca una de las dos»; `perfil-disponibilidad.spec.ts` › «apagar la disponibilidad corta el reparto y encenderla lo devuelve»; `rueda-por-rol.spec.ts` › «la dueña le quita y le pone web.cola.participar a un rol, y la rueda lo respeta al instante»; `supabase/tests/rueda-por-rol.sql`; `scripts/carreras/rueda.mjs` | escritorio, movil y base         | verde en los dos (base: `db:carreras` del completo y CI del PR)    |
+| … el mismo dentro del plazo pegajoso                                                         | `fase-8-recorrido.spec.ts` › «E2E R4 el visitante que vuelve dentro del plazo recibe a la misma asesora»; `supabase/tests/rueda-por-rol.sql`                                                                                                                                                                                                                                                          | escritorio, movil y base         | verde en los dos (base: CI del PR)                                 |
+| … y el respaldo cuando nadie está disponible                                                 | `fase-8-recorrido.spec.ts` › «E2E R5 con todas sin disponibilidad el visitante recibe el respaldo»; `rueda-por-rol.spec.ts` › «quien no recibe turnos conserva su leads.* y su perfil se lo dice»                                                                                                                                                                                                     | escritorio, movil y base         | verde en los dos (base: CI del PR)                                 |
+| Un repuesto en «Recibido» cumple la espera del vehículo en «En taller»                       | `fase-8-recorrido.spec.ts` › «E2E R8 el repuesto que llega a «Recibido» cumple la espera del vehículo en «En taller»»; `repuestos-espera-recorrido.spec.ts` (3 pruebas); `areas/repuestos/esperas.sql`                                                                                                                                                                                                | escritorio, movil y base         | verde en los dos (base: CI del PR)                                 |
+| El portal por HTTP (`api/portal/*`, cookie firmada, límite por IP)                           | `fase-8-recorrido.spec.ts` › «E2E R6 el cliente entra al portal por api/portal con el código que dio la ficha»; `portal-api.spec.ts` (6 pruebas, sólo escritorio); `leads-portal.spec.ts` (9); `supabase/tests/portal-cliente.sql`; `scripts/carreras/portal.mjs`                                                                                                                                     | escritorio, movil y base         | verde en los dos (base: `db:carreras` del completo y CI del PR)    |
+| Guías publicadas y revalidar la web                                                          | `fase-8-recorrido.spec.ts` › «E2E R7 la guía publicada sale en web.guias y deja su etiqueta por revalidar»; `configuracion-web-guias.spec.ts` (3); `empresa-integracion-web.spec.ts` › «E2E escritorio · encender la web pública, guardar dirección y secreto, y probar»; `areas/web/{guias-publicar,revalidar,doc-html}.sql`                                                                         | escritorio, movil (R7) y base    | verde en los dos (base: CI del PR)                                 |
+| Ajustes, FAQs, testimonios con consentimiento y legales                                      | `configuracion-web-{ajustes,faqs,testimonios,legales}.spec.ts` (5); `areas/web/{ajustes-guardar,faqs-permisos,testimonios-consentimiento,testimonios-permisos}.sql`                                                                                                                                                                                                                                   | escritorio y base                | verde (base: CI del PR)                                            |
+| 8-1: la habilitada sin el permiso se ve aparte                                               | `cola-web-tablero.spec.ts` › «la habilitada cuyo rol no recibe turnos figura aparte, y la sin asignar arriba», «con el permiso en su rol, «Actualizar» la pasa a la rueda» y «habilitar desde «Agregar a la rueda» a quien su rol no recibe turnos lo avisa»                                                                                                                                          | escritorio                       | verde                                                              |
+| Disponibilidad y ficha pública en `/perfil`                                                  | `perfil-disponibilidad.spec.ts` (3)                                                                                                                                                                                                                                                                                                                                                                   | escritorio y movil               | verde en los dos                                                   |
+| Repuestos: proyectos, ítems, imágenes, stock, compras y margen, cotizador, pagos y catálogos | `repuestos-*.spec.ts` (10 sin el de la espera), `configuracion-repuestos-{catalogos,cotizador}.spec.ts`; `areas/repuestos/*.sql` (17); `scripts/carreras/{repuestos-stock,repuestos-cotizador}.mjs`; `src/modules/repuestos/entities/cotizador/*.test.ts` (5)                                                                                                                                         | escritorio, movil, unidad y base | verde en los dos (unidad y base: CI del PR; carreras: el completo) |
+| Inicio: turnos y repuestos                                                                   | `web-turno.spec.ts` › «quien gestiona la cola no ve en su Inicio los turnos de otra persona»; `inicio-repuestos.spec.ts` (2)                                                                                                                                                                                                                                                                          | escritorio y movil               | verde en los dos                                                   |
+| Ninguna clave `web.*` ni `repuestos.*` sin enforcement                                       | `supabase/tests/permisos-enforcement.sql` (sin excepciones)                                                                                                                                                                                                                                                                                                                                           | base                             | verde (base: CI del PR)                                            |
+| Turnos de Inicio para un rol con sólo `web.cola.participar`                                  | R2 da `leads.crear` a las asesoras (D9 del 8.14-1)                                                                                                                                                                                                                                                                                                                                                    | —                                | hueco conocido: **8-14a**                                          |
+
+### Cierre de la Fase 8
+
+**Fase 8 cerrada el 2026-11-13** con el Nivel 3 del 8.14-2, corrido por proyecto (cada uno desde `db:reset` y `db:carreras`, 19,5 s y 23,5 s) sobre
+`3179fc8e` (la rama con el recorrido y el 9.06): escritorio, 1.265 en verde, 17 saltadas y 0 caídas en 52,7 min (54,3 de reloj); celular, 879 en verde,
+31 saltadas, 1 caída y 1 sin correr (el resto de su serial) en 37,2 min (38,6 de reloj). La caída no es de la fase ni del producto: en
+`vehiculos-vitrina` › «con el permiso se publica con su precio…» el ingreso por interfaz del arranque quedó en `/ingreso` con la página en blanco (el
+`POST /ingreso` respondió 200 y no redirigió); sola, 3 de 3 verdes en el celular: inestable, anotada y sin arreglar (`.piloto/salidas/8.14-2/triaje-*`).
+Ninguna saltada nueva sin motivo (`saltadas.mjs 9c329195..HEAD`: 0); el celular suma R3 (`@sin-celular`). 5a-4b: los dos proyectos suman 92,9 min de
+reloj (91,5 en el 7.14-2). El CI del PR (sobre `910befb2`, con la base: reset, tipos, `db:probar`, `db:lint` y advisors) en verde y `mapa.sh --check` en
+verde. El recorrido (`e2e/fase-8-recorrido.spec.ts`, 8.14-1): R1, un visitante anónimo recibe asesora; R2, la asesora confirma el turno en dos toques
+desde Inicio; R3, la tasa de contacto nueva en el tablero de la cola; R4, el mismo asesor dentro del plazo pegajoso; R5, el respaldo con todas sin
+disponibilidad; R6, el portal por `api/portal` con el código de la ficha; R7, la guía publicada en `web.guias` con su etiqueta por revalidar; R8, el
+repuesto en «Recibido» cumple la espera del vehículo en «En taller». Lo que deja: **8-05a**, **8-13a**, **8-13c** a **8-13f** y **8-14a** (los decide
+la persona), **8-13b**, la IP real tras la reescritura (8.07-3) y la seguridad de 8.10-1 y de los pagos de repuestos («Pulido para la Fase 9»). La
+«Partición» sigue aquí hasta que una sesión con permiso la pase a `docs/archivo/PLAN.md`.
+
 ### Partición
 
 Un paso, su verificación y su PR; quién lo hace y de qué depende lo dice `docs/plan.yaml` (la tabla de «Carriles de las fases 5 a 9»). Cada fila dice qué entra, su assert y el lugar. Sus «Dudas» ya traen la opción recomendada: sin compuertas, **esa es la decisión**, y quien haga el paso la anota en `docs/DECISIONES.md` (el carril base) o en `docs/pasos/<paso>/decisiones.md`.
@@ -1997,7 +2066,7 @@ Un paso, su verificación y su PR; quién lo hace y de qué depende lo dice `doc
 `catalogos`, `flujo`. Un área = `features/<área>/`, `entities/<área>/`, `infra/<área>/`, `areas/<área>/` (sus entradas) y `pantallas/<pantalla>.ts`; las tres entradas de la raíz
 sólo reexportan áreas (el modelo de `cotizaciones`). **8.01 deja la base de `web` y 8.08 la de `repuestos`**; después cada paso agrega archivos propios.
 
-- **8.01** — La base de `web`: áreas, `/configuracion/web` con huecos, lo que el contenido escribe por RPC y la pestaña «Ajustes». (1) Esqueleto por áreas: `index.ts`,
+- **8.01** (hecho el 2026-11-12; `docs/pasos/8.01-1/`, `8.01-2/`, `8.01-3/`, `8.01-4/`) — La base de `web`: áreas, `/configuracion/web` con huecos, lo que el contenido escribe por RPC y la pestaña «Ajustes». (1) Esqueleto por áreas: `index.ts`,
   `client.ts` y `composicion.ts` de `src/modules/web/` pasan a reexportar `areas/<área>/`; lo que hoy sale (`leerDireccionPublica`, `puedeEstarEnLaRueda`, `pantallas/perfil.ts`) no
   cambia de nombre. (2) Ruta `/configuracion/web` (`RUTAS.configuracionDeWeb`; también `RUTAS.configuracionDeColaWeb`, sin pantalla todavía) con su `seccion.ts` propia que
   `secciones.ts` importa (como `cotizacion/seccion.ts`), `pestanas.ts` (`ajustes` y `legales` con `web.ajustes.gestionar`; `guias`, `faqs`, `testimonios` con
@@ -2025,7 +2094,7 @@ sólo reexportan áreas (el modelo de `cotizaciones`). **8.01 deja la base de `w
   (`src/shared` y columna nueva). Tipo: datos y dinero. Partes estimadas: 4.
   Dudas, con la recomendada: (1) ¿HTML derivado en la base o saneado en el servidor de Next? Recomiendo **en la base** (lista blanca del documento, como los seguimientos): cierra el camino de PostgREST directo y no pide dependencia nueva; sanear en Next pediría `sanitize-html` (compuerta `dependencia`, va a la persona) y deja la base abierta. (2) Forma de `legales`: recomiendo `{terminos: {titulo, doc, html, actualizado_en}, privacidad: {…}}`; es contrato con el repo del sitio y va a `docs/DECISIONES.md`. (3) ¿Quién cambia la política de la cola? Recomiendo cualquiera de los dos permisos (arriba): hoy quien administra la cola no puede tocar su propio plazo.
 
-- **8.02** — FAQs y testimonios con consentimiento. `/configuracion/web?seccion=faqs` y `?seccion=testimonios` (`web.contenido.gestionar`); llena sus dos huecos. FAQs: lista con
+- **8.02** (hecho el 2026-11-12; `docs/pasos/8.02-1/`, `8.02-2/`) — FAQs y testimonios con consentimiento. `/configuracion/web?seccion=faqs` y `?seccion=testimonios` (`web.contenido.gestionar`); llena sus dos huecos. FAQs: lista con
   `<ListaDeCatalogo>` (orden con botones), alta y edición en `<Drawer>` con URL (`?panel=faq&faq=<id>`), categoría (texto con las ya usadas como sugerencia), interruptor
   «Publicada», eliminar con `<Confirmar>` con URL. Testimonios: lista, alta y edición (cliente, ciudad, texto, vehículo, foto al bucket `web` en WebP ≤ 1600 px y por hash),
   «Registrar consentimiento» (canal y qué datos autorizó: ciudad, vehículo, foto) por `web_testimonio_consentir`, «Retirar consentimiento» (`<Confirmar>` que nombra al cliente;
@@ -2038,7 +2107,7 @@ sólo reexportan áreas (el modelo de `cotizaciones`). **8.01 deja la base de `w
   `pantallas/sitio-faqs.ts`, `pantallas/sitio-testimonios.ts`, `src/app/(app)/configuracion/web/seccion-{faqs,testimonios}.tsx`. Nivel **1**. Tipo: pantalla. Partes estimadas: 2.
   Dudas, con la recomendada: ¿la categoría de una FAQ es texto libre o catálogo? Recomiendo texto libre con sugerencias (la columna es `text` y la vista la expone tal cual).
 
-- **8.03** — Guías, categorías y legales con el editor. `/configuracion/web?seccion=guias`: lista (título, categoría, autor, estado «Borrador», «Programada» o «Publicada»; búsqueda
+- **8.03** (hecho el 2026-11-12; `docs/pasos/8.03-1/`, `8.03-2/`) — Guías, categorías y legales con el editor. `/configuracion/web?seccion=guias`: lista (título, categoría, autor, estado «Borrador», «Programada» o «Publicada»; búsqueda
   por título con `MINIMO_DE_BUSQUEDA`; `limit` tope + 1 y `<AvisoDeTope>`). `/configuracion/web/guias/[id]` (página propia: es un segundo nivel, no un modal): el editor Tiptap
   **propio del área** en `features/contenido/editor/` (no importa el de `leads`; viaja con `diferido()`), con barra de títulos, listas, cita, negrita, cursiva, enlace e imagen
   (sube al bucket `web`); título, `slug` (se deriva del título y se puede editar; el `23505` de `web_guias_slug_key` se dice junto al campo), resumen, categoría, autor (una persona
@@ -2052,7 +2121,7 @@ sólo reexportan áreas (el modelo de `cotizaciones`). **8.01 deja la base de `w
   `pantallas/guia.ts`, `src/app/(app)/configuracion/web/seccion-{guias,legales}.tsx`, `src/app/(app)/configuracion/web/guias/[id]/`. Nivel **1**. Tipo: pantalla. Partes estimadas: 4.
   Dudas, con la recomendada: (1) ¿Qué documentos legales? Recomiendo dos fijos, «Términos y condiciones» (`terminos`) y «Política de privacidad» (`privacidad`): es lo que un sitio necesita y otro más es una clave nueva. (2) ¿Programar una publicación? Recomiendo sí: `web.guias` ya filtra `publicada_en <= now()` y no cuesta base.
 
-- **8.04** — Cola web: el tablero, la política y habilitar (8-1). Ruta `/configuracion/cola-web` (`web.cola.gestionar`), con su `seccion.ts` registrada en `secciones.ts`. Parte de
+- **8.04** (hecho el 2026-11-12; `docs/pasos/8.04-1/`, `8.04-2/`, `8.04-3/`) — Cola web: el tablero, la política y habilitar (8-1). Ruta `/configuracion/cola-web` (`web.cola.gestionar`), con su `seccion.ts` registrada en `secciones.ts`. Parte de
   base (migración `cola_web_…`): `cola_web_tablero()` (`security definer`, `assert_permiso('web.cola.gestionar')`, tope con `_acotar_pagina`): **todas** las habilitadas de
   `cola_web_asesores` con `en_la_rueda` (`puede_estar_en_la_rueda`), si les falta `whatsapp_web`, disponible, prioridad, orden, cupo, abiertas, totales y tasa de contacto — la
   lectura propia que 8-1 pide, sin pasar por `estado_cola_web`; `cola_web_solicitudes(p_estado, p_cursor, p_tamano)` por cursor `(creado_en desc, id)` con el índice nuevo
@@ -2071,7 +2140,7 @@ sólo reexportan áreas (el modelo de `cotizaciones`). **8.01 deja la base de `w
   (índice nuevo). Tipo: datos y dinero. Partes estimadas: 3.
   Dudas, con la recomendada: ¿la persona se busca con la lista del equipo o con un selector propio? Recomiendo componer en la página la lectura que `equipo` ya expone (`leerEquipo`, con su mínimo de búsqueda): `web` no lee tablas de `equipo`.
 
-- **8.05** — La tarjeta de turno, la disponibilidad y la ficha pública en `/perfil`, y el bloque de Inicio. `<TarjetaTurno>` (`features/turnos/`): código `#WEB-XXXX`, fuente,
+- **8.05** (hecho el 2026-11-12; `docs/pasos/8.05-1/`, `8.05-2/`) — La tarjeta de turno, la disponibilidad y la ficha pública en `/perfil`, y el bloque de Inicio. `<TarjetaTurno>` (`features/turnos/`): código `#WEB-XXXX`, fuente,
   vehículo (el título sale de `web.vehiculos`, que ya es público), cuenta regresiva a `vence_en` y «Vencido» al pasar; **«Contacté»** (`web_confirmar_contacto(p_solicitud)`) y
   **«Vincular a lead»** (`<Drawer>` `?panel=vincular-turno&turno=<id>` con el buscador de leads que `leads` da por un archivo nuevo `leads/pantallas/turno.ts`, a partir de
   `features/panel-para-cotizar/components/buscador-de-clientes.tsx`, y «Crear lead» adentro con `<AltaDeLead>`; al elegir, `web_confirmar_contacto(p_solicitud, p_lead)`). Bloque
@@ -2090,7 +2159,7 @@ sólo reexportan áreas (el modelo de `cotizaciones`). **8.01 deja la base de `w
   `src/app/(app)/_inicio/`, `src/app/(app)/perfil/page.tsx`. Nivel **1**. Tipo: pantalla. Partes estimadas: 4.
   Dudas, con la recomendada: (1) ¿Dónde vive la tarjeta sin la campana? Recomiendo el bloque de Inicio (ya declarado) y dejarla exportada: la Fase 7 la monta en la campana sin tocar `web`. (2) ¿«Aparecer en la web» lo decide la persona? Recomiendo sí: la base ya le da esa columna (B:30203) y quien administra el equipo también puede. (3) «Contacté» no tiene vuelta atrás en la base: recomiendo sin «Deshacer» y sin confirmación (son los 2 toques); vincular después sigue disponible desde la tarjeta contactada del día.
 
-- **8.06** — Revalidar la web pública y encender la integración «Web pública». Migración `web_revalidar_…`: tabla `interno.web_revalidar_pendiente(etiqueta, pedido_en)` (una
+- **8.06** (hecho el 2026-11-11; `docs/pasos/8.06-1/`, `8.06-2/`) — Revalidar la web pública y encender la integración «Web pública». Migración `web_revalidar_…`: tabla `interno.web_revalidar_pendiente(etiqueta, pedido_en)` (una
   fila por etiqueta); triggers **por sentencia** que anotan su etiqueta en `web_guias` y `web_categorias_guias` (`guias`), `web_faqs` (`faqs`), `web_testimonios`
   (`testimonios`), `ajustes_web` y `ajustes_empresa` (`ajustes`), `perfiles` y `cola_web_asesores.orden` (`asesores`), `vehiculos`, `vehiculos_imagenes`, `fases`, `origenes`,
   `origenes_campos` e `integraciones` (`vehiculos`); `web_revalidar_correr()` (`security definer`, sólo `service_role`): si `web_publica` está activa y tiene
@@ -2107,7 +2176,7 @@ sólo reexportan áreas (el modelo de `cotizaciones`). **8.01 deja la base de `w
   estimadas: 3.
   Dudas, con la recomendada: (1) ¿Dónde vive la URL? Recomiendo **sólo en la integración** (`integraciones.config` + Vault) y quitar `WEB_PUBLICA_REVALIDAR_URL/_SECRETO` de `esquemas.ts`, `.env.example` y `docs/ENTORNOS.md`: la base es la que dispara y no lee variables de Vercel; dos casas se desincronizan. (2) ¿Disparo directo o cola con job? Recomiendo la cola: una limpieza o una baja tocan miles de vehículos y serían miles de POST; con la cola es uno por minuto y etiqueta.
 
-- **8.07** — El portal del cliente por HTTP: `api/portal/*` con cookie firmada y límite por IP. Route handlers en `src/app/api/portal/`: `POST ingresar` (`{codigo, clave}`),
+- **8.07** (hecho el 2026-11-12; `docs/pasos/8.07-1/`, `8.07-2/`, `8.07-3/`) — El portal del cliente por HTTP: `api/portal/*` con cookie firmada y límite por IP. Route handlers en `src/app/api/portal/`: `POST ingresar` (`{codigo, clave}`),
   `GET estado`, `GET documentos/[id]`, `POST clave`, `POST salir`. Cada uno valida con Zod (ids con `z.guid()`), exige `Origin` propio o el de `ajustes_web.direccion_publica` en
   los POST, y usa `createAdminClient()` **sólo** para `web.portal_*`. `ingresar`: primero el límite por IP; después `web.portal_login`; todo fallo responde el mismo 401 con el
   mismo cuerpo; el éxito deja la cookie `portal` (`HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/api/portal`) firmada con HMAC-SHA256 de `node:crypto` sobre
@@ -2125,7 +2194,7 @@ sólo reexportan áreas (el modelo de `cotizaciones`). **8.01 deja la base de `w
   `src/shared/lib/rutas.ts`, `src/shared/config/esquemas.ts`, `supabase/`. Nivel **2** (`src/shared` y tabla nueva). Tipo: datos y dinero. Partes estimadas: 3.
   Dudas, con la recomendada: (1) ¿`jose` o `node:crypto`? Recomiendo `node:crypto`: firma lo mismo sin paquete nuevo (un paquete abre la compuerta `dependencia`, que detiene el paso hasta la persona). (2) El sitio está en otro dominio: ¿CORS con cookie de terceros o que el sitio reescriba `/api/portal/*` hacia el CRM? Recomiendo la reescritura: la cookie queda de primera parte y `SameSite=Lax` alcanza; se anota como contrato en `docs/DECISIONES.md`. (3) Duración de la sesión: recomiendo 7 días; revocar o volver a otorgar la corta antes por `otorgado_en`.
 
-- **8.08** — La base de `repuestos`, sus áreas y los catálogos. (1) Migración `repuestos_…`: `repuesto_proyecto_crear(p_id, p_datos)` (de un vehículo que quien crea ve, o
+- **8.08** (hecho el 2026-11-12; `docs/pasos/8.08-1/`, `8.08-2/`, `8.08-3/`) — La base de `repuestos`, sus áreas y los catálogos. (1) Migración `repuestos_…`: `repuesto_proyecto_crear(p_id, p_datos)` (de un vehículo que quien crea ve, o
   externo; el `23505` de `repuestos_proyecto_por_vehiculo` se vuelve «Ese vehículo ya tiene un proyecto»), `repuesto_proyecto_cerrar` / `_reabrir` y `repuesto_proyecto_eliminar`
   (sólo sin ítems); `repuesto_item_crear(p_id, p_proyecto, p_datos)` (nace en la fase inicial del flujo de repuestos si no hay nada que decidir, con su fila en
   `historial_fases`, como `vehiculo_crear`) y `repuesto_item_eliminar(p_item)` (sólo sin historial más allá del nacimiento, sin documentos ni compras; si no, 23514 con «Pásalo a
@@ -2145,7 +2214,7 @@ sólo reexportan áreas (el modelo de `cotizaciones`). **8.01 deja la base de `w
   `src/shared/lib/rutas.ts`. Nivel **2** (`src/shared`; policies de escritura que se quitan). Tipo: datos y dinero. Partes estimadas: 4.
   Dudas, con la recomendada: (1) ¿El ítem perdido frena al vehículo? Recomiendo que no (lo dice la ficha y es la única salida de un vehículo cuyo repuesto no llega); la migración cambia una función de `flujos`: se avisa en su ficha. (2) ¿Borrar un proyecto? Recomiendo sólo vacío y con «Deshacer»; con ítems, «Cerrar». (3) `repuestos_catalogos.datos` (jsonb) no tiene uso definido: recomiendo no dibujarlo.
 
-- **8.09** — Proyectos e ítems: `/repuestos` y `/repuestos/[id]` con la hoja. `/repuestos` (`repuestos.ver`; enciende `disponible` en `_shell/navegacion.ts`): listado con el
+- **8.09** (hecho el 2026-11-12; `docs/pasos/8.09-1/`, `8.09-2/`, `8.09-3/`, `8.09-4/`, `8.09-5/`) — Proyectos e ítems: `/repuestos` y `/repuestos/[id]` con la hoja. `/repuestos` (`repuestos.ver`; enciende `disponible` en `_shell/navegacion.ts`): listado con el
   patrón de `shared/ui/lista` (número, vehículo o «Externo», cliente, estado derivado, última actividad), búsqueda en la URL (`?q=`, mínimo 3), filtro abiertos o cerrados,
   **por cursor** con `repuestos_proyectos_listar`, `TAMANOS_DE_PAGINA` y su `MAXIMO_DE_PAGINA_DE_REPUESTOS`; «Nuevo proyecto» (`N`; `<Drawer>` `?panel=nuevo-proyecto`): de un
   vehículo (el buscador del inventario de `vehiculos`, compuesto por la página) o externo (etiqueta, VIN, cliente o lead). `/repuestos/[id]`: cabecera (número, vehículo con enlace,
@@ -2162,7 +2231,7 @@ sólo reexportan áreas (el modelo de `cotizaciones`). **8.01 deja la base de `w
   `src/app/(app)/vehiculos/[id]/page.tsx`. Nivel **2** (`_shell`). Tipo: pantalla. Partes estimadas: 4.
   Dudas, con la recomendada: (1) La ficha pide una XCell «compacta» que `shared/ui/xcell` no tiene: recomiendo usar la XCell como está (sin tocar `src/shared`) y anotar la densidad en «Pulido para la Fase 9». (2) Tope de imágenes por ítem: recomiendo 8 (un repuesto no es un vehículo, que lleva 24).
 
-- **8.10** — Stock y movimientos. Parte de base (migración `repuestos_stock_…`): `repuesto_stock_mover(p_item, p_cantidad, p_motivo, p_stock_esperado)` (candado `for update`,
+- **8.10** (hecho el 2026-11-12; `docs/pasos/8.10-1/`, `8.10-2/`, `8.10-3/`) — Stock y movimientos. Parte de base (migración `repuestos_stock_…`): `repuesto_stock_mover(p_item, p_cantidad, p_motivo, p_stock_esperado)` (candado `for update`,
   nunca negativo, inserta el movimiento y fija o limpia `en_stock_desde`; `PT409` si el stock cambió) y `repuesto_stock_reasignar(p_item, p_proyecto_destino, p_cantidad)` (todo o
   nada: descuenta y crea el ítem en el destino); se quitan el INSERT directo de `repuestos_stock_movimientos` y el `UPDATE(en_stock_desde)` (hoy cualquiera con
   `repuestos.editar` saca un ítem de la espera de su vehículo con un `update`); `repuestos_stock_listar(p_cursor, p_tamano)` **por cursor** con el índice parcial nuevo
@@ -2176,7 +2245,7 @@ sólo reexportan áreas (el modelo de `cotizaciones`). **8.01 deja la base de `w
   estimadas: 3.
   Dudas, con la recomendada: ¿«Vender suelto» registra un precio? Recomiendo que no en esta fase: es un movimiento con motivo y nota (la tabla no tiene monto); el cobro es un pago del proyecto (8.13).
 
-- **8.11** — Compras y margen, con el permiso de costos. Parte de base (migración `repuestos_compras_…`): `repuesto_compra_guardar(p_id, p_datos, p_actualizado_en_esperado)`
+- **8.11** (hecho el 2026-11-12; `docs/pasos/8.11-1/`, `8.11-2/`, `8.11-3/`) — Compras y margen, con el permiso de costos. Parte de base (migración `repuestos_compras_…`): `repuesto_compra_guardar(p_id, p_datos, p_actualizado_en_esperado)`
   (`repuestos.costos.editar`; la base pone `tipo_cambio_aplicado` y `monto_base` con el tipo de cambio por defecto vigente: hoy los escribe el cliente),
   `repuesto_compra_eliminar` (borrado lógico), sin INSERT ni `UPDATE` directos; `repuestos_proyecto_margen(p_proyecto)` (`assert_permiso('repuestos.costos.ver')`): por moneda,
   Σ precios de ítems − Σ compras, y **nulo, no 0**, si falta el precio de algún ítem. Pantalla: la pestaña «Compras» de `/repuestos/[id]`, que **sólo existe con
@@ -2189,7 +2258,7 @@ sólo reexportan áreas (el modelo de `cotizaciones`). **8.01 deja la base de `w
   estimadas: 3.
   Dudas, con la recomendada: ¿Con qué tipo de cambio se pasa a la moneda base? Recomiendo el por defecto vigente al guardar, congelado en la fila (`tipo_cambio_aplicado`), como hace `pagos`.
 
-- **8.12** — El cotizador de repuestos: configuración, hoja y aceptar. (1) `entities/cotizador/`: importado = costo × `factor_importado` + logística + caja; local = (costo +
+- **8.12** (hecho el 2026-11-12; `docs/pasos/8.12-1/`, `8.12-2/`, `8.12-3/`, `8.12-4/`, `8.12-ci/`) — El cotizador de repuestos: configuración, hoja y aceptar. (1) `entities/cotizador/`: importado = costo × `factor_importado` + logística + caja; local = (costo +
   logística + caja) × (1 + `recargo_local`); por cantidad y con el `redondeo` del snapshot; la logística sugerida sale del tramo de su moneda (`costo_min ≤ costo < costo_max`) y
   **por encima del último tramo no hay sugerencia** (la celda pide el monto con `emptyLabel`, no asume 0); aritmética decimal, nunca `float`; un archivo de casos compartido con
   la base. (2) Migración `repuestos_cotizador_…`: `repuestos_cotizacion_crear(p_id, p_proyecto, p_moneda)` (congela en `config_snapshot` la configuración vigente —la de id más
@@ -2209,7 +2278,7 @@ sólo reexportan áreas (el modelo de `cotizaciones`). **8.01 deja la base de `w
   (cambia policies de escritura). Tipo: datos y dinero. Partes estimadas: 5.
   Dudas, con la recomendada: (1) ¿Cuál es la «caja sugerida»? La base sólo tiene una lista de montos por moneda: recomiendo que no haya sugerencia automática; se elige de las cajas activas y `caja_sugerida` guarda la elegida. (2) ¿Aceptar copia el precio al ítem? Recomiendo sí (es lo que cumple el requisito `repuesto.precio` del flujo) y una sola aceptada por proyecto. (3) ¿La cotización de repuestos se numera sin huecos? No: es `identity` (B:21505) y no es un comprobante; se deja así.
 
-- **8.13** — El flujo de repuestos y las esperas que destraban al vehículo. Con lo que `flujos` y `logistica` exponen al cerrar las fases 5 y 6 (`previsualizarCambio()`,
+- **8.13** (hecho el 2026-11-12; `docs/pasos/8.13-1/`, `8.13-2/`, `8.13-3/`, `8.13-4/`, `8.13-5/`, `8.13-6/`) — El flujo de repuestos y las esperas que destraban al vehículo. Con lo que `flujos` y `logistica` exponen al cerrar las fases 5 y 6 (`previsualizarCambio()`,
   `cambiarFase()`, el panel «Qué falta», mover con nota y `PT409`, `<BadgeFase>`, documentos, transporte y notas por unidad): mover un ítem desde la hoja y desde la vista «Cadena»
   de `/repuestos` (`?vista=cadena`: columnas por fase del flujo de repuestos, cada una por cursor con `TAMANO_DE_COLUMNA`, filtros en la URL), con `repuestos.mover` y los roles
   por fase y transición del motor; el panel del ítem (`?item=<id>`) con sus documentos (`repuestos.documentos.subir` y `.aprobar`), su transporte («Sigue al vehículo»), notas e
@@ -2223,7 +2292,7 @@ sólo reexportan áreas (el modelo de `cotizaciones`). **8.01 deja la base de `w
   Tipo: pantalla. Partes estimadas: 4.
   Dudas, con la recomendada: Si la Fase 6 deja sus componentes atados a `vehiculo_id`, ¿se generalizan o se duplican? Recomiendo generalizarlos en `logistica` (la base ya es por unidad: `vehiculo_id | repuesto_id`) con un pedido a su carril; duplicarlos serían dos paneles que divergen.
 
-- **8.14** — Cierre de la Fase 8. El recorrido de la IA del «Terminado cuando», en `e2e/fase-8-recorrido.spec.ts` (los dos proyectos): un visitante anónimo llama
+- **8.14** (hecho el 2026-11-13; `docs/pasos/8.14-1/`, `8.14-2/`) — Cierre de la Fase 8. El recorrido de la IA del «Terminado cuando», en `e2e/fase-8-recorrido.spec.ts` (los dos proyectos): un visitante anónimo llama
   `web.solicitar_asesor` y recibe asesor; vuelve dentro del plazo pegajoso y recibe el mismo; con todos sin disponibilidad (apagada desde `/perfil`), recibe el respaldo; la
   asesora confirma el turno en 2 toques en el celular y la tasa de contacto del tablero de la cola cambia; el cliente entra al portal por `api/portal` con el código que dio la
   ficha del lead; una guía publicada sale en `web.guias` y deja su etiqueta por revalidar; un repuesto en «Recibido» cumple la espera del vehículo en «En taller». Tabla de
@@ -2231,32 +2300,34 @@ sólo reexportan áreas (el modelo de `cotizaciones`). **8.01 deja la base de `w
   `repuestos` sin «todavía no existe»; `docs/GLOSARIO.md` con los términos nuevos (disponible, sin asignar, ficha pública, sobrante, movimiento de stock, tramo, caja);
   `docs/UX.md` con las pantallas nuevas; `permisos-enforcement.sql` sin claves de `web.*` ni `repuestos.*` sin enforcement; `mapa.sh --check`. **Assert:** ese spec en verde y
   `pnpm test:e2e:completo` con los dos proyectos. Lugar: `e2e/`, `docs/`, las dos fichas. Nivel **3** (cierre de fase). Tipo: pantalla. Partes estimadas: 2.
-  **8.14-1** (hecho el 2026-11-13; `docs/pasos/8.14-1/`): el recorrido del «Terminado cuando» (`e2e/fase-8-recorrido.spec.ts`, los dos proyectos), las fichas de `web` y `repuestos`, GLOSARIO y UX. Queda el **8.14-2**: el Nivel 3 y los docs de cierre.
+  Hecho en dos: el **8.14-1** (el recorrido del «Terminado cuando» en los dos proyectos, las fichas de `web` y `repuestos`, GLOSARIO y UX) y el **8.14-2** (el Nivel 3 y los docs de cierre).
   Dudas, con la recomendada: ninguna. **Paralelo.** Sin dependencias entre sí desde el primer día: 8.01, 8.06 y 8.08. Tras 8.01: 8.02 ∥ 8.03 ∥ 8.04 ∥ 8.05 ∥ 8.07 (áreas distintas; 8.02 y 8.03 comparten `infra/contenido/` pero con archivos propios). Tras 8.08: 8.09; tras 8.09: 8.10 ∥ 8.11 ∥ 8.12 (cada uno llena su hueco). No en paralelo: 8.01 con 8.08 **si** las dos tocan `secciones.ts` y `rutas.ts` el mismo día (dos líneas cada una: choque trivial, lo resuelve la sesión); 8.05 y 8.13 tocan `_inicio/bloques.tsx`. **Arrastrados que no entran:** el CTA «Escribirle por chat», la notificación de la limpieza, el buscador de leads sin los privados, el atajo `?` sin lista y `recordatorios_notificar()` sin job (y su `ruta`) son de `chat`, `notificaciones` y `buscador`: **quedan en la Fase 7**, aunque el párrafo de la Fase 8 los nombre. El texto del portal por empresa queda en la Fase 9 (ya está en su párrafo). El job de `actividad_purgar()` (purga `eventos_web`), en la Fase 9.
+
+Total de la fase: 14 pasos y 45 partes, todos hechos (la fase cerró con el 8.14, el 2026-11-13; 8.12-ci cuenta como parte).
 
 ### Riesgos y huecos
 
 - **No pude leer `docs/archivo/`**: el contrato completo del portal (si fija nombre de cookie, duración, forma del límite por IP) puede contradecir lo que propongo en 8.07. El
-  planificador de 8.07 debe leerlo primero (`rg -n 'Contrato del portal' docs/archivo`).
+  planificador de 8.07 debe leerlo primero (`rg -n 'Contrato del portal' docs/archivo`). (Resuelto en el 8.07-1: el permiso negó `docs/archivo` y el contrato vigente es `docs/DECISIONES.md` › «Contrato del portal para la Fase 8»; `docs/pasos/8.07-1/decisiones.md:27-28`.)
 - **El repo del sitio** (`sitio-marketing`) está fuera: el receptor de la revalidación, la reescritura de `/api/portal/*` y el tipado de `web.ajustes.legales` son contratos que
-  este repo sólo puede documentar (DECISIONES y ficha de `web`). Todo queda probado contra un receptor del propio spec y con `request` de Playwright; nada espera al sitio.
+  este repo sólo puede documentar (DECISIONES y ficha de `web`). Todo queda probado contra un receptor del propio spec y con `request` de Playwright; nada espera al sitio. (Resuelto en el 8.06 y el 8.07: el contrato con el sitio está en la ficha de `web`; `docs/pasos/8.06-1/decisiones.md:31`.)
 - **La IP real tras la reescritura:** el CRM verá la IP del servidor del sitio salvo que éste reenvíe `x-forwarded-for`. 8.07 debe leer la cabecera que el contrato fije y, si
-  falta, limitar por código de acceso además de por IP (la base ya bloquea por código: 5 fallos, 15 min).
+  falta, limitar por código de acceso además de por IP (la base ya bloquea por código: 5 fallos, 15 min). Queda como abierto de la fase (8.14-2; `docs/pasos/8.07-3/bitacora.md:18-19`).
 - **Secretos:** `PORTAL_COOKIE_SECRETO` y el secreto de revalidación los pone la persona en Vercel y Vault. Sin ellos: 503 en el portal y la cola de revalidación sin enviar (no
-  pierde nada). Documentado en `docs/ENTORNOS.md`; ningún paso abre compuerta `afuera`.
+  pierde nada). Documentado en `docs/ENTORNOS.md`; ningún paso abre compuerta `afuera`. (Resuelto: `docs/ENTORNOS.md:26, :43`.)
 - **Dependencias:** ninguna nueva si se aceptan las recomendadas (`node:crypto`, HTML derivado en la base). Tiptap alcanza con lo instalado **salvo la imagen**: el nodo de
   imagen no viene en `starter-kit`; 8.03 lo escribe como extensión propia (pocas líneas con lo que reexporta `@tiptap/react`, como hace `editor-enriquecido.tsx` de `leads`
-  con `Extension`; `@tiptap/core` no está como dependencia directa) o las guías salen sin imágenes en el cuerpo. Si el planificador prefiere `@tiptap/extension-image`, es compuerta `dependencia`.
-- **`_web_doc_html` en PGlite:** `db:probar` corre en PGlite; la función es plpgsql puro (sin extensiones), pero el espejo TS ↔ SQL debe probarse ahí como el de seguimientos.
-- **pg_net en pruebas:** `supabase/tests/jobs.sql` ya cuenta `net.pedidos`; 8.06 debe usar ese mismo doble y no un POST real.
+  con `Extension`; `@tiptap/core` no está como dependencia directa) o las guías salen sin imágenes en el cuerpo. Si el planificador prefiere `@tiptap/extension-image`, es compuerta `dependencia`. (Resuelto en el 8.03 sin dependencia nueva: `docs/pasos/8.03-1/decisiones.md:25`, `8.03-2/decisiones.md:15`.)
+- **`_web_doc_html` en PGlite:** `db:probar` corre en PGlite; la función es plpgsql puro (sin extensiones), pero el espejo TS ↔ SQL debe probarse ahí como el de seguimientos. (Resuelto: `supabase/tests/areas/web/doc-html.sql`.)
+- **pg_net en pruebas:** `supabase/tests/jobs.sql` ya cuenta `net.pedidos`; 8.06 debe usar ese mismo doble y no un POST real. (Resuelto en el 8.06-1 con el doble `net.pedidos`: `docs/pasos/8.06-1/decisiones.md:7`.)
 - **Realtime:** la publicación `supabase_realtime` no tiene tablas (B:27369). El tablero de la cola y el bloque de turnos releen al volver el foco hasta la Fase 7.
 - **El flujo de repuestos sólo nace en `seed.sql`** (líneas 201–214) y `authenticated` no puede insertar en `flujos` (B:31618): un despliegue sin seed no tendría flujo y
-  `repuesto_item_crear` dejaría los ítems sin fase. Lo resuelve la Fase 5 (o una migración con `insert … on conflict`); 8.08 debe tolerar «sin flujo» con un estado vacío que lo diga.
+  `repuesto_item_crear` dejaría los ítems sin fase. Lo resuelve la Fase 5 (o una migración con `insert … on conflict`); 8.08 debe tolerar «sin flujo» con un estado vacío que lo diga. (Resuelto en el 8.08-1: `docs/pasos/8.08-1/bitacora.md:20`.)
 - **Quitar escrituras directas** (8.01, 8.08, 8.10, 8.11, 8.12) cambia policies o grants de tablas que ningún código usa todavía: riesgo bajo, pero `humo.sql` y
   `permisos-enforcement.sql` tienen que seguir verdes y `web.*` cambia de forma para el sitio (`legales`): avisar en DECISIONES.
 - **Volumen:** las únicas tablas que crecen aquí son `solicitudes_contacto_web`, `repuestos_proyectos`, `repuestos_items` y `repuestos_stock_movimientos`: todas van por cursor
   con índice (8.04, 8.08, 8.10). No pido `medir-*.sql` ni e2e de volumen (regla del 2026-11-08); si la persona los quiere para proyectos de repuestos, es un paso aparte.
-- **8.12 con 5 partes** está en el tope: si el planificador ve que no cabe, el corte natural es «base y configuración» (rojo) y «hoja y aceptar» (pantalla), y la fase pasa a 15 pasos.
+- **8.12 con 5 partes** está en el tope: si el planificador ve que no cabe, el corte natural es «base y configuración» (rojo) y «hoja y aceptar» (pantalla), y la fase pasa a 15 pasos. (Fue en 4 partes y el 8.12-ci.)
 - **Sin determinar:** si el buscador de clientes de `leads` se deja reusar fuera de la hoja de cotizar sin cambios (8.05 puede necesitar tocar
   `leads/features/panel-para-cotizar/`); y si `starter-kit` 3.31 trae ya el enlace (el editor de `leads` lo configura, así que parece que sí).
 
