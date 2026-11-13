@@ -8,6 +8,7 @@ import type { ContextoDeLaSeccion } from '../contexto-de-la-seccion'
 import { puede } from '@/shared/lib/permisos'
 import { useImportaciones } from '../hooks/use-importaciones'
 import { AsistenteTotal } from './asistente-total'
+import { ListaDeImportaciones } from './lista-de-importaciones'
 import { DESTINO_YO, PasoEntidad } from './paso-entidad'
 
 type Props = {
@@ -52,13 +53,15 @@ function Indicacion({ children }: { children: string }) {
   return <p className="text-(length:--text-sm) text-(--color-ink-faint)">{children}</p>
 }
 
-// La sección «Importar» de `/datos` (9.06-4b): arriba qué importas (y a quién, o en qué origen) y debajo el asistente. El archivo de la
+// La sección «Importar» de `/datos` (9.06-4b): arriba qué importas (y a quién, o en qué origen), debajo el asistente y, al pie, la lista
+// «Importaciones» (9.06-5), que se lee al abrir la sección y sigue el avance de la que el asistente lanza. El archivo de la
 // persona no se guarda en la URL, en el almacenamiento del navegador ni en ningún registro: se olvida al salir (el efecto cambia la corrida).
 export function SeccionImportar({ yo, permisos, opciones, entidad, origenId, seccion }: Props) {
   const [destino, setDestino] = useState(opciones.leads?.yo ? DESTINO_YO : '')
   const [corrida, setCorrida] = useState(0)
   const [ocupado, setOcupado] = useState(false)
-  const importaciones = useImportaciones({ yo, todas: puede(permisos, 'datos.importar.todo') })
+  const todas = puede(permisos, 'datos.importar.todo')
+  const importaciones = useImportaciones({ yo, todas })
   useEffect(
     () => () => {
       setCorrida((valor) => valor + 1)
@@ -93,6 +96,7 @@ export function SeccionImportar({ yo, permisos, opciones, entidad, origenId, sec
           alOcupar={setOcupado}
         />
       ) : null}
+      <ListaDeImportaciones importaciones={importaciones} todas={todas} />
     </div>
   )
 }
