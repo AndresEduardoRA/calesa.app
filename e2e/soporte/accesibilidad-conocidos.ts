@@ -64,4 +64,11 @@ export const CONOCIDOS: Conocido[] = [
     parte: '9.12-5',
     motivo: SIN_H1,
   },
+  {
+    ruta: '/configuracion/web/guias/[id]',
+    regla: 'h1',
+    descriptor: '0 h1 visibles',
+    parte: '9.12-5',
+    motivo: SIN_H1,
+  },
 ]

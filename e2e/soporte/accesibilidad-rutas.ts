@@ -45,6 +45,8 @@ export type Terreno = {
   origen: string
   proyectoDeRepuestos: string
   cotizacion: string
+  cotizacionDeRepuestos: string
+  guia: string
 }
 
 export type Destino = { url: string } | { pendiente: string; motivo: string }
@@ -56,14 +58,10 @@ export const DINAMICAS: Record<string, (t: Terreno) => Destino> = {
   '/configuracion/origenes/[id]': (t) => ({ url: `/configuracion/origenes/${t.origen}` }),
   '/repuestos/[id]': (t) => ({ url: `/repuestos/${t.proyectoDeRepuestos}` }),
   '/cotizaciones/[id]': (t) => ({ url: `/cotizaciones/${t.cotizacion}` }),
-  '/repuestos/[id]/cotizaciones/[cotizacion]': () => ({
-    pendiente: '9.12-5',
-    motivo: 'falta sembrar una cotización de repuestos',
+  '/repuestos/[id]/cotizaciones/[cotizacion]': (t) => ({
+    url: `/repuestos/${t.proyectoDeRepuestos}/cotizaciones/${t.cotizacionDeRepuestos}`,
   }),
-  '/configuracion/web/guias/[id]': () => ({
-    pendiente: '9.12-5',
-    motivo: 'falta sembrar una guía de la web',
-  }),
+  '/configuracion/web/guias/[id]': (t) => ({ url: `/configuracion/web/guias/${t.guia}` }),
 }
 
 // Sin sesión de recuperación, elegir la contraseña manda a pedir otro enlace: se barre lo que dibuja ese destino.
@@ -73,6 +71,7 @@ export const REDIRECCIONES: Record<string, string> = {
 
 const claveDelOrigen = (proyecto: string) => `a11y_${proyecto}`
 const tituloDeLaCotizada = (proyecto: string) => `A11y cotizada ${proyecto}`
+const slugDeLaGuia = (proyecto: string) => `e2e-guia-a11y-${proyecto}`
 
 // Una cotización guardada para `/cotizaciones/[id]` (9.12-2): pide la fórmula publicada de su origen, así que va en la subasta de la semilla
 // (como `presupuesto-js.spec.ts`), sobre un vehículo propio y creada por la dueña del barrido. Antes de sembrar, quita lo que dejó una corrida cortada.
@@ -99,6 +98,29 @@ function quitarLaCotizada(proyecto: string): void {
     delete from public.vehiculos where titulo = ${titulo}`)
 }
 
+// Una cotización de repuestos aceptada con una línea de cada bloque (9.12-5), para `/repuestos/[id]/cotizaciones/[cotizacion]`: se inserta por SQL como
+// `repuestos-cotizaciones.spec.ts` (la hoja de lectura no pide un snapshot válido). La quita `limpiarTerreno` antes de borrar el proyecto.
+function sembrarLaCotizacionDeRepuestos(proyecto: string, duena: string): string {
+  const id = sql(`
+    insert into public.repuestos_cotizaciones (proyecto_id, moneda, estado, config_snapshot, total, aceptada_en, creado_por)
+      values (${literal(proyecto)}::uuid, 'USD', 'aceptada', '{}'::jsonb, 375, now(), ${literal(idDePersona(duena))}::uuid)
+      returning id`)
+  sql(`
+    insert into public.repuestos_cotizaciones_lineas (cotizacion_id, descripcion, bloque, cantidad, costo, logistica_sugerida, caja, total, orden) values
+      (${literal(id)}::uuid, 'Filtro importado', 'importado', 1, 80, 15, 10, 133, 0),
+      (${literal(id)}::uuid, 'Aceite local', 'local', 2, 90, 15, 5, 242, 1)`)
+  return id
+}
+
+// Una guía de la web en borrador (9.12-5), para `/configuracion/web/guias/[id]`.
+function sembrarLaGuia(proyecto: string): string {
+  const slug = literal(slugDeLaGuia(proyecto))
+  sql(`delete from public.web_guias where slug = ${slug}`)
+  return sql(
+    `insert into public.web_guias (slug, titulo, cuerpo_html) values (${slug}, 'A11y guía ${proyecto}', '<p>Texto de la guía</p>') returning id`,
+  )
+}
+
 export async function sembrarTerreno(proyecto: string, duena: string): Promise<Terreno> {
   const espera = await sembrarEspera(`A11y ${proyecto}`, claveDelOrigen(proyecto))
   const origen = await origenPorClave(`e2e_${claveDelOrigen(proyecto)}`)
@@ -114,11 +136,18 @@ export async function sembrarTerreno(proyecto: string, duena: string): Promise<T
     origen: origen.id,
     proyectoDeRepuestos: espera.proyectoDeRepuestos,
     cotizacion: sembrarLaCotizada(proyecto, duena),
+    cotizacionDeRepuestos: sembrarLaCotizacionDeRepuestos(espera.proyectoDeRepuestos, duena),
+    guia: sembrarLaGuia(proyecto),
   }
 }
 
 export async function limpiarTerreno(proyecto: string): Promise<void> {
   quitarLaCotizada(proyecto)
+  sql(`delete from public.web_guias where slug = ${literal(slugDeLaGuia(proyecto))}`)
+  sql(`
+    delete from public.repuestos_cotizaciones where proyecto_id in (
+      select p.id from public.repuestos_proyectos p join public.vehiculos v on v.id = p.vehiculo_id
+        join public.origenes o on o.id = v.origen_id where o.clave like ${literal(`e2e_${claveDelOrigen(proyecto)}%`)})`)
   await borrarLeadsDePrueba()
   await limpiarEspera(claveDelOrigen(proyecto))
 }
