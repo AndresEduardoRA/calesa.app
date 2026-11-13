@@ -6,10 +6,62 @@ import type { Regla } from './accesibilidad'
 
 export type Conocido = {
   ruta: string
-  regla: Extract<Regla, 'nombre' | 'referencia'>
+  regla: Extract<Regla, 'nombre' | 'referencia' | 'h1'>
   descriptor: string
   parte: '9.12-2' | '9.12-3' | '9.12-5'
   motivo: string
 }
 
-export const CONOCIDOS: Conocido[] = []
+const SIN_H1 = 'la página no da su h1 (el barrido de la 9.12-1, R3); se le da en su módulo'
+
+export const CONOCIDOS: Conocido[] = [
+  {
+    ruta: '/actividad',
+    regla: 'h1',
+    descriptor: '0 h1 visibles',
+    parte: '9.12-5',
+    motivo: SIN_H1,
+  },
+  {
+    ruta: '/logistica',
+    regla: 'h1',
+    descriptor: '0 h1 visibles',
+    parte: '9.12-5',
+    motivo: SIN_H1,
+  },
+  {
+    ruta: '/logistica/aduana',
+    regla: 'h1',
+    descriptor: '0 h1 visibles',
+    parte: '9.12-5',
+    motivo: SIN_H1,
+  },
+  {
+    ruta: '/logistica/embarques',
+    regla: 'h1',
+    descriptor: '0 h1 visibles',
+    parte: '9.12-5',
+    motivo: SIN_H1,
+  },
+  {
+    ruta: '/logistica/gastos',
+    regla: 'h1',
+    descriptor: '0 h1 visibles',
+    parte: '9.12-5',
+    motivo: SIN_H1,
+  },
+  {
+    ruta: '/logistica/vehiculo/[id]',
+    regla: 'h1',
+    descriptor: '0 h1 visibles',
+    parte: '9.12-5',
+    motivo: SIN_H1,
+  },
+  {
+    ruta: '/repuestos',
+    regla: 'h1',
+    descriptor: '0 h1 visibles',
+    parte: '9.12-5',
+    motivo: SIN_H1,
+  },
+]

@@ -19,6 +19,7 @@ export function CotizacionesDelLead({ leadId }: { leadId: string }) {
       historial={historial}
       de={{ lead: leadId }}
       etiqueta="Cotizaciones del lead"
+      esperarEsqueleto={false}
     />
   )
 }

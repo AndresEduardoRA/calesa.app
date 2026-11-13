@@ -61,6 +61,8 @@ export function ListadoDeCotizaciones({
   const aviso = textoDelAviso({ lead, vehiculo })
   return (
     <div className="grid gap-4">
+      {/* El título de la página para quien lee en voz alta: la barra de filtros ocupa la cabecera (como en `/leads`). */}
+      <h1 className="sr-only">Cotizaciones</h1>
       <FilterShell esquema={esquema} porPagina={porPagina} acciones={acciones}>
         {aviso === null ? null : <AvisoDeLoFiltrado texto={aviso} />}
         <ResultadoDelListado

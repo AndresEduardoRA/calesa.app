@@ -15,6 +15,7 @@ import {
 import { MENSAJE_DE_VALIDACION } from '../../ficha/resultado'
 import { guardarEmbudo } from '../actions/guardar-embudo'
 import { guardarEtapas } from '../actions/guardar-etapas'
+import { useSoltarTrasElEnvio, useTrasElEnvio } from '../../alta/hooks/use-tras-el-envio'
 import { useEtapasEditables } from './use-etapas-editables'
 
 // El panel «Etapas» de un embudo: su nombre y sus etapas, editados en la pantalla y guardados juntos
@@ -31,6 +32,9 @@ export function usePanelDeEtapas(embudo: Embudo, otros: readonly Embudo[], alTer
   })
   const renombrar = useAction(guardarEmbudo)
   const guardar = useAction(guardarEtapas)
+  // El aviso y cerrar el panel salen cuando el envío terminó (9-7), no al resolver la promesa: antes, con el pie en «Guardando…».
+  const tras = useTrasElEnvio()
+  useSoltarTrasElEnvio(tras, renombrar.isPending || guardar.isPending)
 
   function rechazo(falla: ErrorApp) {
     if (falla.codigo === 'conflicto') {
@@ -79,8 +83,10 @@ export function usePanelDeEtapas(embudo: Embudo, otros: readonly Embudo[], alTer
       }
     }
     router.refresh()
-    avisarExito('Embudo guardado.')
-    alTerminar()
+    tras.despues(() => {
+      avisarExito('Embudo guardado.')
+      alTerminar()
+    })
   }
 
   return {

@@ -81,6 +81,16 @@ describe('<CopiarTextoDeLaTarjeta>', () => {
     expect((boton() as HTMLButtonElement).disabled).toBe(true)
   })
 
+  it('sin tarjeta no nombra un aviso que no está dibujado', () => {
+    for (const aviso of ['sin_total', 'desactualizado'] as const) {
+      const { unmount } = dibujar({ modelo: null, aviso })
+      const b = boton() as HTMLButtonElement
+      expect(b.disabled).toBe(true)
+      expect(b.getAttribute('aria-describedby')).toBeNull()
+      unmount()
+    }
+  })
+
   it('con el total desactualizado está apagado y lo nombra el aviso', () => {
     dibujar({ aviso: 'desactualizado' })
     const b = boton() as HTMLButtonElement
