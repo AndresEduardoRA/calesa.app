@@ -2,7 +2,7 @@
 
 Proyectos de repuestos por vehículo (o externos), ítems que recorren el flujo de repuestos con el mismo motor, imágenes, stock, compras con permiso de costos y un cotizador propio con configuración versionada.
 
-Abiertos que lo tocan: **8-13a** a **8-13c**, **8-13e** y la revisión de seguridad del stock y de los pagos de repuestos (`docs/PENDIENTES.md`).
+Abiertos que lo tocan: **8-13a** a **8-13c** y la revisión de seguridad del stock y de los pagos de repuestos (`docs/PENDIENTES.md`).
 
 ## Entra y sale
 
