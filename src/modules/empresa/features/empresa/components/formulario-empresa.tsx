@@ -18,6 +18,7 @@ type Props = {
   ajustes: AjustesEmpresa
   // URL pública del logo guardado, ya armada en el servidor.
   logoUrl: string | null
+  logoOscuroUrl: string | null
   // Las monedas activas, para elegir la base.
   monedas: readonly Moneda[]
   zonas: readonly string[]
@@ -33,6 +34,7 @@ export function FormularioEmpresa(props: Props) {
   const { ajustes, puedeEditar, conDatosCargados } = props
   const formulario = useRef<HTMLFormElement>(null)
   const [logo, setLogo] = useState<LogoElegido>({ tipo: 'igual' })
+  const [logoOscuro, setLogoOscuro] = useState<LogoElegido>({ tipo: 'igual' })
   const [registroAbierto, setRegistroAbierto] = useState(ajustes.registroAbierto)
   const [limpiezaAutomatica, setLimpiezaAutomatica] = useState(ajustes.limpiezaAutomatica)
   const enLinea = useEnLinea()
@@ -41,6 +43,7 @@ export function FormularioEmpresa(props: Props) {
   })
   const { guardar, enCurso, errores } = useGuardarAjustes({
     logoRuta: ajustes.logoRuta,
+    logoOscuroRuta: ajustes.logoOscuroRuta,
     actualizadoEn: ajustes.actualizadoEn,
     conDatosCargados,
     formulario,
@@ -54,7 +57,7 @@ export function FormularioEmpresa(props: Props) {
       className="grid gap-4"
       onSubmit={(evento) => {
         evento.preventDefault()
-        void guardar(logo, { registroAbierto, limpiezaAutomatica })
+        void guardar({ claro: logo, oscuro: logoOscuro }, { registroAbierto, limpiezaAutomatica })
       }}
     >
       {enLinea ? null : (
@@ -67,6 +70,8 @@ export function FormularioEmpresa(props: Props) {
         enCurso={enCurso}
         logo={logo}
         alCambiarLogo={setLogo}
+        logoOscuro={logoOscuro}
+        alCambiarLogoOscuro={setLogoOscuro}
         registroAbierto={registroAbierto}
         alCambiarRegistro={setRegistroAbierto}
         limpiezaAutomatica={limpiezaAutomatica}

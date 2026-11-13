@@ -63,6 +63,14 @@ describe('esquemaAjustes', () => {
     expect(errorDe({ logoRuta: `logos/${'a'.repeat(64)}.svg` }, 'logoRuta')).toBeUndefined()
   })
 
+  it('el logo oscuro: igual que el normal', () => {
+    expect(esquemaAjustes.parse(valida).logoOscuroRuta).toBeUndefined()
+    expect(esquemaAjustes.parse({ ...valida, logoOscuroRuta: null }).logoOscuroRuta).toBeNull()
+    expect(errorDe({ logoOscuroRuta: 'iconos/x.png' }, 'logoOscuroRuta')).toBe(
+      'El logo oscuro no se subió bien.',
+    )
+  })
+
   it('la retención va de 1 a 365 días enteros', () => {
     expect(errorDe({ papeleraDias: 0 }, 'papeleraDias')).toBe('Como mínimo, 1 día.')
     expect(errorDe({ actividadDias: 366 }, 'actividadDias')).toBe('Como máximo, 365 días.')
