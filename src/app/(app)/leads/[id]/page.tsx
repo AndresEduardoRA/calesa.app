@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { z } from 'zod'
+import { rutaDeActividadDe } from '@/modules/actividad'
 import { origenesParaCotizar, rutaDeLaHoja } from '@/modules/cotizaciones'
 import { CotizacionesDelLead } from '@/modules/cotizaciones/pantallas/lead'
 import { getAjustes } from '@/modules/empresa'
@@ -153,6 +154,11 @@ export default async function PaginaLead({ params, searchParams }: PageProps<'/l
         seccion={seccion}
         ve={ve}
         paraCotizar={paraCotizar}
+        paraActividad={
+          puede(sesion.permisos, 'actividad.ver')
+            ? rutaDeActividadDe('leads', datos.ficha.id)
+            : null
+        }
         etiquetas={datos.etiquetas}
         cartera={datos.cartera}
         accionesDeCartera={accionesDeCartera(sesion.permisos, datos.cartera)}

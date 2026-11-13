@@ -299,10 +299,12 @@ test('la dueña sobre un lead ajeno: marca y envía, pero no anota ni agenda (no
   await cerrar(page, delResumen)
   await irAFicha(page, lead.id)
   const deLaFicha = await abrirMenuDeLaFicha(page)
+  // La dueña tiene `actividad.ver`: sólo la ficha le ofrece «Ver actividad», antes de la papelera.
   expect(await opciones(deLaFicha)).toEqual([
     'Etiquetas…',
     'Favorito',
     'Tachado',
+    'Ver actividad',
     'Enviar a la papelera',
   ])
   await cerrar(page, deLaFicha)
