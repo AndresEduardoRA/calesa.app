@@ -8,7 +8,7 @@ export const NEUTROS = {
   tinta: '#1b2130', // --color-ink
   tintaSuave: '#4a5468', // --color-ink-soft
   linea: '#e5e8ee', // --color-line
-  lineaFuerte: '#cfd4de', // --color-line-strong
+  lineaFuerte: '#8a8f9b', // --color-line-strong
   superficie: '#ffffff', // --color-surface
   hundida: '#eef0f4', // --color-paper-dim (zonas hundidas)
   peligro: '#b02a2a', // --color-peligro-ink
