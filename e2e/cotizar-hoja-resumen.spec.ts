@@ -1,4 +1,4 @@
-import { expect, test, type Page } from './soporte/prueba'
+import { expect, test, type Page, type TestInfo } from './soporte/prueba'
 import { entrar } from './soporte/alta'
 import { vigilarRecalculos } from './soporte/cotizar'
 import {
@@ -45,6 +45,7 @@ const ir = async (page: Page, origen: string) => {
 const cabecera = (page: Page) => page.locator('[data-cabecera]')
 const modo = (page: Page, nombre: string) => cabecera(page).getByRole('radio', { name: nombre })
 const resumen = (page: Page) => page.getByLabel('Resumen')
+const botonDelDetalle = (page: Page) => resumen(page).getByRole('button', { name: /el detalle$/ })
 const verTotalBs = (page: Page) => page.getByRole('switch', { name: 'Ver total en moneda local' })
 const lineaEnBs = (page: Page) => page.locator('[data-total-bs]')
 const elegirModo = (page: Page, nombre: string) =>
@@ -153,6 +154,41 @@ async function medidas(page: Page) {
   })
 }
 
+// 4-50 (9.12-2): al pie, con el texto al 200 % el resumen nace plegado (el assert de 4-50: «no pasa de un alto que se decida, o nace plegado»). Quedan el
+// total, «Guardar» y la región viva; lo secundario se esconde. Al 100 % nace abierto. El alto plegado sólo se informa: en el celular el pie (Guardar, Vista
+// previa, Live) ya pasa del 30 % y el tope sigue siendo el 40 % de arriba (D4 del 9.12-2).
+async function elDetalleAlPie(page: Page, info: TestInfo, texto: string, fraccionDelAlto: number) {
+  const detalle = botonDelDetalle(page)
+  if (texto !== 'al 200 %') {
+    await expect(detalle).toHaveAttribute('aria-expanded', 'true')
+    await expect(resumen(page).locator('[data-modo]')).toBeVisible()
+    return
+  }
+  await expect(detalle).toHaveAttribute('aria-expanded', 'false')
+  await expect(detalle).toHaveAccessibleName('Ver el detalle')
+  await expect(resumen(page).locator('[data-total]')).toBeVisible()
+  await expect(resumen(page).getByRole('button', { name: 'Guardar', exact: true })).toBeVisible()
+  await expect(resumen(page).locator('[data-modo]')).toBeHidden()
+  info.annotations.push({
+    type: 'resumen al 200 %, plegado',
+    description: `${String(Math.round(fraccionDelAlto * 1000) / 10)} % del alto`,
+  })
+}
+
+// Al 200 %, «Ver el detalle» lo abre, con lo secundario, y «Ocultar el detalle» lo vuelve a plegar.
+async function abrirYPlegarElDetalle(page: Page, texto: string) {
+  if (texto !== 'al 200 %') {
+    return
+  }
+  const detalle = botonDelDetalle(page)
+  await detalle.click()
+  await expect(detalle).toHaveAttribute('aria-expanded', 'true')
+  await expect(detalle).toHaveAccessibleName('Ocultar el detalle')
+  await expect(resumen(page).locator('[data-modo]')).toBeVisible()
+  await detalle.click()
+  await expect(resumen(page).locator('[data-modo]')).toBeHidden()
+}
+
 for (const texto of ['al 100 %', 'al 200 %']) {
   test(`el resumen queda fijo: al pie debajo del corte y al costado desde él, con el texto ${texto}`, async ({
     page,
@@ -205,6 +241,7 @@ for (const texto of ['al 100 %', 'al 200 %']) {
       // Al pie: con la hoja arriba de la ventana, el resumen está dentro de ella con su borde de abajo en el de la ventana, y no pasa del 40 % de su alto.
       expect(Math.abs(m.resumen.y + m.resumen.h - m.alto)).toBeLessThanOrEqual(1)
       expect(m.resumen.h).toBeLessThanOrEqual(m.alto * 0.4 + 1)
+      await elDetalleAlPie(page, info, texto, m.resumen.h / m.alto)
       expect(await scrollMarginDeLoEnfocable(page)).not.toBe('0px')
       // Tab hasta la última celda: la que recibe el foco no queda bajo el resumen.
       const ultima = page.locator('[data-secciones] [data-parada="0"]').last()
@@ -216,9 +253,12 @@ for (const texto of ['al 100 %', 'al 200 %']) {
       const celda = await ultima.boundingBox()
       const resumenAhora = await resumen(page).boundingBox()
       expect(celda && resumenAhora && celda.y + celda.height <= resumenAhora.y + 1).toBe(true)
+      await abrirYPlegarElDetalle(page, texto)
     } else {
-      // Al costado: lo enfocable ya no deja el margen del pie.
+      // Al costado: lo enfocable ya no deja el margen del pie, y el detalle se ve siempre, sin botón para plegarlo.
       expect(await scrollMarginDeLoEnfocable(page)).toBe('0px')
+      await expect(botonDelDetalle(page)).toBeHidden()
+      await expect(resumen(page).locator('[data-modo]')).toBeVisible()
       // Al costado: a la derecha de las secciones y a la vista aunque se baje hasta el final.
       expect(m.resumen.x).toBeGreaterThanOrEqual(m.secciones.x + m.secciones.w - 1)
       await page.evaluate(() => {
