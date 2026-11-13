@@ -97,32 +97,39 @@ export const WIDGETS_TABLERO = [
     tamano: 'ancho',
     disponible: true,
   },
-  // Huecos del 9.11: su permiso se afina allá (el del margen es otro).
+  // Lee `tablero_margen` (9.11), que pide `logistica.margen.ver` y sólo suma los orígenes donde la persona lo tiene: el widget sale con
+  // esa clave en cualquier origen, no con `tablero.metricas.ver` (la página sí lo pide).
   {
     clave: 'margen-del-mes',
     titulo: 'Margen del mes',
-    permisos: ['tablero.metricas.ver'],
+    permisos: ['logistica.margen.ver'],
     grupo: 'margen',
     tamano: 'cifra',
-    disponible: false,
+    disponible: true,
   },
+  // Lee `tablero_cola_web` (9.11), que pide `web.cola.gestionar`: el widget sale con esa clave.
   {
     clave: 'cola-web',
     titulo: 'Cola de la web',
-    permisos: ['tablero.metricas.ver'],
+    permisos: ['web.cola.gestionar'],
     grupo: 'cola-web',
     tamano: 'ancho',
-    disponible: false,
+    disponible: true,
   },
 ] as const satisfies readonly WidgetDelCatalogo[]
 
 export type WidgetConClave = (typeof WIDGETS_TABLERO)[number]
 export type ClaveDeWidget = WidgetConClave['clave']
 
-// Los widgets que esta persona puede ver, en el orden del catálogo. Los huecos no salen.
+// Tipado con el catálogo general (`boolean`): hoy no hay huecos, pero otro paso puede abrir uno.
+function estaDisponible(widget: WidgetDelCatalogo): boolean {
+  return widget.disponible
+}
+
+// Los widgets que esta persona puede ver, en el orden del catálogo. Un hueco (`disponible: false`) no sale.
 export function widgetsVisibles(permisos: Permisos): readonly WidgetConClave[] {
   return WIDGETS_TABLERO.filter(
-    (widget) => widget.disponible && widget.permisos.some((clave) => puede(permisos, clave)),
+    (widget) => estaDisponible(widget) && widget.permisos.some((clave) => puede(permisos, clave)),
   )
 }
 

@@ -6,7 +6,7 @@ import { conRed, enfocarPrimerError, resultadoDeAccion, valoresDe } from '@/shar
 import { avisarError, avisarExito } from '@/shared/ui/toasts'
 import { descartarLogo, subirLogo, type LogoListo } from '../../../composicion.client'
 import { guardarAjustes } from '../actions/guardar-ajustes'
-import { guardarConLogo, type CambioDeLogo } from '../guardar-con-logo'
+import { guardarConLogos, type CambioDeLogo } from '../guardar-con-logo'
 import type { EntradaDeAjustes } from '../schemas/ajustes'
 
 // Los campos de texto del formulario, por su `name`. Son también los que entran al borrador.
@@ -32,9 +32,13 @@ export const CAMPOS_DE_AJUSTES = [
 
 export type LogoElegido = CambioDeLogo<LogoListo>
 
+// El logo normal y el del tema oscuro: viajan en el mismo guardado, con una sola versión.
+export type LogosElegidos = { claro: LogoElegido; oscuro: LogoElegido }
+
 type Opciones = {
   // Lo guardado al abrir la pantalla.
   logoRuta: string | null
+  logoOscuroRuta: string | null
   actualizadoEn: string
   // Con datos cargados la moneda base no viaja: el campo está deshabilitado.
   conDatosCargados: boolean
@@ -42,15 +46,16 @@ type Opciones = {
   alGuardar: () => void
 }
 
-// Guardar los ajustes: el logo nuevo se sube recién acá (commit diferido) y, si la fila no se
-// guarda, se descarta. Lo tipeado queda siempre: si algo falla, el foco va al primer error.
+// Guardar los ajustes: los logos nuevos se suben recién acá (commit diferido) y, si la fila no se
+// guarda, se descartan. Lo tipeado queda siempre: si algo falla, el foco va al primer error.
 export function useGuardarAjustes(opciones: Opciones) {
-  const { logoRuta, actualizadoEn, conDatosCargados, formulario, alGuardar } = opciones
+  const { logoRuta, logoOscuroRuta, actualizadoEn, conDatosCargados, formulario, alGuardar } =
+    opciones
   const { executeAsync, result, isPending } = useAction(guardarAjustes)
   const [subiendo, setSubiendo] = useState(false)
 
   async function guardar(
-    logo: LogoElegido,
+    logos: LogosElegidos,
     interruptores: { registroAbierto: boolean; limpiezaAutomatica: boolean },
   ): Promise<void> {
     const elemento = formulario.current
@@ -58,7 +63,7 @@ export function useGuardarAjustes(opciones: Opciones) {
       return
     }
     const valores = valoresDe(elemento, CAMPOS_DE_AJUSTES)
-    const entrada: Omit<EntradaDeAjustes, 'logoRuta'> = {
+    const entrada: Omit<EntradaDeAjustes, 'logoRuta' | 'logoOscuroRuta'> = {
       ...valores,
       monedaBase: conDatosCargados ? undefined : valores.monedaBase,
       papeleraDias: Number(valores.papeleraDias),
@@ -68,14 +73,17 @@ export function useGuardarAjustes(opciones: Opciones) {
       actualizadoEnEsperado: actualizadoEn,
     }
     setSubiendo(true)
-    const resultado = await guardarConLogo(
+    const resultado = await guardarConLogos(
       {
         subir: subirLogo,
         descartar: descartarLogo,
-        guardar: async (nuevaRuta) =>
-          resultadoDeAccion(await conRed(executeAsync({ ...entrada, logoRuta: nuevaRuta }))),
+        guardar: async (rutas) =>
+          resultadoDeAccion(await conRed(executeAsync({ ...entrada, ...rutas }))),
       },
-      { cambio: logo, rutaGuardada: logoRuta },
+      {
+        claro: { cambio: logos.claro, rutaGuardada: logoRuta },
+        oscuro: { cambio: logos.oscuro, rutaGuardada: logoOscuroRuta },
+      },
     )
     setSubiendo(false)
     if (!resultado.ok) {

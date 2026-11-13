@@ -93,6 +93,21 @@ do $$ declare v timestamptz; v2 timestamptz; a public.ajustes_empresa; rechazo b
   perform public.empresa_guardar_ajustes('{"moneda_base": "BOB"}', (select actualizado_en from public.ajustes_empresa));
   if (select moneda_base from public.ajustes_empresa) <> 'BOB' then raise exception 'sin datos, la moneda base debía cambiar'; end if;
   perform public.empresa_guardar_ajustes('{"moneda_base": "USD", "nombre": "Mi importadora", "zona_horaria": "America/La_Paz", "papelera_dias": 30}', (select actualizado_en from public.ajustes_empresa));
+  -- El logo para el tema oscuro: se guarda con la versión sin tocar el normal; vacío o nulo lo quitan.
+  select * into a from public.ajustes_empresa;
+  v := a.actualizado_en;
+  v2 := public.empresa_guardar_ajustes('{"logo_oscuro_ruta": "logos/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png"}', v);
+  if (select logo_oscuro_ruta from public.ajustes_empresa) is distinct from 'logos/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png' then raise exception 'no guardó el logo oscuro'; end if;
+  if (select logo_ruta from public.ajustes_empresa) is distinct from a.logo_ruta then raise exception 'el logo oscuro tocó el normal'; end if;
+  if v2 is distinct from (select actualizado_en from public.ajustes_empresa) then raise exception 'el logo oscuro no devolvió la versión nueva'; end if;
+  if public.storage_refcount('marca', 'logos/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png') <> 1 then raise exception 'storage_refcount no cuenta el logo oscuro'; end if;
+  begin perform public.empresa_guardar_ajustes('{"logo_oscuro_ruta": null}', v2 - interval '1 second'); raise exception 'guardó el logo oscuro con una versión vieja';
+  exception when others then if sqlstate <> 'PT409' then raise; end if; end;
+  perform public.empresa_guardar_ajustes('{"logo_oscuro_ruta": ""}', v2);
+  if (select logo_oscuro_ruta from public.ajustes_empresa) is not null then raise exception 'vacío debía quitar el logo oscuro'; end if;
+  perform public.empresa_guardar_ajustes('{"logo_oscuro_ruta": "logos/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png"}', (select actualizado_en from public.ajustes_empresa));
+  perform public.empresa_guardar_ajustes('{"logo_oscuro_ruta": null}', (select actualizado_en from public.ajustes_empresa));
+  if (select logo_oscuro_ruta from public.ajustes_empresa) is not null then raise exception 'nulo debía quitar el logo oscuro'; end if;
 end $$;
 reset role;
 -- Sofía (asesora) lee los ajustes pero no los guarda.
@@ -102,6 +117,9 @@ do $$ begin
   if (select nombre from public.ajustes_empresa) <> 'Mi importadora' then raise exception 'una asesora debía leer los ajustes'; end if;
   begin perform public.empresa_guardar_ajustes('{"nombre": "Otra"}', (select actualizado_en from public.ajustes_empresa)); raise exception 'guardó los ajustes sin permiso';
   exception when insufficient_privilege then null; end;
+  begin perform public.empresa_guardar_ajustes('{"logo_oscuro_ruta": "logos/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png"}', (select actualizado_en from public.ajustes_empresa)); raise exception 'guardó el logo oscuro sin permiso';
+  exception when insufficient_privilege then null; end;
+  if (select logo_oscuro_ruta from public.ajustes_empresa) is not null then raise exception 'sin permiso cambió el logo oscuro'; end if;
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
@@ -465,6 +483,8 @@ do $$ declare a record; begin
   select * into a from web.ajustes_acceso();
   if a.nombre is null or a.moneda_base <> 'USD' then raise exception 'ajustes_acceso incompleto: %', a; end if;
   if a.registro_abierto or a.primer_registro then raise exception 'con personas y registro cerrado no se ofrece crear cuenta: %', a; end if;
+  -- Trae el logo oscuro como el normal (aquí no hay ninguno): leer el campo falla si la función no lo devuelve.
+  if a.logo_oscuro_ruta is not null then raise exception 'ajustes_acceso trajo un logo oscuro que nadie guardó: %', a; end if;
   begin
     perform 1 from public.ajustes_empresa;
     raise exception 'anon leyó ajustes_empresa';

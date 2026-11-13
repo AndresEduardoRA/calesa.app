@@ -25,7 +25,6 @@ export async function leerTiposDeLaUnidad(
     .select('id')
     .eq('ambito', unidad.tipo === 'vehiculo' ? 'vehiculos' : 'repuestos')
     .eq('activo', true)
-  // El flujo de repuestos no tiene origen (8.13-2): se busca el que no lo tiene.
   const flujos = await (
     unidad.origenId === null
       ? porAmbito.is('origen_id', null)

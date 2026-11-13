@@ -247,7 +247,11 @@ Cada sección por su RPC, de a `_acotar_pagina(p_tamano, 5, 20)` + 1, con el mí
   cada lead del período, por `leads_asesores_dueno_unico` (una sonda por lead). `tablero_cotizaciones` recorre `cotizaciones_listado_idx`. Costo lineal en
   lo **del período**, no en la tabla; rankings cortados con `row_number()` (10 orígenes, 20 personas) y un día por fecha con `generate_series`.
 - Sin presupuesto medido ni `EXPLAIN` en `db:medir:volumen`: no es una lista; si la pantalla (9.08) lo pide, se mide con el período de 366 días.
-- `/tablero` (9.08-1): a lo sumo dos RPC por carga (una por grupo, compartidas con `cache()`); Server Components sin JS propio salvo el «Reintentar» de un widget caído y los `<Link>`. Sin presupuesto de JS hasta la parte 3 (el `<Drawer>` de «Personalizar» va con `diferido()`).
+- `tablero_margen()` y `tablero_cola_web()` (9.11-1, definer), con la misma regla. `tablero_margen` recorre el rango de `pagos_tablero_confirmado_idx`
+  (nuevo, parcial: confirmados vivos de vehículo, por `confirmado_en`) y el de `pagos_fecha_idx` (los sin confirmar del período); por vehículo de la
+  cohorte, una sonda en `pagos_vehiculo_idx`, `gastos_vehiculo_idx` y `cotizaciones_final_por_vehiculo`; 10 orígenes. `tablero_cola_web` recorre el rango de
+  `solicitudes_contacto_web_asignada_idx` (nuevo) y corta en 20 personas. Costo lineal en lo del período; sin volumen sembrado (no es una lista).
+- `/tablero` (9.08-1; 9.11-2): a lo sumo cuatro RPC por carga (una por grupo: leads, cotizaciones, margen y cola web; compartidas con `cache()`); Server Components sin JS propio salvo el «Reintentar» de un widget caído y los `<Link>`. Sin presupuesto de JS hasta la parte 3 (el `<Drawer>` de «Personalizar» va con `diferido()`).
 - `/tablero` (9.08-3): «Personalizar» es un `<Drawer>` diferido (sólo el botón va en el JS de la ruta); guardar es un `upsert` de `tablero.widgets` y `router.refresh()`, sin consulta nueva.
 - `/tablero` (9.08-2): las cinco gráficas son HTML y SVG de servidor; 90 días son 180 rectángulos y 90 filas de tabla (acotado por la ventana); sin consulta nueva (leen lo que ya leen las cifras) y sin JS de cliente propio.
 

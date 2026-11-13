@@ -12,6 +12,8 @@ export type Ajustes = {
   nombre: string
   // Ruta dentro del bucket público `marca`, o null si la empresa todavía no cargó su logo.
   logoRuta: string | null
+  // El logo para el tema oscuro (mismo bucket), o null: con el tema oscuro vale el normal.
+  logoOscuroRuta: string | null
   // El color de la marca (`#rrggbb`), o null: valen los tokens neutros.
   colorAcento: string | null
   // Los íconos generados desde el logo, o null: valen los neutros de public/.
@@ -30,6 +32,7 @@ export type Ajustes = {
 export const AJUSTES_POR_DEFECTO: Ajustes = {
   nombre: NOMBRE_POR_DEFECTO,
   logoRuta: null,
+  logoOscuroRuta: null,
   colorAcento: null,
   iconos: null,
   locale: LOCALE_POR_DEFECTO,
@@ -43,6 +46,7 @@ export const AJUSTES_POR_DEFECTO: Ajustes = {
 const esquemaFila = z.object({
   nombre: z.string().min(1),
   logo_ruta: z.string().nullable(),
+  logo_oscuro_ruta: z.string().nullable(),
   color_acento: z.string().nullable(),
   iconos: z.unknown(),
   locale: z.string().min(2),
@@ -62,6 +66,7 @@ export function ajustesDesde(fila: unknown): Ajustes | null {
   return {
     nombre: leido.nombre,
     logoRuta: leido.logo_ruta,
+    logoOscuroRuta: leido.logo_oscuro_ruta,
     colorAcento: leido.color_acento,
     iconos: iconosDesde(leido.iconos),
     locale: leido.locale,
