@@ -163,10 +163,12 @@ jobs:
       - name: privilegios de anon y authenticated en public
         run: psql "$SUPABASE_DB_LOCAL" -v ON_ERROR_STOP=1 -f supabase/tests/privilegios-de-anon.sql
       - run: pnpm db:lint
-      - name: splinter (advisors de seguridad, la copia del repo)
+      # 9.13-2: splinter con los schemas de [api] (también web) y la misma regla de db:probar (supabase/tests/advisors.sql), su sentido
+      # inverso, db:lint contra su lista y el inventario del repo contra la base (scripts/despliegue/revisar-base.mjs, sólo base local).
+      - name: la base contra el repo (splinter con los schemas de [api], db:lint y el inventario)
         run: |
-          psql "$SUPABASE_DB_LOCAL" -At -v ON_ERROR_STOP=1 -f scripts/splinter.sql > "$RUNNER_TEMP/advisors.txt"
-          if grep -i '|ERROR|' "$RUNNER_TEMP/advisors.txt"; then echo "::error::Advisors con nivel ERROR"; exit 1; fi
+          pnpm db:lint > "$RUNNER_TEMP/db-lint.txt" 2>&1 || { cat "$RUNNER_TEMP/db-lint.txt"; exit 1; }
+          pnpm exec tsx scripts/despliegue/revisar-base.mjs advisors db-lint "$RUNNER_TEMP/db-lint.txt" inventario
 
   # docs/PLAN.md, 9-6: dos o tres conexiones reales, sólo a mano (`carreras: true`) hasta 5 corridas seguidas en verde; entonces
   # pasan a `base`. Sin reintentos: `scripts/carreras.mjs` falla si una carrera no llegó a probarse.
