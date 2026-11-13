@@ -1,6 +1,6 @@
 -- Importar todo (9.06): el resto de los lotes de la importación total (los cinco del Assert están en `importar.sql`). El lead lo crea el destino
--- (D4); la forma del lote; vehículos; la identidad que se repone en cada salida; el destino borrado; empezar y terminar. Corre en PGlite
--- (`pnpm db:probar`); cada bloque arma su terreno y lo revierte.
+-- (D4); la forma del lote; vehículos; la identidad que se repone en cada salida; el destino borrado. Empezar y terminar, en `importar-terminar.sql`.
+-- Corre en PGlite (`pnpm db:probar`); cada bloque arma su terreno y lo revierte.
 
 -- @test importar-lotes: los ayudantes (los mismos de importar.sql: cada archivo corre solo)
 reset role;
@@ -284,58 +284,5 @@ begin
   r := pg_temp.imp_lote(v_imp, 1, jsonb_build_array(pg_temp.imp_fila(1, 'IMP B uno', '79066001')));
   if r::jsonb <> jsonb_build_object('importacion', v_imp, 'estado', 'fallida', 'rechazado', 'destino_no_puede') then raise exception 'destino borrado: %', r; end if;
   if exists (select 1 from public.leads where nombre like 'IMP B %') then raise exception 'un lead nació de quien importa'; end if;
-end $$;
-rollback;
-
--- @test importar-lotes: empezar fija el total (1 a 20.000) y retoma; terminar exige todo procesado, deja la constancia sin datos y es idempotente
-begin;
-select pg_temp.imp_preparar();
-do $$
-declare ada uuid := '00000000-0000-4000-8000-00000000906a'; bea uuid := '00000000-0000-4000-8000-00000000906b';
-        v_1 uuid := '00000000-0000-4000-8000-0000009061f1'; v_2 uuid := '00000000-0000-4000-8000-0000009061f2'; r text; v_det jsonb;
-begin
-  perform pg_temp.imp_crear(ada, v_1, 'leads', bea);
-  perform pg_temp.imp_crear(ada, v_2, 'leads', bea);
-  r := pg_temp.imp_srv(format('select public.importacion_empezar(%L, 20001)', v_1));
-  if r <> '22023/filas_total' then raise exception 'más de 20.000 filas: %', r; end if;
-  r := pg_temp.imp_srv(format('select public.importacion_empezar(%L, 0)', v_1));
-  if r <> '22023/filas_total' then raise exception 'cero filas: %', r; end if;
-  r := pg_temp.imp_srv(format('select public.importacion_terminar(%L)', v_1));
-  if r <> '22023' then raise exception 'terminar sin empezar: %', r; end if;
-  r := pg_temp.imp_srv(format('select public.importacion_empezar(%L, 2)', v_1));
-  if r::jsonb <> jsonb_build_object('importacion', v_1, 'estado', 'procesando', 'filas_total', 2, 'procesadas', 0, 'repetido', false) then raise exception 'empezar: %', r; end if;
-  r := pg_temp.imp_srv(format('select public.importacion_empezar(%L, 2)', v_1));
-  if (r::jsonb ->> 'repetido') <> 'true' then raise exception 'empezar otra vez retoma: %', r; end if;
-  r := pg_temp.imp_srv(format('select public.importacion_empezar(%L, 3)', v_1));
-  if r <> '22023/filas_total' then raise exception 'otro total en procesando: %', r; end if;
-  r := pg_temp.imp_lote(v_1, 1, jsonb_build_array(pg_temp.imp_fila(1, 'IMP T uno', '79067001')));
-  r := pg_temp.imp_srv(format('select public.importacion_terminar(%L)', v_1));
-  if r <> '22023' then raise exception 'terminar con filas por procesar: %', r; end if;
-  r := pg_temp.imp_lote(v_1, 2, jsonb_build_array(jsonb_build_object('fila', 2, 'rechazo', jsonb_build_object('motivo', 'Falta el nombre.'))));
-  r := pg_temp.imp_srv(format('select public.importacion_terminar(%L)', v_1));
-  if r::jsonb <> jsonb_build_object('importacion', v_1, 'estado', 'terminada', 'creadas', 1, 'ya_existian', 0, 'rechazadas', 1, 'repetido', false) then
-    raise exception 'terminar: %', r;
-  end if;
-  select detalle into v_det from public.actividad where accion = 'datos.importado' and registro_id = v_1::text and actor_id = ada and tabla = 'importaciones';
-  if v_det <> jsonb_build_object('entidad', 'leads', 'estado', 'terminada', 'filas', 2, 'procesadas', 2, 'creadas', 1, 'ya_existian', 0, 'rechazadas', 1,
-                                 'asignar_a', bea) then
-    raise exception 'la constancia trae de más o de menos: %', v_det;
-  end if;
-  r := pg_temp.imp_srv(format('select public.importacion_terminar(%L)', v_1));
-  if r::jsonb <> jsonb_build_object('importacion', v_1, 'estado', 'terminada', 'repetido', true) then raise exception 'terminar otra vez: %', r; end if;
-  -- Con error, desde pendiente: fallida con su motivo; un motivo vacío, 22023/error.
-  r := pg_temp.imp_srv(format('select public.importacion_terminar(%L, %L)', v_2, '  '));
-  if r <> '22023/error' then raise exception 'un motivo vacío: %', r; end if;
-  r := pg_temp.imp_srv(format('select public.importacion_terminar(%L, %L)', v_2, 'El archivo no se puede leer.'));
-  if (r::jsonb ->> 'estado') <> 'fallida' or (select errores from public.importaciones where id = v_2) <> '[{"motivo": "El archivo no se puede leer."}]'::jsonb then
-    raise exception 'terminar con error: %', r;
-  end if;
-  -- Una importación de /leads no se toca por aquí.
-  insert into public.importaciones (id, usuario_id, entidad, estado, filas_total) values ('00000000-0000-4000-8000-0000009061f3', ada, 'leads', 'procesando', 1);
-  foreach r in array array[pg_temp.imp_srv('select public.importacion_empezar(''00000000-0000-4000-8000-0000009061f3'', 1)'),
-                           pg_temp.imp_lote('00000000-0000-4000-8000-0000009061f3', 1, jsonb_build_array(pg_temp.imp_fila(1, 'x', '79067009'))),
-                           pg_temp.imp_srv('select public.importacion_terminar(''00000000-0000-4000-8000-0000009061f3'')')] loop
-    if r <> '22023' then raise exception 'una importación de /leads no se procesa aquí: %', r; end if;
-  end loop;
 end $$;
 rollback;
