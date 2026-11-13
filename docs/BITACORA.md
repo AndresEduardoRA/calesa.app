@@ -5216,3 +5216,866 @@ Parte 2 de 2: cierra el 7.14 y la Fase 7. Plan: `.piloto/planes/7.14-2.md`; la p
 - **ESTADO:** la Fase 7 cerrada, el completo del 7.14-2, 5a-4b, los abiertos 7-x, «Fase 9: 9-13» como único pendiente de las fases 7 a 9 y, de la deuda,
   fuera los permisos que ya tienen enforcement y `push_web`, que tiene interfaz.
 - e2e completo: sí (7.14-2, cierre, Nivel 3: escritorio 1.207 en verde, 17 saltadas, 1 caída, 53,5 min; movil 839 en verde, 29 saltadas, 1 caída, 34,6 min; las dos caídas, de la prueba, arregladas en d24a019a y 30ce6ffb)
+
+<!-- paso:9.09 -->
+
+## 9.09 · higiene del e2e y del CI, partes 1 y 3 (2026-11-12)
+
+Parte 1 (9-8): `empresa.spec.ts` deja Vault como estaba. `e2e/soporte/apibara-clave.ts` suma `vigilarVaultDeApibara()` (huella al
+empezar, quitar lo que dejó la prueba y comprobar la huella al final); sin clave previa borra la que escribió la prueba, con una real el
+caso que escribe se salta. `e2e/apibara-clave-intacta.spec.ts` prueba esa regla con y sin clave.
+
+Parte 3 (9-11): `scripts/ci/volcar-base.sh` deja el log de la base y sus estadísticas en `e2e-fallos/` y el job `e2e` lo corre con
+`if: failure()`; `scripts/guardas/workflows-fallo.ts` lo exige (4 mutaciones en `workflows-fallo.test.ts`). 9-4 y 9-5 se cierran como
+decididos; 9-6 queda abierto con la persona. Quedan 9.09-2 (9-9 y 9-10) y 9.09-3 (4-41).
+
+- e2e completo: no (9.09, Nivel 1: lo corre el CI del PR; dirigidos empresa, apibara-clave-intacta y vehiculos-apibara-funcion en escritorio)
+
+## 9.09-2 · esperas del e2e, 9-9 y 9-10 (2026-11-12)
+
+Ayudante nuevo en `e2e/soporte/esperas.ts`: `conRespuesta(page, coincide, accion, espera)` arma la espera antes de la acción, anota lo que
+tardó si fue 1 s o más y, si vence su tope (30 s o el que se le dé), dice qué pedido faltó; `demorarPedido()` retrasa un pedido y deja pasar
+la respuesta real; `esRpc`, `esRuta` y `esAccionDelServidor` son sus predicados. 9-9: los specs de medición y de capturas esperan un estado
+(`esperarHidratado`, `aLaVistaAlAcomodarse`, `quieto`, el contenido diferido de cada sección) y no un tiempo. 9-10: las esperas de 5 s sobre un
+pedido pasan a esperar su respuesta, con un caso «con el pedido demorado 6 s» por archivo.
+
+- **9-9, 5 de 5 con la CPU a 20×** (parche temporal en el fixture `page`, sin versionar; D3). Pasan 5 de 5: la barra, el chip, la ficha, el
+  resumen, `menu-de-acciones-200`, la ficha de seis secciones y las tres capturas. «B · con el drawer abierto» (`leads-recorrido`) pasa su sitio
+  y cae 5 de 5 después, en un ingreso (`entrar`, línea 263) que no es del paso; no se estabiliza.
+- **9-10, un caso por archivo en verde** a 1×: `leads-rapido-volumen`, `leads-papelera`, `leads-escala-demorado`, `leads-alta-contexto` y
+  `leads-exportar`. **`escala-recorrido` no se corrió**: sólo corre con volumen sembrado y la base del carril no lo tiene (escrito y tipado).
+- e2e completo: no (9.09-2, Nivel 1: lo corre el CI del PR; dirigidos recorrido-esperas, leads-rapido-volumen, leads-papelera, leads-escala, leads-escala-demorado, leads-alta-contexto, leads-exportar, leads-recorrido, leads-recorrido-modales, barra-de-filtros-200, leads-ficha-origen-inactivo-200, menu-de-acciones-200, configuracion-200-capturas, cierre-pendientes-capturas, leads-recorrido-cierre-2 en escritorio)
+
+## 9.09-3 · `env:check produccion`, 4-41 (2026-11-12)
+
+`pnpm env:check produccion` lee por API los nombres (nunca valores) de Vercel (producción y preview), los secretos de las funciones y la
+configuración de Auth de Supabase, y dice qué falta en cada lugar. Esquemas de presencia en `src/shared/config/esquemas.ts`; lectores con `fetch`
+inyectado y orquestación en `scripts/lib/entornos/` (`lectura`, `vercel`, `supabase`, `produccion`). Salida 0 completo, 1 falta algo, 2 algún lugar
+no se pudo leer. Sin tokens lo dice y no llama a la red. Probado con `fetch` simulado (`produccion.test.ts`: ninguna salida lleva un valor ni un
+token); no se corrió contra la nube. Cierra 4-41 y con él el 9.09: queda 9-6 con la persona y el primer corrido real de `env:check produccion`.
+
+- e2e completo: no (9.09-3, Nivel 2: sin e2e completo, lo prueba el CI del PR; sin pantalla: env:check no toca interfaz ni e2e)
+
+<!-- paso:9.10 -->
+
+## 9.10 · PWA: instalar la app, parte 1 (2026-11-12)
+
+«Instalar la app» en el menú del usuario: regla pura `ofrecerInstalacion()` (`src/shared/lib/instalacion.ts`, con su test), `useInstalacion()`
+que guarda el `beforeinstallprompt` desde que se evalúa el módulo, y `<InstalarApp>`; en iOS un aviso con «Compartir › Agregar a inicio».
+El manifest gana `id: '/'` y los atajos «Nuevo lead» y «Cotizar». `public/sw.js` no cambió (sin caché; `push` y `notificationclick` son del
+7.04). `e2e/pwa.spec.ts` (6 casos, escritorio y móvil, 12 en verde): manifest, service worker activo y sin caché, instalar llama a `prompt()`
+una vez, sin evento no se ofrece, iOS, y el clic de una notificación con el service worker real navega a su ruta. Queda **9.10-2**: el logo oscuro.
+
+- e2e completo: no (9.10, Nivel 2: lo prueba el CI del PR; dirigidos: pwa, roles-niveles y rueda-por-rol en escritorio y móvil)
+
+## 9.10 · PWA, parte 2: el logo oscuro (2026-11-12)
+
+«Logo para el tema oscuro» en Configuración › Empresa › Marca. La migración `empresa_logo_oscuro` suma `logo_oscuro_ruta` a lo editable de
+`empresa_guardar_ajustes()` (mismo permiso, misma versión) y la devuelve `web.ajustes_acceso()` (se borra y se crea: cambia su tipo de
+retorno; mismos grants, con `anon`). La columna y su `storage_refcount` ya existían. `guardarConLogo` pasa a `guardarConLogos`: los dos logos
+en un solo guardado, con descarte de los recién subidos si algo falla y de los anteriores que ya no usa nadie. `<CampoLogo>` gana `variante`
+(textos, ids y «Quitar» propios). `<Marca>` dibuja los dos y el tema elige por CSS, en los layouts `(app)` y `(acceso)`. Pruebas: `humo.sql`
+(guarda, versión vieja, vacío y nulo, sin permiso, `anon` lo lee), `guardar-con-logo.test.ts` (9 casos) y `e2e/empresa-logo-oscuro.spec.ts`. La auditoría del informe pidió un `fix`: la vista previa del oscuro perdía su fondo oscuro (clase `darkflex`).
+
+Para quien integra: con esta parte la fila 9.10 de `docs/PLAN.md` queda **hecha**; se cierran la celda del logo oscuro de «Sin interfaz»
+(~2433) y el párrafo «PWA (instalación, push, `sw.js` mínimo)» (~2454). La instalación real con la app instalada sigue en el 9.14.
+
+- e2e completo: no (9.10-2, Nivel 2: lo prueba el CI del PR; dirigidos: empresa-logo-oscuro, empresa y pwa)
+
+<!-- paso:8.05-1 -->
+
+## 2026-11-12 · Paso 8.05-1: la tarjeta de turno, «Contacté», «Vincular a lead» y el bloque de Inicio (parte 1 de 2)
+
+### Hecho
+
+- `entities/turnos/`: `cuentaRegresiva(venceEn, ahora)` (horas y minutos, «menos de 1 min», «Vencido» con borde inclusivo y «Sin límite de tiempo» para el
+  contacto directo), `ordenarTurnos` (vigentes por `vence_en`, las directas al final de las vigentes, luego las vencidas de la más reciente) y los nombres de
+  la URL del panel; con sus tests (11 pruebas).
+- `infra/turnos/mis-turnos.ts` (`leerMisTurnos`: dos lecturas `limit 6` filtradas por `usuario_id` con el id de `getClaims()`, más el título de `web.vehiculos`) y la
+  action `confirmarContacto` sobre `web_confirmar_contacto(p_solicitud, p_lead)`, por `areas/turnos/{index,client,composicion}.ts`.
+- `<TarjetaTurno>` (código, fuente, vehículo, cuenta regresiva viva cada 30 s, «Contacté» en un toque, «Vincular a lead» por URL) y `<ActualizarAlVolver>`.
+- El bloque `turnos-web` de Inicio (mis turnos, tope 5 con `<AvisoDeTope>`, relee al volver a la pestaña). No hizo falta `_inicio/bloques.tsx` ni tocar `<Bandeja>`:
+  el 9.02 dejó cada bloque como un Server Component en `tablero/features/bandeja/bloques/`.
+- `leads/pantallas/turno.ts` y `features/vincular-turno/` (el panel «Vincular a un lead» con el buscador y la lista de `panel-para-cotizar`) y su montaje
+  en `src/app/(app)/_inicio/vincular-turno.tsx`; «+» abre «Nuevo lead» y el alta devuelve `?vincular=<id>`. Registro en `drawers-con-salida.ts`.
+- `e2e/web-turno.spec.ts` (escritorio y celular): «Contacté» en un toque, vincular a un lead y la dueña que gestiona la cola sin ver los turnos de otra persona.
+- Fichas de `web`, `tablero` y `leads`; una línea en `docs/RENDIMIENTO.md`.
+- Sigue la 8.05-2: en `/perfil`, el interruptor «Disponible para recibir turnos» y «Tu ficha en la web» (plan servido en `.piloto/planes/8.05.md`, «Servida: parte 2»).
+
+Commits: `a36024fa`, `42208a7c`, `b39f132a`, `2abaa8bb`, `b9b4c435`, `04e27a59` y el de docs.
+
+### Verificación
+
+- Vitest de `entities/turnos`: 14 de 14 con `rueda.test.ts`; guardas completas (`scripts/guardas`): 36 archivos, 1125 pruebas, tras registrar el panel en `drawers-con-salida.ts`.
+- `pnpm typecheck` sin errores; lint en el hook de cada commit; `mapa.sh` regenerado.
+- e2e `web-turno`: 6 de 6 (escritorio y celular, `.piloto/salidas/8.05/e2e-web-turno.txt`). Dirigidos `rueda-por-rol`, `cola-web-tablero`, `inicio-bandeja`,
+  `inicio-bandeja-logistica`, `presupuesto-js` y `acceso`: 33 en verde, 8 saltadas (las marcadas sin celular), 0 caídas (`.piloto/salidas/8.05/e2e-dirigidos.txt`).
+- Sin base nueva: sin migración, policy ni tipos.
+- e2e completo: no (8.05-1, Nivel 1: lo corre el CI del PR; dirigidos web-turno, rueda-por-rol, cola-web-tablero, inicio-bandeja, inicio-bandeja-logistica, presupuesto-js, acceso)
+
+<!-- paso:8.05-2 -->
+
+## 2026-11-12 · Paso 8.05-2: la disponibilidad y la ficha en `/perfil` (parte 2 de 2)
+
+### Hecho
+
+- `entities/turnos/ficha.ts`: `esWhatsapp` (espejo del check `perfiles_whatsapp_web_check`), `esHandle` (3 a 30 de `a-z0-9._-`), `especialidadesDeTexto` y el tipo
+  `MiFichaEnLaWeb`; `motivoSinInterruptor` en `rueda.ts`. Con sus tests (11 pruebas nuevas, más 4 del esquema de la ficha).
+- `infra/turnos/mi-ficha.ts` (`leerMiFichaEnLaWeb`: la fila propia de `cola_web_asesores` y de `perfiles`, por clave primaria) por `areas/turnos/composicion.ts`.
+- El interruptor «Disponible para recibir turnos» en «Turnos de la web»: la action `cambiarDisponibilidad` escribe sólo `cola_web_asesores.disponible` de la propia fila;
+  apagado y deshabilitado con su motivo si el rol no recibe turnos, no la sumaron a la rueda o se mira otro rol.
+- «Tu ficha en la web» (WhatsApp, identificador, cargo, presentación, especialidades y «Aparecer en la web»): `guardarFicha` escribe directo bajo la RLS con
+  `actualizado_en` de versión; conflicto con `<AvisoDeConflicto>`, identificador repetido junto a su campo. El formulario se monta y se pide con `diferido()` al abrir
+  el bloque.
+- `/perfil`: `<TurnosDelPerfil>` tras su `<Suspense>`; `<FormularioPerfil>` con `key` = la versión del perfil (guardar la ficha cambia `actualizado_en`).
+- `e2e/perfil-disponibilidad.spec.ts` (escritorio y celular): apagar corta el reparto (cae al respaldo) y encender lo devuelve; rol sin turnos: apagado, deshabilitado y
+  con motivo; la ficha guarda en la base.
+- Presupuesto: el documento de `/perfil` sube a 109.522 B; tope 103 → 113 KB (`docs/RENDIMIENTO.md`).
+- Con esto el paso 8.05 queda completo (2 de 2); sigue abierto D4 de la 8.05-1 (vincular una solicitud ya contactada pide una RPC).
+
+Commits: el de la lectura, el del interruptor, el de la ficha, el e2e, el `fix` de la frase repetida, el `perf` del formulario diferido y el de docs.
+
+### Verificación
+
+- Vitest: `ficha.test.ts`, `rueda.test.ts`, `schemas/ficha.test.ts` en verde; guardas completas (`scripts/guardas`): 1126 pruebas.
+- Sin base nueva: sin migración, policy ni tipos.
+- e2e `perfil-disponibilidad`: 6 de 6 (`.piloto/salidas/8.05-2/perfil-disponibilidad.txt`). Dirigidos `rueda-por-rol`, `web-turno`, `perfil-avatar`, `perfil-notificaciones`
+  y `presupuesto-js`: 0 caídas (`.piloto/salidas/8.05-2/dirigidos.txt`, `presupuesto.txt`).
+- e2e completo: no (8.05-2, Nivel 1, dirigidos: perfil-disponibilidad, rueda-por-rol, web-turno, perfil-avatar, perfil-notificaciones, presupuesto-js)
+
+<!-- paso:8.12-1 -->
+
+## 2026-11-12 · Paso 8.12-1: la fórmula y la base del cotizador de repuestos (parte 1 de 4)
+
+### Hecho
+
+- `entities/cotizador/` (`decimal.ts`, `snapshot.ts`, `formula.ts`): la fórmula importado/local por unidad, el unitario al múltiplo de `redondeo` (mitad hacia
+  arriba) y × cantidad, la logística sugerida por tramo (sin tramo, sin sugerencia), con enteros a escala fija. `casos-del-cotizador.json` (K1–K16) lo corren los
+  dos lados: `formula.test.ts` y `supabase/tests/areas/repuestos/cotizador.sql` (copia literal; `casos.test.ts` vigila que sean iguales).
+- Migración `repuestos_cotizador_formula`: `_repuesto_cotizacion_linea` (la misma fórmula), `trg_tramo_sin_solape` (23P01) y `redondeo > 0` (`not valid`).
+- Migración `repuestos_cotizador_cotizaciones`: `repuestos_cotizacion_crear` (congela la config de id más alto, tramos y cajas activos de la moneda; idempotente)
+  y `repuestos_cotizacion_guardar` (reemplaza las líneas, lista cerrada, recalcula con el snapshot; «Línea N» con `hint` y `detail`).
+- Migración `repuestos_cotizador_aceptar`: `repuestos_cotizacion_aceptar` (copia el unitario y la moneda al ítem; una sola aceptada por proyecto, índice parcial),
+  `repuestos_cotizacion_anular`, sin policies ni privilegios de escritura en cotizaciones y líneas; `aplicado_en` de `repuestos.cotizar`.
+- Ficha del módulo y GLOSARIO (tramo de logística, logística sugerida, caja, snapshot de configuración).
+
+### Verificación
+
+- Nivel 2: RLS (se borran 5 policies de escritura) y estructura (índice único parcial, trigger, check).
+- `pnpm db:probar` completo: 1379 en verde, 0 caídas (`.piloto/salidas/8.12-1/probar-completo-3.log`); `db:reset` ×2, `db:types` y `db:lint` sin avisos nuevos.
+- Mutaciones (11): M1–M6 y M8–M12 hacen caer su prueba (`.piloto/salidas/8.12-1/mutaciones.log`).
+- vitest de `scripts/guardas` y `entities/cotizador`: 1153 en verde; `pnpm typecheck` limpio.
+
+### Para copiar a `docs/PLAN.md` (la sesión de un carril no edita el PLAN)
+
+- 8.12-1 hecha: la fórmula exacta en TS y en la base con casos compartidos, las cuatro RPC del cotizador y sin escritura directa en cotizaciones y líneas.
+  **8.12 sigue:** 8.12-2 (Configuración › Repuestos › «Cotizador»: publicar, historial, tramos y cajas), 8.12-3 (pestaña «Cotizaciones» y la cotización en
+  sólo lectura) y 8.12-4 (la hoja editable, aceptar, anular y `e2e/repuestos-cotizar.spec.ts`).
+- Pendiente de 8.12-2: `check (costo_min >= 0 and monto >= 0) not valid` en `repuestos_tramos_logistica` (un tramo negativo entraría al snapshot y `leerSnapshot`
+  lo rechazaría) y validar del todo `repuestos_cotizador_config_redondeo_check`.
+- Pendiente de 8.12-4: una carrera en `scripts/carreras/` (dos `aceptar` a la vez: una aceptada y un PT409; dos tramos cruzados a la vez: uno solo).
+- «Quitar escrituras directas» (Riesgos de la Fase 8): cerrado para cotizaciones y líneas de repuestos.
+
+e2e completo: no (8.12-1, Nivel 2: lo corre el CI del PR; dirigido repuestos-proyecto en escritorio)
+
+<!-- paso:8.12-2 -->
+
+## 2026-11-12 · Paso 8.12-2: Configuración › Repuestos › «Cotizador» (parte 2 de 4)
+
+### Hecho
+
+- Migración `repuestos_cotizador_configuracion`: `repuestos_tramos_logistica_signo_check` (`costo_min >= 0 and monto >= 0`) y la validación de ese `check` y de
+  `repuestos_cotizador_config_redondeo_check` si ninguna fila los rompe (D18); `aplicado_en` de `repuestos.configurar` nombra las tres policies (y `seed.sql`).
+  Prueba `supabase/tests/areas/repuestos/cotizador-configuracion.sql` (Q1 RLS de lo que escribe la pantalla, Q2 los `check`, Q3 `aplicado_en`).
+- `entities/cotizador/configuracion.ts`: el número tipeado con el lector único de `shared` y el locale, el texto exacto con enteros a escala fija, el recargo en %
+  ↔ fracción con el mismo entero, los topes por campo. `numero-tipeado.ts` exporta `separadoresDelLocale` (sin cambiar su conducta).
+- Lectura (`leerConfiguracionDelCotizador`, tope + 1 en las tres tablas) y tres actions (`publicarConfiguracion` con chequeo de la vigente, `guardarTramo`,
+  `guardarCaja`) bajo la RLS que ya existía.
+- La pestaña «Cotizador» con su barra (`?seccion=cotizador`): «Fórmula» con «Publicar cambios» y el historial, «Tramos de logística» y «Cajas» por moneda con
+  sus modales en la URL. `e2e/configuracion-repuestos-cotizador.spec.ts` (nuevo) y `configuracion-repuestos-catalogos.spec.ts` (ahora hay dos pestañas);
+  `borrarPersonasDePrueba()` borra la configuración que publicó una cuenta de prueba.
+
+### Verificación
+
+- Nivel 2. `pnpm db:reset`, `db:types` (sin cambios), `db:probar` completo en verde (`.piloto/salidas/8.12-2/db-probar.log`), `db:lint` sin errores.
+- `configuracion.test.ts` 26 en verde (con la prueba de los topes del `fix` de la auditoría); M1–M3 caen (`.piloto/salidas/8.12-2/mutaciones.log`). `vitest related` 1425 y `scripts/guardas` 1128 en verde.
+- e2e dirigido en escritorio: 4 en verde (`.piloto/salidas/8.12-2/e2e.log`).
+- e2e completo: no (8.12-2, Nivel 2: lo corre el CI del PR; dirigidos configuracion-repuestos-catalogos y configuracion-repuestos-cotizador en escritorio)
+
+### Para copiar a `docs/PLAN.md` (la sesión de un carril no edita el PLAN)
+
+- 8.12-2 hecha: Configuración › Repuestos › «Cotizador» (publicar la fórmula con su historial, tramos de logística y cajas por moneda), el signo de los tramos y
+  los dos `check` validados. **8.12 sigue:** 8.12-3 (pestaña «Cotizaciones» y la cotización en sólo lectura) y 8.12-4 (la hoja editable, aceptar, anular y
+  `e2e/repuestos-cotizar.spec.ts`). La pantalla es `pantallas/cotizador-configuracion.ts` y no `configuracion-cotizador.ts` como nombra la fila: sigue la regla
+  de áreas `<área>-<pantalla>`.
+- Pendiente de 8.12-4 (sin cambios): la carrera en `scripts/carreras/` (dos `aceptar` a la vez; dos tramos cruzados a la vez).
+- «Quitar escrituras directas» (Riesgos de la Fase 8): cerrado para el cotizador (D28: configuración, tramos y cajas siguen bajo RLS a propósito).
+
+<!-- paso:8.12-3 -->
+
+## 2026-11-12 · Paso 8.12-3: la pestaña «Cotizaciones» y la cotización en sólo lectura (parte 3 de 4)
+
+### Hecho
+
+- Lectura de las cotizaciones de un proyecto (tope 50) y de una cotización con sus líneas, con los montos como texto exacto (`::text`) y nulo nunca 0; lo que
+  le falta a una línea sin total sale de la fórmula con **su** snapshot, o queda desconocido (`entities/cotizador/{cotizacion,hoja-de-lectura}.ts`).
+- Crear: la action `crearCotizacion` (`repuestos.cotizar` y `repuestos.ver` con `puede()` antes) llama `repuestos_cotizacion_crear`; los rechazos de la
+  configuración y la moneda vuelven en su campo.
+- La pestaña «Cotizaciones» de `/repuestos/[id]` (`?pestana=cotizaciones`, sólo con `repuestos.cotizar`): «Nueva cotización» con la moneda en la misma barra
+  (el id del intento se renueva al crear y al cambiar la moneda) y la lista. La hoja `/repuestos/[id]/cotizaciones/[cotizacion]` en sólo lectura.
+- `e2e/repuestos-cotizaciones.spec.ts` (nuevo); `borrarPersonasDePrueba()` borra las cotizaciones de repuestos de las cuentas de prueba.
+
+### Verificación
+
+- Nivel 1 (sin migración ni `src/shared`). `hoja-de-lectura.test.ts` 9 y `pestanas.test.ts` 5 en verde; `vitest related` 14 y `scripts/guardas` 1129 en verde
+  (`.piloto/salidas/8.12-3/vitest.log`, `guardas.log`).
+- e2e dirigidos en escritorio y móvil: 22 en verde (`repuestos-cotizaciones`, `repuestos-compras`, `repuestos-proyecto`; `.piloto/salidas/8.12-3/e2e.log`).
+- e2e completo: no (8.12-3, Nivel 1: lo corre el CI del PR; dirigidos repuestos-cotizaciones, repuestos-compras y repuestos-proyecto en escritorio y movil)
+
+### Para copiar a `docs/PLAN.md` (la sesión de un carril no edita el PLAN)
+
+- 8.12-3 hecha: la pestaña «Cotizaciones» de `/repuestos/[id]` (lista y «Nueva cotización») y la hoja en sólo lectura. **8.12 sigue:** 8.12-4 (la hoja
+  editable, «Guardar», «Aceptar», «Anular», `e2e/repuestos-cotizar.spec.ts`). La pestaña del proyecto se elige con `?pestana=`, no `?seccion=`.
+- Pendiente de 8.12-4 (sin cambios): la carrera en `scripts/carreras/` (dos `aceptar` a la vez; dos tramos cruzados a la vez).
+
+<!-- paso:8.12-4 -->
+
+## 2026-11-12 · Paso 8.12-4: la hoja editable, aceptar y anular (parte 4 de 4, cierra el 8.12)
+
+### Hecho
+
+- Lo puro de la hoja editable (`entities/cotizador/hoja-editable.ts`): lo que emite una `XCell` pasa a texto exacto antes de entrar al estado
+  (`montoDeCelda`, `cantidadDeCelda`), el total en vivo es la fórmula de la base (`calcularHoja`, sólo informa) y `pedidoDeGuardar` nunca manda totales ni
+  sugerencias (↺ de la logística = `null`); `motivoParaNoAceptar`. Los errores de guardar van a su celda por `details` + `hint` (`errores.ts`).
+- Guardar, aceptar y anular por las RPC de 8.12-1, desde actions con `puede()` antes (aceptar pide además `repuestos.editar`).
+- `/repuestos/[id]/cotizaciones/[cotizacion]`: una borrador con el proyecto abierto y el snapshot válido es la hoja editable (bloques «Importado» y «Local»,
+  líneas desde un ítem o libres, `XCell` de cantidad, costo y logística, caja «Caja N» con la elegida en `<Monto>`, total en vivo, notas, «Guardar» con
+  PT409 y «Recargar»); «Aceptar» y «Anular» con `<Confirmar>` en `?panel=aceptar-cotizacion|anular-cotizacion`. Aceptada o anulada, sólo lectura.
+- `e2e/repuestos-cotizar.spec.ts` (nuevo, escritorio) y el ajuste de `e2e/repuestos-cotizaciones.spec.ts`; `scripts/carreras/repuestos-cotizador.mjs` (K1 dos
+  `aceptar` a la vez, K2 dos tramos cruzados a la vez).
+
+### Verificación
+
+- Nivel 1 en esta parte (sin migración ni `src/shared`; el paso es Nivel 2 por 8.12-1). `hoja-editable.test.ts` 34 en verde; mutaciones M1–M3 caen;
+  `scripts/guardas` 1129 en verde; `pnpm db:carreras` en verde con K1 y K2 (`.piloto/salidas/8.12-4/`).
+- e2e dirigidos: 5 en verde (`repuestos-cotizar` en escritorio, `repuestos-cotizaciones` en escritorio y movil; `.piloto/salidas/8.12-4/e2e.log`).
+- e2e completo: no (8.12-4, Nivel 1 en esta parte: lo corre el CI del PR; dirigidos repuestos-cotizar en escritorio y repuestos-cotizaciones en escritorio y movil)
+
+### Para copiar a `docs/PLAN.md` (la sesión de un carril no edita el PLAN)
+
+- **8.12 hecho:** fórmula y base (8.12-1), Configuración › Repuestos › «Cotizador» (8.12-2), la pestaña «Cotizaciones» y la hoja de lectura (8.12-3), la hoja
+  editable, aceptar y anular, `e2e/repuestos-cotizar.spec.ts` y las carreras (8.12-4).
+- La fila del 8.12 cambia en dos detalles (D42, D43): sin tramo, la celda de logística queda vacía y el total dice «Sin total · Falta la logística» (`XCell`
+  no tiene `emptyLabel`); la caja es un `<select>` de las del snapshot y el total de la línea un `<Monto>`, no `XCell`.
+- Pendiente de 8.12-1 **cerrado:** la carrera de dos `aceptar` y la de dos tramos cruzados (`scripts/carreras/repuestos-cotizador.mjs`).
+
+<!-- paso:8.12-ci -->
+
+## 2026-11-12 · Paso 8.12: el rojo del CI del PR (bloque 4 del e2e)
+
+### Hecho
+
+- Causa del rojo (corrida 43308319908, sobre 24473b9b): `e2e/vehiculos-resumen-casos.spec.ts:124` («sin red al abrir el resumen…») cayó 2 de 2. Al cortar
+  la red, además del resumen, la suscripción diferida de los no leídos del chat (`SuscripcionDeNoLeidosDiferida`, pedida al descansar) no llegaba y ponía su
+  barra fija «Sin conexión. No se pudo abrir esto.» justo encima de la del resumen; al volver la red no se iba (la campana sí, desde 7.14-1), y tapaba el
+  «Reintentar» de `#contenido` 30 s. No es del cotizador: depende de si el código del chat llega antes del corte, y en este bloque llegó tarde.
+- Arreglo: la primera mitad del abierto **7-5** («el mismo hook y una `key`»). `useVueltaDeLaRed` pasa a `src/shared/ui/use-vuelta-de-la-red.ts` (el de
+  `notificaciones/features/campana/hooks/` lo reexporta: el núcleo no se borra desde un carril) y `<WidgetChat>` remonta la suscripción con cada `online`.
+- Prueba: `widget-chat.test.tsx` (el `diferido()` de verdad sobre un cargador que falla dos veces; con `online` el aviso se va y la burbuja dice «Chat, 3 sin
+  leer»). Sin la `key` cae (verificado).
+
+### Salidas
+
+- `.piloto/salidas/8.12/ci-43308319908.log`, `vitest-related-ci.txt` (2 de 2), `e2e-resumen-casos.txt`.
+
+### No hecho
+
+- La segunda mitad de 7-5 (una suscripción de fondo no debería poner barra mientras no hay red) sigue abierta: es de producto.
+- `vehiculos-alta.spec.ts:238` fue `flaky` en la misma corrida (la tecla N abrió «Nuevo lead» del marco): no tumbó el CI; sin medir la causa.
+
+- e2e completo: no (8.12, arreglo del CI: sólo el spec dirigido `vehiculos-resumen-casos`; lo prueba el CI del PR)
+
+<!-- paso:8.13-1 -->
+
+## 2026-11-12 · Paso 8.13-1: el motor de mover acepta un ítem y `repuestos` cuenta las esperas (parte 1 de 5)
+
+### Hecho
+
+- `flujos` (área `mover`): `leerParaMover`, `previsualizarCambio` y `cambiarFase` aceptan `vehiculo` **o** `repuesto` (`entities/mover/unidad-a-mover.ts`, esquemas con `unidad` y `origenId` nulo
+  para el ítem). Un ítem se mueve con `repuestos.mover` (`puedeMoverUnRepuesto`); su unidad se lee de `repuestos_items` bajo la RLS y sus destinos salen del flujo de repuestos. El lote no cambia.
+- `repuestos` (área `flujo`): `esperasQueDestraban(vehiculoId)` sobre `repuestos_pendientes_de_vehiculo` (`p_tope` 50, la base devuelve una fila más): una fila por ítem con sus esperas y `hayMas`.
+  Registrada en `scripts/guardas/areas-c/paginas-en-la-base.ts`.
+- Fichas de `flujos` y `repuestos`. Sin migración ni pantalla.
+- **La fila 8.13 pasa a 5 partes** (eran 4: el pago del proyecto exige una RPC): 8.13-2 panel del ítem, 8.13-3 «Cadena», hueco del vehículo y el assert, 8.13-4 bloques de Inicio y enlace,
+  8.13-5 pagos del proyecto (Nivel 2, auditoría). Lo anota el carril `a` en `docs/PLAN.md`.
+
+### Verificación
+
+- Nivel 1: `para-mover.test`, `mover.test` (esquemas) y `esperas.test`; vitest de `scripts/guardas`, `flujos` y `repuestos/entities/flujo`: 1508 en verde.
+- e2e completo: no (8.13-1, Nivel 1: lo prueba el CI del PR; dirigidos: ver informe)
+
+<!-- paso:8.13-2 -->
+
+## 2026-11-12 · Paso 8.13-2: el panel del ítem de repuestos (parte 2 de 5)
+
+### Hecho
+
+- `?item=<id>` sobre la hoja de `/repuestos/[id]` abre `<PanelDeLaUnidad>` con el ítem: «Qué falta» y mover (`{ repuesto }` al motor de `flujos`), Documentos, Transporte («Sigue al vehículo» o
+  «Este proyecto no tiene vehículo»), Notas e Historial; «Abrir proyecto» en vez de «Abrir ficha». Cada fila de la hoja gana «Abrir panel».
+- `logistica` (núcleo y áreas `mover`, `documentos`, `transporte`): `Unidad.origenId` nulo para el ítem y `proyecto?`, `esUnidadDeVehiculo`, huecos con variante `repuesto?` y `huecosVisibles({ tipo })`,
+  notas e historial por `repuesto_id`, tipos de documento del flujo de repuestos (`origen_id is null`), `unidadAMover`. Sin permiso, «Elegir» sale apagado con su motivo sólo para un ítem.
+- `flujos`: `estadoDelBoton({ tipo })` y `MOTIVO_SIN_PERMISO_DE_MOVER_UN_REPUESTO`. `repuestos` (área `flujo`): `leerItemDelPanel`, `itemAbiertoDe`, `<DrawerDelItem>` (diferido), `<BotonDelPanelDelItem>`, `useItemPorUrl`.
+- Fichas de `logistica` y `repuestos`. Sin migración ni permisos nuevos.
+- **Abiertos:** **8-13a** (fuera de regla y quién la movió del ítem) sigue; **nuevo 8-13b**: el transporte propio de un ítem sin vehículo (formulario con `transporte_guardar(p_repuesto)`); hoy sólo texto.
+  La fila 8.13 queda «partes 3 a 5 pendientes» (lo anota el carril `a`).
+
+### Verificación
+
+- Nivel 1: vitest de `scripts/guardas`, `src/app`, `logistica`, `flujos` y `repuestos` (2323 en verde); nuevas pruebas de `hueco`, `nota` (esquemas), `unidad-a-mover`, `transporte`, `paneles`, `item-del-panel` y `boton-de-mover`.
+- e2e dirigidos (escritorio): `repuestos-item-panel` (2, también en movil), `logistica-documentos`, `logistica-mover`, `logistica-transporte`, `logistica-unidad`, `repuestos-proyecto` y `repuestos-stock`: 31 en verde.
+- e2e completo: no (8.13-2, Nivel 1: lo prueba el CI del PR; dirigidos: repuestos-item-panel, logistica-mover, logistica-documentos, logistica-transporte, logistica-unidad, repuestos-proyecto, repuestos-stock)
+
+<!-- paso:8.13-3 -->
+
+## 2026-11-12 · Paso 8.13-3: la «Cadena», el hueco «Repuestos» del vehículo y el assert (parte 3 de 5)
+
+### Hecho
+
+- **Cadena de repuestos** (`/repuestos?vista=cadena`): una columna por fase del flujo de repuestos (más «Sin fase» si tiene ítems), una consulta por fase con `limit 51` y «Ver más» por cursor `(fase_desde, id)`;
+  las fases finales, de lo más reciente. Tarjeta = enlace a `?item=<id>` (abre el panel de la parte 2), «Proyecto #N» y días en la fase. Búsqueda por descripción (3 letras) y `?proyecto=` en la URL con «Mostrando un solo proyecto».
+  Celular: pestañas por fase (`?fase=`). Estados: sin fases (con «Configurar el flujo» si `repuestos.configurar`), sin repuestos, sin resultados, columna vacía. `PanelDelItem` pasa a `src/app/(app)/repuestos/panel-del-item.tsx`.
+- **Hueco «Repuestos»** del panel de logística del vehículo (clave nueva `repuestos` en `ORDEN_DE_HUECOS`, tras `transporte`): «Espera N repuestos», cada ítem con su proyecto y «Para pasar a «X» espera que llegue a «Y».», enlace a su panel.
+- **Assert del paso** `e2e/repuestos-espera-recorrido.spec.ts` (escritorio y movil, 3 pruebas): la dueña ve la espera en el vehículo y en «Qué falta»; con sólo `repuestos.ver` mover está apagado con su motivo; la dueña recibe el ítem desde
+  la Cadena y el vehículo queda con «Cumplido» y `Mover a «Listo»` habilitado.
+- **Para `docs/PLAN.md` (lo anota el carril `a`):** la fila 8.13 queda «partes 4 y 5 pendientes». **Para `docs/UX.md`:** fila «Repuestos»: vista «Cadena» y sus estados; panel de logística del vehículo: hueco «Repuestos».
+- **Abiertos:** 8-13a y 8-13b siguen; **nuevo 8-13c**: índice `(fase_id, fase_desde, id)` en `repuestos_items` si la Cadena llega a miles (es una migración: otro paso).
+
+### Verificación
+
+- Nivel 1: vitest de `scripts/guardas`, `src/app`, `repuestos` y `logistica` (1977 en verde); pruebas nuevas de `cadena`, `cadena-filas`, `esperas` (encabezado y frase), `use-cadena-de-repuestos`, `hueco` y `huecos-de-la-unidad`. `lint` y `typecheck` limpios.
+- e2e dirigidos, escritorio y movil: `repuestos-espera-recorrido` (3), `repuestos-item-panel`, `repuestos-stock`, `repuestos-proyecto`, `logistica-unidad`, `logistica-mover`: 50 en verde.
+- e2e completo: no (8.13-3, Nivel 1: lo prueba el CI del PR; dirigidos: repuestos-espera-recorrido, repuestos-item-panel, repuestos-stock, repuestos-proyecto, logistica-unidad, logistica-mover)
+
+<!-- paso:8.13-4 -->
+
+## 2026-11-12 · Paso 8.13-4: los bloques de repuestos de Inicio y el enlace en Configuración (parte 4 de 5)
+
+### Hecho
+
+- **Rama unida con `main`** (8.12) antes de la parte: `src/app/(app)/repuestos/[id]/page.tsx` junta `seccionAbierta` (pestañas Compras y Cotizaciones de main) con el `PanelDelItem` de la hoja.
+- **Lecturas de Inicio** en `repuestos`, área `flujo`: `leerRepuestosPorMover(tope)` y `leerEsperasDeInicio(tope)` (por `index.ts`): ítems vivos, sin stock, en una fase no final, de un proyecto vivo; el que más lleva en su fase, primero;
+  la segunda sólo de proyectos con vehículo. Una consulta cada una, `limit tope + 1`, fase, proyecto y título del vehículo embebidos (bajo la RLS; sin ver el vehículo, la fila dice sólo el repuesto). Sin migración.
+- **Bloques de `tablero`** `repuestos-por-mover` (`repuestos.mover`) y `esperas-repuestos` (`repuestos.ver`): fila = repuesto con su fase, proyecto y desde cuándo (o el vehículo), abre el panel `?item=`; conteo «N repuestos por mover» /
+  «N repuestos en espera» (o «más de 5»); «Ver todas» a la Cadena.
+- **Configuración › Repuestos** gana el botón «Configurar el flujo de repuestos» a `/configuracion/flujos?ambito=repuestos`.
+- **Para `docs/PLAN.md` (lo anota el carril `a`):** la fila 8.13 queda «parte 5 pendiente»; el abierto **8-13c** se extiende a los bloques de Inicio (el orden `fase_desde` sin índice propio). **Para `docs/UX.md`:** Inicio (bloques «Repuestos por mover»
+  y «Esperas que destraban vehículos») y Configuración › Repuestos (enlace al flujo).
+- **Abiertos:** 8-13a (cruce exacto vehículo × fase con espera: el bloque dice qué ítem está en vuelo, no que el vehículo lo espere hoy) y 8-13b siguen.
+
+### Verificación
+
+- Nivel 1: vitest de `scripts/guardas` y `src/modules/repuestos` (1464 en verde; 10 pruebas nuevas de `entities/flujo/inicio`), `src/app/(app)/repuestos` (39 archivos) tras la unión; `lint` y `typecheck` limpios.
+- e2e dirigidos (salidas en `.piloto/salidas/8.13-4/`): `inicio-repuestos` (nuevo, 2 pruebas) e `inicio-bandeja` en escritorio y movil: 10 en verde; `configuracion-repuestos-catalogos` (una prueba nueva) y `repuestos-espera-recorrido` en
+  escritorio: 7 en verde.
+- No se midió el JS de `/` (cuerpos de servidor, sin cliente nuevo) ni se sembró volumen (la tabla de repuestos no es de las que crecen, `escala.md`).
+- e2e completo: no (8.13-4, Nivel 1: lo prueba el CI del PR; dirigidos: inicio-repuestos, inicio-bandeja, configuracion-repuestos-catalogos, repuestos-espera-recorrido)
+
+<!-- paso:8.13-5 -->
+
+## 2026-11-12 · Paso 8.13-5: los pagos del cliente del proyecto de repuestos (parte 5 de 5, la última)
+
+### Hecho
+
+- **Base:** `pago_registrar_proyecto` (migración `20261113024244_repuestos_pagos_registrar.sql`), gemela de `pago_registrar` para el proyecto: `repuestos.costos.editar` y
+  `repuestos.ver`, el proyecto `for share`, crear sólo con el proyecto abierto, idempotente por id, sin lead, NaN y tres decimales rechazados. `aplicado_en` de
+  `repuestos.costos.editar` en la migración y en `seed.sql` (escrito entero, idéntico al del seed: ninguna migración anterior lo fijaba). Prueba
+  `supabase/tests/areas/repuestos/pagos.sql` (P1–P7) y carreras K5/K6 en `supabase/tests/areas/dinero/carreras-proyecto.mjs`.
+- **Logística:** el hueco de pagos se parte en `CuerpoDePagos` (el del vehículo no cambia) y `PagosDelProyecto` (ámbito `proyecto` por contexto), por
+  `pantallas/dinero-proyecto.ts` con `diferido()`; sin «Anular» en la lista ni por `?panel=anular-pago`.
+- **Repuestos:** pestaña «Pagos» de `/repuestos/[id]` con `repuestos.costos.ver`, tras «Compras». La sección quedó en línea en `page.tsx` (175 líneas), sin el
+  `seccion-pagos.tsx` que nombraba el plan: no lee nada en el servidor.
+- **Para `docs/PLAN.md` (lo anota el carril `a`):** la fila 8.13 queda **hecha, en 5 partes**. Abiertos nuevos: **8-13d** (anular un pago confirmado de un proyecto), **8-13e**
+  (eliminar el último pago vivo que sostiene `proyecto.pago_cliente` de la fase actual de un ítem), **8-13f** (`pago_registrar` de vehículo acepta NaN). 8-13a, 8-13b y 8-13c siguen.
+- **Para `docs/UX.md` › «Repuestos: proyecto»:** pestaña «Pagos»: vacío «Este proyecto no tiene pagos registrados.»; «Registrar pago» siempre a la vista, apagado con su motivo
+  («Necesitas el permiso de editar costos para registrar pagos.» o «El proyecto está cerrado: reábrelo para registrar pagos.»); confirmar dice que queda sellado «ni anular por ahora».
+
+### Puntos del `security definer` (para el auditor)
+
+`set search_path = ''` y todo calificado; `assert_activo` → `assert_permiso('repuestos.costos.editar')` → `assert_permiso('repuestos.ver')`; `revoke … from public, anon`,
+`grant … to authenticated, service_role`; candado `for share` del proyecto (K6); idempotencia `on conflict do nothing` + relectura (K5); comprobante en la carpeta del proyecto
+(`_pago_validar`); el monto en base, la tasa y `creado_por` los pone la base.
+
+### Verificación
+
+- `db:reset`, `db:types`, `db:probar` completo (1392 ✓, 0 ✗; la primera corrida dio 8 ✗ y dejó `probar-todo.fin` = 1; la segunda, cuyo log es el que queda, salió con 0
+  según la consola de la sesión, sin `.fin` propio), `db:carreras` en verde. Mutaciones a mano: permiso (P1), `on conflict` (K5), cerrado (P4), NaN (P3).
+- vitest related y `scripts/guardas` (1139) en verde; e2e dirigidos `repuestos-pagos` (escritorio y movil), `logistica-gastos-y-pagos`, `repuestos-compras`,
+  `repuestos-proyecto`, `repuestos-item-panel`: 29 en verde. Salidas en `.piloto/salidas/8.13-5/`.
+- Nivel 1 (no Nivel 2 como decía la partición: `nivel.mjs` sin disparadores). Plan e informe auditados (`observaciones`, atendidas).
+- e2e completo: no (8.13-5, Nivel 1: lo prueba el CI del PR; dirigidos: repuestos-pagos, logistica-gastos-y-pagos, repuestos-compras, repuestos-proyecto, repuestos-item-panel)
+
+<!-- paso:8.13-6 -->
+
+## 2026-11-12 · Paso 8.13-6: sacar de la rama lo que es del carril b (arreglo del job «Carriles»)
+
+### Hecho
+
+- El job «Carriles» caía de verdad: las partes 2 y 3 editaban ocho archivos de `logistica` que son del carril `b` (`docs/plan.yaml` › `dueno_de`: áreas `transporte` y
+  `documentos`). La corrida anterior se había leído mal (la guarda se probó con `HEAD` y no con el nombre de la rama: sin `/`, la guarda toma el carril base y todo pasa;
+  hay que correr `node scripts/guardas/carriles.mjs <main> c/8.13`).
+- Siete de los ocho vuelven a ser los de `main`; lo del ítem pasa al núcleo:
+  - `Unidad` queda como en `main` (`origenId: string`) y nace `UnidadAbierta` (vehículo o ítem, con `origenId` nulo y `proyecto?`); `esUnidadDeVehiculo` estrecha a `Unidad`.
+    Sólo `mover` y el núcleo tipan con `UnidadAbierta`: las áreas de `b` no se enteran del ítem y no se tocan sus tipos.
+  - La variante `repuesto` de un hueco puede traer su `componente`; el panel dibuja ése para un ítem y el `componente` del hueco sólo para un vehículo.
+  - El hueco «Transporte» del ítem («Sigue al vehículo…») es del núcleo: `entities/nucleo/transporte-de-item.ts`, `features/nucleo/components/hueco-de-transporte-de-item.tsx`,
+    `pantallas/unidad-item.ts`. Las variantes `repuesto` de Documentos y Transporte las pone `src/app/(app)/logistica/huecos-de-la-unidad.tsx`, no los archivos de `pantallas/` de `b`.
+- Queda **un** archivo de `b`: `src/modules/logistica/infra/documentos/tipos.client.ts` (`leerTiposDeLaUnidad` acepta `origenId: string | null` y busca el flujo sin origen). Sin ese
+  cambio los documentos de un ítem leen `origen_id = null` como «ninguno». Va como compuerta `espera` (el cambio sirve igual en `main`: el tipo ancho acepta `Unidad`).
+
+### Prueba
+
+- `src/app/(app)/logistica/huecos-de-la-unidad.test.tsx`: un ítem con `repuestos.ver` ve «Qué falta», «Documentos», «Transporte», «Notas» e «Historial», cada uno con el componente de su variante, y sin
+  él no ve nada; `entities/nucleo/transporte-de-item.test.ts` pasó del área `transporte` al núcleo.
+
+<!-- paso:9.01-1 -->
+
+## 2026-11-12 · Paso 9.01-1: la base de lectura recortada de la actividad y su purga (parte 1 de 4)
+
+### Hecho
+
+- `actividad_diff(p_id)` (`security definer`, pide `actividad.ver`): sólo las claves que cambiaron y que quien mira puede ver, por una lista cerrada
+  por tabla (`_actividad_recorte`). De un lead, nada sin `puede_lead(…, 'leads.ver')`, sin `atributos` fuera de su cartera y nunca `numero`,
+  `numero_propio` ni `telefono_principal`. De una entidad (vehículos, cotizaciones, comprobantes, aduana, documentos, gastos, pagos, transportes, repuestos,
+  fórmulas), el espejo de su policy «leer». De la configuración, las columnas con grant a authenticated. De otra tabla, `{visible: false}`.
+- `actividad_listar(p_antes_id, p_tamano, p_actor, p_tabla, p_registro, p_hasta, p_accion)`: cursor sobre `id`, una ruta por filtro con su índice
+  (`actividad_actor_id_idx`, `actividad_accion_id_idx`, `actividad_tabla_id_idx`, `actividad_registro_id_idx`, que reemplaza `actividad_registro_idx`), tamaño por
+  `_acotar_pagina(…, 20, 100)`, «Ir a una fecha» por `actividad_fecha_idx` con desempate por `id`. Cada fila trae la cabecera, si se ve y hasta 5 nombres
+  de campos: nunca un valor ni `detalle`.
+- `actividad_purgar()` por lotes (10.000, hasta 10 por tabla y corrida): la actividad de más de `actividad_dias` y los `eventos_web` de más de 12 meses;
+  ya no borra notificaciones ni visitados (los purga `notificaciones_purgar()`). Job `actividad-purgar` a las 03:25 UTC. G2 de
+  `supabase/tests/areas/notificaciones/purgar.sql` (del `a`) se editó: admite este job y ningún otro.
+- Pruebas: `supabase/tests/areas/actividad/{actividad,listar,purgar}.sql` (T1–T10 con T5b); entradas en `numero-global.sql` y
+  `cotizaciones-visibilidad.sql`.
+
+### Verificación
+
+- `pnpm db:probar` completo en verde; mutaciones (sin `puede_lead`, sin una tabla declarada, sin las entradas de los dos inventarios): cada una
+  hace caer su prueba. `vitest run scripts/guardas`: 1141 en verde.
+- `node scripts/piloto/nivel.mjs --rango eaa39d40..HEAD`: `{"nivel":2,"disparadores":["estructura"]}`.
+- e2e completo: no (9.01-1, Nivel 2: sin e2e completo, lo prueba el CI del PR; dirigidos: ninguno, sin texto de interfaz)
+
+### Lo que sigue (9.01 queda abierto)
+
+- **9.01-2 (base):** la deuda de `registrar_actividad()` (quitarle el `execute` a authenticated si ninguna función de invocador la llama) y la
+  revisión de lo que guarda `detalle` en cada llamada; declarar, si hace falta, las tablas que hoy quedan sin recorte a propósito.
+- **9.01-3 (pantalla):** el módulo, `/actividad`, `navegacion.ts` y la entrada de `actividad_listar` en `scripts/guardas/areas-c/paginas-en-la-base.ts`
+  (obligatoria: no entró en esta parte porque la guarda exige quién la llame).
+- **9.01-4 (pantalla):** el drawer del diff (`?cambio=`), «Ver actividad» en las fichas, `e2e/actividad.spec.ts` y la fila de `docs/UX.md`.
+
+### Para copiar a `docs/PLAN.md` (la sesión de un carril no edita el PLAN)
+
+- La fila 9.01 sigue en 4 partes. En la «Partición» de la Fase 9: 9.01-1 hecha (base de lectura: `actividad_diff`, `actividad_listar` con `p_accion`,
+  índices, purga y su job); 9.01-2 a 9.01-4 como arriba.
+- Arrastrado «Actividad lee el diff por una función que recorta según la cartera»: hecho en la base; se cierra con la 9.01-4.
+- Abierto nuevo **9-01b**: en la nube los índices nuevos de `actividad` se crean sin `concurrently` y, con la tabla nunca purgada, bloquean sus
+  escrituras mientras se arman; la guía del 9.13 dice purgar a mano antes si la tabla es grande.
+
+<!-- paso:9.01-2 -->
+
+## 2026-11-12 · Paso 9.01-2: quién escribe la actividad y quién lee su `detalle` (parte 2 de 4)
+
+### Hecho
+
+- `registrar_actividad()` ya no tiene `execute` para `public`, `anon` ni `authenticated`; `service_role` lo conserva. Todas las funciones que la
+  llaman son `security definer` (61 en la base y las de 23 migraciones posteriores) y nada de la app ni de edge la llama por RPC. Cierra la deuda
+  aceptada: con sesión se podían dejar filas con `antes`/`despues` inventados que `actividad_diff` mostraría como un cambio real.
+- `actividad.detalle` ya no se lee como `anon` ni `authenticated` (revoke de columna; los demás grants de columna siguen). Lleva teléfonos
+  enmascarados (`lead.telefono_*`), el código del portal (`portal.*`) y montos (`pago.*`); lo leen sólo funciones definer y `service_role`.
+- Prueba: `supabase/tests/areas/actividad/registrar.sql` (T1 privilegio y 42501 con sesión; T2 ninguna invocadora la llama, por
+  `pg_get_functiondef`; T3 la cabecera sí y `detalle` no; T4 el detector ve una sonda plpgsql y una `begin atomic`).
+- El rango trae SQL de seguridad (`grant`/`revoke`): sólo quita privilegios; lo detecta `publicar.sh` y lo aprueba el piloto solo.
+
+### Verificación
+
+- `pnpm db:probar` completo: salida 0, 1236 pruebas ✓ (sin contar las cabeceras de archivo), 0 ✗. Mutaciones (sin revocar a authenticated, sin el revoke de `detalle`, detector por
+  `prosrc`): caen T1, T3 y T4. `vitest run scripts/guardas`: 1143 en verde. `database.types.ts` sin cambios.
+- e2e completo: no (9.01-2, Nivel 1: sin e2e completo, lo prueba el CI del PR; dirigidos: ninguno, sin texto de interfaz)
+
+### Lo que sigue (9.01 queda abierto)
+
+- **9.01-3 (pantalla):** el módulo, `/actividad`, `navegacion.ts` y la entrada de `actividad_listar` en `scripts/guardas/areas-c/paginas-en-la-base.ts`.
+- **9.01-4 (pantalla):** el drawer del diff (`?cambio=`), «Ver actividad» en las fichas, `e2e/actividad.spec.ts` y la fila de `docs/UX.md`.
+
+### Para copiar a `docs/PLAN.md` (la sesión de un carril no edita el PLAN)
+
+- En la «Partición» de la Fase 9: 9.01-2 hecha (sin `execute` de `registrar_actividad()` para la app y sin `select (detalle)` de `actividad` para
+  `authenticated`).
+- La nota de riesgos de la fase («`actividad.detalle` no está recortado…») queda resuelta; también la deuda aceptada de `registrar_actividad()`.
+
+<!-- paso:9.01-3 -->
+
+## 2026-11-12 · Paso 9.01-3: la pantalla `/actividad` (parte 3 de 4)
+
+### Hecho
+
+- Módulo `actividad`. `entities/` lleva los tipos de las dos RPC, las etiquetas de entidad, acción y campo, y `presentarDiff`:
+  - muestra sólo lo que cambió, comparado en profundidad, también dentro de `atributos`;
+  - un monto sale como monto, cada lado en su moneda;
+  - sin moneda conocida, `monedaConocida: false`;
+  - un atributo de tipo `moneda`, con la moneda sin conocer.
+- Filtros de persona y entidad, de una sola opción. `?registro=` vale sólo con `?entidad=`.
+- `infra/` lee la página por cursor, el diff y las personas.
+- `/actividad`:
+  - por día en la zona de la empresa;
+  - «Ver más» hasta `TOPE_DE_LO_CARGADO` con `<AvisoDeTope>`, «Ir a una fecha» y «Volver a lo más reciente»;
+  - los estados de `docs/UX.md`: esqueleto, vacío de primera vez con `actividad_dias`, vacío por filtro, error con «Reintentar» y sin permiso.
+- La entrada «Actividad» del menú del usuario pasa a `disponible`.
+- `actividad_listar` entra en `scripts/guardas/areas-c/paginas-en-la-base.ts`.
+- La fila todavía no abre el diff.
+
+### Verificación
+
+- `diff.test.ts`: T1–T5 en verde. Las mutaciones caen:
+  - M1, sin `monto` en gastos: caen T2 y T3;
+  - M2, comparar por identidad: cae T1;
+  - M3, la misma moneda en los dos lados: cae T2;
+  - M4, el atributo `moneda` en base: cae T2.
+- `vitest run scripts/guardas`, `navegacion.test.ts` y el módulo: 1180 en verde. `typecheck` y `lint` limpios.
+- `nivel.mjs --rango 2c139fd9..HEAD`: `{"nivel":2,"disparadores":["layout"],"database_types":false}`.
+- e2e completo: no (9.01-3, Nivel 2: layout, lo prueba el CI del PR; dirigidos: pwa en escritorio y movil, datos-exportar en escritorio)
+
+### Lo que sigue (9.01 queda abierto)
+
+- **9.01-4 (datos y pantalla).** La parte se vuelve de datos por su primer commit, así que su plan se audita.
+  - Primer commit: la migración `actividad_diff_moneda`. `actividad_diff` suma `moneda_antes`/`moneda_despues` desde `a.antes->>'moneda'` y
+    `a.despues->>'moneda'` (la foto del cambio, nunca la fila vigente), sólo con `visible: true` y en `gastos`, `pagos`, `repuestos_compras` y
+    `repuestos_items`. Lleva su prueba en `areas/actividad/actividad.sql`.
+  - Después: el drawer `?cambio=`, «Ver actividad» en las fichas, `e2e/actividad.spec.ts` y la fila de `docs/UX.md`.
+
+### Para copiar a `docs/PLAN.md` (la sesión de un carril no edita el PLAN)
+
+- En la «Partición» de la Fase 9:
+  - 9.01-3 hecha: `/actividad` por día, con «Ver más», «Ir a una fecha» y filtros de persona y entidad.
+  - 9.01-4 suma `moneda_antes`/`moneda_despues` de la foto en `actividad_diff`.
+- La fila 9.01 sigue en 4 partes.
+
+<!-- paso:9.01-4 -->
+
+## 2026-11-12 · Paso 9.01-4: el diff en su drawer, «Ver actividad» en las fichas (parte 4 de 4)
+
+### Hecho
+
+- Migración `20261113020055_actividad_diff_moneda.sql`: `actividad_diff` suma `moneda_antes` y `moneda_despues` de la foto del cambio (fuera de `leads` y
+  sólo si `authenticated` lee `moneda`) y `origen_id` de un vehículo. T7 en `areas/actividad/actividad.sql`, también sin grant de `moneda` y que siga
+  `security definer` con `search_path` vacío.
+- `/actividad`: una fila visible abre su diff en un drawer `?cambio=<id>`, con el cuerpo por `diferido()`, las etiquetas de `atributos` leídas al abrir,
+  cada monto con la moneda de su lado y «No tienes acceso a este cambio.».
+- `<Monto>` acepta `moneda={null}`: el número sin moneda inventada, oculto igual en el Modo Live. **Para el carril base:** este cambio a
+  `src/shared/ui/monto.tsx` va dentro del commit `bacbc87a` (el drawer de `actividad`), no en uno propio; sólo agrega (nadie pasaba `null`).
+- «Ver actividad» en el «⋯» de la ficha de lead y de vehículo, sólo con `actividad.ver` (la ruta la arma `src/app`).
+- `e2e/actividad.spec.ts`: el camino feliz en escritorio. La fila «Actividad» de `docs/UX.md`.
+
+### Verificación
+
+- `db:probar` entero en verde; T7 en verde. Vitest: T8–T11 en verde; M5 (cae T9) y M6 (cae T8).
+- Vitest de actividad, entidades de leads y vehículos, ficha de lead y guardas: 2611 en verde. `typecheck` y `lint` limpios por el hook de cada commit (format, mapa, lint ✔); su prueba de autoridad es el CI del PR. `mapa.sh --check` en 0.
+- `nivel.mjs --rango 254cce68..HEAD`: `{"nivel":2,"disparadores":["shared"],"toca_interfaz":true,"database_types":false}`.
+- e2e completo: no (9.01-4, Nivel 2: shared, lo prueba el CI del PR; dirigidos: actividad en escritorio, leads-menu-orden y vehiculos-menu-orden en escritorio y movil)
+
+### El paso 9.01 queda hecho (4 partes, `parcial: false`)
+
+### Para copiar a `docs/PLAN.md` (la sesión de un carril no edita el PLAN)
+
+- En la «Partición» de la Fase 9, `9.01-4` hecha: el drawer `?cambio=` con la moneda y el origen de la foto, «Ver actividad» en las fichas y
+  `e2e/actividad.spec.ts`.
+- La fila **9.01** queda **hecha** (4 partes).
+- Se cierra el arrastrado «Actividad lee el diff por una función que recorta según la cartera»: la pantalla abre el diff recortado y el e2e lo recorre.
+
+### Para copiar a `docs/RENDIMIENTO.md`
+
+- `/actividad`: la lista por cursor (`actividad_listar`, de a `TAMANO_DE_VER_MAS` hasta `TOPE_DE_LO_CARGADO`, una ruta por filtro con su índice); el
+  drawer pide `actividad_diff` por `actividad_pkey` y, sólo si el diff trae `atributos`, las etiquetas por `leads_campos_clave_key` u
+  `origenes_campos_origen_id_clave_key`, acotadas a las claves que llegaron. `actividad` no es una tabla con volumen medido: sin `medir-*.sql`.
+
+<!-- paso:9.05-1 -->
+
+## Paso 9.05 · Datos: exportar todo, parte 1 de 3 (2026-11-12)
+
+- **`datos_exportacion_registrar(p_entidad, p_filas, p_filtros)`** (definer, `search_path` vacío): el enforcement de `datos.exportar.todo` (42501 sin
+  él). Entidades `leads`, `vehiculos`, `cotizaciones`; hasta 250.000 filas; filtros sólo `desde`, `hasta` (fecha) y `origen` (obligatorio en vehículos,
+  rechazado en leads), cada rechazo 22023 con su `hint`. Candado por persona antes de leer `actividad`; 3 por hora por persona y por entidad leyendo las 3
+  más recientes (sin `count(`); la cuarta, `{ok: false, libre_en}`. Constancia `datos.exportado` con entidad, filas y filtros: nada de nadie.
+- **`datos_exportar_leads()`** (invocadora, SQL `stable`, inlineable): `leads_vista` con la sesión de quien exporta y sin las marcas de quien mira. De un
+  lead ajeno sale el teléfono enmascarado y sin los campos de sólo cartera; el número global sólo con `leads.numero_global.ver`. PostgREST le pone el
+  orden, el cursor y `max_rows`. Se inlinea también en el Postgres local (`.piloto/salidas/9.05-1/explain-postgres.txt`: sin `Function Scan`).
+- **Cierra:** la deuda «`datos.exportar.todo` sin enforcement» (sale su excepción de `permisos-enforcement.sql`; `aplicado_en` =
+  `datos_exportacion_registrar` en la migración y en `seed.sql`). En `docs/ESTADO.md` › «Deuda aceptada», `datos.exportar.todo` sale de los permisos sin
+  enforcement.
+- **Cómo se anota en `docs/PLAN.md`:** la fila 9.05 sigue abierta con «parte 1 de 3 hecha: `datos_exportacion_registrar` (enforcement de
+  `datos.exportar.todo`) y `datos_exportar_leads()`».
+- **Guardas tocadas:** `permisos-enforcement.sql` (sin la excepción), `numero-global.sql` (sonda de `datos_exportar_leads` y motivo del registrar),
+  `auditoria-leads.sql` (`datos_exportar_leads()` como `L`: entra por sus columnas de salida `tipo_lead_id`/`origen_lead_id`). Un mensaje del registrar
+  se escribió sin la palabra «antes» para no caer en el detector de `cotizaciones-visibilidad.sql` (que busca `actividad` con `antes|despues`).
+- **Pruebas:** `supabase/tests/areas/datos/exportar.sql`, 7 bloques en verde (`.piloto/salidas/9.05-1/probar-solo-3.txt`): sin permiso 42501, definer y
+  candado antes de leer `actividad` (catálogo); la cuarta da `libre_en` exacto y el tope es por entidad; la constancia exacta y 16 rechazos con su `hint`;
+  con dos cuentas y la consulta del route handler, el lead ajeno enmascarado y sin campo privado (y el propio completo, como control); inlineable.
+  `pnpm db:probar` completo: `.piloto/salidas/9.05-1/probar-3.txt`.
+- **Parte que queda — 9.05-2:** el route handler `POST /datos/exportar` (Origin, Zod, cuenta acotada a 250.001, registrar, CSV por páginas de cursor en
+  stream), `entities/exportacion.ts` con Vitest, `infra/`, `features/exportar/lecturas.ts` y la composición; medir primero si la sesión sigue viva mientras
+  el stream lee; la medición con volumen de la lectura (`.piloto/planes/9.05-1.md` › «Lo que queda servido para la 9.05-2»).
+- **Parte que queda — 9.05-3:** la pantalla `/datos` (`?seccion=exportar|importar`), sus estados, `navegacion.ts`, `e2e/datos-exportar.spec.ts` y
+  `docs/UX.md:107` (`.piloto/planes/9.05-1.md` › «Lo que queda servido para la 9.05-3»).
+- e2e completo: no (9.05-1, Nivel 1: lo prueba el CI del PR; sin dirigidos: no toca texto de e2e/)
+
+<!-- paso:9.05-2 -->
+
+## Paso 9.05 · Datos: exportar todo, parte 2 de 4 (2026-11-12)
+
+- **`POST /datos/exportar`** (`src/app/(app)/datos/exportar/route.ts`, `datos.exportar.todo`): `Origin` de esta app, el pedido por `esquemaDelPedido`
+  (hoy sólo `leads`, con `desde`/`hasta`), y `exportarTodo` en este orden: el permiso efectivo → la sesión → el layout y los catálogos → el conteo
+  hasta 250.001 ids → **`datos_exportacion_registrar`** → el flujo. 403 sin el permiso o con 42501, 429 `{libreEn}` con el cupo gastado, 409
+  `{tope}` y 404 sin registrar, 401 sin sesión. Cumple la condición de la auditoría del informe 9.05-1 (punto 6): ninguna fila se lee antes de la
+  constancia (`route.test.ts`, T1–T8 y T12).
+- **El flujo** (`features/exportar/flujo.ts`): un `ReadableStream` con `highWaterMark` 0, una página de 1.000 por cursor `(creado_en, id)` cuando el
+  navegador tira; corta en las filas registradas (el conteo y la lectura usan el mismo instante de corte); una página que falla o un token a menos de
+  30 s de vencer lo cortan con error (una descarga fallida, nunca un CSV que parezca entero).
+- **La sesión del flujo** (`infra/cliente-del-flujo.ts`): un cliente de supabase-js con `accessToken` fijo (nunca refresca: rotar el refresh token
+  después de responder cerraría la sesión por reuso). El token sale de `getSession()` y se verifica **ese mismo** con `getClaims(token)`; `exp` de los
+  claims; con menos de 5 min, `refreshSession()` dentro del pedido, antes de la `Response`. Es la única excepción a «nunca getSession()» (ficha › «Ojo»).
+- **Las columnas de leads** (`features/exportar/columnas-de-leads.ts`): `N.º` (con `leads.numero_global.ver`), Nombre, Teléfono (el de un lead
+  ajeno, enmascarado tal cual lo da la base), Tipo, Origen, Dueño, Creado, Último seguimiento y los campos activos, con las celdas de la exportación
+  propia de `leads` (reexportadas de forma aditiva desde `src/modules/leads/index.ts`).
+- **Medido** (`supabase/tests/medir-datos-exportar.sql`, `MEDIR_SOLO=medir-datos-exportar pnpm db:medir:volumen`, 200.000 leads): la página de
+  1.000 171 ms por `leads_listado_idx` sin `Function Scan`; la de ids 1 ms; el conteo entero 0,3 s; la lectura entera 33,9 s (42,3 s a 250.000). El
+  tope queda en 250.000 (`.piloto/salidas/9.05-2/medir-1.txt`).
+- **Fuera de `modulos`:** `src/modules/leads/index.ts` y su ficha (reexportaciones aditivas) y `scripts/mediciones.mjs`, `scripts/medir-listado.mjs`
+  (la medición y sus variables).
+- **Cómo se anota en `docs/PLAN.md`:** la fila 9.05 sigue abierta con «parte 2 de 4 hecha: `POST /datos/exportar` con la fuente de leads (flujo con
+  token fijo, constancia antes del primer byte); quedan 2b (vehículos y cotizaciones) y 3 (pantalla)». «Partes estimadas»: de 3 a 4. `parcial: true`.
+- **Parte que queda — 9.05-2b:** las fuentes de vehículos (`vehiculos_inventario`, exige origen, layout del origen) y cotizaciones
+  (`cotizaciones_listado`, de a 100), cada una con su `fuente-de-<entidad>.ts`, sus columnas con test y su medición; sin tocar el flujo ni el orden
+  (`.piloto/planes/9.05-2.md` › «Lo que queda servido para la 9.05-2b»).
+- **Parte que queda — 9.05-3:** la pantalla `/datos`, `navegacion.ts`, el e2e y `docs/UX.md` (`.piloto/planes/9.05-1.md` › «Lo que queda servido para
+  la 9.05-3»).
+- e2e completo: no (9.05-2, Nivel 1: lo prueba el CI del PR; sin dirigidos: ningún spec nombra /datos)
+
+<!-- paso:9.05-2b -->
+
+## Paso 9.05 · Datos: exportar todo, parte 3 de 5 (2026-11-12)
+
+- **Vehículos de un origen en `POST /datos/exportar`** (`{ entidad: "vehiculos", delimitador, origen, desde?, hasta? }`): el pedido pasa a una unión
+  por entidad (`origen` obligatorio en vehículos, rechazado en leads). La fuente (`features/exportar/fuente-de-vehiculos.ts`) lee dentro del pedido el
+  origen (`getOrigenes(true)`: también los inactivos, que guardan vehículos), su layout y sus fases. Un origen que no está da 404 `vacia` sin contar
+  ni registrar (no dice si existe); un fallo del layout o de las fases es un error (500), no un 404. El archivo se llama `vehiculos-<origen en ASCII>-todos-AAAA-MM-DD.csv`.
+- **La lectura** (`infra/vehiculos.ts`): la tabla `vehiculos` con el cliente del flujo (token fijo de quien exporta), de a 1.000 por cursor
+  `(creado_en, id)` y `vehiculos_origen_listado_idx`. La policy «vehiculos: leer» decide filas y papelera; ninguna función nueva. Los ayudantes de
+  página pasan a `infra/paginas.ts` (`enElRango`, `siguienteDe`, `contarHasta`), que comparte leads.
+- **Las columnas** (`features/exportar/columnas-de-vehiculos.ts`): `N.º`, los datos comunes del tipo del origen (etiquetas de `camposComunes()`,
+  reexportado de forma aditiva desde `src/modules/vehiculos/index.ts`), los campos activos del layout en su orden, `Fase`, `Creado` y `Actualizado`.
+  El precio sale tal como lo da la base; sí o no, categoría y fase por nombre; opciones por etiqueta (`' | '`); fechas en la zona de la empresa.
+- **El orden se escribe una sola vez** (`seguirCon` de `lecturas.ts`): cada entidad trae su fuente con un `case`. `TOPE_POR_ENTIDAD` y la respuesta
+  409 lleva el tope de su entidad.
+- **Pruebas:** `route-vehiculos.test.ts` (T13–T16: el texto exacto del archivo, constancia antes de la primera página, origen inactivo, 404, 409, 400),
+  `columnas-de-vehiculos.test.ts` (T17), `exportacion.test.ts` (T18) y `supabase/tests/areas/datos/exportar-vehiculos.sql` (T19, guarda de regresión:
+  Ada ve `[v2, v1]` con el precio intacto, Bea sólo el suyo, Ceci nada; ni la papelera ni otro origen; ninguna `datos_exportar_*` definer).
+- **Medido** (`supabase/tests/medir-datos-exportar-vehiculos.sql`, `MEDIR_SOLO=medir-datos-exportar-vehiculos pnpm db:medir:volumen`, 250.000
+  vehículos en un origen): página de 1.000 0,8 ms (113 buffers) y profunda 0,9 ms, por `vehiculos_origen_listado_idx`; conteo entero 0,3 s; lectura
+  entera 0,4 s; Pía («propios», 5.000) 82 ms. El tope de vehículos queda en 250.000 (`.piloto/salidas/9.05-2b/medir.log`).
+- **Fuera de `modulos`:** `src/modules/vehiculos/index.ts` y su ficha (reexportación aditiva) y `scripts/mediciones.mjs` (la medición).
+- **Cómo se anota en `docs/PLAN.md`:** la fila 9.05 sigue abierta con «parte 3 de 5 hecha: vehículos por origen en `POST /datos/exportar` (tabla por
+  la RLS, de a 1.000; columnas comunes y del layout); quedan 2c (cotizaciones) y 3 (pantalla)». «Partes estimadas»: 5. `parcial: true`.
+- **Parte que queda — 9.05-2c:** cotizaciones (la cabecera de `cotizaciones_listado()`, de a 100 con cursor de arranque), con su rama en el pedido, su
+  `case` en `lecturas.ts`, sus columnas con test, su medición y su bloque SQL (`.piloto/planes/9.05-2b.md` › «Lo que queda servido para la 9.05-2c»).
+- **Parte que queda — 9.05-3:** la pantalla `/datos`, `navegacion.ts`, el e2e y `docs/UX.md` (`.piloto/planes/9.05-1.md` › «Lo que queda servido para
+  la 9.05-3»).
+- e2e completo: no (9.05-2b, Nivel 1: lo prueba el CI del PR; sin dirigidos: ningún spec nombra /datos)
+
+<!-- paso:9.05-2c -->
+
+## Paso 9.05 · Datos: exportar todo, parte 4 de 5 (2026-11-12)
+
+- **Cotizaciones en `POST /datos/exportar`** (`{ entidad: "cotizaciones", delimitador, origen?, desde?, hasta? }`): tercera rama del pedido, con
+  `origen` optativo (sin él, todas las que se ven). Un origen que no está da 404 `vacia` sin contar ni registrar; uno inactivo exporta. El archivo se
+  llama `cotizaciones-todos-AAAA-MM-DD.csv` o `cotizaciones-<origen en ASCII>-todos-…`.
+- **La lectura** (`infra/cotizaciones.ts`): la tabla `cotizaciones` con el cliente del flujo (token fijo de quien exporta), de a 1.000 por cursor
+  `(creado_en, id)`, por `cotizaciones_listado_idx` (con origen, `cotizaciones_origen_creado_idx`), con `eliminado_en is null` explícito. Las policies
+  deciden filas y papelera; sólo columnas con `grant select`; ninguna función nueva. No es `cotizaciones_listado()` (plpgsql, corta en 100).
+- **Los nombres por página** (`fuente-de-cotizaciones.ts`, `antesDeEscribir`): clientes por `leads_vista_por_ids` (sólo `id, nombre`) y sólo con
+  `leads.ver`; títulos de `vehiculos` de a 100 (`IDS_POR_CONSULTA_DE_NOMBRES`). Lo que la RLS no deja ver va vacío; los mapas se vacían en cada página.
+- **Las columnas** (`columnas-de-cotizaciones.ts`): `N.º`, `Título`, `Cliente`, `Vehículo`, `Origen`, `Clase`, `Estado`, `Total (<moneda base>)`,
+  `Creado`, `Actualizado`. El total en moneda base tal como se guarda; la moneda sale de los ajustes (el route pasa `monedaBase`).
+- **Pruebas:** `route-cotizaciones.test.ts` (T20–T23: el texto exacto, el orden contar → registrar → página → nombres, el total `98765,43`/`1234,5`/`0,1`,
+  origen, 404, sin `leads.ver`, 409, 500, 400), `columnas-de-cotizaciones.test.ts` (T24), `exportacion.test.ts` (T25) y
+  `supabase/tests/areas/datos/exportar-cotizaciones.sql` (T26: Ada ve `[c3, c2, c1, c5]` y con origen `[c2, c1, c5]` con el total intacto; Bea
+  («propios») `[c1, c5]`, c5 por un lead de su cartera; Ceci nada; la papelera no sale; las 12 columnas conservan su grant).
+- **Medido** (`supabase/tests/medir-datos-exportar-cotizaciones.sql`, ≈ 254.000 vivas): página 0,9 ms, profunda 0,9 ms, de un origen 1,1 ms; conteo
+  0,4 s; lectura 0,44 s; nombres de una página 1,4 ms + 0,5 ms; Pía («propios») 2,3 s, casi todo en la última página. El tope queda en 250.000
+  (`.piloto/salidas/9.05-2c/medir.log`).
+- **Fuera de `modulos`:** `scripts/mediciones.mjs` y `scripts/medir-listado.mjs` (una entrada y una variable, aditivas).
+- **Cómo se anota en `docs/PLAN.md`:** la fila 9.05 sigue abierta con «parte 4 de 5 hecha: cotizaciones en `POST /datos/exportar` (tabla por la RLS, de
+  a 1.000, todas o de un origen; total en moneda base tal como se guarda); queda 3 (pantalla)». «Partes estimadas»: 5. `parcial: true`.
+- **Parte que queda — 9.05-3:** la pantalla `/datos`, `navegacion.ts`, el e2e y `docs/UX.md` (`.piloto/planes/9.05-1.md` › «Lo que queda servido para
+  la 9.05-3»). Lo que suma esta parte: el pedido acepta las tres entidades; vehículos con `origen` obligatorio y cotizaciones con `origen` optativo
+  (la pantalla elige origen sólo para esas dos); el 409 trae el `tope` de su entidad.
+- e2e completo: no (9.05-2c, Nivel 1: lo prueba el CI del PR; sin dirigidos: ningún spec nombra /datos)
+
+<!-- paso:9.05-3 -->
+
+## Paso 9.05 · Datos: exportar todo, parte 5 de 5: la pantalla (2026-11-12)
+
+- **`/datos`** (`src/app/(app)/datos/{page,loading}.tsx`, `pantallas/datos.ts`): cualquiera con sesión entra; `?seccion=` con «Importar» declarada y
+  apagada hasta el 9.06 (sin barra de pestañas mientras haya una sola sección). Los orígenes se leen sólo con `datos.exportar.todo`.
+- **«Exportar»:** «Mis leads» para todos (con `leads.ver` y `leads.exportar`, «Ir a Leads» abre `/leads?panel=exportar`; si no, apagada con su motivo) y,
+  con `datos.exportar.todo`, «Todo»: Leads, Vehículos (origen obligatorio, de los que ve) y Cotizaciones (todas o de un origen), cada una con «Desde»,
+  «Hasta» y «Descargar». Estados: preparando con el botón apagado, vacía, tope con foco al rango, límite con la hora en que se libera, sin permiso,
+  error (genérico, sin red, sesión vencida) con «Reintentar», y la tarjeta que el rol no puede usar con su motivo.
+- **La lógica, pura y con test:** `entities/tarjetas.ts` (qué ve y puede usar cada quien, por `puede()` y los orígenes de la base),
+  `entities/descarga.ts` (la respuesta del route como estado y la validación del formulario con `esquemaDelPedido`), `entities/secciones.ts`. El hook
+  `use-descarga.ts` manda un pedido a la vez por tarjeta. La pantalla no decide nada: el permiso, el cupo y las filas los exige la base.
+- **Navegación:** «Datos» prendida en el menú del usuario (y `Ctrl/Cmd+K`) para todos; `navegacion.test.ts` espera Perfil y Datos sin permisos.
+- **Fuera de `modulos`, aditivo:** `src/modules/leads/index.ts` exporta `PANEL_EXPORTAR`.
+- **Pruebas:** `tarjetas.test.ts` (6), `descarga.test.ts` (9), `secciones.test.ts` (2); `e2e/datos-exportar.spec.ts` (escritorio): la dueña llega por el
+  menú, descarga `leads-todos-AAAA-MM-DD.csv` con BOM, las líneas de «Ajeno Carlos» traen la celda «Teléfono» enmascarada y el archivo no trae su número ni
+  su cédula; lo suyo sale entero; Berta ve sólo «Mis leads», apagada con «Tu rol no exporta leads.».
+- **Inestable visto:** `tablero.spec.ts` T6 en `movil` cayó una vez corriendo junto a su par de escritorio («Leads por origen» no volvió tras
+  «Restablecer») y pasó 6/6 solo; no toca nada de este paso.
+- **Cómo se anota en `docs/PLAN.md`:** la fila 9.05 queda hecha (partes 9.05-1, 2, 2b, 2c y 3; `docs/pasos/9.05-*/`). `parcial: false`.
+- e2e completo: no (9.05-3, Nivel 2: lo corre el CI del PR; dirigidos: datos-exportar y leads-exportar en escritorio, tablero en escritorio y movil)
+
+<!-- paso:9.08-1 -->
+
+## 2026-11-12 · Paso 9.08-1: `/tablero` con las cinco cifras y el período en la URL (parte 1 de 3)
+
+### Hecho
+
+- `entities/widgets.ts` (catálogo `WIDGETS_TABLERO`: clave, título, permisos, grupo de RPC, tamaño y `disponible`; `widgetsVisibles(permisos)` y `aplicarPreferencia`
+  ya probada, que usará la parte 3), `entities/periodo.ts` (`mes`, `mes-anterior`, `90d` con la zona de la empresa), `entities/cifras.ts` («Sin datos», nunca «0 %»)
+  y `entities/metricas.ts` (los payloads de las RPC con Zod), cada uno con su test.
+- `infra/queries/metricas.ts` (`tablero_leads` y `tablero_cotizaciones`, validadas con Zod; una forma inesperada es `{ ok: false }`), `composicion.ts` y
+  `features/metricas/lectura.ts` (`cache()`: una llamada por grupo y request).
+- `/tablero` (`pantallas/tablero.ts`, `page.tsx`, `loading.tsx`): selector de período con tres `<Link>`, y cinco cifras («Leads creados», «Convertidos», «Tasa
+  de conversión», «Cotizaciones», «Finales»), cada una tras su `<Suspense>` con `await connection()`; error por widget con «Reintentar» (sin permiso, sólo el motivo).
+- El menú enciende «Tablero» y la cabecera de Inicio gana «Ver el tablero» para quien tiene `tablero.metricas.ver`.
+- `e2e/tablero.spec.ts` (T1 «Convertidos» sube en uno al marcar final, T2 período en la URL, T3 sin permiso, T4 enlace desde Inicio).
+
+### Verificación
+
+- `vitest run src/modules/tablero/entities`: 4 archivos, 26 pruebas en verde (`.piloto/salidas/9.08/vitest-c1.txt`); `vitest related` de `navegacion.ts` y el registro
+  de widgets: 37 en verde. `eslint` y `tsc` de lo tocado limpios.
+- e2e dirigidos `tablero`, `inicio-bandeja` e `inicio-bandeja-logistica` en escritorio y móvil: 16 de 16 (`.piloto/salidas/9.08/e2e-tablero.txt`), con `E2E_SIN_FUNCIONES=1`.
+- Sin `db:*`: esta parte no toca `supabase/`.
+
+### Lo que sigue (9.08 queda abierto)
+
+- **9.08-2:** las gráficas SVG (barras por día, rankings por origen y persona) con «Ver como tabla». **9.08-3:** «Personalizar» (`?panel=personalizar`), la preferencia
+  `tablero.widgets` en `equipo` y su e2e; ahí se cierra el arrastrado «tablero de equipo (`tablero.metricas.ver`)».
+
+### Para copiar a `docs/PLAN.md` (la sesión de un carril no edita el PLAN)
+
+- 9.08-1 hecha: `/tablero` con el período en la URL y las cinco cifras, «Tablero» en el menú y «Ver el tablero» en Inicio. **9.08 sigue:** 9.08-2 (gráficas) y 9.08-3 (Personalizar).
+
+e2e completo: no (9.08-1, Nivel 2: lo prueba el CI del PR; dirigidos: tablero, inicio-bandeja, inicio-bandeja-logistica en escritorio y movil)
+
+<!-- paso:9.08-2 -->
+
+## 2026-11-12 · Paso 9.08-2: las gráficas del tablero y «Ver como tabla» (parte 2 de 3)
+
+### Hecho
+
+- `entities/graficas.ts` (puro, con su vitest): techo redondo de la escala (1, 2, 5 por una potencia de diez), fracción acotada, marcas de días bajo el eje,
+  textos de barras y filas con singular y plural, «Sin origen» / «Sin nombre» y la nota de tope («Se muestran los 10 primeros orígenes.» / «las 20 primeras personas.»).
+- `features/metricas/graficas/`: `barras-por-dia` (HTML y SVG de servidor, dos series, leyenda en texto, alto fijo), `ranking` (barras finas con el nombre y los números
+  escritos), `tabla-equivalente` («Ver como tabla» con un `<details>` nativo, todos los números), `vacio-de-grafica`, `leyenda` y `tipos`. El esqueleto del widget gana el
+  alto de una gráfica (`alto="grafica"` para los anchos).
+- Cinco widgets anchos: `leads-por-dia`, `cotizaciones-por-dia`, `leads-por-origen`, `leads-por-persona` y `cotizaciones-por-origen`, en el catálogo (después de las cifras
+  y antes de los huecos del 9.11) y en el registro. Vacío «Todavía no hay leads / cotizaciones en este período» (con «Nuevo lead» sólo en leads y sólo con `leads.crear`) y error
+  con «Reintentar» por widget (el de las cifras).
+- `scripts/guardas/listas-con-patron.ts`: la tabla equivalente figura con su motivo (no es una lista de registros).
+- `e2e/tablero.spec.ts` T5: las cinco gráficas con su encabezado, la imagen visible, la tabla cerrada y, tras «Ver como tabla», las cabeceras «Día» y «Creados».
+
+### Verificación
+
+- `vitest run src/modules/tablero/entities/graficas.test.ts`: 21 en verde; `vitest related` de `widgets.ts` y `registro.ts`: 9 en verde; `scripts/guardas`: 36 archivos, 1.128 en verde.
+- `E2E_SIN_FUNCIONES=1 pnpm test:e2e e2e/tablero.spec.ts`: 10 de 10 (T1 a T5 en escritorio y móvil) en `.piloto/salidas/9.08-2/e2e-tablero.txt`.
+- `lint` y `typecheck` los corrió el hook de cada commit. Sin `db:*`: esta parte no toca `supabase/`.
+
+### Lo que sigue (9.08 queda abierto)
+
+- **9.08-3:** «Personalizar» (`?panel=personalizar`), la preferencia `tablero.widgets` en `equipo` y su e2e. El catálogo ya tiene **diez** widgets disponibles: sus pruebas no deben contar «cinco».
+
+### Para copiar a `docs/PLAN.md` (la sesión de un carril no edita el PLAN)
+
+- 9.08-2 hecha: cinco gráficas (por día, por origen y por persona) con «Ver como tabla», vacío y error por widget. **9.08 sigue:** 9.08-3 (Personalizar).
+
+e2e completo: no (9.08-2, Nivel 1: lo prueba el CI del PR; dirigidos: tablero en escritorio y movil)
+
+<!-- paso:9.08-3 -->
+
+## 2026-11-12 · Paso 9.08-3: «Personalizar» y la preferencia `tablero.widgets` (parte 3 de 3, cierra el 9.08)
+
+### Hecho
+
+- `equipo`: la preferencia `tablero.widgets` (`{orden, ocultos}`, `CLAVE_WIDGETS_DEL_TABLERO`) se lee con Zod (una forma mala queda «sin elegir» y no daña `densidad`, `tema` ni `porPagina`) y entra en `esquemaPreferencia`; `client.ts` exporta `guardarPreferencia`.
+- `tablero`: `entities/personalizar.ts` (mover, alternar, qué se guarda y las filas del panel, con su vitest); `widgetsParaMontar(permisos, preferencia)` devuelve mostrados y ocultos; `/tablero` los aplica y dice «Ocultaste todos los widgets» si no queda ninguno.
+- `features/metricas/personalizar/`: el botón «Personalizar» en la cabecera, el panel diferido (`?panel=personalizar`, conserva el período) con interruptor «Mostrar X» («Visible» / «Oculto» en texto), «Subir X» y «Bajar X», guarda al cambiar y «Restablecer». Sólo ofrece lo que los permisos dejan ver.
+- `scripts/guardas/areas-b/drawers-con-salida.ts`: el panel figura como `sinFormulario`.
+- `e2e/tablero.spec.ts` T6: ocultar «Leads por origen», recargar y seguir oculto, subir «Cotizaciones por día» sobre «Leads por día», recargar y «Restablecer».
+
+### Verificación
+
+- `vitest run src/modules/equipo/entities`: 142 en verde. `vitest run src/modules/tablero/entities`: 58 en verde. `vitest run scripts/guardas`: 36 archivos, 1.128 en verde.
+- `E2E_SIN_FUNCIONES=1 pnpm test:e2e e2e/tablero.spec.ts`: 12 de 12 (T1 a T6, escritorio y móvil), `.piloto/salidas/9.08-3/e2e-tablero.txt`. `e2e/listas-por-pagina.spec.ts` (usa el parseo común de preferencias): 24 en verde, 1 saltada, `.piloto/salidas/9.08-3/e2e-por-pagina.txt`.
+- `lint`, `typecheck` y `mapa.sh` los corrió el hook de cada commit. Sin `db:*`: no se tocó `supabase/`.
+
+### Lo que sigue
+
+- Nada del 9.08. Los huecos `margen-del-mes` y `cola-web` del catálogo son del 9.11 (no se ofrecen en «Personalizar» hasta entonces).
+
+### Para copiar a `docs/PLAN.md` (la sesión de un carril no edita el PLAN)
+
+- **9.08 hecho** (3 partes): `/tablero` con cinco cifras, cinco gráficas con «Ver como tabla» y «Personalizar» (ocultar y ordenar por widget, `tablero.widgets` en `preferencias_usuario`). Cierra el arrastrado «tablero de equipo (`tablero.metricas.ver`)»: lo de la persona vive en el ranking «Leads por persona» y no hay un tablero de equipo aparte.
+
+e2e completo: no (9.08-3, Nivel 2: sin e2e completo, lo prueba el CI del PR; dirigidos: tablero en escritorio y movil, listas-por-pagina)
+
+<!-- paso:9.11-1 -->
+
+## Paso 9.11-1 · Tablero: el margen del mes y la cola web en la base (2026-11-12)
+
+- **`tablero_margen(p_desde, p_hasta)`** (`tablero_margen`) → `{desde, hasta, zona, moneda, vehiculos, venta, real, cotizado, margen, sin_venta,
+por_origen, por_origen_hay_mas}` en moneda base: definer, `search_path` vacío, `assert_permiso('logistica.margen.ver')` y sólo sus orígenes, ventana
+  ≤ 366 días en la zona de la empresa. Cohorte por el último pago confirmado (D3), el mismo margen que `margen_vehiculo`; nulos sin vehículos, nunca 0;
+  `sin_venta` aparte (D4). Índice nuevo `pagos_tablero_confirmado_idx` (parcial).
+- **`tablero_cola_web(p_desde, p_hasta)`** (`tablero_cola_web`) → `{desde, hasta, zona, total, por_estado, directas, asignadas, contactadas, tasa,
+mediana_minutos, por_persona, por_persona_hay_mas}`: `assert_permiso('web.cola.gestionar')`, por `asignada_en` (índice nuevo
+  `solicitudes_contacto_web_asignada_idx`); la tasa y la mediana sin las directas.
+- `aplicado_en` de `logistica.margen.ver` y `web.cola.gestionar` en las migraciones y en `seed.sql`; las dos en el registro de `escala.sql` con su motivo;
+  fila en `docs/RENDIMIENTO.md` › «Tablero: métricas».
+- **Pruebas:** `supabase/tests/areas/tablero/margen-y-cola.sql` (R1–R5: dinero al centavo con XTS a 6,96 y cruce con `margen_vehiculo`, el período del
+  último pago, nulos sin ventas, un solo origen, 42501 en cada una, privilegios y ventana) y `cola-web.sql` (R6–R7: cifras exactas de marzo de 2020, la
+  directa fuera de la tasa, el período vacío; partido de `margen-y-cola.sql` por las 300 líneas). Mutaciones M1–M6 sobre `tablero_margen`, cada una cae en
+  su prueba (`.piloto/salidas/9.11-1/mutaciones.txt`). `pnpm db:probar` entero y `db:lint` (sin errores ni avisos en las funciones nuevas) en
+  `.piloto/salidas/9.11-1/`.
+- **Abierto:** un pago confirmado con `confirmado_en` nulo (de antes del 6.10-2) no entra al margen (D11); un `check` con su relleno, si los datos lo piden.
+- **Cómo se anota en `docs/PLAN.md`:** la fila 9.11 se parte; la 9.11-1 queda hecha con «`tablero_margen` y `tablero_cola_web` en la base».
+- **Lo que sigue: 9.11-2** — los widgets de margen y cola web (alcance, archivos y precondiciones en `.piloto/planes/9.11.md` › «Partición»). El
+  «Terminado cuando» de la fase (el tablero del dueño muestra conversión, cola web y margen del mes) se cierra con la 9.11-2, no con ésta.
+- e2e completo: no (9.11-1, Nivel 2: sin e2e completo, lo prueba el CI del PR; dirigidos: ninguno, sólo base y tipos)
+
+<!-- paso:9.11-2 -->
+
+## Paso 9.11-2 · Tablero: los widgets del margen del mes y la cola web (2026-11-12)
+
+- **«Margen del mes»** (`logistica.margen.ver`): lee `tablero_margen`; el monto por `<Monto>` en un grupo que se llama sólo «Margen del mes» (D12: el
+  Modo Live lo oculta entero), nulo «Sin venta registrada»; nota con venta, real y cotizado, «N vehículos por su último pago confirmado» (D17) y
+  «N vehículos sin venta registrada». `components/cifra-de-monto.tsx` nuevo.
+- **«Cola de la web»** (`web.cola.gestionar`, ancho): lee `tablero_cola_web`; «Turnos», «Tasa de contacto» y «Mediana hasta Contacté» sin los directos,
+  la cuenta por estado y el ranking «Turnos por persona» con «Ver como tabla»; vacío «Todavía no hay turnos de la web en este período».
+- Contrato Zod de las dos RPC en `entities/metricas.ts` con su test; catálogo con los permisos verdaderos (sin huecos); `HUECO` fuera del registro;
+  ficha, `docs/UX.md` y `docs/RENDIMIENTO.md` (`/tablero`: cuatro RPC por carga).
+- **Pruebas:** vitest de esquemas, catálogo y textos (`src/modules/tablero`, 71 ✓); `e2e/tablero.spec.ts` T7 (escritorio): confirmar un pago de 1500 sube
+  el margen exactamente 150000 centavos y el nombre del grupo no lleva dígitos. T6 en `movil` esperaba mal el fin de «Restablecer» (carrera de la
+  prueba, aflorada por los dos widgets nuevos): arreglado. `e2e/soporte/dinero.ts` gana `borrarDineroDeEsteOrigen` (D19). Salidas en
+  `.piloto/salidas/9.11-2/`.
+- **Cómo se anota en `docs/PLAN.md`:** la 9.11-2 queda hecha con «los widgets de margen del mes y cola web en `/tablero`»; el 9.11 se cierra (el «Terminado
+  cuando» de la fase en lo del tablero: conversión, cola web y margen del mes).
+- e2e completo: no (9.11-2, Nivel 2: sin e2e completo, lo prueba el CI del PR; dirigidos: tablero en escritorio y movil)

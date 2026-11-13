@@ -6742,3 +6742,661 @@ Fecha: 2026-11-12 (`TZ=America/La_Paz date +%F`). Sin compuertas ni preguntas ab
 - **D5** Lo que no corre en el completo (`push-de-verdad.sh`, la unidad) va en la tabla con el resultado de su última corrida y dónde se corrió, no como
   verde del Nivel 3.
 - **D6** UX tenía duplicadas las filas de Chat, Notificaciones y Perfil (una corta y otra al día): quedan las completas.
+
+<!-- paso:9.09 -->
+
+# 9.09 · higiene del e2e, del CI y de los entornos (partes 1 y 3)
+
+- **Partición.** El paso entero no cabe en un PR: 9.09 lleva la parte 1 (9-8) y la 3 (9-11, 9-4, 9-5, 9-6); 9.09-2 lleva 9-9 y 9-10 (sólo
+  specs de e2e, Nivel 1); 9.09-3 lleva 4-41 (`env:check produccion`, toca `src/shared/config/esquemas.ts`, Nivel 2). Para `docs/PLAN.md`:
+  la fila 9.09 queda «hecha la parte 1 (9-8) y la 3 (9-11; 9-4 y 9-5 cerrados como decididos; 9-6 abierto)»; 9-9, 9-10 y 4-41 se cierran
+  en su paso. 9.09-3 no puede correr a la vez que la Fase 7 (7-1 también edita `esquemas.ts`) ni que el 9.13.
+- **9-8: no se renombra la clave real.** El plan la apartaba renombrándola; medido en la base local, `postgres` sólo tiene `select`,
+  `delete`, `truncate` y `references` sobre `vault.secrets` (no `update`), y `vault.update_secret()` mueve `updated_at`, de modo que la
+  huella `id|updated_at|md5` no volvería. Una clave borrada tampoco vuelve con su id. Se aplica la salida prevista (D1b): con una clave
+  real, la prueba que escribe la clave se salta (`test.skip`) y la huella se afirma igual; sin ella, el spec quita lo que dejó. Sigue la
+  regla de `asegurarClaveDeRelleno()`: nunca pisa una clave que exista.
+- **9-11: el rojo provocado en un dispatch es de la persona.** Una sesión no puede disparar un workflow a mano (el hook lo rechaza): se
+  demostró con el guion en local (cinco archivos con contenido) y con la guarda y sus mutaciones. `volcar-base.sh` nunca sale con error y
+  cada volcado es independiente. El artefacto vive 14 días y el repo es público: el log de la base y `pg_stat_statements` (consultas
+  normalizadas, sin literales) no llevan claves; los datos del e2e son de prueba, como los del `funciones.log` que ya se sube.
+- **9-4 y 9-5: cerrados como decididos.** Quedan fuera de CI (`FUERA_DE_CI` en `scripts/guardas/workflows.ts` ya lo vigila): sin runner
+  dedicado ni cuenta de cinco corridas. **9-6 sigue abierto con la persona** (cuenta 3 de 5; faltan dos corridas manuales).
+- **La guarda nueva va aparte** (`workflows-fallo.ts`): `workflows.ts` (298 líneas) y su test (338) no crecen.
+- Sin dependencias nuevas en ninguna parte.
+
+## 9.09-2 · esperas del e2e (9-9 y 9-10)
+
+- **El ayudante envuelve la acción.** `conRespuesta(page, coincide, accion, espera)` recibe la acción y no una promesa ya armada: así la espera
+  queda siempre armada antes del clic. `espera` es la etiqueta (tope de 30 s) o `{ etiqueta, tope }`: el lint limita a 4 los parámetros.
+- **9-9: 5 de 5, no 15 de 15** (decidido el 2026-11-08: no se gasta en estabilizar). Sin variable permanente `E2E_CPU` en el fixture: el parche
+  fue temporal. Con la CPU a 20× una prueba entera supera los 30 s del tiempo de la prueba: se corrió con `--timeout` alto y sólo los casos
+  tocados. `esperarHidratado(page, tope = 5_000)` gana un tope opcional; el resumen del lead lo pide de 30 s.
+- **9-10: un caso por archivo** con el pedido demorado 6 s. El de `leads-escala` va a `leads-escala-demorado.spec.ts` (el archivo pasaba del tope
+  de líneas) y no lleva `@sin-celular` porque la guarda no lo deja: sus ayudantes tienen rama de celular; sale del celular con `test.skip`.
+- **`escala-recorrido` sin correr.** No hay volumen sembrado en la base del carril y sembrarlo es un paso largo fuera del alcance: queda escrito,
+  tipado por el build del e2e, y el informe lo dice.
+- **Las líneas de PLAN de 9-9 y 9-10 eran de antes del 7.x**: la lista de sitios del plan (`.piloto/planes/9.09-2.md`) las reubicó. 9-9 y 9-10
+  se cierran con este paso; la fila 9.09 queda «hechas las partes 1, 2 y 3; falta la 4 (4-41) = 9.09-3».
+- **Pedido al integrador** (`.claude/rules/e2e.md` está fuera de los módulos del paso): sumar una línea en «Escribir specs»: «un pedido se espera
+  con `conRespuesta()` y tope propio: `soporte/esperas.ts`».
+- **Trampa del build:** si `next build` cae con «Type '/tablero' is not assignable to RouteImpl», `pnpm typecheck` (que corre `next typegen`)
+  lo arregla; no era del código.
+- **4-41 (9.09-3), D1–D6.** Producción pide en Vercel las públicas, la secreta, `PORTAL_COOKIE_SECRETO`, la VAPID pública, el correo (remitente, nombre y un
+  juego completo de Resend o de Cloudflare: el valor de `EMAIL_PROVEEDOR` no se lee); un preview sólo las cuatro que arrancan la app; las funciones, las
+  tres de push; Auth, SMTP, plantillas, URLs y `mailer_otp_exp` = 86400 (lo único que se compara). Tokens e ids de proyecto sólo de `process.env`; el
+  ref de Supabase de `SUPABASE_PROJECT_REF` o de `[remotes.demo]`. Salida 0/1/2 (2 gana sobre 1). `pnpm env:check` sin argumento no usa la red.
+  Un fallo de la API dice «HTTP n» o «sin respuesta», nunca el cuerpo ni la URL. El tipo `Lectura` vive en `lectura.ts` (no en `produccion.ts`) para
+  que los lectores no importen a quien los usa. Contratos de las dos API sin verificar con la nube: lo confirma el primer corrido real de la persona.
+- **Pedido al integrador** (docs de carril): PLAN › fila 9.09 «hechas las partes 1 a 4» y mover el abierto 4-41 al archivo como cerrado por 9.09-3.
+
+<!-- paso:9.10 -->
+
+# 9.10 · PWA: instalar la app (parte 1)
+
+- **Partición.** El logo oscuro cambia la base (redefine `empresa_guardar_ajustes` y `web.ajustes_acceso()`, ambas `security definer`, esta
+  legible por `anon`) y suma capas con otra verificación: va en 9.10-2, paso de datos (plan y informe auditados). Su alcance, archivos y trampas
+  están en `.piloto/planes/9.10.md` › «Parte 2 servida». Para `docs/PLAN.md`: la fila 9.10 queda «hecha la parte 1 (instalar, manifest,
+  `sw.js`)»; «PWA» (PLAN ~2454) y el logo oscuro de «Sin interfaz» (~2433) se cierran con la 9.10-2.
+- **D1 · Sin aviso que invite a instalar:** sólo la entrada del menú (un aviso que nadie pidió tapa trabajo).
+- **D2 · Los atajos del manifest no se filtran por permiso:** el manifest se pide sin sesión. Son rutas que la app ya protege.
+- **D3 · Las instrucciones de iOS van como aviso (toast)**, no como diálogo: es una línea y un `<Modal>` exige su URL.
+- **D4 · La app no se instala de verdad en Chromium de pruebas.** El clic de la notificación no depende del modo de visualización, así que se
+  prueba con el service worker real y la ventana abierta. `WindowClient.focus()` lo rechaza Chromium para un evento sintético («Not allowed
+  to focus a window»: pide el gesto de un clic real): el spec lo sustituye sólo durante el evento y comprueba `matchAll`, la elección de la
+  ventana y `navigate()` de `sw.js`. Que `focus()` enfoque la ventana con la app instalada de verdad queda a mano de la persona (9.14).
+- **D5 · `id: '/'`**, igual que el `start_url`: cambiarlo después reinstalaría la app a todos.
+- **La oferta se decide con el evento guardado al evaluarse el módulo**, no en un efecto del menú (el evento no se repite). En el e2e el aviso
+  puede llegar antes de hidratar: el caso lo repite hasta que la entrada aparece.
+
+# 9.10 · el logo oscuro (parte 2)
+
+- **D1 · La base no valida la forma de `logo_oscuro_ruta`**, igual que `logo_ruta`: la valida Zod en la action (`RUTA_DE_LOGO`) y el permiso
+  `empresa.ajustes.gestionar` es el filtro. Ninguna regla nueva que el logo normal no tenga.
+- **D2 · Un solo «Guardar», una sola versión:** los dos logos viajan en la misma llamada de `empresa_guardar_ajustes()`; dos llamadas darían
+  `PT409` a la segunda.
+- **D3 · Con logo oscuro y sin normal**, el tema claro dibuja el glifo neutro. Sin logo oscuro, `<Marca>` queda como antes.
+- **D4 · Los íconos de la app, la tarjeta y el PDF de una cotización salen del logo normal:** la pantalla de instalación y el papel son claros.
+- **D5 · Dos imágenes y el tema elige por CSS**, no por JS: `next-themes` pone `.dark` antes de pintar, así el servidor y el cliente dibujan lo
+  mismo y no hay parpadeo. La vista previa del oscuro en el formulario lleva `dark` para verse sobre el fondo de ese tema.
+
+<!-- paso:8.05-1 -->
+
+## 2026-11-12 · Decisiones del paso 8.05-1 (la tarjeta de turno y el bloque de Inicio)
+
+- **D1** · La tarjeta vive en el bloque de Inicio y sale por `client.ts` (no por `pantallas/`: el bloque es código de `tablero`, y `pantallas/` sólo lo importa `src/app`)
+  y la action por `index.ts` para la campana de la Fase 7 (recomendada de la fila).
+- **D2** · «Aparecer en la web» lo decide la persona (8.05-2; recomendada de la fila).
+- **D3** · «Contacté» sin «Deshacer» ni confirmación (recomendada de la fila): un toque.
+- **D4** · **No se puede vincular una solicitud ya contactada**: `web_confirmar_contacto` sólo escribe `lead_id` en `asignada` o `vencida`. Vincular y confirmar son un
+  solo acto desde la tarjeta. **Abierto nuevo (8-NN, lo decide la persona):** una RPC `web_vincular_contactada(p_solicitud, p_lead)` si se quiere vincular después.
+- **D5** · Un turno de un vehículo que dejó de ser público (no sale en `web.vehiculos`) se dibuja sin título; no se lee `vehiculos`.
+- **D6** · `pantallas/turnos.ts` queda como estaba; la tarjeta no pasa por ahí (ver D1).
+- **D7** · El panel de vincular es propio y compone las piezas de `panel-para-cotizar` en lugar de exportar el interior de `PanelDelCliente`: mínima superficie de
+  cambio en un módulo que otros pasos tocan.
+- **D8** · Orden: vigentes por `vence_en` (las directas, sin reloj, al final de las vigentes) y luego las vencidas de la más reciente a la más antigua.
+- **D9** · La fuente se muestra tal cual (`fuente` es texto libre del sitio); sin catálogo.
+- **D10** · **El filtro por `usuario_id` va a mano en `leerMisTurnos`**: la RLS de `solicitudes_contacto_web` deja ver todas las filas a quien tiene `web.cola.gestionar`;
+  sin el filtro, la dueña vería (y podría «confirmar») los turnos de otra persona. Lo cubre `e2e/web-turno.spec.ts`.
+- **D11** · «Crear lead» cruzó sin tocar `leads/features/alta`: el «+» abre el alta con `?elegir=vincular`, que ya devuelve `?vincular=<id>`; Inicio lo ve junto al `turno`.
+- **Pendiente anotado:** `PANEL_VINCULAR_TURNO` limpia con la tarjeta sólo `panel` y `turno`; la búsqueda del panel (`clase`, `buscar`, `cursor`) se limpia al cerrar.
+
+<!-- paso:8.05-2 -->
+
+## 2026-11-12 · Decisiones del paso 8.05-2 (la disponibilidad y la ficha en `/perfil`)
+
+- **D11** · El identificador (`handle`) se pasa a minúsculas y pide 3 a 30 caracteres de `a-z0-9._-`, sin signo en los bordes; la base sólo pide unicidad. Lo más
+  conservador y reversible: aflojarlo no pide migración.
+- **D12** · Con «Ver como» el interruptor y la ficha quedan de sólo lectura con «Estás mirando como otro rol…»: escribirían en la cuenta real de la dueña.
+- **D13** · «Aparecer en la web» sin WhatsApp lo rechaza el formulario («Para aparecer en la web necesitas tu WhatsApp.»); la base no lo exige.
+- **D14** · Si el motivo del interruptor es «Tu rol no recibe turnos de la web.», el texto de «Turnos de la web» no lo repite (los e2e de `rueda-por-rol` buscan esa frase una vez).
+- **D15** · El formulario de la ficha se pide con `diferido()` al abrir su bloque: montado de entrada, el documento de `/perfil` pasaba de 103 a 115,9 KB (12 % sobre el
+  tope); diferido, 107,0 KB. El tope sube a 113 KB (lo medido más un 5 %).
+- **D16** · La versión de la ficha es `perfiles.actualizado_en`, la misma de «Tus datos»: `/perfil` le pone esa `key` a los dos formularios para que guardar uno vuelva a
+  montar el otro (el bloque de la ficha, que no lleva la `key`, no se cierra al guardar).
+
+<!-- paso:8.12-1 -->
+
+## 2026-11-12 · Decisiones del paso 8.12-1 (la fórmula y la base del cotizador de repuestos)
+
+- **D1 · No hay caja sugerida automática:** la línea elige una caja activa del snapshot o «Sin caja» (0); `caja_sugerida` guarda la elegida. La recomendada de la fila.
+- **D2 · Aceptar copia el unitario de cada línea con ítem a `repuestos_items.precio_cliente`** (y su `moneda`); una sola aceptada por proyecto (índice parcial;
+  aceptar otra anula la anterior). La recomendada de la fila.
+- **D3 · La cotización de repuestos se numera con `identity`, con huecos:** no es un comprobante.
+- **D4 · Un total que no cabe en numeric(18,2) es un error de la línea** (`no_cabe` en la fórmula, 22023 hint `cantidad` al guardar), no un recorte.
+- **D5 · El snapshot guarda los números como texto y sólo lo activo de la moneda** (la configuración de id más alto, tramos por `costo_min`, cajas por `monto`):
+  un `float` de JSON perdería cifras, y es lo que se usó, no la tabla entera. Versión 1.
+- **D6 · El total de la cotización es nulo si falta el de alguna línea o no hay líneas** (nulo no es 0, como el margen del 8.11).
+- **D7 · `redondeo > 0` como `check … not valid`:** no valida filas viejas, que la fórmula toma como 0,01; se valida del todo cuando 8.12-2 escriba la configuración.
+- **D8 · Crear, guardar, aceptar y anular exigen el proyecto vivo y abierto** (como compras): para tocar una cotización de un proyecto cerrado, se reabre.
+- **D9 · Las RPC responden los montos como texto,** para que la hoja no pase por `float`.
+- **D10 · Mandar `total`, `logistica_sugerida`, `caja_sugerida`, `orden` o `cotizacion_id` en una línea es un error (22023 con esa clave),** no se ignora.
+- **D11 · Aceptar no copia a ítems eliminados ni a líneas libres,** y no falla por ellos.
+- **D12 · Anular una aceptada no revierte el precio del ítem:** el precio queda como dato del ítem; se cambia en la hoja de ítems o aceptando otra.
+- **D13 · Aceptar pide `repuestos.cotizar`, `repuestos.ver` y `repuestos.editar`:** fija `precio_cliente`, que hoy escribe quien edita ítems (auditoría del plan, 2;
+  la opción conservadora). Crear, guardar y anular piden `repuestos.cotizar` y `repuestos.ver`.
+- **D14 · La logística y la caja son por unidad y el redondeo va al unitario:** así el precio que se copia al ítem es exacto (`total / cantidad`).
+- **D15 · `guardar` y `aceptar` exigen `config_snapshot ->> 'version' = '1'`** (23514 hint `config_snapshot`); la migración anula las cotizaciones no anuladas sin
+  esa versión antes del índice: las escribió el cliente cuando la policy lo dejaba, y el área nunca tuvo pantalla (auditoría del plan, 3).
+- **D16 · `repuestos_cotizacion_guardar` tiene 86 líneas y su migración 320:** pasa los topes de 80 y 300 por poco; la validación de cada línea ya vive en
+  `_repuesto_cotizacion_linea_de` y `_repuesto_cotizacion_monto`, y partir más el armado de la respuesta no ayuda a leerla (auditoría del informe, 1).
+- **D17 · El permiso va con `assert_permiso`** (como compras): el 42501 dice «No tienes el permiso «repuestos.cotizar».».
+
+<!-- paso:8.12-2 -->
+
+## 2026-11-12 · Decisiones del paso 8.12-2 (Configuración › Repuestos › «Cotizador»)
+
+- **D18 · Los dos `check` se validan sólo si ninguna fila los rompe** (`repuestos_tramos_logistica_signo_check` y `repuestos_cotizador_config_redondeo_check`):
+  si las hay, quedan `not valid` (igual protegen lo nuevo), la migración avisa con `raise notice` y no falla en un despliegue con datos viejos.
+- **D19 · El recargo local se tipea en % con dos decimales y se guarda como fracción con cuatro:** es el mismo entero (`'10'` → `'0.1000'`), sin redondeo ni `float`.
+- **D20 · Los decimales de la configuración viajan como texto canónico** (`'1.3500'`): se leen con `::text`, el formulario los lee con el lector único de
+  números tipeados (`leerNumeroTipeado`: el decimal es el del locale y el otro separador sólo agrupa de a 3) y arma el texto exacto con enteros a escala fija; la
+  action lo vuelve a validar con `decimalCanonico`. `Number` sólo para dibujar con `<Monto>` y para el JSON del `insert`/`update`: los topes de pantalla dejan a
+  lo sumo 15 cifras (montos ≤ 999 999 999 999,99), que la forma más corta del JSON escribe igual y la base lee exacta. Auditoría del plan, objeción 1: aceptar
+  `,` o `.` como decimal sin mirar el locale guardaba «2.000» como 2,00 en es-BO.
+- **D21 · Tramos y cajas no se borran desde la pantalla: se desactivan.** El snapshot de una cotización guarda lo que se usó; borrar no da nada y no se deshace.
+- **D22 · El historial no dice quién publicó** (se puede sumar leyendo `creado_por`); dice cuándo y con qué valores.
+- **D23 · Publicar compara la vigente que se vio con la última antes de insertar** (chequeo de buena fe, no atómico): la tabla es append-only y una carrera deja
+  dos filas visibles en el historial; no se pierde nada.
+- **D24 · La moneda de un tramo o de una caja no cambia al editar:** se desactiva y se agrega en la otra.
+- **D25 · Tramos y cajas no tienen versión: gana la última escritura** (configuración de decenas de filas, una persona a la vez).
+- **D26 · El redondeo se dibuja como monto sólo si hay una sola moneda activa;** con varias, como número (vale para todas las monedas del cotizador).
+- **D27 · El e2e usa tramos de 900 000 en adelante** y los limpia por rango; la configuración que publica una cuenta de prueba la borra `borrarPersonasDePrueba()`
+  (la FK de `creado_por` no tiene `on delete` y la tabla es append-only para la app; ninguna cotización la referencia).
+- **D28 · Configuración, tramos y cajas siguen bajo RLS, sin RPC:** no otorgan permisos, la configuración es append-only con `creado_por` verificado por la
+  policy y el solape lo cuida el trigger de 8.12-1. «Quitar escrituras directas» (Riesgos de la Fase 8) queda cerrado para el cotizador.
+- **D29 · Los modales de tramo y caja viven en la URL** (`?panel=tramo&tramo=<id|nuevo>&moneda=` y lo mismo con `caja`), como todo modal (`ui.md`): uno nuevo
+  pide una moneda activa y uno que se edita, estar en lo leído; si no, no abre.
+
+<!-- paso:8.12-3 -->
+
+## 2026-11-12 · Decisiones del paso 8.12-3 (la pestaña «Cotizaciones» y la hoja en sólo lectura)
+
+- **D30 · La pestaña, la hoja y crear piden `repuestos.cotizar`** (además de `repuestos.ver`): quien sólo tiene `repuestos.costos.ver`, que la RLS deja leer,
+  no las ve. Es lo que dice la fila; abrirlas después es sumar una clave.
+- **D31 · La moneda se elige en la misma barra que «Nueva cotización»**, sin modal: crear no destruye nada y pide un solo dato; con una moneda activa no hay elección.
+- **D32 · Crear lleva directo a la cotización nueva.** El id lo genera el cliente una vez por intento y se reusa al reintentar (la RPC es idempotente por id);
+  se renueva al salir bien y al cambiar la moneda: la pantalla conserva su estado al volver y el mismo id devolvería la ya creada (auditoría del plan, obs. 1).
+- **D33 · Con el proyecto cerrado, «Nueva cotización» se ve apagado con el texto de la base**; la base vuelve a decidir.
+- **D34 · No se lee la configuración antes de crear:** sin configuración, el 23514 `config` dice el mensaje de la base y, sólo con `repuestos.configurar`, el
+  enlace a `?seccion=cotizador`.
+- **D35 · La lista de un proyecto va con tope 50 y `<AvisoDeTope>`**, de la más nueva, sin cursor: son decenas por proyecto.
+- **D36 · La hoja muestra los montos que guardó la base y su total;** no los recalcula, no suma subtotales por bloque ni muestra el unitario. `calcularLinea`
+  sólo dice qué le falta a una línea sin total; si la fórmula daría total y la base no lo guardó, el motivo queda sin decir (auditoría del plan, obs. 2).
+- **D37 · La hoja dice con qué configuración se calculó** (factor, recargo, redondeo y desde cuándo); los tramos y cajas del snapshot no se listan. Sin snapshot
+  válido sólo pide «anúlala y crea otra» en borrador (obs. 3).
+- **D38 · Los montos llegan como texto y pasan a `Number` sólo al entrar a `<Monto>`** (como D20): arriba de ~9·10¹³ el último centavo podría redondearse al
+  dibujarse; nada se calcula ni se escribe con ese número.
+- **D39 · El e2e siembra configuración y líneas por SQL** como `postgres` (escribir líneas es de 8.12-4) y `borrarPersonasDePrueba()` borra antes las
+  cotizaciones de repuestos de las cuentas de prueba (la FK de `creado_por` no tiene `on delete`).
+- **D40 · La ruta de la hoja no lleva `loading.tsx` propio:** la cubre el `<Suspense>` de la página (un `loading.tsx` más con el barril de pantallas duplica el
+  chunk en frío).
+
+<!-- paso:8.12-4 -->
+
+## 2026-11-12 · Decisiones del paso 8.12-4 (la hoja editable, aceptar y anular)
+
+- **D41 · La hoja es editable sólo en borrador, con el proyecto abierto y el snapshot válido;** si no, la de lectura. La base rechaza lo mismo (V4): mostrar una hoja
+  que no se puede guardar sería mentir.
+- **D42 · El total de la línea es `<Monto>` (o «Sin total · motivo»), no una `XCell`:** no se edita, y una celda con candado en cada fila es ruido; la caja es un `<select>`
+  de las del snapshot (D1).
+- **D43 · Sin `emptyLabel`:** `XCell` no lo tiene (V12) y agregarlo toca `src/shared` (Nivel 2). La celda vacía y «Sin total · Falta la logística» dicen lo mismo; la
+  ficha se corrige.
+- **D44 · Una línea nueva nace sin caja elegida** («Elige una caja»), no con «Sin caja»: olvidarla no cotiza por debajo; la línea queda sin total hasta elegir.
+- **D45 · El total en vivo sólo informa;** lo que vale es lo que guarda la base y la hoja nace de nuevo de lo guardado (`key` con la versión).
+- **D46 · Guardar manda todas las líneas** (la RPC reemplaza) y ↺ de la logística manda `logistica: null`.
+- **D47 · Aceptar sólo con lo guardado:** con cambios sin guardar, con total nulo o sin `repuestos.editar`, apagado con el motivo escrito.
+- **D48 · Anular pasa por `<Confirmar>`** (no hay restaurar) y vale en borrador y en aceptada; una anulada no muestra acciones.
+- **D49 · Los ítems para «Agregar desde un ítem» los lee la página** con `leerItemsDelProyecto` y los pasa como datos (`{id, descripcion, cantidad}`): el área
+  `cotizador` no importa `items`. Se ofrecen sólo los que no están en otra línea.
+- **D50 · Una línea no cambia de bloque:** se quita y se agrega en el otro.
+- **D51 · Las cajas del `<select>` se llaman «Caja 1», «Caja 2»…** (un `<option>` no admite `<Monto>`) y la elegida se dibuja al lado con `<Monto>`: así ninguna
+  cifra se ve antes de hidratar con el Modo Live encendido (auditoría del plan, obs. 2).
+- **D52 · Sin tests de `errores.ts` ni de las actions** (como en 8.12-3): sin dinero ni fórmula; la autoridad es la RPC con sus pruebas SQL y el e2e recorre guardar y
+  aceptar.
+- **D53 · El spec de 8.12-3 siembra su cotización como aceptada** para seguir probando la hoja en sólo lectura (la borrador ahora es editable).
+- **D54 · El e2e de cotizar corre sólo en escritorio** («un e2e del camino feliz por pantalla nueva, en escritorio», `e2e.md`); el celular sigue recorriendo la hoja de
+  lectura en `repuestos-cotizaciones.spec.ts`.
+- **D55 · Las notas se editan en la hoja** (la RPC las guarda con las líneas; ≤ 2000).
+- **D56 · Quitar una línea no se confirma:** es local hasta «Guardar» y «Recargar» la trae de vuelta.
+
+<!-- paso:8.12-ci -->
+
+## 2026-11-12 · Decisiones del arreglo del CI del 8.12
+
+- **D57 · El rojo se arregla en la app, no en la prueba:** una barra fija «Sin conexión» que no se va al volver la red tapa la pantalla a cualquiera que pierda la
+  red un momento; esperar en el spec a que llegue el código del chat escondería eso. Es la primera mitad de 7-5, tal como la anotó el 7.14-1.
+- **D58 · `useVueltaDeLaRed` a `src/shared/ui`:** lo usan dos módulos (campana y chat) y uno no importa adentro del otro. El archivo de `notificaciones` queda
+  como reexportación porque un carril no borra lo del núcleo; el carril A puede borrarlo y apuntar la campana a `shared`.
+
+<!-- paso:8.13-1 -->
+
+## 2026-11-12 · Decisiones del paso 8.13-1 (el motor de mover y las esperas)
+
+- **D1 · Generalizar en este PR, no pedir al carril ni duplicar:** `flujos` mover y el núcleo de `logistica` son de la base; se agrega la rama de repuesto sin borrar nada del vehículo.
+- **D2 · `Unidad.origenId` pasa a `string | null` en la parte 2** (nulo para el ítem); en la parte 1 `origenId` sólo se exige al vehículo.
+- **D3 · Sin «fuera de regla» ni «quién la movió» para un ítem:** `logistica_unidad` es sólo de vehículo y leerlo exigiría una RPC `security definer`. Queda el abierto **8-13a**.
+- **D4 · La vista «Cadena» y los bloques de Inicio leerán `repuestos_items` por PostgREST bajo la RLS**, con cursor `(fase_desde, id)` y tope + 1 (partes 3 y 4).
+- **D5 · «Esperas que destraban vehículos» lista ítems pendientes de proyectos con vehículo**, sin el cruce exacto con la fase del vehículo (abierto 8-13a).
+- **D6 · Los pagos del proyecto van como parte 5:** `pago_registrar` es sólo de vehículo; hace falta una RPC nueva `security definer` de dinero.
+- **D7 · El carril `c` escribe sus docs en `docs/pasos/8.13-N/`.**
+- **D8 · `unidadParaMover` cambia `vehiculoId` por `unidadId` y `tipo`:** nadie fuera de `flujos` lo usaba.
+- **D9 · `esperasQueDestraban` va sin interfaz de repositorio ni composición:** es una lectura (como `leerMargenDelProyecto`); el `index.ts` del área la exporta desde `infra/`.
+- **D10 · `p_tope` = 50 y no 51:** la RPC suma una fila de más por sí misma (`_acotar_pagina(p_tope, 50, 200) + 1`); el plan decía 51 y habría pedido 52.
+
+<!-- paso:8.13-2 -->
+
+## 2026-11-12 · Decisiones del paso 8.13-2 (el panel del ítem)
+
+- **D1 · Generalizar en `logistica` y `flujos` dentro de este PR**, de forma aditiva: nada del camino del vehículo cambia de texto ni de conducta.
+- **D2 · `?item=<id>` sólo se abre sin `?panel=`:** el stock y las imágenes usan `?panel=…&item=<id>` y no se pisan. `<ItemAbierto>` no se ata a la página: la «Cadena» (parte 3) lo monta igual.
+- **D3 · Variante de repuesto en el hueco** (`repuesto?: { permisos, regla }`): sin ella el hueco no se dibuja para un ítem (Aduana, Gastos, Pagos, Margen). El filtro de tipo va antes de descartar repetidos.
+- **D4 · Un solo botón en la fila:** «Abrir panel» (Qué falta ya nace abierto: «Mover» sería el mismo panel).
+- **D5 · Transporte del ítem: sólo texto.** El formulario propio queda como abierto **8-13b** (la tabla `transportes` ya tiene `repuesto_id` y `transporte_guardar` acepta `p_repuesto`).
+- **D6 · `Unidad.proyecto?`** opcional, sólo en un ítem, para «Abrir proyecto» y el texto del transporte; `esUnidadDeVehiculo` estrecha `origenId`.
+- **D7 · El ítem se lee en `repuestos`** (`leerItemDelPanel`, con `fase_desde` y el proyecto) y `src/app` arma la `Unidad`: `logistica` no importa `repuestos`. Un proyecto que la RLS no deja ver deja el ítem en nulo.
+- **D8 · Notas de un ítem:** `crearNota` y `editarNota` piden `repuestos.ver` (global) y no `logistica.ver` del origen; la policy de `notas` ya acepta ambas.
+- **D9 · Documentos de un ítem:** los tipos del flujo de repuestos se buscan con `origen_id is null` (hoy `.eq('origen_id', …)` con nulo no encuentra nada).
+- **D10 · Sin volumen:** notas e historial de un ítem son pocos por ítem y cada lectura lleva `limit 21`.
+- **D11 · «Elegir» apagado con su motivo sólo para un ítem:** para un vehículo sin permiso el botón no se dibuja (así ya era); para el ítem se dibuja apagado con «No tienes permiso para mover repuestos.» debajo, como pide la fila 8.13.
+- **D12 · Un hook con `history: 'push'` marca la vuelta del foco** (`abrirConVuelta` y `useVueltaDelFoco`, que `scripts/guardas/paneles-con-vuelta.test.ts` exige): `useItemPorUrl` lo hace con la clave `item`.
+
+<!-- paso:8.13-3 -->
+
+## 2026-11-12 · Decisiones del paso 8.13-3 (la Cadena y el hueco del vehículo)
+
+- **D1 · El filtro `proyecto` sólo va por URL**, sin selector: lo usarán los «Ver todas» de Inicio (parte 4); con él puesto, aviso «Mostrando un solo proyecto» con «Ver todos». Un selector se agrega después sin cambiar la URL.
+- **D2 · Lectura sin migración:** una consulta por fase (≤ 30) en paralelo, `limit 51`, por `repuestos_items_fase_id_idx`; el proyecto va embebido (`!inner`: un ítem de un proyecto que la RLS no deja ver ni de la papelera no sale). Abierto 8-13c.
+- **D3 · Orden:** fases no finales, las que llevan más tiempo primero; fases finales (Recibido, Perdido), las más recientes primero; «Sin fase» por `id`.
+- **D4 · La tarjeta** no lleva el vehículo ni foto (leerlos pagaría otra pasada de la RLS por tarjeta); el proyecto lleva a su hoja.
+- **D5 · `entities/flujo/cadena.ts` y `cadena-filas.ts`** copian lo mínimo de la cadena de `logistica` (un módulo no importa a otro), con su prueba; los días en la fase usan `diaEnZona` de `shared`.
+- **D6 · El panel del ítem es el de la parte 2:** `PanelDelItem` pasa a un archivo propio de `src/app/(app)/repuestos/`, que importan la hoja y la Cadena.
+- **D7 · El hueco lee con una Server Action** (`leerEsperasDelVehiculo`): `esperasQueDestraban` es de servidor y el hueco, de cliente.
+- **D8 · El hueco** pide `repuestos.ver` y la regla `esperas`, sin variante de repuesto. No escucha `logistica:unidad-cambio` (es de `logistica`): se relee al cambiar la fase del vehículo y al volver a abrir el bloque.
+- **D9 · Tipo estructural del hueco:** `repuestos` declara el suyo; `ComponentType` no es asignable por `defaultProps`, así que el cast va en `src/app/(app)/logistica/huecos-de-la-unidad.tsx`, no en el módulo.
+- **D10 · El e2e** usa las fases «En tránsito» y «Recibido» de la semilla y un origen propio con la espera; «Recibido» no pide nada, así que «Qué falta» del ítem no marca «Cumplido» (sólo lo hace el vehículo, que tiene un requisito).
+
+<!-- paso:8.13-4 -->
+
+## 2026-11-12 · Decisiones del paso 8.13-4 (bloques de repuestos de Inicio y enlace en Configuración)
+
+- **D1 · «Repuestos por mover» = ítems en vuelo**, no «listos»: en una fase no final, sin stock, de un proyecto vivo; el que más lleva en su fase, primero. «Listo» exigiría evaluar los roles por transición ítem por ítem (N+1); la fila abre el
+  panel del ítem, donde «Qué falta» y los botones lo dicen. Los ítems «sin fase» no entran (los muestra la Cadena).
+- **D2 · «Esperas que destraban vehículos»** = lo mismo, sólo de proyectos con vehículo y nombrado por el vehículo. Sin el cruce con la fase del vehículo (`repuestos_pendientes_de_vehiculo` es por vehículo: N+1): abierto 8-13a.
+- **D3 · «Ver todas»** de los dos va a `rutaDeLaCadena()` sin filtros; no se inventa un filtro «con vehículo» en la Cadena.
+- **D4 · Lectura por PostgREST, sin RPC ni migración**, bajo la RLS de `repuestos.ver` (quien tiene `repuestos.mover` sin `repuestos.ver` ve el vacío). El orden `fase_desde` no tiene índice propio: se suma al abierto 8-13c.
+- **D5 · El título del vehículo se lee embebido** (`vehiculo:vehiculos(titulo)`), no de `vehiculo_etiqueta`: un proyecto de un vehículo no copia el título (la RPC deja la etiqueta nula) y la e2e lo mostró. Si quien mira no ve el vehículo, la fila
+  dice sólo el repuesto.
+- **D6 · Las lecturas y los textos viven en `repuestos`** (un módulo no consulta tablas ajenas); los bloques de `tablero` sólo componen `ListaDeBloque`.
+- **D7 · `inicio-bandeja.spec.ts`** deja de afirmar el vacío de «Esperas…» (la base compartida puede traer ítems de otro spec): comprueba que el bloque se dibuja y no cae a su error.
+
+<!-- paso:8.13-5 -->
+
+## 2026-11-12 · Decisiones del paso 8.13-5 (los pagos del cliente del proyecto de repuestos)
+
+- **D1 · Una RPC gemela, `pago_registrar_proyecto`**, no un `p_proyecto` en `pago_registrar`: no cambia la firma ni el tipo de la RPC que usa Logística. Pide
+  `repuestos.costos.editar` y `repuestos.ver` (como las compras), `security definer`, `set search_path = ''`, idempotente por id (`on conflict do nothing` y relectura).
+- **D2 · Sin lead:** el pago de proyecto lo deja nulo; no se amplía la superficie de `leads` (`auditoria-leads.sql` la registra como `X`).
+- **D3 · Sin la regla de flujo `pagos`:** el proyecto no tiene fase propia y la fila de la regla del flujo `repuestos` sólo la garantiza el seed. Lo que bloquea es el proyecto cerrado.
+- **D4 · Un pago de proyecto confirmado no se anula todavía** (`pago_anular` es de vehículo): queda sellado. La UI no ofrece «Anular» ni por la lista ni por `?panel=anular-pago`, y
+  el texto de confirmar lo dice («no se podrá editar, eliminar ni anular por ahora»). **Abierto nuevo 8-13d.**
+- **D5 · Proyecto cerrado:** no admite pagos nuevos (23514 «El proyecto está cerrado: reábrelo para registrar pagos.»); los sin confirmar se corrigen y eliminan como hoy. El
+  reintento de un id ya guardado devuelve lo guardado aunque el proyecto se haya cerrado después. El proyecto se toma `for share` antes de mirar el pago: eliminarlo o cerrarlo espera.
+- **D6 · La UI generaliza con un contexto** (`AmbitoDePagoContext`, por defecto `vehiculo`) y un `CuerpoDePagos` compartido: el hueco del vehículo no cambia de conducta.
+- **D7 · Los permisos de los botones del proyecto llegan por props** desde la página (`puede()`), sin leer `mis_permisos` otra vez; la base vuelve a exigirlos.
+- **D8 · «Pagos» sólo con `repuestos.costos.ver`** (la policy de lectura); «Registrar», «Editar» y «Eliminar» con `repuestos.costos.editar`; «Confirmar» con `logistica.pagos.confirmar`.
+  «Registrar pago» siempre a la vista, apagado con su motivo (como «Registrar compra»).
+- **D9 · Nivel 1**, no Nivel 2 como decía la partición del 8.13: `scripts/piloto/nivel.mjs` no ve disparadores (una RPC sin tabla, índice ni policy). Lo que manda el dinero es la
+  auditoría (plan e informe), `db:probar` y `db:carreras`.
+- **D10 · La gemela rechaza `NaN`** (`'NaN' > 0` es verdadero en PG y `numeric(18,2)` lo guarda). El mismo hueco en `pago_registrar` (vehículo) queda como **abierto 8-13f**.
+- **Abierto nuevo 8-13e:** eliminar el último pago vivo sin confirmar de un proyecto puede dejar sin cumplir `proyecto.pago_cliente` de la fase actual de un ítem (el vehículo tiene esa
+  guarda para los requisitos de pagos; el proyecto no). Se deja hasta que la persona lo pida.
+- `accionesDelPago` y `validarMotivoDeAnulacion` salen de `entities/dinero/pago.ts` (pasaba de 300 líneas) a `acciones-del-pago.ts` y `anulacion-de-pago.ts`.
+
+<!-- paso:8.13-6 -->
+
+## 2026-11-12 · 8.13-6
+
+- **`UnidadAbierta` en vez de volver nulo `Unidad.origenId`.** El 8.13 pedía a las áreas `transporte` y `documentos` (del carril b) leer un ítem sin origen; la guarda de carriles no lo
+  deja y un pedido a b era circular (sus cambios no compilan sin el tipo nuevo). Con dos tipos, b no cambia y el núcleo (que el c sí puede editar) lleva al ítem.
+- **Sólo `tipos.client.ts` se le pide a b** (compuerta `espera`): es el único lugar donde un área de b decide con `origenId`, y ensanchar su parámetro compila y pasa lint sobre `main`.
+
+<!-- paso:9.01-1 -->
+
+## 2026-11-12 · Decisiones del paso 9.01-1 (la base de lectura de la actividad)
+
+- **D1 · Sin línea de tiempo en la ficha** (duda 1, la recomendada): un «Ver actividad» en el «⋯» de la ficha de lead y de vehículo a
+  `/actividad?entidad=<tabla>&registro=<id>`, sólo con `actividad.ver` (parte 4).
+- **D2 · Del diff de un lead ajeno, sólo lo público** (duda 2, la recomendada): lo que da `leads_vista` fuera de la cartera; y nada si quien mira
+  no ve el lead (`puede_lead` con `leads.ver`). Nadie ve teléfonos ni números.
+- **D3 · Se parte en base (partes 1 y 2) y pantalla (3 y 4)** (duda 3, la recomendada).
+- **D4 · La lista cerrada vive en `_actividad_recorte(tabla)`** (`lead`, `entidad`, `configuracion` o null). `tipos_lead` y `tipos_seguimiento`, que la
+  fila no nombraba, van a configuración. `formulas` va a entidad, no a configuración: su policy pide `cotizaciones.configurar` del origen (auditoría
+  del informe).
+- **D5 · «Entera» = las columnas que authenticated puede leer** (`has_column_privilege`): `cotizaciones` nunca da más que su grant por columnas y
+  una columna nueva sin grant no sale.
+- **D6 · Nunca salen** `actualizado_en` (ruido), `clave_hash`, `apibara_raw`; de un lead, además, `numero`, `numero_propio`, `telefono_principal`,
+  `cartera` y `cliente_desde`.
+- **D7 · El permiso de una entidad es el espejo de su policy «leer»** sobre la foto del cambio o, sin foto, sobre la fila vigente por su PK; sin la
+  condición `eliminado_en` (las `puede_*` exigen el padre vivo: conservador).
+- **D8 · `actividad_diff` no distingue «no existe» de «no lo ves»:** los dos dan `{id, visible: false}`.
+- **D9 · La página no lleva valores:** cabecera, `visible`, hasta 5 nombres de campos y `mas_campos`, sólo en los `*.update` visibles.
+- **D10 · Filtros combinados van por la ruta más selectiva** (registro > persona > acción > tabla) y el resto filtra sobre ella; el descarte lo
+  acota la retención.
+- **D11 · `?accion=` entra ya en la base** (`p_accion` e índice `(accion, id desc)`; auditoría del plan): la parte 3 no cambia la firma.
+- **D12 · Índices sin `concurrently`** (la migración va en transacción): abierto 9-01b para la guía del 9.13.
+- **D13 · La purga borra sólo actividad y `eventos_web`,** de a 10.000 y hasta 10 lotes por tabla y corrida; notificaciones y visitados quedan para
+  `notificaciones_purgar()`. Job a las 03:25 UTC.
+- **D14 · La prueba de la purga va en `areas/actividad/purgar.sql`,** no en `supabase/tests/jobs.sql` (de la lista fija del `a`).
+- **D15 · Tablas sin declarar a propósito:** `lotes_papelera`, `cotizaciones_niveles`, `tonos`, `perfiles`, `roles`, `importaciones`,
+  `accesos_portal`, `oportunidades`, `tablas_referencia`, `limpieza_corridas`, `comprobantes_ajustes`. Sólo reciben `registrar_actividad()` sin
+  fotos, así que no hay diff que mostrar: salen `visible: false` hasta que la 9.01-2, al revisar `detalle`, decida si alguna se declara.
+- **D16 · El registro de páginas de `actividad_listar` pasa a la 9.01-3:** la guarda `paginas.test.ts` saca una entrada sin quién la llame.
+
+<!-- paso:9.01-2 -->
+
+## 2026-11-12 · Decisiones del paso 9.01-2 (privilegios de `registrar_actividad()` y de `actividad.detalle`)
+
+- **D17 · `registrar_actividad()` pierde el `execute` de `authenticated`** (y se revoca de `public` y `anon`, que no lo tenían). Nadie que no sea
+  definer la llama y nada de la app ni de edge; las definer corren como su dueño. `areas/actividad/registrar.sql` (T2) cae si una función de
+  invocador la llama.
+- **D18 · `service_role` conserva el `execute`:** quitarlo no protege nada (escribe `actividad` directo) y deja la puerta a un job futuro.
+- **D19 · `actividad.detalle` pierde el `select` de `authenticated`:** hay detalle privado (tabla de abajo) y nadie de la app lo lee. Los lectores
+  definer (`_lead_crear`, `leads_importaciones_recientes`) siguen igual.
+- **D20 · Revoke de columna, nunca de tabla:** el grant de `authenticated` sobre `actividad` es por columna; un revoke de tabla se llevaría la cabecera.
+- **D21 · Ninguna tabla que quedó sin declarar en `_actividad_recorte` (D15) se declara:** sin `detalle` para la app no hay nada nuevo que mostrar.
+- **D22 · No se cambia lo que guardan las llamadas ni las filas viejas:** quitar la columna a la app basta; enmascarar el código o sacar montos
+  rompería pruebas que leen esas claves sin ganancia. Si la app necesita leer `detalle`, será por una función definer que lo recorte.
+- **D23 · El detector lee `pg_get_functiondef`, no `prosrc`** (una `language sql` con `begin atomic` deja `prosrc` vacío), mira todos los esquemas
+  menos los del sistema y se prueba con dos sondas creadas y descartadas en la misma transacción (T4).
+
+### Revisión de lo que guarda `detalle` (sexto argumento de `registrar_actividad`)
+
+Los `insert into public.actividad` directos de los triggers (`auditar`, `cotizacion_auditar`, `formula_auditar`, `lead_auditar`, los de
+`origenes_lead`, `tipos_lead` y `tipos_seguimiento`) no escriben `detalle`.
+
+**Con dato privado:**
+
+| Acción · función                                                                                                | Claves                                                      | Por qué                                                   |
+| --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------- |
+| `lead.telefono_cambiado` · `cambiar_telefono_lead` (`base.sql:8559-8561`)                                       | `anterior`, `nuevo`                                         | trozo del teléfono de un lead que quien mira puede no ver |
+| `lead.telefono_extra_*` · `lead_telefono_guardar`, `lead_telefono_quitar` (`base.sql:12676, 12693, 12716`)      | `telefono`                                                  | ídem                                                      |
+| `portal.otorgado` / `reotorgado` · `otorgar_portal` (`base.sql:15814-15816`)                                    | `codigo`, `codigo_anterior`                                 | la mitad de la credencial del portal                      |
+| `portal.desbloqueado` · `portal_desbloquear` (`base.sql:16106`); `portal.revocado` · `revocar_portal` (`16777`) | `codigo`                                                    | ídem                                                      |
+| `pago.confirmado` · `pago_confirmar` (`20261111225327_pagos_confirmar.sql:80-81`)                               | `monto`, `moneda`, `monto_base`                             | dinero de un origen que quien mira puede no ver           |
+| `pago.anulado` · `pago_anular` (`20261111225333_pagos_anular.sql:89-91`)                                        | `motivo`, `monto`, `moneda`, `monto_base`, `confirmado_por` | ídem                                                      |
+
+**Dudosas** (texto del filtro): `leads.exportado` · `leads_exportacion_registrar` (`base.sql:13262`); `datos.exportado` ·
+`datos_exportacion_registrar` (`20261112194922_datos_exportacion_registrar.sql:53, 92`).
+
+**Sin dato privado** (por familia): bajas (`_baja_terminar`, `equipo_dar_de_baja`: conteos); alta y adopción de lead (`_lead_crear`: `intento`);
+oportunidades (ids y `cantidad`); papeleras de leads, vehículos y cotizaciones (`tipo`, `cantidad`, `automatica`, `desde`); importación (conteos y
+`por_motivo`); limpieza automática (conteos, `lote`, `parcial`); niveles (`concesiones`); catálogos de leads (`nombre`, `por_defecto`,
+`despues_de`); seguimientos (ids, `tipo`, `visibilidad`, nunca el texto); fotos (`foto`, `hash`, `cantidad`); vehículo (`publicado`,
+`destacado`); comentarios (ids). Las ≈ 30 llamadas restantes pasan 4 o 5 argumentos: `detalle` queda nulo. El detalle con `archivo:línea` está en
+el plan del paso.
+
+<!-- paso:9.01-3 -->
+
+## 2026-11-12 · Paso 9.01-3: la pantalla `/actividad`
+
+- **Cada lado de un monto lleva su moneda** (D29; la auditoría del plan lo bloqueó). `presentarDiff` toma `cambios.moneda.antes` para `antes` y
+  `cambios.moneda.despues` para `despues`; si la moneda no cambió, la de cada lado llega por opción (`monedaAntes`, `monedaDespues`). Si no se
+  conoce, el monto sale con `monedaConocida: false`: nunca con la moneda base inventada. Una sola moneda para los dos lados dibujaba
+  «1500 BOB → 1750,5 USD» como «1500 USD → 1750,5 USD». La 9.01-4 suma a `actividad_diff` `moneda_antes` y `moneda_despues`, tomadas de la
+  foto del cambio (`a.antes->>'moneda'`, `a.despues->>'moneda'`). No se toma la moneda vigente de la fila: pudo cambiar o la fila pudo borrarse.
+- **Persona y entidad son de una sola opción, con «Todas» por defecto** (D25): la base toma un `p_actor` y una `p_tabla`. Las personas son todo
+  el equipo, activas o no, hasta `TOPE_DEL_EQUIPO`.
+- **`?registro=` no es un control** (D26). Vale sólo junto a `?entidad=` (sin ella la base da 22023). Con los dos, un aviso «Mostrando la
+  actividad de un solo registro de…» con «Ver toda la actividad».
+- **`?accion=` no entra en la pantalla** (D27): la base lo admite, pero no hay catálogo de acciones que ofrecer. Agregarlo no cambia la firma.
+- **La fila todavía no abre nada** (D28): sin `alAbrir`, no promete un clic. La 9.01-4 la abre en `?cambio=`.
+- **Los textos derivados** (D30, D31). La acción sale de su sufijo (Creó, Cambió, Borró; otra, humanizada). La entidad lleva el término del
+  glosario y el campo su etiqueta; si no tiene, la clave humanizada. Sin persona, «Sistema»; con persona sin nombre, «Sin nombre».
+- **`hastaDeUnDia` se copió** en `entities/filtros.ts` (D32), como ya hicieron `cotizaciones` y `logistica`. Subirla a `shared` es del carril A.
+- **`hoy` lo calcula el servidor** (D33) y viaja como `YYYY-MM-DD`: «Hoy» y «Ayer» no cambian al hidratar cerca de la medianoche.
+- **`loading.tsx` sólo importa el esqueleto** (D34): importar la pantalla bajaría su chunk dos veces en frío.
+- **El vacío dice los días de la empresa** (D35): `ajustes_empresa.actividad_dias`, o 14 si no se pueden leer los ajustes.
+- **La `key` del listado es persona|entidad|registro** (`claveDelPedido`). Un filtro nuevo o «Ver toda la actividad» empiezan de cero, sin
+  arrastrar lo cargado con otro filtro.
+- **`leerDiff` ya está en la `infra`** (D36), sin pantalla que lo llame: así la parte 4 es sólo el drawer y la moneda.
+- **Un atributo de tipo `moneda` sale con la moneda sin conocer** (auditoría del informe). Un campo `moneda` del layout no declara su moneda: los
+  del catálogo de apibara son USD. Por eso el diff no lo da en moneda base: `moneda: null, monedaConocida: false`. La ficha sigue mostrándolo como
+  siempre (`valorMostrado`). Si un día el campo declara su moneda, la recibe el diff.
+
+<!-- paso:9.01-4 -->
+
+## 2026-11-12 · Paso 9.01-4: el diff en su drawer, «Ver actividad» en las fichas
+
+- **La moneda de cada lado sale de la foto** (D37). `actividad_diff` suma `moneda_antes = antes->>'moneda'` y `moneda_despues = despues->>'moneda'`,
+  nunca de la fila vigente (pudo cambiar o borrarse). Sólo fuera de `leads` y sólo si `authenticated` lee la columna `moneda` de esa tabla: la misma
+  regla de grants con que `_actividad_recortar` elige columnas. Una tabla nueva con `moneda` entra sola. Sin foto (un evento de
+  `registrar_actividad`), `null`, y el monto sale con «(moneda sin conocer)».
+- **`origen_id` de la foto en la cabecera de un vehículo** (D38): sin él el drawer no sabe de qué origen leer las etiquetas de `atributos`. Quien
+  recibe `visible: true` ya pasó `puede_vehiculo`.
+- **Las etiquetas de `atributos` se leen al abrir y sólo de las claves que llegaron** (D39), activas o no; si la lectura falla, la clave sale
+  humanizada y el resto del diff se ve igual.
+- **La fila sin acceso no abre nada** (D40); por la URL, el drawer dice «No tienes acceso a este cambio.».
+- **`?cambio=` se lee como texto** (D41, auditoría del plan): `idDelCambio` exige sólo dígitos, entero seguro y positivo. Cualquier otra cosa abre el
+  drawer con «No tienes acceso a este cambio.» sin leer nada.
+- **Abrir el drawer suma al historial y no va al servidor** (D42); **el título es fijo, «Detalle del cambio»** (D43), y la descripción llega con la lectura.
+- **Un monto sin moneda conocida va por `<Monto moneda={null}>`** (D44, cambia lo del plan): el plan pedía `formatearNumero()` suelto, pero un número
+  de dinero fuera de `<Monto>` no se oculta en el Modo Live. `<Monto>` acepta `moneda: null` (sólo el número, sin inventar moneda) y sigue siendo
+  el único lugar donde se imprime dinero.
+- **«Ver actividad» entra en la lista única del «⋯»** (D45) de lead y de vehículo, en un bloque propio antes de la papelera, sin «…» (lleva a otra
+  página). Sólo la ficha lo ofrece. **La ruta la arma `src/app`** (D46) con `puede(permisos, 'actividad.ver')` y `rutaDeActividadDe`: `leads` y
+  `vehiculos` no importan `actividad`. Son núcleo del carril A (D47): se editan sin borrar nada.
+- **El e2e entra por «Ver actividad»** (D48) y elige la fila por la persona (el alta del lead la hizo el sistema).
+
+<!-- paso:9.05-1 -->
+
+# 9.05-1 · Datos: exportar todo, la base (2026-11-12)
+
+- **D1 a D3 · Las dudas de la fila, con la recomendada.** Leads, vehículos y cotizaciones; «todo» no trae teléfonos ni lo privado de carteras ajenas;
+  hasta 250.000 filas por archivo y 3 exportaciones por hora.
+- **D4 · Las filas se registran antes del primer byte.** El route handler cuenta con un tope de 250.001 antes de llamar al registrar: con el CSV ya en
+  camino no se puede cambiar el código de estado.
+- **D5 · La lectura no pide el permiso.** `datos_exportar_leads()` devuelve lo mismo que `leads_vista` a esa sesión, así que no abre nada; pedirlo la
+  volvería plpgsql y dejaría de inlinearse. El enforcement es el registrar, que el route handler llama antes de leer.
+- **D6 · El candado es por persona** para las tres entidades; el tope, por entidad.
+- **D7 · Sin script de carrera.** El candado es el patrón de `leads_exportacion_registrar` y una prueba de catálogo exige que vaya antes de leer
+  `actividad`; lo que se perdería en una carrera es una exportación de más.
+- **D8 · Filtros guardados:** sólo `desde`, `hasta` y `origen`. Vehículos exige origen (un archivo por origen), leads lo rechaza, cotizaciones lo admite.
+- **D9 · El límite lee las 3 más recientes** (`order by creado_en desc limit 3`, por `actividad_actor_accion_idx`) en vez de contar: `libre_en` es la más
+  vieja de las tres más una hora, y `escala.sql` no necesita otra excepción.
+
+<!-- paso:9.05-2 -->
+
+# 9.05-2 · Datos: exportar todo, el route handler con la fuente de leads (2026-11-12)
+
+- **D10 · La 9.05-2 se parte.** Esta parte lleva el route handler y la fuente de leads; la 9.05-2b, vehículos y cotizaciones (dos lecturas por RPC
+  distintas, cada una con su medición: no cabían en 6 commits).
+- **D11 · El flujo lee con un token fijo, no con la cookie.** Un cliente de supabase-js con `accessToken` no refresca nunca: refrescar después de
+  responder rotaría el refresh token sin poder guardarlo y la detección de reuso cerraría la sesión. El token se toma con `getSession()` y se verifica
+  ese mismo con `getClaims(token)`; identidad y vencimiento salen de los claims. Es la única excepción a «nunca getSession()» y está en la ficha.
+- **D12 · El conteo previo va por páginas de ids**, sin SQL nuevo. Medido: 0,3 s con 200.000.
+- **D13 · Primero el permiso efectivo**, para no contar de balde; la autoridad sigue siendo el registrar (42501).
+- **D14 · Una sola regla por tipo de campo:** las celdas salen de la exportación propia de `leads`, reexportadas por su `index.ts`.
+- **D15 · Columnas de leads:** `N.º` (sólo con su permiso), Nombre, Teléfono, Tipo, Origen, Dueño, Creado, Último seguimiento y los campos activos.
+  Sin `N.º propio` (la función no lo trae). Fechas como `AAAA-MM-DDTHH:mm` en la zona de la empresa.
+- **D16 · El archivo se llama `leads-todos-AAAA-MM-DD.csv`.**
+- **D17 · El conteo y la lectura usan el mismo instante de corte** y la lectura corta en las filas registradas: el archivo nunca pasa la constancia.
+- **D18 · Un fallo a mitad del flujo lo corta con error** y el cupo queda gastado (la constancia ya se dejó; no hay RPC que la devuelva).
+- **D19 · No se pide una página con menos de 30 s de token:** corta con error antes que mandar un pedido que dará 401.
+- **D20 · La fila de rendimiento va en `docs/pasos/9.05-2/rendimiento.md`**, con su ancla.
+- **`TOPE_DE_FILAS` queda en 250.000:** la lectura entera extrapolada da 42 s, y aun doblándola por el viaje HTTP y el JSON entra en los 5 min de
+  vida mínima del token.
+- **Las columnas viven en `features/exportar/`** y no en `entities/` (la auditoría del plan): `entities` no puede importar otro módulo, y las celdas son de `leads`.
+
+<!-- paso:9.05-2b -->
+
+# 9.05-2b · Datos: exportar los vehículos de un origen (2026-11-12)
+
+- **D21 · Se parte otra vez:** la 9.05-2b lleva vehículos; la 9.05-2c, cotizaciones. Juntas eran 8 commits de código y sus lecturas no se parecen
+  (tabla de a 1.000 contra una RPC de a 100). «Partes estimadas»: 5.
+- **D22 · Los vehículos se leen de la tabla `vehiculos`**, bajo la RLS de quien exporta, y no con `vehiculos_inventario()`: exportar lee el origen
+  entero y por la tabla es una pasada; la función corta en 100 y suma la portada. Las dos traen las mismas filas.
+- **D23 · Columnas:** `N.º`, los comunes del tipo del origen, los campos activos del layout por orden, `Fase`, `Creado`, `Actualizado`. Sin vitrina,
+  lead, creador, portada ni limpieza (lo conservador; se suma sin romper).
+- **D24 · Celdas:** el número tal como llega (el precio sin redondear), «Sí»/«No», categoría, fase y opción por nombre, varias opciones con `' | '`
+  (el separador de la exportación de leads), fechas con hora en la zona de la empresa. Vacío o tipo que no corresponde: `''`.
+- **D25 · El pedido es una unión por `entidad`:** vehículos exige `origen` (guid); leads no lo admite. La base lo vuelve a exigir.
+- **D26 · Un origen que no está da 404 `vacia`** sin contar ni registrar: la misma respuesta que uno sin vehículos visibles. Los inactivos sí exportan
+  (`getOrigenes(true)`, auditoría del plan).
+- **D27 · El archivo:** `vehiculos-<nombre del origen en ASCII>-todos-AAAA-MM-DD.csv` (hasta 40 caracteres; sin nada, el comienzo del id).
+- **D28 · `TOPE_POR_ENTIDAD`:** 250.000 para leads y vehículos (medido: conteo 0,3 s y lectura 0,4 s con 250.000); el 409 lleva el de su entidad.
+- **D29 · El orden se escribe una vez** (`seguirCon`); cada entidad entra con un `case`.
+- **D30 · La medición va aparte** (`medir-datos-exportar-vehiculos.sql`), con 250.000 vehículos sembrados en la transacción.
+- **D31 · La prueba SQL va en su archivo** (`exportar-vehiculos.sql`, auditoría del plan), con la papelera y un assert de catálogo: ninguna
+  `datos_exportar_*` definer. Es una guarda de regresión: no podía salir en rojo porque la base no cambia.
+- **D32 · La fase** se nombra con `leerFasesDeOrigen` (también las jubiladas); nula o desconocida, vacía.
+- **El encabezado del precio queda «Precio»**, la etiqueta de `camposComunes()` (el vehículo no lleva moneda por fila); la 9.05-2c decide si su
+  `Total (<moneda base>)` se alinea (auditoría del plan, menor).
+
+<!-- paso:9.05-2c -->
+
+# 9.05-2c · Datos: exportar las cotizaciones (2026-11-12)
+
+- **D33 · Las cotizaciones se leen de la tabla `cotizaciones`**, bajo la RLS de quien exporta, y no de `cotizaciones_listado()`: la función es plpgsql
+  (PostgREST no le empuja rango ni límite) y corta en 100 (2.500 llamadas contra 250). **Se aparta de la letra de la fila 9.05** («la cabecera que
+  entrega `cotizaciones_listado()`»), no de su conducta: «total visible» es `total_base`, lo mismo que da la RPC; sin función definer nueva.
+- **D34 · Columnas:** `N.º`, `Título`, `Cliente`, `Vehículo`, `Origen`, `Clase`, `Estado`, `Total (<moneda base>)`, `Creado`, `Actualizado`. **También se
+  aparta de la fila:** sin `Vence el` ni «vencida» (se calculan con la vigencia de hoy, no se guardan) ni `moneda_mostrar` (sin término en el glosario).
+  Se suman después sin romper.
+- **D35 · Celdas:** número y total tal como llegan; «Preventa»/«Final» (las palabras de `ETIQUETA_DE_CLASE` de `cotizaciones`, que no sale por su entrada)
+  y «Activa»/«Reportada»/«Inválida», en `Record` exhaustivos sobre los enums; lo nulo o lo que no llega, `''`; fechas en la zona de la empresa.
+- **D36 · El encabezado del total es `Total (<moneda base>)`** con la moneda de los ajustes (`Total` si no se leen). El «Precio» de vehículos no se toca.
+- **D37 · Los nombres se traen por página y se olvidan en la siguiente**, con el cliente del flujo: clientes por `leads_vista_por_ids` sólo con
+  `leads.ver`; títulos de `vehiculos` de a 100 (un GET con `.in`).
+- **D38 · `origen` es optativo en cotizaciones:** con él, su etiqueta va en el nombre del archivo; uno que no está da 404 `vacia` sin contar ni registrar.
+- **D39 · `TOPE_POR_ENTIDAD.cotizaciones` queda en 250.000** (`TOPE_DE_FILAS`): la exportación entera con nombres se estima en 2,6 s de base (más
+  ≈ 2.500 viajes de PostgREST, unos 25 s a 10 ms cada uno), lejos de 150 s.
+- **D40 · La medición va aparte** (`medir-datos-exportar-cotizaciones.sql`), con 200.000 sembradas en la transacción sobre las 50.000 de la siembra.
+- **D41 · La prueba SQL va en su archivo** (`areas/datos/exportar-cotizaciones.sql`), guarda de regresión; suma un lead de la cartera de Bea para
+  recorrer `en_cartera`.
+- **D42 · Sin migración, función, policy ni grant.**
+- **D43 · El filtro `eliminado_en is null` va explícito** en la lectura (auditoría del plan): `eliminado_en` tiene grant y así el índice parcial no
+  depende de que el planificador lo deduzca de la policy.
+
+<!-- paso:9.05-3 -->
+
+# 9.05-3 · Datos: la pantalla `/datos` (2026-11-12)
+
+- **D44 · Sin `datos.exportar.todo` no se dibuja «Todo».** La fila pide a la vez «una asesora ve sólo Mis leads» y «sin permiso: la tarjeta
+  deshabilitada con su motivo»: lo primero manda para el bloque entero; lo segundo es la tarjeta que, con el permiso, el rol no puede usar (no ve leads,
+  vehículos o cotizaciones en ningún origen) y «Mis leads» sin `leads.exportar`. Reversible: mostrar el bloque apagado es un cambio de `tarjetas.ts`.
+- **D45 · «Importar» es un hueco declarado** (`SECCIONES_DE_DATOS`, `disponible: false`): mientras haya una sola sección no hay barra de pestañas y
+  `?seccion=importar` abre «Exportar» (ninguna pestaña se dibuja vacía). El 9.06 la prende y escribe la barra.
+- **D46 · Delimitador fijo `;`** (Excel en español, como dice la ficha); sin selector.
+- **D47 · «Descargado» no dice cuántas filas**, sólo el nombre del archivo (un número que se muestra nunca es un total exacto).
+- **D48 · Orígenes del selector:** `getOrigenes(true)` (también inactivos, D26) filtrados por `vehiculos.ver` o `cotizaciones.ver` en ese origen;
+  vehículos arranca en el primero, cotizaciones en «Todos los orígenes».
+- **D49 · El rango y el origen de cada tarjeta viven en el formulario**, no en la URL: no son filtros de una lista; recargar los limpia.
+- **D50 · «Mis leads» enlaza a `/leads?panel=exportar`** con `PANEL_EXPORTAR`, que `leads` exporta ahora por su `index.ts` (aditivo, una línea).
+- **D51 · El e2e borra antes las constancias `datos.exportado` de su dueña** (por `sql()`) para que un reintento no choque con el cupo, y corre sólo
+  en escritorio (pantalla nueva: un camino feliz). Identifica lo suyo por un lead propio con nombre del proyecto: «Propio Dalia» de otro proyecto
+  sería ajeno para esta dueña.
+- **D52 · El límite no apaga «Descargar»:** dice la hora en que se libera; decide la base.
+- **D53 · El rango se valida en el navegador con el mismo `esquemaDelPedido`** (`pedidoDelFormulario`) antes de pedir: no gasta un viaje ni cupo.
+- **D54 · Los orígenes se leen sólo con `datos.exportar.todo`:** quien ve sólo «Mis leads» no paga esa lectura.
+- **D55 · La entrada «Datos» la ve todo el mundo** (`permisos: null`): «Mis leads» es de todos. `navegacion.test.ts` pasa a esperar Perfil y Datos sin
+  ningún permiso.
+
+<!-- paso:9.08-1 -->
+
+## 2026-11-12 · Decisiones del paso 9.08-1 (`/tablero`: las cinco cifras)
+
+- **D1 · Inicio sigue siendo la bandeja;** sólo gana «Ver el tablero» para quien tiene `tablero.metricas.ver`.
+- **D2 · Los widgets se muestran por permiso,** no por rol: cada uno declara los suyos en el catálogo y la RPC los exige otra vez (42501).
+- **D3 · Las gráficas serán SVG propio con `--viz-*`** (parte 2), sin dependencia nueva.
+- **D4 · Una llamada por grupo de RPC y request:** `cache()` con `(desde, hasta)`; cada widget captura su error y uno caído no tumba a los demás.
+- **D5 · El período vive en la URL** (`?periodo=mes|mes-anterior|90d`; ausente o desconocido es `mes`) y el selector son tres `<Link>`: sin JS.
+- **D6 · «Mes» = del día 1 a hoy; «mes anterior» = el mes entero; «90d» = hoy − 89 a hoy,** todo en la zona de la empresa (ventana ≤ 366 días).
+- **D7 · Una tasa nula es «Sin datos», nunca «0 %»;** una tasa de cero con leads sí es un dato. Cada cifra es un `role="group"` con nombre «Título: valor».
+- **D8 · «Convertidos» dice «Cuenta desde <fecha>»** cuando `conversion_desde` cae después del inicio del período (9.07: los clientes de antes no tienen fecha).
+- **D9 · «Leads creados» en cero dice «Todavía no hay leads en este período»** y ofrece «Nuevo lead» sólo con `leads.crear`.
+- **D10 · Margen y cola web entran al catálogo como huecos** (`disponible: false`): no se montan ni se ofrecen; el 9.11 cambia el indicador y llena su archivo.
+- **D11 · La preferencia `tablero.widgets` la valida `equipo`** y viaja en la `Sesion` (parte 3).
+- **D12 · El encendido del menú va en el commit de la pantalla,** no en el siguiente como decía el plan: con la ruta creada y la entrada apagada, `navegacion.test.ts` falla.
+- **D13 · El e2e compara el aumento de «Convertidos»** (n a n + 1), no un valor fijo: otros specs también convierten leads en el mismo mes.
+- **D14 · Tipo de esta parte: pantalla** sobre las RPC de 9.07, sin SQL. Riesgo: el texto de la tasa nula y quién ve la entrada.
+
+<!-- paso:9.08-2 -->
+
+## 2026-11-12 · Decisiones del paso 9.08-2 (las gráficas del tablero)
+
+- **D15 · Gráficas en HTML y SVG, sin librería.** El texto (ejes, nombres, números) es HTML; el SVG sólo pinta barras con `viewBox` y `preserveAspectRatio="none"`: ocupa el ancho de la tarjeta, ningún texto se deforma y en el celular no desborda. Alto fijo (`h-40`) para que no salte al cargar.
+- **D16 · Cinco widgets anchos** con `tablero.metricas.ver` y el grupo de su RPC, después de las cifras y antes de los huecos del 9.11 (el orden del catálogo es el de la pantalla).
+- **D17 · El contenedor de una gráfica es `role="img"`, no `group`,** y ningún título empieza como una cifra: así `getByRole('group', { name: /^Cotizaciones: / })` sigue encontrando una sola.
+- **D18 · «Ver como tabla» es un `<details>` nativo** (Server Component, sin JS), cerrado por defecto, con todos los números en un contenedor de alto máximo.
+- **D19 · Dos series por gráfica, siempre con leyenda en texto** (cuadrito de color y nombre); cada barra lleva su `<title>` y los números están en la tabla.
+- **D20 · El ranking respeta el orden de la RPC** (creados de mayor a menor); las barras son proporcionales al máximo de la lista y los números van escritos. Origen nulo: «Sin origen»; persona sin nombre: «Sin nombre».
+- **D21 · Topes con frase, nunca un total:** «Se muestran los 10 primeros orígenes.» y «Se muestran las 20 primeras personas.» sólo si la RPC dice que hay más; los 10 y 20 son constantes con la migración de 9.07 citada.
+- **D22 · Vacío = sin movimiento en todo el período:** «Todavía no hay leads / cotizaciones en este período»; «Nuevo lead» sólo en leads y sólo con `leads.crear`.
+- **D23 · Un solo e2e de camino feliz (T5), sembrando su propio lead** para no depender de otros specs; sin capturas, volumen ni e2e de vacío. Lo clave con vitest: la escala y los textos.
+- **D24 · La tabla equivalente figura en `listas-con-patron.ts` con su motivo** (una tabla de sólo lectura de una gráfica, no una lista de registros): la guarda lo exigió al sumar `<Table>`.
+- **D25 · Tipo de esta parte: pantalla** sobre las RPC de 9.07, sin SQL ni permisos nuevos.
+
+<!-- paso:9.08-3 -->
+
+## 2026-11-12 · Paso 9.08-3 (sigue la numeración de 9.08-2, que llegó a D25)
+
+- **D26 · Sin SQL.** `preferencias_usuario(usuario_id, clave, valor jsonb)` con su RLS por dueña ya sirve: no hay migración, ni `db:*`, ni policy nueva.
+- **D27 · La acción sale por `equipo/client.ts`, no por `index.ts`.** El consumidor es un Client Component y `index.ts` arrastra `server-only` (precedentes `agenda/client.ts` y `leads/client.ts`). Es la misma acción genérica `guardarPreferencia`; no se crea otra.
+- **D28 · Qué se guarda:** `orden` = todas las claves que la persona puede ver, en su orden (ocultas incluidas); `ocultos` = las ocultas. Una clave que ya no existe o que dejó de ver se ignora al leer y se pierde al volver a guardar; un widget nuevo del catálogo queda al final.
+- **D29 · Guarda al cambiar, sin botón «Guardar».** Una sola petición en vuelo (los controles se apagan mientras guarda); si falla, la lista queda como estaba y sale el error; si sale bien, `router.refresh()` redibuja el tablero.
+- **D30 · «Restablecer»** manda `valor: null` (la acción borra la fila) y devuelve el orden del catálogo con todo visible; va apagado si no hay nada guardado. Sin confirmación (es reversible).
+- **D31 · Ocultar todos es válido:** «Ocultaste todos los widgets» con «Elige cuáles quieres ver en «Personalizar».»; `EstadoSinPermiso` queda sólo para quien no ve ninguno. «Personalizar» está siempre en la cabecera y su `?panel=personalizar` conserva `?periodo=`.
+- **D32 · El `<Drawer>` va con `diferido()` y figura en la guarda de drawers como `sinFormulario`** (interruptores y botones que guardan en el acto: no hay nada tipeado).
+- **D33 · `BotonesDeOrden` y `useFocoTrasMover` se importan por su ruta**, sin ampliar el barril de `src/shared/ui/lista-de-catalogo/`. `aplicarPreferencia` pasó a ser genérica en el tipo del widget para conservar `WidgetConClave` sin tocar su regla.
+- **D34 · El e2e cierra el panel antes de mirar el tablero:** con el `<Drawer>` abierto lo de atrás queda fuera del árbol de accesibilidad, así que un `toHaveCount(0)` con el panel abierto sería un falso verde.
+- **D35 · Los controles de «Personalizar» siguen apagados hasta que el tablero se redibuja** (`enviando || redibujando`): cerrar el panel cambia la URL y un `router.refresh()` en vuelo se perdía, así que bajo la carga del CI el tablero seguía con lo anterior (T6 cayó en el PR del 9.08-3). Ahora «habilitado» en el e2e significa «ya redibujado».
+
+<!-- paso:9.11-1 -->
+
+# 9.11-1 · Tablero: el margen del mes y la cola web en la base (2026-11-12)
+
+- **D1 · El mes del margen es el del pago confirmado** (`pagos.confirmado_en`), con los días en la zona de la empresa (`_tablero_ventana`): es el único
+  hecho sellado; la base no tiene «fecha de venta» (duda 1 del PLAN, la recomendada).
+- **D2 · Pago a medias: se suma lo confirmado, tal cual, sin marca «pago parcial».** La base no guarda el precio de venta ni un saldo del vehículo
+  (`margen_vehiculo` toma como `venta` la suma de los confirmados), así que no hay cómo saber si está pagado entero (duda 2, la rama «si no»).
+- **D3 · Un vehículo cae en el período de su último pago confirmado vivo**, con la venta de todos sus pagos confirmados: su margen es exactamente el de
+  `margen_vehiculo` (el número del panel de la unidad) y un vehículo pagado en dos meses no suma dos veces. Se aparta de la letra del PLAN («algún pago
+  confirmado en el período»), que lo contaría en cada mes con un pago. **Consecuencia:** un mes pasado cambia después: si se confirma un pago nuevo, el
+  vehículo pasa al mes de ese pago; si se anula el último, vuelve. Está en el `comment on function`; la 9.11-2 no presenta un mes pasado como cerrado.
+  Reversible con otra migración.
+- **D4 · «Sin venta registrada»** = vehículo con un pago vivo sin confirmar de `fecha` en el período y ningún pago confirmado vivo. Con la cohorte de D3
+  todos los que suman tienen venta; ésta es la única forma de que un vehículo del período no la tenga. No suma a nada.
+- **D5 · Sólo vehículos:** los pagos de un proyecto de repuestos no entran (su margen es de repuestos).
+- **D6 · `tablero_margen` pide sólo `logistica.margen.ver`** y mira sólo los orígenes donde la tiene (`origenes_con_alcance(…, 'propios')`): no devuelve
+  nada que el panel de la unidad no muestre ya a quien tiene la clave. La página `/tablero` sigue pidiendo `tablero.metricas.ver`.
+- **D7 · Cola web:** el período va por `asignada_en` (cada intento es una fila con la suya, que no se reescribe); `asignadas` = no directas con persona,
+  en cualquier estado (el espejo de `asignadas_total` del 8.04); la tasa con 4 decimales y nula sin asignadas; la mediana en minutos hasta «Contacté»
+  con 1 decimal, sobre las contactadas no directas. `por_persona` junta a todos los que tuvieron asignadas en el período, estén o no hoy en la rueda.
+- **D8 · Topes:** 10 orígenes y 20 personas con `*_hay_mas`, como el 9.07; los totales cuentan todo.
+- **D9 · `cotizado`** = suma de las finales activas de los vehículos de la cohorte que la tienen; nulo si ninguno. `por_origen` queda en la RPC; la
+  9.11-2 dibuja el total.
+- **D10 · Partición:** 9.11-1 la base (dos migraciones, sus pruebas SQL y los tipos); 9.11-2 los widgets, su vitest y el caso de `e2e/tablero.spec.ts`.
+- **D11 · Límite conocido: un pago confirmado sin `confirmado_en` no entra.** La columna admite nulos y sólo la sella `pago_sellado` (6.10-2); ninguna
+  migración rellenó las filas de antes. Un pago así queda fuera del margen y tampoco cuenta en `sin_venta`. No se agrega un `check (not confirmado or
+confirmado_en is not null)` sin mirar antes los datos de producción: si hace falta, va en su propia migración con el relleno (auditoría del informe).
+
+<!-- paso:9.11-2 -->
+
+# 9.11-2 · Tablero: los widgets del margen del mes y la cola web (2026-11-12)
+
+- **D12 · El nombre del grupo del margen no lleva el monto.** `CifraDelWidget` pone el valor en el `aria-label`: con un monto, el Modo Live lo dejaría en
+  el árbol de accesibilidad. El margen va en `CifraDeMonto` (grupo «Margen del mes», el monto por `<Monto>`); nulo, `CifraDelWidget` con «Sin venta
+  registrada», que no es dinero. Reversible.
+- **D13 · `TEXTO_SIN_VENTA` propio del tablero**, con el mismo texto que logística: `SIN_VENTA_REGISTRADA` no sale por la entrada de `logistica` y abrirla
+  por una cadena no vale un cambio en otro módulo.
+- **D14 · «Turnos», no «Solicitudes»**, en el widget de la cola: el glosario llama **Turno web** a la fila de `solicitudes_contacto_web`. El título sigue
+  «Cola de la web».
+- **D15 · El caso T7 lo hace entero la dueña** (registra y confirma el pago): `pago_confirmar` no impide confirmar un pago propio y así el caso no depende
+  de dos sesiones.
+- **D16 · T7 no siembra gasto:** la diferencia esperada es el pago. La resta pago − gasto al centavo la prueba R1 de `margen-y-cola.sql` (9.11-1).
+- **D17 · El margen se dibuja sin «mes cerrado»:** la nota dice que cada vehículo cuenta por su último pago confirmado (consecuencia de D3 de la 9.11-1).
+- **D18 · `mediana_minutos` sin `min(0)` en el esquema:** un turno con `contactada_en` anterior a `asignada_en` tumbaría el widget entero; la RPC no lo
+  acota y un número raro se ve, no esconde las demás cifras.
+- **D19 · `borrarDineroDeEsteOrigen`** en `e2e/soporte/dinero.ts`: `borrarDinero` barre todos los orígenes `e2e_%` y no convive con un terreno que tiene
+  cotizaciones vivas (el de la final en `tablero.spec.ts`).
