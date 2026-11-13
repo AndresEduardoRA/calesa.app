@@ -1,4 +1,4 @@
-// Escribir un número como lo escribiría una persona en el texto de una fila (4.21-1, C8; docs/COTIZADOR.md › «El editor (4.21-1)»): el valor que dejó el ⚙
+// Escribir un número como lo escribiría una persona en el texto de una fila (4.21-1, C8; docs/COTIZADOR.md › «El editor»): el valor que dejó el ⚙
 // vuelve a su lugar en el texto. Puro, sin expresiones regulares. Es la inversa del léxico del compilador (`compilador-lexico.ts`): con `%`, el
 // punto se corre dos lugares EN EL TEXTO (como el léxico, nunca `v * 100`, que daría otro doble), y compilar lo escrito da exactamente el mismo doble.
 //

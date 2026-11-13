@@ -4,7 +4,7 @@ import { createClient } from '@/shared/lib/supabase/server'
 import type { FalloDeVinculo, RepositorioDeVinculo } from '../entities/repositorios'
 import { respuestaDeInteresDesde, respuestaDeVinculoDesde } from '../entities/vehiculos-del-lead'
 
-// El vínculo a un lead y el interés se escriben sólo por estas RPC (`…20261015000600_vehiculos_del_lead.sql`):
+// El vínculo a un lead y el interés se escriben sólo por estas RPC:
 // vincular y marcar exigen la cartera del lead y el permiso sobre el vehículo; desvincular, sólo editar el
 // vehículo. Lo que no se ve responde igual que lo que no existe. El `hint` es el campo del formulario.
 

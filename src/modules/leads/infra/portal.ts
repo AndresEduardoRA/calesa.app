@@ -4,7 +4,7 @@ import { createClient } from '@/shared/lib/supabase/server'
 import { otorgadoDesde } from '../entities/portal'
 import type { FalloDelPortal, RepositorioDelPortal } from '../entities/repositorios-de-portal'
 
-// El acceso del cliente se escribe sólo por estas RPC (`…20261016000300_portal_cliente.sql`). La clave
+// El acceso del cliente se escribe sólo por estas RPC. La clave
 // viaja como parámetro (nunca en el texto de la consulta) y, si la genera la base, vuelve una sola vez:
 // nada de esto la escribe en un registro.
 

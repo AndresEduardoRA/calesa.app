@@ -1,4 +1,4 @@
-// Expresiones al azar para probar el compilador (docs/COTIZADOR.md › «Fórmulas como texto (4.07)»): un generador con semilla fija
+// Expresiones al azar para probar el compilador (docs/COTIZADOR.md › «Fórmulas como texto»): un generador con semilla fija
 // que arma un árbol, lo escribe como texto (con espacios y paréntesis de más) y un oráculo que lo calcula directo en JS. El
 // oráculo usa la semántica del motor: un resultado que no es finito vale null y se propaga (JSON no guarda ∞ ni NaN), −0 vale 0,
 // y dividir por 0 es null. Sólo para las pruebas.

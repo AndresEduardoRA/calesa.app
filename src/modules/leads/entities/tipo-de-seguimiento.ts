@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 // Un tipo de seguimiento (WhatsApp, Llamada, Visita… y los que la empresa agregue), configurable en Configuración › Leads › Tipos de
-// seguimiento. Estas reglas son espejo de `tipo_seguimiento_*()` y `_tipo_seguimiento_nombre()` (`…20261019004000_configuracion_de_leads.sql`): la
+// seguimiento. Estas reglas son espejo de `tipo_seguimiento_*()` y `_tipo_seguimiento_nombre()`: la
 // base las vuelve a decir, con estos mismos textos, si algo llega de otro lado.
 //
 // Ningún tipo es «de sistema»: el código no razona por la clave ni por el nombre de uno (el que el alta propone es el primero de la lista),

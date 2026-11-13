@@ -38,7 +38,7 @@ test('al 200 %: el menú abierto del «⋯» de una fila de leads cabe en la pan
 }) => {
   await textoGrandeAlCargar(page)
   await entrar(page, t.personas.berta)
-  // Una palabra corta: el chip de una búsqueda larga ensancha el listado al 200 % (aparte de esta prueba, `docs/PLAN.md`).
+  // Una palabra corta: el chip de una búsqueda larga ensancha el listado al 200 % (aparte de esta prueba, `docs/PENDIENTES.md`).
   await irALeads(page, buscar('Menu'))
   // El listado llega pintado antes de hidratar y, un instante, más ancho que la pantalla: se mide ya hidratado.
   await esperarHidratado(page)

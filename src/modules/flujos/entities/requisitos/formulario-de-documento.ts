@@ -1,5 +1,5 @@
 // El formulario de «Agregar requisito» de forma «Documento»: lo escrito, su validación y lo que se manda. Espejo de `_requisito_forma()` y
-// `_requisito_validar()` (`…20261111222241_requisitos_crear.sql`): la base vuelve a decir cada motivo, con el campo en el `hint`. Sin I/O.
+// `_requisito_validar()`: la base vuelve a decir cada motivo, con el campo en el `hint`. Sin I/O.
 import { leerNumeroTipeado } from '@/shared/lib/numero-tipeado'
 import { MENSAJE_DE_NOTAS_LARGAS, validarNotas } from './notas'
 import type { TipoParaRequisito } from './opciones'

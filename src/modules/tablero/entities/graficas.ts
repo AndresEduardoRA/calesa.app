@@ -3,8 +3,8 @@
 import { formatearDiaYMes } from '@/shared/lib/fechas'
 import { formatearNumero } from '@/shared/lib/formato'
 
-// Cuántos orígenes y personas devuelve la RPC de 9.07 (`tablero_leads`: `n <= 10` por origen, `n <= 20` por asesor;
-// `supabase/migrations/20261112110517_tablero_leads.sql`). Si la RPC cambia su tope, cambia aquí.
+// Cuántos orígenes y personas devuelve la RPC de 9.07 (`tablero_leads`: `n <= 10` por origen, `n <= 20` por asesor).
+// Si la RPC cambia su tope, cambia aquí.
 export const TOPE_DE_ORIGENES = 10
 export const TOPE_DE_PERSONAS = 20
 

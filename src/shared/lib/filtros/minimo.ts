@@ -1,6 +1,6 @@
 // El mínimo que pide una búsqueda libre para buscar por nombre (5a-8). Es un dato del esquema y no una función: el esquema cruza del
 // servidor al navegador. Quien busca con menos no recorre nada: un término sin un tramo de letras o dígitos seguidos no tiene qué buscar
-// en un índice de trigramas y la base lo resolvería caminando la cartera entera de quien busca (`docs/PLAN.md`, 5a-8).
+// en un índice de trigramas y la base lo resolvería caminando la cartera entera de quien busca (`docs/PENDIENTES.md`, 5a-8).
 export type MinimoDeBusqueda = {
   // Cuántas letras o dígitos seguidos tiene que tener lo escrito.
   letras: number

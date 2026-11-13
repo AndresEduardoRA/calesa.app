@@ -1,4 +1,4 @@
-// Las filas de una fórmula con texto (4.21-1; docs/COTIZADOR.md › «El editor (4.21-1)»): una fila es un nodo que no es auxiliar de otra, y
+// Las filas de una fórmula con texto (4.21-1; docs/COTIZADOR.md › «El editor»): una fila es un nodo que no es auxiliar de otra, y
 // sus auxiliares son los nodos `<id>__<n>` que el compilador (4.07) creó para su texto (la regla, en `compilador-auxiliares.ts`). Puro, sin I/O,
 // lineal con el medidor.
 import { cadenasDeAuxiliares, textoGuardadoDe } from '../compilador-auxiliares'

@@ -27,7 +27,7 @@ import {
 // El recorrido de la IA con dos cuentas (9d-3): la dueña (rol `dueno`) y una asesora con el rol `asesor`
 // de la semilla y cartera propia, en escritorio y en el celular. Lo que se puede afirmar sin mirar (quién
 // recibe el clic, el foco, la URL, los pedidos, lo que cabe) queda acá; lo que se juzga mirando, en las
-// capturas (`E2E_CAPTURAS=e2e-capturas/9d-3`) y en `docs/BITACORA.md`.
+// capturas (`E2E_CAPTURAS=e2e-capturas/9d-3`) y en `docs/DECISIONES.md`.
 test.describe.configure({ mode: 'serial' })
 
 let r: TerrenoDelRecorrido

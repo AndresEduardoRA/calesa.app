@@ -1,6 +1,6 @@
 // Corre sólo las carreras de marcar final (`carreras.mjs`) contra la base del Supabase LOCAL de este worktree, con el arnés de `scripts/carreras.mjs`: A abre
-// una transacción y actúa, B lanza, el orquestador espera a que B espere un candado y A confirma. Hasta que el carril A sume dos líneas a
-// `scripts/carreras.mjs` (lo pide la bitácora del paso 4.25), `db:carreras` no las corre: se corren con el candado,
+// una transacción y actúa, B lanza, el orquestador espera a que B espere un candado y A confirma. Mientras
+// `scripts/carreras.mjs` no las importe, `db:carreras` no las corre: se corren con el candado,
 // `bash scripts/candado.sh db:carreras -- node supabase/tests/areas/final/correr-carreras.mjs`. Sale con 1 si alguna falla.
 import pg from 'pg'
 import { comoPersona, limpiar, sembrar } from '../../../../scripts/carreras/terreno.mjs'

@@ -4,7 +4,7 @@ import { createClient } from '@/shared/lib/supabase/server'
 import type { RepositorioDeTiposDeLead } from '../entities/repositorios-de-tipos'
 import { respuestaDeTiposDesde } from '../entities/tipo-de-lead'
 
-// Los tipos de lead se escriben sólo por estas RPC (`…20261019002900_tipos_de_lead_rpc.sql`), con `leads.configurar`. Guardar,
+// Los tipos de lead se escriben sólo por estas RPC, con `leads.configurar`. Guardar,
 // mover y eliminar piden la versión (`PT409` legible si otra pestaña la cambió). Todas devuelven la lista entera: la pantalla
 // no vuelve a leer.
 

@@ -18,7 +18,7 @@ describe('REGLAS_DE_PLANTILLA', () => {
 })
 
 describe('rechazoDePlantilla', () => {
-  // Los textos de los `format` de la base (20261106185900_plantilla_validar.sql), con el donde entre comillas latinas.
+  // Los textos de los `format` de `validar_plantilla()` y sus ayudantes en la base, con el donde entre comillas latinas.
   it.each([
     ['forma', 'grupos[0]', 'La plantilla no tiene la forma esperada.'],
     ['grupo_inexistente', 'seguro', 'El grupo «seguro» no es de la fórmula.'],

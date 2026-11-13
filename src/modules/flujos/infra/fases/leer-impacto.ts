@@ -4,7 +4,7 @@ import { createClient } from '@/shared/lib/supabase/server'
 import type { LectorDeImpactoDeFase } from '../../entities/fases/repositorios'
 import { impactoDeFaseDeLaBase } from '../../entities/fases/respuestas'
 
-// `fase_impacto(p_fase)` (`…20261111190408_fases_impacto.sql`): lo que usa la fase y qué haría jubilarla o eliminarla, con conteos de tope 50 + 1.
+// `fase_impacto(p_fase)`: lo que usa la fase y qué haría jubilarla o eliminarla, con conteos de tope 50 + 1.
 // Sin versión ni candado. Sólo la ve quien configura el flujo (`42501`); una fase que ya no existe da `PT409`.
 export const leerImpactoDeFaseSupabase: LectorDeImpactoDeFase = async (faseId) => {
   const supabase = await createClient()

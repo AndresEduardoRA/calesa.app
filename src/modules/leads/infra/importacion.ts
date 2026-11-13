@@ -7,7 +7,7 @@ import { deshacerDesde, recientesDesde } from '../entities/importacion/deshacer'
 import { loteImportadoDesde } from '../entities/importacion/lotes'
 import type { RepositorioDeImportacion } from '../entities/repositorios-de-importacion'
 
-// La importación de leads por RPC (`…20261016000400_leads_csv.sql`). Un lote es todo o nada sólo en lo
+// La importación de leads por RPC. Un lote es todo o nada sólo en lo
 // formal (la forma del pedido); cada fila vale por sí misma y la base contesta una por una.
 const NO_SE_LEYO = 'No pudimos leer la respuesta. Reintenta: lo que ya entró no se duplica.'
 
@@ -41,7 +41,7 @@ export const importacionSupabase: RepositorioDeImportacion = {
     const leido = esquemaDeTerminar.safeParse(data)
     return leido.success ? ok({ creadas: leido.data.creadas }) : fallo('inesperado', NO_SE_LEYO)
   },
-  // `…20261017000100_leads_importacion_deshacer.sql`.
+  // `leads_importacion_deshacer()`.
   deshacer: async (importacionId) => {
     const supabase = await createClient()
     const { data, error } = await supabase.rpc('leads_importacion_deshacer', {

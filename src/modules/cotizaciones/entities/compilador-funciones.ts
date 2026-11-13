@@ -1,4 +1,4 @@
-// Las funciones del texto (docs/COTIZADOR.md › «Fórmulas como texto (4.07)»): sólo operaciones que el grafo ya tiene. Al cerrarse
+// Las funciones del texto (docs/COTIZADOR.md › «Fórmulas como texto»): sólo operaciones que el grafo ya tiene. Al cerrarse
 // el paréntesis se revisa cada argumento contra lo que su posición pide y se arma la operación.
 import {
   argumentoInvalido,

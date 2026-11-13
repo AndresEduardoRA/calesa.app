@@ -1,5 +1,5 @@
 -- La versión esperada al descartar y al publicar el borrador de la fórmula (4.21-2, 4-8), y el permiso antes que las esperadas en las tres RPC: con la
--- `actualizado_en` que leyó, un borrador que cambió o que ya no está da PT409; sin hora, como antes. docs/COTIZADOR.md › «Versiones (4.20-1)».
+-- `actualizado_en` que leyó, un borrador que cambió o que ya no está da PT409; sin hora, como antes. docs/COTIZADOR.md › «Versiones».
 -- Corre en PGlite (`pnpm db:probar`, después de la lista fija); cada bloque arma su terreno con `be_preparar()` dentro de su transacción y la revierte: no se
 -- apoya en el humo ni en otro archivo, ni deja nada. Los otros dos: `borrador-*.sql`.
 

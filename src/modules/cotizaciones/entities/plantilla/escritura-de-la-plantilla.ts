@@ -29,7 +29,7 @@ export const MOTIVO_SIN_PERMISO_DE_PLANTILLA =
   'No tienes permiso para configurar la plantilla de este origen.'
 
 export const MENSAJE_DE_NOTA_DE_PLANTILLA_VACIA = 'Publicar pide una nota.'
-// La base no limita la nota; el tope es el de la nota de la fórmula (`entities/formula/publicacion.ts`, del carril B y de otra área: se repite aquí). Se cuentan
+// La base no limita la nota; el tope es el de la nota de la fórmula (`entities/formula/publicacion.ts`, de otra área: se repite aquí). Se cuentan
 // caracteres y no unidades UTF-16 (4-74): un emoji es uno.
 export const LARGO_MAXIMO_DE_NOTA_DE_PLANTILLA = 2000
 

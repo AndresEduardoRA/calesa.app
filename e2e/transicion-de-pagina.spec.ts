@@ -3,7 +3,7 @@ import { borrarPersonasDePrueba, correoDePrueba, crearDuenaDePrueba } from './so
 import { entrarConSesion } from './soporte/pasos'
 import { expect, test, type Page } from './soporte/prueba'
 
-// La transición entre pantallas (9.12-4, `docs/PLAN.md` › 9.12): un fundido con `--dur-pagina`, apagado con `prefers-reduced-motion`.
+// La transición entre pantallas (9.12-4, `docs/PENDIENTES.md` › 9.12): un fundido con `--dur-pagina`, apagado con `prefers-reduced-motion`.
 // La guarda `scripts/guardas/estados-de-ruta.test.ts` fija el CSS; aquí se ve en el navegador: la duración que vale cada token y qué
 // animaciones de la transición corren al navegar de cliente (sin `goto`, que recarga y no hace transición).
 let duena = ''

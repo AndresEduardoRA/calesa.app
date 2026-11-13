@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 // El origen del lead (de dónde llegó), configurable en Configuración › Leads › Orígenes. Distinto de
 // los orígenes de vehículos (`modules/origenes`). Estas reglas son espejo de `origen_lead_*()` y
-// `_origen_lead_nombre()` (`…20261019000700_origenes_lead_configurables.sql`): la base las vuelve a
+// `_origen_lead_nombre()`: la base las vuelve a
 // decir, con estos mismos textos, si algo llega de otro lado.
 
 export const TOPE_DE_ORIGENES_DE_LEAD = 100

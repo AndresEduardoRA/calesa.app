@@ -4,7 +4,7 @@ import { createClient } from '@/shared/lib/supabase/server'
 import { respuestaDeCarteraDesde } from '../entities/cartera'
 import type { FalloDeCartera, RepositorioDeCartera } from '../entities/repositorios'
 
-// Quién tiene el lead se mueve sólo por estas RPC (`…20261015000400_leads_auditoria.sql`): el dueño,
+// Quién tiene el lead se mueve sólo por estas RPC: el dueño,
 // o quien tiene el permiso en «todos»; nadie se concede acceso a sí mismo. Lo que no se ve
 // responde igual que un lead que no existe. El `hint` es el campo del formulario que lo causó.
 

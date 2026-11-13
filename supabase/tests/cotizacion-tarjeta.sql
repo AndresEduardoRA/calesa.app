@@ -1,5 +1,5 @@
 -- `cotizacion_tarjeta(p_formula)` (paso 4.18-1): lo que dibuja la tarjeta (y el PDF) de una versión de la fórmula, con la plantilla publicada del origen validada
--- contra ESA versión, sólo con lo del nivel «todos». docs/COTIZADOR.md › «La lectura de la tarjeta (4.18-1)». K4 es el bloque de lo oculto, por cada nivel, que
+-- contra ESA versión, sólo con lo del nivel «todos». docs/COTIZADOR.md › «La lectura de la tarjeta». K4 es el bloque de lo oculto, por cada nivel, que
 -- nombra el inventario de `cotizaciones-visibilidad.sql` (`cubierta_por`). Usa `pg_temp.pv_formula` y `pg_temp.pv_plantilla_g1` de `plantilla-validar.sql`, que corre antes.
 -- La dueña es `…0001` (la crea `humo.sql`). Cada bloque abre su transacción y la revierte. Compara claves y hojas, nunca texto suelto.
 

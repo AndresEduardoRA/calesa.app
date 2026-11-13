@@ -1,5 +1,5 @@
--- Quién ve qué vehículo: la policy `vehiculos: leer` y `puede_vehiculo()` deciden fila a fila desde el paso 4.11 (`…20261019008800`), y nadie ve más ni
--- menos que antes. La prueba lo demuestra contra una COPIA de la definición vieja (la policy de `…20261013000100` y la función de `…20261011000200`), no contra
+-- Quién ve qué vehículo: la policy `vehiculos: leer` y `puede_vehiculo()` deciden fila a fila desde el paso 4.11, y nadie ve más ni
+-- menos que antes. La prueba lo demuestra contra una COPIA de la definición vieja (la policy y la función de antes del 4.11), no contra
 -- un comentario: por cada persona, la policy nueva, la vieja, `puede_vehiculo()` nueva y la vieja dan los mismos vehículos, y esos son los esperados.
 -- Corre al final de `db:probar` (la dueña es `…0001`, la crea `humo.sql`; sus `pg_temp` no llegan a los archivos de antes). Cada bloque abre su transacción y
 -- la revierte. Los teléfonos son fijos (`7211xxxx`, que nadie más usa) y se comprueba que estén libres: nunca `random()` (4-22).
@@ -25,7 +25,7 @@ begin
   end loop;
 end $f$;
 
--- La función de antes, copiada tal cual (`…20261011000200:35-43`): `alcance_de` hasta dos veces y el arreglo de toda la cartera. Sólo para comparar.
+-- La función de antes, copiada tal cual: `alcance_de` hasta dos veces y el arreglo de toda la cartera. Sólo para comparar.
 create or replace function pg_temp.puede_vehiculo_vieja(p_vehiculo uuid, p_clave text)
 returns boolean language sql stable security definer set search_path = '' as $$
   select exists (
@@ -39,7 +39,7 @@ $$;
 revoke all on function pg_temp.puede_vehiculo_vieja(uuid, text) from public;
 grant execute on function pg_temp.puede_vehiculo_vieja(uuid, text) to authenticated;
 
--- La policy de antes, copiada tal cual (`…20261013000100:29-38`).
+-- La policy de antes, copiada tal cual.
 create or replace function pg_temp.vv_policy_vieja() returns text language sql as $f$
   select $p$eliminado_en is null
   and (

@@ -1,4 +1,4 @@
--- El catálogo de tonos de la empresa (`…20261019005700_tonos.sql`, paso 4.08 prompt 2): la semilla, el contraste AA contra `color.ts`, crear,
+-- El catálogo de tonos de la empresa (paso 4.08 prompt 2): la semilla, el contraste AA contra `color.ts`, crear,
 -- guardar y eliminar por RPC, y que un tono que una versión de una fórmula nombra no se elimine. Corre después de `humo.sql`: la dueña es
 -- `…0001`; `…00b1` es una persona sin `cotizaciones.configurar`.
 -- `scripts/probar-schema.mjs` carga antes `supabase/tests/corpus-de-contraste.json` en `_corpus_de_contraste` (lo genera TS con `contraste()`).

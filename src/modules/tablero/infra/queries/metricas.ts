@@ -10,8 +10,8 @@ import {
   type RepositorioDeMetricas,
 } from '../../entities/metricas'
 
-// Una RPC por grupo de widgets, nunca N consultas (`…20261112110517_tablero_leads.sql`, `…110519_tablero_cotizaciones.sql`,
-// `…230042_tablero_margen.sql` y `…230045_tablero_cola_web.sql`). Las dos primeras piden `tablero.metricas.ver`; la del margen,
+// Una RPC por grupo de widgets, nunca N consultas (`tablero_leads`, `tablero_cotizaciones`,
+// `tablero_margen` y `tablero_cola_web`). Las dos primeras piden `tablero.metricas.ver`; la del margen,
 // `logistica.margen.ver` y sólo mira sus orígenes; la de la cola, `web.cola.gestionar` (42501). Todas, una ventana de hasta 366 días
 // (22023). Sin `.from()` sobre tablas.
 async function leer<Esquema extends z.ZodType>(

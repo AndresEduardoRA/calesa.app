@@ -4,7 +4,7 @@ import { createClient } from '@/shared/lib/supabase/server'
 import { respuestaDeEtiquetasDelLeadDesde, respuestaDeMarcaDesde } from '../entities/marcas'
 import type { RepositorioDeMarcas } from '../entities/repositorios'
 
-// Las marcas de quien mira se escriben sólo por estas RPC (`…20261015000200_marcas_de_leads.sql`):
+// Las marcas de quien mira se escriben sólo por estas RPC:
 // las tablas no tienen grants de escritura. Exigen ver el lead; lo que no se ve responde igual que
 // un lead que no existe, también al quitar.
 

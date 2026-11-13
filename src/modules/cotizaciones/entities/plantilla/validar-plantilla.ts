@@ -1,4 +1,4 @@
-// La plantilla de la tarjeta validada como la valida la base: espejo de `validar_plantilla()` (20261106185900_plantilla_validar.sql:136-164; 4.19-2), con el juego
+// La plantilla de la tarjeta validada como la valida la base: espejo de `validar_plantilla()` (4.19-2), con el juego
 // común `casos-de-plantilla.json`. Es una ayuda al tipear (4.19-3): la base vuelve a validar al guardar y al publicar. Mismo orden, misma regla, mismo `donde`
 // y el mismo mensaje; nunca lanza. Sin contexto (la base con `p_def` nulo) valida sólo la forma; sin `tonos`, no mira el catálogo.
 import { formaDePlantilla, type Plantilla } from './forma-de-plantilla'

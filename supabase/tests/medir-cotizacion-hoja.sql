@@ -237,7 +237,7 @@ reset role;
 
 do $$
 declare
-  c_bytes constant int := 16384;           -- bytes de la hoja de las capturas como dueña (medido: ver docs/RENDIMIENTO.md, «Paso 4.13 (1 de 4)»)
+  c_bytes constant int := 16384;           -- bytes de la hoja de las capturas como dueña (medido: ver docs/RENDIMIENTO.md)
   c_ms constant numeric := 10;             -- ms por llamada de una hoja de las capturas
   c_ms_chica constant numeric := 25;       -- ms de la sintética de 255 nodos (medido: 11 a 24)
   c_ms_grande constant numeric := 300;     -- ms de la sintética de 2.487 nodos (medido: 156 a 284)

@@ -77,7 +77,7 @@ describe('validarCelda', () => {
 
 describe('PLANTILLAS', () => {
   it('leads lleva las claves de _importacion_fila_lead, en su orden', () => {
-    // supabase/migrations/20261113031654_importaciones_procesar.sql (v_permitidas)
+    // `v_permitidas` de `_importacion_fila_lead()`, en la base
     expect(PLANTILLAS.leads.map((c) => c.clave)).toEqual([
       'nombre',
       'telefono_principal',
@@ -88,7 +88,7 @@ describe('PLANTILLAS', () => {
   })
 
   it('vehiculos lleva las claves de vehiculo_crear, en su orden', () => {
-    // supabase/migrations/20261028180656_base.sql:7679-7680
+    // las claves que lee `vehiculo_crear()`, en la base
     expect(PLANTILLAS.vehiculos.map((c) => c.clave)).toEqual([
       'titulo',
       'marca',

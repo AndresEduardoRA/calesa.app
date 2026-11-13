@@ -127,7 +127,7 @@ async function columnas(page: Page) {
   })
 }
 
-// Los dos diseños de la semilla (el del cotizador actual y el del Excel, `docs/PLAN.md` › criterio de la fase), con el resumen fijo al costado o al pie (4.13-4d).
+// Los dos diseños de la semilla (el del cotizador actual y el del Excel, `docs/PENDIENTES.md` › criterio de la fase), con el resumen fijo al costado o al pie (4.13-4d).
 for (const clave of ['subasta_usa', 'planilla_usa']) {
   for (const zoom of [100, 200]) {
     test(`la hoja de ${clave} al ${String(zoom)} % cabe, no corta nada, sus celdas caben en su sección y mantiene el orden declarado`, async ({

@@ -51,7 +51,7 @@ export function fechaHoraLocal(texto: string): string | null {
 
 // El número de una celda del archivo (P1 del 4.13-3c: un archivo viene de otro sistema, no de quien tipea): «1.234,5» y «1,234.5», y «1.234»
 // y «1,234» como 1234 en cualquier locale; «1.5» y «1,5» como decimal. Es el segundo lector de la app, más permisivo que el del formulario a
-// propósito (`docs/DECISIONES.md`, «Paso 4.13 (3c de 6)»). «1e3», «0x10» e «Infinity» no son números. Sale escrito en el formato de la
+// propósito (`docs/DECISIONES.md`). «1e3», «0x10» e «Infinity» no son números. Sale escrito en el formato de la
 // empresa, sin miles: es lo que el alta lee de vuelta igual.
 function numeroDelArchivo(texto: string): number | null {
   if (/^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(texto)) {

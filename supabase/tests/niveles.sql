@@ -1,4 +1,4 @@
--- Los niveles de acceso de la hoja (`…20261019006100_niveles_de_acceso.sql`, paso 4.09 prompt 1; docs/COTIZADOR.md › «En la base (4.09-1)»): la siembra, el tope,
+-- Los niveles de acceso de la hoja (paso 4.09 prompt 1; docs/COTIZADOR.md › «En la base»): la siembra, el tope,
 -- crear, renombrar, retirar y eliminar por RPC, los permisos que genera cada nivel y su concesión al dueño, la estructura que ata permisos y niveles
 -- (check, FK, trigger diferido), el uso que impide eliminar, `_niveles_de_cotizacion()` desde la tabla y la actividad sin contenido de fórmula.
 -- Corre al final de `db:probar`, después de `humo.sql`: la dueña es `…0001`. El enforcement de los permisos (`_nodos_visibles`) está en `permisos-enforcement.sql`.

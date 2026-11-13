@@ -1,5 +1,5 @@
 -- Lo que no se ve no viaja: la lectura de una cotización (paso 4.10, prompt 1; docs/COTIZADOR.md › «Niveles de acceso», D7). La mitad de lectura de
--- `cotizaciones-visibilidad.sql`; guardar sin mandar la clave de un nodo oculto (que la conserve) lo prueba el prompt 3 (`docs/PLAN.md`, fila 4.10).
+-- `cotizaciones-visibilidad.sql`; guardar sin mandar la clave de un nodo oculto (que la conserve) lo prueba el prompt 3 (`docs/PENDIENTES.md`, fila 4.10).
 -- Corre al final de `db:probar`, después de `niveles-con-uso.sql`: la dueña es `…0001` (la crea `humo.sql`). Cada bloque abre su transacción y la
 -- revierte: deja la base como la encontró.
 --

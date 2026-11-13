@@ -9,7 +9,7 @@ import type {
 } from '../../entities/requisitos/repositorios'
 import { versionNuevaDesde } from '../../entities/requisitos/respuestas'
 
-// Las escrituras de un requisito (`…2026111122224{1,2,3,4}_requisitos_*.sql`): el permiso del flujo (`42501`), la versión (`PT409`) y las reglas del dato
+// Las escrituras de un requisito (`requisito_crear`, `requisito_guardar`, `requisito_mover`, `requisito_eliminar`): el permiso del flujo (`42501`), la versión (`PT409`) y las reglas del dato
 // con el campo en el `hint` (`22023`). Ninguna devuelve la lista: devuelven la versión nueva del flujo y la pantalla relee.
 const NO_SE_LEYO = 'No pudimos leer la respuesta. Recarga para ver cómo quedó.'
 

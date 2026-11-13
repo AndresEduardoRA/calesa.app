@@ -10,7 +10,7 @@ import type { LectorDeFueraDeRegla } from '../../entities/requisitos/repositorio
 
 const NO_SE_LEYO = 'No pudimos revisar las unidades fuera de regla.'
 
-// `flujo_fuera_de_regla` (`…20261111222248_requisitos_fuera_de_regla.sql`): las unidades ya en una fase con requisitos bloqueantes que no los cumplen, por orden
+// `flujo_fuera_de_regla`: las unidades ya en una fase con requisitos bloqueantes que no los cumplen, por orden
 // de fase y con `tope + 1` filas para saber si hay más. Sólo ids: los títulos salen aparte, con la RLS de quien mira. `42501` a quien no configura el flujo.
 export const leerFueraDeRegla: LectorDeFueraDeRegla = async ({ flujoId }) => {
   const supabase = await createClient()

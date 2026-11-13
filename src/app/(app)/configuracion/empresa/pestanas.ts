@@ -1,11 +1,11 @@
 // Las pestañas de Configuración › Empresa. Cuál está abierta vive en la URL (`?seccion=`).
 //
 // Una pestaña de Empresa es de la empresa (las tres de abajo) o de un área: la lista del área vive en su carpeta
-// (`comprobantes/pestanas.ts`, del carril C) y se suma al final de `PESTANAS`. Reglas de una pestaña de un área:
+// (`comprobantes/pestanas.ts`) y se suma al final de `PESTANAS`. Reglas de una pestaña de un área:
 // - sólo pide claves de la entrada «Configuración» de `NAVEGACION` (`secciones.test.ts` lo vigila por `PERMISOS_DE_EMPRESA`);
 // - su estado de URL propio va en `?panel=` (la barra lo limpia al cambiar de pestaña) y su sección lo lee de `parametros`;
-//   un parámetro nuevo se le pide al carril A (4-89);
-// - quién la ve sin los permisos de Empresa lo decide el paso que la suma, en su compuerta `datos` (4-89).
+//   un parámetro nuevo se suma a la barra (4-89);
+// - quién la ve sin los permisos de Empresa se decide al sumarla (4-89).
 import { puede, type ClavePermiso, type Permisos } from '@/shared/lib/permisos'
 import { PESTANAS_DE_COMPROBANTES } from './comprobantes/pestanas'
 

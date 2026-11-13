@@ -37,7 +37,7 @@ async function direccionAProbar(supabase: ClienteDeQuienPrueba): Promise<Resulta
     return fallo('regla', MOTIVO_PROBAR_SIN_SECRETO)
   }
   // El loopback sólo se prueba si la base del despliegue también es de esta máquina (local, CI):
-  // en la nube, apuntaría al propio servidor (D10 en docs/pasos/8.06-2/decisiones.md).
+  // en la nube, apuntaría al propio servidor (D10 en docs/DECISIONES.md).
   const loopback = esDireccionLocal(entornoPublico().NEXT_PUBLIC_SUPABASE_URL)
   if (!esDireccionDeRevalidacion(direccion, { loopback })) {
     return fallo(

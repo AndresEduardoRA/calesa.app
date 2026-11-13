@@ -5,7 +5,7 @@ import type { RepositorioDeTelefonos } from '../entities/repositorios'
 import { cambioDesde, extrasDesde } from '../entities/telefonos'
 import { verificacionDesde } from '../entities/verificacion'
 
-// Los teléfonos de un lead se escriben sólo por estas RPC (`…20261014001400_lead_telefonos.sql`): la
+// Los teléfonos de un lead se escriben sólo por estas RPC: la
 // tabla `leads_telefonos` no tiene grants. Un código de país vacío es «el de la empresa».
 
 // El `hint` de la base es la clave del campo en el formulario (`telefono`, `etiqueta`).

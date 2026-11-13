@@ -73,7 +73,7 @@ export async function prepararAlta(proyecto: string) {
     },
   ]
   // La dueña va primero y sola (la primera persona nace dueña); las demás, a la vez: cada `createUser` tarda ~80 ms (bcrypt) y eran
-  // cuatro en fila en cada `beforeAll`. `docs/RENDIMIENTO.md`, «Preparar y limpiar un spec».
+  // cuatro en fila en cada `beforeAll`. `docs/RENDIMIENTO.md`.
   await Promise.all(
     otras.map(async (persona) => {
       await crearPersona({

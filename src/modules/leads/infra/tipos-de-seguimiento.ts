@@ -4,7 +4,7 @@ import { createClient } from '@/shared/lib/supabase/server'
 import type { RepositorioDeTiposDeSeguimiento } from '../entities/repositorios-de-tipos-de-seguimiento'
 import { respuestaDeTiposDeSeguimientoDesde } from '../entities/tipo-de-seguimiento'
 
-// Los tipos de seguimiento se escriben sólo por estas RPC (`…20261019004000_configuracion_de_leads.sql`), con `leads.configurar`. Guardar,
+// Los tipos de seguimiento se escriben sólo por estas RPC, con `leads.configurar`. Guardar,
 // mover y eliminar piden la versión (`PT409` legible si otra pestaña la cambió). Todas devuelven la lista entera: la pantalla no
 // vuelve a leer.
 

@@ -1,4 +1,4 @@
--- La lista de niveles con su uso (`…20261019006500_niveles_con_uso.sql`, paso 4.09 prompt 2): `niveles_con_uso()` con el `motivo_de_uso` de cada nivel, las banderas de lo
+-- La lista de niveles con su uso (paso 4.09 prompt 2): `niveles_con_uso()` con el `motivo_de_uso` de cada nivel, las banderas de lo
 -- que admite (`se_renombra`, `se_retira`, `se_elimina`) y el texto de `_nivel_motivo_de_uso()` que comparten la lista y `nivel_eliminar()`.
 -- Corre después de `niveles.sql` (la dueña `…0001` sale de `humo.sql`); cada bloque abre su transacción y la revierte. Los ayudantes de `pg_temp` son los de `niveles.sql`.
 

@@ -1,5 +1,5 @@
 {
-  "descripcion": "Casos a mano del compilador de fórmulas como texto (docs/COTIZADOR.md › «Fórmulas como texto (4.07)»). «contexto» es la base de todos; el de un caso pisa sólo las claves que trae. Un caso válido dice los nodos, los params y, si quiere, los tramos; uno inválido, el código y el tramo exacto (desde y largo en unidades UTF-16; línea y columna desde 1).",
+  "descripcion": "Casos a mano del compilador de fórmulas como texto (docs/COTIZADOR.md › «Fórmulas como texto»). «contexto» es la base de todos; el de un caso pisa sólo las claves que trae. Un caso válido dice los nodos, los params y, si quiere, los tramos; uno inválido, el código y el tramo exacto (desde y largo en unidades UTF-16; línea y columna desde 1).",
   "contexto": {
     "nodos": [
       {

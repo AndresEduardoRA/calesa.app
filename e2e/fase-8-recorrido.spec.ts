@@ -26,7 +26,7 @@ import { guiaPublica, pedirComoVisitante } from './soporte/web-publica'
 // recibe (sólo el pegajoso puede dársela), mientras uno nuevo va a Y; (R5) con Y también apagada, un visitante nuevo recibe el respaldo; (R6) el
 // cliente entra al portal por `api/portal` con el código que dio la ficha del lead; (R7) una guía publicada sale en `web.guias` y deja su etiqueta en
 // la cola de revalidar; (R8) un repuesto que llega a «Recibido» cumple la espera del vehículo en «En taller». El detalle de cada pieza lo prueban sus
-// specs y `supabase/tests/` (la tabla de criterios de la fase, `docs/PLAN.md`).
+// specs y `supabase/tests/` (la tabla de criterios de la fase, `docs/PENDIENTES.md`).
 test.describe.configure({ mode: 'serial' })
 
 let t: TerrenoDeLaFase8 | undefined

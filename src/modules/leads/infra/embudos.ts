@@ -7,7 +7,7 @@ import type {
   ResultadoDeEmbudo,
 } from '../entities/repositorios-de-oportunidades'
 
-// Los embudos se escriben sólo por estas RPC (`…20261016000100_embudos_oportunidades.sql`). Son de su
+// Los embudos se escriben sólo por estas RPC. Son de su
 // dueña: uno ajeno responde igual que uno que no existe. Renombrar, eliminar y guardar las etapas
 // piden la versión del embudo (`PT409` legible si otra pestaña lo cambió).
 

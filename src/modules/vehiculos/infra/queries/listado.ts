@@ -10,7 +10,7 @@ import { FILTROS_RECHAZADOS, leerPorLaFuncion } from './inventario'
 
 // Una página del inventario de un origen, de lo más nuevo a lo más viejo. Lo que ve cada quien lo decide la RLS; la fuente (4.16-2b)
 // sólo elige el camino: quien ve «propios» lee por `vehiculos_inventario()` y el resto, por la tabla. Si la base rechaza los filtros de
-// la función, esa página se lee por la tabla, como antes (una ida más, que la URL no alcanza: `docs/DECISIONES.md` › «Paso 4.16-2b»).
+// la función, esa página se lee por la tabla, como antes (una ida más, que la URL no alcanza: `docs/DECISIONES.md`).
 export const buscarVehiculos: BuscadorDeVehiculos = async (pedido) => {
   if (pedido.fuente === 'vehiculos_inventario') {
     const porLaFuncion = await leerPorLaFuncion(pedido)

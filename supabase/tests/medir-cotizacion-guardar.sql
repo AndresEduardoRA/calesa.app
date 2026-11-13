@@ -11,7 +11,7 @@
 --
 -- Asserta, con los dos volúmenes:
 --   - el presupuesto de una llamada en ms Y en buffers (los topes salen de lo medido, con una vuelta de margen para una máquina ocupada; lo medido va, con su fecha, junto a
---     cada tope en «Lo medido y sus presupuestos», y la tabla entera en `docs/RENDIMIENTO.md`, «Paso 4.10 (3 de 3)»);
+--     cada tope en «Lo medido y sus presupuestos», y la tabla entera en `docs/RENDIMIENTO.md`);
 --   - que no crece con N: con 250.000 el tiempo es a lo sumo `greatest(1,5 × el de 50.000, el de 50.000 + 3 ms)` y los buffers a lo sumo 1,2 × los de 50.000 + 20;
 --   - que la llamada no recorre `cotizaciones` ni `cotizaciones_revisiones`: ningún `Seq Scan` en `pg_stat_xact_user_tables` (se lee por su clave y por el índice único del intento);
 --   - la guarda: una copia de la función que busca el intento SIN la cotización (`where intento = …`, sin el primer campo del índice) recorre las revisiones y rompe esos presupuestos.

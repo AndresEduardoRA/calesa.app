@@ -1,4 +1,4 @@
-// El compilador de fórmulas como texto (docs/COTIZADOR.md › «Fórmulas como texto (4.07)»): `=(remate+fees)*4%` o `=SUMA(aduana)`
+// El compilador de fórmulas como texto (docs/COTIZADOR.md › «Fórmulas como texto»): `=(remate+fees)*4%` o `=SUMA(aduana)`
 // se vuelve, al configurar, en nodos del mismo grafo que valida `validarFormula()`. Al cotizar no se evalúa texto. Puro, sin
 // `eval` ni expresiones regulares, lineal en el texto y en el contexto (todo bucle pasa por el medidor), y nunca lanza: un
 // texto que no compila devuelve un error con su código y su tramo.

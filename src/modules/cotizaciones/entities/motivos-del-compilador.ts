@@ -1,4 +1,4 @@
-// Por qué no compila un texto (docs/COTIZADOR.md › «Fórmulas como texto (4.07)»). El código es el contrato con el editor (4.21);
+// Por qué no compila un texto (docs/COTIZADOR.md › «Fórmulas como texto»). El código es el contrato con el editor (4.21);
 // el mensaje habla con tuteo. Cada error trae su tramo del texto: dónde empieza (UTF-16, como un <textarea>), cuánto mide y su
 // línea y columna (desde 1; las líneas se parten en «\n»).
 import type { Medidor } from './medidor'

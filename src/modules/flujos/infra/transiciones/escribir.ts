@@ -11,7 +11,7 @@ import {
   type VersionDeTransicion,
 } from '../../entities/transiciones/respuestas'
 
-// Las escrituras de una salida (`…2026111121290{8,9}_transiciones_*.sql`): el permiso del flujo (`42501`), la versión (`PT409`) y las reglas de la transición con
+// Las escrituras de una salida (`transicion_*`, `fase_roles_poner`, `transicion_roles_poner`): el permiso del flujo (`42501`), la versión (`PT409`) y las reglas de la transición con
 // el campo en el `hint` (`22023`, `23505`). Ninguna devuelve la lista: devuelven la versión nueva del flujo y la pantalla relee.
 const NO_SE_LEYO = 'No pudimos leer la respuesta. Recarga para ver cómo quedó.'
 

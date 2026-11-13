@@ -10,7 +10,7 @@ import type {
 import { esCampoDeFase } from '../../entities/fases/reglas-de-fase'
 import { respuestaDeEliminarFaseDesde, respuestaDeFaseDesde } from '../../entities/fases/respuestas'
 
-// Las cinco escrituras (`…20261111190403_fases_crear.sql` y siguientes): el permiso del flujo, la versión (`PT409`), las reglas del dato con el campo
+// Las cinco escrituras (`fase_crear`, `fase_guardar`, `fase_mover`, `fase_eliminar`, `fase_reactivar`): el permiso del flujo, la versión (`PT409`), las reglas del dato con el campo
 // en el `hint` (`22023`, `23514`) y los únicos con mensaje humano (`23505`). Ninguna devuelve la lista.
 const NO_SE_LEYO = 'No pudimos leer la respuesta. Recarga para ver cómo quedó.'
 

@@ -1,5 +1,5 @@
 // El documento del editor de un seguimiento (JSON de ProseMirror) y su lista blanca. Es **espejo**
-// de `_seguimiento_detalle()` (`…20261015000100_seguimientos_recordatorios.sql`): los mismos nodos,
+// de `_seguimiento_detalle()`: los mismos nodos,
 // las mismas marcas, los mismos topes y el mismo texto derivado. Un test corre la función SQL sobre
 // `documento.casos.ts` y exige el mismo resultado. Nunca viaja HTML: la base valida esto y la
 // pantalla lo dibuja con la misma lista, sin `innerHTML`.

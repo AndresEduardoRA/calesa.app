@@ -19,7 +19,7 @@ export async function quieto(lugar: Locator): Promise<void> {
 
 // El pie de un panel, quieto: ni «Guardando…» ni un botón deshabilitado. La acción de guardar avisa («Lead creado») cuando responde, pero
 // su `isPending` sigue prendido hasta que la pantalla termina de refrescarse: el aviso ya se ve y el pie todavía no (40 ms en una PC
-// rápida, casi un segundo con la CPU 20 veces más lenta; `docs/PLAN.md`, 9-7). Un botón `disabled` lleva `pointer-events: none`: el clic
+// rápida, casi un segundo con la CPU 20 veces más lenta; `docs/PENDIENTES.md`, 9-7). Un botón `disabled` lleva `pointer-events: none`: el clic
 // lo atraviesa y lo recibe el pie, así que medirlo antes dice «tapado» cuando sólo está ocupado.
 export async function pieQuieto(pie: Locator): Promise<void> {
   await expect(pie.getByText('Guardando…')).toHaveCount(0)

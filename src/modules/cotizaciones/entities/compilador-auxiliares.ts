@@ -1,4 +1,4 @@
-// Las auxiliares de una fórmula con texto (4.21-3b-2; docs/COTIZADOR.md › «El editor (4.21-1)»): los nodos `<raíz>__<n>` que el compilador (4.07)
+// Las auxiliares de una fórmula con texto (4.21-3b-2; docs/COTIZADOR.md › «El editor»): los nodos `<raíz>__<n>` que el compilador (4.07)
 // creó para el texto de una fila. La regla vive una vez, aquí: la usan las filas del editor (`formula/filas.ts`) y §5 de `validarDiseno()`, que no le
 // pide celda a una constante auxiliar. Su espejo en la base es `_diseno_auxiliares()`. Puro, sin I/O, lineal con el medidor.
 import { crearLexico, siguiente, T } from './compilador-lexico'

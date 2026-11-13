@@ -4,7 +4,7 @@ import { createClient } from '@/shared/lib/supabase/server'
 import { etiquetaDesde } from '../entities/etiqueta'
 import type { RepositorioDeEtiquetas, ResultadoDeEtiqueta } from '../entities/repositorios'
 
-// Las etiquetas se escriben sólo por estas RPC (`…20261015000200_marcas_de_leads.sql`). Son de su
+// Las etiquetas se escriben sólo por estas RPC. Son de su
 // dueña: una ajena responde igual que una que no existe. Renombrar, recolorear y eliminar piden la
 // versión (`PT409` legible si otra pestaña la cambió).
 

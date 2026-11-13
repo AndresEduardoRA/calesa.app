@@ -1,4 +1,4 @@
--- 4-40: `anon` no toca `public` (`20261028224755_anon_fuera_de_public.sql`). Con `aclexplode` sobre lo que existe y sobre lo que se crea
+-- 4-40: `anon` no toca `public`. Con `aclexplode` sobre lo que existe y sobre lo que se crea
 -- después: ningún privilegio de `anon` (ni de PUBLIC en una función) en tablas, vistas, columnas, secuencias ni funciones de `public`;
 -- `authenticated` sin truncate, references, trigger ni maintain, sin `select`/`update` en secuencias y sin EXECUTE en funciones de
 -- trigger. Corre en `pnpm db:probar` (PGlite) y en el job `base` de CI contra la base real:

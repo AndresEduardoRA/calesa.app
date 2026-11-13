@@ -4,7 +4,7 @@
 -- Corre después de `cotizaciones-visibilidad.sql`; la dueña es `…0001` (la crea `humo.sql`). Cada bloque abre su transacción y la revierte.
 
 -- Los teléfonos de los leads de la prueba salen de una secuencia: `cc_preparar()` corre dos veces en un mismo bloque (un número fijo chocaría consigo
--- mismo), y uno al azar chocaba de vez en cuando con un lead vivo que dejó otra prueba (`docs/PLAN.md`, 4-22). Nadie más usa 7212xxxx.
+-- mismo), y uno al azar chocaba de vez en cuando con un lead vivo que dejó otra prueba (`docs/PENDIENTES.md`, 4-22). Nadie más usa 7212xxxx.
 create temp sequence cc_telefono;
 create or replace function pg_temp.cc_como(p_quien uuid) returns void language plpgsql as $f$
 begin
