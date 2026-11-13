@@ -20,7 +20,8 @@ Auditoría inmutable de 14 días: qué cambió, quién, cuándo y el diff, con p
 - `actividad_listar` (9.01-1): página por cursor sobre `id`, una ruta por filtro (`p_actor`, `p_tabla` + `p_registro`, `p_accion`) con su índice,
   «Ir a una fecha» con `p_hasta`; sin valores, sólo los nombres de los campos que cambiaron.
 - `actividad_diff(id)` (9.01-1): el diff recortado `{visible, cambios: {campo: {antes, despues}}}`.
-- `registrar_actividad` (desde las RPC).
+- `registrar_actividad` (9.01-2): sólo desde funciones `security definer`; la app no la ejecuta (`areas/actividad/registrar.sql` cae si una
+  función de invocador la llama).
 - `actividad_purgar` (job `actividad-purgar`, 03:25 UTC): por lotes, la actividad de más de `ajustes_empresa.actividad_dias` (14) y los `eventos_web`
   de más de 12 meses.
 
@@ -30,6 +31,8 @@ La lista cerrada es `_actividad_recorte(tabla)`: una tabla con trigger `auditar`
 ## No se rompe
 
 - Append-only: sin UPDATE ni DELETE para `authenticated`; sólo el cron purga.
+- La app no lee `actividad.detalle` (9.01-2: lleva teléfonos enmascarados, el código del portal o montos): sólo la cabecera, y el diff por
+  `actividad_diff`. Si un día hace falta, va por una función definer que lo recorte.
 - La actividad **no** reemplaza al historial de negocio (`historial_fases`, `cotizaciones_revisiones`, `oportunidades_historial`): esos no caducan.
 
 ## Ojo
