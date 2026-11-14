@@ -10,9 +10,9 @@
 --   VC5. `_vehiculo_bloqueo` sólo la ejecuta `service_role`.
 
 -- Teléfonos distintos en cada llamada, sin azar (un número fijo chocaría con lo que otra prueba dejó).
-create temp sequence vc_telefono;
+create temp sequence vcr_telefono;
 
-create or replace function pg_temp.vc_persona(p_claves text[]) returns uuid language plpgsql as $f$
+create or replace function pg_temp.vcr_persona(p_claves text[]) returns uuid language plpgsql as $f$
 declare v_id uuid := gen_random_uuid(); v_rol uuid; c text;
 begin
   insert into auth.users (id, email, raw_app_meta_data) values (v_id, v_id || '@ejemplo.com', '{"invitado": true}');
@@ -25,7 +25,7 @@ begin
 end $f$;
 
 -- Un origen con su flujo: una fase inicial y otra que no lo es.
-create or replace function pg_temp.vc_origen() returns jsonb language plpgsql as $f$
+create or replace function pg_temp.vcr_origen() returns jsonb language plpgsql as $f$
 declare o uuid; v_flujo uuid; f_ini uuid; f_otra uuid;
 begin
   insert into public.origenes (clave, nombre) values ('vc_' || substr(gen_random_uuid()::text, 1, 8), 'VC origen ' || substr(gen_random_uuid()::text, 1, 8)) returning id into o;
@@ -35,7 +35,7 @@ begin
   return jsonb_build_object('o', o, 'flujo', v_flujo, 'ini', f_ini, 'otra', f_otra);
 end $f$;
 
-create or replace function pg_temp.vc_vehiculo(e jsonb) returns uuid language plpgsql as $f$
+create or replace function pg_temp.vcr_vehiculo(e jsonb) returns uuid language plpgsql as $f$
 declare v uuid;
 begin
   insert into public.vehiculos (origen_id, titulo, fase_id) values ((e ->> 'o')::uuid, 'VC vehículo', (e ->> 'ini')::uuid) returning id into v;
@@ -43,7 +43,7 @@ begin
 end $f$;
 
 -- Manda ese vehículo a la papelera como esa persona, con la versión que se pase; devuelve la respuesta o {error, mensaje}.
-create or replace function pg_temp.vc_enviar(p_quien uuid, p_v uuid, p_version timestamptz default null) returns jsonb language plpgsql as $f$
+create or replace function pg_temp.vcr_enviar(p_quien uuid, p_v uuid, p_version timestamptz default null) returns jsonb language plpgsql as $f$
 declare r jsonb; v_e text; v_m text;
 begin
   perform set_config('request.jwt.claim.sub', p_quien::text, true);
@@ -63,13 +63,13 @@ begin
 end $f$;
 
 -- La causa y el motivo del único rechazado de una respuesta.
-create or replace function pg_temp.vc_rechazo(r jsonb) returns jsonb language sql as $f$
+create or replace function pg_temp.vcr_rechazo(r jsonb) returns jsonb language sql as $f$
   select jsonb_build_object('causa', r #> '{rechazados,0,causa}', 'motivo', r #> '{rechazados,0,motivo}', 'codigo', r #> '{rechazados,0,codigo}',
                             'rechazados', jsonb_array_length(r -> 'rechazados'), 'enviados', jsonb_array_length(r -> 'enviados'));
 $f$;
 
 -- La equivalencia de VC3 para un vehículo: el texto de siempre y la causa esperada, con p verdadero y falso.
-create or replace function pg_temp.vc_equivalen(p_v uuid, p_causa text, p_etiqueta text) returns void language plpgsql as $f$
+create or replace function pg_temp.vcr_equivalen(p_v uuid, p_causa text, p_etiqueta text) returns void language plpgsql as $f$
 declare p boolean;
 begin
   foreach p in array array[true, false] loop
@@ -88,68 +88,68 @@ end $f$;
 begin;
 do $$
 declare
-  q uuid; e jsonb := pg_temp.vc_origen(); v uuid; r jsonb; l uuid; d uuid; td uuid; c uuid; v_caso record;
+  q uuid; e jsonb := pg_temp.vcr_origen(); v uuid; r jsonb; l uuid; d uuid; td uuid; c uuid; v_caso record;
 begin
-  perform pg_temp.vc_persona(array['vehiculos.ver']);   -- con `SOLO=`, la primera cuenta nace dueña: no puede ser la que prueba
-  q := pg_temp.vc_persona(array['vehiculos.ver', 'vehiculos.eliminar']);
+  perform pg_temp.vcr_persona(array['vehiculos.ver']);   -- con `SOLO=`, la primera cuenta nace dueña: no puede ser la que prueba
+  q := pg_temp.vcr_persona(array['vehiculos.ver', 'vehiculos.eliminar']);
 
   -- vinculado
   insert into public.leads (nombre, telefono_principal, creado_por, origen_lead_id, atributos)
-  values ('VC lead', '7281' || lpad(nextval('pg_temp.vc_telefono')::text, 4, '0'), q, (select id from public.origenes_lead where clave = 'web'), '{}') returning id into l;
-  v := pg_temp.vc_vehiculo(e);
+  values ('VC lead', '7281' || lpad(nextval('pg_temp.vcr_telefono')::text, 4, '0'), q, (select id from public.origenes_lead where clave = 'web'), '{}') returning id into l;
+  v := pg_temp.vcr_vehiculo(e);
   update public.vehiculos set lead_id = l where id = v;
-  r := pg_temp.vc_rechazo(pg_temp.vc_enviar(q, v));
+  r := pg_temp.vcr_rechazo(pg_temp.vcr_enviar(q, v));
   if r <> jsonb_build_object('causa', 'vinculado', 'motivo', 'Está vinculado a un lead. Quita el vínculo antes.', 'codigo', '23514', 'rechazados', 1, 'enviados', 0) then
     raise exception 'VC1 vinculado: %', r;
   end if;
-  perform pg_temp.vc_equivalen(v, 'vinculado', 'vinculado');
+  perform pg_temp.vcr_equivalen(v, 'vinculado', 'vinculado');
 
   -- fase que no es la inicial
-  v := pg_temp.vc_vehiculo(e);
+  v := pg_temp.vcr_vehiculo(e);
   update public.vehiculos set fase_id = (e ->> 'otra')::uuid where id = v;
-  r := pg_temp.vc_rechazo(pg_temp.vc_enviar(q, v));
+  r := pg_temp.vcr_rechazo(pg_temp.vcr_enviar(q, v));
   if r ->> 'causa' is distinct from 'fase' or r ->> 'motivo' <> 'Está en «VC en tránsito». Sólo va a la papelera lo que sigue en su fase inicial.' or r ->> 'codigo' <> '23514' then
     raise exception 'VC1 fase: %', r;
   end if;
-  perform pg_temp.vc_equivalen(v, 'fase', 'fase');
+  perform pg_temp.vcr_equivalen(v, 'fase', 'fase');
 
   -- documentos vivos
   insert into public.tipos_documento (flujo_id, nombre) values ((e ->> 'flujo')::uuid, 'VC tipo') returning id into td;
-  v := pg_temp.vc_vehiculo(e);
+  v := pg_temp.vcr_vehiculo(e);
   insert into public.documentos (vehiculo_id, tipo_documento_id) values (v, td);
-  r := pg_temp.vc_rechazo(pg_temp.vc_enviar(q, v));
+  r := pg_temp.vcr_rechazo(pg_temp.vcr_enviar(q, v));
   if r ->> 'causa' is distinct from 'documentos' or r ->> 'motivo' <> 'Tiene documentos cargados.' then
     raise exception 'VC1 documentos: %', r;
   end if;
-  perform pg_temp.vc_equivalen(v, 'documentos', 'documentos');
+  perform pg_temp.vcr_equivalen(v, 'documentos', 'documentos');
 
   -- pagos
-  v := pg_temp.vc_vehiculo(e);
+  v := pg_temp.vcr_vehiculo(e);
   insert into public.pagos (vehiculo_id, concepto, moneda, monto, monto_base) values (v, 'Seña', 'USD', 1, 1);
-  r := pg_temp.vc_rechazo(pg_temp.vc_enviar(q, v));
+  r := pg_temp.vcr_rechazo(pg_temp.vcr_enviar(q, v));
   if r ->> 'causa' is distinct from 'pagos' or r ->> 'motivo' <> 'Tiene pagos o gastos registrados.' then
     raise exception 'VC1 pagos: %', r;
   end if;
-  perform pg_temp.vc_equivalen(v, 'pagos', 'pagos');
+  perform pg_temp.vcr_equivalen(v, 'pagos', 'pagos');
 
   -- aduana
-  v := pg_temp.vc_vehiculo(e);
+  v := pg_temp.vcr_vehiculo(e);
   insert into public.declaraciones_aduana (numero) values ('VC-DUI-' || substr(gen_random_uuid()::text, 1, 8)) returning id into d;
   insert into public.declaraciones_vehiculos (declaracion_id, vehiculo_id) values (d, v);
-  r := pg_temp.vc_rechazo(pg_temp.vc_enviar(q, v));
+  r := pg_temp.vcr_rechazo(pg_temp.vcr_enviar(q, v));
   if r ->> 'causa' is distinct from 'aduana' or r ->> 'motivo' <> 'Está en una declaración aduanera.' then
     raise exception 'VC1 aduana: %', r;
   end if;
-  perform pg_temp.vc_equivalen(v, 'aduana', 'aduana');
+  perform pg_temp.vcr_equivalen(v, 'aduana', 'aduana');
 
   -- proyecto de repuestos
-  v := pg_temp.vc_vehiculo(e);
+  v := pg_temp.vcr_vehiculo(e);
   insert into public.repuestos_proyectos (vehiculo_id, creado_por) values (v, q);
-  r := pg_temp.vc_rechazo(pg_temp.vc_enviar(q, v));
+  r := pg_temp.vcr_rechazo(pg_temp.vcr_enviar(q, v));
   if r ->> 'causa' is distinct from 'repuestos' or r ->> 'motivo' <> 'Tiene un proyecto de repuestos.' then
     raise exception 'VC1 repuestos: %', r;
   end if;
-  perform pg_temp.vc_equivalen(v, 'repuestos', 'repuestos');
+  perform pg_temp.vcr_equivalen(v, 'repuestos', 'repuestos');
 end $$;
 reset role;
 rollback;
@@ -157,20 +157,20 @@ rollback;
 -- @test papelera de vehículos: un conflicto de versión y un envío sin permiso no traen causa (VC2)
 begin;
 do $$
-declare q uuid; sin uuid; e jsonb := pg_temp.vc_origen(); v uuid; r jsonb;
+declare q uuid; sin uuid; e jsonb := pg_temp.vcr_origen(); v uuid; r jsonb;
 begin
-  perform pg_temp.vc_persona(array['vehiculos.ver']);
-  q := pg_temp.vc_persona(array['vehiculos.ver', 'vehiculos.eliminar']);
-  sin := pg_temp.vc_persona(array['vehiculos.ver']);
+  perform pg_temp.vcr_persona(array['vehiculos.ver']);
+  q := pg_temp.vcr_persona(array['vehiculos.ver', 'vehiculos.eliminar']);
+  sin := pg_temp.vcr_persona(array['vehiculos.ver']);
   -- Vinculado y con una versión vieja: la versión se mira antes que el bloqueo, así que es un conflicto, sin causa.
-  v := pg_temp.vc_vehiculo(e);
+  v := pg_temp.vcr_vehiculo(e);
   insert into public.pagos (vehiculo_id, concepto, moneda, monto, monto_base) values (v, 'Seña', 'USD', 1, 1);
-  r := pg_temp.vc_rechazo(pg_temp.vc_enviar(q, v, '2000-01-01'::timestamptz));
+  r := pg_temp.vcr_rechazo(pg_temp.vcr_enviar(q, v, '2000-01-01'::timestamptz));
   if r ->> 'codigo' is distinct from 'PT409' or (r -> 'causa') <> 'null'::jsonb then
     raise exception 'VC2 conflicto: debía ser PT409 sin causa y dio %', r;
   end if;
   -- Sin permiso para enviar: 42501, sin causa, aunque el vehículo además esté bloqueado.
-  r := pg_temp.vc_rechazo(pg_temp.vc_enviar(sin, v));
+  r := pg_temp.vcr_rechazo(pg_temp.vcr_enviar(sin, v));
   if r ->> 'codigo' is distinct from '42501' or (r -> 'causa') <> 'null'::jsonb then
     raise exception 'VC2 sin permiso: debía ser 42501 sin causa y dio %', r;
   end if;
@@ -181,16 +181,16 @@ rollback;
 -- @test papelera de vehículos: un vehículo sin nada que lo frene entra y _vehiculo_bloqueo da nulo (VC4)
 begin;
 do $$
-declare q uuid; e jsonb := pg_temp.vc_origen(); v uuid; r jsonb;
+declare q uuid; e jsonb := pg_temp.vcr_origen(); v uuid; r jsonb;
 begin
-  perform pg_temp.vc_persona(array['vehiculos.ver']);
-  q := pg_temp.vc_persona(array['vehiculos.ver', 'vehiculos.eliminar']);
-  v := pg_temp.vc_vehiculo(e);
+  perform pg_temp.vcr_persona(array['vehiculos.ver']);
+  q := pg_temp.vcr_persona(array['vehiculos.ver', 'vehiculos.eliminar']);
+  v := pg_temp.vcr_vehiculo(e);
   if (select public._vehiculo_bloqueo(x, true) from public.vehiculos x where x.id = v) is not null
      or (select public._vehiculo_motivo_de_bloqueo(x, true) from public.vehiculos x where x.id = v) is not null then
     raise exception 'VC4: un vehículo limpio no debía tener bloqueo';
   end if;
-  r := pg_temp.vc_enviar(q, v);
+  r := pg_temp.vcr_enviar(q, v);
   if jsonb_array_length(r -> 'enviados') <> 1 or jsonb_array_length(r -> 'rechazados') <> 0 then
     raise exception 'VC4: debía entrar y dio %', r;
   end if;
