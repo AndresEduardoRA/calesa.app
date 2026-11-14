@@ -307,12 +307,13 @@ T02 y T03 corriendo. La persona eligió pausarlo y que la tanda la haga esta ses
   `medir-escala` sin regresión.
 - **e2e:** `leads-listado`, `leads-listado-filtros`, `leads-rapido-seguimientos`, `leads-embudo`.
 
-### [ ] C3a · La oportunidad base al nacer (`feat(leads): crear la oportunidad base al dar de alta un lead`)
+### [x] C3a · La oportunidad base al nacer (`feat(leads): crear la oportunidad base al dar de alta un lead`)
 
 - `_lead_crear` crea en la misma transacción una oportunidad en `_embudo_defecto_de(creador)`, en la etapa `es_inicial`. Cubre
-  `crear_lead`, `leads_importar_lote` y el alta desde la web: todo pasa por `_lead_crear`, y se verifica.
-- **Por la web, el creador es el asesor del turno.** Si el lead nace sin asesor, no hay oportunidad. Queda escrito en DECISIONES.
-- **Migración:** `leads_oportunidad_base`. Pruebas SQL en las tres vías y `medir-bajas` sin regresión.
+  `crear_lead`, `leads_importar_lote` y la importación de «Datos»: todo pasa por `_lead_crear`, que exige una sesión (la web no da de alta
+  leads sin una persona), y se verifica.
+- **Migración:** `leads_oportunidad_base`. Pruebas SQL del alta, la importación con su reintento, deshacer y el limbo, y `medir-bajas` sin
+  regresión.
 - **e2e:** `leads-alta-un-drawer`, `leads-oportunidades`, `leads-importar*` (grep).
 
 ### [ ] C3b · «Nueva oportunidad» desde la fila (`feat(leads): crear una oportunidad desde la fila`)
