@@ -12,6 +12,7 @@ import type { AccionDeFila } from '../../../entities/acciones-de-fila'
 import type { TipoDeSeguimiento } from '../../../entities/alta'
 import { MENSAJE_SIN_TIPOS_DE_SEGUIMIENTO } from '../../../entities/edicion-de-seguimiento'
 import type { FilaDeLead } from '../../../entities/listado'
+import { ModalDeOportunidadRapida } from '../../oportunidades/components/modal-de-oportunidad-rapida'
 import { ModalDeRecordatorio } from '../../recordatorios/components/modal-de-recordatorio'
 import { ModalDeSeguimiento } from '../../seguimientos/components/modal-de-seguimiento'
 
@@ -25,11 +26,13 @@ type Props = {
   alLeerTipos: (tipos: readonly TipoDeSeguimiento[]) => void
 }
 
-// El «⋯» de la fila que se abrió (la tabla y las tarjetas lo dibujan las dos; se busca el que se ve).
-function menuDeLaFila(leadId: string): HTMLElement | boolean {
-  const menus = document.querySelectorAll<HTMLElement>(`[data-mas-acciones="${leadId}"]`)
-  return Array.from(menus).find((menu) => menu.offsetParent !== null) ?? true
+// Lo que abrió la acción en esa fila: el «⋯» o el «+ Oportunidad» (la tabla y las tarjetas lo dibujan las dos; se busca el que se ve).
+function origenDeLaAccion(atributo: string, leadId: string): HTMLElement | boolean {
+  const origenes = document.querySelectorAll<HTMLElement>(`[${atributo}="${leadId}"]`)
+  return Array.from(origenes).find((origen) => origen.offsetParent !== null) ?? true
 }
+
+const menuDeLaFila = (leadId: string) => origenDeLaAccion('data-mas-acciones', leadId)
 
 // Los tipos activos, leídos una vez (sin RPC nueva: la misma consulta de la ficha).
 function useTipos(tipos: Props['tipos'], alLeerTipos: Props['alLeerTipos']) {
@@ -153,9 +156,9 @@ function AnotarDesdeLaFila({ lead, abierto, alCerrar, tipos, alLeerTipos }: Omit
   )
 }
 
-// Anotar un seguimiento o agendar un recordatorio desde el «⋯» de una fila: los mismos modales de la
+// Anotar un seguimiento, agendar un recordatorio (desde el «⋯» de una fila) o crear una oportunidad («+ Oportunidad»): los modales de la
 // ficha, sobre ese lead, sin abrir el drawer. Al guardar, un aviso de éxito (la fila no muestra nada
-// de seguimientos ni de recordatorios: no hay nada que actualizar). El vehículo no se ofrece: el
+// de seguimientos, recordatorios ni oportunidades: no hay nada que actualizar). El vehículo no se ofrece: el
 // listado no lee los vehículos del lead.
 export function ModalDeAccionDeFila({ accion, ...props }: Props) {
   const { zonaHoraria } = useRegional()
@@ -163,6 +166,21 @@ export function ModalDeAccionDeFila({ accion, ...props }: Props) {
     return <AnotarDesdeLaFila {...props} />
   }
   const { lead, abierto, alCerrar } = props
+  if (accion === 'oportunidad') {
+    return (
+      <ModalDeOportunidadRapida
+        abierto={abierto}
+        alCerrar={alCerrar}
+        leadId={lead.id}
+        nombreDelLead={lead.nombre}
+        alCrear={() => {
+          avisarExito(`Oportunidad creada para «${lead.nombre}».`)
+          alCerrar()
+        }}
+        focoAlCerrar={() => origenDeLaAccion('data-nueva-oportunidad', lead.id)}
+      />
+    )
+  }
   return (
     <ModalDeRecordatorio
       abierto={abierto}

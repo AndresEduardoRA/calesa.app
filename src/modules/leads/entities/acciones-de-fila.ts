@@ -1,10 +1,11 @@
-// Anotar un seguimiento o agendar un recordatorio desde el «⋯» de una fila del listado, sin abrir el
+// Anotar un seguimiento, agendar un recordatorio o crear una oportunidad desde una fila del listado, sin abrir el
 // drawer ni la ficha. El lead va en `?para=<id>`: `?lead=` abre el drawer. El panel es el mismo de la
 // ficha (`?panel=anotar-seguimiento` o `?panel=agendar-recordatorio`); con `para`, lo atiende el
 // listado y no la ficha ni el drawer.
 import { z } from 'zod'
 import { PANEL_ANOTAR_SEGUIMIENTO } from './edicion-de-seguimiento'
 import type { FilaDeLead } from './listado'
+import { PANEL_OPORTUNIDAD_RAPIDA } from './oportunidad-rapida'
 import { PANEL_AGENDAR_RECORDATORIO } from './recordatorios'
 
 export const CLAVE_PARA = 'para'
@@ -12,6 +13,7 @@ export const CLAVE_PARA = 'para'
 export const ACCIONES_DE_FILA = {
   anotar: PANEL_ANOTAR_SEGUIMIENTO,
   agendar: PANEL_AGENDAR_RECORDATORIO,
+  oportunidad: PANEL_OPORTUNIDAD_RAPIDA,
 } as const
 export type AccionDeFila = keyof typeof ACCIONES_DE_FILA
 

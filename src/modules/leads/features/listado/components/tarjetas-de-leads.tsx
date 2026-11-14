@@ -3,6 +3,7 @@
 import { AbrirResumen, TarjetaDeLista } from '@/shared/ui/lista'
 import { tipoDelCatalogo } from '../../../entities/catalogos'
 import { camposDeLaTarjeta, type FilaDeLead } from '../../../entities/listado'
+import { BotonDeOportunidad } from './boton-de-oportunidad'
 import { MenuDeLead } from '../../marcas/components/menu-de-lead'
 import { BadgeDeTipo } from './badge-de-tipo'
 import { CeldaDeCampo } from './celda-de-campo'
@@ -86,15 +87,18 @@ export function TarjetasDeLeads(props: Props) {
               alAbrir(lead.id)
             }}
             acciones={
-              <MenuDeLead
-                leadId={lead.id}
-                nombre={lead.nombre}
-                marcas={lead.marcas}
-                etiquetas={marcar.etiquetas}
-                alGestionar={marcar.alGestionar}
-                puedeEnviar={marcar.eliminables.includes(lead.id)}
-                acciones={accionesDelMenu(marcar, lead)}
-              />
+              <>
+                <BotonDeOportunidad lead={lead} marcar={marcar} conTexto={false} />
+                <MenuDeLead
+                  leadId={lead.id}
+                  nombre={lead.nombre}
+                  marcas={lead.marcas}
+                  etiquetas={marcar.etiquetas}
+                  alGestionar={marcar.alGestionar}
+                  puedeEnviar={marcar.eliminables.includes(lead.id)}
+                  acciones={accionesDelMenu(marcar, lead)}
+                />
+              </>
             }
           >
             {/* Con el texto al 200 % la tarjeta mide menos de 16 rem: el tipo pasa debajo y el nombre se parte en líneas, no se corta. */}
