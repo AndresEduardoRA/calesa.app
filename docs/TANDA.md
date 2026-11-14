@@ -48,7 +48,7 @@ T02 y T03 corriendo. La persona eligió pausarlo y que la tanda la haga esta ses
 
 ## Fase A: base compartida
 
-### [ ] A1a · Avisos con salida: el patrón y los vehículos (`feat(shared): dar salida a los avisos de bloqueo`)
+### [x] A1a · Avisos con salida: el patrón y los vehículos (`feat(shared): dar salida a los avisos de bloqueo`)
 
 - **Base:** la rama de T01 (`feat/avisos-con-acciones`), terminada.
 - **Contrato con la base:** `_vehiculo_bloqueo(v, al_enviar) → {causa, motivo}`; `_vehiculo_motivo_de_bloqueo` queda como su texto. El 23514 de
@@ -93,7 +93,7 @@ T02 y T03 corriendo. La persona eligió pausarlo y que la tanda la haga esta ses
 - **Errores de red** (`sinRed`): «Reintentar».
 - **e2e:** `logistica-mover`, `logistica-lote`, `logistica-documentos`, `configuracion-flujos*` (grep), `repuestos-proyecto`, `agenda`.
 
-### [ ] A2 · Visor de imágenes (`feat(shared): ver las fotos en un visor con carrusel`)
+### [x] A2 · Visor de imágenes (`feat(shared): ver las fotos en un visor con carrusel`)
 
 - `src/shared/ui/visor-de-imagenes/`: `<CarruselEnElLugar>` (portada y, al acercarse, el resto; flechas, puntos, gesto; `modo="abrir"` donde no
   caben flechas de 44 px), el visor (`?visor=<clave>&foto=<n>`, ← → Esc, «3 de 12», miniaturas, la grande sólo la actual y sus vecinas) y
