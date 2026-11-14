@@ -34,7 +34,7 @@ type PropsDeRuta = PropsDeCampos & {
 
 const SIN_ELEGIR: OpcionDeTransporte = { valor: '', etiqueta: 'Sin elegir' }
 
-function SinNavieras({ puedeCargar }: { puedeCargar: boolean }) {
+export function SinNavieras({ puedeCargar }: { puedeCargar: boolean }) {
   return (
     <p className="text-(length:--text-sm) text-(--color-ink-soft)" data-estado="sin-navieras">
       {TEXTO_SIN_NAVIERAS}{' '}
