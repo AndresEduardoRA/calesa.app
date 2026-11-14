@@ -161,7 +161,9 @@ test('tipear un monto sin separador de miles recalcula y el total sale de la res
   await expect.poll(() => vigilante.respuestas.length).toBe(1)
   expect(vigilante.pedidos[0]?.p_entradas.inputs).toEqual({ pub: 1200 })
   expect(vigilante.pedidos[0]?.p_origen).toBe(conFormula.id)
-  expect(vigilante.pedidos[0]?.p_abierta).toMatch(/^[0-9a-f-]{36}\.[0-9]{1,16}\.[0-9a-f]{64}$/)
+  expect(vigilante.pedidos[0]?.p_abierta).toMatch(
+    /^[0-9a-f-]{36}\.[0-9]{1,16}\.[0-9a-f]{32}\.[0-9a-f]{64}$/,
+  )
   const usd = (vigilante.respuestas[0] as { totales: { usd: number } }).totales.usd
   const esperado = formatearMonto(usd, { moneda: 'USD', locale: 'es-BO' })
   await expect(total(page)).toContainText('1.205,00')

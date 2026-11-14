@@ -63,10 +63,10 @@ Al cerrar una, se borra su línea (el PR lo cuenta). Lo nuevo que aparezca al tr
 - **[—]** Repuestos: la policy de UPDATE de `repuestos_proyectos` pide `repuestos.editar` sin `repuestos.ver` (un `update` sin `where` no pasa por la de leer) y no mira proyecto cerrado ni eliminado — como el trigger `repuestos_item_escritura` de los ítems.
 - **[7-4]** Con `p_conversacion` del canal global, `tarea_crear` y `agenda_quienes_reciben` miran la fila suelta de `conversaciones_miembros` y pasa un responsable sin `chat.global` — revalidar con `_chat_miembro_vigente` como `mensaje_tarea_crear`.
 - **[—]** `lead_campo_impacto` lee los valores públicos de todos los leads aunque quien llama tenga `leads.ver` con alcance «propios»: acotando el rango se hallan los extremos de leads que no ve — contar con `_lead_visible_para` sin perder los de la papelera.
-- **[—]** Anular un pago confirmado o quitar un gasto de tributos mientras el vehículo entra a una fase que pide `pagos.confirmado` no toma el candado del vehículo, ni anular o eliminar el último pago de un proyecto el de sus ítems ante `proyecto.pago_cliente` — carreras sin cubrir en `scripts/carreras/`.
+- **[—]** Anular o eliminar el último pago de un proyecto no toma sus ítems mientras uno entra a una fase que pide `proyecto.pago_cliente` (`cambiar_fase` toma el ítem `for no key update`) — carrera sin cubrir en `supabase/tests/areas/dinero/`.
 - **[—]** Faltan carreras mixtas de la fórmula en `scripts/carreras/`: el ⚙ contra publicar el borrador, y revertir contra el ⚙.
 - **[—]** Las carreras de marcar y crear una final (`supabase/tests/areas/final/correr-carreras.mjs`) no están en `pnpm db:carreras`: sólo corren a mano — sumarlas a `scripts/carreras.mjs`.
-- **[4-33]** Una tarifa de tipo de cambio que confirma después de abrir la hoja, con `cambiado_en` anterior, cuenta como vista — `abierta` con una huella de las tarifas vistas que `cotizacion_crear` compare.
+- **[—]** `cotizacion_evaluar` con la hoja abierta reconstruye las tarifas en cada recálculo: una que confirma después de abrir la hoja con `cambiado_en` anterior cambia el cálculo sin aviso hasta guardar (crear sí compara la huella) — compararla también al recalcular, midiendo antes `medir-cotizacion-hoja.sql`.
 - **[—]** Un pago confirmado con `confirmado_en` nulo (filas anteriores al sellado) no entra al «Margen del mes» ni a «sin venta» — un `check` con relleno, mirando antes los datos de producción.
 - **[—]** Gastos y pagos viejos en otra moneda sin `tipo_cambio_id`: al corregirlos la base pide el tipo (`23502`, hint `tipo_cambio`) — revisar antes de cargar datos reales.
 
@@ -114,7 +114,7 @@ Al cerrar una, se borra su línea (el PR lo cuenta). Lo nuevo que aparezca al tr
 - **[4-46]** `supabase/tests/cotizacion-hoja.sql` (735) y `cotizacion-hoja-dato-del-vehiculo.sql` (340) — los ayudantes `pg_temp.ch_*` a un archivo que `probar-schema.mjs` cargue antes, y que `SOLO` sepa cargarlos.
 - **[4-52]** `supabase/tests/medir-cotizacion-guardar.sql` (319) — en terreno/funciones y casos.
 - **[4-56]** `e2e/soporte/cotizar-formula.ts` (332) — la fórmula de prueba, los orígenes y su limpieza, lo que se mira en la base.
-- **[4-64]** En `supabase/tests/`: `cotizaciones-visibilidad` 1.931, `medir-escala` 1.047, `cotizacion-guardar` 764, `cotizacion-crear` 730, `publicar-diseno` 626, `derivados-leads` 493, `medir-publicar` 420, `medir-cotizaciones-lectura` 348; además `scripts/carreras.mjs` 411 y `eslint.config.mjs` 396.
+- **[4-64]** En `supabase/tests/`: `cotizaciones-visibilidad` 1.931, `medir-escala` 1.047, `cotizacion-guardar` 764, `cotizacion-crear` 730, `publicar-diseno` 626, `derivados-leads` 493, `medir-publicar` 420, `medir-cotizaciones-lectura` 348; además `scripts/carreras.mjs` 422 y `eslint.config.mjs` 396.
 - **[4-64]** Funciones SQL de más de 80 líneas: `cotizaciones_listado()`, `cotizacion_guardar`, `_cotizacion_hoja`, `cotizacion_encima`, `importacion_procesar_lote`, `lead_campo_guardar`, `origen_campo_guardar`, `_web_doc_nodo`, `_web_ajustes_objeto` — al tocarlas; partir una `security definer` mueve su inventario y carreras.
 
 ### Limpieza y código

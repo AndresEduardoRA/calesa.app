@@ -177,8 +177,8 @@ begin
     if r ? 'error' or r ->> 'estado' is distinct from 'lista' then raise exception '%: la dueña no recibe la hoja: %', v_clave, left(r::text, 300); end if;
     if (r -> 'formula' ->> 'id')::uuid is distinct from f.id or (r -> 'formula' ->> 'version')::int is distinct from f.version then raise exception '%: la versión no es la publicada: %', v_clave, r -> 'formula'; end if;
     if (r ->> 'abierta_en')::timestamptz is distinct from now() then raise exception '%: abierta_en no es la hora de la base: %', v_clave, r ->> 'abierta_en'; end if;
-    -- La hoja abierta que firma la base (4-27): `<fórmula>.<µs>.<firma>`; la fórmula y la hora son las de la lectura.
-    if r ->> 'abierta' !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[0-9]{1,16}\.[0-9a-f]{64}$' or split_part(r ->> 'abierta', '.', 1)::uuid is distinct from f.id
+    -- La hoja abierta que firma la base (4-27 y 4-33): `<fórmula>.<µs>.<huella>.<firma>`; la fórmula y la hora son las de la lectura.
+    if r ->> 'abierta' !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[0-9]{1,16}\.[0-9a-f]{32}\.[0-9a-f]{64}$' or split_part(r ->> 'abierta', '.', 1)::uuid is distinct from f.id
        or split_part(r ->> 'abierta', '.', 2)::bigint is distinct from round(extract(epoch from (r ->> 'abierta_en')::timestamptz) * 1000000)::bigint then
       raise exception '%: la hoja abierta no es la de la lectura: %', v_clave, r ->> 'abierta';
     end if;
