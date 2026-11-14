@@ -118,9 +118,9 @@ T02 y T03 corriendo. La persona eligió pausarlo y que la tanda la haga esta ses
   patio (`zonaDelPatio()` desde `ubicacion_estado`) y la de la empresa. En `BloqueDeSubasta`, el panel de cotizar y el chip de la agenda.
 - Sin migración: apibara no da la zona; `subasta_zona` sigue sin uso. **e2e:** `cotizar-panel-del-vehiculo`, `agenda`, `perfil-*`, `presupuesto-js`.
 
-### [ ] A4b · Editar las fechas de subasta en su zona (`feat(vehiculos): editar las fechas de subasta en su zona`)
+### [x] A4b · Editar las fechas de subasta en su zona (`feat(vehiculos): editar las fechas de subasta en su zona`)
 
-- `subasta_en` y `subasta_fin_en` editables en el panel de edición de un vehículo de origen subasta (lista cerrada de `vehiculo_guardar`),
+- `subasta_en` y `subasta_fin_en` editables con «Editar fechas» del bloque de la subasta de la ficha (lista cerrada de `vehiculo_guardar`),
   con un campo que dice «Se escribe en hora de <zona> (GMT−4)» y guarda en UTC (`instanteDeLocal`). Refrescar sigue mandando.
 - **Migración:** `vehiculos_subasta_editable`. **e2e:** `vehiculos-alta`, `vehiculos-resumen`.
 

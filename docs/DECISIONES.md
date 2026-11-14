@@ -126,6 +126,9 @@ las trampas, en `docs/LECCIONES.md`.
   mayoría) y la pantalla dice «hora del patio». Sin estado, sólo la zona de quien mira y la de la empresa: nunca una inventada.
   `vehiculos.subasta_zona` sigue sin uso. Las fechas de subasta se ven en la zona de quien mira (`/perfil`), con su abreviatura; lo demás,
   en la de la empresa.
+- **Las fechas de subasta se escriben a mano en la zona de quien edita.** «Editar fechas» del bloque de la subasta (no el panel de edición: el
+  alta no las pide, las trae apibara) manda el instante con su zona y `vehiculo_guardar` lo acepta sólo en un origen de subasta; un texto
+  sin zona se rechaza, para no depender de la hora del servidor. Refrescar desde apibara sigue mandando sobre lo escrito.
 - **Refrescar no pisa lo editado.** `fusionarRefresco(previo, nuevo, actual)` toma el valor nuevo sólo si lo guardado es lo que la API dijo antes; los campos de subasta siempre se actualizan.
 - **Fotos de subasta en primer plano.** Sólo de `cs.copart.com`/`vis.iaai.com`, por la tubería del navegador; primeras 24 y «Traer las que faltan». Sin job en segundo plano (se reabre sólo con reportes de fotos perdidas).
 - **Los textos dicen «subasta».** «apibara» aparece sólo donde se configura; el nombre de la plataforma sale del dato.

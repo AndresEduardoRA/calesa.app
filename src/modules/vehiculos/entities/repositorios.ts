@@ -64,6 +64,13 @@ export type RepositorioVehiculos = {
     actualizadoEnEsperado: string
     datos: DatosDeVehiculo
   }) => Promise<{ ok: true; data: { actualizadoEn: string } } | FalloAlGuardar>
+  // Las fechas de la subasta (A4b): sólo lo que cambió (`cambiosDeFechas`), con la versión que tenía quien edita. Un rechazo de la base
+  // nombra su campo del modal (`inicio`, `cierre`).
+  guardarFechasDeSubasta: (pedido: {
+    id: string
+    actualizadoEnEsperado: string
+    cambios: { subasta_en?: string | null; subasta_fin_en?: string | null }
+  }) => Promise<{ ok: true; data: { actualizadoEn: string } } | FalloAlGuardar>
   // Vuelve a escribir la subasta de un vehículo: la consulta nueva (la base copia el bruto y deriva
   // de él fecha y estado) y lo que se decidió actualizar de la ficha, con la versión que tenía
   // quien pide.
