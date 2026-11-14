@@ -179,6 +179,10 @@ las trampas, en `docs/LECCIONES.md`.
   Consecuencia: la etapa inicial de un embudo no se quita mientras tenga bases abiertas (`embudo_guardar` ya frena quitar una etapa con
   oportunidades); se mueven primero.
 
+- **«+ Oportunidad» desde la lista es un botón de la fila, no una línea del «⋯»** (dos toques: botón y «Crear oportunidad»; desde el «⋯» serían tres). Es el modal corto de
+  las acciones de fila (`?panel=oportunidad-rapida&para=`), no un popover: ya hay un patrón con URL, foco de vuelta y atajos. Sin vehículo ni notas: el
+  listado no lee los vehículos del lead y `leads` no importa `vehiculos`; se agregan con «Editar» en la ficha. Sin elegir embudo: el de por defecto.
+
 - **El último contacto del listado va en la vista, no por fila ni en una columna mantenida.** `leads_vista` suma dos subconsultas escalares con `limit 1`
   por un índice que ya existía (`seguimientos_lead_fecha_idx` por igualdad con `ultimo_seguimiento_en` para el último seguimiento, y
   `recordatorios_lead_pendientes_idx` para su próximo recordatorio): se calculan sólo para las filas de la página y no crecen con los seguimientos de cada

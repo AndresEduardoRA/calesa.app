@@ -70,6 +70,7 @@ Al cerrar una, se borra su línea (el PR lo cuenta). Lo nuevo que aparezca al tr
 
 ## Errores conocidos
 
+- **[—]** `esquemaCrearOportunidad` descarta `embudo_id` y `etapa_id` (el `z.object` de `datos` no los lista): «Nueva oportunidad» de la ficha con más de un embudo siempre crea en el de por defecto aunque se elija otro.
 - **[4-54]** Si se elige otro vehículo o cliente, o se crea un lead, mientras la hoja guarda, se guarda con el de antes sin tarjeta de éxito y puede quedar una cotización de más — la barra queda fuera de `[data-hoja]` y su `inert`; assert: o dice que se guardó o el panel no deja elegir.
 - **[—]** Guardada: enviarla a la papelera, invalidarla o reactivarla descarta lo tipeado sin aviso (la `key` con `actualizadoEn` remonta la hoja); un guardado pendiente sobrevive al envío y, tras «Deshacer», da PT409 contra uno mismo.
 - **[5a-39]** Equipo › «Dadas de baja» dice «Por ahora el equipo eres tú…» aunque haya personas en la lista: el aviso cuenta el equipo activo y no mira el filtro (`cabecera-equipo.tsx`).
@@ -148,6 +149,7 @@ Al cerrar una, se borra su línea (el PR lo cuenta). Lo nuevo que aparezca al tr
 
 ## Pulido de interfaz
 
+- **[—]** «+ Oportunidad» de la lista no ofrece vehículo: haría falta una lectura de los vehículos del lead desde `src/app` (una Server Action de `vehiculos` pasada por props) — hoy se agrega con «Editar» en la ficha.
 - **[4-20]** Ancho contra altura del aviso de escritorio: a 22 rem, al 200 % tapa texto de la última fila de una lista — decidir (ancho, angosto o que se aparte) y afirmarlo en `e2e/avisos-con-descripcion.spec.ts` (`--ancho-del-aviso`; `avisosAbajo()` cambia con el ancho).
 - **[R7]** Blancos táctiles bajo 44 px en componentes de toda pantalla (`Tabs`, `Switch`, `Checkbox`, `Popover` de Roles, «Nuevo lead» del marco, «Saltar al contenido», «Abrir» de las listas, el botón de 32 px): 121 en `BLANCOS_CONOCIDOS` — rediseño; se cierra vaciando la lista.
 - **[R7]** R7 sólo es dura en `RUTAS_DE_LAS_FASES_5_A_9` (`e2e/soporte/accesibilidad-conocidos.ts`); fuera quedan 5 blancos (`/`, `/leads` ×2, `/leads/[id]` → `tel:`, `/configuracion/origenes/[id]`) — se cierra ampliándola a toda la app.

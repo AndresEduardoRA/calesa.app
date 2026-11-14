@@ -956,6 +956,8 @@ origen, y **se guarda al instante** (cada tono es una escritura propia; no entra
 - **Tus marcas (privadas, «Solo las ves tú.»):** «Tachados» (ocultarlos por defecto · mostrarlos también · sólo los tachados),
   «Favoritos», «Etiquetas». No reordenan. Una línea dice cuántos coincidentes ocultan los tachados, con «Mostrarlos». **Mientras se busca
   no se ocultan.**
+- **«+ Oportunidad» de la fila** (al lado del «⋯»; en la tarjeta, sólo el «+»; cartera y `leads.editar`): modal `?panel=oportunidad-rapida&para=<id>` con «Título»
+  (el nombre del lead) y «Monto estimado» opcional; «Crear oportunidad» deja el aviso y la lista donde estaba. Un rechazo deja el modal abierto con lo escrito.
 - **«⋯» de la fila** (la misma lista, en este orden, en fila, kanban, resumen y ficha): «Agendar recordatorio…» y «Anotar seguimiento…»
   (cartera y `leads.editar`, abren el modal de la ficha con `?panel=…&para=<id>`) · «Etiquetas…», «Favorito», «Tachado» (con «Deshacer») ·
   «Enviar a la papelera» (`leads.eliminar`).
