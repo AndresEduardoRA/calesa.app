@@ -100,6 +100,11 @@ las trampas, en `docs/LECCIONES.md`.
 ## Vehículos
 
 - **Se escriben sólo por RPC.** `vehiculo_crear(p_id…)` idempotente con id del navegador y `vehiculo_guardar` con versión; el alta entra a la fase inicial sólo si no hay nada que decidir (si no, «Sin fase»).
+- **El alta dice desde dónde (`p_contexto`) y la base exige el permiso de ese contexto.** `vehiculos.crear` (alta suelta) y
+  `vehiculos.crear.desde_cotizar` son dos claves por origen; `vehiculo_crear(…, p_contexto)` pide la que corresponde y la deja en
+  `creado_desde`. Es un límite de flujo, no de seguridad dura: quien tiene la de cotizar crea vehículos marcados «cotizar» (queda en la columna y
+  en la actividad). Se descartó crear el vehículo recién al guardar la cotización (`cotizacion_crear(p_vehiculo_nuevo)`, que también pasa
+  `'cotizar'`): la hoja necesita el vehículo elegido antes. Sin la suelta pero con la de cotizar, «Nuevo» se ve apagado con «Cotizar un vehículo nuevo».
 - **Un esquema Zod desde el layout.** `esquemaDeVehiculo(fuentes)` lo usan formulario y action. Tipo de campo nuevo = `ESQUEMA_POR_TIPO`, `CONTROL_DE_TIPO`, `LECTOR_POR_TIPO` y `FILTRO_POR_TIPO`.
 - **VIN único global entre vivos.** La RPC responde con `hint = 'vin'`; el mensaje dice que existe, no de cuál vehículo.
 - **Fotos.** Bucket público `vehiculos/<vehiculo_id>/<sha-256>`; dos tamaños hechos en el navegador (≤ 1600 y miniatura 480) sin optimizador; versión propia (`vehiculos_imagenes_version`), tope 24; duplicado por hash del original.

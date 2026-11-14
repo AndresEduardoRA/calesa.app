@@ -16,6 +16,7 @@ export const CLAVES_PERMISO = [
   'origenes.gestionar',
   'vehiculos.ver',
   'vehiculos.crear',
+  'vehiculos.crear.desde_cotizar',
   'vehiculos.editar',
   'vehiculos.eliminar',
   'vehiculos.vitrina',
