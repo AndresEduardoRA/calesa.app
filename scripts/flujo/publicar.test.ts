@@ -140,6 +140,61 @@ describe('publicar.sh › el camino feliz', () => {
     expect(r.stdout).toContain('limpiar')
   })
 
+  it('desde un worktree, ya integrado, queda suelto en origin/main (main es de la principal)', () => {
+    const wt = join(raiz, 'wt')
+    git('worktree', 'add', '-q', '-b', 'feat/algo', wt, 'main')
+    writeFileSync(join(wt, 'b.txt'), 'b\n')
+    execFileSync('git', ['add', 'b.txt'], { cwd: wt })
+    execFileSync(
+      'git',
+      [
+        '-c',
+        'user.name=t',
+        '-c',
+        'user.email=t@ejemplo.test',
+        'commit',
+        '-q',
+        '-m',
+        'feat(leads): algo nuevo',
+      ],
+      { cwd: wt },
+    )
+    const r = spawnSync('bash', [GUION], {
+      cwd: wt,
+      encoding: 'utf8',
+      env: {
+        NODE_ENV: 'test',
+        HOME: raiz,
+        PATH: `${join(raiz, 'bin')}:${process.env['PATH'] ?? ''}`,
+        ESPERA_PASO: '0',
+      },
+    })
+    expect(r.status, r.stderr).toBe(0)
+    expect(r.stdout).toContain('PR #7 integrado en main')
+    const suelto = spawnSync('git', ['symbolic-ref', '-q', 'HEAD'], { cwd: wt })
+    expect(suelto.status).not.toBe(0)
+    expect(execFileSync('git', ['rev-parse', 'HEAD'], { cwd: wt, encoding: 'utf8' })).toBe(
+      execFileSync('git', ['rev-parse', 'origin/main'], { cwd: repo, encoding: 'utf8' }),
+    )
+  })
+
+  it('si esta misma punta ya se integró, no empuja ni abre otro PR', () => {
+    ramaConUnCommit()
+    falso(
+      'gh',
+      `case "$1 $2" in
+  "auth token") exit 1 ;;
+  "pr list") echo 5 ;;
+esac
+exit 0`,
+    )
+    const r = publicar('--sin-esperar')
+    expect(r.estado, r.stderr).toBe(0)
+    expect(r.stdout).toContain('PR #5 ya integrado')
+    expect(llamadas()).not.toContain('gh pr create')
+    expect(git('ls-remote', '--heads', 'origin', 'feat/algo')).toBe('')
+  })
+
   it('con --sin-esperar sale tras encender el auto-merge, sin moverse de la rama', () => {
     ramaConUnCommit()
     const r = publicar('--sin-esperar')

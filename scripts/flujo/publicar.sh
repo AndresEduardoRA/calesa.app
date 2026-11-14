@@ -7,8 +7,9 @@
 # 2. El título del PR es el mensaje del commit que queda en main (squash): un commit convencional. Sin `--titulo` vale el asunto del
 #    único commit de la rama; con más de uno hay que darlo. Lo valida commitlint, igual que el CI.
 # 3. Empuja la rama (nunca fuerza), abre el PR (o le actualiza el título) y le enciende el auto-merge con squash.
-# 4. Espera (hasta ESPERA_MAX s, 5400) al check «Listo · todo en verde»: integrado → vuelve a main al día y borra las ramas ya
-#    integradas; rojo → dice qué job cayó y sale con 1 (se arregla, se commitea y se vuelve a correr). `--sin-esperar` sale tras el 3.
+#    Si esta misma punta ya se integró en un PR (se vuelve a correr tras un corte), no abre otro: lo dice y sale con 0.
+# 4. Espera (hasta ESPERA_MAX s, 5400) al check «Listo · todo en verde»: integrado → vuelve a main al día (en un worktree, a
+#    origin/main suelto: main es de la principal) y borra las ramas ya integradas; rojo → dice qué job cayó y sale con 1 (se arregla, se commitea y se vuelve a correr). `--sin-esperar` sale tras el 3.
 # Sale con 64 si no hay qué publicar o falta algo; con 1 si el CI cayó; con 75 si se agotó la espera (el PR sigue su curso solo).
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
@@ -44,6 +45,27 @@ printf '%s\n' "$TITULO" | pnpm exec commitlint >/dev/null 2>&1 ||
 DUENO=$(git remote get-url origin | sed -nE 's#.*github\.com[:/]([^/]+)/.*#\1#p')
 if [ -z "${GH_TOKEN:-}" ] && [ -n "$DUENO" ] && TOKEN=$(gh auth token --user "$DUENO" 2>/dev/null) && [ -n "$TOKEN" ]; then
   export GH_TOKEN="$TOKEN"
+fi
+
+# Integrado ya deja la rama como está: volver a main (o, en un worktree, a origin/main suelto, porque main es de la principal).
+volver() {
+  if [ "$(git rev-parse --path-format=absolute --git-dir)" = "$(git rev-parse --path-format=absolute --git-common-dir)" ]; then
+    git switch --quiet main
+    git pull --quiet --ff-only origin main
+  else
+    git fetch --quiet origin main
+    git switch --quiet --detach origin/main
+  fi
+  node scripts/flujo/limpiar-ramas.mjs || true
+}
+
+# Esta misma punta ya se integró (se vuelve a correr tras un corte): no se abre otro PR con lo mismo.
+YA=$(gh pr list --head "$RAMA" --state merged --json number,headRefOid \
+  --jq "map(select(.headRefOid == \"$(git rev-parse HEAD)\")) | .[0].number // empty" 2>/dev/null || true)
+if [ -n "$YA" ]; then
+  echo "✓ PR #$YA ya integrado en main con esta misma punta: no hay nada que publicar."
+  [ "$ESPERAR" = 1 ] && volver
+  exit 0
 fi
 
 git push --quiet -u origin "$RAMA"
@@ -91,6 +113,4 @@ while :; do
 done
 
 echo "✓ PR #$PR integrado en main."
-git switch --quiet main
-git pull --quiet --ff-only origin main
-node scripts/flujo/limpiar-ramas.mjs || true
+volver
