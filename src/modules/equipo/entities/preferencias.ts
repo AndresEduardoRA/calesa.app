@@ -34,7 +34,24 @@ export type Preferencias = {
   porPagina: TamanoDePagina | null
   // Cuáles widgets del tablero ve y en qué orden (`tablero.widgets`). null = nunca personalizó: el tablero como viene.
   widgetsDelTablero: WidgetsDelTablero | null
+  // En qué zona ve las fechas de subasta (`zona_horaria`). null = la de la empresa.
+  zonaHoraria: string | null
 }
+
+export const CLAVE_DE_ZONA_HORARIA = 'zona_horaria'
+
+// Una zona que `Intl` conoce («America/New_York»); otra, como si no hubiera elegido.
+export const esquemaZonaHoraria = z
+  .string()
+  .max(64)
+  .refine((zona) => {
+    try {
+      new Intl.DateTimeFormat('es', { timeZone: zona })
+      return true
+    } catch {
+      return false
+    }
+  })
 
 const esquemaDensidad = z.enum(DENSIDADES)
 const esquemaTema = z.enum(TEMAS)
@@ -50,11 +67,13 @@ export function preferenciasDesde(crudo: unknown): Preferencias {
   const tema = esquemaTema.safeParse(valores['tema'])
   const porPagina = esquemaPorPagina.safeParse(valores[CLAVE_DE_PREFERENCIA_POR_PAGINA])
   const widgets = esquemaWidgetsDelTablero.safeParse(valores[CLAVE_WIDGETS_DEL_TABLERO])
+  const zona = esquemaZonaHoraria.safeParse(valores[CLAVE_DE_ZONA_HORARIA])
   return {
     densidad: densidad.success ? densidad.data : null,
     tema: tema.success ? tema.data : null,
     porPagina: porPagina.success ? porPagina.data : null,
     widgetsDelTablero: widgets.success ? widgets.data : null,
+    zonaHoraria: zona.success ? zona.data : null,
   }
 }
 
@@ -70,6 +89,7 @@ export const esquemaPreferencia = z.discriminatedUnion('clave', [
     clave: z.literal(CLAVE_WIDGETS_DEL_TABLERO),
     valor: esquemaWidgetsDelTablero.nullable(),
   }),
+  z.object({ clave: z.literal(CLAVE_DE_ZONA_HORARIA), valor: esquemaZonaHoraria.nullable() }),
 ])
 
 export type Preferencia = z.infer<typeof esquemaPreferencia>

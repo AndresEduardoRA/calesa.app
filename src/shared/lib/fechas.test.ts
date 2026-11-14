@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  abreviaturaDeZona,
+  formatearFechaHoraConZona,
   diaEnZona,
   diaSiguiente,
   formatearDiaYMes,
@@ -112,5 +114,35 @@ describe('días del calendario', () => {
     expect(formatearDiaYMes('2026-01-05')).toBe('05/01')
     expect(formatearDiaYMes('no es una fecha')).toBe('')
     expect(formatearDiaYMes('2026-10-15T10:00:00Z')).toBe('')
+  })
+})
+
+describe('la zona en la fecha de una subasta (horario de verano de EE. UU.)', () => {
+  const NY = { zona: 'America/New_York' }
+
+  it('la abreviatura cambia con el horario de verano', () => {
+    // 8 de marzo de 2026 a las 2:00 pasa a las 3:00 (EDT, UTC-4); antes, EST (UTC-5).
+    expect(abreviaturaDeZona('2026-03-08T06:59:00Z', NY)).toMatch(/GMT-5|EST/)
+    expect(abreviaturaDeZona('2026-03-08T07:00:00Z', NY)).toMatch(/GMT-4|EDT/)
+    // 1 de noviembre de 2026 a las 2:00 vuelve a la 1:00.
+    expect(abreviaturaDeZona('2026-11-01T05:59:00Z', NY)).toMatch(/GMT-4|EDT/)
+    expect(abreviaturaDeZona('2026-11-01T06:00:00Z', NY)).toMatch(/GMT-5|EST/)
+  })
+
+  it('la fecha lleva la hora local y su zona', () => {
+    expect(formatearFechaHoraConZona('2026-07-15T18:00:00Z', NY)).toMatch(
+      /^15 jul 2026, 14:00 (GMT-4|EDT)$/,
+    )
+    expect(formatearFechaHoraConZona('2026-07-15T18:00:00Z', { zona: 'America/La_Paz' })).toMatch(
+      /^15 jul 2026, 14:00 GMT-4$/,
+    )
+  })
+
+  it('la hora que no existe (2:30 del cambio de marzo) y la repetida (1:30 de noviembre) se guardan en un instante válido', () => {
+    const inexistente = instanteDeLocal('2026-03-08T02:30', NY)
+    expect(inexistente).not.toBeNull()
+    expect(new Date(inexistente ?? '').getUTCHours()).toBeGreaterThanOrEqual(6)
+    const repetida = instanteDeLocal('2026-11-01T01:30', NY)
+    expect(['2026-11-01T05:30:00.000Z', '2026-11-01T06:30:00.000Z']).toContain(repetida)
   })
 })
