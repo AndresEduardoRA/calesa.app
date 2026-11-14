@@ -105,6 +105,9 @@ las trampas, en `docs/LECCIONES.md`.
 - **Fotos.** Bucket público `vehiculos/<vehiculo_id>/<sha-256>`; dos tamaños hechos en el navegador (≤ 1600 y miniatura 480) sin optimizador; versión propia (`vehiculos_imagenes_version`), tope 24; duplicado por hash del original.
 - **Storage de vehículos se limpia por cola.** La app no borra objetos de `vehiculos`; la limpieza reclama con candado y recuento y borra con ≥ 24 h; el barrido de huérfanos va por cursor por bucket.
 - **Vitrina: una sola definición de lo público.** `interno.vitrina_vehiculos` calcula condiciones y `visible`; `web.vehiculos` y `vehiculo_vitrina_previa()` salen de ella. Publicar lleva versión y manda el estado entero; despublicar apaga el destacado.
+- **Vitrina desde la lista: lo que «falta» es el precio público.** La base no exige nada para publicar (sin precio, la web dice «Consultar»); desde
+  la fila, un toque publica lo que ya tiene precio o saca de la web, con «Deshacer»; sin precio, un panel chico (`?panel=vitrina-rapida&para=`)
+  pide sólo eso, con «Publicar sin precio». El «hasta», la nota, el destacado y la vista previa siguen en el panel de la ficha.
 - **Papelera.** Una sola lista de bloqueo (`_vehiculo_motivo_de_bloqueo`) para enviar y purgar; envío por lote con versión por vehículo y resultado parcial; restaurar vuelve sin publicar. Purga manual y automática son la misma función.
 - **apibara: la llamada vive en la edge function y la hace el navegador.** La función guarda el bruto en `apibara_consultas` y el navegador manda una referencia (de quien llama, < 24 h). Ningún test llama a la API real.
 - **La zona de una subasta sale del estado del patio, en el navegador.** apibara no da la zona de la subasta, pero sí el estado de la ubicación
