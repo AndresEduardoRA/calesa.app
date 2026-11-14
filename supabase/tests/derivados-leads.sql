@@ -484,7 +484,8 @@ begin
   if pg_temp.como_d(b, format('select jsonb_agg(id) from public.leads_vista where en_cartera and id = %L', v_pap)) is not null then
     raise exception 'el CSV de b llevaría el de la papelera'; end if;
   v_total := (select sum((c ->> 'total')::int) from jsonb_array_elements(pg_temp.como_d(b, format('select public.embudo_tablero(%L, 50, 500)', v_emb)) -> 'columnas') c);
-  if v_total <> v_total_antes - 1 then raise exception 'el kanban: % antes, % después', v_total_antes, v_total; end if;
+  -- Sale cada oportunidad de b de ese lead (la creada y, desde C3, la base que nació con el alta).
+  if v_total <> v_total_antes - 2 then raise exception 'el kanban: % antes, % después', v_total_antes, v_total; end if;
   -- La ficha del sin dueño: «todos» la lee sin el privado; la cartera, con él.
   r := pg_temp.como_d(todos, format('select public.lead_ficha(%L)', v_sin));
   if r is null or r -> 'atributos' ? 'direccion' then raise exception 'la ficha para «todos»: %', r; end if;

@@ -1205,9 +1205,10 @@ do $$ declare
   u57 constant text := '00000000-0000-0000-0000-000000000057'; u50 constant text := '00000000-0000-0000-0000-000000000050';
   r jsonb; v_emb uuid; v_otro uuid; v_et jsonb; v_ver timestamptz; i int; v_id uuid := gen_random_uuid();
 begin
-  -- El de por defecto nace una vez, con seis etapas genéricas; la segunda vez es el mismo.
+  -- El de por defecto ya nació con la oportunidad base del primer lead de u57 (C3), con seis etapas genéricas; pedirlo da el mismo. Que nazca
+  -- la primera vez lo prueba `areas/leads/oportunidad-base.sql`.
   r := pg_temp.bien(pg_temp.como(u57, 'select public.embudo_por_defecto()'));
-  if not (r ->> 'ok')::boolean or r -> 'valor' ->> 'resultado' <> 'creado' or jsonb_array_length(r -> 'valor' -> 'embudo' -> 'etapas') <> 6 then
+  if not (r ->> 'ok')::boolean or r -> 'valor' ->> 'resultado' <> 'existente' or jsonb_array_length(r -> 'valor' -> 'embudo' -> 'etapas') <> 6 then
     raise exception 'el embudo por defecto: %', r; end if;
   v_emb := (r -> 'valor' -> 'embudo' ->> 'id')::uuid;
   r := pg_temp.bien(pg_temp.como(u57, 'select public.embudo_por_defecto()'));
@@ -1439,16 +1440,17 @@ begin
   -- Sin escritura directa.
   r := pg_temp.como(u50, format('update public.oportunidades set etapa_id = %L where id = %L', v_gan, v_op));
   perform pg_temp.espero(r, '42501', 'permission denied%', 'movió una oportunidad directo');
-  -- La sección de la ficha: las suyas y si puede crear.
+  -- La sección de la ficha: las suyas (la creada y la base, que nació con el lead) y si puede crear.
   r := pg_temp.bien(pg_temp.como(u50, format('select public.lead_oportunidades(%L)', v_lead)));
-  if not (r -> 'valor' ->> 'puedo_crear')::boolean or jsonb_array_length(r -> 'valor' -> 'oportunidades') <> 1 then
+  if not (r -> 'valor' ->> 'puedo_crear')::boolean
+     or jsonb_array_length(r -> 'valor' -> 'oportunidades') <> 2 then
     raise exception 'lead_oportunidades de la dueña: %', r; end if;
   r := pg_temp.bien(pg_temp.como(u52, format('select public.lead_oportunidades(%L)', v_lead)));
   if (r -> 'valor' ->> 'puedo_crear')::boolean or jsonb_array_length(r -> 'valor' -> 'oportunidades') <> 0 then
     raise exception 'lead_oportunidades de la supervisión: %', r; end if;
-  -- El tablero: el total por etapa cuenta lo que se ve.
+  -- El tablero: el total por etapa cuenta lo que se ve: la creada acá y las bases de sus dos leads («Matriz LO» y «Matriz LP»).
   r := pg_temp.bien(pg_temp.como(u50, format('select public.embudo_tablero(%L, 50)', v_emb)));
-  if (select sum((c ->> 'total')::int) from jsonb_array_elements(r -> 'valor' -> 'columnas') c) <> 1 then
+  if (select sum((c ->> 'total')::int) from jsonb_array_elements(r -> 'valor' -> 'columnas') c) <> 3 then
     raise exception 'el tablero: %', r; end if;
   r := pg_temp.bien(pg_temp.como(u53, format('select public.embudo_tablero(%L, 50)', v_emb)));
   if r -> 'valor' is not null and r -> 'valor' <> 'null'::jsonb then raise exception 'el tablero de un embudo ajeno: %', r; end if;
@@ -1513,7 +1515,8 @@ begin
 
   -- La supervisión transfiere a 0057.
   r := pg_temp.bien(pg_temp.como(u52, format('select public.lead_transferir(%L, %L, %L)', v_lead, u57, u50)));
-  if (r -> 'valor' ->> 'oportunidades')::int is distinct from 3 then raise exception 'transferir: %', r; end if;
+  -- Las tres abiertas creadas acá más la base que nació con el lead.
+  if (r -> 'valor' ->> 'oportunidades')::int is distinct from 4 then raise exception 'transferir: %', r; end if;
   v_dest := (select id from public.embudos where usuario_id = u57::uuid and es_default);
   if (select (usuario_id, embudo_id, etapa_id, estado::text) from public.oportunidades where id = v_abierta) is distinct from
      (u57::uuid, v_dest, (select id from public.embudos_etapas where embudo_id = v_dest and nombre = 'Cotizado'), 'abierta'::text) then
@@ -1533,7 +1536,7 @@ begin
                    and a_etapa_id = (select etapa_id from public.oportunidades where id = v_abierta)) then
     raise exception 'el historial de la transferencia'; end if;
   if not exists (select 1 from public.actividad where accion = 'oportunidad.transferida' and registro_id = v_lead::text
-                   and (detalle ->> 'cantidad')::int = 3) then
+                   and (detalle ->> 'cantidad')::int = 4) then
     raise exception 'la constancia de la transferencia'; end if;
   if (select actualizado_en from public.leads where id = v_lead) <> v_lead_ver then raise exception 'transferir movió la versión del lead'; end if;
   -- El saliente (ahora compartido) ya no ve las que pasaron; sí la que ganó. El destino las ve y las mueve.

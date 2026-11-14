@@ -8301,6 +8301,10 @@ export type Database = {
         Returns: Json
       }
       _lead_numeros_de: { Args: { p_lead: string }; Returns: Json }
+      _lead_oportunidad_base: {
+        Args: { p_lead: string; p_nombre: string; p_usuario: string }
+        Returns: undefined
+      }
       _lead_para_mover: {
         Args: { p_lead: string }
         Returns: {

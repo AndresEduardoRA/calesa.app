@@ -250,6 +250,8 @@ ese nombre: nunca un sinónimo ni su traducción al inglés.
 - **Gestionar etiquetas** — `?panel=etiquetas` / `<DialogoDeEtiquetas>`: crear, renombrar, recolorear y eliminar las propias.
 - **Embudo / Etapa / Oportunidad** — `embudos`, `embudos_etapas`, `oportunidades` / `embudo_*`, `oportunidad_*`: embudo personal de 3 a 12
   etapas (inicial, ganada, perdida).
+- **Oportunidad base** — `_lead_oportunidad_base()`: la que nace con todo lead nuevo (alta rápida, importación, «Datos», turno de la web), abierta,
+  en la etapa inicial del embudo por defecto de quien lo crea y con el nombre del lead de título. Intacta, no cuenta como trabajo al deshacer.
 - **Embudo por defecto** — `embudos.es_default` / `embudo_por_defecto()`: el creado la primera vez («Ventas»); no se elimina, se renombra.
 - **Plantilla del embudo** — `ajustes_leads.embudo_etapas` / `embudo_plantilla_guardar()`: etapas con que nace el embudo por defecto de cada
   persona; nula = las seis de fábrica (`_embudo_etapas_de_fabrica()`). Sólo afecta a los que nacen después.

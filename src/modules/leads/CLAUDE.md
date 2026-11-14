@@ -77,7 +77,7 @@ por cursor, de a 20 y hasta 100, por `oportunidades_lead_abiertas_idx` y `oportu
   con su alcance; purgar pide `leads.papelera.purgar`. Toda RPC que recibe un lead figura en `supabase/tests/auditoria-leads.sql`.
 - **`lead_guardar` es la única puerta de edición** y exige `actualizado_en` (`PT409`). La versión la mueven sólo nombre, tipo, origen, atributos,
   teléfono o papelera (`lead_version()`): una columna derivada nueva se suma fuera. `atributos` es un parche y nunca guarda un nulo.
-- **`crear_lead(p_id, …)`:** idempotente por `p_id`; un duplicado es un valor (`existe`, `de_otro`, `limbo`); adoptar exige `adoptar: true`.
+- **`crear_lead(p_id, …)`:** con la oportunidad base (`_lead_oportunidad_base`, también en las importaciones); idempotente por `p_id`; un duplicado es un valor (`existe`, `de_otro`, `limbo`); adoptar exige `adoptar: true`.
 - **Teléfono:** único entre vivos; se busca por nombre y por número (`#124`), **nunca por teléfono** (oráculo). El tope de 10 extras lo aplica
   «agregar», no el cambio.
 - **Marcas:** de quien mira, `poner(valor)` y nunca alternar, sin versión, sin tocar `leads`. Embudos personales; oportunidades clase 1.

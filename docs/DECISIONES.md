@@ -157,6 +157,13 @@ las trampas, en `docs/LECCIONES.md`.
 
 ### Listas, embudos y plantillas
 
+- **Todo lead nuevo nace con su oportunidad base**, en la misma transacción (`_lead_crear` → `_lead_oportunidad_base`): etapa inicial del embudo por
+  defecto de quien lo crea (que nace ahí si no existía), título = el nombre del lead. Un lead adoptado del limbo no es nuevo: no suma una. Deshacer
+  una importación no cuenta la base intacta (abierta, con alta y versión a la misma hora) como trabajo; otra oportunidad, o la base tocada, sí.
+  Basta `leads.crear`: la base es parte del alta, no una oportunidad que alguien abre (`oportunidad_crear` sigue pidiendo `leads.editar`).
+  Consecuencia: la etapa inicial de un embudo no se quita mientras tenga bases abiertas (`embudo_guardar` ya frena quitar una etapa con
+  oportunidades); se mueven primero.
+
 - **«Míos» y búsqueda por candidatos.** «Propios» lee por `leads_cartera_vista`; «todos» por la cartera si es corta (`leads_cartera_corta()`, ≤ 5.000). Nombre desde 3 alfanuméricos seguidos; no se paga índice de n-gramas cortos.
 - **Oportunidades y embudos.** Embudos personales (3–12 etapas, ≥ 1 ganada y ≥ 1 perdida) por RPC; una oportunidad sólo la ve su dueña con el lead en su cartera. Transferir lleva las abiertas al embudo del destino; la baja las cancela.
 - **Kanban con tope.** 50 por columna con «Ver más», hasta 500; lo antiguo se busca con «Buscar en el embudo» (`p_buscar`).
