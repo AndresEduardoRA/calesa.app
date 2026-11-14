@@ -1,10 +1,11 @@
-// Corre sólo las carreras de gastos y pagos (`carreras.mjs`) contra la base del Supabase LOCAL de este worktree, con el arnés de
+// Corre sólo las carreras de gastos y pagos (`carreras.mjs` y `carreras-fase.mjs`) contra la base del Supabase LOCAL de este worktree, con el arnés de
 // `scripts/carreras.mjs` (que también las corre, en `pnpm db:carreras`). Para iterar sobre ellas, con el candado:
 // `bash scripts/candado.sh db:carreras -- node supabase/tests/areas/dinero/correr-carreras.mjs`. Sale con 1 si alguna falla.
 import pg from 'pg'
 import { limpiar, sembrar } from '../../../../scripts/carreras/terreno.mjs'
 import { stackLocal } from '../../../../scripts/lib/stack-local.mjs'
 import { carrerasDeDinero, limpiarDinero } from './carreras.mjs'
+import { carrerasDeDineroYFase, limpiarDineroDeFase } from './carreras-fase.mjs'
 
 const url = process.env.CARRERAS_DB_URL ?? stackLocal().urlDb
 if (!/@(127\.0\.0\.1|localhost)[:/]/.test(url)) {
@@ -40,13 +41,18 @@ function espero(nombre, condicion, detalle) {
 const orquesta = await conectar()
 const inicio = Date.now()
 try {
+  await limpiarDineroDeFase(orquesta)
   await limpiarDinero(orquesta)
   await limpiar(orquesta)
   await sembrar(orquesta)
   await carrerasDeDinero({ orquesta, espero, conectar, esperarBloqueo })
+  await carrerasDeDineroYFase({ orquesta, espero, conectar, esperarBloqueo })
 } catch (e) {
   fallas.push(`la corrida se cortó: ${e.message}`)
 } finally {
+  await limpiarDineroDeFase(orquesta).catch((e) =>
+    fallas.push(`limpiar el dinero y la fase: ${e.message}`),
+  )
   await limpiarDinero(orquesta).catch((e) =>
     fallas.push(`limpiar los gastos y pagos: ${e.message}`),
   )
