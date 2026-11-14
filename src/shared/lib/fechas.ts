@@ -20,6 +20,25 @@ function formatear(iso: string, patron: string, zona: string): string {
   return formatInTimeZone(aInstante(iso, zona), zona, patron, { locale: es })
 }
 
+// La abreviatura de la zona en ese instante, como la dice `Intl` en español: «GMT-4», «EST»/«EDT» si el navegador las conoce. Cambia con el
+// horario de verano (EE. UU.: 2.º domingo de marzo y 1.º de noviembre), por eso pide el instante.
+export function abreviaturaDeZona(iso: string, { zona = ZONA_POR_DEFECTO }: Opciones = {}): string {
+  const partes = new Intl.DateTimeFormat('es', {
+    timeZone: zona,
+    timeZoneName: 'short',
+  }).formatToParts(aInstante(iso, zona))
+  return partes.find((parte) => parte.type === 'timeZoneName')?.value ?? zona
+}
+
+// «11 oct 2026, 14:30 GMT-4»: la fecha y la hora con la abreviatura de su zona, para lo que se lee en una zona que puede no ser la de
+// quien mira (la fecha de una subasta).
+export function formatearFechaHoraConZona(
+  iso: string,
+  { zona = ZONA_POR_DEFECTO }: Opciones = {},
+): string {
+  return `${formatear(iso, 'd MMM yyyy, HH:mm', zona)} ${abreviaturaDeZona(iso, { zona })}`
+}
+
 // «11 oct 2026»
 export function formatearFecha(iso: string, { zona = ZONA_POR_DEFECTO }: Opciones = {}): string {
   return formatear(iso, 'd MMM yyyy', zona)
