@@ -245,6 +245,18 @@ las trampas, en `docs/LECCIONES.md`.
 - **Reportar no mueve la versión.** «Descartar los reportes» modera a `activa`; las marcas de reporte se leen en el servidor (tras `<Suspense>`, con `cache()`). Tope de 20 adjuntos sin candado (pueden quedar 21; aceptado).
 - **Adjuntos sin miniaturas.** La URL firmada se pide al hacer clic (60 s), nunca al leer la lista.
 
+### La cotización aprobada
+
+- **Una tabla aparte, mantenida al confirmar.** `cotizaciones_aprobadas` (PK = vehículo) y no una columna: aprobar mueve la versión y la revisión de la
+  cotización (un PT409 a quien edita) y `vehiculos` se lee entero (el monto saldría a quien ve el vehículo y no la cotización). Un trigger por fila anota y
+  uno diferido repone con el candado por vehículo: así cubre todas las RPC que cambian cotizaciones sin reescribirlas. Sin FK a `vehiculos` (cerraría un
+  ciclo con su papelera al confirmar): la integridad la da la reposición.
+- **Una sola regla de reposición.** La aprobada se queda mientras esté activa; si no, la más antigua activa; restaurar o reactivar no quita la marca. Dos
+  reglas («la última» y «la primera») darían un resultado distinto según el orden de los eventos.
+- **Aprobar es reversible, sin confirmar.** Se aprueba de una y el aviso ofrece «Deshacer» (aprueba la anterior con su versión); no mueve versiones y exige
+  la versión de la cotización que se aprueba. La clave `cotizaciones.aprobar` se concede a quien ya cierra finales, en su origen.
+- **Primer resultado = `totales.usd`.** Lo que la hoja dibuja en la tarjeta del total, en USD y sin convertir; cada celda lleva la moneda congelada con él.
+
 ### Papelera
 
 - **Papelera con permiso propio.** `cotizaciones.papelera.purgar`, global, aparte de la de vehículos; la policy de lotes tiene una rama por tipo sin `else` (un tipo nuevo no hereda claves).

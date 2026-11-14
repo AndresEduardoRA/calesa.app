@@ -339,6 +339,41 @@ la pide.
 - **Carreras** (`scripts/carreras/tonos.mjs`, `formula-mixtas.mjs`): dos publicar, dos ⚙, el ⚙ contra publicar el borrador y revertir contra
   el ⚙, en los dos órdenes y con o sin esperadas: la segunda da PT409 y nada se pisa.
 
+### La cotización aprobada
+
+Cada vehículo tiene a lo sumo una **cotización aprobada**: la fila de `cotizaciones_aprobadas` (clave primaria `vehiculo_id`, `cotizacion_id`
+único) con su **primer resultado** congelado: `monto` = `totales.usd` y `moneda` = `USD` (`_cotizacion_primer_resultado()`, espejo de
+`entities/primer-resultado.ts`: lo que la hoja dibuja primero en la tarjeta del total; nulo si no es un número) y las copias `origen_id`, `creado_por` y
+`lead_id`. Es una tabla aparte, no una columna: aprobar no mueve la versión de ninguna cotización ni toca `vehiculos`, y `authenticated` lee `vehiculos`
+entera (el monto llegaría a quien ve el vehículo y no la cotización). Su policy espeja «cotizaciones: leer» sobre las copias: la fila y el monto los ve
+exactamente quien ve esa cotización; sin escritura para `authenticated`.
+
+**La regla única** (`_aprobada_reponer(vehículo)`): _activa_ = con ese vehículo, fuera de la papelera y no `invalida` (una `reportada` cuenta). Si la
+fila apunta a una activa del vehículo, se queda (se refrescan monto y copias si cambiaron); si no, pasa a **la más antigua activa** por `(creado_en, id)`;
+sin activas, o con el vehículo en la papelera o inexistente, no hay fila. De ahí: la primera nace aprobada, las siguientes (y las de «encima») no;
+invalidar o mandar a la papelera la aprobada la reasigna; **restaurar o reactivar no le quita la marca a quien la tiene**; una aprobación a mano no
+vuelve al restaurar un vehículo. Cambiar de vehículo sale del viejo (si era la aprobada, la releva la más antigua de ese) y llega al nuevo sin marca,
+salvo que no tuviera. Sin vehículo nunca es aprobada. Guardar la aprobada refresca su monto; guardar otra no lo toca. Marcar o crear una final no
+aprueba: si la aprobada se va con las preventas, la releva la más antigua activa que queda.
+
+**Quién la mantiene:** toda escritura de `cotizaciones` que pueda cambiarla (alta, vehículo, estado, papelera, `totales`, `lead_id`, `creado_por`,
+`origen_id`, borrado) sin reescribir ninguna RPC. `trg_cotizacion_aprobada_anotar` (por fila, sin candados ni escrituras) anota en un GUC local los
+vehículos tocados y `trg_cotizaciones_aprobadas_al_confirmar` (constraint trigger **diferido**) toma, **al confirmar**, el candado de cada vehículo en
+orden de id y los repone con una lectura nueva. Por eso una RPC de escritura no devuelve si quedó aprobada: la pantalla lo lee después. La siembra de
+volumen inserta sin triggers y llama `_cotizaciones_aprobadas_rellenar()`.
+
+**`cotizacion_aprobar(id, versión esperada)`** pasa a la cotización a aprobada y la anterior deja de serlo. En este orden: ver (42501 «No tienes
+acceso a esta cotización.», igual para inexistente o en la papelera) y `cotizaciones.aprobar` **del origen de la cotización** (42501), todo antes de
+tomar nada; sin vehículo, 22023 con `hint 'vehiculo'`; inválida, 23514. Candados: el vehículo `for key share`, la cotización `for share` y, al final, el
+candado de la aprobada del vehículo (aviso). Con todo tomado vuelve a mirar ver y exige la versión **de esa cotización** (PT409 con quién y cuándo) sin
+moverla. Aprobar la que ya lo es no cambia nada. Deja `cotizacion.aprobada` en la actividad y devuelve `{cotizacion, anterior}`; `anterior` sólo viaja
+si quien aprueba la ve, puede aprobarla (su origen) y sigue activa (es lo que necesita «Deshacer»).
+
+Candados de la clase (todos en el orden común lead → vehículo → cotización → aprobada): la transacción que confirma ya tiene sus candados de fila y
+sólo lee `cotizaciones` y escribe `cotizaciones_aprobadas` tras el candado de aviso, así que no cierra ciclos. `cotizaciones_aprobadas.vehiculo_id`
+**no tiene FK a `vehiculos`**: el `insert` tomaría `key share` del vehículo al confirmar y cerraría un ciclo con su papelera. Pruebas:
+`supabase/tests/areas/aprobada/`, `scripts/carreras/cotizaciones-aprobada.mjs`, `supabase/tests/medir-cotizaciones-aprobadas.sql`.
+
 ## Niveles de acceso (D7, H3 y H4)
 
 - **Un nivel** es una fila de `cotizaciones_niveles` (sembrada con «todos» y «costos»). Cada uno, salvo «todos», genera dos permisos por
@@ -346,7 +381,7 @@ la pide.
   `cotizaciones.crear`/`cotizaciones.editar`. Al publicar, el diseño se compila a `formulas.visibilidad`, lo único que lee la base.
 - **Lo que no se ve no viaja** («En la base (4.10-1)»): la tarjeta y el PDF leen lo que dibujan con `cotizacion_tarjeta` (sólo lo del nivel
   «todos», «La lectura de la tarjeta (4.18-1)») y los montos con `cotizacion_leer`, y `validar_plantilla` rechaza un nodo que no sea del
-  nivel «todos». Un inventario (`cotizaciones-visibilidad.sql`) registra toda función que pueda devolver esas columnas o `formulas.*`.
+  nivel «todos». El primer resultado de la aprobada (`totales.usd`) viaja a todo el que ve la cotización: es lo que la tarjeta del total dibuja a «todos». Un inventario (`cotizaciones-visibilidad.sql`) registra toda función que pueda devolver esas columnas o `formulas.*`.
 - **Límite:** un nodo restringido, único oculto de una suma visible, se deduce restando; el editor del diseño lo avisa.
 - **Pantalla:** `/configuracion/cotizacion?seccion=niveles` (`docs/UX.md`). `niveles_con_uso()` devuelve `{tope, niveles}` con
   banderas `se_renombra`, `se_retira`, `se_elimina` y `motivo_de_uso`: la UI no razona por nombre ni clave. En TS los permisos de un
@@ -398,7 +433,8 @@ La lectura de una cotización: lo que quien llama no ve no viaja (`supabase/test
 **Nadie escribe `cotizaciones` ni `cotizaciones_revisiones` con `insert`, `update` o `delete`:** `authenticated`, `anon` y PUBLIC no
 tienen privilegio de escritura y no hay policies de crear ni editar. Escriben, con `security definer`: `cotizacion_crear()`,
 `cotizacion_guardar()`, `cotizacion_encima()`, `cotizacion_marcar_final()`, `cotizacion_moderar()`, la papelera y los triggers
-`cotizacion_revision()` (la única escritura de `cotizaciones_revisiones`), `cotizacion_contadores()` y `cotizacion_auditar()`.
+`cotizacion_revision()` (la única escritura de `cotizaciones_revisiones`), `cotizacion_contadores()` y `cotizacion_auditar()`. `cotizacion_aprobar()` no escribe `cotizaciones`: escribe `cotizaciones_aprobadas`
+(«La cotización aprobada»).
 
 **`cotizacion_crear(id, origen, lead, entradas, abierta, vehículo?, vehículo_nuevo?, modo_tc?, clase = 'preventa', con_la_abierta =
 false, ver_total_bs = false)`** calcula en la base sobre la fórmula publicada del origen y devuelve `{cotizacion, valores, fuentes,

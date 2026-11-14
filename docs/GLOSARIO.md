@@ -284,6 +284,11 @@ ese nombre: nunca un sinónimo ni su traducción al inglés.
 - **Dirección de la web** — `ajustes_web.direccion_publica` / `leerDireccionPublica()`: la dirección pública del sitio.
 - **Cotización** — `cotizaciones`: cálculo de una fórmula para un lead/vehículo, con snapshot.
 - **Preventa / Final** — `clase_cotizacion`: borrador comercial / la que cierra el vehículo (una activa por vehículo).
+- **Cotización aprobada** — `cotizaciones_aprobadas`, `cotizacion_aprobar()`, `cotizaciones.aprobar` (por origen): la elegida de un vehículo, una sola por
+  vehículo (la clave primaria es el vehículo). Nace aprobada la primera activa; si la aprobada se invalida o va a la papelera pasa a la más antigua que sigue
+  activa. No es la **Final** (marcar una no aprueba ni al revés). Se ve como la insignia «Aprobada» y como la columna «Cotización aprobada» de `/vehiculos`.
+- **Primer resultado** — `entities/primer-resultado.ts`, `cotizaciones_aprobadas.monto` y `moneda`: lo que la hoja dibuja primero en la tarjeta del total
+  (`totales.usd`, en USD). La aprobada lo lleva congelado para que la lista de vehículos lo lea sin unir cotizaciones.
 - **Papelera de cotizaciones** — `cotizaciones_papelera_*`, `cotizaciones.papelera.purgar`, `/cotizaciones/papelera`: borrado reversible por
   lote, con versión; mandar una pide verla y poder guardarla (una final, `cotizaciones.final.gestionar`). Las que se fueron con su vehículo
   están en la papelera de vehículos. La purga automática también la vacía.

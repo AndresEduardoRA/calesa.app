@@ -26,6 +26,7 @@ import { carrerasDeNiveles } from './carreras/niveles.mjs'
 import { carrerasDePlantillas } from './carreras/plantillas.mjs'
 import { carrerasDeCotizaciones } from './carreras/cotizaciones.mjs'
 import { carrerasDeGuardar } from './carreras/cotizaciones-guardar.mjs'
+import { carrerasDeAprobada } from './carreras/cotizaciones-aprobada.mjs'
 import { carrerasDeEncima } from './carreras/cotizaciones-encima.mjs'
 import { carrerasDeCandadosDePapelera } from './carreras/candados-papelera.mjs'
 import { carrerasDePurgaContraRestaurar } from './carreras/purga-contra-restaurar.mjs'
@@ -378,6 +379,7 @@ try {
   await carrerasDeCotizaciones({ orquesta, carrera, espero, conectar, esperarBloqueo })
   await carrerasDeGuardar({ orquesta, carrera, espero, conectar, esperarBloqueo })
   await carrerasDeEncima({ orquesta, carrera, espero })
+  await carrerasDeAprobada({ orquesta, carrera, espero, conectar })
   await carrerasDeFinal({ orquesta, carrera, espero, conectar })
   await carrerasDeCandadosDePapelera({ orquesta, espero, conectar })
   await carrerasDePurgaContraRestaurar({ orquesta, espero, conectar })
