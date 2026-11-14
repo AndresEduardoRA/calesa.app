@@ -17,6 +17,7 @@ import { usePapeleraDelListado } from '../../papelera/hooks/use-papelera-del-lis
 import { TablaDeVehiculos } from './tabla-de-vehiculos'
 import { TarjetasDeVehiculos } from './tarjetas-de-vehiculos'
 import type { AlcanceDeAvisos } from '../../../entities/avisos-de-vehiculo'
+import type { AprobadasDeLaPagina } from '../../../entities/cotizacion-aprobada-de-la-fila'
 import type { PermisoDeVitrina } from '../../../entities/vitrina'
 import { paraElMenuDe, type DatosDelOrigen, type FilaDeVehiculo } from './tipos'
 import { PanelDeVitrinaRapida } from '../../vitrina/components/panel-de-vitrina-rapida'
@@ -31,6 +32,8 @@ type Props = DatosDelOrigen & {
   eliminables: readonly string[]
   leadsVisibles: readonly string[]
   alcance: AlcanceDeAvisos
+  // La cotización aprobada de cada vehículo de la página, ya armada por la página (con la ruta de su cotización); nulo si quien mira no ve cotizaciones.
+  aprobadas: AprobadasDeLaPagina | null
   // Si puede publicar en este origen: sin eso «Publicar en la web…» no está en el «⋯».
   publicar: PermisoDeVitrina
   // Abre el resumen de un vehículo, y cuál está abierto (para marcarlo).
@@ -48,7 +51,7 @@ const mayuscula = (texto: string) => texto.charAt(0).toUpperCase() + texto.slice
 // leads): la tabla desde `md` y las tarjetas por debajo, o las tarjetas en todo ancho si la persona las eligió.
 export function ResultadoDelListado(props: Props) {
   const { pagina, accionDeVacio, alAbrir, abierto, vista, alCambiarVista, ...resto } = props
-  const { editables, eliminables, leadsVisibles, alcance, publicar, ...datos } = resto
+  const { editables, eliminables, leadsVisibles, alcance, publicar, aprobadas, ...datos } = resto
   const filtros = useFiltrosDelListado()
   const ancha = useAlMenos(CORTE_DE_LA_TABLA)
   const hayCursor = useSearchParams().has(CLAVE_DE_CURSOR)
@@ -93,6 +96,7 @@ export function ResultadoDelListado(props: Props) {
             seleccion={papelera.seleccion}
             alAbrir={alAbrir}
             abierto={abierto}
+            aprobadas={aprobadas}
           />
         )}
         tarjetas={() => (
@@ -104,6 +108,7 @@ export function ResultadoDelListado(props: Props) {
             seleccion={papelera.seleccion}
             alAbrir={alAbrir}
             abierto={abierto}
+            aprobadas={aprobadas}
           />
         )}
       />

@@ -4,10 +4,12 @@ import type { ReactNode } from 'react'
 import { SufijoDeVisto, AbrirResumen, TarjetaDeLista } from '@/shared/ui/lista'
 import { cn } from 'cn'
 import { camposDeTarjeta, type CampoDeVehiculo } from '../../../entities/campo'
+import type { CotizacionAprobadaDeLaFila } from '../../../entities/cotizacion-aprobada-de-la-fila'
 import type { PrecioDeLaFila } from '../../../entities/precio-de-la-fila'
 import type { Vehiculo } from '../../../entities/vehiculo'
 import { useIdentidad } from '../hooks/use-identidad'
 import { BadgeDeFase } from './badge-de-fase'
+import { AprobadaDeTarjeta } from './celda-de-aprobada'
 import { PrecioDeTarjeta } from './precio-de-la-fila'
 import { ValorDeCampo } from './valor-de-campo'
 import { FotosEnElLugar } from '../../fotos/components/fotos-en-el-lugar'
@@ -29,6 +31,8 @@ type Props = {
   seleccion?: ReactNode
   // El precio, o la puja con su rótulo en un origen de subasta (`precioDeLaFila`).
   precio: PrecioDeLaFila | null
+  // Su cotización aprobada; nulo = no hay o no se ve.
+  aprobada?: CotizacionAprobadaDeLaFila | null
   // En escritorio, con las tarjetas elegidas: la foto arriba, a todo el ancho y con su carrusel.
   grande?: boolean
 }
@@ -36,6 +40,7 @@ type Props = {
 // Un vehículo en una tarjeta de la lista (`@/shared/ui/lista`): lo que se ve en el celular en vez de la fila de la tabla.
 export function TarjetaVehiculo(props: Props) {
   const { vehiculo, campos, fase, alAbrir, abierta, acciones, insignias, seleccion, precio } = props
+  const aprobada = props.aprobada ?? null
   const grande = props.grande ?? false
   const identidad = useIdentidad(campos)(vehiculo)
   const datos = camposDeTarjeta(campos).filter((campo) => {
@@ -82,6 +87,7 @@ export function TarjetaVehiculo(props: Props) {
             {insignias}
             <PrecioDeTarjeta precio={precio} />
           </div>
+          <AprobadaDeTarjeta aprobada={aprobada} />
         </div>
       </div>
       {datos.length > 0 ? (
