@@ -45,6 +45,8 @@ locale)`, el único lector de un número tipeado.
   historial; con `router.push`: `abrirConVuelta(clave, () => { push(url); return alLlegarA(url) })`. La usa `usePanelPorUrl()`.
 - `ui/lista/`: `UnaSolaVista`, `TablaDeLista`, `FilaDeLista`, `TarjetaDeLista`, `MasAcciones`, `AbrirResumen`, `SimbolosDeLista`.
 - `ui/monto.tsx` + `live.ts` + `guion-live.tsx` (Modo Live), `regional.tsx`, `densidad.tsx`, `marca.tsx`, `estilo-de-marca.tsx`.
+- `lib/acciones-del-aviso.ts` (las acciones de un aviso como datos: `AccionDelAviso`, `resolverAcciones()`, `pedidoDe()`, `hrefDePanel()`; `ErrorApp.causa`)
+  y `ui/acciones-del-aviso.tsx` (`<AccionesDelAviso>`, todo `<Button>`: en un toast sólo los botones reciben el puntero).
 - `ui/estados/`, `ui/esqueletos/`; `ui/toasts.ts` (`avisarError()`, `avisarConDeshacer()`), `ui/sonner.tsx`, `ui/pie-del-panel.tsx`,
   `ui/zona-de-archivos.tsx`. `types/database.types.ts`: lo genera `pnpm db:types`; no se edita.
 
@@ -75,7 +77,7 @@ locale)`, el único lector de un número tipeado.
   con `NuqsTestingAdapter`, `waitFor` la escritura.
 - Un cambio `shallow: true` con otra navegación pendiente la pisa; `useFiltros().cerrarPanel` va al servidor si la lista aún se está pidiendo.
 - Un campo de texto en la URL no lleva `key` atada a su valor (pierde el foco): `useTextoDeUrl()`.
-- `avisarError()` con `no_autenticado` ofrece «Ingresar» (no redirige); con `conflicto`, «Recargar». El `<Toaster>` no recibe el puntero: un aviso
+- `avisarError()` con `no_autenticado` ofrece «Ingresar» (no redirige); con `conflicto`, «Recargar»; con `{ acciones }` o `alReintentar`, el toast queda hasta cerrarlo y enfoca la principal. El `<Toaster>` no recibe el puntero: un aviso
   con otro control necesita `pointer-events-auto`.
 - shadcn usa variables (`bg-primary`) que `globals.css` apunta a los tokens.
 - Safari devuelve PNG si le pides WebP: `comprimirImagen()` reintenta en JPEG; la extensión sale de `extensionDe(blob.type)`.

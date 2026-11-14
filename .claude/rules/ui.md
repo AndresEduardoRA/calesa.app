@@ -39,6 +39,15 @@ Antes de construir una pantalla, lee su fila en `docs/UX.md` (patrón, roles, es
 - Los avisos (`<Toaster>`) no tapan contenido ni el pie de un panel: `useAvisosSobreElPie()`,
   `data-pie-de-panel`. Se comprueba con `avisoNoTapaElPie()` de `e2e/soporte/recorrido.ts`.
 
+## Avisos con acciones
+
+- Todo aviso (error, advertencia o bloqueo) que tenga una salida la ofrece: de 1 a 3 acciones, la que destraba primero, con verbo + objeto
+  («Quitar el vínculo»), nunca «Aceptar».
+- Se declaran como datos en `entities/` a partir de `ErrorApp.causa` y se filtran con `resolverAcciones()` (`@/shared/lib/acciones-del-aviso`).
+- Sin permiso para la acción que resuelve, el aviso dice a quién pedírselo (`pedidoDe()`) en vez del botón; la que sólo informa no se muestra.
+- Se dibujan con `avisarError(error, { acciones })`, `<AccionesDelAviso>` (dentro de `<Aviso>`) o líneas `accion` del «⋯».
+- Un aviso bloqueante lleva el foco a la principal (`enfocar`); en el celular la principal va a lo ancho, a 44 px.
+
 ## Listas
 
 - Toda lista de registros usa el patrón de `@/shared/ui/lista` (modelos: listado de leads e inventario
