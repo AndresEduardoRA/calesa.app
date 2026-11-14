@@ -83,6 +83,7 @@ export async function limpiar(db) {
 const ACCIONES = [
   'leads.ver',
   'leads.editar',
+  'leads.telefonos_extra.editar',
   'leads.compartir',
   'leads.transferir',
   'leads.eliminar',
