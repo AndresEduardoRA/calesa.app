@@ -48,6 +48,8 @@ type Props = {
   alSalir?: () => void
   // Sin esto no se ofrece «Tomar lead»: sólo el alta puede tomar un lead sin dueño.
   alTomar?: (tomarlo: boolean) => void
+  // Sólo el alta abierta desde la hoja: el número ya es de un lead que se ve, y se elige ese en vez de crear otro.
+  alElegir?: (leadId: string) => void
   etiqueta?: string
   autoFocus?: boolean
   pais?: PaisDelCampo | null
@@ -66,6 +68,7 @@ type PropsDelEstado = {
   // Con un error escrito junto al campo, el aviso de la verificación no se repite.
   hayError: boolean
   alTomar: ((tomarlo: boolean) => void) | undefined
+  alElegir: ((leadId: string) => void) | undefined
 }
 
 // «Tomar lead» para un teléfono sin dueño, y lo que significa tomarlo.
@@ -112,15 +115,30 @@ function TomarLead({
 type PropsDelAviso = {
   aviso: AvisoDeTelefono
   verificacion: Verificacion | null
+  alElegir: ((leadId: string) => void) | undefined
 }
 
 // Lo que se le dice a quien tipea. Si el número ya es de un lead que ve (o es un teléfono extra de
 // uno), lleva a su ficha.
-function AvisoDelTelefono({ aviso, verificacion }: PropsDelAviso) {
+function AvisoDelTelefono({ aviso, verificacion, alElegir }: PropsDelAviso) {
   const abrible = verificacion ? leadAbrible(verificacion) : null
   return (
     <p className={cn(TONO[aviso.tono])}>
       {aviso.texto}
+      {abrible && alElegir ? (
+        <>
+          {' · '}
+          <button
+            type="button"
+            className="min-h-11 font-medium underline underline-offset-2 md:min-h-0"
+            onClick={() => {
+              alElegir(abrible)
+            }}
+          >
+            Elegir
+          </button>
+        </>
+      ) : null}
       {abrible ? (
         <>
           {' · '}
@@ -140,7 +158,7 @@ function AvisoDelTelefono({ aviso, verificacion }: PropsDelAviso) {
 }
 
 // Lo que se sabe del teléfono: verificándose, nuevo, de quién es, sin dueño.
-function LoQueSeSabe({ telefono, hayError, alTomar }: PropsDelEstado) {
+function LoQueSeSabe({ telefono, hayError, alTomar, alElegir }: PropsDelEstado) {
   const { verificando, aviso, adoptar, verificacion } = telefono
   if (verificando) {
     return (
@@ -154,7 +172,7 @@ function LoQueSeSabe({ telefono, hayError, alTomar }: PropsDelEstado) {
   return (
     <>
       {!hayError && conTexto ? (
-        <AvisoDelTelefono aviso={aviso} verificacion={verificacion} />
+        <AvisoDelTelefono aviso={aviso} verificacion={verificacion} alElegir={alElegir} />
       ) : null}
       {verificacion?.estado === 'limbo' && alTomar ? (
         <div className="flex flex-wrap items-center gap-2">
@@ -187,6 +205,7 @@ export function CampoTelefono({
   alCambiar,
   alSalir,
   alTomar,
+  alElegir,
   etiqueta = 'Teléfono principal',
   autoFocus = true,
   pais = null,
@@ -223,7 +242,12 @@ export function CampoTelefono({
         />
       ) : null}
       <div aria-live="polite" className="grid gap-1.5 text-(length:--text-sm)">
-        <LoQueSeSabe telefono={telefono} hayError={error !== undefined} alTomar={alTomar} />
+        <LoQueSeSabe
+          telefono={telefono}
+          hayError={error !== undefined}
+          alTomar={alTomar}
+          alElegir={alElegir}
+        />
       </div>
     </div>
   )

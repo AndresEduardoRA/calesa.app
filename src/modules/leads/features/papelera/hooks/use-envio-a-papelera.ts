@@ -4,6 +4,7 @@ import { useAction } from 'next-safe-action/hooks'
 import { useRef } from 'react'
 import { enviarAccion } from '@/shared/lib/enviar-accion'
 import { avisar, avisarConDeshacer, avisarError, avisarExito } from '@/shared/ui/toasts'
+import { accionesDelEnvio } from '../../../entities/avisos-de-lead'
 import {
   resumenDeEnvio,
   resumenDeRestauracion,
@@ -52,7 +53,9 @@ export function useEnvioAPapelera() {
       if (!('sinRed' in resultado)) {
         pendiente.current = null
       }
-      avisarError(resultado.error)
+      // Un solo lead frenado por su vehículo vinculado: el aviso lleva a «Vehículos».
+      const resueltas = accionesDelEnvio(resultado.error, leads)
+      avisarError(resultado.error, resueltas.acciones.length > 0 ? { acciones: resueltas } : {})
       return false
     }
     pendiente.current = null
