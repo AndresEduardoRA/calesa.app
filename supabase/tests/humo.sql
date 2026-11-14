@@ -2918,6 +2918,10 @@ reset role;
 select set_config('request.jwt.claim.sub', '', false);
 -- Estado conocido: encendida, 7 días, zona de La Paz (UTC−4, sin horario de verano).
 update public.ajustes_empresa set limpieza_automatica = true, limpieza_dias_gracia = 7, zona_horaria = 'America/La_Paz' where id = 1;
+-- Estas cuatro pruebas miden la regla de siempre: sin fase de subasta, lo importado sin fase no está en el tramo y nunca figura «Sin resolver»
+-- (que es un ancla: lo prueba areas/situacion/regla.sql). La última la vuelve a marcar.
+update public.fases f set es_subasta = false from public.flujos fl join public.origenes o on o.id = fl.origen_id
+ where f.flujo_id = fl.id and o.clave = 'subasta_usa' and f.es_subasta;
 -- Una fase que no es la inicial, en el flujo de la subasta de EE. UU.
 insert into public.fases (flujo_id, nombre) select fl.id, 'Humo posterior' from public.flujos fl join public.origenes o on o.id = fl.origen_id where o.clave = 'subasta_usa';
 -- «ahora» de esta prueba: 2030-06-15 08:00 en La Paz. Subasta terminada hace 10 días = vence el 13.
@@ -3219,6 +3223,8 @@ begin
   if not exists (select 1 from cron.job where jobname = 'limpieza-automatica' and schedule = '7 * * * *' and command like '%limpieza_automatica_correr%') then
     raise exception 'el job de la limpieza no está programado'; end if;
 end $$;
+update public.fases f set es_subasta = true from public.flujos fl join public.origenes o on o.id = fl.origen_id
+ where f.flujo_id = fl.id and o.clave = 'subasta_usa' and f.nombre = 'En subasta';
 
 -- @test leads: el layout de fábrica, y crear, ordenar, desactivar y eliminar un campo con sus reglas
 -- Dos asesores propios de estas pruebas: los de antes ya se dieron de baja.
