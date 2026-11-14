@@ -2,7 +2,7 @@
 // `for no key update`, el vehículo `for key share`, las cotizaciones del vehículo en una pasada por id y, recién con todo tomado, el vínculo
 // (`…_final_marcar.sql`). Ninguna termina en 40P01. Las de una sola llamada usan `carrera()` del arnés (B tiene que esperar); las de dos pasos, `enDosPasos()`:
 // A hace su primer paso en una transacción, B lanza, se espera a que B termine o quede bloqueado, A hace el segundo y confirma. R6–R8 están en `carreras-de-candados.mjs`; las de crear una final (Q1–Q11), en `carreras-crear.mjs`. Las corre
-// `correr-carreras.mjs` (`scripts/carreras.mjs` todavía no las importa). Terreno con el prefijo «Carreras», como las demás.
+// `pnpm db:carreras` (`scripts/carreras.mjs`). Terreno con el prefijo «Carreras», como las demás.
 import { PERSONAS, leadDeLaDuena } from '../../../../scripts/carreras/terreno.mjs'
 import { insertaCotizacion, terreno } from '../../../../scripts/carreras/cotizaciones.mjs'
 import {
