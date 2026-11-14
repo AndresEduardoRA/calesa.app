@@ -7,8 +7,8 @@ import { camposDeTarjeta, type CampoDeVehiculo } from '../../../entities/campo'
 import type { Vehiculo } from '../../../entities/vehiculo'
 import { useIdentidad } from '../hooks/use-identidad'
 import { BadgeDeFase } from './badge-de-fase'
-import { Miniatura } from './miniatura'
 import { ValorDeCampo } from './valor-de-campo'
+import { FotosEnElLugar } from '../../fotos/components/fotos-en-el-lugar'
 
 type Props = {
   vehiculo: Vehiculo
@@ -40,7 +40,7 @@ export function TarjetaVehiculo(props: Props) {
       {/* Con el texto al 200 % la tarjeta mide menos de 16 rem: la miniatura (rem) y el título no caben en una fila y se apilan. */}
       <div className="flex items-start gap-3 @max-[16rem]:flex-col">
         {seleccion}
-        <Miniatura ruta={vehiculo.portadaRuta} className="w-20" />
+        <FotosEnElLugar vehiculo={vehiculo} modo="abrir" className="w-20" />
         <div className="grid min-w-0 flex-1 gap-1 @max-[16rem]:flex-none">
           <h3 className="text-(length:--text-base) font-medium [overflow-wrap:anywhere] text-(--color-ink)">
             <AbrirResumen nombre={identidad.nombre}>{identidad.nombre}</AbrirResumen>

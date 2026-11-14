@@ -92,6 +92,8 @@ ese nombre: nunca un sinónimo ni su traducción al inglés.
   común, cada uno por sí mismo (resultado parcial). No es el «lote de papelera» ni el «lote de subasta».
 - **Lote de subasta** — `vehiculos.lote` + `plataforma`: identificador en la subasta (Copart/IAAI). No es el lote de papelera.
 - **Foto** — `vehiculos_imagenes` / `Foto`, `<SeccionDeFotos>`: una imagen de un vehículo (hasta 24).
+- **Visor de imágenes** — `<CarruselEnElLugar>`, `useVisorDeGaleria()`, `?visor=<clave>&foto=<n>`: las fotos de una entidad en grande,
+  con flechas, ← →, «3 de 12» y miniaturas; en su lugar, la portada y, al acercarse, el resto (una sola lectura).
 - **Portada** — `vehiculos_imagenes.es_portada` / `vehiculo_foto_portada()`: la foto principal, una sola.
 - **Miniatura** — `vehiculos_imagenes.ruta_miniatura` / `<Miniatura>`: la versión chica de una foto (≤ 480 px).
 - **Hash** — `hashDe()` / `vehiculos_imagenes.hash`: SHA-256 de un contenido; es el nombre del objeto en Storage (nunca cambia).

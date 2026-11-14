@@ -13,7 +13,6 @@ import type { PermisoDeVitrina } from '../../../entities/vitrina'
 import { MenuDeVehiculo } from '../../acciones/components/menu-de-vehiculo'
 import { BotonEditarVehiculo } from '../../alta/components/botones'
 import { BadgeDeFase } from '../../listado/components/badge-de-fase'
-import { Miniatura } from '../../listado/components/miniatura'
 import {
   faseDe,
   vitrinaDe,
@@ -23,6 +22,7 @@ import {
 import { ValorDeCampo } from '../../listado/components/valor-de-campo'
 import { InsigniaDeLimpieza } from '../../limpieza/components/insignia-de-limpieza'
 import { InsigniaDeVitrina } from '../../vitrina/components/insignia-de-vitrina'
+import { FotosEnElLugar } from '../../fotos/components/fotos-en-el-lugar'
 
 type Props = DatosDelOrigen & {
   vehiculo: FilaDeVehiculo
@@ -59,7 +59,7 @@ export function CabeceraDelResumen(props: Props) {
     <div className="@container grid min-w-0 gap-3">
       {/* Con el texto al 200 % la cabecera mide menos de 20 rem: la miniatura (rem) pasa arriba de los datos en vez de empujarlos fuera. */}
       <div className="flex items-start gap-4 @max-[20rem]:flex-col">
-        <Miniatura ruta={vehiculo.portadaRuta} className="w-28" />
+        <FotosEnElLugar vehiculo={vehiculo} className="w-40" />
         <div className="grid min-w-0 flex-1 gap-2">
           <dl className="grid gap-x-4 gap-y-1 sm:grid-cols-2">
             <Dato etiqueta="Número">

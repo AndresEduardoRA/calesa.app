@@ -3,7 +3,7 @@ import type { FaseResumen } from '@/modules/flujos/client'
 import type { OrigenResumen } from '@/modules/origenes/client'
 import type { Vehiculo } from '../../../entities/vehiculo'
 import { BadgeDeFase } from '../../listado/components/badge-de-fase'
-import { Miniatura } from '../../listado/components/miniatura'
+import { FotosEnElLugar } from '../../fotos/components/fotos-en-el-lugar'
 
 type Props = {
   vehiculo: Vehiculo
@@ -21,7 +21,7 @@ type Props = {
 export function CabeceraDeVehiculo({ vehiculo, origen, fase, acciones, insignias }: Props) {
   return (
     <header className="flex flex-wrap items-start gap-4">
-      <Miniatura ruta={vehiculo.portadaRuta} className="w-24" />
+      <FotosEnElLugar vehiculo={vehiculo} className="w-40" />
       <div className="grid min-w-0 flex-1 gap-1.5">
         <h1 className="text-(length:--text-xl) font-semibold text-(--color-ink)">
           {vehiculo.titulo}
