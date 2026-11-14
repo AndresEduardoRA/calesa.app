@@ -6,6 +6,7 @@ import {
   esTamanoDePagina,
   type TamanoDePagina,
 } from '@/shared/lib/paginacion'
+import { VISTAS_DE_LISTA, type VistaDeLista } from '@/shared/lib/vista-de-lista'
 import type { Densidad } from '@/shared/ui/densidad'
 import {
   CLAVE_DE_VISTOS,
@@ -44,7 +45,11 @@ export type Preferencias = {
   vistos: PreferenciaDeVistos
   // En qué zona ve las fechas de subasta (`zona_horaria`). null = la de la empresa.
   zonaHoraria: string | null
+  // Cómo ve el inventario en escritorio, tabla o tarjetas (`vehiculos.vista`). null = nunca eligió: la tabla.
+  vistaDeVehiculos: VistaDeLista | null
 }
+
+export const CLAVE_DE_VISTA_DE_VEHICULOS = 'vehiculos.vista'
 
 export const CLAVE_DE_ZONA_HORARIA = 'zona_horaria'
 
@@ -62,6 +67,7 @@ export const esquemaZonaHoraria = z
   })
 
 const esquemaDensidad = z.enum(DENSIDADES)
+const esquemaVistaDeLista = z.enum(VISTAS_DE_LISTA)
 const esquemaTema = z.enum(TEMAS)
 // Un número de la lista del selector: ni «50» como texto, ni 7, ni 1000.
 const esquemaPorPagina = z.custom<TamanoDePagina>(esTamanoDePagina)
@@ -76,6 +82,7 @@ export function preferenciasDesde(crudo: unknown): Preferencias {
   const porPagina = esquemaPorPagina.safeParse(valores[CLAVE_DE_PREFERENCIA_POR_PAGINA])
   const widgets = esquemaWidgetsDelTablero.safeParse(valores[CLAVE_WIDGETS_DEL_TABLERO])
   const zona = esquemaZonaHoraria.safeParse(valores[CLAVE_DE_ZONA_HORARIA])
+  const vista = esquemaVistaDeLista.safeParse(valores[CLAVE_DE_VISTA_DE_VEHICULOS])
   return {
     densidad: densidad.success ? densidad.data : null,
     tema: tema.success ? tema.data : null,
@@ -83,6 +90,7 @@ export function preferenciasDesde(crudo: unknown): Preferencias {
     widgetsDelTablero: widgets.success ? widgets.data : null,
     vistos: preferenciaDeVistosDesde(valores[CLAVE_DE_VISTOS]),
     zonaHoraria: zona.success ? zona.data : null,
+    vistaDeVehiculos: vista.success ? vista.data : null,
   }
 }
 
@@ -100,6 +108,10 @@ export const esquemaPreferencia = z.discriminatedUnion('clave', [
   }),
   z.object({ clave: z.literal(CLAVE_DE_VISTOS), valor: esquemaPreferenciaDeVistos.nullable() }),
   z.object({ clave: z.literal(CLAVE_DE_ZONA_HORARIA), valor: esquemaZonaHoraria.nullable() }),
+  z.object({
+    clave: z.literal(CLAVE_DE_VISTA_DE_VEHICULOS),
+    valor: esquemaVistaDeLista.nullable(),
+  }),
 ])
 
 export type Preferencia = z.infer<typeof esquemaPreferencia>

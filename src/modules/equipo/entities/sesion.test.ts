@@ -51,6 +51,7 @@ describe('sesionDesde', () => {
         widgetsDelTablero: null,
         vistos: VISTOS_POR_DEFECTO,
         zonaHoraria: null,
+        vistaDeVehiculos: null,
       },
     })
   })

@@ -7,7 +7,10 @@ import { CLAVE_DE_CURSOR } from '@/shared/lib/filtros'
 import { ubicacionDeLaPagina, type Pagina } from '@/shared/lib/paginacion'
 import { EstadoPaginaSinFilas, EstadoSinResultados, EstadoVacio } from '@/shared/ui/estados'
 import { useFiltrosDelListado } from '@/shared/ui/filtros'
-import { UnaSolaVista } from '@/shared/ui/lista'
+import { ConmutadorDeVista, UnaSolaVista } from '@/shared/ui/lista'
+import { CORTE_DE_LA_TABLA } from '@/shared/lib/ancho'
+import { useAlMenos } from '@/shared/ui/ancho-de-pantalla'
+import type { VistaDeLista } from '@/shared/lib/vista-de-lista'
 import { Paginacion, UbicacionDeLaPagina } from '@/shared/ui/paginacion'
 import { BarraDeSeleccion } from '../../papelera/components/barra-de-seleccion'
 import { usePapeleraDelListado } from '../../papelera/hooks/use-papelera-del-listado'
@@ -33,27 +36,21 @@ type Props = DatosDelOrigen & {
   // Abre el resumen de un vehículo, y cuál está abierto (para marcarlo).
   alAbrir: (id: string) => void
   abierto: string | null
+  // Tabla o tarjetas en escritorio, y cambiarla (`<ConmutadorDeVista>`, arriba de la lista).
+  vista: VistaDeLista
+  alCambiarVista: (vista: VistaDeLista) => void
 }
 
 const mayuscula = (texto: string) => texto.charAt(0).toUpperCase() + texto.slice(1)
 
 // La lista de un origen o el estado que corresponda: vacío de primera vez (con la frase del
 // origen), vacío por filtro (con «Limpiar») o una página que se quedó sin filas. Una sola vista (`<UnaSolaVista>`, como el listado de
-// leads): la tabla desde `md` y las tarjetas por debajo.
+// leads): la tabla desde `md` y las tarjetas por debajo, o las tarjetas en todo ancho si la persona las eligió.
 export function ResultadoDelListado(props: Props) {
-  const {
-    pagina,
-    accionDeVacio,
-    editables,
-    eliminables,
-    leadsVisibles,
-    alcance,
-    publicar,
-    alAbrir,
-    abierto,
-    ...datos
-  } = props
+  const { pagina, accionDeVacio, alAbrir, abierto, vista, alCambiarVista, ...resto } = props
+  const { editables, eliminables, leadsVisibles, alcance, publicar, ...datos } = resto
   const filtros = useFiltrosDelListado()
+  const ancha = useAlMenos(CORTE_DE_LA_TABLA)
   const hayCursor = useSearchParams().has(CLAVE_DE_CURSOR)
   const { origen } = datos
   const menu = paraElMenuDe({ editables, eliminables, leadsVisibles, alcance, publicar })
@@ -81,8 +78,12 @@ export function ResultadoDelListado(props: Props) {
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
-      <UbicacionDeLaPagina ubicacion={ubicacionDeLaPagina(pagina)} />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <UbicacionDeLaPagina ubicacion={ubicacionDeLaPagina(pagina)} />
+        <ConmutadorDeVista vista={vista} alCambiar={alCambiarVista} />
+      </div>
       <UnaSolaVista
+        preferida={vista}
         tabla={() => (
           <TablaDeVehiculos
             {...datos}
@@ -97,6 +98,7 @@ export function ResultadoDelListado(props: Props) {
         tarjetas={() => (
           <TarjetasDeVehiculos
             {...datos}
+            grande={ancha}
             vehiculos={pagina.filas}
             menu={menu}
             seleccion={papelera.seleccion}

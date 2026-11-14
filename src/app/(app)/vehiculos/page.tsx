@@ -41,6 +41,14 @@ function paraCotizarDe(permisos: Permisos, origen: OrigenResumen) {
     : null
 }
 
+// Una vista de un origen que la persona ya no ve no se ofrece.
+function vistasDeOrigenesVisibles<
+  V extends { params: Readonly<Record<string, string | undefined>> },
+>(vistas: readonly V[], visibles: readonly { id: string }[]): V[] {
+  const ids = new Set(visibles.map((uno) => uno.id))
+  return vistas.filter((vista) => ids.has(vista.params['origen'] ?? ''))
+}
+
 // El inventario, una pestaña por origen. Las pestañas son los orígenes donde la persona tiene
 // `vehiculos.ver` (también los desactivados); lo que ve adentro lo decide la RLS. El origen, los
 // filtros y la página vienen en la URL, y lo que no corresponde se ignora.
@@ -103,8 +111,6 @@ export default async function PaginaVehiculos({ searchParams }: PageProps<'/vehi
   ])
   // De los que se pueden enviar a la papelera y tienen lead, cuáles se pueden abrir: casi siempre ninguno, y entonces no se pregunta.
   const leadsVisibles = await leadsVisiblesDe(sesion, pagina.filas, eliminables)
-  const idsVisibles = new Set(visibles.map((uno) => uno.id))
-
   return (
     <ListadoDeVehiculos
       origenes={visibles}
@@ -114,8 +120,7 @@ export default async function PaginaVehiculos({ searchParams }: PageProps<'/vehi
       limpiezaHoy={limpiezaActiva ? hoy : null}
       pagina={pagina}
       porPagina={{ valor: tamano, opciones: tamanosHasta(MAXIMO_DE_PAGINA_DE_VEHICULOS) }}
-      // Una vista de un origen que la persona ya no ve no se ofrece.
-      vistas={datosO(vistas).filter((vista) => idsVisibles.has(vista.params['origen'] ?? ''))}
+      vistas={vistasDeOrigenesVisibles(datosO(vistas), visibles)}
       puedeConfigurarCampos={puede(sesion.permisos, 'origenes.gestionar')}
       permisoDeAlta={permisoDeAlta(sesion.permisos, origen)}
       editables={[...editables]}
@@ -126,6 +131,7 @@ export default async function PaginaVehiculos({ searchParams }: PageProps<'/vehi
       verInteresados={puede(sesion.permisos, 'leads.ver')}
       publicar={permisoDeVitrina(sesion.permisos, origen)}
       paraCotizar={paraCotizarDe(sesion.permisos, origen)}
+      vistaPreferida={sesion.preferencias.vistaDeVehiculos}
       enEdicion={enEdicion}
       apibara={{
         activa: apibaraActiva,

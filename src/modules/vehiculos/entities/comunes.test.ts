@@ -30,6 +30,7 @@ const VEHICULO: Vehiculo = {
   precioWebNota: null,
   limpiezaEl: null,
   portadaRuta: null,
+  estadoSubasta: null,
   creadoPor: null,
   creadoEn: '2026-10-13T12:00:00+00:00',
   actualizadoEn: '2026-10-13T12:00:00+00:00',

@@ -137,6 +137,9 @@ las trampas, en `docs/LECCIONES.md`.
 - **«Cierre subasta» es columna generada.** `cierre_subasta_en`, porque PostgREST no ordena por expresión; descartados RPC invocadora e índice de expresión.
 - **Inventario de «propios» por rutas.** `vehiculos_inventario()` plpgsql invocadora (origen / creado / cartera corta), filtros en SQL dinámico con valores por `using`; filtros rechazados (22023) van por la tabla.
 - **Sin Zod para `p_filtros`.** Excepción a «Zod en todo límite»: las condiciones salen de un esquema ya validado y la base las valida; un contrato de tipos en `inventario.test.ts` ata cada `Condicion['tipo']` a su `when` en SQL.
+- **La puja no se hace pasar por el precio.** En un origen de subasta con el campo de `pricing.current_bid_usd`, la columna «Precio» muestra la
+  puja como «Puja actual» (USD, «final» si la subasta terminó o se vendió) y, sin puja, «—»: nunca el precio en su lugar. Sin ese campo en el
+  layout, sigue el precio. El campo se busca por su ruta de apibara, no por su clave (cada empresa la nombra).
 
 ## Leads
 

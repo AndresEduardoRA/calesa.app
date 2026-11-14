@@ -18,7 +18,7 @@ declare
   -- `COLUMNAS_DE_VEHICULO` (src/modules/vehiculos/entities/vehiculo.ts) sin el embebido, cada una con el tipo de su columna de `vehiculos`; más las dos calculadas.
   v_columnas constant text[] := array['id', 'numero', 'origen_id', 'titulo', 'marca', 'modelo', 'anio', 'vin', 'lote', 'plataforma', 'url_origen', 'precio',
     'precio_negociable', 'acepta_permuta', 'placado', 'kilometraje', 'categoria_id', 'fase_id', 'atributos', 'lead_id', 'publicado_web', 'destacado_web', 'precio_web',
-    'precio_web_hasta', 'precio_web_nota', 'creado_por', 'creado_en', 'actualizado_en'];
+    'precio_web_hasta', 'precio_web_nota', 'creado_por', 'creado_en', 'actualizado_en', 'estado_subasta'];
   p record; k text; v_salida text[]; v_tipos oid[]; i int; v_tipo oid; t text; v_hoy text; v_nuevo text; v_sql text;
 begin
   for k in select jsonb_object_keys(v_firmas) loop
