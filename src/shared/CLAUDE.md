@@ -43,6 +43,8 @@ locale)`, el único lector de un número tipeado.
 - `ui/vuelta-del-foco.ts`: `abrirConVuelta()` y `useVueltaDelFoco()`: tras recargar con un panel por URL, «atrás» devuelve el foco a quien lo abrió
   (marca en `history.state`; desde un menú, al botón del menú). La entrada queda también en `sessionStorage` porque `shallow: false` la borra del
   historial; con `router.push`: `abrirConVuelta(clave, () => { push(url); return alLlegarA(url) })`. La usa `usePanelPorUrl()`.
+- `ui/visor-de-imagenes/`: `<CarruselEnElLugar>` (la portada y, al acercarse, el resto por la `cargar` que recibe; `modo="abrir"` en un lugar
+  chico) y `useVisorDeGaleria()` (una galería ya leída); el visor vive en `?visor=<clave>&foto=<n>` (la foto cambia con `replace`).
 - `ui/lista/`: `UnaSolaVista`, `TablaDeLista`, `FilaDeLista`, `TarjetaDeLista`, `MasAcciones`, `AbrirResumen`, `SimbolosDeLista`.
 - `ui/monto.tsx` + `live.ts` + `guion-live.tsx` (Modo Live), `regional.tsx`, `densidad.tsx`, `marca.tsx`, `estilo-de-marca.tsx`.
 - `lib/acciones-del-aviso.ts` (las acciones de un aviso como datos: `AccionDelAviso`, `resolverAcciones()`, `pedidoDe()`, `hrefDePanel()`; `ErrorApp.causa`)

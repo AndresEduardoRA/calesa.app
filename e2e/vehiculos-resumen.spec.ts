@@ -111,10 +111,8 @@ test('«Fotos» e «Interesados» leen al elegirse, sin sumar al historial', asy
   })
   await resumen.getByRole('tab', { name: 'Fotos' }).click()
   await expect(page).toHaveURL(/pestana=fotos/)
-  await expect(
-    resumen.getByRole('link', { name: 'Abrir la foto 1 de 3 en otra pestaña (portada)' }),
-  ).toBeVisible()
-  await expect(resumen.getByRole('link', { name: /^Abrir la foto \d de 3/ })).toHaveCount(3)
+  await expect(resumen.getByRole('button', { name: 'Ver la foto 1 de 3 (portada)' })).toBeVisible()
+  await expect(resumen.getByRole('button', { name: /^Ver la foto \d de 3/ })).toHaveCount(3)
   expect(pedidos.filter((url) => url.includes('vehiculos_imagenes'))).toHaveLength(1)
   await capturar(page, info, 'resumen-fotos')
 
@@ -128,6 +126,24 @@ test('«Fotos» e «Interesados» leen al elegirse, sin sumar al historial', asy
   // Cambiar de pestaña no sumó al historial: «atrás» cierra el resumen.
   await page.goBack()
   await expect(resumenDe(page, TITULO)).toHaveCount(0)
+
+  // Una foto de «Fotos» abre el visor en esa, con la URL; ← → recorren, Esc cierra y el resumen sigue.
+  await alInventario(page, t.terreno.corea.id, `&vehiculo=${t.id}&pestana=fotos`)
+  await expect(resumen.getByRole('button', { name: 'Ver la foto 2 de 3' })).toBeVisible()
+  await resumen.getByRole('button', { name: 'Ver la foto 2 de 3' }).click()
+  const visor = page.locator('[data-visor-de-imagenes]')
+  await expect(visor).toBeVisible()
+  await expect(page).toHaveURL(/visor=[^&]+-fotos/)
+  await expect(visor.getByText('2 de 3')).toBeVisible()
+  await page.keyboard.press('ArrowRight')
+  await expect(visor.getByText('3 de 3')).toBeVisible()
+  await expect(page).toHaveURL(/foto=3/)
+  await page.keyboard.press('ArrowRight')
+  await expect(visor.getByText('1 de 3')).toBeVisible()
+  await capturar(page, info, 'visor-de-fotos')
+  await page.keyboard.press('Escape')
+  await expect(visor).toBeHidden()
+  await expect(resumenDe(page, TITULO)).toBeVisible()
 })
 
 // @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)

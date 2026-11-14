@@ -17,7 +17,6 @@ import { InsigniaDeLimpieza } from '../../limpieza/components/insignia-de-limpie
 import { InsigniaDeVitrina } from '../../vitrina/components/insignia-de-vitrina'
 import { useIdentidad } from '../hooks/use-identidad'
 import { BadgeDeFase } from './badge-de-fase'
-import { Miniatura } from './miniatura'
 import { MenuDeFila } from './menu-de-fila'
 import {
   faseDe,
@@ -28,6 +27,7 @@ import {
   type ParaElMenuDeLaLista,
 } from './tipos'
 import { ValorDeCampo } from './valor-de-campo'
+import { FotosEnElLugar } from '../../fotos/components/fotos-en-el-lugar'
 
 type Props = DatosDelOrigen & {
   vehiculos: readonly FilaDeVehiculo[]
@@ -98,7 +98,7 @@ function FilaDeTabla({
               HUECO_DE_CASILLA
             )
           ) : null}
-          <Miniatura ruta={vehiculo.portadaRuta} />
+          <FotosEnElLugar vehiculo={vehiculo} modo="abrir" className="w-14" />
           <div className="grid min-w-0">
             <AbrirResumen
               nombre={identidad.nombre}

@@ -120,7 +120,11 @@ function ConVehiculo(
         alElegir={resumen.elegirPestana}
       >
         {resumen.pestana === 'fotos' ? (
-          <FotosDelResumenDiferido key={vehiculo.id} vehiculoId={vehiculo.id} />
+          <FotosDelResumenDiferido
+            key={vehiculo.id}
+            vehiculoId={vehiculo.id}
+            titulo={vehiculo.titulo}
+          />
         ) : resumen.pestana === 'interesados' ? (
           <InteresadosDelResumenDiferido key={vehiculo.id} vehiculoId={vehiculo.id} />
         ) : (
