@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { nombreVisible, sesionDesde, sesionSinPerfil, sinRol } from './sesion'
+import { VISTOS_POR_DEFECTO } from './vistos'
 
 const ID = '00000000-0000-0000-0000-000000000001'
 const ROL = '00000000-0000-0000-0000-0000000000aa'
@@ -48,6 +49,7 @@ describe('sesionDesde', () => {
         tema: null,
         porPagina: null,
         widgetsDelTablero: null,
+        vistos: VISTOS_POR_DEFECTO,
         zonaHoraria: null,
       },
     })

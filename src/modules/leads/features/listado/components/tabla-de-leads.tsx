@@ -83,6 +83,7 @@ export function TablaDeLeads(props: Props) {
           <FilaDeLista
             key={lead.id}
             abierta={abierto === lead.id}
+            idDeVisto={lead.id}
             alAbrir={() => {
               alAbrir(lead.id)
             }}

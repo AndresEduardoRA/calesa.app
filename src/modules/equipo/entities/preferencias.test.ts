@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { esquemaPreferencia, preferenciasDesde } from './preferencias'
+import { VISTOS_POR_DEFECTO } from './vistos'
 
 describe('preferenciasDesde', () => {
   it('lee lo que la persona eligió', () => {
@@ -10,6 +11,7 @@ describe('preferenciasDesde', () => {
       tema: 'dark',
       porPagina: 25,
       widgetsDelTablero: null,
+      vistos: VISTOS_POR_DEFECTO,
       zonaHoraria: null,
     })
   })
@@ -20,6 +22,7 @@ describe('preferenciasDesde', () => {
       tema: null,
       porPagina: null,
       widgetsDelTablero: null,
+      vistos: VISTOS_POR_DEFECTO,
       zonaHoraria: null,
     }
     expect(preferenciasDesde({})).toEqual(sinElegir)
@@ -32,6 +35,7 @@ describe('preferenciasDesde', () => {
       tema: 'dark',
       porPagina: null,
       widgetsDelTablero: null,
+      vistos: VISTOS_POR_DEFECTO,
       zonaHoraria: null,
     })
   })
