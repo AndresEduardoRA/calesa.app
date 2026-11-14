@@ -25,6 +25,8 @@ type Props = {
   contexto: ContextoDeAlta
   campos: readonly CampoDeLead[]
   zona: string
+  // Sólo abierto desde la hoja: elegir el lead que ya tiene el teléfono (`elegirElCreado`).
+  alElegir?: (leadId: string) => void
 }
 
 const idDe = (clave: string) => `lead-${clave}`
@@ -86,7 +88,7 @@ function opcionesDeTipo(contexto: ContextoDeAlta, elegido: string) {
 }
 
 // Los cuatro fijos: teléfono (con su verificación), nombre, origen (el último usado) y tipo.
-function DatosFijos({ alta, contexto }: Pick<Props, 'alta' | 'contexto'>) {
+function DatosFijos({ alta, contexto, alElegir }: Pick<Props, 'alta' | 'contexto' | 'alElegir'>) {
   const { valores, errores, enCurso, cambiar } = alta
   const sinOrigenes = contexto.origenes.length === 0
   return (
@@ -102,6 +104,7 @@ function DatosFijos({ alta, contexto }: Pick<Props, 'alta' | 'contexto'>) {
         }}
         alSalir={alta.revisarTelefono}
         alTomar={alta.tomar}
+        {...(alElegir ? { alElegir } : {})}
         pais={alta.pais}
         anuncio={alta.anuncioDelPais}
       />
@@ -147,11 +150,11 @@ function DatosFijos({ alta, contexto }: Pick<Props, 'alta' | 'contexto'>) {
 
 // El paso de los datos: los fijos, los campos requeridos del layout (también los propios) y, plegado
 // en «Más datos» con lo precargado a la vista, todo lo demás.
-function PasoDeDatos({ alta, contexto, campos }: Omit<Props, 'id' | 'zona'>) {
+function PasoDeDatos({ alta, contexto, campos, alElegir }: Omit<Props, 'id' | 'zona'>) {
   const { principales, masDatos } = camposDelAlta(campos)
   return (
     <>
-      <DatosFijos alta={alta} contexto={contexto} />
+      <DatosFijos alta={alta} contexto={contexto} {...(alElegir ? { alElegir } : {})} />
       {principales.map((campo) => {
         const control = campoDelAlta(campo)
         return (
@@ -185,7 +188,7 @@ function PasoDeDatos({ alta, contexto, campos }: Omit<Props, 'id' | 'zona'>) {
 // seguimiento (opcional) se monta la primera vez que se abre y desde ahí queda (oculto cuando no se ve):
 // lo escrito y lo plegado no se pierde al ir y volver, y los campos del seguimiento y el editor no se
 // piden hasta entonces.
-export function PanelDeAlta({ id, alta, contexto, campos, zona }: Props) {
+export function PanelDeAlta({ id, alta, contexto, campos, zona, alElegir }: Props) {
   const seguimientoAbierto = useAbiertoAlgunaVez(alta.paso === 'seguimiento')
   return (
     <form
@@ -199,7 +202,12 @@ export function PanelDeAlta({ id, alta, contexto, campos, zona }: Props) {
     >
       <Avisos alta={alta} />
       <div hidden={alta.paso !== 'datos'} className="grid gap-3">
-        <PasoDeDatos alta={alta} contexto={contexto} campos={campos} />
+        <PasoDeDatos
+          alta={alta}
+          contexto={contexto}
+          campos={campos}
+          {...(alElegir ? { alElegir } : {})}
+        />
       </div>
       <div hidden={alta.paso !== 'seguimiento'}>
         {seguimientoAbierto ? (

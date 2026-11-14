@@ -64,22 +64,16 @@ T02 y T03 corriendo. La persona eligió pausarlo y que la tanda la haga esta ses
   `vehiculos-aviso-con-acciones`.
 - **Docs:** este archivo, GLOSARIO («Aviso con acciones», «Causa de bloqueo»), DECISIONES › Interfaz, `ui.md` («Avisos con acciones»).
 
-### [ ] A1b · Avisos con salida en el área comercial (`feat(app): dar salida a los avisos del área comercial`)
+### [x] A1b · Avisos con salida en el área comercial (`feat(leads): dar salida a los rechazos de la papelera y del teléfono`)
 
-- **Leads:**
-  - Papelera: `_lead_motivo_de_bloqueo`, `_lead_motivo_de_restaurar` y `_lead_motivo_para_deshacer`, con código. «Tiene un vehículo
-    vinculado» ofrece «Ver vehículo» y «Desvincular».
-  - `_oportunidad_motivo`.
-  - El teléfono que «Lo tiene <persona>» ofrece «Escribirle por chat» y, si se ve, «Abrir lead» (4-66 de PENDIENTES).
-- **Cotizaciones:**
-  - Los rechazos de la papelera (`cotizaciones_papelera_enviar`, que ya trae `codigo` y `motivo`).
-  - Final sobre otra activa (23505): «Ver la final».
-  - `falta_vehiculo` y `falta_lead`: «Elegir vehículo» y «Elegir cliente», que abren el panel.
-- **Equipo:** dominancia (`rbac_*`, `equipo_bloquear`): «Lo puede hacer quien tenga <permiso>».
-- **Empresa y orígenes:** `origen_eliminar` con uso ofrece «Desactivar»; `_nivel_motivo_de_uso`, «Ver dónde se usa».
-- **Migración:** `avisos_codigos_comerciales` (sólo `hint` y `detail`; mismos textos).
-- **e2e:** `leads-papelera*` (grep), `leads-oportunidades`, `leads-ficha-telefonos`, `cotizaciones-final-marcar`, `cotizar-hoja`,
-  `roles-niveles`, `configuracion-origenes*`.
+- **Leads:** `_lead_bloqueo()` → `{causa, motivo}` (`vinculado`, `vinculado_ajeno`, `pagos`, `portal`, `cotizacion_papelera`); el 23514 de
+  `leads_papelera_enviar` lleva la causa en `hint` (`errorConCausa()` en `shared/lib/errores.ts`) y un solo lead frenado ofrece «Ver los
+  vehículos». En el alta abierta desde la hoja, el aviso «Ya existe» del teléfono ofrece «Elegir» (4-66).
+- **Ya cumplían** (revisado): el «⋯» del lead con vehículo vinculado («Ir a Vehículos»), el de un origen o tipo con leads («Desactivar» en
+  el mismo menú), los conflictos de cotizaciones («Recargar») y la dominancia del equipo (apagado con su motivo, sin acción posible).
+- **Va en D1:** «Elegir el cliente» / «Elegir el vehículo» en el aviso de guardado de la hoja (D1 cambia esas reglas).
+- **Migración:** `papelera_leads_causa_del_rechazo`. Prueba: `areas/papelera/leads-causa-del-rechazo.sql`.
+- **e2e:** `leads-papelera*`, `leads-alta-un-drawer`, `cotizar-panel-nuevo-lead`.
 
 ### [x] A1c · Avisos con salida en la operación (`feat(logistica): dar salida a los avisos de logística y flujos`)
 

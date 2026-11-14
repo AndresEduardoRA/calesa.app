@@ -237,6 +237,8 @@ export function AltaCargada({ contexto, campos }: Props) {
           contexto={contexto}
           campos={campos}
           zona={zonaHoraria}
+          // Abierto desde la hoja (`?elegir=`): si el teléfono ya es de un lead que se ve, el aviso ofrece elegirlo en vez de crear otro.
+          {...(panel.paraElegir === null ? {} : { alElegir: panel.elegirElCreado })}
         />
       </EnElMarco>
       <EnElMarco donde="pie">

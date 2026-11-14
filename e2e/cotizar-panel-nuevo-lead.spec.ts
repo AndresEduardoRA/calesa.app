@@ -116,6 +116,23 @@ test('E2E guardar el lead elige al creado, conserva lo tipeado, deja el foco en 
   )
 })
 
+test('E2E un teléfono que ya es de un lead que se ve ofrece «Elegir»: la hoja elige ese lead sin crear otro', async ({
+  page,
+}) => {
+  await abrirLaHoja(page)
+  const alta = await abrirNuevoLeadDesdeElPanel(page)
+  const telefono = sql(
+    `select telefono_principal from public.leads where id = ${literal(propio.id)}::uuid`,
+  )
+  await alta.getByLabel('Teléfono principal').fill(`+${telefono}`)
+  const elegir = alta.getByRole('button', { name: 'Elegir', exact: true })
+  await expect(elegir).toBeVisible()
+  await elegir.click()
+  await expect(page).toHaveURL(new RegExp(`lead=${propio.id}`))
+  await expect(alta).toBeHidden()
+  await expect(barra(page)).toContainText(propio.nombre)
+})
+
 test('E2E Ctrl+S con «Nuevo lead» abierto sobre la hoja crea el lead y no manda ningún guardado de la cotización', async ({
   page,
 }, info) => {
