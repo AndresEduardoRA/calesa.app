@@ -188,7 +188,7 @@ nula al guardar = crear), `cotizacion_marcar_final`, `cotizacion_moderar` (con l
 - `cotizacion_guardar` es la única edición: calcula con SU fórmula y SUS tipos de cambio y conserva lo que quien guarda no ve ni edita; mismo `intento` con
   otros datos = `intento_reusado`; quién guarda lo decide sólo `_cotizacion_puede_guardar()` (ver y editar; una final, ver y
   `cotizaciones.final.gestionar`), antes y después del candado. La revisión guarda `totales` por clave (grupos enteros) y su lectura no delata un grupo.
-- **La hoja abierta la firma la base** (`abierta` = fórmula.µs.HMAC con la clave de Vault `cotizacion:abierta`): `cotizacion_crear`, `cotizacion_evaluar` y
+- **La hoja abierta la firma la base** (`abierta` = fórmula.µs.huella.HMAC con la clave de Vault `cotizacion:abierta`; la huella, de las tarifas que vio): `cotizacion_crear`, `cotizacion_evaluar` y
   `cotizacion_tabla` la reciben como `p_abierta`, nunca una hora del cliente (4-27); el recálculo y la tabla de una ayuda usan la versión (y el recálculo,
   las tarifas) de la hoja dibujada (4-28). La pantalla la trata como opaca. Un cálculo o alta nuevo recibe `p_abierta`; una prueba SQL la firma por persona.
 - En el cliente: entradas inmutables; lo que se busca por id usa `Map`; los textos del candado, estado y faltante son **propios, nunca el mensaje de la

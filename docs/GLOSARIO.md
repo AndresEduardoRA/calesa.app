@@ -370,8 +370,8 @@ ese nombre: nunca un sinónimo ni su traducción al inglés.
   Cotización › Ajustes).
 - **Intento (de una cotización)** — `id` uuid del cliente: `cotizacion_crear` (`p_id`), `cotizacion_guardar` (`p_intento`): repetirlo devuelve
   lo mismo (`repetido: true`); con otros datos, `intento_reusado`.
-- **Hoja abierta (versión y hora)** — `abierta` de `cotizacion_hoja()`; `p_abierta` de `cotizacion_crear` y `cotizacion_evaluar`: versión y
-  hora que la base firma al abrir; vence a las 24 h (`abierta_invalida`).
+- **Hoja abierta (versión y hora)** — `abierta` de `cotizacion_hoja()`; `p_abierta` de `cotizacion_crear` y `cotizacion_evaluar`: versión,
+  hora y huella de las tarifas que la base firma al abrir; vence a las 24 h (`abierta_invalida`).
 - **Abrir la hoja** — `cotizacion_hoja(origen)` / `leerHojaParaCotizar()`: única lectura al cotizar: diseño recortado al nivel de quien mira,
   candados con motivo, versión y hora.
 - **Recalcular (la hoja)** — `useRecalculo()` / `cotizacion_evaluar(…, p_origen, p_modo_tc, p_abierta)`: 150 ms tras la última confirmación,
@@ -382,6 +382,8 @@ ese nombre: nunca un sinónimo ni su traducción al inglés.
   variante.
 - **Reconstruir lo guardado** — `_cotizacion_entradas_de()`, `_cotizacion_conservar()`: volver de `valores` y `fuentes` a lo tipeado, para
   completar lo que quien guarda no ve.
+- **Huella de las tarifas (de la hoja abierta)** — `_cotizacion_huella_tarifas()`: `md5` de los tipos de cambio que nombra la versión con su
+  valor al abrir la hoja; va firmada en `abierta` y `cotizacion_crear` la compara con la que reconstruye del historial.
 - **Huella (de un guardado)** — `cotizaciones_revisiones.huella`: `md5` de lo que mandó quien guarda; compara el mismo intento con otros
   datos. No se lee.
 - **Cargar a mano** — «+» del panel del vehículo: abre el alta del inventario en el panel; «Crear y elegir» crea el vehículo con

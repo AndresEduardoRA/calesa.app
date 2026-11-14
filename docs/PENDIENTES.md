@@ -68,7 +68,7 @@ Al cerrar una, se borra su línea (el PR lo cuenta). Lo nuevo que aparezca al tr
 - **[—]** Anular un pago confirmado o quitar un gasto de tributos mientras el vehículo entra a una fase que pide `pagos.confirmado` no toma el candado del vehículo, ni anular o eliminar el último pago de un proyecto el de sus ítems ante `proyecto.pago_cliente` — carreras sin cubrir en `scripts/carreras/`.
 - **[—]** Faltan carreras mixtas de la fórmula en `scripts/carreras/`: el ⚙ contra publicar el borrador, y revertir contra el ⚙.
 - **[—]** Las carreras de marcar y crear una final (`supabase/tests/areas/final/correr-carreras.mjs`) no están en `pnpm db:carreras`: sólo corren a mano — sumarlas a `scripts/carreras.mjs`.
-- **[4-33]** Una tarifa de tipo de cambio que confirma después de abrir la hoja, con `cambiado_en` anterior, cuenta como vista — `abierta` con una huella de las tarifas vistas que `cotizacion_crear` compare.
+- **[—]** `cotizacion_evaluar` con la hoja abierta reconstruye las tarifas en cada recálculo: una que confirma después de abrir la hoja con `cambiado_en` anterior cambia el cálculo sin aviso hasta guardar (crear sí compara la huella) — compararla también al recalcular, midiendo antes `medir-cotizacion-hoja.sql`.
 - **[—]** Un pago confirmado con `confirmado_en` nulo (filas anteriores al sellado) no entra al «Margen del mes» ni a «sin venta» — un `check` con relleno, mirando antes los datos de producción.
 - **[—]** Gastos y pagos viejos en otra moneda sin `tipo_cambio_id`: al corregirlos la base pide el tipo (`23502`, hint `tipo_cambio`) — revisar antes de cargar datos reales.
 

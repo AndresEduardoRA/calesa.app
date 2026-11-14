@@ -505,12 +505,18 @@ ver_total_bs, moneda_bs}`.
 
 ### La hoja abierta
 
-`cotizacion_hoja()` devuelve `abierta`: `<fórmula>.<µs desde 1970>.<HMAC-SHA256 en hex>`, que cubre la persona, el origen, la versión
-y la hora de apertura (clave en Vault, `cotizacion:abierta`). Para la pantalla es un texto opaco que devuelve en cada recálculo y
-guardado. Inválida (nula, mal formada, de otra persona u origen, firma mala): 22023 `abierta_invalida`, siempre el mismo texto.
+`cotizacion_hoja()` devuelve `abierta`: `<fórmula>.<µs desde 1970>.<huella>.<HMAC-SHA256 en hex>`, que cubre la persona, el origen, la
+versión, la hora de apertura y la **huella de las tarifas** (clave en Vault, `cotizacion:abierta`). Para la pantalla es un texto opaco que
+devuelve en cada recálculo y guardado. Inválida (nula, mal formada, de otra persona u origen, firma mala): 22023 `abierta_invalida`, siempre
+el mismo texto.
 
+- **La huella de las tarifas** (`_cotizacion_huella_tarifas()`): `md5` de los tipos de cambio que nombra la versión (activos o no) con su
+  valor a la hora de apertura según `tipos_cambio_historial`; uno sin valor a esa hora no entra. `cambiado_en` es la hora del comienzo de la
+  transacción que cambió la tarifa: la huella es lo que la hoja vio, no lo que el historial dice después.
 - **`cotizacion_crear`:** la lee después del intento. Si su versión no es la publicada: PT409 `desactualizada`, o con `p_con_la_abierta`
-  la valida y la toma `for share`; con `p_con_la_abierta` el tope de 24 h corre **siempre**.
+  la valida y la toma `for share`; con `p_con_la_abierta` el tope de 24 h corre **siempre**. Después de armar, si la huella de las tarifas
+  de la apertura no es la firmada (un cambio confirmó después de abrir la hoja con un `cambiado_en` anterior): PT409 `desactualizada`
+  (`tipo_cambio`), o con `p_con_la_abierta` 22023 `abierta_tarifas` (`hint abierta`: recargar).
 - **`cotizacion_evaluar` (por origen):** calcula con **la versión y las tarifas de la abierta**. Si ya no se puede usar,
   `abierta_vencida` y la hoja pide «Recargar» (de otro origen, borrador o inexistente: `abierta_no_disponible`).
 - **`cotizacion_tabla` (por origen):** la tabla de una ayuda sale de **la versión de la abierta** (su definición, su copia congelada y lo
