@@ -9373,6 +9373,16 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      _vehiculo_bloqueo: {
+        Args: {
+          p_al_enviar: boolean
+          v: Omit<
+            Database['public']['Tables']['vehiculos']['Row'],
+            Database['public']['Tables']['vehiculos']['ComputedFields']
+          >
+        }
+        Returns: Json
+      }
       _vehiculo_de_nota_json: { Args: { p_es_mio: boolean; p_vehiculo: string }; Returns: Json }
       _vehiculo_fase_de_entrada: { Args: { p_origen: string; p_vehiculo: string }; Returns: string }
       _vehiculo_motivo_de_bloqueo: {
@@ -11279,6 +11289,7 @@ export type Database = {
         Returns: Json
       }
       vehiculo_vitrina_previa: { Args: { p_vehiculo: string }; Returns: Json }
+      vehiculos_con_lead_visible: { Args: { p_ids: string[] }; Returns: string[] }
       vehiculos_con_permiso: { Args: { p_clave: string; p_ids: string[] }; Returns: string[] }
       vehiculos_editables: { Args: { p_ids: string[] }; Returns: string[] }
       vehiculos_inventario: {
