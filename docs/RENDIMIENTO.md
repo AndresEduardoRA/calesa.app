@@ -168,7 +168,8 @@ que asserta `pnpm db:medir:volumen` o el e2e. Mide `medir-escala.sql` salvo que 
 - Exportar: lotes de 500, hasta 5.000, 5 por hora; hasta 5.001 ids de a 1.000 (`leads_listado_idx`), 100 ms; «Descargamos N» exacto.
 - Importar: «Tus importaciones recientes» 20 de las últimas 24 h (`importaciones_leads`, 300 ms); vista previa 500 filas, 50 por página;
   lotes de 50, 500 por archivo (`FILAS_POR_LOTE`). `medir-importacion-volumen.sql`: 500 filas ≤ 2 s con 62.000 y 212.000 leads, y la razón
-  del tiempo por fila entre los dos volúmenes de `actividad` en 0,8–1,2 (falla si crece con `actividad`). `_lead_crear` busca la adopción
+  del tiempo por fila entre los dos volúmenes de `actividad` en 0,8–1,2 (falla si crece con `actividad`). La oportunidad base de cada fila
+  (con su historial y su actividad) suma ~20 %: 500 filas ~1,3 s. `_lead_crear` busca la adopción
   sólo si el alta trae `adoptar` (`actividad_intento_adopcion_idx`); la importación lo rechaza. `medir-importacion.sql` (`db:medir`, base
   recién reseteada; `seed.sql` analiza).
 - No se agrega un índice, trigger o columna a `leads` sin medir alta (80 ms), 500 filas importadas (≤ 2 s) y la baja de 200.000.
