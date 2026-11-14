@@ -10,6 +10,7 @@ import {
   vehiculo,
   type Terreno,
 } from './soporte/inventario'
+import { literal, sql } from './soporte/sql'
 import { cargarVehiculos, vehiculoPorTitulo } from './soporte/vehiculos'
 import {
   abrirVitrina,
@@ -244,6 +245,51 @@ test('despublicar lo saca de la vitrina y conserva el precio', async ({ page }) 
   // El precio quedó para la próxima vez.
   await publicarEnLaWeb(page, SEDAN)
   await expect(panel(page).getByLabel('Precio público')).toHaveValue('21500')
+})
+
+test('desde la lista, un toque publica lo que ya tiene precio, con «Deshacer»; sin precio, pide sólo el precio', async ({
+  page,
+}) => {
+  // Su propio punto de partida (en el celular la prueba anterior no corre): el sedán sin publicar y con su precio; el oculto sin precio.
+  sql(
+    `update public.vehiculos set publicado_web = false, destacado_web = false, precio_web = 21500 where id = ${literal(sedan)}::uuid`,
+  )
+  sql(
+    `update public.vehiculos set publicado_web = false, precio_web = null, precio_web_hasta = null where id = ${literal(oculto)}::uuid`,
+  )
+  await entrar(page, duena)
+  await irAlOrigen(page, corea)
+  const fila = (titulo: string) =>
+    aLaVista(page.locator('tbody tr, li article').filter({ hasText: titulo }))
+  // El sedán, con su precio: se publica con un toque.
+  await fila(SEDAN)
+    .getByRole('button', { name: `Publicar «${SEDAN}» en la web` })
+    .click()
+  const aviso = page.locator('[data-sonner-toast]').filter({ hasText: 'se publicó en la web' })
+  await expect(aviso).toBeVisible()
+  await expect(fila(SEDAN).getByText('En vitrina', { exact: true })).toBeVisible()
+  await aviso.getByRole('button', { name: 'Deshacer' }).click()
+  await expect(fila(SEDAN).getByText('En vitrina', { exact: true })).toBeHidden()
+  // El oculto no tiene precio público: el panel chico pide sólo eso.
+  await fila(OCULTO)
+    .getByRole('button', { name: `Publicar «${OCULTO}» en la web` })
+    .click()
+  await expect(panel(page).getByLabel('Precio público')).toBeVisible()
+  await panel(page).getByRole('button', { name: 'Publicar sin precio' }).click()
+  await expect(panel(page)).toBeHidden()
+  await expect
+    .poll(() =>
+      sql(`select publicado_web::text from public.vehiculos where id = ${literal(oculto)}::uuid`),
+    )
+    .toBe('true')
+  await fila(OCULTO)
+    .getByRole('button', { name: `Sacar «${OCULTO}» de la web` })
+    .click()
+  await expect
+    .poll(() =>
+      sql(`select publicado_web::text from public.vehiculos where id = ${literal(oculto)}::uuid`),
+    )
+    .toBe('false')
 })
 
 // @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)

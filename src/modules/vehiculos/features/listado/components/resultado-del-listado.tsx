@@ -16,6 +16,7 @@ import { TarjetasDeVehiculos } from './tarjetas-de-vehiculos'
 import type { AlcanceDeAvisos } from '../../../entities/avisos-de-vehiculo'
 import type { PermisoDeVitrina } from '../../../entities/vitrina'
 import { paraElMenuDe, type DatosDelOrigen, type FilaDeVehiculo } from './tipos'
+import { PanelDeVitrinaRapida } from '../../vitrina/components/panel-de-vitrina-rapida'
 
 type Props = DatosDelOrigen & {
   pagina: Pagina<FilaDeVehiculo>
@@ -104,6 +105,7 @@ export function ResultadoDelListado(props: Props) {
           />
         )}
       />
+      <PanelDeVitrinaRapida filas={pagina.filas} puede={publicar.estado === 'habilitado'} />
       <Paginacion siguiente={pagina.siguiente} anterior={pagina.anterior} />
       {papelera.cantidad > 0 ? (
         <BarraDeSeleccion
