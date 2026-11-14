@@ -18,7 +18,7 @@ declare
   -- `COLUMNAS_DE_VEHICULO` (src/modules/vehiculos/entities/vehiculo.ts) sin el embebido, cada una con el tipo de su columna de `vehiculos`; más las dos calculadas.
   v_columnas constant text[] := array['id', 'numero', 'origen_id', 'titulo', 'marca', 'modelo', 'anio', 'vin', 'lote', 'plataforma', 'url_origen', 'precio',
     'precio_negociable', 'acepta_permuta', 'placado', 'kilometraje', 'categoria_id', 'fase_id', 'atributos', 'lead_id', 'publicado_web', 'destacado_web', 'precio_web',
-    'precio_web_hasta', 'precio_web_nota', 'creado_por', 'creado_en', 'actualizado_en', 'estado_subasta'];
+    'precio_web_hasta', 'precio_web_nota', 'creado_por', 'creado_en', 'actualizado_en', 'estado_subasta', 'situacion'];
   p record; k text; v_salida text[]; v_tipos oid[]; i int; v_tipo oid; t text; v_hoy text; v_nuevo text; v_sql text;
 begin
   for k in select jsonb_object_keys(v_firmas) loop
@@ -176,6 +176,9 @@ declare
     '[{"tipo": "atributo_rango_numero", "clave": "Km", "min": 1, "max": null}]', '[{"tipo": "atributo_rango_numero", "clave": "km", "min": "1", "max": null}]',
     '[{"tipo": "atributo_rango_texto", "clave": "x", "desde": null, "antesDe": null}]', '[{"tipo": "atributo_rango_texto", "clave": "fecha", "desde": 1, "antesDe": null}]',
     '[{"tipo": "atributo_texto", "clave": "color"}]', '[{"tipo": "atributo_texto", "clave": "co lor", "texto": "a"}]',
+    '[{"tipo": "situacion_fuera_de", "valores": []}]', '[{"tipo": "situacion_fuera_de", "valores": ["perdida"]}]', '[{"tipo": "situacion_fuera_de", "valores": [1]}]',
+    '[{"tipo": "situacion_fuera_de", "valores": "no_ganada"}]', '[{"tipo": "situacion_fuera_de"}]',
+    '[{"tipo": "situacion_fuera_de", "valores": ["fase", "en_subasta", "sin_resolver", "no_ganada", "fase"]}]',
     -- Los topes: 501 por arreglo, 1.001 sumando todo el pedido, 1.001 caracteres por texto y por alternativa.
     jsonb_build_array(jsonb_build_object('tipo', 'columna_en', 'columna', 'fase_id', 'valores', u500 || to_jsonb(gen_random_uuid()), 'incluirNulo', false)),
     jsonb_build_array(jsonb_build_object('tipo', 'en_vitrina', 'valor', true, 'fases', u500 || to_jsonb(gen_random_uuid()))),
@@ -187,6 +190,7 @@ declare
     jsonb_build_array(jsonb_build_object('tipo', 'atributos_contienen', 'alternativas', jsonb_build_array(jsonb_build_object('color', repeat('r', 988)))))];
   v_buenos jsonb[] := array[
     null, '[]', '[{"tipo": "columna_en", "columna": "categoria_id", "valores": [], "incluirNulo": true}]', '[{"tipo": "columna_rango", "columna": "anio", "min": 2000, "max": 2010}]',
+    '[{"tipo": "situacion_fuera_de", "valores": ["no_ganada"]}]', '[{"tipo": "situacion_fuera_de", "valores": ["en_subasta", "sin_resolver", "no_ganada", "fase"]}]',
     '[{"tipo": "atributos_contienen", "alternativas": [{"color": "rojo"}, {"usado": true}, {"extras": ["techo", "gps"]}]}]',
     '[{"tipo": "por_limpiar", "valor": false, "hasta": "2028-02-29"}, {"tipo": "atributo_rango_numero", "clave": "km", "min": null, "max": -3.25}]',
     jsonb_build_array(jsonb_build_object('tipo', 'columna_en', 'columna', 'fase_id', 'valores', u500, 'incluirNulo', false)),

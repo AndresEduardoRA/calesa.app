@@ -144,7 +144,7 @@ begin
   perform pg_temp.ab_igual('B2 orden', pg_temp.ab_ids(r, 'demoradas'), array[v_b, v_a, v_c]);
   perform pg_temp.ab_igual('B2 hay_mas', r -> 'demoradas' -> 'hay_mas', 'false'::jsonb);
   perform pg_temp.ab_igual('B2 claves de la fila', (select array_agg(k order by k) from jsonb_object_keys(r -> 'demoradas' -> 'filas' -> 0) k),
-                           array['dias', 'fase', 'fase_desde', 'fase_id', 'id', 'origen_id', 'titulo']);
+                           array['dias', 'fase', 'fase_desde', 'fase_id', 'id', 'origen_id', 'situacion', 'titulo']);
   perform pg_temp.ab_igual('B2 hojas de la fila', jsonb_build_array(r #> '{demoradas,filas,0,fase}', r #> '{demoradas,filas,0,dias}', r #> '{demoradas,filas,0,fase_id}'),
                            jsonb_build_array('ab fase 20', 10, f10));
   r := pg_temp.ab_bandeja(u, 1);

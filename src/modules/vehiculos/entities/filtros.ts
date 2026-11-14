@@ -17,6 +17,7 @@ import {
   type CategoriaDeVehiculo,
   type FaseDeVehiculo,
 } from './campo'
+import { CONDICION_POR_DEFECTO, type Situacion } from './situacion'
 import { VITRINA_CERRADA, vitrinaAbierta, type VitrinaDelOrigen } from './vitrina'
 
 // Las claves de URL de los fijos. Las de los campos del layout van con el prefijo `a.`: una clave
@@ -116,6 +117,8 @@ export type Condicion =
   // lo contrario. El día llega calculado por la página con la zona de la empresa; la fecha de cada
   // vehículo (`limpieza_el`) la calcula la base: nada de esto copia la regla.
   | { tipo: 'por_limpiar'; valor: boolean; hasta: string }
+  // La situación real (`vehiculos.situacion`, la calcula la base) no es ninguna de esas. Por defecto, sin las no ganadas.
+  | { tipo: 'situacion_fuera_de'; valores: Situacion[] }
   | CondicionDeAtributo
 
 function condicionFija(
@@ -160,8 +163,8 @@ function condicionFija(
   return null
 }
 
-// Las condiciones de lo que la persona filtró. La clave de un atributo sale siempre del layout
-// (nunca de la URL): un filtro de un campo que ya no es filtrable se ignora.
+// Las condiciones de lo que la persona filtró, más la de siempre: sin las no ganadas (`CONDICION_POR_DEFECTO`). La clave de
+// un atributo sale siempre del layout (nunca de la URL): un filtro de un campo que ya no es filtrable se ignora.
 export function condicionesDe(
   campos: readonly CampoDeVehiculo[],
   valores: ValoresDeFiltros,
@@ -183,5 +186,6 @@ export function condicionesDe(
       condiciones.push(condicion)
     }
   }
+  condiciones.push({ ...CONDICION_POR_DEFECTO, valores: [...CONDICION_POR_DEFECTO.valores] })
   return condiciones
 }

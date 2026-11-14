@@ -3,18 +3,21 @@
 import { Aviso } from '@/shared/ui/aviso'
 import { Button } from '@/shared/ui/button'
 import { Skeleton } from '@/shared/ui/skeleton'
-import { HAY_MAS_DESTINOS, SIN_DESTINOS, SIN_FASE } from '../../../entities/mover/textos'
 import type { UnidadAbierta } from '../../../entities/nucleo/unidad'
 import { useBorradorDeMover } from '../hooks/use-borrador-de-mover'
+import { useModoGanada } from '../hooks/use-modo-ganada'
 import { useParaMover } from '../hooks/use-para-mover'
-import { DestinoDeMover } from './destino-de-mover'
-import { FueraDeRegla } from './fuera-de-regla'
+import { CuerpoDeQueFalta } from './cuerpo-de-que-falta'
 
 // El hueco «Qué falta» del panel de la unidad (6.04): a dónde puede ir la unidad y, para cada destino, lo que esa fase le pide. Nace abierto (es lo primero que se mira para mover). Se relee al volver
-// el foco a la ventana y cuando otro hueco avisa que cambió algo; sin realtime.
+// el foco a la ventana y cuando otro hueco avisa que cambió algo; sin realtime. Con `?ganada=si` (sólo un vehículo) es «La ganamos»: los destinos que no son la
+// subasta, el primero abierto, y mover anota la subasta ganada.
 export function HuecoQueFalta({ unidad }: { unidad: UnidadAbierta }) {
   const { lectura, actualizando, reintentar, releer } = useParaMover(unidad)
-  const borrador = useBorradorDeMover()
+  const modoGanada = useModoGanada()
+  const borrador = useBorradorDeMover(
+    modoGanada.activo && unidad.tipo === 'vehiculo' ? modoGanada : null,
+  )
   if (lectura.tipo === 'cargando') {
     return (
       <div aria-busy="true" aria-label="Cargando lo que falta" className="grid gap-2">
@@ -39,35 +42,14 @@ export function HuecoQueFalta({ unidad }: { unidad: UnidadAbierta }) {
       </div>
     )
   }
-  const { dato } = lectura
   return (
-    <div className="grid gap-3" data-hueco="que-falta" data-estado="listo">
-      <p aria-live="polite" className="min-h-4 text-(length:--text-sm) text-(--color-ink-faint)">
-        {actualizando ? 'Actualizando…' : ''}
-      </p>
-      {dato.faseActualId === null ? (
-        <p className="text-(length:--text-sm) text-(--color-ink-soft)">{SIN_FASE}</p>
-      ) : null}
-      {dato.fueraDeRegla.length > 0 ? <FueraDeRegla faltan={dato.fueraDeRegla} /> : null}
-      {dato.destinos.length === 0 ? (
-        <p className="text-(length:--text-sm) text-(--color-ink-soft)">{SIN_DESTINOS}</p>
-      ) : (
-        <ul className="grid gap-3">
-          {dato.destinos.map((destino) => (
-            <DestinoDeMover
-              key={destino.faseId}
-              unidad={unidad}
-              destino={destino}
-              puedeMover={dato.puedeMover}
-              borrador={borrador}
-              releer={releer}
-            />
-          ))}
-        </ul>
-      )}
-      {dato.hayMasDestinos ? (
-        <p className="text-(length:--text-sm) text-(--color-ink-soft)">{HAY_MAS_DESTINOS}</p>
-      ) : null}
-    </div>
+    <CuerpoDeQueFalta
+      unidad={unidad}
+      dato={lectura.dato}
+      actualizando={actualizando}
+      releer={releer}
+      borrador={borrador}
+      modoGanada={modoGanada}
+    />
   )
 }

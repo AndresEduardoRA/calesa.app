@@ -1,6 +1,6 @@
 // El terreno de `e2e/vehiculos-inventario-postgrest.spec.ts` (4.16-2a, C9): el inventario de hoy (PostgREST sobre la tabla) contra
 // `vehiculos_inventario()`. Un origen de `prepararInventario` (Corea, con sus 3 vehículos) y 32 más sembrados por SQL que cubren los
-// bordes de cada filtro, y un origen de subasta para «Se limpiará pronto» (`limpieza_el` sólo existe ahí). Dos personas: la dueña (ve
+// bordes de cada filtro, y un origen de subasta para «Se limpiará pronto» (`limpieza_el` sólo existe ahí) y la situación real. Dos personas: la dueña (ve
 // todo: ruta `origen`) y Pía Inv («propios» en los dos orígenes: ruta `propios`), con 9 vehículos suyos en Corea y 2 leads suyos con
 // 4 vehículos (3 de otros y 1 suyo).
 import { PREFIJO_ROL_E2E, admin, correoDePrueba, crearPersona, darRolDePrueba } from './base'
@@ -12,7 +12,7 @@ import { PREFIJO_CLAVE_E2E, crearOrigenDePrueba } from './origenes'
 import { literal, sql } from './sql'
 import { borrarVehiculosDe } from './vehiculos'
 import { sembrarFotos } from './vehiculos-resumen'
-import { crearFaseInterna, crearFaseQuePublica } from './vitrina'
+import { borrarFasesDe, crearFaseInterna, crearFaseQuePublica } from './vitrina'
 
 // Claves de atributo fuera del layout de Corea: la base no les mira el tipo (`_atributos_validar` sólo revisa las del layout), así que
 // una misma clave lleva un número, un texto que parece número, un booleano o un arreglo. Son las de `COREA`.
@@ -117,6 +117,14 @@ const SUBASTAS = `
   ('Subasta futura', 5, -3, true, false, :duena),
   ('Subasta de Pía', 6, 5, true, false, :pia)`
 
+// La situación real: con «Inv subasta» (la fase de subasta) el origen tiene tramo, y estas cuatro terminaron sin fase: dos sin resolver
+// y dos no ganadas, de la dueña y de Pía. No son importadas: la limpieza no las mira. (título, min, de, no ganada).
+const SITUACIONES = `
+  ('Subasta sin resolver', 7, :duena, false),
+  ('Subasta no ganada', 8, :duena, true),
+  ('Subasta sin resolver de Pía', 9, :pia, false),
+  ('Subasta no ganada de Pía', 10, :pia, true)`
+
 // Los vehículos y las fotos de los dos orígenes (de una corrida anterior o de ésta), los leads y lo de `limpiarInventario`. Un origen con
 // vehículos no se borra y `borrarOrigenes` barre todo `e2e_%`: el de subasta se vacía antes.
 export async function limpiarInventarioPostgrest(ajustesAntes?: Ajustes): Promise<void> {
@@ -130,6 +138,7 @@ export async function limpiarInventarioPostgrest(ajustesAntes?: Ajustes): Promis
       where o.clave in (${literal(CLAVE_DE_SUBASTA)}, ${literal(CLAVE_DE_COREA)})`)
     await borrarFotosDe(ids.split('\n').filter(Boolean))
     await borrarVehiculosDe([CLAVE_DE_SUBASTA])
+    await borrarFasesDe([CLAVE_DE_SUBASTA])
     await borrarLeadsDePrueba()
   } finally {
     await limpiarInventario()
@@ -222,6 +231,19 @@ function sembrarSubasta(ids: Record<string, string>): string {
   return hasta
 }
 
+function sembrarSituaciones(ids: Record<string, string>): void {
+  sql(`insert into public.fases (flujo_id, nombre, orden, es_subasta)
+    select id, 'Inv subasta', 90, true from public.flujos where origen_id = ${literal(ids['subasta'] ?? '')}`)
+  sembrar(
+    `insert into public.vehiculos (origen_id, titulo, creado_por, creado_en, estado_subasta, subasta_en, subasta_resultado, subasta_resuelta_en)
+     select :subasta, t.titulo, t.de, timestamptz '2026-10-01 12:00:00+00' - make_interval(mins => t.min), 'terminada', now() - interval '3 days',
+       case when t.no then 'no_ganada' end, case when t.no then now() end
+     from (values ${SITUACIONES}) t (titulo, min, de, no)
+     returning id, titulo`,
+    ids,
+  )
+}
+
 export async function prepararInventarioPostgrest(proyecto: string): Promise<TerrenoPostgrest> {
   await limpiarInventarioPostgrest()
   const { duena, corea } = await prepararInventario(proyecto)
@@ -250,6 +272,7 @@ export async function prepararInventarioPostgrest(proyecto: string): Promise<Ter
   const ids = { ...quien, ...categorias, corea: corea.id, subasta: subasta.id }
   await sembrarCorea({ ...ids, pub: fases.publica, int: fases.interna }, pia, proyecto)
   const hasta = sembrarSubasta(ids)
+  sembrarSituaciones(ids)
 
   const dePia = sql(`select v.id from public.vehiculos v where v.origen_id = ${literal(corea.id)}
     and v.eliminado_en is null and (v.creado_por = ${literal(quien.pia)} or v.lead_id is not null)`)

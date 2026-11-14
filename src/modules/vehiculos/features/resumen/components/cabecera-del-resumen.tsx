@@ -12,7 +12,7 @@ import { rutaParaCotizar, type ParaCotizar } from '../../../entities/ruta-para-c
 import type { PermisoDeVitrina } from '../../../entities/vitrina'
 import { MenuDeVehiculo } from '../../acciones/components/menu-de-vehiculo'
 import { BotonEditarVehiculo } from '../../alta/components/botones'
-import { BadgeDeFase } from '../../listado/components/badge-de-fase'
+import { BadgeDeSituacion } from '../../listado/components/badge-de-situacion'
 import {
   faseDe,
   vitrinaDe,
@@ -82,7 +82,7 @@ export function CabeceraDelResumen(props: Props) {
             ))}
           </dl>
           <div className="flex flex-wrap items-center gap-2">
-            <BadgeDeFase fase={fase} />
+            <BadgeDeSituacion situacion={vehiculo.situacion} fase={fase} />
             <InsigniaDeVitrina {...vitrinaDe(vehiculo, vitrina)} origen={origen} fase={fase} />
             <InsigniaDeLimpieza fecha={vehiculo.limpiezaEl} hoy={limpiezaHoy} />
           </div>

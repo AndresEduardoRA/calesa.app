@@ -1,3 +1,5 @@
+import type { SituacionDeLaUnidad } from './situacion'
+
 // La unidad de logística (6.01): el vehículo o el repuesto sobre el que se opera. Documentos, gastos, pagos, notas y transporte cuelgan siempre de
 // una unidad, `vehiculo_id` o `repuesto_id`, uno y sólo uno (la ficha de `logistica`, sección «No se rompe»). La de vehículo la arma `unidad-abierta` y la de repuesto, `repuestos/item-abierto` (8.13-2).
 export type Unidad = {
@@ -9,6 +11,8 @@ export type Unidad = {
   faseId: string | null
   // Cuándo entró a su fase (ISO); nulo si no tiene fase. De ahí salen los días en la fase.
   faseDesde: string | null
+  // La situación real del vehículo (la calcula la base); un ítem de repuesto siempre es su fase.
+  situacion: SituacionDeLaUnidad
 }
 
 /**

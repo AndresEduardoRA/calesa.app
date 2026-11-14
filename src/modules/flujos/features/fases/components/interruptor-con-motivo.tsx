@@ -18,6 +18,8 @@ type Props = {
   alCambiar: (valor: boolean) => void
   // Un interruptor que depende de una regla del flujo: apagada, no se enciende y la ayuda dice por qué (D23).
   regla?: { campo: CampoConRegla; contexto: ContextoDeFase }
+  // Otro motivo por el que no se puede encender (nulo si se puede): reemplaza la ayuda, como el de la regla.
+  motivo?: string | null
   error?: string | undefined
   // Un aviso que no bloquea (otra fase ya es inicial).
   aviso?: string | null
@@ -33,11 +35,12 @@ export function InterruptorConMotivo({
   valor,
   alCambiar,
   regla,
+  motivo: motivoPropio = null,
   error,
   aviso,
   deshabilitado,
 }: Props) {
-  const motivo = regla ? motivoDelInterruptor(regla.campo, valor, regla.contexto) : null
+  const motivo = regla ? motivoDelInterruptor(regla.campo, valor, regla.contexto) : motivoPropio
   return (
     <div id={ID_DE_CAMPO_DE_FASE[campo]} className="grid min-w-0 gap-1.5">
       <Interruptor

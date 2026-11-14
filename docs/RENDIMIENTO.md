@@ -195,6 +195,9 @@ que asserta `pnpm db:medir:volumen` o el e2e. Mide `medir-escala.sql` salvo que 
   Límites sin assert: más de 5.000 en la cartera recorre el origen (R1); R3 crece con los vehículos de la cartera, no con N; un filtro sin
   coincidencias recorre todo lo que la persona creó; 500 alternativas sin coincidencias ≈ 144 ms (el tope de la validación);
   `por_limpiar` llama a `limpieza_el(v)` por candidata; el costo fijo de una llamada no crece con las concesiones.
+  Cada página pide además la condición por defecto (`situacion_fuera_de` sin las no ganadas, medida en «Pía · por defecto» y «Beto · por
+  defecto»: misma ruta e índice). **Límite aceptado:** con la limpieza apagada y muchas no ganadas, una página lee también las no ganadas
+  intercaladas: crece con su densidad, no con N; el filtro de situación (T14) tendrá su ruta por `vehiculos_situacion_idx`.
 - **Panel de revisiones de una guardada** (`e2e/cotizar-guardada-revisiones.spec.ts`): `cotizacion_revisiones` por cursor (`p_antes`), de a
   `TAMANO_DE_VER_MAS` hasta `TOPE_DE_LO_CARGADO`, por `cotizaciones_revisiones_cotizacion_idx (cotizacion_id, id desc)`. Primera página con
   20: ≤ 254 nodos y ≤ 12.503 B (≈ 12 nodos por fila: dos `<Monto>` por revisión; no envolver cada cambio en otro `<span>`). El tope de 500
@@ -273,6 +276,11 @@ Mide `medir-jobs.sql`; los presupuestos son 10 a 30 veces lo típico.
   revisión y un adjunto cada una), una corrida purga 10.000 ≤ 25.000 ms; selección por `lotes_papelera_pendientes_idx` y una sonda por lote;
   refcount de cada adjunto por `cotizaciones_adjuntos_ruta_idx` (sin él, un `Seq Scan` por ruta).
 - `limpieza-automatica`: mueve 200 y revisa 1.000 más.
+- `situacion-al-cerrar` (cada 10 min): hasta 500 por corrida, de a un origen de subasta, por `vehiculos_situacion_idx (origen_id, situacion,
+creado_en desc, id desc) where eliminado_en is null and situacion <> 'fase'`; recorre las «En subasta» del origen: crece con las subastas
+  vivas, no con N. 500 de 1.000 vencidas entre 2.000 ≤ 2.000 ms.
+- **Límite aceptado:** marcar o desmarcar «Es la subasta» recalcula la situación de los vehículos de esa fase y de los «sin fase» del origen
+  (también la papelera) en la transacción de `fase_guardar`: lineal, en una acción de configuración poco frecuente.
 - `importaciones-vinculos-purgar`, `importaciones-filas-purgar` y `apibara-consultas-purgar`: lotes de 10.000, 10 por corrida.
 - `importaciones-continuar` (cada 2 min): 5 importaciones totales detenidas y 50 sin avance en 24 h por corrida
   (`importaciones_en_curso_idx`).
@@ -346,7 +354,8 @@ vista (`UnaSolaVista`, según el `user-agent`).
 
 - `/logistica`: `logistica_cadena()` trae la primera página de cada columna (`TAMANO_DE_COLUMNA`), «Ver más» de a 50 por
   `verMasDeLaColumna` hasta `TOPE_DE_LO_CARGADO` con `<AvisoDeTope>`; el número de la columna es `50+`, nunca un total. Índice
-  `vehiculos_cadena_idx (origen_id, fase_id, fase_desde, id)`. Nada por tarjeta: los atributos del nombre van en tandas de 100 ids por PK.
+  `vehiculos_cadena_idx (origen_id, fase_id, fase_desde, id) where eliminado_en is null and situacion <> 'no_ganada'` (parcial: cada consulta
+  lleva el literal). Nada por tarjeta: los atributos del nombre van en tandas de 100 ids por PK.
   Sin foto ni «⋯». Una sola vista en el DOM.
 - JS en frío ≤ 410 KB (al borde: 401,0).
 - Sin volumen de interfaz: `e2e/logistica-cadena.spec.ts` prueba «Ver más» con 51, no mide nodos.

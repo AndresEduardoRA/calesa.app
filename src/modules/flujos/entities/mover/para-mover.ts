@@ -24,6 +24,8 @@ export type DestinoDeMover = {
   accion: string | null
   // Lo pide la transición (la fase puede pedirla también: eso lo dice la vista previa).
   notaDeLaTransicion: boolean
+  // Es una fase de subasta (`fases.es_subasta`): «La ganamos» no la ofrece.
+  esSubasta: boolean
 }
 
 export type DestinoConVista = DestinoDeMover & {
@@ -130,6 +132,7 @@ const esquemaDeDestino = z.object({
   nombre: z.string(),
   color: z.string(),
   orden: z.number(),
+  es_subasta: z.boolean(),
 })
 
 const esquemaDeSalida = z.object({
@@ -151,6 +154,7 @@ export function destinosDeSalidas(filas: unknown): Resultado<DestinoDeMover[]> {
         orden: s.destino.orden,
         accion: s.accion,
         notaDeLaTransicion: s.nota_obligatoria,
+        esSubasta: s.destino.es_subasta,
       }))
       .sort((a, b) => a.orden - b.orden),
   )
@@ -169,6 +173,7 @@ export function destinosIniciales(filas: unknown): Resultado<DestinoDeMover[]> {
         orden: f.orden,
         accion: null,
         notaDeLaTransicion: false,
+        esSubasta: f.es_subasta,
       }))
       .sort((a, b) => a.orden - b.orden),
   )

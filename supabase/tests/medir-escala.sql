@@ -944,20 +944,20 @@ deallocate medir_pc_cursor;
 
 -- La cadena de logística (6.02-2). Terreno, sin RLS y revertido con la transacción: todos los vehículos vivos de `medir.origen` a su primera fase activa de
 -- logística (con `fase_desde` = su alta); los de otro origen quedan sin fase. La consulta de adentro de `_logistica_columna`, escrita igual y preparada
--- (plan genérico, como plpgsql): por `vehiculos_cadena_idx`, sin recorrer `vehiculos` ni descartar. Sin filtros, como llegan a la RPC (false y nulo).
+-- (plan genérico, como plpgsql): por `vehiculos_cadena_idx` (parcial: con el literal `situacion <> 'no_ganada'`), sin recorrer `vehiculos` ni descartar. Sin filtros, como llegan a la RPC (false y nulo).
 prepare medir_cadena_fase(uuid, uuid, timestamptz, boolean, uuid, boolean, boolean, text, int) as select v.id from public.vehiculos v
-  where v.origen_id = $1 and v.eliminado_en is null and v.fase_id = $2 and v.fase_desde < $3
+  where v.origen_id = $1 and v.eliminado_en is null and v.situacion <> 'no_ganada' and v.fase_id = $2 and v.fase_desde < $3
     and ($4 or v.creado_por = $5 or (v.lead_id is not null and public.en_cartera(v.lead_id)))
     and (not $6 or exists (select 1 from public.transportes t where t.vehiculo_id = v.id))
     and (not $7 or exists (select 1 from public.documentos d where d.vehiculo_id = v.id and d.estado = 'subido' and d.eliminado_en is null))
     and ($8 is null or v.titulo ilike $8 or v.vin ilike $8 or v.lote ilike $8)
   order by v.fase_id, v.fase_desde, v.id limit $9;
 prepare medir_cadena_cursor(uuid, uuid, timestamptz, uuid, boolean, uuid, int) as select v.id from public.vehiculos v
-  where v.origen_id = $1 and v.eliminado_en is null and v.fase_id = $2 and v.fase_desde < 'infinity' and (v.fase_desde, v.id) > ($3, $4)
+  where v.origen_id = $1 and v.eliminado_en is null and v.situacion <> 'no_ganada' and v.fase_id = $2 and v.fase_desde < 'infinity' and (v.fase_desde, v.id) > ($3, $4)
     and ($5 or v.creado_por = $6 or (v.lead_id is not null and public.en_cartera(v.lead_id)))
   order by v.fase_id, v.fase_desde, v.id limit $7;
 prepare medir_cadena_sin_fase(uuid, uuid, boolean, uuid, int) as select v.id from public.vehiculos v
-  where v.origen_id = $1 and v.eliminado_en is null and v.fase_id is null and v.fase_desde is null and v.id > $2
+  where v.origen_id = $1 and v.eliminado_en is null and v.situacion <> 'no_ganada' and v.fase_id is null and v.fase_desde is null and v.id > $2
     and ($3 or v.creado_por = $4 or (v.lead_id is not null and public.en_cartera(v.lead_id)))
   order by v.fase_id, v.fase_desde, v.id limit $5;
 do $cadena$

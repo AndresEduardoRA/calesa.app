@@ -1,6 +1,7 @@
 // Un vehículo del inventario. Los datos comunes son columnas; lo que cambia de un origen a otro
 // vive en `atributos`, descrito por el layout de campos de su origen.
 import { z } from 'zod'
+import { esquemaDeSituacion, type Situacion } from './situacion'
 import { esEstadoDeSubasta, type EstadoDeSubasta } from './subasta'
 
 export type Atributos = Record<string, unknown>
@@ -44,6 +45,8 @@ export type Vehiculo = {
   portadaRuta: string | null
   // El estado de la subasta que deriva la base de apibara (abierta, en vivo, terminada o vendida); null = sin subasta.
   estadoSubasta: EstadoDeSubasta | null
+  // La situación real (la calcula la base): en subasta, sin resolver, no ganada o su fase.
+  situacion: Situacion
   creadoPor: string | null
   creadoEn: string
   // La versión de la fila: toda edición la manda.
@@ -58,7 +61,7 @@ export const MAXIMO_DE_PAGINA_DE_VEHICULOS = 100
 // vienen embebidas en la misma consulta; quien consulta las acota a la portada con
 // `FILTRO_DE_PORTADA` (sin ese filtro vendrían las 24).
 export const COLUMNAS_DE_VEHICULO =
-  'id, numero, origen_id, titulo, marca, modelo, anio, vin, lote, plataforma, url_origen, precio, precio_negociable, acepta_permuta, placado, kilometraje, categoria_id, fase_id, atributos, lead_id, publicado_web, destacado_web, precio_web, precio_web_hasta, precio_web_nota, creado_por, creado_en, actualizado_en, limpieza_el, estado_subasta, vehiculos_imagenes(ruta_miniatura)'
+  'id, numero, origen_id, titulo, marca, modelo, anio, vin, lote, plataforma, url_origen, precio, precio_negociable, acepta_permuta, placado, kilometraje, categoria_id, fase_id, atributos, lead_id, publicado_web, destacado_web, precio_web, precio_web_hasta, precio_web_nota, creado_por, creado_en, actualizado_en, limpieza_el, estado_subasta, situacion, vehiculos_imagenes(ruta_miniatura)'
 
 export const FILTRO_DE_PORTADA = { columna: 'vehiculos_imagenes.es_portada', valor: true } as const
 
@@ -94,6 +97,7 @@ const columnasDeVehiculo = {
   limpieza_el: z.string().nullable().catch(null),
   // Un estado que la app no conoce no tumba la lista: queda como sin subasta.
   estado_subasta: z.string().nullable().catch(null),
+  situacion: esquemaDeSituacion,
   creado_por: z.guid().nullable(),
   creado_en: z.string(),
   actualizado_en: z.string(),
@@ -145,6 +149,7 @@ function vehiculoDesde(
     limpiezaEl: fila.limpieza_el,
     portadaRuta,
     estadoSubasta: esEstadoDeSubasta(fila.estado_subasta) ? fila.estado_subasta : null,
+    situacion: fila.situacion,
     creadoPor: fila.creado_por,
     creadoEn: fila.creado_en,
     actualizadoEn: fila.actualizado_en,

@@ -5,6 +5,7 @@ import { Aviso } from '@/shared/ui/aviso'
 import { useCambiosSinGuardar } from '@/shared/ui/cambios-del-panel'
 import { PieDelPanel } from '@/shared/ui/pie-del-panel'
 import type { BloqueDeFase } from '../../../entities/fases/bloques-de-fase'
+import { contextoDelFlujo } from '../../../entities/fases/reglas-de-fase'
 import type { FaseParaConfigurar, FlujoParaConfigurar } from '../../../entities/flujo'
 import { useFormularioDeDatos } from '../hooks/use-formulario-de-datos'
 import { BloqueDemora } from './bloque-demora'
@@ -22,7 +23,7 @@ export function FormularioDeDatosDeLaFase({ flujo, fase }: Props) {
   const idDelFormulario = useId()
   const f = useFormularioDeDatos({ flujo, fase })
   useCambiosSinGuardar(f.hayCambios, f.descartar)
-  const contexto = { ambito: flujo.ambito, reglas: flujo.reglas }
+  const contexto = contextoDelFlujo(flujo)
   const delBloque = (bloque: BloqueDeFase) => f.conError.has(bloque)
   const comunes = {
     valores: f.valores,

@@ -145,6 +145,8 @@ const ETIQUETA_DE_ANCLA: Record<string, [string, string]> = {
   gastos: ['con gastos', 'con gastos'],
   pagos: ['con pagos', 'con pagos'],
   vitrina: ['publicado en la vitrina', 'publicados en la vitrina'],
+  sin_resolver: ['con la subasta sin resolver', 'con la subasta sin resolver'],
+  ganada: ['con la subasta ganada', 'con la subasta ganada'],
   bloqueo: ['con algo registrado', 'con algo registrado'],
   ocupado: ['en edición en ese momento', 'en edición en ese momento'],
   error: ['que no se pudo mover', 'que no se pudieron mover'],

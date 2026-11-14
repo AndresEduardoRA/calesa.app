@@ -18,7 +18,7 @@ import {
 import type { LectorDeFlujo, LectorDeFlujosConfigurables } from '../../entities/repositorios'
 
 const COLUMNAS_DE_FASE_COMPLETA =
-  'id, nombre, descripcion, color, icono, orden, activa, es_inicial, es_final, es_logistica, demora_dias, alerta_cada_horas, nota_obligatoria, permite_contenedor, permite_aduana, cuenta_llegada_repuestos, publica_web, visible_portal, alias_portal, descripcion_portal'
+  'id, nombre, descripcion, color, icono, orden, activa, es_inicial, es_final, es_logistica, demora_dias, alerta_cada_horas, nota_obligatoria, permite_contenedor, permite_aduana, cuenta_llegada_repuestos, publica_web, visible_portal, alias_portal, descripcion_portal, es_subasta'
 const COLUMNAS_DE_TRANSICION = 'id, de_fase_id, a_fase_id, accion, nota_obligatoria'
 const COLUMNAS_DE_REQUISITO =
   'id, fase_id, tipo, bloqueante, orden, clave_dato, config, espera_ambito, espera_fase_id, formatos, max_archivos, min_archivos, notas, tipo_documento_id'
@@ -29,7 +29,7 @@ async function leerLasTablas(flujoId: string) {
     await Promise.all([
       supabase
         .from('flujos')
-        .select('id, ambito, origen_id, nombre, activo, actualizado_en')
+        .select('id, ambito, origen_id, nombre, activo, actualizado_en, origen:origenes(tipo)')
         .eq('id', flujoId)
         .maybeSingle(),
       supabase

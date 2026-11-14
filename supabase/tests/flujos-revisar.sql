@@ -12,6 +12,7 @@
 --   R5. `tipo_documento_inactivo`: un requisito pide un tipo desactivado.
 --   R6. `salida_a_jubilada`: una salida hacia una fase jubilada, sin `sin_salida` ni `inalcanzable` de más.
 --   R7. Los códigos de antes siguen: `sin_inicial`, `orden_duplicado`, `inalcanzable`.
+--   R8. `sin_fase_de_subasta`: un origen de subasta sin ninguna fase marcada (activa o jubilada) lo da; con una, no; un origen manual, nunca.
 
 -- Una persona activa con un rol propio y estas concesiones: 'clave' (global) o 'clave@<origen>'.
 create or replace function pg_temp.frv_persona(p_concesiones text[]) returns uuid language plpgsql as $f$
@@ -75,6 +76,18 @@ begin
   perform pg_temp.frv_salida(a, f);
   perform pg_temp.frv_salida(i, b);
   if p_con_salida_de_b then perform pg_temp.frv_salida(b, f); end if;
+  return fl;
+end $f$;
+
+-- Un origen de subasta nuevo con el flujo base de `frv_flujo` (todo conectado), sin ninguna fase marcada como la subasta.
+create or replace function pg_temp.frv_flujo_subasta() returns uuid language plpgsql as $f$
+declare o uuid; fl uuid; i uuid; f uuid; s text := substr(replace(gen_random_uuid()::text, '-', ''), 1, 8);
+begin
+  insert into public.origenes (clave, nombre, tipo) values ('frvs_' || s, 'FRV subasta ' || s, 'subasta') returning id into o;
+  fl := (select id from public.flujos where origen_id = o);
+  i := pg_temp.frv_fase(fl, 'I', 10, true, false);
+  f := pg_temp.frv_fase(fl, 'F', 20, false, true);
+  perform pg_temp.frv_salida(i, f);
   return fl;
 end $f$;
 
@@ -249,5 +262,25 @@ begin
   perform pg_temp.frv_salida(y, f);
   perform pg_temp.frv_es('R7 orden repetido e inalcanzable', pg_temp.frv_avisos(config, fl),
     pg_temp.frv_esperado('orden_duplicado:' || a, 'inalcanzable:' || y));
+end $$;
+rollback;
+
+-- @test revisar: sin_fase_de_subasta en un origen de subasta sin fase marcada; con una (aun jubilada), no; un manual, nunca (R8)
+begin;
+do $$
+declare
+  fl uuid := pg_temp.frv_flujo_subasta(); man uuid := pg_temp.frv_flujo(); config uuid := pg_temp.frv_persona(array['flujos.configurar']);
+  i uuid := pg_temp.frv_fase_id(fl, 'I'); f uuid := pg_temp.frv_fase_id(fl, 'F'); j uuid;
+begin
+  perform pg_temp.frv_es('R8 sin marcar', pg_temp.frv_avisos(config, fl), pg_temp.frv_esperado('sin_fase_de_subasta:-'));
+  update public.fases set es_subasta = true where id = i;
+  perform pg_temp.frv_es('R8 marcada', pg_temp.frv_avisos(config, fl), '{}');
+  update public.fases set es_subasta = false where id = i;
+  j := pg_temp.frv_fase(fl, 'J', 30);
+  perform pg_temp.frv_salida(i, j);
+  perform pg_temp.frv_salida(j, f);
+  update public.fases set es_subasta = true, activa = false where id = j;
+  perform pg_temp.frv_es('R8 jubilada', pg_temp.frv_avisos(config, fl), pg_temp.frv_esperado('salida_a_jubilada:' || i));
+  perform pg_temp.frv_es('R8 manual', pg_temp.frv_avisos(config, man), '{}');
 end $$;
 rollback;

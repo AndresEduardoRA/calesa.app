@@ -6,6 +6,8 @@ import {
   MOTIVO_NO_EXISTE_EN_REPUESTOS,
   avisoDeOtraInicial,
   esCampoDeFase,
+  MOTIVO_SOLO_EN_SUBASTA,
+  motivoDeEsSubasta,
   motivoDelInterruptor,
   nombreRepetido,
   otraFaseInicial,
@@ -18,12 +20,14 @@ const TODAS = ['vitrina_web', 'portal_cliente', 'aduana', 'logistica'].map((regl
   regla,
   activa: true,
 }))
-const VEHICULOS: ContextoDeFase = { ambito: 'vehiculos', reglas: TODAS }
+const VEHICULOS: ContextoDeFase = { ambito: 'vehiculos', reglas: TODAS, origenEsSubasta: false }
+const SUBASTA: ContextoDeFase = { ...VEHICULOS, origenEsSubasta: true }
 const REPUESTOS: ContextoDeFase = {
   ambito: 'repuestos',
   reglas: [{ regla: 'logistica', activa: true }],
+  origenEsSubasta: false,
 }
-const SIN_REGLAS: ContextoDeFase = { ambito: 'vehiculos', reglas: [] }
+const SIN_REGLAS: ContextoDeFase = { ambito: 'vehiculos', reglas: [], origenEsSubasta: false }
 
 const FASE: FaseParaConfigurar = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -46,6 +50,7 @@ const FASE: FaseParaConfigurar = {
   visiblePortal: false,
   aliasPortal: null,
   descripcionPortal: null,
+  esSubasta: false,
 }
 const BASE: ValoresDeFase = valoresDeFase(FASE)
 const con = (cambios: Partial<ValoresDeFase>): ValoresDeFase => ({ ...BASE, ...cambios })
@@ -230,5 +235,27 @@ describe('textos y campos', () => {
 
   it('el nombre repetido dice cuál', () => {
     expect(nombreRepetido('En puerto')).toBe('Ya hay una fase «En puerto» en este flujo.')
+  })
+})
+
+describe('es la subasta', () => {
+  it('sólo en el flujo de un origen de subasta y nunca con la final, con los textos de la base', () => {
+    expect(errores(con({ esSubasta: true }), SUBASTA)).toBeNull()
+    expect(errores(con({ esSubasta: true }))).toEqual({
+      es_subasta: MENSAJES_DE_FASE.subastaFueraDeOrigen,
+    })
+    expect(errores(con({ esSubasta: true }), REPUESTOS)).toMatchObject({
+      es_subasta: MENSAJES_DE_FASE.subastaFueraDeOrigen,
+    })
+    expect(errores(con({ esSubasta: true, esFinal: true }), SUBASTA)).toEqual({
+      es_subasta: MENSAJES_DE_FASE.subastaFinal,
+    })
+  })
+
+  it('apaga el interruptor fuera de un origen de subasta, salvo para apagar un dato viejo', () => {
+    expect(motivoDeEsSubasta(false, SUBASTA)).toBeNull()
+    expect(motivoDeEsSubasta(false, VEHICULOS)).toBe(MOTIVO_SOLO_EN_SUBASTA)
+    expect(motivoDeEsSubasta(false, REPUESTOS)).toBe(MOTIVO_SOLO_EN_SUBASTA)
+    expect(motivoDeEsSubasta(true, VEHICULOS)).toBeNull()
   })
 })

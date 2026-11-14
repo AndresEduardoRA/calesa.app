@@ -109,3 +109,14 @@ describe('por limpiar', () => {
     ])
   })
 })
+
+describe('situación', () => {
+  it('fuera de esas situaciones: un not.in dentro de un or', () => {
+    expect(pedidosDe({ tipo: 'situacion_fuera_de', valores: ['no_ganada'] })).toEqual([
+      'or=(situacion.not.in.(no_ganada))',
+    ])
+    expect(
+      pedidosDe({ tipo: 'situacion_fuera_de', valores: ['sin_resolver', 'no_ganada'] }),
+    ).toEqual(['or=(situacion.not.in.(sin_resolver,no_ganada))'])
+  })
+})

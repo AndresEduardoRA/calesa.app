@@ -41,6 +41,7 @@ export const esquemaDeFase = z.object({
   visible_portal: z.boolean(),
   alias_portal: textoONulo,
   descripcion_portal: textoONulo,
+  es_subasta: z.boolean(),
 })
 
 export const esquemaDeTransicion = z.object({
@@ -78,6 +79,8 @@ const esquemaDeEncabezado = z.object({
   nombre: z.string(),
   activo: z.boolean(),
   actualizado_en: z.string(),
+  // El tipo del origen embebido (nulo en repuestos): sólo en uno de subasta una fase puede ser la subasta.
+  origen: z.object({ tipo: z.string() }).nullable(),
 })
 
 export type FaseParaConfigurar = {
@@ -101,6 +104,7 @@ export type FaseParaConfigurar = {
   visiblePortal: boolean
   aliasPortal: string | null
   descripcionPortal: string | null
+  esSubasta: boolean
 }
 
 export type TransicionParaConfigurar = {
@@ -136,6 +140,8 @@ export type FlujoParaConfigurar = {
   activo: boolean
   // `flujos.actualizado_en` tal cual, texto ISO: lo que cada escritura devuelve para detectar que otra persona cambió el flujo (D1).
   version: string
+  // El flujo es el de un origen de tipo subasta: sólo ahí una fase puede ser «la subasta» (`fases.es_subasta`).
+  origenEsSubasta: boolean
   reglas: { regla: string; activa: boolean }[]
   fases: FaseParaConfigurar[]
   transiciones: TransicionParaConfigurar[]
@@ -179,6 +185,7 @@ const fase = (f: z.infer<typeof esquemaDeFase>): FaseParaConfigurar => ({
   visiblePortal: f.visible_portal,
   aliasPortal: f.alias_portal,
   descripcionPortal: f.descripcion_portal,
+  esSubasta: f.es_subasta,
 })
 
 const requisito = (r: z.infer<typeof esquemaDeRequisito>): RequisitoParaConfigurar => ({
@@ -208,6 +215,7 @@ export function flujoParaConfigurarDesde(filas: FilasDeFlujo): FlujoParaConfigur
     nombre: encabezado.nombre,
     activo: encabezado.activo,
     version: encabezado.actualizado_en,
+    origenEsSubasta: encabezado.ambito === 'vehiculos' && encabezado.origen?.tipo === 'subasta',
     reglas: z.array(esquemaDeRegla).parse(filas.reglas),
     fases: z.array(esquemaDeFase).parse(filas.fases).map(fase).sort(porOrdenYNombre),
     transiciones: z

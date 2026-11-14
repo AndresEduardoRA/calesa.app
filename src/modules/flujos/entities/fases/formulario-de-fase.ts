@@ -30,6 +30,7 @@ export function valoresDeFase(fase: FaseParaConfigurar): ValoresDeFase {
     visiblePortal: fase.visiblePortal,
     aliasPortal: fase.aliasPortal ?? '',
     descripcionPortal: fase.descripcionPortal ?? '',
+    esSubasta: fase.esSubasta,
   }
 }
 
@@ -52,6 +53,7 @@ export type CambiosDeFase = {
   visible_portal?: boolean
   alias_portal?: string | null
   descripcion_portal?: string | null
+  es_subasta?: boolean
 }
 
 // `[clave de la base, campo de la fase]`: lo mismo dicho de las dos maneras.
@@ -73,6 +75,7 @@ const CLAVES: readonly [keyof CambiosDeFase, keyof DatosDeFase][] = [
   ['visible_portal', 'visiblePortal'],
   ['alias_portal', 'aliasPortal'],
   ['descripcion_portal', 'descripcionPortal'],
+  ['es_subasta', 'esSubasta'],
 ]
 
 // `p_cambios` de `fase_guardar`: sólo lo que cambió respecto de la fase que se tenía en pantalla. Nulo si no cambió nada.

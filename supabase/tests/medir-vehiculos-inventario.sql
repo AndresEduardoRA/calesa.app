@@ -7,7 +7,8 @@
 -- enteros del heap y las llamadas a funciones (`pg_stat_xact_user_functions`, la última). Los casos de C8 (página 1, profunda y «Anterior» desde la profunda):
 --   - Pía («propios», 5.000 propios en A, sin cartera; profunda: su fila 2.000), también con búsqueda, fase, un atributo sin coincidencias y 500 alternativas (nota);
 --   - la «chica» («propios», 3 propios, lo más viejo de A); Beto («propios», cartera de 50.000: la ruta `origen`); Vera («propios», cartera de 5.000 —los «Volumen» 5.001–
---     10.000—, 1.000 vehículos en B sobre ellos, de la dueña, entreverados con el relleno), también con un atributo; la dueña (nota).
+--     10.000—, 1.000 vehículos en B sobre ellos, de la dueña, entreverados con el relleno), también con un atributo; la dueña (nota); Pía y Beto con la condición por
+--     defecto (sin las no ganadas).
 -- Asserta, con los dos volúmenes:
 --   - el tiempo: ≤ 10 ms; Pía con el atributo sin coincidencias ≤ 20; Vera ≤ 40;
 --   - los índices de `vehiculos` con bloques, por persona (ningún otro): Pía y la chica `creador` (≤ 12 y ≤ 6 por página) y `pkey`; Beto `origen_listado` (≤ 20) y `pkey`;
@@ -74,7 +75,8 @@ union all select (select id from _o where clave = 'b'), 'Medir veh Vera ' || g, 
        timestamptz '2020-01-01 00:00:00+00' + g * interval '400 seconds' + interval '5 seconds', now() from generate_series(1, 1000) g;
 -- Lo que piden los casos: un quinto de lo de Pía en una fase; el atributo `km` en lo de Vera (la mitad ≥ 500).
 create temp table _fase as select id from public.fases order by id limit 1;
-update public.vehiculos set fase_id = (select id from _fase) where titulo like 'Medir veh Pía %' and (substring(titulo from 'Pía (\d+)$'))::int % 5 = 0;
+-- Con los triggers apagados, `fase_desde` va a mano (check vehiculos_fase_desde_coherente: existe si y sólo si hay fase).
+update public.vehiculos set fase_id = (select id from _fase), fase_desde = creado_en where titulo like 'Medir veh Pía %' and (substring(titulo from 'Pía (\d+)$'))::int % 5 = 0;
 update public.vehiculos set atributos = jsonb_build_object('km', (substring(titulo from 'Vera (\d+)$'))::int) where titulo like 'Medir veh Vera %';
 set local session_replication_role = origin;
 grant select on _fase to authenticated;
@@ -111,7 +113,10 @@ insert into _caso values
   ('vera · página 1', 'vera', 'b', 'primera', '[]', 'propios'), ('vera · profunda', 'vera', 'b', 'siguiente', '[]', 'propios'),
   ('vera · anterior', 'vera', 'b', 'anterior', '[]', 'propios'),
   ('vera · atributo', 'vera', 'b', 'primera', '[{"tipo":"atributo_rango_numero","clave":"km","min":500,"max":null}]', 'propios'),
-  ('duena · página 1', 'duena', 'a', 'primera', '[]', 'origen');
+  ('duena · página 1', 'duena', 'a', 'primera', '[]', 'origen'),
+  -- La condición que manda cada página por defecto (CONDICION_POR_DEFECTO de src/modules/vehiculos/entities/situacion.ts): sin las no ganadas, por la misma ruta.
+  ('pia · por defecto', 'pia', 'a', 'primera', '[{"tipo":"situacion_fuera_de","valores":["no_ganada"]}]', 'propios'),
+  ('beto · por defecto', 'beto', 'b', 'primera', '[{"tipo":"situacion_fuera_de","valores":["no_ganada"]}]', 'origen');
 -- Contra lo de hoy sólo van la chica y Pía, sin filtros (PostgREST sobre la tabla no tiene rutas).
 delete from _caso where current_setting('medir.contra_hoy') = '1' and not (quien in ('pia', 'chica') and filtros = '[]');
 grant select on _cur, _rel, _caso to authenticated;

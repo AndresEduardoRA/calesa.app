@@ -1,6 +1,6 @@
 import type { Route } from 'next'
 import Link from 'next/link'
-import { BadgeDeFase } from '@/modules/vehiculos/client'
+import { BadgeDeSituacion } from '@/modules/vehiculos/client'
 import { RUTAS } from '@/shared/lib/rutas'
 import { buttonVariants } from '@/shared/ui/button'
 import { textoDeDiasEnLaFase } from '../../../entities/nucleo/dias-en-la-fase'
@@ -64,7 +64,7 @@ export function PanelDeLaUnidad({ unidad, origen, fase, huecos, aviso = null }: 
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-(length:--text-sm) text-(--color-ink-soft)">
           <span>{origen}</span>
-          <BadgeDeFase fase={fase} />
+          <BadgeDeSituacion situacion={unidad.situacion} fase={fase} />
           {dias ? <span>{dias}</span> : null}
         </div>
         {aviso ? <p className="text-(length:--text-sm) text-(--color-ink-soft)">{aviso}</p> : null}

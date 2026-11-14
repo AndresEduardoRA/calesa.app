@@ -127,7 +127,7 @@ begin
   if (select to_jsonb(f) - array['id', 'flujo_id', 'orden', 'creado_en', 'actualizado_en'] from public.fases f where flujo_id = a)
      is distinct from jsonb_build_object('nombre', 'FG buena', 'descripcion', null, 'icono', 'camion-2', 'alerta_cada_horas', 720, 'color', '#717c93',
        'es_inicial', false, 'es_final', false, 'activa', true, 'es_logistica', true, 'demora_dias', null, 'nota_obligatoria', false, 'permite_contenedor', true,
-       'permite_aduana', false, 'cuenta_llegada_repuestos', false, 'publica_web', false, 'visible_portal', false, 'alias_portal', null, 'descripcion_portal', null) then
+       'permite_aduana', false, 'cuenta_llegada_repuestos', false, 'es_subasta', false, 'publica_web', false, 'visible_portal', false, 'alias_portal', null, 'descripcion_portal', null) then
     raise exception 'G3: la fase creada no quedó como se pidió: %', (select to_jsonb(f) from public.fases f where flujo_id = a);
   end if;
 end $$;

@@ -166,7 +166,7 @@ begin
  foreach v_clave in array array['subasta_usa', 'planilla_usa'] loop
   select f.id into v_flujo from public.flujos f join public.origenes o on o.id = f.origen_id where o.clave = v_clave;
   if v_flujo is null or exists (select 1 from public.fases where flujo_id = v_flujo) then continue; end if;
-  insert into public.fases (flujo_id, nombre, color, orden, es_inicial, es_logistica, publica_web, visible_portal, alias_portal, demora_dias) values (v_flujo, 'En subasta', '#465fff', 10, true, false, true, false, null, 0) returning id into f1;
+  insert into public.fases (flujo_id, nombre, color, orden, es_inicial, es_logistica, publica_web, visible_portal, alias_portal, demora_dias, es_subasta) values (v_flujo, 'En subasta', '#465fff', 10, true, false, true, false, null, 0, true) returning id into f1;
   insert into public.fases (flujo_id, nombre, color, orden, es_logistica, visible_portal, alias_portal, demora_dias) values (v_flujo, 'Comprado', '#7a5af8', 20, true, true, 'Comprado en subasta', 7) returning id into f2;
   insert into public.fases (flujo_id, nombre, color, orden, es_logistica, visible_portal, alias_portal, demora_dias) values (v_flujo, 'En tránsito a puerto USA', '#c7680a', 30, true, true, 'En camino al puerto', 14) returning id into f3;
   insert into public.fases (flujo_id, nombre, color, orden, es_logistica, visible_portal, alias_portal, permite_contenedor, demora_dias) values (v_flujo, 'Embarcado', '#0e7490', 40, true, true, 'Navegando', true, 45) returning id into f4;

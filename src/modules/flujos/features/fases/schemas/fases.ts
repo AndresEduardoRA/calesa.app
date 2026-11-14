@@ -28,6 +28,7 @@ const datos = {
   visible_portal: z.boolean(),
   alias_portal: texto.nullable(),
   descripcion_portal: texto.nullable(),
+  es_subasta: z.boolean(),
 }
 
 const parcial = z.strictObject(datos).partial()

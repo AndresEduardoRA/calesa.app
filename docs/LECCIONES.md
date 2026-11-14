@@ -215,6 +215,7 @@ Si ya no aplica (cambió la herramienta o el código), se quita.
 - Juzga «no crece con N» por bloques por relación (`pg_stat_get_xact_blocks_fetched`), no en ms ni en buffers totales: el autovacuum y el WAL mueven los tiempos.
 - Comprueba que la guarda «no crece con N» cae al quitar el índice: la cota contra la profundidad sola pasa sin índice.
 - Asierta que cada ruta medida devuelve sus `n + 1` filas: con la sesión equivocada la policy vacía la ruta y el assert de bloques pasa sin medir nada.
+- Escribe un «fuera de estos valores» sobre un arreglo que no es constante como `col = any (<complemento>)`, nunca `col <> all (…)`: el planificador estima cada `<>` contra algo no constante como `1 - 1/ndistinct` y, con una columna casi de un solo valor, da selectividad ≈ 0 y deja de leer la ruta en orden por su índice (lee todo y ordena).
 
 ## e2e (Playwright)
 
@@ -284,6 +285,7 @@ Si ya no aplica (cambió la herramienta o el código), se quita.
 - Si `next build` cae con «Type '/x' is not assignable to RouteImpl», corre `pnpm typecheck` (hace `next typegen`): no es del código.
 - Usa `set -o pipefail` en los arneses: el código de salida de una tubería es el del último comando y una mutación «cae» o «pasa» en falso.
 - Tras traer main corre `pnpm db:reset` antes de culpar al código por e2e que caen: la base local puede no tener las migraciones nuevas.
+- Antes de culpar al código, mira que la base del carril tenga tus migraciones (`supabase_migrations.schema_migrations`): dos worktrees con la misma letra en `.env.carril` comparten la pila y se pisan; `bash scripts/worktree/preparar.sh <letra libre>` pasa el worktree a otra.
 - El hook de Bash lee el texto entero del comando, heredocs incluidos: un guion que nombre un push, la bandera de saltar hooks o una orden remota de Supabase se escribe en un archivo (Write) y se corre desde ahí.
 - Con dos cuentas en `gh`, no cambies la activa: pide el token de la dueña del repo por llamada (`GH_TOKEN=$(gh auth token --user <dueña>)`), como hace `scripts/flujo/publicar.sh`.
 - `gh pr merge --auto` sin protección en `main` integra en el acto, antes del CI: el auto-merge sólo espera lo que la rama exige («Listo · todo en verde»).

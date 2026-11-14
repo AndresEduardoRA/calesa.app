@@ -69,4 +69,13 @@ export const esquemaCambiarFaseLote = z.object({
   unidades,
 })
 
+// «La ganamos»: sólo un vehículo, con su origen (para decidir con `puede()`), el destino, la fase en la que se veía y la nota.
+export const esquemaGanarLaSubasta = z.object({
+  vehiculo: z.guid(),
+  origenId: z.guid(),
+  faseDestino: z.guid(),
+  faseEsperada: z.guid().nullable(),
+  nota,
+})
+
 export const esquemaDestinosDeLaFase = z.object({ origenId: z.guid(), faseId: z.guid() })

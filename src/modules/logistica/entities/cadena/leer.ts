@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { fallo, MENSAJE_INESPERADO, ok, type Resultado } from '@/shared/lib/errores'
+import { esquemaDeSituacionDeLaUnidad, type SituacionDeLaUnidad } from '../nucleo/situacion'
 
 // Lo que devuelven `logistica_cadena()`, `logistica_cadena_columna()` y `logistica_donde_esta()` (6.02), validado con Zod en el borde (ids con `z.guid()`, fechas como texto ISO): su
 // `Returns` es `Json`. Una forma que no es la esperada es un error visible, nunca una columna cortada ni una tarjeta a medias.
@@ -12,6 +13,8 @@ export type TarjetaDeLaCadena = {
   vin: string | null
   lote: string | null
   faseDesde: string | null
+  // La situación real (la calcula la base): la tarjeta dice «En subasta» o «Sin resolver»; una no ganada no llega (no cuenta).
+  situacion: SituacionDeLaUnidad
   // Lo calculó la base con los días de la fase y la regla `alerta_demora`: la interfaz no lo recalcula.
   demorada: boolean
   contenedor: string | null
@@ -57,6 +60,7 @@ const esquemaDeTarjeta = z.object({
   vin: z.string().nullable(),
   lote: z.string().nullable(),
   fase_desde: z.string().nullable(),
+  situacion: esquemaDeSituacionDeLaUnidad,
   demorada: z.boolean(),
   contenedor: z.string().nullable(),
   booking: z.string().nullable(),
@@ -103,6 +107,7 @@ function tarjetaDe(fila: z.infer<typeof esquemaDeTarjeta>): TarjetaDeLaCadena {
     vin: fila.vin,
     lote: fila.lote,
     faseDesde: fila.fase_desde,
+    situacion: fila.situacion,
     demorada: fila.demorada,
     contenedor: fila.contenedor,
     booking: fila.booking,

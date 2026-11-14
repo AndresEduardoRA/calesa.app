@@ -255,6 +255,7 @@ const TIPOS = {
   atributo_rango_numero: true,
   atributo_rango_texto: true,
   atributo_texto: true,
+  situacion_fuera_de: true,
 } satisfies Record<Condicion['tipo'], true>
 
 // Los tipos de los `when '<tipo>' then` de un trozo de la definición de la base: desde `desde` hasta `hasta` (el final, si no hay).

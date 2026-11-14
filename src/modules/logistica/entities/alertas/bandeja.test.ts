@@ -17,6 +17,7 @@ const respuesta = {
         fase: 'Tránsito',
         fase_desde: '2026-11-07T13:00:00+00:00',
         dias: 1,
+        situacion: 'sin_resolver',
       },
     ],
     hay_mas: true,
@@ -60,6 +61,7 @@ describe('bandejaDesde', () => {
       origenId: ORIGEN,
       fase: 'Tránsito',
       faseDesde: '2026-11-07T13:00:00+00:00',
+      situacion: 'sin_resolver',
     })
     expect(leida.data.trabados.filas[0]?.faseSiguiente).toBe('Aduana')
     expect(leida.data.porAprobar.filas[0]?.vehiculoId).toBe(VEHICULO)
@@ -86,6 +88,18 @@ describe('los textos de las filas', () => {
       '«Tránsito» · Desde hace 3 días en esta fase',
     )
     expect(detalleDeDemorada({ fase: 'Tránsito', faseDesde: null }, ahora)).toBe('«Tránsito»')
+  })
+
+  it('una demorada en la subasta sin resolver lo dice; con su fase, no', () => {
+    expect(
+      detalleDeDemorada(
+        { fase: 'Subasta', faseDesde: '2026-11-07T13:00:00Z', situacion: 'sin_resolver' },
+        ahora,
+      ),
+    ).toBe('«Subasta» · Sin resolver · Desde hace 3 días en esta fase')
+    expect(detalleDeDemorada({ fase: 'Tránsito', faseDesde: null, situacion: 'fase' }, ahora)).toBe(
+      '«Tránsito»',
+    )
   })
 
   it('un trabado dice qué le falta para la fase siguiente', () => {

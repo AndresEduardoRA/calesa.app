@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import type { FaseResumen } from '@/modules/flujos/client'
 import type { OrigenResumen } from '@/modules/origenes/client'
 import type { Vehiculo } from '../../../entities/vehiculo'
-import { BadgeDeFase } from '../../listado/components/badge-de-fase'
+import { BadgeDeSituacion } from '../../listado/components/badge-de-situacion'
 import { FotosEnElLugar } from '../../fotos/components/fotos-en-el-lugar'
 
 type Props = {
@@ -36,7 +36,7 @@ export function CabeceraDeVehiculo({ vehiculo, origen, fase, acciones, insignias
             />
             {origen.nombre}
           </span>
-          <BadgeDeFase fase={fase} />
+          <BadgeDeSituacion situacion={vehiculo.situacion} fase={fase} />
           {insignias}
         </div>
       </div>

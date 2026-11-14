@@ -8,6 +8,7 @@
 --   papelera-purgar (cotizaciones)  100.000 cotizaciones vencidas en 500 lotes de 200, con una revisión y un adjunto cada una (4.24-1b)
 --   limpieza-automatica             100.000 vehículos importados de una subasta terminada, sin comprador
 --   storage-gc                      100.000 objetos en el bucket `vehiculos` sin fila, y 100.000 en la cola
+--   situacion-al-cerrar             2.000 vehículos en subasta (1.000 con el cierre vencido) entre los 100.000 de la limpieza
 -- Cada job tiene su presupuesto de tiempo por corrida (el último argumento): si lo pasa, la medición falla.
 -- Un job con tope por corrida deja lo que no entra para la siguiente: papelera-purgar purga a lo sumo 50 lotes
 -- por corrida (10.000 leads), la limpieza mueve 200 y revisa 1.000 más, storage-gc encola 2.000 por pasada.
@@ -206,6 +207,38 @@ begin
   if exists (select 1 from public.cola_gc_storage g join jobs_vivas v on g.ruta = v.id || '/a.pdf' where g.bucket = 'cotizaciones') then raise exception 'encoló la ruta de una viva'; end if;
   if (select count(*) from public.cola_gc_storage g join jobs_cots j on g.ruta = j.id || '/1.pdf' where g.bucket = 'cotizaciones' and j.k > 450) <> 10000 then raise exception 'la cola no son las rutas propias de las purgadas'; end if;
   raise notice 'plan|job: papelera-purgar con cotizaciones|purgadas 10.000 de los lotes k = 451…500, la cola con sus 10.000 rutas propias';
+end $$;
+
+-- situacion-al-cerrar: 2.000 vehículos en_subasta en un origen de subasta (1.000 con el cierre vencido) entre los 100.000 de arriba. La selección va por
+-- vehiculos_situacion_idx con (origen_id, situacion) fijos, sin recorrer vehiculos; una corrida recalcula su tope de 500.
+set local session_replication_role = replica;
+insert into public.vehiculos (origen_id, titulo, creado_por, creado_en, estado_subasta, subasta_fin_en, situacion)
+select (select id from public.origenes where tipo = 'subasta' order by orden limit 1), 'Job situación ' || g, '00000000-0000-0000-0000-0000000000e1',
+       now() - interval '10 days', 'abierta', now() + case when g % 2 = 0 then interval '-1 hour' else interval '1 day' end, 'en_subasta'
+  from generate_series(1, 2000) g;
+set local session_replication_role = origin;
+analyze public.vehiculos;
+do $$
+declare v_plan jsonb; v_seq text;
+begin
+  set local plan_cache_mode = force_generic_plan;
+  execute $q$prepare jobs_situacion(uuid) as select v.id from public.vehiculos v
+    where v.origen_id = $1 and v.situacion = 'en_subasta' and v.eliminado_en is null and coalesce(v.subasta_fin_en, v.subasta_en) <= now()
+    limit 500 for no key update skip locked$q$;
+  execute format('explain (format json) execute jobs_situacion(%L)', (select id from public.origenes where tipo = 'subasta' order by orden limit 1)) into v_plan;
+  raise notice 'plan|job: situacion-al-cerrar, la selección|%', v_plan;
+  if not jsonb_path_exists(v_plan, 'lax $.** ? (@."Index Name" == "vehiculos_situacion_idx")') then raise exception 'situacion-al-cerrar no va por vehiculos_situacion_idx: %', v_plan; end if;
+  select string_agg(distinct x #>> '{}', ', ') into v_seq from jsonb_path_query(v_plan, 'lax $.** ? (@."Node Type" == "Seq Scan")."Relation Name"') x;
+  if v_seq is not null then raise exception 'situacion-al-cerrar recorre %: %', v_seq, v_plan; end if;
+  execute 'deallocate jobs_situacion';
+  reset plan_cache_mode;
+end $$;
+select pg_temp.cronometro('job: situacion-al-cerrar, 500 de 1.000 vencidas entre 2.000 en subasta', 'select public.vehiculos_situacion_al_cerrar()::text', 2000);
+do $$
+begin
+  if (select count(*) from public.vehiculos where titulo like 'Job situación %' and situacion = 'en_subasta') <> 1500 then
+    raise exception 'situacion-al-cerrar no recalculó exactamente su tope de 500';
+  end if;
 end $$;
 
 rollback;

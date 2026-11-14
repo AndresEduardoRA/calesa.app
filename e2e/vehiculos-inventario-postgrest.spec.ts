@@ -19,17 +19,23 @@ import { sesionDe } from './soporte/leads-alta'
 // La equivalencia del inventario (4.16-2a, C9): lo que lee hoy `buscarVehiculos()` por PostgREST sobre la tabla (`aplicarCondiciones` y
 // `aplicarCursor` de `src`, sin `server-only`) y lo que devuelve `vehiculos_inventario()`, contra el PostgREST de verdad y con la RLS de
 // cada persona. Por persona y caso, de a 3, hacia adelante hasta el final y de vuelta con «Anterior»: las mismas páginas, con la misma
-// `limpieza_el` y la misma portada por id. Todo «lo de hoy» corre antes que «lo nuevo»: `pg_stat_statements` guarda sus textos aunque
+// `limpieza_el`, la misma portada y la misma situación por id. Todo «lo de hoy» corre antes que «lo nuevo»: `pg_stat_statements` guarda sus textos aunque
 // la función no exista (S1). Ata `aplicarCondiciones` con C5: es dirigido cuando cambia `src/modules/vehiculos/`.
 
 const TAMANO = 3
 const TOPE_DE_PAGINAS = 40
 
 type Cliente = Awaited<ReturnType<typeof sesionDe>>
-type Fila = { id: string; creadoEn: string; limpiezaEl: string | null; portada: string | null }
+type Fila = {
+  id: string
+  creadoEn: string
+  limpiezaEl: string | null
+  portada: string | null
+  situacion: string
+}
 type Lector = (cursor: Cursor | null) => Promise<Fila[]>
 type Caso = { nombre: string; origen: 'corea' | 'subasta'; condiciones: Condicion[] }
-type Cruda = { id: string; creado_en: string; limpieza_el: string | null }
+type Cruda = { id: string; creado_en: string; limpieza_el: string | null; situacion: string }
 type FilaDeHoy = Cruda & { vehiculos_imagenes: { ruta_miniatura: string }[] }
 type FilaNueva = Cruda & { portada_ruta: string | null }
 
@@ -122,6 +128,14 @@ function casosDe({ fases, categorias, hasta }: TerrenoPostgrest): Caso[] {
     enCorea('no en vitrina sin fases, y «toyota»', vitrina(false, []), buscar('toyota')),
     enSubasta('se limpiará pronto', { tipo: 'por_limpiar', valor: true, hasta }),
     enSubasta('no se limpiará pronto', { tipo: 'por_limpiar', valor: false, hasta }),
+    enSubasta('situación: sin las no ganadas', {
+      tipo: 'situacion_fuera_de',
+      valores: ['no_ganada'],
+    }),
+    enSubasta('situación: fuera de sin resolver y no ganada', {
+      tipo: 'situacion_fuera_de',
+      valores: ['sin_resolver', 'no_ganada'],
+    }),
     enCorea('opción: una', contiene({ [opcion]: 'nafta' })),
     enCorea('opción: varias', contiene({ [opcion]: 'nafta' }, { [opcion]: 'diesel' })),
     enCorea('multi_opcion', contiene({ [lista]: ['rojo'] })),
@@ -161,7 +175,7 @@ function hoy(cliente: Cliente, origen: string, condiciones: Condicion[]): Lector
   return async (cursor) => {
     const base = cliente
       .from('vehiculos')
-      .select('id, creado_en, limpieza_el, vehiculos_imagenes(ruta_miniatura)')
+      .select('id, creado_en, limpieza_el, situacion, vehiculos_imagenes(ruta_miniatura)')
       .eq('origen_id', origen)
       .eq(FILTRO_DE_PORTADA.columna, FILTRO_DE_PORTADA.valor)
     const haciaAtras = cursor?.sentido === 'anterior'
@@ -177,6 +191,7 @@ function hoy(cliente: Cliente, origen: string, condiciones: Condicion[]): Lector
       creadoEn: fila.creado_en,
       limpiezaEl: fila.limpieza_el,
       portada: fila.vehiculos_imagenes[0]?.ruta_miniatura ?? null,
+      situacion: fila.situacion,
     }))
   }
 }
@@ -200,6 +215,7 @@ function nuevo(cliente: Cliente, origen: string, condiciones: Condicion[]): Lect
       creadoEn: fila.creado_en,
       limpiezaEl: fila.limpieza_el,
       portada: fila.portada_ruta,
+      situacion: fila.situacion,
     }))
   }
 }
@@ -233,9 +249,11 @@ async function recorrer(leer: Lector): Promise<Fila[][]> {
   return paginas
 }
 
-// Lo que se compara: el id, su `limpieza_el` y su portada, página por página.
+// Lo que se compara: el id, su `limpieza_el`, su portada y su situación, página por página.
 const comparable = (paginas: Fila[][]) =>
-  paginas.map((filas) => filas.map(({ id, limpiezaEl, portada }) => ({ id, limpiezaEl, portada })))
+  paginas.map((filas) =>
+    filas.map(({ id, limpiezaEl, portada, situacion }) => ({ id, limpiezaEl, portada, situacion })),
+  )
 // Cada fila una vez: el recorrido pasa dos veces por las del medio.
 const unicas = (paginas: Fila[][]) => new Map(paginas.flat().map((una) => [una.id, una]))
 
@@ -279,7 +297,11 @@ test('vehiculos_inventario() da las mismas páginas que lo de hoy por PostgREST,
   const todoCorea = [...unicas(de('la dueña', SIN_FILTROS)).values()]
   expect(todoCorea.filter((fila) => fila.portada !== null)).toHaveLength(3)
   const todaSubasta = [...unicas(de('la dueña', `${SIN_FILTROS} (subasta)`)).values()]
-  expect(todaSubasta).toHaveLength(7)
+  expect(todaSubasta).toHaveLength(11)
+  // Las tres situaciones que filtra el inventario están en el terreno.
+  expect(new Set(todaSubasta.map((fila) => fila.situacion))).toEqual(
+    new Set(['fase', 'sin_resolver', 'no_ganada']),
+  )
   expect(todaSubasta.filter((fila) => fila.limpiezaEl !== null).length).toBeGreaterThanOrEqual(3)
 
   // Cada caso discrimina para la dueña: ni vacío ni todo su origen.

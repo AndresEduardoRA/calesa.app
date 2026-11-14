@@ -1794,6 +1794,7 @@ export type Database = {
           es_final: boolean
           es_inicial: boolean
           es_logistica: boolean
+          es_subasta: boolean
           flujo_id: string
           icono: string | null
           id: string
@@ -1820,6 +1821,7 @@ export type Database = {
           es_final?: boolean
           es_inicial?: boolean
           es_logistica?: boolean
+          es_subasta?: boolean
           flujo_id: string
           icono?: string | null
           id?: string
@@ -1845,6 +1847,7 @@ export type Database = {
           es_final?: boolean
           es_inicial?: boolean
           es_logistica?: boolean
+          es_subasta?: boolean
           flujo_id?: string
           icono?: string | null
           id?: string
@@ -6286,8 +6289,12 @@ export type Database = {
           precio_web_hasta: number | null
           precio_web_nota: string | null
           publicado_web: boolean
+          situacion: string
           subasta_en: string | null
           subasta_fin_en: string | null
+          subasta_resuelta_en: string | null
+          subasta_resuelta_por: string | null
+          subasta_resultado: string | null
           subasta_zona: string | null
           titulo: string
           url_origen: string | null
@@ -6341,8 +6348,12 @@ export type Database = {
           precio_web_hasta?: number | null
           precio_web_nota?: string | null
           publicado_web?: boolean
+          situacion?: string
           subasta_en?: string | null
           subasta_fin_en?: string | null
+          subasta_resuelta_en?: string | null
+          subasta_resuelta_por?: string | null
+          subasta_resultado?: string | null
           subasta_zona?: string | null
           titulo: string
           url_origen?: string | null
@@ -6385,8 +6396,12 @@ export type Database = {
           precio_web_hasta?: number | null
           precio_web_nota?: string | null
           publicado_web?: boolean
+          situacion?: string
           subasta_en?: string | null
           subasta_fin_en?: string | null
+          subasta_resuelta_en?: string | null
+          subasta_resuelta_por?: string | null
+          subasta_resultado?: string | null
           subasta_zona?: string | null
           titulo?: string
           url_origen?: string | null
@@ -6454,6 +6469,13 @@ export type Database = {
             columns: ['origen_id']
             isOneToOne: false
             referencedRelation: 'origenes'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'vehiculos_subasta_resuelta_por_fkey'
+            columns: ['subasta_resuelta_por']
+            isOneToOne: false
+            referencedRelation: 'perfiles'
             referencedColumns: ['id']
           },
         ]
@@ -7544,6 +7566,7 @@ export type Database = {
           fase_id: string
           id: string
           origen_id: string
+          situacion: string
           titulo: string
           vence: string
         }[]
@@ -8035,6 +8058,7 @@ export type Database = {
           es_final: boolean
           es_inicial: boolean
           es_logistica: boolean
+          es_subasta: boolean
           flujo_id: string
           icono: string | null
           id: string
@@ -8084,6 +8108,7 @@ export type Database = {
         Args: { p_ids: string[]; p_lead: string; p_vehiculo: string }
         Returns: undefined
       }
+      _flujo_de_subasta: { Args: { p_flujo: string }; Returns: boolean }
       _flujo_para_editar: {
         Args: { p_actualizado_en_esperado: string; p_flujo: string }
         Returns: {
@@ -9199,6 +9224,8 @@ export type Database = {
         Returns: Database['public']['Enums']['visibilidad_seguimiento']
       }
       _sin_tildes: { Args: { p_texto: string }; Returns: string }
+      _subasta_conflicto: { Args: { p_vehiculo: string }; Returns: undefined }
+      _subasta_puede_resolver: { Args: { p_vehiculo: string }; Returns: string }
       _tabla_referencia_filas_validas: {
         Args: { p_columnas: Json; p_filas: Json }
         Returns: undefined
@@ -9461,8 +9488,12 @@ export type Database = {
           precio_web_hasta: number | null
           precio_web_nota: string | null
           publicado_web: boolean
+          situacion: string
           subasta_en: string | null
           subasta_fin_en: string | null
+          subasta_resuelta_en: string | null
+          subasta_resuelta_por: string | null
+          subasta_resultado: string | null
           subasta_zona: string | null
           titulo: string
           url_origen: string | null
@@ -9486,6 +9517,7 @@ export type Database = {
         Returns: Json
       }
       _vehiculo_de_nota_json: { Args: { p_es_mio: boolean; p_vehiculo: string }; Returns: Json }
+      _vehiculo_en_tramo: { Args: { p_fase: string; p_origen: string }; Returns: boolean }
       _vehiculo_fase_de_entrada: { Args: { p_origen: string; p_vehiculo: string }; Returns: string }
       _vehiculo_instante: {
         Args: { p_clave: string; p_datos: Json; p_nombre: string }
@@ -9534,6 +9566,16 @@ export type Database = {
           >
         }
         Returns: undefined
+      }
+      _vehiculo_situacion: {
+        Args: {
+          p_cierre: string
+          p_estado: Database['public']['Enums']['estado_subasta']
+          p_fase: string
+          p_origen: string
+          p_resultado: string
+        }
+        Returns: string
       }
       _vehiculo_subasta_desde: { Args: { p_raw: Json }; Returns: Json }
       _vehiculo_texto: {
@@ -11369,6 +11411,19 @@ export type Database = {
         }[]
       }
       vehiculo_limpieza: { Args: { p_vehiculo: string }; Returns: Json }
+      vehiculo_subasta_ganada: {
+        Args: {
+          p_fase_destino: string
+          p_fase_esperada?: string
+          p_nota?: string
+          p_vehiculo: string
+        }
+        Returns: number
+      }
+      vehiculo_subasta_no_ganada: {
+        Args: { p_no_ganada: boolean; p_vehiculo: string }
+        Returns: Json
+      }
       vehiculo_subasta_refrescar: {
         Args: {
           p_actualizado_en_esperado: string
@@ -11448,6 +11503,7 @@ export type Database = {
           precio_web_hasta: number
           precio_web_nota: string
           publicado_web: boolean
+          situacion: string
           titulo: string
           url_origen: string
           vin: string
@@ -11482,6 +11538,7 @@ export type Database = {
           visible: boolean
         }[]
       }
+      vehiculos_situacion_al_cerrar: { Args: Record<PropertyKey, never>; Returns: number }
       verificar_telefono: { Args: { p_cc: string; p_tel: string }; Returns: Json }
       verificar_telefono_de_lead: {
         Args: { p_cc: string; p_lead: string; p_tel: string }

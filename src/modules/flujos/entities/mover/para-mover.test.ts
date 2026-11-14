@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type { Permisos } from '@/shared/lib/permisos'
-import { puedeMoverEn, puedeMoverUnRepuesto, unidadDeRepuestoParaMover } from './para-mover'
+import {
+  destinosDeSalidas,
+  destinosIniciales,
+  puedeMoverEn,
+  puedeMoverUnRepuesto,
+  unidadDeRepuestoParaMover,
+} from './para-mover'
 
 const ORIGEN = '11111111-1111-4111-8111-111111111111'
 const OTRO = '22222222-2222-4222-8222-222222222222'
@@ -64,5 +70,33 @@ describe('unidadDeRepuestoParaMover', () => {
     const mala = unidadDeRepuestoParaMover({ id: 'x', fase_id: null })
     expect(mala.ok).toBe(false)
     if (!mala.ok) expect(mala.error.codigo).toBe('inesperado')
+  })
+})
+
+describe('los destinos dicen si son la subasta', () => {
+  const fase = (id: string, orden: number, esSubasta: boolean) => ({
+    id: `00000000-0000-4000-8000-00000000000${id}`,
+    nombre: `F${id}`,
+    color: '#123456',
+    orden,
+    es_subasta: esSubasta,
+  })
+
+  it('las salidas, en el orden de las fases, con esSubasta', () => {
+    const leidos = destinosDeSalidas([
+      { accion: null, nota_obligatoria: false, destino: fase('2', 20, false) },
+      { accion: 'Ganar', nota_obligatoria: true, destino: fase('1', 10, true) },
+    ])
+    expect(leidos.ok && leidos.data.map((d) => [d.nombre, d.esSubasta])).toEqual([
+      ['F1', true],
+      ['F2', false],
+    ])
+  })
+
+  it('las iniciales también; sin es_subasta, la forma no vale', () => {
+    const leidos = destinosIniciales([fase('1', 10, true)])
+    expect(leidos.ok && leidos.data[0]?.esSubasta).toBe(true)
+    const { es_subasta: _sin, ...sinMarca } = fase('1', 10, true)
+    expect(destinosIniciales([sinMarca]).ok).toBe(false)
   })
 })

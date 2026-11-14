@@ -1,7 +1,7 @@
 // Las reglas de una fase al editarla en Configuración › Flujos › Fases (5.04). Son espejo de `_fase_validar()`, `_fase_forma()` y `_fase_unico()`:
 // la base las vuelve a decir, con estos mismos textos y estos mismos campos en el `hint`, si algo llega de otro
 // lado. Aquí sirven para mostrar el error junto al campo sin ir a la base, y para apagar un interruptor que la regla del flujo no deja encender.
-import type { AmbitoDeFlujo, FaseParaConfigurar } from '../flujo'
+import type { AmbitoDeFlujo, FaseParaConfigurar, FlujoParaConfigurar } from '../flujo'
 
 export const LARGO_MAXIMO_DEL_NOMBRE_DE_FASE = 60
 export const LARGO_MAXIMO_DE_LA_DESCRIPCION_DE_FASE = 500
@@ -29,6 +29,7 @@ export const CAMPOS_DE_FASE = [
   'visible_portal',
   'alias_portal',
   'descripcion_portal',
+  'es_subasta',
 ] as const
 export type CampoDeFase = (typeof CAMPOS_DE_FASE)[number]
 
@@ -53,10 +54,19 @@ export const NOMBRE_DE_LA_REGLA: Record<(typeof REGLA_DEL_INTERRUPTOR)[CampoConR
   logistica: 'Logística',
 }
 
-// Lo que el flujo dice de sí mismo: su ámbito y las reglas (también las apagadas).
+// Lo que el flujo dice de sí mismo: su ámbito, las reglas (también las apagadas) y si es el de un origen de subasta (sólo ahí una fase puede ser la
+// subasta).
 export type ContextoDeFase = {
   ambito: AmbitoDeFlujo
   reglas: readonly { regla: string; activa: boolean }[]
+  origenEsSubasta: boolean
+}
+
+// El contexto de las reglas de una fase, sacado del flujo que la contiene.
+export function contextoDelFlujo(
+  flujo: Pick<FlujoParaConfigurar, 'ambito' | 'reglas' | 'origenEsSubasta'>,
+): ContextoDeFase {
+  return { ambito: flujo.ambito, reglas: flujo.reglas, origenEsSubasta: flujo.origenEsSubasta }
 }
 
 export function reglaEncendida(contexto: ContextoDeFase, regla: string): boolean {
@@ -90,6 +100,13 @@ export function motivoDelInterruptor(
     : `La regla «${NOMBRE_DE_LA_REGLA[regla]}» está apagada en este flujo.`
 }
 
+export const MOTIVO_SOLO_EN_SUBASTA = 'Sólo en el flujo de un origen de subasta.'
+
+// Por qué «Es la subasta» no se puede encender, o nulo si se puede. Ya encendido (dato viejo) siempre se puede apagar.
+export function motivoDeEsSubasta(valorActual: boolean, contexto: ContextoDeFase): string | null {
+  return valorActual || contexto.origenEsSubasta ? null : MOTIVO_SOLO_EN_SUBASTA
+}
+
 // Los textos de la base, uno por regla (los mismos que dice `_fase_validar()`).
 export const MENSAJES_DE_FASE = {
   nombreVacio: 'La fase necesita un nombre.',
@@ -106,6 +123,8 @@ export const MENSAJES_DE_FASE = {
   portalApagado: 'El portal del cliente está apagado en este flujo.',
   aduanaApagada: 'La aduana está apagada en este flujo.',
   logisticaApagada: 'La logística está apagada en este flujo.',
+  subastaFinal: 'La subasta no puede ser la fase final.',
+  subastaFueraDeOrigen: 'Sólo una fase del flujo de un origen de subasta puede ser la subasta.',
 } as const
 
 export function nombreRepetido(nombre: string): string {
@@ -131,6 +150,7 @@ export type ValoresDeFase = {
   visiblePortal: boolean
   aliasPortal: string
   descripcionPortal: string
+  esSubasta: boolean
 }
 
 // Lo que la validación aceptó, listo para mandar: los textos recortados y los opcionales vacíos, nulos.
@@ -152,6 +172,7 @@ export type DatosDeFase = {
   visiblePortal: boolean
   aliasPortal: string | null
   descripcionPortal: string | null
+  esSubasta: boolean
 }
 
 export type ErroresDeFase = Partial<Record<CampoDeFase, string>>
@@ -282,11 +303,16 @@ export function validarFase(valores: ValoresDeFase, contexto: ContextoDeFase): V
     ['demora_dias', cuando(!demora.ok, MENSAJES_DE_FASE.demoraMala)],
     ['alerta_cada_horas', errorDeAlerta(alerta)],
     ['es_final', cuando(valores.esInicial && valores.esFinal, MENSAJES_DE_FASE.inicialYFinal)],
+    ['es_subasta', cuando(valores.esSubasta && valores.esFinal, MENSAJES_DE_FASE.subastaFinal)],
     [
       'alias_portal',
       cuando(valores.visiblePortal && alias === null, MENSAJES_DE_FASE.portalSinAlias),
     ],
     ...erroresDeLasReglas(valores, contexto),
+    [
+      'es_subasta',
+      cuando(valores.esSubasta && !contexto.origenEsSubasta, MENSAJES_DE_FASE.subastaFueraDeOrigen),
+    ],
   ]
   const errores: ErroresDeFase = {}
   for (const [campo, mensaje] of candidatos) {

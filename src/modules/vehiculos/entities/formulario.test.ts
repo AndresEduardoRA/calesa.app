@@ -59,6 +59,7 @@ const VEHICULO: Vehiculo = {
   limpiezaEl: null,
   portadaRuta: null,
   estadoSubasta: null,
+  situacion: 'fase',
   creadoPor: null,
   creadoEn: '2026-10-13T12:00:00+00:00',
   actualizadoEn: '2026-10-13T12:00:00+00:00',

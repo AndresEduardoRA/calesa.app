@@ -91,6 +91,19 @@ export const moverSupabase: RepositorioDeMover = {
       return { ok: false, error: { codigo: 'inesperado', mensaje: MENSAJE_INESPERADO } }
     return { ok: true, data: { historialId: data } }
   },
+  ganarLaSubasta: async ({ vehiculoId, faseDestino, faseEsperada, nota }) => {
+    const supabase = await createClient()
+    const { data, error } = await supabase.rpc('vehiculo_subasta_ganada', {
+      p_vehiculo: vehiculoId,
+      p_fase_destino: faseDestino,
+      p_nota: nulo(nota),
+      p_fase_esperada: nulo(faseEsperada),
+    })
+    if (error) return falloDeRpc(error)
+    if (typeof data !== 'number')
+      return { ok: false, error: { codigo: 'inesperado', mensaje: MENSAJE_INESPERADO } }
+    return { ok: true, data: { historialId: data } }
+  },
   cambiarLote: async ({ unidades, faseDestino, nota }) => {
     const supabase = await createClient()
     const { data, error } = await supabase.rpc('cambiar_fase_lote', {
