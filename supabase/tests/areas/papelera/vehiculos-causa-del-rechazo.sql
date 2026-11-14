@@ -9,6 +9,9 @@
 --   VC4. Un vehículo sin nada que lo frene entra, y `_vehiculo_bloqueo` da nulo.
 --   VC5. `_vehiculo_bloqueo` sólo la ejecuta `service_role`.
 
+-- Teléfonos distintos en cada llamada, sin azar (un número fijo chocaría con lo que otra prueba dejó).
+create temp sequence vc_telefono;
+
 create or replace function pg_temp.vc_persona(p_claves text[]) returns uuid language plpgsql as $f$
 declare v_id uuid := gen_random_uuid(); v_rol uuid; c text;
 begin
@@ -92,7 +95,7 @@ begin
 
   -- vinculado
   insert into public.leads (nombre, telefono_principal, creado_por, origen_lead_id, atributos)
-  values ('VC lead', '7281' || lpad((random() * 9999)::int::text, 4, '0'), q, (select id from public.origenes_lead where clave = 'web'), '{}') returning id into l;
+  values ('VC lead', '7281' || lpad(nextval('pg_temp.vc_telefono')::text, 4, '0'), q, (select id from public.origenes_lead where clave = 'web'), '{}') returning id into l;
   v := pg_temp.vc_vehiculo(e);
   update public.vehiculos set lead_id = l where id = v;
   r := pg_temp.vc_rechazo(pg_temp.vc_enviar(q, v));

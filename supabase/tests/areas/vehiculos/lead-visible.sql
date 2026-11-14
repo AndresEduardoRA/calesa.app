@@ -7,6 +7,9 @@
 --   LV3. Corta en 200 ids.
 --   LV4. `anon` no tiene EXECUTE; `authenticated` sí.
 
+-- Teléfonos distintos en cada llamada, sin azar (un número fijo chocaría con lo que otra prueba dejó).
+create temp sequence lv_telefono;
+
 create or replace function pg_temp.lv_persona(p_claves text[], p_alcance public.alcance_permiso) returns uuid language plpgsql as $f$
 declare v_id uuid := gen_random_uuid(); v_rol uuid; c text;
 begin
@@ -23,7 +26,7 @@ create or replace function pg_temp.lv_lead(p_creador uuid) returns uuid language
 declare l uuid;
 begin
   insert into public.leads (nombre, telefono_principal, creado_por, origen_lead_id, atributos)
-  values ('LV lead', '7291' || lpad((random() * 9999)::int::text, 4, '0'), p_creador, (select id from public.origenes_lead where clave = 'web'), '{}')
+  values ('LV lead', '7291' || lpad(nextval('pg_temp.lv_telefono')::text, 4, '0'), p_creador, (select id from public.origenes_lead where clave = 'web'), '{}')
   returning id into l;
   return l;
 end $f$;
