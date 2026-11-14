@@ -354,7 +354,10 @@ begin
     when 'atributo_texto' then
       return format('(v.atributos ->> %s ilike %s)', v_clave, public._vehiculos_inventario_patron(p_i));
     when 'situacion_fuera_de' then
-      return format('(v.situacion <> all (array(select jsonb_array_elements_text(%1$s -> ''valores''))))', c);
+      -- Como el complemento (`= any` de las que quedan) y no como `<> all`: con un arreglo que no es constante el planificador estima `<> all` casi
+      -- nulo (1/ndistinct por elemento) y deja de leer la ruta en orden por su índice; `= any` lo estima casi 1. `situacion` nunca es nula.
+      return format('(v.situacion = any (array(select s from unnest(array[''en_subasta'', ''sin_resolver'', ''no_ganada'', ''fase'']) s '
+        || 'except select jsonb_array_elements_text(%1$s -> ''valores''))))', c);
     else
       raise exception 'La forma del inventario no es válida.' using errcode = '22023', hint = 'forma';
   end case;

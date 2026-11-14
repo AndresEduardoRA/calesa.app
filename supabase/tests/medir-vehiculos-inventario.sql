@@ -75,7 +75,8 @@ union all select (select id from _o where clave = 'b'), 'Medir veh Vera ' || g, 
        timestamptz '2020-01-01 00:00:00+00' + g * interval '400 seconds' + interval '5 seconds', now() from generate_series(1, 1000) g;
 -- Lo que piden los casos: un quinto de lo de Pía en una fase; el atributo `km` en lo de Vera (la mitad ≥ 500).
 create temp table _fase as select id from public.fases order by id limit 1;
-update public.vehiculos set fase_id = (select id from _fase) where titulo like 'Medir veh Pía %' and (substring(titulo from 'Pía (\d+)$'))::int % 5 = 0;
+-- Con los triggers apagados, `fase_desde` va a mano (check vehiculos_fase_desde_coherente: existe si y sólo si hay fase).
+update public.vehiculos set fase_id = (select id from _fase), fase_desde = creado_en where titulo like 'Medir veh Pía %' and (substring(titulo from 'Pía (\d+)$'))::int % 5 = 0;
 update public.vehiculos set atributos = jsonb_build_object('km', (substring(titulo from 'Vera (\d+)$'))::int) where titulo like 'Medir veh Vera %';
 set local session_replication_role = origin;
 grant select on _fase to authenticated;
