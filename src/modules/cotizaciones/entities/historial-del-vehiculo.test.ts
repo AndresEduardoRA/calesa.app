@@ -15,6 +15,11 @@ const fila = (id: string, numero: number, clase: string, perfiles: unknown) => (
   clase,
   creado_en: '2026-10-29T08:00:00.123456+00:00',
   perfiles,
+  a: null as unknown,
+})
+const aprobada = (f: ReturnType<typeof fila>, cotizacion_id: string) => ({
+  ...f,
+  a: { cotizacion_id },
 })
 
 describe('historialDesde: las filas del historial de un vehículo', () => {
@@ -30,6 +35,7 @@ describe('historialDesde: las filas del historial de un vehículo', () => {
         clase: 'final',
         creadoEn: '2026-10-29T08:00:00.123456+00:00',
         autor: 'Gala Guarda',
+        aprobada: false,
       },
       {
         id: ID_1,
@@ -37,8 +43,18 @@ describe('historialDesde: las filas del historial de un vehículo', () => {
         clase: 'preventa',
         creadoEn: '2026-10-29T08:00:00.123456+00:00',
         autor: 'ana.perez',
+        aprobada: false,
       },
     ])
+  })
+
+  it('aprobada si el embebido por el único de cotizaciones_aprobadas trae la fila; sin ella, no', () => {
+    const r = historialDesde([
+      aprobada(fila(ID_1, 1, 'preventa', null), ID_1),
+      fila(ID_2, 2, 'preventa', null),
+    ])
+    expect(r?.map((c) => c.aprobada)).toEqual([true, false])
+    expect(historialDesde([aprobada(fila(ID_1, 1, 'preventa', null), 'x')])).toBeNull()
   })
 
   it('sin autor legible (la persona no está) dice «Sin nombre»', () => {
@@ -69,9 +85,9 @@ describe('autorVisible: cómo se nombra a quien cotizó', () => {
 })
 
 describe('lo que pide la lectura', () => {
-  it('las columnas son sólo las legibles, con el autor embebido por su clave foránea', () => {
+  it('las columnas son sólo las legibles, con el autor y la aprobada embebidos por su clave foránea', () => {
     expect(COLUMNAS_DEL_HISTORIAL).toBe(
-      'id, numero, clase, creado_en, perfiles!cotizaciones_creado_por_fkey(nombre, email)',
+      'id, numero, clase, creado_en, perfiles!cotizaciones_creado_por_fkey(nombre, email), a:cotizaciones_aprobadas!cotizaciones_aprobadas_cotizacion_id_fkey(cotizacion_id)',
     )
     expect(ETIQUETA_DE_CLASE).toEqual({ preventa: 'Preventa', final: 'Final' })
   })

@@ -10,7 +10,7 @@
 --   fechas      una cada 10 minutos hacia atrás en orden revuelto (la más vieja, de hace ≈ 347 días), ninguna en el futuro; con 7 días de vigencia, ≈ 2 % vigentes
 --   contenido   `valores` y `fuentes` de la fórmula publicada de su origen; versión 1, sin padre ni revisiones
 -- Sin `random()` (`scripts/guardas/telefonos-en-pruebas.test.ts`): se revuelve con `(g * 7919) % 50000`, una biyección (7919 es primo y 50.000 sólo tiene los factores 2 y 5).
--- Sin triggers mientras inserta (cada fila auditaría y numeraría). Después, con los triggers, `vehiculos.cotizado_en` lo llena `_vehiculos_cotizado_rellenar()`.
+-- Sin triggers mientras inserta (cada fila auditaría y numeraría). Después, con los triggers, `vehiculos.cotizado_en` lo llena `_vehiculos_cotizado_rellenar()` y las aprobadas `_cotizaciones_aprobadas_rellenar()`.
 -- No usa las temporales de `sembrar.sql`: `volumen_etiquetas` y `volumen_origenes` siguen vivas en esta sesión; las de acá llevan el prefijo `volumen_cot_`.
 \set ON_ERROR_STOP 1
 \timing off
@@ -104,6 +104,9 @@ set local session_replication_role = origin;
 -- `vehiculos.cotizado_en`, con los triggers otra vez encendidos: la cotización más nueva de cada vehículo (también las de la papelera).
 select public._vehiculos_cotizado_rellenar() as vehiculos_cotizados \gset
 
+-- La cotización aprobada (`cotizaciones_aprobadas`): la siembra insertó sin triggers, así que la más antigua activa de cada vehículo vivo la pone el relleno.
+select public._cotizaciones_aprobadas_rellenar() as vehiculos_aprobados \gset
+
 -- Lo que la siembra promete, sin RLS. Las FK no se miraron al insertar (`replica`): se miran acá.
 do $$
 declare v_n int; v_texto text;
@@ -171,9 +174,20 @@ begin
   if exists (select 1 from public.vehiculos where cotizado_en > now()) then
     raise exception 'un vehículo quedó con cotizado_en en el futuro';
   end if;
+  -- La aprobada: exactamente una por vehículo vivo con alguna cotización activa, y apunta a una activa suya.
+  if (select count(*) from public.cotizaciones_aprobadas)
+     <> (select count(distinct c.vehiculo_id) from public.cotizaciones c join public.vehiculos v on v.id = c.vehiculo_id and v.eliminado_en is null
+          where c.eliminado_en is null and c.estado <> 'invalida') then
+    raise exception 'las aprobadas no son exactamente una por vehículo vivo con una cotización activa';
+  end if;
+  if exists (select 1 from public.cotizaciones_aprobadas a left join public.cotizaciones c on c.id = a.cotizacion_id
+              where c.id is null or c.vehiculo_id is distinct from a.vehiculo_id or c.eliminado_en is not null or c.estado = 'invalida') then
+    raise exception 'una aprobada sembrada no apunta a una cotización activa de su vehículo';
+  end if;
 end $$;
 
 select 'sembrado|cotizaciones|' || count(*) from public.cotizaciones where titulo like 'Volumen cotización %';
 select 'sembrado|vehiculos_cotizados|' || :'vehiculos_cotizados';
+select 'sembrado|vehiculos_aprobados|' || :'vehiculos_aprobados';
 select 'sembrado|cotizaciones_ms|' || round(extract(epoch from clock_timestamp() - :'t0_cot'::timestamptz) * 1000);
 commit;

@@ -16,6 +16,10 @@ export { MAXIMO_DE_PAGINA_DE_VEHICULOS } from './entities/vehiculo'
 // De dónde se lee una página del inventario: quien ve «propios» por `vehiculos_inventario()`, el resto por la tabla (4.16-2b)
 export { fuenteDelInventario, type FuenteDelInventario } from './entities/fuente-del-inventario'
 export type { Vehiculo } from './entities/vehiculo'
+export type {
+  AprobadasDeLaPagina,
+  CotizacionAprobadaDeLaFila,
+} from './entities/cotizacion-aprobada-de-la-fila'
 // Qué nombra a un vehículo: su campo principal o su título (6.13). Logística lo compone con el principal de `origenes`
 export {
   identidadDeVehiculo,

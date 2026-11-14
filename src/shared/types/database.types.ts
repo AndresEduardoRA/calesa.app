@@ -993,6 +993,48 @@ export type Database = {
           },
         ]
       }
+      cotizaciones_aprobadas: {
+        Row: {
+          actualizado_en: string
+          cotizacion_id: string
+          creado_por: string
+          lead_id: string | null
+          moneda: string
+          monto: number | null
+          origen_id: string
+          vehiculo_id: string
+        }
+        ComputedFields: never
+        Insert: {
+          actualizado_en?: string
+          cotizacion_id: string
+          creado_por: string
+          lead_id?: string | null
+          moneda: string
+          monto?: number | null
+          origen_id: string
+          vehiculo_id: string
+        }
+        Update: {
+          actualizado_en?: string
+          cotizacion_id?: string
+          creado_por?: string
+          lead_id?: string | null
+          moneda?: string
+          monto?: number | null
+          origen_id?: string
+          vehiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'cotizaciones_aprobadas_cotizacion_id_fkey'
+            columns: ['cotizacion_id']
+            isOneToOne: true
+            referencedRelation: 'cotizaciones'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       cotizaciones_comentarios: {
         Row: {
           actualizado_en: string
@@ -7477,6 +7519,9 @@ export type Database = {
         }[]
       }
       _apibara_ruta_ignorada: { Args: { p_ruta: string }; Returns: boolean }
+      _aprobada_candado: { Args: { p_vehiculos: string[] }; Returns: undefined }
+      _aprobada_poner: { Args: { p_cotizacion: string; p_vehiculo: string }; Returns: undefined }
+      _aprobada_reponer: { Args: { p_vehiculo: string }; Returns: undefined }
       _atributos_completar: {
         Args: {
           p_activas: string[]
@@ -7695,6 +7740,7 @@ export type Database = {
         Returns: Json
       }
       _cotizacion_modo: { Args: { p_formula: string; p_modo_tc: string }; Returns: Json }
+      _cotizacion_primer_resultado: { Args: { p_totales: Json }; Returns: Record<string, unknown> }
       _cotizacion_puede_guardar: {
         Args: {
           p_clase: Database['public']['Enums']['clase_cotizacion']
@@ -7724,6 +7770,7 @@ export type Database = {
       }
       _cotizacion_vehiculo: { Args: { p_vehiculo: string }; Returns: undefined }
       _cotizacion_ver_total_bs: { Args: { p_formula: string; p_ver: boolean }; Returns: undefined }
+      _cotizaciones_aprobadas_rellenar: { Args: Record<PropertyKey, never>; Returns: number }
       _cotizaciones_papelera_lote_json: {
         Args: {
           p_dias: number
@@ -9774,6 +9821,10 @@ export type Database = {
         Returns: Json
       }
       cotizacion_adjunto_quitar: { Args: { p_adjunto: string }; Returns: Json }
+      cotizacion_aprobar: {
+        Args: { p_actualizado_en_esperado: string; p_cotizacion: string }
+        Returns: Json
+      }
       cotizacion_comentar: {
         Args: { p_cotizacion: string; p_cuerpo: string; p_padre: string }
         Returns: Json

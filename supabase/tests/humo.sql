@@ -6836,3 +6836,51 @@ begin
   reset role;
 end $$;
 rollback;
+
+-- @test cotizaciones: la aprobada de un vehículo la lee quien ve esa cotización (propios: la suya) y no quien no la ve; nadie la escribe directo (policy «cotizaciones_aprobadas: leer», B4)
+begin;
+do $$
+declare
+  v_ana uuid := '00000000-0000-4000-8000-000000130001'; v_otra uuid := '00000000-0000-4000-8000-000000130002';
+  v_rol uuid; v_o uuid; v_f uuid; v_v uuid; v_c uuid; v_n integer; v_codigo text;
+begin
+  insert into auth.users (id, email, raw_app_meta_data) values (v_ana, 'humo.aprobada.ana@ejemplo.com', '{"invitado": true}'), (v_otra, 'humo.aprobada.otra@ejemplo.com', '{"invitado": true}');
+  delete from public.usuarios_roles where usuario_id in (v_ana, v_otra);
+  insert into public.roles (clave, nombre) values ('humo_aprobada', 'Humo aprobada') returning id into v_rol;
+  insert into public.usuarios_roles (usuario_id, rol_id, es_principal) values (v_ana, v_rol, true), (v_otra, v_rol, true);
+  insert into public.roles_permisos (rol_id, permiso_clave, alcance) values (v_rol, 'cotizaciones.ver', 'propios');
+  insert into public.origenes (clave, nombre) values ('humo_aprobada', 'Humo aprobada') returning id into v_o;
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad)
+  values (v_o, 1, 'publicada', '{"nodos": []}', '{}', '{}', '{}') returning id into v_f;
+  insert into public.vehiculos (origen_id, titulo, marca) values (v_o, 'Humo aprobada', 'toyota') returning id into v_v;
+  insert into public.cotizaciones (origen_id, creado_por, formula_id, vehiculo_id, valores, fuentes, tipos_cambio, totales, total_base)
+  values (v_o, v_ana, v_f, v_v, '{}', '{}', '{}', '{"usd": 10}', 10) returning id into v_c;
+  set constraints public.trg_cotizaciones_aprobadas_al_confirmar immediate;
+  set constraints public.trg_cotizaciones_aprobadas_al_confirmar deferred;
+  perform set_config('request.jwt.claim.sub', v_ana::text, true);
+  perform set_config('request.jwt.claim.role', 'authenticated', true);
+  set local role authenticated;
+  select count(*) into v_n from public.cotizaciones_aprobadas where vehiculo_id = v_v and cotizacion_id = v_c and monto = 10 and moneda = 'USD';
+  if v_n <> 1 then raise exception 'quien creó la cotización no leyó su aprobada (%)', v_n; end if;
+  begin
+    update public.cotizaciones_aprobadas set monto = 1 where vehiculo_id = v_v;
+    v_codigo := 'sin error';
+  exception when others then v_codigo := sqlstate;
+  end;
+  if v_codigo <> '42501' then raise exception 'el update directo de cotizaciones_aprobadas dio %', v_codigo; end if;
+  reset role;
+  perform set_config('request.jwt.claim.sub', v_otra::text, true);
+  set local role authenticated;
+  select count(*) into v_n from public.cotizaciones_aprobadas where vehiculo_id = v_v;
+  if v_n <> 0 then raise exception 'quien no ve la cotización leyó su aprobada (%)', v_n; end if;
+  reset role;
+  set local role anon;
+  begin
+    perform 1 from public.cotizaciones_aprobadas limit 1;
+    v_codigo := 'sin error';
+  exception when others then v_codigo := sqlstate;
+  end;
+  if v_codigo <> '42501' then raise exception 'anon leyó cotizaciones_aprobadas (%)', v_codigo; end if;
+  reset role;
+end $$;
+rollback;

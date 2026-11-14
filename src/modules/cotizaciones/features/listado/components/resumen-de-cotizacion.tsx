@@ -10,7 +10,7 @@ import { Monto } from '@/shared/ui/monto'
 import { useRegional } from '@/shared/ui/regional'
 import { Skeleton } from '@/shared/ui/skeleton'
 import { useUltimo } from '@/shared/ui/use-ultimo'
-import { ETIQUETA_DE_CLASE } from '../../../entities/historial-del-vehiculo'
+import { ETIQUETA_DE_APROBADA, ETIQUETA_DE_CLASE } from '../../../entities/historial-del-vehiculo'
 import { rutaDeLaCotizacion } from '../../../entities/ruta-de-la-hoja'
 import {
   MENSAJE_DE_COTIZACION_NO_DISPONIBLE,
@@ -58,6 +58,7 @@ function DetalleDeLaCotizacion({ cotizacion }: { cotizacion: FilaDeCotizacion })
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <Badge variant="secondary">{ETIQUETA_DE_CLASE[cotizacion.clase]}</Badge>
+        {cotizacion.aprobada ? <Badge variant="secondary">{ETIQUETA_DE_APROBADA}</Badge> : null}
         <Vigencia venceEl={cotizacion.venceEl} vencida={cotizacion.vencida} />
       </div>
       {cotizacion.titulo ? (

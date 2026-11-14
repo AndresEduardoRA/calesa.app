@@ -7,6 +7,7 @@ import {
   filasConNombres,
   idDelResumen,
   idsDe,
+  leerAprobadasDeCotizaciones,
   leerAutoresDeCotizaciones,
   leerListadoDeCotizaciones,
   leerUnaDelListado,
@@ -47,14 +48,21 @@ export default function PaginaDeCotizaciones({ searchParams }: PageProps<'/cotiz
 
 // Los nombres de unas filas, una vez y por clave primaria: el cliente sólo con `leads.ver`; lo que quien mira no ve no llega y se dibuja «—».
 async function nombresDe(permisos: Permisos, filas: readonly FilaDelListado[]) {
-  const [clientes, vehiculos, autores] = await Promise.all([
+  const [clientes, vehiculos, autores, aprobadas] = await Promise.all([
     puede(permisos, 'leads.ver')
       ? leerNombresDeLeads(idsDe(filas, 'leadId'))
       : Promise.resolve({ ok: true as const, data: new Map<string, string>() }),
     leerTitulosDeVehiculos(idsDe(filas, 'vehiculoId')),
     leerAutoresDeCotizaciones(idsDe(filas, 'creadoPor')),
+    // Cuáles son la aprobada de su vehículo: por el único de `cotizaciones_aprobadas`, con la RLS de quien mira.
+    leerAprobadasDeCotizaciones(filas.map((fila) => fila.id)),
   ])
-  return { clientes: datosO(clientes), vehiculos: datosO(vehiculos), autores: datosO(autores) }
+  return {
+    clientes: datosO(clientes),
+    vehiculos: datosO(vehiculos),
+    autores: datosO(autores),
+    aprobadas: datosO(aprobadas),
+  }
 }
 
 // Con `?lead=`, de quién son estas cotizaciones: el nombre sólo con `leads.ver` y si la lectura lo devuelve (la RLS de leads); si no, nulo, sin distinguir un lead que no existe de uno que no

@@ -3,6 +3,7 @@ import type { Entradas, IndiceDeHoja } from './entradas'
 import type { CeldaDeHoja, ItemDeHoja, MotivoDeCandado, NodoDeTarjeta, SeccionDeHoja } from './hoja'
 import type { Estado } from './motor-contexto'
 import type { Formato } from './nodos'
+import { primerResultado } from './primer-resultado'
 import type { RespuestaDeRecalculo } from './recalculo'
 import { textoDelFaltante } from './textos-de-faltantes'
 
@@ -251,10 +252,10 @@ export function totalDelResumen(c: ContextoDeHoja): TotalDelResumen {
   if (c.respuesta === null) {
     return { tipo: 'sin_calcular' }
   }
-  const usd = c.respuesta.totales.usd
-  return usd === null
+  const { monto } = primerResultado(c.respuesta.totales)
+  return monto === null
     ? { tipo: 'faltante', motivo: motivoDeSinTotal(c.respuesta, c.indice) }
-    : { tipo: 'valor', usd }
+    : { tipo: 'valor', usd: monto }
 }
 
 export type SecundarioDelResumen = NodoDeTarjeta & { valor: number }

@@ -1,5 +1,9 @@
 'use client'
 
+import {
+  aprobadaDeLaFila,
+  type AprobadasDeLaPagina,
+} from '../../../entities/cotizacion-aprobada-de-la-fila'
 import { columnaDePrecio, precioDeLaFila } from '../../../entities/precio-de-la-fila'
 import { CasillaDeSeleccion } from '../../papelera/components/casilla-de-seleccion'
 import type { SeleccionDelListado } from '../../papelera/hooks/use-papelera-del-listado'
@@ -24,6 +28,8 @@ type Props = DatosDelOrigen & {
   alAbrir: (id: string) => void
   // El vehículo abierto en el resumen, para marcarlo.
   abierto: string | null
+  // Su cotización aprobada por vehículo; nulo = quien mira no ve cotizaciones: no se dibuja.
+  aprobadas: AprobadasDeLaPagina | null
   // En escritorio (sólo hay tarjetas si la persona las eligió): en grilla, más grandes y con el carrusel en la foto.
   grande: boolean
 }
@@ -43,6 +49,7 @@ export function TarjetasDeVehiculos(props: Props) {
     alAbrir,
     abierto,
     grande,
+    aprobadas,
   } = props
   const identidadDe = useIdentidad(campos)
   const columnaPrecio = columnaDePrecio(origen.tipo === 'subasta', campos)
@@ -63,6 +70,7 @@ export function TarjetasDeVehiculos(props: Props) {
             campos={campos}
             fase={fase}
             precio={precioDeLaFila(vehiculo, columnaPrecio)}
+            aprobada={aprobadas === null ? null : aprobadaDeLaFila(aprobadas, vehiculo.id)}
             grande={grande}
             abierta={abierto === vehiculo.id}
             alAbrir={() => {

@@ -13,7 +13,11 @@ import { Button } from '@/shared/ui/button'
 import { EstadoError, EstadoVacio } from '@/shared/ui/estados'
 import { useRegional } from '@/shared/ui/regional'
 import { Skeleton } from '@/shared/ui/skeleton'
-import { ETIQUETA_DE_CLASE, type ListaDe } from '../../../entities/historial-del-vehiculo'
+import {
+  ETIQUETA_DE_APROBADA,
+  ETIQUETA_DE_CLASE,
+  type ListaDe,
+} from '../../../entities/historial-del-vehiculo'
 import { rutaDeLaCotizacion, rutaDelListado } from '../../../entities/ruta-de-la-hoja'
 import type { PaginasDelHistorial } from '../hooks/use-paginas-del-historial'
 
@@ -66,6 +70,11 @@ export function ListaDelHistorial({ historial, de, etiqueta, esperarEsqueleto = 
               · {cotizacion.autor}
             </Link>
             <Badge className="shrink-0">{ETIQUETA_DE_CLASE[cotizacion.clase]}</Badge>
+            {cotizacion.aprobada ? (
+              <Badge variant="secondary" className="shrink-0">
+                {ETIQUETA_DE_APROBADA}
+              </Badge>
+            ) : null}
           </li>
         ))}
       </ul>

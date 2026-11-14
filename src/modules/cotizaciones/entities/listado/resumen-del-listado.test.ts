@@ -30,6 +30,7 @@ const cotizacion = (id: string): CotizacionDelListado => ({
   cliente: null,
   vehiculo: null,
   autor: 'Ana',
+  aprobada: false,
 })
 
 describe('constantes', () => {

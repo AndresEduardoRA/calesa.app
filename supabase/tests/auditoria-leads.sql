@@ -146,6 +146,8 @@ declare
     ('comprobante_emitir(uuid,timestamp with time zone)', 'X'),
     -- Moderar (4.27-1): recibe una cotización, no un lead; pide ver (antes y con la fila tomada), moderar y, en una final, final.gestionar del origen; su matriz, `areas/comentarios/reportar-y-moderar.sql`.
     ('cotizacion_moderar(uuid,timestamp with time zone,estado_cotizacion)', 'X'),
+    -- Aprobar (B4): recibe una cotización, no un lead; pide verla (antes y con la fila tomada) y `cotizaciones.aprobar` del origen; sólo copia `lead_id` a `cotizaciones_aprobadas` (la policy que espeja «cotizaciones: leer»); `areas/aprobada/aprobar.sql`.
+    ('cotizacion_aprobar(uuid,timestamp with time zone)', 'X'),
     -- Comentarios y adjuntos (4.27-1): reciben una cotización, no un lead, y piden verla (`puede_cotizacion`); sus pruebas, `areas/comentarios/`.
     ('cotizacion_puede_adjuntar(uuid)', 'L'),
     ('cotizacion_comentarios(uuid,timestamp with time zone,uuid,integer,integer)', 'L'),

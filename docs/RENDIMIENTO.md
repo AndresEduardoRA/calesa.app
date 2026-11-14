@@ -307,8 +307,8 @@ vista (`UnaSolaVista`, según el `user-agent`).
   las 100 filas llenas de la siembra, ≤ 4.650 nodos y 55.500 B gz (`listas-por-pagina-volumen.spec.ts`). Las columnas «Último seguimiento» y «Recordatorio» pesan
   ~7 nodos y ~70 B comprimidos por fila llena (100 filas llenas: 4.035 nodos y 52,9 KB en escritorio; 4.419 nodos y 51,2 KB en celular). Es lo que el listado
   dice de cada lead; bajarlo pide un máximo de 50 por página.
-- Inventario de vehículos: 100; ≤ 6.000 nodos y 60.000 B gz.
-- Listado de cotizaciones: 100; ≤ 2.130 nodos y 39.500 B gz.
+- Inventario de vehículos: 100; ≤ 6.000 nodos y 63.000 B gz (60.000 + 5 % por la columna «Cotización aprobada»: 61,2 KB con 100 filas; las props son un `Record` por id de vehículo con la ruta, el monto y la moneda de su aprobada).
+- Listado de cotizaciones: 100; ≤ 2.200 nodos (2.130 + 3 % por la insignia «Aprobada»: 2.147 en escritorio) y 39.500 B gz.
 - Sin selector: las papeleras (5 lotes × 20), «Ver más» de seguimientos y recordatorios, la columna del kanban (50, tope 500,
   `TAMANO_DE_COLUMNA`) y las listas de tope fijo.
 - En la base cada RPC con tamaño acota con `_acotar_pagina(pedido, por_defecto, máximo)`: seguimientos y recordatorios 20 hasta 50;
@@ -551,8 +551,15 @@ fallar.
   La sección «Cotizaciones» de la ficha del lead (PostgREST, `lead_id = …`, `TAMANO_DE_VER_MAS` + 1, mismo archivo): la dueña ≤ 10 ms, Ana
   ≤ 50 con su cartera y ≤ 100 con el ajeno. Se lee al abrir la sección, con `diferido()` en su `diferidos.tsx`;
   `e2e/leads-cotizaciones.spec.ts`: ≤ 5.250 B, ≤ 65 nodos con 20 y ≤ 1.576 con 500, la 25.ª igual que la 1.ª.
+  **La cotización aprobada** (`cotizaciones_aprobadas`, una fila por vehículo; `medir-cotizaciones-aprobadas.sql`, `db:medir:volumen`): tres lecturas por página, todas
+  de ≤ 100 ids, una consulta y `.limit(ids.length)`, en paralelo con lo que ya se lee: la lista de vehículos por `cotizaciones_aprobadas_pkey (vehiculo_id)`, el
+  listado de cotizaciones por el único `cotizaciones_aprobadas_cotizacion_id_key` y el historial (embebido en su misma lectura, con el alias `a` por los bytes de
+  `TOPE_DE_BYTES`); más la marca de la guardada por clave primaria, tras `<Suspense>`. Con 50.000 cotizaciones: la dueña ≤ 10 ms y ≤ 600 buffers (medido 1,1 ms y
+  247), sin `Seq Scan`; Ana, sin assert. La reposición al confirmar (`_aprobada_reponer()`, un vehículo con 100 y otro con 1.000 cotizaciones) lee 4 bloques de
+  `cotizaciones` en los dos casos (`cotizaciones_vehiculo_creado_idx` hacia atrás, la primera fila): no crece con N. La siembra de volumen llama
+  `_cotizaciones_aprobadas_rellenar()` (inserta sin triggers). `/cotizaciones/[id]`: 453,7 de 460 KB (+1,5 por la isla, sin Base UI nuevo).
   La pantalla (`e2e/cotizaciones-listado.spec.ts`, `e2e/listas-por-pagina-volumen.spec.ts`): una vista, 8 columnas, el máximo sin pedidos
-  del navegador ni acciones: ≤ 39.500 B y ≤ 2.130 nodos; diez «Siguiente» no los suben. El resumen `?cotizacion=`: abrir desde la fila no
+  del navegador ni acciones: ≤ 39.500 B y ≤ 2.200 nodos; diez «Siguiente» no los suben. El resumen `?cotizacion=`: abrir desde la fila no
   pide nada; fuera de la página cuesta un pedido por `cotizaciones_pkey` y un `cotizaciones_listado()` de tamaño 1, más sus tres nombres.
   `router.refresh()` sólo si la URL trae una que nadie trajo (una vez por id) y en cada «Reintentar». Los nombres de la página (cliente,
   vehículo, autor) son tres lecturas por PK de ≤ 100 ids en paralelo (`leads_vista_por_ids`, `vehiculos_pkey`, `perfiles_pkey`): límite sin

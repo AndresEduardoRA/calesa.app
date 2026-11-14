@@ -28,6 +28,7 @@ const fila = (i: number) => ({
   clase: 'preventa',
   creado_en: `2026-10-29T08:${String(59 - i).padStart(2, '0')}:00+00:00`,
   perfiles: { nombre: 'Gala Guarda', email: 'g@x.com' },
+  a: null,
 })
 
 describe('leerHistorialDelVehiculo: el historial desde el navegador', () => {

@@ -11,6 +11,11 @@ import {
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table'
 import { camposDeTarjeta, type CampoDeVehiculo } from '../../../entities/campo'
 import {
+  aprobadaDeLaFila,
+  ENCABEZADO_DE_LA_APROBADA,
+  type AprobadasDeLaPagina,
+} from '../../../entities/cotizacion-aprobada-de-la-fila'
+import {
   columnaDePrecio,
   precioDeLaFila,
   type ColumnaDePrecio,
@@ -31,6 +36,7 @@ import {
   type FilaDeVehiculo,
   type ParaElMenuDeLaLista,
 } from './tipos'
+import { CeldaDeAprobada } from './celda-de-aprobada'
 import { CeldaDePrecio, EncabezadoDePrecio } from './precio-de-la-fila'
 import { ValorDeCampo } from './valor-de-campo'
 import { FotosEnElLugar } from '../../fotos/components/fotos-en-el-lugar'
@@ -47,6 +53,8 @@ type Props = DatosDelOrigen & {
   alAbrir: (id: string) => void
   // El vehículo abierto en el resumen, para marcarlo.
   abierto: string | null
+  // Su cotización aprobada por vehículo; nulo = quien mira no ve cotizaciones: la columna no se dibuja.
+  aprobadas: AprobadasDeLaPagina | null
 }
 
 const VACIO = <span className="text-(--color-ink-faint)">—</span>
@@ -56,7 +64,15 @@ const HUECO_DE_CASILLA = <span aria-hidden className="size-[44px] shrink-0 md:si
 
 type PropsDeFila = Pick<
   Props,
-  'origen' | 'fases' | 'vitrina' | 'limpiezaHoy' | 'menu' | 'seleccion' | 'alAbrir' | 'abierto'
+  | 'origen'
+  | 'fases'
+  | 'vitrina'
+  | 'limpiezaHoy'
+  | 'menu'
+  | 'seleccion'
+  | 'alAbrir'
+  | 'abierto'
+  | 'aprobadas'
 > & {
   vehiculo: FilaDeVehiculo
   // Lo que lo nombra: su campo principal (con el título debajo) o su título.
@@ -106,6 +122,7 @@ function FilaDeTabla({
   seleccion,
   alAbrir,
   abierto,
+  aprobadas,
   conMenu,
 }: PropsDeFila) {
   const fase = faseDe(fases, vehiculo.faseId)
@@ -150,6 +167,11 @@ function FilaDeTabla({
       <TableCell className="text-right">
         <CeldaDePrecio precio={precioDeLaFila(vehiculo, columnaPrecio)} />
       </TableCell>
+      {aprobadas === null ? null : (
+        <TableCell className="text-right">
+          <CeldaDeAprobada aprobada={aprobadaDeLaFila(aprobadas, vehiculo.id)} />
+        </TableCell>
+      )}
       {columnas.map((campo) => (
         <TableCell key={campo.clave} className="max-w-48 truncate">
           <ValorDeCampo campo={campo} valor={vehiculo.atributos[campo.clave]} />
@@ -194,6 +216,9 @@ export function TablaDeVehiculos({ vehiculos, campos, encabezado, ...resto }: Pr
           <TableHead className="text-right">
             <EncabezadoDePrecio columna={columnaPrecio} />
           </TableHead>
+          {resto.aprobadas === null ? null : (
+            <TableHead className="text-right">{ENCABEZADO_DE_LA_APROBADA}</TableHead>
+          )}
           {columnas.map((campo) => (
             <TableHead key={campo.clave}>{campo.etiqueta}</TableHead>
           ))}

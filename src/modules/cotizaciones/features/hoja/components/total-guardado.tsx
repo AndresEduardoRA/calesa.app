@@ -1,6 +1,7 @@
 'use client'
 
 import { Monto } from '@/shared/ui/monto'
+import { MONEDA_DEL_PRIMER_RESULTADO } from '../../../entities/primer-resultado'
 
 type Props = {
   // El total con que se guardó la cotización (`totales.usd`); nulo, no había.
@@ -25,7 +26,11 @@ export function TotalGuardado({ totalUsd, hayAviso, muestraElTotal, puedeGuardar
         <p className="flex flex-wrap items-baseline justify-between gap-x-4 text-(length:--text-sm) text-(--color-ink-soft)">
           <span>Total guardado</span>
           <strong data-total-cotizado="" className="font-semibold text-(--color-ink) tabular-nums">
-            {totalUsd === null ? '—' : <Monto valor={totalUsd} moneda="USD" />}
+            {totalUsd === null ? (
+              '—'
+            ) : (
+              <Monto valor={totalUsd} moneda={MONEDA_DEL_PRIMER_RESULTADO} />
+            )}
           </strong>
         </p>
       ) : null}

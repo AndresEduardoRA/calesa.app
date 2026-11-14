@@ -172,6 +172,11 @@ export const MEDICIONES_CON_VOLUMEN = [
     'mediana de 5 de 7 corridas',
   ],
   [
+    'supabase/tests/medir-cotizaciones-aprobadas.sql',
+    'La cotización aprobada con 50.000 cotizaciones, como authenticated y con el plan genérico: la lectura de 100 ids por vehículo (clave primaria) y por cotización (único) de la dueña y de Ana, sin recorrer la tabla (ms y buffers del EXPLAIN); y la reposición al confirmar sobre un vehículo con 100 y otro con 1.000 cotizaciones (los bloques de cotizaciones no crecen)',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
     'supabase/tests/medir-lead-oportunidades.sql',
     'Las oportunidades de un lead por cursor con 1.000 en el lead (500 abiertas y 500 cerradas) y 20.000 de fondo, como authenticated y con el plan genérico: la página 1, una profunda de las abiertas, el paso de abiertas a cerradas y una profunda de las cerradas de Ana, por oportunidades_lead_abiertas_idx y oportunidades_lead_cerradas_idx (ms y bloques por relación de la llamada real; el plan de cada ruta)',
     'mediana de 5 de 7 corridas',

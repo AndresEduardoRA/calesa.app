@@ -30,6 +30,7 @@ import type { Permisos } from '@/shared/lib/permisos'
 import { leerCursor, leerPorPagina, tamanoDePagina, tamanosHasta } from '@/shared/lib/paginacion'
 import { unParametro } from '@/shared/lib/rutas'
 import { EstadoSinPermiso } from '@/shared/ui/estados'
+import { aprobadasDeLaPagina } from './aprobadas'
 import { vehiculoEnEdicion } from './edicion'
 
 export const metadata: Metadata = { title: 'Vehículos' }
@@ -47,6 +48,21 @@ function vistasDeOrigenesVisibles<
 >(vistas: readonly V[], visibles: readonly { id: string }[]): V[] {
   const ids = new Set(visibles.map((uno) => uno.id))
   return vistas.filter((vista) => ids.has(vista.params['origen'] ?? ''))
+}
+
+// Lo que se pregunta por una página ya leída, sólo por sus ids: quién ofrece «Editar» y a quién se puede elegir para la papelera; de los que se pueden enviar a la papelera y tienen lead,
+// cuáles se pueden abrir (casi siempre ninguno, y entonces no se pregunta); y la cotización aprobada de cada vehículo (una consulta por clave primaria, sólo con `cotizaciones.ver`).
+async function deLaPagina(
+  sesion: Awaited<ReturnType<typeof requerirSesion>>,
+  filas: Parameters<typeof editablesDe>[1],
+) {
+  const [editables, eliminables, aprobadas] = await Promise.all([
+    editablesDe(sesion, filas),
+    eliminablesDe(sesion, filas),
+    aprobadasDeLaPagina(sesion.permisos, filas),
+  ])
+  const leadsVisibles = await leadsVisiblesDe(sesion, filas, eliminables)
+  return { editables, eliminables, leadsVisibles, aprobadas }
 }
 
 // El inventario, una pestaña por origen. Las pestañas son los orígenes donde la persona tiene
@@ -103,14 +119,10 @@ export default async function PaginaVehiculos({ searchParams }: PageProps<'/vehi
     vehiculoEnEdicion(parametros, sesion, origen.id),
   ])
   const pagina = datosO(leida)
-  // Quién ofrece «Editar» y a quién se puede elegir para la papelera: de los de esta página, y
-  // sólo por ellos se le pregunta a la base.
-  const [editables, eliminables] = await Promise.all([
-    editablesDe(sesion, pagina.filas),
-    eliminablesDe(sesion, pagina.filas),
-  ])
-  // De los que se pueden enviar a la papelera y tienen lead, cuáles se pueden abrir: casi siempre ninguno, y entonces no se pregunta.
-  const leadsVisibles = await leadsVisiblesDe(sesion, pagina.filas, eliminables)
+  const { editables, eliminables, leadsVisibles, aprobadas } = await deLaPagina(
+    sesion,
+    pagina.filas,
+  )
   return (
     <ListadoDeVehiculos
       origenes={visibles}
@@ -128,6 +140,7 @@ export default async function PaginaVehiculos({ searchParams }: PageProps<'/vehi
       leadsVisibles={[...leadsVisibles]}
       alcance={alcanceDeAvisos(sesion.permisos, origen.id)}
       verPapelera={puedeAbrirLaPapelera(sesion.permisos)}
+      aprobadas={aprobadas}
       verInteresados={puede(sesion.permisos, 'leads.ver')}
       publicar={permisoDeVitrina(sesion.permisos, origen)}
       paraCotizar={paraCotizarDe(sesion.permisos, origen)}

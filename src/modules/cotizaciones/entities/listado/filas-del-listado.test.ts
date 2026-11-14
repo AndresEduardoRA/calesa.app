@@ -50,6 +50,7 @@ describe('filasConNombres', () => {
     clientes: new Map([[L1, 'Carla Núñez']]),
     vehiculos: new Map([[V1, 'Toyota Hilux 2020']]),
     autores: new Map([[P1, 'Ana']]),
+    aprobadas: new Set(['b']),
   }
 
   it('suma el cliente, el vehículo y el autor, y conserva el orden de la página', () => {
@@ -67,6 +68,11 @@ describe('filasConNombres', () => {
     const salida = filasConNombres([fila('a', { leadId: V1, vehiculoId: L1 }), fila('b')], nombres)
     expect(salida[0]).toMatchObject({ cliente: null, vehiculo: null })
     expect(salida[1]).toMatchObject({ cliente: null, vehiculo: null })
+  })
+
+  it('marca como aprobada sólo la que la lectura nombró', () => {
+    const salida = filasConNombres([fila('a'), fila('b')], nombres)
+    expect(salida.map((f) => f.aprobada)).toEqual([false, true])
   })
 
   it('un autor que no llegó se llama «Sin nombre»', () => {
