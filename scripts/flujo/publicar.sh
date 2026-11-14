@@ -10,7 +10,7 @@
 #    Si esta misma punta ya se integró en un PR (se vuelve a correr tras un corte), no abre otro: lo dice y sale con 0.
 # 4. Espera (hasta ESPERA_MAX s, 5400) al check «Listo · todo en verde»: integrado → vuelve a main al día (en un worktree, a
 #    origin/main suelto: main es de la principal) y borra las ramas ya integradas; atrasada respecto de main (otro PR se integró
-#    antes) → `gh pr update-branch` y el CI vuelve a correr, con el orden de migraciones contra el main nuevo;
+#    antes) → `PUT …/pulls/<n>/update-branch` y el CI vuelve a correr, con el orden de migraciones contra el main nuevo;
 #    rojo → dice qué job cayó y sale con 1 (se arregla, se commitea y se vuelve a correr). `--sin-esperar` sale tras el 3.
 # Sale con 64 si no hay qué publicar o falta algo; con 1 si el CI cayó; con 75 si se agotó la espera (el PR sigue su curso solo).
 set -euo pipefail
@@ -103,7 +103,12 @@ while :; do
   fi
   # main exige la rama al día (otro PR se integró antes): GitHub la pone al día con un merge, nunca fuerza; como mucho cada 10 min.
   if [ "$(jq -r '.mergeStateStatus // ""' <<<"$ESTADO")" = BEHIND ] && [ "$(date +%s)" -ge "$PUESTA" ]; then
-    gh pr update-branch "$PR" >/dev/null 2>&1 && echo "· main avanzó: rama puesta al día con un merge; el CI vuelve a correr."
+    # Por la API y no `gh pr update-branch`: ese subcomando no existe en el gh de algunas máquinas (2.46) y el fallo se tragaba en silencio.
+    if gh api -X PUT "repos/{owner}/{repo}/pulls/$PR/update-branch" >/dev/null 2>&1; then
+      echo "· main avanzó: rama puesta al día con un merge; el CI vuelve a correr."
+    else
+      echo "· main avanzó y no se pudo poner al día la rama (se reintenta en 10 min): gh api -X PUT repos/{owner}/{repo}/pulls/$PR/update-branch" >&2
+    fi
     PUESTA=$(($(date +%s) + 600))
   fi
   LISTO=$(jq -r '[.statusCheckRollup[] | select(.__typename == "CheckRun" and (.name | startswith("Listo"))) | .conclusion] | last // ""' <<<"$ESTADO")
