@@ -9,6 +9,7 @@ import {
   type ContextoDeHoja,
 } from '../../../entities/binding'
 import type { HojaLista } from '../../../entities/hoja'
+import { MONEDA_DEL_PRIMER_RESULTADO } from '../../../entities/primer-resultado'
 import type { EstadoDeRecalculo } from '../../../entities/recalculo'
 import { useResumenPlegado } from '../hooks/use-resumen-plegado'
 import { LiveDelResumen } from './live-del-resumen'
@@ -219,7 +220,11 @@ export function ResumenDeHoja({
           data-total=""
           className="text-(length:--text-xl) font-semibold text-(--color-ink) tabular-nums"
         >
-          {total.tipo === 'valor' ? <Monto valor={total.usd} moneda="USD" /> : '—'}
+          {total.tipo === 'valor' ? (
+            <Monto valor={total.usd} moneda={MONEDA_DEL_PRIMER_RESULTADO} />
+          ) : (
+            '—'
+          )}
         </strong>
         <BotonDelDetalle plegado={plegado} alternar={alternar} idDelDetalle={idDelDetalle} />
       </div>

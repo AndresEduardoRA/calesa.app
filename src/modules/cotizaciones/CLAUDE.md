@@ -142,7 +142,7 @@ por `pantallas/<área>-<pantalla>.ts`. Un hueco vacío es un objeto sin componen
 ## Tablas
 
 `formulas`, `tonos`, `cotizaciones_niveles`, `tablas_referencia`, `tablas_referencia_filas`, `plantillas_tarjeta`, `cotizaciones`, `cotizaciones_revisiones`,
-`cotizaciones_comentarios`, `cotizaciones_adjuntos`, `cotizaciones_reportes`, `cotizaciones_favoritos`, `comprobantes`, `comprobantes_contadores`,
+`cotizaciones_comentarios`, `cotizaciones_adjuntos`, `cotizaciones_reportes`, `cotizaciones_favoritos`, `cotizaciones_aprobadas`, `comprobantes`, `comprobantes_contadores`,
 `comprobantes_ajustes`.
 
 RPC: `formula_guardar_borrador`, `formula_publicar`, `formula_descartar_borrador`, `formula_cambiar_constante` y `formula_revertir` (publican la N+1 desde
@@ -150,7 +150,7 @@ la publicada sin pisar el borrador), `tabla_referencia_publicar` (reemplaza las 
 `tono_crear|guardar|eliminar`, `nivel_crear|renombrar|retirar|restaurar|eliminar`, `niveles_con_uso`, `validar_formula`, `validar_diseno`,
 `validar_plantilla`, `evaluar_formula`, `cotizacion_evaluar`, `cotizacion_hoja`, `cotizacion_tabla`, `cotizacion_tarjeta`, `cotizacion_crear`,
 `cotizacion_guardar`, `cotizaciones_listado`, `plantilla_guardar_borrador|publicar|descartar_borrador` (versión esperada y candado por origen; esperada
-nula al guardar = crear), `cotizacion_marcar_final`, `cotizacion_moderar` (con la versión),
+nula al guardar = crear), `cotizacion_marcar_final`, `cotizacion_aprobar` (con la versión de la que se aprueba), `cotizacion_moderar` (con la versión),
 `cotizacion_comentarios|comentario_respuestas|comentar|comentario_editar|comentario_borrar`, `cotizacion_adjuntar|adjunto_quitar`,
 `cotizacion_reportar|reporte_retirar`, `cotizacion_favorito_poner`, `comprobante_emitir|anular`, `comprobantes_serie_cambiar`, `margen_vehiculo`.
 
@@ -225,6 +225,12 @@ nula al guardar = crear), `cotizacion_marcar_final`, `cotizacion_moderar` (con l
   las policies del bucket `cotizaciones` (`cotizacion_puede_adjuntar`, 4-69). Candados: la raíz antes que la respuesta (comentar la toma `for share`,
   borrar `for update`); la cotización antes que sus reportes. Borrar no deja respuestas eliminadas ni raíces eliminadas sin respuestas
   (`cotizaciones_comentarios_respuesta_viva_check`). Pruebas: `supabase/tests/areas/comentarios/`.
+
+- **La aprobada** (`cotizaciones_aprobadas`, una fila por vehículo; `docs/COTIZADOR.md` › «La cotización aprobada»): **nadie la escribe directo**, sólo
+  `cotizacion_aprobar()` y `_aprobada_reponer()`, que corre al confirmar (`trg_cotizaciones_aprobadas_al_confirmar`, diferido: en un bloque de prueba que se
+  revierte hay que forzarlo con `set constraints … immediate`). Invariante: con alguna cotización activa y el vehículo vivo, exactamente una fila y apunta
+  a una activa suya. Candados: vehículo `for key share` → cotización `for share` → el candado de aviso por vehículo (en orden de id); sin FK a `vehiculos`.
+  Su policy espeja «cotizaciones: leer» (si una cambia, cambia la otra). Pruebas: `supabase/tests/areas/aprobada/`, `scripts/carreras/cotizaciones-aprobada.mjs`.
 
 ## Ojo
 

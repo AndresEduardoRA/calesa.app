@@ -6,12 +6,16 @@ export type CotizacionDelListado = FilaDelListado & {
   cliente: string | null
   vehiculo: string | null
   autor: string
+  // Es la cotización aprobada de su vehículo (`cotizaciones_aprobadas`): la insignia «Aprobada».
+  aprobada: boolean
 }
 
 export type NombresDelListado = {
   clientes: ReadonlyMap<string, string>
   vehiculos: ReadonlyMap<string, string>
   autores: ReadonlyMap<string, string>
+  // Los ids de las cotizaciones de la página que son la aprobada de su vehículo.
+  aprobadas: ReadonlySet<string>
 }
 
 type ClaveDeId = 'leadId' | 'vehiculoId' | 'creadoPor'
@@ -37,5 +41,6 @@ export function filasConNombres(
     cliente: fila.leadId === null ? null : (nombres.clientes.get(fila.leadId) ?? null),
     vehiculo: fila.vehiculoId === null ? null : (nombres.vehiculos.get(fila.vehiculoId) ?? null),
     autor: nombres.autores.get(fila.creadoPor) ?? 'Sin nombre',
+    aprobada: nombres.aprobadas.has(fila.id),
   }))
 }

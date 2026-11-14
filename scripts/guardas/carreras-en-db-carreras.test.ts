@@ -38,8 +38,8 @@ describe('las carreras del repo corren en db:carreras', () => {
     )
     expect(sinFinal).not.toBe(entrada)
     archivos.set(ENTRADA, sinFinal)
+    // `carreras-comun.mjs` sigue importado: también lo usa la de la cotización aprobada.
     expect(carrerasSinCorrer(archivos)).toEqual([
-      'supabase/tests/areas/final/carreras-comun.mjs',
       'supabase/tests/areas/final/carreras-crear-candados.mjs',
       'supabase/tests/areas/final/carreras-crear.mjs',
       'supabase/tests/areas/final/carreras-de-candados.mjs',

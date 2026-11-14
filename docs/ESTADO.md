@@ -17,7 +17,7 @@ recibe actualizaciones sueltas: una rama, un PR que se integra solo con el CI en
 - **Leads:** listado y kanban con cartera, teléfono único y enmascarado, campos configurables y privados, seguimientos, oportunidades,
   importar y exportar, limpieza automática, papelera.
 - **Cotizaciones:** la fórmula como grafo versionado (motor en TS con su espejo SQL), el diseño de la hoja, niveles de acceso, la hoja de
-  cotizar, guardar con revisiones, la tarjeta y el PDF, la final, comprobantes, comentarios y papelera.
+  cotizar, guardar con revisiones, la tarjeta y el PDF, la final, la aprobada (una por vehículo, con su primer resultado en la lista de vehículos), comprobantes, comentarios y papelera.
 - **Flujos y logística:** fases, transiciones, requisitos y reglas por RPC; `/logistica` (la cadena, «qué falta», mover y el lote,
   documentos, embarques, aduana, gastos, pagos y margen).
 - **Repuestos:** proyectos, ítems, compras, stock, cotizador propio y pagos.

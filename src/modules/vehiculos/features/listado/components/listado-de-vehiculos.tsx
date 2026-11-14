@@ -10,6 +10,7 @@ import { FilterShell } from '@/shared/ui/filtros'
 import { useAbiertoAlgunaVez } from '@/shared/ui/use-abierto-alguna-vez'
 import type { VistaDeLista } from '@/shared/lib/vista-de-lista'
 import type { AlcanceDeAvisos } from '../../../entities/avisos-de-vehiculo'
+import type { AprobadasDeLaPagina } from '../../../entities/cotizacion-aprobada-de-la-fila'
 import { camposFiltrables } from '../../../entities/filtros'
 import type { PermisoDeAlta } from '../../../entities/permisos'
 import type { ParaCotizar } from '../../../entities/ruta-para-cotizar'
@@ -53,6 +54,8 @@ type Props = DatosDelOrigen & {
   leadsVisibles: readonly string[]
   alcance: AlcanceDeAvisos
   verPapelera: boolean
+  // La cotización aprobada de cada vehículo de la página, armada por `src/app` (la ruta de cada una es de `cotizaciones`); nulo si quien mira no ve cotizaciones.
+  aprobadas: AprobadasDeLaPagina | null
   // Si el alta de este origen puede traer la ficha de apibara.
   apibara: DisponibilidadDeApibara
   // Si puede publicar en la web lo de este origen.

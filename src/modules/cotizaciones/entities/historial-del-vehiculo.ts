@@ -5,12 +5,15 @@ import { z } from 'zod'
 // Lo que se pide de cada cotización: sólo columnas con `grant select` para `authenticated`, y el autor embebido por su clave foránea (`perfiles` la lee todo
 // usuario activo). Ninguna columna oculta (`valores`, `totales`…), así que no entra al inventario de `cotizaciones-visibilidad.sql`.
 export const COLUMNAS_DEL_HISTORIAL =
-  'id, numero, clase, creado_en, perfiles!cotizaciones_creado_por_fkey(nombre, email)'
+  'id, numero, clase, creado_en, perfiles!cotizaciones_creado_por_fkey(nombre, email), a:cotizaciones_aprobadas!cotizaciones_aprobadas_cotizacion_id_fkey(cotizacion_id)'
 
 // De quién es una lista de cotizaciones del historial (4.17-4b): de un vehículo (el panel de la hoja y su pestaña) o de un lead (la sección de su ficha).
 export type ListaDe = { vehiculo: string } | { lead: string }
 
 export const ETIQUETA_DE_CLASE = { preventa: 'Preventa', final: 'Final' } as const
+
+// La insignia de la cotización aprobada de su vehículo (listado, resumen, guardada e historial).
+export const ETIQUETA_DE_APROBADA = 'Aprobada'
 
 export type CotizacionDelHistorial = {
   id: string
@@ -18,6 +21,8 @@ export type CotizacionDelHistorial = {
   clase: keyof typeof ETIQUETA_DE_CLASE
   creadoEn: string
   autor: string
+  // Es la cotización aprobada de su vehículo.
+  aprobada: boolean
 }
 
 const esquemaDelHistorial = z.array(
@@ -27,6 +32,8 @@ const esquemaDelHistorial = z.array(
     clase: z.enum(['preventa', 'final']),
     creado_en: z.string(),
     perfiles: z.object({ nombre: z.string(), email: z.string() }).nullable(),
+    // Una a una (el único de `cotizacion_id`): un objeto o nada. El alias `a` ahorra bytes en cada fila de una página de 20 (`TOPE_DE_BYTES` de los e2e del historial).
+    a: z.object({ cotizacion_id: z.guid() }).nullable(),
   }),
 )
 
@@ -48,5 +55,6 @@ export function historialDesde(filas: unknown): CotizacionDelHistorial[] | null 
     clase: fila.clase,
     creadoEn: fila.creado_en,
     autor: autorVisible(fila.perfiles),
+    aprobada: fila.a !== null,
   }))
 }

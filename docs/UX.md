@@ -190,7 +190,10 @@ Agregar a inicio»), «Ver como» (quien gestiona roles), tema, densidad y «Cer
   del vehículo en alta); edición `?editar=`; `?vitrina=si|no`, `?limpieza=si|no`; junto al estado de vitrina de cada fila, «Publicar» / «Sacar de la
   web» con un toque y «Deshacer» (con `vehiculos.vitrina` del origen; sin precio público, `?panel=vitrina-rapida&para=<id>` pide sólo el precio).
   En escritorio, «Tabla | Tarjetas» (`?vista=`, recordada en `vehiculos.vista`; las tarjetas van en grilla, con el carrusel en la foto). En un
-  origen de subasta con el campo de la puja, «Precio» es «Puja actual» (USD, «final» si terminó o se vendió; sin puja, «—»).
+  origen de subasta con el campo de la puja, «Precio» es «Puja actual» (USD, «final» si terminó o se vendió; sin puja, «—»). Con
+  `cotizaciones.ver` en algún origen, la columna «Cotización aprobada» (en la tarjeta, «Cotización aprobada» y el monto): el primer resultado de la
+  aprobada del vehículo con su moneda, enlazado a esa cotización (sin total, «Sin total»; sin aprobada o una que no se ve, «—»); sin la clave no se
+  dibuja ni se consulta.
   `/vehiculos/papelera` (por lote).
 - **Vehículo** — `/vehiculos/[id]` (según origen): cabecera con portada y fase de sólo lectura; «Publicar en la web» en `?panel=vitrina`;
   `?seccion=`: «Ficha» (por layout del origen; edición `?editar=`; banner de limpieza; en un origen de subasta, el bloque «Subasta» con
@@ -201,10 +204,10 @@ Agregar a inicio»), «Ver como» (quien gestiona roles), tema, densidad y «Cer
   «Reintentar».
   - **Pestaña de cotizaciones** (lead y vehículo): las que quien mira ve, de la más nueva, de a 20 con «Ver más» y, en 500, «Ver todas en
     Cotizaciones» (`/cotizaciones?lead=` o `?vehiculo=`); se lee al abrirla; esqueleto, error con «Reintentar», «Sin cotizaciones que
-    puedas ver.».
+    puedas ver.». Cada fila lleva la insignia «Aprobada» si es la aprobada de su vehículo (lo trae la misma lectura).
 - **Cotizaciones** — `/cotizaciones` (`cotizaciones.*`): tabla + resumen `?cotizacion=` (lo de la fila y «Abrir cotización»; una que no se
   ve dice que ya no está disponible); filtros mías, clase (preventa o final), origen; `?vehiculo=` y `?lead=` (ids fuera del esquema: sin
-  chip y «Limpiar» no los borra; arriba, de quién o de qué son, con «Ver todas», y su vacío propio); «Vencida» en la fila; `nuevo` abre la
+  chip y «Limpiar» no los borra; arriba, de quién o de qué son, con «Ver todas», y su vacío propio); «Vencida» en la fila y la insignia «Aprobada» (tabla, tarjeta y resumen); `nuevo` abre la
   hoja. «Papelera» (para quien puede enviar a ella o vaciarla) lleva a `/cotizaciones/papelera`: lotes por cursor (5, las primeras 20 de
   cada uno y «Mostrar los N»), «Restaurar» y «Purgar» una o el lote (`cotizaciones.papelera.purgar`,
   `?panel=purgar&lote=<id>[&cotizacion=<id>]`, nombra lo que borra; un lote de varios pide tipear «purgar N»; una final con comprobante
@@ -212,7 +215,9 @@ Agregar a inicio»), «Ver como» (quien gestiona roles), tema, densidad y «Cer
 - **Cotizar** — `/cotizaciones/nuevo` (`cotizaciones.crear`): formulario hoja (XCell); `?origen=&lead=&vehiculo=&returnTo=` (se validan y
   se llevan; el vehículo va al recálculo); sin entrada en la navegación. Ver Flujo 2.
 - **Cotización guardada** — `/cotizaciones/[id]` (`cotizaciones.ver`; edita quien la puede guardar, `puede_guardar` de la base): la hoja de
-  SU versión; quien sólo ve, en sólo lectura. Cabecera: «Revisiones», la cadena, «Cotizar encima» si no está al día, «Marcar final» (en una
+  SU versión; quien sólo ve, en sólo lectura. Cabecera: la insignia «Aprobada» (todos los que la ven) o «Aprobar» (con `cotizaciones.aprobar` del
+  origen: sin confirmar; apagado con su motivo sin vehículo o si es inválida; al entrar pasa a la insignia y el aviso ofrece «Deshacer» 10 s;
+  PT409 con quién y cuándo y «Recargar»), «Revisiones», la cadena, «Cotizar encima» si no está al día, «Marcar final» (en una
   preventa, con `cotizaciones.final.gestionar` del origen; `?panel=marcar-final`), «Emitir comprobante» (en una final activa sin
   comprobante vigente, con `cotizaciones.comprobantes.emitir`; `?panel=emitir-comprobante`, el aviso nombra el número «S-N») y «Enviar a la
   papelera» (quien puede guardarla o, en una preventa, quien tiene `cotizaciones.moderar`; vuelve al listado con «Deshacer»). Bajo la hoja,

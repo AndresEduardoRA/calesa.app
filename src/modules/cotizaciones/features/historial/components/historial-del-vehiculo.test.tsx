@@ -35,6 +35,7 @@ const cotizacion = (
   clase,
   creadoEn: '2026-10-29T08:00:00+00:00',
   autor: 'Gala Guarda',
+  aprobada: false,
 })
 const cursorDe = (i: number) =>
   codificarCursor({ instante: '2026-10-29T08:00:00+00:00', id: idDe(i), sentido: 'siguiente' })
