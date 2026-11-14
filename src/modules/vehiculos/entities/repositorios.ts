@@ -169,6 +169,9 @@ export type LectorDeRelaciones = (vehiculoId: string) => Promise<Resultado<Relac
 // De estos ids, cuáles puede editar quien llama: lo responde la base.
 export type ConsultaDeEditables = (ids: readonly string[]) => Promise<Resultado<string[]>>
 
+// De estos ids, cuáles tienen un lead que quien llama puede abrir: lo responde la base (`vehiculos_con_lead_visible`). Decide si un aviso ofrece «Ver el lead».
+export type ConsultaDeLeadsVisibles = (ids: readonly string[]) => Promise<Resultado<string[]>>
+
 // Publicar se escribe sólo por RPC, con la versión del vehículo y el estado entero de la vitrina.
 export type RepositorioVitrina = {
   publicar: (

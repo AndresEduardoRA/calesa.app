@@ -1,6 +1,7 @@
 // Lo que el listado recibe ya resuelto por la página.
 import type { FaseResumen } from '@/modules/flujos/client'
 import type { CampoDeLayout, Categoria, OrigenResumen } from '@/modules/origenes/client'
+import type { AlcanceDeAvisos } from '../../../entities/avisos-de-vehiculo'
 import type { Vehiculo } from '../../../entities/vehiculo'
 import {
   estadoDeVitrina,
@@ -31,6 +32,26 @@ export type ParaElMenuDeLaLista = {
   editables: ReadonlySet<string>
   eliminables: ReadonlySet<string>
   publicar: PermisoDeVitrina
+  // Los de esta página cuyo lead quien mira puede abrir («Ver el lead» en el aviso de un vehículo vinculado) y lo que puede abrir desde un aviso.
+  leadsVisibles: ReadonlySet<string>
+  alcance: AlcanceDeAvisos
+}
+
+// Lo que recibe el listado como listas, hecho conjuntos para preguntar por fila.
+export function paraElMenuDe(datos: {
+  editables: readonly string[]
+  eliminables: readonly string[]
+  leadsVisibles: readonly string[]
+  alcance: AlcanceDeAvisos
+  publicar: PermisoDeVitrina
+}): ParaElMenuDeLaLista {
+  return {
+    editables: new Set(datos.editables),
+    eliminables: new Set(datos.eliminables),
+    leadsVisibles: new Set(datos.leadsVisibles),
+    alcance: datos.alcance,
+    publicar: datos.publicar,
+  }
 }
 
 // ¿Alguna fila de la página tiene algo en su «⋯»? Si no, la columna de acciones no se dibuja.

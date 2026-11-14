@@ -122,7 +122,8 @@ export type ResultadoDeEnvio = {
   lote: string | null
   actualizadoEn: string | null
   enviados: (Hecho & { despublicado: boolean })[]
-  rechazados: (NoHecho & { codigo: string })[]
+  // `causa`: la clave de la regla que frenó (`_vehiculo_bloqueo()`); null en un conflicto o sin permiso.
+  rechazados: (NoHecho & { codigo: string; causa: string | null })[]
 }
 
 const esquemaEnvio = z.object({
@@ -135,6 +136,7 @@ const esquemaEnvio = z.object({
       titulo: z.string().nullable(),
       codigo: z.string(),
       motivo: z.string(),
+      causa: z.string().nullable().catch(null),
     }),
   ),
 })
@@ -282,11 +284,14 @@ const CODIGO_POR_RECHAZO: Record<string, CodigoError> = {
 }
 
 // Cuando no se envió ninguno, el resultado es un error: si era uno solo y otra persona lo cambió,
-// es un conflicto (y ofrece «Recargar»).
+// es un conflicto (y ofrece «Recargar»). Con uno solo y sin enviados, además lleva la causa del bloqueo: de ella salen las acciones
+// (`avisos-de-vehiculo.ts`); en un lote se listan los motivos y nada más.
 export function errorDeEnvio(envio: ResultadoDeEnvio): ErrorApp {
   const [unico, ...mas] = envio.rechazados
-  const codigo = unico && mas.length === 0 ? CODIGO_POR_RECHAZO[unico.codigo] : undefined
-  return { codigo: codigo ?? 'regla', mensaje: resumenDeEnvio(envio) }
+  const solo = unico && mas.length === 0 && envio.enviados.length === 0 ? unico : undefined
+  const codigo = solo ? CODIGO_POR_RECHAZO[solo.codigo] : undefined
+  const error: ErrorApp = { codigo: codigo ?? 'regla', mensaje: resumenDeEnvio(envio) }
+  return solo?.causa ? { ...error, causa: solo.causa } : error
 }
 
 // ---------------------------------------------------------------------------
@@ -314,37 +319,8 @@ export function palabraDePurga(cantidad: number): string {
 }
 
 // ---------------------------------------------------------------------------
-// Quién envía, y qué se sabe de antemano que no va
+// Quién abre y quién purga (lo que se sabe de antemano que no va: `papelera-permiso.ts`)
 // ---------------------------------------------------------------------------
-
-// Lo que la base va a rechazar y la pantalla ya sabe: se dice antes de intentar. Los textos son
-// los de `_vehiculo_motivo_de_bloqueo()`; lo demás (dinero, aduana, repuestos) lo dice ella.
-export function motivoParaNoEnviar(
-  vehiculo: { leadId: string | null; faseId: string | null },
-  fase: { nombre: string; esInicial: boolean } | null,
-): string | null {
-  if (vehiculo.leadId !== null) {
-    return 'Está vinculado a un lead. Quita el vínculo antes.'
-  }
-  if (vehiculo.faseId !== null && fase && !fase.esInicial) {
-    return `Está en «${fase.nombre}». Sólo va a la papelera lo que sigue en su fase inicial.`
-  }
-  return null
-}
-
-export type PermisoDePapelera =
-  // Sin `vehiculos.eliminar` sobre ese vehículo la acción no existe.
-  { estado: 'oculto' } | { estado: 'deshabilitado'; motivo: string } | { estado: 'habilitado' }
-
-export function permisoDePapelera(
-  puedeEliminar: boolean,
-  motivo: string | null,
-): PermisoDePapelera {
-  if (!puedeEliminar) {
-    return { estado: 'oculto' }
-  }
-  return motivo === null ? { estado: 'habilitado' } : { estado: 'deshabilitado', motivo }
-}
 
 // La papelera la abre quien envía en algún origen (ve lo suyo) o quien puede vaciarla (ve todo).
 export function puedeAbrirLaPapelera(permisos: Permisos): boolean {

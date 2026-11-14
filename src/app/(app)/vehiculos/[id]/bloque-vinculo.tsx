@@ -1,12 +1,17 @@
-import { leerRelaciones, type Vehiculo } from '@/modules/vehiculos'
+import { leerRelaciones, type AvisosDelMenu, type Vehiculo } from '@/modules/vehiculos'
 import { BotonDesvincular, VinculoEInteresados } from '@/modules/vehiculos/pantallas/ficha'
 import { datosO } from '@/shared/lib/errores'
 
-type Props = { vehiculo: Vehiculo; editable: boolean }
+type Props = {
+  vehiculo: Vehiculo
+  editable: boolean
+  ofrecerPapelera: boolean
+  avisos?: AvisosDelMenu
+}
 
 // El vínculo y los interesados del vehículo, debajo de su ficha. Se vinculan y se marcan desde la ficha
 // del lead; acá, quien edita el vehículo puede desvincularlo.
-export async function BloqueVinculo({ vehiculo, editable }: Props) {
+export async function BloqueVinculo({ vehiculo, editable, ofrecerPapelera, avisos }: Props) {
   const relaciones = datosO(await leerRelaciones(vehiculo.id))
   return (
     <VinculoEInteresados
@@ -20,6 +25,9 @@ export async function BloqueVinculo({ vehiculo, editable }: Props) {
               numero: vehiculo.numero,
               actualizadoEn: vehiculo.actualizadoEn,
             }}
+            origenId={vehiculo.origenId}
+            ofrecerPapelera={ofrecerPapelera}
+            avisos={avisos}
           />
         ) : null
       }

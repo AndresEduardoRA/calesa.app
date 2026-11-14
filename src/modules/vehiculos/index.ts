@@ -38,7 +38,7 @@ export {
 } from './entities/permisos'
 // De estos vehículos, cuáles puede editar: lo propio se sabe acá; lo vinculado a un lead de su
 // cartera, se le pregunta a la base
-export { editablesDe, eliminablesDe } from './features/permisos/editables'
+export { editablesDe, eliminablesDe, leadsVisiblesDe } from './features/permisos/editables'
 
 // Los filtros de un origen, desde su layout: el esquema que dibuja FilterShell y las condiciones
 // que entiende `buscarVehiculos()`
@@ -70,14 +70,24 @@ export {
 export { leerPapelera } from './composicion'
 export { limpiezaPendiente } from './features/papelera/lecturas'
 export {
-  motivoParaNoEnviar,
-  permisoDePapelera,
   puedeAbrirLaPapelera,
   puedePurgar,
   type LimpiezaPendiente,
   type LoteDePapelera,
-  type PermisoDePapelera,
 } from './entities/papelera'
+export {
+  bloqueoParaEnviar,
+  papeleraDelVehiculo,
+  type PermisoDePapelera,
+} from './entities/papelera-permiso'
+// Las acciones de los avisos de un vehículo (qué se ofrece cuando no se puede enviar a la papelera): `app/` las calcula con lo que decide la base
+export {
+  alcanceDeAvisos,
+  vehiculoDelAviso,
+  type AlcanceDeAvisos,
+  type AvisosDelMenu,
+  type VehiculoDelAviso,
+} from './entities/avisos-de-vehiculo'
 
 // Alta y edición: la clave de su URL (el panel y el botón son de `pantallas/ficha`)
 export { CLAVE_DE_EDICION } from './features/alta/claves'

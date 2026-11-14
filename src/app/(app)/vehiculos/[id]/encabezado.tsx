@@ -3,9 +3,11 @@ import Link from 'next/link'
 import type { FaseResumen } from '@/modules/flujos'
 import type { OrigenResumen } from '@/modules/origenes'
 import {
+  type AlcanceDeAvisos,
   type PermisoDePapelera,
   type PermisoDeVitrina,
   type Vehiculo,
+  type VehiculoDelAviso,
   type VistaPreviaDeVitrina,
 } from '@/modules/vehiculos'
 import {
@@ -26,6 +28,8 @@ type Props = {
   publicar: PermisoDeVitrina
   editable: boolean
   papelera: PermisoDePapelera
+  // Qué ofrece el aviso si la base rechaza el envío (comprobante, documentos, pagos…): el vehículo con lo que la página resolvió y lo que puede abrir.
+  avisos: { vehiculo: VehiculoDelAviso; alcance: AlcanceDeAvisos }
   // `logistica.ver` en el origen del vehículo: sin él no hay enlace (D25). Lo decide la página con `puede()`.
   verEnLogistica: boolean
   // `/actividad` de este vehículo, con `actividad.ver` (la arma la página); null si no la ve: «Ver actividad» en el «⋯».
@@ -45,6 +49,7 @@ export function Encabezado(props: Props) {
     papelera,
     verEnLogistica,
     paraActividad,
+    avisos,
   } = props
   return (
     <CabeceraDeVehiculo
@@ -77,6 +82,7 @@ export function Encabezado(props: Props) {
             publicar={publicar}
             papelera={papelera}
             paraActividad={paraActividad}
+            avisos={avisos}
           />
         </>
       }

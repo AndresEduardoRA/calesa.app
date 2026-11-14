@@ -3,6 +3,7 @@
 import type { Route } from 'next'
 import { Trash2Icon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import type { AccionDelAviso, AccionesDeUnAviso } from '@/shared/lib/acciones-del-aviso'
 import { RUTAS } from '@/shared/lib/rutas'
 import { MasAcciones, type AccionDeMenu } from '@/shared/ui/lista'
 import {
@@ -10,7 +11,8 @@ import {
   accionesDeVehiculo,
   type OfertaDeAccion,
 } from '../../../entities/acciones-de-vehiculo'
-import type { PermisoDePapelera } from '../../../entities/papelera'
+import type { AvisosDelMenu } from '../../../entities/avisos-de-vehiculo'
+import type { PermisoDePapelera } from '../../../entities/papelera-permiso'
 import type { PermisoDeVitrina } from '../../../entities/vitrina'
 import { usePanelDeVehiculo } from '../../alta/hooks/use-panel-de-vehiculo'
 import { useEnvioAPapelera } from '../../papelera/hooks/use-envio-a-papelera'
@@ -30,6 +32,8 @@ type Props = {
   conBorde?: boolean
   // «Ver actividad»: sólo la ficha, y sólo con `actividad.ver` (la ruta la arma la página). Sin esto, no se ofrece.
   alVerActividad?: (() => void) | undefined
+  // Sin esto, un envío rechazado dice el motivo y nada más. Con esto, ofrece lo que corresponde a su causa.
+  avisos?: AvisosDelMenu
 }
 
 const oferta = (
@@ -102,7 +106,7 @@ export function MenuDeVehiculo(props: Props) {
         destructiva: true,
         deshabilitada: envio.enCurso || papelera.estado === 'deshabilitado',
         alElegir: () => {
-          void envio.enviar([vehiculo]).then((entro) => {
+          void envio.enviar([vehiculo], props.avisos).then((entro) => {
             if (entro) {
               alEnviado?.()
             }
@@ -110,6 +114,9 @@ export function MenuDeVehiculo(props: Props) {
         },
       },
       ...notaDe(motivoDe(papelera), 'motivo-papelera'),
+      ...lineasDeSalida(papelera, (ruta) => {
+        router.push(ruta as Route)
+      }),
     ],
   }
   const acciones = bloques.flatMap((bloque, indice) => [
@@ -140,4 +147,31 @@ function lineaDeActividad(alVerActividad: (() => void) | undefined): AccionDeMen
 
 function notaDe(motivo: string | null, clave: string): AccionDeMenu[] {
   return motivo === null ? [] : [{ tipo: 'nota', clave, texto: motivo }]
+}
+
+// Del «⋯» sólo se ofrece lo que navega: ninguna acción de un bloqueo es otra cosa.
+const esNavegacion = (accion: AccionDelAviso): accion is Extract<AccionDelAviso, { tipo: 'ir' }> =>
+  accion.tipo === 'ir'
+
+// Bajo el motivo de la papelera apagada: lo que se puede hacer ahí mismo (una línea por acción, la principal primero) y, si falta el permiso para
+// lo que destraba, el pedido como otra nota.
+function lineasDeSalida(papelera: PermisoDePapelera, ir: (ruta: string) => void): AccionDeMenu[] {
+  if (papelera.estado !== 'deshabilitado') {
+    return []
+  }
+  const { acciones, pedido }: AccionesDeUnAviso = papelera.acciones
+  return [
+    ...acciones.filter(esNavegacion).map((accion, indice): AccionDeMenu => ({
+      tipo: 'accion',
+      clave: `salida-${String(indice)}`,
+      etiqueta: accion.etiqueta,
+      despuesDeCerrar: true,
+      alElegir: () => {
+        ir(accion.ruta)
+      },
+    })),
+    ...(pedido === null
+      ? []
+      : [{ tipo: 'nota' as const, clave: 'pedido-papelera', texto: pedido }]),
+  ]
 }

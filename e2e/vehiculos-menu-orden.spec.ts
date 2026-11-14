@@ -137,8 +137,28 @@ test('un vehículo vinculado a un lead tiene la papelera apagada, con el motivo'
   const menu = await abrir(menuDeVehiculo(page, OTRO), page)
   await expect(menu.getByRole('menuitem', { name: 'Enviar a la papelera' })).toBeDisabled()
   await expect(menu.getByText('Está vinculado a un lead. Quita el vínculo antes.')).toBeVisible()
-  await cerrar(page, menu)
-  await vincular(otro, null)
+  // El aviso trae su salida: la que destraba primero y, como la dueña tiene el lead, «Ver el lead».
+  expect(await opciones(menu)).toEqual(
+    expect.arrayContaining(['Quitar el vínculo', 'Ver el lead', 'Enviar a la papelera']),
+  )
+  await menu.getByRole('menuitem', { name: 'Quitar el vínculo' }).click()
+  await expect(page).toHaveURL(new RegExp(`/vehiculos/${otro}\\?.*panel=desvincular`))
+  await expect(page).toHaveURL(/luego=papelera/)
+  const dialogo = page.getByRole('dialog', { name: /^Desvincular «/ })
+  await expect(dialogo).toBeVisible()
+  await dialogo.getByRole('button', { name: 'Desvincular' }).click()
+  // Desvinculado, el aviso ofrece lo que se quería hacer: enviarlo a la papelera.
+  const ofrecido = page.locator('[data-sonner-toast]').getByRole('button', {
+    name: 'Enviar a la papelera',
+  })
+  await expect(ofrecido).toBeVisible()
+  await ofrecido.click()
+  const enviado = page.locator('[data-sonner-toast]').filter({ hasText: 'se envió a la papelera' })
+  await expect(enviado).toBeVisible()
+  await expect(page).toHaveURL(new RegExp(`/vehiculos\\?origen=${t.terreno.corea.id}`))
+  // Lo deja como estaba para la prueba siguiente.
+  await enviado.getByRole('button', { name: 'Deshacer' }).click()
+  await expect(menuDeVehiculo(page, OTRO)).toBeVisible()
 })
 
 test('enviar a la papelera desde el resumen lo cierra y ofrece «Deshacer»', async ({ page }) => {
