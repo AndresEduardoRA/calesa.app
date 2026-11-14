@@ -182,7 +182,7 @@ describe('publicar.sh › en un worktree', () => {
 })
 
 describe('publicar.sh › main que avanza', () => {
-  it('si main avanzó y la rama quedó atrás, la pone al día con update-branch y sigue esperando', () => {
+  it('si main avanzó y la rama quedó atrás, la pone al día por la API (update-branch) y sigue esperando', () => {
     ramaConUnCommit()
     const vueltas = join(raiz, 'vueltas')
     falso(
@@ -207,7 +207,7 @@ exit 0`,
     )
     const r = publicar()
     expect(r.estado, r.stderr).toBe(0)
-    expect(llamadas()).toContain('gh pr update-branch 7')
+    expect(llamadas()).toContain('gh api -X PUT repos/{owner}/{repo}/pulls/7/update-branch')
     expect(r.stdout).toContain('rama puesta al día')
     expect(r.stdout).toContain('PR #7 integrado en main')
   })

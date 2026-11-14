@@ -26,6 +26,10 @@ import { ResultadoDelListado } from './resultado-del-listado'
 import type { DatosDelOrigen, FilaDeVehiculo } from './tipos'
 import { VistasDeVehiculos } from './vistas-de-vehiculos'
 import { ProveedorDeMarcasDeVisto } from '@/modules/equipo/client'
+import { resolverAcciones, SIN_ACCIONES } from '@/shared/lib/acciones-del-aviso'
+import { CLAVE_DE_PANEL } from '@/shared/lib/filtros/url'
+import { AccionesDelAviso } from '@/shared/ui/acciones-del-aviso'
+import { CLAVE_DE_ALTA, PANEL_DEL_VEHICULO } from '../../panel-para-cotizar/claves'
 
 type Props = DatosDelOrigen & {
   // Las pestañas: los orígenes donde la persona ve vehículos.
@@ -58,13 +62,36 @@ type Props = DatosDelOrigen & {
 }
 
 // Por qué «Nuevo» está apagado (el origen está desactivado), arriba de la lista.
-function MotivoDeAlta({ permiso }: { permiso: PermisoDeAlta }) {
+// Sin alta suelta pero con la de cotizar, el aviso lleva a la hoja con el panel del vehículo en alta (si quien mira cotiza en este origen).
+function MotivoDeAlta({
+  permiso,
+  paraCotizar,
+}: {
+  permiso: PermisoDeAlta
+  paraCotizar: ParaCotizar | null
+}) {
   if (permiso.estado !== 'deshabilitado') {
     return null
   }
+  const acciones =
+    permiso.desdeCotizar && paraCotizar
+      ? resolverAcciones([
+          {
+            accion: {
+              tipo: 'ir',
+              etiqueta: 'Cotizar un vehículo nuevo',
+              ruta: rutaDeAltaEnLaHoja(paraCotizar),
+            },
+            puede: true,
+          },
+        ])
+      : SIN_ACCIONES
   return (
     <div id={ID_DEL_MOTIVO_DE_ALTA}>
-      <Aviso>{permiso.motivo}</Aviso>
+      <Aviso>
+        <p>{permiso.motivo}</p>
+        <AccionesDelAviso resueltas={acciones} className="mt-2" />
+      </Aviso>
     </div>
   )
 }
@@ -81,6 +108,15 @@ function ResultadoConVistos(props: ComponentProps<typeof ResultadoDelListado>) {
       <ResultadoDelListado {...props} />
     </ProveedorDeMarcasDeVisto>
   )
+}
+
+// La hoja de cotizar del origen con el panel del vehículo abierto en el alta a mano.
+function rutaDeAltaEnLaHoja(para: ParaCotizar): string {
+  const [camino = '', consulta = ''] = para.ruta.split('?')
+  const parametros = new URLSearchParams(consulta)
+  parametros.set(CLAVE_DE_PANEL, PANEL_DEL_VEHICULO)
+  parametros.set(CLAVE_DE_ALTA, 'mano')
+  return `${camino}?${parametros.toString()}`
 }
 
 // El inventario: una pestaña por origen y, adentro, los filtros de ese origen, su lista y el
@@ -111,7 +147,7 @@ export function ListadoDeVehiculos(props: Props) {
       {/* El título de la página para quien lee en voz alta: la barra de filtros ocupa la cabecera (como en `/leads`). */}
       <h1 className="sr-only">Vehículos</h1>
       <PestanasDeOrigen origenes={origenes} actual={origen.id} />
-      <MotivoDeAlta permiso={permisoDeAlta} />
+      <MotivoDeAlta permiso={permisoDeAlta} paraCotizar={paraCotizar} />
       {/* Los filtros salen del layout de cada origen: al cambiar de pestaña se arma otro. */}
       <FilterShell
         key={origen.id}

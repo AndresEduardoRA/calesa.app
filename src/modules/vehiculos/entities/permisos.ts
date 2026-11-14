@@ -28,16 +28,36 @@ export function origenElegido<O extends Origen>(
   return visibles.find((origen) => origen.id === pedido) ?? visibles[0] ?? null
 }
 
+// Desde dónde se da de alta (`vehiculo_crear(…, p_contexto)`): el inventario (y la importación) o la hoja de cotizar. Cada uno, su permiso.
+export type ContextoDeAlta = 'suelto' | 'cotizar'
+
+export const PERMISO_DE_ALTA = {
+  suelto: 'vehiculos.crear',
+  cotizar: 'vehiculos.crear.desde_cotizar',
+} as const satisfies Record<ContextoDeAlta, string>
+
+export const MOTIVO_SOLO_DESDE_COTIZAR =
+  'Tu rol da de alta vehículos sólo desde la hoja de cotizar: cotiza uno nuevo y se crea ahí.'
+
 export type PermisoDeAlta =
   // Sin el permiso en ese origen el botón no existe.
   | { estado: 'oculto' }
-  // Lo espera poder hacer y no puede: se ve apagado, con el motivo.
-  | { estado: 'deshabilitado'; motivo: string }
+  // Lo espera poder hacer y no puede: se ve apagado, con el motivo. `desdeCotizar`: no tiene el alta suelta pero sí la de la hoja de cotizar,
+  // así que el aviso ofrece «Cotizar un vehículo nuevo».
+  | { estado: 'deshabilitado'; motivo: string; desdeCotizar?: true }
   | { estado: 'habilitado' }
 
-export function permisoDeAlta(permisos: Permisos, origen: Origen): PermisoDeAlta {
-  if (!puede(permisos, 'vehiculos.crear', origen.id)) {
-    return { estado: 'oculto' }
+export function permisoDeAlta(
+  permisos: Permisos,
+  origen: Origen,
+  contexto: ContextoDeAlta = 'suelto',
+): PermisoDeAlta {
+  if (!puede(permisos, PERMISO_DE_ALTA[contexto], origen.id)) {
+    return contexto === 'suelto' &&
+      puede(permisos, PERMISO_DE_ALTA.cotizar, origen.id) &&
+      origen.activo
+      ? { estado: 'deshabilitado', motivo: MOTIVO_SOLO_DESDE_COTIZAR, desdeCotizar: true }
+      : { estado: 'oculto' }
   }
   return origen.activo
     ? { estado: 'habilitado' }
