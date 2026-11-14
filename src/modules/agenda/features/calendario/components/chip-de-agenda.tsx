@@ -1,6 +1,9 @@
+'use client'
+
 import type { Route } from 'next'
 import Link from 'next/link'
-import { formatearHora } from '@/shared/lib/fechas'
+import { abreviaturaDeZona, formatearHora } from '@/shared/lib/fechas'
+import { useRegional } from '@/shared/ui/regional'
 import { claseDe, type ClaveDeClase, type EntradaDeAgenda } from '../../../entities/agenda'
 
 // Un color por clase, de los tokens de siempre (nunca sólo color: el chip dice su clase con texto).
@@ -17,13 +20,27 @@ type Props = {
   zona: string
 }
 
+// La hora: la de una subasta va en la zona de quien mira, con su abreviatura (corre en la hora del patio); lo demás, en la de la empresa.
+function HoraDelChip({ entrada, zona }: Props) {
+  const { zonaDeLaPersona } = useRegional()
+  if (entrada.clave !== 'subasta') {
+    return <span className="tabular-nums">{formatearHora(entrada.instante, { zona })}</span>
+  }
+  return (
+    <span className="tabular-nums">
+      {formatearHora(entrada.instante, { zona: zonaDeLaPersona })}{' '}
+      {abreviaturaDeZona(entrada.instante, { zona: zonaDeLaPersona })}
+    </span>
+  )
+}
+
 // Una cosa de la agenda, en un día. Lleva su clase con texto, la hora y el título; con `ruta` es un enlace (hoy sólo la subasta, a su vehículo).
 export function ChipEvento({ entrada, zona }: Props) {
   const clase = claseDe(entrada.clave)
   const contenido = (
     <>
       <span className="font-semibold">{clase.nombre}</span>{' '}
-      <span className="tabular-nums">{formatearHora(entrada.instante, { zona })}</span>{' '}
+      <HoraDelChip entrada={entrada} zona={zona} />{' '}
       <span className={entrada.hecha ? 'line-through' : undefined}>{entrada.titulo}</span>
       {entrada.hecha ? <span> · Hecha</span> : null}
       {entrada.detalle ? <span className="sr-only"> ({entrada.detalle})</span> : null}

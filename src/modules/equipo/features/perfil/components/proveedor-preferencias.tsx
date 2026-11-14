@@ -16,7 +16,8 @@ function esTema(valor: string | undefined): valor is Tema {
 }
 
 // `widgetsDelTablero` no viaja a todo el árbol: sólo lo lee `/tablero`.
-type Props = Omit<Preferencias, 'widgetsDelTablero'> & { children: ReactNode }
+// `zonaHoraria` va a `ProveedorRegional` (lo arma el layout), no a este proveedor.
+type Props = Omit<Preferencias, 'widgetsDelTablero' | 'zonaHoraria'> & { children: ReactNode }
 
 // Envuelve la app con las preferencias de la persona. La densidad y el tema se cambian desde
 // cualquier lado (`useDensidad()`, `useTheme()`): acá se aplican las guardadas al entrar y se

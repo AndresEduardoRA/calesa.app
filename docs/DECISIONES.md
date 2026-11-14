@@ -112,6 +112,11 @@ las trampas, en `docs/LECCIONES.md`.
 - **Vitrina: una sola definición de lo público.** `interno.vitrina_vehiculos` calcula condiciones y `visible`; `web.vehiculos` y `vehiculo_vitrina_previa()` salen de ella. Publicar lleva versión y manda el estado entero; despublicar apaga el destacado.
 - **Papelera.** Una sola lista de bloqueo (`_vehiculo_motivo_de_bloqueo`) para enviar y purgar; envío por lote con versión por vehículo y resultado parcial; restaurar vuelve sin publicar. Purga manual y automática son la misma función.
 - **apibara: la llamada vive en la edge function y la hace el navegador.** La función guarda el bruto en `apibara_consultas` y el navegador manda una referencia (de quien llama, < 24 h). Ningún test llama a la API real.
+- **La zona de una subasta sale del estado del patio, en el navegador.** apibara no da la zona de la subasta, pero sí el estado de la ubicación
+  (`location.state` → `ubicacion_estado`); `zonaDelPatio()` lo traduce (estados de EE. UU., Canadá, Puerto Rico; uno con dos zonas, la de la
+  mayoría) y la pantalla dice «hora del patio». Sin estado, sólo la zona de quien mira y la de la empresa: nunca una inventada.
+  `vehiculos.subasta_zona` sigue sin uso. Las fechas de subasta se ven en la zona de quien mira (`/perfil`), con su abreviatura; lo demás,
+  en la de la empresa.
 - **Refrescar no pisa lo editado.** `fusionarRefresco(previo, nuevo, actual)` toma el valor nuevo sólo si lo guardado es lo que la API dijo antes; los campos de subasta siempre se actualizan.
 - **Fotos de subasta en primer plano.** Sólo de `cs.copart.com`/`vis.iaai.com`, por la tubería del navegador; primeras 24 y «Traer las que faltan». Sin job en segundo plano (se reabre sólo con reportes de fotos perdidas).
 - **Los textos dicen «subasta».** «apibara» aparece sólo donde se configura; el nombre de la plataforma sale del dato.

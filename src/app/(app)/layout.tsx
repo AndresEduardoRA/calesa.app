@@ -51,6 +51,7 @@ async function Shell({ children }: { children: ReactNode }) {
       locale={ajustes.locale}
       monedaBase={ajustes.monedaBase}
       zonaHoraria={ajustes.zonaHoraria}
+      zonaDeLaPersona={sesion.preferencias.zonaHoraria}
     >
       {/* El ancho de quien pide: cada lista dibuja una sola de sus vistas, ya desde el servidor (cierre 1). */}
       <ProveedorDeAncho inicial={ancho}>
