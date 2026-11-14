@@ -56,7 +56,11 @@ las trampas, en `docs/LECCIONES.md`.
 ## Equipo
 
 - **El guardián cuenta la unión de roles.** Debe quedar una persona operativa (activa, sin bloqueo, invitación aceptada) cuyos roles sumen los permisos de administración.
-- **Dominancia sobre la persona.** Bloquear, desbloquear, dar de baja y asignar/quitar roles exigen dominarla (`rol_dominado()`); el dueño (rol de clave `dueno`) domina a todos. Orden: permiso → propia → perfil `for update` → dominancia (42501) → estado (PT409).
+- **Dominancia sobre la persona.** Bloquear, desbloquear, dar de baja y asignar/quitar roles exigen dominarla (`rol_dominado()`); el dueño (rol de clave `dueno`) domina a todos. Orden: `_dominancia_tomar()` → permiso → propia → perfil `for update` → dominancia (42501) → estado (PT409).
+  `_dominancia_tomar()` es un candado de transacción común, el primero de toda RPC que comprueba la dominancia y de `nivel_crear` (suma
+  permisos al rol `dueno`, que además toma `for no key update`): lo de quien llama puede cambiar mientras actúa (dos que se bloquean o se
+  recortan los roles a la vez), y un candado por fila de quien llama y de lo que toca formaría ciclos (40P01). Dar de baja lo toma
+  compartido, para que dos bajas sigan corriendo a la vez, y entre bajas toma las dos cuentas por id (la propia `for share`).
 - **Lo no dominado se dibuja apagado con motivo, nunca escondido.** `dominada` se lee con `personas_dominadas(p_ids)`, no dentro de `equipo_lista()`; si falla, las acciones se apagan (un error nunca habilita). Sobre la propia cuenta no se mira.
 - **«Ver como» sólo dibuja.** Cookie `perspectiva`; `mi_sesion(p_perspectiva)` da `permisos_efectivos()` (míos ∩ del rol) sólo con `equipo.roles.gestionar`. RLS, RPC y `actionClient` siguen con los reales; lo que escribe en la cuenta real (`/perfil`) queda de sólo lectura.
 - **`mi_sesion()`: la sesión en una ida.** RPC definer con cuenta, perfil, roles, concesiones y preferencias, envuelta en `cache()`. Un dato nuevo del shell sobre la persona se suma ahí.
@@ -281,7 +285,7 @@ las trampas, en `docs/LECCIONES.md`.
 - **La hoja de ítems guarda por celda con una cola por fila** (`colaPorClave`) y sin revalidar; sólo cantidad y precio son `XCell`.
 - **Imágenes del ítem: tope 8 en la base con candado por ítem**, sin UPDATE; proyecto cerrado e ítem eliminado frenan el INSERT.
 - **Nulo no es 0 en dinero.** Margen y total son nulos si a un ítem le falta precio o moneda; un total que no cabe en `numeric(18,2)` es error de la línea, no un recorte.
-- **Pagos de proyecto por la RPC gemela `pago_registrar_proyecto`**, sin tocar la firma de `pago_registrar`; el lead queda nulo.
+- **Pagos de proyecto por la RPC gemela `pago_registrar_proyecto`**, sin tocar la firma de `pago_registrar`; el lead queda nulo (también al corregirlo).
 - **Un pago de proyecto se anula con el mismo `pago_anular`** y la clave de confirmar; como cualquier pago vivo cumple `proyecto.pago_cliente`, no se anula ni
   se elimina (`pago_eliminar`) el último mientras un ítem vivo (también en stock) esté en una fase que lo pide. Como confirmar, no mira si el proyecto está cerrado.
 - **La cotización de repuestos se numera con `identity`, con huecos** (no es comprobante). Aceptar copia el unitario a `precio_cliente`; anular no lo revierte.

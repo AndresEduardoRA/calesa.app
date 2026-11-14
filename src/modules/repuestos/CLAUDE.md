@@ -23,7 +23,8 @@ Abiertos que lo tocan: **8-13a** a **8-13c** y la revisión de seguridad del sto
   `?panel=reasignar-stock|vender-stock|devolver-stock&item=`; el destino lo busca `buscarProyectoAbierto` por render prop.
 - **`compras`** — `?pestana=compras` de `/repuestos/[id]`: `leerComprasDelProyecto` (tope 200), `leerMargenDelProyecto`, `<MargenDelProyecto>`,
   `<ComprasDelProyecto>` (`pantallas/compras.ts`); Drawer `?panel=compra&compra=<id|nueva>`. `?pestana=pagos` la dibuja `PagosDelProyectoDiferido` de
-  `logistica`: registrar pide `repuestos.costos.editar` y `repuestos.ver` (`pago_registrar_proyecto`), confirmar y anular `logistica.pagos.confirmar`.
+  `logistica`: registrar, corregir y eliminar piden `repuestos.costos.editar` y `repuestos.ver` (`pago_registrar_proyecto`, `pago_guardar`, `pago_eliminar`),
+  confirmar y anular `logistica.pagos.confirmar`; un pago de proyecto no lleva lead (`pago_guardar` da 22023, hint `lead_id`).
   Un pago vivo cumple `proyecto.pago_cliente`: `pago_anular` y `pago_eliminar` no quitan el último si un ítem vivo está en una fase que lo pide. Las dos pestañas sólo
   existen con `repuestos.costos.ver` (`pestanasLlenas(permisos)`; sin él la URL abre «Ítems» y no se lee nada de costos).
 - **`cotizador`** — `?seccion=cotizador` de `/configuracion/repuestos`: `leerConfiguracionDelCotizador()` (vigente, historial tope 20, tramos y cajas tope
