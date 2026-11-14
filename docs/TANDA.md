@@ -81,17 +81,15 @@ T02 y T03 corriendo. La persona eligió pausarlo y que la tanda la haga esta ses
 - **e2e:** `leads-papelera*` (grep), `leads-oportunidades`, `leads-ficha-telefonos`, `cotizaciones-final-marcar`, `cotizar-hoja`,
   `roles-niveles`, `configuracion-origenes*`.
 
-### [ ] A1c · Avisos con salida en la operación (`feat(app): dar salida a los avisos de la operación`)
+### [x] A1c · Avisos con salida en la operación (`feat(logistica): dar salida a los avisos de logística y flujos`)
 
-- **Logística:**
-  - `cambiar_fase` y `cambiar_fase_lote` (ya traen `codigo` = hint): un requisito que falta ofrece «Subir <documento>» (abre el hueco) o
-    «Completar <dato>».
-  - `PT409`: «Ver cómo quedó» y «Recargar».
-  - Documentos, transporte y pagos.
-- **Flujos:** `fase_eliminar` con `es_inicial` o con uso ofrece «Jubilar» y «Ver vehículos en la fase».
-- **Repuestos, agenda y chat:** sus rechazos con código.
-- **Errores de red** (`sinRed`): «Reintentar».
-- **e2e:** `logistica-mover`, `logistica-lote`, `logistica-documentos`, `configuracion-flujos*` (grep), `repuestos-proyecto`, `agenda`.
+- **Logística:** cada unidad que no se movió en un lote ofrece «Abrir la unidad»; el error al leer un destino de mover, «Reintentar»; «Editar
+  grupo» sin navieras, «Cargar navieras» (con `logistica.catalogos.gestionar`).
+- **Flujos:** una fase jubilada ofrece «Reactivar» en su panel; la oferta de transporte sin puertos o navieras, «Cargar puertos» / «Cargar
+  navieras» (con `logistica.catalogos.gestionar`).
+- **Ya cumplían** (revisado): «Qué falta» y el rechazo de mover (atajo al hueco de cada requisito), los conflictos (`AvisoDeConflicto`), la
+  agenda y el chat (sólo errores de red, con «Reintentar»). A `docs/PENDIENTES.md`: los enlaces del bloqueo de eliminar una fase y tres casos raros.
+- **e2e:** `logistica-lote`, `logistica-mover`, `logistica-transporte`, `configuracion-flujos-reglas`, `configuracion-flujos-fases`.
 
 ### [x] A2 · Visor de imágenes (`feat(shared): ver las fotos en un visor con carrusel`)
 

@@ -1,5 +1,8 @@
 'use client'
 
+import type { Route } from 'next'
+import Link from 'next/link'
+import { unidadDeLogistica } from '@/shared/lib/rutas'
 import { Aviso } from '@/shared/ui/aviso'
 import { Button } from '@/shared/ui/button'
 import { textoDelReintento } from '../lote/vista-del-lote'
@@ -23,7 +26,14 @@ export function ResultadoDelLote({ resumen, alReintentar, alCerrar }: Props) {
         <ul role="list" className="grid gap-1.5 text-(length:--text-sm) text-(--color-ink)">
           {fallidas.map((f) => (
             <li key={f.vehiculoId} className="break-words">
-              {f.linea}
+              {f.linea}{' '}
+              {/* La salida de cada una: su unidad, donde «Qué falta» dice qué cargar y lleva ahí. */}
+              <Link
+                href={unidadDeLogistica(f.vehiculoId) as Route}
+                className="inline-flex min-h-11 items-center font-medium underline underline-offset-2 md:min-h-0"
+              >
+                Abrir la unidad
+              </Link>
             </li>
           ))}
         </ul>
