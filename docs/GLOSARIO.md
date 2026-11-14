@@ -183,6 +183,10 @@ ese nombre: nunca un sinónimo ni su traducción al inglés.
   mínimo en la base y tope 5 por sección; la dibuja la paleta.
 - **Paleta** — `<Paleta>`, `AccionDeLaPaleta` / `src/modules/buscador`: superposición `Ctrl/Cmd+K` que busca y ejecuta acciones; sin URL; sus
   acciones se ofrecen con `puede()`.
+- **Visto** — `vistos` / `visto_registrar()`, `vistos_de()`, `ProveedorDeMarcasDeVisto`: un registro que la persona abrió (ficha o resumen) en
+  _ese_ módulo; su fila se apaga como un enlace visitado. Por persona; se recuerda 7, 30, 90 o 365 días (`/perfil` › «Vistos»).
+- **Último visto** — `vistos_de().ultimo` / `<SufijoDeVisto>`: el registro que la persona abrió por última vez en un módulo; borde de acento y
+  «Último visto» junto al nombre.
 - **Últimos abiertos** — `visitados` / `visita_registrar()`, `visitados_usuario_visto_idx`: lo último que cada persona abrió (lead, vehículo o
   cotización), a lo sumo 50; se lee bajo la RLS de cada entidad.
 - **Míos / Todos** — `?alcance=todos` / `alcanceDelListado()`, `<SelectorDeAlcance>`: modos del listado de leads; «míos» (defecto) = `en_cartera`.

@@ -103,33 +103,14 @@ T02 y T03 corriendo. La persona eligió pausarlo y que la tanda la haga esta ses
   miniatura fija (JS en el tope); la edición de fotos y la foto de un testimonio (un campo de un formulario) no cambian.
 - **e2e:** `vehiculos-resumen` (con el recorrido del visor), `vehiculos-fotos`, `vehiculos-tarjetas-200`, `repuestos-proyecto`, `presupuesto-js`.
 
-### [ ] A3a · Visto y último visto: base, preferencias y vehículos y leads (`feat(equipo): recordar lo visto por persona y módulo`)
+### [x] A3a · Visto y último visto: base, preferencias, vehículos y leads (`feat(equipo): recordar lo visto por persona y módulo`)
 
-- **Tabla nueva `vistos`:**
-  - Columnas `(usuario_id, modulo, tipo, referencia_id, visto_en)`, con PK `(usuario_id, modulo, tipo, referencia_id)` e índice
-    `(usuario_id, modulo, tipo, visto_en desc)` para el último.
-  - RLS de fila propia en las cuatro operaciones; escritura sólo por RPC.
-  - `visitados` no se toca.
-- **RPC:**
-  - `visto_registrar(p_modulo, p_tipo, p_id)` hace un upsert que no escribe si `visto_en > now() - 30 s` (antirrebote en la base). El
-    cliente además espera 1 s y descarta repetidos.
-  - `vistos_de(p_modulo, p_tipo, p_ids uuid[])` acepta ≤ 100 ids y lee por la PK. Devuelve `{id, visto_en}` más el id del último visto
-    del módulo (por el índice, `limit 1`). Es una sola llamada por página dibujada.
-- **Preferencias:** la clave `vistos` en `preferencias_usuario` guarda `{activado: true, dias: 7, ultimo: true}`, con un `check` de
-  `dias ∈ {7,30,90,365}`. En `/perfil` va un bloque «Vistos» en `PreferenciasPerfil`.
-- **Purga:** el job `vistos-purgar` (diario, por lotes de 5.000 y con tope por corrida, como `actividad_purgar`) usa los días de cada
-  persona.
-- **UI:**
-  - `useVistos(modulo, tipo, ids)` en `src/shared/ui/lista`. La fila suma `data-visto` (texto apagado) y `data-ultimo-visto` (borde de
-    acento y la etiqueta «Último visto» para lectores de pantalla). No depende sólo del color.
-  - «Visto» = abrir la ficha o el resumen de **ese** módulo.
-  - Desactivado: ni se escribe ni se lee.
-- **Este PR aplica a** `/vehiculos` y `/leads`.
-- **Migración:** `equipo_vistos` (tabla, RLS, grants, RPC, job y `check`). Pide `humo.sql` y una prueba en
-  `supabase/tests/areas/equipo/vistos.sql` que pruebe que nadie lee lo de otro.
-- **Medir:** `medir-vistos.sql` con 200.000 filas por persona: la lectura por ids y la del último, sin crecer con N.
-- **e2e:** `leads-listado`, `vehiculos.spec`, `perfil-*`. Un camino feliz nuevo `vistos.spec.ts`.
-- **Docs:** GLOSARIO («Visto», «Último visto») y RENDIMIENTO.
+- Tabla `vistos` (RLS de fila propia; escritura por `visto_registrar`, con antirrebote de 30 s; lectura por `vistos_de`, una por página; job
+  `vistos-purgar` por la retención de cada persona). Preferencia `vistos` `{activado, dias, ultimo}` (encendido, 7 días, con «último visto»)
+  en `/perfil` › «Vistos».
+- `equipo`: `ProveedorDeMarcasDeVisto`, `RegistrarVisto`; `@/shared/ui/lista`: `idDeVisto` en fila y tarjeta y `<SufijoDeVisto>`.
+- Aplicado en `/vehiculos` y `/leads` (resumen y ficha registran).
+- **Migración:** `equipo_vistos`. Prueba: `areas/equipo/vistos.sql`. **e2e:** `vistos` (nuevo), `leads-listado`, `vehiculos`, `perfil-*`.
 
 ### [ ] A3b · Visto en el resto de las listas (`feat(app): marcar lo visto en todas las listas`)
 
