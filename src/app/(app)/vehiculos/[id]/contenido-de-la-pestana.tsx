@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import type { LayoutDeOrigen, OrigenResumen } from '@/modules/origenes'
-import { type Vehiculo } from '@/modules/vehiculos'
+import { type AvisosDelMenu, type Vehiculo } from '@/modules/vehiculos'
 import { EsqueletoDeResumen } from '@/modules/repuestos/pantallas/proyectos-vehiculo'
 import { EsqueletoDeFotos } from '@/modules/vehiculos/pantallas/ficha'
 import { BloqueSubasta } from './bloque-subasta'
@@ -22,6 +22,9 @@ type Props = {
   editable: boolean
   // Si quien mira ve leads (para el vínculo y los interesados).
   verLeads: boolean
+  // Si, sin el vínculo, iría a la papelera (lo ofrece el aviso de desvinculado tras «Quitar el vínculo»).
+  ofrecerPapelera: boolean
+  avisos?: AvisosDelMenu
 }
 
 // Lo que va debajo de la cabecera según la pestaña de `?seccion=`.
@@ -32,6 +35,8 @@ export function ContenidoDeLaPestana({
   layout,
   editable,
   verLeads,
+  ofrecerPapelera,
+  avisos,
 }: Props) {
   if (pestana === 'fotos') {
     return (
@@ -76,7 +81,12 @@ export function ContenidoDeLaPestana({
       {/* A quién pertenece y a quién le interesa: sólo para quien ve leads. */}
       {verLeads ? (
         <Suspense fallback={null}>
-          <BloqueVinculo vehiculo={vehiculo} editable={editable} />
+          <BloqueVinculo
+            vehiculo={vehiculo}
+            editable={editable}
+            ofrecerPapelera={ofrecerPapelera}
+            avisos={avisos}
+          />
         </Suspense>
       ) : null}
     </>

@@ -1,6 +1,6 @@
 import 'server-only'
-import type { Permisos } from '@/shared/lib/permisos'
-import { consultarEditables, consultarPermiso } from '../../composicion'
+import { puede, type Permisos } from '@/shared/lib/permisos'
+import { consultarEditables, consultarLeadsVisibles, consultarPermiso } from '../../composicion'
 import { candidatosPorCartera, puedeEditar, puedeSobre } from '../../entities/permisos'
 import type { Vehiculo } from '../../entities/vehiculo'
 
@@ -41,4 +41,22 @@ export async function eliminablesDe(
       .filter((vehiculo) => puedeSobre({ ...quien, clave }, vehiculo, porCartera.has(vehiculo.id)))
       .map((vehiculo) => vehiculo.id),
   )
+}
+
+// De estos vehículos, cuáles tienen un lead que esta persona puede abrir: decide si el aviso de «está vinculado» ofrece «Ver el lead». Sólo se
+// pregunta por los que tienen lead, los puede enviar a la papelera (los demás no muestran ese aviso) y si tiene `leads.ver`: casi siempre son
+// cero ids y no se va a la base. Si la consulta falla, no se ofrece.
+export async function leadsVisiblesDe(
+  quien: Quien,
+  vehiculos: readonly Pick<Vehiculo, 'id' | 'leadId'>[],
+  eliminables: ReadonlySet<string>,
+): Promise<Set<string>> {
+  if (!puede(quien.permisos, 'leads.ver')) {
+    return new Set()
+  }
+  const candidatos = vehiculos
+    .filter((vehiculo) => vehiculo.leadId !== null && eliminables.has(vehiculo.id))
+    .map((vehiculo) => vehiculo.id)
+  const consulta = await consultarLeadsVisibles(candidatos)
+  return new Set(consulta.ok ? consulta.data : [])
 }

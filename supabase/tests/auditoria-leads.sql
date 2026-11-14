@@ -117,6 +117,7 @@ declare
     ('vehiculo_interesados(uuid)', 'L'),
     ('lead_vehiculos(uuid)', 'L'),
     ('vehiculos_para_lead(uuid,text)', 'L'),
+    ('vehiculos_con_lead_visible(uuid[])', 'L'),   -- de unos vehículos, los de un lead que `puede_lead(…, leads.ver)` deja abrir: no devuelve nada del lead
     ('puede_evento(uuid)', 'L'),
     ('etiqueta_crear(uuid,text,text)', 'M'),
     -- Los embudos son de cada persona (excepción como las marcas: no reciben un lead; eliminar y guardar

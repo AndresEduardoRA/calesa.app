@@ -56,6 +56,13 @@ function montar(paraCotizar: { ruta: string; claveDelVehiculo: string } | null) 
         vehiculo={vehiculo}
         editable={false}
         eliminable={false}
+        leadVisible={false}
+        alcance={{
+          verLeads: false,
+          verLogistica: false,
+          verCotizaciones: false,
+          verRepuestos: false,
+        }}
         publicar={{ estado: 'deshabilitado', motivo: 'x' }}
         alEnviado={vi.fn()}
         paraCotizar={paraCotizar}

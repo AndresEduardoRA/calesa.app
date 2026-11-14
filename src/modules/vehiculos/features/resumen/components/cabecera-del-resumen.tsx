@@ -6,7 +6,8 @@ import { RUTAS } from '@/shared/lib/rutas'
 import { buttonVariants } from '@/shared/ui/button'
 import { Dato } from '@/shared/ui/campos'
 import { camposDeTarjeta } from '../../../entities/campo'
-import { motivoParaNoEnviar, permisoDePapelera } from '../../../entities/papelera'
+import { vehiculoDelAviso, type AlcanceDeAvisos } from '../../../entities/avisos-de-vehiculo'
+import { papeleraDelVehiculo } from '../../../entities/papelera-permiso'
 import { rutaParaCotizar, type ParaCotizar } from '../../../entities/ruta-para-cotizar'
 import type { PermisoDeVitrina } from '../../../entities/vitrina'
 import { MenuDeVehiculo } from '../../acciones/components/menu-de-vehiculo'
@@ -29,6 +30,10 @@ type Props = DatosDelOrigen & {
   editable: boolean
   // Puede enviarlo a la papelera, y si puede publicar en este origen: lo que el «⋯» ofrece.
   eliminable: boolean
+  // Su lead se puede abrir («Ver el lead» en el aviso de un vehículo vinculado) y lo que se puede abrir desde un aviso. Un vehículo que no es de la
+  // página llega sin lead visible: sin esa acción, por conservador.
+  leadVisible: boolean
+  alcance: AlcanceDeAvisos
   publicar: PermisoDeVitrina
   // Se envió a la papelera: el resumen se cierra.
   alEnviado: () => void
@@ -45,7 +50,7 @@ function tieneValor(valor: unknown) {
 // que se puede hacer: «Editar» (sólo con permiso), «Cotizar» (sólo con permiso para cotizar en el origen) y «Abrir ficha».
 export function CabeceraDelResumen(props: Props) {
   const { vehiculo, campos, fases, origen, vitrina, limpiezaHoy, editable } = props
-  const { eliminable, publicar, alEnviado, paraCotizar } = props
+  const { eliminable, publicar, alEnviado, paraCotizar, leadVisible, alcance } = props
   const fase = faseDe(fases, vehiculo.faseId)
   const datos = camposDeTarjeta(campos).filter((campo) =>
     tieneValor(vehiculo.atributos[campo.clave]),
@@ -103,7 +108,15 @@ export function CabeceraDelResumen(props: Props) {
           vehiculo={vehiculo}
           editar={false}
           publicar={publicar.estado === 'habilitado' ? publicar : null}
-          papelera={permisoDePapelera(eliminable, motivoParaNoEnviar(vehiculo, fase))}
+          papelera={papeleraDelVehiculo({
+            eliminable,
+            vehiculo,
+            fase,
+            editable,
+            leadVisible,
+            alcance,
+          })}
+          avisos={{ vehiculo: vehiculoDelAviso(vehiculo, { editable, leadVisible }), alcance }}
           alEnviado={alEnviado}
           conBorde
         />

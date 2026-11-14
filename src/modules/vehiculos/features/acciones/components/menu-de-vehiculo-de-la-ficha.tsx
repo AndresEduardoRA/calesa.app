@@ -3,9 +3,10 @@
 import type { Route } from 'next'
 import { useRouter } from 'next/navigation'
 import { RUTAS } from '@/shared/lib/rutas'
-import type { PermisoDePapelera } from '../../../entities/papelera'
+import type { PermisoDePapelera } from '../../../entities/papelera-permiso'
 import type { PermisoDeVitrina } from '../../../entities/vitrina'
 import { usePanelDeVitrina } from '../../vitrina/hooks/use-panel-de-vitrina'
+import type { AvisosDelMenu } from '../../../entities/avisos-de-vehiculo'
 import { MenuDeVehiculo } from './menu-de-vehiculo'
 
 type Props = {
@@ -14,12 +15,20 @@ type Props = {
   papelera: PermisoDePapelera
   // `/actividad` de este vehículo, sólo con `actividad.ver` (la arma la página: `vehiculos` no conoce `actividad`); null si no la ve.
   paraActividad: string | null
+  // Qué ofrecer si la base rechaza el envío; `paraActividad` se suma por dentro.
+  avisos: Omit<AvisosDelMenu, 'paraActividad'>
 }
 
 // El «⋯» de la ficha de un vehículo, con la lista de siempre. «Editar» es el botón de la cabecera. «Publicar en la web…» abre el panel de la
 // vitrina que ya está en la ficha, y se ve siempre: sin el permiso, apagada y con el motivo. Enviar a la papelera lleva al inventario,
 // porque la ficha ya no existe para nadie.
-export function MenuDeVehiculoDeLaFicha({ vehiculo, publicar, papelera, paraActividad }: Props) {
+export function MenuDeVehiculoDeLaFicha({
+  vehiculo,
+  publicar,
+  papelera,
+  paraActividad,
+  avisos,
+}: Props) {
   const router = useRouter()
   const vitrina = usePanelDeVitrina()
   return (
@@ -29,6 +38,7 @@ export function MenuDeVehiculoDeLaFicha({ vehiculo, publicar, papelera, paraActi
       publicar={publicar}
       papelera={papelera}
       conBorde
+      avisos={{ ...avisos, paraActividad }}
       alPublicar={vitrina.abrir}
       alVerActividad={
         paraActividad

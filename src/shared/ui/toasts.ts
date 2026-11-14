@@ -3,9 +3,18 @@
 // Avisos efímeros. Todo toast de la app sale de acá para que el mismo resultado se diga siempre
 // igual: el conflicto ofrece «Recargar», la sesión vencida no hace perder el formulario, y lo
 // reversible ofrece «Deshacer» durante 10 s (docs/UX.md › Reglas transversales).
+import { createElement } from 'react'
 import { toast } from 'sonner'
+import {
+  hayAcciones,
+  MAXIMO_DE_ACCIONES,
+  SIN_ACCIONES,
+  type AccionDelAviso,
+  type AccionesDeUnAviso,
+} from '@/shared/lib/acciones-del-aviso'
 import type { ErrorApp } from '@/shared/lib/errores'
 import { RUTAS } from '@/shared/lib/rutas'
+import { AccionesDelAviso } from './acciones-del-aviso'
 import { salirSinPerder } from './salida-con-cambios'
 
 const DESHACER_MS = 10_000
@@ -13,14 +22,16 @@ const DESHACER_MS = 10_000
 // `sale`: la acción deja la pantalla («Abrir ficha», ir a otra página). Con un formulario abierto y
 // algo escrito, antes pregunta en su pie si descartarlo (`salirSinPerder()`): el aviso está encima de
 // todo y su botón recibe el clic aunque haya un modal abierto.
-type Accion = { etiqueta: string; alHacer: () => void; sale?: boolean }
+// `duracion`: cuánto queda a la vista (ms); por defecto, lo de sonner.
+type Accion = { etiqueta: string; alHacer: () => void; sale?: boolean; duracion?: number }
 
 function opcionesDe(accion: Accion | undefined) {
   if (!accion) {
     return undefined
   }
-  const { etiqueta, alHacer, sale } = accion
+  const { etiqueta, alHacer, sale, duracion } = accion
   return {
+    ...(duracion === undefined ? {} : { duration: duracion }),
     action: {
       label: etiqueta,
       onClick: sale
@@ -64,23 +75,56 @@ function avisarSesionVencida(mensaje: string): void {
   })
 }
 
-export function avisarError(error: ErrorApp): void {
+// Lo que `avisarError()` ofrece además del mensaje. `acciones` las declara el módulo (`entities/`) a partir de `error.causa`; `alReintentar`
+// suma «Reintentar» al frente, y `alDeshacer` es lo que hace una acción `deshacer` declarada.
+export type OpcionesDeError = {
+  acciones?: AccionesDeUnAviso
+  alReintentar?: () => void
+  alDeshacer?: () => void
+}
+
+const RECARGAR: AccionDelAviso = { tipo: 'recargar', etiqueta: 'Recargar' }
+const REINTENTAR: AccionDelAviso = { tipo: 'reintentar', etiqueta: 'Reintentar' }
+
+let siguiente = 0
+
+// Un error con acciones o un pedido queda a la vista hasta cerrarlo y lleva el foco a la acción principal: bloquea lo que la persona
+// quería hacer y lo que sigue es elegir. El conflicto siempre ofrece «Recargar», primero.
+function avisarErrorConAcciones(
+  error: ErrorApp,
+  resueltas: AccionesDeUnAviso,
+  opciones: OpcionesDeError,
+): void {
+  const id = `error-con-acciones-${String(siguiente++)}`
+  toast.error(error.mensaje, {
+    id,
+    duration: Infinity,
+    description: createElement(AccionesDelAviso, {
+      resueltas,
+      alReintentar: opciones.alReintentar,
+      alDeshacer: opciones.alDeshacer,
+      alElegir: () => toast.dismiss(id),
+      enfocar: true,
+    }),
+  })
+}
+
+export function avisarError(error: ErrorApp, opciones: OpcionesDeError = {}): void {
   if (error.codigo === 'no_autenticado') {
     avisarSesionVencida(error.mensaje)
     return
   }
-  if (error.codigo === 'conflicto') {
-    toast.error(error.mensaje, {
-      duration: Infinity,
-      action: {
-        label: 'Recargar',
-        onClick: () => {
-          salirSinPerder(() => {
-            window.location.reload()
-          })
-        },
-      },
-    })
+  const propias = opciones.acciones ?? SIN_ACCIONES
+  const delPrincipio = [
+    ...(error.codigo === 'conflicto' ? [RECARGAR] : []),
+    ...(opciones.alReintentar ? [REINTENTAR] : []),
+  ]
+  const resueltas: AccionesDeUnAviso = {
+    acciones: [...delPrincipio, ...propias.acciones].slice(0, MAXIMO_DE_ACCIONES),
+    pedido: propias.pedido,
+  }
+  if (hayAcciones(resueltas)) {
+    avisarErrorConAcciones(error, resueltas, opciones)
     return
   }
   toast.error(error.mensaje)

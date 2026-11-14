@@ -10,7 +10,9 @@ export type CodigoError =
   | 'validacion'
   | 'inesperado'
 
-export type ErrorApp = { codigo: CodigoError; mensaje: string }
+// `causa`: qué regla frenó, con una clave del módulo que la dice (`'vinculado'`, `'documentos'`…). La pone quien lo sabe (la base, por el
+// `hint` del error) y la traduce a acciones el `entities/` del módulo (`lib/acciones-del-aviso.ts`). Opcional: casi ningún error la tiene.
+export type ErrorApp = { codigo: CodigoError; mensaje: string; causa?: string }
 
 export type Resultado<T> = { ok: true; data: T } | { ok: false; error: ErrorApp }
 
@@ -22,8 +24,11 @@ export function ok<T>(data: T): Resultado<T> {
   return { ok: true, data }
 }
 
-export function fallo(codigo: CodigoError, mensaje: string): Resultado<never> {
-  return { ok: false, error: { codigo, mensaje } }
+export function fallo(codigo: CodigoError, mensaje: string, causa?: string): Resultado<never> {
+  return {
+    ok: false,
+    error: causa === undefined ? { codigo, mensaje } : { codigo, mensaje, causa },
+  }
 }
 
 // Para un Server Component que lee: el error de una lectura sube al `error.tsx` de la ruta, que

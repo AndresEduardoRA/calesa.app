@@ -7,6 +7,7 @@ import type { Pagina } from '@/shared/lib/paginacion'
 import { Aviso } from '@/shared/ui/aviso'
 import { FilterShell } from '@/shared/ui/filtros'
 import { useAbiertoAlgunaVez } from '@/shared/ui/use-abierto-alguna-vez'
+import type { AlcanceDeAvisos } from '../../../entities/avisos-de-vehiculo'
 import { camposFiltrables } from '../../../entities/filtros'
 import type { PermisoDeAlta } from '../../../entities/permisos'
 import type { ParaCotizar } from '../../../entities/ruta-para-cotizar'
@@ -40,6 +41,9 @@ type Props = DatosDelOrigen & {
   enEdicion: Vehiculo | null
   // Los que puede enviar a la papelera (se eligen y se mandan juntos), y si puede abrirla.
   eliminables: readonly string[]
+  // De los de esta página, cuáles tienen un lead que puede abrir, y lo que puede abrir desde un aviso («Ver el lead», «Ver en logística»…).
+  leadsVisibles: readonly string[]
+  alcance: AlcanceDeAvisos
   verPapelera: boolean
   // Si el alta de este origen puede traer la ficha de apibara.
   apibara: DisponibilidadDeApibara
@@ -130,6 +134,8 @@ export function ListadoDeVehiculos(props: Props) {
           filas={pagina.filas}
           editables={new Set(editables)}
           eliminables={new Set(resto.eliminables)}
+          leadsVisibles={new Set(resto.leadsVisibles)}
+          alcance={resto.alcance}
           publicar={resto.publicar}
           verInteresados={verInteresados}
           paraCotizar={paraCotizar}

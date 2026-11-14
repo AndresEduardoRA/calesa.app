@@ -2,6 +2,7 @@
 
 import { useAction } from 'next-safe-action/hooks'
 import { avisar, avisarConDeshacer, avisarError, avisarExito } from '@/shared/ui/toasts'
+import { accionesDeError, type AvisosDelMenu } from '../../../entities/avisos-de-vehiculo'
 import {
   errorDeEnvio,
   resumenDeEnvio,
@@ -41,9 +42,11 @@ export function useEnvioAPapelera() {
     }
   }
 
-  // Devuelve si entró alguno (para que quien llama sepa si hay algo que sacar de la pantalla).
+  // Devuelve si entró alguno (para que quien llama sepa si hay algo que sacar de la pantalla). Con `avisos` y un solo vehículo que no entró, el
+  // aviso ofrece lo que corresponde a su causa; en un lote, sólo se listan los motivos.
   async function enviar(
     vehiculos: readonly { id: string; actualizadoEn: string }[],
+    avisos?: AvisosDelMenu,
   ): Promise<boolean> {
     const resultado = await respuestaDe(enviando.executeAsync({ vehiculos: [...vehiculos] }))
     if (!resultado.ok) {
@@ -52,7 +55,21 @@ export function useEnvioAPapelera() {
     }
     const envio = resultado.data
     if (envio.enviados.length === 0) {
-      avisarError(errorDeEnvio(envio))
+      const error = errorDeEnvio(envio)
+      const delUnico = vehiculos.length === 1 ? avisos : undefined
+      avisarError(
+        error,
+        delUnico
+          ? {
+              acciones: accionesDeError(
+                error,
+                delUnico.vehiculo,
+                delUnico.alcance,
+                delUnico.paraActividad,
+              ),
+            }
+          : {},
+      )
       return false
     }
     avisarConDeshacer(resumenDeEnvio(envio), () => {

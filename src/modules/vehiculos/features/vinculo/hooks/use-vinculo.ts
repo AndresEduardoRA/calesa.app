@@ -16,6 +16,9 @@ import { vincularVehiculo } from '../actions/vincular-vehiculo'
 
 type Vehiculo = { id: string; titulo: string; numero: number; actualizadoEn: string }
 
+// Lo que el aviso de «desvinculado» ofrece hacer después, con la versión nueva del vehículo.
+export type LuegoDeDesvincular = { etiqueta: string; alHacer: (actualizadoEn: string) => void }
+
 // «Deshacer» no dice nada si sale; si no sale, dice por qué.
 function deshacerCon<Dato>(pedido: () => Promise<Envio<Dato>>) {
   return () => {
@@ -24,6 +27,25 @@ function deshacerCon<Dato>(pedido: () => Promise<Envio<Dato>>) {
         avisarError(vuelta.error)
       }
     })
+  }
+}
+
+// El aviso de desvinculado: con `luego`, ofrece lo que se quería hacer después; con `volver`, «Deshacer»; si no, sólo lo dice.
+function avisarDesvinculado(
+  texto: string,
+  version: string,
+  { luego, volver }: { luego: LuegoDeDesvincular | undefined; volver: (() => void) | null },
+) {
+  if (luego) {
+    avisarExito(texto, {
+      etiqueta: luego.etiqueta,
+      alHacer: () => luego.alHacer(version),
+      duracion: 10_000,
+    })
+  } else if (volver) {
+    avisarConDeshacer(texto, volver)
+  } else {
+    avisarExito(texto)
   }
 }
 
@@ -69,23 +91,24 @@ export function useVinculo(leadId: string | null) {
   }
 
   // Con `deshacer`, «Deshacer» lo vuelve a vincular a este lead con la versión que devolvió (sólo se
-  // ofrece a quien podría vincularlo: la cartera del lead).
-  async function desvincular(vehiculo: Vehiculo, { deshacer }: { deshacer: boolean }) {
+  // ofrece a quien podría vincularlo: la cartera del lead). Con `luego`, el aviso ofrece lo que se quería hacer después (enviar a la papelera)
+  // con la versión que devolvió, también si ya estaba sin vínculo.
+  async function desvincular(
+    vehiculo: Vehiculo,
+    { deshacer, luego }: { deshacer: boolean; luego?: LuegoDeDesvincular },
+  ) {
     const envio = await pedirVinculo(vehiculo.id, vehiculo.actualizadoEn, null)
     if (!envio.ok) {
       avisarError(envio.error)
       return envio
     }
     const texto = textoDeVinculo(envio.data, vehiculo)
-    if (deshacer && leadId && envio.data.resultado === 'desvinculado') {
-      const version = envio.data.actualizadoEn
-      avisarConDeshacer(
-        texto,
-        deshacerCon(() => pedirVinculo(vehiculo.id, version, leadId)),
-      )
-    } else {
-      avisarExito(texto)
-    }
+    const version = envio.data.actualizadoEn
+    const volver =
+      deshacer && leadId && envio.data.resultado === 'desvinculado'
+        ? deshacerCon(() => pedirVinculo(vehiculo.id, version, leadId))
+        : null
+    avisarDesvinculado(texto, version, { luego, volver })
     return envio
   }
 

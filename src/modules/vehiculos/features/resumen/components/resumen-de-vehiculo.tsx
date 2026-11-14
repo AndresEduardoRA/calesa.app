@@ -12,6 +12,7 @@ import {
   vistaDelResumen,
   type VistaDelResumen,
 } from '../../../entities/resumen'
+import type { AlcanceDeAvisos } from '../../../entities/avisos-de-vehiculo'
 import type { IdentidadDeVehiculo } from '../../../entities/identidad'
 import type { ParaCotizar } from '../../../entities/ruta-para-cotizar'
 import type { Vehiculo } from '../../../entities/vehiculo'
@@ -31,6 +32,9 @@ type Props = DatosDelOrigen & {
   editables: ReadonlySet<string>
   // A quién se puede enviar a la papelera y si se puede publicar en este origen: lo que el «⋯» ofrece.
   eliminables: ReadonlySet<string>
+  // Los de la página cuyo lead se puede abrir, y lo que se puede abrir desde un aviso (los de la página; el resto, sin «Ver el lead»).
+  leadsVisibles: ReadonlySet<string>
+  alcance: AlcanceDeAvisos
   publicar: PermisoDeVitrina
   // «Interesados» existe sólo con `leads.ver`.
   verInteresados: boolean
@@ -69,6 +73,8 @@ function EsqueletoDelResumen({ etiqueta }: { etiqueta: string }) {
 
 type PropsDelContenido = DatosDelOrigen & {
   eliminables: ReadonlySet<string>
+  leadsVisibles: ReadonlySet<string>
+  alcance: AlcanceDeAvisos
   publicar: PermisoDeVitrina
   paraCotizar: ParaCotizar | null
   vista: VistaDelResumen
@@ -85,7 +91,17 @@ type PropsDelContenido = DatosDelOrigen & {
 function ConVehiculo(
   props: PropsDelContenido & { vehiculo: Vehiculo; completo: boolean; fallo: boolean },
 ) {
-  const { vehiculo, completo, fallo, reintentar, editables, eliminables, resumen, ...datos } = props
+  const {
+    vehiculo,
+    completo,
+    fallo,
+    reintentar,
+    editables,
+    eliminables,
+    leadsVisibles,
+    resumen,
+    ...datos
+  } = props
   const { origen, campos, categorias } = datos
   return (
     <div className="grid gap-4">
@@ -94,6 +110,7 @@ function ConVehiculo(
         vehiculo={vehiculo}
         editable={editables.has(vehiculo.id)}
         eliminable={eliminables.has(vehiculo.id)}
+        leadVisible={leadsVisibles.has(vehiculo.id)}
         alEnviado={resumen.cerrar}
       />
       <PestanasDelResumen

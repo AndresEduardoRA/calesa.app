@@ -7,7 +7,8 @@ Inventario de vehículos por origen con atributos dinámicos: listado con filtro
 - Entra: `/vehiculos` (`?origen=`, filtros, `?cursor=`, `?vitrina=si|no`, `?vehiculo=<id>` abre el resumen con `?pestana=fotos|interesados`),
   `/vehiculos/papelera`, `/vehiculos/[id]` (`?seccion=ficha|fotos|cotizaciones`; la última sólo con `cotizaciones.ver` del origen, la dibuja
   `cotizaciones/pantallas/vehiculo` compuesta por `src/app`; sin esa clave abre «Ficha»). Paneles: `?panel=nuevo`, `?editar=<id>`,
-  `?panel=vitrina`, `?panel=desvincular`, `?panel=purgar&lote=`. Layout, categorías y orígenes (`origenes`), fases (`flujos`) y vistas guardadas
+  `?panel=vitrina`, `?panel=desvincular` (con `&luego=papelera`, desde el aviso «Quitar el vínculo»: el aviso de desvinculado ofrece la papelera),
+  `?panel=purgar&lote=`. Layout, categorías y orígenes (`origenes`), fases (`flujos`) y vistas guardadas
   (`equipo`) los lee la página y los pasa por props.
 - Hoja de cotizar (`/cotizaciones/nuevo`, la compone `app/`): `<BarraDelVehiculo>` (`pantallas/cotizar`) abre
   `?panel=vehiculo&lista=ultima|cierre&buscar=&cursor=`:
@@ -75,13 +76,15 @@ Lectura `vehiculos_inventario` (una página por rutas con los filtros del layout
 - **Vitrina, sólo por** `vehiculo_vitrina` (estado entero, sin defaults, con versión; exige `vehiculos.vitrina` del origen y ver el vehículo).
   **Publicado no es «en vitrina»:** la regla vive en `interno.vitrina_vehiculos`; la app no la copia. Vista previa: `vehiculo_vitrina_previa()`.
 - **Papelera, sólo por RPC y con resultado parcial** (cada vehículo con su versión, lote hasta 200; restaurar/purgar con la versión del lote).
-  Enviar ofrece «Deshacer» 10 s. Lo que no entra lo decide `_vehiculo_motivo_de_bloqueo` (una final activa frena aunque no tenga lead; purgar
+  Enviar ofrece «Deshacer» 10 s. Lo que no entra lo decide `_vehiculo_bloqueo()` (`{causa, motivo}`; `_vehiculo_motivo_de_bloqueo` es su texto; la
+  causa viaja en `hint` y en `rechazados[].causa`, y `entities/avisos-de-vehiculo.ts` la vuelve acciones del aviso; una final activa frena aunque no tenga lead; purgar
   frena con una cotización de otro lote de la papelera que lo nombra). Restaurar vuelve sin publicar. Purgar es irreversible (`<ConfirmarPurga>`). Se lee sólo por `vehiculos_papelera_listar()`. Un lead con
   vehículo vinculado no va a la papelera de leads.
 - **Vínculo e interesados, sólo por RPC** (`vehiculo_vincular`; `p_lead` nulo desvincula; bloquea el lead y luego el vehículo; reemplazar exige
   tener también el lead actual). El vínculo otorga permisos (con «propios», quien tiene el lead edita el vehículo). No se lee `leads`: los nombres
   llegan de las RPC. El bloque sólo se dibuja con `leads.ver`.
-- «Editar» lo decide la base (`editablesDe()` + `vehiculos_editables`; las RPC, `puede_vehiculo()`).
+- «Editar» lo decide la base (`editablesDe()` + `vehiculos_editables`; las RPC, `puede_vehiculo()`). «Ver el lead» de un aviso, también:
+  `leadsVisiblesDe()` + `vehiculos_con_lead_visible(p_ids)` (≤ 200 por PK, sólo con candidatos).
 - **La limpieza automática es de la base** (`_limpieza_aplica|termino|vence|ancla|fecha`; `limpieza_el` calculada): nunca una copia en TypeScript;
   una ancla nueva = una línea en `_limpieza_ancla()`. Sólo `importado_apibara` en origen de subasta. «Conservar» no mueve la versión.
 - **apibara:** la llamada vive en la edge function, que llama el navegador; guarda el bruto en `apibara_consultas` y alta/refresco sólo mandan su id

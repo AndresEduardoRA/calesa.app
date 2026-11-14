@@ -10,9 +10,11 @@ import {
   condicionesDe,
   editablesDe,
   eliminablesDe,
+  alcanceDeAvisos,
   esquemaDeFiltros,
   fuenteDelInventario,
   hoyEnZona,
+  leadsVisiblesDe,
   limiteDeAviso,
   origenElegido,
   origenesVisibles,
@@ -99,6 +101,8 @@ export default async function PaginaVehiculos({ searchParams }: PageProps<'/vehi
     editablesDe(sesion, pagina.filas),
     eliminablesDe(sesion, pagina.filas),
   ])
+  // De los que se pueden enviar a la papelera y tienen lead, cuáles se pueden abrir: casi siempre ninguno, y entonces no se pregunta.
+  const leadsVisibles = await leadsVisiblesDe(sesion, pagina.filas, eliminables)
   const idsVisibles = new Set(visibles.map((uno) => uno.id))
 
   return (
@@ -116,6 +120,8 @@ export default async function PaginaVehiculos({ searchParams }: PageProps<'/vehi
       permisoDeAlta={permisoDeAlta(sesion.permisos, origen)}
       editables={[...editables]}
       eliminables={[...eliminables]}
+      leadsVisibles={[...leadsVisibles]}
+      alcance={alcanceDeAvisos(sesion.permisos, origen.id)}
       verPapelera={puedeAbrirLaPapelera(sesion.permisos)}
       verInteresados={puede(sesion.permisos, 'leads.ver')}
       publicar={permisoDeVitrina(sesion.permisos, origen)}

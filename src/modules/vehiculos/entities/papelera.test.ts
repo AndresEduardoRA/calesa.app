@@ -3,14 +3,11 @@ import type { Permisos } from '@/shared/lib/permisos'
 import {
   diasParaLaPurga,
   envioDesde,
-  errorDeEnvio,
   limpiezaPendienteDesde,
   faltanPorMostrar,
   loteDesde,
   lotesDesde,
-  motivoParaNoEnviar,
   palabraDePurga,
-  permisoDePapelera,
   puedeAbrirLaPapelera,
   puedePurgar,
   purgaDesde,
@@ -76,13 +73,17 @@ describe('las respuestas de enviar, restaurar y purgar', () => {
         lote: null,
         actualizado_en: null,
         enviados: [],
-        rechazados: [{ id: ID(1), titulo: null, codigo: '42501', motivo: 'No tienes permiso.' }],
+        rechazados: [
+          { id: ID(1), titulo: null, codigo: '42501', motivo: 'No tienes permiso.', causa: null },
+        ],
       }),
     ).toEqual(
       envio({
         lote: null,
         actualizadoEn: null,
-        rechazados: [{ id: ID(1), titulo: null, codigo: '42501', motivo: 'No tienes permiso.' }],
+        rechazados: [
+          { id: ID(1), titulo: null, codigo: '42501', motivo: 'No tienes permiso.', causa: null },
+        ],
       }),
     )
     expect(
@@ -134,12 +135,14 @@ describe('resumenDeEnvio', () => {
           titulo: 'B',
           codigo: '23514',
           motivo: 'Está vinculado a un lead. Quita el vínculo antes.',
+          causa: 'vinculado',
         },
         {
           id: ID(3),
           titulo: null,
           codigo: '42501',
           motivo: 'No tienes permiso para enviarlo a la papelera.',
+          causa: null,
         },
       ],
     })
@@ -154,23 +157,11 @@ describe('resumenDeEnvio', () => {
       titulo: `V${String(n)}`,
       codigo: '23514',
       motivo: 'Tiene un comprobante emitido.',
+      causa: 'comprobante',
     }))
     expect(resumenDeEnvio(envio({ lote: null, rechazados }))).toBe(
       'No se envió ninguno. No se envió «V1»: Tiene un comprobante emitido. No se envió «V2»: Tiene un comprobante emitido. No se envió «V3»: Tiene un comprobante emitido. Y 2 más.',
     )
-  })
-})
-
-describe('errorDeEnvio', () => {
-  it('uno solo que otra persona cambió es un conflicto; lo demás, una regla', () => {
-    const uno = (codigo: string) =>
-      envio({ lote: null, rechazados: [{ id: ID(1), titulo: 'A', codigo, motivo: 'Motivo.' }] })
-    expect(errorDeEnvio(uno('PT409'))).toEqual({
-      codigo: 'conflicto',
-      mensaje: 'No se envió «A»: Motivo.',
-    })
-    expect(errorDeEnvio(uno('42501')).codigo).toBe('sin_permiso')
-    expect(errorDeEnvio(uno('23514')).codigo).toBe('regla')
   })
 })
 
@@ -234,36 +225,6 @@ describe('cuándo se purga', () => {
 
   it('la palabra de un lote lleva su tamaño', () => {
     expect(palabraDePurga(12)).toBe('purgar 12')
-  })
-})
-
-describe('qué se sabe de antemano que no va', () => {
-  it('lo vinculado y lo que salió de su fase inicial', () => {
-    expect(motivoParaNoEnviar({ leadId: ID(1), faseId: null }, null)).toBe(
-      'Está vinculado a un lead. Quita el vínculo antes.',
-    )
-    expect(
-      motivoParaNoEnviar(
-        { leadId: null, faseId: ID(2) },
-        { nombre: 'En tránsito', esInicial: false },
-      ),
-    ).toBe('Está en «En tránsito». Sólo va a la papelera lo que sigue en su fase inicial.')
-    expect(
-      motivoParaNoEnviar(
-        { leadId: null, faseId: ID(2) },
-        { nombre: 'Disponible', esInicial: true },
-      ),
-    ).toBeNull()
-    expect(motivoParaNoEnviar({ leadId: null, faseId: null }, null)).toBeNull()
-  })
-
-  it('sin el permiso la acción no existe; con un motivo, se ve apagada', () => {
-    expect(permisoDePapelera(false, 'Motivo.')).toEqual({ estado: 'oculto' })
-    expect(permisoDePapelera(true, 'Motivo.')).toEqual({
-      estado: 'deshabilitado',
-      motivo: 'Motivo.',
-    })
-    expect(permisoDePapelera(true, null)).toEqual({ estado: 'habilitado' })
   })
 })
 

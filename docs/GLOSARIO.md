@@ -27,6 +27,9 @@ ese nombre: nunca un sinónimo ni su traducción al inglés.
 - **Preferencia** — `preferencias_usuario` / `Preferencias`: elección de interfaz por persona (densidad, tema), igual en todos sus dispositivos.
 - **Densidad** — `useDensidad()` / `--fila` (`compacta` | `comoda`): altura de las filas; compacta con mouse, cómoda en táctil, o la elegida.
 - **Aviso de acceso** — `?aviso=clave` / `AVISOS`: por qué alguien llegó redirigido a una pantalla de acceso; el texto sale del catálogo.
+- **Aviso con acciones** — `AccionesDeUnAviso` / `resolverAcciones()`, `<AccionesDelAviso>`, `avisarError(error, { acciones })`: aviso de
+  error, advertencia o bloqueo que ofrece ahí mismo de 1 a 3 salidas (ir, abrir un panel, reintentar, deshacer, recargar), filtradas por permiso.
+- **Causa (de un error)** — `ErrorApp.causa`: clave estable de la regla que frenó (viaja en `hint`); de ella salen las acciones del aviso.
 - **Canje** — `/auth/callback` / `canjearAcceso()`: convertir el código de Google o el enlace de un correo en una sesión.
 - **Primer registro** — `ajustes_acceso().primer_registro`: aún no hay nadie en el equipo; la primera cuenta nace con el rol dueño.
 - **Registro abierto** — `ajustes_empresa.registro_abierto`: si alguien puede crear cuenta solo; lo aplica un trigger en `auth.users`.
@@ -106,6 +109,8 @@ ese nombre: nunca un sinónimo ni su traducción al inglés.
 - **Vehículo de una nota** — `seguimientos.vehiculo_id`, `recordatorios.vehiculo_id`: vehículo opcional del lead que quien escribe ve.
 - **Carreras** — `pnpm db:carreras` (`scripts/carreras.mjs`): prueba de concurrencia con dos conexiones reales a la base local sobre el mismo
   lead o vehículo.
+- **Causa de bloqueo** — `_vehiculo_bloqueo()` / `CAUSAS_DE_BLOQUEO`: por qué un vehículo no va a la papelera (`vinculado`, `fase`,
+  `comprobante`, `final`, `documentos`, `pagos`, `aduana`, `repuestos`; `cotizacion_papelera` sólo frena una purga).
 - **Publicado** — `vehiculos.publicado_web` / `vehiculo_vitrina()`: quien tiene `vehiculos.vitrina` decidió que salga en la web. Condición,
   no garantía.
 - **En vitrina** — `interno.vitrina_vehiculos.visible` / `web.vehiculos`, `vitrina_del_origen()`: se ve hoy en la web: publicado, fuera de
