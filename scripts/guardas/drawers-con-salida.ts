@@ -68,6 +68,11 @@ export const DRAWERS_DEL_NUCLEO: Record<string, RegistroDeDrawer> = {
     formulario: 'src/modules/vehiculos/features/vitrina/components/formulario-de-vitrina.tsx',
     mecanismo: 'contexto',
   },
+  // El precio público que falta para publicar desde la lista (B3).
+  'src/modules/vehiculos/features/vitrina/components/panel-de-vitrina-rapida.tsx': {
+    formulario: 'src/modules/vehiculos/features/vitrina/components/panel-de-vitrina-rapida.tsx',
+    mecanismo: 'contexto',
+  },
   // La nota de un interés que se tipea y no se manda no tiene borrador: el panel pide `preguntaAlCerrar` (cierre 4) y pregunta
   // también al cerrar, con la pregunta en el pie del `<Drawer>`.
   'src/modules/vehiculos/features/vinculo/components/panel-agregar-vehiculo.tsx': {

@@ -14,6 +14,7 @@ import {
   type FilaDeVehiculo,
   type ParaElMenuDeLaLista,
 } from './tipos'
+import { BotonDeVitrinaDeLaFila } from '../../vitrina/components/boton-de-vitrina-de-la-fila'
 
 type Props = DatosDelOrigen & {
   vehiculos: readonly FilaDeVehiculo[]
@@ -68,6 +69,9 @@ export function TarjetasDeVehiculos(props: Props) {
             insignias={
               <>
                 <InsigniaDeVitrina {...vitrinaDe(vehiculo, vitrina)} origen={origen} fase={fase} />
+                {menu.publicar.estado === 'habilitado' ? (
+                  <BotonDeVitrinaDeLaFila vehiculo={vehiculo} />
+                ) : null}
                 <InsigniaDeLimpieza fecha={vehiculo.limpiezaEl} hoy={limpiezaHoy} />
               </>
             }
