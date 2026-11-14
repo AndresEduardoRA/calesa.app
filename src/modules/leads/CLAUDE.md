@@ -72,6 +72,11 @@ por cursor, de a 20 y hasta 100, por `oportunidades_lead_abiertas_idx` y `oportu
 
 ## No se rompe
 
+- **Último contacto del listado:** `leads_vista` (y `leads_cartera_vista`) trae `ultimo_seguimiento_visible` `{tipo_id, titulo}` y `proximo_recordatorio`
+  `{id, titulo, recordar_en}`: subconsultas con `limit 1` por `seguimientos_lead_fecha_idx` (igualdad con `ultimo_seguimiento_en`) y
+  `recordatorios_lead_pendientes_idx`, invocadoras (la RLS decide). Sólo se entrega el seguimiento si es el que marca `ultimo_seguimiento_en`; un último
+  privado ajeno deja la fecha y nada más (`entities/ultimo-contacto.ts`, `supabase/tests/areas/leads/ultimo-contacto.sql`). El tipo se nombra con
+  `leads_catalogos().tipos_de_seguimiento`. Una columna más a `leads_vista` pasa por `medir-leads-ultimo-contacto.sql`. El listado no ordena por esto.
 - **Privados recortados en la base:** un campo `solo_cartera` y el teléfono completo sólo llegan a quien tiene el lead en su cartera, también con
   «todos» (incluido el dueño: deliberado). `leads.atributos` y `telefono_principal` sin grant: la app lee `leads_vista`. Falla cerrada: a un ajeno
   sólo llegan claves que el layout conoce como no privadas. Un privado ajeno no se encuentra filtrando.

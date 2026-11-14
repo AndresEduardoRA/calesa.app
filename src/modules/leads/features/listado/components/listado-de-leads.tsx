@@ -33,6 +33,7 @@ import { PieDeFiltros } from './pie-de-filtros'
 import { ResultadoDelListado } from './resultado-del-listado'
 import { SelectorDeAlcance } from './selector-de-alcance'
 import type { DatosDeLaLista } from './tipos'
+import type { DatosDeUltimoContacto } from './ultimo-contacto'
 import { VistasDeLeads } from './vistas-de-leads'
 import { ProveedorDeMarcasDeVisto } from '@/modules/equipo/client'
 
@@ -52,6 +53,9 @@ type Props = DatosDeLaLista & {
   eliminables: readonly string[]
   puedeAbrirPapelera: boolean
   puedeAnotar: boolean
+  // Los tipos de seguimiento y el instante de la página: dicen el último seguimiento y el recordatorio de cada fila.
+  tiposDeSeguimiento: DatosDeUltimoContacto['tipos']
+  ahora: string
 }
 
 // Lo que va arriba de la lista: lo que la URL traía y ya no vale, y la aclaración de un filtro
@@ -146,6 +150,8 @@ export function ListadoDeLeads(props: Props) {
     eliminables,
     puedeAbrirPapelera,
     puedeAnotar,
+    tiposDeSeguimiento,
+    ahora,
     ...delServidor
   } = props
   const drawer = useDrawerDeLead()
@@ -196,6 +202,7 @@ export function ListadoDeLeads(props: Props) {
             marcar={marcar}
             ocultos={ocultos}
             recorrido={recorrido}
+            ultimoContacto={{ tipos: tiposDeSeguimiento, ahora }}
           />
         </div>
       </FilterShell>

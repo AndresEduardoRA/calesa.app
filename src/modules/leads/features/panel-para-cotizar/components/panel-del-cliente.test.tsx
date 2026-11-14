@@ -26,6 +26,7 @@ const CATALOGO: CatalogosDeLead = {
     { id: 't1', clave: 'p', nombre: 'Prospecto', clase: 'prospecto', activo: true },
     { id: 't2', clave: 'c', nombre: 'Cliente VIP', clase: 'cliente', activo: true },
   ],
+  tiposDeSeguimiento: [],
 }
 const leer = vi.fn((_pedido: { lista: string; busqueda: { texto: string } | null }) => respuesta())
 vi.mock('../../../composicion.client', () => ({

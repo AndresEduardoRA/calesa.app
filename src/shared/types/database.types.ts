@@ -7142,12 +7142,14 @@ export type Database = {
           numero_propio_de: string | null
           numero_visible: number | null
           origen_lead_id: string | null
+          proximo_recordatorio: Json | null
           reciente_en: string | null
           telefono_cc: string | null
           telefono_principal: string | null
           telefono_visible: boolean | null
           tipo_lead_id: string | null
           ultimo_seguimiento_en: string | null
+          ultimo_seguimiento_visible: Json | null
         }
         ComputedFields: never
         Relationships: [
@@ -7215,12 +7217,14 @@ export type Database = {
           numero_propio_de: string | null
           numero_visible: number | null
           origen_lead_id: string | null
+          proximo_recordatorio: Json | null
           reciente_en: string | null
           telefono_cc: string | null
           telefono_principal: string | null
           telefono_visible: boolean | null
           tipo_lead_id: string | null
           ultimo_seguimiento_en: string | null
+          ultimo_seguimiento_visible: Json | null
         }
         ComputedFields: never
         Relationships: [
@@ -10475,12 +10479,14 @@ export type Database = {
           numero_propio_de: string | null
           numero_visible: number | null
           origen_lead_id: string | null
+          proximo_recordatorio: Json | null
           reciente_en: string | null
           telefono_cc: string | null
           telefono_principal: string | null
           telefono_visible: boolean | null
           tipo_lead_id: string | null
           ultimo_seguimiento_en: string | null
+          ultimo_seguimiento_visible: Json | null
         }[]
         SetofOptions: {
           from: '*'

@@ -26,6 +26,7 @@ import {
 } from '../../composicion'
 import type { TipoDeLeadEnCatalogo } from '../../entities/catalogos'
 import type { OrigenConEstado } from '../../entities/ficha'
+import type { TipoDeSeguimientoEnCatalogo } from '../../entities/ultimo-contacto'
 import { CLAVE_DE_ALCANCE, alcanceDelListado, type ModoDelListado } from '../../entities/alcance'
 import type { CampoDeLead } from '../../entities/campo'
 import type { Etiqueta } from '../../entities/etiqueta'
@@ -67,6 +68,9 @@ export type DatosDelListado = {
   puedeAbrirPapelera: boolean
   // `leads.editar`: con el lead en la cartera, anotar y agendar desde el «⋯» de su fila.
   puedeAnotar: boolean
+  // Los tipos de seguimiento (también los apagados) y el instante en que se leyó la página: dicen «hace 3 días» en cada fila.
+  tiposDeSeguimiento: TipoDeSeguimientoEnCatalogo[]
+  ahora: string
 }
 
 type Entrada = {
@@ -101,6 +105,11 @@ function tamanoDeEstaPagina(parametros: ParametrosDeUrl, preferencia: number | n
     preferencia,
     maximo: MAXIMO_DE_PAGINA_DE_LEADS,
   })
+}
+
+// Los de la página que quien mira puede enviar a la papelera.
+function idsEliminables(filas: readonly FilaDeLead[], permisos: Permisos, usuarioId: string) {
+  return filas.filter((f) => puedeEnviarLead(permisos, f.duenoId, usuarioId)).map((f) => f.id)
 }
 
 export async function leerListadoDeLeads(entrada: Entrada): Promise<Resultado<DatosDelListado>> {
@@ -176,12 +185,12 @@ export async function leerListadoDeLeads(entrada: Entrada): Promise<Resultado<Da
       // Si contar falla, el listado se dibuja igual: sin el aviso.
       ocultos: ocultos?.ok ? ocultos.data : SIN_OCULTOS,
       recorrido: leida.data.recorrido,
-      eliminables: leida.data.filas
-        .filter((fila) => puedeEnviarLead(permisos, fila.duenoId, usuarioId))
-        .map((fila) => fila.id),
+      eliminables: idsEliminables(leida.data.filas, permisos, usuarioId),
       puedeAbrirPapelera: puedeAbrirLaPapelera(permisos),
       // Como si estuviera en la cartera: cada fila lo combina con la suya.
       puedeAnotar: puedeEditarLead(permisos, true),
+      tiposDeSeguimiento: catalogos.data.tiposDeSeguimiento,
+      ahora: new Date().toISOString(),
     },
   }
 }

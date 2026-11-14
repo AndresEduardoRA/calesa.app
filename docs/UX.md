@@ -951,8 +951,11 @@ origen, y **se guarda al instante** (cada tono es una escritura propia; no entra
 
 - **Entrar:** `leads.ver`; sin él, sin permiso (a quién pedirlo) y sin consulta. «Propios», sólo la cartera; «todos», todo, con el teléfono
   enmascarado («+591 •••••01») y «Solo la cartera» en los datos privados de lo ajeno. Limbo y papelera no aparecen para nadie.
-- **Columnas:** nombre y su número («N.º 1.234» con `leads.numero_global.ver`; «Tu n.º 12» sin él), teléfono, tipo, origen y campos «en
-  la tabla». Tarjeta: nombre, número, tipo, teléfono, origen y hasta dos datos.
+- **Columnas:** nombre y su número («N.º 1.234» con `leads.numero_global.ver`; «Tu n.º 12» sin él), teléfono, tipo, origen, «Último
+  seguimiento» (su tipo con el icono del catálogo, su título y «hace 3 días»; si es privado de otra persona, sólo «hace 3 días»; un clic abre la
+  ficha en sus seguimientos), «Recordatorio» (el próximo pendiente de quien mira: «en 2 días»; vencido, resaltado y «vencido hace 1 día»; un clic lo
+  abre) y campos «en la tabla». Sin seguimientos: «Sin seguimientos» y «Anotar seguimiento»; sin recordatorio: «—» y «Programar» (ambos sólo con el
+  lead en la cartera y `leads.editar`). Lo relativo se refresca cada minuto. Tarjeta: nombre, número, tipo, teléfono, origen, esos dos datos y hasta dos más.
 - **Filtros y búsqueda:** por nombre o número (`#124`), nunca por teléfono; sobre un campo «solo la cartera», quien ve «todos» lee que
   sólo busca en sus leads. Una vista guardada con un campo o etiqueta que ya no existe se aplica sin ese filtro y avisa.
 - **Tus marcas (privadas, «Solo las ves tú.»):** «Tachados» (ocultarlos por defecto · mostrarlos también · sólo los tachados),

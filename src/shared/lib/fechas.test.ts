@@ -70,6 +70,24 @@ describe('fechaRelativa', () => {
   })
 })
 
+describe('fechaRelativa con número', () => {
+  const ahora = new Date('2026-10-11T18:00:00Z')
+  const numerica = (iso: string) => fechaRelativa(iso, { ahora, numerico: true })
+
+  it('dice cuántos días aunque la forma corriente diga «ayer» o «pasado mañana»', () => {
+    expect(numerica('2026-10-10T12:00:00Z')).toBe('hace 1 día')
+    expect(numerica('2026-10-09T12:00:00Z')).toBe('hace 2 días')
+    expect(numerica('2026-10-12T22:00:00Z')).toBe('dentro de 1 día')
+    expect(numerica('2026-10-13T12:00:00Z')).toBe('dentro de 2 días')
+  })
+
+  it('el mismo día de calendario es «hoy» y lo demás no cambia', () => {
+    expect(numerica('2026-10-11')).toBe('hoy')
+    expect(numerica('2026-10-11T15:00:00Z')).toBe('hace 3 horas')
+    expect(numerica('2026-10-01T12:00:00Z')).toBe('1 oct 2026')
+  })
+})
+
 describe('días para filtrar', () => {
   it('el día siguiente cruza de mes y de año', () => {
     expect(diaSiguiente('2026-10-13')).toBe('2026-10-14')

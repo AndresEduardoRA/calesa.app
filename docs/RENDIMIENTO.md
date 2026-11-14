@@ -119,6 +119,11 @@ que asserta `pnpm db:medir:volumen` o el e2e. Mide `medir-escala.sql` salvo que 
   (lo elige `fuenteDelListado()`); página 1 hasta 30 ms, cursor hasta 150, hasta 3.000 descartes, con 62.000 y 212.000. Un «todos» con
   cartera corta (`leads_cartera_corta()`, hasta 5.000) también va por la cartera; la dueña no. Límite: 500 leads en la papelera descartan
   ~530 en la página 1 (≤ 30 ms).
+- Último seguimiento y próximo recordatorio del listado (`medir-leads-ultimo-contacto.sql`): dos columnas de `leads_vista` (subconsultas `limit 1` por
+  `seguimientos_lead_fecha_idx`, igualdad con `ultimo_seguimiento_en`, y `recordatorios_lead_pendientes_idx`), la página de 101 filas de la dueña y de Ana, «todos»
+  y «míos»: ≤ 150 ms (31 a 56 ms con la siembra, 11 a 13 ms sin las columnas), sin `Seq Scan` de `seguimientos` ni `recordatorios`, ≤ 40 buffers por fila
+  (8 a 18) y +~250 B crudos por fila en la respuesta. Con 40 seguimientos y 3 recordatorios pendientes por lead el costo por fila no cambia (la
+  medición lo asserta: ±25 %); con el índice por fecha caído, la guarda falla. Con la RLS de `seguimientos` cada fila paga una vez `puede_lead()` (~14 buffers).
 - «Míos» del panel del cliente por lo más reciente (`leerMios`; `medir-cartera-reciente.sql`): `leads_cartera_vista`,
   `order by reciente_en desc, id desc`, `TAMANO_DE_VER_MAS + 1` filas, sin `Sort` ni `Seq Scan`, por
   `leads_asesores_reciente_idx (usuario_id, lead_reciente_en desc, lead_id desc) where revocado_en is null`. Topes: 30 ms y 1.500
@@ -290,7 +295,10 @@ Elige 10, 25, 50 o 100 (`listas.por_pagina`, `?por=`); cada lista declara su má
 `e2e/listas-por-pagina-volumen.spec.ts` (bytes, nodos, página profunda). En el celular el selector va arriba de la lista y se dibuja una sola
 vista (`UnaSolaVista`, según el `user-agent`).
 
-- Listado de leads: 100; ≤ 3.500 nodos y 48.000 B gz (`leads-escala.spec.ts` con `?por=100`; 2.200 con 50).
+- Listado de leads: 100; ≤ 3.600 nodos en escritorio y 3.500 en celular con filas sin seguimientos (`leads-escala.spec.ts` con `?por=100`; 2.200 con 50); con
+  las 100 filas llenas de la siembra, ≤ 4.650 nodos y 55.500 B gz (`listas-por-pagina-volumen.spec.ts`). Las columnas «Último seguimiento» y «Recordatorio» pesan
+  ~7 nodos y ~70 B comprimidos por fila llena (100 filas llenas: 4.035 nodos y 52,9 KB en escritorio; 4.419 nodos y 51,2 KB en celular). Es lo que el listado
+  dice de cada lead; bajarlo pide un máximo de 50 por página.
 - Inventario de vehículos: 100; ≤ 6.000 nodos y 63.000 B gz (60.000 + 5 % por la columna «Cotización aprobada»: 61,2 KB con 100 filas; las props son un `Record` por id de vehículo con la ruta, el monto y la moneda de su aprobada).
 - Listado de cotizaciones: 100; ≤ 2.200 nodos (2.130 + 3 % por la insignia «Aprobada»: 2.147 en escritorio) y 39.500 B gz.
 - Sin selector: las papeleras (5 lotes × 20), «Ver más» de seguimientos y recordatorios, la columna del kanban (50, tope 500,

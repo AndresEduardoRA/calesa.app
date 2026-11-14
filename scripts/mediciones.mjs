@@ -192,6 +192,11 @@ export const MEDICIONES_CON_VOLUMEN = [
     'mediana de 5 de 7 corridas',
   ],
   [
+    'supabase/tests/medir-leads-ultimo-contacto.sql',
+    'El último seguimiento y el próximo recordatorio del listado de leads, con el volumen sembrado y como authenticated con el plan genérico: la página de n + 1 de «todos» y de «míos» de la dueña y de Ana, sin y con las tres columnas nuevas (ms, buffers del EXPLAIN y bytes de la respuesta), los dos índices sin Seq Scan, el peor caso con 40 seguimientos y 3 recordatorios pendientes por lead (no crece con los seguimientos de cada lead) y la guarda sin el índice por fecha',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
     'supabase/tests/medir-bajas.sql',
     'La baja de una persona con 200.000 leads (con transacciones de verdad: confirma y borra lo que crea)',
     UNA,

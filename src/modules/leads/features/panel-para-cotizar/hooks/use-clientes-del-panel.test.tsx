@@ -70,6 +70,7 @@ const CATALOGO: Resultado<CatalogosDeLead> = {
       { id: 't2', clave: 'c', nombre: 'Cliente', clase: 'cliente', activo: true },
       { id: 't3', clave: 'c2', nombre: 'Antiguo', clase: 'cliente', activo: false },
     ],
+    tiposDeSeguimiento: [],
   },
 }
 const CURSOR = btoa('s|2026-10-29T08:00:00Z|00000000-0000-4000-8000-000000000001').replaceAll(

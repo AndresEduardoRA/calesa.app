@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { accionDeLaUrl, filaParaAccion } from './acciones-de-fila'
-import type { FilaDeLead } from './listado'
+import { SIN_ULTIMO_CONTACTO, type FilaDeLead } from './listado'
 import { SIN_MARCAS } from './marcas'
 
 const ID = '4a1f5b0e-6f0a-4f6e-9a55-1b6e2a1f0c11'
@@ -18,6 +18,7 @@ const fila = (cambios: Partial<FilaDeLead> = {}): FilaDeLead => ({
   creadoEn: '2026-10-15T14:00:00+00:00',
   atributos: {},
   marcas: SIN_MARCAS,
+  ...SIN_ULTIMO_CONTACTO,
   ...cambios,
 })
 
