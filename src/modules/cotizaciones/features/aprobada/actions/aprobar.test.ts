@@ -118,6 +118,9 @@ describe('aprobarCotizacion', () => {
     expect(
       (await aprobarCotizacion({ id: COTIZACION, actualizadoEn: '' })).validationErrors,
     ).toBeTruthy()
+    expect(
+      (await aprobarCotizacion({ id: COTIZACION, actualizadoEn: 'ayer' })).validationErrors,
+    ).toBeTruthy()
     expect(h.llamadas).toEqual([])
   })
 })

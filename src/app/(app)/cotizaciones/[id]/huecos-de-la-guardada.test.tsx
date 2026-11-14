@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react'
 import { describe, expect, it, vi } from 'vitest'
+import { HUECOS_DE_APROBADA_EN_LA_GUARDADA } from '@/modules/cotizaciones/pantallas/aprobada-cotizacion'
 import { HUECOS_DE_COMENTARIOS_EN_LA_GUARDADA } from '@/modules/cotizaciones/pantallas/comentarios-cotizacion'
 import { HUECOS_DE_COMPROBANTES_EN_LA_GUARDADA } from '@/modules/cotizaciones/pantallas/comprobantes-cotizacion'
 import { HUECOS_DE_FINAL_EN_LA_GUARDADA } from '@/modules/cotizaciones/pantallas/final-cotizacion'
@@ -24,19 +25,20 @@ const B: ComponentType<Props> = () => null
 const C: ComponentType<Props> = () => null
 
 describe('huecos de una guardada', () => {
-  it('son los cuatro de las áreas, en el orden final, comprobantes, comentarios y papelera', () => {
+  it('son los cinco de las áreas, en el orden final, aprobada, comprobantes, comentarios y papelera', () => {
     const orden = [
       HUECOS_DE_FINAL_EN_LA_GUARDADA,
+      HUECOS_DE_APROBADA_EN_LA_GUARDADA,
       HUECOS_DE_COMPROBANTES_EN_LA_GUARDADA,
       HUECOS_DE_COMENTARIOS_EN_LA_GUARDADA,
       HUECOS_DE_PAPELERA_EN_LA_GUARDADA,
     ]
-    expect(HUECOS_DE_LA_GUARDADA).toHaveLength(4)
-    // Por identidad: cuatro objetos vacíos son iguales entre sí, y aquí importa cuál va en cada lugar.
+    expect(HUECOS_DE_LA_GUARDADA).toHaveLength(5)
+    // Por identidad: los objetos vacíos son iguales entre sí, y aquí importa cuál va en cada lugar.
     orden.forEach((hueco, i) => expect(HUECOS_DE_LA_GUARDADA[i]).toBe(hueco))
   })
 
-  it('con cuatro huecos vacíos no se dibuja nada, ni arriba ni abajo', () => {
+  it('con huecos vacíos no se dibuja nada, ni arriba ni abajo', () => {
     // Huecos de prueba, no las constantes de las áreas: cada área llena el suyo en su paso (4.24, 4.25, 4.26, 4.27) sin tocar este caso.
     const vacios = [{}, {}, {}, {}]
     expect(dibujarHuecos(vacios, 'Acciones', props)).toBeUndefined()
