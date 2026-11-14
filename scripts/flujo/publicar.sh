@@ -9,7 +9,9 @@
 # 3. Empuja la rama (nunca fuerza), abre el PR (o le actualiza el título) y le enciende el auto-merge con squash.
 #    Si esta misma punta ya se integró en un PR (se vuelve a correr tras un corte), no abre otro: lo dice y sale con 0.
 # 4. Espera (hasta ESPERA_MAX s, 5400) al check «Listo · todo en verde»: integrado → vuelve a main al día (en un worktree, a
-#    origin/main suelto: main es de la principal) y borra las ramas ya integradas; rojo → dice qué job cayó y sale con 1 (se arregla, se commitea y se vuelve a correr). `--sin-esperar` sale tras el 3.
+#    origin/main suelto: main es de la principal) y borra las ramas ya integradas; atrasada respecto de main (otro PR se integró
+#    antes) → `gh pr update-branch` y el CI vuelve a correr, con el orden de migraciones contra el main nuevo;
+#    rojo → dice qué job cayó y sale con 1 (se arregla, se commitea y se vuelve a correr). `--sin-esperar` sale tras el 3.
 # Sale con 64 si no hay qué publicar o falta algo; con 1 si el CI cayó; con 75 si se agotó la espera (el PR sigue su curso solo).
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
@@ -88,8 +90,9 @@ echo "✓ auto-merge encendido: GitHub lo integra con «Listo · todo en verde»
 [ "$ESPERAR" = 1 ] || exit 0
 
 LIMITE=$(($(date +%s) + ${ESPERA_MAX:-5400}))
+PUESTA=0
 while :; do
-  ESTADO=$(gh pr view "$PR" --json state,mergeable,statusCheckRollup)
+  ESTADO=$(gh pr view "$PR" --json state,mergeable,mergeStateStatus,statusCheckRollup)
   case "$(jq -r .state <<<"$ESTADO")" in
     MERGED) break ;;
     CLOSED) echo "✗ el PR #$PR se cerró sin integrarse." >&2; exit 1 ;;
@@ -97,6 +100,11 @@ while :; do
   if [ "$(jq -r .mergeable <<<"$ESTADO")" = CONFLICTING ]; then
     echo "✗ el PR #$PR choca con main: git merge origin/main, resuelve, commitea y vuelve a correr." >&2
     exit 1
+  fi
+  # main exige la rama al día (otro PR se integró antes): GitHub la pone al día con un merge, nunca fuerza; como mucho cada 10 min.
+  if [ "$(jq -r '.mergeStateStatus // ""' <<<"$ESTADO")" = BEHIND ] && [ "$(date +%s)" -ge "$PUESTA" ]; then
+    gh pr update-branch "$PR" >/dev/null 2>&1 && echo "· main avanzó: rama puesta al día con un merge; el CI vuelve a correr."
+    PUESTA=$(($(date +%s) + 600))
   fi
   LISTO=$(jq -r '[.statusCheckRollup[] | select(.__typename == "CheckRun" and (.name | startswith("Listo"))) | .conclusion] | last // ""' <<<"$ESTADO")
   if [ "$LISTO" = FAILURE ] || [ "$LISTO" = CANCELLED ]; then

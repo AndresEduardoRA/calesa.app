@@ -42,7 +42,8 @@ microdecisiones sola (`.claude/rules/ui.md`).
 ## GitHub
 
 - `main` está protegida: sólo avanza por PR y exige el check **`Listo · todo en verde`** (el job `listo` de `ci.yml`, que resume a los
-  demás). El repo sólo admite squash, con auto-merge y borrado de la rama al integrar. La persona, como administradora, puede saltarse
+  demás) **sobre la rama al día con `main`** (strict): el orden de migraciones se comprueba contra el `main` en que se integra, no
+  contra el que había al abrir el PR. Una rama atrasada la pone al día `publicar.sh` (`gh pr update-branch`, un merge). El repo sólo admite squash, con auto-merge y borrado de la rama al integrar. La persona, como administradora, puede saltarse
   la protección; una sesión no empuja `main` (`.claude/hooks/bloquear-peligrosos.sh`).
 - La cuenta es la dueña del repo aunque la activa de la máquina sea otra: `publicar.sh` pide su token (`gh auth token --user <dueña>`)
   y nunca cambia la cuenta activa (`gh auth switch` es de la persona).

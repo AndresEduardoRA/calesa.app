@@ -139,7 +139,9 @@ describe('publicar.sh › el camino feliz', () => {
     expect(git('symbolic-ref', '--short', 'HEAD')).toBe('main')
     expect(r.stdout).toContain('limpiar')
   })
+})
 
+describe('publicar.sh › en un worktree', () => {
   it('desde un worktree, ya integrado, queda suelto en origin/main (main es de la principal)', () => {
     const wt = join(raiz, 'wt')
     git('worktree', 'add', '-q', '-b', 'feat/algo', wt, 'main')
@@ -177,7 +179,41 @@ describe('publicar.sh › el camino feliz', () => {
       execFileSync('git', ['rev-parse', 'origin/main'], { cwd: repo, encoding: 'utf8' }),
     )
   })
+})
 
+describe('publicar.sh › main que avanza', () => {
+  it('si main avanzó y la rama quedó atrás, la pone al día con update-branch y sigue esperando', () => {
+    ramaConUnCommit()
+    const vueltas = join(raiz, 'vueltas')
+    falso(
+      'gh',
+      `case "$1 $2" in
+  "auth token") exit 1 ;;
+  "pr create") touch "${join(raiz, 'pr-creado')}" ;;
+  "pr view")
+    [ -f "${join(raiz, 'pr-creado')}" ] || exit 1
+    case "$*" in
+      *statusCheckRollup*)
+        echo x >> "${vueltas}"
+        if [ "$(wc -l < "${vueltas}")" -lt 2 ]; then
+          echo '{"state":"OPEN","mergeable":"MERGEABLE","mergeStateStatus":"BEHIND","statusCheckRollup":[]}'
+        else
+          echo '{"state":"MERGED","mergeable":"UNKNOWN","mergeStateStatus":"UNKNOWN","statusCheckRollup":[]}'
+        fi ;;
+      *) echo 7 ;;
+    esac ;;
+esac
+exit 0`,
+    )
+    const r = publicar()
+    expect(r.estado, r.stderr).toBe(0)
+    expect(llamadas()).toContain('gh pr update-branch 7')
+    expect(r.stdout).toContain('rama puesta al día')
+    expect(r.stdout).toContain('PR #7 integrado en main')
+  })
+})
+
+describe('publicar.sh › una punta ya integrada', () => {
   it('si esta misma punta ya se integró, no empuja ni abre otro PR', () => {
     ramaConUnCommit()
     falso(
