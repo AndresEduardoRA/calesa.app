@@ -7559,6 +7559,7 @@ export type Database = {
         Returns: {
           abierta_en: string
           formula_id: string
+          huella: string
         }[]
       }
       _cotizacion_armar: {
@@ -7625,6 +7626,7 @@ export type Database = {
         Args: { p_edita?: boolean; p_formula: string; p_origen: string }
         Returns: Json
       }
+      _cotizacion_huella_tarifas: { Args: { p_cuando: string; p_formula: string }; Returns: string }
       _cotizacion_lo_que_se_lleva: {
         Args: { p_def: Json; p_entrada: Json; p_fuentes: Json; p_valores: Json }
         Returns: Json

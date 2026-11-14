@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-// Lo que manda la hoja al guardar (`PedidoDeGuardado`). Los ids son de la base (`z.guid()`); la hoja abierta es opaca y acotada (`<fórmula>.<µs>.<firma>`); las entradas
+// Lo que manda la hoja al guardar (`PedidoDeGuardado`). Los ids son de la base (`z.guid()`); la hoja abierta es opaca y acotada (`<fórmula>.<µs>.<huella>.<firma>`); las entradas
 // tienen la forma que acepta `cotizacion_crear()` y la base las valida otra vez contra la fórmula.
 export const esquemaDeEntradas = z.object({
   inputs: z.record(z.string().max(200), z.number()),
