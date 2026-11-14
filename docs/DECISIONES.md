@@ -105,6 +105,18 @@ las trampas, en `docs/LECCIONES.md`.
 
 ## Vehículos
 
+- **Una sola situación real, guardada.** `vehiculos.situacion` (texto con `check`, no enum: bajo RLS la igualdad de un enum no es condición de
+  índice) la calcula la base en `trg_0_situacion`, al cambiar `fases.es_subasta` y con el job `situacion-al-cerrar` (10 min de desfase son
+  aceptables). Nada se mueve solo: lo ambiguo queda «Sin resolver». «En subasta» y «Sin resolver» sólo existen en el tramo de subasta: una
+  subasta viva de un vehículo que ya pasó a «Comprado» es un dato viejo y manda la fase.
+- **El resultado vive en la fila** (`subasta_resultado`, `subasta_resuelta_por|en`) para calcular la situación dentro del trigger. Resolver no
+  mueve la versión ni pasa por la auditoría genérica (como mover): la constancia la deja la RPC (`vehiculo.subasta_resuelta`). Sin versión
+  esperada: el estado hace de versión, como `cambiar_fase` y `vehiculo_conservar`. Si la subasta vuelve a estar viva, el trigger limpia el
+  resultado (lo audita el refresco o la edición de fechas, que sí mueven la versión).
+- **«No ganada» deja de contar** en la cadena, la bandeja de Inicio, las alertas y el inventario por defecto. El tablero no se toca: sus
+  números salen de pagos confirmados y esconder dinero confirmado sería peor.
+- **«No ganada» en femenino**: concuerda con la subasta, no con el sustantivo del origen.
+
 - **Se escriben sólo por RPC.** `vehiculo_crear(p_id…)` idempotente con id del navegador y `vehiculo_guardar` con versión; el alta entra a la fase inicial sólo si no hay nada que decidir (si no, «Sin fase»).
 - **El alta dice desde dónde (`p_contexto`) y la base exige el permiso de ese contexto.** `vehiculos.crear` (alta suelta) y
   `vehiculos.crear.desde_cotizar` son dos claves por origen; `vehiculo_crear(…, p_contexto)` pide la que corresponde y la deja en
@@ -266,6 +278,10 @@ las trampas, en `docs/LECCIONES.md`.
 
 ## Flujos
 
+- **«Es la subasta» es un atributo de la fase** (`fases.es_subasta`), sólo en el flujo de un origen de tipo subasta (el tipo no cambia) y
+  nunca con «Es final»; ningún texto fijo nombra la fase. La migración marcó sólo la candidata única por flujo (inicial, activa, no de
+  logística y con «subasta» en el nombre); si no la hay, «Revisar» lo pide.
+
 - **Un solo motor de flujos.** Uno por origen + uno de repuestos, con fases, transiciones y requisitos; tablas hijas con dos FK nullable (`vehiculo_id` | `repuesto_id`) + CHECK y una única RPC `cambiar_fase`. Un origen nuevo es una fila y su flujo nace por trigger.
 - **Versión por flujo, no por fila.** Toda RPC de configuración pasa por `_flujo_para_editar()`/`_flujo_tocar()`; dos personas en el mismo flujo chocan con PT409 (aceptable en pantalla de dueño). Renombrar un origen también la mueve: no se exceptúa.
 - **Inexistente = PT409 «Recarga», no 42501**, mirado antes del permiso cuando el id no revela nada; el permiso se mira antes del candado: quien no puede no espera ni hace esperar.
@@ -286,6 +302,11 @@ las trampas, en `docs/LECCIONES.md`.
 ## Logística
 
 ### La cadena y la unidad
+
+- **«La ganamos» es el mover de siempre** (`?ganada=si`), sólo hacia fases que no son la subasta; `vehiculo_subasta_ganada` envuelve
+  `cambiar_fase` en una transacción: nunca queda un «ganada» que sigue en la subasta. `cambiar_fase` no se toca.
+- **La cadena excluye las no ganadas con un índice parcial** (`vehiculos_cadena_idx … where situacion <> 'no_ganada'`): un filtro sin índice
+  descartaría filas que crecen con la tabla. Cada consulta lleva el literal.
 
 - **La cadena no ordena ni pliega columnas.** El orden es el de la base; «Sin fase» la pone la base (primera, sólo con tarjetas); cursor sólo por `id`.
 - **Tarjeta sin foto, `<principal> · <título>`, armada en el servidor** (atributos por PK en tandas ≤ 100, bajo la RLS); «Ver más» es una Server Action de lectura para armarla igual.

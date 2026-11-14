@@ -89,7 +89,7 @@ ese nombre: nunca un sinónimo ni su traducción al inglés.
 - **Vehículo** — `vehiculos`: el dato central; recorre el flujo de su origen.
 - **Atributos** — `vehiculos.atributos`, `leads.atributos`: campos del layout que no son columna. En un lead se leen por `leads_vista`, recortados.
 - **Dato común** — `camposComunes()` / columnas de `vehiculos`: lo que tiene todo vehículo y es columna (título, marca, año, VIN, precio…).
-- **Sin fase** — `vehiculos.fase_id` nulo / `<BadgeDeFase>`: aún no entró al flujo de su origen; lo ubica quien mueve.
+- **Sin fase** — `vehiculos.fase_id` nulo / `<BadgeDeFase>` (dentro de `<BadgeDeSituacion>`): aún no entró al flujo de su origen; lo ubica quien mueve.
 - **Inventario** — `/vehiculos` / `<ListadoDeVehiculos>`: listado de vehículos, una pestaña por origen; con «propios» se lee por
   `vehiculos_inventario()` (por rutas, filtros en SQL), con «todos» por PostgREST (`fuenteDelInventario()`).
 - **Lote (de mover)** — `cambiar_fase_lote()` / `<DrawerDelLote>`, `?panel=lote`: 1 a 200 vehículos de una fase movidos a otra con nota
@@ -592,6 +592,21 @@ ese nombre: nunca un sinónimo ni su traducción al inglés.
 - **Cierre (de una subasta)** — `vehiculos.cierre_subasta_en` (generada): `coalesce(subasta_fin_en, subasta_en)` de una subasta abierta o en
   vivo; nula si no está viva. Ordena «Cierre subasta» del panel del vehículo, desde ahora menos 24 h.
 - **Estado de subasta** — `vehiculos.estado_subasta` / `EstadoDeSubasta`: `abierta`, `en vivo`, `terminada` o `vendida`; lo deriva la base.
+  No es la situación: «vendida» no dice que la ganamos.
+- **Situación (de un vehículo)** — `vehiculos.situacion` / `Situacion`, `<BadgeDeSituacion>`: la que la app muestra en todos lados, calculada
+  por la base (`_vehiculo_situacion()`): «En subasta» (`en_subasta`: subasta viva en el tramo de subasta), «Sin resolver» (`sin_resolver`:
+  cerrada en el tramo y sin resultado), «No ganada» (`no_ganada`: se marcó así; no cuenta) o su fase (`fase`). El tramo es estar en una fase
+  de subasta o no tener fase en un origen que tiene una.
+- **Fase de subasta** — `fases.es_subasta` / «Es la subasta» (Datos de la fase): la fase que representa la subasta en el flujo de un origen
+  de subasta; puede haber varias. Sin ninguna, «Revisar» avisa `sin_fase_de_subasta` y nada figura «Sin resolver».
+- **Resultado de la subasta** — `vehiculos.subasta_resultado` (`ganada` | `no_ganada`), con `subasta_resuelta_por` y `subasta_resuelta_en`:
+  lo escriben sólo las RPC de resolver; nunca se infiere de apibara; si la subasta vuelve a estar viva, se limpia.
+- **La ganamos** — `vehiculo_subasta_ganada()` / `ganarLaSubasta`, `?ganada=si` en «Qué falta»: mover a una fase que no es la subasta y
+  anotarla ganada, todo o nada.
+- **No la ganamos** — `vehiculo_subasta_no_ganada()` / `marcarNoGanada`: la marca no ganada (con «Deshacer»); deja de contar en logística,
+  Inicio y el inventario por defecto.
+- **Cierre de subastas** — job `situacion-al-cerrar` / `vehiculos_situacion_al_cerrar()`: cada 10 min pasa las «En subasta» cuyo cierre ya
+  pasó a «Sin resolver» (hasta 500 por corrida).
 - **Puja actual** — `atributos.<campo de pricing.current_bid_usd>` / `columnaDePrecio()`, `precioDeLaFila()`: lo que va de la subasta, en
   USD. En un origen de subasta con ese campo, la columna «Precio» del inventario se llama así; nunca es el precio del vehículo.
 - **Puja final** — la puja actual de una subasta `terminada` o `vendida`: la celda lleva «final» y la tarjeta dice «Puja final».
@@ -610,8 +625,8 @@ ese nombre: nunca un sinónimo ni su traducción al inglés.
   vence.
 - **Limpieza automática** — `limpieza_automatica_correr()`, `ajustes_empresa.limpieza_automatica`: cada madrugada manda a la papelera, en un
   lote, los importados de subasta terminada hace más de los días de gracia y sin ancla.
-- **Ancla** — `_limpieza_ancla()`: lo que retiene de la limpieza: «Conservar», vínculo con lead, fase posterior a la inicial, documentos,
-  gastos o pagos, estar publicado, una cotización final activa.
+- **Ancla** — `_limpieza_ancla()`: lo que retiene de la limpieza: «Conservar», vínculo con lead, una subasta sin resolver o ganada, fase
+  posterior a la inicial, documentos, gastos o pagos, estar publicado, una cotización final activa.
 - **Conservar** — `vehiculos_conservados` / `vehiculo_conservar()`, `<BotonConservar>`: marca que saca un vehículo de la limpieza.
 - **Días de gracia** — `ajustes_empresa.limpieza_dias_gracia`: días desde que terminó la subasta hasta que se limpia: 7 por defecto, de 1 a 90.
 - **Se limpiará pronto** — `FILTRO_LIMPIEZA`, `limpieza_el()`, `VENTANA_DE_AVISO_DIAS`: filtro e insignia «Se limpia el dd/mm» de lo que se
