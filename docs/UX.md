@@ -191,8 +191,9 @@ Agregar a inicio»), «Ver como» (quien gestiona roles), tema, densidad y «Cer
   web» con un toque y «Deshacer» (con `vehiculos.vitrina` del origen; sin precio público, `?panel=vitrina-rapida&para=<id>` pide sólo el precio).
   `/vehiculos/papelera` (por lote).
 - **Vehículo** — `/vehiculos/[id]` (según origen): cabecera con portada y fase de sólo lectura; «Publicar en la web» en `?panel=vitrina`;
-  `?seccion=`: «Ficha» (por layout del origen; edición `?editar=`; banner de limpieza; «Vínculo e interesados» con «Desvincular»
-  confirmado), «Fotos» (≤ 24, portada, orden), «Repuestos» (con `repuestos.ver`, la última; sin proyecto, «Este vehículo no tiene proyecto
+  `?seccion=`: «Ficha» (por layout del origen; edición `?editar=`; banner de limpieza; en un origen de subasta, el bloque «Subasta» con
+  «Editar fechas» en `?panel=fechas-de-subasta` para quien edita: inicio y cierre en su zona, vacío borra; «Vínculo e interesados» con
+  «Desvincular» confirmado), «Fotos» (≤ 24, portada, orden), «Repuestos» (con `repuestos.ver`, la última; sin proyecto, «Este vehículo no tiene proyecto
   de repuestos.» con «Crear proyecto de repuestos» sólo si se puede editar; con él, «Proyecto #N», su estado y los ítems por fase) y
   «Cotizaciones» (sólo con `cotizaciones.ver` del origen del vehículo). Las pestañas que se leen al abrirlas tienen esqueleto y error con
   «Reintentar».

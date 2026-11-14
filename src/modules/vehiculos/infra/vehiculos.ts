@@ -98,6 +98,26 @@ const guardar: RepositorioVehiculos['guardar'] = async ({ id, actualizadoEnEsper
   return { ok: true, data: { actualizadoEn: guardado.parse(data).actualizado_en } }
 }
 
+const CAMPO_DE_FECHA: Record<string, string> = { subasta_en: 'inicio', subasta_fin_en: 'cierre' }
+
+const guardarFechasDeSubasta: RepositorioVehiculos['guardarFechasDeSubasta'] = async ({
+  id,
+  actualizadoEnEsperado,
+  cambios,
+}) => {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('vehiculo_guardar', {
+    p_vehiculo: id,
+    p_actualizado_en_esperado: actualizadoEnEsperado,
+    p_datos: cambios,
+  })
+  if (error) {
+    const campo = error.hint ? CAMPO_DE_FECHA[error.hint] : undefined
+    return { ok: false, error: errorDePostgrest(error), ...(campo ? { campo } : {}) }
+  }
+  return { ok: true, data: { actualizadoEn: guardado.parse(data).actualizado_en } }
+}
+
 const refrescado = z.object({
   actualizado_en: z.string(),
   estado_subasta: z.string().nullable(),
@@ -163,4 +183,5 @@ export const vehiculosSupabase: RepositorioVehiculos = {
   guardar,
   repetidos,
   refrescarSubasta,
+  guardarFechasDeSubasta,
 }

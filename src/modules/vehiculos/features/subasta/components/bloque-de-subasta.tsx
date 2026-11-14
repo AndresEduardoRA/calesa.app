@@ -13,6 +13,7 @@ import type { SubastaDeVehiculo } from '../../../entities/subasta-vehiculo'
 import { cuentaRegresiva, estaDesactualizada } from '../../../entities/subasta-tiempo'
 import { CLAVE_DEL_ESTADO_DEL_PATIO } from '../../../entities/zona-del-patio'
 import { BotonRefrescarSubasta } from './boton-refrescar-subasta'
+import { EditarFechasDeSubasta } from './editar-fechas-de-subasta'
 import { FechaDeSubasta } from './fecha-de-subasta'
 
 type DatosProps = {
@@ -35,6 +36,8 @@ type Props = {
   zona: string
   // apibara está encendida, y quien mira puede editar el vehículo.
   puedeRefrescar: boolean
+  // Quien mira puede editar el vehículo: «Editar fechas».
+  puedeEditar: boolean
   // Quien puede ir a Integraciones si la clave o la cuota frenan.
   puedeConfigurar: boolean
 }
@@ -107,6 +110,7 @@ export function BloqueDeSubasta({
   ahora,
   zona,
   puedeRefrescar,
+  puedeEditar,
   puedeConfigurar,
 }: Props) {
   const instante = new Date(ahora)
@@ -126,15 +130,25 @@ export function BloqueDeSubasta({
             </Badge>
           ) : null}
         </div>
-        {puedeRefrescar && entrada ? (
-          <BotonRefrescarSubasta
-            vehiculoId={vehiculo.id}
-            origenId={vehiculo.origenId}
-            entrada={entrada}
-            actualizadoEn={vehiculo.actualizadoEn}
-            puedeConfigurar={puedeConfigurar}
-          />
-        ) : null}
+        <div className="flex flex-wrap items-center gap-2">
+          {puedeEditar ? (
+            <EditarFechasDeSubasta
+              vehiculoId={vehiculo.id}
+              actualizadoEn={vehiculo.actualizadoEn}
+              fechas={{ subastaEn: subasta.subastaEn, subastaFinEn: subasta.subastaFinEn }}
+              ahora={ahora}
+            />
+          ) : null}
+          {puedeRefrescar && entrada ? (
+            <BotonRefrescarSubasta
+              vehiculoId={vehiculo.id}
+              origenId={vehiculo.origenId}
+              entrada={entrada}
+              actualizadoEn={vehiculo.actualizadoEn}
+              puedeConfigurar={puedeConfigurar}
+            />
+          ) : null}
+        </div>
       </div>
       <DatosDeLaSubasta
         subasta={subasta}

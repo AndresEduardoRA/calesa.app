@@ -89,8 +89,9 @@ Lectura `vehiculos_inventario` (una página por rutas con los filtros del layout
 - **La limpieza automática es de la base** (`_limpieza_aplica|termino|vence|ancla|fecha`; `limpieza_el` calculada): nunca una copia en TypeScript;
   una ancla nueva = una línea en `_limpieza_ancla()`. Sólo `importado_apibara` en origen de subasta. «Conservar» no mueve la versión.
 - **apibara:** la llamada vive en la edge function, que llama el navegador; guarda el bruto en `apibara_consultas` y alta/refresco sólo mandan su id
-  (`p_consulta`). Fecha y estado de subasta: `_vehiculo_subasta_desde()`. `precio` nunca sale de la puja. Refrescar no pisa lo editado
-  (`fusionarRefresco()`). Con 429 o clave rechazada no se consulta la línea siguiente.
+  (`p_consulta`). Fecha y estado de subasta: `_vehiculo_subasta_desde()`; a mano, «Editar fechas» del bloque de la subasta
+  (`entities/fechas-de-subasta.ts`, `vehiculo_guardar` con `subasta_en`/`subasta_fin_en`). `precio` nunca sale de la puja. Refrescar no
+  pisa lo editado (`fusionarRefresco()`). Con 429 o clave rechazada no se consulta la línea siguiente.
 - Atajo `N`: abre «Nuevo» sólo si se puede. **El alta dice su contexto** (`vehiculo_crear(…, p_contexto)`, `PERMISO_DE_ALTA`): `suelto`
   (`vehiculos.crear`: inventario e importación) o `cotizar` (`vehiculos.crear.desde_cotizar`: el panel de la hoja y `cotizacion_crear` con
   vehículo nuevo); queda en `creado_desde`.

@@ -9403,6 +9403,10 @@ export type Database = {
       }
       _vehiculo_de_nota_json: { Args: { p_es_mio: boolean; p_vehiculo: string }; Returns: Json }
       _vehiculo_fase_de_entrada: { Args: { p_origen: string; p_vehiculo: string }; Returns: string }
+      _vehiculo_instante: {
+        Args: { p_clave: string; p_datos: Json; p_nombre: string }
+        Returns: string
+      }
       _vehiculo_motivo_de_bloqueo: {
         Args: {
           p_al_enviar: boolean

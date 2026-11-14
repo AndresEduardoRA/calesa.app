@@ -12,7 +12,7 @@ type Props = {
 }
 
 // La subasta de un vehículo de un origen de subasta, arriba de su ficha: fecha, estado, cuánto va y
-// «Refrescar». No se dibuja si el vehículo no tiene nada de apibara y no hay cómo traerlo.
+// «Refrescar» y «Editar fechas». No se dibuja si el vehículo no tiene nada de la subasta, no hay cómo traerlo ni quien mira puede escribirlo.
 export async function BloqueSubasta({ vehiculo, editable }: Props) {
   await connection()
   const [sesion, subasta, ajustes, activa] = await Promise.all([
@@ -22,7 +22,11 @@ export async function BloqueSubasta({ vehiculo, editable }: Props) {
     integracionActiva('apibara'),
   ])
   const datos = datosO(subasta)
-  if (!datos || (datos.sincronizadoEn === null && datos.subastaEn === null && !activa)) {
+  // Sin nada de la subasta, sin apibara y sin poder escribir las fechas a mano, no hay nada que mostrar.
+  if (
+    !datos ||
+    (datos.sincronizadoEn === null && datos.subastaEn === null && !activa && !editable)
+  ) {
     return null
   }
   return (
@@ -32,6 +36,7 @@ export async function BloqueSubasta({ vehiculo, editable }: Props) {
       ahora={new Date().toISOString()}
       zona={ajustes.zonaHoraria}
       puedeRefrescar={activa && editable}
+      puedeEditar={editable}
       puedeConfigurar={puede(sesion.permisos, 'empresa.ajustes.gestionar')}
     />
   )
