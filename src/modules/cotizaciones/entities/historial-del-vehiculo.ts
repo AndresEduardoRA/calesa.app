@@ -12,6 +12,9 @@ export type ListaDe = { vehiculo: string } | { lead: string }
 
 export const ETIQUETA_DE_CLASE = { preventa: 'Preventa', final: 'Final' } as const
 
+// La insignia de la cotización aprobada de su vehículo (listado, resumen, guardada e historial).
+export const ETIQUETA_DE_APROBADA = 'Aprobada'
+
 export type CotizacionDelHistorial = {
   id: string
   numero: number
