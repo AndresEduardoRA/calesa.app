@@ -336,7 +336,8 @@ la pide.
 - **Dónde se ven:** pestaña «Fórmula» de Configuración › Cotización: publicada, borrador (atrasado si su versión de origen ya no es la
   publicada) y versiones por cursor, sin lo oculto (`docs/UX.md` › «Cotización: fórmula (estados propios)»); ahí se publica con nota, se
   descarta (`<Confirmar>`) y se revierte.
-- **Pendiente:** carreras mixtas (⚙ contra publicar el borrador, revertir contra ⚙) sin prueba (`docs/PENDIENTES.md`).
+- **Carreras** (`scripts/carreras/tonos.mjs`, `formula-mixtas.mjs`): dos publicar, dos ⚙, el ⚙ contra publicar el borrador y revertir contra
+  el ⚙, en los dos órdenes y con o sin esperadas: la segunda da PT409 y nada se pisa.
 
 ## Niveles de acceso (D7, H3 y H4)
 

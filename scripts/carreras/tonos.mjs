@@ -20,7 +20,9 @@ const definicion = {
 }
 
 let numero = 0
-async function terreno(db, etiqueta, { publicada = false, borrador = false } = {}) {
+// Un origen con los tonos propios y, si se pide, la v1 publicada y un borrador empezado sobre ella (`version_origen_id`, como
+// `formula_guardar_borrador()`). Lo usan también las carreras mixtas de la fórmula (`formula-mixtas.mjs`).
+export async function terreno(db, etiqueta, { publicada = false, borrador = false } = {}) {
   numero += 1
   const {
     rows: [origen],
@@ -40,11 +42,11 @@ async function terreno(db, etiqueta, { publicada = false, borrador = false } = {
     )
     ids[t] = fila
   }
-  const insertar = (estado, version, nota) =>
+  const insertar = (estado, version, nota, versionOrigen = null) =>
     db
       .query(
-        `insert into public.formulas (origen_id, estado, version, definicion, params, diseno, visibilidad, nota)
-         values ($1, $2, $3, $4::jsonb, $5::jsonb, $6::jsonb, $7::jsonb, $8) returning id`,
+        `insert into public.formulas (origen_id, estado, version, definicion, params, diseno, visibilidad, nota, version_origen_id)
+         values ($1, $2, $3, $4::jsonb, $5::jsonb, $6::jsonb, $7::jsonb, $8, $9) returning id`,
         [
           origen.id,
           estado,
@@ -54,22 +56,23 @@ async function terreno(db, etiqueta, { publicada = false, borrador = false } = {
           JSON.stringify(DISENO),
           estado === 'borrador' ? null : '{}',
           nota,
+          versionOrigen,
         ],
       )
       .then((r) => r.rows[0].id)
   const v1 = publicada ? await insertar('publicada', 1, 'v1') : null
-  if (borrador) await insertar('borrador', null, 'borrador')
-  return { origen: origen.id, ids, v1 }
+  const elBorrador = borrador ? await insertar('borrador', null, 'borrador', v1) : null
+  return { origen: origen.id, ids, v1, borrador: elBorrador }
 }
 
-const publicadas = async (db, origen) =>
+export const publicadas = async (db, origen) =>
   (
     await db.query(
-      `select version, nota, (params ->> 'flete')::numeric as flete from public.formulas where origen_id = $1 and estado = 'publicada'`,
+      `select id, version, nota, (params ->> 'flete')::numeric as flete from public.formulas where origen_id = $1 and estado = 'publicada'`,
       [origen],
     )
   ).rows
-const borradores = async (db, origen) =>
+export const borradores = async (db, origen) =>
   Number(
     (
       await db.query(

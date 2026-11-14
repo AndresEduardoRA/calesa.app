@@ -21,6 +21,7 @@ import { carrerasDeAlta } from './carreras/alta.mjs'
 import { carrerasDeOrigenes } from './carreras/origenes.mjs'
 import { carrerasDeTipos } from './carreras/tipos.mjs'
 import { carrerasDeTonos } from './carreras/tonos.mjs'
+import { carrerasMixtasDeLaFormula } from './carreras/formula-mixtas.mjs'
 import { carrerasDeNiveles } from './carreras/niveles.mjs'
 import { carrerasDePlantillas } from './carreras/plantillas.mjs'
 import { carrerasDeCotizaciones } from './carreras/cotizaciones.mjs'
@@ -365,6 +366,7 @@ try {
   await carrerasDeOrigenes({ orquesta, carrera, espero })
   await carrerasDeTipos({ orquesta, carrera, espero })
   await carrerasDeTonos({ orquesta, carrera, espero })
+  await carrerasMixtasDeLaFormula({ orquesta, carrera, espero })
   await carrerasDePlantillas({ orquesta, carrera, espero })
   // Antes que las de niveles: crea un nivel y lo borra, y esas dejan los suyos hasta el final, cerca del tope.
   await carrerasDeDominancia({ orquesta, carrera, espero })
