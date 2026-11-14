@@ -179,6 +179,17 @@ las trampas, en `docs/LECCIONES.md`.
   Consecuencia: la etapa inicial de un embudo no se quita mientras tenga bases abiertas (`embudo_guardar` ya frena quitar una etapa con
   oportunidades); se mueven primero.
 
+- **El último contacto del listado va en la vista, no por fila ni en una columna mantenida.** `leads_vista` suma dos subconsultas escalares con `limit 1`
+  por un índice que ya existía (`seguimientos_lead_fecha_idx` por igualdad con `ultimo_seguimiento_en` para el último seguimiento, y
+  `recordatorios_lead_pendientes_idx` para su próximo recordatorio): se calculan sólo para las filas de la página y no crecen con los seguimientos de cada
+  lead. Una columna por trigger habría escrito `leads` en cada seguimiento y no sabría de quien mira. Invocador, sin `security definer`: la RLS de
+  `seguimientos` decide qué ve cada quien; la fecha pública sale de `ultimo_seguimiento_en` y, si el último seguimiento no es uno que quien mira ve,
+  la fila trae la fecha sin tipo ni título. El tipo se nombra con `leads_catalogos()` (`tipos_de_seguimiento`, también los apagados), no por fila.
+- **El listado no se ordena por último seguimiento ni por recordatorio.** Todos sus caminos (cursor, ventanas de candidatos, «míos» por la cartera, conteos)
+  están atados a `creado_en`; ordenar por otra columna pide una clave de cursor y una ruta nuevas en cada uno, y el recordatorio (personal) no tiene índice
+  por lead que ordene la tabla. Para ver lo que lleva más tiempo sin contacto sirve «Sin seguimiento» de Inicio; un orden propio entra con su índice y su medición.
+- **«Hace 3 días» siempre con número.** La fecha relativa de la fila usa `fechaRelativa(…, { numerico: true })`: «hace 1 día» y «en 2 días», no «ayer» ni
+  «pasado mañana» (no dicen cuánto); pasada una semana, la fecha. Se refresca cada minuto con un solo reloj por lista (`useAhora`).
 - **«Míos» y búsqueda por candidatos.** «Propios» lee por `leads_cartera_vista`; «todos» por la cartera si es corta (`leads_cartera_corta()`, ≤ 5.000). Nombre desde 3 alfanuméricos seguidos; no se paga índice de n-gramas cortos.
 - **Oportunidades y embudos.** Embudos personales (3–12 etapas, ≥ 1 ganada y ≥ 1 perdida) por RPC; una oportunidad sólo la ve su dueña con el lead en su cartera. Transferir lleva las abiertas al embudo del destino; la baja las cancela.
 - **Kanban con tope.** 50 por columna con «Ver más», hasta 500; lo antiguo se busca con «Buscar en el embudo» (`p_buscar`).
