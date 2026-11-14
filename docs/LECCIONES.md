@@ -76,6 +76,7 @@ Si ya no aplica (cambió la herramienta o el código), se quita.
 - Fija con una prueba de definición una cláusula de candado que no tiene prueba de carrera: al recrear la función, un merge la perdió en silencio.
 - Prueba un ciclo de candados con tres conexiones (una retiene el candado del medio, `scripts/carreras/candados-papelera.mjs`): con dos, A termina su llamada antes de que B empiece y el 40P01 nunca aparece.
 - Un `for key share` no espera a quien aguarda un `for update` sobre la misma fila si quien la tiene es otro `key share`: se adelanta, y así se arma el ciclo con quien esperaba.
+- Importa toda carrera nueva desde `scripts/carreras.mjs`, sin un corredor aparte: lo que sólo corre a mano no corre (lo vigila `scripts/guardas/carreras-en-db-carreras.test.ts`).
 
 ## Pruebas de la base (PGlite y `db:probar`)
 

@@ -53,6 +53,5 @@ Orden de candados, uno solo para marcar y para crear una final: **lead → vehí
 - `supabase/tests/areas/final/`: `marcar.sql`, `marcar-candados.sql` (el orden en el cuerpo, el ayudante, los privilegios), `ancla-y-desvincular.sql`,
   `crear.sql` (crear la final deja lo mismo que crear la preventa y marcarla) y `crear-candados.sql`; una sola: `SOLO=areas/final/<x>.sql pnpm db:probar`.
 - Carreras de marcar (`carreras.mjs`, `carreras-de-candados.mjs`) y de crear una final (`carreras-crear.mjs`, `carreras-crear-candados.mjs`), con
-  `carreras-comun.mjs` y dos conexiones a la base local. **`db:carreras` no las corre** (`carrerasDeFinal` no está en `scripts/carreras.mjs`): van con
-  `bash scripts/candado.sh db:carreras -- node supabase/tests/areas/final/correr-carreras.mjs`. Las de guardar y crear que llaman a marcar («fin2», «fin3»,
-  «g11*», «g14», en `scripts/carreras/cotizaciones*.mjs`) sí están en `db:carreras`.
+  `carreras-comun.mjs` y dos conexiones a la base local: las corre `pnpm db:carreras` (`carrerasDeFinal` en `scripts/carreras.mjs`), junto a las de
+  guardar y crear que llaman a marcar («fin2», «fin3», «g11*», «g14», en `scripts/carreras/cotizaciones*.mjs`).

@@ -54,6 +54,7 @@ import {
 import { carrerasDeFases } from '../supabase/tests/areas/flujos/carreras.mjs'
 import { carrerasDeDocumentos } from '../supabase/tests/areas/documentos/carreras.mjs'
 import { carrerasDeMover } from '../supabase/tests/areas/mover/carreras.mjs'
+import { carrerasDeFinal, limpiarFinal } from '../supabase/tests/areas/final/carreras.mjs'
 import { carrerasDelPrincipal } from '../supabase/tests/areas/origenes/carreras.mjs'
 import {
   carrerasDeTransporte,
@@ -150,6 +151,8 @@ try {
   // Un comprobante frena el borrado de su cotización: lo de comprobantes (4.26-1) se limpia antes que el terreno.
   await limpiarComprobantes(orquesta)
   await limpiarDominancia(orquesta)
+  // La persona de las carreras de la final deja lotes y actividad que frenan borrar su cuenta: antes que el terreno.
+  await limpiarFinal(orquesta)
   await limpiar(orquesta)
   await sembrar(orquesta)
 
@@ -375,6 +378,7 @@ try {
   await carrerasDeCotizaciones({ orquesta, carrera, espero, conectar, esperarBloqueo })
   await carrerasDeGuardar({ orquesta, carrera, espero, conectar, esperarBloqueo })
   await carrerasDeEncima({ orquesta, carrera, espero })
+  await carrerasDeFinal({ orquesta, carrera, espero, conectar })
   await carrerasDeCandadosDePapelera({ orquesta, espero, conectar })
   await carrerasDePurgaContraRestaurar({ orquesta, espero, conectar })
   await carrerasDeTablas({ orquesta, carrera, espero })
@@ -413,6 +417,7 @@ try {
     fallas.push(`limpiar los comprobantes: ${e.message}`),
   )
   await limpiarDominancia(orquesta).catch((e) => fallas.push(`limpiar la dominancia: ${e.message}`))
+  await limpiarFinal(orquesta).catch((e) => fallas.push(`limpiar lo de la final: ${e.message}`))
   await limpiar(orquesta).catch((e) => fallas.push(`limpiar: ${e.message}`))
   await orquesta.end()
 }
