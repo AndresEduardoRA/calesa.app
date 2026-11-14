@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { Aviso } from '@/shared/ui/aviso'
 import { Badge } from '@/shared/ui/badge'
 import { Monto } from '@/shared/ui/monto'
-import { formatearFechaHora, fechaRelativa } from '@/shared/lib/fechas'
+import { fechaRelativa } from '@/shared/lib/fechas'
 import type { Vehiculo } from '../../../entities/vehiculo'
 import {
   entradaDeRefresco,
@@ -11,16 +11,23 @@ import {
 } from '../../../entities/subasta'
 import type { SubastaDeVehiculo } from '../../../entities/subasta-vehiculo'
 import { cuentaRegresiva, estaDesactualizada } from '../../../entities/subasta-tiempo'
+import { CLAVE_DEL_ESTADO_DEL_PATIO } from '../../../entities/zona-del-patio'
 import { BotonRefrescarSubasta } from './boton-refrescar-subasta'
+import { FechaDeSubasta } from './fecha-de-subasta'
 
 type DatosProps = {
   subasta: SubastaDeVehiculo
   ahora: Date
   zona: string
+  // El estado del patio (`ubicacion_estado`), para decir también la hora del patio.
+  estadoDelPatio: unknown
 }
 
 type Props = {
-  vehiculo: Pick<Vehiculo, 'id' | 'origenId' | 'urlOrigen' | 'lote' | 'vin' | 'actualizadoEn'>
+  vehiculo: Pick<
+    Vehiculo,
+    'id' | 'origenId' | 'urlOrigen' | 'lote' | 'vin' | 'actualizadoEn' | 'atributos'
+  >
   subasta: SubastaDeVehiculo
   // Cuándo es «ahora» (ISO): lo fija quien lo pone, así la cuenta regresiva no depende del reloj
   // de cada render.
@@ -71,14 +78,19 @@ function Cifras({ subasta }: Pick<DatosProps, 'subasta'>) {
   )
 }
 
-function DatosDeLaSubasta({ subasta, ahora, zona }: DatosProps) {
+function DatosDeLaSubasta({ subasta, ahora, zona, estadoDelPatio }: DatosProps) {
   const cuenta = subasta.subastaEn ? cuentaRegresiva(subasta.subastaEn, ahora) : null
   return (
     <dl className="grid gap-3 sm:grid-cols-2">
       <Dato etiqueta="Fecha de la subasta">
-        {subasta.subastaEn
-          ? `${formatearFechaHora(subasta.subastaEn, { zona })}${cuenta ? ` · ${cuenta.texto}` : ''}`
-          : 'Sin fecha'}
+        {subasta.subastaEn ? (
+          <>
+            <FechaDeSubasta iso={subasta.subastaEn} estadoDelPatio={estadoDelPatio} detalle />
+            {cuenta ? ` · ${cuenta.texto}` : ''}
+          </>
+        ) : (
+          'Sin fecha'
+        )}
       </Dato>
       <Dato etiqueta="Última consulta">
         {subasta.sincronizadoEn ? fechaRelativa(subasta.sincronizadoEn, { zona, ahora }) : 'Nunca'}
@@ -124,7 +136,12 @@ export function BloqueDeSubasta({
           />
         ) : null}
       </div>
-      <DatosDeLaSubasta subasta={subasta} ahora={instante} zona={zona} />
+      <DatosDeLaSubasta
+        subasta={subasta}
+        ahora={instante}
+        zona={zona}
+        estadoDelPatio={vehiculo.atributos[CLAVE_DEL_ESTADO_DEL_PATIO]}
+      />
       {vieja ? (
         <Aviso tono="aviso">
           La subasta ya debía haber empezado.{' '}

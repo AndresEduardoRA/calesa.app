@@ -135,28 +135,19 @@ T02 y T03 corriendo. La persona eligió pausarlo y que la tanda la haga esta ses
   lista de E1; hasta entonces, `/logistica/vehiculo/[id]` registra).
 - **e2e:** `cotizaciones-listado`, `agenda`, `repuestos-*` del listado, `notificaciones-campana`.
 
-### [ ] A4 · Zona horaria explícita (`feat(shared): mostrar la zona de las fechas de subasta`)
+### [x] A4a · Zona horaria de las fechas de subasta (`feat(shared): mostrar la zona de las fechas de subasta`)
 
-- **Zona de quien mira:**
-  - La clave `zona_horaria` en `preferencias_usuario` (nulo = la de la empresa), elegible en `/perfil` con `zonasHorarias()`.
-  - `ProveedorRegional` recibe la zona de la persona; el servidor la toma de la sesión.
-- **`fechas.ts`** suma:
-  - `formatearFechaHoraConZona()`, que agrega la abreviatura con `Intl` (`timeZoneName: 'short'`).
-  - `abreviaturaDeZona()`.
-  - Tests del cambio de horario de EE. UU. (2.º domingo de marzo y 1.º de noviembre; la hora que no existe y la repetida).
-  - `instanteDeLocal` ya convierte a UTC.
-- **Hora original de la subasta:**
-  - `vehiculos.subasta_zona` existe y nadie la usa. `_vehiculo_subasta_desde()` la llena desde el bruto de apibara si trae la zona (se
-    verifica con los ejemplos de `apibara_consultas` de las pruebas).
-  - Si no la trae, el tooltip muestra sólo la zona de quien mira y la de la empresa, nunca una inventada. Queda escrito en DECISIONES.
-- **Dónde va** (`<FechaDeSubasta>` en `vehiculos`): la lista (columna «Cierre subasta»), la tarjeta, `BloqueDeSubasta`, el panel de
-  cotizar (`vehiculo-del-panel.tsx`, `barra-del-vehiculo.tsx`) y la agenda (`chip-de-agenda.tsx`).
-- **Editar:**
-  - Hoy ninguna fecha de subasta se edita. Se suman `subasta_en` y `subasta_fin_en` a la lista cerrada de `vehiculo_guardar` sólo para
-    orígenes de subasta, con `<CampoFechaHora zona>` compartido, que dice «Se escribe en hora de <zona> (GMT−4)» y guarda en UTC.
-  - Refrescar sigue mandando (`fusionarRefresco`).
-- **Migración:** `vehiculos_subasta_zona_y_edicion`.
-- **e2e:** `vehiculos-resumen`, `cotizar-panel-del-vehiculo`, `agenda`, `perfil-*`, `vehiculos-alta`.
+- `fechas.ts`: `formatearFechaHoraConZona()`, `abreviaturaDeZona()`, con tests del cambio de horario de EE. UU. (la hora que no existe y la
+  repetida). `useRegional().zonaDeLaPersona` (preferencia `zona_horaria`, `/perfil` › «Zona horaria»; sin elegir, la de la empresa).
+- `<FechaDeSubasta>` (vehículos): la fecha en la zona de quien mira con su abreviatura y, en el tooltip (y debajo en la ficha), la hora del
+  patio (`zonaDelPatio()` desde `ubicacion_estado`) y la de la empresa. En `BloqueDeSubasta`, el panel de cotizar y el chip de la agenda.
+- Sin migración: apibara no da la zona; `subasta_zona` sigue sin uso. **e2e:** `cotizar-panel-del-vehiculo`, `agenda`, `perfil-*`, `presupuesto-js`.
+
+### [ ] A4b · Editar las fechas de subasta en su zona (`feat(vehiculos): editar las fechas de subasta en su zona`)
+
+- `subasta_en` y `subasta_fin_en` editables en el panel de edición de un vehículo de origen subasta (lista cerrada de `vehiculo_guardar`),
+  con un campo que dice «Se escribe en hora de <zona> (GMT−4)» y guarda en UTC (`instanteDeLocal`). Refrescar sigue mandando.
+- **Migración:** `vehiculos_subasta_editable`. **e2e:** `vehiculos-alta`, `vehiculos-resumen`.
 
 ---
 

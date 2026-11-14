@@ -10,11 +10,18 @@ describe('preferenciasDesde', () => {
       tema: 'dark',
       porPagina: 25,
       widgetsDelTablero: null,
+      zonaHoraria: null,
     })
   })
 
   it('sin elección, todo queda en automático', () => {
-    const sinElegir = { densidad: null, tema: null, porPagina: null, widgetsDelTablero: null }
+    const sinElegir = {
+      densidad: null,
+      tema: null,
+      porPagina: null,
+      widgetsDelTablero: null,
+      zonaHoraria: null,
+    }
     expect(preferenciasDesde({})).toEqual(sinElegir)
     expect(preferenciasDesde(null)).toEqual(sinElegir)
   })
@@ -25,6 +32,7 @@ describe('preferenciasDesde', () => {
       tema: 'dark',
       porPagina: null,
       widgetsDelTablero: null,
+      zonaHoraria: null,
     })
   })
 
@@ -114,5 +122,11 @@ describe('esquemaPreferencia de «tablero.widgets»', () => {
     for (const valor of malos) {
       expect(esquemaPreferencia.safeParse({ clave: 'tablero.widgets', valor }).success).toBe(false)
     }
+  })
+  it('la zona horaria sólo si Intl la conoce', () => {
+    expect(preferenciasDesde({ zona_horaria: 'America/New_York' }).zonaHoraria).toBe(
+      'America/New_York',
+    )
+    expect(preferenciasDesde({ zona_horaria: 'Marte/Olimpo' }).zonaHoraria).toBeNull()
   })
 })

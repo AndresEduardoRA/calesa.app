@@ -354,6 +354,8 @@ Agregar a inicio»), «Ver como» (quien gestiona roles), tema, densidad y «Cer
   del vehículo llevan el carrusel en su lugar (flechas, puntos y gesto). Las galerías («Fotos» del resumen, imágenes de un ítem) abren el visor en la foto tocada.
 - **Avisos con acciones:** un aviso de error, advertencia o bloqueo que tiene salida la ofrece ahí mismo (de 1 a 3, la que destraba primero;
   sin permiso, a quién pedírselo) — `.claude/rules/ui.md` › «Avisos con acciones».
+- **Fechas de subasta:** en la zona de quien mira (`/perfil` › «Zona horaria»; sin elegir, la de la empresa), con la abreviatura («14:00
+  GMT-4»); en el tooltip (y debajo, en la ficha) la hora del patio y la de la empresa. Lo demás, en la zona de la empresa.
 - **Formatos:** `Intl` con locale y moneda de la empresa (`es-BO` por defecto); montos con cifras tabulares; fechas cruzan servidor↔cliente
   como ISO y se muestran en la zona de la empresa. **Modo Live** oculta cifras sensibles **y** símbolos de moneda. Voz: español neutro con
   tuteo. Densidad: compacta en escritorio (filas 36–40 px), cómoda en táctil (48 px), recordada por usuario.
