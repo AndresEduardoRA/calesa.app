@@ -7,6 +7,7 @@ import { RUTAS } from '@/shared/lib/rutas'
 import { actionClient } from '@/shared/lib/safe-action'
 import { repositorioVehiculos } from '../../../composicion'
 import { validarVehiculo } from '../../../entities/esquema'
+import { PERMISO_DE_ALTA } from '../../../entities/permisos'
 import { fuentesDeValidacion } from '../fuentes'
 import { noValido, type ResultadoDeGuardar } from '../resultado'
 import { esquemaCrearVehiculo } from '../schemas/vehiculo'
@@ -18,8 +19,8 @@ type Creado = { id: string; numero: number; actualizadoEn: string }
 export const crearVehiculo = actionClient
   .inputSchema(esquemaCrearVehiculo)
   .action(async ({ parsedInput, ctx }): Promise<ResultadoDeGuardar<Creado>> => {
-    const { id, origenId, valores, consulta } = parsedInput
-    if (!puede(ctx.permisos, 'vehiculos.crear', origenId)) {
+    const { id, origenId, valores, consulta, contexto } = parsedInput
+    if (!puede(ctx.permisos, PERMISO_DE_ALTA[contexto], origenId)) {
       return fallo('sin_permiso', 'No tienes permiso para dar de alta en este origen.')
     }
     const leido = await fuentesDeValidacion(origenId, null)
@@ -43,6 +44,7 @@ export const crearVehiculo = actionClient
       id,
       origenId,
       datos: validacion.datos,
+      contexto,
       ...(consulta ? { consulta } : {}),
     })
     if (!creado.ok) {

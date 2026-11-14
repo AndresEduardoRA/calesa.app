@@ -77,7 +77,7 @@ declare
   o uuid; f uuid; l uuid; v uuid; v_def jsonb; v_vis jsonb;
   a uuid := gen_random_uuid(); k uuid := gen_random_uuid(); kv uuid := gen_random_uuid(); ke uuid := gen_random_uuid(); sl uuid := gen_random_uuid();
   sv uuid := gen_random_uuid(); sc uuid := gen_random_uuid(); fg uuid := gen_random_uuid();
-  v_base constant text[] := array['cotizaciones.ver', 'cotizaciones.crear', 'leads.ver', 'vehiculos.ver', 'vehiculos.crear'];
+  v_base constant text[] := array['cotizaciones.ver', 'cotizaciones.crear', 'leads.ver', 'vehiculos.ver', 'vehiculos.crear', 'vehiculos.crear.desde_cotizar'];
 begin
   insert into public.origenes (clave, nombre) values ('cc_' || substr(gen_random_uuid()::text, 1, 8), 'CC origen ' || substr(gen_random_uuid()::text, 1, 8)) returning id into o;
   v_def := jsonb_build_object('nodos', jsonb_build_array(
@@ -390,7 +390,7 @@ begin
 end $$;
 rollback;
 
--- @test cotizacion_crear: «cargar a mano» crea el vehículo en la misma transacción; sin vehiculos.crear o sin poder verlo, no deja nada; un origen sin fórmula publicada no cotiza
+-- @test cotizacion_crear: «cargar a mano» crea el vehículo en la misma transacción; sin vehiculos.crear.desde_cotizar o sin poder verlo, no deja nada; un origen sin fórmula publicada no cotiza
 begin;
 do $$
 declare
@@ -408,11 +408,11 @@ begin
   -- Repetir el intento no crea otro vehículo ni otra cotización.
   r2 := pg_temp.cc_corre(a, pg_temp.cc_sql(id1, o, l, '{"inputs": {"visible": 3}}', null, v_nuevo));
   if r2 ? 'error' or r2 ->> 'repetido' <> 'true' or (select count(*) from public.vehiculos where titulo = 'CC a mano') <> 1 then raise exception 'repetir el intento a mano creó otro: %', r2; end if;
-  -- Sin vehiculos.crear: 42501 y ni vehículo ni cotización.
+  -- Sin vehiculos.crear.desde_cotizar: 42501 y ni vehículo ni cotización.
   r := pg_temp.cc_corre((t ->> 'sc')::uuid, pg_temp.cc_sql(gen_random_uuid(), o, l, '{}', null, jsonb_build_object('id', vn2, 'datos', jsonb_build_object('titulo', 'CC sin permiso'))::text));
   if r ->> 'error' is distinct from '42501' then raise exception 'sin cotizaciones.crear ni vehiculos.crear debía dar 42501: %', r; end if;
-  -- Con vehiculos.crear y sin vehiculos.ver: lo crea y no lo ve, así que no cotiza y se deshace todo.
-  insert into public.roles_permisos (rol_id, permiso_clave, alcance) select ur.rol_id, 'vehiculos.crear', 'todos' from public.usuarios_roles ur where ur.usuario_id = sv;
+  -- Con vehiculos.crear.desde_cotizar y sin vehiculos.ver: lo crea y no lo ve, así que no cotiza y se deshace todo.
+  insert into public.roles_permisos (rol_id, permiso_clave, alcance) select ur.rol_id, 'vehiculos.crear.desde_cotizar', 'todos' from public.usuarios_roles ur where ur.usuario_id = sv;
   r := pg_temp.cc_corre(sv, pg_temp.cc_sql(gen_random_uuid(), o, l, '{}', null, jsonb_build_object('id', vn2, 'datos', jsonb_build_object('titulo', 'CC sin ver'))::text));
   if r ->> 'error' is distinct from '42501' or r ->> 'mensaje' is distinct from 'No tienes acceso a este vehículo.' then raise exception 'crear sin poder verlo debía dar el error de un vehículo que no se ve: %', r; end if;
   if exists (select 1 from public.vehiculos where id = vn2 or titulo in ('CC sin permiso', 'CC sin ver')) then raise exception 'un rechazo dejó un vehículo a mano'; end if;

@@ -56,6 +56,7 @@ function AltaCargada(props: Props & { layout: LayoutActivo }) {
     fuentes,
     activo: true,
     alGuardar,
+    contexto: 'cotizar',
   })
   const salida = useCierreConCambios({
     hayCambios: estado.hayCambios,

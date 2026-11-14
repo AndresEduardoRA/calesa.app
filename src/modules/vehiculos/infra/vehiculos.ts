@@ -59,12 +59,19 @@ function fallo(error: ErrorDeRpc): FalloAlGuardar {
 const creado = z.object({ id: z.guid(), numero: z.number(), actualizado_en: z.string() })
 const guardado = z.object({ actualizado_en: z.string() })
 
-const crear: RepositorioVehiculos['crear'] = async ({ id, origenId, datos, consulta }) => {
+const crear: RepositorioVehiculos['crear'] = async ({
+  id,
+  origenId,
+  datos,
+  consulta,
+  contexto,
+}) => {
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('vehiculo_crear', {
     p_id: id,
     p_origen: origenId,
     p_datos: comoColumnas(datos),
+    p_contexto: contexto,
     // Sin consulta a apibara el parámetro no viaja: la RPC lo tiene por defecto en nulo.
     ...(consulta ? { p_consulta: consulta } : {}),
   })

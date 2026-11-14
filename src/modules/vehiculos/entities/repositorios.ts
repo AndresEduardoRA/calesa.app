@@ -26,6 +26,7 @@ import type {
 } from './vehiculos-del-lead'
 import type { Relaciones } from './vinculo'
 import type { DatosDeVitrina, VistaPreviaDeVitrina, VitrinaDelOrigen } from './vitrina'
+import type { ContextoDeAlta } from './permisos'
 
 // Una página del inventario de un origen, de lo más nuevo a lo más viejo. La RLS decide qué ve
 // quien llama: acá no se filtra por permiso. `fuente` sólo elige el camino de la lectura (`fuenteDelInventario()`).
@@ -53,6 +54,8 @@ export type RepositorioVehiculos = {
     // La consulta a apibara, si el alta vino de ahí: la base copia de ella el bruto, deriva la
     // fecha y el estado de la subasta y marca el vehículo como importado.
     consulta?: string
+    // Desde dónde se da de alta (`vehiculo_crear(…, p_contexto)`): cada contexto pide su permiso.
+    contexto: ContextoDeAlta
   }) => Promise<
     { ok: true; data: { id: string; numero: number; actualizadoEn: string } } | FalloAlGuardar
   >

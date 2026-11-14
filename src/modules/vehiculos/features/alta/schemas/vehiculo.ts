@@ -22,6 +22,8 @@ export const esquemaCrearVehiculo = z.object({
   valores,
   // La consulta a apibara que llenó la ficha, si el alta vino de ahí: la base copia el bruto de ella.
   consulta: z.guid().optional(),
+  // Desde dónde se da de alta: el inventario o la hoja de cotizar (cada uno con su permiso).
+  contexto: z.enum(['suelto', 'cotizar']).default('suelto'),
 })
 
 export const esquemaGuardarVehiculo = z.object({
