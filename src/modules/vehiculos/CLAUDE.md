@@ -90,7 +90,9 @@ Lectura `vehiculos_inventario` (una página por rutas con los filtros del layout
 - **apibara:** la llamada vive en la edge function, que llama el navegador; guarda el bruto en `apibara_consultas` y alta/refresco sólo mandan su id
   (`p_consulta`). Fecha y estado de subasta: `_vehiculo_subasta_desde()`. `precio` nunca sale de la puja. Refrescar no pisa lo editado
   (`fusionarRefresco()`). Con 429 o clave rechazada no se consulta la línea siguiente.
-- Atajo `N`: abre «Nuevo» sólo si se puede.
+- Atajo `N`: abre «Nuevo» sólo si se puede. **El alta dice su contexto** (`vehiculo_crear(…, p_contexto)`, `PERMISO_DE_ALTA`): `suelto`
+  (`vehiculos.crear`: inventario e importación) o `cotizar` (`vehiculos.crear.desde_cotizar`: el panel de la hoja y `cotizacion_crear` con
+  vehículo nuevo); queda en `creado_desde`.
 
 ## Ojo
 

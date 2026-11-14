@@ -4,6 +4,7 @@ import {
   candidatosPorCartera,
   origenElegido,
   origenesVisibles,
+  MOTIVO_SOLO_DESDE_COTIZAR,
   permisoDeAlta,
   puedeEditar,
   puedeSobre,
@@ -55,6 +56,23 @@ describe('permisoDeAlta', () => {
     const apagado = permisoDeAlta(en('vehiculos.crear', null), VIEJO)
     expect(apagado.estado).toBe('deshabilitado')
     expect(apagado).toMatchObject({ motivo: expect.stringContaining('Viejo está desactivado') })
+  })
+
+  it('cada contexto pide su clave: sin la suelta pero con la de cotizar, «Nuevo» se ve apagado y lleva a cotizar', () => {
+    const soloCotizar = en('vehiculos.crear.desde_cotizar', 'corea')
+    expect(permisoDeAlta(soloCotizar, COREA)).toEqual({
+      estado: 'deshabilitado',
+      motivo: MOTIVO_SOLO_DESDE_COTIZAR,
+      desdeCotizar: true,
+    })
+    expect(permisoDeAlta(soloCotizar, COREA, 'cotizar')).toEqual({ estado: 'habilitado' })
+    expect(permisoDeAlta(en('vehiculos.crear', 'corea'), COREA, 'cotizar')).toEqual({
+      estado: 'oculto',
+    })
+    // En un origen desactivado no se ofrece cotizar: tampoco recibe vehículos nuevos.
+    expect(permisoDeAlta(en('vehiculos.crear.desde_cotizar', 'viejo'), VIEJO)).toEqual({
+      estado: 'oculto',
+    })
   })
 })
 

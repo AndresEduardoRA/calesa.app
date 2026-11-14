@@ -15,6 +15,7 @@ import {
 } from '../../../entities/formulario'
 import type { Vehiculo } from '../../../entities/vehiculo'
 import { useVehiculos, type Envio } from './use-vehiculos'
+import type { ContextoDeAlta } from '../../../entities/permisos'
 
 // La consulta a apibara que llenó la ficha (`consulta`, lo que viaja al guardar; `raw`, para traer
 // las fotos después), y de qué línea de lo pegado salió (si salió de una).
@@ -38,6 +39,8 @@ type Args = {
   // Si quien mira no puede guardar, los atajos no hacen nada y no hay borrador.
   activo: boolean
   alGuardar: (guardado: Guardado) => void
+  // Desde dónde se da de alta: el inventario (por defecto) o la hoja de cotizar (cada uno pide su permiso).
+  contexto?: ContextoDeAlta
 }
 
 type Estado = {
@@ -117,7 +120,19 @@ function useValoresIniciales(fuentes: Fuentes, vehiculo: Vehiculo | null): Valor
 // El estado de dar de alta o editar un vehículo: valida con el esquema del layout antes de enviar,
 // pinta los motivos junto a cada campo, guarda un borrador de lo escrito, muestra el conflicto si
 // otra persona lo cambió y, si se cae la conexión, conserva todo y reintenta al volver.
-export function useFormularioDeVehiculo({ origenId, vehiculo, fuentes, activo, alGuardar }: Args) {
+// El alta: el id del intento, lo escrito, desde dónde (el inventario por defecto) y la consulta a apibara si la ficha vino de ahí.
+function pedidoDeAlta(estado: Estado, origenId: string, contexto: Args['contexto']) {
+  return {
+    id: estado.id,
+    origenId,
+    valores: estado.valores,
+    ...(contexto ? { contexto } : {}),
+    ...(estado.subasta ? { consulta: estado.subasta.consulta } : {}),
+  }
+}
+
+export function useFormularioDeVehiculo(args: Args) {
+  const { origenId, vehiculo, fuentes, activo, alGuardar, contexto } = args
   const iniciales = useValoresIniciales(fuentes, vehiculo)
   const [estado, setEstado] = useState(() => limpio(vehiculo?.id ?? nuevoId(), iniciales))
   const ediciones = useVehiculos()
@@ -165,12 +180,7 @@ export function useFormularioDeVehiculo({ origenId, vehiculo, fuentes, activo, a
       const { id, actualizadoEn: actualizadoEnEsperado } = vehiculo
       return resolver(await ediciones.guardar({ id, actualizadoEnEsperado, valores }), null, seguir)
     }
-    const creado = await ediciones.crear({
-      id: estado.id,
-      origenId,
-      valores,
-      ...(estado.subasta ? { consulta: estado.subasta.consulta } : {}),
-    })
+    const creado = await ediciones.crear(pedidoDeAlta(estado, origenId, contexto))
     return resolver(creado, creado.ok ? creado.data.numero : null, seguir)
   }
 

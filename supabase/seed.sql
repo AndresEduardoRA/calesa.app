@@ -38,7 +38,8 @@ insert into public.permisos (clave, modulo, nombre, descripcion, por_origen, con
   ('empresa.tipos_cambio.gestionar', 'empresa', 'Tipos de cambio', 'Monedas y tipos de cambio', false, false, 'moneda_guardar, tipo_cambio_guardar, policy tipos_cambio_historial', 60),
   ('origenes.gestionar', 'origenes', 'Gestionar orígenes', 'Crear orígenes, su layout de campos y categorías', false, false, 'origen_crear, origen_guardar, origen_eliminar, origen_campo_*, categoria_*, origenes_resumen', 70),
   ('vehiculos.ver', 'vehiculos', 'Ver vehículos', 'Ver el inventario (por origen; propios = creados por mí o vinculados a mis leads)', true, true, 'policy vehiculos, puede_vehiculo', 80),
-  ('vehiculos.crear', 'vehiculos', 'Crear vehículos', 'Dar de alta vehículos (por origen)', true, false, 'vehiculo_crear', 90),
+  ('vehiculos.crear', 'vehiculos', 'Crear vehículos sueltos', 'Dar de alta vehículos desde el inventario y por importación (por origen)', true, false, 'vehiculo_crear', 90),
+  ('vehiculos.crear.desde_cotizar', 'vehiculos', 'Crear vehículos desde cotizar', 'Dar de alta un vehículo desde la hoja de cotizar (por origen)', true, false, 'vehiculo_crear (contexto cotizar), cotizacion_crear (vehículo nuevo)', 91),
   ('vehiculos.editar', 'vehiculos', 'Editar vehículos', 'Editar la ficha y las fotos, y vincular a un lead (por origen y alcance)', true, true, 'vehiculo_guardar, vehiculo_fotos_agregar, vehiculo_foto_*, vehiculo_vincular, policy storage vehiculos, puede_vehiculo', 100),
   ('vehiculos.eliminar', 'vehiculos', 'Enviar vehículos a la papelera', 'Enviar a la papelera (por origen y alcance)', true, true, 'vehiculos_papelera_enviar, vehiculos_con_permiso', 110),
   ('vehiculos.vitrina', 'vehiculos', 'Publicar en la web', 'Poner vehículos en la vitrina del sitio público (por origen)', true, false, 'vehiculo_vitrina', 120),
@@ -120,7 +121,7 @@ on conflict (clave) do nothing;
 insert into public.roles_permisos (rol_id, permiso_clave, alcance)
 select r.id, x.clave, x.alcance::public.alcance_permiso from public.roles r cross join (values
   ('asesor', 'leads.ver', 'propios'), ('asesor', 'leads.crear', 'todos'), ('asesor', 'leads.editar', 'propios'), ('asesor', 'leads.compartir', 'propios'), ('asesor', 'leads.transferir', 'propios'), ('asesor', 'leads.eliminar', 'propios'), ('asesor', 'leads.portal.gestionar', 'propios'),
-  ('asesor', 'vehiculos.ver', 'todos'), ('asesor', 'vehiculos.crear', 'todos'), ('asesor', 'vehiculos.editar', 'propios'),
+  ('asesor', 'vehiculos.ver', 'todos'), ('asesor', 'vehiculos.crear', 'todos'), ('asesor', 'vehiculos.crear.desde_cotizar', 'todos'), ('asesor', 'vehiculos.editar', 'propios'),
   ('asesor', 'cotizaciones.ver', 'propios'), ('asesor', 'cotizaciones.crear', 'todos'), ('asesor', 'cotizaciones.editar', 'propios'),
   ('asesor', 'logistica.ver', 'propios'), ('asesor', 'logistica.pagos.ver', 'propios'),
   ('asesor', 'agenda.tareas.recibir', 'todos'), ('asesor', 'web.cola.participar', 'todos'), ('asesor', 'chat.participar', 'todos'), ('asesor', 'chat.global', 'todos'), ('asesor', 'notificaciones.push', 'todos'),

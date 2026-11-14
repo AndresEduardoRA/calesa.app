@@ -23,7 +23,7 @@ end $f$;
 
 create or replace function pg_temp.fk_crea() returns uuid language sql as $f$
   select pg_temp.fk_persona(array['cotizaciones.ver', 'cotizaciones.crear', 'cotizaciones.editar', 'cotizaciones.final.gestionar',
-                                  'leads.ver', 'leads.editar', 'vehiculos.ver', 'vehiculos.crear']);
+                                  'leads.ver', 'leads.editar', 'vehiculos.ver', 'vehiculos.crear', 'vehiculos.crear.desde_cotizar']);
 $f$;
 
 create or replace function pg_temp.fk_corre(p_quien uuid, p_sql text) returns jsonb language plpgsql as $f$
