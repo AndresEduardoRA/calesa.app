@@ -38,7 +38,8 @@ Lecturas: `agenda_rango(p_desde, p_hasta, p_de_todos)` (invocador, ≤ 45 días,
 - Una tarea la ven su responsable, su creador, quien tiene `agenda.ver_todo` y, si nació en el chat, los miembros de esa conversación
   (`tareas.conversacion_id`; no la ficha compartida después en otro chat).
 - La edita, elimina y reasigna su creador; el responsable sólo la completa y la reabre. Darla a otro exige `agenda.tareas.asignar` y que quien recibe
-  esté activo, sin bloqueo, con `agenda.tareas.recibir` y, si nació en el chat, sea miembro. No vence en el pasado. `responsable_id` sólo cambia por
+  esté activo, sin bloqueo, con `agenda.tareas.recibir` y, si nació en el chat, sea miembro vigente (`_chat_miembro_vigente`: en el global, con
+  `chat.global`; lo miran crear, `agenda_quienes_reciben` y reasignar). No vence en el pasado. `responsable_id` sólo cambia por
   `reasignar_tarea`. Completar, eliminar o reasignar accionan la `tarea_asignada` abierta del responsable (del anterior, al reasignar).
 - Un evento vivo lo leen su creador, todos si es público, sus destinatarios y quien tiene `agenda.ver_todo`. `eventos: leer` es **en línea** sobre
   columnas con `_agenda_soy_destinatario(id)`: no llames a `puede_evento(id)` desde la policy (relee la fila por cada evento).
