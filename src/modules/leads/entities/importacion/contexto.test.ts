@@ -28,6 +28,7 @@ const CATALOGOS: CatalogosDeLead = {
     { id: O2, clave: 'web', nombre: 'Web', activo: true },
   ],
   tipos: [{ id: T1, clave: 'prospecto', nombre: 'Prospecto', clase: 'prospecto', activo: true }],
+  tiposDeSeguimiento: [],
 }
 
 describe('contextoDeImportacionDesde', () => {

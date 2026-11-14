@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { CampoDeLead } from './campo'
-import type { FilaDeLead } from './listado'
+import { SIN_ULTIMO_CONTACTO, type FilaDeLead } from './listado'
 import {
   gruposDelRapido,
   hayPrivadosSinRecibir,
@@ -73,6 +73,7 @@ describe('vistaDelRapido', () => {
     creadoEn: '2026-10-14T00:00:00Z',
     atributos: {},
     marcas: SIN_MARCAS,
+    ...SIN_ULTIMO_CONTACTO,
     ...extra,
   })
   const base = { id: 'a', idValido: true, lectura: null, delListado: null, soloMios: false }

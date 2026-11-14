@@ -5,6 +5,13 @@ import { CAMPOS_DE_NUMEROS, numerosDesde, type NumerosDeLead } from '@/shared/li
 import { z } from 'zod'
 import type { CampoDeLead } from './campo'
 import { marcasDesde, type MarcasDeLead } from './marcas'
+import {
+  SIN_ULTIMO_CONTACTO,
+  recordatorioDeFilaDesde,
+  seguimientoDeFilaDesde,
+  type RecordatorioDeFila,
+  type SeguimientoDeFila,
+} from './ultimo-contacto'
 
 // El máximo de filas por página de este listado (el selector «Ítems por página» ofrece hasta acá): 100, lo más que ofrece
 // el selector. Fue 50 hasta la 9h: la policy de `leads` se estimaba en un 0,37 % de la cartera y a 100 filas el planificador
@@ -19,6 +26,9 @@ export const MAXIMO_DE_PAGINA_DE_LEADS = 100
 const CLAVE_DE_ATRIBUTO = /^[a-z][a-z0-9_]{1,40}$/
 // Cada atributo de la tabla vuelve con este prefijo en su alias (`a_ciudad`).
 const PREFIJO_DE_ALIAS = 'a_'
+
+// Una fila sin lo último ni lo próximo: la que arma quien no lee del listado (la ficha, un test).
+export { SIN_ULTIMO_CONTACTO }
 
 export type FilaDeLead = {
   id: string
@@ -39,6 +49,12 @@ export type FilaDeLead = {
   atributos: Record<string, unknown>
   // Las de quien mira: favorito, tachado y sus etiquetas (nunca las de otra persona).
   marcas: MarcasDeLead
+  // Cuándo fue el último seguimiento (público, de cualquiera): nulo si el lead no tiene.
+  ultimoSeguimientoEn: string | null
+  // Su tipo y su título, sólo si quien mira lo ve; nulo si no hay seguimientos o el último es privado de otra persona (queda la fecha).
+  ultimoSeguimiento: SeguimientoDeFila | null
+  // El próximo recordatorio pendiente de quien mira sobre este lead (son personales); nulo si no tiene.
+  proximoRecordatorio: RecordatorioDeFila | null
 }
 
 const COLUMNAS_FIJAS = [
@@ -56,6 +72,9 @@ const COLUMNAS_FIJAS = [
   'es_favorito',
   'esta_tachado',
   'etiquetas',
+  'ultimo_seguimiento_en',
+  'ultimo_seguimiento_visible',
+  'proximo_recordatorio',
 ] as const
 
 // Las columnas del listado: `en_tabla` y activas, en el orden del layout.
@@ -110,6 +129,9 @@ const esquemaFila = z
     es_favorito: z.boolean().nullable().optional(),
     esta_tachado: z.boolean().nullable().optional(),
     etiquetas: z.array(z.guid()).nullable().optional(),
+    ultimo_seguimiento_en: z.string().nullable().optional(),
+    ultimo_seguimiento_visible: z.unknown().optional(),
+    proximo_recordatorio: z.unknown().optional(),
   })
   .catchall(z.unknown())
 
@@ -145,6 +167,9 @@ export function filasDeLeadDesde(data: unknown, claves: readonly string[]): Fila
         creadoEn: f.creado_en,
         atributos,
         marcas: marcasDesde(f),
+        ultimoSeguimientoEn: f.ultimo_seguimiento_en ?? null,
+        ultimoSeguimiento: seguimientoDeFilaDesde(f.ultimo_seguimiento_visible),
+        proximoRecordatorio: recordatorioDeFilaDesde(f.proximo_recordatorio),
       },
     ]
   })
@@ -175,5 +200,7 @@ export function leadCompletoDesde(data: unknown): FilaDeLead | null {
     creadoEn: f.creado_en,
     atributos: f.atributos ?? {},
     marcas: marcasDesde(f),
+    // La ficha no los trae: son del listado.
+    ...SIN_ULTIMO_CONTACTO,
   }
 }

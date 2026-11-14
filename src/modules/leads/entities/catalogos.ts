@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { OrigenConEstado } from './ficha'
+import type { TipoDeSeguimientoEnCatalogo } from './ultimo-contacto'
 import { CLASES_DE_TIPO, NOMBRE_DE_CLASE, type ClaseDeTipoDeLead } from './tipo-de-lead'
 
 // Los catálogos con los que se nombra a un lead —su origen y su tipo—: de la base, también los apagados (un lead puede conservar
@@ -20,6 +21,8 @@ export type TipoDeLeadEnCatalogo = {
 export type CatalogosDeLead = {
   origenes: OrigenConEstado[]
   tipos: TipoDeLeadEnCatalogo[]
+  // Los tipos de seguimiento, también los apagados: nombran el último seguimiento de cada fila del listado.
+  tiposDeSeguimiento: TipoDeSeguimientoEnCatalogo[]
 }
 
 const esquema = z.object({
@@ -42,12 +45,28 @@ const esquema = z.object({
       activo: z.boolean(),
     }),
   ),
+  tipos_de_seguimiento: z
+    .array(
+      z.object({
+        id: z.guid(),
+        nombre: z.string(),
+        icono: z.string().nullable(),
+        activo: z.boolean(),
+      }),
+    )
+    .default([]),
 })
 
 // El `jsonb` de `leads_catalogos()`; una forma rota es nula.
 export function catalogosDeLeadDesde(crudo: unknown): CatalogosDeLead | null {
   const leido = esquema.safeParse(crudo)
-  return leido.success ? leido.data : null
+  return leido.success
+    ? {
+        origenes: leido.data.origenes,
+        tipos: leido.data.tipos,
+        tiposDeSeguimiento: leido.data.tipos_de_seguimiento,
+      }
+    : null
 }
 
 export function tipoDelCatalogo(
@@ -110,17 +129,24 @@ export const nombreDeLaClase = (clase: ClaseDeTipoDeLead): string => NOMBRE_DE_C
 // Las claves de icono que las filas de una lista usan (el origen y el tipo de cada una), sin repetir ni contar las que no tienen: lo que monta el
 // símbolo compartido del listado (`<SimbolosDeIconos>`).
 export function iconosEnUso(
-  filas: readonly { origenId: string | null; tipoLeadId: string | null }[],
+  filas: readonly {
+    origenId: string | null
+    tipoLeadId: string | null
+    ultimoSeguimiento?: { tipoId: string } | null
+  }[],
   origenes: readonly { id: string; icono?: string | null }[],
   tipos: readonly { id: string; icono?: string | null }[],
+  tiposDeSeguimiento: readonly { id: string; icono?: string | null }[] = [],
 ): string[] {
   const claves = new Set<string>()
   const origenPorId = new Map(origenes.map((o) => [o.id, o.icono]))
   const tipoPorId = new Map(tipos.map((t) => [t.id, t.icono]))
+  const seguimientoPorId = new Map(tiposDeSeguimiento.map((t) => [t.id, t.icono]))
   for (const fila of filas) {
     for (const icono of [
       origenPorId.get(fila.origenId ?? ''),
       tipoPorId.get(fila.tipoLeadId ?? ''),
+      seguimientoPorId.get(fila.ultimoSeguimiento?.tipoId ?? ''),
     ]) {
       if (icono !== null && icono !== undefined && icono.trim() !== '') {
         claves.add(icono)

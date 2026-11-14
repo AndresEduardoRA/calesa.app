@@ -11,7 +11,7 @@ import {
   tiempoQueQueda,
   type ResultadoDeDeshacer,
 } from '../../../entities/importacion/deshacer'
-import { useAhora } from '../hooks/use-ahora'
+import { useAhora } from '@/shared/ui/use-ahora'
 import { usePanelDeDeshacer } from '../hooks/use-panel-de-deshacer'
 import { useDeshacerImportacion } from '../hooks/use-deshacer-importacion'
 import { ResultadoDelDeshacer } from './resultado-del-deshacer'

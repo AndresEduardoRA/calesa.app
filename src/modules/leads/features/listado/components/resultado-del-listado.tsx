@@ -22,6 +22,7 @@ import { useAlcanceDelListado } from '../hooks/use-alcance-del-listado'
 import { TablaDeLeads } from './tabla-de-leads'
 import { TarjetasDeLeads } from './tarjetas-de-leads'
 import type { DatosDeLaLista, ParaMarcar } from './tipos'
+import type { DatosDeUltimoContacto } from './ultimo-contacto'
 
 type Props = DatosDeLaLista & {
   pagina: Pagina<FilaDeLead>
@@ -31,6 +32,7 @@ type Props = DatosDeLaLista & {
   alAbrir: (id: string) => void
   abierto: string | null
   marcar: ParaMarcar
+  ultimoContacto: DatosDeUltimoContacto
   // Los que cumplen los filtros y quedaron afuera por tachados (hasta el tope del aviso).
   ocultos: ConteoAcotado
   // La búsqueda por un campo público se quedó en el tope del recorrido: hasta dónde llegó (4.03, 5a-9).
@@ -108,6 +110,7 @@ export function ResultadoDelListado(props: Props) {
     marcar,
     ocultos,
     recorrido,
+    ultimoContacto,
     ...datos
   } = props
   const filtros = useFiltrosDelListado()
@@ -133,7 +136,9 @@ export function ResultadoDelListado(props: Props) {
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
       <UbicacionDeLaPagina ubicacion={ubicacionDeLaPagina(pagina)} />
-      <SimbolosDeIconos claves={iconosEnUso(pagina.filas, datos.origenes, datos.tipos)} />
+      <SimbolosDeIconos
+        claves={iconosEnUso(pagina.filas, datos.origenes, datos.tipos, ultimoContacto.tipos)}
+      />
       <UnaSolaVista
         tabla={() => (
           <TablaDeLeads
@@ -142,6 +147,7 @@ export function ResultadoDelListado(props: Props) {
             alAbrir={alAbrir}
             abierto={abierto}
             marcar={marcar}
+            ultimoContacto={ultimoContacto}
           />
         )}
         tarjetas={() => (
@@ -151,6 +157,7 @@ export function ResultadoDelListado(props: Props) {
             alAbrir={alAbrir}
             abierto={abierto}
             marcar={marcar}
+            ultimoContacto={ultimoContacto}
           />
         )}
       />

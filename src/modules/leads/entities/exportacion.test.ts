@@ -13,7 +13,7 @@ import {
   valorDeExportacion,
   type ContextoDeExportacion,
 } from './exportacion'
-import type { FilaDeLead } from './listado'
+import { SIN_ULTIMO_CONTACTO, type FilaDeLead } from './listado'
 
 function campo(n: number, extra: Record<string, unknown> = {}): CampoDeLead {
   return camposDeLeadDesde([
@@ -44,7 +44,6 @@ const CONTEXTO: ContextoDeExportacion = {
     ['o1', 'Web'],
     ['o2', 'Referido'],
   ]),
-  // Los nombres salen de la base: un tipo agregado por la empresa se nombra igual que los de fábrica.
   tipos: new Map([
     ['t-pro', 'Prospecto'],
     ['t-cli', 'Cliente'],
@@ -68,7 +67,7 @@ function fila(extra: Partial<FilaDeLead> = {}): FilaDeLead {
     creadoEn: '2026-10-14T20:00:00+00:00',
     atributos: {},
     marcas: { esFavorito: false, estaTachado: false, etiquetas: [] },
-    ...extra,
+    ...{ ...SIN_ULTIMO_CONTACTO, ...extra },
   }
 }
 

@@ -6,7 +6,8 @@ import { formatInTimeZone, fromZonedTime } from 'date-fns-tz'
 export const ZONA_POR_DEFECTO = 'America/La_Paz'
 
 type Opciones = { zona?: string }
-type OpcionesRelativa = Opciones & { ahora?: Date }
+// `numerico`: siempre con el número («hace 1 día», «dentro de 2 días») en vez de «ayer» o «pasado mañana».
+type OpcionesRelativa = Opciones & { ahora?: Date; numerico?: boolean }
 
 // Una fecha sin hora (`2026-10-11`, columnas `date`) es un día del calendario de la empresa:
 // se ancla a su medianoche para que ninguna zona la corra al día anterior.
@@ -63,7 +64,8 @@ export function diaEnZona(iso: string, { zona = ZONA_POR_DEFECTO }: Opciones = {
   return formatear(iso, 'yyyy-MM-dd', zona)
 }
 
-const relativo = new Intl.RelativeTimeFormat('es', { numeric: 'auto' })
+const relativoCorriente = new Intl.RelativeTimeFormat('es', { numeric: 'auto' })
+const relativoNumerico = new Intl.RelativeTimeFormat('es', { numeric: 'always' })
 
 const SEGUNDOS_AHORA = 45
 const DIAS_RELATIVOS = 6
@@ -76,21 +78,31 @@ function diasDeCalendario(desde: Date, hasta: Date, zona: string): number {
   return Math.round((dia(hasta) - dia(desde)) / MS_POR_DIA)
 }
 
-function relativaPorDias(iso: string, instante: Date, ahora: Date, zona: string): string {
+function relativaPorDias(
+  iso: string,
+  instante: Date,
+  ahora: Date,
+  { zona, numerico }: { zona: string; numerico: boolean },
+): string {
   const dias = diasDeCalendario(ahora, instante, zona)
-  return Math.abs(dias) <= DIAS_RELATIVOS
-    ? relativo.format(dias, 'day')
-    : formatearFecha(iso, { zona })
+  if (Math.abs(dias) > DIAS_RELATIVOS) {
+    return formatearFecha(iso, { zona })
+  }
+  // Con número, el mismo día no es «dentro de 0 días»: es «hoy».
+  return numerico && dias === 0 ? 'hoy' : formato(numerico).format(dias, 'day')
 }
+
+const formato = (numerico: boolean) => (numerico ? relativoNumerico : relativoCorriente)
 
 // Reciente → relativa («hace 5 minutos», «ayer», «mañana»); más lejos → la fecha absoluta.
 // Los días se cuentan por calendario de la empresa, no por bloques de 24 h. Una fecha sin hora
 // sólo se expresa en días («hoy», «mañana»): no tiene minutos que contar.
 export function fechaRelativa(iso: string, opciones: OpcionesRelativa = {}): string {
-  const { zona = ZONA_POR_DEFECTO, ahora = new Date() } = opciones
+  const { zona = ZONA_POR_DEFECTO, ahora = new Date(), numerico = false } = opciones
+  const relativo = formato(numerico)
   const instante = aInstante(iso, zona)
   if (SOLO_FECHA.test(iso)) {
-    return relativaPorDias(iso, instante, ahora, zona)
+    return relativaPorDias(iso, instante, ahora, { zona, numerico })
   }
 
   const segundos = Math.round((instante.getTime() - ahora.getTime()) / 1000)
@@ -105,7 +117,7 @@ export function fechaRelativa(iso: string, opciones: OpcionesRelativa = {}): str
   if (Math.abs(horas) < 24) {
     return relativo.format(horas, 'hour')
   }
-  return relativaPorDias(iso, instante, ahora, zona)
+  return relativaPorDias(iso, instante, ahora, { zona, numerico })
 }
 
 // El día que sigue a un `YYYY-MM-DD`, también como `YYYY-MM-DD`. Sirve para «hasta ese día
