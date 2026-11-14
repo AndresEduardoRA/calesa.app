@@ -120,7 +120,7 @@ ese nombre: nunca un sinónimo ni su traducción al inglés.
 - **Lote de papelera** — `lotes_papelera` / `LoteDePapelera`: envío de 1 a 200 a la papelera; se restaura o purga entero o por partes.
 - **Purga** — `vehiculos_papelera_purgar()`, `cotizaciones_papelera_purgar()`, `papelera_purgar()`, `papelera_purgar_vencidos()`: borrar para
   siempre, a mano (`vehiculos|leads|cotizaciones.papelera.purgar`, cada papelera la suya) o a los `papelera_dias`; lo que otra tabla necesita
-  (un pago, un comprobante) queda bloqueado, con motivo, en la papelera.
+  (un pago, un comprobante, una cotización de la papelera que lo nombra) queda bloqueado, con motivo, en la papelera.
 - **Limpieza de Storage** — `cola_gc_storage` / función `storage-gc`, `storage_gc_*()`: borrar lo que nadie referencia; job cada hora.
 - **Pase** — `cola_gc_pases` / `storage_gc_disparar()`, `storage_gc_abrir()`; `push_pases` / `push_disparar()`, `push_abrir()`;
   `importaciones_pases` / `importacion_pase_emitir()`, `importacion_abrir()`: uuid de un solo uso (10 min) con que la base autentica su llamada

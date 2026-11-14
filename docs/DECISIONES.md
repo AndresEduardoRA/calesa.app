@@ -215,6 +215,8 @@ las trampas, en `docs/LECCIONES.md`.
 
 - **Papelera con permiso propio.** `cotizaciones.papelera.purgar`, global, aparte de la de vehículos; la policy de lotes tiene una rama por tipo sin `else` (un tipo nuevo no hereda claves).
 - **Enviar mira ver antes de tomar la fila y otra vez después.** Quien no la ve recibe lo mismo que con una inexistente y nunca espera el candado.
+- **Una cotización de la papelera frena la purga de lo que nombra.** Su lead, y su vehículo si está en otro lote (las del lote del vehículo se purgan
+  con él): el `set null` cambiaría algo que todavía se restaura. A una viva, purgar su lead la deja sin cliente.
 - **Quién restaura.** Quien envió el lote lo restaura entero aunque ya no vea alguna; los demás necesitan `purgar`. Restaurar es todo o nada; purgar no. Las genéricas `papelera_enviar|restaurar|purgar` siguen vivas sobre los mismos ayudantes.
 
 ## Flujos

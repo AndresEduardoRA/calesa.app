@@ -1,7 +1,8 @@
 // El orden de candados lead → vehículo → cotización (docs/DECISIONES.md) entre la papelera y lo que la cruza: cotizar encima contra mandar su vehículo a
 // la papelera, y restaurar cotizaciones contra vincular su vehículo a su lead. Con tres conexiones a la base del Supabase LOCAL: C (postgres) retiene un
 // candado; A lanza y queda esperando a C a mitad de su llamada; B lanza y termina o queda esperando; C confirma y se mira cómo terminaron A y B. Con el
-// orden invertido en una de las dos llamadas, A y B se esperan en círculo y una recibe 40P01.
+// orden invertido en una de las dos llamadas, A y B se esperan en círculo y una recibe 40P01. Y con dos: purgar un lead contra mandar su cotización a la
+// papelera, que la purga ve si toma las cotizaciones del lead antes de mirar.
 import { PERSONAS, comoPersona } from './terreno.mjs'
 import { insertaCotizacion, terreno } from './cotizaciones.mjs'
 
@@ -151,6 +152,63 @@ export async function carrerasDeCandadosDePapelera({ orquesta, espero, conectar 
         final.lead === t.lead &&
         final.viva === true,
       { r, final },
+    )
+  }
+
+  console.log('Purgar un lead mientras su cotización va a la papelera')
+  {
+    // A manda la cotización a la papelera sin confirmar; B (el job, sin sesión) purga el lote del lead y queda esperando la cotización. Si B mira antes de
+    // tomarla, no la ve en la papelera, borra el lead y el `set null` le quita el cliente a una cotización que ya está en la papelera.
+    const t = await terreno(orquesta, 'cp3')
+    const c = nuevoId()
+    await insertaCotizacion(orquesta, t, c)
+    const { lote } = await fila(
+      orquesta,
+      `insert into public.lotes_papelera (tipo, creado_por) values ('leads', $1) returning id as lote`,
+      [duena],
+    )
+    await orquesta.query(
+      `update public.leads set eliminado_en = now(), eliminado_por = $2, lote_papelera_id = $3 where id = $1`,
+      [t.lead, duena, lote],
+    )
+    const [ca, cb] = [await conectar(), await conectar()]
+    let r
+    try {
+      await comoPersona(ca, duena)
+      await ca.query('begin')
+      const a = await comoValor(
+        ca.query(`select public.papelera_enviar('cotizaciones', array[$1::uuid]) as r`, [c]),
+      )
+      if (!a.ok) throw new Error(`A falló antes de la carrera: ${a.mensaje}`)
+      const pid = (await cb.query('select pg_backend_pid() as pid')).rows[0].pid
+      let termino = false
+      const b = comoValor(
+        cb.query('select public._papelera_purgar_leads($1, null) as r', [lote]),
+      ).finally(() => {
+        termino = true
+      })
+      if ((await esperaOTermina(orquesta, pid, () => termino)) !== 'esperó')
+        throw new Error('B no esperó la cotización de A: la carrera no se probó')
+      await ca.query('commit')
+      r = { a, b: await b }
+    } finally {
+      await ca.end()
+      await cb.end()
+    }
+    const despues = await fila(
+      orquesta,
+      `select (select lead_id from public.cotizaciones where id = $1) as lead, exists (select 1 from public.leads where id = $2) as sigue`,
+      [c, t.lead],
+    )
+    espero(
+      'el lead queda bloqueado por la cotización que llegó a la papelera, y ella sigue con su lead',
+      r.b.ok &&
+        r.b.valor?.purgados?.length === 0 &&
+        r.b.valor?.bloqueados?.[0]?.motivo ===
+          'Tiene una cotización en la papelera. Púrgala antes.' &&
+        despues.lead === t.lead &&
+        despues.sigue === true,
+      { r, despues },
     )
   }
 }
