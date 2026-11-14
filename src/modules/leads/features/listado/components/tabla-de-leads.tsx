@@ -19,6 +19,12 @@ import { NombreDeFila } from './nombre-de-fila'
 import { telefonoDeLista } from './telefono-de-lista'
 import { OrigenDelLead } from './origen-del-lead'
 import { accionesDelMenu, type DatosDeLaLista, origenDelCatalogo, type ParaMarcar } from './tipos'
+import {
+  RecordatorioDeFila,
+  UltimoSeguimientoDeFila,
+  useContextoDeUltimoContacto,
+  type DatosDeUltimoContacto,
+} from './ultimo-contacto'
 
 type Props = DatosDeLaLista & {
   leads: readonly FilaDeLead[]
@@ -26,6 +32,7 @@ type Props = DatosDeLaLista & {
   // El lead abierto en el drawer, para marcarlo.
   abierto: string | null
   marcar: ParaMarcar
+  ultimoContacto: DatosDeUltimoContacto
 }
 
 const VACIO = <span className="text-(--color-ink-faint)">—</span>
@@ -46,6 +53,8 @@ function EncabezadoDeLaTabla({ columnas }: { columnas: ReturnType<typeof camposD
         <TableHead>Teléfono</TableHead>
         <TableHead>Tipo</TableHead>
         <TableHead>Origen del lead</TableHead>
+        <TableHead>Último seguimiento</TableHead>
+        <TableHead>Recordatorio</TableHead>
         {columnas.map((campo) => (
           <TableHead key={campo.clave}>{campo.etiqueta}</TableHead>
         ))}
@@ -58,7 +67,7 @@ function EncabezadoDeLaTabla({ columnas }: { columnas: ReturnType<typeof camposD
 }
 
 // Los leads en escritorio, con el patrón de lista (`@/shared/ui/lista`): nombre (con las marcas de quien mira), teléfono, tipo y
-// origen, una columna por cada campo «en la tabla» del layout y el «⋯». Un clic en cualquier parte de la fila abre el drawer
+// origen, el último seguimiento y el próximo recordatorio (`ultimo-contacto.tsx`), una columna por cada campo «en la tabla» del layout y el «⋯». Un clic en cualquier parte de la fila abre el drawer
 // rápido (`?lead=`), salvo el del «⋯» y el de un enlace de la fila. La tabla es tan ancha como lo pidan sus columnas (el nombre nunca
 // se achica para que quepan) y se desplaza dentro de la tarjeta, con el nombre y el «⋯» a la vista.
 export function TablaDeLeads(props: Props) {
@@ -73,7 +82,9 @@ export function TablaDeLeads(props: Props) {
     abierto,
     marcar,
     numeroBuscado,
+    ultimoContacto,
   } = props
+  const contextoDe = useContextoDeUltimoContacto(ultimoContacto, marcar)
   const columnas = camposDeTabla(campos)
   return (
     <TablaDeLista>
@@ -108,6 +119,12 @@ export function TablaDeLeads(props: Props) {
             </TableCell>
             <TableCell className="max-w-48 truncate">
               <OrigenDeLaFila origen={origenDelCatalogo(origenes, lead.origenId)} />
+            </TableCell>
+            <TableCell className="max-w-56">
+              <UltimoSeguimientoDeFila lead={lead} contexto={contextoDe(lead)} />
+            </TableCell>
+            <TableCell className="max-w-48">
+              <RecordatorioDeFila lead={lead} contexto={contextoDe(lead)} />
             </TableCell>
             {columnas.map((campo) => (
               <TableCell key={campo.clave} className="max-w-48 truncate">

@@ -38,7 +38,7 @@ describe('columnas del listado', () => {
     const campos = [campo('ciudad'), campo('Mala clave'), campo('x);drop'), campo('ok_2')]
     expect(clavesDeTabla(campos)).toEqual(['ciudad', 'ok_2'])
     expect(columnasDeLaConsulta(['ciudad', 'x,y', 'edad'])).toBe(
-      'id,numero,numero_propio,numero_propio_creador,nombre,telefono_principal,en_cartera,dueno_id,tipo_lead_id,origen_lead_id,creado_en,es_favorito,esta_tachado,etiquetas,a_ciudad:atributos->ciudad,a_edad:atributos->edad',
+      'id,numero,numero_propio,numero_propio_creador,nombre,telefono_principal,en_cartera,dueno_id,tipo_lead_id,origen_lead_id,creado_en,es_favorito,esta_tachado,etiquetas,ultimo_seguimiento_en,ultimo_seguimiento_visible,proximo_recordatorio,a_ciudad:atributos->ciudad,a_edad:atributos->edad',
     )
   })
 })
@@ -92,6 +92,9 @@ describe('filasDeLeadDesde', () => {
       creadoEn: FILA.creado_en,
       atributos: { ciudad: 'Santa Cruz' },
       marcas: { esFavorito: false, estaTachado: false, etiquetas: [] },
+      ultimoSeguimientoEn: null,
+      ultimoSeguimiento: null,
+      proximoRecordatorio: null,
     })
   })
 
@@ -114,6 +117,56 @@ describe('filasDeLeadDesde', () => {
   it('en_cartera nulo es «no»; lo que no es un arreglo, una lista vacía', () => {
     expect(filasDeLeadDesde([{ ...FILA, en_cartera: null }], [])[0]?.enCartera).toBe(false)
     expect(filasDeLeadDesde(null, [])).toEqual([])
+  })
+})
+
+describe('lo último y lo próximo de cada fila', () => {
+  it('pide lo último y lo próximo a la vista', () => {
+    const columnas = columnasDeLaConsulta([]).split(',')
+    expect(columnas).toEqual(
+      expect.arrayContaining([
+        'ultimo_seguimiento_en',
+        'ultimo_seguimiento_visible',
+        'proximo_recordatorio',
+      ]),
+    )
+  })
+
+  it('trae el último seguimiento (o sólo su fecha) y el próximo recordatorio', () => {
+    const [con, sinDetalle] = filasDeLeadDesde(
+      [
+        {
+          ...FILA,
+          ultimo_seguimiento_en: '2026-11-10T12:00:00Z',
+          ultimo_seguimiento_visible: { tipo_id: FILA.tipo_lead_id, titulo: 'Llamé' },
+          proximo_recordatorio: {
+            id: FILA.id,
+            titulo: 'Volver a llamar',
+            recordar_en: '2026-11-16T12:00:00Z',
+          },
+        },
+        // El último es privado de otra persona: llega la fecha y nada más.
+        {
+          ...FILA,
+          ultimo_seguimiento_en: '2026-11-12T12:00:00Z',
+          ultimo_seguimiento_visible: null,
+        },
+      ],
+      [],
+    )
+    expect(con?.ultimoSeguimientoEn).toBe('2026-11-10T12:00:00Z')
+    expect(con?.ultimoSeguimiento).toEqual({
+      tipoId: FILA.tipo_lead_id,
+      titulo: 'Llamé',
+    })
+    expect(con?.proximoRecordatorio).toEqual({
+      id: FILA.id,
+      titulo: 'Volver a llamar',
+      recordarEn: '2026-11-16T12:00:00Z',
+    })
+    expect(sinDetalle?.ultimoSeguimientoEn).toBe('2026-11-12T12:00:00Z')
+    expect(sinDetalle?.ultimoSeguimiento).toBeNull()
+    expect(sinDetalle?.proximoRecordatorio).toBeNull()
   })
 })
 

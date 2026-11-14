@@ -120,6 +120,14 @@ describe('iconosEnUso', () => {
     expect(iconosEnUso([], origenes, tiposDeIcono)).toEqual([])
   })
 
+  it('suma el icono del tipo del último seguimiento de cada fila', () => {
+    const filas = [
+      { origenId: null, tipoLeadId: null, ultimoSeguimiento: { tipoId: id(21) } },
+      { origenId: null, tipoLeadId: null, ultimoSeguimiento: null },
+    ]
+    expect(iconosEnUso(filas, [], [], [{ id: id(21), icono: 'telefono' }])).toEqual(['telefono'])
+  })
+
   it('una clave que el catálogo no conoce también se lleva (la lista monta el símbolo neutro)', () => {
     expect(
       iconosEnUso(

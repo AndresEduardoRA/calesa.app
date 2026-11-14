@@ -60,7 +60,8 @@ const nodos = (page: Page) => page.evaluate(() => document.querySelectorAll('*')
 // (eran ~5.000: la tabla y las tarjetas estaban las dos en el DOM). `?por=100` entra a la corrida normal.
 const PRESUPUESTO_DE_NODOS = {
   listado: { escritorio: 2_200, movil: 2_200 },
-  listadoDe100: { escritorio: 3_500, movil: 3_500 },
+  // El último seguimiento y el recordatorio de cada fila (T07) suman ~9 nodos por fila en la tabla: 3.532 medidos, tope +5 %.
+  listadoDe100: { escritorio: 3_600, movil: 3_500 },
   // 9i: el «⋯» de cada tarjeta sumaba 6 nodos (3.000 en 500 tarjetas): 8.212 → 11.212 y el presupuesto, 11.800. 9j: el «⋯» es un
   // `<svg>` con un `<use>` (3 nodos con el botón): 9.718 medidos, más un 5 %.
   kanban: { escritorio: 10_250, movil: 6_000 },

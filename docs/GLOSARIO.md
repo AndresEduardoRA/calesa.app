@@ -235,6 +235,10 @@ ese nombre: nunca un sinónimo ni su traducción al inglés.
 - **Papelera de leads** — `leads_papelera_*`, `/leads/papelera`: borrado reversible por lote, todo o nada; revoca el portal.
 - **Seguimiento** — `seguimientos`, `tipos_seguimiento` / `seguimiento_*()`, `lead_seguimientos()`: contacto con el lead; nace privado; sólo
   su autor lo edita.
+- **Último contacto (de una fila)** — `ultimo_seguimiento_en`, `ultimo_seguimiento_visible`, `proximo_recordatorio` de `leads_vista` y
+  `leads_cartera_vista` / `entities/ultimo-contacto.ts`, `<UltimoSeguimientoDeFila>`, `<RecordatorioDeFila>`: lo que el listado dice del último
+  seguimiento (su tipo y su título si quien mira lo ve; si es privado de otra persona, sólo «hace X») y del próximo recordatorio pendiente de quien
+  mira, en palabras relativas («hace 3 días», «en 2 días», «vencido hace 1 día»). No: «actividad», ni «reciente» (ése ordena «míos»).
 - **Recordatorio** — `recordatorios` / `recordatorio_*()`, `recordatorios_vista`: aviso personal con fecha y hora; sólo su dueño lo ve y toca.
 - **Próximo contacto** — `recordatorio_crear()` / `p_recordatorio` de `seguimiento_crear()` y `crear_lead()`: el que nace con un seguimiento.
 - **Visible para el cliente** — `seguimientos.visibilidad = 'publico'` / `ETIQUETA_DE_VISIBLE`: lo ven quienes ven el lead y el portal;

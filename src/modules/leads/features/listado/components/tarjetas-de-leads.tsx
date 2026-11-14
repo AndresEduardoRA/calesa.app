@@ -10,6 +10,11 @@ import { NombreDeFila } from './nombre-de-fila'
 import { telefonoDeLista } from './telefono-de-lista'
 import { OrigenDeLaTarjeta } from './origen-del-lead'
 import { accionesDelMenu, type DatosDeLaLista, origenDelCatalogo, type ParaMarcar } from './tipos'
+import {
+  UltimoContactoDeTarjeta,
+  useContextoDeUltimoContacto,
+  type DatosDeUltimoContacto,
+} from './ultimo-contacto'
 
 type Props = DatosDeLaLista & {
   leads: readonly FilaDeLead[]
@@ -17,6 +22,34 @@ type Props = DatosDeLaLista & {
   // El lead abierto en el drawer, para marcarlo.
   abierto: string | null
   marcar: ParaMarcar
+  ultimoContacto: DatosDeUltimoContacto
+}
+
+// Los datos «en la tabla» que este lead tiene (hasta dos), en dos columnas.
+function DatosDeLaTarjeta({
+  datos,
+  lead,
+}: {
+  datos: ReturnType<typeof camposDeLaTarjeta>
+  lead: FilaDeLead
+}) {
+  if (datos.length === 0) {
+    return null
+  }
+  return (
+    <dl className="grid grid-cols-2 gap-x-3 gap-y-1 border-t border-(--color-line) pt-2">
+      {datos.map((campo) => (
+        <div key={campo.clave} className="grid min-w-0">
+          <dt className="truncate text-(length:--text-xs) text-(--color-ink-soft)">
+            {campo.etiqueta}
+          </dt>
+          <dd className="truncate text-(length:--text-sm) text-(--color-ink)">
+            <CeldaDeCampo campo={campo} fila={lead} />
+          </dd>
+        </div>
+      ))}
+    </dl>
+  )
 }
 
 // Los leads en el celular, con el patrón de lista (`@/shared/ui/lista`): una tarjeta por lead con lo mismo que la fila de la tabla y
@@ -36,7 +69,9 @@ export function TarjetasDeLeads(props: Props) {
     abierto,
     marcar,
     numeroBuscado,
+    ultimoContacto,
   } = props
+  const contextoDe = useContextoDeUltimoContacto(ultimoContacto, marcar)
   return (
     <ul className="grid grid-cols-[minmax(0,1fr)] gap-2">
       {leads.map((lead) => {
@@ -83,20 +118,8 @@ export function TarjetasDeLeads(props: Props) {
               {telefonoDeLista(lead.telefono, codigoDePais)}
             </span>
             <OrigenDeLaTarjeta origen={origen} />
-            {datos.length > 0 ? (
-              <dl className="grid grid-cols-2 gap-x-3 gap-y-1 border-t border-(--color-line) pt-2">
-                {datos.map((campo) => (
-                  <div key={campo.clave} className="grid min-w-0">
-                    <dt className="truncate text-(length:--text-xs) text-(--color-ink-soft)">
-                      {campo.etiqueta}
-                    </dt>
-                    <dd className="truncate text-(length:--text-sm) text-(--color-ink)">
-                      <CeldaDeCampo campo={campo} fila={lead} />
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            ) : null}
+            <UltimoContactoDeTarjeta lead={lead} contexto={contextoDe(lead)} />
+            <DatosDeLaTarjeta datos={datos} lead={lead} />
           </TarjetaDeLista>
         )
       })}

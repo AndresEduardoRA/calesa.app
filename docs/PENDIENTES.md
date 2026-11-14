@@ -34,6 +34,7 @@ Al cerrar una, se borra su línea (el PR lo cuenta). Lo nuevo que aparezca al tr
 
 - **[9-14a]** Marcar final y editar un lead exigen tenerlo en cartera (`puede_actuar_lead` › `en_cartera`): una dueña con «todos» no cierra la venta de un lead de su asesora sin que se lo compartan — recomendado dejarlo.
 - **[8-14a]** Un rol con `web.cola.participar` sin `leads.crear` ni `web.cola.gestionar` recibe turnos (campana) pero no los ve en Inicio — recomendado dejarlo (quien atiende la web crea el lead).
+- **[—]** Ordenar el listado de leads por último seguimiento o por próximo recordatorio, y mostrar ambos en la tarjeta del kanban (que lee oportunidades, no leads) — el listado ordena sólo por `creado_en` en todos sus caminos; un orden propio pide cursor, ruta e índice (el recordatorio es personal) y su medición.
 - **[8-05a]** Vincular a un lead una solicitud web ya contactada — `web_confirmar_contacto` sólo escribe `lead_id` en `asignada` o `vencida`; pide una RPC nueva.
 
 ### Logística
