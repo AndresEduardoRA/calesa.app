@@ -65,7 +65,6 @@ Al cerrar una, se borra su línea (el PR lo cuenta). Lo nuevo que aparezca al tr
 - **[—]** `lead_campo_impacto` lee los valores públicos de todos los leads aunque quien llama tenga `leads.ver` con alcance «propios»: acotando el rango se hallan los extremos de leads que no ve — contar con `_lead_visible_para` sin perder los de la papelera.
 - **[—]** Posible `40P01` entre el job de purga (lotes por `creado_en`, en una transacción) y restaurar cotizaciones (por id): sin medir ni orden común.
 - **[—]** Anular o eliminar el último pago de un proyecto no toma sus ítems mientras uno entra a una fase que pide `proyecto.pago_cliente` (`cambiar_fase` toma el ítem `for no key update`) — carrera sin cubrir en `supabase/tests/areas/dinero/`.
-- **[—]** Faltan carreras mixtas de la fórmula en `scripts/carreras/`: el ⚙ contra publicar el borrador, y revertir contra el ⚙.
 - **[—]** Las carreras de marcar y crear una final (`supabase/tests/areas/final/correr-carreras.mjs`) no están en `pnpm db:carreras`: sólo corren a mano — sumarlas a `scripts/carreras.mjs`.
 - **[—]** `cotizacion_evaluar` con la hoja abierta reconstruye las tarifas en cada recálculo: una que confirma después de abrir la hoja con `cambiado_en` anterior cambia el cálculo sin aviso hasta guardar (crear sí compara la huella) — compararla también al recalcular, midiendo antes `medir-cotizacion-hoja.sql`.
 - **[—]** Un pago confirmado con `confirmado_en` nulo (filas anteriores al sellado) no entra al «Margen del mes» ni a «sin venta» — un `check` con relleno, mirando antes los datos de producción.
