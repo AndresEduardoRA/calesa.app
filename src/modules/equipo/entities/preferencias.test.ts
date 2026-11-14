@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { esquemaPreferencia, preferenciasDesde } from './preferencias'
+import { VISTOS_POR_DEFECTO } from './vistos'
 
 describe('preferenciasDesde', () => {
   it('lee lo que la persona eligió', () => {
@@ -10,11 +11,18 @@ describe('preferenciasDesde', () => {
       tema: 'dark',
       porPagina: 25,
       widgetsDelTablero: null,
+      vistos: VISTOS_POR_DEFECTO,
     })
   })
 
   it('sin elección, todo queda en automático', () => {
-    const sinElegir = { densidad: null, tema: null, porPagina: null, widgetsDelTablero: null }
+    const sinElegir = {
+      densidad: null,
+      tema: null,
+      porPagina: null,
+      widgetsDelTablero: null,
+      vistos: VISTOS_POR_DEFECTO,
+    }
     expect(preferenciasDesde({})).toEqual(sinElegir)
     expect(preferenciasDesde(null)).toEqual(sinElegir)
   })
@@ -25,6 +33,7 @@ describe('preferenciasDesde', () => {
       tema: 'dark',
       porPagina: null,
       widgetsDelTablero: null,
+      vistos: VISTOS_POR_DEFECTO,
     })
   })
 

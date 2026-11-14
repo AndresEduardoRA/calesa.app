@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { nombreVisible, sesionDesde, sesionSinPerfil, sinRol } from './sesion'
+import { VISTOS_POR_DEFECTO } from './vistos'
 
 const ID = '00000000-0000-0000-0000-000000000001'
 const ROL = '00000000-0000-0000-0000-0000000000aa'
@@ -43,7 +44,13 @@ describe('sesionDesde', () => {
         rol: null,
         roles: [{ id: ROL, nombre: 'Dueño', color: '#465fff' }],
       },
-      preferencias: { densidad: 'comoda', tema: null, porPagina: null, widgetsDelTablero: null },
+      preferencias: {
+        densidad: 'comoda',
+        tema: null,
+        porPagina: null,
+        widgetsDelTablero: null,
+        vistos: VISTOS_POR_DEFECTO,
+      },
     })
   })
 
