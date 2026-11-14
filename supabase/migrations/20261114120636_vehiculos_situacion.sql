@@ -7,7 +7,8 @@
 -- Nada se mueve solo: el resultado («La ganamos» / «No la ganamos») lo escriben RPC aparte, con constancia en `actividad`.
 -- La calcula el trigger `trg_0_situacion` (antes de `trg_actualizado_en`, que ya ve el valor final); cambiar la situación o el resultado sin tocar
 -- la subasta no mueve la versión ni se audita. El tiempo lo cubre el job `situacion-al-cerrar` (cada 10 min); cambiar `es_subasta` lo cubre
--- `trg_fase_situacion`. Si la subasta vuelve a estar viva (refrescar trae una nueva), el resultado anterior se limpia.
+-- `trg_fase_situacion`. Si la subasta vuelve a estar viva (refrescar trae una nueva) y la unidad sigue en el tramo, el resultado anterior se limpia.
+-- Una no ganada que alguien movió fuera del tramo vuelve a ser su fase (y a contar); el resultado queda guardado.
 -- Pruebas: supabase/tests/areas/situacion/regla.sql, vehiculos-inventario-forma.sql, vehiculos-inventario-filtros.sql; medición: medir-jobs.sql y
 -- medir-vehiculos-inventario.sql.
 
@@ -28,27 +29,39 @@ comment on column public.vehiculos.subasta_resuelta_en is 'Cuándo se resolvió 
 
 create index vehiculos_subasta_resuelta_por_idx on public.vehiculos (subasta_resuelta_por) where subasta_resuelta_por is not null;
 
--- 2. La regla, con escalares (una fila como único argumento la expondría PostgREST como columna calculada).
+-- 2. La regla, con escalares (una fila como único argumento la expondría PostgREST como columna calculada). El tramo de subasta: estar en una
+-- fase con `es_subasta`, o no tener fase en un origen cuyo flujo tiene alguna (aunque esté jubilada).
+create or replace function public._vehiculo_en_tramo(p_origen uuid, p_fase uuid) returns boolean
+    language plpgsql stable security definer
+    set search_path = ''
+    as $$
+begin
+  if p_fase is not null then
+    return coalesce((select f.es_subasta from public.fases f where f.id = p_fase), false);
+  end if;
+  return exists (select 1 from public.flujos fl join public.fases f on f.flujo_id = fl.id
+                  where fl.ambito = 'vehiculos' and fl.origen_id = p_origen and f.es_subasta);
+end $$;
+
+revoke all on function public._vehiculo_en_tramo(uuid, uuid) from public, anon, authenticated;
+grant execute on function public._vehiculo_en_tramo(uuid, uuid) to service_role;
+
+comment on function public._vehiculo_en_tramo(uuid, uuid) is 'El tramo de subasta de un vehículo: en una fase con es_subasta, o sin fase en un origen cuyo flujo tiene alguna (activa o jubilada).';
+
 create or replace function public._vehiculo_situacion(p_origen uuid, p_fase uuid, p_estado public.estado_subasta, p_cierre timestamp with time zone,
   p_resultado text) returns text
     language plpgsql stable security definer
     set search_path = ''
     as $$
 declare
-  v_tramo boolean;
   v_viva boolean := coalesce(p_estado in ('abierta', 'en_vivo'), false);
 begin
+  -- Fuera del tramo manda la fase, también para una no ganada que alguien movió a una fase real: vuelve a contar (el resultado queda guardado).
+  if not public._vehiculo_en_tramo(p_origen, p_fase) then
+    return 'fase';
+  end if;
   if p_resultado = 'no_ganada' then
     return 'no_ganada';
-  end if;
-  if p_fase is not null then
-    v_tramo := coalesce((select f.es_subasta from public.fases f where f.id = p_fase), false);
-  else
-    v_tramo := exists (select 1 from public.flujos fl join public.fases f on f.flujo_id = fl.id
-                        where fl.ambito = 'vehiculos' and fl.origen_id = p_origen and f.es_subasta);
-  end if;
-  if not v_tramo then
-    return 'fase';
   end if;
   if v_viva and (p_cierre is null or p_cierre > now()) then
     return 'en_subasta';
@@ -65,7 +78,7 @@ end $$;
 revoke all on function public._vehiculo_situacion(uuid, uuid, public.estado_subasta, timestamp with time zone, text) from public, anon, authenticated;
 grant execute on function public._vehiculo_situacion(uuid, uuid, public.estado_subasta, timestamp with time zone, text) to service_role;
 
-comment on function public._vehiculo_situacion(uuid, uuid, public.estado_subasta, timestamp with time zone, text) is 'La situación real de un vehículo (en orden): no_ganada si se marcó así; fase fuera del tramo de subasta (fase con es_subasta, o sin fase en un origen cuyo flujo tiene alguna); en_subasta con la subasta viva y el cierre en el futuro o sin cierre; fase si se ganó; sin_resolver con la subasta cerrada (terminada, vendida o viva con el cierre pasado); fase en lo demás. p_cierre es coalesce(subasta_fin_en, subasta_en).';
+comment on function public._vehiculo_situacion(uuid, uuid, public.estado_subasta, timestamp with time zone, text) is 'La situación real de un vehículo (en orden): fase fuera del tramo de subasta (_vehiculo_en_tramo); no_ganada si se marcó así; en_subasta con la subasta viva y el cierre en el futuro o sin cierre; fase si se ganó; sin_resolver con la subasta cerrada (terminada, vendida o viva con el cierre pasado); fase en lo demás. p_cierre es coalesce(subasta_fin_en, subasta_en).';
 
 -- 3. Las guardas antes que el trigger y el relleno: cambiar la situación o el resultado sin tocar la subasta (apibara_sync_en, estado_subasta,
 -- subasta_en, subasta_fin_en) no mueve la versión ni se audita (como mover). El refresco (siempre cambia apibara_sync_en) y editar las fechas
@@ -95,9 +108,10 @@ create or replace function public.vehiculo_situacion_calcular() returns trigger
 declare
   v_cierre timestamp with time zone := coalesce(new.subasta_fin_en, new.subasta_en);
 begin
-  -- Vuelta a subasta: con la subasta viva otra vez, el resultado anterior ya no vale.
+  -- Vuelta a subasta: con la subasta viva otra vez y la unidad en el tramo, el resultado anterior ya no vale. Fuera del tramo (una ganada que ya
+  -- pasó a otra fase y cuyo lote se relistó) el resultado se conserva.
   if new.subasta_resultado is not null and coalesce(new.estado_subasta in ('abierta', 'en_vivo'), false)
-     and (v_cierre is null or v_cierre > now()) then
+     and (v_cierre is null or v_cierre > now()) and public._vehiculo_en_tramo(new.origen_id, new.fase_id) then
     new.subasta_resultado := null;
     new.subasta_resuelta_por := null;
     new.subasta_resuelta_en := null;

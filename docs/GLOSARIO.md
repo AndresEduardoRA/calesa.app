@@ -595,8 +595,8 @@ ese nombre: nunca un sinónimo ni su traducción al inglés.
   No es la situación: «vendida» no dice que la ganamos.
 - **Situación (de un vehículo)** — `vehiculos.situacion` / `Situacion`, `<BadgeDeSituacion>`: la que la app muestra en todos lados, calculada
   por la base (`_vehiculo_situacion()`): «En subasta» (`en_subasta`: subasta viva en el tramo de subasta), «Sin resolver» (`sin_resolver`:
-  cerrada en el tramo y sin resultado), «No ganada» (`no_ganada`: se marcó así; no cuenta) o su fase (`fase`). El tramo es estar en una fase
-  de subasta o no tener fase en un origen que tiene una.
+  cerrada en el tramo y sin resultado), «No ganada» (`no_ganada`: se marcó así y sigue en el tramo; no cuenta) o su fase (`fase`). El tramo
+  (`_vehiculo_en_tramo()`) es estar en una fase de subasta o no tener fase en un origen que tiene una.
 - **Fase de subasta** — `fases.es_subasta` / «Es la subasta» (Datos de la fase): la fase que representa la subasta en el flujo de un origen
   de subasta; puede haber varias. Sin ninguna, «Revisar» avisa `sin_fase_de_subasta` y nada figura «Sin resolver».
 - **Resultado de la subasta** — `vehiculos.subasta_resultado` (`ganada` | `no_ganada`), con `subasta_resuelta_por` y `subasta_resuelta_en`:

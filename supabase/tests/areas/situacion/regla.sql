@@ -9,9 +9,9 @@
 --   S2. Fuera del tramo → fase: una fase que no es la subasta, un origen manual, sin fase en un origen sin fase de subasta; sin fase en un origen con
 --       fase de subasta (aunque esté jubilada) sí es el tramo.
 --   S3. Vuelta a subasta: una no ganada que se refresca con una subasta viva limpia el resultado y queda en_subasta; ese update mueve la versión y
---       audita, como editar el cierre en la ficha. Resolver sin tocar la subasta no mueve la versión ni audita.
+--       audita, como editar el cierre en la ficha; fuera del tramo el resultado se conserva. Resolver sin tocar la subasta no mueve la versión ni audita.
 --   S4. Marcar o desmarcar es_subasta, crear una fase así o borrar la única recalcula (también la papelera) sin mover la versión ni auditar.
---   S5. Mover de fase recalcula.
+--   S5. Mover de fase recalcula; una no ganada movida fuera del tramo vuelve a ser su fase (y conserva el resultado).
 --   S6. El job pasa las en_subasta con el cierre vencido a sin_resolver, respeta su tope de 500 y salta las tomadas; está programado.
 --   S7. `_limpieza_ancla` da sin_resolver y ganada; una no_ganada en la inicial sigue sin ancla.
 --   S8. `_vehiculo_situacion`, el job y los triggers no los ejecuta `authenticated` ni PUBLIC.
@@ -151,6 +151,12 @@ begin
                  and despues ->> 'situacion' = 'sin_resolver') then
     raise exception 'S3: editar el cierre no se auditó';
   end if;
+  -- Fuera del tramo, el resultado se conserva aunque la subasta vuelva a estar viva (una ganada que ya pasó a «Comprado» y se relistó).
+  v := pg_temp.sit_vehiculo(o, pg_temp.sit_fase(o, 'Comprado'), 'terminada', now() - interval '3 days', 'ganada');
+  update public.vehiculos set estado_subasta = 'abierta', subasta_fin_en = now() + interval '5 days', apibara_sync_en = now() where id = v;
+  if (select subasta_resultado from public.vehiculos where id = v) is distinct from 'ganada' then
+    raise exception 'S3: fuera del tramo, la vuelta a subasta borró el resultado';
+  end if;
   -- Un update que no toca la subasta tampoco toca un resultado vigente de una subasta cerrada.
   v := pg_temp.sit_vehiculo(o, pg_temp.sit_fase(o, 'Subasta'), 'abierta', now() - interval '1 day', 'no_ganada');
   update public.vehiculos set fase_id = pg_temp.sit_fase(o, 'Subasta') where id = v;
@@ -209,6 +215,14 @@ begin
   perform pg_temp.sit_es('S5 movida', v, 'fase');
   update public.vehiculos set fase_id = pg_temp.sit_fase(o, 'Subasta') where id = v;
   perform pg_temp.sit_es('S5 de vuelta', v, 'sin_resolver');
+  -- Una no ganada movida a una fase real vuelve a contar (su fase); el resultado queda guardado y de vuelta en la subasta es no ganada otra vez.
+  v := pg_temp.sit_vehiculo(o, pg_temp.sit_fase(o, 'Subasta'), 'terminada', now() - interval '3 days', 'no_ganada');
+  perform pg_temp.sit_es('S5 no ganada', v, 'no_ganada');
+  update public.vehiculos set fase_id = pg_temp.sit_fase(o, 'Comprado') where id = v;
+  perform pg_temp.sit_es('S5 no ganada movida', v, 'fase');
+  if (select subasta_resultado from public.vehiculos where id = v) is distinct from 'no_ganada' then raise exception 'S5: mover borró el resultado'; end if;
+  update public.vehiculos set fase_id = pg_temp.sit_fase(o, 'Subasta') where id = v;
+  perform pg_temp.sit_es('S5 no ganada de vuelta', v, 'no_ganada');
 end $$;
 rollback;
 
@@ -269,7 +283,7 @@ rollback;
 do $$
 declare f text;
 begin
-  foreach f in array array['public._vehiculo_situacion(uuid, uuid, public.estado_subasta, timestamp with time zone, text)',
+  foreach f in array array['public._vehiculo_situacion(uuid, uuid, public.estado_subasta, timestamp with time zone, text)', 'public._vehiculo_en_tramo(uuid, uuid)',
     'public.vehiculos_situacion_al_cerrar()', 'public.vehiculo_situacion_calcular()', 'public.fase_situacion_recalcular()'] loop
     if has_function_privilege('authenticated', f, 'execute') or has_function_privilege('anon', f, 'execute') then
       raise exception 'S8: authenticated o anon ejecuta %', f;

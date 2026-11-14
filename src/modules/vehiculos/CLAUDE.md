@@ -73,7 +73,8 @@ SQL; la usa `buscarVehiculos()` para «propios», por `fuenteDelInventario()`). 
   (`_vehiculo_situacion()` desde `trg_0_situacion`, `trg_fase_situacion` al cambiar `fases.es_subasta` y el job `situacion-al-cerrar` cuando
   vence el cierre): nunca una copia en TypeScript. Se ve con `<BadgeDeSituacion>` (con `fase`, delega en `<BadgeDeFase>`). El inventario
   siempre pide `CONDICION_POR_DEFECTO` (sin las no ganadas). El resultado (`subasta_resultado`, `subasta_resuelta_por|en`) sólo por RPC y
-  nunca se infiere de apibara; si la subasta vuelve a estar viva, el trigger lo limpia. Cambiar la situación o el resultado sin tocar la
+  nunca se infiere de apibara; si la subasta vuelve a estar viva y la unidad sigue en el tramo, el trigger lo limpia. Fuera del tramo
+  (`_vehiculo_en_tramo()`) la situación es la fase, también para una no ganada que alguien movió. Cambiar la situación o el resultado sin tocar la
   subasta (`apibara_sync_en`, `estado_subasta`, `subasta_en`, `subasta_fin_en`) no mueve la versión ni se audita.
 - **`cotizado_en`** la escribe sólo el trigger `trg_vehiculo_cotizado` de `cotizaciones` (nunca retrocede); si sólo cambia ella, ni
   `trg_actualizado_en` mueve la versión ni `trg_auditar_cambio` escribe en `actividad`. **`cierre_subasta_en`** es generada

@@ -115,6 +115,9 @@ las trampas, en `docs/LECCIONES.md`.
   resultado (lo audita el refresco o la edición de fechas, que sí mueven la versión).
 - **«No ganada» deja de contar** en la cadena, la bandeja de Inicio, las alertas y el inventario por defecto. El tablero no se toca: sus
   números salen de pagos confirmados y esconder dinero confirmado sería peor.
+- **Fuera del tramo de subasta manda la fase, también sobre el resultado.** Una no ganada que alguien mueve a una fase real vuelve a
+  contar (su situación es la fase; el resultado queda guardado), y la vuelta a subasta sólo limpia el resultado de una unidad que sigue en el
+  tramo: una ganada que ya pasó a otra fase y cuyo lote se relista conserva «ganada». Así nada queda oculto por un dato que ya no aplica.
 - **«No ganada» en femenino**: concuerda con la subasta, no con el sustantivo del origen.
 
 - **Se escriben sólo por RPC.** `vehiculo_crear(p_id…)` idempotente con id del navegador y `vehiculo_guardar` con versión; el alta entra a la fase inicial sólo si no hay nada que decidir (si no, «Sin fase»).
