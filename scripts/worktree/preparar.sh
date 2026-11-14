@@ -22,7 +22,8 @@ fi
 PRINCIPAL=$(git worktree list --porcelain | sed -n '1s/^worktree //p')
 
 CARRIL="${1:-}"
-letra_de() { sed -n 's/^SUPABASE_PROJECT_ID=.*-\([a-z]\)$/\1/p' "$1/.env.carril" 2>/dev/null | head -n 1; }
+# Sin .env.carril no hay letra (y no es un error: con pipefail, el sed de un archivo que falta haría salir al guion en silencio).
+letra_de() { [ -f "$1/.env.carril" ] || return 0; sed -n 's/^SUPABASE_PROJECT_ID=.*-\([a-z]\)$/\1/p' "$1/.env.carril" | head -n 1; }
 [ -n "$CARRIL" ] || CARRIL=$(letra_de "$RAIZ")
 if [ -z "$CARRIL" ]; then
   usadas=$(git worktree list --porcelain | sed -n 's/^worktree //p' | while IFS= read -r dir; do letra_de "$dir"; done)
