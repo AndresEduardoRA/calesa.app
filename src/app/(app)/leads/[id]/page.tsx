@@ -12,6 +12,7 @@ import {
   duenoDe,
   leerFichaDeLead,
   puedeCambiarTelefonoDeLead,
+  puedeEditarTelefonosExtra,
   puedeEditarLead,
   puedeEnviarLead,
   puedeGestionarPortal,
@@ -153,6 +154,8 @@ export default async function PaginaLead({ params, searchParams }: PageProps<'/l
         usuarioId={sesion.usuarioId}
         puedeEditar={puedeEditarLead(sesion.permisos, datos.ficha.enCartera)}
         puedeCambiarTelefono={puedeCambiarTelefonoDeLead(sesion.permisos, datos.ficha.enCartera)}
+        puedeEditarExtras={puedeEditarTelefonosExtra(sesion.permisos, datos.ficha.enCartera)}
+        puedeConfigurar={puede(sesion.permisos, 'leads.configurar')}
         seccion={seccion}
         ve={ve}
         paraCotizar={paraCotizar}

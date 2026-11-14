@@ -27,6 +27,7 @@ const FICHA: LeadDeFicha = {
   telefonoCc: '+591',
   telefono: '59170011002',
   enCartera: true,
+  telefonosMaximo: 6,
   tipoLeadId: TIPO_PROSPECTO,
   origenId: WEB,
   atributos: {},

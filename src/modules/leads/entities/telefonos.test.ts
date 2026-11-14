@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest'
 import type { Permisos } from '@/shared/lib/permisos'
 import {
   hayCambiosEnExtra,
-  MAXIMO_DE_TELEFONOS_EXTRA,
+  MAXIMO_DE_FABRICA,
   MOTIVO_DE_ETIQUETA_LARGA,
   MOTIVO_DE_TELEFONO_REPETIDO,
-  MOTIVO_DE_TOPE_DE_EXTRAS,
+  esChoqueDeExtra,
+  motivoDeTope,
+  quitadoDesde,
   cambioDesde,
   etiquetaDeExtra,
   extrasDesde,
@@ -34,6 +36,7 @@ const entrada = (
   etiqueta: '',
   principal: PRINCIPAL,
   extras: [],
+  maximo: MAXIMO_DE_FABRICA,
   ...parcial,
 })
 
@@ -109,10 +112,10 @@ describe('validarExtra', () => {
     expect(res.ok ? null : res.porCampo.telefono).toBe(MOTIVO_DE_TELEFONO_REPETIDO)
   })
 
-  it('el número 11 no entra, el 10 sí', () => {
-    expect(validarExtra(entrada({ extras: extras(MAXIMO_DE_TELEFONOS_EXTRA - 1) })).ok).toBe(true)
-    const res = validarExtra(entrada({ extras: extras(MAXIMO_DE_TELEFONOS_EXTRA) }))
-    expect(res.ok ? null : res.porCampo.telefono).toBe(MOTIVO_DE_TOPE_DE_EXTRAS)
+  it('el que pasa del máximo no entra, el último sí', () => {
+    expect(validarExtra(entrada({ extras: extras(MAXIMO_DE_FABRICA - 1) })).ok).toBe(true)
+    const res = validarExtra(entrada({ extras: extras(MAXIMO_DE_FABRICA) }))
+    expect(res.ok ? null : res.porCampo.telefono).toBe(motivoDeTope(MAXIMO_DE_FABRICA))
   })
 
   it('la etiqueta admite 40 caracteres y no 41', () => {
@@ -121,8 +124,8 @@ describe('validarExtra', () => {
     expect(res.ok ? null : res.porCampo.etiqueta).toBe(MOTIVO_DE_ETIQUETA_LARGA)
   })
 
-  it('rotular no vuelve a mirar el número, aunque haya 10', () => {
-    const lista = extras(MAXIMO_DE_TELEFONOS_EXTRA)
+  it('rotular no vuelve a mirar el número, aunque ya esté el máximo', () => {
+    const lista = extras(MAXIMO_DE_FABRICA)
     const [primero] = lista
     expect(
       validarExtra(entrada({ extras: lista, rotulando: primero ?? null, etiqueta: 'Casa' })),
@@ -175,6 +178,33 @@ describe('cambioDesde', () => {
   })
 })
 
+describe('extrasDesde: el choque con otro lead', () => {
+  it('con la regla encendida, agregar un número ajeno llega como valor con su verificación', () => {
+    const cambio = extrasDesde({
+      resultado: 'de_otro',
+      verificacion: { estado: 'de_otro', como: 'extra', dueno: 'Diego' },
+    })
+    expect(esChoqueDeExtra(cambio)).toBe(true)
+    expect(cambio).toEqual({
+      resultado: 'de_otro',
+      verificacion: { estado: 'de_otro', dueno: 'Diego', como: 'extra' },
+    })
+    expect(
+      extrasDesde({ resultado: 'limbo', verificacion: { estado: 'limbo', como: 'extra' } }),
+    ).toEqual({ resultado: 'limbo', verificacion: { estado: 'limbo', como: 'extra' } })
+  })
+
+  it('una lista no es un choque', () => {
+    const base = { actualizado_en: 'x', telefono_cc: null, telefono: PRINCIPAL, telefonos: [] }
+    expect(esChoqueDeExtra(extrasDesde({ resultado: 'agregado', ...base }))).toBe(false)
+  })
+
+  it('una forma que no calza es un error de programación', () => {
+    expect(() => extrasDesde({ resultado: 'otro' })).toThrow()
+    expect(() => extrasDesde({ resultado: 'existe' })).toThrow()
+  })
+})
+
 describe('extrasDesde', () => {
   const base = {
     actualizado_en: '2026-10-14T12:00:00.000Z',
@@ -195,7 +225,7 @@ describe('extrasDesde', () => {
   })
 
   it('lo quitado trae lo que hace falta para restituirlo', () => {
-    const leido = extrasDesde({
+    const leido = quitadoDesde({
       resultado: 'quitado',
       ...base,
       quitado: {
@@ -214,7 +244,7 @@ describe('extrasDesde', () => {
   })
 
   it('quitar lo que no está dice «sin cambios» y no trae nada', () => {
-    expect(extrasDesde({ resultado: 'sin_cambios', ...base, quitado: null })).toMatchObject({
+    expect(quitadoDesde({ resultado: 'sin_cambios', ...base, quitado: null })).toMatchObject({
       resultado: 'sin_cambios',
       quitado: null,
     })

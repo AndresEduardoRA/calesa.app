@@ -21,6 +21,10 @@ type Props = {
   tipo: TipoDeLeadEnCatalogo | null
   // Quien mira puede cambiar los teléfonos de este lead (cartera y `leads.editar`).
   puedeCambiarTelefono: boolean
+  // Cartera y `leads.telefonos_extra.editar`: agregar, rotular y quitar los extras.
+  puedeEditarExtras: boolean
+  // `leads.configurar`: el enlace «Cambiar el máximo» cuando no se pueden agregar más.
+  puedeConfigurar: boolean
   // Quién lo tiene y qué puede hacer quien mira con eso.
   cartera: readonly PersonaDeCartera[]
   accionesDeCartera: AccionesDeCartera
@@ -37,6 +41,8 @@ export function SeccionDatos({
   origen,
   tipo,
   puedeCambiarTelefono,
+  puedeEditarExtras,
+  puedeConfigurar,
   cartera,
   accionesDeCartera,
   vePortal,
@@ -60,7 +66,12 @@ export function SeccionDatos({
           <Dato etiqueta="Creado">{formatearFechaHora(ficha.creadoEn, { zona: zonaHoraria })}</Dato>
         </RejillaDeDatos>
       </Bloque>
-      <BloqueDeTelefonos ficha={ficha} puedeCambiar={puedeCambiarTelefono} />
+      <BloqueDeTelefonos
+        ficha={ficha}
+        puedeCambiar={puedeCambiarTelefono}
+        puedeEditarExtras={puedeEditarExtras}
+        puedeConfigurar={puedeConfigurar}
+      />
       <BloqueDeCartera
         lead={{
           id: ficha.id,

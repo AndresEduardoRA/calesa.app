@@ -5,12 +5,19 @@
 // Supabase.
 import { z } from 'zod'
 import { alcanceDe, type Permisos } from '@/shared/lib/permisos'
-import type { TelefonoExtra } from './ficha'
+import type { LeadDeFicha, TelefonoExtra } from './ficha'
 import { normalizarTelefono } from './telefono'
 import { verificacionDesde, type Verificacion } from './verificacion'
 
-// Hasta 10 extras por lead; la base lo aplica al agregar, no al reemplazar el principal.
-export const MAXIMO_DE_TELEFONOS_EXTRA = 10
+// El máximo de extras por lead es de la empresa (`ajustes_leads.telefonos_extra_maximo`): 6 de fábrica, de 0 a 20. La base lo aplica al
+// agregar, no al reemplazar el principal; los leads que ya tienen más los conservan.
+export const MAXIMO_DE_FABRICA = 6
+export const LIMITES_DEL_MAXIMO = { minimo: 0, maximo: 20 } as const
+
+// «Agregar teléfono» en el panel y en el resumen abre su modal con esta clave de la URL (`?extra=nuevo`): `?panel=` ya lo ocupa la
+// edición del lead.
+export const CLAVE_DE_EXTRA_EN_PANEL = 'extra'
+export const VALOR_DE_EXTRA_NUEVO = 'nuevo'
 
 export const LARGO_MAXIMO_DE_ETIQUETA = 40
 
@@ -27,10 +34,15 @@ export const PANEL_AGREGAR_TELEFONO = 'agregar-telefono'
 // Las claves del formulario son las que pone la base en el `hint` de un error.
 export const CLAVE_DE_TELEFONO = { telefono: 'telefono', etiqueta: 'etiqueta' } as const
 
-// El de «Cambiar» y los extras: sólo quien tiene el lead en su cartera y puede editarlo (la misma
+// El de «Cambiar» el principal: sólo quien tiene el lead en su cartera y puede editarlo (la misma
 // regla que `puedeEditarLead()`: contenido, clase 1). La base lo vuelve a decidir.
 export function puedeCambiarTelefonoDeLead(permisos: Permisos, enCartera: boolean): boolean {
   return enCartera && alcanceDe(permisos, 'leads.editar') !== null
+}
+
+// Agregar, rotular y quitar extras: la cartera y su propio permiso (`leads.telefonos_extra.editar`, clase 1), sin pedir `leads.editar`.
+export function puedeEditarTelefonosExtra(permisos: Permisos, enCartera: boolean): boolean {
+  return enCartera && alcanceDe(permisos, 'leads.telefonos_extra.editar') !== null
 }
 
 // Cerrar «Agregar teléfono» con esto escrito lo perdería: se pregunta antes. Sólo espacios no cuenta.
@@ -39,8 +51,42 @@ export function hayCambiosEnExtra({ telefono, etiqueta }: { telefono: string; et
 }
 
 export const MOTIVO_DE_TELEFONO_REPETIDO = 'Ese número ya está en este lead.'
-export const MOTIVO_DE_TOPE_DE_EXTRAS = `Un lead admite hasta ${String(MAXIMO_DE_TELEFONOS_EXTRA)} teléfonos extra. Quita uno para agregar otro.`
+export const MOTIVO_SIN_EXTRAS = 'Esta empresa no admite teléfonos extra.'
 export const MOTIVO_DE_ETIQUETA_LARGA = `La etiqueta admite hasta ${String(LARGO_MAXIMO_DE_ETIQUETA)} caracteres.`
+
+// Espejo exacto del texto de `lead_telefono_guardar()`.
+export function motivoDeTope(maximo: number): string {
+  return maximo === 0
+    ? MOTIVO_SIN_EXTRAS
+    : `Un lead admite hasta ${String(maximo)} teléfonos extra. Quita uno para agregar otro.`
+}
+
+export type TopeDeExtras = {
+  // No entra otro: ya tiene el máximo o más.
+  alcanzado: boolean
+  // Cuántos habría que quitar para poder agregar uno (0 si no se pasa del máximo).
+  sobran: number
+  // Lo que se le dice a quien no puede agregar; vacío si puede.
+  motivo: string
+}
+
+// El tope de un lead con `cantidad` extras. Con más que el máximo (se bajó después) dice cuántos quitar; con exactamente el máximo, el
+// mismo texto que la base.
+export function topeDeExtras(cantidad: number, maximo: number): TopeDeExtras {
+  const sobran = Math.max(0, cantidad - maximo)
+  if (cantidad < maximo) {
+    return { alcanzado: false, sobran: 0, motivo: '' }
+  }
+  if (cantidad === maximo) {
+    return { alcanzado: true, sobran: 0, motivo: motivoDeTope(maximo) }
+  }
+  const quitar = String(sobran + 1)
+  return {
+    alcanzado: true,
+    sobran,
+    motivo: `Este lead tiene ${String(cantidad)} teléfonos extra y el máximo es ${String(maximo)}: quita ${quitar} para agregar otro.`,
+  }
+}
 
 export type EntradaDeExtra = {
   codigoDePais: string | null
@@ -50,6 +96,8 @@ export type EntradaDeExtra = {
   // El principal del lead, completo (la cartera lo recibe así).
   principal: string
   extras: readonly TelefonoExtra[]
+  // El máximo de extras de la empresa.
+  maximo: number
   // El extra que se está rotulando: su número no cambia, así que sólo se mira la etiqueta.
   rotulando?: TelefonoExtra | null
 }
@@ -65,8 +113,8 @@ export function etiquetaDeExtra(escrita: string): string | null {
 }
 
 // ¿Se puede guardar este extra? El número se normaliza como el del alta; no puede repetirse dentro
-// del lead ni ser el principal; con 10 no entra otro. No se verifica contra otros leads: un extra
-// no tiene unicidad.
+// del lead ni ser el principal; con el máximo no entra otro. Contra otros leads lo dice la base
+// (`verificar_telefono_extra()`): según la regla de la empresa un extra puede repetirse o no.
 export function validarExtra(entrada: EntradaDeExtra): ExtraValidado {
   const etiqueta = etiquetaDeExtra(entrada.etiqueta)
   const porCampo: Partial<Record<keyof typeof CLAVE_DE_TELEFONO, string>> = {}
@@ -86,8 +134,8 @@ export function validarExtra(entrada: EntradaDeExtra): ExtraValidado {
     entrada.extras.some((extra) => extra.telefono === normalizado.numero)
   ) {
     porCampo.telefono = MOTIVO_DE_TELEFONO_REPETIDO
-  } else if (entrada.extras.length >= MAXIMO_DE_TELEFONOS_EXTRA) {
-    porCampo.telefono = MOTIVO_DE_TOPE_DE_EXTRAS
+  } else if (entrada.extras.length >= entrada.maximo) {
+    porCampo.telefono = topeDeExtras(entrada.extras.length, entrada.maximo).motivo
   }
   if (Object.keys(porCampo).length > 0 || !normalizado.ok) {
     return { ok: false, porCampo }
@@ -118,10 +166,23 @@ export type QuitadoDeExtra = {
   creadoEn: string
 }
 
-export type CambioDeExtras = TelefonosDelLead & {
+export type ExtrasGuardados = TelefonosDelLead & {
   resultado: 'agregado' | 'rotulado' | 'quitado' | 'sin_cambios'
   // Lo que se quitó, para poder restituirlo con «Deshacer» (mismo id, etiqueta y lugar).
   quitado: QuitadoDeExtra | null
+}
+
+// Con «Los teléfonos extra cuentan como el principal» encendida, agregar un número que ya tiene otro lead no escribe: se dice como en el
+// alta, con el mismo texto.
+export type ChoqueDeExtra = {
+  resultado: 'existe' | 'de_otro' | 'limbo'
+  verificacion: Verificacion
+}
+
+export type CambioDeExtras = ExtrasGuardados | ChoqueDeExtra
+
+export function esChoqueDeExtra(cambio: CambioDeExtras): cambio is ChoqueDeExtra {
+  return 'verificacion' in cambio
 }
 
 const esquemaExtra = z.object({
@@ -174,9 +235,7 @@ const esquemaDeExtras = esquemaDelEstado.extend({
     .optional(),
 })
 
-// El `jsonb` de `lead_telefono_guardar()` y de `lead_telefono_quitar()`.
-export function extrasDesde(crudo: unknown): CambioDeExtras {
-  const lectura = esquemaDeExtras.parse(crudo)
+function guardadoDesde(lectura: z.infer<typeof esquemaDeExtras>): ExtrasGuardados {
   return {
     resultado: lectura.resultado,
     ...estadoDesde(lectura),
@@ -188,5 +247,75 @@ export function extrasDesde(crudo: unknown): CambioDeExtras {
           creadoEn: lectura.quitado.creado_en,
         }
       : null,
+  }
+}
+
+// El `jsonb` de `lead_telefono_quitar()`: siempre la lista.
+export function quitadoDesde(crudo: unknown): ExtrasGuardados {
+  return guardadoDesde(esquemaDeExtras.parse(crudo))
+}
+
+const esquemaDelGuardado = z.union([
+  esquemaDeExtras,
+  z.object({ resultado: z.enum(['existe', 'de_otro', 'limbo']), verificacion: z.unknown() }),
+])
+
+// El `jsonb` de `lead_telefono_guardar()`: la lista, o el choque con otro lead.
+export function extrasDesde(crudo: unknown): CambioDeExtras {
+  const lectura = esquemaDelGuardado.parse(crudo)
+  if ('verificacion' in lectura) {
+    return { resultado: lectura.resultado, verificacion: verificacionDesde(lectura.verificacion) }
+  }
+  return guardadoDesde(lectura)
+}
+
+// --- Lo que lee el resumen -----------------------------------------------------------------------------
+
+// Los teléfonos de un lead sin traer la ficha entera (`lead_telefonos_leer()`): el resumen del listado.
+export type LeadDeTelefonos = {
+  id: string
+  telefonoCc: string | null
+  // Como lo entrega la base: completo para la cartera, enmascarado para el resto.
+  telefono: string
+  enCartera: boolean
+  telefonos: TelefonoExtra[]
+  telefonosMaximo: number
+}
+
+// Lo mismo que lee el resumen, con lo que ya trae la ficha.
+export function telefonosDeLaFicha(ficha: LeadDeFicha): LeadDeTelefonos {
+  return {
+    id: ficha.id,
+    telefonoCc: ficha.telefonoCc,
+    telefono: ficha.telefono,
+    enCartera: ficha.enCartera,
+    telefonos: ficha.telefonos,
+    telefonosMaximo: ficha.telefonosMaximo,
+  }
+}
+
+const esquemaDeLectura = z.object({
+  id: z.guid(),
+  telefono_cc: z.string().nullable(),
+  telefono: z.string().nullable(),
+  en_cartera: z.boolean(),
+  maximo: z.number().int().min(LIMITES_DEL_MAXIMO.minimo).max(LIMITES_DEL_MAXIMO.maximo),
+  telefonos: z.array(esquemaExtra),
+})
+
+// El `jsonb` de `lead_telefonos_leer()`; `null` si el lead no se ve o la respuesta no cumple la forma.
+export function telefonosDelLeadDesde(crudo: unknown): LeadDeTelefonos | null {
+  const leido = esquemaDeLectura.safeParse(crudo)
+  if (!leido.success) {
+    return null
+  }
+  const l = leido.data
+  return {
+    id: l.id,
+    telefonoCc: l.telefono_cc,
+    telefono: l.telefono ?? '',
+    enCartera: l.en_cartera,
+    telefonos: l.telefonos,
+    telefonosMaximo: l.maximo,
   }
 }

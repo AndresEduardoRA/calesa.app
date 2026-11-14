@@ -269,8 +269,11 @@ Agregar a inicio»), «Ver como» (quien gestiona roles), tema, densidad y «Cer
   (`?panel=nuevo-tipo`/`editar-tipo&tipo=<id>`/`eliminar-tipo&tipo=<id>`), `seguimientos`, `embudo` (la plantilla: editor de etapas en la
   página, «Guardar» apagado sin cambios, «Restablecer» con `?panel=restablecer-embudo`), `portal` (el mensaje del portal: `<Textarea>` que
   parte del texto de fábrica con sus variables, vista previa con un cliente, código y clave de ejemplo, rechazo junto al campo, «Guardar»
-  apagado sin cambios; en blanco remite a «Restablecer», `?panel=restablecer-portal`). «Campos» pide `leads.campos.gestionar` y las otras
-  cinco `leads.configurar`: la que no puedes abrir se ve apagada con su motivo bajo la barra, y su `?seccion=` abre la primera habilitada.
+  apagado sin cambios; en blanco remite a «Restablecer», `?panel=restablecer-portal`), `telefonos` («Teléfonos extra»: «Máximo de teléfonos
+  extra» de 0 a 20, el interruptor «Los teléfonos extra cuentan como el principal», «Guardar» apagado sin cambios; con la regla guardada y
+  encendida, «Choques»: números enmascarados con enlace a los leads que ves, «Ver más» / «Seguir buscando», «No hay números repetidos entre
+  leads.» si no hay). «Campos» pide `leads.campos.gestionar` y las otras
+  seis `leads.configurar`: la que no puedes abrir se ve apagada con su motivo bajo la barra, y su `?seccion=` abre la primera habilitada.
   Sin ninguno de los dos no se entra.
 - **Cotización (config)** — `/configuracion/cotizacion` (`equipo.roles.ver|gestionar` o `cotizaciones.configurar` en algún origen):
   `?seccion=niveles|formula|tarjeta|diseno|tonos|tablas|ajustes`, cada pestaña con sus permisos, Niveles primero y Ajustes al final.
@@ -992,9 +995,13 @@ origen, y **se guarda al instante** (cada tono es una escritura propia; no entra
 - **Importar:** vista previa en grilla alineada (contenedor ≥ 42 rem; si no, nombre sobre motivo). «País» vacío se completa con el del
   teléfono. **Deshacer importación** (24 h): el diálogo cuenta cuántos leads van a la papelera y el resultado cuántos se movieron y cuántos
   quedaron, nunca nombres ni teléfonos.
-- **Teléfonos de la ficha:** sólo con la cartera y `leads.editar`; si no, enmascarados y sin botones. «Cambiar el principal»
-  (`?panel=cambiar-telefono`): el actual pasa a extra «Anterior»; el nuevo se verifica al tipear y uno existente, ajeno o el mismo
-  deshabilitan el botón con su frase. Extras (`?panel=agregar-telefono`, ≤ 10): número con país y etiqueta ≤ 40, «Quitar» con «Deshacer».
+- **Teléfonos de la ficha:** los extras se editan con la cartera y `leads.telefonos_extra.editar`; el principal, con la cartera y
+  `leads.editar`; si no, enmascarados y sin botones. «Cambiar el principal» (`?panel=cambiar-telefono`): el actual pasa a extra «Anterior»; el
+  nuevo se verifica al tipear y uno existente, ajeno o el mismo deshabilitan el botón con su frase. Extras (`?panel=agregar-telefono` en la
+  ficha, `?extra=nuevo` dentro del panel de edición y del resumen del listado; hasta el máximo de la empresa, 6 de fábrica): número con país y
+  etiqueta ≤ 40, «Quitar» con «Deshacer». El número se verifica al tipear: con «Los teléfonos extra cuentan como el principal» un número
+  de otro lead bloquea (con «Ver ese lead» si lo ve); sin ella, avisa. Con el máximo alcanzado «Agregar» se apaga con su frase; con más del
+  máximo, «quita K para agregar otro» y, con `leads.configurar`, «Cambiar el máximo».
 
 ### Leads: seguimientos y recordatorios (estados propios)
 

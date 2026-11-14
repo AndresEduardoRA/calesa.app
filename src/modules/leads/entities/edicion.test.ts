@@ -88,6 +88,7 @@ const FICHA: LeadDeFicha = {
   telefonoCc: '+591',
   telefono: '59170011002',
   enCartera: true,
+  telefonosMaximo: 6,
   tipoLeadId: TIPO_PROSPECTO,
   origenId: WEB,
   atributos: { ciudad: 'La Paz', edad: 31, ci: 'CI-1', viejo: 'dato guardado' },
@@ -306,7 +307,6 @@ describe('qué no pasa', () => {
   })
 })
 
-// C14 del 4.13-3c: abrir la edición con un número guardado y guardar sin tocar no avisa ni cambia nada.
 describe('abrir lo guardado y guardar sin tocar conserva el número', () => {
   it('2,125 y 21500,25 en es-BO y en en-US', () => {
     for (const locale of ['es-BO', 'en-US']) {
@@ -314,13 +314,8 @@ describe('abrir lo guardado y guardar sin tocar conserva el número', () => {
         const ficha = { ...FICHA, atributos: { ...FICHA.atributos, edad } }
         const campos = camposEditables(LAYOUT, ficha.enCartera)
         const iniciales = valoresDeEdicion(ficha, campos, ZONA, locale)
-        const validacion = validarEdicion({
-          ...entrada({}, ficha),
-          valores: iniciales,
-          iniciales,
-          locale,
-        })
-        expect(validacion.ok && validacion.cambios, `${locale} ${String(edad)}`).toEqual({})
+        const v = validarEdicion({ ...entrada({}, ficha), valores: iniciales, iniciales, locale })
+        expect(v.ok && v.cambios, `${locale} ${String(edad)}`).toEqual({})
       }
     }
   })

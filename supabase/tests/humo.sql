@@ -4894,7 +4894,7 @@ end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 
--- @test teléfonos de la ficha: hasta 10 extras; el cambio del principal guarda el «Anterior» aunque haya 10; la actividad no deja números
+-- @test teléfonos de la ficha: con el máximo en 10, hasta 10 extras; el cambio del principal guarda el «Anterior» aunque haya 10; la actividad no deja números
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
 set role authenticated;
 do $$ declare
@@ -4904,6 +4904,8 @@ do $$ declare
 begin
   reset role;
   v0 := (select actualizado_en from public.leads where id = v_id);
+  -- El máximo de fábrica es 6; este bloque prueba el tope con 10 y lo devuelve al final.
+  update public.ajustes_leads set telefonos_extra_maximo = 10 where id = 1;
   set local role authenticated;
   n := (select count(*) from public.lead_telefonos(v_id));
   for g in 1 .. 10 - n loop
@@ -4921,6 +4923,8 @@ begin
   -- Y no se puede agregar otro hasta quitar.
   f := pg_temp.falla(format('select public.lead_telefono_guardar(%L, gen_random_uuid(), %L, %L, null)', v_id, '', '74149998'));
   if f is null or f[2] not like 'Un lead admite hasta 10%' then raise exception 'con 11: %', f; end if;
+  reset role;
+  update public.ajustes_leads set telefonos_extra_maximo = 6 where id = 1;
 end $$;
 reset role;
 do $$ declare

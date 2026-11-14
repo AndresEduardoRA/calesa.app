@@ -11,7 +11,7 @@ import type { FilaDeLead } from '../../../entities/listado'
 import { gruposDelRapido, hayPrivadosSinRecibir } from '../../../entities/rapido'
 import { OrigenDelLead } from '../../listado/components/origen-del-lead'
 import { origenDelCatalogo, type DatosDeLaLista } from '../../listado/components/tipos'
-import { telefonoDeLista } from '../../listado/components/telefono-de-lista'
+import { TelefonosDelResumenDiferido } from './diferidos'
 
 function Dato({ etiqueta, children }: { etiqueta: string; children: ReactNode }) {
   return (
@@ -33,6 +33,15 @@ export function EsqueletoDelRapido({ etiqueta }: { etiqueta: string }) {
 }
 
 export type PropsDeDatos = DatosDeLaLista & { lead: FilaDeLead }
+
+// Lo que el resumen necesita para los teléfonos extra: los permisos de quien mira, qué tan al día están (`revision`) y si el panel de
+// edición está encima.
+export type ParaLosTelefonos = {
+  puedeEditarExtras: boolean
+  puedeConfigurar: boolean
+  revision: number
+  editando: boolean
+}
 
 // Los datos propios del lead que le llegaron a quien mira, agrupados como el layout.
 function DatosDelLayout({ lead, campos }: PropsDeDatos) {
@@ -78,22 +87,28 @@ function OrigenDeLaLinea({ origen }: { origen: ReturnType<typeof origenDelCatalo
   )
 }
 
-type PropsDelCuerpo = PropsDeDatos & { completo: boolean; fallo: boolean; reintentar: () => void }
+type PropsDelCuerpo = PropsDeDatos & {
+  completo: boolean
+  fallo: boolean
+  reintentar: () => void
+  telefonos: ParaLosTelefonos
+}
 
 // «Resumen»: lo que se sabe del lead. Editarlo es de la ficha.
-export function CuerpoDelRapido({ completo, fallo, reintentar, ...datos }: PropsDelCuerpo) {
+export function CuerpoDelRapido({
+  completo,
+  fallo,
+  reintentar,
+  telefonos,
+  ...datos
+}: PropsDelCuerpo) {
   const { zonaHoraria } = useRegional()
-  const { lead, origenes, codigoDePais } = datos
+  const { lead, origenes } = datos
   return (
     <div className="grid gap-4">
       <dl className="grid grid-cols-[minmax(0,1fr)] gap-3">
         <Dato etiqueta="Teléfono">
-          <span className="tabular-nums">{telefonoDeLista(lead.telefono, codigoDePais)}</span>
-          {lead.enCartera ? null : (
-            <span className="mt-0.5 block text-(length:--text-xs) text-(--color-ink-soft)">
-              Completo solo para su cartera.
-            </span>
-          )}
+          <TelefonosDelResumenDiferido leadId={lead.id} {...telefonos} />
         </Dato>
         <Dato etiqueta="Origen del lead">
           <OrigenDeLaLinea origen={origenDelCatalogo(origenes, lead.origenId)} />

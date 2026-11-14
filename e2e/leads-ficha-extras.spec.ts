@@ -26,7 +26,7 @@ import {
 } from './soporte/leads-ficha-telefonos'
 
 // Los teléfonos extra de la ficha: agregar (un modal con su URL, `?panel=agregar-telefono`), rotular
-// y quitar en la fila, «Deshacer», sus reglas junto al campo, el tope de 10 y lo que ve (y no puede)
+// y quitar en la fila, «Deshacer», sus reglas junto al campo, el máximo de la empresa (6 de fábrica) y lo que ve (y no puede)
 // quien no tiene el lead en su cartera.
 test.describe.configure({ mode: 'serial' })
 
@@ -127,15 +127,15 @@ test('un extra repetido, igual al principal o con una etiqueta larga se dice jun
 })
 
 // @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
-test('con 10 extras no se agrega otro, y la ficha lo dice', async ({ page }, info) => {
+test('con el máximo de extras no se agrega otro, y la ficha lo dice', async ({ page }, info) => {
   const lead = await fichaDeBerta(t, page, `Tope ${info.project.name}`)
   await ponerExtras(
     lead.id,
-    Array.from({ length: 10 }, () => ({ telefono: completoCon(t, nacional()), etiqueta: null })),
+    Array.from({ length: 6 }, () => ({ telefono: completoCon(t, nacional()), etiqueta: null })),
   )
   await irAFicha(page, lead.id)
   await expect(botonAgregarTelefono(page)).toBeDisabled()
-  await expect(page.getByText(/hasta 10 teléfonos extra/)).toBeVisible()
+  await expect(page.getByText(/hasta 6 teléfonos extra/)).toBeVisible()
   // Escribir la URL a mano tampoco lo abre.
   await irAFicha(page, lead.id, '?panel=agregar-telefono')
   await expect(tituloDeLaFicha(page, lead.nombre)).toBeVisible()

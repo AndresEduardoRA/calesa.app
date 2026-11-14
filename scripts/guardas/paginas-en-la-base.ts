@@ -52,6 +52,13 @@ export const RPC_PAGINADAS_DEL_NUCLEO: readonly RpcPaginada[] = [
     pideElCodigo: TAMANO_DE_VER_MAS,
     lista: '«Ver más» de recordatorios',
   },
+  {
+    // Configuración › Leads › Teléfonos extra: «Ver más» pide de a `TAMANO_DE_VER_MAS` (20); la primera página usa el defecto de la base.
+    rpc: 'telefonos_extra_choques',
+    parametro: 'p_tamano',
+    pideElCodigo: TAMANO_DE_VER_MAS,
+    lista: 'choques de teléfonos extra de Configuración › Leads',
+  },
   // La papelera pide `LOTES_POR_PAGINA + 1` (una fila de más para saber si hay otra página).
   {
     rpc: 'leads_papelera_listar',

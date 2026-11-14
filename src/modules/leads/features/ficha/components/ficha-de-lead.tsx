@@ -40,8 +40,12 @@ type Props = {
   // Quien mira: para decir «lo tienes tú».
   usuarioId: string
   puedeEditar: boolean
-  // Cartera y `leads.editar`: cambiar el principal y administrar los extras.
+  // Cartera y `leads.editar`: cambiar el principal.
   puedeCambiarTelefono: boolean
+  // Cartera y `leads.telefonos_extra.editar`: administrar los extras (en «Datos» y en el panel de edición).
+  puedeEditarExtras: boolean
+  // `leads.configurar`: el enlace «Cambiar el máximo».
+  puedeConfigurar: boolean
   // La sección de `?seccion=`.
   seccion: SeccionDeLead
   // Lo que la página lee en el servidor para la sección «Seguimientos» (detrás de `<Suspense>`).
@@ -75,6 +79,8 @@ type DatosDeSeccion = {
   origen: { nombre: string; activo: boolean; icono: string | null } | null
   tipo: TipoDeLeadEnCatalogo | null
   puedeCambiarTelefono: boolean
+  puedeEditarExtras: boolean
+  puedeConfigurar: boolean
   seguimientos: ReactNode
   vehiculos: ReactNode
   oportunidades: ReactNode
@@ -114,6 +120,8 @@ type PropsDeLosPaneles = {
   ficha: LeadDeFicha
   puedeEditar: boolean
   puedeCambiarTelefono: boolean
+  puedeEditarExtras: boolean
+  puedeConfigurar: boolean
   etiquetas: ReturnType<typeof useEtiquetas>
   // Ningún panel abierto: la ficha vuelve a leer al volver a la pestaña.
   refrescaAlVolver: boolean
@@ -121,16 +129,32 @@ type PropsDeLosPaneles = {
 
 // Lo que se abre encima de la ficha: editar el lead, cambiar el teléfono, gestionar etiquetas. Cada uno vive en su `?panel=`.
 function PanelesDeLaFicha(props: PropsDeLosPaneles) {
-  const { ficha, puedeEditar, puedeCambiarTelefono, etiquetas } = props
+  const {
+    ficha,
+    puedeEditar,
+    puedeCambiarTelefono,
+    puedeEditarExtras,
+    puedeConfigurar,
+    etiquetas,
+  } = props
   return (
     <>
-      <EdicionDeLaFicha ficha={ficha} puedeEditar={puedeEditar} />
+      <EdicionDeLaFicha
+        ficha={ficha}
+        puedeEditar={puedeEditar}
+        puedeEditarExtras={puedeEditarExtras}
+        puedeConfigurar={puedeConfigurar}
+      />
       <PanelDeTelefono ficha={ficha} puedeCambiar={puedeCambiarTelefono} />
       <DialogoDeEtiquetas etiquetas={etiquetas} />
       <RefrescarAlVolver activo={props.refrescaAlVolver} />
     </>
   )
 }
+
+// Una sola columna que no crece con su contenido: sin `minmax(0, 1fr)`, la barra de secciones (con
+// cinco, más ancha que un celular) ensanchaba toda la ficha y los modales quedaban cortados.
+const COLUMNA_DE_LA_FICHA = 'grid max-w-4xl grid-cols-[minmax(0,1fr)] gap-4'
 
 // La ficha de un lead: su cabecera, la barra de secciones y la sección de `?seccion=` («Datos»,
 // «Seguimientos», «Vehículos», «Oportunidades», «Cotizaciones» o «Portal»). Las demás (historial) llegan
@@ -142,7 +166,6 @@ export function FichaDeLead({
   tipo,
   usuarioId,
   puedeEditar,
-  puedeCambiarTelefono,
   seccion,
   seguimientos,
   vehiculos,
@@ -156,15 +179,15 @@ export function FichaDeLead({
   puedeEnviarAPapelera,
   paraCotizar,
   paraActividad,
+  // Lo que queda son las tres marcas de teléfonos: el principal, los extras y el máximo.
+  ...telefonos
 }: Props) {
   const panel = usePanelDeLead()
   const marcas = useMarcas(ficha.id, ficha.marcas)
   const etiquetas = useEtiquetas(lista)
   const gestionar = usePanelDeEtiquetas()
   return (
-    // Una sola columna que no crece con su contenido: sin `minmax(0, 1fr)`, la barra de secciones (con
-    // cinco, más ancha que un celular) ensanchaba toda la ficha y los modales quedaban cortados.
-    <div className="grid max-w-4xl grid-cols-[minmax(0,1fr)] gap-4">
+    <div className={COLUMNA_DE_LA_FICHA}>
       <VolverALeads />
       <CabeceraDeLead
         ficha={ficha}
@@ -172,18 +195,16 @@ export function FichaDeLead({
         tipo={tipo}
         quien={quienLoTiene(ficha, usuarioId)}
         acciones={
-          <>
-            <AccionesDeLaFicha
-              ficha={ficha}
-              marcas={marcas}
-              etiquetas={etiquetas}
-              alGestionar={gestionar.abrir}
-              puedeEditar={puedeEditar}
-              puedeEnviarAPapelera={puedeEnviarAPapelera}
-              paraCotizar={paraCotizar}
-              paraActividad={paraActividad}
-            />
-          </>
+          <AccionesDeLaFicha
+            ficha={ficha}
+            marcas={marcas}
+            etiquetas={etiquetas}
+            alGestionar={gestionar.abrir}
+            puedeEditar={puedeEditar}
+            puedeEnviarAPapelera={puedeEnviarAPapelera}
+            paraCotizar={paraCotizar}
+            paraActividad={paraActividad}
+          />
         }
         marcas={
           <InsigniasDeMarcas
@@ -200,7 +221,7 @@ export function FichaDeLead({
         campos,
         origen,
         tipo,
-        puedeCambiarTelefono,
+        ...telefonos,
         seguimientos,
         vehiculos,
         oportunidades,
@@ -211,7 +232,7 @@ export function FichaDeLead({
         vePortal: ve.portal,
       })}
       <PanelesDeLaFicha
-        {...{ ficha, puedeEditar, puedeCambiarTelefono, etiquetas }}
+        {...{ ficha, puedeEditar, ...telefonos, etiquetas }}
         refrescaAlVolver={!panel.hayPanel && !gestionar.abierto}
       />
     </div>

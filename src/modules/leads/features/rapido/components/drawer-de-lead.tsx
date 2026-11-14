@@ -2,7 +2,7 @@
 
 import type { Route } from 'next'
 import Link from 'next/link'
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { z } from 'zod'
 import { RUTAS } from '@/shared/lib/rutas'
 import { PencilIcon } from 'lucide-react'
@@ -24,7 +24,12 @@ import { useNumerosEnTexto } from '@/shared/ui/numero-de-lead'
 import { useDrawerDeLead } from '../hooks/use-drawer-de-lead'
 import { useLeadRapido } from '../hooks/use-lead-rapido'
 import { EdicionDelResumenDiferido } from './diferidos'
-import { CuerpoDelRapido, EsqueletoDelRapido, type PropsDeDatos } from './cuerpo-del-rapido'
+import {
+  CuerpoDelRapido,
+  EsqueletoDelRapido,
+  type ParaLosTelefonos,
+  type PropsDeDatos,
+} from './cuerpo-del-rapido'
 import { MenuDelResumen } from './menu-del-resumen'
 import { PestanasDelRapido } from './pestanas-del-rapido'
 
@@ -36,6 +41,10 @@ type Props = DatosDeLaLista & {
   soloMios: boolean
   // Quien mira tiene `leads.editar`: con el lead en su cartera, el resumen ofrece «Editar».
   puedeEditar: boolean
+  // Quien mira tiene `leads.telefonos_extra.editar` (con el lead en su cartera, el resumen agrega, rotula y quita extras) y `leads.configurar` (el
+  // enlace «Cambiar el máximo»).
+  puedeEditarExtras: boolean
+  puedeConfigurar: boolean
   // Lo que necesita el «⋯»: las etiquetas de quien mira, «Gestionar» y qué leads se pueden enviar a la papelera.
   marcar: ParaMarcar
 }
@@ -87,6 +96,7 @@ type PropsDelContenido = {
   ultimo: FilaDeLead | null
   reintentar: () => void
   datos: DatosDeLaLista
+  telefonos: ParaLosTelefonos
   // Abre el panel de edición, o nulo si quien mira no puede editar.
   alEditar: (() => void) | null
   // El «⋯» de un lead.
@@ -102,6 +112,7 @@ function ContenidoDelRapido({
   ultimo,
   reintentar,
   datos,
+  telefonos,
   alEditar,
   menu,
 }: PropsDelContenido) {
@@ -148,6 +159,7 @@ function ContenidoDelRapido({
             completo={vista.tipo === 'lead' ? vista.completo : true}
             fallo={vista.tipo === 'lead' && vista.fallo}
             reintentar={reintentar}
+            telefonos={telefonos}
           />
         }
       />
@@ -164,6 +176,8 @@ type PropsDeLaEdicion = {
   campos: DatosDeLaLista['campos']
   origenes: DatosDeLaLista['origenes']
   tipos: DatosDeLaLista['tipos']
+  puedeEditarExtras: boolean
+  puedeConfigurar: boolean
   alGuardado: () => void
 }
 
@@ -171,6 +185,7 @@ type PropsDeLaEdicion = {
 // y llega al pulsar «Editar», no al abrir el resumen.
 function EdicionDelDrawer(props: PropsDeLaEdicion) {
   const { pedida, lead, puedeEditar, campos, origenes, tipos, alGuardado } = props
+  const { puedeEditarExtras, puedeConfigurar } = props
   const pedidaAlgunaVez = useAbiertoAlgunaVez(pedida)
   if (lead === null || !puedeEditar || !pedidaAlgunaVez) {
     return null
@@ -182,6 +197,8 @@ function EdicionDelDrawer(props: PropsDeLaEdicion) {
       campos={campos}
       origenes={origenes}
       tipos={tipos}
+      puedeEditarExtras={puedeEditarExtras}
+      puedeConfigurar={puedeConfigurar}
       alGuardado={alGuardado}
       alPerderElLead={alGuardado}
     />
@@ -194,10 +211,24 @@ function EdicionDelDrawer(props: PropsDeLaEdicion) {
 // con lo que ya trajo la página y se completa con su lectura. Si el lead desaparece, o deja de ser
 // visible, mientras está abierto lo dice sin explicar por qué; con un modal abierto adentro no vuelve
 // a leer (lo dice el modal al guardar).
-export function DrawerDeLead({ filas, soloMios, puedeEditar, marcar, ...datos }: Props) {
+export function DrawerDeLead({
+  filas,
+  soloMios,
+  puedeEditar,
+  puedeEditarExtras,
+  puedeConfigurar,
+  marcar,
+  ...datos
+}: Props) {
   const { id, pestana, conModal, elegirPestana, cerrar, editar, editando } = useDrawerDeLead()
   const idValido = id !== null && ES_GUID.safeParse(id).success
   const { lectura, reintentar } = useLeadRapido(idValido ? id : null, conModal)
+  // Se guardó el lead (o sus extras) desde el panel: el resumen lo vuelve a leer, también los teléfonos.
+  const [revision, setRevision] = useState(0)
+  const alGuardado = () => {
+    reintentar()
+    setRevision((n) => n + 1)
+  }
   const vista = vistaDelRapido({
     id,
     idValido,
@@ -226,6 +257,7 @@ export function DrawerDeLead({ filas, soloMios, puedeEditar, marcar, ...datos }:
         ultimo={ultimo}
         reintentar={reintentar}
         datos={datos}
+        telefonos={{ puedeEditarExtras, puedeConfigurar, revision, editando }}
         alEditar={puedeEditar ? editar : null}
         menu={(lead) => (
           <MenuDelResumen
@@ -244,7 +276,9 @@ export function DrawerDeLead({ filas, soloMios, puedeEditar, marcar, ...datos }:
         campos={datos.campos}
         origenes={datos.origenes}
         tipos={datos.tipos}
-        alGuardado={reintentar}
+        puedeEditarExtras={puedeEditarExtras}
+        puedeConfigurar={puedeConfigurar}
+        alGuardado={alGuardado}
       />
     </Drawer>
   )

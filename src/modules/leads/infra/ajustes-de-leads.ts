@@ -7,7 +7,12 @@ import { etapasParaGuardar } from '../entities/embudo'
 // Las plantillas de leads se escriben sólo por estas RPC (`…_embudo_plantilla.sql`, `…_portal_mensaje.sql`, 9.04-4), con `leads.configurar`
 // y la versión de cada una (`PT409` legible si otra persona la cambió). Devuelven la versión nueva.
 
-const CAMPO_DEL_HINT: Record<string, string> = { etapas: 'etapas', texto: 'texto' }
+const CAMPO_DEL_HINT: Record<string, string> = {
+  etapas: 'etapas',
+  texto: 'texto',
+  maximo: 'maximo',
+  como_principal: 'comoPrincipal',
+}
 
 function fallo(error: { code?: string | null; message: string; hint?: string | null }) {
   const campo = error.hint ? CAMPO_DEL_HINT[error.hint] : undefined
@@ -29,6 +34,15 @@ export const ajustesDeLeadsSupabase: EscritorDeAjustesDeLeads = {
     const { data, error } = await supabase.rpc('portal_mensaje_guardar', {
       // En blanco es nulo para la base (el de fábrica): el tipo generado no admite `null`.
       p_texto: texto ?? '',
+      p_actualizado_en_esperado: actualizadoEnEsperado,
+    })
+    return error ? fallo(error) : { ok: true as const, data: { actualizadoEn: data } }
+  },
+  guardarAjustesDeTelefonos: async ({ maximo, comoPrincipal, actualizadoEnEsperado }) => {
+    const supabase = await createClient()
+    const { data, error } = await supabase.rpc('telefonos_extra_ajustes_guardar', {
+      p_maximo: maximo,
+      p_como_principal: comoPrincipal,
       p_actualizado_en_esperado: actualizadoEnEsperado,
     })
     return error ? fallo(error) : { ok: true as const, data: { actualizadoEn: data } }

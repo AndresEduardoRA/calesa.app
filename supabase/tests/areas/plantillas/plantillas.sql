@@ -117,7 +117,7 @@ do $$
 declare cora uuid := '00000000-0000-4000-8000-00000009940c'; j jsonb;
 begin
   j := pg_temp.pla_json(cora, 'select public.ajustes_leads_leer()');
-  if (select array_agg(k order by k) from jsonb_object_keys(j) k) <> array['embudo', 'portal']
+  if (select array_agg(k order by k) from jsonb_object_keys(j) k) <> array['embudo', 'portal', 'telefonos']
      or (select array_agg(k order by k) from jsonb_object_keys(j -> 'embudo') k) <> array['actualizado_en', 'de_fabrica', 'etapas']
      or (select array_agg(k order by k) from jsonb_object_keys(j -> 'portal') k) <> array['actualizado_en', 'mensaje'] then
     raise exception 'las claves de la lectura: %', j;

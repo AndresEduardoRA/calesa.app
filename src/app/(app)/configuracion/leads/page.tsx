@@ -9,6 +9,7 @@ import { SeccionCampos } from './seccion-campos'
 import { SeccionEmbudo } from './seccion-embudo'
 import { SeccionMensajeDelPortal } from './seccion-mensaje-del-portal'
 import { SeccionOrigenes } from './seccion-origenes'
+import { SeccionTelefonosExtra } from './seccion-telefonos-extra'
 import { SeccionTipos } from './seccion-tipos'
 import { SeccionTiposDeSeguimiento } from './seccion-tipos-de-seguimiento'
 
@@ -24,12 +25,13 @@ const DESCRIPCION_DE = {
     'Cómo se contactó a un lead: llamada, visita, mensaje y los tipos que agregues. Es lo que se elige al anotar un seguimiento.',
   embudo: 'Las etapas con que nace el embudo de cada persona. Los que ya existen no cambian.',
   portal: 'El texto para WhatsApp que se le pasa al cliente al darle acceso al portal.',
+  telefonos: 'Cuántos teléfonos extra admite un lead y si cuentan como el principal.',
 } as const
 
 // Configuración › Leads. Se entra con `leads.campos.gestionar` o con `leads.configurar` (9-3): ningún otro permiso necesita leer esta
 // configuración (el layout y los orígenes los leen las pantallas de leads por su cuenta). Las pestañas viven en `?seccion=`: los campos
 // (`leads.campos.gestionar`), los orígenes del lead, los tipos de lead, los tipos de seguimiento
-// y las plantillas del embudo y del mensaje del portal (`leads.configurar`). La que no puedes abrir
+// las plantillas del embudo y del mensaje del portal y los teléfonos extra (`leads.configurar`). La que no puedes abrir
 // se ve apagada con su motivo y nunca se dibuja: la URL que la pide abre la primera habilitada.
 export default async function PaginaDeLeads({ searchParams }: PageProps<'/configuracion/leads'>) {
   const [sesion, parametros] = await Promise.all([requerirSesion(), searchParams])
@@ -53,6 +55,7 @@ export default async function PaginaDeLeads({ searchParams }: PageProps<'/config
       {pestana === 'seguimientos' ? <SeccionTiposDeSeguimiento /> : null}
       {pestana === 'embudo' ? <SeccionEmbudo /> : null}
       {pestana === 'portal' ? <SeccionMensajeDelPortal /> : null}
+      {pestana === 'telefonos' ? <SeccionTelefonosExtra /> : null}
     </div>
   )
 }

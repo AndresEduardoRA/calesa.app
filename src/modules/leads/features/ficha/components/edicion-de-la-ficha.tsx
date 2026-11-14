@@ -16,13 +16,23 @@ type Props = {
   ficha: LeadDeFicha
   // Cartera y `leads.editar`: sin esto el panel no se abre aunque la URL lo pida.
   puedeEditar: boolean
+  // Cartera y `leads.telefonos_extra.editar`: los extras del panel se administran; sin esto se ven sin acciones.
+  puedeEditarExtras: boolean
+  puedeConfigurar: boolean
 }
 
 type PropsDelLector = Props & { abierto: boolean; alCerrar: () => void }
 
 // Lee el layout y los catálogos de lead y, con ellos, dibuja el panel de edición. Se monta de nuevo en cada apertura (`key`): cada una
 // arranca de lo guardado y con los catálogos al día.
-function LectorDeCatalogos({ ficha, puedeEditar, abierto, alCerrar }: PropsDelLector) {
+function LectorDeCatalogos({
+  ficha,
+  puedeEditar,
+  puedeEditarExtras,
+  puedeConfigurar,
+  abierto,
+  alCerrar,
+}: PropsDelLector) {
   const { zonaHoraria } = useRegional()
   const { lectura, reintentar } = useLecturaAlMontar(leerCatalogosDeEdicion, ficha.id)
   if (lectura.estado === 'leido') {
@@ -34,6 +44,8 @@ function LectorDeCatalogos({ ficha, puedeEditar, abierto, alCerrar }: PropsDelLe
         tipos={lectura.dato.tipos}
         zona={zonaHoraria}
         puedeEditar={puedeEditar}
+        puedeEditarExtras={puedeEditarExtras}
+        puedeConfigurar={puedeConfigurar}
       />
     )
   }

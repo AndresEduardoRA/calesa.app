@@ -15,7 +15,7 @@ import {
   tamanosHasta,
   type Pagina,
 } from '@/shared/lib/paginacion'
-import type { Permisos } from '@/shared/lib/permisos'
+import { puede, type Permisos } from '@/shared/lib/permisos'
 import { unParametro } from '@/shared/lib/rutas'
 import {
   buscarLeads,
@@ -35,6 +35,7 @@ import { filtrosDescartados, type FiltroDescartado } from '../../entities/filtro
 import { FILTRO_TACHADOS, TOPE_DE_OCULTOS, ocultaTachados } from '../../entities/filtros-de-marcas'
 import { MAXIMO_DE_PAGINA_DE_LEADS, clavesDeTabla, type FilaDeLead } from '../../entities/listado'
 import { puedeEditarLead } from '../../entities/edicion'
+import { puedeEditarTelefonosExtra } from '../../entities/telefonos'
 import type { RecorridoAcotado } from '../../entities/candidatos'
 import { condicionesDeLaPersona } from './condiciones-de-la-persona'
 import { puedeAbrirLaPapelera, puedeEnviarLead } from '../../entities/papelera'
@@ -71,6 +72,10 @@ export type DatosDelListado = {
   // Los tipos de seguimiento (también los apagados) y el instante en que se leyó la página: dicen «hace 3 días» en cada fila.
   tiposDeSeguimiento: TipoDeSeguimientoEnCatalogo[]
   ahora: string
+  // `leads.telefonos_extra.editar`: con el lead en la cartera, agregar, rotular y quitar extras en el resumen.
+  puedeEditarExtras: boolean
+  // `leads.configurar`: el enlace «Cambiar el máximo» cuando un lead ya no admite más extras.
+  puedeConfigurar: boolean
 }
 
 type Entrada = {
@@ -110,6 +115,16 @@ function tamanoDeEstaPagina(parametros: ParametrosDeUrl, preferencia: number | n
 // Los de la página que quien mira puede enviar a la papelera.
 function idsEliminables(filas: readonly FilaDeLead[], permisos: Permisos, usuarioId: string) {
   return filas.filter((f) => puedeEnviarLead(permisos, f.duenoId, usuarioId)).map((f) => f.id)
+}
+
+// Como si el lead estuviera en la cartera: cada fila lo combina con la suya.
+function permisosDelListado(permisos: Permisos) {
+  return {
+    puedeAbrirPapelera: puedeAbrirLaPapelera(permisos),
+    puedeAnotar: puedeEditarLead(permisos, true),
+    puedeEditarExtras: puedeEditarTelefonosExtra(permisos, true),
+    puedeConfigurar: puede(permisos, 'leads.configurar'),
+  }
 }
 
 export async function leerListadoDeLeads(entrada: Entrada): Promise<Resultado<DatosDelListado>> {
@@ -186,9 +201,7 @@ export async function leerListadoDeLeads(entrada: Entrada): Promise<Resultado<Da
       ocultos: ocultos?.ok ? ocultos.data : SIN_OCULTOS,
       recorrido: leida.data.recorrido,
       eliminables: idsEliminables(leida.data.filas, permisos, usuarioId),
-      puedeAbrirPapelera: puedeAbrirLaPapelera(permisos),
-      // Como si estuviera en la cartera: cada fila lo combina con la suya.
-      puedeAnotar: puedeEditarLead(permisos, true),
+      ...permisosDelListado(permisos),
       tiposDeSeguimiento: catalogos.data.tiposDeSeguimiento,
       ahora: new Date().toISOString(),
     },

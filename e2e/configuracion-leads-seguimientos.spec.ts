@@ -63,6 +63,7 @@ test('de fábrica: los tipos de siempre, cada uno con su icono, y la pestaña si
     'Tipos de seguimiento',
     'Plantilla del embudo',
     'Mensaje del portal',
+    'Teléfonos extra',
   ])
   await expect(page.getByRole('tab', { name: 'Tipos de seguimiento' })).toHaveAttribute(
     'aria-selected',

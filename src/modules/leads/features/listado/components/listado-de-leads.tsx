@@ -56,6 +56,8 @@ type Props = DatosDeLaLista & {
   // Los tipos de seguimiento y el instante de la página: dicen el último seguimiento y el recordatorio de cada fila.
   tiposDeSeguimiento: DatosDeUltimoContacto['tipos']
   ahora: string
+  puedeEditarExtras: boolean
+  puedeConfigurar: boolean
 }
 
 // Lo que va arriba de la lista: lo que la URL traía y ya no vale, y la aclaración de un filtro
@@ -163,6 +165,7 @@ export function ListadoDeLeads(props: Props) {
   const datos = { ...delServidor, etiquetas: etiquetas.lista }
   const alAccion = puedeAnotar ? accionDeFila.abrir : null
   const marcar = { etiquetas, alGestionar: gestionar.abrir, eliminables, alAccion }
+  // `puedeEditarExtras` y `puedeConfigurar` viajan con `datos` hasta el drawer.
   const delDrawer = { filas: pagina.filas, soloMios: !puedeVerTodos, puedeEditar: puedeAnotar }
   return (
     <div className="grid gap-4">

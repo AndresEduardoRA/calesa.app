@@ -9,35 +9,60 @@ import {
   type NumerosDeLead,
 } from '@/shared/lib/numeros-de-lead'
 
-// Un número libre como principal que figura como teléfono extra de otro lead: se avisa, no
-// bloquea (un extra no tiene unicidad). Dice de él lo mismo que el principal: nombre y número si
-// se ve, y si no, sólo quién lo tiene.
+// Dónde figura el número en el otro lead: como su principal o como uno de sus extras. Sin la clave, el principal (el caso de siempre);
+// la base sólo la manda cuando es un extra.
+export type DondeFigura = 'principal' | 'extra'
+
+// Un número libre que figura en otro lead sin que eso lo impida (como extra al dar de alta o cambiar el principal; como principal al agregar
+// un extra con la regla apagada): se avisa, no bloquea. Dice de él lo mismo que el principal: nombre y número si se ve, y si no, sólo quién
+// lo tiene.
 export type Alterno =
-  | { estado: 'existe'; leadId: string; numeros: NumerosDeLead; nombre: string; esMio: boolean }
-  | { estado: 'de_otro'; dueno: string | null }
+  | {
+      estado: 'existe'
+      leadId: string
+      numeros: NumerosDeLead
+      nombre: string
+      esMio: boolean
+      como: DondeFigura
+    }
+  | { estado: 'de_otro'; dueno: string | null; como: DondeFigura }
 
 export type Verificacion =
   // `alterno`: figura como teléfono extra de otro lead. `esExtra`: ya es un extra de este lead (sólo
   // al cambiar el principal: al cambiarlo sale de los extras).
   | { estado: 'libre'; alterno?: Alterno; esExtra?: boolean }
-  // Sin dueño: invisible hasta que alguien lo toma al registrar el teléfono.
-  | { estado: 'limbo' }
-  // Es un lead que esta persona puede ver.
-  | { estado: 'existe'; leadId: string; numeros: NumerosDeLead; nombre: string; esMio: boolean }
+  // Sin dueño: invisible hasta que alguien lo toma al registrar el teléfono. `como: 'extra'`: es un extra de ese lead (con la regla encendida).
+  | { estado: 'limbo'; como?: 'extra' }
+  // Es un lead que esta persona puede ver. `como: 'extra'`: lo tiene como teléfono extra (con la regla encendida).
+  | {
+      estado: 'existe'
+      leadId: string
+      numeros: NumerosDeLead
+      nombre: string
+      esMio: boolean
+      como?: 'extra'
+    }
   // Lo tiene otra persona: sólo se sabe de quién, nada más del lead. `duenoId` (si la base lo manda) deja escribirle por chat.
-  | { estado: 'de_otro'; dueno: string | null; duenoId?: string }
+  | { estado: 'de_otro'; dueno: string | null; duenoId?: string; como?: 'extra' }
   // Es el principal de este mismo lead (sólo al cambiarlo): no hay nada que cambiar.
   | { estado: 'mismo' }
+
+const esquemaComo = z.enum(['principal', 'extra']).optional()
 
 const esquemaAlterno = z.discriminatedUnion('estado', [
   z.object({
     estado: z.literal('existe'),
+    como: esquemaComo,
     lead_id: z.guid(),
     ...CAMPOS_DE_NUMEROS,
     nombre: z.string(),
     es_mio: z.boolean(),
   }),
-  z.object({ estado: z.literal('de_otro'), dueno: z.string().nullable().optional() }),
+  z.object({
+    estado: z.literal('de_otro'),
+    como: esquemaComo,
+    dueno: z.string().nullable().optional(),
+  }),
 ])
 
 const esquema = z.discriminatedUnion('estado', [
@@ -46,9 +71,10 @@ const esquema = z.discriminatedUnion('estado', [
     alterno: esquemaAlterno.optional(),
     es_extra: z.boolean().optional(),
   }),
-  z.object({ estado: z.literal('limbo') }),
+  z.object({ estado: z.literal('limbo'), como: z.literal('extra').optional() }),
   z.object({
     estado: z.literal('existe'),
+    como: z.literal('extra').optional(),
     lead_id: z.guid(),
     ...CAMPOS_DE_NUMEROS,
     nombre: z.string(),
@@ -56,6 +82,7 @@ const esquema = z.discriminatedUnion('estado', [
   }),
   z.object({
     estado: z.literal('de_otro'),
+    como: z.literal('extra').optional(),
     dueno: z.string().nullable().optional(),
     dueno_id: z.guid().nullable().optional(),
   }),
@@ -70,9 +97,36 @@ function alternoDesde(lectura: z.infer<typeof esquemaAlterno>): Alterno {
       numeros: numerosDesde(lectura),
       nombre: lectura.nombre,
       esMio: lectura.es_mio,
+      como: lectura.como ?? 'extra',
     }
   }
-  return { estado: 'de_otro', dueno: lectura.dueno ?? null }
+  return { estado: 'de_otro', dueno: lectura.dueno ?? null, como: lectura.como ?? 'extra' }
+}
+
+type Lectura = z.infer<typeof esquema>
+
+function comoDesde(como: 'extra' | undefined): { como?: 'extra' } {
+  return como ? { como } : {}
+}
+
+function existeDesde(lectura: Extract<Lectura, { estado: 'existe' }>): Verificacion {
+  return {
+    estado: 'existe',
+    leadId: lectura.lead_id,
+    numeros: numerosDesde(lectura),
+    nombre: lectura.nombre,
+    esMio: lectura.es_mio,
+    ...comoDesde(lectura.como),
+  }
+}
+
+function deOtroDesde(lectura: Extract<Lectura, { estado: 'de_otro' }>): Verificacion {
+  return {
+    estado: 'de_otro',
+    dueno: lectura.dueno ?? null,
+    ...(lectura.dueno_id ? { duenoId: lectura.dueno_id } : {}),
+    ...comoDesde(lectura.como),
+  }
 }
 
 // El `jsonb` de la base como `Verificacion`. Algo que no calza es un error de programación (la
@@ -86,23 +140,14 @@ export function verificacionDesde(crudo: unknown): Verificacion {
         ...(lectura.alterno ? { alterno: alternoDesde(lectura.alterno) } : {}),
         ...(lectura.es_extra ? { esExtra: true } : {}),
       }
-    case 'limbo':
     case 'mismo':
-      return { estado: lectura.estado }
+      return { estado: 'mismo' }
+    case 'limbo':
+      return { estado: 'limbo', ...comoDesde(lectura.como) }
     case 'existe':
-      return {
-        estado: 'existe',
-        leadId: lectura.lead_id,
-        numeros: numerosDesde(lectura),
-        nombre: lectura.nombre,
-        esMio: lectura.es_mio,
-      }
+      return existeDesde(lectura)
     case 'de_otro':
-      return {
-        estado: 'de_otro',
-        dueno: lectura.dueno ?? null,
-        ...(lectura.dueno_id ? { duenoId: lectura.dueno_id } : {}),
-      }
+      return deOtroDesde(lectura)
   }
 }
 
@@ -117,8 +162,9 @@ export type AvisoDeTelefono = {
   ofreceTomar: boolean
 }
 
-// En el alta un número sin dueño se puede tomar; al cambiar el principal de un lead, no: sólo se dice.
-export type ContextoDeVerificacion = 'alta' | 'cambio'
+// En el alta un número sin dueño se puede tomar; al cambiar el principal de un lead, no: sólo se dice. En `extra` (agregar un teléfono
+// extra a un lead) cada texto habla de un extra.
+export type ContextoDeVerificacion = 'alta' | 'cambio' | 'extra'
 
 // « (N.º 1.234)» si se ve alguno de los números del lead; nada si no.
 function conNumero(numeros: NumerosDeLead): string {
@@ -127,10 +173,73 @@ function conNumero(numeros: NumerosDeLead): string {
 }
 
 function textoDeAlterno(alterno: Alterno): string {
+  if (alterno.como === 'principal') {
+    return alterno.estado === 'existe'
+      ? `Es el teléfono principal de ${alterno.nombre}${conNumero(alterno.numeros)}.`
+      : `Es el teléfono principal de un lead de ${alterno.dueno ?? 'otra persona'}.`
+  }
   if (alterno.estado === 'existe') {
     return `Figura como teléfono extra de ${alterno.nombre}${conNumero(alterno.numeros)}.`
   }
   return `Figura como teléfono extra de un lead de ${alterno.dueno ?? 'otra persona'}.`
+}
+
+// «, como teléfono extra» cuando el número que ya está en otro lead es un extra suyo (con la regla encendida).
+const COMO_EXTRA = ', como teléfono extra'
+
+function aviso(
+  tono: AvisoDeTelefono['tono'],
+  texto: string,
+  bloquea = false,
+  ofreceTomar = false,
+): AvisoDeTelefono {
+  return { tono, texto, bloquea, ofreceTomar }
+}
+
+function avisoDeLibre(
+  verificacion: Extract<Verificacion, { estado: 'libre' }>,
+  contexto: ContextoDeVerificacion,
+): AvisoDeTelefono {
+  if (verificacion.alterno) {
+    return aviso('aviso', textoDeAlterno(verificacion.alterno))
+  }
+  if (verificacion.esExtra && contexto === 'extra') {
+    return aviso('peligro', 'Ese número ya está en este lead.', true)
+  }
+  if (verificacion.esExtra) {
+    return aviso('neutro', 'Ya es un teléfono extra de este lead: pasará a ser el principal.')
+  }
+  return aviso('neutro', '')
+}
+
+function avisoDeLimbo(contexto: ContextoDeVerificacion): AvisoDeTelefono {
+  if (contexto === 'extra') {
+    return aviso('peligro', 'Ya lo tiene un lead sin dueño. No se puede usar este número.', true)
+  }
+  if (contexto === 'cambio') {
+    return aviso('peligro', 'Ya existe, sin dueño. No se puede usar este número.', true)
+  }
+  return aviso('aviso', 'Sin dueño.', false, true)
+}
+
+function avisoDeExiste(
+  verificacion: Extract<Verificacion, { estado: 'existe' }>,
+  contexto: ContextoDeVerificacion,
+): AvisoDeTelefono {
+  const nombre = `${verificacion.nombre}${conNumero(verificacion.numeros)}`
+  if (contexto === 'extra') {
+    return aviso(
+      'peligro',
+      `Ya es de ${nombre}. Un teléfono extra no puede repetirse en otro lead.`,
+      true,
+    )
+  }
+  const como = verificacion.como === 'extra' ? COMO_EXTRA : ''
+  return aviso(
+    'peligro',
+    `Ya existe: ${nombre}${como}${verificacion.esMio ? ', y es tuyo' : ''}.`,
+    true,
+  )
 }
 
 export function avisoDeVerificacion(
@@ -139,61 +248,17 @@ export function avisoDeVerificacion(
 ): AvisoDeTelefono {
   switch (verificacion.estado) {
     case 'libre':
-      if (verificacion.alterno) {
-        return {
-          tono: 'aviso',
-          texto: textoDeAlterno(verificacion.alterno),
-          bloquea: false,
-          ofreceTomar: false,
-        }
-      }
-      if (verificacion.esExtra) {
-        return {
-          tono: 'neutro',
-          texto: 'Ya es un teléfono extra de este lead: pasará a ser el principal.',
-          bloquea: false,
-          ofreceTomar: false,
-        }
-      }
-      return { tono: 'neutro', texto: '', bloquea: false, ofreceTomar: false }
+      return avisoDeLibre(verificacion, contexto)
     case 'limbo':
-      if (contexto === 'cambio') {
-        return {
-          tono: 'peligro',
-          texto: 'Ya existe, sin dueño. No se puede usar este número.',
-          bloquea: true,
-          ofreceTomar: false,
-        }
-      }
-      return {
-        tono: 'aviso',
-        texto: 'Sin dueño.',
-        bloquea: false,
-        ofreceTomar: true,
-      }
+      return avisoDeLimbo(contexto)
     case 'existe':
-      return {
-        tono: 'peligro',
-        texto: verificacion.esMio
-          ? `Ya existe: ${verificacion.nombre}${conNumero(verificacion.numeros)}, y es tuyo.`
-          : `Ya existe: ${verificacion.nombre}${conNumero(verificacion.numeros)}.`,
-        bloquea: true,
-        ofreceTomar: false,
-      }
-    case 'de_otro':
-      return {
-        tono: 'peligro',
-        texto: `Lo tiene ${verificacion.dueno ?? 'otra persona'}.`,
-        bloquea: true,
-        ofreceTomar: false,
-      }
+      return avisoDeExiste(verificacion, contexto)
+    case 'de_otro': {
+      const como = verificacion.como === 'extra' && contexto !== 'extra' ? COMO_EXTRA : ''
+      return aviso('peligro', `Lo tiene ${verificacion.dueno ?? 'otra persona'}${como}.`, true)
+    }
     case 'mismo':
-      return {
-        tono: 'aviso',
-        texto: 'Ese es el teléfono principal de este lead.',
-        bloquea: true,
-        ofreceTomar: false,
-      }
+      return aviso('aviso', 'Ese es el teléfono principal de este lead.', true)
   }
 }
 

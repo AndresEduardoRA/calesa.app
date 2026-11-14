@@ -130,10 +130,12 @@ test('sin el lead en su cartera el resumen no ofrece «Editar», pero sí «Abri
 test('sin red al pulsar «Editar» lo dice con «Reintentar»', async ({ page, context }) => {
   await entrar(page, t.personas.berta)
   const resumen = await abrirResumen(page, PROPIO_BERTA)
-  // El código del panel no se pidió todavía: sin red, no llega.
+  // Los teléfonos del resumen (su código y su lectura) llegan antes de cortar la red; el del panel no se pidió todavía: sin red, no llega.
+  await expect(resumen.getByText('Principal', { exact: true })).toBeVisible()
   await context.setOffline(true)
   await resumen.getByRole('button', { name: 'Editar', exact: true }).click()
-  await expect(page.getByText('Sin conexión. No se pudo abrir esto.')).toBeVisible()
+  // El aviso sale en el encabezado del resumen y, si el del panel también llegó, en su cuerpo: basta con el primero.
+  await expect(page.getByText('Sin conexión. No se pudo abrir esto.').first()).toBeVisible()
   await context.setOffline(false)
   await page.getByRole('button', { name: 'Reintentar' }).click()
   await expect(panelDe(page, PROPIO_BERTA)).toBeVisible()

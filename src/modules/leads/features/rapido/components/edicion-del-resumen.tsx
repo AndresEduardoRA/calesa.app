@@ -20,6 +20,8 @@ type Props = {
   campos: readonly CampoDeLead[]
   origenes: readonly OrigenConEstado[]
   tipos: readonly TipoDeLeadEnCatalogo[]
+  puedeEditarExtras: boolean
+  puedeConfigurar: boolean
   // Se guardó: el resumen vuelve a leer el lead. Y si quien edita ya no lo ve, también (y lo dice).
   alGuardado: () => void
   alPerderElLead: () => void
@@ -37,6 +39,8 @@ function LectorDeLaFicha({
   tipos,
   alGuardado,
   alPerderElLead,
+  puedeEditarExtras,
+  puedeConfigurar,
   ...panel
 }: PropsDelLector) {
   const { zonaHoraria } = useRegional()
@@ -78,6 +82,8 @@ function LectorDeLaFicha({
       tipos={tipos}
       zona={zonaHoraria}
       puedeEditar
+      puedeEditarExtras={puedeEditarExtras}
+      puedeConfigurar={puedeConfigurar}
       enResumen={{ alRecargar: reintentar, alGuardado, alPerderElLead }}
     />
   )
