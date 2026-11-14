@@ -99,3 +99,10 @@ export function errorDePostgrest(error: ErrorPostgrest): ErrorApp {
   const legible = error.message.trim() !== '' && !MENSAJE_TECNICO.test(error.message)
   return { codigo: conocido.codigo, mensaje: legible ? error.message : conocido.generico }
 }
+
+// Un rechazo por regla (23514) cuya RPC dice en `hint` *cuál* regla frenó (`_lead_bloqueo()`): la clave viaja como `causa` y el módulo la
+// vuelve acciones del aviso. Sólo para las RPC que lo prometen: en otras, `hint` nombra un campo.
+export function errorConCausa(error: ErrorPostgrest & { hint?: string | null }): ErrorApp {
+  const base = errorDePostgrest(error)
+  return error.code === '23514' && error.hint ? { ...base, causa: error.hint } : base
+}

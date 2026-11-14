@@ -8211,6 +8211,16 @@ export type Database = {
         Returns: undefined
       }
       _lead_atributos_publicos: { Args: { p_atributos: Json }; Returns: Json }
+      _lead_bloqueo: {
+        Args: {
+          l: Omit<
+            Database['public']['Tables']['leads']['Row'],
+            Database['public']['Tables']['leads']['ComputedFields']
+          >
+          p_al_enviar: boolean
+        }
+        Returns: Json
+      }
       _lead_busqueda_patron: { Args: { p_texto: string }; Returns: string }
       _lead_campo_con_valor: { Args: { p_clave: string }; Returns: number }
       _lead_campo_privacidad_lote: { Args: { p_campo: string; p_lote: number }; Returns: boolean }

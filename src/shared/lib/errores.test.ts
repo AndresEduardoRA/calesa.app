@@ -6,6 +6,7 @@ import {
   MENSAJE_SIN_RESPUESTA,
   conflicto,
   datosO,
+  errorConCausa,
   errorDePostgrest,
   fallo,
   ok,
@@ -139,5 +140,22 @@ describe('errorDePostgrest: el pedido que no llegó', () => {
 
   it('un error sin código que no es del transporte sigue siendo inesperado', () => {
     expect(errorDePostgrest({ code: '', message: 'algo raro' }).mensaje).toBe(MENSAJE_INESPERADO)
+  })
+})
+
+describe('errorConCausa', () => {
+  it('un 23514 con hint lleva la clave como causa y el mensaje de la base', () => {
+    expect(
+      errorConCausa({ code: '23514', message: 'No se envió nada.', hint: 'vinculado' }),
+    ).toEqual({ codigo: 'regla', mensaje: 'No se envió nada.', causa: 'vinculado' })
+  })
+
+  it('sin hint, o con otro código, es el error de siempre', () => {
+    expect(errorConCausa({ code: '23514', message: 'No.' })).toEqual(
+      errorDePostgrest({ code: '23514', message: 'No.' }),
+    )
+    expect(errorConCausa({ code: '22023', message: 'Falta.', hint: 'nombre' })).toEqual(
+      errorDePostgrest({ code: '22023', message: 'Falta.' }),
+    )
   })
 })
