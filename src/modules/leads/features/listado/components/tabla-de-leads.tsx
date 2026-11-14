@@ -12,6 +12,7 @@ import { tipoDelCatalogo } from '../../../entities/catalogos'
 import type { OrigenConEstado } from '../../../entities/ficha'
 import { camposDeTabla } from '../../../entities/listado'
 import type { FilaDeLead } from '../../../entities/listado'
+import { BotonDeOportunidad } from './boton-de-oportunidad'
 import { MenuDeLead } from '../../marcas/components/menu-de-lead'
 import { BadgeDeTipo } from './badge-de-tipo'
 import { CeldaDeCampo } from './celda-de-campo'
@@ -25,6 +26,24 @@ import {
   useContextoDeUltimoContacto,
   type DatosDeUltimoContacto,
 } from './ultimo-contacto'
+
+// «+ Oportunidad» y el «⋯» de la fila, juntos a la derecha.
+function AccionesDeLaFila({ lead, marcar }: { lead: FilaDeLead; marcar: ParaMarcar }) {
+  return (
+    <div className="flex items-center justify-end gap-1">
+      <BotonDeOportunidad lead={lead} marcar={marcar} conTexto />
+      <MenuDeLead
+        leadId={lead.id}
+        nombre={lead.nombre}
+        marcas={lead.marcas}
+        etiquetas={marcar.etiquetas}
+        alGestionar={marcar.alGestionar}
+        puedeEnviar={marcar.eliminables.includes(lead.id)}
+        acciones={accionesDelMenu(marcar, lead)}
+      />
+    </div>
+  )
+}
 
 type Props = DatosDeLaLista & {
   leads: readonly FilaDeLead[]
@@ -132,15 +151,7 @@ export function TablaDeLeads(props: Props) {
               </TableCell>
             ))}
             <CeldaPegada lado="acciones">
-              <MenuDeLead
-                leadId={lead.id}
-                nombre={lead.nombre}
-                marcas={lead.marcas}
-                etiquetas={marcar.etiquetas}
-                alGestionar={marcar.alGestionar}
-                puedeEnviar={marcar.eliminables.includes(lead.id)}
-                acciones={accionesDelMenu(marcar, lead)}
-              />
+              <AccionesDeLaFila lead={lead} marcar={marcar} />
             </CeldaPegada>
           </FilaDeLista>
         ))}

@@ -26,6 +26,10 @@ Leads (prospectos y clientes) con teléfono principal único y enmascarado salvo
   `/leads/importar` (`leads.crear`), `POST /leads/exportar` (`leads.exportar`), `/configuracion/leads` («Campos» y las `lead_campo_*` piden
   `leads.campos.gestionar`; orígenes, tipos de lead y de seguimiento y `?seccion=embudo|portal` (`features/plantillas/`), `leads.configurar`).
   Todo modal en `?panel=` (`PANEL_*`); los de una fila llevan `para=<id>` y con `?lead=` no responden.
+- «+ Oportunidad» de la fila y la tarjeta del listado (`features/listado/components/boton-de-oportunidad.tsx`, `?panel=oportunidad-rapida&para=<id>`,
+  `features/oportunidades/components/modal-de-oportunidad-rapida.tsx`): sólo `leads.editar` y el lead en la cartera, como anotar y agendar. Título (el nombre
+  del lead) y monto; la base pone el embudo por defecto de quien mira (lo crea si no lo tiene) y su etapa inicial. Sin vehículo ni notas: el listado no
+  lee los vehículos del lead (`entities/oportunidad-rapida.ts`).
 - Hoja de cotizar: `<BarraDelCliente>` y su panel (`features/panel-para-cotizar/`, `?panel=cliente&clase=&buscar=&cursor=`: «míos» por
   `reciente_en` o búsqueda por nombre o `#n`; elegir escribe `?lead=` con `history: 'replace', shallow: false`; lecturas del navegador en
   `infra/panel-para-cotizar.client.ts`). Su «+» abre el alta con `?panel=nuevo-lead&elegir=<clave>` (`claveParaElegir()`: 1 a 20 minúsculas, ni
