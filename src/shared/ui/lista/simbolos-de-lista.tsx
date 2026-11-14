@@ -4,6 +4,7 @@
 // Lo monta el layout `(app)` una sola vez; un `<use>` que apunta a un id que no está no dibuja nada, así que el test de `lista`
 // comprueba que cada id que se usa existe acá y `e2e/mas-acciones-icono.spec.ts` que se ve igual que el icono de trazos.
 export const ID_DEL_ICONO_MAS_ACCIONES = 'icono-mas-acciones'
+export const ID_DEL_ICONO_MAS = 'icono-mas'
 
 // Los atributos de trazo van en el `<svg>` que usa el icono (se heredan): así el icono sigue el `currentColor` de su botón.
 export const TRAZO_DE_LOS_ICONOS = {
@@ -28,6 +29,10 @@ export function SimbolosDeLista() {
           <circle cx="12" cy="12" r="1" />
           <circle cx="19" cy="12" r="1" />
           <circle cx="5" cy="12" r="1" />
+        </g>
+        <g id={ID_DEL_ICONO_MAS}>
+          <path d="M5 12h14" />
+          <path d="M12 5v14" />
         </g>
       </defs>
     </svg>

@@ -1,6 +1,6 @@
 'use client'
 
-import { PlusIcon } from 'lucide-react'
+import { ID_DEL_ICONO_MAS, IconoDeLista } from '@/shared/ui/lista'
 import type { FilaDeLead } from '../../../entities/listado'
 import type { ParaMarcar } from './tipos'
 
@@ -30,7 +30,7 @@ export function BotonDeOportunidad({ lead, marcar, conTexto }: Props) {
       }}
       className={`flex shrink-0 items-center justify-center gap-1 rounded-(--radius-md) text-(length:--text-sm) text-(--color-ink) outline-none hover:bg-(--color-surface-3) focus-visible:shadow-(--shadow-focus) ${conTexto ? 'size-[44px] md:h-8 md:w-auto md:px-2' : 'size-[44px]'}`}
     >
-      <PlusIcon aria-hidden className="size-4" />
+      <IconoDeLista id={ID_DEL_ICONO_MAS} />
       {conTexto ? <span className="hidden whitespace-nowrap md:inline">Oportunidad</span> : null}
     </button>
   )
