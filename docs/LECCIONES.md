@@ -63,6 +63,7 @@ Si ya no aplica (cambió la herramienta o el código), se quita.
 - Toma la fila `for no key update` cuando no cambias una clave: `for update` choca con el `key share` de quien inserta hijas (comentarios, revisiones) y termina en espera, 55P03 o 40P01.
 - Asigna una columna con índice único sólo si cambia: aun con el mismo valor toma el candado de clave y hace esperar a quien inserta con esa FK.
 - Fija un orden común de candados (lead → vehículo → cotizaciones por id; padres antes que hija, en el orden de quien purga): al revés aparece 40P01.
+- Haz que una transacción que recorre varios lotes (un job) tome primero las filas de todos en el orden común: lote a lote retiene un vehículo antes que el lead de otro lote y da 40P01.
 - Toma los candados de una clase en una sola pasada ordenada por id (agregar ∪ quitar): quitar todo y luego agregar todo forma ciclos y da 40P01.
 - Haz que un job que retiene filas use `skip locked`: si no, frena a las personas que editan esas filas.
 - Mira el permiso antes del candado y de la versión: quien no puede recibe 42501 sin esperar. Salvo cuando lo que otro cambia a la vez es el permiso de quien llama (la dominancia): ahí el candado va primero.
