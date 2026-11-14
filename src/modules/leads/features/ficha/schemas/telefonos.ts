@@ -19,6 +19,13 @@ export const esquemaVerificarTelefonoDeLead = z.object({
   telefono,
 })
 
+// Agregar un extra a este lead: ¿el número ya es de otro, y de quién? (`verificar_telefono_extra()`).
+export const esquemaVerificarTelefonoExtra = z.object({
+  leadId: z.guid(),
+  codigoDePais,
+  telefono,
+})
+
 // Agregar, rotular y restituir un extra son lo mismo: se guarda por su id. Un reintento (o un
 // «Deshacer») manda el mismo id y no duplica.
 export const esquemaGuardarTelefonoExtra = z.object({

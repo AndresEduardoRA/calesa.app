@@ -31,7 +31,12 @@ import type {
   Seguimiento,
   Visibilidad,
 } from './seguimiento'
-import type { CambioDeExtras, CambioDeTelefono } from './telefonos'
+import type {
+  CambioDeExtras,
+  CambioDeTelefono,
+  ExtrasGuardados,
+  LeadDeTelefonos,
+} from './telefonos'
 import type { Verificacion } from './verificacion'
 
 // Toda edición manda la versión que tenía en pantalla quien edita; la base responde `conflicto`
@@ -144,6 +149,12 @@ export type RepositorioDeTelefonos = {
     codigoDePais: string | null
     telefono: string
   }) => Promise<Resultado<Verificacion>>
+  // Agregar un teléfono extra a este lead: la base dice si el número ya es de otro (según la regla de la empresa) y si no deja agregarlo.
+  verificarExtra: (pedido: {
+    id: string
+    codigoDePais: string | null
+    telefono: string
+  }) => Promise<Resultado<Verificacion>>
   cambiar: (pedido: {
     id: string
     actualizadoEnEsperado: string
@@ -162,8 +173,11 @@ export type RepositorioDeTelefonos = {
   quitarExtra: (pedido: {
     leadId: string
     id: string
-  }) => Promise<{ ok: true; data: CambioDeExtras } | FalloDeTelefono>
+  }) => Promise<{ ok: true; data: ExtrasGuardados } | FalloDeTelefono>
 }
+
+// Los teléfonos de un lead leídos desde el navegador (el resumen del listado), con la sesión de quien mira: `null` si no lo ve.
+export type LectorDeTelefonosDelLead = (id: string) => Promise<Resultado<LeadDeTelefonos | null>>
 
 // --- Los seguimientos de la ficha ---------------------------------------------------------------------
 

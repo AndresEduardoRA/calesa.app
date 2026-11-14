@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { LARGO_MAXIMO_DE_ETAPA, MAXIMO_DE_ETAPAS, MINIMO_DE_ETAPAS } from '../../../entities/embudo'
 import { CLAVES_DE_COLOR } from '../../../entities/etiqueta'
+import { LIMITES_DEL_MAXIMO } from '../../../entities/telefonos'
 
 // Lo que cruza el límite de las plantillas: sólo la forma. Las reglas (una inicial, una ganada y una perdida, nombres sin repetir, las
 // variables del mensaje) las dice la base con el campo en el `hint`.
@@ -28,4 +29,11 @@ export const esquemaGuardarMensajeDelPortal = z.object({
   actualizadoEnEsperado: version,
   // Nulo: vuelve el de fábrica. El largo fino (1000 caracteres) y las variables los dice la base; esto sólo pone un techo.
   texto: z.string().max(4000).nullable(),
+})
+
+export const esquemaGuardarTelefonosExtra = z.object({
+  actualizadoEnEsperado: version,
+  // El rango fino lo dice la base («El máximo va de 0 a 20.»); esto pone el mismo techo.
+  maximo: z.int().min(LIMITES_DEL_MAXIMO.minimo).max(LIMITES_DEL_MAXIMO.maximo),
+  comoPrincipal: z.boolean(),
 })

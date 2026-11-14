@@ -24,6 +24,8 @@ export type FormularioDelModal = {
   esperandoConexion: boolean
   // `false` si no se guardó: el foco va al primer campo con su motivo.
   enviar: () => Promise<boolean>
+  // Lo que hay escrito no se puede guardar (el motivo ya está a la vista): el botón del pie se apaga.
+  sinPoderEnviar?: boolean
   reintentar: () => void
   // «Recargar» tras un conflicto: trae la versión de ahora y conserva lo escrito. Sin versión, nada.
   recargar?: () => void
@@ -114,6 +116,7 @@ function Avisos({
 const sinPoderGuardar = (formulario: FormularioDelModal, noDisponible: string | null) =>
   formulario.enCurso ||
   formulario.recargando === true ||
+  formulario.sinPoderEnviar === true ||
   noDisponible !== null ||
   formulario.conflicto !== null
 

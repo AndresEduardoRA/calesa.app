@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useEffect, useId, useMemo, useRef } from 'react'
+import { useEffect, useId, useMemo, useRef, type RefObject } from 'react'
 import { agruparCampos } from '@/shared/lib/campos'
 import { enfocarPrimerError } from '@/shared/lib/formularios'
 import { RUTAS } from '@/shared/lib/rutas'
@@ -32,6 +32,8 @@ import { useFormularioDeLead, type FormularioDeLead } from '../hooks/use-formula
 import { SIN_NUMEROS } from '@/shared/lib/numeros-de-lead'
 import { useNumeroEscrito } from '@/shared/ui/numero-de-lead'
 import { usePanelDeLead } from '../hooks/use-panel-de-lead'
+import { TelefonosDelPanel } from './telefonos-del-panel'
+import { telefonosDeLaFicha } from '../../../entities/telefonos'
 
 type Datos = {
   ficha: LeadDeFicha
@@ -57,6 +59,10 @@ export type EdicionEnElResumen = {
 type Props = Datos & {
   // Quien mira puede editar este lead: sin esto el panel no se abre aunque la URL lo pida.
   puedeEditar: boolean
+  // Cartera y `leads.telefonos_extra.editar`: los extras se administran desde el panel; sin esto se ven sin acciones.
+  puedeEditarExtras: boolean
+  // `leads.configurar`: el enlace «Cambiar el máximo».
+  puedeConfigurar: boolean
   enResumen?: EdicionEnElResumen
 }
 
@@ -183,6 +189,18 @@ function salidasDelPanel(
   }
 }
 
+function useFocoEnElPrimerError(
+  formulario: RefObject<HTMLFormElement | null>,
+  errores: Record<string, string>,
+) {
+  const hayErrores = Object.keys(errores).length > 0
+  useEffect(() => {
+    if (hayErrores) {
+      enfocarPrimerError(formulario.current)
+    }
+  }, [errores, hayErrores, formulario])
+}
+
 // Lo de adentro del panel. Se monta al abrirlo (y de nuevo si cambia la versión de lo que se
 // edita, por ejemplo tras «Recargar»): así cada apertura arranca de lo guardado.
 function Contenido({
@@ -193,9 +211,19 @@ function Contenido({
   zona,
   alCerrar,
   enResumen,
-}: Datos & { alCerrar: () => void; enResumen: EdicionEnElResumen | undefined }) {
+  puedeEditarExtras,
+  puedeConfigurar,
+}: Datos & {
+  alCerrar: () => void
+  enResumen: EdicionEnElResumen | undefined
+  puedeEditarExtras: boolean
+  puedeConfigurar: boolean
+}) {
   const idFormulario = useId()
   const router = useRouter()
+  const refrescarLaFicha = () => {
+    router.refresh()
+  }
   const formulario = useRef<HTMLFormElement>(null)
   const editables = useMemo(
     () => camposEditables(campos, ficha.enCartera),
@@ -207,21 +235,14 @@ function Contenido({
     origenes,
     tipos,
     zona,
-    ...salidasDelPanel(alCerrar, enResumen, () => {
-      router.refresh()
-    }),
+    ...salidasDelPanel(alCerrar, enResumen, refrescarLaFicha),
   })
 
   // Con algo escrito, la acción de un aviso que sale de la pantalla («Abrir ficha») pregunta en el pie; descartar tira el borrador.
   useCambiosSinGuardar(estado.hayCambios, estado.descartarBorrador)
 
   // El foco va al primer campo con un motivo, también cuando se guarda con Ctrl/Cmd+S.
-  const hayErrores = Object.keys(estado.errores).length > 0
-  useEffect(() => {
-    if (hayErrores) {
-      enfocarPrimerError(formulario.current)
-    }
-  }, [estado.errores, hayErrores])
+  useFocoEnElPrimerError(formulario, estado.errores)
 
   return (
     <div className="grid gap-4">
@@ -256,6 +277,13 @@ function Contenido({
         <DatosFijos ficha={ficha} origenes={origenes} tipos={tipos} estado={estado} />
         <GruposDeCampos ficha={ficha} campos={editables} estado={estado} />
       </form>
+      {/* Fuera del `<form>`: rotular una fila es otro formulario, y no se anidan. Se guardan al momento. */}
+      <TelefonosDelPanel
+        lead={telefonosDeLaFicha(ficha)}
+        puedeEditarExtras={puedeEditarExtras}
+        puedeConfigurar={puedeConfigurar}
+        alCambiar={enResumen ? enResumen.alGuardado : refrescarLaFicha}
+      />
       <PieDelPanel idFormulario={idFormulario} enCurso={estado.enCurso} alCancelar={alCerrar} />
     </div>
   )
@@ -264,7 +292,13 @@ function Contenido({
 // El panel de edición de la ficha (`?panel=editar-lead`). Sólo se abre si quien mira puede editar
 // este lead: sin permiso no hay botón y la URL no abre nada. Se queda a pantalla completa en el
 // celular y con «Guardar» siempre a la vista.
-export function PanelDeEdicion({ puedeEditar, enResumen, ...datos }: Props) {
+export function PanelDeEdicion({
+  puedeEditar,
+  puedeEditarExtras,
+  puedeConfigurar,
+  enResumen,
+  ...datos
+}: Props) {
   const panel = usePanelDeLead()
   const abierto = puedeEditar && panel.abierto
   // Mientras se cierra, el panel sigue mostrando lo que tenía.
@@ -288,6 +322,8 @@ export function PanelDeEdicion({ puedeEditar, enResumen, ...datos }: Props) {
           ficha={ficha}
           alCerrar={panel.cerrar}
           enResumen={enResumen}
+          puedeEditarExtras={puedeEditarExtras}
+          puedeConfigurar={puedeConfigurar}
         />
       ) : null}
     </Drawer>

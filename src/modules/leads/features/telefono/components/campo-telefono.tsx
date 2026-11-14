@@ -55,6 +55,8 @@ type Props = {
   pais?: PaisDelCampo | null
   // Lo que se le dice al lector de pantalla cuando el país del número cambia.
   anuncio?: string | null
+  // El enlace al lead que ya tiene el número: «Abrir» en el alta, «Ver ese lead» al agregar un extra.
+  textoDeAbrir?: string
 }
 
 const TONO = {
@@ -69,6 +71,7 @@ type PropsDelEstado = {
   hayError: boolean
   alTomar: ((tomarlo: boolean) => void) | undefined
   alElegir: ((leadId: string) => void) | undefined
+  textoDeAbrir: string
 }
 
 // «Tomar lead» para un teléfono sin dueño, y lo que significa tomarlo.
@@ -116,11 +119,12 @@ type PropsDelAviso = {
   aviso: AvisoDeTelefono
   verificacion: Verificacion | null
   alElegir: ((leadId: string) => void) | undefined
+  textoDeAbrir: string
 }
 
 // Lo que se le dice a quien tipea. Si el número ya es de un lead que ve (o es un teléfono extra de
 // uno), lleva a su ficha.
-function AvisoDelTelefono({ aviso, verificacion, alElegir }: PropsDelAviso) {
+function AvisoDelTelefono({ aviso, verificacion, alElegir, textoDeAbrir }: PropsDelAviso) {
   const abrible = verificacion ? leadAbrible(verificacion) : null
   return (
     <p className={cn(TONO[aviso.tono])}>
@@ -146,7 +150,7 @@ function AvisoDelTelefono({ aviso, verificacion, alElegir }: PropsDelAviso) {
             href={`${RUTAS.leads}/${abrible}` as Route}
             className="font-medium underline underline-offset-2"
           >
-            Abrir
+            {textoDeAbrir}
           </Link>
         </>
       ) : null}
@@ -158,7 +162,7 @@ function AvisoDelTelefono({ aviso, verificacion, alElegir }: PropsDelAviso) {
 }
 
 // Lo que se sabe del teléfono: verificándose, nuevo, de quién es, sin dueño.
-function LoQueSeSabe({ telefono, hayError, alTomar, alElegir }: PropsDelEstado) {
+function LoQueSeSabe({ telefono, hayError, alTomar, alElegir, textoDeAbrir }: PropsDelEstado) {
   const { verificando, aviso, adoptar, verificacion } = telefono
   if (verificando) {
     return (
@@ -172,7 +176,12 @@ function LoQueSeSabe({ telefono, hayError, alTomar, alElegir }: PropsDelEstado) 
   return (
     <>
       {!hayError && conTexto ? (
-        <AvisoDelTelefono aviso={aviso} verificacion={verificacion} alElegir={alElegir} />
+        <AvisoDelTelefono
+          aviso={aviso}
+          verificacion={verificacion}
+          alElegir={alElegir}
+          textoDeAbrir={textoDeAbrir}
+        />
       ) : null}
       {verificacion?.estado === 'limbo' && alTomar ? (
         <div className="flex flex-wrap items-center gap-2">
@@ -210,6 +219,7 @@ export function CampoTelefono({
   autoFocus = true,
   pais = null,
   anuncio = null,
+  textoDeAbrir = 'Abrir',
 }: Props) {
   const lineaVisible = sePuedeDecirComoQueda(telefono, error)
   return (
@@ -247,6 +257,7 @@ export function CampoTelefono({
           hayError={error !== undefined}
           alTomar={alTomar}
           alElegir={alElegir}
+          textoDeAbrir={textoDeAbrir}
         />
       </div>
     </div>

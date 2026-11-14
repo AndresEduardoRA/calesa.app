@@ -1,6 +1,7 @@
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { MENSAJE_DE_LEAD_NO_DISPONIBLE, type LeadDeFicha } from '../../../entities/ficha'
+import { MENSAJE_DE_LEAD_NO_DISPONIBLE, type TelefonoExtra } from '../../../entities/ficha'
+import type { LeadDeTelefonos } from '../../../entities/telefonos'
 import { useTelefonosExtra } from './use-telefonos-extra'
 
 const guardarAccion = vi.fn<(entrada: Record<string, unknown>) => Promise<unknown>>()
@@ -35,13 +36,14 @@ const ID = '4a1f5b0e-6f0a-4f6e-9a55-1b6e2a1f0c11'
 const CASA = '9b2c7d1e-1f3a-4b6c-8d4e-2a5f6b7c8d90'
 const TRABAJO = '2d3e4f50-6172-4839-9a0b-1c2d3e4f5061'
 
-const ficha = (telefonos: LeadDeFicha['telefonos']): LeadDeFicha =>
+const ficha = (telefonos: TelefonoExtra[], telefonosMaximo = 10): LeadDeTelefonos =>
   ({
     id: ID,
     telefonoCc: '+591',
     telefono: '59170011002',
     telefonos,
-  }) as unknown as LeadDeFicha
+    telefonosMaximo,
+  }) as unknown as LeadDeTelefonos
 
 const ESTADO = {
   resultado: 'agregado',
@@ -67,7 +69,7 @@ afterEach(cleanup)
 
 describe('useTelefonosExtra: la lista', () => {
   it('arranca con los extras de la ficha y se vuelve a sembrar si la ficha cambia', () => {
-    const { result, rerender } = renderHook((f: LeadDeFicha) => useTelefonosExtra(f), {
+    const { result, rerender } = renderHook((f: LeadDeTelefonos) => useTelefonosExtra(f), {
       initialProps: ficha([{ id: CASA, telefono: '59171234567', etiqueta: 'Casa' }]),
     })
     expect(result.current.extras).toHaveLength(1)
@@ -97,6 +99,69 @@ describe('useTelefonosExtra: la lista', () => {
     expect(result.current.extras).toEqual([{ id: CASA, telefono: '59171234567', etiqueta: 'Casa' }])
   })
 
+  it('el tope es el máximo de la empresa: con lugar no está alcanzado, con el máximo dice lo de la base', () => {
+    const tres = Array.from({ length: 3 }, (_, i) => ({
+      id: `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`,
+      telefono: `5917100000${String(i)}`,
+      etiqueta: null,
+    }))
+    const { result } = renderHook(() => useTelefonosExtra(ficha(tres, 4)))
+    expect(result.current.topeAlcanzado).toBe(false)
+    const lleno = renderHook(() => useTelefonosExtra(ficha(tres, 3)))
+    expect(lleno.result.current).toMatchObject({
+      topeAlcanzado: true,
+      sobran: 0,
+      motivoDelTope: 'Un lead admite hasta 3 teléfonos extra. Quita uno para agregar otro.',
+    })
+  })
+})
+
+describe('useTelefonosExtra: el máximo y los choques', () => {
+  it('con más que el máximo (se bajó) dice cuántos quitar y los suyos quedan; con 0, que no se admiten', () => {
+    const tres = Array.from({ length: 3 }, (_, i) => ({
+      id: `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`,
+      telefono: `5917100000${String(i)}`,
+      etiqueta: null,
+    }))
+    const { result } = renderHook(() => useTelefonosExtra(ficha(tres, 2)))
+    expect(result.current.extras).toHaveLength(3)
+    expect(result.current).toMatchObject({ topeAlcanzado: true, sobran: 1 })
+    expect(result.current.motivoDelTope).toContain('quita 2 para agregar otro')
+    const sin = renderHook(() => useTelefonosExtra(ficha([], 0)))
+    expect(sin.result.current.motivoDelTope).toBe('Esta empresa no admite teléfonos extra.')
+  })
+
+  it('«alCambiar» avisa al que muestra el lead cuando la lista cambió, no con un choque', async () => {
+    const alCambiar = vi.fn()
+    guardarAccion.mockResolvedValueOnce(ok(ESTADO))
+    const { result } = renderHook(() => useTelefonosExtra(ficha([]), alCambiar))
+    await act(async () => {
+      await result.current.guardar({ id: CASA, telefono: '71234567', etiqueta: null })
+    })
+    expect(alCambiar).toHaveBeenCalledOnce()
+    guardarAccion.mockResolvedValueOnce(
+      ok({ resultado: 'de_otro', verificacion: { estado: 'de_otro', dueno: 'Diego' } }),
+    )
+    await act(async () => {
+      await result.current.guardar({ id: TRABAJO, telefono: '72222222', etiqueta: null })
+    })
+    expect(alCambiar).toHaveBeenCalledOnce()
+    expect(result.current.extras).toEqual([{ id: CASA, telefono: '59171234567', etiqueta: 'Casa' }])
+  })
+
+  it('un choque con otro lead no toca la lista y se devuelve para que el modal lo diga', async () => {
+    guardarAccion.mockResolvedValue(
+      ok({ resultado: 'existe', verificacion: { estado: 'limbo', como: 'extra' } }),
+    )
+    const { result } = renderHook(() => useTelefonosExtra(ficha([])))
+    let envio: Awaited<ReturnType<typeof result.current.guardar>> | undefined
+    await act(async () => {
+      envio = await result.current.guardar({ id: CASA, telefono: '71234567', etiqueta: null })
+    })
+    expect(envio?.ok && 'verificacion' in envio.data).toBe(true)
+    expect(result.current.extras).toEqual([])
+  })
+
   it('con 10 el tope está alcanzado', () => {
     const diez = Array.from({ length: 10 }, (_, i) => ({
       id: `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`,
@@ -119,20 +184,20 @@ describe('useTelefonosExtra: la lista', () => {
   })
 })
 
-describe('useTelefonosExtra: quitar y deshacer', () => {
-  const quitado = {
-    id: CASA,
-    telefono: '59171234567',
-    etiqueta: 'Casa',
-    creadoEn: '2026-10-13T10:00:00.000Z',
-  }
-  const trasQuitar = {
-    ...ESTADO,
-    resultado: 'quitado',
-    telefonos: [],
-    quitado,
-  }
+const quitado = {
+  id: CASA,
+  telefono: '59171234567',
+  etiqueta: 'Casa',
+  creadoEn: '2026-10-13T10:00:00.000Z',
+}
+const trasQuitar = {
+  ...ESTADO,
+  resultado: 'quitado',
+  telefonos: [],
+  quitado,
+}
 
+describe('useTelefonosExtra: quitar y deshacer', () => {
   it('quita, ofrece «Deshacer» y «Deshacer» restituye el mismo id, etiqueta y lugar', async () => {
     quitarAccion.mockResolvedValue(ok(trasQuitar))
     guardarAccion.mockResolvedValue(ok(ESTADO))
@@ -163,7 +228,9 @@ describe('useTelefonosExtra: quitar y deshacer', () => {
     expect(result.current.extras).toHaveLength(1)
     expect(avisarExito).toHaveBeenCalledOnce()
   })
+})
 
+describe('useTelefonosExtra: deshacer cuando el número ya no está libre', () => {
   it('si entretanto alguien agregó ese número, «Deshacer» lo dice y no duplica', async () => {
     quitarAccion.mockResolvedValue(ok(trasQuitar))
     guardarAccion.mockResolvedValue({
@@ -186,6 +253,30 @@ describe('useTelefonosExtra: quitar y deshacer', () => {
     expect(avisarError).toHaveBeenCalledWith(
       expect.objectContaining({ mensaje: 'Ese número ya está en este lead.' }),
     )
+    expect(result.current.extras).toEqual([])
+  })
+
+  it('si al deshacer otro lead ya tiene el número (con la regla encendida), lo dice y no duplica', async () => {
+    quitarAccion.mockResolvedValue(ok(trasQuitar))
+    guardarAccion.mockResolvedValue(
+      ok({ resultado: 'de_otro', verificacion: { estado: 'de_otro', dueno: 'Diego' } }),
+    )
+    const { result } = renderHook(() =>
+      useTelefonosExtra(ficha([{ id: CASA, telefono: '59171234567', etiqueta: 'Casa' }])),
+    )
+    await act(async () => {
+      await result.current.quitar({ id: CASA, telefono: '59171234567', etiqueta: 'Casa' })
+    })
+    await act(async () => {
+      avisarConDeshacer.mock.calls[0]?.[1]()
+      await Promise.resolve()
+    })
+    expect(avisarError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mensaje: 'Ese número ya lo tiene otro lead: no se pudo restituir.',
+      }),
+    )
+    expect(avisarExito).not.toHaveBeenCalled()
     expect(result.current.extras).toEqual([])
   })
 

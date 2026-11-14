@@ -79,7 +79,8 @@ export { accionesDeCartera, duenoDe } from './entities/cartera'
 export { leerPapeleraDeLeads } from './composicion'
 export { puedeAbrirLaPapelera, puedeEnviarLead, puedePurgarLeads } from './entities/papelera'
 // Cambiar el principal y los extras: con el lead en la cartera, como editarlo.
-export { puedeCambiarTelefonoDeLead } from './entities/telefonos'
+export { puedeCambiarTelefonoDeLead, puedeEditarTelefonosExtra } from './entities/telefonos'
+export { leerChoquesDeTelefonos } from './composicion'
 export { CLAVE_DE_SECCION, seccionDeLead } from './entities/ficha'
 // La sección «Seguimientos»: la lee el servidor con la sesión de quien mira y va detrás de
 // `<Suspense>` (su esqueleto es `<EsqueletoDeSeguimientos>`). Quién ve qué y quién anota lo decide

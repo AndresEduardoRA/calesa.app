@@ -1,22 +1,34 @@
-import { act, cleanup, renderHook } from '@testing-library/react'
+import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { LeadDeFicha } from '../../../entities/ficha'
+import type { LeadDeTelefonos } from '../../../entities/telefonos'
 import type { TelefonosExtra } from './use-telefonos-extra'
 import { useFormularioDeExtra } from './use-formulario-de-extra'
 
 vi.mock('@/shared/ui/toasts', () => ({ avisarExito: vi.fn() }))
 
-const FICHA = { id: 'x', telefonoCc: '+591', telefono: '59170011002' } as unknown as LeadDeFicha
+// La verificación contra los demás leads: lo que diga cada prueba.
+const verificar = vi.fn<(entrada: Record<string, unknown>) => Promise<unknown>>()
+vi.mock('next-safe-action/hooks', () => ({ useAction: () => ({ executeAsync: verificar }) }))
+vi.mock('../actions/verificar-telefono-extra', () => ({ verificarTelefonoExtra: 'verificar' }))
+
+const LEAD = {
+  id: 'x',
+  telefonoCc: '+591',
+  telefono: '59170011002',
+  telefonosMaximo: 6,
+} as unknown as LeadDeTelefonos
 
 const guardar = vi.fn<TelefonosExtra['guardar']>()
 const alCerrar = vi.fn()
 
 const montar = (extras: { id: string; telefono: string; etiqueta: string | null }[] = []) =>
-  renderHook(() => useFormularioDeExtra({ ficha: FICHA, extras, guardar, alCerrar, abierto: true }))
+  renderHook(() => useFormularioDeExtra({ lead: LEAD, extras, guardar, alCerrar, abierto: true }))
 
 const envioOk = { ok: true, data: {} } as unknown as Awaited<ReturnType<TelefonosExtra['guardar']>>
 
 beforeEach(() => {
+  verificar.mockReset()
+  verificar.mockResolvedValue({ data: { ok: true, data: { estado: 'libre' } } })
   guardar.mockReset()
   alCerrar.mockReset()
 })
@@ -24,7 +36,7 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('useFormularioDeExtra', () => {
-  it('dice cómo va a quedar guardado y no pregunta nada a la base', () => {
+  it('dice cómo va a quedar guardado y no envía nada', () => {
     const { result } = montar()
     act(() => {
       result.current.escribirTelefono('71234567')
@@ -144,5 +156,102 @@ describe('useFormularioDeExtra: el envío', () => {
     })
     expect(result.current.errores['etiqueta']).toBe('La etiqueta admite hasta 40 caracteres.')
     expect(result.current.aviso).toBeNull()
+  })
+})
+
+describe('useFormularioDeExtra: el máximo de la empresa', () => {
+  it('con el máximo escrito en el lead no entra otro, con el texto de la base', async () => {
+    const seis = Array.from({ length: 6 }, (_, i) => ({
+      id: `id-${String(i)}`,
+      telefono: `5917100000${String(i)}`,
+      etiqueta: null,
+    }))
+    const { result } = montar(seis)
+    act(() => {
+      result.current.escribirTelefono('71234567')
+    })
+    await act(async () => {
+      await result.current.enviar()
+    })
+    expect(result.current.errores['telefono']).toBe(
+      'Un lead admite hasta 6 teléfonos extra. Quita uno para agregar otro.',
+    )
+    expect(guardar).not.toHaveBeenCalled()
+  })
+})
+
+describe('useFormularioDeExtra: el número frente a los demás leads', () => {
+  const choque = {
+    data: {
+      ok: true,
+      data: { estado: 'de_otro', dueno: 'Diego', como: 'extra' },
+    },
+  }
+
+  it('al terminar de tipear pregunta a la base; un número que choca bloquea el envío', async () => {
+    verificar.mockResolvedValue(choque)
+    const { result } = montar()
+    act(() => {
+      result.current.escribirTelefono('71234567')
+    })
+    await waitFor(() => {
+      expect(result.current.avisoDelNumero?.bloquea).toBe(true)
+    })
+    expect(verificar).toHaveBeenCalledWith(
+      expect.objectContaining({ leadId: 'x', codigoDePais: '+591', telefono: '71234567' }),
+    )
+    expect(result.current.sinPoderEnviar).toBe(true)
+    await act(async () => {
+      expect(await result.current.enviar()).toBe(false)
+    })
+    expect(result.current.errores['telefono']).toBe('Lo tiene Diego.')
+    expect(guardar).not.toHaveBeenCalled()
+  })
+
+  it('sin la regla el número de otro lead sólo avisa y se envía', async () => {
+    verificar.mockResolvedValue({
+      data: {
+        ok: true,
+        data: {
+          estado: 'libre',
+          alterno: { estado: 'de_otro', dueno: 'Diego', como: 'principal' },
+        },
+      },
+    })
+    guardar.mockResolvedValue(envioOk)
+    const { result } = montar()
+    act(() => {
+      result.current.escribirTelefono('71234567')
+    })
+    await waitFor(() => {
+      expect(result.current.avisoDelNumero?.texto).toBe(
+        'Es el teléfono principal de un lead de Diego.',
+      )
+    })
+    expect(result.current.sinPoderEnviar).toBe(false)
+    await act(async () => {
+      await result.current.enviar()
+    })
+    expect(guardar).toHaveBeenCalledOnce()
+  })
+
+  it('si otra persona lo tomó entre tipear y enviar, la respuesta se fija y «Agregar» se apaga', async () => {
+    guardar.mockResolvedValue({
+      ok: true,
+      data: { resultado: 'de_otro', verificacion: { estado: 'de_otro', dueno: 'Diego' } },
+    } as unknown as Awaited<ReturnType<TelefonosExtra['guardar']>>)
+    const { result } = montar()
+    act(() => {
+      result.current.escribirTelefono('71234567')
+    })
+    await waitFor(() => {
+      expect(result.current.verificacion).not.toBeNull()
+    })
+    await act(async () => {
+      expect(await result.current.enviar()).toBe(false)
+    })
+    expect(alCerrar).not.toHaveBeenCalled()
+    expect(result.current.sinPoderEnviar).toBe(true)
+    expect(result.current.avisoDelNumero?.texto).toBe('Lo tiene Diego.')
   })
 })

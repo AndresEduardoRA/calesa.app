@@ -1,34 +1,46 @@
 'use client'
 
 import { PlusIcon } from 'lucide-react'
+import type { Route } from 'next'
+import Link from 'next/link'
 import { useRef } from 'react'
+import { RUTAS } from '@/shared/lib/rutas'
 import { Button } from '@/shared/ui/button'
 import { useAbiertoAlgunaVez } from '@/shared/ui/use-abierto-alguna-vez'
 import { useApertura } from '@/shared/ui/use-apertura'
-import type { LeadDeFicha } from '../../../entities/ficha'
-import { MAXIMO_DE_TELEFONOS_EXTRA } from '../../../entities/telefonos'
-import { usePanelDeLead } from '../hooks/use-panel-de-lead'
+import type { LeadDeTelefonos } from '../../../entities/telefonos'
 import { useTelefonosExtra } from '../hooks/use-telefonos-extra'
 import { ModalDeExtraDiferido } from './diferidos'
 import { FilaDeExtra } from './fila-de-extra'
 
 type Props = {
-  ficha: LeadDeFicha
-  // Cartera y `leads.editar`: agregar, rotular y quitar. Sin esto sólo se leen.
+  lead: LeadDeTelefonos
+  // Cartera y `leads.telefonos_extra.editar`: agregar, rotular y quitar. Sin esto sólo se leen.
   puedeAdministrar: boolean
+  // El modal «Agregar teléfono» y su URL: `usePanelDeLead().extra` en la ficha, `useAgregarExtraEnPanel()` en el panel y el resumen.
+  apertura: { abierto: boolean; abrir: () => void; cerrar: () => void }
+  // `leads.configurar`: con el máximo pasado o alcanzado, el enlace a donde se cambia.
+  puedeConfigurar: boolean
+  // Algo cambió en la lista: quien muestra el lead de afuera lo vuelve a leer.
+  alCambiar?: () => void
 }
 
-// Los teléfonos extra de la ficha (las filas de «Teléfonos» bajo el principal), con «Agregar
-// teléfono» al final cuando se pueden administrar: abre un modal con su URL
-// (`?panel=agregar-telefono`), que sin permiso o con el tope no se abre ni escribiéndola a mano. Una
-// petición por acción; la lista de la respuesta reemplaza a la de la pantalla.
-export function TelefonosExtra({ ficha, puedeAdministrar }: Props) {
-  const telefonos = useTelefonosExtra(ficha)
-  const panel = usePanelDeLead().extra
+// Los teléfonos extra de un lead (las filas bajo el principal), con «Agregar teléfono» al final cuando se pueden administrar: abre un
+// modal con su URL, que sin permiso o con el máximo de la empresa no se abre ni escribiéndola a mano. Una petición por acción; la lista
+// de la respuesta reemplaza a la de la pantalla. Con el máximo alcanzado dice por qué no se agrega; si el máximo se bajó después y el
+// lead tiene de más, dice cuántos quitar (los suyos quedan).
+export function TelefonosExtra({
+  lead,
+  puedeAdministrar,
+  apertura,
+  puedeConfigurar,
+  alCambiar,
+}: Props) {
+  const telefonos = useTelefonosExtra(lead, alCambiar)
   const boton = useRef<HTMLButtonElement>(null)
-  const abierto = puedeAdministrar && !telefonos.topeAlcanzado && panel.abierto
+  const abierto = puedeAdministrar && !telefonos.topeAlcanzado && apertura.abierto
   const montar = useAbiertoAlgunaVez(abierto)
-  const apertura = useApertura(abierto)
+  const aperturaDelModal = useApertura(abierto)
   const acciones = puedeAdministrar
     ? { guardar: telefonos.guardar, quitar: telefonos.quitar, enCurso: telefonos.enCurso }
     : null
@@ -38,8 +50,8 @@ export function TelefonosExtra({ ficha, puedeAdministrar }: Props) {
         <FilaDeExtra
           key={extra.id}
           extra={extra}
-          codigoDePais={ficha.telefonoCc}
-          llamable={ficha.enCartera}
+          codigoDePais={lead.telefonoCc}
+          llamable={lead.enCartera}
           acciones={acciones}
         />
       ))}
@@ -53,7 +65,7 @@ export function TelefonosExtra({ ficha, puedeAdministrar }: Props) {
               className="min-h-11 md:min-h-8"
               disabled={telefonos.topeAlcanzado}
               aria-describedby={telefonos.topeAlcanzado ? 'agregar-telefono-motivo' : undefined}
-              onClick={panel.abrir}
+              onClick={apertura.abrir}
             >
               <PlusIcon aria-hidden />
               Agregar teléfono
@@ -63,17 +75,27 @@ export function TelefonosExtra({ ficha, puedeAdministrar }: Props) {
                 id="agregar-telefono-motivo"
                 className="text-(length:--text-xs) text-(--color-ink-soft)"
               >
-                Un lead admite hasta {MAXIMO_DE_TELEFONOS_EXTRA} teléfonos extra: quita uno para
-                agregar otro.
+                {telefonos.motivoDelTope}
+                {puedeConfigurar ? (
+                  <>
+                    {' '}
+                    <Link
+                      href={`${RUTAS.configuracionDeLeads}?seccion=telefonos` as Route}
+                      className="font-medium underline underline-offset-2"
+                    >
+                      Cambiar el máximo
+                    </Link>
+                  </>
+                ) : null}
               </span>
             ) : null}
           </div>
           {montar ? (
             <ModalDeExtraDiferido
-              key={apertura}
+              key={aperturaDelModal}
               abierto={abierto}
-              alCerrar={panel.cerrar}
-              ficha={ficha}
+              alCerrar={apertura.cerrar}
+              lead={lead}
               extras={telefonos.extras}
               guardar={telefonos.guardar}
               boton={boton}

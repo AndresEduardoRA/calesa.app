@@ -42,6 +42,8 @@ export type LeadDeFicha = {
   tieneId: string | null
   tieneNombre: string | null
   telefonos: TelefonoExtra[]
+  // El máximo de teléfonos extra de la empresa (`ajustes_leads`): con él se sabe si se puede agregar otro.
+  telefonosMaximo: number
   // Los recordatorios de quien mira sobre este lead que ya pasaron y no completó, hasta
   // `TOPE_DE_VENCIDOS + 1` (la base no cuenta más: el número exacto crecía con el total).
   recordatoriosVencidos: number
@@ -77,6 +79,7 @@ const esquemaFicha = z.object({
   telefonos: z.array(
     z.object({ id: z.guid(), telefono: z.string(), etiqueta: z.string().nullable() }),
   ),
+  telefonos_maximo: z.number().int().nonnegative(),
   recordatorios_vencidos: z
     .number()
     .int()
@@ -115,6 +118,7 @@ export function fichaDesde(crudo: unknown): LeadDeFicha | null {
     tieneId: f.tiene_id,
     tieneNombre: f.tiene_nombre,
     telefonos: f.telefonos,
+    telefonosMaximo: f.telefonos_maximo,
     recordatoriosVencidos: f.recordatorios_vencidos,
     vehiculosVinculados: f.vehiculos_vinculados,
     marcas: marcasDesde(f),

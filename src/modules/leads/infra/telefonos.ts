@@ -2,7 +2,7 @@ import 'server-only'
 import { errorDePostgrest, ok } from '@/shared/lib/errores'
 import { createClient } from '@/shared/lib/supabase/server'
 import type { RepositorioDeTelefonos } from '../entities/repositorios'
-import { cambioDesde, extrasDesde } from '../entities/telefonos'
+import { cambioDesde, extrasDesde, quitadoDesde } from '../entities/telefonos'
 import { verificacionDesde } from '../entities/verificacion'
 
 // Los teléfonos de un lead se escriben sólo por estas RPC: la
@@ -20,6 +20,19 @@ function fallo(error: { code?: string | null; message: string; hint?: string | n
 const verificar: RepositorioDeTelefonos['verificar'] = async (pedido) => {
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('verificar_telefono_de_lead', {
+    p_lead: pedido.id,
+    p_cc: pedido.codigoDePais ?? '',
+    p_tel: pedido.telefono,
+  })
+  if (error) {
+    return { ok: false, error: errorDePostgrest(error) }
+  }
+  return ok(verificacionDesde(data))
+}
+
+const verificarExtra: RepositorioDeTelefonos['verificarExtra'] = async (pedido) => {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('verificar_telefono_extra', {
     p_lead: pedido.id,
     p_cc: pedido.codigoDePais ?? '',
     p_tel: pedido.telefono,
@@ -69,11 +82,12 @@ const quitarExtra: RepositorioDeTelefonos['quitarExtra'] = async (pedido) => {
   if (error) {
     return fallo(error)
   }
-  return { ok: true, data: extrasDesde(data) }
+  return { ok: true, data: quitadoDesde(data) }
 }
 
 export const telefonosSupabase: RepositorioDeTelefonos = {
   verificar,
+  verificarExtra,
   cambiar,
   guardarExtra,
   quitarExtra,

@@ -18,6 +18,7 @@ describe('las pestañas', () => {
       'seguimientos',
       'embudo',
       'portal',
+      'telefonos',
     ])
   })
 
@@ -29,14 +30,8 @@ describe('las pestañas', () => {
 describe('pestanasPara', () => {
   it('con las dos claves, ninguna apagada', () => {
     const pestanas = pestanasPara(con('leads.configurar', 'leads.campos.gestionar'))
-    expect(pestanas.map((pestana) => pestana.motivo)).toEqual([
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-    ])
+    expect(pestanas.map((pestana) => pestana.motivo)).toEqual(pestanas.map(() => undefined))
+    expect(pestanas).toHaveLength(7)
   })
 
   it('con sólo leads.configurar, «Campos» se ve apagada con su motivo y las otras abiertas', () => {
@@ -48,6 +43,7 @@ describe('pestanasPara', () => {
       ['seguimientos', undefined],
       ['embudo', undefined],
       ['portal', undefined],
+      ['telefonos', undefined],
     ])
   })
 
@@ -60,6 +56,7 @@ describe('pestanasPara', () => {
       ['seguimientos', MOTIVO_LEADS],
       ['embudo', MOTIVO_LEADS],
       ['portal', MOTIVO_LEADS],
+      ['telefonos', MOTIVO_LEADS],
     ])
   })
 })

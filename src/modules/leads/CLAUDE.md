@@ -24,7 +24,8 @@ Leads (prospectos y clientes) con teléfono principal único y enmascarado salvo
 - Rutas: `/leads`, `/leads/[id]` (`leads.ver`; `?seccion=datos|seguimientos|vehiculos|oportunidades|cotizaciones|portal`; «Cotizaciones» con
   `cotizaciones.ver` en algún origen, sin mirar la cartera, la compone `src/app` con `cotizaciones/pantallas/lead`), `/leads/papelera`,
   `/leads/importar` (`leads.crear`), `POST /leads/exportar` (`leads.exportar`), `/configuracion/leads` («Campos» y las `lead_campo_*` piden
-  `leads.campos.gestionar`; orígenes, tipos de lead y de seguimiento y `?seccion=embudo|portal` (`features/plantillas/`), `leads.configurar`).
+  `leads.campos.gestionar`; orígenes, tipos de lead y de seguimiento y `?seccion=embudo|portal|telefonos` (`features/plantillas/`), `leads.configurar`).
+  El modal «Agregar teléfono» es `?panel=agregar-telefono` en la ficha y `?extra=nuevo` dentro del panel de edición y del resumen (`?panel=` ya es el panel).
   Todo modal en `?panel=` (`PANEL_*`); los de una fila llevan `para=<id>` y con `?lead=` no responden.
 - Hoja de cotizar: `<BarraDelCliente>` y su panel (`features/panel-para-cotizar/`, `?panel=cliente&clase=&buscar=&cursor=`: «míos» por
   `reciente_en` o búsqueda por nombre o `#n`; elegir escribe `?lead=` con `history: 'replace', shallow: false`; lecturas del navegador en
@@ -56,8 +57,8 @@ Leads (prospectos y clientes) con teléfono principal único y enmascarado salvo
 
 `leads` (`atributos`, `atributos_publicos`, `cartera`), `leads_campos`, `leads_telefonos`, `leads_asesores`, `leads_favoritos`, `leads_tachados`,
 `etiquetas`, `leads_etiquetas`, `tipos_seguimiento`, `seguimientos`, `recordatorios`, `embudos`, `embudos_etapas`, `oportunidades`, `accesos_portal`,
-`origenes_lead`, `tipos_lead`, `importaciones`, `ajustes_leads` (fila única: plantillas del embudo y del mensaje del portal); `lotes_papelera` es
-compartida.
+`origenes_lead`, `tipos_lead`, `importaciones`, `ajustes_leads` (fila única: plantillas del embudo y del mensaje del portal, y los teléfonos extra:
+máximo y regla); `lotes_papelera` es compartida.
 
 **Papelera con causa:** `_lead_bloqueo(l, al_enviar) → {causa, motivo}` (`_lead_motivo_de_bloqueo` es su texto); el 23514 de `leads_papelera_enviar` lleva
 la causa en `hint` (`errorConCausa()`), y `entities/avisos-de-lead.ts` la vuelve acciones del aviso («Ver los vehículos» con un solo lead).
@@ -65,9 +66,11 @@ la causa en `hint` (`errorConCausa()`), y `entities/avisos-de-lead.ts` la vuelve
 **Sólo se leen; se escriben por RPC:** `leads` (`crear_lead`, `lead_guardar`; `telefono_principal` sólo `crear_lead` y `cambiar_telefono_lead`),
 `leads_telefonos` (`lead_telefono_*`), `leads_asesores` (`lead_compartir|transferir|revocar_acceso|salir`), marcas (`lead_*_poner`, `etiqueta_*`), y
 `seguimiento_*`, `recordatorio_*`, `embudo_*`, `oportunidad_*`, `origen_lead_*`, `tipo_lead_*`, `tipo_seguimiento_*`, `lead_campo_*`,
-`leads_papelera_*`, `leads_importar_lote`, `otorgar_portal`, `ajustes_leads` (`embudo_plantilla_guardar`, `portal_mensaje_guardar`:
-`leads.configurar`, PT409 con versiones independientes `embudo_actualizado_en` y `portal_actualizado_en`). Lecturas: `ajustes_leads_leer()` (sin
-permiso), `leads_vista`, `leads_cartera_vista`, `lead_ficha()`, `leads_candidatos()` + `leads_vista_por_ids()`, `lead_oportunidades()` (invocadora,
+`leads_papelera_*`, `leads_importar_lote`, `otorgar_portal`, `ajustes_leads` (`embudo_plantilla_guardar`, `portal_mensaje_guardar`,
+`telefonos_extra_ajustes_guardar`: `leads.configurar`, PT409 con versiones independientes `embudo_actualizado_en`, `portal_actualizado_en` y
+`telefonos_actualizado_en`). Lecturas: `ajustes_leads_leer()` (sin permiso), `lead_telefonos_leer()` (el resumen: principal, extras y máximo),
+`verificar_telefono_extra()` (al tipear un extra), `telefonos_extra_choques()` (`leads.configurar`: por cursor sobre `leads_telefonos_pkey`, hasta 10.000
+filas por llamada, enmascarada), `leads_vista`, `leads_cartera_vista`, `lead_ficha()`, `leads_candidatos()` + `leads_vista_por_ids()`, `lead_oportunidades()` (invocadora,
 por cursor, de a 20 y hasta 100, por `oportunidades_lead_abiertas_idx` y `oportunidades_lead_cerradas_idx`; «Ver más» hasta 500).
 
 ## No se rompe
@@ -87,8 +90,11 @@ por cursor, de a 20 y hasta 100, por `oportunidades_lead_abiertas_idx` y `oportu
 - **`lead_guardar` es la única puerta de edición** y exige `actualizado_en` (`PT409`). La versión la mueven sólo nombre, tipo, origen, atributos,
   teléfono o papelera (`lead_version()`): una columna derivada nueva se suma fuera. `atributos` es un parche y nunca guarda un nulo.
 - **`crear_lead(p_id, …)`:** con la oportunidad base (`_lead_oportunidad_base`, también en las importaciones); idempotente por `p_id`; un duplicado es un valor (`existe`, `de_otro`, `limbo`); adoptar exige `adoptar: true`.
-- **Teléfono:** único entre vivos; se busca por nombre y por número (`#124`), **nunca por teléfono** (oráculo). El tope de 10 extras lo aplica
-  «agregar», no el cambio.
+- **Teléfono:** único entre vivos; se busca por nombre y por número (`#124`), **nunca por teléfono** (oráculo). El máximo de extras
+  (`ajustes_leads.telefonos_extra_maximo`, 0 a 20, 6 de fábrica) lo aplica «agregar», no el cambio ni rotular ni quitar. Con «Extras como el
+  principal» (`telefonos_extra_como_principal`) un extra es único entre vivos: lo valida `_lead_verificar` (que heredan alta, importar, cambiar el
+  principal, verificar y restaurar) con un candado por número, siempre después del de la fila del lead y sólo con la regla encendida; los duplicados
+  de antes quedan. Los extras piden `leads.telefonos_extra.editar` + cartera (clase 1); el principal, `leads.editar`.
 - **Marcas:** de quien mira, `poner(valor)` y nunca alternar, sin versión, sin tocar `leads`. Embudos personales; oportunidades clase 1.
 - **Un origen o tipo de lead con leads se desactiva, no se elimina.** Siempre queda un tipo activo de cada clase; la clase no cambia. **Se razona
   por la clase, nunca por nombre o clave**. Un campo con datos no cambia de tipo ni se elimina.

@@ -28,6 +28,8 @@ export function useRotularExtra({ extra, guardar, alCerrar }: Args) {
       etiqueta,
       principal: '',
       extras: [],
+      // Rotular no mira el máximo.
+      maximo: 0,
       rotulando: extra,
     })
     if (!validado.ok) {

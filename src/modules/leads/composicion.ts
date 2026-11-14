@@ -35,7 +35,11 @@ import type {
   RepositorioDeOportunidades,
 } from './entities/repositorios-de-oportunidades'
 import type { RepositorioDeImportacion } from './entities/repositorios-de-importacion'
-import type { EscritorDeAjustesDeLeads, LectorDeAjustesDeLeads } from './entities/ajustes-de-leads'
+import type {
+  EscritorDeAjustesDeLeads,
+  LectorDeAjustesDeLeads,
+  LectorDeChoques,
+} from './entities/ajustes-de-leads'
 import type {
   LectorDeOrigenesDeLeadConUso,
   RepositorioDeOrigenesDeLead,
@@ -90,6 +94,7 @@ import { getTiposDeSeguimientoConUso } from './infra/queries/tipos-de-seguimient
 import { getAccesoDelCliente } from './infra/queries/portal'
 import { getAjustesDeLeads } from './infra/queries/ajustes-de-leads'
 import { ajustesDeLeadsSupabase } from './infra/ajustes-de-leads'
+import { getChoquesDeTelefonos } from './infra/queries/choques-de-telefonos'
 import { portalSupabase } from './infra/portal'
 import { papeleraDeLeadsSupabase } from './infra/papelera'
 import { recordatoriosSupabase } from './infra/recordatorios'
@@ -181,6 +186,7 @@ export const repositorioDelPortal: RepositorioDelPortal = portalSupabase
 
 // Las plantillas de la empresa (9.04): la del embudo y el mensaje del portal. Las lee toda cuenta activa.
 export const leerAjustesDeLeads: LectorDeAjustesDeLeads = getAjustesDeLeads
+export const leerChoquesDeTelefonos: LectorDeChoques = getChoquesDeTelefonos
 
 export const repositorioDeAjustesDeLeads: EscritorDeAjustesDeLeads = ajustesDeLeadsSupabase
 

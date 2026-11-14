@@ -33,6 +33,7 @@ const CRUDA = {
   tiene_id: YO,
   tiene_nombre: 'Berta',
   telefonos: [{ id: OTRA, telefono: '59170011003', etiqueta: 'Casa' }],
+  telefonos_maximo: 6,
   recordatorios_vencidos: 2,
   vehiculos_vinculados: 1,
 }
@@ -54,6 +55,7 @@ describe('fichaDesde', () => {
       recordatoriosVencidos: 2,
     })
     expect(ficha?.telefonos).toEqual([{ id: OTRA, telefono: '59170011003', etiqueta: 'Casa' }])
+    expect(ficha?.telefonosMaximo).toBe(6)
   })
 
   it('trae las marcas de quien mira, y sin ellas ninguna', () => {
