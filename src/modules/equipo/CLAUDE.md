@@ -19,10 +19,15 @@ Autenticación, perfiles, roles y permisos (RBAC puro), invitaciones, bloqueo, b
 - `infra/invitaciones.ts` — **la excepción del cliente admin**: `conAdminDeAuth()` comprueba `equipo.usuarios.gestionar` y entrega sólo `auth.admin`
   (lo cuida el lint). Crear rol o invitar no es idempotente.
 
+- «Visto» (`features/vistos/`, `entities/vistos.ts`): `ProveedorDeMarcasDeVisto` (una lectura de `vistos_de` por página y el abierto marcado al
+  abrirse), `RegistrarVisto` (la ficha), `VistosDelPerfil` y la preferencia `vistos` (en `ProveedorPreferencias`). Las marcas se dibujan en
+  `@/shared/ui/lista` (`idDeVisto`, `<SufijoDeVisto>`).
+
 ## Tablas
 
 `perfiles` (el avatar o su fallo **no mueven `actualizado_en`**), `equipo_bajas` (`terminada_en` nulo = en curso), `roles`, `permisos` (catálogo fijo),
-`roles_permisos`, `usuarios_roles`, `preferencias_usuario`, `vistas_guardadas`, `visitados`.
+`roles_permisos`, `usuarios_roles`, `preferencias_usuario`, `vistas_guardadas`, `visitados`, `vistos` (por RPC `visto_registrar`;
+se lee con `vistos_de`; job `vistos-purgar`).
 RPC: `mi_sesion(p_perspectiva)`, `permisos_efectivos`, `mis_permisos`, `tiene_permiso`, `alcance_de`, `origenes_con_permiso|alcance`, `rol_dominado`,
 `concesion_dominada`, `persona_dominada` (privada), `personas_dominadas(ids)` (≤ 101 ids), `rbac_crear_rol`, `rbac_eliminar_rol`,
 `rbac_otorgar`, `rbac_revocar`, `rbac_asignar_rol`, `rbac_quitar_rol`, `equipo_bloquear`, `equipo_dar_de_baja`, `equipo_vista_previa_baja`, `equipo_lista(texto, estado, límite)` (definer; exige

@@ -1,6 +1,7 @@
 'use client'
 
 import type { VistaGuardada } from '@/modules/equipo/client'
+import type { ComponentProps } from 'react'
 import { parseAsString, useQueryState } from 'nuqs'
 import type { ConteoAcotado } from '@/shared/lib/conteo'
 import { CLAVE_DE_PANEL, camposFiltrables, type EsquemaDeFiltros } from '@/shared/lib/filtros'
@@ -33,6 +34,7 @@ import { ResultadoDelListado } from './resultado-del-listado'
 import { SelectorDeAlcance } from './selector-de-alcance'
 import type { DatosDeLaLista } from './tipos'
 import { VistasDeLeads } from './vistas-de-leads'
+import { ProveedorDeMarcasDeVisto } from '@/modules/equipo/client'
 
 type Props = DatosDeLaLista & {
   esquema: EsquemaDeFiltros
@@ -111,6 +113,20 @@ function AccionesDelListado({
   )
 }
 
+// La lista con las marcas de «visto» de su página (una lectura) y el abierto marcado al abrirse.
+function ResultadoConVistos(props: ComponentProps<typeof ResultadoDelListado>) {
+  return (
+    <ProveedorDeMarcasDeVisto
+      modulo="leads"
+      tipo="lead"
+      ids={props.pagina.filas.map((fila) => fila.id)}
+      abierto={props.abierto}
+    >
+      <ResultadoDelListado {...props} />
+    </ProveedorDeMarcasDeVisto>
+  )
+}
+
 // Los leads: filtros del layout en la URL, vistas guardadas, la lista (tabla o tarjetas) y el
 // drawer rápido. Todo el estado (filtros, alcance, página, lead abierto) vive en la URL.
 export function ListadoDeLeads(props: Props) {
@@ -169,7 +185,7 @@ export function ListadoDeLeads(props: Props) {
             ocultos={ocultos}
             hayFilas={pagina.filas.length > 0}
           />
-          <ResultadoDelListado
+          <ResultadoConVistos
             {...datos}
             pagina={pagina}
             modo={modo}

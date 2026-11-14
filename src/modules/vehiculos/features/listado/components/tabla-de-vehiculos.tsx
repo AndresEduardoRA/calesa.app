@@ -6,6 +6,7 @@ import {
   CeldaPegada,
   FilaDeLista,
   TablaDeLista,
+  SufijoDeVisto,
 } from '@/shared/ui/lista'
 import { Monto } from '@/shared/ui/monto'
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table'
@@ -60,6 +61,29 @@ type PropsDeFila = Pick<
   conMenu: boolean
 }
 
+// La casilla para elegir la fila; si se puede elegir alguna de la página pero no ésta, su hueco (los nombres quedan alineados).
+function CasillaDeLaFila({
+  seleccion,
+  id,
+  nombre,
+}: {
+  seleccion: SeleccionDelListado
+  id: string
+  nombre: string
+}) {
+  if (seleccion.seleccionables.size === 0) return null
+  if (!seleccion.seleccionables.has(id)) return HUECO_DE_CASILLA
+  return (
+    <CasillaDeSeleccion
+      etiqueta={`Seleccionar ${nombre}`}
+      elegida={seleccion.elegidas.has(id)}
+      alCambiar={() => {
+        seleccion.alternar(id)
+      }}
+    />
+  )
+}
+
 // La fila de un vehículo. La casilla va delante del nombre y «Editar» pegado a la derecha; esa columna sólo existe si alguna fila de
 // la página la usa.
 function FilaDeTabla({
@@ -80,25 +104,14 @@ function FilaDeTabla({
   return (
     <FilaDeLista
       abierta={abierto === vehiculo.id}
+      idDeVisto={vehiculo.id}
       alAbrir={() => {
         alAbrir(vehiculo.id)
       }}
     >
       <CeldaPegada lado="nombre">
         <div className="flex items-center gap-3">
-          {seleccion.seleccionables.size > 0 ? (
-            seleccion.seleccionables.has(vehiculo.id) ? (
-              <CasillaDeSeleccion
-                etiqueta={`Seleccionar ${identidad.nombre}`}
-                elegida={seleccion.elegidas.has(vehiculo.id)}
-                alCambiar={() => {
-                  seleccion.alternar(vehiculo.id)
-                }}
-              />
-            ) : (
-              HUECO_DE_CASILLA
-            )
-          ) : null}
+          <CasillaDeLaFila seleccion={seleccion} id={vehiculo.id} nombre={identidad.nombre} />
           <FotosEnElLugar vehiculo={vehiculo} modo="abrir" className="w-14" />
           <div className="grid min-w-0">
             <AbrirResumen
@@ -109,6 +122,7 @@ function FilaDeTabla({
             </AbrirResumen>
             <span className="text-(length:--text-xs) text-(--color-ink-soft) tabular-nums">
               {identidad.titulo === null ? '' : `${identidad.titulo} · `}#{vehiculo.numero}
+              <SufijoDeVisto id={vehiculo.id} />
               {vehiculo.vin ? ` · ${vehiculo.vin}` : ''}
             </span>
           </div>

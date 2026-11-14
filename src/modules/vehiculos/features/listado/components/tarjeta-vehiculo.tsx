@@ -1,7 +1,7 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import { AbrirResumen, TarjetaDeLista } from '@/shared/ui/lista'
+import { SufijoDeVisto, AbrirResumen, TarjetaDeLista } from '@/shared/ui/lista'
 import { Monto } from '@/shared/ui/monto'
 import { camposDeTarjeta, type CampoDeVehiculo } from '../../../entities/campo'
 import type { Vehiculo } from '../../../entities/vehiculo'
@@ -36,7 +36,12 @@ export function TarjetaVehiculo(props: Props) {
     return valor !== undefined && valor !== null && valor !== ''
   })
   return (
-    <TarjetaDeLista alAbrir={alAbrir} abierta={abierta ?? false} acciones={acciones}>
+    <TarjetaDeLista
+      alAbrir={alAbrir}
+      abierta={abierta ?? false}
+      idDeVisto={vehiculo.id}
+      acciones={acciones}
+    >
       {/* Con el texto al 200 % la tarjeta mide menos de 16 rem: la miniatura (rem) y el título no caben en una fila y se apilan. */}
       <div className="flex items-start gap-3 @max-[16rem]:flex-col">
         {seleccion}
@@ -49,6 +54,7 @@ export function TarjetaVehiculo(props: Props) {
             {identidad.titulo === null ? '' : `${identidad.titulo} · `}#{vehiculo.numero}
             {vehiculo.anio ? ` · ${String(vehiculo.anio)}` : ''}
             {vehiculo.vin ? ` · ${vehiculo.vin}` : ''}
+            <SufijoDeVisto id={vehiculo.id} />
           </p>
           <div className="flex flex-wrap items-center gap-2">
             <BadgeDeFase fase={fase} />
