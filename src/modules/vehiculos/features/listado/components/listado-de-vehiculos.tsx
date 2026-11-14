@@ -8,6 +8,7 @@ import type { Pagina } from '@/shared/lib/paginacion'
 import { Aviso } from '@/shared/ui/aviso'
 import { FilterShell } from '@/shared/ui/filtros'
 import { useAbiertoAlgunaVez } from '@/shared/ui/use-abierto-alguna-vez'
+import type { VistaDeLista } from '@/shared/lib/vista-de-lista'
 import type { AlcanceDeAvisos } from '../../../entities/avisos-de-vehiculo'
 import { camposFiltrables } from '../../../entities/filtros'
 import type { PermisoDeAlta } from '../../../entities/permisos'
@@ -20,6 +21,7 @@ import { PanelDeVehiculo } from '../../alta/components/panel-de-vehiculo'
 import { EnlaceAPapelera } from '../../papelera/components/enlace-a-papelera'
 import { ResumenDeVehiculoDiferido } from '../../resumen/components/diferidos'
 import { useResumenDeVehiculo } from '../../resumen/hooks/use-resumen-de-vehiculo'
+import { useVistaDelInventario } from '../hooks/use-vista-del-inventario'
 import { PestanasDeOrigen } from './pestanas-de-origen'
 import { PieDeFiltros } from './pie-de-filtros'
 import { ResultadoDelListado } from './resultado-del-listado'
@@ -59,6 +61,8 @@ type Props = DatosDelOrigen & {
   verInteresados: boolean
   // «Cotizar» del resumen: la hoja de cotizar de este origen, o null si no cotiza en él (lo decide la página).
   paraCotizar: ParaCotizar | null
+  // Tabla o tarjetas en escritorio, lo que eligió la última vez (`vehiculos.vista`); null = nunca eligió.
+  vistaPreferida: VistaDeLista | null
 }
 
 // Por qué «Nuevo» está apagado (el origen está desactivado), arriba de la lista.
@@ -124,7 +128,9 @@ function rutaDeAltaEnLaHoja(para: ParaCotizar): string {
 export function ListadoDeVehiculos(props: Props) {
   const { origenes, esquema, vistas, puedeConfigurarCampos, permisoDeAlta, enEdicion, ...demas } =
     props
-  const { verPapelera, apibara, verInteresados, paraCotizar, porPagina, ...resto } = demas
+  const { verPapelera, apibara, verInteresados, paraCotizar, porPagina, vistaPreferida, ...resto } =
+    demas
+  const vista = useVistaDelInventario(vistaPreferida)
   const { origen, campos, categorias, fases, vitrina, limpiezaHoy, pagina, editables } = resto
   const nuevo = <BotonNuevoVehiculo origen={origen} permiso={permisoDeAlta} />
   const resumen = useResumenDeVehiculo({ verInteresados })
@@ -170,6 +176,8 @@ export function ListadoDeVehiculos(props: Props) {
       >
         <ResultadoConVistos
           {...resto}
+          vista={vista.vista}
+          alCambiarVista={vista.cambiar}
           alAbrir={resumen.abrir}
           abierto={resumen.id}
           accionDeVacio={permisoDeAlta.estado === 'habilitado' ? nuevo : undefined}

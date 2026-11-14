@@ -40,6 +40,7 @@ function vehiculo(cambios: Partial<Vehiculo> = {}): Vehiculo {
     precioWebNota: null,
     limpiezaEl: null,
     portadaRuta: null,
+    estadoSubasta: null,
     creadoPor: null,
     creadoEn: '2026-10-10T10:00:00.000000+00:00',
     actualizadoEn: '2026-10-10T10:00:00.000000+00:00',

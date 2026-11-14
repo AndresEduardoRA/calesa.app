@@ -11367,6 +11367,7 @@ export type Database = {
           creado_en: string
           creado_por: string
           destacado_web: boolean
+          estado_subasta: Database['public']['Enums']['estado_subasta']
           fase_id: string
           id: string
           kilometraje: number

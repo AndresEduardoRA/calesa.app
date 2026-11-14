@@ -201,6 +201,25 @@ begin
   end loop;
 end $$;
 
+-- @test escala (B2): la preferencia «vehiculos.vista» sólo admite «tabla» o «tarjetas»
+do $$
+declare p01 constant text := '00000000-0000-0000-0000-000000000001'; v text; c record;
+begin
+  for c in select * from (values ('"tabla"'), ('"tarjetas"')) t (valor) loop
+    v := pg_temp.escala_como(p01, format(
+      $q$with i as (insert into public.preferencias_usuario (usuario_id, clave, valor) values (%L, 'vehiculos.vista', %L::jsonb)
+                    on conflict (usuario_id, clave) do update set valor = excluded.valor returning 1) select 'ok'$q$, p01, c.valor));
+    if v <> 'ok' then raise exception 'la vista % debía aceptarse: %', c.valor, v; end if;
+  end loop;
+  for c in select * from (values ('"mosaico"'), ('"Tabla"'), ('1'), ('null'), ('{}')) t (valor) loop
+    v := pg_temp.escala_como(p01, format(
+      $q$with i as (insert into public.preferencias_usuario (usuario_id, clave, valor) values (%L, 'vehiculos.vista', %L::jsonb)
+                    on conflict (usuario_id, clave) do update set valor = excluded.valor returning 1) select 'ok'$q$, p01, c.valor));
+    if v not like 'ERROR 23514%' and v not like 'ERROR 23502%' then
+      raise exception 'la vista % debía rechazarse (check): %', c.valor, v; end if;
+  end loop;
+end $$;
+
 -- @test escala (9g): la preferencia «ítems por página» (listas.por_pagina) sólo admite 10, 25, 50 o 100, y es de cada persona
 -- La base valida el valor (un número, uno de los cuatro del selector): ni 7, ni 1000, ni 0, ni -1, ni «50» como texto, ni un
 -- objeto. Cualquier otra clave de preferencia no se mira. La policy deja escribir sólo la fila propia.

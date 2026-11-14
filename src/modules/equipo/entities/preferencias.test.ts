@@ -13,6 +13,7 @@ describe('preferenciasDesde', () => {
       widgetsDelTablero: null,
       vistos: VISTOS_POR_DEFECTO,
       zonaHoraria: null,
+      vistaDeVehiculos: null,
     })
   })
 
@@ -24,6 +25,7 @@ describe('preferenciasDesde', () => {
       widgetsDelTablero: null,
       vistos: VISTOS_POR_DEFECTO,
       zonaHoraria: null,
+      vistaDeVehiculos: null,
     }
     expect(preferenciasDesde({})).toEqual(sinElegir)
     expect(preferenciasDesde(null)).toEqual(sinElegir)
@@ -37,6 +39,7 @@ describe('preferenciasDesde', () => {
       widgetsDelTablero: null,
       vistos: VISTOS_POR_DEFECTO,
       zonaHoraria: null,
+      vistaDeVehiculos: null,
     })
   })
 
@@ -132,5 +135,18 @@ describe('esquemaPreferencia de «tablero.widgets»', () => {
       'America/New_York',
     )
     expect(preferenciasDesde({ zona_horaria: 'Marte/Olimpo' }).zonaHoraria).toBeNull()
+  })
+})
+
+describe('la vista del inventario', () => {
+  it('«vehiculos.vista» se lee si es tabla o tarjetas; otra cosa queda sin elegir', () => {
+    expect(preferenciasDesde({ 'vehiculos.vista': 'tarjetas' }).vistaDeVehiculos).toBe('tarjetas')
+    expect(preferenciasDesde({ 'vehiculos.vista': 'mosaico' }).vistaDeVehiculos).toBeNull()
+    expect(esquemaPreferencia.safeParse({ clave: 'vehiculos.vista', valor: 'tabla' }).success).toBe(
+      true,
+    )
+    expect(esquemaPreferencia.safeParse({ clave: 'vehiculos.vista', valor: 'lista' }).success).toBe(
+      false,
+    )
   })
 })

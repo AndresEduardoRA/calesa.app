@@ -43,7 +43,9 @@ Inventario de vehículos por origen con atributos dinámicos: listado con filtro
 - `features/`: `alta`, `ficha`, `fotos`, `vitrina`, `papelera`, `vinculo`, `listado`, `acciones`, `resumen`, `subasta`, `limpieza`,
   `panel-para-cotizar`. `CLAVE_DE_EDICION` vive en `features/alta/claves.ts`, no en un `'use client'`.
 - El panel de alta y edición avisa y cierra cuando el envío terminó (`features/alta/hooks/use-tras-el-envio.ts`, copia de la de `leads`).
-- El listado dibuja una sola vista (tabla o tarjetas) elegida en servidor; los e2e buscan filas con `tbody tr, li article`.
+- El listado dibuja una sola vista (tabla o tarjetas) elegida en servidor; los e2e buscan filas con `tbody tr, li article`. En escritorio,
+  «Tabla | Tarjetas» arriba de la lista (`useVistaDelInventario`: `?vista=` o la preferencia `vehiculos.vista`; cambiar no pide la página). La columna de precio
+  sale de `entities/precio-de-la-fila.ts` (`columnaDePrecio`, `precioDeLaFila`): en subasta, la puja con su nombre.
 - Pestañas de la ficha: `src/app/(app)/vehiculos/[id]/pestanas.ts`, cada una con su `seccion-<clave>.tsx`.
 
 ## Tablas
