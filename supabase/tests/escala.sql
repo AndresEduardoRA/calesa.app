@@ -28,7 +28,7 @@ declare
     ('embudo_etapas_guardar', 'hasta 12 etapas por embudo'),
     ('etiqueta_eliminar', 'hasta 50 etiquetas por persona'),
     ('lead_etiquetas_poner', 'hasta 20 etiquetas de una persona por lead'),
-    ('lead_telefono_guardar', 'hasta 10 teléfonos extra por lead'),
+    ('lead_telefono_guardar', 'hasta 20 teléfonos extra por lead (`ajustes_leads.telefonos_extra_maximo`)'),
     ('vehiculo_fotos_agregar', 'hasta 24 fotos por vehículo'),
     ('vehiculo_imagenes_tope', 'trigger: hasta 24 fotos por vehículo'),
     ('vehiculo_imagen_integridad', 'trigger: los dos objetos de una foto'),

@@ -32,7 +32,7 @@ do $$ declare r_p uuid; r_t uuid; r_v uuid; c text; begin
   r_p := public.rbac_crear_rol('humo_matriz_propios', 'Matriz propios');
   r_t := public.rbac_crear_rol('humo_matriz_todos', 'Matriz todos');
   r_v := public.rbac_crear_rol('humo_matriz_ver', 'Matriz sólo ver');
-  foreach c in array array['leads.ver', 'leads.editar', 'leads.compartir', 'leads.transferir', 'leads.eliminar', 'leads.portal.gestionar'] loop
+  foreach c in array array['leads.ver', 'leads.editar', 'leads.telefonos_extra.editar', 'leads.compartir', 'leads.transferir', 'leads.eliminar', 'leads.portal.gestionar'] loop
     perform public.rbac_otorgar(r_p, c, (select actualizado_en from public.roles where id = r_p), p_alcance => 'propios');
     perform public.rbac_otorgar(r_t, c, (select actualizado_en from public.roles where id = r_t), p_alcance => 'todos');
   end loop;
@@ -163,6 +163,7 @@ begin
     ('lead_guardar', $q$select public.lead_guardar({lead}, (select actualizado_en from public.leads where id = {lead}), '{"nombre": "Matriz"}')$q$, 'ok', 'ok', 'nada', 'ok', 'nada', 'nada', 'nada', 'cuenta'),
     ('cambiar_telefono_lead', $q$select public.cambiar_telefono_lead({lead}, (select actualizado_en from public.leads where id = {lead}), '', '78999901')$q$, 'ok', 'ok', 'nada', 'ok', 'nada', 'nada', 'nada', 'cuenta'),
     ('verificar_telefono_de_lead', $q$select public.verificar_telefono_de_lead({lead}, '', '78999902')$q$, 'ok', 'ok', 'nada', 'ok', 'nada', 'nada', 'nada', 'cuenta'),
+    ('verificar_telefono_extra', $q$select public.verificar_telefono_extra({lead}, '', '78999904')$q$, 'ok', 'ok', 'nada', 'ok', 'nada', 'nada', 'nada', 'cuenta'),
     ('lead_telefono_guardar', $q$select public.lead_telefono_guardar({lead}, gen_random_uuid(), '', '78999903', null)$q$, 'ok', 'ok', 'nada', 'ok', 'nada', 'nada', 'nada', 'cuenta'),
     ('lead_telefono_quitar', $q$select public.lead_telefono_quitar({lead}, gen_random_uuid())$q$, 'ok', 'ok', 'nada', 'ok', 'nada', 'nada', 'nada', 'cuenta'),
     ('otorgar_portal', $q$select public.otorgar_portal({lead}, 'clave-de-matriz-1', null)$q$, 'ok', 'ok', 'nada', 'ok', 'nada', 'nada', 'nada', 'cuenta'),
@@ -190,6 +191,7 @@ begin
       '42501: No tienes permiso para enviar leads a la papelera.', 'cuenta'),
     -- Lecturas: ver alcanza y la base recorta (el lead nulo es «no se ve»)
     ('lead_cartera', $q$do $x$ begin if public.lead_cartera({lead}) is null then raise exception 'nulo' using errcode = 'P0002'; end if; end $x$ $q$, 'ok', 'ok', 'ok', 'ok', 'ok', 'nulo', 'nulo', 'nulo'),
+    ('lead_telefonos_leer', $q$do $x$ begin if public.lead_telefonos_leer({lead}) is null then raise exception 'nulo' using errcode = 'P0002'; end if; end $x$ $q$, 'ok', 'ok', 'ok', 'ok', 'ok', 'nulo', 'nulo', 'nulo'),
     ('lead_ficha', $q$do $x$ begin if public.lead_ficha({lead}) is null then raise exception 'nulo' using errcode = 'P0002'; end if; end $x$ $q$, 'ok', 'ok', 'ok', 'ok', 'ok', 'nulo', 'nulo', 'nulo'),
     ('telefono_lead', $q$do $x$ begin if public.telefono_lead({lead}) is null then raise exception 'nulo' using errcode = 'P0002'; end if; end $x$ $q$, 'ok', 'ok', 'ok', 'ok', 'ok', 'nulo', 'nulo', 'nulo'),
     ('atributos_lead', $q$do $x$ begin if public.atributos_lead({lead}) is null then raise exception 'nulo' using errcode = 'P0002'; end if; end $x$ $q$, 'ok', 'ok', 'ok', 'ok', 'ok', 'nulo', 'nulo', 'nulo'),
@@ -452,6 +454,7 @@ from public.roles r
 cross join lateral (values
   ('leads.ver', null, case when r.clave = 'humo_matriz_v_todos' then 'todos' else 'propios' end),
   ('leads.editar', null, case when r.clave = 'humo_matriz_v_todos' then 'todos' else 'propios' end),
+  ('leads.telefonos_extra.editar', null, case when r.clave = 'humo_matriz_v_todos' then 'todos' else 'propios' end),
   ('leads.crear', null, 'todos'),
   ('leads.eliminar', null, case when r.clave = 'humo_matriz_v_todos' then 'todos' else 'propios' end),
   ('leads.transferir', null, case when r.clave = 'humo_matriz_v_todos' then 'todos' else 'propios' end),

@@ -25,6 +25,7 @@ export const CLAVES_PERMISO = [
   'leads.numero_global.ver',
   'leads.crear',
   'leads.editar',
+  'leads.telefonos_extra.editar',
   'leads.compartir',
   'leads.transferir',
   'leads.eliminar',

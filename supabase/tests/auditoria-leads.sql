@@ -13,6 +13,7 @@ declare
     ('lead_guardar(uuid,timestamp with time zone,jsonb)', '1'),
     ('cambiar_telefono_lead(uuid,timestamp with time zone,text,text)', '1'),
     ('verificar_telefono_de_lead(uuid,text,text)', '1'),
+    ('verificar_telefono_extra(uuid,text,text)', '1'),
     ('lead_telefono_guardar(uuid,uuid,text,text,text,timestamp with time zone)', '1'),
     ('lead_telefono_quitar(uuid,uuid)', '1'),
     ('seguimiento_crear(uuid,uuid,jsonb,jsonb)', '1'),
@@ -50,6 +51,9 @@ declare
     ('atributos_lead(uuid)', 'L'),
     ('telefono_lead(uuid)', 'L'),
     ('lead_telefonos(uuid)', 'L'),
+    ('lead_telefonos_leer(uuid)', 'L'),
+    -- Los choques de teléfonos extra (`leads.configurar`): recorre `leads_telefonos` por su clave; el número sale enmascarado y el lead sólo si `puede_lead`.
+    ('telefonos_extra_choques(uuid,integer)', 'X'),
     ('lead_cartera(uuid)', 'L'),
     ('lead_cartera_candidatos(uuid)', 'L'),
     ('en_cartera(uuid)', 'L'),
