@@ -6217,6 +6217,7 @@ export type Database = {
           categoria_id: string | null
           cierre_subasta_en: string | null
           cotizado_en: string | null
+          creado_desde: string
           creado_en: string
           creado_por: string | null
           destacado_web: boolean
@@ -6271,6 +6272,7 @@ export type Database = {
           categoria_id?: string | null
           cierre_subasta_en?: never
           cotizado_en?: string | null
+          creado_desde?: string
           creado_en?: string
           creado_por?: string | null
           destacado_web?: boolean
@@ -6314,6 +6316,7 @@ export type Database = {
           categoria_id?: string | null
           cierre_subasta_en?: never
           cotizado_en?: string | null
+          creado_desde?: string
           creado_en?: string
           creado_por?: string | null
           destacado_web?: boolean
@@ -9343,6 +9346,7 @@ export type Database = {
           categoria_id: string | null
           cierre_subasta_en: string | null
           cotizado_en: string | null
+          creado_desde: string
           creado_en: string
           creado_por: string | null
           destacado_web: boolean
@@ -11218,7 +11222,13 @@ export type Database = {
       }
       vehiculo_conservar: { Args: { p_conservar: boolean; p_vehiculo: string }; Returns: Json }
       vehiculo_crear: {
-        Args: { p_consulta?: string; p_datos: Json; p_id: string; p_origen: string }
+        Args: {
+          p_consulta?: string
+          p_contexto?: string
+          p_datos: Json
+          p_id: string
+          p_origen: string
+        }
         Returns: Json
       }
       vehiculo_foto_eliminar: {

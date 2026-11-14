@@ -142,6 +142,7 @@ export async function sembrar(db) {
     'cotizaciones.final.gestionar',
     'vehiculos.ver',
     'vehiculos.crear',
+    'vehiculos.crear.desde_cotizar',
     'vehiculos.eliminar',
     'leads.ver',
   ]) {
@@ -166,6 +167,7 @@ export async function sembrar(db) {
     'cotizaciones.crear',
     'vehiculos.ver',
     'vehiculos.crear',
+    'vehiculos.crear.desde_cotizar',
   ]) {
     await db.query(
       `insert into public.roles_permisos (rol_id, permiso_clave, alcance) values ($1, $2, 'todos')`,

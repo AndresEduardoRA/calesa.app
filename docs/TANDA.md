@@ -147,7 +147,7 @@ T02 y T03 corriendo. La persona eligió pausarlo y que la tanda la haga esta ses
 
 ## Fase B: vehículos (antes, la skill de diseño)
 
-### [ ] B1 · Quién da de alta y cómo (`feat(vehiculos): separar el alta suelta del alta desde cotizar`)
+### [x] B1 · Quién da de alta y cómo (`feat(vehiculos): separar el alta suelta del alta desde cotizar`)
 
 - **Permisos:** `vehiculos.crear` pasa a ser «alta suelta». La clave nueva `vehiculos.crear.desde_cotizar` (por origen) se concede en la
   migración a todo rol y origen que hoy tiene `vehiculos.crear`.

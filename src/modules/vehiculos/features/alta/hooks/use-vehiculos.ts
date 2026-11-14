@@ -6,6 +6,7 @@ import type { ValoresDeFormulario } from '../../../entities/formulario'
 import { crearVehiculo } from '../actions/crear-vehiculo'
 import { guardarVehiculo } from '../actions/guardar-vehiculo'
 import { MENSAJE_DE_VALIDACION } from '../resultado'
+import type { ContextoDeAlta } from '../../../entities/permisos'
 
 const enviar = <Dato>(pedido: Parameters<typeof enviarAccion<Dato>>[0]) =>
   enviarAccion(pedido, MENSAJE_DE_VALIDACION)
@@ -23,6 +24,8 @@ export function useVehiculos() {
       valores: ValoresDeFormulario
       // La consulta a apibara que llenó la ficha, si el alta vino de ahí.
       consulta?: string
+      // Desde dónde: el inventario (por defecto) o la hoja de cotizar.
+      contexto?: ContextoDeAlta
     }) => enviar(creando.executeAsync(pedido)),
     guardar: (pedido: {
       id: string

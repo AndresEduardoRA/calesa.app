@@ -144,7 +144,7 @@ async function altaDelPanelDe(
 ): Promise<AltaDelPanel | null> {
   if (
     !puede(permisos, 'vehiculos.ver', origen.id) ||
-    permisoDeAlta(permisos, origen).estado !== 'habilitado'
+    permisoDeAlta(permisos, origen, 'cotizar').estado !== 'habilitado'
   ) {
     return null
   }
