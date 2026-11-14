@@ -14,7 +14,7 @@ type Props = {
   alCambiar: (vista: VistaDeLista) => void
 }
 
-// «Tabla | Tarjetas» en la barra de una lista (`<UnaSolaVista preferida>`). Sólo en escritorio: por debajo del corte siempre van las
+// «Tabla | Tarjetas» arriba de una lista (`<UnaSolaVista preferida>`). Sólo en escritorio: por debajo del corte siempre van las
 // tarjetas y no hay nada que elegir. Cada botón dice su nombre con texto, no sólo con el ícono.
 export function ConmutadorDeVista({ vista, alCambiar }: Props) {
   return (

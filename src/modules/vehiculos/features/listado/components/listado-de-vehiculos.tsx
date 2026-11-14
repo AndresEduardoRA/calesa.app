@@ -7,7 +7,6 @@ import type { Pagina } from '@/shared/lib/paginacion'
 import { Aviso } from '@/shared/ui/aviso'
 import { FilterShell } from '@/shared/ui/filtros'
 import { useAbiertoAlgunaVez } from '@/shared/ui/use-abierto-alguna-vez'
-import { ConmutadorDeVista } from '@/shared/ui/lista'
 import type { VistaDeLista } from '@/shared/lib/vista-de-lista'
 import type { AlcanceDeAvisos } from '../../../entities/avisos-de-vehiculo'
 import { camposFiltrables } from '../../../entities/filtros'
@@ -147,7 +146,6 @@ export function ListadoDeVehiculos(props: Props) {
         vistas={<VistasDeVehiculos esquema={esquema} origenId={origen.id} vistas={vistas} />}
         acciones={
           <>
-            <ConmutadorDeVista vista={vista.vista} alCambiar={vista.cambiar} />
             {verPapelera ? <EnlaceAPapelera /> : null}
             {nuevo}
           </>
@@ -163,6 +161,7 @@ export function ListadoDeVehiculos(props: Props) {
         <ResultadoDelListado
           {...resto}
           vista={vista.vista}
+          alCambiarVista={vista.cambiar}
           alAbrir={resumen.abrir}
           abierto={resumen.id}
           accionDeVacio={permisoDeAlta.estado === 'habilitado' ? nuevo : undefined}

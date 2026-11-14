@@ -304,7 +304,7 @@
     },
     {
       "patron": "public.vehiculos_inventario",
-      "avisos": 30,
+      "avisos": 31,
       "motivo": "RETURN QUERY llena las columnas OUT y plpgsql_check no lo sigue."
     },
     {
