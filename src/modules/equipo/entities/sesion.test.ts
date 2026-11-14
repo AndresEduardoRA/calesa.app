@@ -50,6 +50,7 @@ describe('sesionDesde', () => {
         porPagina: null,
         widgetsDelTablero: null,
         vistos: VISTOS_POR_DEFECTO,
+        zonaHoraria: null,
       },
     })
   })

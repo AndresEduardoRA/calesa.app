@@ -105,6 +105,7 @@ export function sesionSinPerfil(usuarioId: string, email: string): Sesion {
       porPagina: null,
       widgetsDelTablero: null,
       vistos: VISTOS_POR_DEFECTO,
+      zonaHoraria: null,
     },
   }
 }

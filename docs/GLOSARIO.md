@@ -25,6 +25,10 @@ ese nombre: nunca un sinónimo ni su traducción al inglés.
 - **Estado de la cuenta** — `EstadoCuenta` (`activa` | `bloqueada` | `baja`): si puede operar; bloqueada o de baja no se queda adentro.
 - **Perfil** — `perfiles` / `/perfil`: lo que cada persona edita de sí misma: nombre, foto y preferencias.
 - **Preferencia** — `preferencias_usuario` / `Preferencias`: elección de interfaz por persona (densidad, tema), igual en todos sus dispositivos.
+- **Zona de quien mira** — `preferencias_usuario.zona_horaria` / `useRegional().zonaDeLaPersona`: en qué zona ve cada persona las fechas de
+  subasta (`/perfil` › «Zona horaria»); sin elegir, la de la empresa. Lo demás sigue en la zona de la empresa.
+- **Hora del patio** — `zonaDelPatio()` / `<FechaDeSubasta>`: la hora de una subasta en la zona de su patio, estimada por el estado de la
+  ubicación (`ubicacion_estado`); un estado con dos zonas toma la de la mayoría.
 - **Densidad** — `useDensidad()` / `--fila` (`compacta` | `comoda`): altura de las filas; compacta con mouse, cómoda en táctil, o la elegida.
 - **Aviso de acceso** — `?aviso=clave` / `AVISOS`: por qué alguien llegó redirigido a una pantalla de acceso; el texto sale del catálogo.
 - **Aviso con acciones** — `AccionesDeUnAviso` / `resolverAcciones()`, `<AccionesDelAviso>`, `avisarError(error, { acciones })`: aviso de

@@ -5,6 +5,7 @@ import {
   FormularioPerfil,
   PreferenciasPerfil,
   VistosDelPerfil,
+  ZonaDelPerfil,
 } from '@/modules/equipo/pantallas/perfil'
 import { TurnosDelPerfil } from '@/modules/web/pantallas/perfil'
 import { urlPublicaONull } from '@/shared/lib/almacen'
@@ -34,6 +35,7 @@ export default async function PaginaPerfil() {
       </Suspense>
       <PreferenciasPerfil />
       <VistosDelPerfil />
+      <ZonaDelPerfil elegida={sesion.preferencias.zonaHoraria} />
       <Suspense fallback={<EsqueletoFormulario bloques={1} campos={3} />}>
         <NotificacionesSeccion usuarioId={sesion.usuarioId} permisos={sesion.permisos} />
       </Suspense>

@@ -12,6 +12,7 @@ describe('preferenciasDesde', () => {
       porPagina: 25,
       widgetsDelTablero: null,
       vistos: VISTOS_POR_DEFECTO,
+      zonaHoraria: null,
     })
   })
 
@@ -22,6 +23,7 @@ describe('preferenciasDesde', () => {
       porPagina: null,
       widgetsDelTablero: null,
       vistos: VISTOS_POR_DEFECTO,
+      zonaHoraria: null,
     }
     expect(preferenciasDesde({})).toEqual(sinElegir)
     expect(preferenciasDesde(null)).toEqual(sinElegir)
@@ -34,6 +36,7 @@ describe('preferenciasDesde', () => {
       porPagina: null,
       widgetsDelTablero: null,
       vistos: VISTOS_POR_DEFECTO,
+      zonaHoraria: null,
     })
   })
 
@@ -123,5 +126,11 @@ describe('esquemaPreferencia de «tablero.widgets»', () => {
     for (const valor of malos) {
       expect(esquemaPreferencia.safeParse({ clave: 'tablero.widgets', valor }).success).toBe(false)
     }
+  })
+  it('la zona horaria sólo si Intl la conoce', () => {
+    expect(preferenciasDesde({ zona_horaria: 'America/New_York' }).zonaHoraria).toBe(
+      'America/New_York',
+    )
+    expect(preferenciasDesde({ zona_horaria: 'Marte/Olimpo' }).zonaHoraria).toBeNull()
   })
 })

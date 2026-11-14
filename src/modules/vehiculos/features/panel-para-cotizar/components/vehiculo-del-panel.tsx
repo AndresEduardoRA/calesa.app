@@ -1,11 +1,12 @@
 'use client'
 
-import { fechaRelativa, formatearFechaHora } from '@/shared/lib/fechas'
+import { fechaRelativa } from '@/shared/lib/fechas'
 import { Badge } from '@/shared/ui/badge'
 import { Monto } from '@/shared/ui/monto'
 import { useRegional } from '@/shared/ui/regional'
 import type { VehiculoDelPanel as Vehiculo } from '../../../entities/panel-para-cotizar'
 import { Miniatura } from '../../listado/components/miniatura'
+import { FechaDeSubasta } from '../../subasta/components/fecha-de-subasta'
 
 type Props = {
   vehiculo: Vehiculo
@@ -38,7 +39,7 @@ export function VehiculoDelPanel({ vehiculo, seleccionado, alElegir }: Props) {
           )}
           {vehiculo.cierreSubastaEn ? (
             <span>
-              Cierra {formatearFechaHora(vehiculo.cierreSubastaEn, { zona: zonaHoraria })}
+              Cierra <FechaDeSubasta iso={vehiculo.cierreSubastaEn} />
             </span>
           ) : null}
           {vehiculo.cotizadoEn ? (
