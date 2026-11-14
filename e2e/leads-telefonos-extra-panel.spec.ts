@@ -73,12 +73,13 @@ test('en el panel de edición agrega, quita y deshace un extra, y guardar el for
   ])
   // Los extras no mueven la versión del lead: el formulario no tiene de qué chocar.
   expect(await versionDe(lead.id)).toBe(version)
-  // En el celular el aviso puede quedar sobre el pie del panel: se cierra si sigue ahí.
-  const aviso = page.locator('[data-sonner-toast]').filter({ hasText: 'Teléfono agregado.' })
-  if ((await aviso.count()) > 0) {
-    await aviso.getByRole('button', { name: 'Cerrar aviso' }).click()
-    await expect(aviso).toBeHidden()
-  }
+  // En el celular el aviso puede quedar sobre el pie del panel: se cierra si todavía está (se va solo).
+  await page
+    .locator('[data-sonner-toast]')
+    .filter({ hasText: 'Teléfono agregado.' })
+    .getByRole('button', { name: 'Cerrar aviso' })
+    .click({ timeout: 1500 })
+    .catch(() => undefined)
 
   await panel.getByRole('button', { name: 'Quitar' }).click()
   await expect(page.getByText('Teléfono quitado.')).toBeVisible()
