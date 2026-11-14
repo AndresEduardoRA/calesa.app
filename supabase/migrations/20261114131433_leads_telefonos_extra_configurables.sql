@@ -316,6 +316,9 @@ begin
     perform public.registrar_actividad('lead.adoptado_del_limbo', 'leads', v_id::text, null,
       jsonb_build_object('telefono', public.enmascarar_telefono(v_tel)), jsonb_build_object('intento', p_id));
   else
+    -- El candado de los embudos de quien crea va antes del teléfono: la oportunidad base lo toma al final, y dos altas o lotes de la misma
+    -- persona con teléfonos cruzados se esperarían en orden inverso (40P01). Así todas toman primero el candado y después el teléfono.
+    perform public._embudos_candado(v_yo);
     v_cc_digitos := regexp_replace(coalesce(v_cc, ''), '\D', '', 'g');
     begin
       insert into public.leads (id, nombre, telefono_cc, telefono_principal, tipo_lead_id, origen_lead_id, atributos, creado_por)
@@ -338,6 +341,8 @@ begin
     end;
     perform public.registrar_actividad('lead.creado', 'leads', v_id::text, null,
       jsonb_build_object('nombre', v_nombre), jsonb_build_object('intento', p_id));
+    -- La oportunidad base (C3): todo lead nuevo nace con una, en la etapa inicial del embudo por defecto de quien lo crea, en esta transacción.
+    perform public._lead_oportunidad_base(v_id, v_yo, v_nombre);
   end if;
 
   if p_seguimiento is not null then
