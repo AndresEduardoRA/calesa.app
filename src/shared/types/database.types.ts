@@ -7521,6 +7521,7 @@ export type Database = {
           fase_id: string
           id: string
           origen_id: string
+          situacion: string
           titulo: string
           vence: string
         }[]

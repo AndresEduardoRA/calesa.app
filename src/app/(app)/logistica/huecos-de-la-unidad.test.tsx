@@ -17,6 +17,7 @@ const unidad: Unidad = {
   titulo: 'Toyota Hilux 2019',
   faseId: null,
   faseDesde: null,
+  situacion: 'fase',
 }
 const concede = (clave: string, origenId: string | null): Permisos[number] => ({
   clave: clave as Permisos[number]['clave'],

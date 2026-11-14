@@ -20,6 +20,7 @@ const tarjeta = (n: number, extra: Partial<TarjetaDeLaCadena> = {}): TarjetaDeLa
   vin: null,
   lote: null,
   faseDesde: `2026-11-01T10:${String(n % 60).padStart(2, '0')}:00+00:00`,
+  situacion: 'fase',
   demorada: false,
   contenedor: null,
   booking: null,

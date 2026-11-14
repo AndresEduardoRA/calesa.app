@@ -10,6 +10,7 @@ const fila = {
   titulo: 'Toyota Hilux 2019',
   fase_id: FASE,
   fase_desde: '2026-11-08T12:00:00+00:00',
+  situacion: 'sin_resolver',
   atributos: { lote_interno: 'L-4471' },
 }
 
@@ -25,6 +26,7 @@ describe('unidadDeVehiculo', () => {
           titulo: 'Toyota Hilux 2019',
           faseId: FASE,
           faseDesde: '2026-11-08T12:00:00+00:00',
+          situacion: 'sin_resolver',
         },
         atributos: { lote_interno: 'L-4471' },
       },

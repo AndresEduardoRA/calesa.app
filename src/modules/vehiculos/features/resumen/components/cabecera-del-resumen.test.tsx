@@ -32,6 +32,7 @@ const vehiculo = {
   vin: null,
   lote: null,
   faseId: null,
+  situacion: 'fase',
   atributos: {},
   portadaRuta: null,
   limpiezaEl: null,

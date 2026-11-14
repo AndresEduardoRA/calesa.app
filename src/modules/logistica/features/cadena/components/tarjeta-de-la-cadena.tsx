@@ -4,10 +4,10 @@ import type { Route } from 'next'
 import Link from 'next/link'
 import type { MouseEvent } from 'react'
 import { formatearFecha } from '@/shared/lib/fechas'
-import { Badge } from '@/shared/ui/badge'
 import { useRegional } from '@/shared/ui/regional'
 import { textoDeLosDiasEnLaFase } from '../../../entities/cadena/dias'
 import type { TarjetaDeLaCadena as Tarjeta } from '../../../entities/cadena/leer'
+import { EstadoDeLaTarjeta } from './estado-de-la-tarjeta'
 
 type Props = {
   tarjeta: Tarjeta
@@ -25,7 +25,7 @@ function esClicComun(e: MouseEvent): boolean {
   )
 }
 
-// Una unidad en su columna: el nombre (la identidad «<principal> · <título>», ya armada), VIN y lote, los días en la fase, «Demorado» con texto cuando la base lo calculó, y el contenedor y la ETA si hay.
+// Una unidad en su columna: el nombre (la identidad «<principal> · <título>», ya armada), VIN y lote, los días en la fase, la situación si la subasta manda, «Demorado» con texto cuando la base lo calculó, y el contenedor y la ETA si hay.
 // Sin foto: se reconoce por el nombre y los códigos, y 350 miniaturas pesan.
 export function TarjetaDeLaCadena({ tarjeta, ahora, href, alAbrir }: Props) {
   const { zonaHoraria } = useRegional()
@@ -60,12 +60,7 @@ export function TarjetaDeLaCadena({ tarjeta, ahora, href, alAbrir }: Props) {
           {codigos.join(' · ')}
         </p>
       ) : null}
-      {dias || tarjeta.demorada ? (
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-(length:--text-xs) text-(--color-ink-soft)">
-          {dias ? <span>{dias}</span> : null}
-          {tarjeta.demorada ? <Badge variant="destructive">Demorado</Badge> : null}
-        </p>
-      ) : null}
+      <EstadoDeLaTarjeta tarjeta={tarjeta} dias={dias} />
       {transporte.length > 0 ? (
         <p className="text-(length:--text-xs) break-words text-(--color-ink-soft)">
           {transporte.join(' · ')}

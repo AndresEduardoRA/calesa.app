@@ -43,6 +43,7 @@ export async function ItemAbierto({ id, permisos }: { id: string; permisos: Perm
     titulo: item.descripcion,
     faseId: item.faseId,
     faseDesde: item.faseDesde,
+    situacion: 'fase',
     proyecto: { id: item.proyecto.id, vehiculoId: item.proyecto.vehiculoId },
   }
   const { huecos, aviso } = huecosDeLaUnidad(HUECOS_DE_LA_UNIDAD, {

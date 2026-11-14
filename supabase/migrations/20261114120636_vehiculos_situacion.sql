@@ -145,7 +145,8 @@ begin
        and public._vehiculo_situacion(v.origen_id, v.fase_id, v.estado_subasta, coalesce(v.subasta_fin_en, v.subasta_en), v.subasta_resultado)
            is distinct from v.situacion;
   end if;
-  -- vehiculos_cadena_idx: origen_id fijo, fase_id is null.
+  -- Por origen y con la papelera (ningún índice parcial de vehiculos la cubre): lineal en los vehículos del origen, en una acción de configuración
+  -- poco frecuente (límite aceptado, docs/RENDIMIENTO.md).
   update public.vehiculos v
      set situacion = public._vehiculo_situacion(v.origen_id, v.fase_id, v.estado_subasta, coalesce(v.subasta_fin_en, v.subasta_en), v.subasta_resultado)
    where v.origen_id = v_origen and v.fase_id is null

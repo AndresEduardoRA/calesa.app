@@ -33,6 +33,7 @@ function tarjeta(
     vin: null,
     lote: null,
     faseDesde,
+    situacion: 'fase',
     demorada: false,
     contenedor: null,
     booking: null,

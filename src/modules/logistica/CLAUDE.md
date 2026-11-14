@@ -44,7 +44,11 @@ y su regla de `flujos_reglas` está activa; el orden es `ORDEN_DE_HUECOS`, no el
 
 ## Archivos clave
 
-- **Cadena:** `useCadena` siembra por firma y pide una página a la vez por columna; la tarjeta es un enlace con `?vehiculo=`, nunca arrastrar.
+- **Cadena:** `useCadena` siembra por firma y pide una página a la vez por columna; la tarjeta es un enlace con `?vehiculo=`, nunca arrastrar. La tarjeta
+  dice «En subasta» o «Sin resolver» cuando la subasta manda (`situacion` de `vehiculos`, la calcula la base); el panel muestra `<BadgeDeSituacion>`.
+- **Una subasta no ganada no cuenta** (`situacion = 'no_ganada'`): fuera de la cadena (también «Sin fase»), de las demoradas y «Por aprobar» de la bandeja
+  y de `alertas_demora`. `vehiculos_cadena_idx` es parcial sin ellas: toda consulta que lo usa lleva el literal `situacion <> 'no_ganada'`
+  (`supabase/tests/areas/situacion/cuenta.sql` lo cuenta).
 - **Unidad de un ítem de repuesto.** El panel abre una `UnidadAbierta`: `Unidad` (`origenId: string`; la única que ven las áreas sólo de vehículos) o un ítem
   (`origenId` nulo, `proyecto?: { id, vehiculoId }`); `esUnidadDeVehiculo(u)` estrecha. Sólo `mover` y el núcleo tipan con `UnidadAbierta`. `repuestos` arma la
   unidad (`src/app/(app)/repuestos/item-abierto.tsx`); `logistica` no importa `repuestos`. Un hueco declara su variante `repuesto?: { permisos, regla, componente? }`

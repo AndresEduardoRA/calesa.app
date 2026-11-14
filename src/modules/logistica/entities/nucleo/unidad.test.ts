@@ -8,6 +8,7 @@ const base = {
   titulo: 'Toyota Hilux',
   faseId: null,
   faseDesde: null,
+  situacion: 'fase' as const,
 }
 
 describe('refDeUnidad', () => {

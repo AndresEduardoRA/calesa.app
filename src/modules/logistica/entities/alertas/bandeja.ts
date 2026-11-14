@@ -1,6 +1,11 @@
 import { z } from 'zod'
 import { fallo, MENSAJE_INESPERADO, ok, type Resultado } from '@/shared/lib/errores'
 import { textoDeDiasEnLaFase } from '../nucleo/dias-en-la-fase'
+import {
+  esquemaDeSituacionDeLaUnidad,
+  textoDeSituacion,
+  type SituacionDeLaUnidad,
+} from '../nucleo/situacion'
 
 // La bandeja de logística en Inicio (6.12-2): lo que devuelve `logistica_bandeja(p_tope)` (6.12-1), validado con Zod en el borde (ids con `z.guid()`,
 // fechas como texto ISO; su `Returns` es `Json`). Tres listas cortas, cada una con `hayMas` y nunca un total. Puro: ninguna lectura.
@@ -11,6 +16,8 @@ export type FilaDemorada = {
   origenId: string
   fase: string
   faseDesde: string | null
+  // La situación real: una demorada puede seguir en la subasta sin resolver (las no ganadas no llegan).
+  situacion: SituacionDeLaUnidad
 }
 
 export type FilaTrabada = {
@@ -52,6 +59,7 @@ const esquemaDeLaBandeja = z.object({
       origen_id: z.guid(),
       fase: z.string(),
       fase_desde: z.string().nullable(),
+      situacion: esquemaDeSituacionDeLaUnidad,
     }),
   ),
   trabados: lista(
@@ -87,6 +95,7 @@ export function bandejaDesde(datos: unknown): Resultado<BandejaDeLogistica> {
         origenId: f.origen_id,
         fase: f.fase,
         faseDesde: f.fase_desde,
+        situacion: f.situacion,
       })),
       hayMas: demoradas.hay_mas,
     },
@@ -113,13 +122,14 @@ export function bandejaDesde(datos: unknown): Resultado<BandejaDeLogistica> {
   })
 }
 
-/** «Tránsito» · Desde hace 3 días en esta fase (el mismo texto que el panel de la unidad). */
+/** «Tránsito» · Desde hace 3 días en esta fase (el mismo texto que el panel de la unidad); si la subasta manda, «Subasta» · Sin resolver · … */
 export function detalleDeDemorada(
-  fila: Pick<FilaDemorada, 'fase' | 'faseDesde'>,
+  fila: Pick<FilaDemorada, 'fase' | 'faseDesde'> & { situacion?: SituacionDeLaUnidad },
   ahora: Date = new Date(),
 ): string {
   const dias = textoDeDiasEnLaFase(fila.faseDesde, ahora)
-  return dias ? `«${fila.fase}» · ${dias}` : `«${fila.fase}»`
+  const situacion = fila.situacion ? textoDeSituacion(fila.situacion) : null
+  return [`«${fila.fase}»`, situacion, dias].filter(Boolean).join(' · ')
 }
 
 /** Falta para «Aduana»: Documento: BL (el motivo lo arma la base). */
