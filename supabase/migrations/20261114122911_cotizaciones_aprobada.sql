@@ -275,15 +275,15 @@ begin
   if c.estado = 'invalida' then
     raise exception 'Una cotización inválida no se aprueba: reactívala primero.' using errcode = '23514';
   end if;
+  if p_actualizado_en_esperado is null then
+    raise exception 'Falta la versión que tenías en pantalla. Recarga e intenta de nuevo.' using errcode = '22023';
+  end if;
   -- Candados en el orden común: vehículo, cotización, y al final el de la aprobada.
   perform 1 from public.vehiculos v where v.id = c.vehiculo_id for key share;
   select x.id, x.numero, x.vehiculo_id, x.estado, x.actualizado_en into k
     from public.cotizaciones x where x.id = p_cotizacion and x.eliminado_en is null for share;
   if not found or not public.puede_cotizacion(p_cotizacion, 'cotizaciones.ver') then
     raise exception 'No tienes acceso a esta cotización.' using errcode = '42501';
-  end if;
-  if p_actualizado_en_esperado is null then
-    raise exception 'Falta la versión que tenías en pantalla. Recarga e intenta de nuevo.' using errcode = '22023';
   end if;
   if k.vehiculo_id is distinct from c.vehiculo_id or k.actualizado_en is distinct from p_actualizado_en_esperado then
     perform public._conflicto_de_edicion('cotizaciones', k.id, k.actualizado_en, 'esta cotización');

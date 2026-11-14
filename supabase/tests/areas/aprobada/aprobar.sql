@@ -232,6 +232,7 @@ begin
   p_apr := regexp_instr(s, '_aprobada_candado\(');
   if p_tiene = 0 or p_veh = 0 or p_cot = 0 or p_apr = 0 then raise exception 'A5: falta una pieza (% % % %)', p_tiene, p_veh, p_cot, p_apr; end if;
   if not (p_tiene < p_veh and p_veh < p_cot and p_cot < p_apr) then raise exception 'A5: orden de candados roto (% % % %)', p_tiene, p_veh, p_cot, p_apr; end if;
+  if position('Falta la versión' in s) = 0 or position('Falta la versión' in s) > p_veh then raise exception 'A5: la versión se pide antes de tomar el vehículo'; end if;
   if position('update public.cotizaciones ' in s) > 0 then raise exception 'A5: aprobar escribe cotizaciones'; end if;
   select pg_get_functiondef('public._cotizaciones_aprobadas_al_confirmar()'::regprocedure) into s;
   if position('order by x' in s) = 0 or position('_aprobada_candado' in s) = 0 or position('_aprobada_candado' in s) > position('_aprobada_reponer' in s) then
