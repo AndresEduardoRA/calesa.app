@@ -28,7 +28,7 @@ Inventario de vehículos por origen con atributos dinámicos: listado con filtro
     monto, el valor nombra y el título acompaña; si no, el título. Fila, tarjeta y resumen: `useIdentidad(campos)`; ficha, PDF, web y hoja: el título.
   - `leerTitulosDeVehiculos(ids)`: títulos de una página de `/cotizaciones` por pk, con la RLS de quien mira y sin papelera; hasta 100 ids.
 - Pantallas por `pantallas/<pantalla>.ts` (`listado`, `ficha`, `papelera`, `vehiculos-del-lead`, `cotizar`).
-- `client.ts`: `<TarjetaVehiculo>`, `<BadgeDeFase>`, `Vehiculo`; para la importación de `datos`, `validarVehiculo`, `camposComunes`, `camposActivos`,
+- `client.ts`: `<BadgeDeFase>` (lo importa `logistica`: nada pesado puede colgar de ahí), `Vehiculo`; para la importación de `datos`, `validarVehiculo`, `camposComunes`, `camposActivos`,
   `claveDeAtributo` y sus tipos (cada fila se valida con el esquema del alta).
 - «Cotizar» del resumen: `paraCotizar` (`entities/ruta-para-cotizar.ts`, o `null` si no cotiza: `origenesParaCotizar()`); abre la hoja sin lead.
 - Depende de `origenes`, `flujos`, `equipo`; no importa `cotizaciones`. `leads` no importa `vehiculos`: vínculo e interesados viven acá aunque se

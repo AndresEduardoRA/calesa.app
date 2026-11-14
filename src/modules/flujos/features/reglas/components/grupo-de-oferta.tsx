@@ -1,3 +1,5 @@
+import type { Route } from 'next'
+import Link from 'next/link'
 import { useId } from 'react'
 import { AvisoDeTope } from '@/shared/ui/aviso-de-tope'
 import { Checkbox } from '@/shared/ui/checkbox'
@@ -16,6 +18,8 @@ type Props = {
   marcados: readonly string[]
   // Lo que se dice si el catálogo no tiene nada para ofrecer.
   sinCatalogo: string
+  // Adónde se carga ese catálogo, si quien mira puede (nulo: sólo el texto).
+  cargarEn: string | null
   deshabilitado: boolean
   alMarcar: (id: string, marcada: boolean) => void
 }
@@ -29,6 +33,7 @@ export function GrupoDeOferta({
   guardados,
   marcados,
   sinCatalogo,
+  cargarEn,
   deshabilitado,
   alMarcar,
 }: Props) {
@@ -38,7 +43,20 @@ export function GrupoDeOferta({
     <fieldset className="grid gap-1 border-0 p-0">
       <legend className="mb-1 font-medium text-(--color-ink)">{titulo}</legend>
       {lista.length === 0 ? (
-        <p className="text-(length:--text-sm) text-(--color-ink-soft)">{sinCatalogo}</p>
+        <p className="text-(length:--text-sm) text-(--color-ink-soft)">
+          {sinCatalogo}
+          {cargarEn ? (
+            <>
+              {' '}
+              <Link
+                href={cargarEn as Route}
+                className="font-medium text-(--color-ink) underline underline-offset-2"
+              >
+                {titulo === 'Navieras' ? 'Cargar navieras' : 'Cargar puertos'}
+              </Link>
+            </>
+          ) : null}
+        </p>
       ) : (
         <>
           {lista.map((e) => (

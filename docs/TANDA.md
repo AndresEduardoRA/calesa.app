@@ -75,39 +75,25 @@ T02 y T03 corriendo. La persona eligió pausarlo y que la tanda la haga esta ses
 - **Migración:** `papelera_leads_causa_del_rechazo`. Prueba: `areas/papelera/leads-causa-del-rechazo.sql`.
 - **e2e:** `leads-papelera*`, `leads-alta-un-drawer`, `cotizar-panel-nuevo-lead`.
 
-### [ ] A1c · Avisos con salida en la operación (`feat(app): dar salida a los avisos de la operación`)
+### [x] A1c · Avisos con salida en la operación (`feat(logistica): dar salida a los avisos de logística y flujos`)
 
-- **Logística:**
-  - `cambiar_fase` y `cambiar_fase_lote` (ya traen `codigo` = hint): un requisito que falta ofrece «Subir <documento>» (abre el hueco) o
-    «Completar <dato>».
-  - `PT409`: «Ver cómo quedó» y «Recargar».
-  - Documentos, transporte y pagos.
-- **Flujos:** `fase_eliminar` con `es_inicial` o con uso ofrece «Jubilar» y «Ver vehículos en la fase».
-- **Repuestos, agenda y chat:** sus rechazos con código.
-- **Errores de red** (`sinRed`): «Reintentar».
-- **e2e:** `logistica-mover`, `logistica-lote`, `logistica-documentos`, `configuracion-flujos*` (grep), `repuestos-proyecto`, `agenda`.
+- **Logística:** cada unidad que no se movió en un lote ofrece «Abrir la unidad»; el error al leer un destino de mover, «Reintentar»; «Editar
+  grupo» sin navieras, «Cargar navieras» (con `logistica.catalogos.gestionar`).
+- **Flujos:** una fase jubilada ofrece «Reactivar» en su panel; la oferta de transporte sin puertos o navieras, «Cargar puertos» / «Cargar
+  navieras» (con `logistica.catalogos.gestionar`).
+- **Ya cumplían** (revisado): «Qué falta» y el rechazo de mover (atajo al hueco de cada requisito), los conflictos (`AvisoDeConflicto`), la
+  agenda y el chat (sólo errores de red, con «Reintentar»). A `docs/PENDIENTES.md`: los enlaces del bloqueo de eliminar una fase y tres casos raros.
+- **e2e:** `logistica-lote`, `logistica-mover`, `logistica-transporte`, `configuracion-flujos-reglas`, `configuracion-flujos-fases`.
 
-### [ ] A2 · Visor de imágenes (`feat(shared): ver las imágenes en carrusel y en grande`)
+### [x] A2 · Visor de imágenes (`feat(shared): ver las fotos en un visor con carrusel`)
 
-- **Componente:** `src/shared/ui/visor-de-imagenes/`, que recibe todo por props.
-  - `<CarruselEnElLugar>`: miniatura con flechas, puntos y swipe. Con una sola imagen no dibuja controles.
-  - `<VisorDeImagenes>`: un `<Modal>` con URL (`?visor=<clave>&foto=<n>`), carrusel, ← → Esc, contador «3 de 12» y miniaturas.
-- **Carga perezosa:**
-  - En el lugar se dibuja la miniatura de 480 que la fila ya trae (`ruta_miniatura`).
-  - Las demás imágenes se piden **recién al interactuar** (flecha, swipe o foco) por `leerGaleria` desde el navegador, con
-    `memoriaDeLectura`.
-  - La imagen grande (≤ 1600) se pide sólo al abrir el modal, junto con sus vecinas inmediatas.
-  - Una fila nunca baja sus 24 fotos.
-- **Dónde va:**
-  - Reemplaza `Miniatura` (`vehiculos/features/listado/components/miniatura.tsx`) en la tabla, la tarjeta, `CabeceraDeVehiculo`,
-    `CabeceraDelResumen` y `BarraDelVehiculo`.
-  - También en `FotosDelResumen` y `SeccionDeFotos` (el modal; la edición sigue igual), en `GaleriaDeImagenes` de repuestos, en los
-    testimonios de web y en la cabecera de E2.
-  - La papelera y los candidatos del vínculo quedan con miniatura fija, porque son listas de elección.
-- **Estados:** foto rota (marcador con «No se pudo cargar»), sin fotos (marcador del vehículo), carga de la grande (esqueleto).
-- **e2e:** `vehiculos-fotos`, `vehiculos-resumen`, `vehiculos-tarjetas-200`, `repuestos-proyecto`, `configuracion-web-testimonios`. Un
-  camino feliz nuevo `visor-de-imagenes.spec.ts`.
-- **Medir:** el JS en frío de `/vehiculos` (`presupuesto-js`); el modal va con `diferido()`.
+- `src/shared/ui/visor-de-imagenes/`: `<CarruselEnElLugar>` (portada y, al acercarse, el resto; flechas, puntos, gesto; `modo="abrir"` donde no
+  caben flechas de 44 px), el visor (`?visor=<clave>&foto=<n>`, ← → Esc, «3 de 12», miniaturas, la grande sólo la actual y sus vecinas) y
+  `useVisorDeGaleria()`.
+- **Vehículos:** fila y tarjeta abren el visor (B2 agranda la tarjeta y le pone el carrusel); cabecera de la ficha y del resumen, carrusel de
+  160 px; «Fotos» del resumen abre el visor en la tocada. **Repuestos:** las imágenes de un ítem. La barra de la hoja de cotizar queda con la
+  miniatura fija (JS en el tope); la edición de fotos y la foto de un testimonio (un campo de un formulario) no cambian.
+- **e2e:** `vehiculos-resumen` (con el recorrido del visor), `vehiculos-fotos`, `vehiculos-tarjetas-200`, `repuestos-proyecto`, `presupuesto-js`.
 
 ### [ ] A3a · Visto y último visto: base, preferencias y vehículos y leads (`feat(equipo): recordar lo visto por persona y módulo`)
 
