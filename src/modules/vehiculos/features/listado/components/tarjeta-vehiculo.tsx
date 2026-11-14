@@ -7,7 +7,7 @@ import { camposDeTarjeta, type CampoDeVehiculo } from '../../../entities/campo'
 import type { PrecioDeLaFila } from '../../../entities/precio-de-la-fila'
 import type { Vehiculo } from '../../../entities/vehiculo'
 import { useIdentidad } from '../hooks/use-identidad'
-import { BadgeDeFase } from './badge-de-fase'
+import { BadgeDeSituacion } from './badge-de-situacion'
 import { PrecioDeTarjeta } from './precio-de-la-fila'
 import { ValorDeCampo } from './valor-de-campo'
 import { FotosEnElLugar } from '../../fotos/components/fotos-en-el-lugar'
@@ -78,7 +78,7 @@ export function TarjetaVehiculo(props: Props) {
             <SufijoDeVisto id={vehiculo.id} />
           </p>
           <div className="flex flex-wrap items-center gap-2">
-            <BadgeDeFase fase={fase} />
+            <BadgeDeSituacion situacion={vehiculo.situacion} fase={fase} />
             {insignias}
             <PrecioDeTarjeta precio={precio} />
           </div>

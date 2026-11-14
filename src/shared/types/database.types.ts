@@ -6247,8 +6247,12 @@ export type Database = {
           precio_web_hasta: number | null
           precio_web_nota: string | null
           publicado_web: boolean
+          situacion: string
           subasta_en: string | null
           subasta_fin_en: string | null
+          subasta_resuelta_en: string | null
+          subasta_resuelta_por: string | null
+          subasta_resultado: string | null
           subasta_zona: string | null
           titulo: string
           url_origen: string | null
@@ -6302,8 +6306,12 @@ export type Database = {
           precio_web_hasta?: number | null
           precio_web_nota?: string | null
           publicado_web?: boolean
+          situacion?: string
           subasta_en?: string | null
           subasta_fin_en?: string | null
+          subasta_resuelta_en?: string | null
+          subasta_resuelta_por?: string | null
+          subasta_resultado?: string | null
           subasta_zona?: string | null
           titulo: string
           url_origen?: string | null
@@ -6346,8 +6354,12 @@ export type Database = {
           precio_web_hasta?: number | null
           precio_web_nota?: string | null
           publicado_web?: boolean
+          situacion?: string
           subasta_en?: string | null
           subasta_fin_en?: string | null
+          subasta_resuelta_en?: string | null
+          subasta_resuelta_por?: string | null
+          subasta_resultado?: string | null
           subasta_zona?: string | null
           titulo?: string
           url_origen?: string | null
@@ -6415,6 +6427,13 @@ export type Database = {
             columns: ['origen_id']
             isOneToOne: false
             referencedRelation: 'origenes'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'vehiculos_subasta_resuelta_por_fkey'
+            columns: ['subasta_resuelta_por']
+            isOneToOne: false
+            referencedRelation: 'perfiles'
             referencedColumns: ['id']
           },
         ]
@@ -9419,8 +9438,12 @@ export type Database = {
           precio_web_hasta: number | null
           precio_web_nota: string | null
           publicado_web: boolean
+          situacion: string
           subasta_en: string | null
           subasta_fin_en: string | null
+          subasta_resuelta_en: string | null
+          subasta_resuelta_por: string | null
+          subasta_resultado: string | null
           subasta_zona: string | null
           titulo: string
           url_origen: string | null
@@ -9492,6 +9515,16 @@ export type Database = {
           >
         }
         Returns: undefined
+      }
+      _vehiculo_situacion: {
+        Args: {
+          p_cierre: string
+          p_estado: Database['public']['Enums']['estado_subasta']
+          p_fase: string
+          p_origen: string
+          p_resultado: string
+        }
+        Returns: string
       }
       _vehiculo_subasta_desde: { Args: { p_raw: Json }; Returns: Json }
       _vehiculo_texto: {
@@ -11402,6 +11435,7 @@ export type Database = {
           precio_web_hasta: number
           precio_web_nota: string
           publicado_web: boolean
+          situacion: string
           titulo: string
           url_origen: string
           vin: string
@@ -11436,6 +11470,7 @@ export type Database = {
           visible: boolean
         }[]
       }
+      vehiculos_situacion_al_cerrar: { Args: Record<PropertyKey, never>; Returns: number }
       verificar_telefono: { Args: { p_cc: string; p_tel: string }; Returns: Json }
       verificar_telefono_de_lead: {
         Args: { p_cc: string; p_lead: string; p_tel: string }

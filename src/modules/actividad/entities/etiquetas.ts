@@ -78,6 +78,10 @@ const CAMPOS_POR_TABLA: Readonly<Record<string, Readonly<Record<string, string>>
     precio_web_hasta: 'Precio público hasta',
     publicado_web: 'Publicado',
     lote: 'Lote de subasta',
+    situacion: 'Situación',
+    subasta_resultado: 'Resultado de la subasta',
+    subasta_resuelta_en: 'Subasta resuelta el',
+    subasta_resuelta_por: 'Subasta resuelta por',
   },
   cotizaciones: { total_base: 'Total en moneda base' },
   repuestos_items: { precio_cliente: 'Precio al cliente' },
@@ -93,8 +97,15 @@ export function etiquetaDeEntidad(tabla: string): string {
   return ENTIDADES_DE_LA_ACTIVIDAD[tabla] ?? tabla
 }
 
+// Las de `registrar_actividad()` que no se leen bien humanizadas.
+const VERBOS: Readonly<Record<string, string>> = {
+  'vehiculo.subasta_resuelta': 'Resolvió la subasta',
+}
+
 // La acción la escribe `auditar()` como `<tabla>.<insert|update|delete>`; las de `registrar_actividad()` traen su propia clave.
 export function verboDeLaAccion(accion: string): string {
+  const propio = VERBOS[accion]
+  if (propio) return propio
   if (accion.endsWith('.insert')) return 'Creó'
   if (accion.endsWith('.update')) return 'Cambió'
   if (accion.endsWith('.delete')) return 'Borró'

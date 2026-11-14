@@ -21,7 +21,7 @@ import type { SeleccionDelListado } from '../../papelera/hooks/use-papelera-del-
 import { InsigniaDeLimpieza } from '../../limpieza/components/insignia-de-limpieza'
 import { InsigniaDeVitrina } from '../../vitrina/components/insignia-de-vitrina'
 import { useIdentidad } from '../hooks/use-identidad'
-import { BadgeDeFase } from './badge-de-fase'
+import { BadgeDeSituacion } from './badge-de-situacion'
 import { MenuDeFila } from './menu-de-fila'
 import {
   faseDe,
@@ -138,7 +138,7 @@ function FilaDeTabla({
       </CeldaPegada>
       <TableCell>
         <div className="flex flex-wrap items-center gap-1.5">
-          <BadgeDeFase fase={fase} />
+          <BadgeDeSituacion situacion={vehiculo.situacion} fase={fase} />
           <InsigniaDeVitrina {...vitrinaDe(vehiculo, vitrina)} origen={origen} fase={fase} />
           {menu.publicar.estado === 'habilitado' ? (
             <BotonDeVitrinaDeLaFila vehiculo={vehiculo} />

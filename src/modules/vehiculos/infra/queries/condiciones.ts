@@ -1,6 +1,6 @@
 // Traduce las condiciones del inventario a filtros de PostgREST. Lo que sale del layout
 // (`atributos`) y los saneadores son de `@/shared/lib/supabase/consultas`: acá queda lo propio de
-// un vehículo (columnas, vitrina y limpieza). Todo valor que escribió la persona pasa por
+// un vehículo (columnas, vitrina, limpieza y situación). Todo valor que escribió la persona pasa por
 // `citar()` o `patronContiene()`.
 import {
   aplicarCondicionDeAtributo,
@@ -54,6 +54,14 @@ function porLimpiar<Consulta extends Filtrable<Consulta>>(
   return consulta.or(`importado_apibara.is.false,limpieza_el.is.null,limpieza_el.gt.${hasta}`)
 }
 
+// Fuera de esas situaciones. Son valores fijos (`SITUACIONES`), no texto de la persona: no llevan nada que escapar.
+function situacionFueraDe<Consulta extends Filtrable<Consulta>>(
+  consulta: Consulta,
+  { valores }: Extract<Condicion, { tipo: 'situacion_fuera_de' }>,
+): Consulta {
+  return consulta.or(`situacion.not.in.(${valores.join(',')})`)
+}
+
 function aplicarUna<Consulta extends Filtrable<Consulta>>(
   consulta: Consulta,
   condicion: Condicion,
@@ -75,6 +83,8 @@ function aplicarUna<Consulta extends Filtrable<Consulta>>(
       return enVitrina(consulta, condicion)
     case 'por_limpiar':
       return porLimpiar(consulta, condicion)
+    case 'situacion_fuera_de':
+      return situacionFueraDe(consulta, condicion)
     case 'atributos_contienen':
     case 'atributo_rango_numero':
     case 'atributo_rango_texto':

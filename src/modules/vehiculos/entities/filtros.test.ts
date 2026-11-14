@@ -2,6 +2,14 @@ import { describe, expect, it } from 'vitest'
 import { leerFiltros } from '@/shared/lib/filtros'
 import type { CampoDeVehiculo } from './campo'
 import { camposFiltrables, condicionesDe, esquemaDeFiltros } from './filtros'
+import { CONDICION_POR_DEFECTO } from './situacion'
+
+// Lo que pidió la persona: todas menos la última, que siempre es la de por defecto (sin las no ganadas).
+function pedidas(...args: Parameters<typeof condicionesDe>) {
+  const todas = condicionesDe(...args)
+  expect(todas.at(-1)).toEqual(CONDICION_POR_DEFECTO)
+  return todas.slice(0, -1)
+}
 
 function campo(clave: string, extra: Partial<CampoDeVehiculo> = {}): CampoDeVehiculo {
   return {
@@ -98,9 +106,12 @@ describe('esquemaDeFiltros', () => {
 describe('condicionesDe', () => {
   const esquema = esquemaDeFiltros(FUENTES)
   const condiciones = (parametros: Record<string, string>) =>
-    condicionesDe(CAMPOS, leerFiltros(esquema, parametros), { zona: 'America/La_Paz' })
+    pedidas(CAMPOS, leerFiltros(esquema, parametros), { zona: 'America/La_Paz' })
 
-  it('sin filtros no pide nada', () => {
+  it('sin filtros pide sólo la de siempre: sin las no ganadas', () => {
+    expect(condicionesDe(CAMPOS, leerFiltros(esquema, {}))).toEqual([
+      { tipo: 'situacion_fuera_de', valores: ['no_ganada'] },
+    ])
     expect(condiciones({})).toEqual([])
   })
 
@@ -162,7 +173,7 @@ describe('condicionesDe', () => {
       busqueda: '',
       porClave: { 'a.motor': { tipo: 'texto' as const, texto: 'v8' } },
     }
-    expect(condicionesDe(CAMPOS, colado)).toEqual([])
+    expect(pedidas(CAMPOS, colado)).toEqual([])
   })
 })
 
@@ -177,14 +188,14 @@ describe('condicionesDe: en vitrina', () => {
       origenVisible: true,
       fasesQuePublican: ['f1'],
     }
-    expect(condicionesDe(CAMPOS, filtros, { vitrina: abierta })).toEqual([
+    expect(pedidas(CAMPOS, filtros, { vitrina: abierta })).toEqual([
       { tipo: 'en_vitrina', valor: true, fases: ['f1'] },
     ])
-    expect(
-      condicionesDe(CAMPOS, filtros, { vitrina: { ...abierta, origenVisible: false } }),
-    ).toEqual([{ tipo: 'en_vitrina', valor: true, fases: [] }])
+    expect(pedidas(CAMPOS, filtros, { vitrina: { ...abierta, origenVisible: false } })).toEqual([
+      { tipo: 'en_vitrina', valor: true, fases: [] },
+    ])
     // Sin saber del origen, nada está en vitrina.
-    expect(condicionesDe(CAMPOS, leerFiltros(esquema, { vitrina: 'no' }))).toEqual([
+    expect(pedidas(CAMPOS, leerFiltros(esquema, { vitrina: 'no' }))).toEqual([
       { tipo: 'en_vitrina', valor: false, fases: [] },
     ])
   })
@@ -211,11 +222,11 @@ describe('«Se limpiará pronto»', () => {
 
   it('lleva hasta qué día cuenta como «pronto»', () => {
     const filtros = leerFiltros(esquemaDeFiltros(conLimpieza), { limpieza: 'si' })
-    expect(condicionesDe(CAMPOS, filtros, { limpieza: { hasta: '2026-10-17' } })).toEqual([
+    expect(pedidas(CAMPOS, filtros, { limpieza: { hasta: '2026-10-17' } })).toEqual([
       { tipo: 'por_limpiar', valor: true, hasta: '2026-10-17' },
     ])
     expect(
-      condicionesDe(CAMPOS, leerFiltros(esquemaDeFiltros(conLimpieza), { limpieza: 'no' }), {
+      pedidas(CAMPOS, leerFiltros(esquemaDeFiltros(conLimpieza), { limpieza: 'no' }), {
         limpieza: { hasta: '2026-10-17' },
       }),
     ).toEqual([{ tipo: 'por_limpiar', valor: false, hasta: '2026-10-17' }])
@@ -223,11 +234,9 @@ describe('«Se limpiará pronto»', () => {
 
   it('una URL vieja con el filtro, sin la limpieza encendida, no filtra nada', () => {
     // Fuera del esquema, `leerFiltros` lo descarta; y sin `limpieza` en las opciones tampoco.
-    expect(
-      condicionesDe(CAMPOS, leerFiltros(esquemaDeFiltros(FUENTES), { limpieza: 'si' })),
-    ).toEqual([])
-    expect(
-      condicionesDe(CAMPOS, leerFiltros(esquemaDeFiltros(conLimpieza), { limpieza: 'si' })),
-    ).toEqual([])
+    expect(pedidas(CAMPOS, leerFiltros(esquemaDeFiltros(FUENTES), { limpieza: 'si' }))).toEqual([])
+    expect(pedidas(CAMPOS, leerFiltros(esquemaDeFiltros(conLimpieza), { limpieza: 'si' }))).toEqual(
+      [],
+    )
   })
 })

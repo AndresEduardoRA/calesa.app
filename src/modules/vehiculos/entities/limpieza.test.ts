@@ -154,6 +154,19 @@ describe('la última noche', () => {
     )
   })
 
+  it('una subasta sin resolver o ganada retiene, con su nombre', () => {
+    expect(
+      resumenDeUltimaLimpieza({
+        fecha: '2026-10-14',
+        movidos: 1,
+        saltados: { sin_resolver: 2, ganada: 1 },
+        pendientes: 0,
+      }),
+    ).toBe(
+      'Última limpieza automática: 14/10 · 1 a la papelera · 3 se quedaron (2 con la subasta sin resolver, 1 con la subasta ganada)',
+    )
+  })
+
   it('una noche sin nada que mover', () => {
     expect(
       resumenDeUltimaLimpieza({ fecha: '2026-10-14', movidos: 0, saltados: {}, pendientes: 0 }),

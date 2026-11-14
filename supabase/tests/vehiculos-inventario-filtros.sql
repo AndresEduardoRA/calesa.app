@@ -45,6 +45,9 @@ begin
     when 'atributo_rango_texto' then
       return concat_ws(' and ', 'true', case when c ->> 'desde' is not null then format('%s >= %L', v_txt, c ->> 'desde') end, case when c ->> 'antesDe' is not null then format('%s < %L', v_txt, c ->> 'antesDe') end);
     when 'atributo_texto' then return format('%s ilike %s', v_txt, v_pat);
+    -- `not.in.(…)`
+    when 'situacion_fuera_de' then
+      return format('not (v.situacion = any (%L::text[]))', (select array_agg(x)::text from jsonb_array_elements_text(c -> 'valores') x));
   end case;
 end $f$;
 -- La referencia como esa persona: el origen, las condiciones con `and` y el orden del inventario.
@@ -133,8 +136,14 @@ begin
       (13, 'Importado en gracia', null, null, 2013, null, 2, false, '{"km": 10}', 2, 'd'),
       (14, 'Importado publicado', null, null, 2014, 'p', 1, true, '{}', 30, 'd'),
       (15, 'Toyota abc chica', null, 'abc-9', 2016, 'o', 1, false, '{"color": "ROJO", "extras": []}', null, 'p1'),
-      (16, 'Rebaja 50% también', null, null, 2017, null, 2, true, '{"km": 10.0}', null, 'd1')
+      (16, 'Rebaja 50% también', null, null, 2017, null, 2, true, '{"km": 10.0}', null, 'd1'),
+      (17, 'Importado en la inicial', null, null, 2019, 'p', null, false, '{}', 30, 'd')
     ) x (k, t, vin, lote, anio, f, c, pub, a, sub, q);
+  -- La situación: «VL otra» es la subasta (sus terminadas y las importadas sin fase quedan sin_resolver) y tres no ganadas.
+  update public.fases set es_subasta = true where id = f_otra;
+  update public.vehiculos set subasta_resultado = 'no_ganada', subasta_resuelta_en = now()
+   where origen_id = o and titulo in ('Toyota ABC grande', 'xzy sin asterisco', 'Toyota abc chica');
+  if (select count(distinct situacion) from public.vehiculos where origen_id = o) <> 3 then raise exception 'L5: el terreno no tiene tres situaciones'; end if;
   v_todos := pg_temp.vl_referencia(d, o, '[]');
   v_casos := array[
     '[]',
@@ -160,6 +169,8 @@ begin
     '[{"tipo": "atributo_rango_texto", "clave": "fecha", "desde": "2026-03-01", "antesDe": "2026-03-10"}]', '[{"tipo": "atributo_rango_texto", "clave": "fecha", "desde": null, "antesDe": "2026-03-01"}]',
     '[{"tipo": "atributo_rango_texto", "clave": "fecha", "desde": "2026-03-09", "antesDe": null}]',
     '[{"tipo": "atributo_texto", "clave": "color", "texto": "RO"}]', '[{"tipo": "atributo_texto", "clave": "color", "texto": "o_j"}]', '[{"tipo": "atributo_texto", "clave": "color", "texto": "50%"}]',
+    '[{"tipo": "situacion_fuera_de", "valores": ["no_ganada"]}]', '[{"tipo": "situacion_fuera_de", "valores": ["sin_resolver", "no_ganada"]}]',
+    '[{"tipo": "situacion_fuera_de", "valores": ["sin_resolver"]}, {"tipo": "busqueda", "texto": "a"}]',
     -- Tres combinaciones.
     jsonb_build_array(jsonb_build_object('tipo', 'busqueda', 'texto', 'rebaja'), jsonb_build_object('tipo', 'columna_rango', 'columna', 'anio', 'min', 2000, 'max', null),
                       jsonb_build_object('tipo', 'atributos_contienen', 'alternativas', '[{"color": "azul"}, {"usado": true}]'::jsonb)),
