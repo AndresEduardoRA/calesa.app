@@ -4,7 +4,8 @@ Auditoría inmutable de 14 días: qué cambió, quién, cuándo y el diff, con p
 
 ## Entra y sale
 
-- Entra: trigger `auditar()` en las tablas sensibles y `registrar_actividad()` desde las RPC (mover fase, publicar fórmula, otorgar portal, adoptar lead…).
+- Entra: trigger `auditar()` en las tablas sensibles y `registrar_actividad()` desde las RPC (mover fase, resolver una subasta, publicar fórmula, otorgar portal, adoptar lead…).
+  Una acción propia que no se lee bien humanizada lleva su verbo en `VERBOS` de `entities/etiquetas.ts` (`vehiculo.subasta_resuelta` → «Resolvió la subasta»).
 - Sale: `/actividad` (`pantallas/listado.ts`): por día en la zona de la empresa, «Ver más» con tope, «Ir a una fecha», filtros `?persona=`, `?entidad=` y
   `?registro=` (sólo con `?entidad=`; lo trae «Ver actividad» de la ficha de lead y de vehículo: no hay línea de tiempo en las fichas). Una fila visible
   abre su diff en `<DrawerDeCambio>` (`?cambio=<id>`). `index.ts` también da `rutaDeActividadDe(tabla, id)`.

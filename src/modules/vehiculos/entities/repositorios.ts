@@ -4,6 +4,7 @@ import type { ErrorApp, Resultado } from '@/shared/lib/errores'
 import type { Cursor, Pagina } from '@/shared/lib/paginacion'
 import type { DatosDeVehiculo } from './esquema'
 import type { Condicion } from './filtros'
+import type { ResolucionDeSubasta, Situacion } from './situacion'
 import type { FuenteDelInventario } from './fuente-del-inventario'
 import type { Foto, FotoEliminada, FotoSubida, Galeria } from './foto'
 import type {
@@ -114,6 +115,19 @@ export type LectorDeUltimaLimpieza = () => Promise<Resultado<UltimaLimpieza | nu
 
 // «Conservar» se escribe sólo por RPC. Manda el estado deseado (no alterna): repetirlo no cambia
 // nada, así que no lleva la versión de la ficha ni la mueve.
+// «No la ganamos» (`noGanada: true`, desde sin resolver) y su «Deshacer» (`false`, desde no ganada): `vehiculo_subasta_no_ganada`.
+export type RepositorioDeSituacion = {
+  marcarNoGanada: (pedido: {
+    vehiculoId: string
+    noGanada: boolean
+  }) => Promise<Resultado<{ situacion: Situacion }>>
+}
+
+// Quién resolvió la subasta y cuándo; null si no se ve.
+export type LectorDeResolucionDeSubasta = (
+  vehiculoId: string,
+) => Promise<Resultado<ResolucionDeSubasta | null>>
+
 export type RepositorioDeLimpieza = {
   conservar: (pedido: {
     vehiculoId: string

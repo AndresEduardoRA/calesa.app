@@ -9177,6 +9177,8 @@ export type Database = {
         Returns: Database['public']['Enums']['visibilidad_seguimiento']
       }
       _sin_tildes: { Args: { p_texto: string }; Returns: string }
+      _subasta_conflicto: { Args: { p_vehiculo: string }; Returns: undefined }
+      _subasta_puede_resolver: { Args: { p_vehiculo: string }; Returns: string }
       _tabla_referencia_filas_validas: {
         Args: { p_columnas: Json; p_filas: Json }
         Returns: undefined
@@ -11357,6 +11359,19 @@ export type Database = {
         }[]
       }
       vehiculo_limpieza: { Args: { p_vehiculo: string }; Returns: Json }
+      vehiculo_subasta_ganada: {
+        Args: {
+          p_fase_destino: string
+          p_fase_esperada?: string
+          p_nota?: string
+          p_vehiculo: string
+        }
+        Returns: number
+      }
+      vehiculo_subasta_no_ganada: {
+        Args: { p_no_ganada: boolean; p_vehiculo: string }
+        Returns: Json
+      }
       vehiculo_subasta_refrescar: {
         Args: {
           p_actualizado_en_esperado: string

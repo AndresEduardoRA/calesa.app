@@ -1,7 +1,6 @@
 import { ArrowLeftIcon } from 'lucide-react'
 import type { Metadata, Route } from 'next'
 import Link from 'next/link'
-import { Suspense } from 'react'
 import { z } from 'zod'
 import { rutaDeActividadDe } from '@/modules/actividad'
 import { RegistrarVisita } from '@/modules/buscador/pantallas/visita'
@@ -21,7 +20,7 @@ import { RUTAS, unParametro } from '@/shared/lib/rutas'
 import { buttonVariants } from '@/shared/ui/button'
 import { EstadoVacio } from '@/shared/ui/estados'
 import { vehiculoEnEdicion } from '../edicion'
-import { AvisoLimpieza } from './aviso-limpieza'
+import { AvisosBajoLaCabecera } from './avisos-bajo-la-cabecera'
 import { papeleraYAvisosDe } from './avisos-de-la-ficha'
 import { ContenidoDeLaPestana } from './contenido-de-la-pestana'
 import { Encabezado } from './encabezado'
@@ -71,8 +70,11 @@ function VolverAlOrigen({ origen }: { origen: { id: string; nombre: string } }) 
   )
 }
 
-// El vehículo y su origen, si quien mira ve los dos.
+// El vehículo y su origen, si quien mira ve los dos (un id que no es un uuid no se ve).
 async function vehiculoYOrigen(id: string, permisos: Permisos) {
+  if (!z.guid().safeParse(id).success) {
+    return { encontrado: null, origen: undefined }
+  }
   const [vehiculo, origenes] = await Promise.all([leerVehiculo(id), getOrigenes(true)])
   const encontrado = datosO(vehiculo)
   const origen = origenesVisibles(permisos, datosO(origenes)).find(
@@ -88,9 +90,6 @@ export default async function PaginaVehiculo({
   searchParams,
 }: PageProps<'/vehiculos/[id]'>) {
   const [sesion, { id }, parametros] = await Promise.all([requerirSesion(), params, searchParams])
-  if (!z.guid().safeParse(id).success) {
-    return <NoDisponible />
-  }
   const { encontrado, origen } = await vehiculoYOrigen(id, sesion.permisos)
   if (!encontrado || !origen) {
     return <NoDisponible />
@@ -134,11 +133,13 @@ export default async function PaginaVehiculo({
         papelera={papelera}
         avisos={avisos}
       />
-      {origen.tipo === 'subasta' ? (
-        <Suspense fallback={null}>
-          <AvisoLimpieza vehiculo={encontrado} editable={editable} />
-        </Suspense>
-      ) : null}
+      <AvisosBajoLaCabecera
+        vehiculo={encontrado}
+        origen={origen}
+        fase={fase}
+        permisos={sesion.permisos}
+        editable={editable}
+      />
       {hayBarraDePestanas(pestanas) ? <PestanasDeVehiculo pestanas={pestanas} /> : null}
       <ContenidoDeLaPestana
         pestana={pestana}

@@ -68,3 +68,36 @@ export const CONDICION_POR_DEFECTO = {
   tipo: 'situacion_fuera_de',
   valores: ['no_ganada'],
 } as const satisfies { tipo: 'situacion_fuera_de'; valores: readonly Situacion[] }
+
+// Quién resolvió la subasta y cuándo (`subasta_resultado`, `subasta_resuelta_en` y el nombre de `subasta_resuelta_por`); `nombre` nulo si no se
+// pudo leer o se borró el perfil.
+export type ResolucionDeSubasta = {
+  resultado: 'ganada' | 'no_ganada' | null
+  resueltaEn: string | null
+  nombre: string | null
+}
+
+/** El texto del aviso de la ficha: sin resolver pregunta; no ganada dice quién y cuándo; lo demás no tiene aviso (`null`). */
+export function textoDelAvisoDeSituacion(pedido: {
+  situacion: Situacion
+  fase: string | null
+  resolucion: ResolucionDeSubasta | null
+  // La fecha de la resolución ya escrita en la zona de la empresa.
+  fecha: string | null
+}): string | null {
+  const { situacion, fase, resolucion, fecha } = pedido
+  if (situacion === 'sin_resolver') {
+    return fase
+      ? `La subasta terminó y sigue en «${fase}». ¿La ganamos?`
+      : 'La subasta terminó y todavía no tiene fase. ¿La ganamos?'
+  }
+  if (situacion !== 'no_ganada') return null
+  const quien = resolucion?.nombre ? ` · la marcó ${resolucion.nombre}` : ''
+  const cuando = fecha ? ` el ${fecha}` : ''
+  return `No ganada${quien}${quien ? cuando : cuando ? ` · se marcó${cuando}` : ''}. Ya no cuenta en logística ni en Inicio.`
+}
+
+/** A quién pedirle poder resolver (sin botones). */
+export function pedidoParaResolver(origen: string): string {
+  return `Para resolverla hace falta poder mover de fase en «${origen}»: pídeselo a quien administra los roles.`
+}

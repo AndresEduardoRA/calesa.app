@@ -54,6 +54,7 @@ import {
 import { carrerasDeFases } from '../supabase/tests/areas/flujos/carreras.mjs'
 import { carrerasDeDocumentos } from '../supabase/tests/areas/documentos/carreras.mjs'
 import { carrerasDeMover } from '../supabase/tests/areas/mover/carreras.mjs'
+import { carrerasDeSituacion } from '../supabase/tests/areas/situacion/carreras.mjs'
 import { carrerasDeFinal, limpiarFinal } from '../supabase/tests/areas/final/carreras.mjs'
 import { carrerasDelPrincipal } from '../supabase/tests/areas/origenes/carreras.mjs'
 import {
@@ -396,6 +397,7 @@ try {
   await carrerasDeFases({ orquesta, carrera, espero, conectar })
   await carrerasDeDocumentos({ orquesta, carrera, espero })
   await carrerasDeMover({ orquesta, carrera, espero, conectar })
+  await carrerasDeSituacion({ orquesta, carrera, espero })
   await carrerasDelPrincipal({ orquesta, carrera, espero })
   await carrerasDeTransporte({ orquesta, espero, conectar, esperarBloqueo })
   await carrerasDeAduana({ orquesta, espero, conectar, esperarBloqueo })

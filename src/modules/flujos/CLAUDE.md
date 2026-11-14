@@ -11,8 +11,9 @@ Toda la configuración se escribe por RPC con la versión del flujo. Abiertos (`
   `vehiculos` para mostrar y filtrar la fase. Del área `mover`: `leerFlujoDeOrigen(origenId)` → `FlujoDeOrigen | null` (`flujoId`, `reglasActivas` y por fase
   `notaObligatoria`, `permiteContenedor`, `permiteAduana`, `demoraDias`; error visible si una lista llega al tope) y `reglaActiva(flujo, regla)`. Por `client.ts`,
   sus tipos y `reglaActiva`.
-- **Mover**, por `client.ts`: las actions `leerParaMover`, `previsualizarCambio`, `previsualizarCambioLote`, `cambiarFase`, `cambiarFaseLote` y
-  `destinosDeLaFase` (las salidas de una fase, sin vista previa). Exigen `flujos.mover` o `flujos.mover.cualquiera` en el origen y la base decide otra vez.
+- **Mover**, por `client.ts`: las actions `leerParaMover`, `previsualizarCambio`, `previsualizarCambioLote`, `cambiarFase`, `cambiarFaseLote`,
+  `destinosDeLaFase` (las salidas de una fase, sin vista previa) y `ganarLaSubasta` («La ganamos»: `vehiculo_subasta_ganada`, que mueve con
+  `cambiar_fase` hacia una fase que no es la subasta y anota la subasta ganada, todo o nada; sólo vehículos). Cada destino trae `esSubasta`. Exigen `flujos.mover` o `flujos.mover.cualquiera` en el origen y la base decide otra vez.
   `leerParaMover`, `previsualizarCambio` y `cambiarFase` aceptan `vehiculo` **o** `repuesto` (`unidadDelPedido` → `unidad: { tipo, … }`; `origenId` sólo para
   vehículo); un ítem se mueve con `repuestos.mover` global (`puedeMoverUnRepuesto`), nunca con `flujos.mover`. `destinosDeLaFase` y el lote son sólo de vehículo.
   Reglas puras: `estadoDelBoton`, `textoDelBoton`, `motivoLegible`, `etiquetaDeRequisito`, `detalleDeRequisito`, `anclaDeRequisito`. Lo consume `logistica`.

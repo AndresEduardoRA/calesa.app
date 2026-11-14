@@ -37,6 +37,13 @@ export type RepositorioDeMover = {
     faseEsperada: string | null
     nota: string | null
   }) => Promise<ResultadoDeMover<{ historialId: number }>>
+  // «La ganamos» (`vehiculo_subasta_ganada`): mueve con `cambiar_fase` a una fase que no es la subasta y anota la subasta ganada, todo o nada. Sólo vehículos.
+  ganarLaSubasta: (pedido: {
+    vehiculoId: string
+    faseDestino: string
+    faseEsperada: string | null
+    nota: string | null
+  }) => Promise<ResultadoDeMover<{ historialId: number }>>
   // `cambiar_fase_lote`: una fila por unidad, en el orden del pedido; un lote mal formado no mueve nada.
   cambiarLote: (pedido: {
     unidades: readonly { vehiculoId: string; faseEsperada: string | null }[]

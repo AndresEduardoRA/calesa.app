@@ -56,6 +56,13 @@ export {
 // vehículo (cuándo se va, si se conserva), la ventana del aviso y la última noche. La regla es de
 // la base; acá sólo se lee y se dice. Las lecturas no tumban la pantalla.
 export { limpiezaDe, ultimaLimpieza } from './features/limpieza/lecturas'
+// La situación real del vehículo (la calcula la base) y quién puede resolver una subasta sin resolver.
+export { resolucionDeSubasta } from './features/situacion/lecturas'
+export {
+  puedeResolverLaSubasta,
+  type ResolucionDeSubasta,
+  type Situacion,
+} from './entities/situacion'
 export {
   hoyEnZona,
   limiteDeAviso,

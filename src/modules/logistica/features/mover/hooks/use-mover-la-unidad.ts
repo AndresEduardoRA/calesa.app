@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import {
   cambiarFase,
+  ganarLaSubasta,
   estadoDelBoton,
   motivoLegible,
   type DestinoConVista,
@@ -14,11 +15,42 @@ import type { UnidadAbierta } from '../../../entities/nucleo/unidad'
 import { enfocarElTituloDeLaUnidad } from '../../nucleo/hooks/eventos-de-la-unidad'
 import { unidadAMover } from './unidad-a-mover'
 import type { BorradorDeMover } from './use-borrador-de-mover'
+import type { ModoGanada } from './use-modo-ganada'
 
 const NO_SE_MOVIO = 'No pudimos mover la unidad.'
 
+type Pedido = { faseDestino: string; faseEsperada: string | null; nota: string }
+
+// «La ganamos» (con su modo y un vehículo) o el mover de siempre.
+function enviarElPedido(unidad: UnidadAbierta, ganada: ModoGanada | null, pedido: Pedido) {
+  if (ganada && unidad.tipo === 'vehiculo' && unidad.origenId !== null) {
+    return ganarLaSubasta({ vehiculo: unidad.id, origenId: unidad.origenId, ...pedido })
+  }
+  return cambiarFase({ ...unidadAMover(unidad), ...pedido })
+}
+
+// Un rechazo de la base: el conflicto va al borrador (conserva la nota); requisitos, rol, nota o transición, como motivo junto al botón; lo demás, como fallo.
+function tratarElRechazo(
+  envio: { error: { codigo: string; mensaje: string }; porCampo?: Record<string, string> },
+  args: { borrador: BorradorDeMover; destino: DestinoConVista; releer: () => void },
+): { rechazo: string | null; fallo: string | null } {
+  const campos = envio.porCampo ?? {}
+  if (envio.error.codigo === 'conflicto') {
+    args.borrador.decirConflicto(campos['conflicto'] ?? envio.error.mensaje)
+    return { rechazo: null, fallo: null }
+  }
+  const codigo = Object.keys(campos)[0]
+  if (codigo !== undefined && ['requisitos', 'rol', 'nota', 'transicion'].includes(codigo)) {
+    args.releer()
+    const motivo = { codigo, motivo: campos[codigo] ?? null }
+    return { rechazo: motivoLegible(motivo, { faltan: args.destino.vista?.faltan }), fallo: null }
+  }
+  return { rechazo: null, fallo: envio.error.mensaje }
+}
+
 // Mover la unidad al destino abierto (6.04): el botón y su motivo salen de la vista previa y la nota; al enviar va con la fase en que se veía la unidad. Un conflicto se dice dentro del formulario
-// con el nombre de quien se adelantó (nada se movió); un rechazo de requisitos, rol o nota relee la vista y su motivo aparece junto al botón. Al lograrlo, la pantalla se repinta (`router.refresh()`).
+// con el nombre de quien se adelantó (nada se movió); un rechazo de requisitos, rol o nota relee la vista y su motivo aparece junto al botón. Al lograrlo, la pantalla se repinta (`router.refresh()`;
+// en «La ganamos», quitando `?ganada` con `shallow: false`, sin un `router.refresh()` en la misma pasada).
 export function useMoverLaUnidad(args: {
   unidad: UnidadAbierta
   destino: DestinoConVista
@@ -38,50 +70,38 @@ export function useMoverLaUnidad(args: {
     tipo: unidad.tipo,
   })
 
+  const alLograrlo = () => {
+    const ganada = borrador.ganada
+    borrador.vaciar()
+    if (ganada) {
+      avisarExito(`La ganamos: ${unidad.titulo} pasó a «${destino.nombre}».`)
+      ganada.quitar()
+    } else {
+      avisarExito(`${unidad.titulo} pasó a «${destino.nombre}».`)
+      router.refresh()
+    }
+    enfocarElTituloDeLaUnidad()
+  }
+
   const enviar = async () => {
     if (!estado.habilitado || enCurso) return
     setEnCurso(true)
     setRechazo(null)
     setFallo(null)
-    const envio = await enviarAccion(
-      cambiarFase({
-        ...unidadAMover(unidad),
-        faseDestino: destino.faseId,
-        faseEsperada: unidad.faseId,
-        nota: borrador.nota,
-      }),
-      NO_SE_MOVIO,
-    )
+    const pedido = { faseDestino: destino.faseId, faseEsperada: unidad.faseId, nota: borrador.nota }
+    const envio = await enviarAccion(enviarElPedido(unidad, borrador.ganada, pedido), NO_SE_MOVIO)
     setEnCurso(false)
     if (envio.ok) {
-      avisarExito(`${unidad.titulo} pasó a «${destino.nombre}».`)
-      borrador.vaciar()
-      router.refresh()
-      enfocarElTituloDeLaUnidad()
+      alLograrlo()
       return
     }
     if ('sinRed' in envio) {
       avisarError(envio.error)
       return
     }
-    const campos = envio.porCampo ?? {}
-    const conflicto = campos['conflicto']
-    if (envio.error.codigo === 'conflicto') {
-      borrador.decirConflicto(conflicto ?? envio.error.mensaje)
-      return
-    }
-    const codigo = Object.keys(campos)[0]
-    if (codigo !== undefined && ['requisitos', 'rol', 'nota', 'transicion'].includes(codigo)) {
-      setRechazo(
-        motivoLegible(
-          { codigo, motivo: campos[codigo] ?? null },
-          { faltan: destino.vista?.faltan },
-        ),
-      )
-      releer()
-      return
-    }
-    setFallo(envio.error.mensaje)
+    const tratado = tratarElRechazo(envio, { borrador, destino, releer })
+    setRechazo(tratado.rechazo)
+    setFallo(tratado.fallo)
   }
 
   return {

@@ -28,8 +28,12 @@ Inventario de vehículos por origen con atributos dinámicos: listado con filtro
     monto, el valor nombra y el título acompaña; si no, el título. Fila, tarjeta y resumen: `useIdentidad(campos)`; ficha, PDF, web y hoja: el título.
   - `leerTitulosDeVehiculos(ids)`: títulos de una página de `/cotizaciones` por pk, con la RLS de quien mira y sin papelera; hasta 100 ids.
 - Pantallas por `pantallas/<pantalla>.ts` (`listado`, `ficha`, `papelera`, `vehiculos-del-lead`, `cotizar`).
-- `client.ts`: `<BadgeDeFase>` (lo importa `logistica`: nada pesado puede colgar de ahí), `Vehiculo`; para la importación de `datos`, `validarVehiculo`, `camposComunes`, `camposActivos`,
+- `client.ts`: `<BadgeDeSituacion>` (la situación real; con `fase` delega en `<BadgeDeFase>`. Lo importa `logistica`: nada pesado puede colgar de ahí),
+  `Situacion`, `SITUACIONES`, `esquemaDeSituacion`, `etiquetaDeSituacion`, `Vehiculo`; para la importación de `datos`, `validarVehiculo`, `camposComunes`, `camposActivos`,
   `claveDeAtributo` y sus tipos (cada fila se valida con el esquema del alta).
+- **Situación en la ficha** (`features/situacion/`, `pantallas/ficha.ts` › `<AvisoDeSituacion>`): «Sin resolver» con «La ganamos» (el `href` lo
+  arma `src/app`: `vehiculos` no conoce `logistica`) y «No la ganamos» (`marcarNoGanada`, con «Deshacer» 10 s); «No ganada» con quién y cuándo
+  (`resolucionDeSubasta`, de `index.ts`) y «Deshacer». `puedeResolverLaSubasta(permisos, origen)`: `flujos.mover` o `.cualquiera` y `logistica.ver`.
 - «Cotizar» del resumen: `paraCotizar` (`entities/ruta-para-cotizar.ts`, o `null` si no cotiza: `origenesParaCotizar()`); abre la hoja sin lead.
 - Depende de `origenes`, `flujos`, `equipo`; no importa `cotizaciones`. `leads` no importa `vehiculos`: vínculo e interesados viven acá aunque se
   vean en la ficha del lead.
@@ -56,7 +60,8 @@ Columnas de la situación: `situacion` (derivada), `subasta_resultado`, `subasta
 `vehiculos_situacion_idx (origen_id, situacion, creado_en desc, id desc)` sin las que son su fase. Job `situacion-al-cerrar`
 (`vehiculos_situacion_al_cerrar()`, 500 por corrida). Lectura `vehiculos_inventario` (una página por rutas con los filtros del layout en
 SQL; la usa `buscarVehiculos()` para «propios», por `fuenteDelInventario()`). Escritura: `vehiculo_crear|guardar|subasta_refrescar|vincular|vitrina|conservar`, `vehiculo_fotos_agregar`,
-`vehiculo_foto_mover|portada|eliminar`, `vehiculo_interesado_marcar|quitar`, `vehiculos_papelera_enviar|restaurar|purgar`. `vehiculos`,
+`vehiculo_foto_mover|portada|eliminar`, `vehiculo_subasta_no_ganada` («No la ganamos» y su «Deshacer»; «La ganamos» es
+`vehiculo_subasta_ganada`, que llama `flujos`), `vehiculo_interesado_marcar|quitar`, `vehiculos_papelera_enviar|restaurar|purgar`. `vehiculos`,
 `vehiculos_imagenes` y `vehiculos_interesados` son de sólo lectura para la app.
 
 ## No se rompe

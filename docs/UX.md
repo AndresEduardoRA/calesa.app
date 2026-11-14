@@ -459,7 +459,15 @@ Agregar a inicio»), «Ver como» (quien gestiona roles), tema, densidad y «Cer
   pide tipear «purgar N»; si otra persona ya actuó, no se purga nada.
 - **Limpieza automática** (importados de subasta, con el interruptor encendido): dentro de 3 días, banner en la ficha con «Conservar»;
   conservado, «Quitar». Listado: filtro «Se limpiará pronto» e insignia con fecha.
-- **Resumen (`?vehiculo=<id>`):** portada, identificación, fase («Sin fase»), «Editar» (abre el panel encima y vuelve al resumen al día) y
+- **Situación** (`<BadgeDeSituacion>`, en la tabla, la tarjeta, la ficha, el resumen y el panel de logística): la fase con su color, o
+  «En subasta», «Sin resolver» o «No ganada» con su texto cuando la subasta manda. Las no ganadas no salen en el inventario por defecto.
+  **Aviso de la ficha** (bajo la cabecera, sólo «Sin resolver» y «No ganada»): «La subasta terminó y sigue en «<fase>». ¿La ganamos?»
+  (o «…y todavía no tiene fase.») con «La ganamos» (enlace al mover de logística en su modo) y «No la ganamos» (hecho con «Deshacer» 10 s);
+  enviando, «Guardando…» apagado. Sin permiso de mover en el origen, el texto sin botones y «Para resolverla hace falta poder mover de fase
+  en «<origen>»: pídeselo a quien administra los roles.». Conflicto: el texto de la base con el nombre, «No se cambió nada.» y «Recargar».
+  Error: «No pudimos guardar el resultado. Intenta de nuevo.»; sin red, el aviso de siempre. No ganada: «No ganada · la marcó <nombre> el
+  <fecha>. Ya no cuenta en logística ni en Inicio.» (sin el nombre si no se pudo leer) con «Deshacer». En subasta o en su fase, sin aviso.
+- **Resumen (`?vehiculo=<id>`):** portada, identificación, situación (su fase o «Sin fase»), «Editar» (abre el panel encima y vuelve al resumen al día) y
   «⋯»; pestañas `?pestana=fotos|interesados` que se leen al elegirlas. Inexistente, en la papelera o de otro origen: «Este vehículo ya no
   está disponible: no existe o ya no tienes acceso.».
 
@@ -538,7 +546,8 @@ Lo que la lista de fases y el inspector › Datos suman a «Flujos: configuraci�
   elimina (no se deshace); con ellas se jubila (siguen en ella, deja de ser destino, se puede reactivar). Bloqueada (otras fases la
   esperan, única inicial activa): el motivo y «Confirmar» apagado. Si el uso cambió en el medio, decide la base y el aviso lo dice.
 - **Inspector › Datos** (`?fase=<id>`, `bloques.datos`): cinco bloques plegables: **Identidad** (abierto: nombre, descripción, color,
-  icono), **En el flujo** (inicial, final, pide nota al entrar, es logística), **Alerta por demora** (días: vacío usa la de la empresa, 0
+  icono), **En el flujo** (inicial, final, pide nota al entrar, es logística, «Es la subasta»: apagado con «Sólo en el flujo de un origen de
+  subasta.» fuera de uno), **Alerta por demora** (días: vacío usa la de la empresa, 0
   la apaga; repetir cada 1 a 720 horas), **Transporte y aduana** (permite contenedor, permite aduana, llegada de repuestos) y **Web y
   portal** (se publica en la web, visible en el portal, nombre y descripción para el cliente). Manda sólo lo que cambió y queda abierto.
   - Errores junto a su campo, con el bloque abierto y el foco en el primero (inicial y final a la vez; portal sin nombre para el cliente).
@@ -615,7 +624,7 @@ El panel de la unidad (`<PanelDeLaUnidad>`) se dibuja igual en `/logistica/vehic
 - **Entrada:** la unidad se lee bajo la RLS de `vehiculos` y se pide `logistica.ver` en su origen; sin esa clave, «No tienes permiso para
   ver esto». Lo que no existe, está en la papelera, no se ve o trae un id inválido: «Este vehículo ya no está disponible» con «No existe o
   ya no tienes acceso.» e «Ir a Logística» (nunca «sin permiso»: confirmaría que existe). En el drawer, el mismo estado va dentro.
-- **Panel de la unidad:** cabecera con título, origen, fase (`<BadgeDeFase>`; «Sin fase»), «Desde hace N días en esta fase» y «Abrir
+- **Panel de la unidad:** cabecera con título, origen, situación (`<BadgeDeSituacion>`: la fase, «Sin fase», «En subasta» o «Sin resolver»), «Desde hace N días en esta fase» y «Abrir
   ficha». Debajo, un bloque plegado por hueco (qué falta, documentos, transporte, aduana, gastos, pagos, margen, notas, historial), en ese
   orden, que lee al abrirse con la sesión de quien mira y sólo aparece con su permiso en el origen y su regla del flujo encendida. Si el
   flujo del origen no se pudo leer, los bloques que piden una regla no se dibujan y una línea lo dice; el resto sigue. La ficha del
@@ -625,6 +634,12 @@ El panel de la unidad (`<PanelDeLaUnidad>`) se dibuja igual en `/logistica/vehic
   aprobados») y, en una falta obligatoria, el enlace al hueco que la resuelve. «Elegir» abre en el bloque la nota interna (obligatoria si
   la fase o la salida la piden) y el botón con la acción de la salida; apagado, su motivo va escrito debajo («Falta: BL aprobado.», rol,
   nota, permiso del origen). `Ctrl/Cmd+Enter` envía. Al lograrlo la tarjeta cambia de columna y el foco vuelve al título del panel.
+  **«La ganamos»** (`?ganada=si`, desde la ficha o desde la línea «La subasta terminó y nadie dijo si la ganamos.» · «La ganamos» de este
+  bloque): cabecera «La ganamos: elige a qué fase pasa. Se anota como ganada al moverla.», sólo los destinos que no son la subasta, el
+  primero abierto con su vista previa; mover la anota ganada en la misma operación y avisa «La ganamos: <título> pasó a «X».». Ya no sin
+  resolver: «Esta subasta ya no está sin resolver.» y la lista de siempre. Sin destinos fuera de la subasta: «Desde aquí no hay una fase
+  después de la subasta.» o, sin fase, «Primero muévela a su fase inicial; después, «La ganamos» ofrece la siguiente.». Rechazos y
+  conflicto, como al mover.
   **Conflicto:** dentro del formulario, quién la movió y cuándo, «No se movió nada.», «Ver cómo quedó» (otra pestaña) y «Recargar», que
   conserva la nota. Una unidad **fuera de regla** lo dice arriba. Estados: esqueleto, error con «Reintentar», sin fase, sin destinos, tope
   de 12 destinos con aviso, «Actualizando…» al releer (al volver el foco, mínimo 5 s entre lecturas); sin permiso de mover, la lista sin
@@ -656,7 +671,7 @@ El panel de la unidad (`<PanelDeLaUnidad>`) se dibuja igual en `/logistica/vehic
   «No se pudo comprobar N origen(es).». **Columna:** nombre sobre el color de la fila, «Sin fase» (la pone la base, primera y sólo con
   tarjetas), «Jubilada» en texto, número acotado (`50+`); «Ver más» hasta 500 y en el tope «Mostrando las 500 que llevan más tiempo en la
   fase.»; un fallo de «Ver más» deja la columna como estaba. **Tarjeta:** identidad «<principal> · <título>» como enlace, VIN y lote, días
-  en la fase, «Demorado» en texto (lo calcula la base), contenedor y ETA; sin foto. **Dónde está** (con `q` válido): hasta 10 de todos tus
+  en la fase, «En subasta» o «Sin resolver» si la subasta manda (una no ganada no está en la cadena), «Demorado» en texto (lo calcula la base), contenedor y ETA; sin foto. **Dónde está** (con `q` válido): hasta 10 de todos tus
   orígenes con su fase, cada una a su origen con el panel abierto, y «Hay más: escribe más para afinar.». **Celular:** una fase a la vez
   (`?fase=`). La sub-navegación (Cadena · Embarques · Aduana · Gastos) dibuja sólo lo que la persona puede ver; con uno solo, nada.
 - **Listas de `/logistica/*`** (gastos, embarques, aduana): por cursor de a 50, sin selector, sin total y sin «Anterior» (la base camina
@@ -1101,7 +1116,8 @@ Toda lista que crece dibuja a lo sumo un tope y lo dice, con un camino a lo anti
   «Solo la cartera» se recorta en la base, no en la pantalla.
 - Empresa es una pantalla con pestañas: quien tiene uno de sus dos permisos ve la otra parte deshabilitada con motivo. El tipo de cambio se
   cambia en un panel con su historial a la vista.
-- La fase de un vehículo se ve en el inventario y se cambia en logística. Un vehículo nace en la fase inicial cuando hay una sola; si no,
+- La situación de un vehículo (su fase, o «En subasta», «Sin resolver» o «No ganada») se ve en el inventario, la ficha y logística; la fase
+  se cambia en logística y la subasta se resuelve desde la ficha. Un vehículo nace en la fase inicial cuando hay una sola; si no,
   «Sin fase».
 - `Ctrl/Cmd+Enter` en un alta guarda y deja el panel listo para otro; `Ctrl/Cmd+S` guarda y cierra, salvo en «Nuevo lead», donde guarda y
   deja el drawer listo.

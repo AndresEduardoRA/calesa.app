@@ -26,7 +26,7 @@ export async function leerDestinosDeBase(pedido: {
     const { data, error } = await supabase
       .from('fases_transiciones')
       .select(
-        'accion, nota_obligatoria, destino:fases!fases_transiciones_a_fase_id_fkey!inner(id, nombre, color, orden, activa)',
+        'accion, nota_obligatoria, destino:fases!fases_transiciones_a_fase_id_fkey!inner(id, nombre, color, orden, es_subasta, activa)',
       )
       .eq('de_fase_id', faseId)
       .eq('destino.activa', true)
@@ -38,7 +38,9 @@ export async function leerDestinosDeBase(pedido: {
   // Un vehículo entra por el flujo de su origen; un ítem de repuesto, por el único flujo `repuestos` (no tiene origen).
   const consulta = supabase
     .from('fases')
-    .select('id, nombre, color, orden, flujo:flujos!fases_flujo_id_fkey!inner(origen_id, ambito)')
+    .select(
+      'id, nombre, color, orden, es_subasta, flujo:flujos!fases_flujo_id_fkey!inner(origen_id, ambito)',
+    )
     .eq('flujo.ambito', ambito.tipo === 'vehiculo' ? 'vehiculos' : 'repuestos')
   const { data, error } = await (
     ambito.tipo === 'vehiculo' ? consulta.eq('flujo.origen_id', ambito.origenId) : consulta

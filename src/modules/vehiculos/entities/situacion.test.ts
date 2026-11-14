@@ -5,8 +5,10 @@ import {
   CONDICION_POR_DEFECTO,
   esquemaDeSituacion,
   etiquetaDeSituacion,
+  pedidoParaResolver,
   puedeResolverLaSubasta,
   SITUACIONES,
+  textoDelAvisoDeSituacion,
 } from './situacion'
 
 const ORIGEN = '00000000-0000-0000-0000-0000000000a1'
@@ -110,5 +112,56 @@ describe('accionesDeSituacion', () => {
 describe('CONDICION_POR_DEFECTO', () => {
   it('deja fuera sólo las no ganadas', () => {
     expect(CONDICION_POR_DEFECTO).toEqual({ tipo: 'situacion_fuera_de', valores: ['no_ganada'] })
+  })
+})
+
+describe('textoDelAvisoDeSituacion', () => {
+  const sin = { resolucion: null, fecha: null }
+
+  it('sin resolver pregunta, con su fase o sin ella', () => {
+    expect(textoDelAvisoDeSituacion({ situacion: 'sin_resolver', fase: 'Subasta', ...sin })).toBe(
+      'La subasta terminó y sigue en «Subasta». ¿La ganamos?',
+    )
+    expect(textoDelAvisoDeSituacion({ situacion: 'sin_resolver', fase: null, ...sin })).toBe(
+      'La subasta terminó y todavía no tiene fase. ¿La ganamos?',
+    )
+  })
+
+  it('no ganada dice quién y cuándo; sin el nombre, sólo cuándo; sin nada, que no cuenta', () => {
+    const resolucion = { resultado: 'no_ganada' as const, resueltaEn: '2026-11-14T12:00:00Z' }
+    expect(
+      textoDelAvisoDeSituacion({
+        situacion: 'no_ganada',
+        fase: 'Subasta',
+        resolucion: { ...resolucion, nombre: 'Rosa Mamani' },
+        fecha: '14 nov 2026',
+      }),
+    ).toBe(
+      'No ganada · la marcó Rosa Mamani el 14 nov 2026. Ya no cuenta en logística ni en Inicio.',
+    )
+    expect(
+      textoDelAvisoDeSituacion({
+        situacion: 'no_ganada',
+        fase: null,
+        resolucion: { ...resolucion, nombre: null },
+        fecha: '14 nov 2026',
+      }),
+    ).toBe('No ganada · se marcó el 14 nov 2026. Ya no cuenta en logística ni en Inicio.')
+    expect(textoDelAvisoDeSituacion({ situacion: 'no_ganada', fase: null, ...sin })).toBe(
+      'No ganada. Ya no cuenta en logística ni en Inicio.',
+    )
+  })
+
+  it('en subasta o en su fase no hay aviso', () => {
+    expect(
+      textoDelAvisoDeSituacion({ situacion: 'en_subasta', fase: 'Subasta', ...sin }),
+    ).toBeNull()
+    expect(textoDelAvisoDeSituacion({ situacion: 'fase', fase: 'Comprado', ...sin })).toBeNull()
+  })
+
+  it('sin permiso, a quién pedirlo', () => {
+    expect(pedidoParaResolver('Copart')).toBe(
+      'Para resolverla hace falta poder mover de fase en «Copart»: pídeselo a quien administra los roles.',
+    )
   })
 })

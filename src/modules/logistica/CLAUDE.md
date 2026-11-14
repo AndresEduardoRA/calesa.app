@@ -61,6 +61,11 @@ y su regla de `flujos_reglas` está activa; el orden es `ORDEN_DE_HUECOS`, no el
   y relee al volver el foco (5 s de mínimo), al cambiar la fase y con `logistica:unidad-cambio`; `useMoverLaUnidad` envía con `faseEsperada = unidad.faseId`
   (éxito = `router.refresh()`). El atajo de un requisito abre el bloque de otro hueco (`logistica:abrir-hueco`, `features/nucleo/hooks/eventos-de-la-unidad.ts`);
   un hueco que el panel no dibuja no ofrece atajo. Textos y estado del botón son de `flujos`. Un ítem manda `{ repuesto }` (`unidadAMover`).
+- **Área `mover`, «La ganamos»** (`?ganada=si`, `useModoGanada`; la clave `CLAVE_DE_GANADA` sale por `index.ts` para el enlace de la ficha del
+  vehículo): «Qué falta» ofrece sólo los destinos que no son la subasta (`entities/mover/ganada.ts`), abre el primero y mover llama `ganarLaSubasta`;
+  al lograrlo quita `?ganada` con `shallow: false`, sin `router.refresh()`. Fuera del modo, con la subasta sin resolver y permiso de mover, una línea
+  ofrece «La ganamos». La situación llega en `Unidad.situacion` (`entities/nucleo/situacion.ts`, espejo del `check` de la base: una entidad no
+  importa `vehiculos`).
 - **Área `mover`, notas e historial** (plegados). Se leen con la sesión de quien mira de a `TAMANO_DE_VER_MAS` por cursor `(creado_en, id)` hasta
   `TOPE_DE_LO_CARGADO`; un ítem por `repuesto_id`. «Ir a una fecha» usa `entities/mover/hasta-de-un-dia.ts` (copia de la de `cotizaciones`). Escriben
   `crearNota` (`vehiculo` xor `repuesto`; `logistica.ver` del origen o `repuestos.ver` para un ítem; autor del servidor) y `editarNota`, directo bajo la RLS
