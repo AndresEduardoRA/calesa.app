@@ -29,6 +29,7 @@ import {
 } from './tipos'
 import { ValorDeCampo } from './valor-de-campo'
 import { FotosEnElLugar } from '../../fotos/components/fotos-en-el-lugar'
+import { BotonDeVitrinaDeLaFila } from '../../vitrina/components/boton-de-vitrina-de-la-fila'
 
 type Props = DatosDelOrigen & {
   vehiculos: readonly FilaDeVehiculo[]
@@ -120,6 +121,9 @@ function FilaDeTabla({
         <div className="flex flex-wrap items-center gap-1.5">
           <BadgeDeFase fase={fase} />
           <InsigniaDeVitrina {...vitrinaDe(vehiculo, vitrina)} origen={origen} fase={fase} />
+          {menu.publicar.estado === 'habilitado' ? (
+            <BotonDeVitrinaDeLaFila vehiculo={vehiculo} />
+          ) : null}
           <InsigniaDeLimpieza fecha={vehiculo.limpiezaEl} hoy={limpiezaHoy} />
         </div>
       </TableCell>

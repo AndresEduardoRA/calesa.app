@@ -169,16 +169,12 @@ T02 y T03 corriendo. La persona eligió pausarlo y que la tanda la haga esta ses
 - Lleva **recorrido** con capturas.
 - **Docs:** GLOSARIO («Puja actual», «Puja final») y la fila de UX.
 
-### [ ] B3 · Vitrina desde la lista (`feat(vehiculos): publicar en la web desde la lista`)
+### [x] B3 · Vitrina desde la lista (`feat(vehiculos): publicar en la web desde la lista`)
 
-- **Indicador «En la web | No publicado»** (`<Badge>` con texto), sale de `publicado_web`, que la página ya trae.
-- **El toque** (con `vehiculos.vitrina` del origen; sin la clave, apagado con su motivo):
-  - Pide `vehiculo_vitrina_previa()` de ese vehículo; nunca por fila al dibujar.
-  - Si cumple, `vehiculo_vitrina` con la versión de la fila, y «Deshacer».
-  - Si falta algo, el drawer `?panel=vitrina-rapida&para=<id>` sólo con lo que falta (precio público, fotos → enlace a «Fotos»).
-- Sacar de la web también con «Deshacer».
-- **Estados:** `PT409` con salida de A1 y la regla de vitrina apagada en el flujo (aviso con «Ver configuración»).
-- **e2e:** `vehiculos-vitrina`, `vehiculos.spec`.
+- El estado de vitrina ya estaba en cada fila (`InsigniaDeVitrina`); se suma el toque: «Publicar» o «Sacar de la web» con «Deshacer» por
+  `vehiculo_vitrina` con la versión de la fila (`vehiculos.vitrina` del origen). Sin precio público, el panel chico `?panel=vitrina-rapida&para=`
+  pide sólo el precio («Publicar sin precio» deja «Consultar»). La base no exige nada más para publicar (`DECISIONES.md`).
+- **e2e:** `vehiculos-vitrina` (con el toque desde la lista), `vehiculos`.
 
 ### [ ] B4 · Cotización aprobada (`feat(cotizaciones): aprobar una cotización por vehículo`)
 
