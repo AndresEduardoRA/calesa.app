@@ -31,6 +31,7 @@ const fase = (n: number, extra: Partial<FaseParaConfigurar> = {}): FaseParaConfi
   visiblePortal: false,
   aliasPortal: null,
   descripcionPortal: null,
+  esSubasta: false,
   ...extra,
 })
 
@@ -67,6 +68,7 @@ function flujo(extra: Partial<FlujoParaConfigurar> = {}): FlujoParaConfigurar {
     nombre: 'Flujo',
     activo: true,
     version: '2026-11-11T00:00:00+00:00',
+    origenEsSubasta: false,
     reglas: [],
     fases: [fase(1), fase(2), fase(3)],
     transiciones: [],

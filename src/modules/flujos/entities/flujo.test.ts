@@ -33,6 +33,7 @@ function faseFila(n: number, extra: Record<string, unknown> = {}) {
     visible_portal: true,
     alias_portal: 'En camino',
     descripcion_portal: null,
+    es_subasta: false,
     ...extra,
   }
 }
@@ -46,6 +47,7 @@ function filas(extra: Partial<FilasDeFlujo> = {}): FilasDeFlujo {
       nombre: 'Subasta USA',
       activo: true,
       actualizado_en: '2026-11-10T14:03:22.123456+00:00',
+      origen: { tipo: 'subasta' },
     },
     reglas: [{ regla: 'logistica', activa: true }],
     fases: [faseFila(3), faseFila(1, { es_inicial: true }), faseFila(2)],
@@ -87,6 +89,29 @@ describe('flujoParaConfigurarDesde', () => {
       notaObligatoria: true,
     })
     expect(flujo.rolesPorFase).toEqual([{ faseId: guid(1), rolId: guid(71) }])
+  })
+
+  it('dice si el flujo es el de un origen de subasta y lee es_subasta de cada fase', () => {
+    const subasta = flujoParaConfigurarDesde(
+      filas({ fases: [faseFila(1, { es_inicial: true, es_subasta: true })] }),
+    )
+    expect(subasta.origenEsSubasta).toBe(true)
+    expect(subasta.fases[0]?.esSubasta).toBe(true)
+    const manual = flujoParaConfigurarDesde(
+      filas({ encabezado: { ...(filas().encabezado as object), origen: { tipo: 'manual' } } }),
+    )
+    expect(manual.origenEsSubasta).toBe(false)
+    const repuestos = flujoParaConfigurarDesde(
+      filas({
+        encabezado: {
+          ...(filas().encabezado as object),
+          ambito: 'repuestos',
+          origen_id: null,
+          origen: null,
+        },
+      }),
+    )
+    expect(repuestos.origenEsSubasta).toBe(false)
   })
 
   it('lleva la bandera de truncado tal como la leyó la consulta', () => {

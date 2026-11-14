@@ -89,6 +89,9 @@ El módulo se parte por área (`scripts/guardas/areas-de-flujos.test.ts`): el **
   explica y no se confirma. `useListaDeFases` escribe una a la vez con la `version`; `PT409` → `avisarConflicto()`. El selector sólo ofrece flujos configurables.
 - **Inspector › Datos:** `<DatosDeLaFase>` (`bloques.datos`), cinco `<Bloque>`s con `<InterruptorConMotivo>` (la regla apagada lo deshabilita).
   `useFormularioDeDatos` manda a `fase_guardar` sólo `cambiosParaGuardar`, borrador `fase-<id>` en `sessionStorage`; se reinicia con `key` (`fase.id` + versión).
+  «En el flujo» lleva «Es la subasta» (`fases.es_subasta`, la **fase de subasta**): sólo en el flujo de un origen de tipo subasta
+  (`FlujoParaConfigurar.origenEsSubasta`, del tipo del origen embebido; fuera, apagado con `motivoDeEsSubasta`) y nunca con «Es final». Puede haber
+  varias. La lee `vehiculos` para calcular la situación del vehículo.
 - Nada de esta área sale por `index.ts` ni `client.ts`.
 
 ## Requisitos
@@ -166,7 +169,8 @@ jubilada|eliminada, version}`. Los conteos de `_fase_uso` llegan como tope + 1 (
 - `revisar_flujo(p_flujo)` (`security definer`) sólo responde a quien configura el flujo (`puede_configurar_flujo`); a los demás, cero filas sin error. Devuelve
   `{nivel, codigo, mensaje, fase_id}` sin orden. Códigos: error `sin_inicial`; aviso `sin_salida`, `inalcanzable`, `orden_duplicado`,
   `contenedor_inalcanzable`, `espera_jubilada`, `espera_cruzada`, `rol_sin_personas` (roles sin persona `activo and not bloqueado`),
-  `tipo_documento_inactivo`, `salida_a_jubilada`; info `sin_bloqueantes`, `entrada_no_automatica` (sólo vehículos, espejo de `_vehiculo_fase_de_entrada`).
+  `tipo_documento_inactivo`, `salida_a_jubilada`, `sin_fase_de_subasta` (origen de subasta sin ninguna fase con `es_subasta`, activa o jubilada: nada
+  figura «Sin resolver»); info `sin_bloqueantes`, `entrada_no_automatica` (sólo vehículos, espejo de `_vehiculo_fase_de_entrada`).
   Lo prueba `supabase/tests/flujos-revisar.sql`. Avisa y nunca impide guardar.
 - Un requisito nace informativo; volverlo bloqueante muestra cuántas unidades quedan «fuera de regla» y pide confirmación.
 - Las esperas se evalúan al entrar a la fase y nunca mueven en cascada.
@@ -188,7 +192,9 @@ jubilada|eliminada, version}`. Los conteos de `_fase_uso` llegan como tope + 1 (
 - La versión cruza como texto ISO tal cual (microsegundos), nunca por un `Date` de JS: se quedaría en milisegundos y daría `PT409` en cada guardado.
 - `authenticated` no tiene `insert` ni `update` sobre `fases` ni `update` sobre `flujos`. `fase_crear(p_id, p_flujo, p_actualizado_en_esperado, p_datos)` y
   `fase_guardar(p_fase, p_actualizado_en_esperado, p_cambios)`: lista cerrada de claves (`22023` con la clave en `hint`), validaciones con el campo en `hint`,
-  reglas del flujo (`23514`) y únicos con mensaje humano (`23505`).
+  reglas del flujo (`23514`) y únicos con mensaje humano (`23505`). `es_subasta` fuera del flujo de un origen de subasta → `23514` (hint `es_subasta`,
+  también en el trigger `fase_validar` sin hint; `_flujo_de_subasta()`); con `es_final` → `22023` (hint `es_subasta`). Lo prueba
+  `supabase/tests/areas/flujos/fases-subasta.sql`.
 
 ## Ojo
 

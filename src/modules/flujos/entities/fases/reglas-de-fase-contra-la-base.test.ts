@@ -11,8 +11,10 @@ const REGLAS = ['vitrina_web', 'portal_cliente', 'aduana', 'logistica']
 const CON_TODAS: ContextoDeFase = {
   ambito: 'vehiculos',
   reglas: REGLAS.map((regla) => ({ regla, activa: true })),
+  origenEsSubasta: false,
 }
-const SIN_REGLAS: ContextoDeFase = { ambito: 'vehiculos', reglas: [] }
+const SIN_REGLAS: ContextoDeFase = { ambito: 'vehiculos', reglas: [], origenEsSubasta: false }
+const DE_SUBASTA: ContextoDeFase = { ...CON_TODAS, origenEsSubasta: true }
 
 const BASE: ValoresDeFase = valoresDeFase({
   id: '11111111-1111-4111-8111-111111111111',
@@ -35,6 +37,7 @@ const BASE: ValoresDeFase = valoresDeFase({
   visiblePortal: false,
   aliasPortal: null,
   descripcionPortal: null,
+  esSubasta: false,
 })
 
 const CASOS: { caso: string; cambios: Partial<ValoresDeFase>; contexto?: ContextoDeFase }[] = [
@@ -68,6 +71,14 @@ const CASOS: { caso: string; cambios: Partial<ValoresDeFase>; contexto?: Context
   { caso: 'aduana con la regla apagada', cambios: { permiteAduana: true }, contexto: SIN_REGLAS },
   { caso: 'logística con la regla apagada', cambios: { esLogistica: true }, contexto: SIN_REGLAS },
   { caso: 'todo encendido con sus reglas', cambios: { publicaWeb: true, esLogistica: true } },
+  { caso: 'subasta en un origen de subasta', cambios: { esSubasta: true }, contexto: DE_SUBASTA },
+  { caso: 'subasta en un origen manual', cambios: { esSubasta: true } },
+  { caso: 'subasta y final', cambios: { esSubasta: true, esFinal: true }, contexto: DE_SUBASTA },
+  {
+    caso: 'subasta inicial y final',
+    cambios: { esSubasta: true, esInicial: true, esFinal: true },
+    contexto: DE_SUBASTA,
+  },
 ]
 
 // Lo que `fase_crear()` le pasa a `_fase_validar()` tras mezclar: los textos recortados y los opcionales vacíos, nulos.
@@ -90,6 +101,7 @@ function aJson(v: ValoresDeFase) {
     permite_aduana: v.permiteAduana,
     publica_web: v.publicaWeb,
     visible_portal: v.visiblePortal,
+    es_subasta: v.esSubasta,
   }
 }
 
@@ -102,12 +114,15 @@ describe('validarFase contra _fase_validar() de la base', () => {
       create table public.fases (
         flujo_id uuid, nombre text, descripcion text, descripcion_portal text, alias_portal text, color text, icono text,
         demora_dias integer, alerta_cada_horas integer, es_inicial boolean, es_final boolean, es_logistica boolean,
-        permite_aduana boolean, publica_web boolean, visible_portal boolean
+        permite_aduana boolean, publica_web boolean, visible_portal boolean, es_subasta boolean
       );
+      create table public.origenes (id uuid, tipo text);
+      create table public.flujos (id uuid, ambito text, origen_id uuid);
       create table public.flujos_reglas (flujo_id uuid, regla text, activa boolean);
       create function public.flujo_regla_activa(p_flujo uuid, p_regla text) returns boolean language sql stable
         set search_path = '' as $$
           select exists (select 1 from public.flujos_reglas r where r.flujo_id = p_flujo and r.regla = p_regla and r.activa) $$;`)
+    await db.exec(definicionSql('_flujo_de_subasta').texto)
     await db.exec(definicionSql('_fase_validar').texto)
   })
 
@@ -116,7 +131,15 @@ describe('validarFase contra _fase_validar() de la base', () => {
   })
 
   async function enLaBase(v: ValoresDeFase, contexto: ContextoDeFase) {
-    await db.exec('delete from public.flujos_reglas')
+    await db.exec(
+      'delete from public.flujos_reglas; delete from public.flujos; delete from public.origenes',
+    )
+    const origen = '33333333-3333-4333-8333-333333333333'
+    await db.query('insert into public.origenes values ($1, $2)', [
+      origen,
+      contexto.origenEsSubasta ? 'subasta' : 'manual',
+    ])
+    await db.query("insert into public.flujos values ($1, 'vehiculos', $2)", [FLUJO, origen])
     for (const { regla, activa } of contexto.reglas) {
       await db.query('insert into public.flujos_reglas values ($1, $2, $3)', [FLUJO, regla, activa])
     }

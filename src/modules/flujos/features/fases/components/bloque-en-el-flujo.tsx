@@ -1,7 +1,11 @@
 'use client'
 
 import { Bloque } from '@/shared/ui/bloque'
-import { avisoDeOtraInicial, otraFaseInicial } from '../../../entities/fases/reglas-de-fase'
+import {
+  avisoDeOtraInicial,
+  motivoDeEsSubasta,
+  otraFaseInicial,
+} from '../../../entities/fases/reglas-de-fase'
 import type { FaseParaConfigurar } from '../../../entities/flujo'
 import { InterruptorConMotivo } from './interruptor-con-motivo'
 import type { PropsDeBloque } from './props-de-bloque'
@@ -68,6 +72,18 @@ export function BloqueEnElFlujo({
         }}
         regla={{ campo: 'es_logistica', contexto }}
         error={errores.es_logistica}
+      />
+      <InterruptorConMotivo
+        {...comun}
+        campo="es_subasta"
+        titulo="Es la subasta"
+        ayuda="Mientras la subasta está viva, el vehículo figura «En subasta»; si termina y nadie la resuelve, «Sin resolver»."
+        valor={valores.esSubasta}
+        alCambiar={(esSubasta) => {
+          escribir({ esSubasta }, 'es_subasta')
+        }}
+        motivo={motivoDeEsSubasta(valores.esSubasta, contexto)}
+        error={errores.es_subasta}
       />
     </Bloque>
   )

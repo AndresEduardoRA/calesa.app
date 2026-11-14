@@ -1752,6 +1752,7 @@ export type Database = {
           es_final: boolean
           es_inicial: boolean
           es_logistica: boolean
+          es_subasta: boolean
           flujo_id: string
           icono: string | null
           id: string
@@ -1778,6 +1779,7 @@ export type Database = {
           es_final?: boolean
           es_inicial?: boolean
           es_logistica?: boolean
+          es_subasta?: boolean
           flujo_id: string
           icono?: string | null
           id?: string
@@ -1803,6 +1805,7 @@ export type Database = {
           es_final?: boolean
           es_inicial?: boolean
           es_logistica?: boolean
+          es_subasta?: boolean
           flujo_id?: string
           icono?: string | null
           id?: string
@@ -7988,6 +7991,7 @@ export type Database = {
           es_final: boolean
           es_inicial: boolean
           es_logistica: boolean
+          es_subasta: boolean
           flujo_id: string
           icono: string | null
           id: string
@@ -8037,6 +8041,7 @@ export type Database = {
         Args: { p_ids: string[]; p_lead: string; p_vehiculo: string }
         Returns: undefined
       }
+      _flujo_de_subasta: { Args: { p_flujo: string }; Returns: boolean }
       _flujo_para_editar: {
         Args: { p_actualizado_en_esperado: string; p_flujo: string }
         Returns: {

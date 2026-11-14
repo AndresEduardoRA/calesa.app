@@ -8,6 +8,7 @@ import {
   cambiosParaGuardar,
 } from '../../../entities/fases/formulario-de-fase'
 import {
+  contextoDelFlujo,
   esCampoDeFase,
   validarFase,
   type ErroresDeFase,
@@ -36,7 +37,7 @@ export function useFormularioDeDatos({ flujo, fase }: Args) {
     if (conflicto !== null) {
       return false
     }
-    const validado = validarFase(valores, { ambito: flujo.ambito, reglas: flujo.reglas })
+    const validado = validarFase(valores, contextoDelFlujo(flujo))
     if (!validado.ok) {
       campos.mostrarErrores(validado.errores)
       return false

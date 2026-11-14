@@ -36,6 +36,7 @@ const FASE: FaseParaConfigurar = {
   visiblePortal: false,
   aliasPortal: null,
   descripcionPortal: null,
+  esSubasta: false,
 }
 const CONTEXTO: ContextoDeFase = {
   ambito: 'vehiculos',
@@ -43,6 +44,7 @@ const CONTEXTO: ContextoDeFase = {
     regla,
     activa: true,
   })),
+  origenEsSubasta: false,
 }
 
 function datos(cambios: Partial<ValoresDeFase> = {}): DatosDeFase {

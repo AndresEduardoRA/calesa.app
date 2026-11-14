@@ -14,7 +14,7 @@ export type BloqueDeFase = (typeof BLOQUES_DE_FASE)[number]
 // Los campos de cada bloque, en el orden en que se dibujan.
 export const CAMPOS_DEL_BLOQUE: Record<BloqueDeFase, readonly CampoDeFase[]> = {
   identidad: ['nombre', 'descripcion', 'color', 'icono'],
-  'en-el-flujo': ['es_inicial', 'es_final', 'nota_obligatoria', 'es_logistica'],
+  'en-el-flujo': ['es_inicial', 'es_final', 'nota_obligatoria', 'es_logistica', 'es_subasta'],
   demora: ['demora_dias', 'alerta_cada_horas'],
   transporte: ['permite_contenedor', 'permite_aduana', 'cuenta_llegada_repuestos'],
   'web-y-portal': ['publica_web', 'visible_portal', 'alias_portal', 'descripcion_portal'],
