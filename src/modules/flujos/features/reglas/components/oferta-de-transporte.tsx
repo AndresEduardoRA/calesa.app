@@ -1,5 +1,6 @@
 'use client'
 
+import { RUTAS } from '@/shared/lib/rutas'
 import { Button } from '@/shared/ui/button'
 import {
   SIN_NAVIERAS,
@@ -19,11 +20,21 @@ type Props = {
   catalogo: CatalogoDeTransporte
   sinPermiso: boolean
   escritura: EscrituraDeReglas
+  puedeCargarCatalogos: boolean
 }
 
 // La oferta de transporte del flujo (sólo con «Transporte» encendida): qué puertos y navieras se ofrecen al cargar el transporte. Sin marcar ninguno, se
 // ofrecen todos. Se guarda entera con la versión del flujo. Quien la monta le pone `key` con la firma de lo guardado.
-export function OfertaDeTransporte({ flujoId, oferta, catalogo, sinPermiso, escritura }: Props) {
+export function OfertaDeTransporte({
+  flujoId,
+  oferta,
+  catalogo,
+  sinPermiso,
+  escritura,
+  puedeCargarCatalogos,
+}: Props) {
+  const cargarEn = (seccion: 'puertos' | 'navieras') =>
+    puedeCargarCatalogos ? `${RUTAS.configuracionDeLogistica}?seccion=${seccion}` : null
   const { borrador, hayCambio, marcar, ofrecerTodos, guardar } = useOfertaDeTransporte(
     flujoId,
     oferta,
@@ -52,6 +63,7 @@ export function OfertaDeTransporte({ flujoId, oferta, catalogo, sinPermiso, escr
           guardados={oferta.puertosOrigen}
           marcados={borrador.puertosOrigen}
           sinCatalogo={SIN_PUERTOS}
+          cargarEn={cargarEn('puertos')}
           deshabilitado={apagado}
           alMarcar={(id, marcada) => marcar('puertosOrigen', id, marcada)}
         />
@@ -62,6 +74,7 @@ export function OfertaDeTransporte({ flujoId, oferta, catalogo, sinPermiso, escr
           guardados={oferta.puertosDestino}
           marcados={borrador.puertosDestino}
           sinCatalogo={SIN_PUERTOS}
+          cargarEn={cargarEn('puertos')}
           deshabilitado={apagado}
           alMarcar={(id, marcada) => marcar('puertosDestino', id, marcada)}
         />
@@ -72,6 +85,7 @@ export function OfertaDeTransporte({ flujoId, oferta, catalogo, sinPermiso, escr
           guardados={oferta.navieras}
           marcados={borrador.navieras}
           sinCatalogo={SIN_NAVIERAS}
+          cargarEn={cargarEn('navieras')}
           deshabilitado={apagado}
           alMarcar={(id, marcada) => marcar('navieras', id, marcada)}
         />
