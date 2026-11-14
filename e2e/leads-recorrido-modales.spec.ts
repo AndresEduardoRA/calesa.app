@@ -124,7 +124,10 @@ test('C · teléfono extra desde la ficha: validación, descarte y guardar una s
   await agregar.click({ force: true })
   await expect(page.getByText('Teléfono agregado.')).toBeVisible()
   await expect(modalDeExtra(page)).toHaveCount(0)
-  expect(enviadas).toHaveLength(1)
+  // `enviadas` cuenta toda Server Action: al tipear el número también sale la verificación contra los demás leads.
+  // Lo que no debe repetirse es el guardado, el único pedido que lleva el id del teléfono y su etiqueta.
+  const guardados = enviadas.filter((pedido) => (pedido.postData() ?? '').includes('"etiqueta"'))
+  expect(guardados).toHaveLength(1)
   expect(await extrasDeLead(r.uno.id)).toHaveLength(1)
   await page.unrouteAll({ behavior: 'wait' })
 })
