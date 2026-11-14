@@ -1,6 +1,6 @@
 import { WorkflowIcon } from 'lucide-react'
 import { datosO, type Resultado } from '@/shared/lib/errores'
-import type { Permisos } from '@/shared/lib/permisos'
+import { puede, type Permisos } from '@/shared/lib/permisos'
 import { EstadoVacio } from '@/shared/ui/estados'
 import { leerFlujoParaConfigurar, leerFlujosConfigurables } from '../../../areas/nucleo/composicion'
 import { leerCatalogoDeTransporte, leerOfertaDeTransporte } from '../../../areas/reglas/composicion'
@@ -76,6 +76,8 @@ export async function PantallaDeReglas({ permisos, origenes, origenPedido, ambit
         reglas={flujo.reglas}
         motivoSinPermiso={motivoSinPermisoDeReglas(permisos, flujo.ambito, flujo.origenId)}
         transporte={transporte}
+        // Sin puertos o navieras que ofrecer, quien gestiona esos catálogos ve el enlace a cargarlos.
+        puedeCargarCatalogos={puede(permisos, 'logistica.catalogos.gestionar')}
       />
     </div>
   )

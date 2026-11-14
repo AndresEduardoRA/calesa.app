@@ -79,6 +79,15 @@ export function DestinoDeMover({ unidad, destino, puedeMover, borrador, releer }
       ) : (
         <Aviso tono="peligro">
           <p>{destino.errorDeLaVista}</p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-2 min-h-11 md:min-h-8"
+            onClick={releer}
+          >
+            Reintentar
+          </Button>
         </Aviso>
       )}
       {abierto ? (

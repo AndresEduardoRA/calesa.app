@@ -1,16 +1,18 @@
 'use client'
 
+import { puede } from '@/shared/lib/permisos'
 import { Campo } from '@/shared/ui/campo'
 import { CampoSeleccion } from '@/shared/ui/campo-seleccion'
 import { TEXTO_DE_VARIOS, type CampoDelGrupo } from '../../../entities/transporte/edicion-del-grupo'
 import type { OpcionDeTransporte } from '../../../entities/transporte/oferta'
 import {
   LARGO_MAXIMO_DEL_CONTENEDOR,
-  TEXTO_SIN_NAVIERAS,
   type CampoDeTransporte,
   type ErroresDeTransporte,
   type ValoresDeTransporte,
 } from '../../../entities/transporte/transporte'
+import { usePermisosDeTransporte } from '../hooks/use-permisos-de-transporte'
+import { SinNavieras } from './campos-de-ruta'
 
 export type PropsDeCamposDelGrupo = {
   prefijo: string
@@ -57,6 +59,16 @@ type PropsDeRuta = PropsDeCamposDelGrupo & {
 }
 
 // «Ruta»: naviera y puertos. Las opciones son todos los activos del catálogo (un grupo cruza flujos; la oferta de cada uno la revisa la base por unidad, D40).
+// Sin navieras activas: quien gestiona los catálogos ve el enlace a cargarlas (igual que en el hueco «Transporte»).
+function SinNavierasDelGrupo() {
+  const permisos = usePermisosDeTransporte()
+  return (
+    <SinNavieras
+      puedeCargar={permisos !== null && puede(permisos, 'logistica.catalogos.gestionar')}
+    />
+  )
+}
+
 export function CamposDeRutaDelGrupo({
   navieras,
   puertosOrigen,
@@ -74,11 +86,7 @@ export function CamposDeRutaDelGrupo({
           etiqueta="Naviera"
           opciones={navieras}
         />
-        {hayNavieras ? null : (
-          <p className="text-(length:--text-sm) text-(--color-ink-soft)" data-estado="sin-navieras">
-            {TEXTO_SIN_NAVIERAS}
-          </p>
-        )}
+        {hayNavieras ? null : <SinNavierasDelGrupo />}
       </div>
       <SelectorDelGrupo
         {...p}
