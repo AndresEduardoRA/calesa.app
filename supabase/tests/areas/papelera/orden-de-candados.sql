@@ -5,8 +5,8 @@
 -- Qué asegura:
 --   O1. Cotizar encima toma el lead y el vehículo de la anterior, en ese orden, antes que la anterior `for share` (al revés se cruza con mandar el
 --       vehículo a la papelera, que toma el vehículo y después sus cotizaciones).
---   O2. Emitir un comprobante toma el vehículo de la cotización `for key share` antes que la cotización (sin él, mandar el vehículo a la papelera no ve el
---       comprobante sin confirmar y se lleva la final con su comprobante; su carrera, K8 en `supabase/tests/areas/comprobantes/carreras-papelera.mjs`).
+--   O2. Emitir un comprobante toma el vehículo de la cotización `for key share` antes que la cotización (mandar el vehículo a la papelera, que lo toma
+--       `for update`, espera y ve el comprobante; su carrera, K8 en `supabase/tests/areas/comprobantes/carreras-papelera.mjs`).
 
 -- @test orden de candados: cotizar encima toma el lead y el vehículo de la anterior antes que la anterior (O1)
 do $$
