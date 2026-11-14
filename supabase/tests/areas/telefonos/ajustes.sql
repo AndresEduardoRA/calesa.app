@@ -131,6 +131,10 @@ begin
   perform pg_temp.tel_extra(b, lb, '74110009');
   perform pg_temp.tel_extra(gala, lc, '74110009');
   perform pg_temp.tel_extra(a, la, '74110008');
+  -- «El más antiguo» es de creado_en (en una transacción todos valen lo mismo): A antes que B, B antes que C.
+  update public.leads_telefonos set creado_en = now() - interval '3 days' where lead_id = la;
+  update public.leads_telefonos set creado_en = now() - interval '2 days' where lead_id = lb;
+  update public.leads_telefonos set creado_en = now() - interval '1 day' where lead_id = lc;
   r := pg_temp.tel_corre(gala, 'select public.telefonos_extra_choques()');
   -- 74110002 (extra de A = principal de B) y 74110009: de B contra A, de C contra A (el más antiguo): 3 filas.
   if jsonb_array_length(r -> 'filas') <> 3 then raise exception 'las filas: %', r; end if;

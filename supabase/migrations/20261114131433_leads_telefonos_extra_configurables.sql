@@ -163,6 +163,9 @@ begin
   -- Con la regla de los extras, el número se serializa: un índice único no abarca `leads_telefonos`. Su propia sentencia, antes de
   -- verificar, para que la verificación vea lo que otro confirmó mientras esperaba.
   if v_como then
+  -- Antes, el candado de los embudos de quien crea (el orden de siempre: embudos y después teléfono): una importación que ya lo tiene y espera
+  -- un número que esta alta retiene se cruzaría con ella (40P01).
+  perform public._embudos_candado(v_yo);
   perform pg_advisory_xact_lock(hashtextextended('leads_telefono:' || v_tel, 0));
   end if;
   v_verif := public._lead_verificar(v_tel);
@@ -694,7 +697,7 @@ $$;
 revoke all on function public.telefonos_extra_ajustes_guardar(p_maximo integer, p_como_principal boolean, p_actualizado_en_esperado timestamp with time zone) from public, anon;
 grant execute on function public.telefonos_extra_ajustes_guardar(p_maximo integer, p_como_principal boolean, p_actualizado_en_esperado timestamp with time zone) to authenticated, service_role;
 
--- Los choques: extras de leads vivos cuyo número ya es el principal (o un extra anterior) de otro lead vivo. Se recorre `leads_telefonos`
+-- Los choques: extras de leads vivos cuyo número ya es el principal (o un extra anterior: de `creado_en`, y a igual `creado_en`, de id) de otro lead vivo. Se recorre `leads_telefonos`
 -- por su clave (`leads_telefonos_pkey`) desde el cursor, hasta 10.000 filas por llamada; cada fila busca su choque por `leads_telefono_unico`
 -- (el principal) y por `leads_telefonos_telefono_idx` (otro extra). Sin total exacto: `tamano + 1` para saber si hay más, y
 -- «recorrido_cortado» si no alcanzó a mirar todo. Nunca el número completo; el nombre de un lead sólo si quien configura lo ve.
@@ -721,30 +724,30 @@ begin
   if p_despues is null then
     open c for
       select e.id, e.telefono, s.id as lead_id, s.nombre as lead_nombre, o.id as otro_id, o.nombre as otro_nombre, o.como
-        from (select t.id, t.lead_id, t.telefono from public.leads_telefonos t order by t.id limit v_recorrido + 1) e
+        from (select t.id, t.lead_id, t.telefono, t.creado_en from public.leads_telefonos t order by t.id limit v_recorrido + 1) e
         left join lateral (select x.id, x.nombre from public.leads x where x.id = e.lead_id and x.eliminado_en is null) s on true
         left join lateral (
           select q.id, q.nombre, q.como from (
-            select x.id, x.nombre, 'principal'::text as como, 0 as orden from public.leads x
+            select x.id, x.nombre, 'principal'::text as como, 0 as orden, x.creado_en as cuando from public.leads x
              where x.telefono_principal = e.telefono and x.eliminado_en is null and x.id <> e.lead_id
             union all
-            select x.id, x.nombre, 'extra'::text, 1 from public.leads_telefonos t2 join public.leads x on x.id = t2.lead_id
-             where t2.telefono = e.telefono and t2.id < e.id and t2.lead_id <> e.lead_id and x.eliminado_en is null) q
-           order by q.orden, q.id limit 1) o on s.id is not null
+            select x.id, x.nombre, 'extra'::text, 1, t2.creado_en from public.leads_telefonos t2 join public.leads x on x.id = t2.lead_id
+             where t2.telefono = e.telefono and (t2.creado_en, t2.id) < (e.creado_en, e.id) and t2.lead_id <> e.lead_id and x.eliminado_en is null) q
+           order by q.orden, q.cuando, q.id limit 1) o on s.id is not null
        order by e.id;
   else
     open c for
       select e.id, e.telefono, s.id as lead_id, s.nombre as lead_nombre, o.id as otro_id, o.nombre as otro_nombre, o.como
-        from (select t.id, t.lead_id, t.telefono from public.leads_telefonos t where t.id > p_despues order by t.id limit v_recorrido + 1) e
+        from (select t.id, t.lead_id, t.telefono, t.creado_en from public.leads_telefonos t where t.id > p_despues order by t.id limit v_recorrido + 1) e
         left join lateral (select x.id, x.nombre from public.leads x where x.id = e.lead_id and x.eliminado_en is null) s on true
         left join lateral (
           select q.id, q.nombre, q.como from (
-            select x.id, x.nombre, 'principal'::text as como, 0 as orden from public.leads x
+            select x.id, x.nombre, 'principal'::text as como, 0 as orden, x.creado_en as cuando from public.leads x
              where x.telefono_principal = e.telefono and x.eliminado_en is null and x.id <> e.lead_id
             union all
-            select x.id, x.nombre, 'extra'::text, 1 from public.leads_telefonos t2 join public.leads x on x.id = t2.lead_id
-             where t2.telefono = e.telefono and t2.id < e.id and t2.lead_id <> e.lead_id and x.eliminado_en is null) q
-           order by q.orden, q.id limit 1) o on s.id is not null
+            select x.id, x.nombre, 'extra'::text, 1, t2.creado_en from public.leads_telefonos t2 join public.leads x on x.id = t2.lead_id
+             where t2.telefono = e.telefono and (t2.creado_en, t2.id) < (e.creado_en, e.id) and t2.lead_id <> e.lead_id and x.eliminado_en is null) q
+           order by q.orden, q.cuando, q.id limit 1) o on s.id is not null
        order by e.id;
   end if;
   loop

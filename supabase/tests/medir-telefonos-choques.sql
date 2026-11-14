@@ -86,13 +86,13 @@ select pg_temp.como_duena();
 select pg_temp.medir('n60', 'select public.telefonos_extra_choques()');
 reset role;
 
--- Con choques repartidos (un extra por cada 250 igual al principal de otro): la página se llena y se corta antes del tope.
+-- Con choques repartidos (un extra por cada 250 igual al principal de otro lead, cada uno de uno distinto): la página se llena y se corta antes del tope.
 do $$ begin
   set local session_replication_role = replica;
   update public.leads_telefonos t set telefono = l2.telefono_principal
     from (select t3.id, row_number() over (order by t3.id) as k from public.leads_telefonos t3) x
-    join public.leads l2 on l2.nombre = 'Medir choques ' || (x.k * 500 % 30000 + 1)
-   where t.id = x.id and x.k % 250 = 0;
+    join public.leads l2 on l2.nombre = 'Medir choques ' || (x.k / 250 * 100)
+   where t.id = x.id and x.k % 250 = 0 and l2.id <> t.lead_id;
   set local session_replication_role = origin;
 end $$;
 set local role authenticated;
@@ -107,13 +107,13 @@ do $$
 declare v_plan jsonb; v_texto text; v_ruta text;
 begin
   foreach v_ruta in array array['sin', 'con'] loop
-    v_texto := 'select e.id, e.telefono, s.id as lead_id, o.id as otro_id from (select t.id, t.lead_id, t.telefono from public.leads_telefonos t '
+    v_texto := 'select e.id, e.telefono, s.id as lead_id, o.id as otro_id from (select t.id, t.lead_id, t.telefono, t.creado_en from public.leads_telefonos t '
       || case v_ruta when 'con' then 'where t.id > ''00000000-0000-4000-8000-000000000000'' ' else '' end
       || 'order by t.id limit 10001) e '
       || 'left join lateral (select x.id from public.leads x where x.id = e.lead_id and x.eliminado_en is null) s on true '
-      || 'left join lateral (select q.id from (select x.id, 0 as orden from public.leads x where x.telefono_principal = e.telefono and x.eliminado_en is null and x.id <> e.lead_id '
-      || 'union all select x.id, 1 from public.leads_telefonos t2 join public.leads x on x.id = t2.lead_id where t2.telefono = e.telefono and t2.id < e.id and t2.lead_id <> e.lead_id and x.eliminado_en is null) q '
-      || 'order by q.orden, q.id limit 1) o on s.id is not null order by e.id';
+      || 'left join lateral (select q.id from (select x.id, 0 as orden, x.creado_en as cuando from public.leads x where x.telefono_principal = e.telefono and x.eliminado_en is null and x.id <> e.lead_id '
+      || 'union all select x.id, 1, t2.creado_en from public.leads_telefonos t2 join public.leads x on x.id = t2.lead_id where t2.telefono = e.telefono and (t2.creado_en, t2.id) < (e.creado_en, e.id) and t2.lead_id <> e.lead_id and x.eliminado_en is null) q '
+      || 'order by q.orden, q.cuando, q.id limit 1) o on s.id is not null order by e.id';
     execute 'explain (format json) ' || v_texto into v_plan;
     insert into _plan values (v_ruta, v_plan::text);
   end loop;
