@@ -1,5 +1,5 @@
 import 'server-only'
-import { errorDePostgrest, fallo, ok } from '@/shared/lib/errores'
+import { errorConCausa, errorDePostgrest, fallo, ok } from '@/shared/lib/errores'
 import { createClient } from '@/shared/lib/supabase/server'
 import { envioDesde, purgaDesde, restauracionDesde } from '../entities/papelera'
 import type { RepositorioDePapeleraDeLeads } from '../entities/repositorios'
@@ -18,7 +18,7 @@ export const papeleraDeLeadsSupabase: RepositorioDePapeleraDeLeads = {
       p_leads: [...leads],
     })
     if (error) {
-      return { ok: false, error: errorDePostgrest(error) }
+      return { ok: false, error: errorConCausa(error) }
     }
     const envio = envioDesde(data)
     return envio ? ok(envio) : fallo('inesperado', NO_SE_LEYO)

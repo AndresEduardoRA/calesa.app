@@ -32,7 +32,6 @@ Al cerrar una, se borra su línea (el PR lo cuenta). Lo nuevo que aparezca al tr
 
 ### Leads y web
 
-- **[4-66]** En «Nuevo lead» abierto desde la hoja, un teléfono que ya es de un lead visible no ofrece «Elegir» desde el aviso — un botón con el `leadId` que ya llega (`entities/verificacion.ts`).
 - **[9-14a]** Marcar final y editar un lead exigen tenerlo en cartera (`puede_actuar_lead` › `en_cartera`): una dueña con «todos» no cierra la venta de un lead de su asesora sin que se lo compartan — recomendado dejarlo.
 - **[8-14a]** Un rol con `web.cola.participar` sin `leads.crear` ni `web.cola.gestionar` recibe turnos (campana) pero no los ve en Inicio — recomendado dejarlo (quien atiende la web crea el lead).
 - **[8-05a]** Vincular a un lead una solicitud web ya contactada — `web_confirmar_contacto` sólo escribe `lead_id` en `asignada` o `vencida`; pide una RPC nueva.

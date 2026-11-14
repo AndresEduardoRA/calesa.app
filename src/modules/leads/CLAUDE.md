@@ -30,7 +30,8 @@ Leads (prospectos y clientes) con teléfono principal único y enmascarado salvo
   `reciente_en` o búsqueda por nombre o `#n`; elegir escribe `?lead=` con `history: 'replace', shallow: false`; lecturas del navegador en
   `infra/panel-para-cotizar.client.ts`). Su «+» abre el alta con `?panel=nuevo-lead&elegir=<clave>` (`claveParaElegir()`: 1 a 20 minúsculas, ni
   `panel` ni `elegir`): `usePanelDeAlta()` entrega `paraElegir` y `elegirElCreado(id)`, el aviso va sin «Abrir ficha» y el foco vuelve a la barra
-  (`data-elige`). «Cotizar» de la ficha: `paraCotizar`, de `src/app`.
+  (`data-elige`); si el teléfono ya es de un lead que se ve, su aviso ofrece «Elegir» (`alElegir` = `elegirElCreado`). «Cotizar» de la ficha:
+  `paraCotizar`, de `src/app`.
 - «Vincular a lead» de un turno de la web (`features/vincular-turno/`, `?panel=vincular-turno&turno=<id>`): elegir llama `alElegir(leadId)` y decide
   `src/app/(app)/_inicio/vincular-turno.tsx`; «+» abre el alta con `?elegir=vincular` y vuelve con `?vincular=<id>`.
 - «Escribirle por chat» (`features/chat/`): en el aviso «Lo tiene <persona>» del teléfono principal, enlace a `/chat?con=<duenoId>` sólo si el layout
@@ -58,6 +59,9 @@ Leads (prospectos y clientes) con teléfono principal único y enmascarado salvo
 `origenes_lead`, `tipos_lead`, `importaciones`, `ajustes_leads` (fila única: plantillas del embudo y del mensaje del portal); `lotes_papelera` es
 compartida.
 
+**Papelera con causa:** `_lead_bloqueo(l, al_enviar) → {causa, motivo}` (`_lead_motivo_de_bloqueo` es su texto); el 23514 de `leads_papelera_enviar` lleva
+la causa en `hint` (`errorConCausa()`), y `entities/avisos-de-lead.ts` la vuelve acciones del aviso («Ver los vehículos» con un solo lead).
+
 **Sólo se leen; se escriben por RPC:** `leads` (`crear_lead`, `lead_guardar`; `telefono_principal` sólo `crear_lead` y `cambiar_telefono_lead`),
 `leads_telefonos` (`lead_telefono_*`), `leads_asesores` (`lead_compartir|transferir|revocar_acceso|salir`), marcas (`lead_*_poner`, `etiqueta_*`), y
 `seguimiento_*`, `recordatorio_*`, `embudo_*`, `oportunidad_*`, `origen_lead_*`, `tipo_lead_*`, `tipo_seguimiento_*`, `lead_campo_*`,
@@ -77,7 +81,7 @@ por cursor, de a 20 y hasta 100, por `oportunidades_lead_abiertas_idx` y `oportu
   con su alcance; purgar pide `leads.papelera.purgar`. Toda RPC que recibe un lead figura en `supabase/tests/auditoria-leads.sql`.
 - **`lead_guardar` es la única puerta de edición** y exige `actualizado_en` (`PT409`). La versión la mueven sólo nombre, tipo, origen, atributos,
   teléfono o papelera (`lead_version()`): una columna derivada nueva se suma fuera. `atributos` es un parche y nunca guarda un nulo.
-- **`crear_lead(p_id, …)`:** idempotente por `p_id`; un duplicado es un valor (`existe`, `de_otro`, `limbo`); adoptar exige `adoptar: true`.
+- **`crear_lead(p_id, …)`:** con la oportunidad base (`_lead_oportunidad_base`, también en las importaciones); idempotente por `p_id`; un duplicado es un valor (`existe`, `de_otro`, `limbo`); adoptar exige `adoptar: true`.
 - **Teléfono:** único entre vivos; se busca por nombre y por número (`#124`), **nunca por teléfono** (oráculo). El tope de 10 extras lo aplica
   «agregar», no el cambio.
 - **Marcas:** de quien mira, `poner(valor)` y nunca alternar, sin versión, sin tocar `leads`. Embudos personales; oportunidades clase 1.
