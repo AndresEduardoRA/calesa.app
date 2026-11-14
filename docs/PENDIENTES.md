@@ -144,6 +144,7 @@ Al cerrar una, se borra su línea (el PR lo cuenta). Lo nuevo que aparezca al tr
 - **[—]** Tablero: «Finales» cuenta por cohorte de creación, porque no hay fecha de marca final.
 - **[—]** `cambiar_fase` acepta `p_fase_esperada` nulo; despublicar no revoca la URL de una foto; «Ver como» acota la interfaz, no las filas.
 - **[—]** `storage-gc`, `apibara` e `importar-csv` (Deno) quedan fuera de lint y typecheck; `lead_dormido_meses` y `demora_dias_default` no tienen interfaz (nada lee `lead_dormido_meses`).
+- **[—]** «Los teléfonos extra cuentan como el principal»: restaurar un lead de la papelera mira sólo su principal; un extra suyo que ya es de otro lead entra sin revisarse y aparece en «Números repetidos».
 - **[—]** Borrar una naviera mientras se aplica un grupo puede dar un `40P01` raro (carrera aceptada, sin cubrir).
 
 ## Pulido de interfaz

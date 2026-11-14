@@ -114,6 +114,14 @@ que asserta `pnpm db:medir:volumen` o el e2e. Mide `medir-escala.sql` salvo que 
 
 - Listado: 100 por cursor (`MAXIMO_DE_PAGINA_DE_LEADS`), `leads_listado_idx`; 30 ms página 1, 150 ms página profunda (100 por cursor). La
   policy se estima con `_lead_visible_para()` sobre `leads.cartera`.
+- Teléfonos extra: ≤ 20 por lead (el `check` de `telefonos_extra_maximo`), una sola respuesta con la lista entera, `leads_telefonos_unico (lead_id, telefono)`.
+  El resumen del listado pasa de 1 a 2 pedidos al abrir (`leads_vista` y `lead_telefonos_leer()`, en paralelo; el bloque va con `diferido()`);
+  el panel de edición sigue con 1 (`lead_ficha()` ya trae los extras y el máximo). Con «Los teléfonos extra cuentan como el principal» encendida,
+  `_lead_verificar()` suma una búsqueda por `leads_telefonos_telefono_idx` sólo si el número no es principal de nadie.
+- Choques de teléfonos (Configuración › Leads › «Teléfonos extra»): `telefonos_extra_choques()` por cursor sobre `leads_telefonos_pkey`, de a 20 (hasta 50),
+  con tope de recorrido de 10.000 filas por llamada («Seguir buscando») y `limit n + 1`, sin total; cada fila busca su choque por `leads_telefono_unico`
+  y `leads_telefonos_telefono_idx`. Mide: `MEDIR_SOLO=medir-telefonos-choques pnpm db:medir:volumen` (los buffers por relación no crecen con N): peor caso ≈ 90 ms con 30.000 extras y ≈ 105 ms con 60.000 (tope 400 ms), la página con choques ≈ 70 ms.
+  JS en frío medido con el cambio: `/leads` 524,3 KB de 530; la ficha aporta 22,7 KB (el modal y el panel ya eran diferidos).
 - Quien tiene pocos leads («la chica»): «míos» por `leads_cartera_vista` e
   `leads_asesores_listado_idx (usuario_id, lead_creado_en desc, lead_id desc) include (tipo_acceso, revocado_en) where revocado_en is null`
   (lo elige `fuenteDelListado()`); página 1 hasta 30 ms, cursor hasta 150, hasta 3.000 descartes, con 62.000 y 212.000. Un «todos» con

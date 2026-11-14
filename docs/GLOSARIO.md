@@ -218,12 +218,20 @@ ese nombre: nunca un sinónimo ni su traducción al inglés.
 - **Filtro descartado** — `filtrosDescartados()` / `<AvisoDeFiltrosDescartados>`: filtro de la URL sobre un campo desactivado o eliminado.
 - **Ficha del lead** — `/leads/[id]` / `lead_ficha()`, `<FichaDeLead>`: cabecera, «Datos», edición en `?panel=editar-lead`.
 - **Teléfono extra** — `leads_telefonos` / `lead_telefonos()`, `lead_telefono_guardar()`, `lead_telefono_quitar()`: número alterno con
-  etiqueta opcional.
+  etiqueta opcional; se edita en la ficha, el panel de edición y el resumen (`<TelefonosExtra>`).
+- **Máximo de teléfonos extra** — `ajustes_leads.telefonos_extra_maximo` / `telefonos.maximo`: cuántos extras admite un lead (0 a 20; 6 de
+  fábrica). Quien ya tiene más los conserva y no agrega hasta bajar del máximo.
+- **Extras como el principal** — `ajustes_leads.telefonos_extra_como_principal` / `telefonos.comoPrincipal`, «Los teléfonos extra cuentan como
+  el principal» (apagado de fábrica): con ella, un extra es único entre leads vivos y registrar ese número encuentra a su lead.
+- **Choque de teléfonos** — `telefonos_extra_choques()` / `<ChoquesDeTelefonos>`: un extra cuyo número es el principal o el extra de otro lead
+  vivo; la lista de Configuración › Leads, enmascarada, por cursor y sin total.
+- **Editar teléfonos extra** — permiso `leads.telefonos_extra.editar` (con alcance): agregar, rotular y quitar extras; el principal sigue con
+  `leads.editar`.
 - **«Anterior»** — `leads_telefonos.etiqueta` / `ETIQUETA_DEL_ANTERIOR`: etiqueta del principal reemplazado, que queda como teléfono extra.
 - **Cambiar teléfono principal** — `cambiar_telefono_lead()` / `?panel=cambiar-telefono`, `<PanelDeTelefono>`: sólo la cartera, con la
   versión del lead.
 - **Teléfono extra de otro lead** — `_lead_verificar().alterno` / `Verificacion.libre.alterno`: aviso, sin bloquear, de que un número libre es
-  extra de otro lead.
+  extra de otro lead (o, al agregar un extra, el principal de otro: `como: 'principal'`).
 - **Versión del lead** — `leads.actualizado_en` / `lead_version()`: lo que la ficha manda al guardar para detectar cambio ajeno.
 - **Código de país** — `ajustes_empresa.telefono_cc` / `normalizarTelefono()`: prefijo que completa un teléfono sin «+» ni «00».
 - **Compartir / Transferir** — `lead_compartir()`, `lead_transferir(p_dueno_esperado)`: dar acceso / pasar el lead (el saliente queda
