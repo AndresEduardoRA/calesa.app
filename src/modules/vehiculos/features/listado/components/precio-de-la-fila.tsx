@@ -1,7 +1,6 @@
 'use client'
 
 import { Monto } from '@/shared/ui/monto'
-import { TableHead } from '@/shared/ui/table'
 import {
   AYUDA_DE_LA_PUJA,
   encabezadoDePrecio,
@@ -13,20 +12,15 @@ import {
 
 const VACIO = <span className="text-(--color-ink-faint)">—</span>
 
-// El encabezado de la columna: «Precio» o «Puja actual». La puja dice qué es (el `title` y, para quien lee en voz alta, el texto).
+// El texto del encabezado de la columna: «Precio» o «Puja actual». La puja dice qué es (el `title` y, para quien lee en voz alta, el texto).
 export function EncabezadoDePrecio({ columna }: { columna: ColumnaDePrecio }) {
   const texto = encabezadoDePrecio(columna)
+  if (columna.tipo === 'precio') return texto
   return (
-    <TableHead className="text-right">
-      {columna.tipo === 'puja' ? (
-        <span title={AYUDA_DE_LA_PUJA}>
-          {texto}
-          <span className="sr-only">. {AYUDA_DE_LA_PUJA}.</span>
-        </span>
-      ) : (
-        texto
-      )}
-    </TableHead>
+    <span title={AYUDA_DE_LA_PUJA}>
+      {texto}
+      <span className="sr-only">. {AYUDA_DE_LA_PUJA}.</span>
+    </span>
   )
 }
 

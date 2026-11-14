@@ -1,7 +1,5 @@
 'use client'
 
-import { CORTE_DE_LA_TABLA } from '@/shared/lib/ancho'
-import { useAlMenos } from '@/shared/ui/ancho-de-pantalla'
 import { columnaDePrecio, precioDeLaFila } from '../../../entities/precio-de-la-fila'
 import { CasillaDeSeleccion } from '../../papelera/components/casilla-de-seleccion'
 import type { SeleccionDelListado } from '../../papelera/hooks/use-papelera-del-listado'
@@ -26,6 +24,8 @@ type Props = DatosDelOrigen & {
   alAbrir: (id: string) => void
   // El vehículo abierto en el resumen, para marcarlo.
   abierto: string | null
+  // En escritorio (sólo hay tarjetas si la persona las eligió): en grilla, más grandes y con el carrusel en la foto.
+  grande: boolean
 }
 
 // El inventario de un origen en tarjetas (en el celular siempre; en escritorio, si la persona las eligió): una por vehículo, con lo
@@ -42,11 +42,10 @@ export function TarjetasDeVehiculos(props: Props) {
     seleccion,
     alAbrir,
     abierto,
+    grande,
   } = props
   const identidadDe = useIdentidad(campos)
   const columnaPrecio = columnaDePrecio(origen.tipo === 'subasta', campos)
-  // En escritorio sólo hay tarjetas si la persona las eligió: van en grilla, más grandes y con el carrusel en la foto.
-  const grande = useAlMenos(CORTE_DE_LA_TABLA)
   return (
     <ul
       className={

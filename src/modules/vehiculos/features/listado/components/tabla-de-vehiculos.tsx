@@ -177,7 +177,9 @@ export function TablaDeVehiculos({ vehiculos, campos, encabezado, ...resto }: Pr
           </CabeceraPegada>
           <TableHead>Fase</TableHead>
           <TableHead className="text-right">Año</TableHead>
-          <EncabezadoDePrecio columna={columnaPrecio} />
+          <TableHead className="text-right">
+            <EncabezadoDePrecio columna={columnaPrecio} />
+          </TableHead>
           {columnas.map((campo) => (
             <TableHead key={campo.clave}>{campo.etiqueta}</TableHead>
           ))}

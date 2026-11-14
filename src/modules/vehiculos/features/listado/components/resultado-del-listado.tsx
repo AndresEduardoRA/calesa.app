@@ -8,6 +8,8 @@ import { ubicacionDeLaPagina, type Pagina } from '@/shared/lib/paginacion'
 import { EstadoPaginaSinFilas, EstadoSinResultados, EstadoVacio } from '@/shared/ui/estados'
 import { useFiltrosDelListado } from '@/shared/ui/filtros'
 import { UnaSolaVista } from '@/shared/ui/lista'
+import { CORTE_DE_LA_TABLA } from '@/shared/lib/ancho'
+import { useAlMenos } from '@/shared/ui/ancho-de-pantalla'
 import type { VistaDeLista } from '@/shared/lib/vista-de-lista'
 import { Paginacion, UbicacionDeLaPagina } from '@/shared/ui/paginacion'
 import { BarraDeSeleccion } from '../../papelera/components/barra-de-seleccion'
@@ -47,6 +49,7 @@ export function ResultadoDelListado(props: Props) {
   const { pagina, accionDeVacio, alAbrir, abierto, vista, ...resto } = props
   const { editables, eliminables, leadsVisibles, alcance, publicar, ...datos } = resto
   const filtros = useFiltrosDelListado()
+  const ancha = useAlMenos(CORTE_DE_LA_TABLA)
   const hayCursor = useSearchParams().has(CLAVE_DE_CURSOR)
   const { origen } = datos
   const menu = paraElMenuDe({ editables, eliminables, leadsVisibles, alcance, publicar })
@@ -91,6 +94,7 @@ export function ResultadoDelListado(props: Props) {
         tarjetas={() => (
           <TarjetasDeVehiculos
             {...datos}
+            grande={ancha}
             vehiculos={pagina.filas}
             menu={menu}
             seleccion={papelera.seleccion}
