@@ -5,7 +5,7 @@ import { Badge } from '@/shared/ui/badge'
 import { AbrirResumen, TarjetaDeLista } from '@/shared/ui/lista'
 import { Monto } from '@/shared/ui/monto'
 import { useRegional } from '@/shared/ui/regional'
-import { ETIQUETA_DE_CLASE } from '../../../entities/historial-del-vehiculo'
+import { ETIQUETA_DE_APROBADA, ETIQUETA_DE_CLASE } from '../../../entities/historial-del-vehiculo'
 import { nombreDelOrigen, SIN_NOMBRE, type FilaDeCotizacion, type OrigenDelListado } from './tipos'
 import { Vigencia } from './vigencia'
 
@@ -38,6 +38,7 @@ export function TarjetasDeCotizaciones({ cotizaciones, origenes, alAbrir, abiert
               N.º {cotizacion.numero}
             </AbrirResumen>
             <Badge variant="secondary">{ETIQUETA_DE_CLASE[cotizacion.clase]}</Badge>
+            {cotizacion.aprobada ? <Badge variant="secondary">{ETIQUETA_DE_APROBADA}</Badge> : null}
             <span className="ml-auto font-medium tabular-nums">
               <Monto valor={cotizacion.totalBase} />
             </span>

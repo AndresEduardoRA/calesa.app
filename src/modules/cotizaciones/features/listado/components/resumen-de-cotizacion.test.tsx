@@ -54,6 +54,7 @@ const cotizacion = (extra: Partial<CotizacionDelListado> = {}): CotizacionDelLis
   cliente: null,
   vehiculo: null,
   autor: 'Ana',
+  aprobada: false,
   ...extra,
 })
 

@@ -12,7 +12,7 @@ import {
 import { Monto } from '@/shared/ui/monto'
 import { useRegional } from '@/shared/ui/regional'
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table'
-import { ETIQUETA_DE_CLASE } from '../../../entities/historial-del-vehiculo'
+import { ETIQUETA_DE_APROBADA, ETIQUETA_DE_CLASE } from '../../../entities/historial-del-vehiculo'
 import { nombreDelOrigen, SIN_NOMBRE, type FilaDeCotizacion, type OrigenDelListado } from './tipos'
 import { Vigencia } from './vigencia'
 
@@ -74,7 +74,12 @@ export function TablaDeCotizaciones({ cotizaciones, origenes, alAbrir, abierta }
               {nombreDelOrigen(origenes, cotizacion.origenId)}
             </TableCell>
             <TableCell>
-              <Badge variant="secondary">{ETIQUETA_DE_CLASE[cotizacion.clase]}</Badge>
+              <span className="flex flex-wrap gap-1">
+                <Badge variant="secondary">{ETIQUETA_DE_CLASE[cotizacion.clase]}</Badge>
+                {cotizacion.aprobada ? (
+                  <Badge variant="secondary">{ETIQUETA_DE_APROBADA}</Badge>
+                ) : null}
+              </span>
             </TableCell>
             <TableCell className="text-right tabular-nums">
               <Monto valor={cotizacion.totalBase} />

@@ -201,10 +201,10 @@ Agregar a inicio»), «Ver como» (quien gestiona roles), tema, densidad y «Cer
   «Reintentar».
   - **Pestaña de cotizaciones** (lead y vehículo): las que quien mira ve, de la más nueva, de a 20 con «Ver más» y, en 500, «Ver todas en
     Cotizaciones» (`/cotizaciones?lead=` o `?vehiculo=`); se lee al abrirla; esqueleto, error con «Reintentar», «Sin cotizaciones que
-    puedas ver.».
+    puedas ver.». Cada fila lleva la insignia «Aprobada» si es la aprobada de su vehículo (lo trae la misma lectura).
 - **Cotizaciones** — `/cotizaciones` (`cotizaciones.*`): tabla + resumen `?cotizacion=` (lo de la fila y «Abrir cotización»; una que no se
   ve dice que ya no está disponible); filtros mías, clase (preventa o final), origen; `?vehiculo=` y `?lead=` (ids fuera del esquema: sin
-  chip y «Limpiar» no los borra; arriba, de quién o de qué son, con «Ver todas», y su vacío propio); «Vencida» en la fila; `nuevo` abre la
+  chip y «Limpiar» no los borra; arriba, de quién o de qué son, con «Ver todas», y su vacío propio); «Vencida» en la fila y la insignia «Aprobada» (tabla, tarjeta y resumen); `nuevo` abre la
   hoja. «Papelera» (para quien puede enviar a ella o vaciarla) lleva a `/cotizaciones/papelera`: lotes por cursor (5, las primeras 20 de
   cada uno y «Mostrar los N»), «Restaurar» y «Purgar» una o el lote (`cotizaciones.papelera.purgar`,
   `?panel=purgar&lote=<id>[&cotizacion=<id>]`, nombra lo que borra; un lote de varios pide tipear «purgar N»; una final con comprobante
