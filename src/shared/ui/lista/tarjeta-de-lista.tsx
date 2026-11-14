@@ -3,11 +3,14 @@
 import type { ReactNode } from 'react'
 import { cn } from 'cn'
 import { esClicPropio } from '@/shared/lib/clic-de-fila'
+import { CLASES_DE_VISTO, useVistoDeLista } from './visto'
 
 type Props = {
   // Sin él (una lista sin resumen, la del equipo) la tarjeta no es un objetivo de clic.
   alAbrir?: () => void
   abierta?: boolean
+  // El id del registro, para su marca de «visto».
+  idDeVisto?: string
   // El «⋯» y, si la lista las tiene, la casilla: objetivos propios de la tarjeta, fuera de la zona que abre.
   acciones?: ReactNode
   children: ReactNode
@@ -17,12 +20,15 @@ type Props = {
 // mide menos de 16 rem y sus piezas se apilan en vez de ensanchar la página (`@max-[16rem]:…`). Un clic en cualquier parte la abre,
 // salvo el de lo que tiene adentro (`esClicPropio`); con el teclado se alcanza el botón del nombre (`<AbrirResumen>`). Una `<ul>` de
 // tarjetas es `grid-cols-[minmax(0,1fr)]`: una columna `auto` empujaría el «⋯» fuera de la vista.
-export function TarjetaDeLista({ alAbrir, abierta = false, acciones, children }: Props) {
+export function TarjetaDeLista({ alAbrir, abierta = false, idDeVisto, acciones, children }: Props) {
+  const visto = useVistoDeLista(idDeVisto)
   return (
     <li className="min-w-0">
       <article
         data-state={abierta ? 'selected' : undefined}
+        data-visto={visto ?? undefined}
         className={cn(
+          CLASES_DE_VISTO,
           '@container flex items-start rounded-(--radius-card) border border-(--color-line) bg-(--color-surface) has-[[data-abre-resumen]:focus-visible]:bg-(--color-surface-2)',
           alAbrir && 'cursor-pointer',
           abierta && 'bg-(--color-surface-2)',

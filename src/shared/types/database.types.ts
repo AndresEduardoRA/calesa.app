@@ -6754,6 +6754,39 @@ export type Database = {
           },
         ]
       }
+      vistos: {
+        Row: {
+          modulo: string
+          referencia_id: string
+          tipo: string
+          usuario_id: string
+          visto_en: string
+        }
+        ComputedFields: never
+        Insert: {
+          modulo: string
+          referencia_id: string
+          tipo: string
+          usuario_id: string
+          visto_en?: string
+        }
+        Update: {
+          modulo?: string
+          referencia_id?: string
+          tipo?: string
+          usuario_id?: string
+          visto_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'vistos_usuario_id_fkey'
+            columns: ['usuario_id']
+            isOneToOne: false
+            referencedRelation: 'perfiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       web_categorias_guias: {
         Row: {
           activa: boolean
@@ -11369,6 +11402,12 @@ export type Database = {
         Returns: Json
       }
       visita_registrar: { Args: { p_id: string; p_tipo: string }; Returns: undefined }
+      visto_registrar: {
+        Args: { p_id: string; p_modulo: string; p_tipo: string }
+        Returns: boolean
+      }
+      vistos_de: { Args: { p_ids: string[]; p_modulo: string; p_tipo: string }; Returns: Json }
+      vistos_purgar: { Args: Record<PropertyKey, never>; Returns: number }
       vitrina_del_origen: { Args: { p_origen: string }; Returns: Json }
       web_ajustes_guardar: {
         Args: { p_actualizado_en_esperado: string; p_cambios: Json }

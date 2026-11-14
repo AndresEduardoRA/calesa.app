@@ -1,7 +1,11 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { requerirSesion } from '@/modules/equipo'
-import { FormularioPerfil, PreferenciasPerfil } from '@/modules/equipo/pantallas/perfil'
+import {
+  FormularioPerfil,
+  PreferenciasPerfil,
+  VistosDelPerfil,
+} from '@/modules/equipo/pantallas/perfil'
 import { TurnosDelPerfil } from '@/modules/web/pantallas/perfil'
 import { urlPublicaONull } from '@/shared/lib/almacen'
 import { EsqueletoFormulario } from '@/shared/ui/esqueletos'
@@ -29,6 +33,7 @@ export default async function PaginaPerfil() {
         <TurnosDelPerfil permisos={sesion.permisos} miraOtroRol={sesion.perspectiva.rol !== null} />
       </Suspense>
       <PreferenciasPerfil />
+      <VistosDelPerfil />
       <Suspense fallback={<EsqueletoFormulario bloques={1} campos={3} />}>
         <NotificacionesSeccion usuarioId={sesion.usuarioId} permisos={sesion.permisos} />
       </Suspense>

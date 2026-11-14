@@ -7,6 +7,12 @@ import {
   type TamanoDePagina,
 } from '@/shared/lib/paginacion'
 import type { Densidad } from '@/shared/ui/densidad'
+import {
+  CLAVE_DE_VISTOS,
+  esquemaPreferenciaDeVistos,
+  preferenciaDeVistosDesde,
+  type PreferenciaDeVistos,
+} from './vistos'
 
 // Los mismos valores que entiende next-themes, para no traducir en el borde.
 export const TEMAS = ['light', 'dark', 'system'] as const
@@ -34,6 +40,8 @@ export type Preferencias = {
   porPagina: TamanoDePagina | null
   // Cuáles widgets del tablero ve y en qué orden (`tablero.widgets`). null = nunca personalizó: el tablero como viene.
   widgetsDelTablero: WidgetsDelTablero | null
+  // «Vistos» (`vistos`): encendido, cuántos días y si se marca el último. Sin elegir, lo de fábrica (encendido, 7 días, con «último visto»).
+  vistos: PreferenciaDeVistos
 }
 
 const esquemaDensidad = z.enum(DENSIDADES)
@@ -55,6 +63,7 @@ export function preferenciasDesde(crudo: unknown): Preferencias {
     tema: tema.success ? tema.data : null,
     porPagina: porPagina.success ? porPagina.data : null,
     widgetsDelTablero: widgets.success ? widgets.data : null,
+    vistos: preferenciaDeVistosDesde(valores[CLAVE_DE_VISTOS]),
   }
 }
 
@@ -70,6 +79,7 @@ export const esquemaPreferencia = z.discriminatedUnion('clave', [
     clave: z.literal(CLAVE_WIDGETS_DEL_TABLERO),
     valor: esquemaWidgetsDelTablero.nullable(),
   }),
+  z.object({ clave: z.literal(CLAVE_DE_VISTOS), valor: esquemaPreferenciaDeVistos.nullable() }),
 ])
 
 export type Preferencia = z.infer<typeof esquemaPreferencia>

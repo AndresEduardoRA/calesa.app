@@ -6,6 +6,7 @@ import {
   CeldaPegada,
   FilaDeLista,
   TablaDeLista,
+  SufijoDeVisto,
 } from '@/shared/ui/lista'
 import { Monto } from '@/shared/ui/monto'
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table'
@@ -79,6 +80,7 @@ function FilaDeTabla({
   return (
     <FilaDeLista
       abierta={abierto === vehiculo.id}
+      idDeVisto={vehiculo.id}
       alAbrir={() => {
         alAbrir(vehiculo.id)
       }}
@@ -108,6 +110,7 @@ function FilaDeTabla({
             </AbrirResumen>
             <span className="text-(length:--text-xs) text-(--color-ink-soft) tabular-nums">
               {identidad.titulo === null ? '' : `${identidad.titulo} · `}#{vehiculo.numero}
+              <SufijoDeVisto id={vehiculo.id} />
               {vehiculo.vin ? ` · ${vehiculo.vin}` : ''}
             </span>
           </div>

@@ -39,6 +39,7 @@ import { datosO } from '@/shared/lib/errores'
 import type { Permisos } from '@/shared/lib/permisos'
 import { unParametro } from '@/shared/lib/rutas'
 import { EstadoSinPermiso } from '@/shared/ui/estados'
+import { RegistrarVisto } from '@/modules/equipo/client'
 
 export const metadata: Metadata = { title: 'Lead' }
 
@@ -143,6 +144,7 @@ export default async function PaginaLead({ params, searchParams }: PageProps<'/l
   return (
     <>
       <RegistrarVisita tipo="lead" id={datos.ficha.id} />
+      <RegistrarVisto modulo="leads" tipo="lead" id={datos.ficha.id} />
       <FichaDeLead
         ficha={datos.ficha}
         campos={datos.campos}
