@@ -57,6 +57,12 @@ las trampas, en `docs/LECCIONES.md`.
 
 ## Equipo
 
+- **«Visto» en su tabla, no en `visitados`.** `visitados` es la lista corta del buscador (tope 50, cualquier módulo); `vistos` es por módulo y
+  crece con lo que cada persona abre: PK `(usuario, módulo, tipo, id)`, escritura por RPC con antirrebote de 30 s en la base y un techo de
+  20.000 filas por persona (el id no se valida contra su tabla), lectura de los ids de la página que se dibuja (una llamada) y purga cada hora
+  por la retención de cada persona, en un orden que rota. Qué está
+  visto lo pone `equipo` en un contexto de `@/shared/ui/lista`; la fila y la tarjeta lo leen con `idDeVisto`, sin pasar props por cada nivel.
+
 - **El guardián cuenta la unión de roles.** Debe quedar una persona operativa (activa, sin bloqueo, invitación aceptada) cuyos roles sumen los permisos de administración.
 - **Dominancia sobre la persona.** Bloquear, desbloquear, dar de baja y asignar/quitar roles exigen dominarla (`rol_dominado()`); el dueño (rol de clave `dueno`) domina a todos. Orden: `_dominancia_tomar()` → permiso → propia → perfil `for update` → dominancia (42501) → estado (PT409).
   `_dominancia_tomar()` es un candado de transacción común, el primero de toda RPC que comprueba la dominancia y de `nivel_crear` (suma

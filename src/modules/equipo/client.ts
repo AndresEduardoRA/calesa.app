@@ -17,3 +17,9 @@ export {
   CLAVE_WIDGETS_DEL_TABLERO,
   type WidgetsDelTablero,
 } from './entities/preferencias'
+// «Visto» y «último visto» de las listas (por persona y módulo): las marcas de una página, el registro al abrir y la preferencia.
+export { useVistos } from './features/vistos/hooks/use-vistos'
+export { RegistrarVisto } from './features/vistos/components/registrar-visto'
+export { usePreferenciaDeVistos } from './features/vistos/components/proveedor-de-vistos'
+export type { MarcaDeVisto, ModuloDeVistos, TipoDeVistos } from './entities/vistos'
+export { ProveedorDeMarcasDeVisto } from './features/vistos/components/marcas-de-visto'

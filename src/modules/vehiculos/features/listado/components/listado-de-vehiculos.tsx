@@ -1,6 +1,7 @@
 'use client'
 
 import type { VistaGuardada } from '@/modules/equipo/client'
+import type { ComponentProps } from 'react'
 import type { OrigenResumen } from '@/modules/origenes/client'
 import type { EsquemaDeFiltros } from '@/shared/lib/filtros'
 import type { Pagina } from '@/shared/lib/paginacion'
@@ -26,6 +27,7 @@ import { PieDeFiltros } from './pie-de-filtros'
 import { ResultadoDelListado } from './resultado-del-listado'
 import type { DatosDelOrigen, FilaDeVehiculo } from './tipos'
 import { VistasDeVehiculos } from './vistas-de-vehiculos'
+import { ProveedorDeMarcasDeVisto } from '@/modules/equipo/client'
 import { resolverAcciones, SIN_ACCIONES } from '@/shared/lib/acciones-del-aviso'
 import { CLAVE_DE_PANEL } from '@/shared/lib/filtros/url'
 import { AccionesDelAviso } from '@/shared/ui/acciones-del-aviso'
@@ -98,6 +100,20 @@ function MotivoDeAlta({
   )
 }
 
+// La lista con las marcas de «visto» de su página (una lectura) y el abierto marcado al abrirse.
+function ResultadoConVistos(props: ComponentProps<typeof ResultadoDelListado>) {
+  return (
+    <ProveedorDeMarcasDeVisto
+      modulo="vehiculos"
+      tipo="vehiculo"
+      ids={props.pagina.filas.map((fila) => fila.id)}
+      abierto={props.abierto}
+    >
+      <ResultadoDelListado {...props} />
+    </ProveedorDeMarcasDeVisto>
+  )
+}
+
 // La hoja de cotizar del origen con el panel del vehículo abierto en el alta a mano.
 function rutaDeAltaEnLaHoja(para: ParaCotizar): string {
   const [camino = '', consulta = ''] = para.ruta.split('?')
@@ -158,7 +174,7 @@ export function ListadoDeVehiculos(props: Props) {
           />
         }
       >
-        <ResultadoDelListado
+        <ResultadoConVistos
           {...resto}
           vista={vista.vista}
           alCambiarVista={vista.cambiar}

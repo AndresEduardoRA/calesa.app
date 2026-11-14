@@ -33,6 +33,7 @@ import {
   pestanasDeQuienMira,
 } from './pestanas'
 import { PestanasDeVehiculo } from './pestanas-de-vehiculo'
+import { RegistrarVisto } from '@/modules/equipo/client'
 
 export const metadata: Metadata = { title: 'Vehículo' }
 
@@ -119,6 +120,7 @@ export default async function PaginaVehiculo({
   return (
     <div className="grid max-w-4xl gap-4">
       <RegistrarVisita tipo="vehiculo" id={encontrado.id} />
+      <RegistrarVisto modulo="vehiculos" tipo="vehiculo" id={encontrado.id} />
       <VolverAlOrigen origen={origen} />
       <Encabezado
         vehiculo={encontrado}

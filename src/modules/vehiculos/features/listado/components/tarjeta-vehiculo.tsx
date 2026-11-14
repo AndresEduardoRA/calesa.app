@@ -1,7 +1,7 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import { AbrirResumen, TarjetaDeLista } from '@/shared/ui/lista'
+import { SufijoDeVisto, AbrirResumen, TarjetaDeLista } from '@/shared/ui/lista'
 import { cn } from 'cn'
 import { camposDeTarjeta, type CampoDeVehiculo } from '../../../entities/campo'
 import type { PrecioDeLaFila } from '../../../entities/precio-de-la-fila'
@@ -43,7 +43,12 @@ export function TarjetaVehiculo(props: Props) {
     return valor !== undefined && valor !== null && valor !== ''
   })
   return (
-    <TarjetaDeLista alAbrir={alAbrir} abierta={abierta ?? false} acciones={acciones}>
+    <TarjetaDeLista
+      alAbrir={alAbrir}
+      abierta={abierta ?? false}
+      idDeVisto={vehiculo.id}
+      acciones={acciones}
+    >
       {/* Con el texto al 200 % la tarjeta mide menos de 16 rem: la miniatura (rem) y el título no caben en una fila y se apilan. */}
       {/* Grande, la foto va arriba a todo el ancho (con flechas: ahí caben) y la casilla, sobre su esquina. */}
       <div className={cn('flex items-start gap-3 @max-[16rem]:flex-col', grande && 'flex-col')}>
@@ -70,6 +75,7 @@ export function TarjetaVehiculo(props: Props) {
             {identidad.titulo === null ? '' : `${identidad.titulo} · `}#{vehiculo.numero}
             {vehiculo.anio ? ` · ${String(vehiculo.anio)}` : ''}
             {vehiculo.vin ? ` · ${vehiculo.vin}` : ''}
+            <SufijoDeVisto id={vehiculo.id} />
           </p>
           <div className="flex flex-wrap items-center gap-2">
             <BadgeDeFase fase={fase} />

@@ -312,6 +312,12 @@ vista (`UnaSolaVista`, según el `user-agent`).
   aviso y «Buscarlas en tu embudo». Documento de la ficha ≤ 66 KB sobre `/perfil` con la sección abierta, igual con 10 o con 1.000; cada
   «Ver más» pesa lo mismo a cualquier profundidad; nodos lineales hasta 500 (`e2e/leads-oportunidades-ver-todas.spec.ts`).
 
+## Vistos
+
+- `vistos_de(módulo, tipo, ids)`: una llamada por página dibujada, ≤ 100 ids por la PK `(usuario, módulo, tipo, referencia_id)` y el último
+  por `vistos_ultimo_idx (usuario, módulo, tipo, visto_en desc)` con `limit 1`: no crece con lo que la persona vio. `visto_registrar`, un upsert
+  por PK. `vistos_purgar()` cada hora, por persona por `vistos_usuario_visto_idx`, lotes de 5.000 y 50.000 por corrida (el orden rota con la hora); techo de 20.000 filas por persona, contado con tope sólo al insertar.
+
 ## Alertas y bandeja de logística
 
 - `logistica_bandeja(5)` (definer, máx. 20): demoradas = por par (origen visible, fase que alerta) un rango de `vehiculos_cadena_idx` con
@@ -439,7 +445,7 @@ Cada sección por su RPC, de a `_acotar_pagina(p_tamano, 5, 20)` + 1, con el mí
   `useAlDescansar`; el cliente de Supabase, la suscripción, el panel, la lista, el hilo y el redactor van con `diferido()`. La campana: su
   contador con Realtime y su popover van con `diferido()` (sin eso `/cotizaciones` subía ≈ 66 KB). Una `chat_no_leidos` al montar y otra por
   ráfaga de señales (≥ 250 ms).
-- Documento de `/perfil` (HTML con el payload RSC, sin comprimir) ≤ 113 KB (`PRESUPUESTO_DEL_DOCUMENTO_DE_PERFIL_EN_KB`), igual con la
+- Documento de `/perfil` (HTML con el payload RSC, sin comprimir) ≤ 119 KB (113,3 con «Vistos») (`PRESUPUESTO_DEL_DOCUMENTO_DE_PERFIL_EN_KB`), igual con la
   semilla y con 100 + 100 + 100 catálogos (± 1 KB): lo paga toda pantalla del marco. Las ≈ 30 acciones de la paleta viajan como props del
   hueco del buscador; el formulario de «Tu ficha en la web» se monta y se pide con `diferido()` al abrirla. El layout `(app)` no manda
   catálogos al alta: `<AltaDeLead>` no recibe nada y los lee del navegador (`infra/contexto-de-alta.client.ts`, memoria de 60 s en

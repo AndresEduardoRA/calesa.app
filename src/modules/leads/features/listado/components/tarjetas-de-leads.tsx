@@ -46,6 +46,7 @@ export function TarjetasDeLeads(props: Props) {
           <TarjetaDeLista
             key={lead.id}
             abierta={abierto === lead.id}
+            idDeVisto={lead.id}
             alAbrir={() => {
               alAbrir(lead.id)
             }}

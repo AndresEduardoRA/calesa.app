@@ -9,6 +9,7 @@ import { ProveedorDensidad, type Densidad } from '@/shared/ui/densidad'
 import { ProveedorPorPagina, type ResultadoDeGuardar } from '@/shared/ui/por-pagina'
 import { avisarError } from '@/shared/ui/toasts'
 import { TEMAS, type Preferencias, type Tema } from '../../../entities/preferencias'
+import { ProveedorDeVistos } from '../../vistos/components/proveedor-de-vistos'
 import { guardarPreferencia } from '../actions/guardar-preferencia'
 
 function esTema(valor: string | undefined): valor is Tema {
@@ -24,7 +25,7 @@ type Props = Omit<Preferencias, 'widgetsDelTablero' | 'zonaHoraria' | 'vistaDeVe
 // Envuelve la app con las preferencias de la persona. La densidad y el tema se cambian desde
 // cualquier lado (`useDensidad()`, `useTheme()`): acá se aplican las guardadas al entrar y se
 // guarda cada cambio, así la persona las encuentra igual en su otro dispositivo.
-export function ProveedorPreferencias({ densidad, tema, porPagina, children }: Props) {
+export function ProveedorPreferencias({ densidad, tema, porPagina, vistos, children }: Props) {
   const { execute } = useAction(guardarPreferencia, {
     onError: ({ error }) => {
       // Sólo lo que la persona tiene que saber (su sesión venció). Si no se pudo guardar, la
@@ -81,7 +82,7 @@ export function ProveedorPreferencias({ densidad, tema, porPagina, children }: P
   return (
     <ProveedorDensidad inicial={densidad} alCambiar={guardarDensidad}>
       <ProveedorPorPagina inicial={porPagina} alGuardar={guardarPorPagina}>
-        {children}
+        <ProveedorDeVistos preferencia={vistos}>{children}</ProveedorDeVistos>
       </ProveedorPorPagina>
     </ProveedorDensidad>
   )

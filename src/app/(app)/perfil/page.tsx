@@ -4,6 +4,7 @@ import { requerirSesion } from '@/modules/equipo'
 import {
   FormularioPerfil,
   PreferenciasPerfil,
+  VistosDelPerfil,
   ZonaDelPerfil,
 } from '@/modules/equipo/pantallas/perfil'
 import { TurnosDelPerfil } from '@/modules/web/pantallas/perfil'
@@ -33,6 +34,7 @@ export default async function PaginaPerfil() {
         <TurnosDelPerfil permisos={sesion.permisos} miraOtroRol={sesion.perspectiva.rol !== null} />
       </Suspense>
       <PreferenciasPerfil />
+      <VistosDelPerfil />
       <ZonaDelPerfil elegida={sesion.preferencias.zonaHoraria} />
       <Suspense fallback={<EsqueletoFormulario bloques={1} campos={3} />}>
         <NotificacionesSeccion usuarioId={sesion.usuarioId} permisos={sesion.permisos} />

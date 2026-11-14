@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { concesionesDe, type Permisos } from '@/shared/lib/permisos'
 import { SIN_PERSPECTIVA, perspectivaDesde, type Perspectiva } from './perspectiva'
 import { preferenciasDesde, type Preferencias } from './preferencias'
+import { VISTOS_POR_DEFECTO } from './vistos'
 
 export const ESTADOS_CUENTA = ['activa', 'bloqueada', 'baja'] as const
 // bloqueada = no puede operar, no pierde nada; baja = salió del equipo (sus leads van al limbo).
@@ -103,6 +104,7 @@ export function sesionSinPerfil(usuarioId: string, email: string): Sesion {
       tema: null,
       porPagina: null,
       widgetsDelTablero: null,
+      vistos: VISTOS_POR_DEFECTO,
       zonaHoraria: null,
       vistaDeVehiculos: null,
     },
