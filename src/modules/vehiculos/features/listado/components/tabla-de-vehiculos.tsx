@@ -7,9 +7,13 @@ import {
   FilaDeLista,
   TablaDeLista,
 } from '@/shared/ui/lista'
-import { Monto } from '@/shared/ui/monto'
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table'
 import { camposDeTarjeta, type CampoDeVehiculo } from '../../../entities/campo'
+import {
+  columnaDePrecio,
+  precioDeLaFila,
+  type ColumnaDePrecio,
+} from '../../../entities/precio-de-la-fila'
 import type { IdentidadDeVehiculo } from '../../../entities/identidad'
 import { CasillaDeSeleccion } from '../../papelera/components/casilla-de-seleccion'
 import type { SeleccionDelListado } from '../../papelera/hooks/use-papelera-del-listado'
@@ -26,6 +30,7 @@ import {
   type FilaDeVehiculo,
   type ParaElMenuDeLaLista,
 } from './tipos'
+import { CeldaDePrecio, EncabezadoDePrecio } from './precio-de-la-fila'
 import { ValorDeCampo } from './valor-de-campo'
 import { FotosEnElLugar } from '../../fotos/components/fotos-en-el-lugar'
 import { BotonDeVitrinaDeLaFila } from '../../vitrina/components/boton-de-vitrina-de-la-fila'
@@ -56,6 +61,8 @@ type PropsDeFila = Pick<
   // Lo que lo nombra: su campo principal (con el título debajo) o su título.
   identidad: IdentidadDeVehiculo
   columnas: readonly CampoDeVehiculo[]
+  // «Precio» o, en un origen de subasta con la puja en su layout, «Puja actual».
+  columnaPrecio: ColumnaDePrecio
   // Alguna fila de la página tiene algo en su «⋯»: la columna existe.
   conMenu: boolean
 }
@@ -66,6 +73,7 @@ function FilaDeTabla({
   vehiculo,
   identidad,
   columnas,
+  columnaPrecio,
   origen,
   fases,
   vitrina,
@@ -126,7 +134,7 @@ function FilaDeTabla({
       </TableCell>
       <TableCell className="text-right tabular-nums">{vehiculo.anio ?? VACIO}</TableCell>
       <TableCell className="text-right">
-        {vehiculo.precio === null ? VACIO : <Monto valor={vehiculo.precio} />}
+        <CeldaDePrecio precio={precioDeLaFila(vehiculo, columnaPrecio)} />
       </TableCell>
       {columnas.map((campo) => (
         <TableCell key={campo.clave} className="max-w-48 truncate">
@@ -149,6 +157,7 @@ export function TablaDeVehiculos({ vehiculos, campos, encabezado, ...resto }: Pr
   const { menu, seleccion, vehiculos: filas } = { ...resto, vehiculos }
   const conMenu = hayMenuEnLaPagina(filas, menu)
   const columnas = camposDeTarjeta(campos)
+  const columnaPrecio = columnaDePrecio(resto.origen.tipo === 'subasta', campos)
   const identidadDe = useIdentidad(campos)
   return (
     <TablaDeLista>
@@ -168,7 +177,7 @@ export function TablaDeVehiculos({ vehiculos, campos, encabezado, ...resto }: Pr
           </CabeceraPegada>
           <TableHead>Fase</TableHead>
           <TableHead className="text-right">Año</TableHead>
-          <TableHead className="text-right">Precio</TableHead>
+          <EncabezadoDePrecio columna={columnaPrecio} />
           {columnas.map((campo) => (
             <TableHead key={campo.clave}>{campo.etiqueta}</TableHead>
           ))}
@@ -186,6 +195,7 @@ export function TablaDeVehiculos({ vehiculos, campos, encabezado, ...resto }: Pr
             vehiculo={vehiculo}
             identidad={identidadDe(vehiculo)}
             columnas={columnas}
+            columnaPrecio={columnaPrecio}
             conMenu={conMenu}
             {...resto}
           />

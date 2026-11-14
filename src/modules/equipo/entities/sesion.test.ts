@@ -49,6 +49,7 @@ describe('sesionDesde', () => {
         porPagina: null,
         widgetsDelTablero: null,
         zonaHoraria: null,
+        vistaDeVehiculos: null,
       },
     })
   })

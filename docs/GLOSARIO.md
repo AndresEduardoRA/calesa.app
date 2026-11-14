@@ -206,6 +206,8 @@ ese nombre: nunca un sinónimo ni su traducción al inglés.
   de la lista («drawer rápido» en el código).
 - **Patrón de lista** — `@/shared/ui/lista` (`<UnaSolaVista>`, `<FilaDeLista>`, `<MasAcciones>`…): tabla o tarjetas, nombre a la izquierda,
   «⋯» a la derecha.
+- **Vista de la lista** — `VistaDeLista` (`tabla` | `tarjetas`), `?vista=`, `<ConmutadorDeVista>`: cómo se ve una lista en escritorio; en el
+  inventario la recuerda `vehiculos.vista`. Por debajo de 768 px siempre tarjetas. No es una «Vista guardada».
 - **Vuelta del foco** — `abrirConVuelta()`, `useVueltaDelFoco()` (`src/shared/ui/vuelta-del-foco.ts`): tras recargar con un panel por URL,
   «atrás» devuelve el foco a quien lo abrió (desde un menú, al botón del menú).
 - **Más acciones («⋯»)** — `<MasAcciones>` / `accionesDeLead()`, `accionesDeVehiculo()`: menú de fila, tarjeta, resumen o ficha.
@@ -580,6 +582,9 @@ ese nombre: nunca un sinónimo ni su traducción al inglés.
 - **Cierre (de una subasta)** — `vehiculos.cierre_subasta_en` (generada): `coalesce(subasta_fin_en, subasta_en)` de una subasta abierta o en
   vivo; nula si no está viva. Ordena «Cierre subasta» del panel del vehículo, desde ahora menos 24 h.
 - **Estado de subasta** — `vehiculos.estado_subasta` / `EstadoDeSubasta`: `abierta`, `en vivo`, `terminada` o `vendida`; lo deriva la base.
+- **Puja actual** — `atributos.<campo de pricing.current_bid_usd>` / `columnaDePrecio()`, `precioDeLaFila()`: lo que va de la subasta, en
+  USD. En un origen de subasta con ese campo, la columna «Precio» del inventario se llama así; nunca es el precio del vehículo.
+- **Puja final** — la puja actual de una subasta `terminada` o `vendida`: la celda lleva «final» y la tarjeta dice «Puja final».
 - **Respuesta guardada** — `vehiculos.apibara_raw` / `leerSubasta().raw`: lo que apibara devolvió, entero; sólo el servidor la lee.
 - **Consulta de apibara** — `apibara_consultas` / `apibara_consulta_guardar()`, `FichaDeApibara.consulta`: cada respuesta de la edge function,
   a nombre de quien consultó.

@@ -2,11 +2,13 @@
 
 import type { ReactNode } from 'react'
 import { AbrirResumen, TarjetaDeLista } from '@/shared/ui/lista'
-import { Monto } from '@/shared/ui/monto'
+import { cn } from 'cn'
 import { camposDeTarjeta, type CampoDeVehiculo } from '../../../entities/campo'
+import type { PrecioDeLaFila } from '../../../entities/precio-de-la-fila'
 import type { Vehiculo } from '../../../entities/vehiculo'
 import { useIdentidad } from '../hooks/use-identidad'
 import { BadgeDeFase } from './badge-de-fase'
+import { PrecioDeTarjeta } from './precio-de-la-fila'
 import { ValorDeCampo } from './valor-de-campo'
 import { FotosEnElLugar } from '../../fotos/components/fotos-en-el-lugar'
 
@@ -25,11 +27,16 @@ type Props = {
   insignias?: ReactNode
   // La casilla para elegirlo, delante de la foto.
   seleccion?: ReactNode
+  // El precio, o la puja con su rótulo en un origen de subasta (`precioDeLaFila`).
+  precio: PrecioDeLaFila | null
+  // En escritorio, con las tarjetas elegidas: la foto arriba, a todo el ancho y con su carrusel.
+  grande?: boolean
 }
 
 // Un vehículo en una tarjeta de la lista (`@/shared/ui/lista`): lo que se ve en el celular en vez de la fila de la tabla.
 export function TarjetaVehiculo(props: Props) {
-  const { vehiculo, campos, fase, alAbrir, abierta, acciones, insignias, seleccion } = props
+  const { vehiculo, campos, fase, alAbrir, abierta, acciones, insignias, seleccion, precio } = props
+  const grande = props.grande ?? false
   const identidad = useIdentidad(campos)(vehiculo)
   const datos = camposDeTarjeta(campos).filter((campo) => {
     const valor = vehiculo.atributos[campo.clave]
@@ -38,10 +45,24 @@ export function TarjetaVehiculo(props: Props) {
   return (
     <TarjetaDeLista alAbrir={alAbrir} abierta={abierta ?? false} acciones={acciones}>
       {/* Con el texto al 200 % la tarjeta mide menos de 16 rem: la miniatura (rem) y el título no caben en una fila y se apilan. */}
-      <div className="flex items-start gap-3 @max-[16rem]:flex-col">
-        {seleccion}
-        <FotosEnElLugar vehiculo={vehiculo} modo="abrir" className="w-20" />
-        <div className="grid min-w-0 flex-1 gap-1 @max-[16rem]:flex-none">
+      {/* Grande, la foto va arriba a todo el ancho (con flechas: ahí caben) y la casilla, sobre su esquina. */}
+      <div className={cn('flex items-start gap-3 @max-[16rem]:flex-col', grande && 'flex-col')}>
+        {grande ? (
+          <div className="relative w-full">
+            <FotosEnElLugar vehiculo={vehiculo} modo="carrusel" className="w-full" />
+            {seleccion ? (
+              <div className="absolute top-1 left-1 rounded-(--radius-sm) bg-(--color-surface)">
+                {seleccion}
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <>
+            {seleccion}
+            <FotosEnElLugar vehiculo={vehiculo} modo="abrir" className="w-20" />
+          </>
+        )}
+        <div className={cn('grid min-w-0 flex-1 gap-1 @max-[16rem]:flex-none', grande && 'w-full')}>
           <h3 className="text-(length:--text-base) font-medium [overflow-wrap:anywhere] text-(--color-ink)">
             <AbrirResumen nombre={identidad.nombre}>{identidad.nombre}</AbrirResumen>
           </h3>
@@ -53,9 +74,7 @@ export function TarjetaVehiculo(props: Props) {
           <div className="flex flex-wrap items-center gap-2">
             <BadgeDeFase fase={fase} />
             {insignias}
-            {vehiculo.precio === null ? null : (
-              <Monto valor={vehiculo.precio} className="text-(length:--text-sm) font-medium" />
-            )}
+            <PrecioDeTarjeta precio={precio} />
           </div>
         </div>
       </div>

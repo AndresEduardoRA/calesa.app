@@ -11,6 +11,7 @@ describe('preferenciasDesde', () => {
       porPagina: 25,
       widgetsDelTablero: null,
       zonaHoraria: null,
+      vistaDeVehiculos: null,
     })
   })
 
@@ -21,6 +22,7 @@ describe('preferenciasDesde', () => {
       porPagina: null,
       widgetsDelTablero: null,
       zonaHoraria: null,
+      vistaDeVehiculos: null,
     }
     expect(preferenciasDesde({})).toEqual(sinElegir)
     expect(preferenciasDesde(null)).toEqual(sinElegir)
@@ -33,7 +35,19 @@ describe('preferenciasDesde', () => {
       porPagina: null,
       widgetsDelTablero: null,
       zonaHoraria: null,
+      vistaDeVehiculos: null,
     })
+  })
+
+  it('«vehiculos.vista» se lee si es tabla o tarjetas; otra cosa queda sin elegir', () => {
+    expect(preferenciasDesde({ 'vehiculos.vista': 'tarjetas' }).vistaDeVehiculos).toBe('tarjetas')
+    expect(preferenciasDesde({ 'vehiculos.vista': 'mosaico' }).vistaDeVehiculos).toBeNull()
+    expect(esquemaPreferencia.safeParse({ clave: 'vehiculos.vista', valor: 'tabla' }).success).toBe(
+      true,
+    )
+    expect(esquemaPreferencia.safeParse({ clave: 'vehiculos.vista', valor: 'lista' }).success).toBe(
+      false,
+    )
   })
 
   it('«tablero.widgets» se lee si tiene la forma y, si no, queda sin elegir sin dañar lo demás', () => {

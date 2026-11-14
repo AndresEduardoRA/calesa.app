@@ -104,6 +104,7 @@ export function sesionSinPerfil(usuarioId: string, email: string): Sesion {
       porPagina: null,
       widgetsDelTablero: null,
       zonaHoraria: null,
+      vistaDeVehiculos: null,
     },
   }
 }

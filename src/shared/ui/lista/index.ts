@@ -2,6 +2,7 @@
 // en cualquier parte de la fila o la tarjeta abre su resumen, y el «⋯» se llama igual en todas partes. Toda lista de un módulo lo usa;
 // `scripts/guardas/listas-con-patron.ts` falla si una no lo hace.
 export { AbrirResumen } from './abrir-resumen'
+export { ConmutadorDeVista } from './conmutador-de-vista'
 export type { AccionDeMenu } from './acciones'
 export { FilaDeLista } from './fila-de-lista'
 export { MasAcciones } from './mas-acciones'

@@ -172,7 +172,7 @@ T02 y T03 corriendo. La persona eligió pausarlo y que la tanda la haga esta ses
 - **Migración:** `vehiculos_alta_por_contexto` (clave, concesión, columna y RPC). Pruebas SQL: las cuatro combinaciones de claves.
 - **e2e:** `vehiculos-alta`, `cotizar-panel-crear-vehiculo`, `roles-*` (la matriz muestra la clave).
 
-### [ ] B2 · Tarjetas o tabla, y la columna de subasta (`feat(vehiculos): elegir la vista del inventario y nombrar la puja`)
+### [x] B2 · Tarjetas o tabla, y la columna de subasta (`feat(vehiculos): elegir la vista del inventario y nombrar la puja`)
 
 - **Conmutador «Tabla | Tarjetas»:**
   - En escritorio, en la barra del listado. La preferencia es `vehiculos.vista` en `preferencias_usuario`, con `?vista=` en la URL para
