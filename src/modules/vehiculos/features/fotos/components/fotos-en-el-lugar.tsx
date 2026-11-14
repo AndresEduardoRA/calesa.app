@@ -5,7 +5,7 @@ import { useCallback } from 'react'
 import { cn } from 'cn'
 import { urlPublica } from '@/shared/lib/almacen'
 import { CarruselEnElLugar, type ImagenDelVisor } from '@/shared/ui/visor-de-imagenes'
-import { leerFotosDelResumen } from '../../../composicion.client'
+import { leerFotosDelResumen } from '../../../composicion-fotos.client'
 
 type Props = {
   // La fila: su id, su título y la miniatura de la portada (ruta en el bucket `vehiculos`).
